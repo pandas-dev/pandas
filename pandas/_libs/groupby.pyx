@@ -707,6 +707,7 @@ def group_sum(
     uint8_t[:, ::1] result_mask=None,
     Py_ssize_t min_count=0,
     bint is_datetimelike=False,
+    object initial=0,
     bint skipna=True,
 ) -> None:
     """
@@ -725,9 +726,15 @@ def group_sum(
         raise ValueError("len(index) != len(labels)")
 
     nobs = np.zeros((<object>out).shape, dtype=np.int64)
-    # the below is equivalent to `np.zeros_like(out)` but faster
-    sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
-    compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+    if initial == 0:
+        # the below is equivalent to `np.zeros_like(out)` but faster
+        sumx = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+        compensation = np.zeros((<object>out).shape, dtype=(<object>out).base.dtype)
+    else:
+        # in practice this path is only taken for strings to use empty string as initial
+        assert sum_t is object
+        sumx = np.full((<object>out).shape, initial, dtype=object)
+        # object code path does not use `compensation`
 
     N, K = (<object>values).shape
     if uses_mask:
@@ -2041,9 +2048,8 @@ def group_idxmin_idxmax(
         group_min_or_max = np.empty_like(out, dtype=values.dtype)
         seen = np.zeros_like(out, dtype=np.uint8)
 
-    # When using transform, we need a valid value for take in the case
-    # a category is not observed; these values will be dropped
-    out[:] = 0
+    # Sentinel for no valid values.
+    out[:] = -1
 
     with nogil(numeric_object_t is not object):
         for i in range(N):

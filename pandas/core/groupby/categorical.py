@@ -53,7 +53,7 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
 
         # we recode according to the uniques
         categories = c.categories.take(take_codes)
-        codes = recode_for_categories(c.codes, c.categories, categories)
+        codes = recode_for_categories(c.codes, c.categories, categories, copy=False)
 
         # return a new categorical that maps our new codes
         # and categories

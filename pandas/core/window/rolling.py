@@ -13,7 +13,9 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
+    Concatenate,
     Literal,
+    Self,
     final,
     overload,
 )
@@ -109,11 +111,9 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
-        Concatenate,
         NDFrameT,
         QuantileInterpolation,
         P,
-        Self,
         T,
         WindowingRankType,
         npt,

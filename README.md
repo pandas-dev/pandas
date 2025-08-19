@@ -19,9 +19,9 @@
 **pandas** is a Python package that provides fast, flexible, and expressive data
 structures designed to make working with "relational" or "labeled" data both
 easy and intuitive. It aims to be the fundamental high-level building block for
-doing practical, **real world** data analysis in Python. Additionally, it has
-the broader goal of becoming **the most powerful and flexible open source data
-analysis / manipulation tool available in any language**. It is already well on
+doing practical, **real-world** data analysis in Python. Additionally, it has
+the broader goal of becoming **the most powerful and flexible open-source data
+analysis/manipulation tool available in any language**. It is already well on
 its way towards this goal.
 
 ## Table of Contents
@@ -64,7 +64,7 @@ Here are just a few of the things that pandas does well:
     data sets
   - [**Hierarchical**][mi] labeling of axes (possible to have multiple
     labels per tick)
-  - Robust IO tools for loading data from [**flat files**][flat-files]
+  - Robust I/O tools for loading data from [**flat files**][flat-files]
     (CSV and delimited), [**Excel files**][excel], [**databases**][db],
     and saving/loading data from the ultrafast [**HDF5 format**][hdfstore]
   - [**Time series**][timeseries]-specific functionality: date range
@@ -115,7 +115,7 @@ details, see the commit logs at https://github.com/pandas-dev/pandas.
 ## Dependencies
 - [NumPy - Adds support for large, multi-dimensional arrays, matrices and high-level mathematical functions to operate on these arrays](https://www.numpy.org)
 - [python-dateutil - Provides powerful extensions to the standard datetime module](https://dateutil.readthedocs.io/en/stable/index.html)
-- [pytz - Brings the Olson tz database into Python which allows accurate and cross platform timezone calculations](https://github.com/stub42/pytz)
+- [tzdata - Provides an IANA time zone database](https://tzdata.readthedocs.io/en/latest/)
 
 See the [full installation instructions](https://pandas.pydata.org/pandas-docs/stable/install.html#dependencies) for minimum supported versions of required, recommended and optional dependencies.
 
@@ -138,7 +138,7 @@ or for installing in [development mode](https://pip.pypa.io/en/latest/cli/pip_in
 
 
 ```sh
-python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
+python -m pip install -ve . --no-build-isolation --config-settings editable-verbose=true
 ```
 
 See the full instructions for [installing from source](https://pandas.pydata.org/docs/dev/development/contributing_environment.html).
@@ -155,7 +155,7 @@ has been under active development since then.
 
 ## Getting Help
 
-For usage questions, the best place to go to is [StackOverflow](https://stackoverflow.com/questions/tagged/pandas).
+For usage questions, the best place to go to is [Stack Overflow](https://stackoverflow.com/questions/tagged/pandas).
 Further, general questions and discussions can also take place on the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
 
 ## Discussion and Development

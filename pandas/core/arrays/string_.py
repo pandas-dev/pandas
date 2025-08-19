@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
 )
 import warnings
@@ -52,6 +53,7 @@ from pandas.core import (
     missing,
     nanops,
     ops,
+    roperator,
 )
 from pandas.core.algorithms import isin
 from pandas.core.array_algos import masked_reductions
@@ -84,7 +86,6 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         Scalar,
-        Self,
         npt,
         type_t,
     )
@@ -282,12 +283,7 @@ class StringDtype(StorageExtensionDtype):
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
-    # https://github.com/pandas-dev/pandas/issues/36126
-    # error: Signature of "construct_array_type" incompatible with supertype
-    # "ExtensionDtype"
-    def construct_array_type(  # type: ignore[override]
-        self,
-    ) -> type_t[BaseStringArray]:
+    def construct_array_type(self) -> type_t[BaseStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -389,6 +385,26 @@ class BaseStringArray(ExtensionArray):
     """
 
     dtype: StringDtype
+
+    # TODO(4.0): Once the deprecation here is enforced, this method can be
+    #  removed and we use the parent class method instead.
+    def _logical_method(self, other, op):
+        if (
+            op in (roperator.ror_, roperator.rand_, roperator.rxor)
+            and isinstance(other, np.ndarray)
+            and other.dtype == bool
+        ):
+            # GH#60234 backward compatibility for the move to StringDtype in 3.0
+            op_name = op.__name__[1:].strip("_")
+            warnings.warn(
+                f"'{op_name}' operations between boolean dtype and {self.dtype} are "
+                "deprecated and will raise in a future version. Explicitly "
+                "cast the strings to a boolean dtype before operating instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return op(other, self.astype(bool))
+        return NotImplemented
 
     @doc(ExtensionArray.tolist)
     def tolist(self) -> list:
