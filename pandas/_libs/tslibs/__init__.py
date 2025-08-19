@@ -1,5 +1,6 @@
 __all__ = [
     "BaseOffset",
+    "Day",
     "IncompatibleFrequency",
     "NaT",
     "NaTType",
@@ -61,6 +62,7 @@ from pandas._libs.tslibs.np_datetime import (
 )
 from pandas._libs.tslibs.offsets import (
     BaseOffset,
+    Day,
     Tick,
     to_offset,
 )

@@ -9,6 +9,7 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Literal,
+    Self,
     TypeAlias,
     overload,
 )
@@ -31,7 +32,6 @@ from pandas._typing import (
     NpDtype,
     PositionalIndexer,
     ScalarIndexer,
-    Self,
     SequenceIndexer,
     SortKind,
     TimeArrayLike,

@@ -257,7 +257,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
     [
         (pd.Categorical(["a", "b"]), "_codes"),
         (PeriodArray._from_sequence(["2000", "2001"], dtype="period[D]"), "_ndarray"),
-        (pd.array([0, np.nan], dtype="Int64"), "_data"),
+        (pd.array([0, pd.NA], dtype="Int64"), "_data"),
         (IntervalArray.from_breaks([0, 1]), "_left"),
         (SparseArray([0, 1]), "_sparse_values"),
         (
@@ -305,7 +305,7 @@ def test_array_multiindex_raises():
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
             False,
         ),
-        (pd.array([0, np.nan], dtype="Int64"), np.array([0, np.nan]), False),
+        (pd.array([0, pd.NA], dtype="Int64"), np.array([0, np.nan]), False),
         (
             IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),

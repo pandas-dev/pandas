@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
 )
 
 import numpy as np
@@ -42,7 +43,6 @@ if TYPE_CHECKING:
         InterpolateOptions,
         NpDtype,
         Scalar,
-        Self,
         npt,
     )
 

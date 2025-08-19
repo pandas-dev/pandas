@@ -15,6 +15,7 @@ from typing import (
     Any,
     ClassVar,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -96,7 +97,6 @@ if TYPE_CHECKING:
         NumpyValueArrayLike,
         PositionalIndexer,
         ScalarIndexer,
-        Self,
         SequenceIndexer,
         Shape,
         SortKind,

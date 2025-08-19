@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     final,
 )
@@ -32,7 +33,6 @@ from pandas._typing import (
     IgnoreRaise,
     InterpolateOptions,
     QuantileInterpolation,
-    Self,
     Shape,
     npt,
 )
