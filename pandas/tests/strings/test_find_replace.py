@@ -290,6 +290,19 @@ def test_contains_nan(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_contains_compiled_regex(any_string_dtype):
+    # GH#61942
+    ser = Series(["foo", "bar", "baz"], dtype=any_string_dtype)
+    pat = re.compile("ba.")
+    result = ser.str.contains(pat)
+
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    expected = Series([False, True, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.startswith
 # --------------------------------------------------------------------------------------
