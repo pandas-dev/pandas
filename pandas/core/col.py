@@ -238,6 +238,10 @@ def col(col_name: Hashable) -> Expression:
     `pandas.api.typing.Expression`
         A deferred object representing a column of a DataFrame.
 
+    See Also
+    --------
+    DataFrame.query : Query columns of a dataframe using string expressions.
+
     Examples
     --------
 
