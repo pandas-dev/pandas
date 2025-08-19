@@ -1151,7 +1151,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         For :class:`pandas.CategoricalIndex`:
 
         >>> ci = pd.CategoricalIndex(
-        ...     ["a", "b", "c", "A"], categories=["a", "b", "c"], ordered=True
+        ...     ["a", "b", "c", None], categories=["a", "b", "c"], ordered=True
         ... )
         >>> ci
         CategoricalIndex(['a', 'b', 'c', nan], categories=['a', 'b', 'c'],
@@ -2992,7 +2992,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         Examples
         --------
-        >>> raw_cate = pd.Categorical(["a", "b", "c", "a"], categories=["a", "b"])
+        >>> raw_cate = pd.Categorical(["a", "b", None, "a"], categories=["a", "b"])
         >>> ser = pd.Series(raw_cate)
         >>> ser.cat.codes
         0   0
