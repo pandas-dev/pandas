@@ -1030,7 +1030,10 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     # "Dict[int, PandasExtensionDtype]", base class "PandasExtensionDtype"
     # defined the type as "Dict[str, PandasExtensionDtype]")  [assignment]
     _cache_dtypes: dict[BaseOffset, int] = {}  # type: ignore[assignment]
-    __hash__ = PeriodDtypeBase.__hash__
+    # error: Incompatible types in assignment (expression has type
+    # "Callable[[PeriodDtypeBase], int]", base class "PandasExtensionDtype"
+    # defined the type as "Callable[[PandasExtensionDtype], int]")
+    __hash__ = PeriodDtypeBase.__hash__  # type: ignore[assignment]
     _freq: BaseOffset
     _supports_2d = True
     _can_fast_transpose = True
