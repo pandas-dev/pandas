@@ -43,7 +43,7 @@ def _parse_args(df: DataFrame, *args: Any) -> tuple[Series]:
     return tuple([x(df) if isinstance(x, Expression) else x for x in args])
 
 
-def _parse_kwargs(df: DataFrame, **kwargs: Any) -> dict[Hashable, Series]:
+def _parse_kwargs(df: DataFrame, **kwargs: Any) -> dict[str, Any]:
     # Parse `kwargs`, evaluating any expressions we encounter.
     return {
         key: val(df) if isinstance(val, Expression) else val

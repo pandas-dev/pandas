@@ -32,7 +32,7 @@ from pandas.tests.test_register_accessor import ensure_removed
         (pd.col("a") < 1, [False, False], "(col('a') < 1)"),
         (pd.col("a") <= 1, [True, False], "(col('a') <= 1)"),
         (pd.col("a") == 1, [True, False], "(col('a') == 1)"),
-        (np.log(pd.col("a")), [0.0, 0.6931471805599453], "log(col('a'))"),
+        (np.power(pd.col("a"), 2), [1, 4], "power(col('a'), 2)"),
         (np.divide(pd.col("a"), pd.col("a")), [1.0, 1.0], "divide(col('a'), col('a'))"),
     ],
 )
