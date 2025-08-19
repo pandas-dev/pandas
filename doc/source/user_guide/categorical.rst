@@ -77,7 +77,7 @@ By passing a :class:`pandas.Categorical` object to a ``Series`` or assigning it 
 .. ipython:: python
 
     raw_cat = pd.Categorical(
-        ["a", "b", "c", "a"], categories=["b", "c", "d"], ordered=False
+        [None, "b", "c", "a"], categories=["b", "c", "d"], ordered=False
     )
     s = pd.Series(raw_cat)
     s

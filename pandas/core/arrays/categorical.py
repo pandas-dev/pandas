@@ -821,7 +821,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         >>> ser.cat.categories
         Index(['a', 'b', 'c'], dtype='str')
 
-        >>> raw_cat = pd.Categorical(["a", "b", "c", "a"], categories=["b", "c", "d"])
+        >>> raw_cat = pd.Categorical([None, "b", "c", "a"], categories=["b", "c", "d"])
         >>> ser = pd.Series(raw_cat)
         >>> ser.cat.categories
         Index(['b', 'c', 'd'], dtype='str')
@@ -1129,7 +1129,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         For :class:`pandas.Series`:
 
         >>> raw_cat = pd.Categorical(
-        ...     ["a", "b", "c", "A"], categories=["a", "b", "c"], ordered=True
+        ...     ["a", "b", "c", None], categories=["a", "b", "c"], ordered=True
         ... )
         >>> ser = pd.Series(raw_cat)
         >>> ser
