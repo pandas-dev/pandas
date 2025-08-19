@@ -28,6 +28,7 @@ Bug fixes
 - Boolean operations (``|``, ``&``, ``^``) with bool-dtype objects on the left and :class:`StringDtype` objects on the right now cast the string to bool, with a deprecation warning (:issue:`60234`)
 - Fixed ``~Series.str.match``, ``~Series.str.fullmatch`` and ``~Series.str.contains``
   with compiled regex for the Arrow-backed string dtype (:issue:`61964`, :issue:`61942`)
+- Fix assumption that :class:`numpy.void` dtypes are always structured (:issue:`#54810`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_232.contributors:
