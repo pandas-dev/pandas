@@ -392,6 +392,73 @@ class ArrowExtensionArray(
             )
         return cls._from_sequence(scalars, dtype=pa_type, copy=copy)
 
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        if len(values) == 0:
+            # Retain our dtype
+            return self[:0].copy()
+
+        try:
+            arr = pa.array(values, from_pandas=True)
+        except (ValueError, TypeError):
+            # e.g. test_by_column_values_with_same_starting_value with nested
+            #  values, one entry of which is an ArrowStringArray
+            #  or test_agg_lambda_complex128_dtype_conversion for complex values
+            return super()._cast_pointwise_result(values)
+
+        if pa.types.is_duration(arr.type):
+            # workaround for https://github.com/apache/arrow/issues/40620
+            result = ArrowExtensionArray._from_sequence(values)
+            if pa.types.is_duration(self._pa_array.type):
+                result = result.astype(self.dtype)  # type: ignore[assignment]
+            elif pa.types.is_timestamp(self._pa_array.type):
+                # Try to retain original unit
+                new_dtype = ArrowDtype(pa.duration(self._pa_array.type.unit))
+                try:
+                    result = result.astype(new_dtype)  # type: ignore[assignment]
+                except ValueError:
+                    pass
+            elif pa.types.is_date64(self._pa_array.type):
+                # Try to match unit we get on non-pointwise op
+                dtype = ArrowDtype(pa.duration("ms"))
+                result = result.astype(dtype)  # type: ignore[assignment]
+            elif pa.types.is_date(self._pa_array.type):
+                # Try to match unit we get on non-pointwise op
+                dtype = ArrowDtype(pa.duration("s"))
+                result = result.astype(dtype)  # type: ignore[assignment]
+            return result
+
+        elif pa.types.is_date(arr.type) and pa.types.is_date(self._pa_array.type):
+            arr = arr.cast(self._pa_array.type)
+        elif pa.types.is_time(arr.type) and pa.types.is_time(self._pa_array.type):
+            arr = arr.cast(self._pa_array.type)
+        elif pa.types.is_decimal(arr.type) and pa.types.is_decimal(self._pa_array.type):
+            arr = arr.cast(self._pa_array.type)
+        elif pa.types.is_integer(arr.type) and pa.types.is_integer(self._pa_array.type):
+            try:
+                arr = arr.cast(self._pa_array.type)
+            except pa.lib.ArrowInvalid:
+                # e.g. test_combine_add if we can't cast
+                pass
+        elif pa.types.is_floating(arr.type) and pa.types.is_floating(
+            self._pa_array.type
+        ):
+            try:
+                arr = arr.cast(self._pa_array.type)
+            except pa.lib.ArrowInvalid:
+                # e.g. test_combine_add if we can't cast
+                pass
+
+        if isinstance(self.dtype, StringDtype):
+            if pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type):
+                # ArrowStringArrayNumpySemantics
+                return type(self)(arr).astype(self.dtype)
+            if self.dtype.na_value is np.nan:
+                # ArrowEA has different semantics, so we return numpy-based
+                #  result instead
+                return super()._cast_pointwise_result(values)
+            return ArrowExtensionArray(arr)
+        return type(self)(arr)
+
     @classmethod
     def _box_pa(
         cls, value, pa_type: pa.DataType | None = None
