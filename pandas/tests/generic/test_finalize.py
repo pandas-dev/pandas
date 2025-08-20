@@ -375,6 +375,10 @@ def idfn(x):
         return str(x)
 
 
+@pytest.mark.filterwarnings(
+    r"ignore:The default value of empty string \(''\) for suffix parameters "
+    "is deprecated:DeprecationWarning"
+)
 @pytest.mark.parametrize("ndframe_method", _all_methods, ids=lambda x: idfn(x[-1]))
 def test_finalize_called(ndframe_method):
     cls, init_args, method = ndframe_method
