@@ -103,7 +103,6 @@ if TYPE_CHECKING:
         AstypeArg,
         AxisInt,
         Dtype,
-        DtypeObj,
         NpDtype,
         Ordered,
         Shape,
@@ -529,20 +528,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ) -> Self:
         return cls(scalars, dtype=dtype, copy=copy)
 
-    @classmethod
-    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
-        if dtype is None:
-            # The _from_scalars strictness doesn't make much sense in this case.
-            raise NotImplementedError
-
-        res = cls._from_sequence(scalars, dtype=dtype)
-
-        # if there are any non-category elements in scalars, these will be
-        #  converted to NAs in res.
-        mask = isna(scalars)
-        if not (mask == res.isna()).all():
-            # Some non-category element in scalars got converted to NA in res.
-            raise ValueError
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        res = super()._cast_pointwise_result(values)
+        cat = type(self)._from_sequence(res, dtype=self.dtype)
+        if (cat.isna() == isna(res)).all():
+            # i.e. the conversion was non-lossy
+            return cat
         return res
 
     @overload

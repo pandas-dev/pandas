@@ -188,6 +188,8 @@ def test_with_na_groups(any_real_numpy_dtype):
 
     agged = grouped.agg(f)
     expected = Series([4.0, 2.0], index=["bar", "foo"])
+    if values.dtype == np.float32:
+        expected = expected.astype(np.float32)
 
     tm.assert_series_equal(agged, expected)
 
@@ -546,6 +548,14 @@ def test_callable_result_dtype_frame(
     op = getattr(df.groupby(keys)[["c"]], method)
     result = op(lambda x: x.astype(result_dtype).iloc[0])
     expected_index = pd.RangeIndex(0, 1) if method == "transform" else agg_index
+
+    if method == "aggregate":
+        # _cast_pointwise_result retains the input's dtype where feasible
+        if input_dtype == "float32" and result_dtype == "float64":
+            result_dtype = "float32"
+        if input_dtype == "int32" and result_dtype == "int64":
+            result_dtype = "int32"
+
     expected = DataFrame({"c": [df["c"].iloc[0]]}, index=expected_index).astype(
         result_dtype
     )
@@ -1813,31 +1823,23 @@ def test_groupby_aggregation_func_list_multi_index_duplicate_columns():
 
 @td.skip_if_no("pyarrow")
 @pytest.mark.parametrize(
-    "input_dtype, output_dtype",
-    [
-        # With NumPy arrays, the results from the UDF would be e.g. np.float32 scalars
-        # which we can therefore preserve. However with PyArrow arrays, the results are
-        # Python scalars so we have no information about size or uint vs int.
-        ("float[pyarrow]", "double[pyarrow]"),
-        ("int64[pyarrow]", "int64[pyarrow]"),
-        ("uint64[pyarrow]", "int64[pyarrow]"),
-        ("bool[pyarrow]", "bool[pyarrow]"),
-    ],
+    "dtype",
+    ["float[pyarrow]", "int64[pyarrow]", "uint64[pyarrow]", "bool[pyarrow]"],
 )
-def test_agg_lambda_pyarrow_dtype_conversion(input_dtype, output_dtype):
+def test_agg_lambda_pyarrow_dtype_conversion(dtype):
     # GH#59601
     # Test PyArrow dtype conversion back to PyArrow dtype
     df = DataFrame(
         {
             "A": ["c1", "c2", "c3", "c1", "c2", "c3"],
-            "B": pd.array([100, 200, 255, 0, 199, 40392], dtype=input_dtype),
+            "B": pd.array([100, 200, 255, 0, 199, 40392], dtype=dtype),
         }
     )
     gb = df.groupby("A")
     result = gb.agg(lambda x: x.min())
 
     expected = DataFrame(
-        {"B": pd.array([0, 199, 255], dtype=output_dtype)},
+        {"B": pd.array([0, 199, 255], dtype=dtype)},
         index=Index(["c1", "c2", "c3"], name="A"),
     )
     tm.assert_frame_equal(result, expected)

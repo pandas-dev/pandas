@@ -264,8 +264,6 @@ def test_apply(test_frame):
         return x.resample("2s").apply(lambda y: y.sum())
 
     result = g.apply(f_1)
-    # y.sum() results in int64 instead of int32 on 32-bit architectures
-    expected = expected.astype("int64")
     tm.assert_frame_equal(result, expected)
 
 
@@ -295,7 +293,9 @@ def test_apply_columns_multilevel():
     # GH 16231
     cols = pd.MultiIndex.from_tuples([("A", "a", "", "one"), ("B", "b", "i", "two")])
     ind = date_range(start="2017-01-01", freq="15Min", periods=8)
-    df = DataFrame(np.array([0] * 16).reshape(8, 2), index=ind, columns=cols)
+    df = DataFrame(
+        np.array([0] * 16, dtype=np.int64).reshape(8, 2), index=ind, columns=cols
+    )
     agg_dict = {col: (np.sum if col[3] == "one" else np.mean) for col in df.columns}
     result = df.resample("h").apply(lambda x: agg_dict[x.name](x))
     expected = DataFrame(

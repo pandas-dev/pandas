@@ -1246,12 +1246,7 @@ def test_resample_not_monotonic(unit):
         "int64",
         "int32",
         "float64",
-        pytest.param(
-            "float32",
-            marks=pytest.mark.xfail(
-                reason="Empty groups cause x.mean() to return float64"
-            ),
-        ),
+        "float32",
     ],
 )
 def test_resample_median_bug_1688(dtype, unit):
