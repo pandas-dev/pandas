@@ -49,6 +49,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
@@ -203,8 +204,6 @@ class StringMethods(NoNewAttributesMixin):
     # * extractall
 
     def __init__(self, data) -> None:
-        from pandas.core.arrays.string_ import StringDtype
-
         self._inferred_dtype = self._validate(data)
         self._is_categorical = isinstance(data.dtype, CategoricalDtype)
         self._is_string = isinstance(data.dtype, StringDtype)
@@ -255,6 +254,14 @@ class StringMethods(NoNewAttributesMixin):
         data = extract_array(data)
 
         values = getattr(data, "categories", data)  # categorical / normal
+        if data.dtype == object and get_option("future.infer_string"):
+            warnings.warn(
+                # GH#29710
+                ".str accessor on object dtype is deprecated. Explicitly cast "
+                "to 'str' dtype instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         inferred_dtype = lib.infer_dtype(values, skipna=True)
 
@@ -3875,7 +3882,6 @@ def _result_dtype(arr):
     # workaround #27953
     # ideally we just pass `dtype=arr.dtype` unconditionally, but this fails
     # when the list of values is empty.
-    from pandas.core.arrays.string_ import StringDtype
 
     if isinstance(arr.dtype, (ArrowDtype, StringDtype)):
         return arr.dtype

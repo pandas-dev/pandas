@@ -160,6 +160,7 @@ class TestSeriesMisc:
         result = s + 1
         assert result.attrs == {"version": 1}
 
+    @pytest.mark.filterwarnings("ignore:.str accessor:FutureWarning")
     def test_inspect_getmembers(self):
         # GH38782
         ser = Series(dtype=object)

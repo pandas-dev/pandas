@@ -2744,7 +2744,7 @@ Object arrays containing only null values are prohibited. Other object
 types cannot be exported and must first be converted to one of the
 supported types."""
                     )
-                encoded = self.data[col].str.encode(self._encoding)
+                encoded = self.data[col].astype("str").str.encode(self._encoding)
                 # If larger than _max_string_length do nothing
                 if (
                     max_len_string_array(ensure_object(self.data[col]._values))

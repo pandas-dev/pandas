@@ -17,6 +17,10 @@ from pandas.tests.strings import (
     is_object_or_nan_string_dtype,
 )
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:.str accessor on object dtype:FutureWarning"
+)
+
 
 @pytest.mark.parametrize("method", ["split", "rsplit"])
 def test_split(any_string_dtype, method):

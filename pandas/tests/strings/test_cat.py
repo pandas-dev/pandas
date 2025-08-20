@@ -15,6 +15,10 @@ from pandas import (
     option_context,
 )
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:.str accessor on object dtype:FutureWarning"
+)
+
 
 @pytest.fixture
 def index_or_series2(index_or_series):

@@ -18,6 +18,10 @@ import pandas._testing as tm
 from pandas.core.strings.accessor import StringMethods
 from pandas.tests.strings import is_object_or_nan_string_dtype
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:.str accessor on object dtype:FutureWarning"
+)
+
 
 @pytest.mark.parametrize("pattern", [0, True, Series(["foo", "bar"])])
 def test_startswith_endswith_non_str_patterns(pattern):

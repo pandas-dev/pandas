@@ -14,6 +14,10 @@ from pandas import (
     _testing as tm,
 )
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:.str accessor on object dtype:FutureWarning"
+)
+
 
 def test_extract_expand_kwarg_wrong_type_raises(any_string_dtype):
     # TODO: should this raise TypeError

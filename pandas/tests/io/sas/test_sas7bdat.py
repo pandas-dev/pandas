@@ -109,6 +109,9 @@ class TestSAS7BDAT:
         tm.assert_frame_equal(d1, d2)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:.str accessor on object dtype is deprecated:FutureWarning"
+)
 def test_encoding_options(datapath):
     fname = datapath("io", "sas", "data", "test1.sas7bdat")
     df1 = pd.read_sas(fname)

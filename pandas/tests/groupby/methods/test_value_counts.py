@@ -347,8 +347,12 @@ def test_against_frame_and_seriesgroupby(
         expected.name = name
         if as_index:
             index_frame = expected.index.to_frame(index=False)
-            index_frame["gender"] = index_frame["both"].str.split("-").str.get(0)
-            index_frame["education"] = index_frame["both"].str.split("-").str.get(1)
+            index_frame["gender"] = (
+                index_frame["both"].astype(str).str.split("-").map(lambda x: x[0])
+            )
+            index_frame["education"] = (
+                index_frame["both"].astype(str).str.split("-").map(lambda x: x[1])
+            )
             del index_frame["both"]
             index_frame2 = index_frame.rename({0: None}, axis=1)
             expected.index = MultiIndex.from_frame(index_frame2)
@@ -360,8 +364,16 @@ def test_against_frame_and_seriesgroupby(
                 expected.index.names = [None] + expected.index.names[1:]
             tm.assert_series_equal(result, expected)
         else:
-            expected.insert(1, "gender", expected["both"].str.split("-").str.get(0))
-            expected.insert(2, "education", expected["both"].str.split("-").str.get(1))
+            expected.insert(
+                1,
+                "gender",
+                expected["both"].astype(str).str.split("-").map(lambda x: x[0]),
+            )
+            expected.insert(
+                2,
+                "education",
+                expected["both"].astype(str).str.split("-").map(lambda x: x[1]),
+            )
             if using_infer_string:
                 expected = expected.astype({"gender": "str", "education": "str"})
             del expected["both"]

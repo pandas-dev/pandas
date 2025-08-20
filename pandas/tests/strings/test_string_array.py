@@ -11,6 +11,10 @@ from pandas import (
     option_context,
 )
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:.str accessor on object dtype:FutureWarning"
+)
+
 
 def test_string_array(nullable_string_dtype, any_string_method):
     method_name, args, kwargs = any_string_method
