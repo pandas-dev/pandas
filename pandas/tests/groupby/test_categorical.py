@@ -391,6 +391,10 @@ def test_observed(observed, using_infer_string):
 
     tm.assert_frame_equal(result, expected)
 
+    result = gb["C"].sum()
+    expected = expected["C"]
+    tm.assert_series_equal(result, expected)
+
     # https://github.com/pandas-dev/pandas/issues/8138
     d = {
         "cat": Categorical(
