@@ -188,6 +188,14 @@ let pandas do the inference. But if you want to be specific, you can specify the
 This is actually compatible with pandas 2.x as well, since in pandas < 3,
 ``dtype="str"`` was essentially treated as an alias for object dtype.
 
+.. attention::
+
+   While using ``dtype="str"`` in constructors is compatible with pandas 2.x,
+   specifying it as the dtype in :meth:`~Series.astype` runs into the issue
+   of also stringifying missing values in pandas 2.x. See the section
+   :ref:`string_migration_guide-astype_str` for more details.
+
+
 The missing value sentinel is now always NaN
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -310,52 +318,69 @@ case.
 Notable bug fixes
 ~~~~~~~~~~~~~~~~~
 
+.. _string_migration_guide-astype_str:
+
 ``astype(str)`` preserving missing values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is a long standing "bug" or misfeature, as discussed in https://github.com/pandas-dev/pandas/issues/25353.
+The stringifying of missing values is a long standing "bug" or misfeature, as
+discussed in https://github.com/pandas-dev/pandas/issues/25353, but fixing it
+introduces a significant behaviour change.
 
-With pandas < 3, when using ``astype(str)`` (using the built-in :func:`str`, not
-``astype("str")``!), the operation would convert every element to a string,
-including the missing values:
+With pandas < 3, when using ``astype(str)`` or ``astype("str")``, the operation
+would convert every element to a string, including the missing values:
 
 .. code-block:: python
 
    # OLD behavior in pandas < 3
-   >>> ser = pd.Series(["a", np.nan], dtype=object)
+   >>> ser = pd.Series([1.5, np.nan])
    >>> ser
-   0      a
+   0    1.5
    1    NaN
-   dtype: object
-   >>> ser.astype(str)
-   0      a
+   dtype: float64
+   >>> ser.astype("str")
+   0    1.5
    1    nan
    dtype: object
-   >>> ser.astype(str).to_numpy()
-   array(['a', 'nan'], dtype=object)
+   >>> ser.astype("str").to_numpy()
+   array(['1.5', 'nan'], dtype=object)
 
 Note how ``NaN`` (``np.nan``) was converted to the string ``"nan"``. This was
 not the intended behavior, and it was inconsistent with how other dtypes handled
 missing values.
 
-With pandas 3, this behavior has been fixed, and now ``astype(str)`` is an alias
-for ``astype("str")``, i.e. casting to the new string dtype, which will preserve
-the missing values:
+With pandas 3, this behavior has been fixed, and now ``astype("str")`` will cast
+to the new string dtype, which preserves the missing values:
 
 .. code-block:: python
 
    # NEW behavior in pandas 3
    >>> pd.options.future.infer_string = True
-   >>> ser = pd.Series(["a", np.nan], dtype=object)
-   >>> ser.astype(str)
-   0      a
+   >>> ser = pd.Series([1.5, np.nan])
+   >>> ser.astype("str")
+   0    1.5
    1    NaN
    dtype: str
-   >>> ser.astype(str).values
-   array(['a', nan], dtype=object)
+   >>> ser.astype("str").to_numpy()
+   array(['1.5', nan], dtype=object)
 
 If you want to preserve the old behaviour of converting every object to a
-string, you can use ``ser.map(str)`` instead.
+string, you can use ``ser.map(str)`` instead. If you want do such conversion
+while preserving the missing values in a way that works with both pandas 2.x and
+3.x, you can use ``ser.map(str, na_action="ignore")`` (for pandas 3.x only, you
+can do ``ser.astype("str")``).
+
+If you want to convert to object or string dtype for pandas 2.x and 3.x,
+respectively, without needing to stringify each individual element, you will
+have to use a conditional check on the pandas version.
+For example, to convert a categorical Series with string categories to its
+dense non-categorical version with object or string dtype:
+
+.. code-block:: python
+
+   >>> import pandas as pd
+   >>> ser = pd.Series(["a", np.nan], dtype="category")
+   >>> ser.astype(object if pd.__version__ < "3" else "str")
 
 
 ``prod()`` raising for string data
