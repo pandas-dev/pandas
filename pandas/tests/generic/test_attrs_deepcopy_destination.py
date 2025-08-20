@@ -24,7 +24,7 @@ class StatsSummary(dict):
         assert isinstance(owner, pd.core.generic.NDFrame)
         self._owner_ref = weakref.ref(owner)
         super(StatsSummary, self).__init__(
-            dict(
+            {
                 (column, type(self)(owner[column]))
                 for column in (
                     list(getattr(owner, "columns", {}))
@@ -35,35 +35,27 @@ class StatsSummary(dict):
                     or {}
                 )
                 if owner[column].dtype.kind in "if"
-            )
+            }
         )
         pass
 
     @classmethod
     def stats(cls):
-        return dict(
-            cummin=lambda series: series.cummin().sum(),
-            cummax=lambda series: series.cummax().sum(),
-            kurtosis=lambda series: series.kurt(),
-            median=lambda series: series.median(),
-        )
+        return {
+            "cummin": lambda series: series.cummin().sum(),
+            "cummax": lambda series: series.cummax().sum(),
+            "kurtosis": lambda series: series.kurt(),
+            "median": lambda series: series.median(),
+        }
 
     @classmethod
     def gauge(cls, obj, columns):
-        return dict(
-            (
-                (
-                    column,
-                    dict(
-                        [
-                            [name, function(obj[column])]
-                            for name, function in cls.stats().items()
-                        ]
-                    ),
-                )
-                for column, dtyp in columns
-            )
-        )
+        return {
+            column: {
+                name: function(obj[column]) for name, function in cls.stats().items()
+            }
+            for column, dtyp in columns
+        }
 
     @property
     def owner(self):
@@ -101,9 +93,7 @@ class FrozenHeadTail(dict):
         assert isinstance(owner, pd.core.generic.NDFrame)
         self._owner_ref = weakref.ref(owner)
         super(FrozenHeadTail, self).__init__(
-            dict(
-                (name, function(self.owner)) for name, function in self.stats().items()
-            )
+            {name: function(self.owner) for name, function in self.stats().items()}
         )
         pass
 
@@ -113,18 +103,18 @@ class FrozenHeadTail(dict):
 
     @classmethod
     def stats(cls):
-        return dict(
-            head=lambda x: pd.DataFrame(
+        return {
+            "head": lambda x: pd.DataFrame(
                 x.values[:2],
                 columns=list(getattr(x, "columns", [])) or [x.name],
                 index=x.index[:2],
             ),
-            tail=lambda x: pd.DataFrame(
+            "tail": lambda x: pd.DataFrame(
                 x.values[-2:],
                 columns=list(getattr(x, "columns", [])) or [x.name],
                 index=x.index[-2:],
             ),
-        )
+        }
 
     def __eq__(self, other) -> bool:
         try:
@@ -296,7 +286,9 @@ def test_attrs_headtail_probe_rebinds_on_concat_have_same_attrs():
     # Sample Data
     dset = np.arange(8, dtype=float)
     np.random.shuffle(dset)
-    df = pd.DataFrame(dict(foo=dset * 2, bar=dset * 4, baz=dset * 8, qux=dset * 16))
+    df = pd.DataFrame(
+        {"foo": dset * 2, "bar": dset * 4, "baz": dset * 8, "qux": dset * 16}
+    )
 
     df.attrs["preview"] = FrozenHeadTail(df)
 
