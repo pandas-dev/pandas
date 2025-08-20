@@ -414,7 +414,12 @@ class ArrowExtensionArray(
             return self[:0].copy()
 
         try:
-            arr = pa.array(values, from_pandas=is_nan_na())
+            if self.dtype.kind in "iufc" and not is_nan_na():
+                values = np.asarray(values, dtype=object)
+                mask = is_pdna_or_none(values)
+                arr = pa.array(values, mask=mask)
+            else:
+                arr = pa.array(values, from_pandas=True)
         except (ValueError, TypeError):
             # e.g. test_by_column_values_with_same_starting_value with nested
             #  values, one entry of which is an ArrowStringArray
