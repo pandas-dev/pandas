@@ -607,6 +607,23 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def _from_factorized(cls, values, original) -> Self:
         return cls(values, dtype=original.dtype)
 
+    def _cast_pointwise_result(self, values):
+        result = super()._cast_pointwise_result(values)
+        if result.dtype.kind == self.dtype.kind:
+            try:
+                # e.g. test_groupby_agg_extension
+                res = type(self)._from_sequence(result, dtype=self.dtype)
+                if ((res == result) | (isna(result) & res.isna())).all():
+                    # This does not hold for e.g.
+                    #  test_arith_frame_with_scalar[0-__truediv__]
+                    return res
+                return type(self)._from_sequence(result)
+            except (ValueError, TypeError):
+                return type(self)._from_sequence(result)
+        else:
+            # e.g. test_combine_le avoid casting bools to Sparse[float64, nan]
+            return type(self)._from_sequence(result)
+
     # ------------------------------------------------------------------------
     # Data
     # ------------------------------------------------------------------------
