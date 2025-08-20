@@ -646,7 +646,11 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     # undo the NumpyExtensionArray hack
     _typ = "extension"
 
-    def __init__(self, values, *, dtype: StringDtype, copy: bool = False) -> None:
+    def __init__(
+        self, values, *, dtype: StringDtype = None, copy: bool = False
+    ) -> None:
+        if dtype is None:
+            dtype = StringDtype()
         values = extract_array(values)
 
         super().__init__(values, copy=copy)
@@ -758,7 +762,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     @classmethod
     def _empty(cls, shape, dtype) -> StringArray:
         values = np.empty(shape, dtype=object)
-        values[:] = libmissing.NA
+        values[:] = dtype.na_value
         return cls(values, dtype=dtype).astype(dtype, copy=False)
 
     def __arrow_array__(self, type=None):
