@@ -93,7 +93,7 @@ class PandasDelegate:
         cls
             Class to add the methods/properties to.
         delegate
-            Class to get methods/properties and doc-strings.
+            Class to get methods/properties and docstrings.
         accessors : list of str
             List of accessors to add.
         typ : {'property', 'method'}
@@ -164,7 +164,7 @@ def delegate_names(
     Parameters
     ----------
     delegate : object
-        The class to get methods/properties & doc-strings.
+        The class to get methods/properties & docstrings.
     accessors : Sequence[str]
         List of accessor to add.
     typ : {'property', 'method'}
