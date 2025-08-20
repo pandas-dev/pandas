@@ -2737,6 +2737,8 @@ cdef class BYearBegin(YearOffset):
     _prefix = "BYS"
     _day_opt = "business_start"
 
+# The pair of classes `_YearEnd` and `YearEnd` exist because of
+# https://github.com/cython/cython/issues/3873
 
 cdef class _YearEnd(YearOffset):
     _default_month = 12
