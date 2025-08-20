@@ -1071,7 +1071,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             and other.dtype.na_value is libmissing.NA
         ):
             # NA has priority of NaN semantics
-            return NotImplemented
+            return op(self.astype(other.dtype, copy=False), other)
 
         if isinstance(other, ArrowExtensionArray):
             if isinstance(other, BaseStringArray):
