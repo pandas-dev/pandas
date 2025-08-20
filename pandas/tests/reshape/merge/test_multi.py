@@ -17,6 +17,11 @@ import pandas._testing as tm
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import merge
 
+pytestmark = pytest.mark.filterwarnings(
+    r"ignore:The default value of empty string \(''\) for suffix parameters "
+    "is deprecated:DeprecationWarning"
+)
+
 
 @pytest.fixture
 def left():

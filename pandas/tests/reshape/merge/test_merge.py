@@ -35,6 +35,11 @@ from pandas.core.reshape.merge import (
     merge,
 )
 
+pytestmark = pytest.mark.filterwarnings(
+    r"ignore:The default value of empty string \(''\) for suffix parameters "
+    "is deprecated:DeprecationWarning"
+)
+
 
 def get_test_data(ngroups=8, n=50):
     unique_groups = list(range(ngroups))
