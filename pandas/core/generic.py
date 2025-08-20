@@ -90,6 +90,7 @@ from pandas.errors import (
     AbstractMethodError,
     ChainedAssignmentError,
     InvalidIndexError,
+    Pandas4Warning,
 )
 from pandas.errors.cow import _chained_assignment_method_msg
 from pandas.util._decorators import (
@@ -2589,7 +2590,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 warnings.warn(
                     "The default 'epoch' date format is deprecated and will be removed "
                     "in a future version, please use 'iso' date format instead.",
-                    FutureWarning,
+                    Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
         elif date_format == "epoch":
@@ -2597,7 +2598,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "'epoch' date format is deprecated and will be removed in a future "
                 "version, please use 'iso' date format instead.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
@@ -4376,12 +4377,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "version. Copy-on-Write is active in pandas since 3.0 which utilizes "
                 "a lazy copy mechanism that defers copies until necessary. Use "
                 ".copy() to make an eager copy if necessary.",
-                DeprecationWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
     # issue 58667
-    @deprecate_kwarg("method", None)
+    @deprecate_kwarg(Pandas4Warning, "method", new_arg_name=None)
     @final
     def reindex_like(
         self,
@@ -10215,6 +10216,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         suffix : str, optional
             If str and periods is an iterable, this is added after the column
             name and before the shift value for each shifted column name.
+            For `Series` this parameter is unused and defaults to `None`.
 
         Returns
         -------
