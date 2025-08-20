@@ -414,7 +414,7 @@ class ArrowExtensionArray(
             return self[:0].copy()
 
         try:
-            arr = pa.array(values, from_pandas=True)
+            arr = pa.array(values, from_pandas=is_nan_na())
         except (ValueError, TypeError):
             # e.g. test_by_column_values_with_same_starting_value with nested
             #  values, one entry of which is an ArrowStringArray
