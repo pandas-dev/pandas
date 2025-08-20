@@ -596,6 +596,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
            nan-likes(``None``, ``np.nan``) for the ``values`` parameter
            in addition to strings and :attr:`pandas.NA`
 
+    dtype : StringDtype
     copy : bool, default False
         Whether to copy the array of data.
 
