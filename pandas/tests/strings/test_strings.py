@@ -282,8 +282,13 @@ def test_isnumeric_unicode(method, expected, any_string_dtype):
     tm.assert_series_equal(result, expected)
 
     # compare with standard library
-    expected = [getattr(item, method)() for item in ser]
-    assert list(result) == expected
+    # (only for non-pyarrow storage given the above differences)
+    if any_string_dtype == "object" or (
+        isinstance(any_string_dtype, StringDtype)
+        and any_string_dtype.storage == "python"
+    ):
+        expected = [getattr(item, method)() for item in ser]
+        assert list(result) == expected
 
 
 @pytest.mark.parametrize(
