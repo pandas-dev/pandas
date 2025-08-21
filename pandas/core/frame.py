@@ -8469,12 +8469,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         rvalues = series._values
         if not isinstance(rvalues, np.ndarray):
-            # TODO(EA2D): no need to special-case with 2D EAs
-            if rvalues.dtype in ("datetime64[ns]", "timedelta64[ns]"):
-                # We can losslessly+cheaply cast to ndarray
-                rvalues = np.asarray(rvalues)
-            else:
-                return series
+            rvalues = np.asarray(rvalues)
 
         if axis == 0:
             rvalues = rvalues.reshape(-1, 1)
