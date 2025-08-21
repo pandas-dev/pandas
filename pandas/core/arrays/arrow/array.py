@@ -73,7 +73,6 @@ from pandas.core.indexers import (
     validate_indices,
 )
 from pandas.core.nanops import check_below_min_count
-from pandas.core.strings.base import BaseStringArrayMethods
 
 from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
@@ -237,7 +236,6 @@ class ArrowExtensionArray(
     OpsMixin,
     ExtensionArraySupportsAnyAll,
     ArrowStringArrayMixin,
-    BaseStringArrayMethods,
 ):
     """
     Pandas ExtensionArray backed by a PyArrow ChunkedArray.
