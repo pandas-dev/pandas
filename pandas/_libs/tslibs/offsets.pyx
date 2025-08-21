@@ -2737,14 +2737,31 @@ cdef class BYearBegin(YearOffset):
     _prefix = "BYS"
     _day_opt = "business_start"
 
+# The pair of classes `_YearEnd` and `YearEnd` exist because of
+# https://github.com/cython/cython/issues/3873
 
-cdef class YearEnd(YearOffset):
+cdef class _YearEnd(YearOffset):
+    _default_month = 12
+    _prefix = "YE"
+    _day_opt = "end"
+
+    cdef readonly:
+        int _period_dtype_code
+
+    def __init__(self, n=1, normalize=False, month=None):
+        # Because YearEnd can be the freq for a Period, define its
+        #  _period_dtype_code at construction for performance
+        YearOffset.__init__(self, n, normalize, month)
+        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
+
+
+class YearEnd(_YearEnd):
     """
     DateOffset increments between calendar year end dates.
 
     YearEnd goes to the next date which is the end of the year.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of years represented.
@@ -2778,18 +2795,8 @@ cdef class YearEnd(YearOffset):
     Timestamp('2022-12-31 00:00:00')
     """
 
-    _default_month = 12
-    _prefix = "YE"
-    _day_opt = "end"
-
-    cdef readonly:
-        int _period_dtype_code
-
-    def __init__(self, n=1, normalize=False, month=None):
-        # Because YearEnd can be the freq for a Period, define its
-        #  _period_dtype_code at construction for performance
-        YearOffset.__init__(self, n, normalize, month)
-        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
+    def __new__(cls, n=1, normalize=False, month=None):
+        return _YearEnd.__new__(cls, n, normalize, month)
 
 
 cdef class YearBegin(YearOffset):
@@ -5188,8 +5195,8 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
         warnings.warn(
             f"\'{name}\' is deprecated and will be removed "
             f"in a future version, please use "
-            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\'"
-            f" instead.",
+            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+            f"instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
             )
@@ -5202,8 +5209,8 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
             warnings.warn(
                 f"\'{name}\' is deprecated and will be removed "
                 f"in a future version, please use "
-                f"\'{_name}\'"
-                f" instead.",
+                f"\'{_name}\' "
+                f"instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
                 )
