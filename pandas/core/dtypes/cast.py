@@ -257,7 +257,7 @@ def maybe_downcast_to_dtype(
 ) -> ArrayLike: ...
 
 
-def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLike:
+def maybe_downcast_to_dtype(result: ArrayLike, dtype: np.dtype) -> ArrayLike:
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
@@ -265,30 +265,6 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     if isinstance(result, ABCSeries):
         result = result._values
     do_round = False
-
-    if isinstance(dtype, str):
-        if dtype == "infer":
-            inferred_type = lib.infer_dtype(result, skipna=False)
-            if inferred_type == "boolean":
-                dtype = "bool"
-            elif inferred_type == "integer":
-                dtype = "int64"
-            elif inferred_type == "datetime64":
-                dtype = "datetime64[ns]"
-            elif inferred_type in ["timedelta", "timedelta64"]:
-                dtype = "timedelta64[ns]"
-
-            # try to upcast here
-            elif inferred_type == "floating":
-                dtype = "int64"
-                if issubclass(result.dtype.type, np.number):
-                    do_round = True
-
-            else:
-                # TODO: complex?  what if result is already non-object?
-                dtype = "object"
-
-        dtype = np.dtype(dtype)
 
     if not isinstance(dtype, np.dtype):
         # enforce our signature annotation
