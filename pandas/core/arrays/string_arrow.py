@@ -91,6 +91,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     ----------
     values : pyarrow.Array or pyarrow.ChunkedArray
         The array of data.
+    dtype : StringDtype
+        The dtype for the array.
 
     Attributes
     ----------
