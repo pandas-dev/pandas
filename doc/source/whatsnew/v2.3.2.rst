@@ -26,8 +26,8 @@ Bug fixes
   "string" type in the JSON Table Schema for :class:`StringDtype` columns
   (:issue:`61889`)
 - Boolean operations (``|``, ``&``, ``^``) with bool-dtype objects on the left and :class:`StringDtype` objects on the right now cast the string to bool, with a deprecation warning (:issue:`60234`)
-- Fixed ``~Series.str.match``, ``~Series.str.fullmatch`` and ``~Series.str.contains``
-  with compiled regex for the Arrow-backed string dtype (:issue:`61964`, :issue:`61942`)
+- Fixed :meth:`~Series.str.match`, :meth:`~Series.str.fullmatch` and :meth:`~Series.str.contains`
+  string methods with compiled regex for the Arrow-backed string dtype (:issue:`61964`, :issue:`61942`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently
   replacing matching values when missing values are present for string dtypes (:issue:`56599`)
 
