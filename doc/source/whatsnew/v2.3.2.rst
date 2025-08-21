@@ -1,6 +1,6 @@
 .. _whatsnew_232:
 
-What's new in 2.3.2 (August 20, 2025)
+What's new in 2.3.2 (August 21, 2025)
 -------------------------------------
 
 These are the changes in pandas 2.3.2. See :ref:`release` for a full changelog
