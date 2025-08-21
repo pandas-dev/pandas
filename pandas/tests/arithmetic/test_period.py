@@ -1362,7 +1362,6 @@ class TestPeriodIndexArithmetic:
         with pytest.raises(TypeError, match=msg):
             ts + arr
         msg = "cannot add PeriodArray and DatetimeArray"
-        print(box_with_array)
         with pytest.raises(TypeError, match=msg):
             arr + Series([ts])
         with pytest.raises(TypeError, match=msg):
