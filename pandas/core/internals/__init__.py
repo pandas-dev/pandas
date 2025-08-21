@@ -1,5 +1,3 @@
-from pandas.errors import Pandas4Warning
-
 from pandas.core.internals.api import make_block  # 2023-09-18 pyarrow uses this
 from pandas.core.internals.concat import concatenate_managers
 from pandas.core.internals.managers import (
@@ -21,6 +19,8 @@ __all__ = [
 def __getattr__(name: str):
     # GH#55139
     import warnings
+
+    from pandas.errors import Pandas4Warning
 
     if name == "create_block_manager_from_blocks":
         # GH#33892, GH#58715

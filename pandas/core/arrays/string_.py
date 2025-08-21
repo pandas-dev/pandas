@@ -29,7 +29,6 @@ from pandas.compat import (
     pa_version_under12p1,
 )
 from pandas.compat.numpy import function as nv
-from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     doc,
     set_module,
@@ -398,11 +397,12 @@ class BaseStringArray(ExtensionArray):
         ):
             # GH#60234 backward compatibility for the move to StringDtype in 3.0
             op_name = op.__name__[1:].strip("_")
+            # TODO: Enforce in 3.0 (#60234)
             warnings.warn(
                 f"'{op_name}' operations between boolean dtype and {self.dtype} are "
                 "deprecated and will raise in a future version. Explicitly "
                 "cast the strings to a boolean dtype before operating instead.",
-                Pandas4Warning,
+                FutureWarning,
                 stacklevel=find_stack_level(),
             )
             return op(other, self.astype(bool))

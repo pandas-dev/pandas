@@ -4432,11 +4432,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if "arg" in kwargs:
                 # `.map(arg=my_func)`
                 func = kwargs.pop("arg")
-                # TODO: Enforce in 3.0 (#61264)
+                # https://github.com/pandas-dev/pandas/pull/61264
                 warnings.warn(
                     "The parameter `arg` has been renamed to `func`, and it "
                     "will stop being supported in a future version of pandas.",
-                    FutureWarning,
+                    Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
             else:
