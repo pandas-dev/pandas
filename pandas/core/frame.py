@@ -8445,7 +8445,7 @@ class DataFrame(NDFrame, OpsMixin):
         rvalues = series._values
         if isinstance(rvalues, PeriodArray):
             return series
-        if not isinstance(rvalues, (np.ndarray,)) and rvalues.dtype not in (
+        if not isinstance(rvalues, np.ndarray) and rvalues.dtype not in (
             "datetime64[ns]",
             "timedelta64[ns]",
         ):
