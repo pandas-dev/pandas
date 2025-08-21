@@ -536,7 +536,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
         res = super()._cast_pointwise_result(values)
-        cat = type(self)._from_sequence(res, dtype=self.dtype)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "Constructing a Categorical with a dtype and values containing",
+            )
+            cat = type(self)._from_sequence(res, dtype=self.dtype)
         if (cat.isna() == isna(res)).all():
             # i.e. the conversion was non-lossy
             return cat
