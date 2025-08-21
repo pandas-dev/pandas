@@ -626,6 +626,7 @@ potentially differently-indexed :class:`DataFrame` into a single result
 :class:`DataFrame`.
 
 .. ipython:: python
+   :okwarning:
 
    left = pd.DataFrame(
        {"A": ["A0", "A1", "A2"], "B": ["B0", "B1", "B2"]}, index=["K0", "K1", "K2"]
@@ -640,12 +641,14 @@ potentially differently-indexed :class:`DataFrame` into a single result
 
 .. ipython:: python
    :suppress:
+   :okwarning:
 
    @savefig merging_join.png
    p.plot([left, right], result, labels=["left", "right"], vertical=False);
    plt.close("all");
 
 .. ipython:: python
+   :okwarning:
 
    result = left.join(right, how="outer")
    result
@@ -658,6 +661,7 @@ potentially differently-indexed :class:`DataFrame` into a single result
    plt.close("all");
 
 .. ipython:: python
+   :okwarning:
 
    result = left.join(right, how="inner")
    result
@@ -674,6 +678,7 @@ or multiple column names that the passed :class:`DataFrame` is to be
 aligned.
 
 .. ipython:: python
+   :okwarning:
 
    left = pd.DataFrame(
        {
@@ -714,6 +719,7 @@ aligned.
 To join on multiple keys, the passed :class:`DataFrame` must have a :class:`MultiIndex`:
 
 .. ipython:: python
+   :okwarning:
 
    left = pd.DataFrame(
        {
@@ -747,6 +753,7 @@ which uses only the keys found in the
 calling :class:`DataFrame`. Other join types can be specified with ``how``.
 
 .. ipython:: python
+   :okwarning:
 
    result = left.join(right, on=["key1", "key2"], how="inner")
    result
@@ -767,6 +774,7 @@ You can join a :class:`DataFrame` with a :class:`Index` to a :class:`DataFrame` 
 The ``name`` of the :class:`Index` will match the level name of the :class:`MultiIndex`.
 
 ..  ipython:: python
+   :okwarning:
 
     left = pd.DataFrame(
         {"A": ["A0", "A1", "A2"], "B": ["B0", "B1", "B2"]},
@@ -802,6 +810,7 @@ The :class:`MultiIndex` of the input argument must be completely used
 in the join and is a subset of the indices in the left argument.
 
 .. ipython:: python
+   :okwarning:
 
    leftindex = pd.MultiIndex.from_product(
        [list("abc"), list("xy"), [1, 2]], names=["abc", "xy", "num"]
@@ -911,6 +920,7 @@ A list or tuple of :class:`DataFrame` can also be passed to :meth:`~DataFrame.jo
 to join them together on their indexes.
 
 .. ipython:: python
+   :okwarning:
 
    right2 = pd.DataFrame({"v": [7, 8, 9]}, index=["K1", "K1", "K2"])
    result = left.join([right, right2])

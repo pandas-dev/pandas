@@ -10057,7 +10057,15 @@ class DataFrame(NDFrame, OpsMixin):
                 if not all(counts0 == self[c].apply(mylen)):
                     raise ValueError("columns must have matching element counts")
             result = DataFrame({c: df[c].explode() for c in columns})
-        result = df.drop(columns, axis=1).join(result)
+        with warnings.catch_warnings():
+            # The default behavior of empty string suffixes ('') in join operations
+            # will change in a future version. Currently, integer columns with empty
+            # suffixes are treated differently from string columns, leading to
+            # inconsistent behavior. In the future, None will be the default and
+            # all column types will be handled consistently. We catch and ignore
+            # this warning for now since the current behavior is still supported.
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            result = df.drop(columns, axis=1).join(result)
         if ignore_index:
             result.index = default_index(len(result))
         else:

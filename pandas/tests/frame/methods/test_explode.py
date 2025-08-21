@@ -6,11 +6,6 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    r"ignore:The default value of empty string \(''\) for suffix parameters "
-    "is deprecated:DeprecationWarning"
-)
-
 
 def test_error():
     df = pd.DataFrame(
