@@ -125,10 +125,6 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.arrays import (
-    FloatingArray,
-    IntegerArray,
-)
 from pandas.core import (
     algorithms,
     common as com,
@@ -8472,13 +8468,23 @@ class DataFrame(NDFrame, OpsMixin):
         blockwise.
         """
         rvalues = series._values
-        if not isinstance(rvalues, np.ndarray):
-            if rvalues.dtype in ("datetime64[ns]", "timedelta64[ns]") or isinstance(
-                rvalues, (IntegerArray, FloatingArray)
-            ):
-                rvalues = np.asarray(rvalues)
+        if isinstance(rvalues, PeriodArray):
+            return series
+        if not isinstance(rvalues, (np.ndarray,)) and rvalues.dtype not in (
+            "datetime64[ns]",
+            "timedelta64[ns]",
+        ):
+            if axis == 0:
+                df = DataFrame(dict.fromkeys(range(self.shape[1]), rvalues))
             else:
-                return series
+                nrows = self.shape[0]
+                df = DataFrame(
+                    {i: rvalues[[i]].repeat(nrows) for i in range(self.shape[1])},
+                    dtype=rvalues.dtype,
+                )
+            df.index = self.index
+            df.columns = self.columns
+            return df
 
         if axis == 0:
             rvalues = rvalues.reshape(-1, 1)
