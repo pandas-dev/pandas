@@ -3721,7 +3721,7 @@ class DataFrame(NDFrame, OpsMixin):
             index_memory_usage = self._constructor_sliced(
                 self.index.memory_usage(deep=deep), index=["Index"]
             )
-            result = index_memory_usage._append(result)
+            result = index_memory_usage._append_internal(result)
         return result
 
     def transpose(
@@ -10890,7 +10890,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
-    def _append(
+    def _append_internal(
         self,
         other,
         ignore_index: bool = False,
@@ -11780,7 +11780,7 @@ class DataFrame(NDFrame, OpsMixin):
             idx_diff = result_index.difference(correl.index)
 
             if len(idx_diff) > 0:
-                correl = correl._append(
+                correl = correl._append_internal(
                     Series([np.nan] * len(idx_diff), index=idx_diff)
                 )
 

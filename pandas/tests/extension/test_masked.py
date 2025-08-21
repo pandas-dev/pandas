@@ -168,6 +168,8 @@ def data_for_grouping(dtype):
 
 
 class TestMaskedArrays(base.ExtensionTests):
+    _combine_le_expected_dtype = "boolean"
+
     @pytest.fixture(autouse=True)
     def skip_if_doesnt_support_2d(self, dtype, request):
         # Override the fixture so that we run these tests.
@@ -215,42 +217,14 @@ class TestMaskedArrays(base.ExtensionTests):
         sdtype = tm.get_dtype(obj)
         expected = pointwise_result
 
-        if op_name in ("eq", "ne", "le", "ge", "lt", "gt"):
-            return expected.astype("boolean")
-
-        if sdtype.kind in "iu":
-            if op_name in ("__rtruediv__", "__truediv__", "__div__"):
-                filled = expected.fillna(np.nan)
-                expected = filled.astype("Float64")
-            else:
-                # combine method result in 'biggest' (int64) dtype
-                expected = expected.astype(sdtype)
-        elif sdtype.kind == "b":
+        if sdtype.kind == "b":
             if op_name in (
-                "__floordiv__",
-                "__rfloordiv__",
-                "__pow__",
-                "__rpow__",
                 "__mod__",
                 "__rmod__",
             ):
                 # combine keeps boolean type
                 expected = expected.astype("Int8")
 
-            elif op_name in ("__truediv__", "__rtruediv__"):
-                # combine with bools does not generate the correct result
-                #  (numpy behaviour for div is to regard the bools as numeric)
-                op = self.get_op_from_name(op_name)
-                expected = self._combine(obj.astype(float), other, op)
-                expected = expected.astype("Float64")
-
-            if op_name == "__rpow__":
-                # for rpow, combine does not propagate NaN
-                result = getattr(obj, op_name)(other)
-                expected[result.isna()] = np.nan
-        else:
-            # combine method result in 'biggest' (float64) dtype
-            expected = expected.astype(sdtype)
         return expected
 
     def test_divmod_series_array(self, data, data_for_twos, request):
@@ -262,16 +236,6 @@ class TestMaskedArrays(base.ExtensionTests):
             )
             request.applymarker(mark)
         super().test_divmod_series_array(data, data_for_twos)
-
-    def test_combine_le(self, data_repeated):
-        # TODO: patching self is a bad pattern here
-        orig_data1, orig_data2 = data_repeated(2)
-        if orig_data1.dtype.kind == "b":
-            self._combine_le_expected_dtype = "boolean"
-        else:
-            # TODO: can we make this boolean?
-            self._combine_le_expected_dtype = object
-        super().test_combine_le(data_repeated)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         if op_name in ["any", "all"] and ser.dtype.kind != "b":
