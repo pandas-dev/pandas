@@ -643,7 +643,6 @@ generated/pandas.Index.get_slice_bound,../reference/api/pandas.Index.get_slice_b
 generated/pandas.Index.groupby,../reference/api/pandas.Index.groupby
 generated/pandas.Index.has_duplicates,../reference/api/pandas.Index.has_duplicates
 generated/pandas.Index.hasnans,../reference/api/pandas.Index.hasnans
-generated/pandas.Index.holds_integer,../reference/api/pandas.Index.holds_integer
 generated/pandas.Index,../reference/api/pandas.Index
 generated/pandas.Index.identical,../reference/api/pandas.Index.identical
 generated/pandas.Index.inferred_type,../reference/api/pandas.Index.inferred_type
