@@ -123,6 +123,10 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas.arrays import (
+    FloatingArray,
+    IntegerArray,
+)
 from pandas.core import (
     algorithms,
     common as com,
@@ -8444,7 +8448,12 @@ class DataFrame(NDFrame, OpsMixin):
         """
         rvalues = series._values
         if not isinstance(rvalues, np.ndarray):
-            rvalues = np.asarray(rvalues)
+            if rvalues.dtype in ("datetime64[ns]", "timedelta64[ns]") or isinstance(
+                rvalues, (IntegerArray, FloatingArray)
+            ):
+                rvalues = np.asarray(rvalues)
+            else:
+                return series
 
         if axis == 0:
             rvalues = rvalues.reshape(-1, 1)
