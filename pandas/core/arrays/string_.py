@@ -647,7 +647,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     _typ = "extension"
 
     def __init__(
-        self, values, *, dtype: StringDtype = None, copy: bool = False
+        self, values, *, dtype: StringDtype | None = None, copy: bool = False
     ) -> None:
         if dtype is None:
             dtype = StringDtype()
