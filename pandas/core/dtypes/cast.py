@@ -245,6 +245,16 @@ def _disallow_mismatched_datetimelike(value, dtype: DtypeObj) -> None:
         raise TypeError(f"Cannot cast {value!r} to {dtype}")
 
 
+@overload
+def maybe_downcast_to_dtype(result: np.ndarray, dtype: np.dtype) -> np.ndarray: ...
+
+
+@overload
+def maybe_downcast_to_dtype(
+    result: ExtensionArray, dtype: np.dtype
+) -> ExtensionArray: ...
+
+
 def maybe_downcast_to_dtype(result: ArrayLike, dtype: np.dtype) -> ArrayLike:
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
