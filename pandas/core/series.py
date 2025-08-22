@@ -762,7 +762,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         array([1, 2, 3])
 
         >>> pd.Series(list("aabc")).values
-        <ArrowStringArrayNumpySemantics>
+        <ArrowStringArray>
         ['a', 'a', 'b', 'c']
         Length: 4, dtype: str
 
@@ -2988,7 +2988,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # -------------------------------------------------------------------
     # Combination
 
-    def _append(
+    def _append_internal(
         self, to_append, ignore_index: bool = False, verify_integrity: bool = False
     ):
         from pandas.core.reshape.concat import concat
