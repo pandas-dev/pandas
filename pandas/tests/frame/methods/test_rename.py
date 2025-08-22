@@ -164,6 +164,14 @@ class TestRename:
         renamed = df.rename(index={"foo1": "foo3", "bar2": "bar3"}, level=0)
         tm.assert_index_equal(renamed.index, new_index)
 
+    def test_rename_multiindex_tuples_with_checks(self):
+        df = DataFrame({("a", "count"): [1, 2], ("a", "sum"): [3, 4]})
+        renamed = df.rename(
+            columns={("a", "count"): ("b", "number_of"), ("a", "sum"): ("b", "total")}, errors="raise"
+        )
+        new_columns = MultiIndex.from_tuples([("b", "number_of"), ("b", "total")])
+        tm.assert_index_equal(renamed.columns, new_columns)
+
     def test_rename_nocopy(self, float_frame):
         renamed = float_frame.rename(columns={"C": "foo"})
 
