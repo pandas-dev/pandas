@@ -827,18 +827,18 @@ def date_range(
     freq=None,
     tz=None,
     normalize: bool = False,
-    name: "Hashable | None" = None,
-    inclusive: "IntervalClosedType" = "both",
+    name: Hashable | None = None,
+    inclusive: IntervalClosedType = "both",
     *,
     unit: str | None = None,
     **kwargs,
-) -> "DatetimeIndex":
+) -> DatetimeIndex:
     """
     Return a fixed frequency DatetimeIndex.
 
     Returns the range of equally spaced time points (where the difference between any
     two adjacent points is specified by the given frequency) such that they fall in the
-    range `[start, end]`, where the first one and the last one are, resp., the first
+    range `[start, end]` , where the first one and the last one are, resp., the first
     and last time points in that range that fall on the boundary of ``freq`` (if given
     as a frequency string) or that are valid for ``freq`` (if given as a
     :class:`pandas.tseries.offsets.DateOffset`). If ``freq`` is positive, the points
@@ -857,7 +857,8 @@ def date_range(
         Number of periods to generate.
     freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5h'. See
-        :ref:`here <timeseries.offset_aliases>` for a list of frequency aliases.
+        :ref:`here <timeseries.offset_aliases>` for a list of
+        frequency aliases.
     tz : str or tzinfo, optional
         Time zone name for returning localized DatetimeIndex, for example
         'Asia/Hong_Kong'. By default, the resulting DatetimeIndex is
@@ -892,8 +893,7 @@ def date_range(
     Notes
     -----
     Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
-    at least two and at most three must be specified. You cannot specify
-    all four parameters together. If ``freq`` is omitted, the resulting
+    exactly three must be specified. If ``freq`` is omitted, the resulting
     ``DatetimeIndex`` will have ``periods`` linearly spaced elements between
     ``start`` and ``end`` (closed on both sides).
 
@@ -1007,7 +1007,6 @@ def date_range(
                    '2817-01-01', '2917-01-01'],
                   dtype='datetime64[s]', freq='100YS-JAN')
     """
-
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 
@@ -1088,10 +1087,11 @@ def bdate_range(
 
     Notes
     -----
-    Of the four parameters: ``start``, ``end``, ``periods``, and ``freq``,
-    exactly three must be specified.  Specifying ``freq`` is a requirement
-    for ``bdate_range``.  Use ``date_range`` if specifying ``freq`` is not
-    desired.
+    Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
+    at least two and at most three must be specified. You cannot specify
+    all four parameters together. If ``freq`` is omitted, the resulting
+    ``DatetimeIndex`` will have ``periods`` linearly spaced elements between
+    ``start`` and ``end`` (closed on both sides).
 
     To learn more about the frequency strings, please see
     :ref:`this link<timeseries.offset_aliases>`.
