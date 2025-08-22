@@ -251,6 +251,7 @@ See the :ref:`Merge, join, and concatenate
 <merging.Join_with_two_multi_indexes>` documentation section.
 
 .. ipython:: python
+   :okwarning:
 
    index_left = pd.MultiIndex.from_tuples([('K0', 'X0'), ('K0', 'X1'),
                                           ('K1', 'X2')],
