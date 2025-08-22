@@ -892,9 +892,10 @@ def date_range(
     Notes
     -----
     Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
-    you must specify at least two and at most three; never all four together.
-    If ``freq`` is omitted, the resulting ``DatetimeIndex`` will have ``periods``
-    linearly spaced elements between ``start`` and ``end`` (closed on both sides).
+    at least two and at most three must be specified. You cannot specify
+    all four parameters together. If ``freq`` is omitted, the resulting
+    ``DatetimeIndex`` will have ``periods`` linearly spaced elements between
+    ``start`` and ``end`` (closed on both sides).
 
     To learn more about the frequency strings, please see
     :ref:`this link<timeseries.offset_aliases>`.
