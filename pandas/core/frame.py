@@ -5304,6 +5304,13 @@ class DataFrame(NDFrame, OpsMixin):
         Portland    17.0    62.6
         Berkeley    25.0    77.0
 
+        or by using :meth:`pandas.col`:
+
+        >>> df.assign(temp_f=pd.col("temp_c") * 9 / 5 + 32)
+                  temp_c  temp_f
+        Portland    17.0    62.6
+        Berkeley    25.0    77.0
+
         You can create multiple columns within the same assign where one
         of the columns depends on another one defined within the same assign:
 
