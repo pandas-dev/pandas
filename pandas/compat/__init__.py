@@ -23,6 +23,7 @@ from pandas.compat._constants import (
     WASM,
 )
 from pandas.compat.numpy import is_numpy_dev
+from pandas.compat.polars import HAS_POLARS
 from pandas.compat.pyarrow import (
     HAS_PYARROW,
     pa_version_under12p1,

@@ -374,7 +374,7 @@ IgnoreRaise: TypeAlias = Literal["ignore", "raise"]
 WindowingRankType: TypeAlias = Literal["average", "min", "max"]
 
 # read_csv engines
-CSVEngine: TypeAlias = Literal["c", "python", "pyarrow", "python-fwf"]
+CSVEngine: TypeAlias = Literal["c", "python", "pyarrow", "polars", "python-fwf"]
 
 # read_json engines
 JSONEngine: TypeAlias = Literal["ujson", "pyarrow"]

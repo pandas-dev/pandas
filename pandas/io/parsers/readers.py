@@ -67,6 +67,7 @@ from pandas.io.parsers.base_parser import (
     parser_defaults,
 )
 from pandas.io.parsers.c_parser_wrapper import CParserWrapper
+from pandas.io.parsers.polars_parser_wrapper import PolarsParserWrapper
 from pandas.io.parsers.python_parser import (
     FixedWidthFieldParser,
     PythonParser,
@@ -242,14 +243,19 @@ dtype : dtype or dict of {{Hashable : dtype}}, optional
         Support for ``defaultdict`` was added. Specify a ``defaultdict`` as input where
         the default determines the ``dtype`` of the columns which are not explicitly
         listed.
-engine : {{'c', 'python', 'pyarrow'}}, optional
-    Parser engine to use. The C and pyarrow engines are faster, while the python engine
+engine : {{'c', 'python', 'pyarrow', 'polars'}}, optional
+    Parser engine to use. The C, pyarrow, and polars engines are faster, while the python engine
     is currently more feature-complete. Multithreading is currently only supported by
     the pyarrow engine.
 
     .. versionadded:: 1.4.0
 
         The 'pyarrow' engine was added as an *experimental* engine, and some features
+        are unsupported, or may not work correctly, with this engine.
+
+    .. versionadded:: 3.0.0
+
+        The 'polars' engine was added as an *experimental* engine, and some features
         are unsupported, or may not work correctly, with this engine.
 converters : dict of {{Hashable : Callable}}, optional
     Functions for converting values in specified columns. Keys can either
@@ -598,6 +604,21 @@ _pyarrow_unsupported = {
     "skipinitialspace",
     "low_memory",
 }
+_polars_unsupported = {
+    "skipfooter",
+    "float_precision",
+    "chunksize",
+    "thousands",
+    "memory_map",
+    "dialect",
+    "quoting",
+    "lineterminator",
+    "converters",
+    "iterator",
+    "dayfirst",
+    "skipinitialspace",
+    "low_memory",
+}
 
 
 @overload
@@ -700,6 +721,16 @@ def _read(
         if chunksize is not None:
             raise ValueError(
                 "The 'chunksize' option is not supported with the 'pyarrow' engine"
+            )
+    elif kwds.get("engine") == "polars":
+        if iterator:
+            raise ValueError(
+                "The 'iterator' option is not supported with the 'polars' engine"
+            )
+
+        if chunksize is not None:
+            raise ValueError(
+                "The 'chunksize' option is not supported with the 'polars' engine"
             )
     else:
         chunksize = validate_integer("chunksize", chunksize, 1)
@@ -1221,6 +1252,15 @@ class TextFileReader(abc.Iterator):
                 raise ValueError(
                     f"The {argname!r} option is not supported with the 'pyarrow' engine"
                 )
+            if (
+                engine == "polars"
+                and argname in _polars_unsupported
+                and value != default
+                and value != getattr(value, "value", default)
+            ):
+                raise ValueError(
+                    f"The {argname!r} option is not supported with the 'polars' engine"
+                )
             options[argname] = value
 
         for argname, default in _c_parser_defaults.items():
@@ -1232,6 +1272,8 @@ class TextFileReader(abc.Iterator):
                     if "python" in engine and argname not in _python_unsupported:
                         pass
                     elif "pyarrow" in engine and argname not in _pyarrow_unsupported:
+                        pass
+                    elif "polars" in engine and argname not in _polars_unsupported:
                         pass
                     else:
                         raise ValueError(
@@ -1430,6 +1472,7 @@ class TextFileReader(abc.Iterator):
             "c": CParserWrapper,
             "python": PythonParser,
             "pyarrow": ArrowParserWrapper,
+            "polars": PolarsParserWrapper,
             "python-fwf": FixedWidthFieldParser,
         }
 
@@ -1444,6 +1487,9 @@ class TextFileReader(abc.Iterator):
             if engine == "pyarrow":
                 is_text = False
                 mode = "rb"
+            elif engine == "polars":
+                is_text = True
+                mode = "r"
             elif (
                 engine == "c"
                 and self.options.get("encoding", "utf-8") == "utf-8"
@@ -1467,7 +1513,7 @@ class TextFileReader(abc.Iterator):
             assert self.handles is not None
             f = self.handles.handle
 
-        elif engine != "python":
+        elif engine not in ("python", "polars"):
             msg = f"Invalid file path or buffer object type: {type(f)}"
             raise ValueError(msg)
 
@@ -1482,7 +1528,7 @@ class TextFileReader(abc.Iterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows: int | None = None) -> DataFrame:
-        if self.engine == "pyarrow":
+        if self.engine in ("pyarrow", "polars"):
             try:
                 # error: "ParserBase" has no attribute "read"
                 df = self._engine.read()  # type: ignore[attr-defined]

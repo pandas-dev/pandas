@@ -4,7 +4,10 @@ import os
 
 import pytest
 
-from pandas.compat import HAS_PYARROW
+from pandas.compat import (
+    HAS_POLARS,
+    HAS_PYARROW,
+)
 from pandas.compat._optional import VERSIONS
 
 from pandas import (
@@ -95,6 +98,11 @@ class PyArrowParser(BaseParser):
     float_precision_choices = [None]
 
 
+class PolarsParser(BaseParser):
+    engine = "polars"
+    float_precision_choices = [None]
+
+
 @pytest.fixture
 def csv_dir_path(datapath):
     """
@@ -115,6 +123,7 @@ _cParserHighMemory = CParserHighMemory
 _cParserLowMemory = CParserLowMemory
 _pythonParser = PythonParser
 _pyarrowParser = PyArrowParser
+_polarsParser = PolarsParser
 
 _py_parsers_only = [_pythonParser]
 _c_parsers_only = [_cParserHighMemory, _cParserLowMemory]
@@ -127,14 +136,24 @@ _pyarrow_parsers_only = [
         ],
     )
 ]
+_polars_parsers_only = [
+    pytest.param(
+        _polarsParser,
+        marks=[
+            pytest.mark.single_cpu,
+            pytest.mark.skipif(not HAS_POLARS, reason="polars is not installed"),
+        ],
+    )
+]
 
-_all_parsers = [*_c_parsers_only, *_py_parsers_only, *_pyarrow_parsers_only]
+_all_parsers = [*_c_parsers_only, *_py_parsers_only, *_pyarrow_parsers_only, *_polars_parsers_only]
 
 _py_parser_ids = ["python"]
 _c_parser_ids = ["c_high", "c_low"]
 _pyarrow_parsers_ids = ["pyarrow"]
+_polars_parsers_ids = ["polars"]
 
-_all_parser_ids = [*_c_parser_ids, *_py_parser_ids, *_pyarrow_parsers_ids]
+_all_parser_ids = [*_c_parser_ids, *_py_parser_ids, *_pyarrow_parsers_ids, *_polars_parsers_ids]
 
 
 @pytest.fixture(params=_all_parsers, ids=_all_parser_ids)
