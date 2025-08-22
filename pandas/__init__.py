@@ -340,6 +340,7 @@ __all__ = [
     "test",
     "testing",
     "timedelta_range",
+    "to_csv",
     "to_datetime",
     "to_numeric",
     "to_pickle",
