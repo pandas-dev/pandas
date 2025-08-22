@@ -71,6 +71,7 @@ Top-level evaluation
 .. autosummary::
    :toctree: api/
 
+   col
    eval
 
 Datetime formats

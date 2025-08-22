@@ -105,6 +105,7 @@ from pandas.core.api import (
     Series,
     DataFrame,
 )
+from pandas.core.col import col
 
 from pandas.core.dtypes.dtypes import SparseDtype
 
@@ -281,6 +282,7 @@ __all__ = [
     "array",
     "arrays",
     "bdate_range",
+    "col",
     "concat",
     "crosstab",
     "cut",
