@@ -18,7 +18,7 @@ dependencies:
   - pytest-xdist>=3.4.0
   - pytest-qt>=4.4.0
   - pytest-localserver
-  - pyqt>=5.15.9
+  - pyqt>=6.9.1
   - coverage
 
   # required dependencies

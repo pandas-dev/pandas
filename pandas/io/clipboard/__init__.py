@@ -24,7 +24,7 @@ For example, in Debian:
     sudo apt-get install xsel
     sudo apt-get install wl-clipboard
 
-Otherwise on Linux, you will need the PyQt5 modules installed.
+Otherwise on Linux, you will need the PyQt6 modules installed.
 
 This module does not work with PyGObject yet.
 
@@ -55,6 +55,7 @@ from ctypes import (
     get_errno,
     sizeof,
 )
+import importlib
 import os
 import platform
 from shutil import which as _executable_exists
@@ -133,18 +134,55 @@ def init_osx_pyobjc_clipboard():
     return copy_osx_pyobjc, paste_osx_pyobjc
 
 
-def init_qt_clipboard():
-    global QApplication
-    # $DISPLAY should exist
+def _import_module(modules: list[tuple[str, str | None]]):
+    """
+    Attempt to import from a module from a list inorder.
 
-    # Try to import from qtpy, but if that fails try PyQt5 then PyQt4
-    try:
-        from qtpy.QtWidgets import QApplication
-    except ImportError:
+    Args:
+        modules: A list of tuples of two elements. The first element
+            is the module to import from and the second element is
+            the object to import. If the second element is not provided,
+            just import the module.
+
+    Returns:
+        The first successful import.
+
+    Raises:
+        ImportError: If couldn't import any module.
+        AttributeError: If a module doesn't have the expected attribute.
+    """
+
+    for module_name, attribute_name in modules:
         try:
-            from PyQt5.QtWidgets import QApplication
+            module = importlib.import_module(module_name)
+
+            if attribute_name is None:
+                return module
+            elif hasattr(module, attribute_name):
+                return getattr(module, attribute_name)
+            else:
+                raise AttributeError(
+                    f"Module {module_name} doesn't have attribute {attribute_name}."
+                )
         except ImportError:
-            from PyQt4.QtGui import QApplication
+            continue
+
+    raise ImportError(
+        f"No module from {(module_name for module_name, _ in modules)} could be imported."
+    )
+
+
+def init_qt_clipboard():
+    # $DISPLAY should exist
+    global QApplication
+
+    qt_qapplication_bindings = [
+        ("qtpy.QtWidgets", "QApplication"),
+        ("PyQt6.QtWidgets", "QApplication"),
+        ("PyQt5.QtWidgets", "QApplication"),
+        ("PyQt4.QtGui", "QApplication"),
+    ]
+    QApplication = _import_module(qt_qapplication_bindings)
 
     app = QApplication.instance()
     if app is None:
@@ -529,7 +567,7 @@ def determine_clipboard():
     Determine the OS/platform and set the copy() and paste() functions
     accordingly.
     """
-    global Foundation, AppKit, qtpy, PyQt4, PyQt5
+    global Foundation, AppKit
 
     # Setup for the CYGWIN platform:
     if (
@@ -576,25 +614,11 @@ def determine_clipboard():
             return init_klipper_clipboard()
 
         try:
-            # qtpy is a small abstraction layer that lets you write applications
-            # using a single api call to either PyQt or PySide.
-            # https://pypi.python.org/project/QtPy
-            import qtpy  # check if qtpy is installed
-        except ImportError:
-            # If qtpy isn't installed, fall back on importing PyQt4.
-            try:
-                import PyQt5  # check if PyQt5 is installed
-            except ImportError:
-                try:
-                    import PyQt4  # check if PyQt4 is installed
-                except ImportError:
-                    pass  # We want to fail fast for all non-ImportError exceptions.
-                else:
-                    return init_qt_clipboard()
-            else:
-                return init_qt_clipboard()
-        else:
+            # Verify installation of pyqt, PyQt{6,5,4} and initialize its clipboard.
             return init_qt_clipboard()
+        except ImportError:
+            # Ignore if Qt isn't available
+            pass
 
     return init_no_clipboard()
 
@@ -618,7 +642,7 @@ def set_clipboard(clipboard):
     clipboard_types = {
         "pbcopy": init_osx_pbcopy_clipboard,
         "pyobjc": init_osx_pyobjc_clipboard,
-        "qt": init_qt_clipboard,  # TODO - split this into 'qtpy', 'pyqt4', and 'pyqt5'
+        "qt": init_qt_clipboard,  # TODO - split this into 'qtpy', 'pyqt4', 'pyqt5' and 'pyqt6'
         "xclip": init_xclip_clipboard,
         "xsel": init_xsel_clipboard,
         "wl-clipboard": init_wl_clipboard,

@@ -55,7 +55,7 @@ VERSIONS = {
     "xlsxwriter": "3.2.0",
     "zstandard": "0.22.0",
     "qtpy": "2.3.0",
-    "pyqt5": "5.15.9",
+    "pyqt6": "6.9.1",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
