@@ -74,7 +74,7 @@ class TestSeriesRound:
         tm.assert_series_equal(ser, expected)
 
     def test_round_dtype_object(self):
-        # GH#61206, GH#62173
+        # GH#61206, GH#62174
         ser = Series([0.232], dtype="object")
         expected = Series([0.2])
         tm.assert_series_equal(ser.round(1), expected)
