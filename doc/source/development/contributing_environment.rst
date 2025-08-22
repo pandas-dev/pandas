@@ -176,6 +176,16 @@ Build the Docker image::
     # Build the image
     docker build -t pandas-dev .
 
+
+**Platform Specification**
+
+If you encounter compatibility issues during the build process (especially on Apple Silicon Macs), specify the target platform::
+
+    # Highlight your platform in the docker build command for better compatibility
+    docker build --platform=linux/amd64 -t pandas-dev .
+
+The --platform flag makes the build to use the specified architecture (in this case x86_64), which provides better platform compatibility.
+
 Run Container::
 
     # Run a container and bind your local repo to the container
