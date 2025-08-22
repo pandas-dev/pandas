@@ -49,7 +49,7 @@ def maybe_split_array(arr, chunked):
         [*arrow_array[:split].chunks, *arrow_array[split:].chunks]
     )
     assert arrow_array.num_chunks == 2
-    return type(arr)(arrow_array)
+    return arr._from_pyarrow_array(arrow_array)
 
 
 @pytest.fixture(params=[True, False])

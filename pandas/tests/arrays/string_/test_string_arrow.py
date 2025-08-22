@@ -14,7 +14,6 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
-    ArrowStringArrayNumpySemantics,
 )
 
 
@@ -185,9 +184,6 @@ def test_pyarrow_not_installed_raises():
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray([])
-
-    with pytest.raises(ImportError, match=msg):
-        ArrowStringArrayNumpySemantics([])
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray._from_sequence(["a", None, "b"])

@@ -176,7 +176,7 @@ def array(
     NumPy array.
 
     >>> pd.array(["a", "b"], dtype=str)
-    <ArrowStringArrayNumpySemantics>
+    <ArrowStringArray>
     ['a', 'b']
     Length: 2, dtype: str
 

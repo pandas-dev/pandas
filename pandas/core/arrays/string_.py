@@ -293,7 +293,6 @@ class StringDtype(StorageExtensionDtype):
         """
         from pandas.core.arrays.string_arrow import (
             ArrowStringArray,
-            ArrowStringArrayNumpySemantics,
         )
 
         if self.storage == "python" and self._na_value is libmissing.NA:
@@ -303,7 +302,7 @@ class StringDtype(StorageExtensionDtype):
         elif self.storage == "python":
             return StringArrayNumpySemantics
         else:
-            return ArrowStringArrayNumpySemantics
+            return ArrowStringArray
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         storages = set()
@@ -340,16 +339,9 @@ class StringDtype(StorageExtensionDtype):
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
         if self.storage == "pyarrow":
-            if self._na_value is libmissing.NA:
-                from pandas.core.arrays.string_arrow import ArrowStringArray
+            from pandas.core.arrays.string_arrow import ArrowStringArray
 
-                return ArrowStringArray(array)
-            else:
-                from pandas.core.arrays.string_arrow import (
-                    ArrowStringArrayNumpySemantics,
-                )
-
-                return ArrowStringArrayNumpySemantics(array)
+            return ArrowStringArray(array, dtype=self)
 
         else:
             import pyarrow
@@ -493,6 +485,8 @@ class BaseStringArray(ExtensionArray):
                 result = pa.array(
                     result, mask=mask, type=pa.large_string(), from_pandas=True
                 )
+                # error: "BaseStringArray" has no attribute "_from_pyarrow_array"
+                return self._from_pyarrow_array(result)  # type: ignore[attr-defined]
             # error: Too many arguments for "BaseStringArray"
             return type(self)(result)  # type: ignore[call-arg]
 
