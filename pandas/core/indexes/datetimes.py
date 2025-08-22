@@ -827,12 +827,12 @@ def date_range(
     freq=None,
     tz=None,
     normalize: bool = False,
-    name: Hashable | None = None,
-    inclusive: IntervalClosedType = "both",
+    name: "Hashable | None" = None,
+    inclusive: "IntervalClosedType" = "both",
     *,
     unit: str | None = None,
     **kwargs,
-) -> DatetimeIndex:
+) -> "DatetimeIndex":
     """
     Return a fixed frequency DatetimeIndex.
 
