@@ -5192,12 +5192,15 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
     if name in _lite_rule_alias:
         return name
     if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
+        from pandas.errors import Pandas4Warning
+
+        # https://github.com/pandas-dev/pandas/pull/59240
         warnings.warn(
             f"\'{name}\' is deprecated and will be removed "
             f"in a future version, please use "
             f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
             f"instead.",
-            FutureWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
             )
         return c_PERIOD_AND_OFFSET_DEPR_FREQSTR[name]
@@ -5206,12 +5209,15 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
         if name == _name:
             continue
         if _name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR.values():
+            from pandas.errors import Pandas4Warning
+
+            # https://github.com/pandas-dev/pandas/pull/59240
             warnings.warn(
                 f"\'{name}\' is deprecated and will be removed "
                 f"in a future version, please use "
                 f"\'{_name}\' "
                 f"instead.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
                 )
             return _name
