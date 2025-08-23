@@ -25,7 +25,7 @@ def __getattr__(name: str):
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
-            FutureWarning,
+            FutureWarning,  # pdlint: ignore
             # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
             # on hard-coding stacklevel
             stacklevel=2,

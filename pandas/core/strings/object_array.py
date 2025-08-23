@@ -163,7 +163,7 @@ class ObjectStringArrayMixin:
             warnings.warn(
                 "Allowing a non-bool 'na' in obj.str.contains is deprecated "
                 "and will raise in a future version.",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore
                 stacklevel=find_stack_level(),
             )
         return self._str_map(f, na, dtype=np.dtype("bool"))
@@ -175,7 +175,7 @@ class ObjectStringArrayMixin:
             warnings.warn(
                 "Allowing a non-bool 'na' in obj.str.startswith is deprecated "
                 "and will raise in a future version.",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore
                 stacklevel=find_stack_level(),
             )
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
@@ -187,7 +187,7 @@ class ObjectStringArrayMixin:
             warnings.warn(
                 "Allowing a non-bool 'na' in obj.str.endswith is deprecated "
                 "and will raise in a future version.",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore
                 stacklevel=find_stack_level(),
             )
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))

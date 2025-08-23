@@ -557,7 +557,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 "and will be removed. In a future version `groups` by one element "
                 "list will return tuple. Use ``df.groupby(by='a').groups`` "
                 "instead of ``df.groupby(by=['a']).groups`` to avoid this warning",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore
                 stacklevel=find_stack_level(),
             )
         return self._grouper.groups

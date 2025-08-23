@@ -16,11 +16,15 @@ from collections.abc import (
     Callable,
     Iterable,
 )
+import re
 import sys
 import token
 import tokenize
 from typing import IO
 
+DEPRECATION_WARNINGS_PATTERN = re.compile(
+    r"(PendingDeprecation|Deprecation|Future)Warning"
+)
 PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_extension_array_shared_docs",
     "_index_shared_docs",
@@ -344,6 +348,47 @@ def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[tuple[int,
                     if isinstance(value, ast.AST)
                 )
 
+def doesnt_use_pandas_warnings(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
+    """
+    Checking that a private function is not used across modules.
+    Parameters
+    ----------
+    file_obj : IO
+        File-like object containing the Python code to validate.
+    Yields
+    ------
+    line_number : int
+        Line number of the private function that is used across modules.
+    msg : str
+        Explanation of the error.
+    """
+    contents = file_obj.read()
+    lines = contents.split("\n")
+    tree = ast.parse(contents)
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+
+        if isinstance(node.func, ast.Attribute):
+            if node.func.attr != "warn":
+                continue
+        elif isinstance(node.func, ast.Name):
+            if node.func.id != "warn":
+                continue
+        if any(
+            "# pdlint: ignore[warning_class]" in lines[k]
+            for k in range(node.lineno - 1, node.end_lineno + 1)
+        ):
+            continue
+        values = (
+                [arg.id for arg in node.args if isinstance(arg, ast.Name)]
+                + [kw.value.id for kw in node.keywords if kw.arg == "category"]
+        )
+        for value in values:
+            matches = re.match(DEPRECATION_WARNINGS_PATTERN, value)
+            if matches is not None:
+                yield (node.lineno, f"Don't use {matches[0]}")
+
 
 def main(
     function: Callable[[IO[str]], Iterable[tuple[int, str]]],
@@ -397,6 +442,7 @@ if __name__ == "__main__":
         "private_import_across_module",
         "strings_with_wrong_placed_whitespace",
         "nodefault_used_not_only_for_typing",
+        "doesnt_use_pandas_warnings",
     ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")

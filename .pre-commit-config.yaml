@@ -266,6 +266,11 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="nodefault_used_not_only_for_typing"
         types: [python]
+    -   id: unwanted-patterns-doesnt-use-pandas-warnings
+        name: Check that warning classes for deprecations use pandas' warning classes
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="doesnt_use_pandas_warnings"
+        types: [ python ]
     -   id: no-return-exception
         name: Use raise instead of return for exceptions
         language: pygrep
