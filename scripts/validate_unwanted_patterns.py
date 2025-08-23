@@ -350,15 +350,17 @@ def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[tuple[int,
 
 def doesnt_use_pandas_warnings(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
     """
-    Checking that a private function is not used across modules.
+    Checking that pandas-specific warnings are used for deprecations.
+
     Parameters
     ----------
     file_obj : IO
         File-like object containing the Python code to validate.
+
     Yields
     ------
     line_number : int
-        Line number of the private function that is used across modules.
+        Line number of the warning.
     msg : str
         Explanation of the error.
     """
@@ -387,7 +389,12 @@ def doesnt_use_pandas_warnings(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
         for value in values:
             matches = re.match(DEPRECATION_WARNINGS_PATTERN, value)
             if matches is not None:
-                yield (node.lineno, f"Don't use {matches[0]}")
+                yield (
+                    node.lineno,
+                    f"Don't use {matches[0]}, use a pandas-specific warning in "
+                    f"pd.errors instead. You can add "
+                    f"`# pdlint: ignore[warning_class]` to override."
+                )
 
 
 def main(
