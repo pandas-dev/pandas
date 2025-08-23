@@ -24,7 +24,6 @@ import pandas._testing as tm
 from pandas.core.arrays.string_ import StringArrayNumpySemantics
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
-    ArrowStringArrayNumpySemantics,
 )
 
 
@@ -113,7 +112,7 @@ def test_repr(dtype):
         arr_name = "ArrowStringArray"
         expected = f"<{arr_name}>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
     elif dtype.storage == "pyarrow" and dtype.na_value is np.nan:
-        arr_name = "ArrowStringArrayNumpySemantics"
+        arr_name = "ArrowStringArray"
         expected = f"<{arr_name}>\n['a', nan, 'b']\nLength: 3, dtype: str"
     elif dtype.storage == "python" and dtype.na_value is np.nan:
         arr_name = "StringArrayNumpySemantics"
@@ -482,10 +481,12 @@ def test_from_sequence_no_mutate(copy, cls, dtype):
 
     result = cls._from_sequence(nan_arr, dtype=dtype, copy=copy)
 
-    if cls in (ArrowStringArray, ArrowStringArrayNumpySemantics):
+    if cls is ArrowStringArray:
         import pyarrow as pa
 
-        expected = cls(pa.array(na_arr, type=pa.string(), from_pandas=True))
+        expected = cls(
+            pa.array(na_arr, type=pa.string(), from_pandas=True), dtype=dtype
+        )
     elif cls is StringArrayNumpySemantics:
         expected = cls(nan_arr)
     else:
