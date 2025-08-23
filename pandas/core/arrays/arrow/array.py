@@ -1594,7 +1594,8 @@ class ArrowExtensionArray(
 
     def map(self, mapper, na_action: Literal["ignore"] | None = None):
         if is_numeric_dtype(self.dtype):
-            return map_array(self.to_numpy(), mapper, na_action=na_action)
+            result = map_array(self.to_numpy(), mapper, na_action=na_action)
+            return self._cast_pointwise_result(result)
         else:
             return super().map(mapper, na_action)
 
