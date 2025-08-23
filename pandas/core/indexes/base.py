@@ -2085,7 +2085,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         """
         if type(level) is int:
-
             if isinstance(self.name, int) and level == self.name:
                 return
 
@@ -2100,9 +2099,7 @@ class Index(IndexOpsMixin, PandasObject):
                 )
 
         elif (
-            isinstance(level, str)
-            and isinstance(self.name, str)
-            and level != self.name
+            isinstance(level, str) and isinstance(self.name, str) and level != self.name
         ):
             raise KeyError(
                 f"Requested level ({level}) does not match index name ({self.name})"
