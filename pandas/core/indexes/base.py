@@ -26,7 +26,6 @@ from pandas._config import (
 )
 
 from pandas._libs import (
-    NA,
     NaT,
     algos as libalgos,
     index as libindex,
@@ -2097,19 +2096,6 @@ class Index(IndexOpsMixin, PandasObject):
                 )
 
         else:
-            if level is NA:
-                raise KeyError(
-                    "Requested level is pandas.NA, which is not a valid index name"
-                )
-            if level is NaT:
-                raise KeyError(
-                    "Requested level is pandas.NaT, which is not a valid index name"
-                )
-            if isinstance(level, float) and np.isnan(level):
-                raise KeyError(
-                    "Requested level is NaN, which is not a valid index name"
-                )
-
             if level != self.name:
                 raise KeyError(
                     f"Requested level ({level}) does not match index name ({self.name})"
