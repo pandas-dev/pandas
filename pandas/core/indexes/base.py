@@ -2084,7 +2084,7 @@ class Index(IndexOpsMixin, PandasObject):
         verification must be done like in MultiIndex.
 
         """
-        if type(level) is int:
+        if lib.is_integer(level):
             if isinstance(self.name, int) and level == self.name:
                 return
 
