@@ -268,7 +268,7 @@ def test_add_strings(dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH-28527")
+# @pytest.mark.xfail(reason="GH-28527")
 def test_add_frame(dtype):
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
