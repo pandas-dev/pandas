@@ -11,7 +11,7 @@ pytest-cov
 pytest-xdist>=3.4.0
 pytest-qt>=4.4.0
 pytest-localserver
-PyQt6>=6.9.1
+PyQt6>=6.7.1
 coverage
 python-dateutil
 numpy<3
