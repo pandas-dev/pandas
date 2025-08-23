@@ -26,6 +26,7 @@ from pandas._config import (
 )
 
 from pandas._libs import (
+    NA,
     NaT,
     algos as libalgos,
     index as libindex,
@@ -2084,7 +2085,7 @@ class Index(IndexOpsMixin, PandasObject):
         verification must be done like in MultiIndex.
 
         """
-        if isinstance(level, int):
+        if type(level) is int:
             if level < 0 and level != -1:
                 raise IndexError(
                     "Too many levels: Index has only 1 level, "
@@ -2094,10 +2095,25 @@ class Index(IndexOpsMixin, PandasObject):
                 raise IndexError(
                     f"Too many levels: Index has only 1 level, not {level + 1}"
                 )
-        elif level != self.name:
-            raise KeyError(
-                f"Requested level ({level}) does not match index name ({self.name})"
-            )
+
+        else:
+            if level is NA:
+                raise KeyError(
+                    "Requested level is pandas.NA, which is not a valid index name"
+                )
+            if level is NaT:
+                raise KeyError(
+                    "Requested level is pandas.NaT, which is not a valid index name"
+                )
+            if isinstance(level, float) and np.isnan(level):
+                raise KeyError(
+                    "Requested level is NaN, which is not a valid index name"
+                )
+
+            if level != self.name:
+                raise KeyError(
+                    f"Requested level ({level}) does not match index name ({self.name})"
+                )
 
     def _get_level_number(self, level) -> int:
         self._validate_index_level(level)
