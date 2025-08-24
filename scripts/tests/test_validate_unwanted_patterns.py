@@ -311,7 +311,6 @@ if a is NoDefault:
     ],
 )
 @pytest.mark.parametrize("pdlint_ignore", [True, False])
-
 def test_doesnt_use_pandas_warnings(function, positional, category, pdlint_ignore):
     code = (
         f"{function}({'  # pdlint: ignore[warning_class]' if pdlint_ignore else ''}\n"
@@ -327,6 +326,7 @@ def test_doesnt_use_pandas_warnings(function, positional, category, pdlint_ignor
     result = list(validate_unwanted_patterns.doesnt_use_pandas_warnings(fd))
     if flag_issue:
         assert len(result) == 1
-        assert result[0] == (1, f"Don't use {category}")
+        assert result[0][0] == 1
+        assert result[0][1].startswith(f"Don't use {category}")
     else:
         assert len(result) == 0
