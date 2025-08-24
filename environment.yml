@@ -121,5 +121,5 @@ dependencies:
   - jupyterlite-pyodide-kernel
 
   - pip:
-      - pyqt6>=6.7.1
+      - PyQt6>=6.7.1
       - tzdata>=2023.3
