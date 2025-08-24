@@ -176,90 +176,90 @@ def strings_with_wrong_placed_whitespace(
     file_obj: IO[str],
 ) -> Iterable[tuple[int, str]]:
     """
-    Test case for leading spaces in concated strings.
+        Test case for leading spaces in concated strings.
 
-    For example:
+        For example:
 
-    >>> rule = (
-    ...    "We want the space at the end of the line, "
-    ...    "not at the beginning"
-    ... )
+         >>> rule = (
+    -    ...    "We want the space at the end of the line, "
+    -    ...    "and not at the beginning"
+    -    ... )
 
-    Instead of:
+        Instead of:
 
-    >>> rule = (
-    ...    "We want the space at the end of the line,"
-    ...    " not at the beginning"
-    ... )
+        >>> rule = (
+    -    ...    "We want the space at the end of the line,"
+    -    ...    " and not at the beginning"
+    -    ... )
 
-    Parameters
-    ----------
-    file_obj : IO
-        File-like object containing the Python code to validate.
+        Parameters
+        ----------
+        file_obj : IO
+            File-like object containing the Python code to validate.
 
-    Yields
-    ------
-    line_number : int
-        Line number of unconcatenated string.
-    msg : str
-        Explanation of the error.
+        Yields
+        ------
+        line_number : int
+            Line number of unconcatenated string.
+        msg : str
+            Explanation of the error.
     """
 
     def has_wrong_whitespace(first_line: str, second_line: str) -> bool:
         """
-        Checking if the two lines are mattching the unwanted pattern.
+                Checking if the two lines are mattching the unwanted pattern.
 
-        Parameters
-        ----------
-        first_line : str
-            First line to check.
-        second_line : str
-            Second line to check.
+                Parameters
+                ----------
+                first_line : str
+                    First line to check.
+                second_line : str
+                    Second line to check.
 
-        Returns
-        -------
-        bool
-            True if the two received string match, an unwanted pattern.
+                Returns
+                -------
+                bool
+                    True if the two received string match, an unwanted pattern.
 
-        Notes
-        -----
-        The unwanted pattern that we are trying to catch is if the spaces in
-        a string that is concatenated over multiple lines are placed at the
-        end of each string, unless this string is ending with a
-        newline character (\n).
+                Notes
+                -----
+                The unwanted pattern that we are trying to catch is if the spaces in
+                a string that is concatenated over multiple lines are placed at the
+                end of each string, unless this string is ending with a
+                newline character (\n).
 
-        For example, this is bad:
+                For example, this is bad:
 
-        >>> rule = (
-        ...    "We want the space at the end of the line,"
-        ...    " not at the beginning"
-        ... )
+                >>> rule = (
+        -        ...    "We want the space at the end of the line,"
+        -        ...    " and not at the beginning"
+        -        ... )
 
-        And what we want is:
+                And what we want is:
 
-        >>> rule = (
-        ...    "We want the space at the end of the line, "
-        ...    "not at the beginning"
-        ... )
+                 >>> rule = (
+        -        ...    "We want the space at the end of the line, "
+        -        ...    "and not at the beginning"
+        -        ... )
 
-        And if the string is ending with a new line character (\n) we
-        do not want any trailing whitespaces after it.
+                And if the string is ending with a new line character (\n) we
+                do not want any trailing whitespaces after it.
 
-        For example, this is bad:
+                For example, this is bad:
 
-        >>> rule = (
-        ...    "We want the space at the begging of "
-        ...    "the line if the previous line is ending with a \n "
-        ...    "not at the end, like always"
-        ... )
+                >>> rule = (
+                ...     "We want the space at the beginning of "
+                ...     "the line if the previous line is ending with a \n "
+                ...     "not at the end, like always"
+                ... )
 
-        And what we do want is:
+                And what we do want is:
 
-        >>> rule = (
-        ...    "We want the space at the begging of "
-        ...    "the line if the previous line is ending with a \n"
-        ...    " not at the end, like always"
-        ... )
+                >>> rule = (
+                ...     "We want the space at the beginning of "
+                ...     "the line if the previous line is ending with a \n"
+                ...     " not at the end, like always"
+                ... )
         """
         if first_line.endswith(r"\n"):
             return False
@@ -320,10 +320,14 @@ def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[tuple[int,
     while nodes:
         in_annotation, node = nodes.pop()
         if not in_annotation and (
-            (isinstance(node, ast.Name)  # Case `NoDefault`
-            and node.id == "NoDefault")
-            or (isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
-            and node.attr == "NoDefault")
+            (
+                isinstance(node, ast.Name)  # Case `NoDefault`
+                and node.id == "NoDefault"
+            )
+            or (
+                isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
+                and node.attr == "NoDefault"
+            )
         ):
             yield (node.lineno, "NoDefault is used not only for typing")
 
