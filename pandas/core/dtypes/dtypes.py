@@ -2307,7 +2307,12 @@ class ArrowDtype(StorageExtensionDtype):
     @cache_readonly
     def itemsize(self) -> int:
         """Return the number of bytes in this dtype"""
-        return self.numpy_dtype.itemsize
+        try:
+            # Use PyArrow's bit_width for fixed-width types
+            return self.pyarrow_dtype.bit_width // 8  # convert from bit to bytes
+        except (AttributeError, NotImplementedError, ValueError):
+            # Fall back to numpy dtype for variable-width or unsupported types
+            return self.numpy_dtype.itemsize
 
     def construct_array_type(self) -> type_t[ArrowExtensionArray]:
         """

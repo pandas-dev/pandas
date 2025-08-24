@@ -3576,6 +3576,29 @@ def test_timestamp_dtype_disallows_decimal():
         pd.array(vals, dtype=ArrowDtype(pa.timestamp("us")))
 
 
+def test_arrow_dtype_itemsize():
+    # Regression test for GH#57948 where date32[day] was incorrectly
+    # reporting 8 bytes instead of 4.
+
+    # date32 should be 4 bytes, not 8
+    dtype = ArrowDtype(pa.date32())
+    assert dtype.itemsize == 4
+
+    # Testing other fixed-width types
+    assert ArrowDtype(pa.int32()).itemsize == 4
+    assert ArrowDtype(pa.int64()).itemsize == 8
+    assert ArrowDtype(pa.float32()).itemsize == 4
+    assert ArrowDtype(pa.float64()).itemsize == 8
+    assert ArrowDtype(pa.date64()).itemsize == 8
+
+    # Test that variable-width types fall back gracefully
+    string_dtype = ArrowDtype(pa.string())
+    assert isinstance(string_dtype.itemsize, int)
+
+    list_dtype = ArrowDtype(pa.list_(pa.int32()))
+    assert isinstance(list_dtype.itemsize, int)
+
+
 def test_timestamp_dtype_matches_to_datetime():
     # GH#61775
     dtype1 = "datetime64[ns, US/Eastern]"
