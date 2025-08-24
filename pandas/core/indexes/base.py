@@ -2084,11 +2084,21 @@ class Index(IndexOpsMixin, PandasObject):
         verification must be done like in MultiIndex.
 
         """
-        if lib.is_integer(level):
-            if isinstance(self.name, int) and level == self.name:
-                return
+        # Explicitly raise for missing/null values to match pandas convention
+        if isna(level):
+            raise KeyError(
+                "Requested level is NA/NaN/NaT, which is not a valid level name"
+            )
 
-            if level < 0 and level != -1:
+        # Standard integer check, but reject bool
+        if lib.is_integer(level) and not isinstance(level, bool):
+            # If the index itself is named as integer, accept
+            if lib.is_integer(self.name) and level == self.name:
+                return
+            # Only allow 0 and -1 for a single-level Index
+            if level in (0, -1):
+                return
+            if level < 0:
                 raise IndexError(
                     "Too many levels: Index has only 1 level, "
                     f"{level} is not a valid level number"
@@ -2098,11 +2108,18 @@ class Index(IndexOpsMixin, PandasObject):
                     f"Too many levels: Index has only 1 level, not {level + 1}"
                 )
 
-        elif (
-            isinstance(level, str) and isinstance(self.name, str) and level != self.name
+        # String level: only match if name is exactly the same string
+        elif isinstance(level, str) and not (
+            isinstance(self.name, str) and level == self.name
         ):
             raise KeyError(
                 f"Requested level ({level}) does not match index name ({self.name})"
+            )
+
+        # If level type is not int, str, or is NA, always raise KeyError
+        else:
+            raise KeyError(
+                f"Requested level ({level}) is not a valid level name or number"
             )
 
     def _get_level_number(self, level) -> int:
