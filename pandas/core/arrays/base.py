@@ -15,10 +15,10 @@ from typing import (
     Any,
     ClassVar,
     Literal,
+    Self,
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -34,13 +34,11 @@ from pandas.util._decorators import (
     Substitution,
     cache_readonly,
 )
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.cast import maybe_cast_pointwise_result
 from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
@@ -88,14 +86,12 @@ if TYPE_CHECKING:
         AstypeArg,
         AxisInt,
         Dtype,
-        DtypeObj,
         FillnaOptions,
         InterpolateOptions,
         NumpySorter,
         NumpyValueArrayLike,
         PositionalIndexer,
         ScalarIndexer,
-        Self,
         SequenceIndexer,
         Shape,
         SortKind,
@@ -312,38 +308,6 @@ class ExtensionArray:
         raise AbstractMethodError(cls)
 
     @classmethod
-    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
-        """
-        Strict analogue to _from_sequence, allowing only sequences of scalars
-        that should be specifically inferred to the given dtype.
-
-        Parameters
-        ----------
-        scalars : sequence
-        dtype : ExtensionDtype
-
-        Raises
-        ------
-        TypeError or ValueError
-
-        Notes
-        -----
-        This is called in a try/except block when casting the result of a
-        pointwise operation.
-        """
-        try:
-            return cls._from_sequence(scalars, dtype=dtype, copy=False)
-        except (ValueError, TypeError):
-            raise
-        except Exception:
-            warnings.warn(
-                "_from_scalars should only raise ValueError or TypeError. "
-                "Consider overriding _from_scalars where appropriate.",
-                stacklevel=find_stack_level(),
-            )
-            raise
-
-    @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
@@ -371,9 +335,6 @@ class ExtensionArray:
             from a sequence of scalars.
         api.extensions.ExtensionArray._from_factorized : Reconstruct an ExtensionArray
             after factorization.
-        api.extensions.ExtensionArray._from_scalars : Strict analogue to _from_sequence,
-            allowing only sequences of scalars that should be specifically inferred to
-            the given dtype.
 
         Examples
         --------
@@ -415,6 +376,14 @@ class ExtensionArray:
         Length: 2, dtype: interval[int64, right]
         """
         raise AbstractMethodError(cls)
+
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        """
+        Cast the result of a pointwise operation (e.g. Series.map) to an
+        array, preserve dtype_backend if possible.
+        """
+        values = np.asarray(values, dtype=object)
+        return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # ------------------------------------------------------------------------
     # Must be a Sequence
@@ -2842,7 +2811,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    res = maybe_cast_pointwise_result(arr, self.dtype, same_dtype=False)
+                    res = self._cast_pointwise_result(arr)
                     if not isinstance(res, type(self)):
                         # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)

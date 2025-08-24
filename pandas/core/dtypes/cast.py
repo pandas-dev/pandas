@@ -246,18 +246,16 @@ def _disallow_mismatched_datetimelike(value, dtype: DtypeObj) -> None:
 
 
 @overload
-def maybe_downcast_to_dtype(
-    result: np.ndarray, dtype: str | np.dtype
-) -> np.ndarray: ...
+def maybe_downcast_to_dtype(result: np.ndarray, dtype: np.dtype) -> np.ndarray: ...
 
 
 @overload
 def maybe_downcast_to_dtype(
-    result: ExtensionArray, dtype: str | np.dtype
-) -> ArrayLike: ...
+    result: ExtensionArray, dtype: np.dtype
+) -> ExtensionArray: ...
 
 
-def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLike:
+def maybe_downcast_to_dtype(result: ArrayLike, dtype: np.dtype) -> ArrayLike:
     """
     try to cast to the specified dtype (e.g. convert back to bool/int
     or could be an astype of float64->float32
@@ -265,30 +263,6 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
     if isinstance(result, ABCSeries):
         result = result._values
     do_round = False
-
-    if isinstance(dtype, str):
-        if dtype == "infer":
-            inferred_type = lib.infer_dtype(result, skipna=False)
-            if inferred_type == "boolean":
-                dtype = "bool"
-            elif inferred_type == "integer":
-                dtype = "int64"
-            elif inferred_type == "datetime64":
-                dtype = "datetime64[ns]"
-            elif inferred_type in ["timedelta", "timedelta64"]:
-                dtype = "timedelta64[ns]"
-
-            # try to upcast here
-            elif inferred_type == "floating":
-                dtype = "int64"
-                if issubclass(result.dtype.type, np.number):
-                    do_round = True
-
-            else:
-                # TODO: complex?  what if result is already non-object?
-                dtype = "object"
-
-        dtype = np.dtype(dtype)
 
     if not isinstance(dtype, np.dtype):
         # enforce our signature annotation
@@ -435,80 +409,6 @@ def maybe_upcast_numeric_to_64bit(arr: NumpyIndexT) -> NumpyIndexT:
         return arr.astype(np.float64)
     else:
         return arr
-
-
-def maybe_cast_pointwise_result(
-    result: ArrayLike,
-    dtype: DtypeObj,
-    numeric_only: bool = False,
-    same_dtype: bool = True,
-) -> ArrayLike:
-    """
-    Try casting result of a pointwise operation back to the original dtype if
-    appropriate.
-
-    Parameters
-    ----------
-    result : array-like
-        Result to cast.
-    dtype : np.dtype or ExtensionDtype
-        Input Series from which result was calculated.
-    numeric_only : bool, default False
-        Whether to cast only numerics or datetimes as well.
-    same_dtype : bool, default True
-        Specify dtype when calling _from_sequence
-
-    Returns
-    -------
-    result : array-like
-        result maybe casted to the dtype.
-    """
-
-    if isinstance(dtype, ExtensionDtype):
-        cls = dtype.construct_array_type()
-        if same_dtype:
-            result = _maybe_cast_to_extension_array(cls, result, dtype=dtype)
-        else:
-            result = _maybe_cast_to_extension_array(cls, result)
-
-    elif (numeric_only and dtype.kind in "iufcb") or not numeric_only:
-        result = maybe_downcast_to_dtype(result, dtype)
-
-    return result
-
-
-def _maybe_cast_to_extension_array(
-    cls: type[ExtensionArray], obj: ArrayLike, dtype: ExtensionDtype | None = None
-) -> ArrayLike:
-    """
-    Call to `_from_sequence` that returns the object unchanged on Exception.
-
-    Parameters
-    ----------
-    cls : class, subclass of ExtensionArray
-    obj : arraylike
-        Values to pass to cls._from_sequence
-    dtype : ExtensionDtype, optional
-
-    Returns
-    -------
-    ExtensionArray or obj
-    """
-    result: ArrayLike
-
-    if dtype is not None:
-        try:
-            result = cls._from_scalars(obj, dtype=dtype)
-        except (TypeError, ValueError):
-            return obj
-        return result
-
-    try:
-        result = cls._from_sequence(obj, dtype=dtype)
-    except Exception:
-        # We can't predict what downstream EA constructors may raise
-        result = obj
-    return result
 
 
 @overload

@@ -14,15 +14,143 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_300.enhancements.enhancement1:
+.. _whatsnew_300.enhancements.string_dtype:
 
-Enhancement1
-^^^^^^^^^^^^
+Dedicated string data type by default
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. _whatsnew_300.enhancements.enhancement2:
+Historically, pandas represented string columns with NumPy ``object`` data type.
+This representation has numerous problems: it is not specific to strings (any
+Python object can be stored in an ``object``-dtype array, not just strings) and
+it is often not very efficient (both performance wise and for memory usage).
 
-Enhancement2
-^^^^^^^^^^^^
+Starting with pandas 3.0, a dedicated string data type is enabled by default
+(backed by PyArrow under the hood, if installed, otherwise falling back to being
+backed by NumPy ``object``-dtype). This means that pandas will start inferring
+columns containing string data as the new ``str`` data type when creating pandas
+objects, such as in constructors or IO functions.
+
+Old behavior:
+
+.. code-block:: python
+
+    >>> ser = pd.Series(["a", "b"])
+    0    a
+    1    b
+    dtype: object
+
+New behavior:
+
+.. code-block:: python
+
+    >>> ser = pd.Series(["a", "b"])
+    0    a
+    1    b
+    dtype: str
+
+The string data type that is used in these scenarios will mostly behave as NumPy
+object would, including missing value semantics and general operations on these
+columns.
+
+The main characteristic of the new string data type:
+
+- Inferred by default for string data (instead of object dtype)
+- The ``str`` dtype can only hold strings (or missing values), in contrast to
+  ``object`` dtype. (setitem with non string fails)
+- The missing value sentinel is always ``NaN`` (``np.nan``) and follows the same
+  missing value semantics as the other default dtypes.
+
+Those intentional changes can have breaking consequences, for example when checking
+for the ``.dtype`` being object dtype or checking the exact missing value sentinel.
+See the :ref:`string_migration_guide` for more details on the behaviour changes
+and how to adapt your code to the new default.
+
+.. seealso::
+
+    `PDEP-14: Dedicated string data type for pandas 3.0 <https://pandas.pydata.org/pdeps/0014-string-dtype.html>`__
+
+
+.. _whatsnew_300.enhancements.copy_on_write:
+
+Copy-on-Write
+^^^^^^^^^^^^^
+
+The new "copy-on-write" behaviour in pandas 3.0 brings changes in behavior in
+how pandas operates with respect to copies and views. A summary of the changes:
+
+1. The result of *any* indexing operation (subsetting a DataFrame or Series in any way,
+   i.e. including accessing a DataFrame column as a Series) or any method returning a
+   new DataFrame or Series, always *behaves as if* it were a copy in terms of user
+   API.
+2. As a consequence, if you want to modify an object (DataFrame or Series), the only way
+   to do this is to directly modify that object itself.
+
+The main goal of this change is to make the user API more consistent and
+predictable. There is now a clear rule: *any* subset or returned
+series/dataframe **always** behaves as a copy of the original, and thus never
+modifies the original (before pandas 3.0, whether a derived object would be a
+copy or a view depended on the exact operation performed, which was often
+confusing).
+
+Because every single indexing step now behaves as a copy, this also means that
+"chained assignment" (updating a DataFrame with multiple setitem steps) will
+stop working. Because this now consistently never works, the
+``SettingWithCopyWarning`` is removed.
+
+The new behavioral semantics are explained in more detail in the
+:ref:`user guide about Copy-on-Write <copy_on_write>`.
+
+A secondary goal is to improve performance by avoiding unnecessary copies. As
+mentioned above, every new DataFrame or Series returned from an indexing
+operation or method *behaves* as a copy, but under the hood pandas will use
+views as much as possible, and only copy when needed to guarantee the "behaves
+as a copy" behaviour (this is the actual "copy-on-write" mechanism used as an
+implementation detail).
+
+Some of the behaviour changes described above are breaking changes in pandas
+3.0. When upgrading to pandas 3.0, it is recommended to first upgrade to pandas
+2.3 to get deprecation warnings for a subset of those changes. The
+:ref:`migration guide <copy_on_write.migration_guide>` explains the upgrade
+process in more detail.
+
+.. seealso::
+
+    `PDEP-7: Consistent copy/view semantics in pandas with Copy-on-Write <https://pandas.pydata.org/pdeps/0007-copy-on-write.html>`__
+
+.. _whatsnew_300.enhancements.col:
+
+``pd.col`` syntax can now be used in :meth:`DataFrame.assign` and :meth:`DataFrame.loc`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can now use ``pd.col`` to create callables for use in dataframe methods which accept them. For example, if you have a dataframe
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [1, 1, 2], 'b': [4, 5, 6]})
+
+and you want to create a new column ``'c'`` by summing ``'a'`` and ``'b'``, then instead of
+
+.. ipython:: python
+
+    df.assign(c = lambda df: df['a'] + df['b'])
+
+you can now write:
+
+.. ipython:: python
+
+    df.assign(c = pd.col('a') + pd.col('b'))
+
+New Deprecation Policy
+^^^^^^^^^^^^^^^^^^^^^^
+pandas 3.0.0 introduces a new 3-stage deprecation policy: using ``DeprecationWarning`` initially, then switching to ``FutureWarning`` for broader visibility in the last minor version before the next major release, and then removal of the deprecated functionality in the major release. This was done to give downstream packages more time to adjust to pandas deprecations, which should reduce the amount of warnings that a user gets from code that isn't theirs. See `PDEP 17 <https://pandas.pydata.org/pdeps/0017-backwards-compatibility-and-deprecation-policy.html>`_ for more details.
+
+All warnings for upcoming changes in pandas will have the base class :class:`pandas.errors.PandasChangeWarning`. Users may also use the following subclasses to control warnings.
+
+- :class:`pandas.errors.Pandas4Warning`: Warnings which will be enforced in pandas 4.0.
+- :class:`pandas.errors.Pandas5Warning`: Warnings which will be enforced in pandas 5.0.
+- :class:`pandas.errors.PandasPendingDeprecationWarning`: Base class of all warnings which emit a ``PendingDeprecationWarning``, independent of the version they will be enforced.
+- :class:`pandas.errors.PandasDeprecationWarning`: Base class of all warnings which emit a ``DeprecationWarning``, independent of the version they will be enforced.
+- :class:`pandas.errors.PandasFutureWarning`: Base class of all warnings which emit a ``FutureWarning``, independent of the version they will be enforced.
 
 .. _whatsnew_300.enhancements.other:
 
@@ -81,6 +209,7 @@ Other enhancements
 - :meth:`Rolling.agg`, :meth:`Expanding.agg` and :meth:`ExponentialMovingWindow.agg` now accept :class:`NamedAgg` aggregations through ``**kwargs`` (:issue:`28333`)
 - :meth:`Series.map` can now accept kwargs to pass on to func (:issue:`59814`)
 - :meth:`Series.map` now accepts an ``engine`` parameter to allow execution with a third-party execution engine (:issue:`61125`)
+- :meth:`Series.rank` and :meth:`DataFrame.rank` with numpy-nullable dtypes preserve ``NA`` values and return ``UInt64`` dtype where appropriate instead of casting ``NA`` to ``NaN`` with ``float64`` dtype (:issue:`62043`)
 - :meth:`Series.str.get_dummies` now accepts a  ``dtype`` parameter to specify the dtype of the resulting DataFrame (:issue:`47872`)
 - :meth:`pandas.concat` will raise a ``ValueError`` when ``ignore_index=True`` and ``keys`` is not ``None`` (:issue:`59274`)
 - :py:class:`frozenset` elements in pandas objects are now natively printed (:issue:`60690`)
@@ -89,12 +218,14 @@ Other enhancements
 - Added support to read and write from and to Apache Iceberg tables with the new :func:`read_iceberg` and :meth:`DataFrame.to_iceberg` functions (:issue:`61383`)
 - Errors occurring during SQL I/O will now throw a generic :class:`.DatabaseError` instead of the raw Exception type from the underlying driver manager library (:issue:`60748`)
 - Implemented :meth:`Series.str.isascii` and :meth:`Series.str.isascii` (:issue:`59091`)
+- Improve the resulting dtypes in :meth:`DataFrame.where` and :meth:`DataFrame.mask` with :class:`ExtensionDtype` ``other`` (:issue:`62038`)
 - Improved deprecation message for offset aliases (:issue:`60820`)
 - Multiplying two :class:`DateOffset` objects will now raise a ``TypeError`` instead of a ``RecursionError`` (:issue:`59442`)
 - Restore support for reading Stata 104-format and enable reading 103-format dta files (:issue:`58554`)
 - Support passing a :class:`Iterable[Hashable]` input to :meth:`DataFrame.drop_duplicates` (:issue:`59237`)
 - Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
@@ -297,12 +428,47 @@ This change also applies to :meth:`.DataFrameGroupBy.value_counts`. Here, there 
 
     df.groupby("a", sort=True).value_counts(sort=False)
 
+.. _whatsnew_300.api_breaking.offsets_day_not_a_tick:
+
+Changed behavior of ``pd.offsets.Day`` to always represent calendar-day
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions of pandas, :class:`offsets.Day` represented a fixed span
+of 24 hours, disregarding Daylight Savings Time transitions. It now consistently
+behaves as a calendar-day, preserving time-of-day across DST transitions:
+
+*Old behavior*
+
+.. code-block:: ipython
+
+    In [5]: ts = pd.Timestamp("2025-03-08 08:00", tz="US/Eastern")
+    In [6]: ts + pd.offsets.Day(1)
+    Out[3]: Timestamp('2025-03-09 09:00:00-0400', tz='US/Eastern')
+
+*New behavior*
+
+.. ipython:: python
+
+    ts = pd.Timestamp("2025-03-08 08:00", tz="US/Eastern")
+    ts + pd.offsets.Day(1)
+
+This change fixes a long-standing bug in :func:`date_range` (:issue:`51716`, :issue:`35388`), but causes several
+small behavior differences as collateral:
+
+- ``pd.offsets.Day(n)`` no longer compares as equal to ``pd.offsets.Hour(24*n)``
+- :class:`offsets.Day` no longer supports division
+- :class:`Timedelta` no longer accepts :class:`Day` objects as inputs
+- :meth:`tseries.frequencies.to_offset` on a :class:`Timedelta` object returns a :class:`offsets.Hour` object in cases where it used to return a :class:`Day` object.
+- Adding or subtracting a scalar from a timezone-aware :class:`DatetimeIndex` with a :class:`Day` ``freq`` no longer preserves that ``freq`` attribute.
+- Adding or subtracting a :class:`Day` with a :class:`Timedelta` is no longer supported.
+- Adding or subtracting a :class:`Day` offset to a timezone-aware :class:`Timestamp` or datetime-like may lead to an ambiguous or non-existent time, which will raise.
+
 .. _whatsnew_300.api_breaking.deps:
 
 Increased minimum version for Python
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-pandas 3.0.0 supports Python 3.10 and higher.
+pandas 3.0.0 supports Python 3.11 and higher.
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -330,7 +496,9 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+---------------------+
 | fastparquet            | 2024.2.0            |
 +------------------------+---------------------+
-| adbc-driver-postgresql | 0.10.0              |
+| adbc-driver-postgresql | 1.2.0               |
++------------------------+---------------------+
+| adbc-driver-sqlite     | 1.2.0               |
 +------------------------+---------------------+
 | mypy (dev)             | 1.9.0               |
 +------------------------+---------------------+
@@ -349,6 +517,8 @@ Optional libraries below the lowest tested version may still work, but are not c
 | numba                  | 0.59.0              |
 +------------------------+---------------------+
 | numexpr                | 2.9.0               |
++------------------------+---------------------+
+| psycopg2               | 2.9.9               |
 +------------------------+---------------------+
 | pymysql                | 1.1.0               |
 +------------------------+---------------------+
@@ -415,6 +585,7 @@ Other API changes
   an empty ``RangeIndex`` or empty ``Index`` with object dtype when determining
   the dtype of the resulting Index (:issue:`60797`)
 - :class:`IncompatibleFrequency` now subclasses ``TypeError`` instead of ``ValueError``. As a result, joins with mismatched frequencies now cast to object like other non-comparable joins, and arithmetic with indexes with mismatched frequencies align (:issue:`55782`)
+- :meth:`ExtensionDtype.construct_array_type` is now a regular method instead of a ``classmethod`` (:issue:`58663`)
 - Comparison operations between :class:`Index` and :class:`Series` now consistently return :class:`Series` regardless of which object is on the left or right (:issue:`36759`)
 - Numpy functions like ``np.isinf`` that return a bool dtype when called on a :class:`Index` object now return a bool-dtype :class:`Index` instead of ``np.ndarray`` (:issue:`52676`)
 
@@ -504,7 +675,7 @@ Renamed the following offset aliases (:issue:`57986`):
 
 Other Removals
 ^^^^^^^^^^^^^^
-- :class:`.DataFrameGroupBy.idxmin`, :class:`.DataFrameGroupBy.idxmax`, :class:`.SeriesGroupBy.idxmin`, and :class:`.SeriesGroupBy.idxmax` will now raise a ``ValueError`` when used with ``skipna=False`` and an NA value is encountered (:issue:`10694`)
+- :class:`.DataFrameGroupBy.idxmin`, :class:`.DataFrameGroupBy.idxmax`, :class:`.SeriesGroupBy.idxmin`, and :class:`.SeriesGroupBy.idxmax` will now raise a ``ValueError`` when a group has all NA values, or when used with ``skipna=False`` and any NA value is encountered (:issue:`10694`, :issue:`57745`)
 - :func:`concat` no longer ignores empty objects when determining output dtypes (:issue:`39122`)
 - :func:`concat` with all-NA entries no longer ignores the dtype of those entries when determining the result dtype (:issue:`40893`)
 - :func:`read_excel`, :func:`read_json`, :func:`read_html`, and :func:`read_xml` no longer accept raw string or byte representation of the data. That type of data must be wrapped in a :py:class:`StringIO` or :py:class:`BytesIO` (:issue:`53767`)
@@ -687,6 +858,7 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 - Bug in :func:`Series.apply` where ``nan`` was ignored for :class:`CategoricalDtype` (:issue:`59938`)
+- Bug in :meth:`Categorical.astype` where ``copy=False`` would still trigger a copy of the codes (:issue:`62000`)
 - Bug in :meth:`DataFrame.pivot` and :meth:`DataFrame.set_index` raising an ``ArrowNotImplementedError`` for columns with pyarrow dictionary dtype (:issue:`53051`)
 - Bug in :meth:`Series.convert_dtypes` with ``dtype_backend="pyarrow"`` where empty :class:`CategoricalDtype` :class:`Series` raised an error or got converted to ``null[pyarrow]`` (:issue:`59934`)
 -
@@ -727,6 +899,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 - Bug in :meth:`DatetimeIndex.union`, :meth:`DatetimeIndex.intersection`, and :meth:`DatetimeIndex.symmetric_difference` changing timezone to UTC when merging two DatetimeIndex objects with the same timezone but different units (:issue:`60080`)
+- Bug in :meth:`Series.dt.tz_localize` with a timezone-aware :class:`ArrowDtype` incorrectly converting to UTC when ``tz=None`` (:issue:`61780`)
 -
 
 Numeric
@@ -789,6 +962,7 @@ MultiIndex
 - Bug in :class:`DataFrame` arithmetic operations in case of unaligned MultiIndex columns (:issue:`60498`)
 - Bug in :class:`DataFrame` arithmetic operations with :class:`Series` in case of unaligned MultiIndex (:issue:`61009`)
 - Bug in :meth:`MultiIndex.from_tuples` causing wrong output with input of type tuples having NaN values (:issue:`60695`, :issue:`60988`)
+- Bug in :meth:`DataFrame.reindex` and :meth:`Series.reindex` where reindexing :class:`Index` to a :class:`MultiIndex` would incorrectly set all values to ``NaN``.(:issue:`60923`)
 
 I/O
 ^^^
@@ -796,6 +970,7 @@ I/O
 - Bug in :meth:`.DataFrame.to_json` when ``"index"`` was a value in the :attr:`DataFrame.column` and :attr:`Index.name` was ``None``. Now, this will fail with a ``ValueError`` (:issue:`58925`)
 - Bug in :meth:`.io.common.is_fsspec_url` not recognizing chained fsspec URLs (:issue:`48978`)
 - Bug in :meth:`DataFrame._repr_html_` which ignored the ``"display.float_format"`` option (:issue:`59876`)
+- Bug in :meth:`DataFrame.from_records` ignoring ``columns`` and ``index`` parameters when ``data`` is an empty iterator and ``nrows=0``. (:issue:`61140`)
 - Bug in :meth:`DataFrame.from_records` where ``columns`` parameter with numpy structured array was not reordering and filtering out the columns (:issue:`59717`)
 - Bug in :meth:`DataFrame.to_dict` raises unnecessary ``UserWarning`` when columns are not unique and ``orient='tight'``. (:issue:`58281`)
 - Bug in :meth:`DataFrame.to_excel` when writing empty :class:`DataFrame` with :class:`MultiIndex` on both axes (:issue:`57696`)
@@ -811,6 +986,7 @@ I/O
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``index_col`` is specified and ``na_values`` is a dict containing the key ``None``. (:issue:`57547`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``nrows`` and ``iterator`` are specified without specifying a ``chunksize``. (:issue:`59079`)
 - Bug in :meth:`read_csv` where the order of the ``na_values`` makes an inconsistency when ``na_values`` is a list non-string values. (:issue:`59303`)
+- Bug in :meth:`read_csv` with ``engine="pyarrow"`` and ``dtype="Int64"`` losing precision (:issue:`56136`)
 - Bug in :meth:`read_excel` raising ``ValueError`` when passing array of boolean values when ``dtype="boolean"``. (:issue:`58159`)
 - Bug in :meth:`read_html` where ``rowspan`` in header row causes incorrect conversion to ``DataFrame``. (:issue:`60210`)
 - Bug in :meth:`read_json` ignoring the given ``dtype`` when ``engine="pyarrow"`` (:issue:`59516`)
@@ -936,7 +1112,6 @@ Other
 - Bug in :meth:`Series.isin` raising ``TypeError`` when series is large (>10**6) and ``values`` contains NA (:issue:`60678`)
 - Bug in :meth:`Series.mode` where an exception was raised when taking the mode with nullable types with no null values in the series. (:issue:`58926`)
 - Bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
-- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently replacing matching instances when ``regex=True`` and missing values are present. (:issue:`56599`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` throwing ``ValueError`` when ``regex=True`` and all NA values. (:issue:`60688`)
 - Bug in :meth:`Series.to_string` when series contains complex floats with exponents (:issue:`60405`)
 - Bug in :meth:`read_csv` where chained fsspec TAR file and ``compression="infer"`` fails with ``tarfile.ReadError`` (:issue:`60028`)

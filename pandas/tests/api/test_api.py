@@ -107,6 +107,7 @@ class TestPDApi(Base):
     funcs = [
         "array",
         "bdate_range",
+        "col",
         "concat",
         "crosstab",
         "cut",
@@ -260,6 +261,7 @@ class TestApi(Base):
         "ExpandingGroupby",
         "ExponentialMovingWindow",
         "ExponentialMovingWindowGroupby",
+        "Expression",
         "FrozenList",
         "JsonReader",
         "NaTType",
@@ -367,7 +369,8 @@ class TestApi(Base):
 
 class TestErrors(Base):
     def test_errors(self):
-        self.check(pd.errors, pd.errors.__all__, ignored=["ctypes", "cow"])
+        ignored = ["_CurrentDeprecationWarning", "abc", "ctypes", "cow"]
+        self.check(pd.errors, pd.errors.__all__, ignored=ignored)
 
 
 class TestUtil(Base):

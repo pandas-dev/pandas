@@ -581,7 +581,7 @@ def render_git_describe(pieces):
 def render_git_describe_long(pieces):
     """TAG-DISTANCE-gHEX[-dirty].
 
-    Like 'git describe --tags --dirty --always -long'.
+    Like 'git describe --tags --dirty --always --long'.
     The distance/hash is unconditional.
 
     Exceptions:
