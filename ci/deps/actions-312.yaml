@@ -39,7 +39,6 @@ dependencies:
   - numexpr>=2.9.0
   - odfpy>=1.4.1
   - qtpy>=2.3.0
-  - pyqt>=6.7.1
   - openpyxl>=3.1.2
   - psycopg2>=2.9.9
   - pyarrow>=12.0.1
@@ -60,4 +59,5 @@ dependencies:
   - zstandard>=0.22.0
 
   - pip:
+    - pyqt>=6.7.1
     - tzdata>=2023.3

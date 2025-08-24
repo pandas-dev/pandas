@@ -46,8 +46,6 @@ dependencies:
   - pyarrow=12.0.1
   - pyiceberg=0.7.1
   - pymysql=1.1.0
-  - pyqt=6.7.1
-  - pyqt6=6.7.1
   - pyreadstat=1.2.6
   - pytables=3.8.0
   - python-calamine=0.1.7
@@ -63,4 +61,5 @@ dependencies:
   - zstandard=0.22.0
 
   - pip:
+    - pyqt6==6.7.1
     - tzdata==2023.3
