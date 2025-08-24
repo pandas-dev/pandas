@@ -168,7 +168,7 @@ def _import_module(modules: list[tuple[str, str | None]]):
             continue
 
     raise ImportError(
-        f"No module from {(module_name for module_name, _ in modules)} could be imported."
+        f"No module from {tuple(module_name for module_name, _ in modules)} could be imported."
     )
 
 
