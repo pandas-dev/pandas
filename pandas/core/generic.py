@@ -9286,13 +9286,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 )
             else:
                 ranks = algos.rank(
-                    blk_values,
-                    axis=1 - axis_int,
+                    blk_values.T,
+                    axis=axis_int,
                     method=method,
                     ascending=ascending,
                     na_option=na_option,
                     pct=pct,
-                )
+                ).T
             return ranks
 
         if numeric_only:

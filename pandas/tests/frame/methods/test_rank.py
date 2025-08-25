@@ -405,7 +405,6 @@ class TestRank:
         # Shuffle the testing array and expected results in the same way
         random_order = np.random.default_rng(2).permutation(len(values))
         obj = frame_or_series(values[random_order])
-        print("TYPE", type(obj))
         expected = frame_or_series(exp_order[random_order], dtype="float64")
         result = obj.rank()
         tm.assert_equal(result, expected)
