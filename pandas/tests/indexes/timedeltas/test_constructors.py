@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Timedelta,
@@ -257,10 +259,10 @@ class TestTimedeltaIndex:
         msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
 
         expected = TimedeltaIndex([f"1{unit}", f"2{unit}"])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = TimedeltaIndex([f"1{unit_depr}", f"2{unit_depr}"])
         tm.assert_index_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tdi = to_timedelta([1, 2], unit=unit_depr)
         tm.assert_index_equal(tdi, expected)

@@ -243,7 +243,7 @@ def test_resample_how_callables(unit):
     # GH#7929
     data = np.arange(5, dtype=np.int64)
     msg = "'d' is deprecated and will be removed in a future version."
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         ind = date_range(start="2014-01-01", periods=len(data), freq="d").as_unit(unit)
     df = DataFrame({"A": data, "B": data}, index=ind)
 
@@ -340,7 +340,7 @@ def test_resample_basic_from_daily(unit):
 
     # to weekly
     msg = "'w-sun' is deprecated and will be removed in a future version."
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = s.resample("w-sun").last()
 
     assert len(result) == 3
@@ -1215,7 +1215,7 @@ def test_anchored_lowercase_buglet(unit):
     ts = Series(np.random.default_rng(2).standard_normal(len(dates)), index=dates)
     # it works!
     msg = "'d' is deprecated and will be removed in a future version."
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         ts.resample("d").mean()
 
 
@@ -2065,7 +2065,7 @@ def test_resample_depr_lowercase_frequency(freq, freq_depr, data):
     msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
 
     s = Series(range(5), index=date_range("20130101", freq="h", periods=5))
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = s.resample(freq_depr).mean()
 
     exp_dti = DatetimeIndex(data=data, dtype="datetime64[ns]", freq=freq)

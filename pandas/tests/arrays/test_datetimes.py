@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import tz_compare
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -775,7 +776,7 @@ class TestDatetimeArray:
         )
 
         expected = pd.date_range("1/1/2000", periods=4, freq=freq_depr.lower())
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
@@ -804,7 +805,7 @@ class TestDatetimeArray:
         depr_msg = "'w' is deprecated and will be removed in a future version"
 
         expected = pd.date_range("1/1/2000", periods=4, freq="2W")
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result = pd.date_range("1/1/2000", periods=4, freq="2w")
         tm.assert_index_equal(result, expected)
 

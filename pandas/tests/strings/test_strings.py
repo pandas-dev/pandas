@@ -6,6 +6,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     NA,
     DataFrame,
@@ -803,7 +805,7 @@ def test_decode_with_dtype_none():
 def test_reversed_logical_ops(any_string_dtype):
     # GH#60234
     dtype = any_string_dtype
-    warn = None if dtype == object else FutureWarning
+    warn = None if dtype == object else Pandas4Warning
     left = Series([True, False, False, True])
     right = Series(["", "", "b", "c"], dtype=dtype)
 

@@ -8,6 +8,8 @@ import math
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -616,7 +618,7 @@ def test_map_kwargs():
 
 def test_map_arg_as_kwarg():
     with tm.assert_produces_warning(
-        FutureWarning, match="`arg` has been renamed to `func`"
+        Pandas4Warning, match="`arg` has been renamed to `func`"
     ):
         Series([1, 2]).map(arg={})
 

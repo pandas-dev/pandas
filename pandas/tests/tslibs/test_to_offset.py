@@ -7,6 +7,7 @@ from pandas._libs.tslibs import (
     offsets,
     to_offset,
 )
+from pandas.errors import Pandas4Warning
 
 import pandas._testing as tm
 
@@ -130,7 +131,7 @@ def test_to_offset_leading_zero(freqstr, expected):
 
 
 @pytest.mark.parametrize(
-    "freqstr,expected,wrn", [("+1d", 1, FutureWarning), ("+2h30min", 150, None)]
+    "freqstr,expected,wrn", [("+1d", 1, Pandas4Warning), ("+2h30min", 150, None)]
 )
 def test_to_offset_leading_plus(freqstr, expected, wrn):
     msg = "'d' is deprecated and will be removed in a future version."
@@ -212,7 +213,7 @@ def test_to_offset_uppercase_frequency_deprecated(freq_depr):
         f"future version, please use '{freq_depr.lower()[1:]}' instead."
     )
 
-    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
         to_offset(freq_depr)
 
 
@@ -228,7 +229,7 @@ def test_to_offset_lowercase_frequency_deprecated(freq_depr, expected):
     # GH#54939, GH#58998
     msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = to_offset(freq_depr)
     assert result == expected
 

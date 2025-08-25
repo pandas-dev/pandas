@@ -171,7 +171,7 @@ def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int
     """
     warnings.warn(
         "maybe_infer_ndim is deprecated and will be removed in a future version.",
-        DeprecationWarning,
+        Pandas4Warning,
         stacklevel=2,
     )
     return _maybe_infer_ndim(values, placement, ndim)

@@ -727,7 +727,7 @@ class DataFrame(NDFrame, OpsMixin):
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
 
@@ -9894,7 +9894,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "removed in a future version of pandas. See the What's New notes "
                 "for pandas 2.1.0 for details. Do not specify the future_stack "
                 "argument to adopt the new implementation and silence this warning.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 

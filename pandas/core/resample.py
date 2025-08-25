@@ -1945,6 +1945,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
+        # TODO: Enforce in 3.0 (#55968)
         warnings.warn(
             "Resampling a groupby with a PeriodIndex is deprecated. "
             "Cast to DatetimeIndex before resampling instead.",

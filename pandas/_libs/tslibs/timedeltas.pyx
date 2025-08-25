@@ -78,7 +78,9 @@ from pandas._libs.tslibs.np_datetime import (
 )
 
 from pandas._libs.tslibs.offsets cimport is_tick_object
+
 from pandas._libs.tslibs.offsets import Day
+
 from pandas._libs.tslibs.util cimport (
     is_array,
     is_float_object,
@@ -722,11 +724,14 @@ cpdef inline str parse_timedelta_unit(str unit):
     elif unit == "M":
         return unit
     elif unit in c_DEPR_UNITS:
+        from pandas.errors import Pandas4Warning
+
+        # https://github.com/pandas-dev/pandas/pull/59240
         warnings.warn(
             f"\'{unit}\' is deprecated and will be removed in a "
             f"future version. Please use \'{c_DEPR_UNITS.get(unit)}\' "
             f"instead of \'{unit}\'.",
-            FutureWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
         unit = c_DEPR_UNITS[unit]

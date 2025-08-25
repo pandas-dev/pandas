@@ -17,7 +17,10 @@ from pandas._libs.tslibs import (
     iNaT,
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.errors import OutOfBoundsTimedelta
+from pandas.errors import (
+    OutOfBoundsTimedelta,
+    Pandas4Warning,
+)
 
 from pandas import (
     Timedelta,
@@ -491,7 +494,7 @@ class TestTimedeltas:
         assert Timedelta("1000ns") == np.timedelta64(1000, "ns")
 
         msg = "'NS' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert Timedelta("1000NS") == np.timedelta64(1000, "ns")
 
         assert Timedelta("10us") == np.timedelta64(10000, "ns")
@@ -512,7 +515,7 @@ class TestTimedeltas:
         assert Timedelta("1000s") == np.timedelta64(1000000000000, "ns")
 
         msg = "'d' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert Timedelta("1d") == conv(np.timedelta64(1, "D"))
         assert Timedelta("-1D") == -conv(np.timedelta64(1, "D"))
         assert Timedelta("1D") == conv(np.timedelta64(1, "D"))
@@ -684,7 +687,7 @@ class TestTimedeltas:
         # GH#59051
         msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = Timedelta(1, unit_depr)
         assert result == Timedelta(1, unit)
 

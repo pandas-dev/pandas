@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Index,
@@ -44,7 +46,7 @@ class TestTimedeltaIndex:
     def test_union_coverage(self):
         # GH#59051
         msg = "'d' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             idx = TimedeltaIndex(["3d", "1d", "2d"])
         ordered = TimedeltaIndex(idx.sort_values(), freq="infer")
         result = ordered.union(idx)
