@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -85,13 +86,17 @@ class TestPeriodIndexDisallowedFreqs:
             f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
         )
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=msg, raise_on_extra_warnings=False
+        ):
             result = PeriodIndex(["2020-01-01", "2020-01-02"], freq=freq_depr)
 
         expected = PeriodIndex(["2020-01-01", "2020-01-02"], freq=freq)
         tm.assert_index_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=msg, raise_on_extra_warnings=False
+        ):
             result = period_range(start="2020-01-01", end="2020-01-02", freq=freq_depr)
 
         expected = period_range(start="2020-01-01", end="2020-01-02", freq=freq)
@@ -539,7 +544,7 @@ class TestPeriodIndex:
         assert i1[-1] == end_intv
 
         msg = "'w' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             end_intv = Period("2006-12-31", "1w")
         i2 = period_range(end=end_intv, periods=10)
         assert len(i1) == len(i2)
