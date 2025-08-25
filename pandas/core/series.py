@@ -6072,7 +6072,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
+        other : Series or scalar value (that can be the element of a Series)
             The second operand in this operation.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -6141,7 +6141,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
+        other : Series or scalar value (that can be the element of a Series)
             The second operand in this operation.
         level : int or name
             Broadcast across a level, matching Index values on the
@@ -6213,7 +6213,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
+        other : Series or scalar value (that can be the element of a Series)
             The second operand in this operation.
         level : int or name
             Broadcast across a level, matching Index values on the
