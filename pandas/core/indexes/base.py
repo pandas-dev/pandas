@@ -2085,20 +2085,24 @@ class Index(IndexOpsMixin, PandasObject):
 
         """
         # Explicitly raise for missing/null values to match pandas convention
+        # Also reject all NA-like values (np.nan, pd.NA, pd.NaT, etc.)
         if isna(level):
             raise KeyError(
                 "Requested level is NA/NaN/NaT, which is not a valid level name"
             )
 
-        # Standard integer check, but reject bool
-        if lib.is_integer(level) and not isinstance(level, bool):
-            # If the index itself is named as integer, accept
-            if lib.is_integer(self.name) and level == self.name:
-                return
-            # Only allow 0 and -1 for a single-level Index
-            if level in (0, -1):
-                return
-            if level < 0:
+        # Reject booleans unless the index name is actually a boolean and matches
+        if isinstance(level, bool):
+            if level != self.name:
+                raise KeyError(
+                    f"Requested level ({level}) does not match index name ({self.name})"
+                )
+            return
+
+        # Integer-like levels
+        if lib.is_integer(level):
+            # Exclude bools (already handled above)
+            if level < 0 and level != -1:
                 raise IndexError(
                     "Too many levels: Index has only 1 level, "
                     f"{level} is not a valid level number"
@@ -2107,19 +2111,13 @@ class Index(IndexOpsMixin, PandasObject):
                 raise IndexError(
                     f"Too many levels: Index has only 1 level, not {level + 1}"
                 )
+            return
 
-        # String level: only match if name is exactly the same string
-        elif isinstance(level, str) and not (
-            isinstance(self.name, str) and level == self.name
-        ):
+        # For all other types, require exact match to index name
+        # Use pandas' isna for both level and self.name to catch NA-like names
+        if isna(self.name) or level != self.name:
             raise KeyError(
                 f"Requested level ({level}) does not match index name ({self.name})"
-            )
-
-        # If level type is not int, str, or is NA, always raise KeyError
-        else:
-            raise KeyError(
-                f"Requested level ({level}) is not a valid level name or number"
             )
 
     def _get_level_number(self, level) -> int:
