@@ -9133,6 +9133,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         from pandas.core.resample import get_resampler
 
         if convention is not lib.no_default:
+            # TODO: Enforce in 3.0 (#55968)
             warnings.warn(
                 f"The 'convention' keyword in {type(self).__name__}.resample is "
                 "deprecated and will be removed in a future version. "
