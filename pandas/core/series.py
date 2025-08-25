@@ -4436,7 +4436,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 warnings.warn(
                     "The parameter `arg` has been renamed to `func`, and it "
                     "will stop being supported in a future version of pandas.",
-                    Pandas4Warning,  # pdlint: ignore
+                    Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
             else:
