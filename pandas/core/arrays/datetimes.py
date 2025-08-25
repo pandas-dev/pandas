@@ -83,7 +83,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         DateTimeErrorChoices,
-        DtypeObj,
         IntervalClosedType,
         TimeAmbiguous,
         TimeNonexistent,
@@ -292,14 +291,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     _dtype: np.dtype[np.datetime64] | DatetimeTZDtype
     _freq: BaseOffset | None = None
-
-    @classmethod
-    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
-        if lib.infer_dtype(scalars, skipna=True) not in ["datetime", "datetime64"]:
-            # TODO: require any NAs be valid-for-DTA
-            # TODO: if dtype is passed, check for tzawareness compat?
-            raise ValueError
-        return cls._from_sequence(scalars, dtype=dtype)
 
     @classmethod
     def _validate_dtype(cls, values, dtype):

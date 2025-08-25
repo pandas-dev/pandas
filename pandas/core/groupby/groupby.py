@@ -110,7 +110,6 @@ from pandas.core.arrays import (
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
-    ArrowStringArrayNumpySemantics,
 )
 from pandas.core.base import (
     PandasObject,
@@ -2896,10 +2895,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
         if isinstance(self.obj, Series):
             if isinstance(self.obj.array, ArrowExtensionArray):
-                if isinstance(self.obj.array, ArrowStringArrayNumpySemantics):
-                    dtype_backend = None
-                elif isinstance(self.obj.array, ArrowStringArray):
-                    dtype_backend = "numpy_nullable"
+                if isinstance(self.obj.array, ArrowStringArray):
+                    if self.obj.array.dtype.na_value is np.nan:
+                        dtype_backend = None
+                    else:
+                        dtype_backend = "numpy_nullable"
                 else:
                     dtype_backend = "pyarrow"
             elif isinstance(self.obj.array, BaseMaskedArray):

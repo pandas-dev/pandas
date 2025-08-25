@@ -70,7 +70,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     maybe_box_native,
-    maybe_cast_pointwise_result,
 )
 from pandas.core.dtypes.common import (
     is_dict_like,
@@ -84,7 +83,6 @@ from pandas.core.dtypes.common import (
     validate_all_hashable,
 )
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
     ExtensionDtype,
     SparseDtype,
 )
@@ -117,7 +115,6 @@ from pandas.core.arrays.arrow import (
 )
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
-from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
     array as pd_array,
     extract_array,
@@ -387,7 +384,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
             data = data.copy(deep=False)
@@ -411,7 +408,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
 
@@ -480,7 +477,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
                 allow_mgr = True
@@ -765,7 +762,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         array([1, 2, 3])
 
         >>> pd.Series(list("aabc")).values
-        <ArrowStringArrayNumpySemantics>
+        <ArrowStringArray>
         ['a', 'a', 'b', 'c']
         Length: 4, dtype: str
 
@@ -2991,7 +2988,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # -------------------------------------------------------------------
     # Combination
 
-    def _append(
+    def _append_internal(
         self, to_append, ignore_index: bool = False, verify_integrity: bool = False
     ):
         from pandas.core.reshape.concat import concat
@@ -3185,15 +3182,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 new_values[:] = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        # try_float=False is to match agg_series
-        npvalues = lib.maybe_convert_objects(new_values, try_float=False)
-        # same_dtype here is a kludge to avoid casting e.g. [True, False] to
-        #  ["True", "False"]
-        same_dtype = isinstance(self.dtype, (StringDtype, CategoricalDtype))
-        res_values = maybe_cast_pointwise_result(
-            npvalues, self.dtype, same_dtype=same_dtype
+        res_values = self.array._cast_pointwise_result(new_values)
+        return self._constructor(
+            res_values,
+            dtype=res_values.dtype,
+            index=new_index,
+            name=new_name,
+            copy=False,
         )
-        return self._constructor(res_values, index=new_index, name=new_name, copy=False)
 
     def combine_first(self, other) -> Series:
         """
@@ -4436,10 +4432,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if "arg" in kwargs:
                 # `.map(arg=my_func)`
                 func = kwargs.pop("arg")
+                # https://github.com/pandas-dev/pandas/pull/61264
                 warnings.warn(
                     "The parameter `arg` has been renamed to `func`, and it "
                     "will stop being supported in a future version of pandas.",
-                    FutureWarning,
+                    Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
             else:

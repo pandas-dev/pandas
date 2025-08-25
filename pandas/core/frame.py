@@ -727,7 +727,7 @@ class DataFrame(NDFrame, OpsMixin):
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
 
@@ -3721,7 +3721,7 @@ class DataFrame(NDFrame, OpsMixin):
             index_memory_usage = self._constructor_sliced(
                 self.index.memory_usage(deep=deep), index=["Index"]
             )
-            result = index_memory_usage._append(result)
+            result = index_memory_usage._append_internal(result)
         return result
 
     def transpose(
@@ -5300,6 +5300,13 @@ class DataFrame(NDFrame, OpsMixin):
         referencing an existing Series or sequence:
 
         >>> df.assign(temp_f=df["temp_c"] * 9 / 5 + 32)
+                  temp_c  temp_f
+        Portland    17.0    62.6
+        Berkeley    25.0    77.0
+
+        or by using :meth:`pandas.col`:
+
+        >>> df.assign(temp_f=pd.col("temp_c") * 9 / 5 + 32)
                   temp_c  temp_f
         Portland    17.0    62.6
         Berkeley    25.0    77.0
@@ -9892,7 +9899,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "removed in a future version of pandas. See the What's New notes "
                 "for pandas 2.1.0 for details. Do not specify the future_stack "
                 "argument to adopt the new implementation and silence this warning.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
@@ -10887,7 +10894,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
-    def _append(
+    def _append_internal(
         self,
         other,
         ignore_index: bool = False,
@@ -11750,7 +11757,7 @@ class DataFrame(NDFrame, OpsMixin):
             idx_diff = result_index.difference(correl.index)
 
             if len(idx_diff) > 0:
-                correl = correl._append(
+                correl = correl._append_internal(
                     Series([np.nan] * len(idx_diff), index=idx_diff)
                 )
 

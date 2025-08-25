@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -1066,7 +1067,7 @@ class TestDataFrameReshape:
         # GH 8039
         t = datetime(2014, 1, 1)
         df = DataFrame([1, 2, 3, 4], columns=MultiIndex.from_tuples([(t, "A", "B")]))
-        warn = None if future_stack else FutureWarning
+        warn = None if future_stack else Pandas4Warning
         msg = "The previous implementation of stack is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
             result = df.stack(future_stack=future_stack)

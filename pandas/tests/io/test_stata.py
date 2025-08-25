@@ -13,6 +13,7 @@ import zipfile
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1035,7 +1036,7 @@ class TestStata:
             "when writing to stata is deprecated"
         )
         exp_object = expected.astype(object)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             exp_object.to_stata(path, convert_dates=date_conversion)
         written_and_read_again = self.read_dta(path)
 

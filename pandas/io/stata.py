@@ -39,6 +39,7 @@ from pandas._libs.writers import max_len_string_array
 from pandas.errors import (
     CategoricalConversionWarning,
     InvalidColumnName,
+    Pandas4Warning,
     PossiblePrecisionLoss,
     ValueLabelTypeMismatch,
 )
@@ -398,7 +399,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 "Converting object-dtype columns of datetimes to datetime64 when "
                 "writing to stata is deprecated. Call "
                 "`df=df.infer_objects(copy=False)` before writing to stata instead.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
             if delta:

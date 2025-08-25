@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     Index,
@@ -105,7 +106,7 @@ class TestVectorizedTimedelta:
         # note that negative times round DOWN! so don't give whole numbers
         msg = "'d' is deprecated and will be removed in a future version."
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             for freq, s1, s2 in [
                 ("ns", t1, t2),
                 ("us", t1, t2),

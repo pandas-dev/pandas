@@ -13,6 +13,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -548,8 +550,8 @@ def test_date_parser_and_names(all_parsers):
     data = StringIO("""x,y\n1,2""")
     warn = UserWarning
     if parser.engine == "pyarrow":
-        # DeprecationWarning for passing a Manager object
-        warn = (UserWarning, DeprecationWarning)
+        # Pandas4Warning for passing a Manager object
+        warn = (UserWarning, Pandas4Warning)
     result = parser.read_csv_check_warnings(
         warn,
         "Could not infer format",

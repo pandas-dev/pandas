@@ -21,8 +21,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.strings.base import BaseStringArrayMethods
-
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
@@ -35,7 +33,7 @@ if TYPE_CHECKING:
     )
 
 
-class ObjectStringArrayMixin(BaseStringArrayMethods):
+class ObjectStringArrayMixin:
     """
     String Methods operating on object-dtype ndarrays.
     """
@@ -43,6 +41,12 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     def __len__(self) -> int:
         # For typing, _str_map relies on the object being sized.
         raise NotImplementedError
+
+    def _str_getitem(self, key):
+        if isinstance(key, slice):
+            return self._str_slice(start=key.start, stop=key.stop, step=key.step)
+        else:
+            return self._str_get(key)
 
     def _str_map(
         self,

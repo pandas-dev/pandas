@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.astype import astype_array
@@ -184,7 +185,7 @@ def test_get_dtype_error_catch(func):
         or func is com.is_categorical_dtype
         or func is com.is_period_dtype
     ):
-        warn = DeprecationWarning
+        warn = Pandas4Warning
 
     with tm.assert_produces_warning(warn, match=msg):
         assert not func(None)
@@ -204,7 +205,7 @@ def test_is_object():
 )
 def test_is_sparse(check_scipy):
     msg = "is_sparse is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         assert com.is_sparse(SparseArray([1, 2, 3]))
 
         assert not com.is_sparse(np.array([1, 2, 3]))
@@ -234,7 +235,7 @@ def test_is_datetime64_dtype():
 
 def test_is_datetime64tz_dtype():
     msg = "is_datetime64tz_dtype is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         assert not com.is_datetime64tz_dtype(object)
         assert not com.is_datetime64tz_dtype([1, 2, 3])
         assert not com.is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3]))
@@ -250,7 +251,7 @@ def test_custom_ea_kind_M_not_datetime64tz():
 
     not_tz_dtype = NotTZDtype()
     msg = "is_datetime64tz_dtype is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         assert not com.is_datetime64tz_dtype(not_tz_dtype)
         assert not com.needs_i8_conversion(not_tz_dtype)
 

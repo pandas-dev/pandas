@@ -2323,7 +2323,7 @@ class _iLocIndexer(_LocationIndexer):
                     df = df.infer_objects()
                 self.obj._mgr = df._mgr
             else:
-                self.obj._mgr = self.obj._append(value)._mgr
+                self.obj._mgr = self.obj._append_internal(value)._mgr
 
     def _ensure_iterable_column_indexer(self, column_indexer):
         """

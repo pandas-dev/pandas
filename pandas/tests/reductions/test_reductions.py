@@ -29,7 +29,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core import nanops
-from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
+from pandas.core.arrays.string_arrow import ArrowStringArray
 
 
 def get_objs():
@@ -61,7 +61,7 @@ class TestReductions:
     def test_ops(self, opname, obj):
         result = getattr(obj, opname)()
         if not isinstance(obj, PeriodIndex):
-            if isinstance(obj.values, ArrowStringArrayNumpySemantics):
+            if isinstance(obj.values, ArrowStringArray):
                 # max not on the interface
                 expected = getattr(np.array(obj.values), opname)()
             else:
