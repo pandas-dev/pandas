@@ -1,5 +1,4 @@
 __all__ = [
-    "NA",
     "Interval",
     "NaT",
     "NaTType",
@@ -17,7 +16,6 @@ __all__ = [
 import pandas._libs.pandas_parser  # isort: skip # type: ignore[reportUnusedImport]
 import pandas._libs.pandas_datetime  # noqa: F401 # isort: skip # type: ignore[reportUnusedImport]
 from pandas._libs.interval import Interval
-from pandas._libs.missing import NA
 from pandas._libs.tslibs import (
     NaT,
     NaTType,

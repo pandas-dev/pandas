@@ -2091,6 +2091,12 @@ class Index(IndexOpsMixin, PandasObject):
                 f"Requested level ({level}) does not match index name ({self.name})"
             )
 
+        # Handle NA-like index.name as well
+        if isna(self.name):
+            raise KeyError(
+                f"Requested level ({level}) does not match index name ({self.name})"
+            )
+
         # Reject booleans unless the index name is actually a boolean and matches
         if isinstance(level, bool):
             if level != self.name:
@@ -2102,20 +2108,24 @@ class Index(IndexOpsMixin, PandasObject):
         # Integer-like levels
         if lib.is_integer(level):
             # Exclude bools (already handled above)
+            if isinstance(self.name, int) and level == self.name:
+                return
             if level < 0 and level != -1:
                 raise IndexError(
-                    "Too many levels: Index has only 1 level, "
-                    f"{level} is not a valid level number"
+                    "Too many levels: Index has only 1 level, not {}".format(level + 1)
                 )
-            if level > 0:
-                raise IndexError(
-                    f"Too many levels: Index has only 1 level, not {level + 1}"
+            return
+
+        # For string-level, require both to be strings and equal
+        if isinstance(level, str) and isinstance(self.name, str):
+            if level != self.name:
+                raise KeyError(
+                    f"Requested level ({level}) does not match index name ({self.name})"
                 )
             return
 
         # For all other types, require exact match to index name
-        # Use pandas' isna for both level and self.name to catch NA-like names
-        if isna(self.name) or level != self.name:
+        if level != self.name:
             raise KeyError(
                 f"Requested level ({level}) does not match index name ({self.name})"
             )
