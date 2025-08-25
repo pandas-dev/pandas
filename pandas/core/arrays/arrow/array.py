@@ -890,7 +890,9 @@ class ArrowExtensionArray(
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
         pa_type = self._pa_array.type
         other_original = other
-        other = self._box_pa(other)
+        other_NA = self._box_pa(other)
+        # pyarrow gets upset if you try to join a NullArray
+        other = other_NA.cast(pa_type)
 
         if (
             pa.types.is_string(pa_type)
@@ -911,7 +913,7 @@ class ArrowExtensionArray(
                 return self._from_pyarrow_array(result)
             elif op in [operator.mul, roperator.rmul]:
                 binary = self._pa_array
-                integral = other
+                integral = other_NA
                 if not pa.types.is_integer(integral.type):
                     raise TypeError("Can only string multiply by an integer.")
                 pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
