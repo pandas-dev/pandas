@@ -2088,7 +2088,7 @@ class Index(IndexOpsMixin, PandasObject):
         # Also reject all NA-like values (np.nan, pd.NA, pd.NaT, etc.)
         if isna(level):
             raise KeyError(
-                "Requested level is NA/NaN/NaT, which is not a valid level name"
+                f"Requested level ({level}) does not match index name ({self.name})"
             )
 
         # Reject booleans unless the index name is actually a boolean and matches
