@@ -158,12 +158,8 @@ def _import_module(modules: list[tuple[str, str | None]]):
 
             if attribute_name is None:
                 return module
-            elif hasattr(module, attribute_name):
-                return getattr(module, attribute_name)
-            else:
-                raise AttributeError(
-                    f"Module {module_name} doesn't have attribute {attribute_name}."
-                )
+            return getattr(module, attribute_name)
+
         except ImportError:
             continue
 
