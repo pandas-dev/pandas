@@ -10,36 +10,36 @@ from scripts.validate_min_versions_in_sync import (
     pin_min_versions_to_yaml_file,
 )
 
-BASE_PATH = pathlib.Path(__file__).parents[2]
+DATA_PATH = pathlib.Path(__file__).parents[2] / "scripts/tests/data/"
 
 
 @pytest.mark.parametrize(
     "src_toml, src_yaml, expected_yaml",
     [
         (
-            BASE_PATH / "scripts/tests/data/deps_minimum.toml",
-            BASE_PATH / "scripts/tests/data/deps_unmodified_random.yaml",
-            BASE_PATH / "scripts/tests/data/deps_expected_random.yaml",
+            DATA_PATH / "deps_minimum.toml",
+            DATA_PATH / "deps_unmodified_random.yaml",
+            DATA_PATH / "deps_expected_random.yaml",
         ),
         (
-            BASE_PATH / "scripts/tests/data/deps_minimum.toml",
-            BASE_PATH / "scripts/tests/data/deps_unmodified_same_version.yaml",
-            BASE_PATH / "scripts/tests/data/deps_expected_same_version.yaml",
+            DATA_PATH / "deps_minimum.toml",
+            DATA_PATH / "deps_unmodified_same_version.yaml",
+            DATA_PATH / "deps_expected_same_version.yaml",
         ),
         (
-            BASE_PATH / "scripts/tests/data/deps_minimum.toml",
-            BASE_PATH / "scripts/tests/data/deps_unmodified_duplicate_package.yaml",
-            BASE_PATH / "scripts/tests/data/deps_expected_duplicate_package.yaml",
+            DATA_PATH / "deps_minimum.toml",
+            DATA_PATH / "deps_unmodified_duplicate_package.yaml",
+            DATA_PATH / "deps_expected_duplicate_package.yaml",
         ),
         (
-            BASE_PATH / "scripts/tests/data/deps_minimum.toml",
-            BASE_PATH / "scripts/tests/data/deps_unmodified_no_version.yaml",
-            BASE_PATH / "scripts/tests/data/deps_expected_no_version.yaml",
+            DATA_PATH / "deps_minimum.toml",
+            DATA_PATH / "deps_unmodified_no_version.yaml",
+            DATA_PATH / "deps_expected_no_version.yaml",
         ),
         (
-            BASE_PATH / "scripts/tests/data/deps_minimum.toml",
-            BASE_PATH / "scripts/tests/data/deps_unmodified_range.yaml",
-            BASE_PATH / "scripts/tests/data/deps_expected_range.yaml",
+            DATA_PATH / "deps_minimum.toml",
+            DATA_PATH / "deps_unmodified_range.yaml",
+            DATA_PATH / "deps_expected_range.yaml",
         ),
     ],
 )
