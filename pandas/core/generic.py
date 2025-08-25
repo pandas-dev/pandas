@@ -9275,17 +9275,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
 
-        def ranker(data):
-            if data.ndim == 2:
-                # i.e. DataFrame, we cast to ndarray
-                values = data.values
-            else:
-                # i.e. Series, can dispatch to EA
-                values = data._values
-
-            if isinstance(values, ExtensionArray):
-                ranks = values._rank(
-                    axis=axis_int,
+        def ranker(blk_values):
+            if isinstance(blk_values, ExtensionArray) and blk_values.ndim == 1:
+                ranks = blk_values._rank(
+                    axis=0,
                     method=method,
                     ascending=ascending,
                     na_option=na_option,
@@ -9293,16 +9286,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 )
             else:
                 ranks = algos.rank(
-                    values,
-                    axis=axis_int,
+                    blk_values,
+                    axis=1 - axis_int,
                     method=method,
                     ascending=ascending,
                     na_option=na_option,
                     pct=pct,
                 )
-
-            ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
-            return ranks_obj.__finalize__(self, method="rank")
+            return ranks
 
         if numeric_only:
             if self.ndim == 1 and not is_numeric_dtype(self.dtype):
@@ -9315,7 +9306,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             data = self
 
-        return ranker(data)
+        result = data._mgr.apply(ranker)
+        return self._constructor_from_mgr(result, axes=result.axes).__finalize__(
+            self, method="rank"
+        )
 
     @doc(_shared_docs["compare"], klass=_shared_doc_kwargs["klass"])
     def compare(
