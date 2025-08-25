@@ -2112,7 +2112,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return
             if level < 0 and level != -1:
                 raise IndexError(
-                    "Too many levels: Index has only 1 level, not {}".format(level + 1)
+                    f"Too many levels: Index has only 1 level, not {level + 1}"
                 )
             return
 
