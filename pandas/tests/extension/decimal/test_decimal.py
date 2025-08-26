@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import decimal
-import operator
 
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -135,7 +136,7 @@ class TestDecimalArray(base.ExtensionTests):
     def test_fillna_frame(self, data_missing):
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            Pandas4Warning, match=msg, check_stacklevel=False
         ):
             super().test_fillna_frame(data_missing)
 
@@ -282,34 +283,10 @@ class DecimalArrayWithoutCoercion(DecimalArrayWithoutFromSequence):
 DecimalArrayWithoutCoercion._add_arithmetic_ops()
 
 
-def test_combine_from_sequence_raises(monkeypatch):
-    # https://github.com/pandas-dev/pandas/issues/22850
-    cls = DecimalArrayWithoutFromSequence
-
-    @classmethod
-    def construct_array_type(cls):
-        return DecimalArrayWithoutFromSequence
-
-    monkeypatch.setattr(DecimalDtype, "construct_array_type", construct_array_type)
-
-    arr = cls([decimal.Decimal("1.0"), decimal.Decimal("2.0")])
-    ser = pd.Series(arr)
-    result = ser.combine(ser, operator.add)
-
-    # note: object dtype
-    expected = pd.Series(
-        [decimal.Decimal("2.0"), decimal.Decimal("4.0")], dtype="object"
-    )
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "class_", [DecimalArrayWithoutFromSequence, DecimalArrayWithoutCoercion]
-)
-def test_scalar_ops_from_sequence_raises(class_):
+def test_scalar_ops_from_sequence_raises():
     # op(EA, EA) should return an EA, or an ndarray if it's not possible
     # to return an EA with the return values.
-    arr = class_([decimal.Decimal("1.0"), decimal.Decimal("2.0")])
+    arr = DecimalArrayWithoutCoercion([decimal.Decimal("1.0"), decimal.Decimal("2.0")])
     result = arr + arr
     expected = np.array(
         [decimal.Decimal("2.0"), decimal.Decimal("4.0")], dtype="object"

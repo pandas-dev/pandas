@@ -4,6 +4,7 @@ import operator
 import re
 from typing import (
     TYPE_CHECKING,
+    Self,
 )
 import warnings
 
@@ -54,7 +55,6 @@ if TYPE_CHECKING:
         ArrayLike,
         Dtype,
         NpDtype,
-        Self,
         npt,
     )
 
@@ -91,6 +91,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     ----------
     values : pyarrow.Array or pyarrow.ChunkedArray
         The array of data.
+    dtype : StringDtype
+        The dtype for the array.
 
     Attributes
     ----------
@@ -123,10 +125,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     # error: Incompatible types in assignment (expression has type "StringDtype",
     # base class "ArrowExtensionArray" defined the type as "ArrowDtype")
     _dtype: StringDtype  # type: ignore[assignment]
-    _storage = "pyarrow"
-    _na_value: libmissing.NAType | float = libmissing.NA
 
-    def __init__(self, values) -> None:
+    def __init__(self, values, *, dtype: StringDtype | None = None) -> None:
         _chk_pyarrow_available()
         if isinstance(values, (pa.Array, pa.ChunkedArray)) and (
             pa.types.is_string(values.type)
@@ -143,13 +143,23 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             values = pc.cast(values, pa.large_string())
 
         super().__init__(values)
-        self._dtype = StringDtype(storage=self._storage, na_value=self._na_value)
+
+        if dtype is None:
+            dtype = StringDtype(storage="pyarrow", na_value=libmissing.NA)
+        self._dtype = dtype
 
         if not pa.types.is_large_string(self._pa_array.type):
             raise ValueError(
                 "ArrowStringArray requires a PyArrow (chunked) array of "
                 "large_string type"
             )
+
+    def _from_pyarrow_array(self, pa_array):
+        """
+        Construct from the pyarrow array result of an operation, retaining
+        self.dtype.na_value.
+        """
+        return type(self)(pa_array, dtype=self.dtype)
 
     @classmethod
     def _box_pa_scalar(cls, value, pa_type: pa.DataType | None = None) -> pa.Scalar:
@@ -195,13 +205,15 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             na_values = scalars._mask
             result = scalars._data
             result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
-            return cls(pa.array(result, mask=na_values, type=pa.large_string()))
+            pa_arr = pa.array(result, mask=na_values, type=pa.large_string())
         elif isinstance(scalars, (pa.Array, pa.ChunkedArray)):
-            return cls(pc.cast(scalars, pa.large_string()))
-
-        # convert non-na-likes to str
-        result = lib.ensure_string_array(scalars, copy=copy)
-        return cls(pa.array(result, type=pa.large_string(), from_pandas=True))
+            pa_arr = pc.cast(scalars, pa.large_string())
+        else:
+            # convert non-na-likes to str
+            result = lib.ensure_string_array(scalars, copy=copy)
+            pa_arr = pa.array(result, type=pa.large_string(), from_pandas=True)
+        # error: Argument "dtype" to "ArrowStringArray" has incompatible type
+        return cls(pa_arr, dtype=dtype)  # type: ignore[arg-type]
 
     @classmethod
     def _from_sequence_of_strings(
@@ -228,6 +240,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
         if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
+            # TODO: Enforce in 3.0 (#59615)
             # GH#59561
             warnings.warn(
                 f"Allowing a non-bool 'na' in obj.str.{method_name} is deprecated "
@@ -346,6 +359,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     ):
         if flags:
             return super()._str_contains(pat, case, flags, na, regex)
+        if isinstance(pat, re.Pattern):
+            pat = pat.pattern
 
         return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
 
@@ -456,7 +471,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if name in ("argmin", "argmax") and isinstance(result, pa.Array):
             return self._convert_int_result(result)
         elif isinstance(result, pa.Array):
-            return type(self)(result)
+            return type(self)(result, dtype=self.dtype)
         else:
             return result
 
@@ -488,7 +503,3 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def __pos__(self) -> Self:
         raise TypeError(f"bad operand type for unary +: '{self.dtype}'")
-
-
-class ArrowStringArrayNumpySemantics(ArrowStringArray):
-    _na_value = np.nan

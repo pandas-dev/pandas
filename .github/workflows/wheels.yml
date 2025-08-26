@@ -48,7 +48,7 @@ jobs:
       sdist_file: ${{ steps.save-path.outputs.sdist_name }}
     steps:
       - name: Checkout pandas
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -101,7 +101,7 @@ jobs:
         - [macos-14, macosx_arm64]
         - [windows-2022, win_amd64]
         - [windows-11-arm, win_arm64]
-        python: [["cp310", "3.10"], ["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
+        python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
         include:
         # Build Pyodide wheels and upload them to Anaconda.org
         # NOTE: this job is similar to the one in unit-tests.yml except for the fact
@@ -110,8 +110,6 @@ jobs:
           python: ["cp312", "3.12"]
           cibw_build_frontend: 'build'
         exclude:
-          - buildplat: [windows-11-arm, win_arm64]
-            python: ["cp310", "3.10"]
         # BackendUnavailable: Cannot import 'mesonpy'
           - buildplat: [windows-11-arm, win_arm64]
             python: ["cp313t", "3.13"]
@@ -121,7 +119,7 @@ jobs:
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout pandas
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -139,7 +137,7 @@ jobs:
       # removes unnecessary files from the release
       - name: Download sdist (not macOS)
         #if: ${{ matrix.buildplat[1] != 'macosx_*' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: sdist
           path: ./dist
@@ -162,7 +160,7 @@ jobs:
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.1.1
+        uses: pypa/cibuildwheel@v3.1.4
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
@@ -191,7 +189,7 @@ jobs:
         # installing wheel here because micromamba step was skipped
         if: matrix.buildplat[1] == 'win_arm64'
         shell: bash -el {0}
-        run: python -m pip install wheel
+        run: python -m pip install wheel anaconda-client
 
       - name: Validate wheel RECORD
         shell: bash -el {0}

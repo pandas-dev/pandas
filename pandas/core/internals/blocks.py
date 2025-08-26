@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     final,
 )
@@ -32,13 +33,13 @@ from pandas._typing import (
     IgnoreRaise,
     InterpolateOptions,
     QuantileInterpolation,
-    Self,
     Shape,
     npt,
 )
 from pandas.errors import (
     AbstractMethodError,
     OutOfBoundsDatetime,
+    Pandas4Warning,
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -1899,7 +1900,7 @@ class ExtensionBlock(EABackedBlock):
                     "need to implement this keyword or an exception will be "
                     "raised. In the interim, the keyword is ignored by "
                     f"{type(self.values).__name__}.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
 

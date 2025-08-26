@@ -12,6 +12,7 @@ from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import doc
 from pandas.util._validators import check_dtype_backend
 
@@ -144,7 +145,7 @@ def read_feather(
                 warnings.filterwarnings(
                     "ignore",
                     "make_block is deprecated",
-                    DeprecationWarning,
+                    Pandas4Warning,
                 )
 
                 return feather.read_feather(
