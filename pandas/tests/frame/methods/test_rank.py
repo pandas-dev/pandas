@@ -10,6 +10,7 @@ from pandas._libs.algos import (
     Infinity,
     NegInfinity,
 )
+import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -504,10 +505,20 @@ class TestRank:
         [
             ("average", "UInt32", "Float64"),
             ("average", "Float32", "Float64"),
-            ("average", "int32[pyarrow]", "double[pyarrow]"),
+            pytest.param(
+                "average",
+                "int32[pyarrow]",
+                "double[pyarrow]",
+                marks=td.skip_if_no("pyarrow"),
+            ),
             ("min", "Int32", "Float64"),
             ("min", "Float32", "Float64"),
-            ("min", "int32[pyarrow]", "double[pyarrow]"),
+            pytest.param(
+                "min",
+                "int32[pyarrow]",
+                "double[pyarrow]",
+                marks=td.skip_if_no("pyarrow"),
+            ),
         ],
     )
     def test_rank_extension_array_dtype(self, method, og_dtype, expected_dtype):
@@ -520,6 +531,7 @@ class TestRank:
         tm.assert_frame_equal(result, expected)
 
     def test_rank_mixed_extension_array_dtype(self):
+        pytest.importorskip("pyarrow")
         result = DataFrame(
             {
                 "base": Series([4, 5, 6]),
