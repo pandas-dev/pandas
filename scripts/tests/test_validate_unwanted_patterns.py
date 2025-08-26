@@ -10,7 +10,7 @@ class TestStringsWithWrongPlacedWhitespace:
         "data",
         [
             (
-                """
+                r"""
     msg = (
         "foo\n"
         " bar"
