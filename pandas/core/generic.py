@@ -9286,14 +9286,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     pct=pct,
                 )
             else:
-                ranks = algos.rank(
-                    blk_values.T,
-                    axis=axis_int,
-                    method=method,
-                    ascending=ascending,
-                    na_option=na_option,
-                    pct=pct,
-                ).T
+                if blk_values.ndim > 1 and axis_int == 0:
+                    ranks = algos.rank(
+                        blk_values.T,
+                        axis=axis_int,
+                        method=method,
+                        ascending=ascending,
+                        na_option=na_option,
+                        pct=pct,
+                    ).T
+                else:
+                    ranks = algos.rank(
+                        blk_values,
+                        axis=axis_int,
+                        method=method,
+                        ascending=ascending,
+                        na_option=na_option,
+                        pct=pct,
+                    )
             return ranks
 
         if numeric_only:
@@ -9307,10 +9317,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             data = self
 
-        result = data._mgr.apply(ranker)
-        return self._constructor_from_mgr(result, axes=result.axes).__finalize__(
-            self, method="rank"
-        )
+        should_transpose = data.ndim > 1 and axis_int == 1
+
+        if should_transpose:
+            data = data.T
+        applied = data._mgr.apply(ranker)
+        result = self._constructor_from_mgr(applied, axes=applied.axes)
+        if should_transpose:
+            result = result.T
+
+        return result.__finalize__(self, method="rank")
 
     @doc(_shared_docs["compare"], klass=_shared_doc_kwargs["klass"])
     def compare(
