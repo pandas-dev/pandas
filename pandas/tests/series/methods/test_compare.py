@@ -1,3 +1,8 @@
+from enum import (
+    Enum,
+    auto,
+)
+
 import numpy as np
 import pytest
 
@@ -138,3 +143,25 @@ def test_compare_datetime64_and_string():
     tm.assert_series_equal(result_eq1, expected_eq)
     tm.assert_series_equal(result_eq2, expected_eq)
     tm.assert_series_equal(result_neq, expected_neq)
+
+
+def test_eq_objects():
+    class Thing(Enum):
+        FIRST = auto()
+        SECOND = auto()
+
+    left = pd.Series([Thing.FIRST, Thing.SECOND])
+    tm.assert_series_equal(left.eq(Thing.FIRST), left == Thing.FIRST)
+
+    py_l = [Thing.FIRST, Thing.SECOND]
+    tm.assert_series_equal(left.eq(py_l), left == py_l)
+
+    np_a = np.asarray(py_l)
+    tm.assert_series_equal(left.eq(np_a), left == np_a)
+
+    pd_s = pd.Series(py_l)
+    tm.assert_series_equal(left.eq(pd_s), left == pd_s)
+
+    left_non_scalar = pd.Series([[1, 2], [3, 4]])
+    with pytest.raises(AssertionError):
+        tm.assert_series_equal(left_non_scalar.eq([1, 2]), pd.Series([True, False]))

@@ -435,7 +435,7 @@ missing data in either one of the inputs.
 
 Parameters
 ----------
-other : Series or scalar value (that can be the element of a Series)
+other : Array-like or scalar value (non-array-like element of the former)
     The second operand in this operation.
 level : int or name
     Broadcast across a level, matching Index values on the
