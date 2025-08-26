@@ -9286,7 +9286,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     pct=pct,
                 )
             else:
-                if blk_values.ndim > 1 and axis_int == 0:
+                if axis_int == 0:
                     ranks = algos.rank(
                         blk_values.T,
                         axis=axis_int,
@@ -9317,7 +9317,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             data = self
 
-        should_transpose = data.ndim > 1 and axis_int == 1
+        should_transpose = axis_int == 1
 
         if should_transpose:
             data = data.T
