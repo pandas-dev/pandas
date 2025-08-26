@@ -3,6 +3,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -728,7 +729,7 @@ class TestAstype:
     def test_astype_tz_conversion(self):
         # GH 35973, GH#58998
         msg = "'d' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             val = {
                 "tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")
             }

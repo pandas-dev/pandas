@@ -29,6 +29,7 @@ from pandas.compat import (
     pa_version_under12p1,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     doc,
     set_module,
@@ -167,6 +168,7 @@ class StringDtype(StorageExtensionDtype):
                     storage = "python"
 
         if storage == "pyarrow_numpy":
+            # TODO: Enforce in 3.0 (#60152)
             warnings.warn(
                 "The 'pyarrow_numpy' storage option name is deprecated and will be "
                 'removed in pandas 3.0. Use \'pd.StringDtype(storage="pyarrow", '
@@ -392,7 +394,7 @@ class BaseStringArray(ExtensionArray):
                 f"'{op_name}' operations between boolean dtype and {self.dtype} are "
                 "deprecated and will raise in a future version. Explicitly "
                 "cast the strings to a boolean dtype before operating instead.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
             return op(other, self.astype(bool))
