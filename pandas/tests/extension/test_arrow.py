@@ -3624,8 +3624,6 @@ def test_ops_with_nan_is_na(using_nan_is_na):
 
 def test_setitem_float_nan_is_na(using_nan_is_na):
     # GH#61732
-    import pyarrow as pa
-
     ser = pd.Series([-1, 0, 1], dtype="int64[pyarrow]")
 
     if using_nan_is_na:
