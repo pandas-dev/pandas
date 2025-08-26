@@ -1125,7 +1125,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         # GH#42855 handle date here instead of get_slice_bound
         if isinstance(label, dt.date) and not isinstance(label, dt.datetime):
-            # Pandas supports slicing with dates, treated as datetimes at midnight.
+            warnings.warn(
+                "Indexing/slicing with datetime.date is deprecated and will be removed "
+                "in a future version of pandas. Please convert to pd.Timestamp or "
+                "datetime64[ns] before indexing.",
+                FutureWarning,
+                stacklevel=2,
+            )
             # https://github.com/pandas-dev/pandas/issues/31501
             label = Timestamp(label).to_pydatetime()
             warnings.warn(
