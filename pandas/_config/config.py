@@ -716,7 +716,7 @@ def _warn_if_deprecated(key: str) -> bool:
         if d.msg:
             warnings.warn(
                 d.msg,
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore[warning_class]
                 stacklevel=find_stack_level(),
             )
         else:
@@ -728,7 +728,11 @@ def _warn_if_deprecated(key: str) -> bool:
             else:
                 msg += ", please refrain from using it."
 
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                msg,
+                FutureWarning,  # pdlint: ignore[warning_class]
+                stacklevel=find_stack_level(),
+            )
         return True
     return False
 

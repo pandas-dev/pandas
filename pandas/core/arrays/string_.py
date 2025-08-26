@@ -176,7 +176,7 @@ class StringDtype(StorageExtensionDtype):
                 "'pd.options.future.infer_string = True' option globally and use "
                 'the "str" alias as a shorthand notation to specify a dtype '
                 '(instead of "string[pyarrow_numpy]").',
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore[warning_class]
                 stacklevel=find_stack_level(),
             )
             storage = "pyarrow"

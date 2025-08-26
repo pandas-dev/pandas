@@ -13262,7 +13262,7 @@ class DataFrame(NDFrame, OpsMixin):
                 f"The behavior of {type(self).__name__}.idxmin with all-NA "
                 "values, or any-NA and skipna=False, is deprecated. In a future "
                 "version this will raise ValueError",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore[warning_class]
                 stacklevel=find_stack_level(),
             )
 
@@ -13369,7 +13369,7 @@ class DataFrame(NDFrame, OpsMixin):
                 f"The behavior of {type(self).__name__}.idxmax with all-NA "
                 "values, or any-NA and skipna=False, is deprecated. In a future "
                 "version this will raise ValueError",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore[warning_class]
                 stacklevel=find_stack_level(),
             )
 

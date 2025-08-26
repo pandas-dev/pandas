@@ -1949,7 +1949,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         warnings.warn(
             "Resampling a groupby with a PeriodIndex is deprecated. "
             "Cast to DatetimeIndex before resampling instead.",
-            FutureWarning,
+            FutureWarning,  # pdlint: ignore[warning_class]
             stacklevel=find_stack_level(),
         )
         return PeriodIndexResamplerGroupby
@@ -2297,7 +2297,7 @@ class TimeGrouper(Grouper):
                 warnings.warn(
                     "Resampling with a PeriodIndex is deprecated. "
                     "Cast index to DatetimeIndex before resampling instead.",
-                    FutureWarning,
+                    FutureWarning,  # pdlint: ignore[warning_class]
                     stacklevel=find_stack_level(),
                 )
             return PeriodIndexResampler(
