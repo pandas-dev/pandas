@@ -3333,9 +3333,9 @@ def test_factorize_chunked_dictionary():
     )
     ser = pd.Series(ArrowExtensionArray(pa_array))
     res_indices, res_uniques = ser.factorize()
-    exp_indicies = np.array([0, 1], dtype=np.intp)
+    exp_indices = np.array([0, 1], dtype=np.intp)
     exp_uniques = pd.Index(ArrowExtensionArray(pa_array.combine_chunks()))
-    tm.assert_numpy_array_equal(res_indices, exp_indicies)
+    tm.assert_numpy_array_equal(res_indices, exp_indices)
     tm.assert_index_equal(res_uniques, exp_uniques)
 
 
