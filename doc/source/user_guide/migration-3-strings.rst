@@ -315,6 +315,37 @@ the :meth:`~pandas.Series.str.decode` method now has a ``dtype`` parameter to be
 able to specify object dtype instead of the default of string dtype for this use
 case.
 
+:meth:`Series.values` now returns an :class:`~pandas.api.extensions.ExtensionArray`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With object dtype, using ``.values`` on a Series will return the underlying NumPy array.
+
+.. code-block:: python
+
+   >>> ser = pd.Series(["a", "b", np.nan], dtype="object")
+   >>> type(ser.values)
+   <class 'numpy.ndarray'>
+
+However with the new string dtype, the underlying ExtensionArray is returned instead.
+
+.. code-block:: python
+
+   >>> ser = pd.Series(["a", "b", pd.NA], dtype="str")
+   >>> ser.values
+   <ArrowStringArray>
+   ['a', 'b', nan]
+   Length: 3, dtype: str
+
+If your code requires a NumPy array, you should use :meth:`Series.to_numpy`.
+
+.. code-block:: python
+
+   >>> ser = pd.Series(["a", "b", pd.NA], dtype="str")
+   >>> ser.to_numpy()
+   ['a' 'b' nan]
+
+In general, you should always prefer :meth:`Series.to_numpy` to get a NumPy array or :meth:`Series.array` to get an ExtensionArray over using :meth:`Series.values`.
+
 Notable bug fixes
 ~~~~~~~~~~~~~~~~~
 
