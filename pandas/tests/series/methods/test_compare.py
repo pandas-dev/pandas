@@ -146,6 +146,7 @@ def test_compare_datetime64_and_string():
 
 
 def test_eq_objects():
+    """Test eq with Enum and List elements"""
     class Thing(Enum):
         FIRST = auto()
         SECOND = auto()
@@ -165,3 +166,23 @@ def test_eq_objects():
     left_non_scalar = pd.Series([[1, 2], [3, 4]])
     with pytest.raises(AssertionError):
         tm.assert_series_equal(left_non_scalar.eq([1, 2]), pd.Series([True, False]))
+
+
+def test_eq_with_index():
+    """Test eq with non-trivial indices"""
+    left = pd.Series([1, 2], index=[1, 0])
+
+    py_l = [1, 2]
+    tm.assert_series_equal(left.eq(py_l), left == py_l)
+
+    np_a = np.asarray(py_l)
+    tm.assert_series_equal(left.eq(np_a), left == np_a)
+
+    pd_s = pd.Series(py_l)
+    tm.assert_series_equal(left.eq(pd_s), pd.Series([False, False]))
+
+    match = r"Can only compare identically-labeled Series objects"
+    with pytest.raises(ValueError, match=match):
+        _ = left == pd_s
+
+    tm.assert_series_equal(left.eq(pd.Series([2, 1])), pd.Series([True, True]))
