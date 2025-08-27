@@ -5703,10 +5703,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     "Specify observed=True in groupby instead."
                 )
         elif not skipna and self._obj_with_exclusions.isna().any(axis=None):
-            raise ValueError(
-                f"{type(self).__name__}.{how} with skipna=False encountered an NA "
-                f"value."
-            )
+            raise ValueError(f"{how} with skipna=False encountered an NA value.")
 
         result = self._agg_general(
             numeric_only=numeric_only,
@@ -5724,8 +5721,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = res.astype(index.dtype)
         elif skipna and res.lt(0).any(axis=None):
             raise ValueError(
-                f"{type(self).__name__}.{how} with skipna=True encountered all NA "
-                f"values in a group."
+                f"{how} with skipna=True encountered all NA values in a group."
             )
         else:
             if isinstance(index, MultiIndex):
