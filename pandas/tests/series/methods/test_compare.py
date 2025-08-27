@@ -147,6 +147,7 @@ def test_compare_datetime64_and_string():
 
 def test_eq_objects():
     """Test eq with Enum and List elements"""
+
     class Thing(Enum):
         FIRST = auto()
         SECOND = auto()
