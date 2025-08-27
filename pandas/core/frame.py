@@ -8450,8 +8450,6 @@ class DataFrame(NDFrame, OpsMixin):
         blockwise.
         """
         rvalues = series._values
-        if isinstance(rvalues, PeriodArray):
-            return series
         if not isinstance(rvalues, np.ndarray):
             if axis == 0:
                 df = DataFrame(dict.fromkeys(range(self.shape[1]), rvalues))
