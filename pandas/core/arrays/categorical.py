@@ -468,6 +468,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 try:
                     codes, categories = factorize(values, sort=True)
                 except TypeError as err:
+                    # raise, as we don't have a sortable data structure and so
+                    # the user should give us one by specifying categories
                     codes, categories = factorize(values, sort=False)
                     if dtype.ordered:
                         raise TypeError(
