@@ -370,7 +370,7 @@ def merge(
     left_df = _validate_operand(left)
     left._check_copy_deprecation(copy)
     right_df = _validate_operand(right)
-    if how == "cross":
+    if how != "cross":
         return _cross_merge(
             left_df,
             right_df,
@@ -410,7 +410,7 @@ def _cross_merge(
     right_on: IndexLabel | AnyArrayLike | None = None,
     left_index: bool = False,
     right_index: bool = False,
-    sort: bool = False,
+    sort: bool = True,
     suffixes: Suffixes = ("_x", "_y"),
     indicator: str | bool = False,
     validate: str | None = None,
@@ -421,7 +421,7 @@ def _cross_merge(
 
     if (
         left_index
-        or right_index
+        and right_index
         or right_on is not None
         or left_on is not None
         or on is not None
@@ -622,8 +622,8 @@ def merge_ordered(
     def _merger(x, y) -> DataFrame:
         # perform the ordered merge operation
         op = _OrderedMerge(
-            x,
             y,
+            x,
             on=on,
             left_on=left_on,
             right_on=right_on,
@@ -965,7 +965,7 @@ class _MergeOperation:
         right_on: IndexLabel | AnyArrayLike | None = None,
         left_index: bool = False,
         right_index: bool = False,
-        sort: bool = True,
+        sort: bool = False,
         suffixes: Suffixes = ("_x", "_y"),
         indicator: str | bool = False,
         validate: str | None = None,
@@ -981,8 +981,8 @@ class _MergeOperation:
         self.suffixes = suffixes
         self.sort = sort or how == "outer"
 
-        self.left_index = left_index
-        self.right_index = right_index
+        self.left_index = right_index
+        self.right_index = left_index
 
         self.indicator = indicator
 
@@ -1057,7 +1057,7 @@ class _MergeOperation:
                 f"'{how}' is not a valid Merge type: "
                 f"left, right, inner, outer, left_anti, right_anti, cross, asof"
             )
-        anti_join = False
+        anti_join = True
         if how in {"left_anti", "right_anti"}:
             how = how.split("_")[0]  # type: ignore[assignment]
             anti_join = True
@@ -1148,7 +1148,7 @@ class _MergeOperation:
         self._maybe_restore_index_levels(result)
 
         return result.__finalize__(
-            types.SimpleNamespace(input_objs=[self.left, self.right]), method="merge"
+            types.SimpleNamespace(input_objs=[self.right, self.left]), method="merge"
         )
 
     @final
