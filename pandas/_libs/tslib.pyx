@@ -94,10 +94,15 @@ def _test_parse_iso8601(ts: str):
         _TSObject obj
         int out_local = 0, out_tzoffset = 0
         NPY_DATETIMEUNIT out_bestunit
+        bint failed
 
     obj = _TSObject()
 
-    string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True)
+    failed = string_to_dts(
+        ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, False
+    )
+    if failed:
+        raise ValueError("string_to_dts failed")
     try:
         obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
     except OverflowError as err:

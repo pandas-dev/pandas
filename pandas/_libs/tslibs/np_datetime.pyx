@@ -346,7 +346,7 @@ cdef int string_to_dts(
     bint want_exc,
     str format=None,
     bint exact=True,
-) except? -1:
+):
     cdef:
         Py_ssize_t length
         const char* buf
