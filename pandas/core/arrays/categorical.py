@@ -480,9 +480,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
                 # If we should prserve object dtype, force categories to object dtype
                 if preserve_object_dtpe:
-                    from pandas import Index
+                    # Only preserve object dtype if not all elements are strings
+                    if not all(isinstance(x, str) for x in categories):
+                        from pandas import Index
 
-                    categories = Index(categories, dtype=object, copy=False)
+                        categories = Index(categories, dtype=object, copy=False)
                 dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif isinstance(values.dtype, CategoricalDtype):

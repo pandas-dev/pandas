@@ -799,10 +799,19 @@ class TestCategoricalConstructors:
             cat_from_arr = Categorical(arr)
             cat_from_list = Categorical(pylist)
 
-            # Series/Index with object dtype: preserve object dtype
-            assert cat_from_ser.categories.dtype == "object"
-            assert cat_from_idx.categories.dtype == "object"
+            # Series/Index with object dtype: infer string
+            # dtype if all elements are strings
+            assert cat_from_ser.categories.inferred_type == "string"
+            assert cat_from_idx.categories.inferred_type == "string"
 
             # Numpy array or list: infer string dtype
-            assert cat_from_arr.categories.dtype == "str"
-            assert cat_from_list.categories.dtype == "str"
+            assert cat_from_arr.categories.inferred_type == "string"
+            assert cat_from_list.categories.inferred_type == "string"
+
+            # Mixed types: preserve object dtype
+            ser_mixed = Series(["foo", 1, None], dtype="object")
+            idx_mixed = Index(["foo", 1, None], dtype="object")
+            cat_mixed_ser = Categorical(ser_mixed)
+            cat_mixed_idx = Categorical(idx_mixed)
+            assert cat_mixed_ser.categories.dtype == "object"
+            assert cat_mixed_idx.categories.dtype == "object"
