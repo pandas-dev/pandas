@@ -100,7 +100,7 @@ def test_error_contains_non_dummies():
         from_dummies(dummies)
 
 
-def test_error_with_prefix_multiple_seperators():
+def test_error_with_prefix_multiple_separators():
     dummies = DataFrame(
         {
             "col1_a": [1, 0, 1],
