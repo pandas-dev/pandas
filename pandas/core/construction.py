@@ -176,9 +176,9 @@ def array(
     NumPy array.
 
     >>> pd.array(["a", "b"], dtype=str)
-    <NumpyExtensionArray>
+    <ArrowStringArray>
     ['a', 'b']
-    Length: 2, dtype: str32
+    Length: 2, dtype: str
 
     This would instead return the new ExtensionArray dedicated for string
     data. If you really need the new array to be backed by a  NumPy array,
@@ -250,7 +250,7 @@ def array(
 
     >>> pd.array(["a", "b", "a"], dtype="category")
     ['a', 'b', 'a']
-    Categories (2, object): ['a', 'b']
+    Categories (2, str): ['a', 'b']
 
     Or specify the actual dtype
 
@@ -258,7 +258,7 @@ def array(
     ...     ["a", "b", "a"], dtype=pd.CategoricalDtype(["a", "b", "c"], ordered=True)
     ... )
     ['a', 'b', 'a']
-    Categories (3, object): ['a' < 'b' < 'c']
+    Categories (3, str): ['a' < 'b' < 'c']
 
     If pandas does not infer a dedicated extension type a
     :class:`arrays.NumpyExtensionArray` is returned.
@@ -454,7 +454,7 @@ def extract_array(
     --------
     >>> extract_array(pd.Series(["a", "b", "c"], dtype="category"))
     ['a', 'b', 'c']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     Other objects like lists, arrays, and DataFrames are just passed through.
 

@@ -148,9 +148,9 @@ pandas requires the following dependencies.
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`NumPy <https://numpy.org>`__                                    1.23.5
+`NumPy <https://numpy.org>`__                                    1.26.0
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
-`tzdata <https://pypi.org/project/tzdata/>`__                    2022.7
+`tzdata <https://pypi.org/project/tzdata/>`__                    2023.3
 ================================================================ ==========================
 
 .. _install.optional_dependencies:
@@ -290,10 +290,10 @@ Dependency                                                         Minimum Versi
 `SQLAlchemy <https://github.com/sqlalchemy/sqlalchemy>`__          2.0.0              postgresql,     SQL support for databases other than sqlite
                                                                                       mysql,
                                                                                       sql-other
-`psycopg2 <https://github.com/psycopg/psycopg2>`__                 2.9.6              postgresql      PostgreSQL engine for sqlalchemy
+`psycopg2 <https://github.com/psycopg/psycopg2>`__                 2.9.9              postgresql      PostgreSQL engine for sqlalchemy
 `pymysql <https://github.com/PyMySQL/PyMySQL>`__                   1.1.0              mysql           MySQL engine for sqlalchemy
-`adbc-driver-postgresql <https://github.com/apache/arrow-adbc>`__  0.10.0             postgresql      ADBC Driver for PostgreSQL
-`adbc-driver-sqlite <https://github.com/apache/arrow-adbc>`__      0.8.0              sql-other       ADBC Driver for SQLite
+`adbc-driver-postgresql <https://github.com/apache/arrow-adbc>`__  1.2.0              postgresql      ADBC Driver for PostgreSQL
+`adbc-driver-sqlite <https://github.com/apache/arrow-adbc>`__      1.2.0              sql-other       ADBC Driver for SQLite
 ================================================================== ================== =============== ============================================
 
 Other data sources
@@ -307,8 +307,8 @@ Dependency                                             Minimum Version    pip ex
 `PyTables <https://github.com/PyTables/PyTables>`__    3.8.0              hdf5             HDF5-based reading / writing
 `zlib <https://github.com/madler/zlib>`__                                 hdf5             Compression for HDF5
 `fastparquet <https://github.com/dask/fastparquet>`__  2024.2.0           -                Parquet reading / writing (pyarrow is default)
-`pyarrow <https://github.com/apache/arrow>`__          10.0.1             parquet, feather Parquet, ORC, and feather reading / writing
-`PyIceberg <https://py.iceberg.apache.org/>`__         0.7.1              iceberg          Apache Iceberg reading
+`pyarrow <https://github.com/apache/arrow>`__          12.0.1             parquet, feather Parquet, ORC, and feather reading / writing
+`PyIceberg <https://py.iceberg.apache.org/>`__         0.7.1              iceberg          Apache Iceberg reading / writing
 `pyreadstat <https://github.com/Roche/pyreadstat>`__   1.2.6              spss             SPSS files (.sav) reading
 `odfpy <https://github.com/eea/odfpy>`__               1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing
 ====================================================== ================== ================ ==========================================================

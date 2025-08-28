@@ -18,7 +18,6 @@ main:
   - pandas_web.Preprocessors.home_add_releases
   - pandas_web.Preprocessors.roadmap_pdeps
   markdown_extensions:
-  - toc
   - tables
   - fenced_code
   - meta
@@ -53,15 +52,11 @@ maintainers:
   - simonjayhawkins
   - topper-123
   - alimcmaster1
-  - bashtage
   - Dr-Irv
   - rhshadrach
   - phofl
   - attack68
   - fangchenli
-  - lithomas1
-  - lukemanley
-  - noatamir
   inactive:
   - lodagro
   - jseabold
@@ -79,6 +74,10 @@ maintainers:
   - mzeitlin11
   - twoertwein
   - MarcoGorelli
+  - bashtage
+  - noatamir
+  - lithomas1
+  - lukemanley
 workgroups:
   coc:
     name: Code of Conduct

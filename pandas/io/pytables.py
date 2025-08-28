@@ -20,6 +20,8 @@ from typing import (
     Any,
     Final,
     Literal,
+    Self,
+    TypeAlias,
     cast,
     overload,
 )
@@ -126,7 +128,6 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeArg,
         FilePath,
-        Self,
         Shape,
         npt,
     )
@@ -160,7 +161,7 @@ def _ensure_str(name):
     return name
 
 
-Term = PyTablesExpr
+Term: TypeAlias = PyTablesExpr
 
 
 def _ensure_term(where, scope_level: int):

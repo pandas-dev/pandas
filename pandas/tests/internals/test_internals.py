@@ -10,6 +10,7 @@ import pytest
 
 from pandas._libs.internals import BlockPlacement
 from pandas.compat import IS64
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -735,8 +736,6 @@ class TestBlockManager:
         mgr = create_mgr("a: f8; b: i8; c: f8; d: i8; e: f8; f: bool; g: f8-2")
 
         reindexed = mgr.reindex_axis(["g", "c", "a", "d"], axis=0)
-        # reindex_axis does not consolidate_inplace, as that risks failing to
-        #  invalidate _item_cache
         assert not reindexed.is_consolidated()
 
         tm.assert_index_equal(reindexed.items, Index(["g", "c", "a", "d"]))
@@ -1378,7 +1377,7 @@ def test_validate_ndim():
 
     depr_msg = "make_block is deprecated"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(DeprecationWarning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             make_block(values, placement, ndim=2)
 
 

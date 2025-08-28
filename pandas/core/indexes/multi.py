@@ -15,6 +15,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
 )
 import warnings
@@ -40,7 +41,6 @@ from pandas._typing import (
     IndexLabel,
     IndexT,
     Scalar,
-    Self,
     Shape,
     npt,
 )
@@ -2675,7 +2675,7 @@ class MultiIndex(Index):
         )
 
     def _recode_for_new_levels(
-        self, new_levels, copy: bool = True
+        self, new_levels, *, copy: bool
     ) -> Generator[np.ndarray]:
         if len(new_levels) > self.nlevels:
             raise AssertionError(

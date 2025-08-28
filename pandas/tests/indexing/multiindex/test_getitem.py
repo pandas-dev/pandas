@@ -89,8 +89,12 @@ def test_series_getitem_returns_scalar(
         (lambda s: s[(2000, 3, 4)], KeyError, r"^\(2000, 3, 4\)$"),
         (lambda s: s.loc[(2000, 3, 4)], KeyError, r"^\(2000, 3, 4\)$"),
         (lambda s: s.loc[(2000, 3, 4, 5)], IndexingError, "Too many indexers"),
-        (lambda s: s.__getitem__(len(s)), KeyError, ""),  # match should include len(s)
-        (lambda s: s[len(s)], KeyError, ""),  # match should include len(s)
+        (
+            lambda s: s.__getitem__(len(s)),
+            KeyError,
+            "100",
+        ),  # match should include len(s)
+        (lambda s: s[len(s)], KeyError, "100"),  # match should include len(s)
         (
             lambda s: s.iloc[len(s)],
             IndexError,
