@@ -652,7 +652,7 @@ def _akima_interpolate(
     xi: np.ndarray,
     yi: np.ndarray,
     x: np.ndarray,
-    der: int | list[int] | None = 0,
+    der: int = 0,
     axis: AxisInt = 0,
 ):
     """
@@ -673,10 +673,8 @@ def _akima_interpolate(
     x : np.ndarray
         Of length M.
     der : int, optional
-        How many derivatives to extract; None for all potentially
-        nonzero derivatives (that is a number equal to the number
-        of points), or a list of derivatives to extract. This number
-        includes the function value as 0th derivative.
+        How many derivatives to extract. This number includes the function
+        value as 0th derivative.
     axis : int, optional
         Axis in the yi array corresponding to the x-coordinate values.
 
