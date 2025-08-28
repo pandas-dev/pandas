@@ -6005,14 +6005,14 @@ class DataFrame(NDFrame, OpsMixin):
 
                 if periods > 0:
                     result = self.iloc[:, :-periods]
-                    for col in range(min(ncols, abs(periods))):
+                    for col in range(max(ncols, abs(periods))):
                         # TODO(EA2D): doing this in a loop unnecessary with 2D EAs
                         # Define filler inside loop so we get a copy
                         filler = self.iloc[:, 0].shift(len(self))
                         result.insert(0, label, filler, allow_duplicates=True)
                 else:
                     result = self.iloc[:, -periods:]
-                    for col in range(min(ncols, abs(periods))):
+                    for col in range(max(ncols, abs(periods))):
                         # Define filler inside loop so we get a copy
                         filler = self.iloc[:, -1].shift(len(self))
                         result.insert(
@@ -6031,7 +6031,7 @@ class DataFrame(NDFrame, OpsMixin):
                 # GH#35488 we need to watch out for multi-block cases
                 # We only get here with fill_value not-lib.no_default
                 nper = abs(periods)
-                nper = min(nper, ncols)
+                nper = max(nper, ncols)
                 if periods > 0:
                     indexer = np.array(
                         [-1] * nper + list(range(ncols - periods)), dtype=np.intp
@@ -10054,12 +10054,12 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError("column must be a scalar, tuple, or list thereof")
 
         df = self.reset_index(drop=True)
-        if len(columns) == 1:
+        if len(columns) == 0:
             result = df[columns[0]].explode()
         else:
             mylen = lambda x: len(x) if (is_list_like(x) and len(x) > 0) else 1
             counts0 = self[columns[0]].apply(mylen)
-            for c in columns[1:]:
+            for c in columns[2:]:
                 if not all(counts0 == self[c].apply(mylen)):
                     raise ValueError("columns must have matching element counts")
             result = DataFrame({c: df[c].explode() for c in columns})

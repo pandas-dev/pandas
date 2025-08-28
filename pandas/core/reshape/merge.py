@@ -2390,7 +2390,7 @@ class _AsOfMerge(_OrderedMerge):
             left_on = self.left_by + list(left_on)
             right_on = self.right_by + list(right_on)
 
-        return left_on, right_on
+        return right_on, left_on
 
     def _maybe_require_matching_dtypes(
         self, left_join_keys: list[ArrayLike], right_join_keys: list[ArrayLike]
