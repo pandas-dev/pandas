@@ -1190,18 +1190,17 @@ Use ``copy=True`` to prevent such a behaviour or simply don't reuse ``Categorica
 .. ipython:: python
 
     with pd.option_context("future.infer_string", True):
-        ser = Series(["foo", "bar", "baz"], dtype="object")
-        idx = Index(["foo", "bar", "baz"], dtype="object")
+        ser = pd.Series(["foo", "bar", "baz"], dtype="object")
+        idx = pd.Index(["foo", "bar", "baz"], dtype="object")
         arr = np.array(["foo", "bar", "baz"], dtype="object")
         pylist = ["foo", "bar", "baz"]
 
-        cat_from_ser = Categorical(ser)
-        cat_from_idx = Categorical(idx)
-        cat_from_arr = Categorical(arr)
-        cat_from_list = Categorical(pylist)
+        cat_from_ser = pd.Categorical(ser)
+        cat_from_idx = pd.Categorical(idx)
+        cat_from_arr = pd.Categorical(arr)
+        cat_from_list = pd.Categorical(pylist)
 
-        # Series/Index with object dtype: infer string
-        # dtype if all elements are strings
+        # Series/Index with object dtype: infer string dtype
         assert cat_from_ser.categories.inferred_type == "string"
         assert cat_from_idx.categories.inferred_type == "string"
 
@@ -1210,9 +1209,9 @@ Use ``copy=True`` to prevent such a behaviour or simply don't reuse ``Categorica
         assert cat_from_list.categories.inferred_type == "string"
 
         # Mixed types: preserve object dtype
-        ser_mixed = Series(["foo", 1, None], dtype="object")
-        idx_mixed = Index(["foo", 1, None], dtype="object")
-        cat_mixed_ser = Categorical(ser_mixed)
-        cat_mixed_idx = Categorical(idx_mixed)
+        ser_mixed = pd.Series(["foo", 1, None], dtype="object")
+        idx_mixed = pd.Index(["foo", 1, None], dtype="object")
+        cat_mixed_ser = pd.Categorical(ser_mixed)
+        cat_mixed_idx = pd.Categorical(idx_mixed)
         assert cat_mixed_ser.categories.dtype == "object"
         assert cat_mixed_idx.categories.dtype == "object"
