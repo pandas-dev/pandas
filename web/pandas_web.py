@@ -536,29 +536,28 @@ def main(
                 f"Invalid versions.json: {e}. Ensure it is valid JSON."
             ) from e
 
-    config_fname = source_path / "config.yml"
-
     shutil.rmtree(target_path, ignore_errors=True)
     os.makedirs(target_path, exist_ok=True)
 
     sys.stderr.write("Generating context...\n")
     context = get_context(
-        os.path.join(source_path, "config.yml"),
+        pathlib.Path(source_path, "config.yml"),
         target_path=target_path,
     )
     sys.stderr.write("Context generated\n")
 
     templates_path = source_path / context["main"]["templates_path"]
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
-    for fname in get_source_files(source_path):
+    for pathname in get_source_files(source_path):
+        fname = str(pathname)
         context["lang"] = fname[0:2] if fname[2] == "/" else "en"
-        if fname.as_posix() in context["main"]["ignore"]:
+        if pathname.as_posix() in context["main"]["ignore"]:
             continue
         sys.stderr.write(f"Processing {fname}\n")
-        dirname = fname.parent
+        dirname = pathname.parent
         (target_path / dirname).mkdir(parents=True, exist_ok=True)
 
-        extension = fname.suffix
+        extension = pathname.suffix
         if extension in (".html", ".md"):
             with (source_path / fname).open(encoding="utf-8") as f:
                 content = f.read()
@@ -575,9 +574,9 @@ def main(
                 # Python-Markdown doesn't let us config table attributes by hand
                 body = body.replace("<table>", '<table class="table table-bordered">')
                 content = extend_base_template(body, context["main"]["base_template"])
-            context["base_url"] = "../" * (len(fname.parents) - 1)
+            context["base_url"] = "../" * (len(pathname.parents) - 1)
             content = jinja_env.from_string(content).render(**context)
-            fname_html = fname.with_suffix(".html").name
+            fname_html = pathname.with_suffix(".html").name
             with (target_path / dirname / fname_html).open("w", encoding="utf-8") as f:
                 f.write(content)
         else:
