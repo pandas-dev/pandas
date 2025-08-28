@@ -1185,25 +1185,34 @@ Use ``copy=True`` to prevent such a behaviour or simply don't reuse ``Categorica
      :class:`Index` with ``dtype='object'``, the dtype of the categories will be
      preserved as ``object``. When constructing from a NumPy array
      with ``dtype='object'`` or a raw Python sequence, pandas will infer the most
-     specific dtype for the categories (for example, ``str`` if all elements are strings).
+     specific dtype for the categories (for example, ``string`` if all elements are strings).
 
 .. ipython:: python
 
-    pd.options.future.infer_string = True
-    ser = pd.Series(["foo", "bar", "baz"], dtype="object")
-    idx = pd.Index(["foo", "bar", "baz"], dtype="object")
-    arr = np.array(["foo", "bar", "baz"], dtype="object")
-    pylist = ["foo", "bar", "baz"]
+    with pd.option_context("future.infer_string", True):
+        ser = Series(["foo", "bar", "baz"], dtype="object")
+        idx = Index(["foo", "bar", "baz"], dtype="object")
+        arr = np.array(["foo", "bar", "baz"], dtype="object")
+        pylist = ["foo", "bar", "baz"]
 
-    cat_from_ser = pd.Categorical(ser)
-    cat_from_idx = pd.Categorical(idx)
-    cat_from_arr = pd.Categorical(arr)
-    cat_from_list = pd.Categorical(pylist)
+        cat_from_ser = Categorical(ser)
+        cat_from_idx = Categorical(idx)
+        cat_from_arr = Categorical(arr)
+        cat_from_list = Categorical(pylist)
 
-    # Series/Index with object dtype: preserve object dtype
-    assert cat_from_ser.categories.dtype == "object"
-    assert cat_from_idx.categories.dtype == "object"
+        # Series/Index with object dtype: infer string
+        # dtype if all elements are strings
+        assert cat_from_ser.categories.inferred_type == "string"
+        assert cat_from_idx.categories.inferred_type == "string"
 
-    # Numpy array or list: infer string dtype
-    assert cat_from_arr.categories.dtype == "str"
-    assert cat_from_list.categories.dtype == "str"
+        # Numpy array or list: infer string dtype
+        assert cat_from_arr.categories.inferred_type == "string"
+        assert cat_from_list.categories.inferred_type == "string"
+
+        # Mixed types: preserve object dtype
+        ser_mixed = Series(["foo", 1, None], dtype="object")
+        idx_mixed = Index(["foo", 1, None], dtype="object")
+        cat_mixed_ser = Categorical(ser_mixed)
+        cat_mixed_idx = Categorical(idx_mixed)
+        assert cat_mixed_ser.categories.dtype == "object"
+        assert cat_mixed_idx.categories.dtype == "object"
