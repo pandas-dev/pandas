@@ -107,6 +107,7 @@ typedef struct __TypeContext {
   JSINT64 longValue;
 
   const char *cStr;
+  int freeCStr;
   NpyArrContext *npyarr;
   PdBlockContext *pdblock;
   int transpose;
@@ -162,6 +163,7 @@ static TypeContext *createTypeContext(void) {
   pc->longValue = 0;
   pc->doubleValue = 0.0;
   pc->cStr = NULL;
+  pc->freeCStr = 0;
   pc->npyarr = NULL;
   pc->pdblock = NULL;
   pc->rowLabels = NULL;
@@ -327,6 +329,7 @@ static const char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
   NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
   NPY_DATETIMEUNIT valueUnit = ((PyObjectEncoder *)tc->encoder)->valueUnit;
   GET_TC(tc)->cStr = int64ToIso(GET_TC(tc)->longValue, valueUnit, base, len);
+  GET_TC(tc)->freeCStr = 1;
   return GET_TC(tc)->cStr;
 }
 
@@ -334,6 +337,7 @@ static const char *NpyDateTimeToIsoCallback(JSOBJ Py_UNUSED(unused),
 static const char *NpyTimeDeltaToIsoCallback(JSOBJ Py_UNUSED(unused),
                                              JSONTypeContext *tc, size_t *len) {
   GET_TC(tc)->cStr = int64ToIsoDuration(GET_TC(tc)->longValue, len);
+  GET_TC(tc)->freeCStr = 1;
   return GET_TC(tc)->cStr;
 }
 
@@ -347,7 +351,9 @@ static const char *PyDateTimeToIsoCallback(JSOBJ obj, JSONTypeContext *tc,
   }
 
   NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-  return PyDateTimeToIso(obj, base, len);
+  GET_TC(tc)->cStr = PyDateTimeToIso(obj, base, len);
+  GET_TC(tc)->freeCStr = 1;
+  return GET_TC(tc)->cStr;
 }
 
 static const char *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc,
@@ -1880,6 +1886,9 @@ static void Object_endTypeContext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     GET_TC(tc)->rowLabels = NULL;
     NpyArr_freeLabels(GET_TC(tc)->columnLabels, GET_TC(tc)->columnLabelsLen);
     GET_TC(tc)->columnLabels = NULL;
+    if (GET_TC(tc)->freeCStr) {
+      PyObject_Free((void *)GET_TC(tc)->cStr);
+    }
     GET_TC(tc)->cStr = NULL;
     PyObject_Free(tc->prv);
     tc->prv = NULL;
