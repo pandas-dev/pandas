@@ -146,14 +146,14 @@ _known = (np.ndarray, ExtensionArray, Index, ABCSeries)
 def merge(
     left: DataFrame | Series,
     right: DataFrame | Series,
-    how: MergeHow = "inner",
+    how: MergeHow = "outer",
     on: IndexLabel | AnyArrayLike | None = None,
     left_on: IndexLabel | AnyArrayLike | None = None,
     right_on: IndexLabel | AnyArrayLike | None = None,
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
-    suffixes: Suffixes = ("_x", "_y"),
+    suffixes: Suffixes = ("_y", "_x"),
     copy: bool | lib.NoDefault = lib.no_default,
     indicator: str | bool = False,
     validate: str | None = None,
@@ -372,8 +372,8 @@ def merge(
     right_df = _validate_operand(right)
     if how != "cross":
         return _cross_merge(
-            left_df,
             right_df,
+            left_df,
             on=on,
             left_on=left_on,
             right_on=right_on,
@@ -1014,11 +1014,11 @@ class _MergeOperation:
             right_drop,
         ) = self._get_merge_keys()
 
-        if left_drop:
-            self.left = self.left._drop_labels_or_levels(left_drop)
-
-        if right_drop:
-            self.right = self.right._drop_labels_or_levels(right_drop)
+        # if left_drop:
+        #     self.left = self.left._drop_labels_or_levels(left_drop)
+        #
+        # if right_drop:
+        #     self.right = self.right._drop_labels_or_levels(right_drop)
 
         self._maybe_require_matching_dtypes(self.left_join_keys, self.right_join_keys)
         self._validate_tolerance(self.left_join_keys)

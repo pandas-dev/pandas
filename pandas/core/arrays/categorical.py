@@ -1228,7 +1228,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         cat = self.copy()
         cat._set_categories(new_categories)
-        return cat
+        #return cat
 
     def reorder_categories(self, new_categories, ordered=None) -> Self:
         """
