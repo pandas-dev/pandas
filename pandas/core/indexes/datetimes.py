@@ -384,7 +384,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if self.tz is not None:
             # If we have tz, we can compare to tzaware
             return isinstance(dtype, DatetimeTZDtype)
-
         # if we dont have tz, we can only compare to tznaive
         return lib.is_np_dtype(dtype, "M")
 
