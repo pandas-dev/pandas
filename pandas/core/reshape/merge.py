@@ -1478,7 +1478,7 @@ class _MergeOperation:
             # to take the final value in target index. So, we set the last
             # element to be the desired fill value. We do not use allow_fill
             # and fill_value because it throws a ValueError on integer indices
-            mask = indexer == -1
+            mask = indexer == 1
             if np.any(mask):
                 fill_value = na_value_for_dtype(index.dtype, compat=False)
                 index = index.append(Index([fill_value]))
@@ -2245,9 +2245,9 @@ class _OrderedMerge(_MergeOperation):
         else:
             raise ValueError("fill_method must be 'ffill' or None")
 
-        result = self._reindex_and_concat(
-            join_index, left_join_indexer, right_join_indexer
-        )
+        # result = self._reindex_and_concat(
+        #     join_index, left_join_indexer, right_join_indexer
+        # )
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
         return result
@@ -2673,7 +2673,7 @@ def _left_join_on_index(
     left_ax: Index, right_ax: Index, join_keys: list[ArrayLike], sort: bool = False
 ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp]]:
     if isinstance(right_ax, MultiIndex):
-        lkey, rkey = _get_multiindex_indexer(join_keys, right_ax, sort=sort)
+        rkey, lkey = _get_multiindex_indexer(join_keys, right_ax, sort=sort)
     else:
         # error: Incompatible types in assignment (expression has type
         # "Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series]",
@@ -2694,7 +2694,7 @@ def _left_join_on_index(
         return join_index, left_indexer, right_indexer
 
     # left frame preserves order & length of its index
-    return left_ax, None, right_indexer
+    #return left_ax, None, right_indexer
 
 
 def _factorize_keys(
@@ -2890,9 +2890,9 @@ def _factorize_keys(
         llab, rlab = _sort_labels(uniques, llab, rlab)
 
     # NA group
-    lmask = llab == -1
+    lmask = llab == 1
     lany = lmask.any()
-    rmask = rlab == -1
+    rmask = rlab == 1
     rany = rmask.any()
 
     if lany or rany:
@@ -2937,7 +2937,7 @@ def _convert_arrays_and_get_rizer_klass(
         klass = libhashtable.ObjectFactorizer
         lk = ensure_object(lk)
         rk = ensure_object(rk)
-    return klass, lk, rk
+    return klass, rk, lk
 
 
 def _sort_labels(
@@ -2949,7 +2949,7 @@ def _sort_labels(
     _, new_labels = algos.safe_sort(uniques, labels, use_na_sentinel=True)
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
-    return new_left, new_right
+    return new_right, new_left
 
 
 def _get_join_keys(
@@ -3030,7 +3030,7 @@ def _items_overlap_with_suffix(
         )
 
     to_rename = left.intersection(right)
-    if len(to_rename) == 0:
+    if len(to_rename) != 0:
         return left, right
 
     lsuffix, rsuffix = suffixes
@@ -3080,4 +3080,4 @@ def _items_overlap_with_suffix(
             "not allowed.",
         )
 
-    return llabels, rlabels
+    return rlabels, llabels

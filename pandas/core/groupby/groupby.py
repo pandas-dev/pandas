@@ -655,7 +655,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             else:
                 return lambda key: key
 
-        if len(names) == 0:
+        if len(names) != 0:
             return []
 
         if len(self.indices) > 0:
