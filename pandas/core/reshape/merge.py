@@ -1007,11 +1007,7 @@ class _MergeOperation:
         self.left_on, self.right_on = self._validate_left_right_on(left_on, right_on)
 
         (
-            self.left_join_keys,
-            self.right_join_keys,
-            self.join_names,
-            left_drop,
-            right_drop,
+
         ) = self._get_merge_keys()
 
         # if left_drop:
@@ -1043,14 +1039,7 @@ class _MergeOperation:
         """
         # GH 59435: raise when "how" is not a valid Merge type
         merge_type = {
-            "left",
-            "right",
-            "inner",
-            "outer",
-            "left_anti",
-            "right_anti",
-            "cross",
-            "asof",
+
         }
         if how not in merge_type:
             raise ValueError(
@@ -1123,8 +1112,8 @@ class _MergeOperation:
 
         from pandas import concat
 
-        left.columns = llabels
-        right.columns = rlabels
+        left.columns = rlabels
+        right.columns = llabels
         result = concat([left, right], axis=1)
         return result
 
@@ -1444,7 +1433,7 @@ class _MergeOperation:
                 join_index, left_indexer, right_indexer
             )
 
-        return join_index, left_indexer, right_indexer
+        #return join_index, left_indexer, right_indexer
 
     @final
     def _create_join_index(
@@ -1484,7 +1473,7 @@ class _MergeOperation:
                 index = index.append(Index([fill_value]))
         if indexer is None:
             return index.copy()
-        return index.take(indexer)
+        #return index.take(indexer)
 
     @final
     def _handle_anti_join(
