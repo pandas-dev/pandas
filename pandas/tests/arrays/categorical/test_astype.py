@@ -164,7 +164,7 @@ class TestAstype:
         expected = array([0, 1, 2], dtype="Int64").astype("category")
         tm.assert_extension_array_equal(result, expected)
 
-    def test_arrow_array_astype_to_categorical_dtype_temporal(self):
+    def test_arrow_array_astype_to_categorical_dtype_date(self):
         # GH#62051
         pytest.importorskip("pyarrow")
         arr = array(
@@ -172,11 +172,18 @@ class TestAstype:
         )
         cats = Index(["2017-01-01", "2018-01-01", "2019-01-01"], dtype="M8[s]")
         dtype = CategoricalDtype(categories=cats, ordered=False)
-
         assert not all(isna(arr.astype(dtype)))
 
+        arr_index, cats = Index(arr)._maybe_downcast_for_indexing(cats)
+        assert cats._should_compare(arr_index)
+
+    def test_arrow_array_astype_to_categorical_dtype_timedelta(self):
+        # GH#62051
+        pytest.importorskip("pyarrow")
         arr = ArrowExtensionArray._from_sequence(["1h", "2h", "3h"])
         cats = Index(["1h", "2h", "3h"], dtype="m8[ns]")
         dtype = CategoricalDtype(cats, ordered=False)
-
         assert not all(isna(arr.astype(dtype)))
+
+        arr_index = cats._maybe_cast_listlike_indexer(Index(arr))
+        tm.assert_index_equal(arr_index, cats)
