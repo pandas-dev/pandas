@@ -208,6 +208,10 @@ def test_join_midx_string():
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    r"ignore:The default value of empty string \(''\) for suffix parameters "
+    "is deprecated:DeprecationWarning"
+)
 def test_join_multi_with_nan():
     # GH29252
     df1 = DataFrame(

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
@@ -666,6 +667,14 @@ def wide_to_long(
     new = df[id_vars]
 
     if len(i) == 1:
-        return new.set_index(i).join(melted)
+        with warnings.catch_warnings():
+            # The default behavior of empty string suffixes ('') in join operations
+            # will change in a future version. Currently, integer columns with empty
+            # suffixes are treated differently from string columns, leading to
+            # inconsistent behavior. In the future, None will be the default and
+            # all column types will be handled consistently. We catch and ignore
+            # this warning for now since the current behavior is still supported.
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            return new.set_index(i).join(melted)
     else:
         return new.merge(melted.reset_index(), on=i).set_index(i + [j])

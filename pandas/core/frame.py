@@ -10063,7 +10063,15 @@ class DataFrame(NDFrame, OpsMixin):
                 if not all(counts0 == self[c].apply(mylen)):
                     raise ValueError("columns must have matching element counts")
             result = DataFrame({c: df[c].explode() for c in columns})
-        result = df.drop(columns, axis=1).join(result)
+        with warnings.catch_warnings():
+            # The default behavior of empty string suffixes ('') in join operations
+            # will change in a future version. Currently, integer columns with empty
+            # suffixes are treated differently from string columns, leading to
+            # inconsistent behavior. In the future, None will be the default and
+            # all column types will be handled consistently. We catch and ignore
+            # this warning for now since the current behavior is still supported.
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            result = df.drop(columns, axis=1).join(result)
         if ignore_index:
             result.index = default_index(len(result))
         else:
@@ -10946,8 +10954,8 @@ class DataFrame(NDFrame, OpsMixin):
         other: DataFrame | Series | Iterable[DataFrame | Series],
         on: IndexLabel | None = None,
         how: MergeHow = "left",
-        lsuffix: str = "",
-        rsuffix: str = "",
+        lsuffix: str | lib.NoDefault = lib.no_default,
+        rsuffix: str | lib.NoDefault = lib.no_default,
         sort: bool = False,
         validate: JoinValidate | None = None,
     ) -> DataFrame:
@@ -10989,8 +10997,24 @@ class DataFrame(NDFrame, OpsMixin):
               index.
         lsuffix : str, default ''
             Suffix to use from left frame's overlapping columns.
+
+            .. note::
+                The default value of empty string ("") is deprecated and will be
+                changed to None in a future version. When suffixes are specified,
+                any non-string columns will be converted to strings before applying
+                the suffix.
+
+            .. deprecated:: 3.0.0
         rsuffix : str, default ''
             Suffix to use from right frame's overlapping columns.
+
+            .. note::
+                The default value of empty string ("") is deprecated and will be
+                changed to None in a future version. When suffixes are specified,
+                any non-string columns will be converted to strings before applying
+                the suffix.
+
+            .. deprecated:: 3.0.0
         sort : bool, default False
             Order result DataFrame lexicographically by the join key. If False,
             the order of the join key depends on the join type (how keyword).
@@ -11113,6 +11137,17 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.reshape.concat import concat
         from pandas.core.reshape.merge import merge
+
+        if lsuffix is lib.no_default or rsuffix is lib.no_default:
+            warnings.warn(
+                "The default value of empty string ('') for suffix "
+                "parameters is deprecated and will be changed to None "
+                "in a future version.",
+                DeprecationWarning,
+                stacklevel=find_stack_level(),
+            )
+            lsuffix = "" if lsuffix is lib.no_default else lsuffix
+            rsuffix = "" if rsuffix is lib.no_default else rsuffix
 
         if isinstance(other, Series):
             if other.name is None:

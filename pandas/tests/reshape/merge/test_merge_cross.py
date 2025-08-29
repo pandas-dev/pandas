@@ -88,6 +88,10 @@ def test_merge_cross_null_values(nulls_fixture):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    r"ignore:The default value of empty string \(''\) for suffix parameters "
+    "is deprecated:DeprecationWarning"
+)
 def test_join_cross_error_reporting():
     # GH#5401
     left = DataFrame({"a": [1, 3]})

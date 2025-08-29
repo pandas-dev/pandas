@@ -243,6 +243,10 @@ def test_merge_copy_keyword():
     assert np.shares_memory(get_array(df2, "b"), get_array(result, "b"))
 
 
+@pytest.mark.filterwarnings(
+    r"ignore:The default value of empty string \(''\) for suffix parameters "
+    "is deprecated:DeprecationWarning"
+)
 @pytest.mark.parametrize("dtype", [object, "str"])
 def test_join_on_key(dtype):
     df_index = Index(["a", "b", "c"], name="key", dtype=dtype)
@@ -271,6 +275,10 @@ def test_join_on_key(dtype):
     tm.assert_frame_equal(df2, df2_orig)
 
 
+@pytest.mark.filterwarnings(
+    r"ignore:The default value of empty string \(''\) for suffix parameters "
+    "is deprecated:DeprecationWarning"
+)
 def test_join_multiple_dataframes_on_key():
     df_index = Index(["a", "b", "c"], name="key", dtype=object)
 

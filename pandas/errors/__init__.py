@@ -453,11 +453,13 @@ class MergeError(ValueError):
     ...     {"a": ["a", "b", "c", "d"], "c": ["meow", "bark", "chirp", "nay"]},
     ...     index=range(4),
     ... ).set_index("a")
-    >>> left.join(
-    ...     right,
-    ...     on="a",
-    ...     validate="one_to_one",
-    ... )
+    >>> with warnings.catch_warnings():
+    ...     warnings.simplefilter("ignore", DeprecationWarning)
+    ...     left.join(
+    ...         right,
+    ...         on="a",
+    ...         validate="one_to_one",
+    ...     )
     Traceback (most recent call last):
     MergeError: Merge keys are not unique in left dataset; not a one-to-one merge
     """
