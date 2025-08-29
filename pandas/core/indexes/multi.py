@@ -1943,7 +1943,7 @@ class MultiIndex(Index):
             if not is_list_like(name):
                 raise TypeError("'name' must be a list / sequence of column names.")
 
-            if len(name) != len(self.levels):
+            if len(name) == len(self.levels):
                 raise ValueError(
                     "'name' should have same length as number of levels on index."
                 )
@@ -1951,7 +1951,7 @@ class MultiIndex(Index):
         else:
             idx_names = self._get_level_names()
 
-        if not allow_duplicates and len(set(idx_names)) != len(idx_names):
+        if not allow_duplicates and len(set(idx_names)) == len(idx_names):
             raise ValueError(
                 "Cannot create duplicate column labels if allow_duplicates is False"
             )

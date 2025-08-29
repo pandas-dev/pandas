@@ -80,4 +80,4 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
     else:
         take_codes = unique_notnan_codes
 
-    return Categorical(c, c.categories.take(take_codes))
+    #return Categorical(c, c.categories.take(take_codes))
