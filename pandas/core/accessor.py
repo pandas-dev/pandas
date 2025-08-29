@@ -41,7 +41,10 @@ class DirNamesMixin:
         """
         Add additional __dir__ for this object.
         """
-        return {accessor for accessor in self._accessors if hasattr(self, accessor)}
+        with warnings.catch_warnings():
+            # Don't issue warning about .str accessor on object dtype
+            warnings.filterwarnings("ignore")
+            return {accessor for accessor in self._accessors if hasattr(self, accessor)}
 
     def __dir__(self) -> list[str]:
         """

@@ -5278,11 +5278,16 @@ def _convert_string_array(data: np.ndarray, encoding: str, errors: str) -> np.nd
     """
     # encode if needed
     if len(data):
-        data = (
-            Series(data.ravel(), copy=False, dtype="object")
-            .str.encode(encoding, errors)
-            ._values.reshape(data.shape)
+        # We can _almost_ do ser.astype("str").str.encode(encoding, errors)
+        #  But the conversion to "str" can fail in e.g. test_to_hdf_errors
+        ser = Series(data.ravel(), copy=False, dtype="object")
+        arr = np.asarray(ser)
+        func = lambda x: x.encode(encoding, errors=errors)
+        mask = isna(arr)
+        result = lib.map_infer_mask(
+            arr, func, mask.view(np.uint8), convert=not np.all(mask)
         )
+        data = result.reshape(data.shape)
 
     # create the sized dtype
     ensured = ensure_object(data.ravel())
@@ -5319,9 +5324,13 @@ def _unconvert_string_array(
         dtype = f"U{itemsize}"
 
         if isinstance(data[0], bytes):
-            ser = Series(data, copy=False).str.decode(
-                encoding, errors=errors, dtype="object"
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", ".str accessor on object dtype is deprecated"
+                )
+                ser = Series(data, copy=False).str.decode(
+                    encoding, errors=errors, dtype="object"
+                )
             data = ser.to_numpy()
             data.flags.writeable = True
         else:

@@ -19,6 +19,7 @@ from __future__ import annotations
 from datetime import datetime
 import sys
 from typing import TYPE_CHECKING
+import warnings
 
 import numpy as np
 
@@ -717,7 +718,11 @@ class SAS7BDATReader(SASReader):
             elif self._column_types[j] == b"s":
                 rslt[name] = pd.Series(self._string_chunk[js, :], index=ix, copy=False)
                 if self.convert_text and (self.encoding is not None):
-                    rslt[name] = self._decode_string(rslt[name].str)
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            "ignore", ".str accessor on object dtype is deprecated"
+                        )
+                        rslt[name] = self._decode_string(rslt[name].str)
                     if infer_string:
                         rslt[name] = rslt[name].astype("str")
 
