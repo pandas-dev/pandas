@@ -1887,8 +1887,10 @@ def test_datetime_indexer_consistency_pyarrow_date32():
     dti = Index(ser3)
     # All should be consistent
     assert dti.get_loc(ser[0]) == 0
-    tm.assert_numpy_array_equal(dti.get_indexer(ser.values), [0])
-    tm.assert_numpy_array_equal(dti.get_indexer(ser.values.astype(object)), [0])
+    tm.assert_numpy_array_equal(dti.get_indexer(ser.values), np.array([0]))
+    tm.assert_numpy_array_equal(
+        dti.get_indexer(ser.values.astype(object)), np.array([0])
+    )
 
 
 class TestSetitemValidation:
