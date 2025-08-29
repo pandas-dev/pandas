@@ -415,7 +415,18 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                 # TODO: com.asarray_tuplesafe shouldn't cast e.g. DatetimeArray
             else:
                 res = keyarr
-        return Index(res, dtype=res.dtype)
+
+        res_index = Index(res, dtype=res.dtype)
+
+        if isinstance(res, ExtensionArray):
+            from pandas.core.dtypes.common import is_timedelta64_dtype
+            from pandas.core.arrays.timedeltas import sequence_to_td64ns
+
+            if res_index.dtype == "string[pyarrow]" and is_timedelta64_dtype(self.dtype):
+                data, freq = sequence_to_td64ns(res_index, copy=False, unit=None)
+                res_index = type(res_index)(data)
+
+        return res_index
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):

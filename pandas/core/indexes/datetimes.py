@@ -385,17 +385,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # If we have tz, we can compare to tzaware
             return isinstance(dtype, DatetimeTZDtype)
 
-        from pandas import ArrowDtype
-
-        if isinstance(dtype, ArrowDtype):
-            import pyarrow as pa
-
-            return (
-                pa.types.is_date32(dtype.pyarrow_dtype)
-                or pa.types.is_date64(dtype.pyarrow_dtype)
-                or pa.types.is_timestamp(dtype.pyarrow_dtype)
-            )
-
         # if we dont have tz, we can only compare to tznaive
         return lib.is_np_dtype(dtype, "M")
 

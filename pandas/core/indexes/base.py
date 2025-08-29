@@ -3673,14 +3673,7 @@ class Index(IndexOpsMixin, PandasObject):
         method = clean_reindex_fill_method(method)
         orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
-
-        from pandas.api.types import is_timedelta64_dtype
-
-        if target.dtype == "string[pyarrow]" and is_timedelta64_dtype(self.dtype):
-            from pandas.core.arrays.timedeltas import sequence_to_td64ns
-
-            data, freq = sequence_to_td64ns(target, copy=False, unit=None)
-            target = type(target)(data)
+        target, self = target._maybe_downcast_for_indexing(self)
 
         self._check_indexing_method(method, limit, tolerance)
 
