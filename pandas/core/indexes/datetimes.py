@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Self,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -66,6 +63,7 @@ if TYPE_CHECKING:
         DtypeObj,
         Frequency,
         IntervalClosedType,
+        Self,
         TimeAmbiguous,
         TimeNonexistent,
         TimeUnit,
@@ -234,7 +232,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     to_pydatetime
     to_series
     to_frame
-    to_julian_date
     month_name
     day_name
     mean
@@ -1125,13 +1122,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         # GH#42855 handle date here instead of get_slice_bound
         if isinstance(label, dt.date) and not isinstance(label, dt.datetime):
-            warnings.warn(
-                "Indexing/slicing with datetime.date is deprecated and will be removed "
-                "in a future version of pandas. Please convert to pd.Timestamp or "
-                "datetime64[ns] before indexing.",
-                FutureWarning,
-                stacklevel=2,
-            )
+            # Pandas supports slicing with dates, treated as datetimes at midnight.
             # https://github.com/pandas-dev/pandas/issues/31501
             label = Timestamp(label).to_pydatetime()
             warnings.warn(
