@@ -1915,6 +1915,7 @@ static const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc,
   char *bytes = PyObject_Malloc(*_outLen + 1);
   memcpy(bytes, str, *_outLen + 1);
   GET_TC(tc)->cStr = bytes;
+  GET_TC(tc)->freeCStr = 1;
 
   Py_DECREF(repr);
 
