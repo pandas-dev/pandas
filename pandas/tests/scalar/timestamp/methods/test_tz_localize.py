@@ -72,7 +72,7 @@ class TestTimestampTZLocalize:
         ts_dst = ts.tz_localize("US/Eastern", ambiguous=True)
         ts_no_dst = ts.tz_localize("US/Eastern", ambiguous=False)
 
-        assert ts_no_dst._value - ts_dst._value == 3600
+        assert ts_no_dst._value - ts_dst._value == 3600_000_000
         msg = re.escape(
             "'ambiguous' parameter must be one of: "
             "True, False, 'NaT', 'raise' (default)"
@@ -140,7 +140,7 @@ class TestTimestampTZLocalize:
     def test_tz_localize_nonexistent_shift(
         self, stamp, tz, forward_expected, backward_expected
     ):
-        ts = Timestamp(stamp)
+        ts = Timestamp(stamp).as_unit("s")
         forward_ts = ts.tz_localize(tz, nonexistent="shift_forward")
         assert forward_ts == Timestamp(forward_expected, tz=tz)
         backward_ts = ts.tz_localize(tz, nonexistent="shift_backward")
@@ -198,7 +198,7 @@ class TestTimestampTZLocalize:
         result_pytz = naive.tz_localize(pytz_zone, ambiguous=False)
         result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=False)
         assert result_pytz._value == result_dateutil._value
-        assert result_pytz._value == 1382835600
+        assert result_pytz._value == 1382835600000000
 
         # fixed ambiguous behavior
         # see gh-14621, GH#45087
@@ -210,7 +210,7 @@ class TestTimestampTZLocalize:
         result_pytz = naive.tz_localize(pytz_zone, ambiguous=True)
         result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=True)
         assert result_pytz._value == result_dateutil._value
-        assert result_pytz._value == 1382832000
+        assert result_pytz._value == 1382832000000000
 
         # see gh-14621
         assert str(result_pytz) == str(result_dateutil)

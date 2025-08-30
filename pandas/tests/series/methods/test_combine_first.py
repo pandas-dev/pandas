@@ -79,7 +79,10 @@ class TestCombineFirst:
         s1 = Series([np.nan, "2011"])
         rs = s0.combine_first(s1)
 
-        xp = Series([datetime(2010, 1, 1), "2011"], dtype=f"datetime64[{unit}]")
+        xp = Series(
+            [datetime(2010, 1, 1), "2011"],
+            dtype=f"datetime64[{'ns' if unit == 'ns' else 'us'}]",
+        )
 
         tm.assert_series_equal(rs, xp)
 

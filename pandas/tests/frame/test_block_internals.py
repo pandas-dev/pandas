@@ -194,7 +194,7 @@ class TestDataFrameBlockInternals:
 
         expected = DataFrame(
             {
-                "dt1": Timestamp("20130101"),
+                "dt1": Timestamp("20130101").as_unit("s"),
                 "dt2": date_range("20130101", periods=3).astype("M8[s]"),
                 # 'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
                 # FIXME: don't leave commented-out

@@ -219,7 +219,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     ... )
     <DatetimeArray>
     ['2023-01-01 00:00:00', '2023-01-02 00:00:00']
-    Length: 2, dtype: datetime64[s]
+    Length: 2, dtype: datetime64[us]
     """
 
     _typ = "datetimearray"
@@ -605,7 +605,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.tz
         datetime.timezone.utc
 
@@ -1035,7 +1035,7 @@ default 'raise'
         4   2018-10-28 02:30:00+01:00
         5   2018-10-28 03:00:00+01:00
         6   2018-10-28 03:30:00+01:00
-        dtype: datetime64[s, CET]
+        dtype: datetime64[us, CET]
 
         In some cases, inferring the DST is impossible. In such cases, you can
         pass an ndarray to the ambiguous parameter to set the DST explicitly
@@ -1047,7 +1047,7 @@ default 'raise'
         0   2018-10-28 01:20:00+02:00
         1   2018-10-28 02:36:00+02:00
         2   2018-10-28 03:46:00+01:00
-        dtype: datetime64[s, CET]
+        dtype: datetime64[us, CET]
 
         If the DST transition causes nonexistent times, you can shift these
         dates forward or backwards with a timedelta object or `'shift_forward'`
@@ -1430,7 +1430,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.time
         0    10:00:00
         1    11:00:00
@@ -1473,7 +1473,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.timetz
         0    10:00:00+00:00
         1    11:00:00+00:00
@@ -1515,7 +1515,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.date
         0    2020-01-01
         1    2020-02-01
@@ -1864,7 +1864,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.dayofyear
         0    1
         1   32
@@ -1900,7 +1900,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-04-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.quarter
         0    1
         1    2
@@ -1936,7 +1936,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.daysinmonth
         0    31
         1    29

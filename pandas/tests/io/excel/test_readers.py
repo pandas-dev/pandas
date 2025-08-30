@@ -134,18 +134,8 @@ def df_ref(datapath):
     return df_ref
 
 
-def get_exp_unit(read_ext: str, engine: str | None) -> str:
-    unit = "us"
-    if (read_ext == ".ods") ^ (engine == "calamine"):
-        unit = "s"
-    return unit
-
-
 def adjust_expected(expected: DataFrame, read_ext: str, engine: str | None) -> None:
     expected.index.name = None
-    unit = get_exp_unit(read_ext, engine)
-    # error: "Index" has no attribute "as_unit"
-    expected.index = expected.index.as_unit(unit)  # type: ignore[attr-defined]
 
 
 def xfail_datetimes_with_pyxlsb(engine, request):
@@ -490,7 +480,6 @@ class TestReaders:
     def test_reader_special_dtypes(self, request, engine, read_ext):
         xfail_datetimes_with_pyxlsb(engine, request)
 
-        unit = get_exp_unit(read_ext, engine)
         expected = DataFrame.from_dict(
             {
                 "IntCol": [1, 2, -3, 4, 0],
@@ -506,7 +495,6 @@ class TestReaders:
                         datetime(2013, 12, 14),
                         datetime(2015, 3, 14),
                     ],
-                    dtype=f"M8[{unit}]",
                 ),
             },
         )
@@ -665,8 +653,6 @@ class TestReaders:
             expected["j"] = ArrowExtensionArray(pa.array([None, None]))
         else:
             expected = df
-            unit = get_exp_unit(read_ext, engine)
-            expected["i"] = expected["i"].astype(f"M8[{unit}]")
 
         tm.assert_frame_equal(result, expected)
 
@@ -1034,8 +1020,6 @@ class TestReaders:
         # see gh-4679
         xfail_datetimes_with_pyxlsb(engine, request)
 
-        unit = get_exp_unit(read_ext, engine)
-
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]])
         mi_file = "testmultiindex" + read_ext
 
@@ -1049,8 +1033,6 @@ class TestReaders:
             ],
             columns=mi,
         )
-        expected[mi[2]] = expected[mi[2]].astype(f"M8[{unit}]")
-
         actual = pd.read_excel(
             mi_file, sheet_name="mi_column", header=[0, 1], index_col=0
         )
@@ -1130,7 +1112,6 @@ class TestReaders:
         mi_file = "testmultiindex" + read_ext
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]], names=["c1", "c2"])
 
-        unit = get_exp_unit(read_ext, engine)
         expected = DataFrame(
             [
                 [1, 2.5, pd.Timestamp("2015-01-01"), True],
@@ -1144,7 +1125,6 @@ class TestReaders:
                 names=["ilvl1", "ilvl2"],
             ),
         )
-        expected[mi[2]] = expected[mi[2]].astype(f"M8[{unit}]")
         result = pd.read_excel(
             mi_file,
             sheet_name=sheet_name,
@@ -1248,8 +1228,6 @@ class TestReaders:
         # GH 4903
         xfail_datetimes_with_pyxlsb(engine, request)
 
-        unit = get_exp_unit(read_ext, engine)
-
         actual = pd.read_excel(
             "testskiprows" + read_ext, sheet_name="skiprows_list", skiprows=[0, 2]
         )
@@ -1262,7 +1240,6 @@ class TestReaders:
             ],
             columns=["a", "b", "c", "d"],
         )
-        expected["c"] = expected["c"].astype(f"M8[{unit}]")
         tm.assert_frame_equal(actual, expected)
 
         actual = pd.read_excel(
@@ -1295,13 +1272,11 @@ class TestReaders:
             ],
             columns=["a", "b", "c", "d"],
         )
-        expected["c"] = expected["c"].astype(f"M8[{unit}]")
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_skiprows_callable_not_in(self, request, engine, read_ext):
         # GH 4903
         xfail_datetimes_with_pyxlsb(engine, request)
-        unit = get_exp_unit(read_ext, engine)
 
         actual = pd.read_excel(
             "testskiprows" + read_ext,
@@ -1317,7 +1292,6 @@ class TestReaders:
             ],
             columns=["a", "b", "c", "d"],
         )
-        expected["c"] = expected["c"].astype(f"M8[{unit}]")
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_nrows(self, read_ext):
@@ -1687,9 +1661,7 @@ class TestExcelFileRead:
         with pd.ExcelFile(f) as excel:
             actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
 
-        unit = get_exp_unit(read_ext, engine)
-
-        dti = pd.DatetimeIndex(["2020-02-29", "2020-03-01"], dtype=f"M8[{unit}]")
+        dti = pd.DatetimeIndex(["2020-02-29", "2020-03-01"])
         expected_column_index = MultiIndex.from_arrays(
             [dti[:1], dti[1:]],
             names=[
