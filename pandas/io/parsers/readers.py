@@ -1834,10 +1834,8 @@ def _extract_dialect(kwds: dict[str, Any]) -> csv.Dialect | None:
         dialect = csv.get_dialect(dialect)
 
     _validate_dialect(dialect)
-    # For pyright, _validate_dialect makes sure it is a dialect
-    assert isinstance(dialect, csv.Dialect)
 
-    return dialect
+    return dialect  # pyright: ignore[reportReturnType]
 
 
 MANDATORY_DIALECT_ATTRS = (
