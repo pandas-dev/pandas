@@ -527,8 +527,7 @@ class StringMethods(NoNewAttributesMixin):
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
         Returns
-        Notes
-        -----
+        -------
         When concatenating with a Series or Index, pandas aligns on index labels
         by default. This can produce NaN values if the indices do not match.
         To get element-wise concatenation (the behavior before v0.23),
