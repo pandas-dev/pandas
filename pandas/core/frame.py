@@ -6655,7 +6655,29 @@ class DataFrame(NDFrame, OpsMixin):
         ignore_index: bool = False,
     ) -> DataFrame | None:
         """
-        Remove missing values.
+       Examples
+--------
+>>> df = pd.DataFrame({
+...     'A': [None, None, 3],
+...     'B': [None, 2, 3],
+...     'C': [None, None, None]
+... })
+>>> df.dropna(how='all')
+     A    B     C
+1  NaN  2.0   NaN
+2  3.0  3.0   NaN
+
+>>> df = pd.DataFrame({
+...     'A': [1, None, None],
+...     'B': [None, 2, None],
+...     'C': [None, None, 3]
+... })
+>>> df.dropna(thresh=2)
+     A    B    C
+0  1.0  NaN  NaN
+1  NaN  2.0  NaN
+
+         Remove missing values.
 
         See the :ref:`User Guide <missing_data>` for more on which values are
         considered missing, and how to work with missing data.
