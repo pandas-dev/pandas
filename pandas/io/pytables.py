@@ -3384,7 +3384,7 @@ class BlockManagerFixed(GenericFixed):
     nblocks: int
 
     @property
-    def shape(self) -> Shape | None:
+    def shape(self) -> Shape | list[int] | None:
         try:
             ndim = self.ndim
 

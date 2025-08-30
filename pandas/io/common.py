@@ -991,7 +991,9 @@ class _BytesTarFile(_BufferedWriter):
         #  error: No overload variant of "open" of "TarFile" matches argument
         # types "str | None", "str", "ReadBuffer[bytes] | WriteBuffer[bytes] | None",
         # "dict[str, Any]"
-        self.buffer: tarfile.TarFile = tarfile.TarFile.open(  # type: ignore[call-overload]
+        # error: Incompatible types in assignment (expression has type "TarFile",
+        #  base class "_BufferedWriter" defined the type as "BytesIO")
+        self.buffer: tarfile.TarFile = tarfile.TarFile.open(  # type: ignore[call-overload, assignment]
             name=name,
             mode=self.extend_mode(mode),
             fileobj=fileobj,
@@ -1047,7 +1049,9 @@ class _BytesZipFile(_BufferedWriter):
         # error: No overload variant of "ZipFile" matches argument types
         # "str | PathLike[str] | ReadBuffer[bytes] | WriteBuffer[bytes]",
         # "str", "dict[str, Any]"
-        self.buffer: zipfile.ZipFile = zipfile.ZipFile(  # type: ignore[call-overload]
+        # error: Incompatible types in assignment (expression has type "ZipFile",
+        # base class "_BufferedWriter" defined the type as "BytesIO")
+        self.buffer: zipfile.ZipFile = zipfile.ZipFile(  # type: ignore[call-overload, assignment]
             file, mode, **kwargs
         )
 

@@ -141,6 +141,7 @@ if TYPE_CHECKING:
         float_precision: Literal["high", "legacy", "round_trip"] | None
         storage_options: StorageOptions | None
         dtype_backend: DtypeBackend | lib.NoDefault
+
 else:
     _read_shared = dict
 
@@ -796,10 +797,9 @@ def read_csv(
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values: Hashable
-    | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    na_values: (
+        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+    ) = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     skip_blank_lines: bool = True,
@@ -932,10 +932,9 @@ def read_table(
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values: Hashable
-    | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    na_values: (
+        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+    ) = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     skip_blank_lines: bool = True,
@@ -1835,6 +1834,8 @@ def _extract_dialect(kwds: dict[str, Any]) -> csv.Dialect | None:
         dialect = csv.get_dialect(dialect)
 
     _validate_dialect(dialect)
+    # For pyright, _validate_dialect makes sure it is a dialect
+    assert isinstance(dialect, csv.Dialect)
 
     return dialect
 
@@ -1849,7 +1850,7 @@ MANDATORY_DIALECT_ATTRS = (
 )
 
 
-def _validate_dialect(dialect: csv.Dialect) -> None:
+def _validate_dialect(dialect: csv.Dialect | Any) -> None:
     """
     Validate csv dialect instance.
 
