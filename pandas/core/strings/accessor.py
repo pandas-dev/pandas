@@ -527,6 +527,13 @@ class StringMethods(NoNewAttributesMixin):
             alignment, use `.values` on any Series/Index/DataFrame in `others`.
 
         Returns
+        Notes
+        -----
+        When concatenating with a Series or Index, pandas aligns on index labels
+        by default. This can produce NaN values if the indices do not match.
+        To get element-wise concatenation (the behavior before v0.23),
+        convert the object to numpy arrays with ``.values`` or ``.to_numpy()``.
+
         -------
         str, Series or Index
             If `others` is None, `str` is returned, otherwise a `Series/Index`
@@ -613,6 +620,23 @@ class StringMethods(NoNewAttributesMixin):
         4    -e
         2    -c
         dtype: str
+        Examples with Index
+        -------------------
+        >>> idx = pd.Index(["a", "b", "c"])
+        >>> ser = pd.Series(["x", "y", "z"])
+
+        # Default alignment behavior (indices match here)
+        >>> idx.str.cat(ser, join="left")
+        Index(['ax', 'by', 'cz'], dtype='object')
+
+        # If indices do not match, result may contain NaN
+        >>> ser2 = pd.Series(["x", "y", "z"], index=[10, 11, 12])
+        >>> idx.str.cat(ser2, join="left")
+        Index([nan, nan, nan], dtype='object')
+
+        # Element-wise concatenation (old behavior) using .values
+        >>> idx.str.cat(ser.values)
+        Index(['ax', 'by', 'cz'], dtype='object')
 
         For more examples, see :ref:`here <text.concatenate>`.
         """
