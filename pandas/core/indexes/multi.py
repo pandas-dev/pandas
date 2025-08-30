@@ -2235,6 +2235,7 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
 
     def __getitem__(self, key):
+        key = lib.item_from_zerodim(key)
         if is_scalar(key):
             key = com.cast_scalar_indexer(key)
 

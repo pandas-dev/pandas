@@ -90,7 +90,6 @@ from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
     find_result_type,
     infer_dtype_from,
-    maybe_cast_pointwise_result,
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
@@ -5220,6 +5219,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         getitem = self._data.__getitem__
 
+        key = lib.item_from_zerodim(key)
         if is_integer(key) or is_float(key):
             # GH#44051 exclude bool, which would return a 2d ndarray
             key = com.cast_scalar_indexer(key)
@@ -6398,17 +6398,20 @@ class Index(IndexOpsMixin, PandasObject):
         if not new_values.size:
             # empty
             dtype = self.dtype
-
-        # e.g. if we are floating and new_values is all ints, then we
-        #  don't want to cast back to floating.  But if we are UInt64
-        #  and new_values is all ints, we want to try.
-        same_dtype = lib.infer_dtype(new_values, skipna=False) == self.inferred_type
-        if same_dtype:
-            new_values = maybe_cast_pointwise_result(
-                new_values, self.dtype, same_dtype=same_dtype
-            )
-
-        return Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
+        elif isinstance(new_values, Categorical):
+            # cast_pointwise_result is unnecessary
+            dtype = new_values.dtype
+        else:
+            if isinstance(self, MultiIndex):
+                arr = self[:0].to_flat_index().array
+            else:
+                arr = self[:0].array
+            # e.g. if we are floating and new_values is all ints, then we
+            #  don't want to cast back to floating.  But if we are UInt64
+            #  and new_values is all ints, we want to try.
+            new_values = arr._cast_pointwise_result(new_values)
+            dtype = new_values.dtype
+        return Index(new_values, dtype=dtype, copy=False, name=self.name)
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
