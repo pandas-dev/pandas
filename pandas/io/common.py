@@ -1,4 +1,4 @@
-"""Common IO api utilities"""
+"""Common I/O API utilities"""
 
 from __future__ import annotations
 

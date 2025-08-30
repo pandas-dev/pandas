@@ -20,7 +20,7 @@ def test_floating_array_constructor():
     mask = np.array([False, False, False, True], dtype="bool")
 
     result = FloatingArray(values, mask)
-    expected = pd.array([1, 2, 3, np.nan], dtype="Float64")
+    expected = pd.array([1, 2, 3, pd.NA], dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
     tm.assert_numpy_array_equal(result._data, values)
     tm.assert_numpy_array_equal(result._mask, mask)

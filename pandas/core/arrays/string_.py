@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
 )
 import warnings
@@ -28,6 +29,7 @@ from pandas.compat import (
     pa_version_under12p1,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     doc,
     set_module,
@@ -52,6 +54,7 @@ from pandas.core import (
     missing,
     nanops,
     ops,
+    roperator,
 )
 from pandas.core.algorithms import isin
 from pandas.core.array_algos import masked_reductions
@@ -84,7 +87,6 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         Scalar,
-        Self,
         npt,
         type_t,
     )
@@ -166,6 +168,7 @@ class StringDtype(StorageExtensionDtype):
                     storage = "python"
 
         if storage == "pyarrow_numpy":
+            # TODO: Enforce in 3.0 (#60152)
             warnings.warn(
                 "The 'pyarrow_numpy' storage option name is deprecated and will be "
                 'removed in pandas 3.0. Use \'pd.StringDtype(storage="pyarrow", '
@@ -282,12 +285,7 @@ class StringDtype(StorageExtensionDtype):
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
-    # https://github.com/pandas-dev/pandas/issues/36126
-    # error: Signature of "construct_array_type" incompatible with supertype
-    # "ExtensionDtype"
-    def construct_array_type(  # type: ignore[override]
-        self,
-    ) -> type_t[BaseStringArray]:
+    def construct_array_type(self) -> type_t[BaseStringArray]:
         """
         Return the array type associated with this dtype.
 
@@ -297,7 +295,6 @@ class StringDtype(StorageExtensionDtype):
         """
         from pandas.core.arrays.string_arrow import (
             ArrowStringArray,
-            ArrowStringArrayNumpySemantics,
         )
 
         if self.storage == "python" and self._na_value is libmissing.NA:
@@ -307,7 +304,7 @@ class StringDtype(StorageExtensionDtype):
         elif self.storage == "python":
             return StringArrayNumpySemantics
         else:
-            return ArrowStringArrayNumpySemantics
+            return ArrowStringArray
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         storages = set()
@@ -344,16 +341,9 @@ class StringDtype(StorageExtensionDtype):
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
         if self.storage == "pyarrow":
-            if self._na_value is libmissing.NA:
-                from pandas.core.arrays.string_arrow import ArrowStringArray
+            from pandas.core.arrays.string_arrow import ArrowStringArray
 
-                return ArrowStringArray(array)
-            else:
-                from pandas.core.arrays.string_arrow import (
-                    ArrowStringArrayNumpySemantics,
-                )
-
-                return ArrowStringArrayNumpySemantics(array)
+            return ArrowStringArray(array, dtype=self)
 
         else:
             import pyarrow
@@ -390,18 +380,31 @@ class BaseStringArray(ExtensionArray):
 
     dtype: StringDtype
 
+    # TODO(4.0): Once the deprecation here is enforced, this method can be
+    #  removed and we use the parent class method instead.
+    def _logical_method(self, other, op):
+        if (
+            op in (roperator.ror_, roperator.rand_, roperator.rxor)
+            and isinstance(other, np.ndarray)
+            and other.dtype == bool
+        ):
+            # GH#60234 backward compatibility for the move to StringDtype in 3.0
+            op_name = op.__name__[1:].strip("_")
+            warnings.warn(
+                f"'{op_name}' operations between boolean dtype and {self.dtype} are "
+                "deprecated and will raise in a future version. Explicitly "
+                "cast the strings to a boolean dtype before operating instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            return op(other, self.astype(bool))
+        return NotImplemented
+
     @doc(ExtensionArray.tolist)
     def tolist(self) -> list:
         if self.ndim > 1:
             return [x.tolist() for x in self]
         return list(self.to_numpy())
-
-    @classmethod
-    def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
-        if lib.infer_dtype(scalars, skipna=True) not in ["string", "empty"]:
-            # TODO: require any NAs be valid-for-string
-            raise ValueError
-        return cls._from_sequence(scalars, dtype=dtype)
 
     def _formatter(self, boxed: bool = False):
         formatter = partial(
@@ -484,6 +487,8 @@ class BaseStringArray(ExtensionArray):
                 result = pa.array(
                     result, mask=mask, type=pa.large_string(), from_pandas=True
                 )
+                # error: "BaseStringArray" has no attribute "_from_pyarrow_array"
+                return self._from_pyarrow_array(result)  # type: ignore[attr-defined]
             # error: Too many arguments for "BaseStringArray"
             return type(self)(result)  # type: ignore[call-arg]
 
@@ -715,6 +720,13 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
         return cls._from_sequence(strings, dtype=dtype, copy=copy)
+
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        result = super()._cast_pointwise_result(values)
+        if isinstance(result.dtype, StringDtype):
+            # Ensure we retain our same na_value/storage
+            result = result.astype(self.dtype)  # type: ignore[call-overload]
+        return result
 
     @classmethod
     def _empty(cls, shape, dtype) -> StringArray:
