@@ -241,8 +241,14 @@ else:
     switcher_version = ".".join(version.split(".")[:2])
 
 html_theme_options = {
-    "external_links": [],
-    "footer_start": ["pandas_footer", "sphinx-version"],
+    "external_links": [
+        {
+            "url": "https://github.com/pandas-dev/pandas",
+            "name": "GitHub",
+        },
+    ],
+    "footer_start": ["copyright"],
+    "footer_end": ["sphinx-version", "theme-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
     "analytics": {
         "plausible_analytics_domain": "pandas.pydata.org",
@@ -255,6 +261,7 @@ html_theme_options = {
         "json_url": "https://pandas.pydata.org/versions.json",
         "version_match": switcher_version,
     },
+
     # This shows a warning for patch releases since the
     # patch version doesn't compare as equal (e.g. 2.2.1 != 2.2.0 but it should be)
     "show_version_warning_banner": False,
