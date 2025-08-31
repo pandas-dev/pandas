@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import operator
+from pathlib import Path
 import re
 import textwrap
 from typing import (
@@ -952,6 +953,22 @@ class ArrowExtensionArray(
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
     def _arith_method(self, other, op) -> Self:
+        if (
+            op in [operator.truediv, roperator.rtruediv]
+            and isinstance(other, Path)
+            and (
+                pa.types.is_string(self._pa_array.type)
+                or pa.types.is_large_string(self._pa_array.type)
+            )
+        ):
+            # GH#61940
+            return np.array(
+                [
+                    op(x, other) if isinstance(x, str) else self.dtype.na_value
+                    for x in self
+                ],
+                dtype=object,
+            )
         return self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
 
     def equals(self, other) -> bool:
