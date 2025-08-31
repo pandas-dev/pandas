@@ -516,9 +516,10 @@ class TestGetIndexer:
     def test_get_indexer_date_objs(self):
         rng = date_range("1/1/2000", periods=20)
 
-        result = rng.get_indexer(rng.map(lambda x: x.date()))
-        expected = rng.get_indexer(rng)
-        tm.assert_numpy_array_equal(result, expected)
+        with pytest.raises(
+            TypeError, match="Cannot compare Timestamp with datetime.date"
+        ):
+            rng.get_indexer(rng.map(lambda x: x.date()))
 
     def test_get_indexer(self):
         idx = date_range("2000-01-01", periods=3)
