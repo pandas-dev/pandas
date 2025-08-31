@@ -1819,7 +1819,7 @@ def _refine_defaults_read(
     return kwds
 
 
-def _extract_dialect(kwds: dict[str, str]) -> csv.Dialect | None:
+def _extract_dialect(kwds: dict[str, str | csv.Dialect]) -> csv.Dialect | None:
     """
     Extract concrete csv dialect instance.
 
@@ -1831,13 +1831,14 @@ def _extract_dialect(kwds: dict[str, str]) -> csv.Dialect | None:
         return None
 
     dialect = kwds["dialect"]
-    if dialect in csv.list_dialects():
+    if isinstance(dialect, str) and dialect in csv.list_dialects():
         # get_dialect is typed to return a `_csv.Dialect` for some reason in typeshed
         tdialect = cast(csv.Dialect, csv.get_dialect(dialect))
-
         _validate_dialect(tdialect)
+
     else:
-        tdialect = None
+        _validate_dialect(dialect)
+        tdialect = cast(csv.Dialect, dialect)
 
     return tdialect
 
