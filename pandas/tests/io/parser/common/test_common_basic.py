@@ -15,6 +15,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas._libs import parsers as libparsers
 from pandas.compat import HAS_PYARROW
 from pandas.errors import (
     EmptyDataError,
@@ -28,7 +29,6 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
-from pandas._libs import parsers as libparsers
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
@@ -832,11 +832,12 @@ def test_read_seek(all_parsers):
         expected = parser.read_csv(StringIO(content))
     tm.assert_frame_equal(actual, expected)
 
+
 def test_dtype_conversion_in_sanitization():
     # GH60088
-    values = np.array([1,True],dtype=object)
-    expected = np.array([1,True],dtype=object)
-    libparsers.sanitize_objects(values,na_values=set())
-    for v,e in zip(values,expected):
-        assert v==e
-        assert type(v)==type(e)
+    values = np.array([1, True], dtype=object)
+    expected = np.array([1, True], dtype=object)
+    libparsers.sanitize_objects(values, na_values=set())
+    for v, e in zip(values, expected):
+        assert v == e
+        assert type(v) == type(e)
