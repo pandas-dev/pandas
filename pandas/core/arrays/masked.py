@@ -713,7 +713,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # make this faster by having an optional mask, but not have to change
         # source code using it..
 
-        return cast(bool, self._mask.any())
+        return bool(self._mask.any())
 
     def _propagate_mask(
         self, mask: npt.NDArray[np.bool_] | None, other

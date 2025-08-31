@@ -22,6 +22,7 @@ from typing import (
     Self,
     TypedDict,
     Unpack,
+    cast,
     overload,
 )
 import warnings
@@ -1818,7 +1819,7 @@ def _refine_defaults_read(
     return kwds
 
 
-def _extract_dialect(kwds: dict[str, Any]) -> csv.Dialect | None:
+def _extract_dialect(kwds: dict[str, str]) -> csv.Dialect | None:
     """
     Extract concrete csv dialect instance.
 
@@ -1831,11 +1832,14 @@ def _extract_dialect(kwds: dict[str, Any]) -> csv.Dialect | None:
 
     dialect = kwds["dialect"]
     if dialect in csv.list_dialects():
-        dialect = csv.get_dialect(dialect)
+        # get_dialect is typed to return a `_csv.Dialect` for some reason in typeshed
+        tdialect = cast(csv.Dialect, csv.get_dialect(dialect))
 
-    _validate_dialect(dialect)
+        _validate_dialect(tdialect)
+    else:
+        tdialect = None
 
-    return dialect  # pyright: ignore[reportReturnType]
+    return tdialect
 
 
 MANDATORY_DIALECT_ATTRS = (
@@ -1848,7 +1852,7 @@ MANDATORY_DIALECT_ATTRS = (
 )
 
 
-def _validate_dialect(dialect: csv.Dialect | Any) -> None:
+def _validate_dialect(dialect: csv.Dialect | str) -> None:
     """
     Validate csv dialect instance.
 

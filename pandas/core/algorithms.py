@@ -1314,7 +1314,7 @@ def searchsorted(
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int | float | np.integer, axis: AxisInt = 0):
+def diff(arr, n: int | float | np.integer | np.floating, axis: AxisInt = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
