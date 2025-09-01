@@ -952,7 +952,7 @@ class ArrowExtensionArray(
         else:
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
-    def _arith_method(self, other, op) -> Self | npt.NDArray[object]:
+    def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
         if (
             op in [operator.truediv, roperator.rtruediv]
             and isinstance(other, Path)
