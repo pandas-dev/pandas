@@ -2132,9 +2132,9 @@ class TestMergeCategorical:
 
         expected_outer = DataFrame(
             [
-                [date("2001-01-01"), 1.1, 1.3],
-                [date("2001-01-02"), 1.3, np.nan],
-                [date("2001-01-03"), np.nan, 1.4],
+                [date(2001, 1, 1), 1.1, 1.3],
+                [date(2001, 1, 2), 1.3, np.nan],
+                [date(2001, 1, 3), np.nan, 1.4],
             ],
             columns=["date", "num2", "num4"],
         )
@@ -2142,7 +2142,7 @@ class TestMergeCategorical:
         tm.assert_frame_equal(result_outer, expected_outer)
 
         expected_inner = DataFrame(
-            [[date("2001-01-01"), 1.1, 1.3]],
+            [[date(2001, 1, 1), 1.1, 1.3]],
             columns=["date", "num2", "num4"],
         )
         result_inner = merge(df, df2, how="inner", on=["date"])
