@@ -128,7 +128,6 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeArg,
         FilePath,
-        Shape,
         npt,
     )
 
@@ -3384,7 +3383,7 @@ class BlockManagerFixed(GenericFixed):
     nblocks: int
 
     @property
-    def shape(self) -> Shape | None:
+    def shape(self) -> list[int] | None:
         try:
             ndim = self.ndim
 
