@@ -156,12 +156,12 @@ has been under active development since then.
 ## Getting Help
 
 For usage questions, the best place to go to is [Stack Overflow](https://stackoverflow.com/questions/tagged/pandas).
-Further, general questions and discussions can also take place on the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
+Further, general questions and discussions can take place on the [pydata mailing list](https://groups.google.com/forum/?fromgroups#!forum/pydata).
 
 ## Discussion and Development
 Most development discussions take place on GitHub in this repo, via the [GitHub issue tracker](https://github.com/pandas-dev/pandas/issues).
 
-Further, the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev) can also be used for specialized discussions or design issues, and a [Slack channel](https://pandas.pydata.org/docs/dev/development/community.html?highlight=slack#community-slack) is available for quick development related questions.
+Further, the [pandas-dev mailing list](https://mail.python.org/mailman/listinfo/pandas-dev) can be used for specialized discussions or design issues, and a [Slack channel](https://pandas.pydata.org/docs/dev/development/community.html?highlight=slack#community-slack) is available for quick development related questions.
 
 There are also frequent [community meetings](https://pandas.pydata.org/docs/dev/development/community.html#community-meeting) for project maintainers open to the community as well as monthly [new contributor meetings](https://pandas.pydata.org/docs/dev/development/community.html#new-contributor-meeting) to help support new contributors.
 
