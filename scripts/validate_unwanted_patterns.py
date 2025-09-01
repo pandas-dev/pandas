@@ -371,10 +371,15 @@ def doesnt_use_pandas_warnings(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
         if not isinstance(node, ast.Call):
             continue
 
-        if isinstance(node.func, ast.Attribute):
-            if node.func.attr != "warn":
+        if (
+            isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+        ):
+            # Check for `warnings.warn`.
+            if node.func.value.id != "warnings" or node.func.attr != "warn":
                 continue
         elif isinstance(node.func, ast.Name):
+            # Check for just `warn` when using `from warnings import warn`.
             if node.func.id != "warn":
                 continue
         if any(

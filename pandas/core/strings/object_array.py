@@ -159,6 +159,7 @@ class ObjectStringArrayMixin:
                 upper_pat = pat.upper()
                 f = lambda x: upper_pat in x.upper()
         if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
+            # TODO: Enforce in 3.0 (#59615)
             # GH#59561
             warnings.warn(
                 "Allowing a non-bool 'na' in obj.str.contains is deprecated "
@@ -171,6 +172,7 @@ class ObjectStringArrayMixin:
     def _str_startswith(self, pat, na=lib.no_default):
         f = lambda x: x.startswith(pat)
         if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
+            # TODO: Enforce in 3.0 (#59615)
             # GH#59561
             warnings.warn(
                 "Allowing a non-bool 'na' in obj.str.startswith is deprecated "
@@ -183,6 +185,7 @@ class ObjectStringArrayMixin:
     def _str_endswith(self, pat, na=lib.no_default):
         f = lambda x: x.endswith(pat)
         if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
+            # TODO: Enforce in 3.0 (#59615)
             # GH#59561
             warnings.warn(
                 "Allowing a non-bool 'na' in obj.str.endswith is deprecated "

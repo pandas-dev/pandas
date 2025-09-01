@@ -2293,6 +2293,7 @@ class TimeGrouper(Grouper):
             )
         elif isinstance(ax, PeriodIndex):
             if isinstance(ax, PeriodIndex):
+                # TODO: Enforce in 3.0 (#53481)
                 # GH#53481
                 warnings.warn(
                     "Resampling with a PeriodIndex is deprecated. "
