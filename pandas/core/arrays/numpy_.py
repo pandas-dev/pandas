@@ -50,9 +50,7 @@ if TYPE_CHECKING:
     from pandas import Index
 
 
-# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
-# incompatible with definition in base class "ExtensionArray"
-class NumpyExtensionArray(  # type: ignore[misc]
+class NumpyExtensionArray(
     OpsMixin,
     NDArrayBackedExtensionArray,
     ObjectStringArrayMixin,

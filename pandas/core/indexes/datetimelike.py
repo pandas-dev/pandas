@@ -599,7 +599,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # At this point we should have result.dtype == self.dtype
             #  and type(result) is type(self._data)
             result = self._wrap_setop_result(other, result)
-            return result._with_freq(None)._with_freq("infer")
+            # error: "Index" has no attribute "_with_freq"; maybe "_with_infer"?
+            return result._with_freq(None)._with_freq("infer")  # type: ignore[attr-defined]
 
         else:
             return self._fast_intersect(other, sort)

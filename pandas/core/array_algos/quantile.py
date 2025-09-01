@@ -196,7 +196,7 @@ def _nanquantile(
         # Caller is responsible for ensuring mask shape match
         assert mask.shape == values.shape
         result = [
-            _nanquantile_1d(val, m, qs, na_value, interpolation=interpolation)  # type: ignore[arg-type]
+            _nanquantile_1d(val, m, qs, na_value, interpolation=interpolation)
             for (val, m) in zip(list(values), list(mask))
         ]
         if values.dtype.kind == "f":

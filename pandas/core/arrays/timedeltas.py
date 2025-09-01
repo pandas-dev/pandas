@@ -65,7 +65,7 @@ import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
     from pandas._typing import (
         AxisInt,
@@ -149,7 +149,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     _typ = "timedeltaarray"
     _internal_fill_value = np.timedelta64("NaT", "ns")
     _recognized_scalars = (timedelta, np.timedelta64, Tick)
-    _is_recognized_dtype = lambda x: lib.is_np_dtype(x, "m")
+    _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: lib.is_np_dtype(x, "m")
     _infer_matches = ("timedelta", "timedelta64")
 
     @property
@@ -553,7 +553,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                         freq = to_offset(Timedelta(days=self.freq.n)) / other
                 else:
                     freq = self.freq / other
-                if freq.nanos == 0 and self.freq.nanos != 0:  # type: ignore[union-attr]
+                if freq.nanos == 0 and self.freq.nanos != 0:
                     # e.g. if self.freq is Nano(1) then dividing by 2
                     #  rounds down to zero
                     freq = None

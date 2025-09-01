@@ -84,6 +84,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
         Dtype,
+        DtypeObj,
         FillnaOptions,
         NpDtype,
         NumpySorter,
@@ -181,7 +182,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     _typ = "periodarray"  # ABCPeriodArray
     _internal_fill_value = np.int64(iNaT)
     _recognized_scalars = (Period,)
-    _is_recognized_dtype = lambda x: isinstance(
+    _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: isinstance(
         x, PeriodDtype
     )  # check_compatible_with checks freq match
     _infer_matches = ("period",)
@@ -376,8 +377,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         return self._dtype
 
     # error: Cannot override writeable attribute with read-only property
-    @property  # type: ignore[override]
-    def freq(self) -> BaseOffset:
+    @property
+    def freq(self) -> BaseOffset:  # type: ignore[override]
         """
         Return the frequency object for this PeriodArray.
         """
@@ -1435,11 +1436,11 @@ def _range_from_fields(
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q", is_period=True)
-            base = FreqGroup.FR_QTR.value
+            base = cast(int, FreqGroup.FR_QTR.value)
         else:
             freq = to_offset(freq, is_period=True)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != FreqGroup.FR_QTR.value:
+            if base != cast(int, FreqGroup.FR_QTR.value):
                 raise AssertionError("base must equal FR_QTR")
 
         freqstr = freq.freqstr

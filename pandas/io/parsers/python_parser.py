@@ -165,7 +165,7 @@ class PythonParser(ParserBase):
             _,
         ) = self._extract_multi_indexer_columns(
             columns,
-            self.index_names,  # type: ignore[has-type]
+            self.index_names,
         )
 
         # get popped off for index
@@ -288,7 +288,7 @@ class PythonParser(ParserBase):
                 self.orig_names,
                 is_potential_multi_index(
                     self.orig_names,
-                    self.index_col,  # type: ignore[has-type]
+                    self.index_col,
                 ),
             )
             index, columns, col_dict = self._get_empty_meta(
@@ -325,14 +325,13 @@ class PythonParser(ParserBase):
             self.orig_names,
             is_potential_multi_index(
                 self.orig_names,
-                self.index_col,  # type: ignore[has-type]
+                self.index_col,
             ),
         )
 
         offset = 0
         if self._implicit_index:
-            # error: Cannot determine type of 'index_col'
-            offset = len(self.index_col)  # type: ignore[has-type]
+            offset = len(self.index_col)
 
         len_alldata = len(alldata)
         self._check_data_length(names, alldata)
@@ -667,8 +666,7 @@ class PythonParser(ParserBase):
                     # line for the rest of the parsing code
                     if hr == header[-1]:
                         lc = len(this_columns)
-                        # error: Cannot determine type of 'index_col'
-                        sic = self.index_col  # type: ignore[has-type]
+                        sic = self.index_col
                         ic = len(sic) if sic is not None else 0
                         unnamed_count = len(this_unnamed_cols)
 
@@ -1131,8 +1129,7 @@ class PythonParser(ParserBase):
         if line is not None:
             # leave it 0, #2442
             # Case 1
-            # error: Cannot determine type of 'index_col'
-            index_col = self.index_col  # type: ignore[has-type]
+            index_col = self.index_col
             if index_col is not False:
                 implicit_first_cols = len(line) - self.num_original_columns
 
@@ -1182,13 +1179,7 @@ class PythonParser(ParserBase):
         # Check that there are no rows with too many
         # elements in their row (rows with too few
         # elements are padded with NaN).
-        # error: Non-overlapping identity check (left operand type: "List[int]",
-        # right operand type: "Literal[False]")
-        if (
-            max_len > col_len
-            and self.index_col is not False  # type: ignore[comparison-overlap]
-            and self.usecols is None
-        ):
+        if max_len > col_len and self.index_col is not False and self.usecols is None:
             footers = self.skipfooter if self.skipfooter else 0
             bad_lines = []
 
@@ -1468,11 +1459,9 @@ class FixedWidthReader(abc.Iterator):
         shifted[0] = 0
         edges = np.where((mask ^ shifted) == 1)[0]
         edge_pairs = list(zip(edges[::2], edges[1::2]))
-        return edge_pairs  # type: ignore[return-value]
+        return edge_pairs
 
     def __next__(self) -> list[str]:
-        # Argument 1 to "next" has incompatible type "Union[IO[str],
-        # ReadCsvBuffer[str]]"; expected "SupportsNext[str]"
         if self.buffer is not None:
             try:
                 line = next(self.buffer)

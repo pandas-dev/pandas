@@ -603,7 +603,7 @@ def nansum(
     skipna: bool = True,
     min_count: int = 0,
     mask: npt.NDArray[np.bool_] | None = None,
-) -> float:
+) -> npt.NDArray[np.floating] | float | NaTType:
     """
     Sum the elements along an axis ignoring NaNs
 

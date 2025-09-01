@@ -293,9 +293,7 @@ class SAS7BDATReader(SASReader):
         # Read the rest of the header into cached_page.
         buf = self._path_or_buf.read(self.header_length - 288)
         self._cached_page += buf
-        # error: Argument 1 to "len" has incompatible type "Optional[bytes]";
-        #  expected "Sized"
-        if len(self._cached_page) != self.header_length:  # type: ignore[arg-type]
+        if len(self._cached_page) != self.header_length:
             raise ValueError("The SAS7BDAT file appears to be truncated.")
 
         self._page_length = self._read_uint(

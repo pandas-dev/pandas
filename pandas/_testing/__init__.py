@@ -348,8 +348,9 @@ class SubclassedDataFrame(DataFrame):
     def _constructor(self):
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def _constructor_sliced(self):
+    def _constructor_sliced(self):  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
 

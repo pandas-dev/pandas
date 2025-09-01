@@ -930,7 +930,9 @@ class MPLPlot(ABC):
         """
         leg = ax.get_legend()
 
-        other_ax = getattr(ax, "left_ax", None) or getattr(ax, "right_ax", None)
+        other_ax = cast(
+            "Axes", getattr(ax, "left_ax", None) or getattr(ax, "right_ax", None)
+        )
         other_leg = None
         if other_ax is not None:
             other_leg = other_ax.get_legend()
@@ -1977,7 +1979,7 @@ class BarPlot(MPLPlot):
 
             if i in _stacked_subplots_ind:
                 offset_index = _stacked_subplots_ind[i]
-                pos_prior, neg_prior = _stacked_subplots_offsets[offset_index]  # type:ignore[assignment]
+                pos_prior, neg_prior = _stacked_subplots_offsets[offset_index]  # type: ignore[assignment]
                 mask = y >= 0
                 start = np.where(mask, pos_prior, neg_prior) + self._start_base
                 w = self.bar_width / 2
