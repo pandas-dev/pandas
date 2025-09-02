@@ -51,6 +51,8 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <numpy/ndarraytypes.h>
 #include <numpy/npy_math.h>
 
+static const int CSTR_SIZE = 20;
+
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
 typedef const char *(*PFN_PyTypeToUTF8)(JSOBJ obj, JSONTypeContext *ti,
@@ -1008,7 +1010,7 @@ static const char *List_iterGetName(JSOBJ Py_UNUSED(obj),
 //=============================================================================
 static void Index_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   GET_TC(tc)->index = 0;
-  GET_TC(tc)->cStr = PyMem_Malloc(20);
+  GET_TC(tc)->cStr = PyMem_Malloc(CSTR_SIZE);
   if (!GET_TC(tc)->cStr) {
     PyErr_NoMemory();
   }
@@ -1058,7 +1060,7 @@ static void Series_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   GET_TC(tc)->index = 0;
   enc->outputFormat = VALUES; // for contained series
-  GET_TC(tc)->cStr = PyMem_Malloc(20);
+  GET_TC(tc)->cStr = PyMem_Malloc(CSTR_SIZE);
   if (!GET_TC(tc)->cStr) {
     PyErr_NoMemory();
   }
@@ -1113,7 +1115,7 @@ static void DataFrame_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   GET_TC(tc)->index = 0;
   enc->outputFormat = VALUES; // for contained series & index
-  GET_TC(tc)->cStr = PyMem_Malloc(20);
+  GET_TC(tc)->cStr = PyMem_Malloc(CSTR_SIZE);
   if (!GET_TC(tc)->cStr) {
     PyErr_NoMemory();
   }
