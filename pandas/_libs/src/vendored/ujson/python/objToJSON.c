@@ -106,7 +106,7 @@ typedef struct __TypeContext {
   double doubleValue;
   JSINT64 longValue;
 
-  const char *cStr;
+  char *cStr;
   NpyArrContext *npyarr;
   PdBlockContext *pdblock;
   int transpose;
@@ -1022,10 +1022,10 @@ static int Index_iterNext(JSOBJ obj, JSONTypeContext *tc) {
   }
 
   if (index == 0) {
-    strcpy((char *)GET_TC(tc)->cStr, "name");
+    strcpy(GET_TC(tc)->cStr, "name");
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "name");
   } else if (index == 1) {
-    strcpy((char *)GET_TC(tc)->cStr, "data");
+    strcpy(GET_TC(tc)->cStr, "data");
     GET_TC(tc)->itemValue = get_values(obj);
     if (!GET_TC(tc)->itemValue) {
       return 0;
@@ -1072,13 +1072,13 @@ static int Series_iterNext(JSOBJ obj, JSONTypeContext *tc) {
   }
 
   if (index == 0) {
-    strcpy((char *)GET_TC(tc)->cStr, "name");
+    strcpy(GET_TC(tc)->cStr, "name");
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "name");
   } else if (index == 1) {
-    strcpy((char *)GET_TC(tc)->cStr, "index");
+    strcpy(GET_TC(tc)->cStr, "index");
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "index");
   } else if (index == 2) {
-    strcpy((char *)GET_TC(tc)->cStr, "data");
+    strcpy(GET_TC(tc)->cStr, "data");
     GET_TC(tc)->itemValue = get_values(obj);
     if (!GET_TC(tc)->itemValue) {
       return 0;
@@ -1127,13 +1127,13 @@ static int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
   }
 
   if (index == 0) {
-    strcpy((char *)GET_TC(tc)->cStr, "columns");
+    strcpy(GET_TC(tc)->cStr, "columns");
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "columns");
   } else if (index == 1) {
-    strcpy((char *)GET_TC(tc)->cStr, "index");
+    strcpy(GET_TC(tc)->cStr, "index");
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "index");
   } else if (index == 2) {
-    strcpy((char *)GET_TC(tc)->cStr, "data");
+    strcpy(GET_TC(tc)->cStr, "data");
     Py_INCREF(obj);
     GET_TC(tc)->itemValue = obj;
   } else {
