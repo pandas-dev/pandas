@@ -16,8 +16,6 @@ from pandas._libs import (
 )
 from pandas.compat import (
     HAS_PYARROW,
-    pa_version_under12p1,
-    pa_version_under13p0,
     pa_version_under16p0,
 )
 from pandas.util._exceptions import find_stack_level
@@ -63,9 +61,9 @@ if TYPE_CHECKING:
     from pandas import Series
 
 
-def _chk_pyarrow_available() -> None:
-    if pa_version_under12p1:
-        msg = "pyarrow>=12.0.1 is required for PyArrow backed ArrowExtensionArray."
+def _check_pyarrow_available() -> None:
+    if not HAS_PYARROW:
+        msg = "pyarrow>=13.0.0 is required for PyArrow backed ArrowExtensionArray."
         raise ImportError(msg)
 
 
@@ -127,7 +125,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _dtype: StringDtype  # type: ignore[assignment]
 
     def __init__(self, values, *, dtype: StringDtype | None = None) -> None:
-        _chk_pyarrow_available()
+        _check_pyarrow_available()
         if isinstance(values, (pa.Array, pa.ChunkedArray)) and (
             pa.types.is_string(values.type)
             or _is_string_view(values.type)
@@ -193,7 +191,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     ) -> Self:
         from pandas.core.arrays.masked import BaseMaskedArray
 
-        _chk_pyarrow_available()
+        _check_pyarrow_available()
 
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
@@ -387,9 +385,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
     def _str_removeprefix(self, prefix: str):
-        if not pa_version_under13p0:
-            return ArrowStringArrayMixin._str_removeprefix(self, prefix)
-        return super()._str_removeprefix(prefix)
+        return ArrowStringArrayMixin._str_removeprefix(self, prefix)
 
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
@@ -398,13 +394,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return self._convert_int_result(result)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if (
-            pa_version_under13p0
-            and not (start != 0 and end is not None)
-            and not (start == 0 and end is None)
-        ):
-            # GH#59562
-            return super()._str_find(sub, start, end)
         return ArrowStringArrayMixin._str_find(self, sub, start, end)
 
     def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):

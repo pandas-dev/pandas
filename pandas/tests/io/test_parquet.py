@@ -13,7 +13,6 @@ from pandas._config import using_string_dtype
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under13p0,
     pa_version_under15p0,
     pa_version_under17p0,
     pa_version_under19p0,
@@ -728,14 +727,7 @@ class TestParquetPyArrow(Base):
 
         expected = df_full.copy()
         expected.loc[1, "string_with_nan"] = None
-        if pa_version_under13p0:
-            expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
-                "M8[ns]"
-            )
-        else:
-            expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
-                "M8[ms]"
-            )
+        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype("M8[ms]")
         tm.assert_frame_equal(res, expected)
 
     def test_duplicate_columns(self, pa):
@@ -999,8 +991,6 @@ class TestParquetPyArrow(Base):
         # this use-case sets the resolution to 1 minute
 
         expected = df[:]
-        if pa_version_under13p0:
-            expected.index = expected.index.as_unit("ns")
         if timezone_aware_date_list.tzinfo != datetime.UTC:
             # pyarrow returns pytz.FixedOffset while pandas constructs datetime.timezone
             # https://github.com/pandas-dev/pandas/issues/37286
@@ -1038,13 +1028,6 @@ class TestParquetPyArrow(Base):
 
         pa_table = pyarrow.Table.from_pandas(df)
         expected = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
-        if pa_version_under13p0:
-            # pyarrow infers datetimes as us instead of ns
-            expected["datetime"] = expected["datetime"].astype("timestamp[us][pyarrow]")
-            expected["datetime_tz"] = expected["datetime_tz"].astype(
-                pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
-            )
-
         expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
             "timestamp[ms][pyarrow]"
         )

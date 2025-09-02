@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
-from pandas.compat.pyarrow import pa_version_under12p1
 
 from pandas import (
     DataFrame,
@@ -196,12 +195,7 @@ def test_astype_arrow_timestamp():
     )
     result = df.astype("timestamp[ns][pyarrow]")
     assert not result._mgr._has_no_reference(0)
-    if pa_version_under12p1:
-        assert not np.shares_memory(
-            get_array(df, "a"), get_array(result, "a")._pa_array
-        )
-    else:
-        assert np.shares_memory(get_array(df, "a"), get_array(result, "a")._pa_array)
+    assert np.shares_memory(get_array(df, "a"), get_array(result, "a")._pa_array)
 
 
 def test_convert_dtypes_infer_objects():

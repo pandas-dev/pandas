@@ -25,10 +25,7 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import ensure_string_array
-from pandas.compat import (
-    HAS_PYARROW,
-    pa_version_under12p1,
-)
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
@@ -188,9 +185,9 @@ class StringDtype(StorageExtensionDtype):
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under12p1:
+        if storage == "pyarrow" and not HAS_PYARROW:
             raise ImportError(
-                "pyarrow>=12.0.1 is required for PyArrow backed StringArray."
+                "pyarrow>=13.0.0 is required for PyArrow backed StringArray."
             )
 
         if isinstance(na_value, float) and np.isnan(na_value):
