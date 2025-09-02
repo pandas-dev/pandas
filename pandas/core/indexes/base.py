@@ -6083,7 +6083,8 @@ class Index(IndexOpsMixin, PandasObject):
                 # "Index" has no attribute "freq"
                 and key.freq is None  # type: ignore[attr-defined]
             ):
-                keyarr = keyarr._with_freq(None)
+                # error: "Index" has no attribute "_with_freq"; maybe "_with_infer"?
+                keyarr = keyarr._with_freq(None)  # type: ignore[attr-defined]
 
         return keyarr, indexer
 
@@ -6424,9 +6425,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if isinstance(self, ABCMultiIndex):
             values = [
-                self.get_level_values(i).map(func)
-                if i == level or level is None
-                else self.get_level_values(i)
+                (
+                    self.get_level_values(i).map(func)
+                    if i == level or level is None
+                    else self.get_level_values(i)
+                )
                 for i in range(self.nlevels)
             ]
             return type(self).from_arrays(values)
