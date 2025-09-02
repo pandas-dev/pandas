@@ -532,7 +532,7 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+---------------------+
 | pyreadstat             | 1.2.8               |
 +------------------------+---------------------+
-| pytables               | 3.10.0              |
+| pytables               | 3.10.1              |
 +------------------------+---------------------+
 | python-calamine        | 0.3.0               |
 +------------------------+---------------------+

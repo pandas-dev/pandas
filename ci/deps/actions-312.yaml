@@ -46,7 +46,7 @@ dependencies:
   - pyiceberg>=0.7.1
   - pymysql>=1.1.1
   - pyreadstat>=1.2.8
-  - pytables>=3.10.0
+  - pytables>=3.10.1
   - python-calamine>=0.3.0
   - pytz>=2024.2
   - pyxlsb>=1.0.10

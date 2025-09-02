@@ -48,7 +48,7 @@ VERSIONS = {
     "s3fs": "2024.10.0",
     "scipy": "1.14.1",
     "sqlalchemy": "2.0.36",
-    "tables": "3.10.0",
+    "tables": "3.10.1",
     "tabulate": "0.9.0",
     "xarray": "2024.10.0",
     "xlrd": "2.0.1",
