@@ -39,7 +39,7 @@ VERSIONS = {
     "psycopg2": "2.9.10",  # (dt dec pq3 ext lo64)
     "pymysql": "1.1.1",
     "pyarrow": "13.0.0",
-    "pyiceberg": "0.9.1",
+    "pyiceberg": "0.8.1",
     "pyreadstat": "1.2.8",
     "pytest": "7.3.2",
     "python-calamine": "0.3.0",

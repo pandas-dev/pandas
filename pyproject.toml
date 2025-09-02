@@ -66,7 +66,7 @@ gcp = ['gcsfs>=2024.10.0']
 excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.5', 'python-calamine>=0.3.0', 'pyxlsb>=1.0.10', 'xlrd>=2.0.1', 'xlsxwriter>=3.2.0']
 parquet = ['pyarrow>=13.0.0']
 feather = ['pyarrow>=13.0.0']
-iceberg = ['pyiceberg>=0.9.1']
+iceberg = ['pyiceberg>=0.8.1']
 hdf5 = ['tables>=3.10.1']
 spss = ['pyreadstat>=1.2.8']
 postgresql = ['SQLAlchemy>=2.0.36', 'psycopg2>=2.9.10', 'adbc-driver-postgresql>=1.2.0']
@@ -97,7 +97,7 @@ all = ['adbc-driver-postgresql>=1.2.0',
        'openpyxl>=3.1.5',
        'psycopg2>=2.9.10',
        'pyarrow>=13.0.0',
-       'pyiceberg>=0.9.1',
+       'pyiceberg>=0.8.1',
        'pymysql>=1.1.1',
        'PyQt5>=5.15.9',
        'pyreadstat>=1.2.8',
