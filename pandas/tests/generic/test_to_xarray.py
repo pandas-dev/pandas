@@ -36,12 +36,6 @@ class TestDataFrameToXArray:
         # MultiIndex is tested in test_to_xarray_with_multiindex
         if len(index) == 0:
             pytest.skip("Test doesn't make sense for empty index")
-        elif Version(xarray.__version__) <= Version("2024.9.0"):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="Categorical column not preserved.",
-                )
-            )
 
         df.index = index[:4]
         df.index.name = "foo"
@@ -92,7 +86,6 @@ class TestSeriesToXArray:
         if (
             isinstance(index.dtype, StringDtype)
             and index.dtype.storage == "pyarrow"
-            and Version(xarray.__version__) > Version("2024.9.0")
             and Version(xarray.__version__) < Version("2025.6.0")
         ):
             request.applymarker(
