@@ -47,7 +47,10 @@ from pandas._libs.tslibs.dtypes import (
     abbrev_to_npy_unit,
 )
 from pandas._libs.tslibs.offsets import BDay
-from pandas.compat import HAS_PYARROW
+from pandas.compat import (
+    HAS_PYARROW,
+    PYARROW_MIN_VERSION,
+)
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -2187,7 +2190,9 @@ class ArrowDtype(StorageExtensionDtype):
     def __init__(self, pyarrow_dtype: pa.DataType) -> None:
         super().__init__("pyarrow")
         if not HAS_PYARROW:
-            raise ImportError("pyarrow>=13.0.0 is required for ArrowDtype")
+            raise ImportError(
+                f"pyarrow>={PYARROW_MIN_VERSION} is required for ArrowDtype"
+            )
         if not isinstance(pyarrow_dtype, pa.DataType):
             raise ValueError(
                 f"pyarrow_dtype ({pyarrow_dtype}) must be an instance "
@@ -2339,7 +2344,9 @@ class ArrowDtype(StorageExtensionDtype):
             # Ensure Registry.find skips ArrowDtype to use StringDtype instead
             raise TypeError("string[pyarrow] should be constructed by StringDtype")
         if not HAS_PYARROW:
-            raise ImportError("pyarrow>=13.0.0 is required for ArrowDtype")
+            raise ImportError(
+                f"pyarrow>={PYARROW_MIN_VERSION} is required for ArrowDtype"
+            )
 
         base_type = string[:-9]  # get rid of "[pyarrow]"
         try:

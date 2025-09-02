@@ -24,7 +24,10 @@ from pandas._libs.tslibs import (
     Timestamp,
     timezones,
 )
-from pandas.compat import HAS_PYARROW
+from pandas.compat import (
+    HAS_PYARROW,
+    PYARROW_MIN_VERSION,
+)
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
@@ -290,7 +293,10 @@ class ArrowExtensionArray(
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
         if not HAS_PYARROW:
-            msg = "pyarrow>=13.0.0 is required for PyArrow backed ArrowExtensionArray."
+            msg = (
+                f"pyarrow>={PYARROW_MIN_VERSION} is required for PyArrow "
+                "backed ArrowExtensionArray."
+            )
             raise ImportError(msg)
         if isinstance(values, pa.Array):
             self._pa_array = pa.chunked_array([values])

@@ -16,6 +16,7 @@ from pandas._libs import (
 )
 from pandas.compat import (
     HAS_PYARROW,
+    PYARROW_MIN_VERSION,
     pa_version_under16p0,
 )
 from pandas.util._exceptions import find_stack_level
@@ -63,7 +64,10 @@ if TYPE_CHECKING:
 
 def _check_pyarrow_available() -> None:
     if not HAS_PYARROW:
-        msg = "pyarrow>=13.0.0 is required for PyArrow backed ArrowExtensionArray."
+        msg = (
+            f"pyarrow>={PYARROW_MIN_VERSION} is required for PyArrow "
+            "backed ArrowExtensionArray."
+        )
         raise ImportError(msg)
 
 
