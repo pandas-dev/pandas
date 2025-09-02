@@ -422,14 +422,18 @@ def dict_to_mgr(
         # We only need to copy arrays that will not get consolidated, i.e.
         #  only EA arrays
         arrays = [
-            x.copy()
-            if isinstance(x, ExtensionArray)
-            else x.copy(deep=True)
-            if (
-                isinstance(x, Index)
-                or (isinstance(x, ABCSeries) and is_1d_only_ea_dtype(x.dtype))
+            (
+                x.copy()
+                if isinstance(x, ExtensionArray)
+                else (
+                    x.copy(deep=True)
+                    if (
+                        isinstance(x, Index)
+                        or (isinstance(x, ABCSeries) and is_1d_only_ea_dtype(x.dtype))
+                    )
+                    else x
+                )
             )
-            else x
             for x in arrays
         ]
 
@@ -644,7 +648,7 @@ def reorder_arrays(
                     arr = np.empty(length, dtype=object)
                     arr.fill(np.nan)
                 else:
-                    arr = arrays[k]  # type: ignore[assignment]
+                    arr = arrays[k]
                 new_arrays.append(arr)
 
             arrays = new_arrays
