@@ -3,7 +3,7 @@ from io import StringIO
 import pytest
 
 
-def test_leading_zeros_preserved_with_dtype_str(all_parsers):
+def test_leading_zeros_preserved_with_dtype_str(all_parsers, request):
     """
     Ensure that all parser engines preserve leading zeros when dtype=str is passed.
 
@@ -26,29 +26,25 @@ GH|100102040|jkl|0205"""
     )
 
     try:
-        assert result.loc[0, "col2"] == "000388907", (
-            f"{engine_name} lost zeros in col2 row 0"
-        )
-        assert result.loc[2, "col2"] == "000023607", (
-            f"{engine_name} lost zeros in col2 row 2"
-        )
-        assert result.loc[0, "col4"] == "0150", (
-            f"{engine_name} lost zeros in col4 row 0"
-        )
-        assert result.loc[2, "col4"] == "0205", (
-            f"{engine_name} lost zeros in col4 row 2"
-        )
+        assert result.shape == (4, 4)
+        assert list(result.columns) == ["col1", "col2", "col3", "col4"]
+
+        assert result.loc[0, "col2"] == "000388907", "lost zeros in col2 row 0"
+        assert result.loc[2, "col2"] == "000023607", "lost zeros in col2 row 2"
+        assert result.loc[0, "col4"] == "0150", "lost zeros in col4 row 0"
+        assert result.loc[2, "col4"] == "0205", "lost zeros in col4 row 2"
 
         for col in ["col1", "col2", "col3", "col4"]:
             assert result.dtypes[col] == "object", (
                 f"{engine_name} wrong dtype for {col}"
             )
 
-        assert result.shape == (4, 4)
-        assert list(result.columns) == ["col1", "col2", "col3", "col4"]
     except AssertionError as exc:
         if engine_name == "pyarrow":
             # Known issue: pyarrow engine strips leading zeros even with dtype=str.
-            pytest.xfail(f"failed assertions: {exc}")
+            request.node.add_marker(
+                pytest.mark.xfail(reason=f"failed assertions: {exc}", strict=False)
+            )
+            assert False, "trigger xfail for pyarrow"
         else:
             raise
