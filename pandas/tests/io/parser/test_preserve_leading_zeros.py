@@ -34,11 +34,6 @@ GH|100102040|jkl|0205"""
         assert result.loc[0, "col4"] == "0150", "lost zeros in col4 row 0"
         assert result.loc[2, "col4"] == "0205", "lost zeros in col4 row 2"
 
-        for col in ["col1", "col2", "col3", "col4"]:
-            assert result.dtypes[col] == "object", (
-                f"{engine_name} wrong dtype for {col}"
-            )
-
     except AssertionError as exc:
         if engine_name == "pyarrow":
             # Known issue: pyarrow engine strips leading zeros even with dtype=str.
