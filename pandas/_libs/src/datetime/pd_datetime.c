@@ -170,14 +170,14 @@ static char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
   }
 
   *len = (size_t)get_datetime_iso_8601_strlen(0, base);
-  char *result = PyMem_Malloc(*len);
+  char *result = PyObject_Malloc(*len);
   // Check to see if PyDateTime has a timezone.
   // Don't convert to UTC if it doesn't.
   int is_tz_aware = 0;
   if (PyObject_HasAttrString(obj, "tzinfo")) {
     PyObject *offset = extract_utc_offset(obj);
     if (offset == NULL) {
-      PyMem_Free(result);
+      PyObject_Free(result);
       return NULL;
     }
     is_tz_aware = offset != Py_None;
@@ -188,7 +188,7 @@ static char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
   if (ret != 0) {
     PyErr_SetString(PyExc_ValueError,
                     "Could not convert datetime value to string");
-    PyMem_Free(result);
+    PyObject_Free(result);
     return NULL;
   }
 

@@ -49,7 +49,7 @@ char *int64ToIso(int64_t value, NPY_DATETIMEUNIT valueUnit,
   pandas_datetime_to_datetimestruct(value, valueUnit, &dts);
 
   *len = (size_t)get_datetime_iso_8601_strlen(0, base);
-  char *result = PyMem_Malloc(*len);
+  char *result = PyObject_Malloc(*len);
 
   if (result == NULL) {
     PyErr_NoMemory();
@@ -60,7 +60,7 @@ char *int64ToIso(int64_t value, NPY_DATETIMEUNIT valueUnit,
   if (ret_code != 0) {
     PyErr_SetString(PyExc_ValueError,
                     "Could not convert datetime value to string");
-    PyMem_Free(result);
+    PyObject_Free(result);
   }
 
   // Note that get_datetime_iso_8601_strlen just gives a generic size
@@ -78,7 +78,7 @@ char *int64ToIsoDuration(int64_t value, size_t *len) {
 
   // Max theoretical length of ISO Duration with 64 bit day
   // as the largest unit is 70 characters + 1 for a null terminator
-  char *result = PyMem_Malloc(71);
+  char *result = PyObject_Malloc(71);
   if (result == NULL) {
     PyErr_NoMemory();
     return NULL;
@@ -88,7 +88,7 @@ char *int64ToIsoDuration(int64_t value, size_t *len) {
   if (ret_code == -1) {
     PyErr_SetString(PyExc_ValueError,
                     "Could not convert timedelta value to string");
-    PyMem_Free(result);
+    PyObject_Free(result);
     return NULL;
   }
 

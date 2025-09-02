@@ -1010,7 +1010,7 @@ static const char *List_iterGetName(JSOBJ Py_UNUSED(obj),
 //=============================================================================
 static void Index_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   GET_TC(tc)->index = 0;
-  GET_TC(tc)->cStr = PyMem_Malloc(CSTR_SIZE);
+  GET_TC(tc)->cStr = PyObject_Malloc(CSTR_SIZE);
   if (!GET_TC(tc)->cStr) {
     PyErr_NoMemory();
   }
@@ -1060,7 +1060,7 @@ static void Series_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   GET_TC(tc)->index = 0;
   enc->outputFormat = VALUES; // for contained series
-  GET_TC(tc)->cStr = PyMem_Malloc(CSTR_SIZE);
+  GET_TC(tc)->cStr = PyObject_Malloc(CSTR_SIZE);
   if (!GET_TC(tc)->cStr) {
     PyErr_NoMemory();
   }
@@ -1115,7 +1115,7 @@ static void DataFrame_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   GET_TC(tc)->index = 0;
   enc->outputFormat = VALUES; // for contained series & index
-  GET_TC(tc)->cStr = PyMem_Malloc(CSTR_SIZE);
+  GET_TC(tc)->cStr = PyObject_Malloc(CSTR_SIZE);
   if (!GET_TC(tc)->cStr) {
     PyErr_NoMemory();
   }
@@ -1907,7 +1907,7 @@ static void Object_endTypeContext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     GET_TC(tc)->rowLabels = NULL;
     NpyArr_freeLabels(GET_TC(tc)->columnLabels, GET_TC(tc)->columnLabelsLen);
     GET_TC(tc)->columnLabels = NULL;
-    PyMem_Free(GET_TC(tc)->cStr);
+    PyObject_Free(GET_TC(tc)->cStr);
     GET_TC(tc)->cStr = NULL;
     PyObject_Free(tc->prv);
     tc->prv = NULL;
@@ -1931,7 +1931,7 @@ static const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc,
                                                size_t *_outLen) {
   PyObject *repr = PyObject_Str(obj);
   const char *str = PyUnicode_AsUTF8AndSize(repr, (Py_ssize_t *)_outLen);
-  char *bytes = PyMem_Malloc(*_outLen + 1);
+  char *bytes = PyObject_Malloc(*_outLen + 1);
   memcpy(bytes, str, *_outLen + 1);
   GET_TC(tc)->cStr = bytes;
 
