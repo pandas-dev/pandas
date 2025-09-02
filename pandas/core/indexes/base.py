@@ -6205,11 +6205,6 @@ class Index(IndexOpsMixin, PandasObject):
                 # standardize on UTC
                 return self.tz_convert("UTC"), other.tz_convert("UTC")
 
-        elif self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
-            try:
-                return type(other)(self), other
-            except OutOfBoundsDatetime:
-                return self, other
         elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
             # TODO: we dont have tests that get here
             return type(other)(self), other
@@ -6232,7 +6227,6 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses
             other, self = other._maybe_downcast_for_indexing(self)
-
         return self, other
 
     @final

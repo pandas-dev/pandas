@@ -228,7 +228,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     _is_recognized_dtype = lambda x: lib.is_np_dtype(x, "M") or isinstance(
         x, DatetimeTZDtype
     )
-    _infer_matches = ("datetime", "datetime64", "date")
+    _infer_matches = ("datetime", "datetime64")
 
     @property
     def _scalar_type(self) -> type[Timestamp]:
