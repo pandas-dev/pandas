@@ -177,7 +177,7 @@ static char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
   if (PyObject_HasAttrString(obj, "tzinfo")) {
     PyObject *offset = extract_utc_offset(obj);
     if (offset == NULL) {
-      PyObject_Free(result);
+      PyMem_Free(result);
       return NULL;
     }
     is_tz_aware = offset != Py_None;
@@ -188,7 +188,7 @@ static char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
   if (ret != 0) {
     PyErr_SetString(PyExc_ValueError,
                     "Could not convert datetime value to string");
-    PyObject_Free(result);
+    PyMem_Free(result);
     return NULL;
   }
 

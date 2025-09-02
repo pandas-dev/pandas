@@ -60,7 +60,7 @@ char *int64ToIso(int64_t value, NPY_DATETIMEUNIT valueUnit,
   if (ret_code != 0) {
     PyErr_SetString(PyExc_ValueError,
                     "Could not convert datetime value to string");
-    PyObject_Free(result);
+    PyMem_Free(result);
   }
 
   // Note that get_datetime_iso_8601_strlen just gives a generic size
@@ -88,7 +88,7 @@ char *int64ToIsoDuration(int64_t value, size_t *len) {
   if (ret_code == -1) {
     PyErr_SetString(PyExc_ValueError,
                     "Could not convert timedelta value to string");
-    PyObject_Free(result);
+    PyMem_Free(result);
     return NULL;
   }
 
