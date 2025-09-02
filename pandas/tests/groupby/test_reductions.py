@@ -292,7 +292,7 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
     gb = df.groupby("a")
 
     if not skipna:
-        msg = f"DataFrameGroupBy.{how} with skipna=False"
+        msg = f"{how} with skipna=False"
         with pytest.raises(ValueError, match=msg):
             getattr(gb, how)(skipna=skipna)
         return

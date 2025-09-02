@@ -528,7 +528,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
                 utc=utc,
                 errors=errors,
                 unit_for_numerics=unit,
-                creso=NpyDatetimeUnit.NPY_FR_ns.value,
+                creso=cast(int, NpyDatetimeUnit.NPY_FR_ns.value),
             )
 
     result = DatetimeIndex(arr, name=name)

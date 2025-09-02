@@ -2162,9 +2162,7 @@ def test_numeric_ea_axis_1(
         kwargs["min_count"] = min_count
 
     if not skipna and method in ("idxmax", "idxmin"):
-        # GH#57745 - EAs use groupby for axis=1 which still needs a proper deprecation.
-        msg = f"The behavior of DataFrame.{method} with all-NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="encountered an NA value"):
             getattr(df, method)(axis=1, **kwargs)
         with pytest.raises(ValueError, match="Encountered an NA value"):
             getattr(expected_df, method)(axis=1, **kwargs)

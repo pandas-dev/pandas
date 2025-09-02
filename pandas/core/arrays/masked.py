@@ -719,8 +719,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # make this faster by having an optional mask, but not have to change
         # source code using it..
 
-        # error: Incompatible return value type (got "bool_", expected "bool")
-        return self._mask.any()  # type: ignore[return-value]
+        return bool(self._mask.any())
 
     def _propagate_mask(
         self, mask: npt.NDArray[np.bool_] | None, other
@@ -734,9 +733,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 mask = mask | isna(other)
         else:
             mask = self._mask | mask
-        # Incompatible return value type (got "Optional[ndarray[Any, dtype[bool_]]]",
-        # expected "ndarray[Any, dtype[bool_]]")
-        return mask  # type: ignore[return-value]
+        return mask
 
     def _arith_method(self, other, op):
         op_name = op.__name__
