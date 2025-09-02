@@ -49,7 +49,7 @@ char *int64ToIso(int64_t value, NPY_DATETIMEUNIT valueUnit,
   pandas_datetime_to_datetimestruct(value, valueUnit, &dts);
 
   *len = (size_t)get_datetime_iso_8601_strlen(0, base);
-  char *result = PyObject_Malloc(*len);
+  char *result = PyMem_Malloc(*len);
 
   if (result == NULL) {
     PyErr_NoMemory();
@@ -78,7 +78,7 @@ char *int64ToIsoDuration(int64_t value, size_t *len) {
 
   // Max theoretical length of ISO Duration with 64 bit day
   // as the largest unit is 70 characters + 1 for a null terminator
-  char *result = PyObject_Malloc(71);
+  char *result = PyMem_Malloc(71);
   if (result == NULL) {
     PyErr_NoMemory();
     return NULL;
