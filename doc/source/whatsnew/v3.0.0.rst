@@ -951,6 +951,7 @@ Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.fillna` and :meth:`Series.fillna` that would ignore the ``limit`` argument on :class:`.ExtensionArray` dtypes (:issue:`58001`)
 - Bug in :meth:`NA.__and__`, :meth:`NA.__or__` and :meth:`NA.__xor__` when operating with ``np.bool_`` objects (:issue:`58427`)
+- Bug in ``divmod`` between :class:`NA` and ``Int64`` dtype objects (:issue:`62196`)
 -
 
 MultiIndex
