@@ -296,3 +296,37 @@ if a is NoDefault:
         fd = io.StringIO(data.strip())
         result = list(validate_unwanted_patterns.nodefault_used_not_only_for_typing(fd))
         assert result == expected
+
+
+@pytest.mark.parametrize("function", ["warnings.warn", "warn"])
+@pytest.mark.parametrize("positional", [True, False])
+@pytest.mark.parametrize(
+    "category",
+    [
+        "FutureWarning",
+        "DeprecationWarning",
+        "PendingDeprecationWarning",
+        "Pandas4Warning",
+        "RuntimeWarning"
+    ],
+)
+@pytest.mark.parametrize("pdlint_ignore", [True, False])
+def test_doesnt_use_pandas_warnings(function, positional, category, pdlint_ignore):
+    code = (
+        f"{function}({'  # pdlint: ignore[warning_class]' if pdlint_ignore else ''}\n"
+        f'   "message",\n'
+        f"   {'' if positional else 'category='}{category},\n"
+        f")\n"
+    )
+    flag_issue = (
+        category in ["FutureWarning", "DeprecationWarning", "PendingDeprecationWarning"]
+        and not pdlint_ignore
+    )
+    fd = io.StringIO(code)
+    result = list(validate_unwanted_patterns.doesnt_use_pandas_warnings(fd))
+    if flag_issue:
+        assert len(result) == 1
+        assert result[0][0] == 1
+        assert result[0][1].startswith(f"Don't use {category}")
+    else:
+        assert len(result) == 0

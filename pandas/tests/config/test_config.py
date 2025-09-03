@@ -75,14 +75,14 @@ class TestConfig:
     def test_describe_option(self):
         cf.register_option("a", 1, "doc")
         cf.register_option("b", 1, "doc2")
-        cf.deprecate_option("b")
+        cf.deprecate_option("b", FutureWarning)
 
         cf.register_option("c.d.e1", 1, "doc3")
         cf.register_option("c.d.e2", 1, "doc4")
         cf.register_option("f", 1)
         cf.register_option("g.h", 1)
         cf.register_option("k", 2)
-        cf.deprecate_option("g.h", rkey="k")
+        cf.deprecate_option("g.h", FutureWarning, rkey="k")
         cf.register_option("l", "foo")
 
         # non-existent keys raise KeyError
@@ -111,7 +111,8 @@ class TestConfig:
         cf.set_option("l", "bar")
         assert "bar" in cf.describe_option("l", _print_desc=False)
 
-    def test_case_insensitive(self):
+    @pytest.mark.parametrize("category", [DeprecationWarning, FutureWarning])
+    def test_case_insensitive(self, category):
         cf.register_option("KanBAN", 1, "doc")
 
         assert "doc" in cf.describe_option("kanbaN", _print_desc=False)
@@ -124,9 +125,9 @@ class TestConfig:
         with pytest.raises(OptionError, match=msg):
             cf.get_option("no_such_option")
 
-        cf.deprecate_option("KanBan")
+        cf.deprecate_option("KanBan", category)
         msg = "'kanban' is deprecated, please refrain from using it."
-        with pytest.raises(FutureWarning, match=msg):
+        with pytest.raises(category, match=msg):
             cf.get_option("kAnBaN")
 
     def test_get_option(self):
@@ -285,7 +286,7 @@ class TestConfig:
 
     def test_deprecate_option(self):
         # we can deprecate non-existent options
-        cf.deprecate_option("foo")
+        cf.deprecate_option("foo", FutureWarning)
 
         with tm.assert_produces_warning(FutureWarning, match="deprecated"):
             with pytest.raises(KeyError, match="No such keys.s.: 'foo'"):
@@ -295,15 +296,15 @@ class TestConfig:
         cf.register_option("b.c", "hullo", "doc2")
         cf.register_option("foo", "hullo", "doc2")
 
-        cf.deprecate_option("a", removal_ver="nifty_ver")
+        cf.deprecate_option("a", FutureWarning, removal_ver="nifty_ver")
         with tm.assert_produces_warning(FutureWarning, match="eprecated.*nifty_ver"):
             cf.get_option("a")
 
             msg = "Option 'a' has already been defined as deprecated"
             with pytest.raises(OptionError, match=msg):
-                cf.deprecate_option("a")
+                cf.deprecate_option("a", FutureWarning)
 
-        cf.deprecate_option("b.c", "zounds!")
+        cf.deprecate_option("b.c", FutureWarning, "zounds!")
         with tm.assert_produces_warning(FutureWarning, match="zounds!"):
             cf.get_option("b.c")
 
@@ -313,7 +314,7 @@ class TestConfig:
         assert cf.get_option("d.a") == "foo"
         assert cf.get_option("d.dep") == "bar"
 
-        cf.deprecate_option("d.dep", rkey="d.a")  # reroute d.dep to d.a
+        cf.deprecate_option("d.dep", FutureWarning, rkey="d.a")  # reroute d.dep to d.a
         with tm.assert_produces_warning(FutureWarning, match="eprecated"):
             assert cf.get_option("d.dep") == "foo"
 
