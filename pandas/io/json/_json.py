@@ -92,6 +92,46 @@ if TYPE_CHECKING:
 FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
 
 
+# Helpers to stringify floats at full precision when requested
+def _format_float_full_precision(value: Any) -> Any:
+    """Return a string with full precision for finite floats; otherwise original.
+
+    Uses 17 significant digits to preserve IEEE-754 double precision.
+    """
+    try:
+        # Fast path for Python float and NumPy floating scalars
+        if isinstance(value, (float, np.floating)):
+            x = float(value)
+            if np.isfinite(x):
+                return format(x, ".17g")
+            return value
+    except Exception:
+        # On any unexpected error, fall back to original value
+        return value
+    return value
+
+
+def _stringify_floats_full_precision(obj: Any) -> Any:
+    """Recursively convert finite floats to full-precision strings.
+
+    Leaves non-finite floats (NaN, +/-Inf) and non-float types unchanged.
+    Works for pandas Series/DataFrame, Python dict/list, and NumPy arrays.
+    """
+    if isinstance(obj, Series):
+        return obj.map(_format_float_full_precision)
+    if isinstance(obj, DataFrame):
+        # Apply element-wise via Series.map to avoid deprecated/removed applymap
+        return obj.apply(lambda s: s.map(_format_float_full_precision))
+    if isinstance(obj, dict):
+        return {k: _stringify_floats_full_precision(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_stringify_floats_full_precision(v) for v in obj]
+    if isinstance(obj, np.ndarray):
+        return [_stringify_floats_full_precision(v) for v in obj.tolist()]
+    # Scalars
+    return _format_float_full_precision(obj)
+
+
 # interface to/from
 @overload
 def to_json(
