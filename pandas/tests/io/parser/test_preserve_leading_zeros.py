@@ -39,4 +39,5 @@ GH|100102040|jkl|0205"""
             # Known issue: pyarrow engine strips leading zeros even with dtype=str.
             request.node.add_marker(
                 pytest.mark.xfail(reason=f"failed assertions: {exc}", strict=False)
+            )
         raise
