@@ -51,6 +51,8 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <numpy/ndarraytypes.h>
 #include <numpy/npy_math.h>
 
+static const int CSTR_SIZE = 20;
+
 npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
 typedef const char *(*PFN_PyTypeToUTF8)(JSOBJ obj, JSONTypeContext *ti,
@@ -106,7 +108,7 @@ typedef struct __TypeContext {
   double doubleValue;
   JSINT64 longValue;
 
-  const char *cStr;
+  char *cStr;
   NpyArrContext *npyarr;
   PdBlockContext *pdblock;
   int transpose;
@@ -347,7 +349,8 @@ static const char *PyDateTimeToIsoCallback(JSOBJ obj, JSONTypeContext *tc,
   }
 
   NPY_DATETIMEUNIT base = ((PyObjectEncoder *)tc->encoder)->datetimeUnit;
-  return PyDateTimeToIso(obj, base, len);
+  GET_TC(tc)->cStr = PyDateTimeToIso(obj, base, len);
+  return GET_TC(tc)->cStr;
 }
 
 static const char *PyTimeToJSON(JSOBJ _obj, JSONTypeContext *tc,
@@ -1007,16 +1010,24 @@ static const char *List_iterGetName(JSOBJ Py_UNUSED(obj),
 //=============================================================================
 static void Index_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   GET_TC(tc)->index = 0;
+  GET_TC(tc)->cStr = PyObject_Malloc(CSTR_SIZE);
+  if (!GET_TC(tc)->cStr) {
+    PyErr_NoMemory();
+  }
 }
 
 static int Index_iterNext(JSOBJ obj, JSONTypeContext *tc) {
   const Py_ssize_t index = GET_TC(tc)->index;
   Py_XDECREF(GET_TC(tc)->itemValue);
+  if (!GET_TC(tc)->cStr) {
+    return 0;
+  }
+
   if (index == 0) {
-    GET_TC(tc)->cStr = "name";
+    strcpy(GET_TC(tc)->cStr, "name");
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "name");
   } else if (index == 1) {
-    GET_TC(tc)->cStr = "data";
+    strcpy(GET_TC(tc)->cStr, "data");
     GET_TC(tc)->itemValue = get_values(obj);
     if (!GET_TC(tc)->itemValue) {
       return 0;
@@ -1049,19 +1060,27 @@ static void Series_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   GET_TC(tc)->index = 0;
   enc->outputFormat = VALUES; // for contained series
+  GET_TC(tc)->cStr = PyObject_Malloc(CSTR_SIZE);
+  if (!GET_TC(tc)->cStr) {
+    PyErr_NoMemory();
+  }
 }
 
 static int Series_iterNext(JSOBJ obj, JSONTypeContext *tc) {
   const Py_ssize_t index = GET_TC(tc)->index;
   Py_XDECREF(GET_TC(tc)->itemValue);
+  if (!GET_TC(tc)->cStr) {
+    return 0;
+  }
+
   if (index == 0) {
-    GET_TC(tc)->cStr = "name";
+    strcpy(GET_TC(tc)->cStr, "name");
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "name");
   } else if (index == 1) {
-    GET_TC(tc)->cStr = "index";
+    strcpy(GET_TC(tc)->cStr, "index");
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "index");
   } else if (index == 2) {
-    GET_TC(tc)->cStr = "data";
+    strcpy(GET_TC(tc)->cStr, "data");
     GET_TC(tc)->itemValue = get_values(obj);
     if (!GET_TC(tc)->itemValue) {
       return 0;
@@ -1096,19 +1115,27 @@ static void DataFrame_iterBegin(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
   PyObjectEncoder *enc = (PyObjectEncoder *)tc->encoder;
   GET_TC(tc)->index = 0;
   enc->outputFormat = VALUES; // for contained series & index
+  GET_TC(tc)->cStr = PyObject_Malloc(CSTR_SIZE);
+  if (!GET_TC(tc)->cStr) {
+    PyErr_NoMemory();
+  }
 }
 
 static int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
   const Py_ssize_t index = GET_TC(tc)->index;
   Py_XDECREF(GET_TC(tc)->itemValue);
+  if (!GET_TC(tc)->cStr) {
+    return 0;
+  }
+
   if (index == 0) {
-    GET_TC(tc)->cStr = "columns";
+    strcpy(GET_TC(tc)->cStr, "columns");
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "columns");
   } else if (index == 1) {
-    GET_TC(tc)->cStr = "index";
+    strcpy(GET_TC(tc)->cStr, "index");
     GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "index");
   } else if (index == 2) {
-    GET_TC(tc)->cStr = "data";
+    strcpy(GET_TC(tc)->cStr, "data");
     Py_INCREF(obj);
     GET_TC(tc)->itemValue = obj;
   } else {
@@ -1880,6 +1907,7 @@ static void Object_endTypeContext(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     GET_TC(tc)->rowLabels = NULL;
     NpyArr_freeLabels(GET_TC(tc)->columnLabels, GET_TC(tc)->columnLabelsLen);
     GET_TC(tc)->columnLabels = NULL;
+    PyObject_Free(GET_TC(tc)->cStr);
     GET_TC(tc)->cStr = NULL;
     PyObject_Free(tc->prv);
     tc->prv = NULL;
