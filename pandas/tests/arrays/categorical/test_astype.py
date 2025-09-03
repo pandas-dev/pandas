@@ -121,8 +121,11 @@ class TestAstype:
 
         # non-standard categories
         dtype = CategoricalDtype(list("adc"), dtype_ordered)
-        result = cat.astype(dtype)
-        expected = Categorical(data, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = cat.astype(dtype)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = Categorical(data, dtype=dtype)
         tm.assert_categorical_equal(result, expected)
 
         if dtype_ordered is False:

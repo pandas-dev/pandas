@@ -228,14 +228,15 @@ class TestCategoricalConstructors:
         # two arrays
         #  - when the first is an integer dtype and the second is not
         #  - when the resulting codes are all -1/NaN
-        with tm.assert_produces_warning(None):
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             Categorical([0, 1, 2, 0, 1, 2], categories=["a", "b", "c"])
 
-        with tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             Categorical([0, 1, 2, 0, 1, 2], categories=[3, 4, 5])
 
         # the next one are from the old docs
-        with tm.assert_produces_warning(None):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             Categorical([0, 1, 2, 0, 1, 2], [1, 2, 3])
             cat = Categorical([1, 2], categories=[1, 2, 3])
 
@@ -247,12 +248,16 @@ class TestCategoricalConstructors:
         # GH25318: constructing with pd.Series used to bogusly skip recoding
         # categories
         c0 = Categorical(["a", "b", "c", "a"])
-        c1 = Categorical(["a", "b", "c", "a"], categories=["b", "c"])
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            c1 = Categorical(["a", "b", "c", "a"], categories=["b", "c"])
 
-        c2 = Categorical(c0, categories=c1.categories)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            c2 = Categorical(c0, categories=c1.categories)
         tm.assert_categorical_equal(c1, c2)
 
-        c3 = Categorical(Series(c0), categories=c1.categories)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            c3 = Categorical(Series(c0), categories=c1.categories)
         tm.assert_categorical_equal(c1, c3)
 
     def test_constructor_not_sequence(self):
@@ -430,10 +435,13 @@ class TestCategoricalConstructors:
 
     @pytest.mark.parametrize("categories", [None, ["a", "b"], ["a", "c"]])
     def test_constructor_str_category(self, categories, ordered):
-        result = Categorical(
-            ["a", "b"], categories=categories, ordered=ordered, dtype="category"
-        )
-        expected = Categorical(["a", "b"], categories=categories, ordered=ordered)
+        warn = FutureWarning if categories == ["a", "c"] else None
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = Categorical(
+                ["a", "b"], categories=categories, ordered=ordered, dtype="category"
+            )
+            expected = Categorical(["a", "b"], categories=categories, ordered=ordered)
         tm.assert_categorical_equal(result, expected)
 
     def test_constructor_str_unknown(self):
@@ -450,10 +458,12 @@ class TestCategoricalConstructors:
     def test_constructor_from_categorical_with_dtype(self):
         dtype = CategoricalDtype(["a", "b", "c"], ordered=True)
         values = Categorical(["a", "b", "d"])
-        result = Categorical(values, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = Categorical(values, dtype=dtype)
         # We use dtype.categories, not values.categories
         expected = Categorical(
-            ["a", "b", "d"], categories=["a", "b", "c"], ordered=True
+            ["a", "b", None], categories=["a", "b", "c"], ordered=True
         )
         tm.assert_categorical_equal(result, expected)
 
@@ -470,16 +480,19 @@ class TestCategoricalConstructors:
     def test_constructor_from_categorical_string(self):
         values = Categorical(["a", "b", "d"])
         # use categories, ordered
-        result = Categorical(
-            values, categories=["a", "b", "c"], ordered=True, dtype="category"
-        )
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = Categorical(
+                values, categories=["a", "b", "c"], ordered=True, dtype="category"
+            )
         expected = Categorical(
-            ["a", "b", "d"], categories=["a", "b", "c"], ordered=True
+            ["a", "b", None], categories=["a", "b", "c"], ordered=True
         )
         tm.assert_categorical_equal(result, expected)
 
         # No string
-        result = Categorical(values, categories=["a", "b", "c"], ordered=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = Categorical(values, categories=["a", "b", "c"], ordered=True)
         tm.assert_categorical_equal(result, expected)
 
     def test_constructor_with_categorical_categories(self):
@@ -661,9 +674,13 @@ class TestCategoricalConstructors:
         cats = ["a", "b", "d"]
         codes = np.array([0, 1, 0, 2], dtype="i8")
         dtype = CategoricalDtype(["c", "b", "a"], ordered=True)
-        result = Categorical._from_inferred_categories(cats, codes, dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            result = Categorical._from_inferred_categories(cats, codes, dtype)
         expected = Categorical(
-            ["a", "b", "a", "d"], categories=["c", "b", "a"], ordered=True
+            ["a", "b", "a", None], categories=["c", "b", "a"], ordered=True
         )
         tm.assert_categorical_equal(result, expected)
 
@@ -671,7 +688,11 @@ class TestCategoricalConstructors:
         cats = ["1", "2", "bad"]
         codes = np.array([0, 0, 1, 2], dtype="i8")
         dtype = CategoricalDtype([1, 2])
-        result = Categorical._from_inferred_categories(cats, codes, dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            result = Categorical._from_inferred_categories(cats, codes, dtype)
         expected = Categorical([1, 1, 2, np.nan])
         tm.assert_categorical_equal(result, expected)
 
@@ -722,7 +743,9 @@ class TestCategoricalConstructors:
 
         # extra
         values = pd.interval_range(8, 11, periods=3)
-        cat = Categorical(values, categories=idx)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            cat = Categorical(values, categories=idx)
         expected_codes = np.array([8, 9, -1], dtype="int8")
         tm.assert_numpy_array_equal(cat.codes, expected_codes)
         tm.assert_index_equal(cat.categories, idx)

@@ -66,24 +66,29 @@ class TestCategoricalIndexConstructors:
         )
         assert not result.ordered
 
-        result = CategoricalIndex(ci, categories=list("ab"))
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = CategoricalIndex(ci, categories=list("ab"))
         tm.assert_index_equal(result.categories, Index(list("ab")))
         tm.assert_numpy_array_equal(
             result.codes, np.array([0, 0, 1, 1, -1, 0], dtype="int8")
         )
         assert not result.ordered
 
-        result = CategoricalIndex(ci, categories=list("ab"), ordered=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = CategoricalIndex(ci, categories=list("ab"), ordered=True)
         tm.assert_index_equal(result.categories, Index(list("ab")))
         tm.assert_numpy_array_equal(
             result.codes, np.array([0, 0, 1, 1, -1, 0], dtype="int8")
         )
         assert result.ordered
 
-        result = CategoricalIndex(ci, categories=list("ab"), ordered=True)
-        expected = CategoricalIndex(
-            ci, categories=list("ab"), ordered=True, dtype="category"
-        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = CategoricalIndex(ci, categories=list("ab"), ordered=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = CategoricalIndex(
+                ci, categories=list("ab"), ordered=True, dtype="category"
+            )
         tm.assert_index_equal(result, expected, exact=True)
 
         # turn me to an Index

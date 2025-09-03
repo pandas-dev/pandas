@@ -59,38 +59,45 @@ class TestCategoricalDtypes:
         tm.assert_index_equal(result.dtype.categories, Index(list("abcd")))
 
     @pytest.mark.parametrize(
-        "values, categories, new_categories",
+        "values, categories, new_categories, warn",
         [
             # No NaNs, same cats, same order
-            (["a", "b", "a"], ["a", "b"], ["a", "b"]),
+            (["a", "b", "a"], ["a", "b"], ["a", "b"], None),
             # No NaNs, same cats, different order
-            (["a", "b", "a"], ["a", "b"], ["b", "a"]),
+            (["a", "b", "a"], ["a", "b"], ["b", "a"], None),
             # Same, unsorted
-            (["b", "a", "a"], ["a", "b"], ["a", "b"]),
+            (["b", "a", "a"], ["a", "b"], ["a", "b"], None),
             # No NaNs, same cats, different order
-            (["b", "a", "a"], ["a", "b"], ["b", "a"]),
+            (["b", "a", "a"], ["a", "b"], ["b", "a"], None),
             # NaNs
-            (["a", "b", "c"], ["a", "b"], ["a", "b"]),
-            (["a", "b", "c"], ["a", "b"], ["b", "a"]),
-            (["b", "a", "c"], ["a", "b"], ["a", "b"]),
-            (["b", "a", "c"], ["a", "b"], ["b", "a"]),
+            (["a", "b", "c"], ["a", "b"], ["a", "b"], None),
+            (["a", "b", "c"], ["a", "b"], ["b", "a"], None),
+            (["b", "a", "c"], ["a", "b"], ["a", "b"], None),
+            (["b", "a", "c"], ["a", "b"], ["b", "a"], None),
             # Introduce NaNs
-            (["a", "b", "c"], ["a", "b"], ["a"]),
-            (["a", "b", "c"], ["a", "b"], ["b"]),
-            (["b", "a", "c"], ["a", "b"], ["a"]),
-            (["b", "a", "c"], ["a", "b"], ["b"]),
+            (["a", "b", "c"], ["a", "b"], ["a"], FutureWarning),
+            (["a", "b", "c"], ["a", "b"], ["b"], FutureWarning),
+            (["b", "a", "c"], ["a", "b"], ["a"], FutureWarning),
+            (["b", "a", "c"], ["a", "b"], ["b"], FutureWarning),
             # No overlap
-            (["a", "b", "c"], ["a", "b"], ["d", "e"]),
+            (["a", "b", "c"], ["a", "b"], ["d", "e"], FutureWarning),
         ],
     )
-    def test_set_dtype_many(self, values, categories, new_categories, ordered):
-        c = Categorical(values, categories)
-        expected = Categorical(values, new_categories, ordered)
+    def test_set_dtype_many(self, values, categories, new_categories, warn, ordered):
+        msg = "Constructing a Categorical with a dtype and values containing"
+        warn1 = FutureWarning if set(values).difference(categories) else None
+        with tm.assert_produces_warning(warn1, match=msg):
+            c = Categorical(values, categories)
+        warn2 = FutureWarning if set(values).difference(new_categories) else None
+        with tm.assert_produces_warning(warn2, match=msg):
+            expected = Categorical(values, new_categories, ordered)
         result = c._set_dtype(expected.dtype, copy=True)
         tm.assert_categorical_equal(result, expected)
 
     def test_set_dtype_no_overlap(self):
-        c = Categorical(["a", "b", "c"], ["d", "e"])
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            c = Categorical(["a", "b", "c"], ["d", "e"])
         result = c._set_dtype(CategoricalDtype(["a", "b"]), copy=True)
         expected = Categorical([None, None, None], categories=["a", "b"])
         tm.assert_categorical_equal(result, expected)

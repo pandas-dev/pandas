@@ -719,8 +719,11 @@ class TestBase:
 
         # non-standard categories
         dtype = CategoricalDtype(idx.unique().tolist()[:-1], ordered)
-        result = idx.astype(dtype, copy=copy)
-        expected = CategoricalIndex(idx, name=name, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = idx.astype(dtype, copy=copy)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = CategoricalIndex(idx, name=name, dtype=dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
         if ordered is False:

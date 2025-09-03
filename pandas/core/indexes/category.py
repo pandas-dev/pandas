@@ -22,7 +22,6 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
-    isna,
 )
 
 from pandas.core.arrays.categorical import (
@@ -258,6 +257,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         else:
             values = other
 
+            codes = self.categories.get_indexer(values)
+            if ((codes == -1) & ~values.isna()).any():
+                # GH#37667 see test_equals_non_category
+                raise TypeError(
+                    "categories must match existing categories when appending"
+                )
             cat = Categorical(other, dtype=self.dtype)
             other = CategoricalIndex(cat)
             if not other.isin(values).all():
@@ -265,12 +270,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                     "cannot append a non-category item to a CategoricalIndex"
                 )
             cat = other._values
-
-            if not ((cat == values) | (isna(cat) & isna(values))).all():
-                # GH#37667 see test_equals_non_category
-                raise TypeError(
-                    "categories must match existing categories when appending"
-                )
 
         return cat
 

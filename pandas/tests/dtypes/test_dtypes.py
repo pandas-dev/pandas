@@ -1,4 +1,5 @@
 import re
+import warnings
 import weakref
 
 import numpy as np
@@ -122,7 +123,9 @@ class TestCategoricalDtype(Base):
 
     dtype1 = CategoricalDtype(["a", "b"], ordered=True)
     dtype2 = CategoricalDtype(["x", "y"], ordered=False)
-    c = Categorical([0, 1], dtype=dtype1)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        c = Categorical([0, 1], dtype=dtype1)
 
     @pytest.mark.parametrize(
         "values, categories, ordered, dtype, expected",
