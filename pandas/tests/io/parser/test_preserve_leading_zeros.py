@@ -4,24 +4,20 @@ import pytest
 
 
 def test_leading_zeros_preserved_with_dtype_str(all_parsers, request):
-    """
-    Ensure that all parser engines preserve leading zeros when dtype=str is passed.
+    # GH#57666: pyarrow engine strips leading zeros when dtype=str is passed
+    # GH#61618: further discussion on ensuring string dtype preservation across engines
 
-    This test verifies that when dtype=str is specified, leading zeros in
-    numeric-looking strings are preserved across all available parser engines.
-    """
     parser = all_parsers
     engine_name = getattr(parser, "engine", "unknown")
 
-    data = """col1|col2|col3|col4
-AB|000388907|abc|0150
-CD|101044572|def|0150
-EF|000023607|ghi|0205
-GH|100102040|jkl|0205"""
+    data = """col1,col2,col3,col4
+AB,000388907,abc,0150
+CD,101044572,def,0150
+EF,000023607,ghi,0205
+GH,100102040,jkl,0205"""
 
     result = parser.read_csv(
         StringIO(data),
-        sep="|",
         dtype=str,
     )
 
@@ -36,7 +32,8 @@ GH|100102040|jkl|0205"""
 
     except AssertionError as exc:
         if engine_name == "pyarrow":
-            # Known issue: pyarrow engine strips leading zeros even with dtype=str.
+            # Temporary workaround for GH#57666
+            # Remove once type preservation is fixed in pyarrow engine.
             request.node.add_marker(
                 pytest.mark.xfail(reason=f"failed assertions: {exc}", strict=False)
             )
