@@ -6,6 +6,7 @@ import warnings
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
+    DtypeWarning,
     Pandas4Warning,
     ParserError,
     ParserWarning,
@@ -15,7 +16,6 @@ from pandas.util._exceptions import (
 )
 
 from pandas.core.dtypes.common import (
-    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.inference import is_integer
@@ -146,21 +146,25 @@ class ArrowParserWrapper(ParserBase):
             if isinstance(self.dtype, dict):
                 column_types = {}
                 for col, col_dtype in self.dtype.items():
-                    if is_string_dtype(col_dtype):
-                        column_types[col] = pa.string()
-                    else:
+                    try:
+                        numpy_dtype = pandas_dtype(col_dtype).type
+                        pyarrow_dtype = pa.from_numpy_dtype(numpy_dtype)
+                        column_types[col] = pyarrow_dtype
+                    except (TypeError, ValueError, pa.ArrowNotImplementedError):
                         warnings.warn(
                             f"Column '{col}' has dtype '{col_dtype}', "
                             "which may not be handled correctly by the pyarrow engine.",
-                            ParserWarning,
+                            DtypeWarning,
                             stacklevel=find_stack_level(),
                         )
+
                 if column_types:
                     self.convert_options["column_types"] = column_types
             else:
                 warnings.warn(
-                    "The pyarrow engine expects a dict mapping columns to types.",
-                    ParserWarning,
+                    f"Global dtype '{self.dtype}' not supported with pyarrow engine. "
+                    "Use dtype dictionary instead.",
+                    DtypeWarning,
                     stacklevel=find_stack_level(),
                 )
 
