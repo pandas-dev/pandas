@@ -1119,6 +1119,7 @@ Other
 - Bug in ``Series.list`` methods not preserving the original :class:`Index`. (:issue:`58425`)
 - Bug in ``Series.list`` methods not preserving the original name. (:issue:`60522`)
 - Bug in ``Series.replace`` when the Series was created from an :class:`Index` and Copy-On-Write is enabled (:issue:`61622`)
+- Bug in ``divmod`` and ``rdivmod`` with :class:`DataFrame`, :class:`Series`, and :class:`Index` with ``bool`` dtypes failing to raise, which was inconsistent with ``__floordiv__`` behavior (:issue:`46043`)
 - Bug in printing a :class:`DataFrame` with a :class:`DataFrame` stored in :attr:`DataFrame.attrs` raised a ``ValueError`` (:issue:`60455`)
 - Bug in printing a :class:`Series` with a :class:`DataFrame` stored in :attr:`Series.attrs` raised a ``ValueError`` (:issue:`60568`)
 - Fixed bug where the :class:`DataFrame` constructor misclassified array-like objects with a ``.name`` attribute as :class:`Series` or :class:`Index` (:issue:`61443`)
