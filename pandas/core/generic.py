@@ -9139,7 +9139,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "deprecated and will be removed in a future version. "
                 "Explicitly cast PeriodIndex to DatetimeIndex before resampling "
                 "instead.",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore[warning_class]
                 stacklevel=find_stack_level(),
             )
         else:
