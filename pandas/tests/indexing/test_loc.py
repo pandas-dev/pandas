@@ -1629,6 +1629,31 @@ class TestLocBaseIndependent:
         expected = DataFrame({"a": [1, 2, 2, 1, 1], "b": ["a", "a", "a", "a", "a"]})
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_with_nat_in_tzaware_index(self):
+        # GH#54409
+        timestamp = to_datetime("2023-01-01", utc=True)
+        df = DataFrame(
+            {
+                "index": Series([pd.NaT, timestamp]),
+                "value": Series([0, 1]),
+            }
+        ).set_index("index")
+
+        # Works fine when mixing NaT and valid values
+        result = df.loc[
+            Series([pd.NaT, timestamp, timestamp], dtype=df.index.dtype),
+            "value",
+        ]
+        expected = [0, 1, 1]
+        assert result.tolist() == expected
+
+        # Regression check: all-NaT lookup should return [0], not raise
+        result = df.loc[
+            Series([pd.NaT], dtype=df.index.dtype),
+            "value",
+        ]
+        assert result.tolist() == [0]
+
 
 class TestLocWithEllipsis:
     @pytest.fixture
