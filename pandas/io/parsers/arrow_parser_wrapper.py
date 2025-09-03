@@ -15,6 +15,7 @@ from pandas.util._exceptions import (
 )
 
 from pandas.core.dtypes.common import (
+    is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.inference import is_integer
@@ -60,6 +61,8 @@ class ArrowParserWrapper(ParserBase):
         """
         Rename some arguments to pass to pyarrow
         """
+        pa = import_optional_dependency("pyarrow")
+
         mapping = {
             "usecols": "include_columns",
             "na_values": "null_values",
@@ -138,6 +141,28 @@ class ArrowParserWrapper(ParserBase):
             self.convert_options["include_columns"] = [
                 f"f{n}" for n in self.convert_options["include_columns"]
             ]
+
+        if self.dtype is not None:
+            if isinstance(self.dtype, dict):
+                column_types = {}
+                for col, col_dtype in self.dtype.items():
+                    if is_string_dtype(col_dtype):
+                        column_types[col] = pa.string()
+                    else:
+                        warnings.warn(
+                            f"Column '{col}' has dtype '{col_dtype}', "
+                            "which may not be handled correctly by the pyarrow engine.",
+                            ParserWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                if column_types:
+                    self.convert_options["column_types"] = column_types
+            else:
+                warnings.warn(
+                    "The pyarrow engine expects a dict mapping columns to types.",
+                    ParserWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         self.read_options = {
             "autogenerate_column_names": self.header is None,
