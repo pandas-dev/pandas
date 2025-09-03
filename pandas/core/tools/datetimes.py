@@ -21,6 +21,7 @@ from pandas._libs import (
     tslib,
 )
 from pandas._libs.tslibs import (
+    NaT,
     OutOfBoundsDatetime,
     Timedelta,
     Timestamp,
@@ -676,7 +677,7 @@ def to_datetime(
     unit: str | None = None,
     origin: str = "unix",
     cache: bool = True,
-) -> DatetimeIndex | Series | DatetimeScalar | NaTType | None:
+) -> DatetimeIndex | Series | DatetimeScalar | NaTType:
     """
     Convert argument to datetime.
 
@@ -989,7 +990,7 @@ def to_datetime(
     if exact is not lib.no_default and format in {"mixed", "ISO8601"}:
         raise ValueError("Cannot use 'exact' when 'format' is 'mixed' or 'ISO8601'")
     if arg is None:
-        return None
+        return NaT
 
     if origin != "unix":
         arg = _adjust_to_origin(arg, origin, unit)
