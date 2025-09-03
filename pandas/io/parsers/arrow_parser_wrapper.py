@@ -156,7 +156,8 @@ class ArrowParserWrapper(ParserBase):
                         column_types[col] = pyarrow_dtype
                     except (TypeError, ValueError, pa.ArrowNotImplementedError):
                         # TODO: Unsupported dtypes silently ignored - may cause unexpected
-                        # behavior when pyarrow applies default inference instead of user's dtype
+                        # behavior when pyarrow applies default inference instead of
+                        # user's dtype
                         continue
 
                 if column_types:
