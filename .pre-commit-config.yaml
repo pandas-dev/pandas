@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.7
+    rev: v0.12.11
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -51,7 +51,7 @@ repos:
     -   id: cython-lint
     -   id: double-quote-cython-strings
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
     -   id: check-case-conflict
     -   id: check-toml
@@ -64,8 +64,6 @@ repos:
         args: [--fix=auto]
         exclude: ^pandas/tests/io/parser/data/utf16_ex.txt$
     -   id: fix-byte-order-marker
-    -   id: fix-encoding-pragma
-        args: [--remove]
     -   id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
 -   repo: https://github.com/PyCQA/isort
@@ -94,19 +92,19 @@ repos:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v20.1.8
+    rev: v21.1.0
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: [-i]
       types_or: [c, c++]
 -   repo: https://github.com/trim21/pre-commit-mirror-meson
-    rev: v1.8.3
+    rev: v1.9.0
     hooks:
     - id: meson-fmt
       args: ['--inplace']
 -   repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
+    rev: v0.11.0.1
     hooks:
     -   id: shellcheck
         args: ["--severity=warning"]
