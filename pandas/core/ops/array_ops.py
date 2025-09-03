@@ -573,7 +573,7 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
         return int(obj)
 
     elif isinstance(obj, np.floating):
-        return float(obj)
+        return np.dtype(obj.dtype).type(obj)
 
     return obj
 
