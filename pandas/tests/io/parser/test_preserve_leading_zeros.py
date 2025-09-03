@@ -2,8 +2,9 @@ from io import StringIO
 
 import pytest
 
-import pandas._testing as tm
 from pandas.errors import ParserWarning
+
+import pandas._testing as tm
 
 
 def test_leading_zeros_preserved_with_dtype_str(all_parsers, request):
