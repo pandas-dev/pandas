@@ -247,7 +247,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             warnings.warn(
                 f"Allowing a non-bool 'na' in obj.str.{method_name} is deprecated "
                 "and will raise in a future version.",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore[warning_class]
                 stacklevel=find_stack_level(),
             )
             na = bool(na)
