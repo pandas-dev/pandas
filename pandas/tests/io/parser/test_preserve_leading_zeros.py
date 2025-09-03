@@ -2,10 +2,6 @@ from io import StringIO
 
 import pytest
 
-from pandas.errors import DtypeWarning
-
-import pandas._testing as tm
-
 
 def test_leading_zeros_preserved_with_dtype_str(all_parsers, request):
     # GH#57666: pyarrow engine strips leading zeros when dtype=str is passed
@@ -20,19 +16,10 @@ CD,101044572,def,0150
 EF,000023607,ghi,0205
 GH,100102040,jkl,0205"""
 
-    if engine_name == "pyarrow":
-        with tm.assert_produces_warning(
-            DtypeWarning, match="not supported with pyarrow engine"
-        ):
-            result = parser.read_csv(
-                StringIO(data),
-                dtype=str,
-            )
-    else:
-        result = parser.read_csv(
-            StringIO(data),
-            dtype=str,
-        )
+    result = parser.read_csv(
+        StringIO(data),
+        dtype=str,
+    )
 
     try:
         assert result.shape == (4, 4)

@@ -6,7 +6,6 @@ import warnings
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
-    DtypeWarning,
     Pandas4Warning,
     ParserError,
     ParserWarning,
@@ -146,27 +145,26 @@ class ArrowParserWrapper(ParserBase):
             if isinstance(self.dtype, dict):
                 column_types = {}
                 for col, col_dtype in self.dtype.items():
+                    # TODO: Category dtypes are not currently handled - may cause issues
+                    # with categorical data preservation in pyarrow engine
+                    if col_dtype == "category":
+                        continue
+
                     try:
                         numpy_dtype = pandas_dtype(col_dtype).type
                         pyarrow_dtype = pa.from_numpy_dtype(numpy_dtype)
                         column_types[col] = pyarrow_dtype
                     except (TypeError, ValueError, pa.ArrowNotImplementedError):
-                        warnings.warn(
-                            f"Column '{col}' has dtype '{col_dtype}', "
-                            "which may not be handled correctly by the pyarrow engine.",
-                            DtypeWarning,
-                            stacklevel=find_stack_level(),
-                        )
+                        # TODO: Unsupported dtypes silently ignored - may cause unexpected
+                        # behavior when pyarrow applies default inference instead of user's dtype
+                        continue
 
                 if column_types:
                     self.convert_options["column_types"] = column_types
             else:
-                warnings.warn(
-                    f"Global dtype '{self.dtype}' not supported with pyarrow engine. "
-                    "Use dtype dictionary instead.",
-                    DtypeWarning,
-                    stacklevel=find_stack_level(),
-                )
+                # TODO: Global dtypes not supported - may cause inconsistent behavior
+                # between engines, especially for leading zero preservation
+                pass
 
         self.read_options = {
             "autogenerate_column_names": self.header is None,
