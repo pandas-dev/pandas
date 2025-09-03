@@ -6,6 +6,7 @@ from pandas import (
     DataFrame,
     MultiIndex,
     Series,
+    StringDtype,
     date_range,
 )
 import pandas._testing as tm
@@ -35,12 +36,6 @@ class TestDataFrameToXArray:
         # MultiIndex is tested in test_to_xarray_with_multiindex
         if len(index) == 0:
             pytest.skip("Test doesn't make sense for empty index")
-        elif Version(xarray.__version__) <= Version("2024.10.0"):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="Type or shape incorrect.",
-                )
-            )
 
         df.index = index[:4]
         df.index.name = "foo"
@@ -88,6 +83,17 @@ class TestDataFrameToXArray:
 class TestSeriesToXArray:
     def test_to_xarray_index_types(self, index_flat, request):
         index = index_flat
+        if (
+            isinstance(index.dtype, StringDtype)
+            and index.dtype.storage == "pyarrow"
+            and Version(xarray.__version__) < Version("2025.6.0")
+        ):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason="xarray calling reshape of ArrowExtensionArray",
+                    raises=NotImplementedError,
+                )
+            )
         # MultiIndex is tested in test_to_xarray_with_multiindex
 
         ser = Series(range(len(index)), index=index, dtype="int64")

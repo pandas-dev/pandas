@@ -5,6 +5,8 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import HAS_PYARROW
+
 from pandas import (
     DataFrame,
     date_range,
@@ -176,6 +178,9 @@ def test_excel_options(fsspectest):
     assert fsspectest.test[0] == "read"
 
 
+@pytest.mark.xfail(
+    using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string) fastparquet"
+)
 def test_to_parquet_new_file(cleared_fs, df1):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
     pytest.importorskip("fastparquet")
