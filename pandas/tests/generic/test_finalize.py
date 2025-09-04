@@ -679,21 +679,58 @@ def test_finalize_frame_series_name():
     (True, False),
     (True, True)
 ])
-def test_merge_sets_duplication_allowance_flag(allow_duplication_on_left, allow_duplication_on_right):
+@pytest.mark.parametrize(["how"], [
+    ("left",),
+    ("right",),
+    ("inner",),
+    ("outer",),
+    ("left_anti",),
+    ("right_anti",),
+    ("cross",),
+])
+def test_merge_sets_duplication_allowance_flag(how, allow_duplication_on_left, allow_duplication_on_right):
     """
-    Check that pandas.merge correctly sets the allow_duplicate_labels flag
+    Check that DataFrame.merge correctly sets the allow_duplicate_labels flag
     on its result.
 
-    If one or both of the arguments to merge has its flag set to False,
-    then the result of merge should have its flag set to False.
-    Otherwise, the result should have its flag set to True.
+    The flag on the result should be set to true if and only if both arguments to merge
+    have their flags set to True.
     """
     # Arrange
     left = pd.DataFrame({"test": [1]}).set_flags(allows_duplicate_labels=allow_duplication_on_left)
     right = pd.DataFrame({"test": [1]}).set_flags(allows_duplicate_labels=allow_duplication_on_right)
 
     # Act
-    result = left.merge(right, how="inner", on="test")
+    if not how == "cross":
+        result = left.merge(right, how=how, on="test")
+    else:
+        result = left.merge(right, how=how)
+
+    # Assert
+    expected_duplication_allowance = allow_duplication_on_left and allow_duplication_on_right
+    assert result.flags.allows_duplicate_labels == expected_duplication_allowance
+
+@pytest.mark.parametrize(["allow_duplication_on_left", "allow_duplication_on_right"],
+[
+    (False, False),
+    (False, True),
+    (True, False),
+    (True, True)
+])
+def test_merge_asof_sets_duplication_allowance_flag(allow_duplication_on_left, allow_duplication_on_right):
+    """
+    Check that pandas.merge_asof correctly sets the allow_duplicate_labels flag
+    on its result.
+
+    The flag on the result should be set to true if and only if both arguments to merge_asof
+    have their flags set to True.
+    """
+    # Arrange
+    left = pd.DataFrame({"test": [1]}).set_flags(allows_duplicate_labels=allow_duplication_on_left)
+    right = pd.DataFrame({"test": [1]}).set_flags(allows_duplicate_labels=allow_duplication_on_right)
+
+    # Act
+    result = pd.merge_asof(left, right)
 
     # Assert
     expected_duplication_allowance = allow_duplication_on_left and allow_duplication_on_right
