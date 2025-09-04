@@ -855,6 +855,7 @@ def test_resample_24h_matches_D_with_start_day_origin():
     left = s.resample("D", label="right", closed="right").count()
     right = s.resample("24h", label="right", closed="right", origin="start_day").count()
 
+
     pd.testing.assert_series_equal(left, right)
 
 
