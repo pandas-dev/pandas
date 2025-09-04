@@ -55,6 +55,7 @@ if TYPE_CHECKING:
         ArrayLike,
         Dtype,
         NpDtype,
+        Scalar,
         npt,
     )
 
@@ -333,8 +334,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_startswith = ArrowStringArrayMixin._str_startswith
     _str_endswith = ArrowStringArrayMixin._str_endswith
     _str_pad = ArrowStringArrayMixin._str_pad
-    _str_match = ArrowStringArrayMixin._str_match
-    _str_fullmatch = ArrowStringArrayMixin._str_fullmatch
     _str_lower = ArrowStringArrayMixin._str_lower
     _str_upper = ArrowStringArrayMixin._str_upper
     _str_strip = ArrowStringArrayMixin._str_strip
@@ -349,6 +348,19 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_len = ArrowStringArrayMixin._str_len
     _str_slice = ArrowStringArrayMixin._str_slice
 
+    @staticmethod
+    def _preprocess_re_pattern(pat: re.Pattern, case: bool):
+        flags = pat.flags
+        pat = pat.pattern
+        # flags is not supported by pyarrow, but `case` is -> extract and remove
+        if flags & re.IGNORECASE:
+            case = False
+            flags = flags & ~re.IGNORECASE
+        # when creating a pattern with re.compile and a string, it automatically
+        # gets a UNICODE flag, while pyarrow assumes unicode for strings anyway
+        flags = flags & ~re.UNICODE
+        return pat, case, flags
+
     def _str_contains(
         self,
         pat,
@@ -360,9 +372,43 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if flags:
             return super()._str_contains(pat, case, flags, na, regex)
         if isinstance(pat, re.Pattern):
-            pat = pat.pattern
+            pat, case, flags = self._preprocess_re_pattern(pat, case)
+            if flags:
+                return super()._str_contains(pat, case, flags, na, regex)
 
         return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
+
+    def _str_match(
+        self,
+        pat: str | re.Pattern,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
+    ):
+        if flags:
+            return super()._str_match(pat, case, flags, na)
+        if isinstance(pat, re.Pattern):
+            pat, case, flags = self._preprocess_re_pattern(pat, case)
+            if flags:
+                return super()._str_match(pat, case, flags, na)
+
+        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
+
+    def _str_fullmatch(
+        self,
+        pat: str | re.Pattern,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
+    ):
+        if flags:
+            return super()._str_fullmatch(pat, case, flags, na)
+        if isinstance(pat, re.Pattern):
+            pat, case, flags = self._preprocess_re_pattern(pat, case)
+            if flags:
+                return super()._str_fullmatch(pat, case, flags, na)
+
+        return ArrowStringArrayMixin._str_fullmatch(self, pat, case, flags, na)
 
     def _str_replace(
         self,
