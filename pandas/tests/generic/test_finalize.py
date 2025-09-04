@@ -148,14 +148,7 @@ _all_methods = [
         operator.methodcaller("melt", id_vars=["A"], value_vars=["B"]),
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("map", lambda x: x)),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
-            operator.methodcaller("merge", pd.DataFrame({"A": [1]})),
-        ),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("merge", pd.DataFrame({"A": [1]}))),
     (pd.DataFrame, frame_data, operator.methodcaller("round", 2)),
     (pd.DataFrame, frame_data, operator.methodcaller("corr")),
     pytest.param(
@@ -675,3 +668,35 @@ def test_finalize_frame_series_name():
     df = pd.DataFrame({"name": [1, 2]})
     result = pd.Series([1, 2]).__finalize__(df)
     assert result.name is None
+
+# ----------------------------------------------------------------------------
+# Merge tests
+
+@pytest.mark.parametrize(["allow_duplication_on_left", "allow_duplication_on_right"],
+[
+    (False, False),
+    (False, True),
+    (True, False),
+    (True, True)
+])
+def test_merge_sets_duplication_allowance_flag(allow_duplication_on_left, allow_duplication_on_right):
+    """
+    Check that pandas.merge correctly sets the allow_duplicate_labels flag
+    on its result.
+
+    If one or both of the arguments to merge has its flag set to False,
+    then the result of merge should have its flag set to False.
+    Otherwise, the result should have its flag set to True.
+    """
+    # Arrange
+    left = pd.DataFrame({"test": [1]})
+    left.set_flags(allows_duplicate_labels=allow_duplication_on_left)
+    right = pd.DataFrame({"test": [1]})
+    right.set_flags(allows_duplicate_labels=allow_duplication_on_right)
+
+    # Act
+    result = left.merge(right, how="inner", on="test")
+
+    # Assert
+    expected_duplication_allowance = allow_duplication_on_left and allow_duplication_on_right
+    assert result.flags.allows_duplicate_labels == expected_duplication_allowance
