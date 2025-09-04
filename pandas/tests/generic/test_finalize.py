@@ -699,14 +699,16 @@ def test_merge_sets_duplication_allowance_flag(allow_duplication_on_left, allow_
     expected_duplication_allowance = allow_duplication_on_left and allow_duplication_on_right
     assert result.flags.allows_duplicate_labels == expected_duplication_allowance
 
-def test_merge_collects_metadata_from_both_inputs():
+def test_merge_collects_metadata_from_only_its_left_input():
     """
-    Check that pandas.merge sets the metadata of its result by merging the metadata from both
-    of its inputs.
+    Check that pandas.merge sets the metadata of its result to a copy of the metadata from its
+    left input.
     """
     # Arrange
     left = pd.DataFrame({"test": [1]})
-    left.attrs = {"a": 2}
+    metadata = {"a": 2}
+    left.attrs = metadata
+
     right = pd.DataFrame({"test": [1]})
     right.attrs = {"b": 3}
 
@@ -714,4 +716,7 @@ def test_merge_collects_metadata_from_both_inputs():
     result = left.merge(right, how="inner", on="test")
 
     # Assert
-    assert result.attrs == {"a": 2, "b": 3}
+    assert result.attrs == metadata
+    # Check that the metadata from the left argument is copied, rather than shared.
+    left.attrs = {"c": 4}
+    assert result.attrs == metadata
