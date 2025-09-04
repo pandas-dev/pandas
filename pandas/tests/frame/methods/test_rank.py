@@ -10,6 +10,7 @@ from pandas._libs.algos import (
     Infinity,
     NegInfinity,
 )
+import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -498,3 +499,49 @@ class TestRank:
             exp_dtype = "float64"
         expected = Series([1, 2, None, 3], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "method,og_dtype,expected_dtype",
+        [
+            ("average", "UInt32", "Float64"),
+            ("average", "Float32", "Float64"),
+            pytest.param(
+                "average",
+                "int32[pyarrow]",
+                "double[pyarrow]",
+                marks=td.skip_if_no("pyarrow"),
+            ),
+            ("min", "Int32", "Float64"),
+            ("min", "Float32", "Float64"),
+            pytest.param(
+                "min",
+                "int32[pyarrow]",
+                "double[pyarrow]",
+                marks=td.skip_if_no("pyarrow"),
+            ),
+        ],
+    )
+    def test_rank_extension_array_dtype(self, method, og_dtype, expected_dtype):
+        # GH#52829
+        result = DataFrame([4, 89, 33], dtype=og_dtype).rank()
+        if method == "average":
+            expected = DataFrame([1.0, 3.0, 2.0], dtype=expected_dtype)
+        else:
+            expected = DataFrame([1, 3, 2], dtype=expected_dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_rank_mixed_extension_array_dtype(self):
+        pytest.importorskip("pyarrow")
+        result = DataFrame(
+            {
+                "base": Series([4, 5, 6]),
+                "extension": Series([7, 8, 9], dtype="int32[pyarrow]"),
+            }
+        ).rank(method="min")
+        expected = DataFrame(
+            {
+                "base": Series([1.0, 2.0, 3.0], dtype="float64"),
+                "extension": Series([1, 2, 3], dtype="uint64[pyarrow]"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
