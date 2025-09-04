@@ -148,7 +148,7 @@ class ArrowParserWrapper(ParserBase):
                     source_dtype = pandas_dtype(col_dtype)
 
                     try:
-                        target_dtype = to_pyarrow_type(source_dtype)
+                        target_dtype = to_pyarrow_type(source_dtype.type)
                         if target_dtype:
                             column_types[col] = target_dtype
 
