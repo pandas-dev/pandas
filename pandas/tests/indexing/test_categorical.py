@@ -571,3 +571,25 @@ class TestCategoricalIndex:
         df = DataFrame(ser)
         assert df.loc[np.nan, 0] == 2
         assert df.loc[np.nan][0] == 2
+
+    def test_getitem_row_categorical_with_nan(self):
+        # GH#58954
+        df = DataFrame({"a": [1, 2], "b": CategoricalIndex([1, None])})
+
+        res = df.iloc[1]
+        expected = Series([2, np.nan], index=df.columns, name=1)
+        tm.assert_series_equal(res, expected)
+
+        res = df.loc[1]
+        tm.assert_series_equal(res, expected)
+
+    def test_getitem_row_categorical_with_nan_bool(self):
+        # GH#58954
+        df = DataFrame({"a": [True, False], "b": CategoricalIndex([False, None])})
+
+        res = df.iloc[1]
+        expected = Series([False, np.nan], index=df.columns, dtype=object, name=1)
+        tm.assert_series_equal(res, expected)
+
+        res = df.loc[1]
+        tm.assert_series_equal(res, expected)
