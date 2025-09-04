@@ -62,8 +62,6 @@ class ArrowParserWrapper(ParserBase):
         """
         Rename some arguments to pass to pyarrow
         """
-        pa = import_optional_dependency("pyarrow")
-
         mapping = {
             "usecols": "include_columns",
             "na_values": "null_values",
