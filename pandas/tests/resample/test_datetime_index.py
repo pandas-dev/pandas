@@ -844,6 +844,19 @@ def test_resample_origin_prime_freq(unit):
     resampled = ts.resample("17min", origin="2000-01-01").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
+def test_resample_24h_matches_D_with_start_day_origin():
+    # GH62200: "D" (calendar days) vs "24h" (tick-based).
+    # Explicit origin="start_day" ensures "24h" aligns with "D".
+    index = pd.date_range("2000-01-01", "2000-02-15", freq="h").union(
+        pd.date_range("2000-04-15", "2000-05-15", freq="h")
+    )
+    s = pd.Series(range(len(index)), index=index)
+
+    left = s.resample("D", label="right", closed="right").count()
+    right = s.resample("24h", label="right", closed="right", origin="start_day").count()
+
+    pd.testing.assert_series_equal(left, right)
+
 
 def test_resample_origin_with_tz(unit):
     # GH 31809
