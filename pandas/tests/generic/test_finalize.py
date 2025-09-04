@@ -670,7 +670,7 @@ def test_finalize_frame_series_name():
     assert result.name is None
 
 # ----------------------------------------------------------------------------
-# Merge tests
+# Tests for merge
 
 @pytest.mark.parametrize(["allow_duplication_on_left", "allow_duplication_on_right"],
 [
@@ -689,10 +689,8 @@ def test_merge_sets_duplication_allowance_flag(allow_duplication_on_left, allow_
     Otherwise, the result should have its flag set to True.
     """
     # Arrange
-    left = pd.DataFrame({"test": [1]})
-    left.set_flags(allows_duplicate_labels=allow_duplication_on_left)
-    right = pd.DataFrame({"test": [1]})
-    right.set_flags(allows_duplicate_labels=allow_duplication_on_right)
+    left = pd.DataFrame({"test": [1]}).set_flags(allows_duplicate_labels=allow_duplication_on_left)
+    right = pd.DataFrame({"test": [1]}).set_flags(allows_duplicate_labels=allow_duplication_on_right)
 
     # Act
     result = left.merge(right, how="inner", on="test")
@@ -700,3 +698,20 @@ def test_merge_sets_duplication_allowance_flag(allow_duplication_on_left, allow_
     # Assert
     expected_duplication_allowance = allow_duplication_on_left and allow_duplication_on_right
     assert result.flags.allows_duplicate_labels == expected_duplication_allowance
+
+def test_merge_collects_metadata_from_both_inputs():
+    """
+    Check that pandas.merge sets the metadata of its result by merging the metadata from both
+    of its inputs.
+    """
+    # Arrange
+    left = pd.DataFrame({"test": [1]})
+    left.attrs = {"a": 2}
+    right = pd.DataFrame({"test": [1]})
+    right.attrs = {"b": 3}
+
+    # Act
+    result = left.merge(right, how="inner", on="test")
+
+    # Assert
+    assert result.attrs == {"a": 2, "b": 3}
