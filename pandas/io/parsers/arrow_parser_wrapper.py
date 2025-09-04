@@ -19,6 +19,8 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.inference import is_integer
 
+from pandas.core.arrays.arrow.array import to_pyarrow_type
+
 from pandas.io._util import arrow_table_to_pandas
 from pandas.io.parsers.base_parser import ParserBase
 
@@ -145,20 +147,18 @@ class ArrowParserWrapper(ParserBase):
             if isinstance(self.dtype, dict):
                 column_types = {}
                 for col, col_dtype in self.dtype.items():
-                    # TODO: Category dtypes are not currently handled - may cause issues
-                    # with categorical data preservation in pyarrow engine
-                    if col_dtype == "category":
-                        continue
+                    source_dtype = pandas_dtype(col_dtype)
 
                     try:
-                        numpy_dtype = pandas_dtype(col_dtype).type
-                        pyarrow_dtype = pa.from_numpy_dtype(numpy_dtype)
-                        column_types[col] = pyarrow_dtype
-                    except (ValueError, pa.ArrowNotImplementedError):
+                        target_dtype = to_pyarrow_type(source_dtype)
+                        if target_dtype:
+                            column_types[col] = target_dtype
+
+                    except TypeError:
                         # TODO: Unsupported dtypes silently ignored - may cause
                         # unexpected behavior when pyarrow applies default inference
                         # instead of user's dtype
-                        continue
+                        pass
 
                 if column_types:
                     self.convert_options["column_types"] = column_types
