@@ -10,6 +10,7 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Self,
     cast,
     final,
     overload,
@@ -23,7 +24,6 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     NDFrameT,
-    Self,
     Shape,
     npt,
 )
@@ -90,7 +90,7 @@ _shared_docs: dict[str, str] = {}
 
 class PandasObject(DirNamesMixin):
     """
-    Baseclass for various pandas objects.
+    Base class for various pandas objects.
     """
 
     # results from calls to methods decorated with cache_readonly get added to _cache

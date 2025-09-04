@@ -4,6 +4,7 @@ import numbers
 from typing import (
     TYPE_CHECKING,
     ClassVar,
+    Self,
     cast,
 )
 
@@ -30,7 +31,6 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         DtypeObj,
-        Self,
         npt,
         type_t,
     )
@@ -85,8 +85,7 @@ class BooleanDtype(BaseMaskedDtype):
     def numpy_dtype(self) -> np.dtype:
         return np.dtype("bool")
 
-    @classmethod
-    def construct_array_type(cls) -> type_t[BooleanArray]:
+    def construct_array_type(self) -> type_t[BooleanArray]:
         """
         Return the array type associated with this dtype.
 
@@ -369,7 +368,7 @@ class BooleanArray(BaseMaskedArray):
             assert dtype == "boolean"
         return coerce_to_array(value, copy=copy)
 
-    def _logical_method(self, other, op):  # type: ignore[override]
+    def _logical_method(self, other, op):
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
         other_is_scalar = lib.is_scalar(other)
         mask = None
@@ -379,7 +378,7 @@ class BooleanArray(BaseMaskedArray):
         elif is_list_like(other):
             other = np.asarray(other, dtype="bool")
             if other.ndim > 1:
-                raise NotImplementedError("can only perform ops with 1-d structures")
+                return NotImplemented
             other, mask = coerce_to_array(other, copy=False)
         elif isinstance(other, np.bool_):
             other = other.item()

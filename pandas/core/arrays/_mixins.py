@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -23,7 +24,6 @@ from pandas._typing import (
     PositionalIndexer2D,
     PositionalIndexerTuple,
     ScalarIndexer,
-    Self,
     SequenceIndexer,
     Shape,
     TakeIndexer,
@@ -88,9 +88,7 @@ def ravel_compat(meth: F) -> F:
     return cast(F, method)
 
 
-# error: Definition of "delete/ravel/T/repeat/copy" in base class "NDArrayBacked"
-# is incompatible with definition in base class "ExtensionArray"
-class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignore[misc]
+class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     """
     ExtensionArray that is backed by a single NumPy ndarray.
     """

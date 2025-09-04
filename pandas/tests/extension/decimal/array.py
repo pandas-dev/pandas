@@ -50,8 +50,7 @@ class DecimalDtype(ExtensionDtype):
     def __repr__(self) -> str:
         return f"DecimalDtype(context={self.context})"
 
-    @classmethod
-    def construct_array_type(cls) -> type_t[DecimalArray]:
+    def construct_array_type(self) -> type_t[DecimalArray]:
         """
         Return the array type associated with this dtype.
 
@@ -109,6 +108,16 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     @classmethod
     def _from_factorized(cls, values, original):
         return cls(values)
+
+    def _cast_pointwise_result(self, values):
+        result = super()._cast_pointwise_result(values)
+        try:
+            # If this were ever made a non-test EA, special-casing could
+            #  be avoided by handling Decimal in maybe_convert_objects
+            res = type(self)._from_sequence(result, dtype=self.dtype)
+        except (ValueError, TypeError):
+            return result
+        return res
 
     _HANDLED_TYPES = (decimal.Decimal, numbers.Number, np.ndarray)
 

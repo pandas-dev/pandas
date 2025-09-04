@@ -27,18 +27,18 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-24.04, ubuntu-24.04-arm]
-        env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml, actions-313.yaml]
+        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         pandas_future_infer_string: ["1"]
         include:
           - name: "Downstream Compat"
-            env_file: actions-311-downstream_compat.yaml
+            env_file: actions-313-downstream_compat.yaml
             pattern: "not slow and not network and not single_cpu"
             pytest_target: "pandas/tests/test_downstream.py"
             platform: ubuntu-24.04
           - name: "Minimum Versions"
-            env_file: actions-310-minimum_versions.yaml
+            env_file: actions-311-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Freethreading"
@@ -50,7 +50,7 @@ jobs:
             pattern: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
           - name: "Locale: it_IT"
-            env_file: actions-311.yaml
+            env_file: actions-313.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-it"
             # Use the utf8 version as the default, it has no bad side-effect.
@@ -61,7 +61,7 @@ jobs:
             extra_loc: "it_IT"
             platform: ubuntu-24.04
           - name: "Locale: zh_CN"
-            env_file: actions-311.yaml
+            env_file: actions-313.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
             # Use the utf8 version as the default, it has no bad side-effect.
@@ -72,16 +72,16 @@ jobs:
             extra_loc: "zh_CN"
             platform: ubuntu-24.04
           - name: "PANDAS_FUTURE_INFER_STRING=0"
-            env_file: actions-312.yaml
+            env_file: actions-313.yaml
             pandas_future_infer_string: "0"
             platform: ubuntu-24.04
           - name: "Numpy Dev"
-            env_file: actions-311-numpydev.yaml
+            env_file: actions-313-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "-W error::DeprecationWarning -W error::FutureWarning"
             platform: ubuntu-24.04
           - name: "Pyarrow Nightly"
-            env_file: actions-311-pyarrownightly.yaml
+            env_file: actions-313-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"
             platform: ubuntu-24.04
       fail-fast: false
@@ -139,7 +139,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
@@ -183,7 +183,7 @@ jobs:
       matrix:
         # Note: Don't use macOS latest since macos 14 appears to be arm64 only
         os: [macos-13, macos-14, windows-latest]
-        env_file: [actions-310.yaml, actions-311.yaml, actions-312.yaml, actions-313.yaml]
+        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}
@@ -199,7 +199,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -338,7 +338,7 @@ jobs:
       PYTEST_TARGET: pandas
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -375,7 +375,7 @@ jobs:
       cancel-in-progress: true
     steps:
       - name: Checkout pandas Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 

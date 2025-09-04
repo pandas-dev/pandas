@@ -531,6 +531,10 @@ class TestTimeConversionFormats:
 
 
 class TestToDatetime:
+    def test_to_datetime_none(self):
+        # GH#23055
+        assert to_datetime(None) is NaT
+
     @pytest.mark.filterwarnings("ignore:Could not infer format")
     def test_to_datetime_overflow(self):
         # we should get an OutOfBoundsDatetime, NOT OverflowError
@@ -1051,7 +1055,9 @@ class TestToDatetime:
     def test_to_datetime_today_now_unicode_bytes(self, arg):
         to_datetime([arg])
 
-    @pytest.mark.filterwarnings("ignore:Timestamp.utcnow is deprecated:FutureWarning")
+    @pytest.mark.filterwarnings(
+        "ignore:Timestamp.utcnow is deprecated:DeprecationWarning"
+    )
     @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     @pytest.mark.parametrize(
         "format, expected_ds",
@@ -3365,8 +3371,7 @@ class TestShouldCache:
 
 def test_nullable_integer_to_datetime():
     # Test for #30050
-    ser = Series([1, 2, None, 2**61, None])
-    ser = ser.astype("Int64")
+    ser = Series([1, 2, None, 2**61, None], dtype="Int64")
     ser_copy = ser.copy()
 
     res = to_datetime(ser, unit="ns")
