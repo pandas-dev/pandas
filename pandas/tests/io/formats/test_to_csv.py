@@ -835,9 +835,9 @@ z
         raises_if_pyarrow = check_raises_if_pyarrow("errors", engine)
         data = ["\ud800foo"]
         with raises_if_pyarrow:
-          ser = pd.Series(data, index=Index(data, dtype=object), dtype=object)
-          with tm.ensure_clean("test.csv") as path:
-              ser.to_csv(path, errors=errors)
+            ser = pd.Series(data, index=Index(data, dtype=object), dtype=object)
+            with tm.ensure_clean("test.csv") as path:
+                ser.to_csv(path, errors=errors, engine=engine)
         # No use in reading back the data as it is not the same anymore
         # due to the error handling
 
