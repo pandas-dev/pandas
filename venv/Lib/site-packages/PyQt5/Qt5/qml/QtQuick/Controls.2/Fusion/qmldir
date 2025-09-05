@@ -1,0 +1,4 @@
+module QtQuick.Controls.Fusion
+plugin qtquickcontrols2fusionstyleplugin
+classname QtQuickControls2FusionStylePlugin
+depends QtQuick.Controls 2.5

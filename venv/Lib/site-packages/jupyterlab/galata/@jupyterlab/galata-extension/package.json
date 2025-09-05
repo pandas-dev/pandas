@@ -1,0 +1,60 @@
+{
+  "name": "@jupyterlab/galata-extension",
+  "version": "5.4.3",
+  "private": true,
+  "description": "JupyterLab UI Testing Framework Extension.",
+  "keywords": [
+    "jupyter",
+    "jupyterlab",
+    "jupyterlab-extension"
+  ],
+  "homepage": "https://github.com/jupyterlab/jupyterlab",
+  "bugs": {
+    "url": "https://github.com/jupyterlab/jupyterlab/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jupyterlab/jupyterlab.git"
+  },
+  "license": "BSD-3-Clause",
+  "author": "Project Jupyter",
+  "main": "../lib/extension/index.js",
+  "types": "../lib/extension/index.d.ts",
+  "files": [
+    "../lib/extension/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}"
+  ],
+  "scripts": {
+    "build": "npm run build:lib && npm run build:labextension",
+    "build:labextension": "node ../../node_modules/@jupyterlab/builder/lib/build-labextension.js --core-path ../../dev_mode --development .",
+    "build:lib": "tsc",
+    "clean": "npm run clean:lib && npm run clean:labextension",
+    "clean:labextension": "rimraf ../../jupyterlab/galata/@jupyterlab",
+    "clean:lib": "rimraf ../lib/extension tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@jupyterlab/application": "^4.4.3",
+    "@jupyterlab/apputils": "^4.5.3",
+    "@jupyterlab/cells": "^4.4.3",
+    "@jupyterlab/debugger": "^4.4.3",
+    "@jupyterlab/docmanager": "^4.4.3",
+    "@jupyterlab/nbformat": "^4.4.3",
+    "@jupyterlab/notebook": "^4.4.3",
+    "@jupyterlab/settingregistry": "^4.4.3",
+    "@lumino/algorithm": "^2.0.3",
+    "@lumino/coreutils": "^2.2.1",
+    "@lumino/signaling": "^2.1.4"
+  },
+  "devDependencies": {
+    "@jupyterlab/builder": "^4.4.3",
+    "rimraf": "~5.0.5",
+    "typescript": "~5.5.4"
+  },
+  "jupyterlab": {
+    "extension": true,
+    "outputDir": "../../jupyterlab/galata/@jupyterlab/galata-extension",
+    "_build": {
+      "load": "static/remoteEntry.2785c1543042b212cfd8.js",
+      "extension": "./extension"
+    }
+  }
+}

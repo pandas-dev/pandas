@@ -1,0 +1,80 @@
+"$id": https://events.jupyter.org/jupyter_server/kernel_actions/v1
+version: "1"
+title: Kernel Manager activities
+personal-data: true
+description: |
+  Record events of a kernel manager.
+type: object
+required:
+  - action
+  - msg
+properties:
+  action:
+    enum:
+      - start
+      - interrupt
+      - shutdown
+      - restart
+    description: |
+      Action performed by the Kernel Manager.
+
+      This is a required field.
+
+      Possible values:
+
+      1. start
+         A kernel has been started with the given kernel id.
+
+      2. interrupt
+         A kernel has been interrupted for the given kernel id.
+
+      3. shutdown
+         A kernel has been shut down for the given kernel id.
+
+      4. restart
+         A kernel has been restarted for the given kernel id.
+  kernel_id:
+    type: string
+    description: |
+      Kernel id.
+
+      This is a required field for all actions and statuses except action start with status error.
+  kernel_name:
+    type: string
+    description: |
+      Name of the kernel.
+  status:
+    enum:
+      - error
+      - success
+    description: |
+      Status received from a rest api operation to kernel server.
+
+      This is a required field.
+
+      Possible values:
+
+      1. error
+         Error response from a rest api operation to kernel server.
+
+      2. success
+         Success response from a rest api operation to kernel server.
+  status_code:
+    type: number
+    description: |
+      Http response codes from a rest api operation to kernel server.
+      Examples: 200, 400, 502, 503, 599 etc
+  msg:
+    type: string
+    description: |
+      Description of the event specified in action.
+if:
+  not:
+    properties:
+      status:
+        const: error
+      action:
+        const: start
+then:
+  required:
+    - kernel_id

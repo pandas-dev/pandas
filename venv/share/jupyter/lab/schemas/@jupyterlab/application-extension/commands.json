@@ -1,0 +1,376 @@
+{
+  "title": "Application Commands",
+  "description": "Application commands settings.",
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "application:activate-next-tab",
+      "keys": ["Ctrl Shift ]"],
+      "selector": "body"
+    },
+    {
+      "command": "application:activate-previous-tab",
+      "keys": ["Ctrl Shift ["],
+      "selector": "body"
+    },
+    {
+      "command": "application:activate-next-tab-bar",
+      "keys": ["Ctrl Shift ."],
+      "selector": "body"
+    },
+    {
+      "command": "application:activate-previous-tab-bar",
+      "keys": ["Ctrl Shift ,"],
+      "selector": "body"
+    },
+    {
+      "command": "application:close",
+      "keys": ["Alt W"],
+      "selector": ".jp-Activity"
+    },
+    {
+      "command": "application:toggle-mode",
+      "keys": ["Accel Shift D"],
+      "selector": "body"
+    },
+    {
+      "command": "application:toggle-left-area",
+      "keys": ["Accel B"],
+      "selector": "body"
+    },
+    {
+      "command": "application:toggle-right-area",
+      "keys": ["Accel J"],
+      "selector": "body"
+    },
+    {
+      "command": "application:toggle-presentation-mode",
+      "keys": [""],
+      "selector": "body"
+    },
+    {
+      "command": "application:toggle-fullscreen-mode",
+      "keys": ["F11"],
+      "selector": "body"
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt 1"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "left",
+        "index": 0
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt 2"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "left",
+        "index": 1
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt 3"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "left",
+        "index": 2
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt 4"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "left",
+        "index": 3
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt 5"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "left",
+        "index": 4
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt 6"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "left",
+        "index": 5
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt 7"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "left",
+        "index": 6
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt 8"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "left",
+        "index": 7
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt 9"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "left",
+        "index": 8
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt 0"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "left",
+        "index": 9
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt Shift 1"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "right",
+        "index": 0
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt Shift 2"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "right",
+        "index": 1
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt Shift 3"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "right",
+        "index": 2
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt Shift 4"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "right",
+        "index": 3
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt Shift 5"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "right",
+        "index": 4
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt Shift 6"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "right",
+        "index": 5
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt Shift 7"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "right",
+        "index": 6
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt Shift 8"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "right",
+        "index": 7
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt Shift 9"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "right",
+        "index": 8
+      }
+    },
+    {
+      "command": "application:toggle-sidebar-widget",
+      "keys": ["Alt Shift 0"],
+      "macKeys": [""],
+      "selector": "body",
+      "args": {
+        "side": "right",
+        "index": 9
+      }
+    }
+  ],
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-file",
+        "items": [
+          {
+            "type": "separator",
+            "rank": 3
+          },
+          {
+            "command": "application:close",
+            "rank": 3
+          },
+          {
+            "command": "application:close-all",
+            "rank": 3.2
+          }
+        ]
+      },
+      {
+        "id": "jp-mainmenu-view",
+        "items": [
+          {
+            "type": "submenu",
+            "rank": 1,
+            "submenu": {
+              "id": "jp-mainmenu-view-appearance",
+              "label": "Appearance",
+              "items": [
+                {
+                  "command": "application:toggle-mode",
+                  "rank": 0
+                },
+                {
+                  "command": "application:toggle-presentation-mode",
+                  "rank": 0
+                },
+                {
+                  "command": "application:toggle-fullscreen-mode",
+                  "rank": 0
+                },
+                {
+                  "type": "separator",
+                  "rank": 10
+                },
+                {
+                  "command": "application:toggle-left-area",
+                  "rank": 11
+                },
+                {
+                  "command": "application:toggle-side-tabbar",
+                  "rank": 12,
+                  "args": {
+                    "side": "left"
+                  }
+                },
+                {
+                  "command": "application:toggle-right-area",
+                  "rank": 13
+                },
+                {
+                  "command": "application:toggle-side-tabbar",
+                  "rank": 14,
+                  "args": {
+                    "side": "right"
+                  }
+                },
+                {
+                  "command": "application:toggle-header",
+                  "rank": 15
+                },
+                {
+                  "type": "separator",
+                  "rank": 50
+                },
+                {
+                  "command": "application:reset-layout",
+                  "rank": 51
+                }
+              ]
+            }
+          },
+          {
+            "type": "separator",
+            "rank": 1
+          }
+        ]
+      }
+    ],
+    "context": [
+      {
+        "command": "application:close",
+        "selector": "#jp-main-dock-panel .lm-DockPanel-tabBar .lm-TabBar-tab",
+        "rank": 4
+      },
+      {
+        "command": "application:close-other-tabs",
+        "selector": "#jp-main-dock-panel .lm-DockPanel-tabBar .lm-TabBar-tab",
+        "rank": 4
+      },
+      {
+        "command": "application:close-all",
+        "selector": "#jp-main-dock-panel .lm-DockPanel-tabBar .lm-TabBar-tab",
+        "rank": 4
+      },
+      {
+        "command": "application:close-right-tabs",
+        "selector": "#jp-main-dock-panel .lm-DockPanel-tabBar .lm-TabBar-tab",
+        "rank": 5
+      },
+      {
+        "command": "__internal:context-menu-info",
+        "selector": "body",
+        "rank": 9007199254740991
+      }
+    ]
+  },
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}
