@@ -343,7 +343,6 @@ Other enhancements
 - :meth:`ExtensionArray.duplicated` added to allow extension type implementations of the ``duplicated`` method (:issue:`55255`)
 - :meth:`Series.ffill`, :meth:`Series.bfill`, :meth:`DataFrame.ffill`, and :meth:`DataFrame.bfill` have gained the argument ``limit_area``; 3rd party :class:`.ExtensionArray` authors need to add this argument to the method ``_pad_or_backfill`` (:issue:`56492`)
 - Allow passing ``read_only``, ``data_only`` and ``keep_links`` arguments to openpyxl using ``engine_kwargs`` of :func:`read_excel` (:issue:`55027`)
-- Allow using pyarrow to serialize :class:`DataFrame` and :class:`Series` to CSV with ``engine="pyarrow"`` in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` (:issue:`53618`)
 - Implement :meth:`Series.interpolate` and :meth:`DataFrame.interpolate` for :class:`ArrowDtype` and masked dtypes (:issue:`56267`)
 - Implement masked algorithms for :meth:`Series.value_counts` (:issue:`54984`)
 - Implemented :meth:`Series.dt` methods and attributes for :class:`ArrowDtype` with ``pyarrow.duration`` type (:issue:`52284`)

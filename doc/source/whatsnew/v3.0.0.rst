@@ -225,6 +225,7 @@ Other enhancements
 - Support passing a :class:`Iterable[Hashable]` input to :meth:`DataFrame.drop_duplicates` (:issue:`59237`)
 - Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
+- Allow using pyarrow to serialize :class:`DataFrame` and :class:`Series` to CSV with ``engine="pyarrow"`` in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` (:issue:`53618`)
 -
 
 .. ---------------------------------------------------------------------------
