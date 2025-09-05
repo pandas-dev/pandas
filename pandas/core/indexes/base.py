@@ -39,7 +39,6 @@ from pandas._libs.lib import (
     no_default,
 )
 from pandas._libs.tslibs import (
-    OutOfBoundsDatetime,
     Timestamp,
     tz_compare,
 )
@@ -6228,6 +6227,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses
             other, self = other._maybe_downcast_for_indexing(self)
+
         return self, other
 
     @final
