@@ -34,6 +34,7 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_string_dtype
 from pandas._config.config import option_context
 
 from pandas._libs import (
@@ -3156,7 +3157,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     npfunc=np.sum,
                 )
 
-            return self._reindex_output(result, fill_value=0)
+            return self._reindex_output(result, fill_value=0, method="sum")
 
     @final
     @doc(
@@ -5574,6 +5575,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         output: OutputFrameOrSeries,
         fill_value: Scalar = np.nan,
         qs: npt.NDArray[np.float64] | None = None,
+        method: str | None = None,
     ) -> OutputFrameOrSeries:
         """
         If we have categorical groupers, then we might want to make sure that
@@ -5634,6 +5636,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 "copy": False,
                 "fill_value": fill_value,
             }
+            if using_string_dtype() and method == "sum":
+                if isinstance(output, Series) and isinstance(output.dtype, StringDtype):
+                    d["fill_value"] = ""
+                    return output.reindex(**d)  # type: ignore[return-value, arg-type]
+                elif isinstance(output, DataFrame) and any(
+                    isinstance(dtype, StringDtype) for dtype in output.dtypes
+                ):
+                    orig_dtypes = output.dtypes
+                    indices = np.nonzero(output.dtypes == "string")[0]
+                    for idx in indices:
+                        output.isetitem(idx, output.iloc[:, idx].astype(object))
+                    output = output.reindex(**d)  # type: ignore[assignment, arg-type]
+                    for idx in indices:
+                        col = output.iloc[:, idx]
+                        output.isetitem(
+                            idx, col.mask(col == 0, "").astype(orig_dtypes.iloc[idx])
+                        )
+                    return output  # type: ignore[return-value]
             return output.reindex(**d)  # type: ignore[arg-type]
 
         # GH 13204
