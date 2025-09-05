@@ -217,9 +217,9 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
             Timestamp(2000, 1)
 
         if PY314:
-            msg = "month must be in 1..12, not"
-        else:
             msg = "day is out of range for month"
+        else:
+            msg = "month must be in 1..12"
         with pytest.raises(ValueError, match=msg):
             Timestamp(2000, 0, 1)
         with pytest.raises(ValueError, match=msg):
