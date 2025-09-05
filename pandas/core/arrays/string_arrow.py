@@ -342,6 +342,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_lstrip = ArrowStringArrayMixin._str_lstrip
     _str_rstrip = ArrowStringArrayMixin._str_rstrip
     _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
+    _str_removeprefix = ArrowStringArrayMixin._str_removeprefix
+    _str_find = ArrowStringArrayMixin._str_find
     _str_get = ArrowStringArrayMixin._str_get
     _str_capitalize = ArrowStringArrayMixin._str_capitalize
     _str_title = ArrowStringArrayMixin._str_title
@@ -438,17 +440,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         else:
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
-    def _str_removeprefix(self, prefix: str):
-        return ArrowStringArrayMixin._str_removeprefix(self, prefix)
-
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
             return super()._str_count(pat, flags)
         result = pc.count_substring_regex(self._pa_array, pat)
         return self._convert_int_result(result)
-
-    def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        return ArrowStringArrayMixin._str_find(self, sub, start, end)
 
     def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         if dtype is None:
