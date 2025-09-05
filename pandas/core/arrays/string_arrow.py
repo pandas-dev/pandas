@@ -349,6 +349,15 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_slice = ArrowStringArrayMixin._str_slice
 
     @staticmethod
+    def _is_re_pattern_with_flags(pat: str | re.Pattern) -> bool:
+        # check if `pat` is a compiled regex pattern with flags that are not
+        # supported by pyarrow
+        return (
+            isinstance(pat, re.Pattern)
+            and (pat.flags & ~(re.IGNORECASE | re.UNICODE)) != 0
+        )
+
+    @staticmethod
     def _preprocess_re_pattern(pat: re.Pattern, case: bool):
         flags = pat.flags
         pat = pat.pattern
@@ -369,12 +378,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         na=lib.no_default,
         regex: bool = True,
     ):
-        if flags:
+        if flags or self._is_re_pattern_with_flags(pat):
             return super()._str_contains(pat, case, flags, na, regex)
         if isinstance(pat, re.Pattern):
+            # TODO flags passed separately by user are ignored
             pat, case, flags = self._preprocess_re_pattern(pat, case)
-            if flags:
-                return super()._str_contains(pat, case, flags, na, regex)
 
         return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
 
@@ -385,12 +393,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if flags:
+        if flags or self._is_re_pattern_with_flags(pat):
             return super()._str_match(pat, case, flags, na)
         if isinstance(pat, re.Pattern):
             pat, case, flags = self._preprocess_re_pattern(pat, case)
-            if flags:
-                return super()._str_match(pat, case, flags, na)
 
         return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
 
@@ -401,12 +407,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if flags:
+        if flags or self._is_re_pattern_with_flags(pat):
             return super()._str_fullmatch(pat, case, flags, na)
         if isinstance(pat, re.Pattern):
             pat, case, flags = self._preprocess_re_pattern(pat, case)
-            if flags:
-                return super()._str_fullmatch(pat, case, flags, na)
 
         return ArrowStringArrayMixin._str_fullmatch(self, pat, case, flags, na)
 
