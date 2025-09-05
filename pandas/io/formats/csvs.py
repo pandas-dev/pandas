@@ -25,7 +25,6 @@ import numpy as np
 
 from pandas._libs import writers as libwriters
 from pandas._typing import SequenceNotStr
-from pandas.compat import pa_version_under11p0
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import cache_readonly
 
@@ -333,9 +332,7 @@ class CSVFormatter:
             "batch_size": self.chunksize,
         }
         kwargs["delimiter"] = self.sep
-
-        if not pa_version_under11p0:
-            kwargs["quoting_style"] = pa_quoting
+        kwargs["quoting_style"] = pa_quoting
 
         write_options = pa_csv.WriteOptions(**kwargs)
         pa_csv.write_csv(table, handle, write_options)
