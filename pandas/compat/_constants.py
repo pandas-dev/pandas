@@ -14,14 +14,10 @@ import sysconfig
 IS64 = sys.maxsize > 2**32
 
 PY312 = sys.version_info >= (3, 12)
-PY314 = sys.version_info >= (3, 14)
 PYPY = platform.python_implementation() == "PyPy"
 WASM = (sys.platform == "emscripten") or (platform.machine() in ["wasm32", "wasm64"])
 ISMUSL = "musl" in (sysconfig.get_config_var("HOST_GNU_TYPE") or "")
 REF_COUNT = 2
-# hopefully there is a workaround in Python 3.14.1
-WARNING_CHECK_BROKEN = PY314
-
 
 __all__ = [
     "IS64",
