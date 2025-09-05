@@ -19,7 +19,7 @@ Customarily, we import as follows:
 Basic data structures in pandas
 -------------------------------
 
-Pandas provides two types of classes for handling data:
+pandas provides two types of classes for handling data:
 
 1. :class:`Series`: a one-dimensional labeled array holding data of any type
     such as integers, strings, Python objects etc.
@@ -91,8 +91,8 @@ will be completed:
    df2.any                df2.combine
    df2.append             df2.D
    df2.apply              df2.describe
-   df2.applymap           df2.diff
    df2.B                  df2.duplicated
+   df2.diff
 
 As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
 tab completed. ``E`` and ``F`` are there as well; the rest of the attributes have been
@@ -101,7 +101,7 @@ truncated for brevity.
 Viewing data
 ------------
 
-See the :ref:`Essentially basics functionality section <basics>`.
+See the :ref:`Essential basic functionality section <basics>`.
 
 Use :meth:`DataFrame.head` and :meth:`DataFrame.tail` to view the top and bottom rows of the frame
 respectively:
@@ -177,12 +177,26 @@ See the indexing documentation :ref:`Indexing and Selecting Data <indexing>` and
 Getitem (``[]``)
 ~~~~~~~~~~~~~~~~
 
-For a :class:`DataFrame`, passing a single label selects a columns and
-yields a :class:`Series` equivalent to ``df.A``:
+For a :class:`DataFrame`, passing a single label selects a column and
+yields a :class:`Series`:
 
 .. ipython:: python
 
    df["A"]
+
+If the label only contains letters, numbers, and underscores, you can
+alternatively use the column name attribute:
+
+.. ipython:: python
+
+   df.A
+
+Passing a list of column labels selects multiple columns, which can be useful
+for getting a subset/rearranging:
+
+.. ipython:: python
+
+   df[["B", "A"]]
 
 For a :class:`DataFrame`, passing a slice ``:`` selects matching rows:
 
@@ -563,7 +577,7 @@ columns:
 
 .. ipython:: python
 
-   stacked = df2.stack(future_stack=True)
+   stacked = df2.stack()
    stacked
 
 With a "stacked" DataFrame or Series (having a :class:`MultiIndex` as the

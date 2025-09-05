@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     Categorical,
     CategoricalDtype,
     CategoricalIndex,
@@ -34,7 +35,7 @@ class TestAstype:
             array([0, 0], dtype="timedelta64[ns]"),
             array([Period("2019"), Period("2020")], dtype="period[Y-DEC]"),
             array([Interval(0, 1), Interval(1, 2)], dtype="interval"),
-            array([1, np.nan], dtype="Int64"),
+            array([1, NA], dtype="Int64"),
         ],
     )
     def test_astype_category_to_extension_dtype(self, expected):
@@ -88,7 +89,7 @@ class TestAstype:
         expected = np.array(cat)
         tm.assert_numpy_array_equal(result, expected)
 
-        msg = r"Cannot cast object|string dtype to float64"
+        msg = r"Cannot cast object|str dtype to float64"
         with pytest.raises(ValueError, match=msg):
             cat.astype(float)
 
@@ -129,6 +130,14 @@ class TestAstype:
             result = cat.astype("category")
             expected = cat
             tm.assert_categorical_equal(result, expected)
+
+    def test_astype_category_copy_false_nocopy_codes(self):
+        # GH#62000
+        cat = Categorical([3, 2, 4, 1])
+        new = cat.astype("category", copy=False)
+        assert tm.shares_memory(new.codes, cat.codes)
+        new = cat.astype("category", copy=True)
+        assert not tm.shares_memory(new.codes, cat.codes)
 
     def test_astype_object_datetime_categories(self):
         # GH#40754

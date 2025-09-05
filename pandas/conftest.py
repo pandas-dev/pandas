@@ -17,6 +17,7 @@ Instead of splitting it was decided to define sections here:
 - Dtypes
 - Misc
 """
+
 from __future__ import annotations
 
 from collections import abc
@@ -28,12 +29,14 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
+import gc
 import operator
 import os
 from typing import (
     TYPE_CHECKING,
-    Callable,
+    Any,
 )
+import uuid
 
 from dateutil.tz import (
     tzlocal,
@@ -43,13 +46,8 @@ import hypothesis
 from hypothesis import strategies as st
 import numpy as np
 import pytest
-from pytz import (
-    FixedOffset,
-    utc,
-)
 
-from pandas._config.config import _get_option
-
+from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import (
@@ -78,10 +76,10 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
-from pandas.util.version import Version
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
     )
@@ -94,12 +92,7 @@ else:
     del pa
     has_pyarrow = True
 
-import zoneinfo
-
-try:
-    zoneinfo.ZoneInfo("UTC")
-except zoneinfo.ZoneInfoNotFoundError:
-    zoneinfo = None  # type: ignore[assignment]
+pytz = import_optional_dependency("pytz", errors="ignore")
 
 
 # ----------------------------------------------------------------
@@ -124,7 +117,7 @@ def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
     item : pytest.Item
         pytest test item.
     path : str
-        Module path to Python object, e.g. "pandas.core.frame.DataFrame.append". A
+        Module path to Python object, e.g. "pandas.DataFrame.append". A
         warning will be filtered when item.name ends with in given path. So it is
         sufficient to specify e.g. "DataFrame.append".
     message : str
@@ -149,7 +142,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
         ("is_sparse", "is_sparse is deprecated"),
         ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
-        ("NDFrame.replace", "The 'method' keyword"),
+        ("DataFrameGroupBy.corrwith", "DataFrameGroupBy.corrwith is deprecated"),
         ("NDFrame.replace", "Series.replace without 'value'"),
         ("NDFrame.clip", "Downcasting behavior in Series and DataFrame methods"),
         ("Series.idxmin", "The behavior of Series.idxmin"),
@@ -157,17 +150,10 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("SeriesGroupBy.fillna", "SeriesGroupBy.fillna is deprecated"),
         ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
         ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
+        ("to_pytimedelta", "The behavior of TimedeltaProperties.to_pytimedelta"),
+        ("NDFrame.reindex_like", "keyword argument 'method' is deprecated"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
-        (
-            "to_pydatetime",
-            "The behavior of DatetimeProperties.to_pydatetime is deprecated",
-        ),
-        (
-            "pandas.core.generic.NDFrame.bool",
-            "(Series|DataFrame).bool is now deprecated and will be removed "
-            "in future version of pandas",
-        ),
         (
             "pandas.core.generic.NDFrame.first",
             "first is deprecated and will be removed in a future version. "
@@ -181,41 +167,28 @@ def pytest_collection_modifyitems(items, config) -> None:
             "DataFrameGroupBy.fillna",
             "DataFrameGroupBy.fillna with 'method' is deprecated",
         ),
-        (
-            "DataFrameGroupBy.fillna",
-            "DataFrame.fillna with 'method' is deprecated",
-        ),
         ("read_parquet", "Passing a BlockManager to DataFrame is deprecated"),
     ]
 
     if is_doctest:
         for item in items:
-            # autouse=True for the add_doctest_imports can lead to expensive teardowns
-            # since doctest_namespace is a session fixture
-            item.add_marker(pytest.mark.usefixtures("add_doctest_imports"))
-
             for path, message in ignored_doctest_warnings:
                 ignore_doctest_warning(item, path, message)
 
 
-hypothesis_health_checks = [hypothesis.HealthCheck.too_slow]
-if Version(hypothesis.__version__) >= Version("6.83.2"):
-    hypothesis_health_checks.append(hypothesis.HealthCheck.differing_executors)
-
-# Hypothesis
+# Similar to "ci" config in
+# https://hypothesis.readthedocs.io/en/latest/reference/api.html#built-in-profiles
 hypothesis.settings.register_profile(
-    "ci",
-    # Hypothesis timing checks are tuned for scalars by default, so we bump
-    # them from 200ms to 500ms per test case as the global default.  If this
-    # is too short for a specific test, (a) try to make it faster, and (b)
-    # if it really is slow add `@settings(deadline=...)` with a working value,
-    # or `deadline=None` to entirely disable timeouts for that test.
-    # 2022-02-09: Changed deadline from 500 -> None. Deadline leads to
-    # non-actionable, flaky CI failures (# GH 24641, 44969, 45118, 44969)
+    "pandas_ci",
+    database=None,
     deadline=None,
-    suppress_health_check=tuple(hypothesis_health_checks),
+    max_examples=15,
+    suppress_health_check=(
+        hypothesis.HealthCheck.too_slow,
+        hypothesis.HealthCheck.differing_executors,
+    ),
 )
-hypothesis.settings.load_profile("ci")
+hypothesis.settings.load_profile("pandas_ci")
 
 # Registering these strategies makes them globally available via st.from_type,
 # which is use for offsets in tests/tseries/offsets/test_offsets_properties.py
@@ -250,7 +223,14 @@ for name in "QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd".split():
     )
 
 
-@pytest.fixture
+# ----------------------------------------------------------------
+# Autouse fixtures
+# ----------------------------------------------------------------
+
+
+# https://github.com/pytest-dev/pytest/issues/11873
+# Would like to avoid autouse=True, but cannot as of pytest 8.0.0
+@pytest.fixture(autouse=True)
 def add_doctest_imports(doctest_namespace) -> None:
     """
     Make `np` and `pd` names available for doctests.
@@ -259,9 +239,6 @@ def add_doctest_imports(doctest_namespace) -> None:
     doctest_namespace["pd"] = pd
 
 
-# ----------------------------------------------------------------
-# Autouse fixtures
-# ----------------------------------------------------------------
 @pytest.fixture(autouse=True)
 def configure_tests() -> None:
     """
@@ -273,7 +250,7 @@ def configure_tests() -> None:
 # ----------------------------------------------------------------
 # Common arguments
 # ----------------------------------------------------------------
-@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={repr(x)}")
+@pytest.fixture(params=[0, 1, "index", "columns"], ids=lambda x: f"axis={x!r}")
 def axis(request):
     """
     Fixture for returning the axis numbers of a DataFrame.
@@ -281,7 +258,7 @@ def axis(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False, None])
+@pytest.fixture(params=[True, False])
 def observed(request):
     """
     Pass in the observed keyword to groupby for [True, False]
@@ -617,7 +594,7 @@ def multiindex_year_month_day_dataframe_random_data():
     """
     tdf = DataFrame(
         np.random.default_rng(2).standard_normal((100, 4)),
-        columns=Index(list("ABCD"), dtype=object),
+        columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=100, freq="B"),
     )
     ymd = tdf.groupby([lambda x: x.year, lambda x: x.month, lambda x: x.day]).sum()
@@ -684,47 +661,48 @@ def _create_mi_with_dt64tz_level():
 
 
 indices_dict = {
-    "string": Index([f"pandas_{i}" for i in range(100)]),
-    "datetime": date_range("2020-01-01", periods=100),
-    "datetime-tz": date_range("2020-01-01", periods=100, tz="US/Pacific"),
-    "period": period_range("2020-01-01", periods=100, freq="D"),
-    "timedelta": timedelta_range(start="1 day", periods=100, freq="D"),
-    "range": RangeIndex(100),
-    "int8": Index(np.arange(100), dtype="int8"),
-    "int16": Index(np.arange(100), dtype="int16"),
-    "int32": Index(np.arange(100), dtype="int32"),
-    "int64": Index(np.arange(100), dtype="int64"),
-    "uint8": Index(np.arange(100), dtype="uint8"),
-    "uint16": Index(np.arange(100), dtype="uint16"),
-    "uint32": Index(np.arange(100), dtype="uint32"),
-    "uint64": Index(np.arange(100), dtype="uint64"),
-    "float32": Index(np.arange(100), dtype="float32"),
-    "float64": Index(np.arange(100), dtype="float64"),
+    "object": Index([f"pandas_{i}" for i in range(10)], dtype=object),
+    "string": Index([f"pandas_{i}" for i in range(10)], dtype="str"),
+    "datetime": date_range("2020-01-01", periods=10),
+    "datetime-tz": date_range("2020-01-01", periods=10, tz="US/Pacific"),
+    "period": period_range("2020-01-01", periods=10, freq="D"),
+    "timedelta": timedelta_range(start="1 day", periods=10, freq="D"),
+    "range": RangeIndex(10),
+    "int8": Index(np.arange(10), dtype="int8"),
+    "int16": Index(np.arange(10), dtype="int16"),
+    "int32": Index(np.arange(10), dtype="int32"),
+    "int64": Index(np.arange(10), dtype="int64"),
+    "uint8": Index(np.arange(10), dtype="uint8"),
+    "uint16": Index(np.arange(10), dtype="uint16"),
+    "uint32": Index(np.arange(10), dtype="uint32"),
+    "uint64": Index(np.arange(10), dtype="uint64"),
+    "float32": Index(np.arange(10), dtype="float32"),
+    "float64": Index(np.arange(10), dtype="float64"),
     "bool-object": Index([True, False] * 5, dtype=object),
     "bool-dtype": Index([True, False] * 5, dtype=bool),
     "complex64": Index(
-        np.arange(100, dtype="complex64") + 1.0j * np.arange(100, dtype="complex64")
+        np.arange(10, dtype="complex64") + 1.0j * np.arange(10, dtype="complex64")
     ),
     "complex128": Index(
-        np.arange(100, dtype="complex128") + 1.0j * np.arange(100, dtype="complex128")
+        np.arange(10, dtype="complex128") + 1.0j * np.arange(10, dtype="complex128")
     ),
-    "categorical": CategoricalIndex(list("abcd") * 25),
-    "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=101)),
+    "categorical": CategoricalIndex(list("abcd") * 2),
+    "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=11)),
     "empty": Index([]),
     "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
     "multi": _create_multiindex(),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
-    "nullable_int": Index(np.arange(100), dtype="Int64"),
-    "nullable_uint": Index(np.arange(100), dtype="UInt16"),
-    "nullable_float": Index(np.arange(100), dtype="Float32"),
-    "nullable_bool": Index(np.arange(100).astype(bool), dtype="boolean"),
+    "nullable_int": Index(np.arange(10), dtype="Int64"),
+    "nullable_uint": Index(np.arange(10), dtype="UInt16"),
+    "nullable_float": Index(np.arange(10), dtype="Float32"),
+    "nullable_bool": Index(np.arange(10).astype(bool), dtype="boolean"),
     "string-python": Index(
-        pd.array([f"pandas_{i}" for i in range(100)], dtype="string[python]")
+        pd.array([f"pandas_{i}" for i in range(10)], dtype="string[python]")
     ),
 }
 if has_pyarrow:
-    idx = Index(pd.array([f"pandas_{i}" for i in range(100)], dtype="string[pyarrow]"))
+    idx = Index(pd.array([f"pandas_{i}" for i in range(10)], dtype="string[pyarrow]"))
     indices_dict["string-pyarrow"] = idx
 
 
@@ -803,7 +781,7 @@ def string_series() -> Series:
     """
     return Series(
         np.arange(30, dtype=np.float64) * 1.1,
-        index=Index([f"i_{i}" for i in range(30)], dtype=object),
+        index=Index([f"i_{i}" for i in range(30)]),
         name="series",
     )
 
@@ -814,7 +792,7 @@ def object_series() -> Series:
     Fixture for Series of dtype object with Index of unique strings
     """
     data = [f"foo_{i}" for i in range(30)]
-    index = Index([f"bar_{i}" for i in range(30)], dtype=object)
+    index = Index([f"bar_{i}" for i in range(30)])
     return Series(data, index=index, name="objects", dtype=object)
 
 
@@ -906,8 +884,8 @@ def int_frame() -> DataFrame:
     """
     return DataFrame(
         np.ones((30, 4), dtype=np.int64),
-        index=Index([f"foo_{i}" for i in range(30)], dtype=object),
-        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"foo_{i}" for i in range(30)]),
+        columns=Index(list("ABCD")),
     )
 
 
@@ -963,6 +941,9 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
     ]
 )
 def ea_scalar_and_dtype(request):
+    """
+    Fixture that tests each scalar and datetime type.
+    """
     return request.param
 
 
@@ -1208,19 +1189,19 @@ TIMEZONES = [
     "UTC-02:15",
     tzutc(),
     tzlocal(),
-    FixedOffset(300),
-    FixedOffset(0),
-    FixedOffset(-300),
     timezone.utc,
     timezone(timedelta(hours=1)),
     timezone(timedelta(hours=-1), name="foo"),
 ]
-if zoneinfo is not None:
+if pytz is not None:
     TIMEZONES.extend(
-        [
-            zoneinfo.ZoneInfo("US/Pacific"),  # type: ignore[list-item]
-            zoneinfo.ZoneInfo("UTC"),  # type: ignore[list-item]
-        ]
+        (
+            pytz.FixedOffset(300),
+            pytz.FixedOffset(0),
+            pytz.FixedOffset(-300),
+            pytz.timezone("US/Pacific"),
+            pytz.timezone("UTC"),
+        )
     )
 TIMEZONE_IDS = [repr(i) for i in TIMEZONES]
 
@@ -1243,13 +1224,10 @@ def tz_aware_fixture(request):
     return request.param
 
 
-# Generate cartesian product of tz_aware_fixture:
-tz_aware_fixture2 = tz_aware_fixture
+_UTCS = ["utc", "dateutil/UTC", tzutc(), timezone.utc]
 
-
-_UTCS = ["utc", "dateutil/UTC", utc, tzutc(), timezone.utc]
-if zoneinfo is not None:
-    _UTCS.append(zoneinfo.ZoneInfo("UTC"))
+if pytz is not None:
+    _UTCS.append(pytz.utc)
 
 
 @pytest.fixture(params=_UTCS)
@@ -1291,6 +1269,34 @@ def string_dtype(request):
 
 @pytest.fixture(
     params=[
+        ("python", pd.NA),
+        pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+        ("python", np.nan),
+    ],
+    ids=[
+        "string=string[python]",
+        "string=string[pyarrow]",
+        "string=str[pyarrow]",
+        "string=str[python]",
+    ],
+)
+def string_dtype_no_object(request):
+    """
+    Parametrized fixture for string dtypes.
+    * 'string[python]' (NA variant)
+    * 'string[pyarrow]' (NA variant)
+    * 'str' (NaN variant, with pyarrow)
+    * 'str' (NaN variant, without pyarrow)
+    """
+    # need to instantiate the StringDtype here instead of in the params
+    # to avoid importing pyarrow during test collection
+    storage, na_value = request.param
+    return pd.StringDtype(storage, na_value)
+
+
+@pytest.fixture(
+    params=[
         "string[python]",
         pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
     ]
@@ -1307,9 +1313,24 @@ def nullable_string_dtype(request):
 
 @pytest.fixture(
     params=[
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+        pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
+    ]
+)
+def pyarrow_string_dtype(request):
+    """
+    Parametrized fixture for string dtypes backed by Pyarrow.
+
+    * 'str[pyarrow]'
+    * 'string[pyarrow]'
+    """
+    return pd.StringDtype(*request.param)
+
+
+@pytest.fixture(
+    params=[
         "python",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
-        pytest.param("pyarrow_numpy", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def string_storage(request):
@@ -1318,7 +1339,31 @@ def string_storage(request):
 
     * 'python'
     * 'pyarrow'
-    * 'pyarrow_numpy'
+    """
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        ("python", pd.NA),
+        pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+        ("python", np.nan),
+    ],
+    ids=[
+        "string=string[python]",
+        "string=string[pyarrow]",
+        "string=str[pyarrow]",
+        "string=str[python]",
+    ],
+)
+def string_dtype_arguments(request):
+    """
+    Parametrized fixture for StringDtype storage and na_value.
+
+    * 'python' + pd.NA
+    * 'pyarrow' + pd.NA
+    * 'pyarrow' + np.nan
     """
     return request.param
 
@@ -1341,6 +1386,7 @@ def dtype_backend(request):
 
 # Alias so we can test with cartesian product of string_storage
 string_storage2 = string_storage
+string_dtype_arguments2 = string_dtype_arguments
 
 
 @pytest.fixture(params=tm.BYTES_DTYPES)
@@ -1367,20 +1413,36 @@ def object_dtype(request):
 
 @pytest.fixture(
     params=[
-        "object",
-        "string[python]",
-        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
-        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
-    ]
+        np.dtype("object"),
+        ("python", pd.NA),
+        pytest.param(("pyarrow", pd.NA), marks=td.skip_if_no("pyarrow")),
+        pytest.param(("pyarrow", np.nan), marks=td.skip_if_no("pyarrow")),
+        ("python", np.nan),
+    ],
+    ids=[
+        "string=object",
+        "string=string[python]",
+        "string=string[pyarrow]",
+        "string=str[pyarrow]",
+        "string=str[python]",
+    ],
 )
 def any_string_dtype(request):
     """
     Parametrized fixture for string dtypes.
     * 'object'
-    * 'string[python]'
-    * 'string[pyarrow]'
+    * 'string[python]' (NA variant)
+    * 'string[pyarrow]' (NA variant)
+    * 'str' (NaN variant, with pyarrow)
+    * 'str' (NaN variant, without pyarrow)
     """
-    return request.param
+    if isinstance(request.param, np.dtype):
+        return request.param
+    else:
+        # need to instantiate the StringDtype here instead of in the params
+        # to avoid importing pyarrow during test collection
+        storage, na_value = request.param
+        return pd.StringDtype(storage, na_value)
 
 
 @pytest.fixture(params=tm.DATETIME64_DTYPES)
@@ -1410,7 +1472,7 @@ def fixed_now_ts() -> Timestamp:
     """
     Fixture emits fixed Timestamp.now()
     """
-    return Timestamp(  # pyright: ignore[reportGeneralTypeIssues]
+    return Timestamp(  # pyright: ignore[reportReturnType]
         year=2021, month=1, day=1, hour=12, minute=4, second=13, microsecond=22
     )
 
@@ -1460,6 +1522,21 @@ def complex_dtype(request):
     * complex
     * 'complex64'
     * 'complex128'
+    """
+    return request.param
+
+
+@pytest.fixture(params=tm.COMPLEX_FLOAT_DTYPES)
+def complex_or_float_dtype(request):
+    """
+    Parameterized fixture for complex and numpy float dtypes.
+
+    * complex
+    * 'complex64'
+    * 'complex128'
+    * float
+    * 'float32'
+    * 'float64'
     """
     return request.param
 
@@ -1703,6 +1780,38 @@ def any_numpy_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=tm.ALL_REAL_NULLABLE_DTYPES)
+def any_real_nullable_dtype(request):
+    """
+    Parameterized fixture for all real dtypes that can hold NA.
+
+    * float
+    * 'float32'
+    * 'float64'
+    * 'Float32'
+    * 'Float64'
+    * 'UInt8'
+    * 'UInt16'
+    * 'UInt32'
+    * 'UInt64'
+    * 'Int8'
+    * 'Int16'
+    * 'Int32'
+    * 'Int64'
+    * 'uint8[pyarrow]'
+    * 'uint16[pyarrow]'
+    * 'uint32[pyarrow]'
+    * 'uint64[pyarrow]'
+    * 'int8[pyarrow]'
+    * 'int16[pyarrow]'
+    * 'int32[pyarrow]'
+    * 'int64[pyarrow]'
+    * 'float[pyarrow]'
+    * 'double[pyarrow]'
+    """
+    return request.param
+
+
 @pytest.fixture(params=tm.ALL_NUMERIC_DTYPES)
 def any_numeric_dtype(request):
     """
@@ -1838,6 +1947,39 @@ def ip():
     return InteractiveShell(config=c)
 
 
+@pytest.fixture
+def mpl_cleanup():
+    """
+    Ensure Matplotlib is cleaned up around a test.
+
+    Before a test is run:
+
+    1) Set the backend to "template" to avoid requiring a GUI.
+
+    After a test is run:
+
+    1) Reset units registry
+    2) Reset rc_context
+    3) Close all figures
+
+    See matplotlib/testing/decorators.py#L24.
+    """
+    mpl = pytest.importorskip("matplotlib")
+    mpl_units = pytest.importorskip("matplotlib.units")
+    plt = pytest.importorskip("matplotlib.pyplot")
+    orig_units_registry = mpl_units.registry.copy()
+    try:
+        with mpl.rc_context():
+            mpl.use("template")
+            yield
+    finally:
+        mpl_units.registry.clear()
+        mpl_units.registry.update(orig_units_registry)
+        plt.close("all")
+        # https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.6.0.html#garbage-collection-is-no-longer-run-on-figure-close  # noqa: E501
+        gc.collect(1)
+
+
 @pytest.fixture(
     params=[
         getattr(pd.offsets, o)
@@ -1928,26 +2070,14 @@ def indexer_ial(request):
     return request.param
 
 
-@pytest.fixture
-def using_copy_on_write() -> bool:
+@pytest.fixture(params=[True, False])
+def performance_warning(request) -> Iterator[bool | type[Warning]]:
     """
-    Fixture to check if Copy-on-Write is enabled.
+    Fixture to check if performance warnings are enabled. Either produces
+    ``PerformanceWarning`` if they are enabled, otherwise ``False``.
     """
-    return (
-        pd.options.mode.copy_on_write is True
-        and _get_option("mode.data_manager", silent=True) == "block"
-    )
-
-
-@pytest.fixture
-def warn_copy_on_write() -> bool:
-    """
-    Fixture to check if Copy-on-Write is in warning mode.
-    """
-    return (
-        pd.options.mode.copy_on_write == "warn"
-        and _get_option("mode.data_manager", silent=True) == "block"
-    )
+    with pd.option_context("mode.performance_warnings", request.param):
+        yield pd.errors.PerformanceWarning if request.param else False
 
 
 @pytest.fixture
@@ -1958,12 +2088,12 @@ def using_infer_string() -> bool:
     return pd.options.future.infer_string is True
 
 
-warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
-if zoneinfo is not None:
-    warsaws.append(zoneinfo.ZoneInfo("Europe/Warsaw"))  # type: ignore[arg-type]
+_warsaws: list[Any] = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
+if pytz is not None:
+    _warsaws.append(pytz.timezone("Europe/Warsaw"))
 
 
-@pytest.fixture(params=warsaws)
+@pytest.fixture(params=_warsaws)
 def warsaw(request) -> str:
     """
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
@@ -1972,8 +2102,17 @@ def warsaw(request) -> str:
 
 
 @pytest.fixture
-def arrow_string_storage():
+def temp_file(tmp_path):
     """
-    Fixture that lists possible PyArrow values for StringDtype storage field.
+    Generate a unique file for testing use. See link for removal policy.
+    https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-default-base-temporary-directory
     """
-    return ("pyarrow", "pyarrow_numpy")
+    file_path = tmp_path / str(uuid.uuid4())
+    file_path.touch()
+    return file_path
+
+
+@pytest.fixture(scope="session")
+def monkeysession():
+    with pytest.MonkeyPatch.context() as mp:
+        yield mp

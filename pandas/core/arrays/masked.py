@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
+    Self,
+    cast,
     overload,
 )
 import warnings
@@ -12,35 +13,20 @@ import warnings
 import numpy as np
 
 from pandas._libs import (
+    algos as libalgos,
     lib,
     missing as libmissing,
 )
 from pandas._libs.tslibs import is_supported_dtype
-from pandas._typing import (
-    ArrayLike,
-    AstypeArg,
-    AxisInt,
-    DtypeObj,
-    FillnaOptions,
-    InterpolateOptions,
-    NpDtype,
-    PositionalIndexer,
-    Scalar,
-    ScalarIndexer,
-    Self,
-    SequenceIndexer,
-    Shape,
-    npt,
-)
 from pandas.compat import (
     IS64,
     is_platform_windows,
 )
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
-from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer_dtype,
@@ -76,6 +62,7 @@ from pandas.core.array_algos import (
     masked_reductions,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.array_algos.transforms import shift
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
 from pandas.core.arrays.base import ExtensionArray
@@ -89,6 +76,7 @@ from pandas.core.ops import invalid_comparison
 from pandas.core.util.hashing import hash_array
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from collections.abc import (
         Iterator,
         Sequence,
@@ -98,6 +86,19 @@ if TYPE_CHECKING:
     from pandas._typing import (
         NumpySorter,
         NumpyValueArrayLike,
+        ArrayLike,
+        AstypeArg,
+        AxisInt,
+        DtypeObj,
+        FillnaOptions,
+        InterpolateOptions,
+        NpDtype,
+        PositionalIndexer,
+        Scalar,
+        ScalarIndexer,
+        SequenceIndexer,
+        Shape,
+        npt,
     )
     from pandas._libs.missing import NAType
     from pandas.core.arrays import FloatingArray
@@ -112,15 +113,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     numpy based
     """
 
-    # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value: Scalar
     # our underlying data and mask are each ndarrays
     _data: np.ndarray
     _mask: npt.NDArray[np.bool_]
-
-    # Fill values used for any/all
-    _truthy_value = Scalar  # bool(_truthy_value) = True
-    _falsey_value = Scalar  # bool(_falsey_value) = False
 
     @classmethod
     def _simple_new(cls, values: np.ndarray, mask: npt.NDArray[np.bool_]) -> Self:
@@ -153,11 +148,25 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         values, mask = cls._coerce_to_array(scalars, dtype=dtype, copy=copy)
         return cls(values, mask)
 
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        values = np.asarray(values, dtype=object)
+        result = lib.maybe_convert_objects(values, convert_to_nullable_dtype=True)
+        lkind = self.dtype.kind
+        rkind = result.dtype.kind
+        if (lkind in "iu" and rkind in "iu") or (lkind == rkind == "f"):
+            result = cast(BaseMaskedArray, result)
+            new_data = maybe_downcast_to_dtype(
+                result._data, dtype=self.dtype.numpy_dtype
+            )
+            result = type(result)(new_data, result._mask)
+        return result
+
     @classmethod
     @doc(ExtensionArray._empty)
     def _empty(cls, shape: Shape, dtype: ExtensionDtype) -> Self:
-        values = np.empty(shape, dtype=dtype.type)
-        values.fill(cls._internal_fill_value)
+        dtype = cast(BaseMaskedDtype, dtype)
+        values: np.ndarray = np.empty(shape, dtype=dtype.type)
+        values.fill(dtype._internal_fill_value)
         mask = np.ones(shape, dtype=bool)
         result = cls(values, mask)
         if not isinstance(result, cls) or dtype != result.dtype:
@@ -175,12 +184,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         raise AbstractMethodError(self)
 
     @overload
-    def __getitem__(self, item: ScalarIndexer) -> Any:
-        ...
+    def __getitem__(self, item: ScalarIndexer) -> Any: ...
 
     @overload
-    def __getitem__(self, item: SequenceIndexer) -> Self:
-        ...
+    def __getitem__(self, item: SequenceIndexer) -> Self: ...
 
     def __getitem__(self, item: PositionalIndexer) -> Self | Any:
         item = check_array_indexer(self, item)
@@ -239,32 +246,24 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return new_values
 
     @doc(ExtensionArray.fillna)
-    def fillna(
-        self, value=None, method=None, limit: int | None = None, copy: bool = True
-    ) -> Self:
-        value, method = validate_fillna_kwargs(value, method)
-
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         mask = self._mask
+        if limit is not None and limit < len(self):
+            modify = mask.cumsum() > limit
+            if modify.any():
+                # Only copy mask if necessary
+                mask = mask.copy()
+                mask[modify] = False
 
         value = missing.check_value_size(value, mask, len(self))
 
         if mask.any():
-            if method is not None:
-                func = missing.get_fill_func(method, ndim=self.ndim)
-                npvalues = self._data.T
-                new_mask = mask.T
-                if copy:
-                    npvalues = npvalues.copy()
-                    new_mask = new_mask.copy()
-                func(npvalues, limit=limit, mask=new_mask)
-                return self._simple_new(npvalues.T, new_mask.T)
+            # fill with value
+            if copy:
+                new_values = self.copy()
             else:
-                # fill with value
-                if copy:
-                    new_values = self.copy()
-                else:
-                    new_values = self[:]
-                new_values[mask] = value
+                new_values = self[:]
+            new_values[mask] = value
         else:
             if copy:
                 new_values = self.copy()
@@ -303,7 +302,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         # Note: without the "str" here, the f-string rendering raises in
         #  py38 builds.
-        raise TypeError(f"Invalid value '{str(value)}' for dtype {self.dtype}")
+        raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
 
     def __setitem__(self, key, value) -> None:
         key = check_array_indexer(self, key)
@@ -378,6 +377,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = self._mask.ravel(*args, **kwargs)
         return type(self)(data, mask)
 
+    def shift(self, periods: int = 1, fill_value=None) -> Self:
+        # NB: shift is always along axis=0
+        axis = 0
+        if fill_value is None:
+            new_data = shift(self._data, periods, axis, 0)
+            new_mask = shift(self._mask, periods, axis, True)
+        else:
+            new_data = shift(self._data, periods, axis, fill_value)
+            new_mask = shift(self._mask, periods, axis, False)
+        return type(self)(new_data, new_mask)
+
     @property
     def T(self) -> Self:
         return self._simple_new(self._data.T, self._mask.T)
@@ -430,6 +440,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._simple_new(abs(self._data), self._mask.copy())
 
     # ------------------------------------------------------------------
+
+    def _values_for_json(self) -> np.ndarray:
+        return np.asarray(self, dtype=object)
 
     def to_numpy(
         self,
@@ -499,6 +512,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         hasna = self._hasna
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
+        if dtype is None:
+            dtype = object
 
         if hasna:
             if (
@@ -530,16 +545,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self.to_numpy(dtype=dtype, na_value=libmissing.NA).tolist()
 
     @overload
-    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
-        ...
+    def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray: ...
 
     @overload
-    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray:
-        ...
+    def astype(self, dtype: ExtensionDtype, copy: bool = ...) -> ExtensionArray: ...
 
     @overload
-    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike:
-        ...
+    def astype(self, dtype: AstypeArg, copy: bool = ...) -> ArrayLike: ...
 
     def astype(self, dtype: AstypeArg, copy: bool = True) -> ArrayLike:
         dtype = pandas_dtype(dtype)
@@ -589,12 +601,24 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     __array_priority__ = 1000  # higher than ndarray so ops dispatch to us
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """
         the array interface, return my values
         We return an object array here to preserve our scalar values
         """
-        return self.to_numpy(dtype=dtype)
+        if copy is False:
+            if not self._hasna:
+                # special case, here we can simply return the underlying data
+                return np.array(self._data, dtype=dtype, copy=copy)
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
+        if copy is None:
+            copy = False  # The NumPy copy=False meaning is different here.
+        return self.to_numpy(dtype=dtype, copy=copy)
 
     _HANDLED_TYPES: tuple[type, ...]
 
@@ -689,8 +713,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # make this faster by having an optional mask, but not have to change
         # source code using it..
 
-        # error: Incompatible return value type (got "bool_", expected "bool")
-        return self._mask.any()  # type: ignore[return-value]
+        return bool(self._mask.any())
 
     def _propagate_mask(
         self, mask: npt.NDArray[np.bool_] | None, other
@@ -704,9 +727,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 mask = mask | isna(other)
         else:
             mask = self._mask | mask
-        # Incompatible return value type (got "Optional[ndarray[Any, dtype[bool_]]]",
-        # expected "ndarray[Any, dtype[bool_]]")
-        return mask  # type: ignore[return-value]
+        return mask
 
     def _arith_method(self, other, op):
         op_name = op.__name__
@@ -770,6 +791,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 #  will be all-True, but since this is division, we want
                 #  to end up with floating dtype.
                 result = result.astype(np.float64)
+            elif op_name in {"divmod", "rdivmod"}:
+                # GH#62196
+                res = self._maybe_mask_result(result, mask)
+                return res, res.copy()
         else:
             # Make sure we do this before the "pow" mask checks
             #  to get an expected exception message on shape mismatch.
@@ -930,7 +955,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ) -> Self:
         # we always fill with 1 internally
         # to avoid upcasting
-        data_fill_value = self._internal_fill_value if isna(fill_value) else fill_value
+        data_fill_value = (
+            self.dtype._internal_fill_value if isna(fill_value) else fill_value
+        )
         result = take(
             self._data,
             indexer,
@@ -980,6 +1007,49 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = self._data.copy()
         mask = self._mask.copy()
         return self._simple_new(data, mask)
+
+    def _rank(
+        self,
+        *,
+        axis: AxisInt = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ):
+        # GH#62043 Avoid going through copy-making ensure_data in algorithms.rank
+        if axis != 0 or self.ndim != 1:
+            raise NotImplementedError
+
+        from pandas.core.arrays import FloatingArray
+
+        data = self._data
+        if data.dtype.kind == "b":
+            data = data.view("uint8")
+
+        result = libalgos.rank_1d(
+            data,
+            is_datetimelike=False,
+            ties_method=method,
+            ascending=ascending,
+            na_option=na_option,
+            pct=pct,
+            mask=self.isna(),
+        )
+        if na_option in ["top", "bottom"]:
+            mask = np.zeros(self.shape, dtype=bool)
+        else:
+            mask = self._mask.copy()
+
+        if method != "average" and not pct:
+            if na_option not in ["top", "bottom"]:
+                result[self._mask] = 0  # avoid warning on casting
+            result = result.astype("uint64", copy=False)
+            from pandas.core.arrays import IntegerArray
+
+            return IntegerArray(result, mask=mask)
+
+        return FloatingArray(result, mask=mask)
 
     @doc(ExtensionArray.duplicated)
     def duplicated(
@@ -1100,12 +1170,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return Series(arr, index=index, name="count", copy=False)
 
     def _mode(self, dropna: bool = True) -> Self:
-        if dropna:
-            result = mode(self._data, dropna=dropna, mask=self._mask)
-            res_mask = np.zeros(result.shape, dtype=np.bool_)
-        else:
-            result, res_mask = mode(self._data, dropna=dropna, mask=self._mask)
-        result = type(self)(result, res_mask)  # type: ignore[arg-type]
+        result, res_mask = mode(self._data, dropna=dropna, mask=self._mask)
+        result = type(self)(result, res_mask)
         return result[result.argsort()]
 
     @doc(ExtensionArray.equals)
@@ -1209,7 +1275,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = np.ones(mask_size, dtype=bool)
 
         float_dtyp = "float32" if self.dtype == "Float32" else "float64"
-        if name in ["mean", "median", "var", "std", "skew", "kurt"]:
+        if name in ["mean", "median", "var", "std", "skew", "kurt", "sem"]:
             np_dtype = float_dtyp
         elif name in ["min", "max"] or self.dtype.itemsize == 8:
             np_dtype = self.dtype.numpy_dtype.name
@@ -1329,20 +1395,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
-    def map(self, mapper, na_action=None):
-        return map_array(self.to_numpy(), mapper, na_action=None)
+    def map(self, mapper, na_action: Literal["ignore"] | None = None):
+        return map_array(self.to_numpy(), mapper, na_action=na_action)
 
     @overload
     def any(
         self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_:
-        ...
+    ) -> np.bool_: ...
 
     @overload
     def any(
         self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_ | NAType:
-        ...
+    ) -> np.bool_ | NAType: ...
 
     def any(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
@@ -1385,25 +1449,25 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         skips NAs):
 
         >>> pd.array([True, False, True]).any()
-        True
+        np.True_
         >>> pd.array([True, False, pd.NA]).any()
-        True
+        np.True_
         >>> pd.array([False, False, pd.NA]).any()
-        False
+        np.False_
         >>> pd.array([], dtype="boolean").any()
-        False
+        np.False_
         >>> pd.array([pd.NA], dtype="boolean").any()
-        False
+        np.False_
         >>> pd.array([pd.NA], dtype="Float64").any()
-        False
+        np.False_
 
         With ``skipna=False``, the result can be NA if this is logically
         required (whether ``pd.NA`` is True or False influences the result):
 
         >>> pd.array([True, False, pd.NA]).any(skipna=False)
-        True
+        np.True_
         >>> pd.array([1, 0, pd.NA]).any(skipna=False)
-        True
+        np.True_
         >>> pd.array([False, False, pd.NA]).any(skipna=False)
         <NA>
         >>> pd.array([0, 0, pd.NA]).any(skipna=False)
@@ -1412,12 +1476,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         nv.validate_any((), kwargs)
 
         values = self._data.copy()
-        # error: Argument 3 to "putmask" has incompatible type "object";
-        # expected "Union[_SupportsArray[dtype[Any]],
-        # _NestedSequence[_SupportsArray[dtype[Any]]],
-        # bool, int, float, complex, str, bytes,
-        # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-        np.putmask(values, self._mask, self._falsey_value)  # type: ignore[arg-type]
+        np.putmask(values, self._mask, self.dtype._falsey_value)
         result = values.any()
         if skipna:
             return result
@@ -1430,14 +1489,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     @overload
     def all(
         self, *, skipna: Literal[True] = ..., axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_:
-        ...
+    ) -> np.bool_: ...
 
     @overload
     def all(
         self, *, skipna: bool, axis: AxisInt | None = ..., **kwargs
-    ) -> np.bool_ | NAType:
-        ...
+    ) -> np.bool_ | NAType: ...
 
     def all(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
@@ -1480,17 +1537,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         skips NAs):
 
         >>> pd.array([True, True, pd.NA]).all()
-        True
+        np.True_
         >>> pd.array([1, 1, pd.NA]).all()
-        True
+        np.True_
         >>> pd.array([True, False, pd.NA]).all()
-        False
+        np.False_
         >>> pd.array([], dtype="boolean").all()
-        True
+        np.True_
         >>> pd.array([pd.NA], dtype="boolean").all()
-        True
+        np.True_
         >>> pd.array([pd.NA], dtype="Float64").all()
-        True
+        np.True_
 
         With ``skipna=False``, the result can be NA if this is logically
         required (whether ``pd.NA`` is True or False influences the result):
@@ -1500,26 +1557,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> pd.array([1, 1, pd.NA]).all(skipna=False)
         <NA>
         >>> pd.array([True, False, pd.NA]).all(skipna=False)
-        False
+        np.False_
         >>> pd.array([1, 0, pd.NA]).all(skipna=False)
-        False
+        np.False_
         """
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
-        # error: Argument 3 to "putmask" has incompatible type "object";
-        # expected "Union[_SupportsArray[dtype[Any]],
-        # _NestedSequence[_SupportsArray[dtype[Any]]],
-        # bool, int, float, complex, str, bytes,
-        # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-        np.putmask(values, self._mask, self._truthy_value)  # type: ignore[arg-type]
+        np.putmask(values, self._mask, self.dtype._truthy_value)
         result = values.all(axis=axis)
 
         if skipna:
-            return result
+            return result  # type: ignore[return-value]
         else:
             if not result or len(self) == 0 or not self._mask.any():
-                return result
+                return result  # type: ignore[return-value]
             else:
                 return self.dtype.na_value
 
@@ -1646,13 +1698,24 @@ def transpose_homogeneous_masked_arrays(
     same dtype. The caller is responsible for ensuring validity of input data.
     """
     masked_arrays = list(masked_arrays)
+    dtype = masked_arrays[0].dtype
+
     values = [arr._data.reshape(1, -1) for arr in masked_arrays]
-    transposed_values = np.concatenate(values, axis=0)
+    transposed_values = np.concatenate(
+        values,
+        axis=0,
+        out=np.empty(
+            (len(masked_arrays), len(masked_arrays[0])),
+            order="F",
+            dtype=dtype.numpy_dtype,
+        ),
+    )
 
     masks = [arr._mask.reshape(1, -1) for arr in masked_arrays]
-    transposed_masks = np.concatenate(masks, axis=0)
+    transposed_masks = np.concatenate(
+        masks, axis=0, out=np.empty_like(transposed_values, dtype=bool)
+    )
 
-    dtype = masked_arrays[0].dtype
     arr_type = dtype.construct_array_type()
     transposed_arrays: list[BaseMaskedArray] = []
     for i in range(transposed_values.shape[1]):

@@ -4,7 +4,6 @@ import contextlib
 import datetime as pydt
 from datetime import (
     datetime,
-    timedelta,
     tzinfo,
 )
 import functools
@@ -15,13 +14,8 @@ from typing import (
 )
 import warnings
 
+import matplotlib as mpl
 import matplotlib.dates as mdates
-from matplotlib.ticker import (
-    AutoLocator,
-    Formatter,
-    Locator,
-)
-from matplotlib.transforms import nonsingular
 import matplotlib.units as munits
 import numpy as np
 
@@ -98,7 +92,7 @@ def register_pandas_matplotlib_converters(func: F) -> F:
 
 
 @contextlib.contextmanager
-def pandas_converters() -> Generator[None, None, None]:
+def pandas_converters() -> Generator[None]:
     """
     Context manager registering pandas' converters for a plot.
 
@@ -175,7 +169,7 @@ class TimeConverter(munits.ConversionInterface):
         if unit != "time":
             return None
 
-        majloc = AutoLocator()
+        majloc = mpl.ticker.AutoLocator()  # pyright: ignore[reportAttributeAccessIssue]
         majfmt = TimeFormatter(majloc)
         return munits.AxisInfo(majloc=majloc, majfmt=majfmt, label="time")
 
@@ -185,7 +179,7 @@ class TimeConverter(munits.ConversionInterface):
 
 
 # time formatter
-class TimeFormatter(Formatter):
+class TimeFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportAttributeAccessIssue]
     def __init__(self, locs) -> None:
         self.locs = locs
 
@@ -231,16 +225,20 @@ class TimeFormatter(Formatter):
 class PeriodConverter(mdates.DateConverter):
     @staticmethod
     def convert(values, units, axis):
+        if not hasattr(axis, "freq"):
+            raise TypeError("Axis must have `freq` set to convert to Periods")
+        return PeriodConverter.convert_from_freq(values, axis.freq)
+
+    @staticmethod
+    def convert_from_freq(values, freq):
         if is_nested_list_like(values):
-            values = [PeriodConverter._convert_1d(v, units, axis) for v in values]
+            values = [PeriodConverter._convert_1d(v, freq) for v in values]
         else:
-            values = PeriodConverter._convert_1d(values, units, axis)
+            values = PeriodConverter._convert_1d(values, freq)
         return values
 
     @staticmethod
-    def _convert_1d(values, units, axis):
-        if not hasattr(axis, "freq"):
-            raise TypeError("Axis must have `freq` set to convert to Periods")
+    def _convert_1d(values, freq):
         valid_types = (str, datetime, Period, pydt.date, pydt.time, np.datetime64)
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -254,17 +252,17 @@ class PeriodConverter(mdates.DateConverter):
                 or is_integer(values)
                 or is_float(values)
             ):
-                return get_datevalue(values, axis.freq)
+                return get_datevalue(values, freq)
             elif isinstance(values, PeriodIndex):
-                return values.asfreq(axis.freq).asi8
+                return values.asfreq(freq).asi8
             elif isinstance(values, Index):
-                return values.map(lambda x: get_datevalue(x, axis.freq))
+                return values.map(lambda x: get_datevalue(x, freq))
             elif lib.infer_dtype(values, skipna=False) == "period":
                 # https://github.com/pandas-dev/pandas/issues/24304
                 # convert ndarray[period] -> PeriodIndex
-                return PeriodIndex(values, freq=axis.freq).asi8
+                return PeriodIndex(values, freq=freq).asi8
             elif isinstance(values, (list, tuple, np.ndarray, Index)):
-                return [get_datevalue(x, axis.freq) for x in values]
+                return [get_datevalue(x, freq) for x in values]
         return values
 
 
@@ -431,7 +429,7 @@ class MilliSecondLocator(mdates.DateLocator):
         freq = f"{interval}ms"
         tz = self.tz.tzname(None)
         st = dmin.replace(tzinfo=None)
-        ed = dmin.replace(tzinfo=None)
+        ed = dmax.replace(tzinfo=None)
         all_dates = date_range(start=st, end=ed, freq=freq, tz=tz).astype(object)
 
         try:
@@ -458,28 +456,6 @@ class MilliSecondLocator(mdates.DateLocator):
         vmax = mdates.date2num(dmax)
 
         return self.nonsingular(vmin, vmax)
-
-
-def _from_ordinal(x, tz: tzinfo | None = None) -> datetime:
-    ix = int(x)
-    dt = datetime.fromordinal(ix)
-    remainder = float(x) - ix
-    hour, remainder = divmod(24 * remainder, 1)
-    minute, remainder = divmod(60 * remainder, 1)
-    second, remainder = divmod(60 * remainder, 1)
-    microsecond = int(1_000_000 * remainder)
-    if microsecond < 10:
-        microsecond = 0  # compensate for rounding errors
-    dt = datetime(
-        dt.year, dt.month, dt.day, int(hour), int(minute), int(second), microsecond
-    )
-    if tz is not None:
-        dt = dt.astimezone(tz)
-
-    if microsecond > 999990:  # compensate for rounding errors
-        dt += timedelta(microseconds=1_000_000 - microsecond)
-
-    return dt
 
 
 # Fixed frequency dynamic tick locators and formatters
@@ -555,7 +531,7 @@ def _get_periods_per_ymd(freq: BaseOffset) -> tuple[int, int, int]:
 
     ppd = -1  # placeholder for above-day freqs
 
-    if dtype_code >= FreqGroup.FR_HR.value:
+    if dtype_code >= FreqGroup.FR_HR.value:  # pyright: ignore[reportAttributeAccessIssue]
         # error: "BaseOffset" has no attribute "_creso"
         ppd = periods_per_day(freq._creso)  # type: ignore[attr-defined]
         ppm = 28 * ppd
@@ -584,7 +560,8 @@ def _get_periods_per_ymd(freq: BaseOffset) -> tuple[int, int, int]:
     return ppd, ppm, ppy
 
 
-def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
+@functools.cache
+def _daily_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
     # error: "BaseOffset" has no attribute "_period_dtype_code"
     dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
 
@@ -711,7 +688,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
     elif span <= periodsperyear // 4:
         month_start = _period_break(dates_, "month")
         info_maj[month_start] = True
-        if dtype_code < FreqGroup.FR_HR.value:
+        if dtype_code < FreqGroup.FR_HR.value:  # pyright: ignore[reportAttributeAccessIssue]
             info["min"] = True
         else:
             day_start = _period_break(dates_, "day")
@@ -783,7 +760,8 @@ def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
     return info
 
 
-def _monthly_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
+@functools.cache
+def _monthly_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
     _, _, periodsperyear = _get_periods_per_ymd(freq)
 
     vmin_orig = vmin
@@ -854,7 +832,8 @@ def _monthly_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
     return info
 
 
-def _quarterly_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
+@functools.cache
+def _quarterly_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
     _, _, periodsperyear = _get_periods_per_ymd(freq)
     vmin_orig = vmin
     (vmin, vmax) = (int(vmin), int(vmax))
@@ -901,7 +880,8 @@ def _quarterly_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
     return info
 
 
-def _annual_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
+@functools.cache
+def _annual_finder(vmin: float, vmax: float, freq: BaseOffset) -> np.ndarray:
     # Note: small difference here vs other finders in adding 1 to vmax
     (vmin, vmax) = (int(vmin), int(vmax + 1))
     span = vmax - vmin + 1
@@ -934,13 +914,13 @@ def get_finder(freq: BaseOffset):
         return _quarterly_finder
     elif fgroup == FreqGroup.FR_MTH:
         return _monthly_finder
-    elif (dtype_code >= FreqGroup.FR_BUS.value) or fgroup == FreqGroup.FR_WK:
+    elif (dtype_code >= FreqGroup.FR_BUS.value) or fgroup == FreqGroup.FR_WK:  # pyright: ignore[reportAttributeAccessIssue]
         return _daily_finder
     else:  # pragma: no cover
         raise NotImplementedError(f"Unsupported frequency: {dtype_code}")
 
 
-class TimeSeries_DateLocator(Locator):
+class TimeSeries_DateLocator(mpl.ticker.Locator):  # pyright: ignore[reportAttributeAccessIssue]
     """
     Locates the ticks along an axis controlled by a :class:`Series`.
 
@@ -1021,7 +1001,7 @@ class TimeSeries_DateLocator(Locator):
         if vmin == vmax:
             vmin -= 1
             vmax += 1
-        return nonsingular(vmin, vmax)
+        return mpl.transforms.nonsingular(vmin, vmax)
 
 
 # -------------------------------------------------------------------------
@@ -1029,7 +1009,7 @@ class TimeSeries_DateLocator(Locator):
 # -------------------------------------------------------------------------
 
 
-class TimeSeries_DateFormatter(Formatter):
+class TimeSeries_DateFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportAttributeAccessIssue]
     """
     Formats the ticks along an axis controlled by a :class:`PeriodIndex`.
 
@@ -1105,7 +1085,7 @@ class TimeSeries_DateFormatter(Formatter):
             return period.strftime(fmt)
 
 
-class TimeSeries_TimedeltaFormatter(Formatter):
+class TimeSeries_TimedeltaFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportAttributeAccessIssue]
     """
     Formats the ticks along an axis controlled by a :class:`TimedeltaIndex`.
     """

@@ -3,8 +3,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -167,7 +165,7 @@ class TestDataFrameDrop:
         assert return_value is None
         tm.assert_frame_equal(df, expected)
 
-    def test_drop_multiindex_not_lexsorted(self):
+    def test_drop_multiindex_not_lexsorted(self, performance_warning):
         # GH#11640
 
         # define the lexsorted version
@@ -188,7 +186,7 @@ class TestDataFrameDrop:
         assert not not_lexsorted_df.columns._is_lexsorted()
 
         expected = lexsorted_df.drop("a", axis=1).astype(float)
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             result = not_lexsorted_df.drop("a", axis=1)
 
         tm.assert_frame_equal(result, expected)
@@ -347,6 +345,18 @@ class TestDataFrameDrop:
             ),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_drop_raise_with_both_axis_and_index(self):
+        # GH#61823
+        df = DataFrame(
+            [[1, 2, 3], [3, 4, 5], [5, 6, 7]],
+            index=["a", "b", "c"],
+            columns=["d", "e", "f"],
+        )
+
+        msg = "Cannot specify both 'axis' and 'index'/'columns'"
+        with pytest.raises(ValueError, match=msg):
+            df.drop(index="b", axis=1)
 
     def test_drop_nonunique(self):
         df = DataFrame(

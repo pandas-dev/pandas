@@ -9,10 +9,9 @@ import unicodedata
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
-from pandas.errors import SettingWithCopyError
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -27,6 +26,7 @@ from pandas import (
     Period,
     PeriodIndex,
     Series,
+    StringDtype,
     TimedeltaIndex,
     date_range,
     period_range,
@@ -115,10 +115,8 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
 
-        msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.dt.to_pydatetime()
-        assert isinstance(result, np.ndarray)
+        result = ser.dt.to_pydatetime()
+        assert isinstance(result, Series)
         assert result.dtype == object
 
         result = ser.dt.tz_localize("US/Eastern")
@@ -154,10 +152,8 @@ class TestSeriesDatetimeValues:
         for prop in ok_for_dt_methods:
             getattr(ser.dt, prop)
 
-        msg = "The behavior of DatetimeProperties.to_pydatetime is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.dt.to_pydatetime()
-        assert isinstance(result, np.ndarray)
+        result = ser.dt.to_pydatetime()
+        assert isinstance(result, Series)
         assert result.dtype == object
 
         result = ser.dt.tz_convert("CET")
@@ -197,7 +193,9 @@ class TestSeriesDatetimeValues:
             assert isinstance(result, DataFrame)
             tm.assert_index_equal(result.index, ser.index)
 
-            result = ser.dt.to_pytimedelta()
+            msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                result = ser.dt.to_pytimedelta()
             assert isinstance(result, np.ndarray)
             assert result.dtype == object
 
@@ -259,9 +257,8 @@ class TestSeriesDatetimeValues:
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
         # Period
-        idx = period_range("20130101", periods=5, freq="D", name="xxx").astype(object)
-        with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
-            ser = Series(idx)
+        idx = period_range("20130101", periods=5, freq="D", name="xxx")
+        ser = Series(idx)
         results = get_dir(ser)
         tm.assert_almost_equal(
             results, sorted(set(ok_for_period + ok_for_period_methods))
@@ -281,26 +278,15 @@ class TestSeriesDatetimeValues:
         expected = Series(exp_values, name="xxx")
         tm.assert_series_equal(ser, expected)
 
-    def test_dt_accessor_not_writeable(self, using_copy_on_write, warn_copy_on_write):
+    def test_dt_accessor_not_writeable(self):
         # no setting allowed
         ser = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
         with pytest.raises(ValueError, match="modifications"):
             ser.dt.hour = 5
 
         # trying to set a copy
-        msg = "modifications to a property of a datetimelike.+not supported"
-        with pd.option_context("chained_assignment", "raise"):
-            if using_copy_on_write:
-                with tm.raises_chained_assignment_error():
-                    ser.dt.hour[0] = 5
-            elif warn_copy_on_write:
-                with tm.assert_produces_warning(
-                    FutureWarning, match="ChainedAssignmentError"
-                ):
-                    ser.dt.hour[0] = 5
-            else:
-                with pytest.raises(SettingWithCopyError, match=msg):
-                    ser.dt.hour[0] = 5
+        with tm.raises_chained_assignment_error():
+            ser.dt.hour[0] = 5
 
     @pytest.mark.parametrize(
         "method, dates",
@@ -365,7 +351,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
         # raise
-        with tm.external_error_raised(pytz.AmbiguousTimeError):
+        with tm.external_error_raised(ValueError):
             getattr(df1.date.dt, method)("h", ambiguous="raise")
 
     @pytest.mark.parametrize(
@@ -387,7 +373,7 @@ class TestSeriesDatetimeValues:
         expected = Series([pd.NaT]).dt.tz_localize(result.dt.tz)
         tm.assert_series_equal(result, expected)
 
-        with pytest.raises(pytz.NonExistentTimeError, match="2018-03-11 02:00:00"):
+        with pytest.raises(ValueError, match="2018-03-11 02:00:00"):
             getattr(ser.dt, method)(freq, nonexistent="raise")
 
     @pytest.mark.parametrize("freq", ["ns", "us", "1000us"])
@@ -583,7 +569,6 @@ class TestSeriesDatetimeValues:
 
         expected = Index(
             ["2015/03/01", "2015/03/02", "2015/03/03", "2015/03/04", "2015/03/05"],
-            dtype=np.object_,
         )
         # dtype may be S10 or U10 depending on python version
         tm.assert_index_equal(result, expected)
@@ -596,7 +581,7 @@ class TestSeriesDatetimeValues:
             dtype="=U10",
         )
         if using_infer_string:
-            expected = expected.astype("string[pyarrow_numpy]")
+            expected = expected.astype(StringDtype(na_value=np.nan))
         tm.assert_index_equal(result, expected)
 
     def test_strftime_dt64_microsecond_resolution(self):
@@ -653,7 +638,7 @@ class TestSeriesDatetimeValues:
         ser = Series(data)
         with tm.assert_produces_warning(None):
             result = ser.dt.strftime("%Y-%m-%d")
-        expected = Series([np.nan], dtype=object)
+        expected = Series([np.nan], dtype="str")
         tm.assert_series_equal(result, expected)
 
     def test_valid_dt_with_missing_values(self):
@@ -802,7 +787,8 @@ class TestSeriesPeriodValuesDtAccessor:
         # GH#17157
         # Check that the time part of the Period is adjusted by end_time
         # when using the dt accessor on a Series
-        input_vals = PeriodArray._from_sequence(np.asarray(input_vals))
+        dtype = pd.PeriodDtype(input_vals[0].freq)
+        input_vals = PeriodArray._from_sequence(np.asarray(input_vals), dtype=dtype)
 
         ser = Series(input_vals)
         result = ser.dt.end_time

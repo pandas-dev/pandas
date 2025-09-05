@@ -67,7 +67,7 @@ DataFrame reductions preserve extension dtypes
 
 In previous versions of pandas, the results of DataFrame reductions
 (:meth:`DataFrame.sum` :meth:`DataFrame.mean` etc.) had NumPy dtypes, even when the DataFrames
-were of extension dtypes. Pandas can now keep the dtypes when doing reductions over DataFrame
+were of extension dtypes. pandas can now keep the dtypes when doing reductions over DataFrame
 columns with a common dtype (:issue:`52788`).
 
 *Old Behavior*
@@ -721,7 +721,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`Series.str` that did not raise a  ``TypeError`` when iterated (:issue:`54173`)
-- Bug in ``repr`` for :class:`DataFrame`` with string-dtype columns (:issue:`54797`)
+- Bug in ``repr`` for :class:`DataFrame` with string-dtype columns (:issue:`54797`)
 
 Interval
 ^^^^^^^^

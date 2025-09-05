@@ -6,6 +6,7 @@ import pandas as pd
 from pandas import api
 import pandas._testing as tm
 from pandas.api import (
+    executors as api_executors,
     extensions as api_extensions,
     indexers as api_indexers,
     interchange as api_interchange,
@@ -106,6 +107,7 @@ class TestPDApi(Base):
     funcs = [
         "array",
         "bdate_range",
+        "col",
         "concat",
         "crosstab",
         "cut",
@@ -133,7 +135,6 @@ class TestPDApi(Base):
         "show_versions",
         "timedelta_range",
         "unique",
-        "value_counts",
         "wide_to_long",
     ]
 
@@ -153,7 +154,6 @@ class TestPDApi(Base):
         "read_csv",
         "read_excel",
         "read_fwf",
-        "read_gbq",
         "read_hdf",
         "read_html",
         "read_xml",
@@ -169,6 +169,7 @@ class TestPDApi(Base):
         "read_parquet",
         "read_orc",
         "read_spss",
+        "read_iceberg",
     ]
 
     # top-level json funcs
@@ -245,11 +246,13 @@ class TestPDApi(Base):
 
 class TestApi(Base):
     allowed_api_dirs = [
+        "executors",
         "types",
         "extensions",
         "indexers",
         "interchange",
         "typing",
+        "internals",
     ]
     allowed_typing = [
         "DataFrameGroupBy",
@@ -258,15 +261,19 @@ class TestApi(Base):
         "ExpandingGroupby",
         "ExponentialMovingWindow",
         "ExponentialMovingWindowGroupby",
+        "Expression",
+        "FrozenList",
         "JsonReader",
         "NaTType",
         "NAType",
+        "NoDefault",
         "PeriodIndexResamplerGroupby",
         "Resampler",
         "Rolling",
         "RollingGroupby",
         "SeriesGroupBy",
         "StataReader",
+        "SASReader",
         "TimedeltaIndexResamplerGroupby",
         "TimeGrouper",
         "Window",
@@ -293,7 +300,6 @@ class TestApi(Base):
         "is_int64_dtype",
         "is_integer",
         "is_integer_dtype",
-        "is_interval",
         "is_interval_dtype",
         "is_iterator",
         "is_list_like",
@@ -337,6 +343,7 @@ class TestApi(Base):
         "ExtensionArray",
         "ExtensionScalarOpsMixin",
     ]
+    allowed_api_executors = ["BaseExecutionEngine"]
 
     def test_api(self):
         self.check(api, self.allowed_api_dirs)
@@ -355,6 +362,33 @@ class TestApi(Base):
 
     def test_api_extensions(self):
         self.check(api_extensions, self.allowed_api_extensions)
+
+    def test_api_executors(self):
+        self.check(api_executors, self.allowed_api_executors)
+
+
+class TestErrors(Base):
+    def test_errors(self):
+        ignored = ["_CurrentDeprecationWarning", "abc", "ctypes", "cow"]
+        self.check(pd.errors, pd.errors.__all__, ignored=ignored)
+
+
+class TestUtil(Base):
+    def test_util(self):
+        self.check(
+            pd.util,
+            ["hash_array", "hash_pandas_object"],
+            ignored=[
+                "_decorators",
+                "_test_decorators",
+                "_exceptions",
+                "_validators",
+                "capitalize_first_letter",
+                "version",
+                "_print_versions",
+                "_tester",
+            ],
+        )
 
 
 class TestTesting(Base):
@@ -375,9 +409,38 @@ class TestTesting(Base):
             pd.util.foo
 
 
-def test_pandas_array_alias():
-    msg = "PandasArray has been renamed NumpyExtensionArray"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = pd.arrays.PandasArray
-
-    assert res is pd.arrays.NumpyExtensionArray
+def test_set_module():
+    assert pd.DataFrame.__module__ == "pandas"
+    assert pd.CategoricalDtype.__module__ == "pandas"
+    assert pd.PeriodDtype.__module__ == "pandas"
+    assert pd.IntervalDtype.__module__ == "pandas"
+    assert pd.SparseDtype.__module__ == "pandas"
+    assert pd.ArrowDtype.__module__ == "pandas"
+    assert pd.StringDtype.__module__ == "pandas"
+    assert pd.Index.__module__ == "pandas"
+    assert pd.CategoricalIndex.__module__ == "pandas"
+    assert pd.DatetimeIndex.__module__ == "pandas"
+    assert pd.IntervalIndex.__module__ == "pandas"
+    assert pd.MultiIndex.__module__ == "pandas"
+    assert pd.PeriodIndex.__module__ == "pandas"
+    assert pd.RangeIndex.__module__ == "pandas"
+    assert pd.TimedeltaIndex.__module__ == "pandas"
+    assert pd.Period.__module__ == "pandas"
+    assert pd.Timestamp.__module__ == "pandas"
+    assert pd.Timedelta.__module__ == "pandas"
+    assert pd.concat.__module__ == "pandas"
+    assert pd.isna.__module__ == "pandas"
+    assert pd.notna.__module__ == "pandas"
+    assert pd.merge.__module__ == "pandas"
+    assert pd.merge_ordered.__module__ == "pandas"
+    assert pd.merge_asof.__module__ == "pandas"
+    assert pd.read_csv.__module__ == "pandas"
+    assert pd.read_table.__module__ == "pandas"
+    assert pd.read_fwf.__module__ == "pandas"
+    assert pd.Series.__module__ == "pandas"
+    assert pd.date_range.__module__ == "pandas"
+    assert pd.bdate_range.__module__ == "pandas"
+    assert pd.timedelta_range.__module__ == "pandas"
+    assert pd.NamedAgg.__module__ == "pandas"
+    assert api.typing.SeriesGroupBy.__module__ == "pandas.api.typing"
+    assert api.typing.DataFrameGroupBy.__module__ == "pandas.api.typing"

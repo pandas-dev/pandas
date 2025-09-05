@@ -20,6 +20,9 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <Python.h>
 
 #include "datetime.h"
+/* Need to import_array for np_datetime.c (for NumPy 1.x support only) */
+#define PY_ARRAY_UNIQUE_SYMBOL PANDAS_DATETIME_NUMPY
+#include "numpy/ndarrayobject.h"
 #include "pandas/datetime/pd_datetime.h"
 #include "pandas/portable.h"
 
@@ -52,9 +55,23 @@ static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
   out->month = 1;
   out->day = 1;
 
-  out->year = PyLong_AsLong(PyObject_GetAttrString(obj, "year"));
-  out->month = PyLong_AsLong(PyObject_GetAttrString(obj, "month"));
-  out->day = PyLong_AsLong(PyObject_GetAttrString(obj, "day"));
+  tmp = PyObject_GetAttrString(obj, "year");
+  if (tmp == NULL)
+    return -1;
+  out->year = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
+
+  tmp = PyObject_GetAttrString(obj, "month");
+  if (tmp == NULL)
+    return -1;
+  out->month = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
+
+  tmp = PyObject_GetAttrString(obj, "day");
+  if (tmp == NULL)
+    return -1;
+  out->day = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
 
   // TODO(anyone): If we can get PyDateTime_IMPORT to work, we could use
   // PyDateTime_Check here, and less verbose attribute lookups.
@@ -67,10 +84,29 @@ static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
     return 0;
   }
 
-  out->hour = PyLong_AsLong(PyObject_GetAttrString(obj, "hour"));
-  out->min = PyLong_AsLong(PyObject_GetAttrString(obj, "minute"));
-  out->sec = PyLong_AsLong(PyObject_GetAttrString(obj, "second"));
-  out->us = PyLong_AsLong(PyObject_GetAttrString(obj, "microsecond"));
+  tmp = PyObject_GetAttrString(obj, "hour");
+  if (tmp == NULL)
+    return -1;
+  out->hour = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
+
+  tmp = PyObject_GetAttrString(obj, "minute");
+  if (tmp == NULL)
+    return -1;
+  out->min = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
+
+  tmp = PyObject_GetAttrString(obj, "second");
+  if (tmp == NULL)
+    return -1;
+  out->sec = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
+
+  tmp = PyObject_GetAttrString(obj, "microsecond");
+  if (tmp == NULL)
+    return -1;
+  out->us = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
 
   if (PyObject_HasAttrString(obj, "tzinfo")) {
     PyObject *offset = extract_utc_offset(obj);
@@ -189,6 +225,10 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
   return npy_dt;
 }
 
+/* Initializes and exposes a customer datetime C-API from the pandas library
+ * by creating a PyCapsule that stores function pointers, which can be accessed
+ * later by other C code or Cython code that imports the capsule.
+ */
 static int pandas_datetime_exec(PyObject *Py_UNUSED(module)) {
   PyDateTime_IMPORT;
   PandasDateTime_CAPI *capi = PyMem_Malloc(sizeof(PandasDateTime_CAPI));
@@ -242,7 +282,12 @@ static int pandas_datetime_exec(PyObject *Py_UNUSED(module)) {
 }
 
 static PyModuleDef_Slot pandas_datetime_slots[] = {
-    {Py_mod_exec, pandas_datetime_exec}, {0, NULL}};
+    {Py_mod_exec, pandas_datetime_exec},
+#if PY_VERSION_HEX >= 0x030D0000
+    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
+#endif
+    {0, NULL},
+};
 
 static struct PyModuleDef pandas_datetimemodule = {
     PyModuleDef_HEAD_INIT,
@@ -255,5 +300,6 @@ static struct PyModuleDef pandas_datetimemodule = {
 
 PyMODINIT_FUNC PyInit_pandas_datetime(void) {
   PyDateTime_IMPORT;
+  import_array();
   return PyModuleDef_Init(&pandas_datetimemodule);
 }

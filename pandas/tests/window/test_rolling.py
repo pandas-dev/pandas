@@ -10,7 +10,9 @@ from pandas.compat import (
     IS64,
     is_platform_arm,
     is_platform_power,
+    is_platform_riscv64,
 )
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
@@ -21,8 +23,6 @@ from pandas import (
     Timestamp,
     date_range,
     period_range,
-    to_datetime,
-    to_timedelta,
 )
 import pandas._testing as tm
 from pandas.api.indexers import BaseIndexer
@@ -579,7 +579,7 @@ def test_missing_minp_zero_variable():
         [np.nan] * 4,
         index=DatetimeIndex(["2017-01-01", "2017-01-04", "2017-01-06", "2017-01-07"]),
     )
-    result = x.rolling(Timedelta("2d"), min_periods=0).sum()
+    result = x.rolling(Timedelta("2D"), min_periods=0).sum()
     expected = Series(0.0, index=x.index)
     tm.assert_series_equal(result, expected)
 
@@ -594,39 +594,20 @@ def test_multi_index_names():
     assert result.index.names == [None, "1", "2"]
 
 
-def test_rolling_axis_sum(axis):
+def test_rolling_axis_sum():
     # see gh-23372.
     df = DataFrame(np.ones((10, 20)))
-    axis = df._get_axis_number(axis)
-
-    if axis == 0:
-        msg = "The 'axis' keyword in DataFrame.rolling"
-        expected = DataFrame({i: [np.nan] * 2 + [3.0] * 8 for i in range(20)})
-    else:
-        # axis == 1
-        msg = "Support for axis=1 in DataFrame.rolling is deprecated"
-        expected = DataFrame([[np.nan] * 2 + [3.0] * 18] * 10)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.rolling(3, axis=axis).sum()
+    expected = DataFrame({i: [np.nan] * 2 + [3.0] * 8 for i in range(20)})
+    result = df.rolling(3).sum()
     tm.assert_frame_equal(result, expected)
 
 
-def test_rolling_axis_count(axis):
+def test_rolling_axis_count():
     # see gh-26055
     df = DataFrame({"x": range(3), "y": range(3)})
 
-    axis = df._get_axis_number(axis)
-
-    if axis in [0, "index"]:
-        msg = "The 'axis' keyword in DataFrame.rolling"
-        expected = DataFrame({"x": [1.0, 2.0, 2.0], "y": [1.0, 2.0, 2.0]})
-    else:
-        msg = "Support for axis=1 in DataFrame.rolling is deprecated"
-        expected = DataFrame({"x": [1.0, 1.0, 1.0], "y": [2.0, 2.0, 2.0]})
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.rolling(2, axis=axis, min_periods=0).count()
+    expected = DataFrame({"x": [1.0, 2.0, 2.0], "y": [1.0, 2.0, 2.0]})
+    result = df.rolling(2, min_periods=0).count()
     tm.assert_frame_equal(result, expected)
 
 
@@ -639,21 +620,14 @@ def test_readonly_array():
     tm.assert_series_equal(result, expected)
 
 
-def test_rolling_datetime(axis, tz_naive_fixture):
+def test_rolling_datetime(tz_naive_fixture):
     # GH-28192
     tz = tz_naive_fixture
     df = DataFrame(
         {i: [1] * 2 for i in date_range("2019-8-01", "2019-08-03", freq="D", tz=tz)}
     )
 
-    if axis in [0, "index"]:
-        msg = "The 'axis' keyword in DataFrame.rolling"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.T.rolling("2D", axis=axis).sum().T
-    else:
-        msg = "Support for axis=1 in DataFrame.rolling"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.rolling("2D", axis=axis).sum()
+    result = df.T.rolling("2D").sum().T
     expected = DataFrame(
         {
             **{
@@ -788,9 +762,9 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
 def test_iter_rolling_dataframe(df, expected, window, min_periods):
     # GH 11704
     df = DataFrame(df)
-    expected = [DataFrame(values, index=index) for (values, index) in expected]
+    expecteds = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for expected, actual in zip(expected, df.rolling(window, min_periods=min_periods)):
+    for expected, actual in zip(expecteds, df.rolling(window, min_periods=min_periods)):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -833,10 +807,10 @@ def test_iter_rolling_on_dataframe(expected, window):
         }
     )
 
-    expected = [
+    expecteds = [
         DataFrame(values, index=df.loc[index, "C"]) for (values, index) in expected
     ]
-    for expected, actual in zip(expected, df.rolling(window, on="C")):
+    for expected, actual in zip(expecteds, df.rolling(window, on="C")):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -884,9 +858,11 @@ def test_iter_rolling_on_dataframe_unordered():
 )
 def test_iter_rolling_series(ser, expected, window, min_periods):
     # GH 11704
-    expected = [Series(values, index=index) for (values, index) in expected]
+    expecteds = [Series(values, index=index) for (values, index) in expected]
 
-    for expected, actual in zip(expected, ser.rolling(window, min_periods=min_periods)):
+    for expected, actual in zip(
+        expecteds, ser.rolling(window, min_periods=min_periods)
+    ):
         tm.assert_series_equal(actual, expected)
 
 
@@ -932,11 +908,11 @@ def test_iter_rolling_datetime(expected, expected_index, window):
     # GH 11704
     ser = Series(range(5), index=date_range(start="2020-01-01", periods=5, freq="D"))
 
-    expected = [
+    expecteds = [
         Series(values, index=idx) for (values, idx) in zip(expected, expected_index)
     ]
 
-    for expected, actual in zip(expected, ser.rolling(window)):
+    for expected, actual in zip(expecteds, ser.rolling(window)):
         tm.assert_series_equal(actual, expected)
 
 
@@ -1066,75 +1042,6 @@ def test_rolling_numerical_too_large_numbers():
 
 
 @pytest.mark.parametrize(
-    ("func", "value"),
-    [("sum", 2.0), ("max", 1.0), ("min", 1.0), ("mean", 1.0), ("median", 1.0)],
-)
-def test_rolling_mixed_dtypes_axis_1(func, value):
-    # GH: 20649
-    df = DataFrame(1, index=[1, 2], columns=["a", "b", "c"])
-    df["c"] = 1.0
-    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        roll = df.rolling(window=2, min_periods=1, axis=1)
-    result = getattr(roll, func)()
-    expected = DataFrame(
-        {"a": [1.0, 1.0], "b": [value, value], "c": [value, value]},
-        index=[1, 2],
-    )
-    tm.assert_frame_equal(result, expected)
-
-
-def test_rolling_axis_one_with_nan():
-    # GH: 35596
-    df = DataFrame(
-        [
-            [0, 1, 2, 4, np.nan, np.nan, np.nan],
-            [0, 1, 2, np.nan, np.nan, np.nan, np.nan],
-            [0, 2, 2, np.nan, 2, np.nan, 1],
-        ]
-    )
-    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.rolling(window=7, min_periods=1, axis="columns").sum()
-    expected = DataFrame(
-        [
-            [0.0, 1.0, 3.0, 7.0, 7.0, 7.0, 7.0],
-            [0.0, 1.0, 3.0, 3.0, 3.0, 3.0, 3.0],
-            [0.0, 2.0, 4.0, 4.0, 6.0, 6.0, 7.0],
-        ]
-    )
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "value",
-    ["test", to_datetime("2019-12-31"), to_timedelta("1 days 06:05:01.00003")],
-)
-def test_rolling_axis_1_non_numeric_dtypes(value):
-    # GH: 20649
-    df = DataFrame({"a": [1, 2]})
-    df["b"] = value
-    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.rolling(window=2, min_periods=1, axis=1).sum()
-    expected = DataFrame({"a": [1.0, 2.0]})
-    tm.assert_frame_equal(result, expected)
-
-
-def test_rolling_on_df_transposed():
-    # GH: 32724
-    df = DataFrame({"A": [1, None], "B": [4, 5], "C": [7, 8]})
-    expected = DataFrame({"A": [1.0, np.nan], "B": [5.0, 5.0], "C": [11.0, 13.0]})
-    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.rolling(min_periods=1, window=2, axis=1).sum()
-    tm.assert_frame_equal(result, expected)
-
-    result = df.T.rolling(min_periods=1, window=2).sum().T
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
     ("index", "window"),
     [
         (
@@ -1176,7 +1083,7 @@ def test_rolling_sem(frame_or_series):
 
 
 @pytest.mark.xfail(
-    is_platform_arm() or is_platform_power(),
+    is_platform_arm() or is_platform_power() or is_platform_riscv64(),
     reason="GH 38921",
 )
 @pytest.mark.parametrize(
@@ -1247,7 +1154,7 @@ def test_timeoffset_as_window_parameter_for_corr(unit):
         index=dti,
     )
 
-    res = df.rolling(window="3d").corr()
+    res = df.rolling(window="3D").corr()
 
     tm.assert_frame_equal(exp, res)
 
@@ -1420,6 +1327,82 @@ def test_rolling_corr_timedelta_index(index, window):
     tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values,method,expected",
+    [
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "first",
+            [float("nan"), float("nan"), 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "first",
+            [float("nan")] * 10,
+        ),
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "last",
+            [float("nan"), float("nan"), 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "last",
+            [float("nan")] * 10,
+        ),
+    ],
+)
+def test_rolling_first_last(values, method, expected):
+    # GH#33155
+    x = Series(values)
+    result = getattr(x.rolling(3), method)()
+    expected = Series(expected)
+    tm.assert_almost_equal(result, expected)
+
+    x = DataFrame({"A": values})
+    result = getattr(x.rolling(3), method)()
+    expected = DataFrame({"A": expected})
+    tm.assert_almost_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values,method,expected",
+    [
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "first",
+            [1.0, 1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "first",
+            [1.0, 1.0, 1.0, 3.0, 3.0, 5.0, 5.0, 7.0, 7.0, 9.0],
+        ),
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "last",
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "last",
+            [1.0, 1.0, 3.0, 3.0, 5.0, 5.0, 7.0, 7.0, 9.0, 9.0],
+        ),
+    ],
+)
+def test_rolling_first_last_no_minp(values, method, expected):
+    # GH#33155
+    x = Series(values)
+    result = getattr(x.rolling(3, min_periods=0), method)()
+    expected = Series(expected)
+    tm.assert_almost_equal(result, expected)
+
+    x = DataFrame({"A": values})
+    result = getattr(x.rolling(3, min_periods=0), method)()
+    expected = DataFrame({"A": expected})
+    tm.assert_almost_equal(result, expected)
+
+
 def test_groupby_rolling_nan_included():
     # GH 35542
     data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
@@ -1474,17 +1457,20 @@ def test_invalid_method():
         Series(range(1)).rolling(1, method="foo")
 
 
-@pytest.mark.parametrize("window", [1, "1d"])
-def test_rolling_descending_date_order_with_offset(window, frame_or_series):
+def test_rolling_descending_date_order_with_offset(frame_or_series):
     # GH#40002
-    idx = date_range(start="2020-01-01", end="2020-01-03", freq="1d")
-    obj = frame_or_series(range(1, 4), index=idx)
-    result = obj.rolling("1d", closed="left").sum()
+    msg = "'d' is deprecated and will be removed in a future version."
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        idx = date_range(start="2020-01-01", end="2020-01-03", freq="1d")
+        obj = frame_or_series(range(1, 4), index=idx)
+        result = obj.rolling("1d", closed="left").sum()
+
     expected = frame_or_series([np.nan, 1, 2], index=idx)
     tm.assert_equal(result, expected)
 
-    result = obj.iloc[::-1].rolling("1d", closed="left").sum()
-    idx = date_range(start="2020-01-03", end="2020-01-01", freq="-1d")
+    result = obj.iloc[::-1].rolling("1D", closed="left").sum()
+    idx = date_range(start="2020-01-03", end="2020-01-01", freq="-1D")
     expected = frame_or_series([np.nan, 3, 2], index=idx)
     tm.assert_equal(result, expected)
 
@@ -1576,56 +1562,6 @@ def test_rolling_zero_window():
     tm.assert_series_equal(result, expected)
 
 
-def test_rolling_float_dtype(float_numpy_dtype):
-    # GH#42452
-    df = DataFrame({"A": range(5), "B": range(10, 15)}, dtype=float_numpy_dtype)
-    expected = DataFrame(
-        {"A": [np.nan] * 5, "B": range(10, 20, 2)},
-        dtype=float_numpy_dtype,
-    )
-    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.rolling(2, axis=1).sum()
-    tm.assert_frame_equal(result, expected, check_dtype=False)
-
-
-def test_rolling_numeric_dtypes():
-    # GH#41779
-    df = DataFrame(np.arange(40).reshape(4, 10), columns=list("abcdefghij")).astype(
-        {
-            "a": "float16",
-            "b": "float32",
-            "c": "float64",
-            "d": "int8",
-            "e": "int16",
-            "f": "int32",
-            "g": "uint8",
-            "h": "uint16",
-            "i": "uint32",
-            "j": "uint64",
-        }
-    )
-    msg = "Support for axis=1 in DataFrame.rolling is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.rolling(window=2, min_periods=1, axis=1).min()
-    expected = DataFrame(
-        {
-            "a": range(0, 40, 10),
-            "b": range(0, 40, 10),
-            "c": range(1, 40, 10),
-            "d": range(2, 40, 10),
-            "e": range(3, 40, 10),
-            "f": range(4, 40, 10),
-            "g": range(5, 40, 10),
-            "h": range(6, 40, 10),
-            "i": range(7, 40, 10),
-            "j": range(8, 40, 10),
-        },
-        dtype="float64",
-    )
-    tm.assert_frame_equal(result, expected)
-
-
 @pytest.mark.parametrize("window", [1, 3, 10, 20])
 @pytest.mark.parametrize("method", ["min", "max", "average"])
 @pytest.mark.parametrize("pct", [True, False])
@@ -1647,6 +1583,43 @@ def test_rank(window, method, pct, ascending, test_data):
         lambda x: x.rank(method=method, pct=pct, ascending=ascending).iloc[-1]
     )
     result = ser.rolling(window).rank(method=method, pct=pct, ascending=ascending)
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("window", [1, 3, 10, 20])
+@pytest.mark.parametrize("test_data", ["default", "duplicates", "nans", "precision"])
+def test_nunique(window, test_data):
+    length = 20
+    if test_data == "default":
+        ser = Series(data=np.random.default_rng(2).random(length))
+    elif test_data == "duplicates":
+        ser = Series(data=np.random.default_rng(2).choice(3, length))
+    elif test_data == "nans":
+        ser = Series(
+            data=np.random.default_rng(2).choice(
+                [1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length
+            )
+        )
+    elif test_data == "precision":
+        ser = Series(
+            data=[
+                0.3,
+                0.1 * 3,  # Not necessarily exactly 0.3
+                0.6,
+                0.2 * 3,  # Not necessarily exactly 0.6
+                0.9,
+                0.3 * 3,  # Not necessarily exactly 0.9
+                0.5,
+                0.1 * 5,  # Not necessarily exactly 0.5
+                0.8,
+                0.2 * 4,  # Not necessarily exactly 0.8
+            ],
+            dtype=np.float64,
+        )
+
+    expected = ser.rolling(window).apply(lambda x: x.nunique())
+    result = ser.rolling(window).nunique()
 
     tm.assert_series_equal(result, expected)
 
@@ -1693,12 +1666,11 @@ def test_rolling_quantile_interpolation_options(quantile, interpolation, data):
 
     if np.isnan(q1):
         assert np.isnan(q2)
+    elif not IS64:
+        # Less precision on 32-bit
+        assert np.allclose([q1], [q2], rtol=1e-07, atol=0)
     else:
-        if not IS64:
-            # Less precision on 32-bit
-            assert np.allclose([q1], [q2], rtol=1e-07, atol=0)
-        else:
-            assert q1 == q2
+        assert q1 == q2
 
 
 def test_invalid_quantile_value():
@@ -1975,3 +1947,66 @@ def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     df.index = df.index.as_unit("ns")
 
     tm.assert_frame_equal(ref_df, df)
+
+
+class PrescribedWindowIndexer(BaseIndexer):
+    def __init__(self, start, end):
+        self._start = start
+        self._end = end
+        super().__init__()
+
+    def get_window_bounds(
+        self, num_values=None, min_periods=None, center=None, closed=None, step=None
+    ):
+        if num_values is None:
+            num_values = len(self._start)
+        start = np.clip(self._start, 0, num_values)
+        end = np.clip(self._end, 0, num_values)
+        return start, end
+
+
+class TestMinMax:
+    @pytest.mark.parametrize(
+        "is_max, has_nan, exp_list",
+        [
+            (True, False, [3.0, 5.0, 2.0, 5.0, 1.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
+            (True, True, [3.0, 4.0, 2.0, 4.0, 1.0, 4.0, 6.0, 7.0, 7.0, 9.0]),
+            (False, False, [3.0, 2.0, 2.0, 1.0, 1.0, 0.0, 0.0, 0.0, 7.0, 0.0]),
+            (False, True, [3.0, 2.0, 2.0, 1.0, 1.0, 1.0, 6.0, 6.0, 7.0, 1.0]),
+        ],
+    )
+    def test_minmax(self, is_max, has_nan, exp_list):
+        nan_idx = [0, 5, 8]
+        df = DataFrame(
+            {
+                "data": [5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 6.0, 7.0, 8.0, 9.0],
+                "start": [2, 0, 3, 0, 4, 0, 5, 5, 7, 3],
+                "end": [3, 4, 4, 5, 5, 6, 7, 8, 9, 10],
+            }
+        )
+        if has_nan:
+            df.loc[nan_idx, "data"] = np.nan
+        expected = Series(exp_list, name="data")
+        r = df.data.rolling(
+            PrescribedWindowIndexer(df.start.to_numpy(), df.end.to_numpy())
+        )
+        if is_max:
+            result = r.max()
+        else:
+            result = r.min()
+
+        tm.assert_series_equal(result, expected)
+
+    def test_wrong_order(self):
+        start = np.array(range(5), dtype=np.int64)
+        end = start + 1
+        end[3] = end[2]
+        start[3] = start[2] - 1
+
+        df = DataFrame({"data": start * 1.0, "start": start, "end": end})
+
+        r = df.data.rolling(PrescribedWindowIndexer(start, end))
+        with pytest.raises(
+            ValueError, match="Start/End ordering requirement is violated at index 3"
+        ):
+            r.max()

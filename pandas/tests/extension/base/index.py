@@ -1,6 +1,7 @@
 """
 Tests for Indexes backed by arbitrary ExtensionArrays.
 """
+
 import pandas as pd
 
 

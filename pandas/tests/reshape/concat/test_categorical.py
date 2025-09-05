@@ -59,9 +59,7 @@ class TestCategoricalConcat:
         num = Series([1, 2, 3])
         df = pd.concat([Series(cat), obj, num], axis=1, keys=index)
 
-        result = df.dtypes == (
-            object if not using_infer_string else "string[pyarrow_numpy]"
-        )
+        result = df.dtypes == (object if not using_infer_string else "str")
         expected = Series([False, True, False], index=index)
         tm.assert_series_equal(result, expected)
 
@@ -217,7 +215,7 @@ class TestCategoricalConcat:
         dfx = pd.concat([df1, df2])
         tm.assert_index_equal(df["grade"].cat.categories, dfx["grade"].cat.categories)
 
-        dfa = df1._append(df2)
+        dfa = df1._append_internal(df2)
         tm.assert_index_equal(df["grade"].cat.categories, dfa["grade"].cat.categories)
 
     def test_categorical_index_upcast(self):

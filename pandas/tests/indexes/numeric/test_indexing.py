@@ -479,8 +479,7 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         msg = (
-            "When allow_fill=True and fill_value is not None, "
-            "all indices must be >= -1"
+            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
         )
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
@@ -586,10 +585,10 @@ class TestSliceLocs:
 
     def test_slice_locs_na_raises(self):
         index = Index([np.nan, 1, 2])
-        with pytest.raises(KeyError, match=""):
+        with pytest.raises(KeyError, match="1.5"):
             index.slice_locs(start=1.5)
 
-        with pytest.raises(KeyError, match=""):
+        with pytest.raises(KeyError, match="1.5"):
             index.slice_locs(end=1.5)
 
 

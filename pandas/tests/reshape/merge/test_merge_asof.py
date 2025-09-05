@@ -2,7 +2,6 @@ import datetime
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas.util._test_decorators as td
 
@@ -2071,7 +2070,7 @@ class TestAsOfMerge:
                     start=to_datetime("2016-01-02"),
                     freq="D",
                     periods=5,
-                    tz=pytz.timezone("UTC"),
+                    tz=datetime.UTC,
                     unit=unit,
                 ),
                 "value1": np.arange(5),
@@ -2083,7 +2082,7 @@ class TestAsOfMerge:
                     start=to_datetime("2016-01-01"),
                     freq="D",
                     periods=5,
-                    tz=pytz.timezone("UTC"),
+                    tz=datetime.UTC,
                     unit=unit,
                 ),
                 "value2": list("ABCDE"),
@@ -2097,7 +2096,7 @@ class TestAsOfMerge:
                     start=to_datetime("2016-01-02"),
                     freq="D",
                     periods=5,
-                    tz=pytz.timezone("UTC"),
+                    tz=datetime.UTC,
                     unit=unit,
                 ),
                 "value1": np.arange(5),
@@ -3116,7 +3115,7 @@ class TestAsOfMerge:
             else:
                 merge_asof(df, df_null, on="a")
 
-    def test_by_nullable(self, any_numeric_ea_dtype):
+    def test_by_nullable(self, any_numeric_ea_dtype, using_infer_string):
         # Note: this test passes if instead of using pd.array we use
         #  np.array([np.nan, 1]).  Other than that, I (@jbrockmendel)
         #  have NO IDEA what the expected behavior is.
@@ -3158,6 +3157,8 @@ class TestAsOfMerge:
             }
         )
         expected["value_y"] = np.array([np.nan, np.nan, np.nan], dtype=object)
+        if using_infer_string:
+            expected["value_y"] = expected["value_y"].astype("str")
         tm.assert_frame_equal(result, expected)
 
     def test_merge_by_col_tz_aware(self):
@@ -3183,7 +3184,7 @@ class TestAsOfMerge:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_by_mixed_tz_aware(self):
+    def test_by_mixed_tz_aware(self, using_infer_string):
         # GH 26649
         left = pd.DataFrame(
             {
@@ -3207,6 +3208,8 @@ class TestAsOfMerge:
             columns=["by_col1", "by_col2", "on_col", "value_x"],
         )
         expected["value_y"] = np.array([np.nan], dtype=object)
+        if using_infer_string:
+            expected["value_y"] = expected["value_y"].astype("str")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["float64", "int16", "m8[ns]", "M8[us]"])

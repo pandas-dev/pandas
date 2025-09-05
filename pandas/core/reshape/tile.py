@@ -1,12 +1,12 @@
 """
 Quantilization functions and related stuff
 """
+
 from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
 )
 
@@ -43,6 +43,8 @@ import pandas.core.algorithms as algos
 from pandas.core.arrays.datetimelike import dtype_to_unit
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         DtypeObj,
         IntervalLeftRight,
@@ -71,7 +73,7 @@ def cut(
 
     Parameters
     ----------
-    x : array-like
+    x : 1d ndarray or Series
         The input array to be binned. Must be 1-dimensional.
     bins : int, sequence of scalars, or IntervalIndex
         The criteria to bin by.
@@ -124,7 +126,7 @@ def cut(
           Categorical for all other inputs. The values stored within
           are whatever the type in the sequence is.
 
-        * False : returns an ndarray of integers.
+        * False : returns a 1d ndarray or Series of integers.
 
     bins : numpy.ndarray or IntervalIndex.
         The computed or specified bins. Only returned when `retbins=True`.
@@ -140,11 +142,16 @@ def cut(
         fixed set of values.
     Series : One-dimensional array with axis labels (including time series).
     IntervalIndex : Immutable Index implementing an ordered, sliceable set.
+    numpy.histogram_bin_edges: Function to calculate only the edges of the bins
+        used by the histogram function.
 
     Notes
     -----
     Any NA values will be NA in the result. Out of bounds values will be NA in
     the resulting Series or Categorical object.
+
+    ``numpy.histogram_bin_edges`` can be used along with cut to calculate bins according
+    to some predefined methods.
 
     Reference :ref:`the user guide <reshaping.tile.cut>` for more examples.
 
@@ -166,18 +173,16 @@ def cut(
     Discovers the same bins, but assign them specific labels. Notice that
     the returned Categorical's categories are `labels` and is ordered.
 
-    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]),
-    ...        3, labels=["bad", "medium", "good"])
+    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3, labels=["bad", "medium", "good"])
     ['bad', 'good', 'medium', 'medium', 'good', 'bad']
-    Categories (3, object): ['bad' < 'medium' < 'good']
+    Categories (3, str): ['bad' < 'medium' < 'good']
 
     ``ordered=False`` will result in unordered categories when labels are passed.
     This parameter can be used to allow non-unique labels:
 
-    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3,
-    ...        labels=["B", "A", "B"], ordered=False)
+    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3, labels=["B", "A", "B"], ordered=False)
     ['B', 'B', 'A', 'A', 'B', 'B']
-    Categories (2, object): ['A', 'B']
+    Categories (2, str): ['A', 'B']
 
     ``labels=False`` implies you just want the bins back.
 
@@ -186,8 +191,7 @@ def cut(
 
     Passing a Series as an input returns a Series with categorical dtype:
 
-    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]),
-    ...               index=['a', 'b', 'c', 'd', 'e'])
+    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]), index=["a", "b", "c", "d", "e"])
     >>> pd.cut(s, 3)
     ... # doctest: +ELLIPSIS
     a    (1.992, 4.667]
@@ -201,8 +205,7 @@ def cut(
     Passing a Series as an input returns a Series with mapping value.
     It is used to map numerically to intervals based on bins.
 
-    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]),
-    ...               index=['a', 'b', 'c', 'd', 'e'])
+    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]), index=["a", "b", "c", "d", "e"])
     >>> pd.cut(s, [0, 2, 4, 6, 8, 10], labels=False, retbins=True, right=False)
     ... # doctest: +ELLIPSIS
     (a    1.0
@@ -215,8 +218,14 @@ def cut(
 
     Use `drop` optional when bins is not unique
 
-    >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
-    ...        right=False, duplicates='drop')
+    >>> pd.cut(
+    ...     s,
+    ...     [0, 2, 4, 6, 10, 10],
+    ...     labels=False,
+    ...     retbins=True,
+    ...     right=False,
+    ...     duplicates="drop",
+    ... )
     ... # doctest: +ELLIPSIS
     (a    1.0
      b    2.0
@@ -235,6 +244,16 @@ def cut(
     >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
     [NaN, (0.0, 1.0], NaN, (2.0, 3.0], (4.0, 5.0]]
     Categories (3, interval[int64, right]): [(0, 1] < (2, 3] < (4, 5]]
+
+    Using np.histogram_bin_edges with cut
+
+    >>> pd.cut(
+    ...     np.array([1, 7, 5, 4]),
+    ...     bins=np.histogram_bin_edges(np.array([1, 7, 5, 4]), bins="auto"),
+    ... )
+    ... # doctest: +ELLIPSIS
+    [NaN, (5.0, 7.0], (3.0, 5.0], (3.0, 5.0]]
+    Categories (3, interval[float64, right]): [(1.0, 3.0] < (3.0, 5.0] < (5.0, 7.0]]
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
@@ -286,6 +305,7 @@ def qcut(
     Parameters
     ----------
     x : 1d ndarray or Series
+        Input Numpy array or pandas Series object to be discretized.
     q : int or list-like of float
         Number of quantiles. 10 for deciles, 4 for quartiles, etc. Alternately
         array of quantiles, e.g. [0, .25, .5, .75, 1.] for quartiles.
@@ -310,6 +330,11 @@ def qcut(
     bins : ndarray of floats
         Returned only if `retbins` is True.
 
+    See Also
+    --------
+    cut : Bin values into discrete intervals.
+    Series.quantile : Return value at the given quantile.
+
     Notes
     -----
     Out of bounds values will be NA in the resulting Categorical object
@@ -324,7 +349,7 @@ def qcut(
     >>> pd.qcut(range(5), 3, labels=["good", "medium", "bad"])
     ... # doctest: +SKIP
     [good, good, medium, bad, bad]
-    Categories (3, object): [good < medium < bad]
+    Categories (3, str): [good < medium < bad]
 
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3])
@@ -333,7 +358,16 @@ def qcut(
     x_idx = _preprocess_for_cut(x)
     x_idx, _ = _coerce_to_type(x_idx)
 
-    quantiles = np.linspace(0, 1, q + 1) if is_integer(q) else q
+    if is_integer(q):
+        quantiles = np.linspace(0, 1, q + 1)
+        # Round up rather than to nearest if not representable in base 2
+        np.putmask(
+            quantiles,
+            q * quantiles != np.arange(q + 1),
+            np.nextafter(quantiles, 1),
+        )
+    else:
+        quantiles = q
 
     bins = x_idx.to_series().dropna().quantile(quantiles)
 
@@ -441,7 +475,7 @@ def _bins_to_cuts(
     if len(unique_bins) < len(bins) and len(bins) != 2:
         if duplicates == "raise":
             raise ValueError(
-                f"Bin edges must be unique: {repr(bins)}.\n"
+                f"Bin edges must be unique: {bins!r}.\n"
                 f"You can drop duplicate edges by setting the 'duplicates' kwarg"
             )
         bins = unique_bins
@@ -548,7 +582,7 @@ def _format_labels(
     precision: int,
     right: bool = True,
     include_lowest: bool = False,
-):
+) -> IntervalIndex:
     """based on the dtype, return our labels"""
     closed: IntervalLeftRight = "right" if right else "left"
 

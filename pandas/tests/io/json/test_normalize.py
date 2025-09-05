@@ -172,7 +172,7 @@ class TestJSONNormalize:
     )
     def test_accepted_input(self, data, record_path, exception_type):
         if exception_type is not None:
-            with pytest.raises(exception_type, match=""):
+            with pytest.raises(exception_type, match="^$"):
                 json_normalize(data, record_path=record_path)
         else:
             result = json_normalize(data, record_path=record_path)
@@ -516,7 +516,7 @@ class TestJSONNormalize:
             ],
             record_path=["info"],
         )
-        expected = DataFrame({"i": 2}, index=[0])
+        expected = DataFrame({"i": 2}, index=range(1))
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("value", ["false", "true", "{}", "1", '"text"'])
@@ -560,6 +560,14 @@ class TestJSONNormalize:
         expected = DataFrame([[4, 10, 0]], columns=["gg", "_id_a1", "_id_l2_l3"])
 
         tm.assert_frame_equal(result, expected)
+
+    def test_series_index(self, state_data):
+        idx = Index([7, 8])
+        series = Series(state_data, index=idx)
+        result = json_normalize(series)
+        tm.assert_index_equal(result.index, idx)
+        result = json_normalize(series, "counties")
+        tm.assert_index_equal(result.index, idx.repeat([3, 2]))
 
 
 class TestNestedToRecord:
@@ -891,6 +899,7 @@ class TestNestedToRecord:
                 "elements.a": [1.0, np.nan, np.nan],
                 "elements.b": [np.nan, 2.0, np.nan],
                 "elements.c": [np.nan, np.nan, 3.0],
-            }
+            },
+            index=[1, 2, 3],
         )
         tm.assert_frame_equal(result, expected)

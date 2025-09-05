@@ -8,7 +8,7 @@ Options and settings
 
 Overview
 --------
-pandas has an options API configure and customize global behavior related to
+pandas has an options API to configure and customize global behavior related to
 :class:`DataFrame` display, data behavior and more.
 
 Options have a full "dotted-style", case-insensitive name (e.g. ``display.max_rows``).

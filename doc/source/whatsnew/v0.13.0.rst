@@ -172,7 +172,7 @@ API changes
   statistical mode(s) by axis/Series. (:issue:`5367`)
 
 - Chained assignment will now by default warn if the user is assigning to a copy. This can be changed
-  with the option ``mode.chained_assignment``, allowed options are ``raise/warn/None``. See :ref:`the docs<indexing.view_versus_copy>`.
+  with the option ``mode.chained_assignment``, allowed options are ``raise/warn/None``.
 
   .. ipython:: python
 
@@ -184,7 +184,7 @@ API changes
   .. ipython:: python
      :okwarning:
 
-     dfc.loc[0]['A'] = 1111
+     dfc.loc[0]['B'] = 1111
 
   ::
 
@@ -198,7 +198,7 @@ API changes
 
   .. ipython:: python
 
-     dfc.loc[0, 'A'] = 11
+     dfc.loc[0, 'B'] = 1111
      dfc
 
 - ``Panel.reindex`` has the following call signature ``Panel.reindex(items=None, major_axis=None, minor_axis=None, **kwargs)``
@@ -345,7 +345,6 @@ Float64Index API change
   .. ipython:: python
      :okwarning:
 
-     s[2:4]
      s.loc[2:4]
      s.iloc[2:4]
 
@@ -524,13 +523,25 @@ Enhancements
   Using the new top-level ``to_timedelta``, you can convert a scalar or array from the standard
   timedelta format (produced by ``to_csv``) into a timedelta type (``np.timedelta64`` in ``nanoseconds``).
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     pd.to_timedelta('1 days 06:05:01.00003')
-     pd.to_timedelta('15.5us')
-     pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
-     pd.to_timedelta(np.arange(5), unit='s')
-     pd.to_timedelta(np.arange(5), unit='d')
+     In [53]: pd.to_timedelta('1 days 06:05:01.00003')
+     Out[53]: Timedelta('1 days 06:05:01.000030')
+
+     In [54]: pd.to_timedelta('15.5us')
+     Out[54]: Timedelta('0 days 00:00:00.000015500')
+
+     In [55]: pd.to_timedelta(['1 days 06:05:01.00003', '15.5us', 'nan'])
+     Out[55]: TimedeltaIndex(['1 days 06:05:01.000030', '0 days 00:00:00.000015500', NaT], dtype='timedelta64[ns]', freq=None)
+
+     In [56]: pd.to_timedelta(np.arange(5), unit='s')
+     Out[56]:
+     TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
+                     '0 days 00:00:03', '0 days 00:00:04'],
+                    dtype='timedelta64[ns]', freq=None)
+
+     In [57]: pd.to_timedelta(np.arange(5), unit='d')
+     Out[57]: TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'], dtype='timedelta64[ns]', freq=None)
 
   A Series of dtype ``timedelta64[ns]`` can now be divided by another
   ``timedelta64[ns]`` object, or astyped to yield a ``float64`` dtyped Series. This

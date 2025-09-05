@@ -17,8 +17,6 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
-
 import pandas as pd
 from pandas import SparseDtype
 import pandas._testing as tm
@@ -102,6 +100,7 @@ class TestSparseArray(base.ExtensionTests):
     def _supports_reduction(self, obj, op_name: str) -> bool:
         return True
 
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
         if all_numeric_reductions in [
             "prod",
@@ -126,6 +125,7 @@ class TestSparseArray(base.ExtensionTests):
 
         super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         if all_numeric_reductions in [
             "prod",
@@ -234,16 +234,7 @@ class TestSparseArray(base.ExtensionTests):
         expected = SparseArray([False, False], fill_value=False, dtype=expected_dtype)
         tm.assert_equal(sarr.isna(), expected)
 
-    def test_fillna_limit_backfill(self, data_missing):
-        warns = (PerformanceWarning, FutureWarning)
-        with tm.assert_produces_warning(warns, check_stacklevel=False):
-            super().test_fillna_limit_backfill(data_missing)
-
     def test_fillna_no_op_returns_copy(self, data, request):
-        if np.isnan(data.fill_value):
-            request.applymarker(
-                pytest.mark.xfail(reason="returns array with different fill value")
-            )
         super().test_fillna_no_op_returns_copy(data)
 
     @pytest.mark.xfail(reason="Unsupported")
@@ -273,9 +264,19 @@ class TestSparseArray(base.ExtensionTests):
 
         tm.assert_frame_equal(result, expected)
 
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
+
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
+
     _combine_le_expected_dtype = "Sparse[bool]"
 
-    def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
+    def test_fillna_copy_frame(self, data_missing):
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr}, copy=False)
 
@@ -283,24 +284,17 @@ class TestSparseArray(base.ExtensionTests):
         result = df.fillna(filled_val)
 
         if hasattr(df._mgr, "blocks"):
-            if using_copy_on_write:
-                assert df.values.base is result.values.base
-            else:
-                assert df.values.base is not result.values.base
+            assert df.values.base is result.values.base
         assert df.A._values.to_dense() is arr.to_dense()
 
-    def test_fillna_copy_series(self, data_missing, using_copy_on_write):
+    def test_fillna_copy_series(self, data_missing):
         arr = data_missing.take([1, 1])
         ser = pd.Series(arr, copy=False)
 
         filled_val = ser[0]
         result = ser.fillna(filled_val)
 
-        if using_copy_on_write:
-            assert ser._values is result._values
-
-        else:
-            assert ser._values is not result._values
+        assert ser._values is result._values
         assert ser._values.to_dense() is arr.to_dense()
 
     @pytest.mark.xfail(reason="Not Applicable")
@@ -329,8 +323,8 @@ class TestSparseArray(base.ExtensionTests):
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
         tm.assert_series_equal(result, expected)
 
-    def test_searchsorted(self, data_for_sorting, as_series):
-        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
+    def test_searchsorted(self, performance_warning, data_for_sorting, as_series):
+        with tm.assert_produces_warning(performance_warning, check_stacklevel=False):
             super().test_searchsorted(data_for_sorting, as_series)
 
     def test_shift_0_periods(self, data):
@@ -346,10 +340,15 @@ class TestSparseArray(base.ExtensionTests):
         self._check_unsupported(data)
         super().test_argmin_argmax_all_na(method, data, na_value)
 
+    @pytest.mark.fails_arm_wheels
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
     def test_equals(self, data, na_value, as_series, box):
         self._check_unsupported(data)
         super().test_equals(data, na_value, as_series, box)
+
+    @pytest.mark.fails_arm_wheels
+    def test_equals_same_data_different_object(self, data):
+        super().test_equals_same_data_different_object(data)
 
     @pytest.mark.parametrize(
         "func, na_action, expected",
@@ -366,6 +365,7 @@ class TestSparseArray(base.ExtensionTests):
         result = data.map(func, na_action=na_action)
         tm.assert_extension_array_equal(result, expected)
 
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map_raises(self, data, na_action):
         # GH52096
         msg = "fill value in the sparse values not supported"
@@ -406,6 +406,8 @@ class TestSparseArray(base.ExtensionTests):
             "rmul",
             "floordiv",
             "rfloordiv",
+            "truediv",
+            "rtruediv",
             "pow",
             "mod",
             "rmod",
@@ -486,6 +488,7 @@ class TestSparseArray(base.ExtensionTests):
         super().test_array_repr(data, size)
 
     @pytest.mark.xfail(reason="result does not match expected")
+    @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
 

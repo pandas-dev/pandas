@@ -3,6 +3,7 @@ Collection of tests asserting things that should be true for
 any index subclass except for MultiIndex. Makes use of the `index_flat`
 fixture defined in pandas/conftest.py.
 """
+
 from copy import (
     copy,
     deepcopy,
@@ -13,7 +14,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
-from pandas.compat.numpy import np_version_gte1p25
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -32,7 +32,7 @@ import pandas._testing as tm
 
 class TestCommon:
     @pytest.mark.parametrize("name", [None, "new_name"])
-    def test_to_frame(self, name, index_flat, using_copy_on_write):
+    def test_to_frame(self, name, index_flat):
         # see GH#15230, GH#22580
         idx = index_flat
 
@@ -46,8 +46,6 @@ class TestCommon:
         assert df.index is idx
         assert len(df.columns) == 1
         assert df.columns[0] == idx_name
-        if not using_copy_on_write:
-            assert df[idx_name].values is not idx.values
 
         df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
@@ -224,7 +222,9 @@ class TestCommon:
             pass
 
         result = idx.unique()
-        tm.assert_index_equal(result, idx_unique)
+        tm.assert_index_equal(
+            result, idx_unique, exact=not isinstance(index, RangeIndex)
+        )
 
         # nans:
         if not index._can_hold_na:
@@ -271,9 +271,7 @@ class TestCommon:
             # all values are the same, expected_right should be length
             expected_right = len(index)
 
-        # test _searchsorted_monotonic in all cases
-        # test searchsorted only for increasing
-        if index.is_monotonic_increasing:
+        if index.is_monotonic_increasing or index.is_monotonic_decreasing:
             ssm_left = index._searchsorted_monotonic(value, side="left")
             assert expected_left == ssm_left
 
@@ -285,13 +283,6 @@ class TestCommon:
 
             ss_right = index.searchsorted(value, side="right")
             assert expected_right == ss_right
-
-        elif index.is_monotonic_decreasing:
-            ssm_left = index._searchsorted_monotonic(value, side="left")
-            assert expected_left == ssm_left
-
-            ssm_right = index._searchsorted_monotonic(value, side="right")
-            assert expected_right == ssm_right
         else:
             # non-monotonic should raise.
             msg = "index must be monotonic increasing or decreasing"
@@ -389,13 +380,11 @@ class TestCommon:
         else:
             index.name = "idx"
 
-        warn = None
-        if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
-            # imaginary components discarded
-            if np_version_gte1p25:
-                warn = np.exceptions.ComplexWarning
-            else:
-                warn = np.ComplexWarning
+        warn = (
+            np.exceptions.ComplexWarning
+            if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]
+            else None
+        )
 
         is_pyarrow_str = str(index.dtype) == "string[pyarrow]" and dtype == "category"
         try:
@@ -480,6 +469,17 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
     tm.assert_index_equal(result, expected)
 
 
+def test_sort_values_natsort_key():
+    # GH#56081
+    def split_convert(s):
+        return tuple(int(x) for x in s.split("."))
+
+    idx = pd.Index(["1.9", "2.0", "1.11", "1.10"])
+    expected = pd.Index(["1.9", "1.10", "1.11", "2.0"])
+    result = idx.sort_values(key=lambda x: tuple(map(split_convert, x)))
+    tm.assert_index_equal(result, expected)
+
+
 def test_ndarray_compat_properties(index):
     if isinstance(index, PeriodIndex) and not IS64:
         pytest.skip("Overflow")
@@ -500,3 +500,26 @@ def test_ndarray_compat_properties(index):
     # test for validity
     idx.nbytes
     idx.values.nbytes
+
+
+def test_compare_read_only_array():
+    # GH#57130
+    arr = np.array([], dtype=object)
+    arr.flags.writeable = False
+    idx = pd.Index(arr)
+    result = idx > 69
+    assert result.dtype == bool
+
+
+def test_to_frame_column_rangeindex():
+    idx = pd.Index([1])
+    result = idx.to_frame().columns
+    expected = RangeIndex(1)
+    tm.assert_index_equal(result, expected, exact=True)
+
+
+def test_to_frame_name_tuple_multiindex():
+    idx = pd.Index([1])
+    result = idx.to_frame(name=(1, 2))
+    expected = pd.DataFrame([1], columns=MultiIndex.from_arrays([[1], [2]]), index=idx)
+    tm.assert_frame_equal(result, expected)

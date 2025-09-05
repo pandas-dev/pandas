@@ -1,13 +1,11 @@
 """
 Boilerplate functions used in defining binary operations.
 """
+
 from __future__ import annotations
 
 from functools import wraps
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+from typing import TYPE_CHECKING
 
 from pandas._libs.lib import item_from_zerodim
 from pandas._libs.missing import is_matching_na
@@ -18,6 +16,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import F
 
 
@@ -40,7 +40,7 @@ def unpack_zerodim_and_defer(name: str) -> Callable[[F], F]:
     return wrapper
 
 
-def _unpack_zerodim_and_defer(method, name: str):
+def _unpack_zerodim_and_defer(method: F, name: str) -> F:
     """
     Boilerplate for pandas conventions in arithmetic and comparison methods.
 
@@ -56,26 +56,22 @@ def _unpack_zerodim_and_defer(method, name: str):
     -------
     method
     """
-    stripped_name = name.removeprefix("__").removesuffix("__")
-    is_cmp = stripped_name in {"eq", "ne", "lt", "le", "gt", "ge"}
 
     @wraps(method)
     def new_method(self, other):
-        if is_cmp and isinstance(self, ABCIndex) and isinstance(other, ABCSeries):
-            # For comparison ops, Index does *not* defer to Series
-            pass
-        else:
-            prio = getattr(other, "__pandas_priority__", None)
-            if prio is not None:
-                if prio > self.__pandas_priority__:
-                    # e.g. other is DataFrame while self is Index/Series/EA
-                    return NotImplemented
+        prio = getattr(other, "__pandas_priority__", None)
+        if prio is not None:
+            if prio > self.__pandas_priority__:
+                # e.g. other is DataFrame while self is Index/Series/EA
+                return NotImplemented
 
         other = item_from_zerodim(other)
 
         return method(self, other)
 
-    return new_method
+    # error: Incompatible return value type (got "Callable[[Any, Any], Any]",
+    # expected "F")
+    return new_method  # type: ignore[return-value]
 
 
 def get_op_result_name(left, right):

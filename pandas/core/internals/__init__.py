@@ -1,12 +1,4 @@
 from pandas.core.internals.api import make_block  # 2023-09-18 pyarrow uses this
-from pandas.core.internals.array_manager import (
-    ArrayManager,
-    SingleArrayManager,
-)
-from pandas.core.internals.base import (
-    DataManager,
-    SingleDataManager,
-)
 from pandas.core.internals.concat import concatenate_managers
 from pandas.core.internals.managers import (
     BlockManager,
@@ -14,17 +6,13 @@ from pandas.core.internals.managers import (
 )
 
 __all__ = [
-    "Block",  # pylint: disable=undefined-all-variable
-    "DatetimeTZBlock",  # pylint: disable=undefined-all-variable
-    "ExtensionBlock",  # pylint: disable=undefined-all-variable
-    "make_block",
-    "DataManager",
-    "ArrayManager",
+    "Block",  # pyright:ignore[reportUnsupportedDunderAll)]
     "BlockManager",
-    "SingleDataManager",
+    "DatetimeTZBlock",  # pyright:ignore[reportUnsupportedDunderAll)]
+    "ExtensionBlock",  # pyright:ignore[reportUnsupportedDunderAll)]
     "SingleBlockManager",
-    "SingleArrayManager",
     "concatenate_managers",
+    "make_block",
 ]
 
 
@@ -32,12 +20,14 @@ def __getattr__(name: str):
     # GH#55139
     import warnings
 
+    from pandas.errors import Pandas4Warning
+
     if name == "create_block_manager_from_blocks":
-        # GH#33892
+        # GH#33892, GH#58715
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
-            DeprecationWarning,
+            Pandas4Warning,
             # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
             # on hard-coding stacklevel
             stacklevel=2,
@@ -47,8 +37,6 @@ def __getattr__(name: str):
         return create_block_manager_from_blocks
 
     if name in [
-        "NumericBlock",
-        "ObjectBlock",
         "Block",
         "ExtensionBlock",
         "DatetimeTZBlock",
@@ -56,30 +44,22 @@ def __getattr__(name: str):
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
-            DeprecationWarning,
+            Pandas4Warning,
             # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
             # on hard-coding stacklevel
             stacklevel=2,
         )
-        if name == "NumericBlock":
-            from pandas.core.internals.blocks import NumericBlock
-
-            return NumericBlock
-        elif name == "DatetimeTZBlock":
-            from pandas.core.internals.blocks import DatetimeTZBlock
+        if name == "DatetimeTZBlock":
+            from pandas.core.internals.api import _DatetimeTZBlock as DatetimeTZBlock
 
             return DatetimeTZBlock
-        elif name == "ExtensionBlock":
+        if name == "ExtensionBlock":
             from pandas.core.internals.blocks import ExtensionBlock
 
             return ExtensionBlock
-        elif name == "Block":
+        else:
             from pandas.core.internals.blocks import Block
 
             return Block
-        else:
-            from pandas.core.internals.blocks import ObjectBlock
-
-            return ObjectBlock
 
     raise AttributeError(f"module 'pandas.core.internals' has no attribute '{name}'")

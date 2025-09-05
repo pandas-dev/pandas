@@ -2,6 +2,7 @@
 The tests in this package are to ensure the proper resultant dtypes of
 set operations.
 """
+
 from datetime import datetime
 import operator
 
@@ -245,9 +246,6 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.intersection([1, 2, 3])
 
-    @pytest.mark.filterwarnings(
-        "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
-    )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_union_base(self, index):
         index = index.unique()
@@ -275,9 +273,6 @@ class TestSetOps:
                 first.union([1, 2, 3])
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    @pytest.mark.filterwarnings(
-        "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
-    )
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
@@ -304,10 +299,13 @@ class TestSetOps:
                 first.difference([1, 2, 3], sort)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    @pytest.mark.filterwarnings(
-        "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
-    )
-    def test_symmetric_difference(self, index):
+    def test_symmetric_difference(self, index, using_infer_string, request):
+        if (
+            using_infer_string
+            and index.dtype == "object"
+            and index.inferred_type == "string"
+        ):
+            request.applymarker(pytest.mark.xfail(reason="TODO: infer_string"))
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"Not relevant for {type(index).__name__}")
         if len(index) < 2:
@@ -527,14 +525,12 @@ class TestSetOps:
         tm.assert_index_equal(inter, diff, exact=True)
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-@pytest.mark.filterwarnings(
-    "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
-)
 @pytest.mark.parametrize(
     "method", ["intersection", "union", "difference", "symmetric_difference"]
 )
-def test_setop_with_categorical(index_flat, sort, method):
+def test_setop_with_categorical(index_flat, sort, method, using_infer_string):
     # MultiIndex tested separately in tests.indexes.multi.test_setops
     index = index_flat
 
@@ -543,10 +539,22 @@ def test_setop_with_categorical(index_flat, sort, method):
 
     result = getattr(index, method)(other, sort=sort)
     expected = getattr(index, method)(index, sort=sort)
+    if (
+        using_infer_string
+        and index.empty
+        and method in ("union", "symmetric_difference")
+    ):
+        expected = expected.astype("category")
     tm.assert_index_equal(result, expected, exact=exact)
 
     result = getattr(index, method)(other[:5], sort=sort)
     expected = getattr(index, method)(index[:5], sort=sort)
+    if (
+        using_infer_string
+        and index.empty
+        and method in ("union", "symmetric_difference")
+    ):
+        expected = expected.astype("category")
     tm.assert_index_equal(result, expected, exact=exact)
 
 
@@ -881,7 +889,7 @@ class TestSetOpsUnsorted:
         b = Index([2, Timestamp("1999"), 1])
         op = operator.methodcaller(opname, b)
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        with tm.assert_produces_warning(RuntimeWarning, match="not supported between"):
             # sort=None, the default
             result = op(a)
         expected = Index([3, Timestamp("2000"), 2, Timestamp("1999")])

@@ -320,7 +320,7 @@ class TestExpressions:
     @pytest.mark.parametrize(
         "op_str,opname", [("+", "add"), ("*", "mul"), ("-", "sub")]
     )
-    def test_bool_ops_warn_on_arithmetic(self, op_str, opname):
+    def test_bool_ops_warn_on_arithmetic(self, op_str, opname, monkeypatch):
         n = 10
         df = DataFrame(
             {
@@ -339,36 +339,39 @@ class TestExpressions:
             # raises TypeError
             return
 
-        with tm.use_numexpr(True, min_elements=5):
-            with tm.assert_produces_warning():
-                r = f(df, df)
-                e = fe(df, df)
-                tm.assert_frame_equal(r, e)
+        msg = "operator is not supported by numexpr"
+        with monkeypatch.context() as m:
+            m.setattr(expr, "_MIN_ELEMENTS", 5)
+            with option_context("compute.use_numexpr", True):
+                with tm.assert_produces_warning(UserWarning, match=msg):
+                    r = f(df, df)
+                    e = fe(df, df)
+                    tm.assert_frame_equal(r, e)
 
-            with tm.assert_produces_warning():
-                r = f(df.a, df.b)
-                e = fe(df.a, df.b)
-                tm.assert_series_equal(r, e)
+                with tm.assert_produces_warning(UserWarning, match=msg):
+                    r = f(df.a, df.b)
+                    e = fe(df.a, df.b)
+                    tm.assert_series_equal(r, e)
 
-            with tm.assert_produces_warning():
-                r = f(df.a, True)
-                e = fe(df.a, True)
-                tm.assert_series_equal(r, e)
+                with tm.assert_produces_warning(UserWarning, match=msg):
+                    r = f(df.a, True)
+                    e = fe(df.a, True)
+                    tm.assert_series_equal(r, e)
 
-            with tm.assert_produces_warning():
-                r = f(False, df.a)
-                e = fe(False, df.a)
-                tm.assert_series_equal(r, e)
+                with tm.assert_produces_warning(UserWarning, match=msg):
+                    r = f(False, df.a)
+                    e = fe(False, df.a)
+                    tm.assert_series_equal(r, e)
 
-            with tm.assert_produces_warning():
-                r = f(False, df)
-                e = fe(False, df)
-                tm.assert_frame_equal(r, e)
+                with tm.assert_produces_warning(UserWarning, match=msg):
+                    r = f(False, df)
+                    e = fe(False, df)
+                    tm.assert_frame_equal(r, e)
 
-            with tm.assert_produces_warning():
-                r = f(df, True)
-                e = fe(df, True)
-                tm.assert_frame_equal(r, e)
+                with tm.assert_produces_warning(UserWarning, match=msg):
+                    r = f(df, True)
+                    e = fe(df, True)
+                    tm.assert_frame_equal(r, e)
 
     @pytest.mark.parametrize(
         "test_input,expected",

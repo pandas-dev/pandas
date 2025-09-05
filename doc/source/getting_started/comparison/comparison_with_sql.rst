@@ -505,7 +505,7 @@ DELETE
     DELETE FROM tips
     WHERE tip > 9;
 
-In pandas we select the rows that should remain instead of deleting them:
+In pandas we select the rows that should remain instead of deleting the rows that should be removed:
 
 .. ipython:: python
 

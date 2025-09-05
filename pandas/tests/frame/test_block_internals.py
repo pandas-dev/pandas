@@ -7,7 +7,7 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.errors import PerformanceWarning
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -46,14 +46,14 @@ class TestDataFrameBlockInternals:
     def test_cast_internals(self, float_frame):
         msg = "Passing a BlockManager to DataFrame"
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            Pandas4Warning, match=msg, check_stacklevel=False
         ):
             casted = DataFrame(float_frame._mgr, dtype=int)
         expected = DataFrame(float_frame._series, dtype=int)
         tm.assert_frame_equal(casted, expected)
 
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            Pandas4Warning, match=msg, check_stacklevel=False
         ):
             casted = DataFrame(float_frame._mgr, dtype=np.int32)
         expected = DataFrame(float_frame._series, dtype=np.int32)
@@ -81,25 +81,10 @@ class TestDataFrameBlockInternals:
         for letter in range(ord("A"), ord("Z")):
             float_frame[chr(letter)] = chr(letter)
 
-    def test_modify_values(self, float_frame, using_copy_on_write):
-        if using_copy_on_write:
-            with pytest.raises(ValueError, match="read-only"):
-                float_frame.values[5] = 5
-            assert (float_frame.values[5] != 5).all()
-            return
-
-        float_frame.values[5] = 5
-        assert (float_frame.values[5] == 5).all()
-
-        # unconsolidated
-        float_frame["E"] = 7.0
-        col = float_frame["E"]
-        float_frame.values[6] = 6
-        # as of 2.0 .values does not consolidate, so subsequent calls to .values
-        #  does not share data
-        assert not (float_frame.values[6] == 6).all()
-
-        assert (col == 7).all()
+    def test_modify_values(self, float_frame):
+        with pytest.raises(ValueError, match="read-only"):
+            float_frame.values[5] = 5
+        assert (float_frame.values[5] != 5).all()
 
     def test_boolean_set_uncons(self, float_frame):
         float_frame["E"] = 7.0
@@ -178,19 +163,6 @@ class TestDataFrameBlockInternals:
         tm.assert_series_equal(result, expected)
 
     def test_construction_with_mixed(self, float_string_frame, using_infer_string):
-        # test construction edge cases with mixed types
-
-        # f7u12, this does not work without extensive workaround
-        data = [
-            [datetime(2001, 1, 5), np.nan, datetime(2001, 1, 2)],
-            [datetime(2000, 1, 2), datetime(2000, 1, 3), datetime(2000, 1, 1)],
-        ]
-        df = DataFrame(data)
-
-        # check dtypes
-        result = df.dtypes
-        expected = Series({"datetime64[us]": 3})
-
         # mixed-type frames
         float_string_frame["datetime"] = datetime.now()
         float_string_frame["timedelta"] = timedelta(days=1, seconds=1)
@@ -200,7 +172,9 @@ class TestDataFrameBlockInternals:
         expected = Series(
             [np.dtype("float64")] * 4
             + [
-                np.dtype("object") if not using_infer_string else "string",
+                np.dtype("object")
+                if not using_infer_string
+                else pd.StringDtype(na_value=np.nan),
                 np.dtype("datetime64[us]"),
                 np.dtype("timedelta64[us]"),
             ],
@@ -212,8 +186,7 @@ class TestDataFrameBlockInternals:
         # convert from a numpy array of non-ns timedelta64; as of 2.0 this does
         #  *not* convert
         arr = np.array([1, 2, 3], dtype="timedelta64[s]")
-        df = DataFrame(index=range(3))
-        df["A"] = arr
+        df = DataFrame({"A": arr})
         expected = DataFrame(
             {"A": pd.timedelta_range("00:00:01", periods=3, freq="s")}, index=range(3)
         )
@@ -231,11 +204,11 @@ class TestDataFrameBlockInternals:
         assert expected.dtypes["dt1"] == "M8[s]"
         assert expected.dtypes["dt2"] == "M8[s]"
 
-        df = DataFrame(index=range(3))
-        df["dt1"] = np.datetime64("2013-01-01")
-        df["dt2"] = np.array(
+        dt1 = np.datetime64("2013-01-01")
+        dt2 = np.array(
             ["2013-01-01", "2013-01-02", "2013-01-03"], dtype="datetime64[D]"
         )
+        df = DataFrame({"dt1": dt1, "dt2": dt2})
 
         # df['dt3'] = np.array(['2013-01-01 00:00:01','2013-01-01
         # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]')
@@ -262,24 +235,23 @@ class TestDataFrameBlockInternals:
             f("float64")
 
         # 10822
-        msg = "^Unknown datetime string format, unable to parse: aa, at position 0$"
+        msg = "^Unknown datetime string format, unable to parse: aa$"
         with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
-    def test_pickle(self, float_string_frame, timezone_frame):
-        empty_frame = DataFrame()
-
+    def test_pickle_float_string_frame(self, float_string_frame):
         unpickled = tm.round_trip_pickle(float_string_frame)
         tm.assert_frame_equal(float_string_frame, unpickled)
 
         # buglet
         float_string_frame._mgr.ndim
 
-        # empty
+    def test_pickle_empty(self):
+        empty_frame = DataFrame()
         unpickled = tm.round_trip_pickle(empty_frame)
         repr(unpickled)
 
-        # tz frame
+    def test_pickle_empty_tz_frame(self, timezone_frame):
         unpickled = tm.round_trip_pickle(timezone_frame)
         tm.assert_frame_equal(timezone_frame, unpickled)
 
@@ -332,7 +304,7 @@ class TestDataFrameBlockInternals:
         assert not float_frame._is_mixed_type
         assert float_string_frame._is_mixed_type
 
-    def test_stale_cached_series_bug_473(self, using_copy_on_write, warn_copy_on_write):
+    def test_stale_cached_series_bug_473(self):
         # this is chained, but ok
         with option_context("chained_assignment", None):
             Y = DataFrame(
@@ -347,30 +319,23 @@ class TestDataFrameBlockInternals:
             repr(Y)
             Y.sum()
             Y["g"].sum()
-            if using_copy_on_write:
-                assert not pd.isna(Y["g"]["c"])
-            else:
-                assert pd.isna(Y["g"]["c"])
+            assert not pd.isna(Y["g"]["c"])
 
-    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
-    def test_strange_column_corruption_issue(self, using_copy_on_write):
+    def test_strange_column_corruption_issue(self, performance_warning):
         # TODO(wesm): Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}
 
         with tm.assert_produces_warning(
-            PerformanceWarning, raise_on_extra_warnings=False
+            performance_warning, raise_on_extra_warnings=False
         ):
             for i, dt in enumerate(df.index):
                 for col in range(100, 200):
                     if col not in wasCol:
                         wasCol[col] = 1
                         df[col] = np.nan
-                    if using_copy_on_write:
-                        df.loc[dt, col] = i
-                    else:
-                        df[col][dt] = i
+                    df.loc[dt, col] = i
 
         myid = 100
 
@@ -408,44 +373,13 @@ class TestDataFrameBlockInternals:
         tm.assert_frame_equal(df, df2)
 
 
-def test_update_inplace_sets_valid_block_values(using_copy_on_write):
+def test_update_inplace_sets_valid_block_values():
     # https://github.com/pandas-dev/pandas/issues/33457
     df = DataFrame({"a": Series([1, 2, None], dtype="category")})
 
     # inplace update of a single column
-    if using_copy_on_write:
-        with tm.raises_chained_assignment_error():
-            df["a"].fillna(1, inplace=True)
-    else:
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
-            df["a"].fillna(1, inplace=True)
+    with tm.raises_chained_assignment_error():
+        df["a"].fillna(1, inplace=True)
 
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
-
-    if not using_copy_on_write:
-        # smoketest for OP bug from GH#35731
-        assert df.isnull().sum().sum() == 0
-
-
-def test_nonconsolidated_item_cache_take():
-    # https://github.com/pandas-dev/pandas/issues/35521
-
-    # create non-consolidated dataframe with object dtype columns
-    df = DataFrame()
-    df["col1"] = Series(["a"], dtype=object)
-    df["col2"] = Series([0], dtype=object)
-
-    # access column (item cache)
-    df["col1"] == "A"
-    # take operation
-    # (regression was that this consolidated but didn't reset item cache,
-    # resulting in an invalid cache and the .at operation not working properly)
-    df[df["col2"] == 0]
-
-    # now setting value should update actual dataframe
-    df.at[0, "col1"] = "A"
-
-    expected = DataFrame({"col1": ["A"], "col2": [0]}, dtype=object)
-    tm.assert_frame_equal(df, expected)
-    assert df.at[0, "col1"] == "A"

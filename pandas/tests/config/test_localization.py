@@ -15,7 +15,6 @@ from pandas.compat import ISMUSL
 import pandas as pd
 
 _all_locales = get_locales()
-_current_locale = locale.setlocale(locale.LC_ALL)  # getlocale() is wrong, see GH#46595
 
 # Don't run any of these tests if we have no locales.
 pytestmark = pytest.mark.skipif(not _all_locales, reason="Need locales")
@@ -93,7 +92,7 @@ def test_can_set_locale_invalid_get(monkeypatch):
     #  but a subsequent getlocale() raises a ValueError.
 
     def mock_get_locale():
-        raise ValueError()
+        raise ValueError
 
     with monkeypatch.context() as m:
         m.setattr(locale, "getlocale", mock_get_locale)

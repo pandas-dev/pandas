@@ -9,10 +9,12 @@ If you need to make sure options are available even before a certain
 module is imported, register them here rather than in the module.
 
 """
+
 from __future__ import annotations
 
+from collections.abc import Callable
 import os
-from typing import Callable
+from typing import Any
 
 import pandas._config.config as cf
 from pandas._config.config import (
@@ -36,7 +38,7 @@ use_bottleneck_doc = """
 """
 
 
-def use_bottleneck_cb(key) -> None:
+def use_bottleneck_cb(key: str) -> None:
     from pandas.core import nanops
 
     nanops.set_use_bottleneck(cf.get_option(key))
@@ -50,7 +52,7 @@ use_numexpr_doc = """
 """
 
 
-def use_numexpr_cb(key) -> None:
+def use_numexpr_cb(key: str) -> None:
     from pandas.core.computation import expressions
 
     expressions.set_use_numexpr(cf.get_option(key))
@@ -64,7 +66,7 @@ use_numba_doc = """
 """
 
 
-def use_numba_cb(key) -> None:
+def use_numba_cb(key: str) -> None:
     from pandas.core.util import numba_
 
     numba_.set_use_numba(cf.get_option(key))
@@ -94,16 +96,14 @@ pc_precision_doc = """
     to ``precision`` in :meth:`numpy.set_printoptions`.
 """
 
-pc_colspace_doc = """
-: int
-    Default space for DataFrame columns.
-"""
-
 pc_max_rows_doc = """
 : int
     If max_rows is exceeded, switch to truncate view. Depending on
     `large_repr`, objects are either centrally truncated or printed as
-    a summary view. 'None' value means unlimited.
+    a summary view.
+
+    'None' value means unlimited. Beware that printing a large number of rows
+    could cause your rendering environment (the browser, etc.) to crash.
 
     In case python/IPython is running in a terminal and `large_repr`
     equals 'truncate' this can be set to 0 and pandas will auto-detect
@@ -124,7 +124,11 @@ pc_max_cols_doc = """
 : int
     If max_cols is exceeded, switch to truncate view. Depending on
     `large_repr`, objects are either centrally truncated or printed as
-    a summary view. 'None' value means unlimited.
+    a summary view.
+
+    'None' value means unlimited. Beware that printing a large number of
+    columns could cause your rendering environment (the browser, etc.) to
+    crash.
 
     In case python/IPython is running in a terminal and `large_repr`
     equals 'truncate' this can be set to 0 or None and pandas will auto-detect
@@ -204,11 +208,6 @@ pc_east_asian_width_doc = """
     Enabling this may affect to the performance (default: False)
 """
 
-pc_ambiguous_as_wide_doc = """
-: boolean
-    Whether to handle Unicode characters belong to Ambiguous as Wide (width=2)
-    (default: False)
-"""
 
 pc_table_schema_doc = """
 : boolean
@@ -286,7 +285,7 @@ pc_memory_usage_doc = """
 """
 
 
-def table_schema_cb(key) -> None:
+def table_schema_cb(key: str) -> None:
     from pandas.io.formats.printing import enable_data_resource_formatter
 
     enable_data_resource_formatter(cf.get_option(key))
@@ -406,61 +405,6 @@ tc_sim_interactive_doc = """
 with cf.config_prefix("mode"):
     cf.register_option("sim_interactive", False, tc_sim_interactive_doc)
 
-use_inf_as_na_doc = """
-: boolean
-    True means treat None, NaN, INF, -INF as NA (old way),
-    False means None and NaN are null, but INF, -INF are not NA
-    (new way).
-
-    This option is deprecated in pandas 2.1.0 and will be removed in 3.0.
-"""
-
-# We don't want to start importing everything at the global context level
-# or we'll hit circular deps.
-
-
-def use_inf_as_na_cb(key) -> None:
-    # TODO(3.0): enforcing this deprecation will close GH#52501
-    from pandas.core.dtypes.missing import _use_inf_as_na
-
-    _use_inf_as_na(key)
-
-
-with cf.config_prefix("mode"):
-    cf.register_option("use_inf_as_na", False, use_inf_as_na_doc, cb=use_inf_as_na_cb)
-
-cf.deprecate_option(
-    # GH#51684
-    "mode.use_inf_as_na",
-    "use_inf_as_na option is deprecated and will be removed in a future "
-    "version. Convert inf values to NaN before operating instead.",
-)
-
-data_manager_doc = """
-: string
-    Internal data manager type; can be "block" or "array". Defaults to "block",
-    unless overridden by the 'PANDAS_DATA_MANAGER' environment variable (needs
-    to be set before pandas is imported).
-"""
-
-
-with cf.config_prefix("mode"):
-    cf.register_option(
-        "data_manager",
-        # Get the default from an environment variable, if set, otherwise defaults
-        # to "block". This environment variable can be set for testing.
-        os.environ.get("PANDAS_DATA_MANAGER", "block"),
-        data_manager_doc,
-        validator=is_one_of_factory(["block", "array"]),
-    )
-
-cf.deprecate_option(
-    # GH#55043
-    "mode.data_manager",
-    "data_manager option is deprecated and will be removed in a future "
-    "version. Only the BlockManager will be available.",
-)
-
 
 # TODO better name?
 copy_on_write_doc = """
@@ -499,19 +443,46 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory([None, "warn", "raise"]),
     )
 
-
-string_storage_doc = """
-: string
-    The default storage for StringDtype. This option is ignored if
-    ``future.infer_string`` is set to True.
+performance_warnings = """
+: boolean
+    Whether to show or hide PerformanceWarnings.
 """
 
 with cf.config_prefix("mode"):
     cf.register_option(
+        "performance_warnings",
+        True,
+        performance_warnings,
+        validator=is_bool,
+    )
+
+
+string_storage_doc = """
+: string
+    The default storage for StringDtype.
+"""
+
+
+def is_valid_string_storage(value: Any) -> None:
+    legal_values = ["auto", "python", "pyarrow"]
+    if value not in legal_values:
+        msg = "Value must be one of python|pyarrow"
+        if value == "pyarrow_numpy":
+            # TODO: we can remove extra message after 3.0
+            msg += (
+                ". 'pyarrow_numpy' was specified, but this option should be "
+                "enabled using pandas.options.future.infer_string instead"
+            )
+        raise ValueError(msg)
+
+
+with cf.config_prefix("mode"):
+    cf.register_option(
         "string_storage",
-        "python",
+        "auto",
         string_storage_doc,
-        validator=is_one_of_factory(["python", "pyarrow", "pyarrow_numpy"]),
+        # validator=is_one_of_factory(["python", "pyarrow"]),
+        validator=is_valid_string_storage,
     )
 
 
@@ -653,7 +624,7 @@ plotting_backend_doc = """
 """
 
 
-def register_plotting_backend_cb(key) -> None:
+def register_plotting_backend_cb(key: str | None) -> None:
     if key == "matplotlib":
         # We defer matplotlib validation, since it's the default
         return
@@ -667,7 +638,7 @@ with cf.config_prefix("plotting"):
         "backend",
         defval="matplotlib",
         doc=plotting_backend_doc,
-        validator=register_plotting_backend_cb,
+        validator=register_plotting_backend_cb,  # type: ignore[arg-type]
     )
 
 
@@ -679,7 +650,7 @@ register_converter_doc = """
 """
 
 
-def register_converter_cb(key) -> None:
+def register_converter_cb(key: str) -> None:
     from pandas.plotting import (
         deregister_matplotlib_converters,
         register_matplotlib_converters,
@@ -909,7 +880,7 @@ with cf.config_prefix("styler"):
 with cf.config_prefix("future"):
     cf.register_option(
         "infer_string",
-        False,
+        False if os.environ.get("PANDAS_FUTURE_INFER_STRING", "1") == "0" else True,
         "Whether to infer sequence of str objects as pyarrow string "
         "dtype, which will be the default in pandas 3.0 "
         "(at which point this option will be deprecated).",

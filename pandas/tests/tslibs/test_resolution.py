@@ -1,14 +1,13 @@
+import datetime
+
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import (
     Resolution,
     get_resolution,
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-
-import pandas._testing as tm
 
 
 def test_get_resolution_nano():
@@ -23,7 +22,7 @@ def test_get_resolution_non_nano_data():
     res = get_resolution(arr, None, NpyDatetimeUnit.NPY_FR_us.value)
     assert res == Resolution.RESO_US
 
-    res = get_resolution(arr, pytz.UTC, NpyDatetimeUnit.NPY_FR_us.value)
+    res = get_resolution(arr, datetime.UTC, NpyDatetimeUnit.NPY_FR_us.value)
     assert res == Resolution.RESO_US
 
 
@@ -48,10 +47,10 @@ def test_get_attrname_from_abbrev(freqstr, expected):
     assert reso.attrname == expected
 
 
-@pytest.mark.parametrize("freq", ["A", "H", "T", "S", "L", "U", "N"])
-def test_units_A_H_T_S_L_U_N_deprecated_from_attrname_to_abbrevs(freq):
-    # GH#52536
-    msg = f"'{freq}' is deprecated and will be removed in a future version."
+@pytest.mark.parametrize("freq", ["H", "S"])
+def test_unit_H_S_raises(freq):
+    # GH#59143
+    msg = f"Invalid frequency: {freq}"
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with pytest.raises(ValueError, match=msg):
         Resolution.get_reso_from_freqstr(freq)

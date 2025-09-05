@@ -39,7 +39,7 @@ class TestResetIndex:
             columns=Index(list("ABCD"), dtype=object),
             index=Index([f"i-{i}" for i in range(30)], dtype=object),
         )[:5]
-        ser = df.stack(future_stack=True)
+        ser = df.stack()
         ser.index.names = ["hash", "category"]
 
         ser.name = "value"
@@ -193,7 +193,7 @@ def test_reset_index_dtypes_on_empty_series_with_multiindex(
     # GH 19602 - Preserve dtype on empty Series with MultiIndex
     idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], array])
     result = Series(dtype=object, index=idx)[:0].reset_index().dtypes
-    exp = "string" if using_infer_string else object
+    exp = "str" if using_infer_string else object
     expected = Series(
         {
             "level_0": np.int64,

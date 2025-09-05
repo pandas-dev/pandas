@@ -1,14 +1,15 @@
 """
 test with the TimeGrouper / grouping with datetimes
 """
+
 from datetime import (
     datetime,
     timedelta,
+    timezone,
 )
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 from pandas import (
@@ -67,13 +68,13 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
     gb = df.groupby(tdg)
 
     # check we're testing the case we're interested in
-    assert len(gb._grouper.result_index) != len(gb._grouper.group_keys_seq)
+    assert len(gb._grouper.result_index) != len(gb._grouper.codes)
 
     return gb
 
 
 class TestGroupBy:
-    def test_groupby_with_timegrouper(self):
+    def test_groupby_with_timegrouper(self, using_infer_string):
         # GH 4161
         # TimeGrouper requires a sorted index
         # also verifies that the resultant index has the correct name
@@ -107,11 +108,14 @@ class TestGroupBy:
                 unit=df.index.unit,
             )
             expected = DataFrame(
-                {"Buyer": 0, "Quantity": 0},
+                {"Buyer": "" if using_infer_string else 0, "Quantity": 0},
                 index=exp_dti,
             )
-            # Cast to object to avoid implicit cast when setting entry to "CarlCarlCarl"
+            # Cast to object/str to avoid implicit cast when setting
+            #  entry to "CarlCarlCarl"
             expected = expected.astype({"Buyer": object})
+            if using_infer_string:
+                expected = expected.astype({"Buyer": "str"})
             expected.iloc[0, 0] = "CarlCarlCarl"
             expected.iloc[6, 0] = "CarlCarl"
             expected.iloc[18, 0] = "Joe"
@@ -477,12 +481,8 @@ class TestGroupBy:
         def sumfunc_series(x):
             return Series([x["value"].sum()], ("sum",))
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = df.groupby(Grouper(key="date")).apply(sumfunc_series)
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df_dt.groupby(Grouper(freq="ME", key="date")).apply(sumfunc_series)
+        expected = df.groupby(Grouper(key="date")).apply(sumfunc_series)
+        result = df_dt.groupby(Grouper(freq="ME", key="date")).apply(sumfunc_series)
         tm.assert_frame_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
         )
@@ -498,11 +498,8 @@ class TestGroupBy:
         def sumfunc_value(x):
             return x.value.sum()
 
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = df.groupby(Grouper(key="date")).apply(sumfunc_value)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df_dt.groupby(Grouper(freq="ME", key="date")).apply(sumfunc_value)
+        expected = df.groupby(Grouper(key="date")).apply(sumfunc_value)
+        result = df_dt.groupby(Grouper(freq="ME", key="date")).apply(sumfunc_value)
         tm.assert_series_equal(
             result.reset_index(drop=True), expected.reset_index(drop=True)
         )
@@ -773,12 +770,12 @@ class TestGroupBy:
     def test_timezone_info(self):
         # see gh-11682: Timezone info lost when broadcasting
         # scalar datetime to DataFrame
-
-        df = DataFrame({"a": [1], "b": [datetime.now(pytz.utc)]})
-        assert df["b"][0].tzinfo == pytz.utc
+        utc = timezone.utc
+        df = DataFrame({"a": [1], "b": [datetime.now(utc)]})
+        assert df["b"][0].tzinfo == utc
         df = DataFrame({"a": [1, 2, 3]})
-        df["b"] = datetime.now(pytz.utc)
-        assert df["b"][0].tzinfo == pytz.utc
+        df["b"] = datetime.now(utc)
+        assert df["b"][0].tzinfo == utc
 
     def test_datetime_count(self):
         df = DataFrame(
@@ -925,12 +922,10 @@ class TestGroupBy:
         # check that we will go through the singular_series path
         #  in _wrap_applied_output_series
         assert gb.ngroups == 1
-        assert gb._selected_obj._get_axis(gb.axis).nlevels == 1
+        assert gb._selected_obj.index.nlevels == 1
 
         # function that returns a Series
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = gb.apply(lambda x: x["Quantity"] * 2)
+        res = gb.apply(lambda x: x["Quantity"] * 2)
 
         dti = Index([Timestamp("2013-12-31")], dtype=df["Date"].dtype, name="Date")
         expected = DataFrame(

@@ -1,6 +1,7 @@
 """
 Entrypoint for testing from the top-level namespace.
 """
+
 from __future__ import annotations
 
 import os
@@ -11,7 +12,7 @@ from pandas.compat._optional import import_optional_dependency
 PKG = os.path.dirname(os.path.dirname(__file__))
 
 
-def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> None:
+def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> None:  # noqa: PT028
     """
     Run the pandas test suite using pytest.
 
@@ -25,6 +26,10 @@ def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> Non
         Whether to only run the Python and Cython doctests. If you would like to run
         both doctests/regular tests, just append "--doctest-modules"/"--doctest-cython"
         to extra_args.
+
+    See Also
+    --------
+    pytest.main : The main entry point for pytest testing framework.
 
     Examples
     --------

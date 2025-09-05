@@ -1,14 +1,21 @@
-FROM python:3.10.8
+FROM python:3.11.13
 WORKDIR /home/pandas
 
-RUN apt-get update && apt-get -y upgrade
-RUN apt-get install -y build-essential
+RUN apt-get update && \
+    apt-get --no-install-recommends -y upgrade && \
+    apt-get --no-install-recommends -y install \
+    build-essential \
+    bash-completion \
+    # hdf5 needed for pytables installation
+    libhdf5-dev \
+    # libgles2-mesa needed for pytest-qt
+    libgles2-mesa-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-# hdf5 needed for pytables installation
-# libgles2-mesa needed for pytest-qt
-RUN apt-get install -y libhdf5-dev libgles2-mesa-dev
+COPY requirements-dev.txt /tmp
+RUN python -m pip install --no-cache-dir --upgrade pip && \
+    python -m pip install --no-cache-dir -r /tmp/requirements-dev.txt
+RUN git config --global --add safe.directory /home/pandas
 
-RUN python -m pip install --upgrade pip
-RUN python -m pip install \
-    -r https://raw.githubusercontent.com/pandas-dev/pandas/main/requirements-dev.txt
+ENV SHELL="/bin/bash"
 CMD ["/bin/bash"]

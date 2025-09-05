@@ -1,7 +1,7 @@
 .. _whatsnew_220:
 
-What's new in 2.2.0 (Month XX, 2024)
-------------------------------------
+What's new in 2.2.0 (January 19, 2024)
+--------------------------------------
 
 These are the changes in pandas 2.2.0. See :ref:`release` for a full changelog
 including other versions of pandas.
@@ -437,12 +437,6 @@ index levels when joining on two indexes with different levels (:issue:`34133`).
 
     result
 
-.. ---------------------------------------------------------------------------
-.. _whatsnew_220.api_breaking:
-
-Backwards incompatible API changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. _whatsnew_220.api_breaking.deps:
 
 Increased minimum versions for dependencies
@@ -625,6 +619,8 @@ For example:
 .. ipython:: python
 
     pd.date_range('2020-01-01', periods=3, freq='QE-NOV')
+
+.. _whatsnew_220.silent_downcasting:
 
 Deprecated automatic downcasting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -820,8 +816,8 @@ Conversion
 ^^^^^^^^^^
 - Bug in :meth:`DataFrame.astype` when called with ``str`` on unpickled array - the array might change in-place (:issue:`54654`)
 - Bug in :meth:`DataFrame.astype` where ``errors="ignore"`` had no effect for extension types (:issue:`54654`)
+- Bug in :meth:`DataFrame.loc` was not throwing "incompatible dtype warning" (see `PDEP6 <https://pandas.pydata.org/pdeps/0006-ban-upcasting.html>`_) when assigning a ``Series`` with a different dtype using a full column setter (e.g. ``df.loc[:, 'a'] = incompatible_value``) (:issue:`39584`)
 - Bug in :meth:`Series.convert_dtypes` not converting all NA column to ``null[pyarrow]`` (:issue:`55346`)
-- Bug in ``DataFrame.loc`` was not throwing "incompatible dtype warning" (see `PDEP6 <https://pandas.pydata.org/pdeps/0006-ban-upcasting.html>`_) when assigning a ``Series`` with a different dtype using a full column setter (e.g. ``df.loc[:, 'a'] = incompatible_value``) (:issue:`39584`)
 
 Strings
 ^^^^^^^
@@ -831,10 +827,10 @@ Strings
 - Bug in :meth:`Index.str.cat` always casting result to object dtype (:issue:`56157`)
 - Bug in :meth:`Series.__mul__` for :class:`ArrowDtype` with ``pyarrow.string`` dtype and ``string[pyarrow]`` for the pyarrow backend (:issue:`51970`)
 - Bug in :meth:`Series.str.find` when ``start < 0`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`56411`)
+- Bug in :meth:`Series.str.fullmatch` when ``dtype=pandas.ArrowDtype(pyarrow.string())`` allows partial matches when regex ends in literal //$ (:issue:`56652`)
 - Bug in :meth:`Series.str.replace` when ``n < 0`` for :class:`ArrowDtype` with ``pyarrow.string`` (:issue:`56404`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for :class:`ArrowDtype` with ``pyarrow.string`` dtype (:issue:`56579`)
 - Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for ``string[pyarrow]`` (:issue:`54942`)
-- Bug in :meth:`str.fullmatch` when ``dtype=pandas.ArrowDtype(pyarrow.string()))`` allows partial matches when regex ends in literal //$ (:issue:`56652`)
 - Bug in comparison operations for ``dtype="string[pyarrow_numpy]"`` raising if dtypes can't be compared (:issue:`56008`)
 
 Interval
@@ -893,7 +889,6 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
-- Bug in :class:`.Rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
 - Bug in :meth:`.DataFrameGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.SeriesGroupBy.idxmin`, and :meth:`.SeriesGroupBy.idxmax` would not retain :class:`.Categorical` dtype when the index was a :class:`.CategoricalIndex` that contained NA values (:issue:`54234`)
 - Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` when ``observed=False`` and ``f="idxmin"`` or ``f="idxmax"`` would incorrectly raise on unobserved categories (:issue:`54234`)
 - Bug in :meth:`.DataFrameGroupBy.value_counts` and :meth:`.SeriesGroupBy.value_counts` could result in incorrect sorting if the columns of the DataFrame or name of the Series are integers (:issue:`55951`)
@@ -907,6 +902,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrame.resample` when resampling on a :class:`ArrowDtype` of ``pyarrow.timestamp`` or ``pyarrow.duration`` type (:issue:`55989`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
 - Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.MonthBegin` (:issue:`55271`)
+- Bug in :meth:`DataFrame.rolling` and :meth:`Series.rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
 - Bug in :meth:`DataFrame.rolling` and :meth:`Series.rolling` where either the ``index`` or ``on`` column was :class:`ArrowDtype` with ``pyarrow.timestamp`` type (:issue:`55849`)
 
 Reshaping
@@ -928,16 +924,16 @@ Reshaping
 
 Sparse
 ^^^^^^
-- Bug in :meth:`SparseArray.take` when using a different fill value than the array's fill value (:issue:`55181`)
+- Bug in :meth:`arrays.SparseArray.take` when using a different fill value than the array's fill value (:issue:`55181`)
 
 Other
 ^^^^^
 - :meth:`DataFrame.__dataframe__` did not support pyarrow large strings (:issue:`56702`)
 - Bug in :func:`DataFrame.describe` when formatting percentiles in the resulting percentile 99.999% is rounded to 100% (:issue:`55765`)
+- Bug in :func:`api.interchange.from_dataframe` where it raised  ``NotImplementedError`` when handling empty string columns (:issue:`56703`)
 - Bug in :func:`cut` and :func:`qcut` with ``datetime64`` dtype values with non-nanosecond units incorrectly returning nanosecond-unit bins (:issue:`56101`)
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 - Bug in :func:`infer_freq` and :meth:`DatetimeIndex.inferred_freq` with weekly frequencies and non-nanosecond resolutions (:issue:`55609`)
-- Bug in :func:`pd.api.interchange.from_dataframe` where it raised  ``NotImplementedError`` when handling empty string columns (:issue:`56703`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
 - Bug in :meth:`DataFrame.from_dict` which would always sort the rows of the created :class:`DataFrame`.  (:issue:`55683`)
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` raising a ``ValueError`` (:issue:`56478`)
@@ -945,10 +941,12 @@ Other
 - Bug in rendering a :class:`Series` with a :class:`MultiIndex` when one of the index level's names is 0 not having that name displayed (:issue:`55415`)
 - Bug in the error message when assigning an empty :class:`DataFrame` to a column (:issue:`55956`)
 - Bug when time-like strings were being cast to :class:`ArrowDtype` with ``pyarrow.time64`` type (:issue:`56463`)
-- Fixed a spurious deprecation warning from ``numba`` >= 0.58.0 when passing a numpy ufunc in :class:`pandas.core.window.Rolling.apply` with ``engine="numba"`` (:issue:`55247`)
+- Fixed a spurious deprecation warning from ``numba`` >= 0.58.0 when passing a numpy ufunc in :class:`core.window.Rolling.apply` with ``engine="numba"`` (:issue:`55247`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.contributors:
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v2.1.4..v2.2.0

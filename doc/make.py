@@ -11,6 +11,7 @@ Usage
     $ python make.py html
     $ python make.py latex
 """
+
 import argparse
 import csv
 import importlib
@@ -113,7 +114,7 @@ class DocBuilder:
 
         Examples
         --------
-        >>> DocBuilder()._run_os('python', '--version')
+        >>> DocBuilder()._run_os("python", "--version")
         """
         subprocess.check_call(args, stdout=sys.stdout, stderr=sys.stderr)
 
@@ -129,7 +130,7 @@ class DocBuilder:
 
         Examples
         --------
-        >>> DocBuilder(num_jobs=4)._sphinx_build('html')
+        >>> DocBuilder(num_jobs=4)._sphinx_build("html")
         """
         if kind not in ("html", "latex", "linkcheck"):
             raise ValueError(f"kind must be html, latex or linkcheck, not {kind}")
@@ -233,7 +234,7 @@ class DocBuilder:
         ret_code = self._sphinx_build("html")
         zip_fname = os.path.join(BUILD_PATH, "html", "pandas.zip")
         if os.path.exists(zip_fname):
-            os.remove(zip_fname)
+            os.remove(zip_fname)  # noqa: TID251
 
         if ret_code == 0:
             if self.single_doc_html is not None:
@@ -259,8 +260,7 @@ class DocBuilder:
                 for i in range(3):
                     self._run_os("pdflatex", "-interaction=nonstopmode", "pandas.tex")
                 raise SystemExit(
-                    "You should check the file "
-                    '"build/latex/pandas.pdf" for problems.'
+                    'You should check the file "build/latex/pandas.pdf" for problems.'
                 )
             self._run_os("make")
             return ret_code
@@ -285,7 +285,7 @@ class DocBuilder:
         """
         zip_fname = os.path.join(BUILD_PATH, "html", "pandas.zip")
         if os.path.exists(zip_fname):
-            os.remove(zip_fname)
+            os.remove(zip_fname)  # noqa: TID251
         dirname = os.path.join(BUILD_PATH, "html")
         fnames = os.listdir(dirname)
         os.chdir(dirname)
@@ -342,8 +342,7 @@ def main():
         dest="verbosity",
         default=0,
         help=(
-            "increase verbosity (can be repeated), "
-            "passed to the sphinx build command"
+            "increase verbosity (can be repeated), passed to the sphinx build command"
         ),
     )
     argparser.add_argument(

@@ -15,7 +15,6 @@ from pandas import (
     get_option,
     option_context,
 )
-import pandas._testing as tm
 
 import pandas.io.formats.format as fmt
 
@@ -95,8 +94,7 @@ def test_to_html_with_column_specific_col_space_raises():
     )
 
     msg = (
-        "Col_space length\\(\\d+\\) should match "
-        "DataFrame number of columns\\(\\d+\\)"
+        "Col_space length\\(\\d+\\) should match DataFrame number of columns\\(\\d+\\)"
     )
     with pytest.raises(ValueError, match=msg):
         df.to_html(col_space=[30, 40])
@@ -935,9 +933,11 @@ class TestReprHTML:
     def test_repr_html_mathjax(self):
         df = DataFrame([[1, 2], [3, 4]])
         assert "tex2jax_ignore" not in df._repr_html_()
+        assert "mathjax_ignore" not in df._repr_html_()
 
         with option_context("display.html.use_mathjax", False):
             assert "tex2jax_ignore" in df._repr_html_()
+            assert "mathjax_ignore" in df._repr_html_()
 
     def test_repr_html_wide(self):
         max_cols = 20
@@ -1165,14 +1165,3 @@ def test_to_html_empty_complex_array():
         "</table>"
     )
     assert result == expected
-
-
-def test_to_html_pos_args_deprecation():
-    # GH-54229
-    df = DataFrame({"a": [1, 2, 3]})
-    msg = (
-        r"Starting with pandas version 3.0 all arguments of to_html except for the "
-        r"argument 'buf' will be keyword-only."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.to_html(None, None)

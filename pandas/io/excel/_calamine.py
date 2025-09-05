@@ -9,7 +9,7 @@ from datetime import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    Union,
+    TypeAlias,
 )
 
 from pandas.compat._optional import import_optional_dependency
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
         StorageOptions,
     )
 
-_CellValue = Union[int, float, str, bool, time, date, datetime, timedelta]
+_CellValue: TypeAlias = int | float | str | bool | time | date | datetime | timedelta
 
 
 class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
@@ -75,7 +75,7 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
         from python_calamine import load_workbook
 
         return load_workbook(
-            filepath_or_buffer,  # type: ignore[arg-type]
+            filepath_or_buffer,
             **engine_kwargs,
         )
 

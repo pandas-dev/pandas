@@ -11,14 +11,11 @@ from typing import (
     cast,
 )
 
-from pandas.compat import (
-    pa_version_under10p1,
-    pa_version_under11p0,
-)
+from pandas.compat import HAS_PYARROW
 
 from pandas.core.dtypes.common import is_list_like
 
-if not pa_version_under10p1:
+if HAS_PYARROW:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -46,7 +43,7 @@ class ArrowAccessor(metaclass=ABCMeta):
 
     def _validate(self, data) -> None:
         dtype = data.dtype
-        if not isinstance(dtype, ArrowDtype):
+        if not HAS_PYARROW or not isinstance(dtype, ArrowDtype):
             # Raise AttributeError so that inspect can handle non-struct Series.
             raise AttributeError(self._validation_msg.format(dtype=dtype))
 
@@ -92,6 +89,12 @@ class ListAccessor(ArrowAccessor):
         pandas.Series
             The length of each list.
 
+        See Also
+        --------
+        str.len : Python built-in function returning the length of an object.
+        Series.size : Returns the length of the Series.
+        StringMethods.len : Compute the length of each element in the Series/Index.
+
         Examples
         --------
         >>> import pyarrow as pa
@@ -100,9 +103,7 @@ class ListAccessor(ArrowAccessor):
         ...         [1, 2, 3],
         ...         [3],
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.list_(
-        ...         pa.int64()
-        ...     ))
+        ...     dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         ... )
         >>> s.list.len()
         0    3
@@ -112,7 +113,12 @@ class ListAccessor(ArrowAccessor):
         from pandas import Series
 
         value_lengths = pc.list_value_length(self._pa_array)
-        return Series(value_lengths, dtype=ArrowDtype(value_lengths.type))
+        return Series(
+            value_lengths,
+            dtype=ArrowDtype(value_lengths.type),
+            index=self._data.index,
+            name=self._data.name,
+        )
 
     def __getitem__(self, key: int | slice) -> Series:
         """
@@ -128,6 +134,10 @@ class ListAccessor(ArrowAccessor):
         pandas.Series
             The list at requested index.
 
+        See Also
+        --------
+        ListAccessor.flatten : Flatten list values.
+
         Examples
         --------
         >>> import pyarrow as pa
@@ -136,9 +146,7 @@ class ListAccessor(ArrowAccessor):
         ...         [1, 2, 3],
         ...         [3],
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.list_(
-        ...         pa.int64()
-        ...     ))
+        ...     dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         ... )
         >>> s.list[0]
         0    1
@@ -153,13 +161,13 @@ class ListAccessor(ArrowAccessor):
             # if key < 0:
             #     key = pc.add(key, pc.list_value_length(self._pa_array))
             element = pc.list_element(self._pa_array, key)
-            return Series(element, dtype=ArrowDtype(element.type))
+            return Series(
+                element,
+                dtype=ArrowDtype(element.type),
+                index=self._data.index,
+                name=self._data.name,
+            )
         elif isinstance(key, slice):
-            if pa_version_under11p0:
-                raise NotImplementedError(
-                    f"List slice not supported by pyarrow {pa.__version__}."
-                )
-
             # TODO: Support negative start/stop/step, ideally this would be added
             # upstream in pyarrow.
             start, stop, step = key.start, key.stop, key.step
@@ -171,7 +179,12 @@ class ListAccessor(ArrowAccessor):
             if step is None:
                 step = 1
             sliced = pc.list_slice(self._pa_array, start, stop, step)
-            return Series(sliced, dtype=ArrowDtype(sliced.type))
+            return Series(
+                sliced,
+                dtype=ArrowDtype(sliced.type),
+                index=self._data.index,
+                name=self._data.name,
+            )
         else:
             raise ValueError(f"key must be an int or slice, got {type(key).__name__}")
 
@@ -187,6 +200,10 @@ class ListAccessor(ArrowAccessor):
         pandas.Series
             The data from all lists in the series flattened.
 
+        See Also
+        --------
+        ListAccessor.__getitem__ : Index or slice values in the Series.
+
         Examples
         --------
         >>> import pyarrow as pa
@@ -195,21 +212,26 @@ class ListAccessor(ArrowAccessor):
         ...         [1, 2, 3],
         ...         [3],
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.list_(
-        ...         pa.int64()
-        ...     ))
+        ...     dtype=pd.ArrowDtype(pa.list_(pa.int64())),
         ... )
         >>> s.list.flatten()
         0    1
-        1    2
-        2    3
-        3    3
+        0    2
+        0    3
+        1    3
         dtype: int64[pyarrow]
         """
         from pandas import Series
 
-        flattened = pc.list_flatten(self._pa_array)
-        return Series(flattened, dtype=ArrowDtype(flattened.type))
+        counts = pa.compute.list_value_length(self._pa_array)
+        flattened = pa.compute.list_flatten(self._pa_array)
+        index = self._data.index.repeat(counts.fill_null(pa.scalar(0, counts.type)))
+        return Series(
+            flattened,
+            dtype=ArrowDtype(flattened.type),
+            index=index,
+            name=self._data.name,
+        )
 
 
 class StructAccessor(ArrowAccessor):
@@ -244,6 +266,10 @@ class StructAccessor(ArrowAccessor):
         pandas.Series
             The data type of each child field.
 
+        See Also
+        --------
+        Series.dtype: Return the dtype object of the underlying data.
+
         Examples
         --------
         >>> import pyarrow as pa
@@ -253,9 +279,9 @@ class StructAccessor(ArrowAccessor):
         ...         {"version": 2, "project": "pandas"},
         ...         {"version": 1, "project": "numpy"},
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.struct(
-        ...         [("version", pa.int64()), ("project", pa.string())]
-        ...     ))
+        ...     dtype=pd.ArrowDtype(
+        ...         pa.struct([("version", pa.int64()), ("project", pa.string())])
+        ...     ),
         ... )
         >>> s.struct.dtypes
         version     int64[pyarrow]
@@ -324,9 +350,9 @@ class StructAccessor(ArrowAccessor):
         ...         {"version": 2, "project": "pandas"},
         ...         {"version": 1, "project": "numpy"},
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.struct(
-        ...         [("version", pa.int64()), ("project", pa.string())]
-        ...     ))
+        ...     dtype=pd.ArrowDtype(
+        ...         pa.struct([("version", pa.int64()), ("project", pa.string())])
+        ...     ),
         ... )
 
         Extract by field name.
@@ -357,19 +383,21 @@ class StructAccessor(ArrowAccessor):
         For nested struct types, you can pass a list of values to index
         multiple levels:
 
-        >>> version_type = pa.struct([
-        ...     ("major", pa.int64()),
-        ...     ("minor", pa.int64()),
-        ... ])
+        >>> version_type = pa.struct(
+        ...     [
+        ...         ("major", pa.int64()),
+        ...         ("minor", pa.int64()),
+        ...     ]
+        ... )
         >>> s = pd.Series(
         ...     [
         ...         {"version": {"major": 1, "minor": 5}, "project": "pandas"},
         ...         {"version": {"major": 2, "minor": 1}, "project": "pandas"},
         ...         {"version": {"major": 1, "minor": 26}, "project": "numpy"},
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.struct(
-        ...         [("version", version_type), ("project", pa.string())]
-        ...     ))
+        ...     dtype=pd.ArrowDtype(
+        ...         pa.struct([("version", version_type), ("project", pa.string())])
+        ...     ),
         ... )
         >>> s.struct.field(["version", "minor"])
         0     5
@@ -454,9 +482,9 @@ class StructAccessor(ArrowAccessor):
         ...         {"version": 2, "project": "pandas"},
         ...         {"version": 1, "project": "numpy"},
         ...     ],
-        ...     dtype=pd.ArrowDtype(pa.struct(
-        ...         [("version", pa.int64()), ("project", pa.string())]
-        ...     ))
+        ...     dtype=pd.ArrowDtype(
+        ...         pa.struct([("version", pa.int64()), ("project", pa.string())])
+        ...     ),
         ... )
 
         >>> s.struct.explode()

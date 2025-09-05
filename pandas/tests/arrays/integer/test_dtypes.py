@@ -52,7 +52,7 @@ def test_preserve_dtypes(op):
 
 def test_astype_nansafe():
     # see gh-22343
-    arr = pd.array([np.nan, 1, 2], dtype="Int8")
+    arr = pd.array([pd.NA, 1, 2], dtype="Int8")
     msg = "cannot convert NA to integer"
 
     with pytest.raises(ValueError, match=msg):
@@ -230,7 +230,7 @@ def test_construct_cast_invalid(dtype):
     with pytest.raises(TypeError, match=msg):
         pd.Series(arr).astype(dtype)
 
-    arr = [1.2, 2.3, 3.7, np.nan]
+    arr = [1.2, 2.3, 3.7, pd.NA]
     with pytest.raises(TypeError, match=msg):
         pd.array(arr, dtype=dtype)
 
@@ -269,19 +269,26 @@ def test_to_numpy_dtype(dtype, in_series):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("dtype", ["float64", "int64", "bool"])
+@pytest.mark.parametrize("dtype", ["int64", "bool"])
 def test_to_numpy_na_raises(dtype):
     a = pd.array([0, 1, None], dtype="Int64")
     with pytest.raises(ValueError, match=dtype):
         a.to_numpy(dtype=dtype)
 
 
-def test_astype_str():
+def test_astype_str(using_infer_string):
     a = pd.array([1, 2, None], dtype="Int64")
-    expected = np.array(["1", "2", "<NA>"], dtype=f"{tm.ENDIAN}U21")
 
-    tm.assert_numpy_array_equal(a.astype(str), expected)
-    tm.assert_numpy_array_equal(a.astype("str"), expected)
+    if using_infer_string:
+        expected = pd.array(["1", "2", None], dtype=pd.StringDtype(na_value=np.nan))
+
+        tm.assert_extension_array_equal(a.astype(str), expected)
+        tm.assert_extension_array_equal(a.astype("str"), expected)
+    else:
+        expected = np.array(["1", "2", "<NA>"], dtype=f"{tm.ENDIAN}U21")
+
+        tm.assert_numpy_array_equal(a.astype(str), expected)
+        tm.assert_numpy_array_equal(a.astype("str"), expected)
 
 
 def test_astype_boolean():

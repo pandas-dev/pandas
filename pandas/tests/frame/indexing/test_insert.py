@@ -3,10 +3,9 @@ test_insert is specifically for the DataFrame.insert method; not to be
 confused with tests with "insert" in their names that are really testing
 __setitem__.
 """
+
 import numpy as np
 import pytest
-
-from pandas.errors import PerformanceWarning
 
 from pandas import (
     DataFrame,
@@ -70,24 +69,6 @@ class TestDataFrameInsert:
             [["a", "d", "g"], ["b", "e", "h"], ["c", "f", "i"]], columns=["A", "A", "A"]
         )
         tm.assert_frame_equal(df, exp)
-
-    def test_insert_item_cache(self, using_copy_on_write):
-        df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
-        ser = df[0]
-        expected_warning = PerformanceWarning
-
-        with tm.assert_produces_warning(expected_warning):
-            for n in range(100):
-                df[n + 3] = df[1] * n
-
-        if using_copy_on_write:
-            ser.iloc[0] = 99
-            assert df.iloc[0, 0] == df[0][0]
-            assert df.iloc[0, 0] != 99
-        else:
-            ser.values[0] = 99
-            assert df.iloc[0, 0] == df[0][0]
-            assert df.iloc[0, 0] == 99
 
     def test_insert_EA_no_warning(self):
         # PerformanceWarning about fragmented frame should not be raised when

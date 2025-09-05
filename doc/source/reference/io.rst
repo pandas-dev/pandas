@@ -156,6 +156,16 @@ Parquet
    read_parquet
    DataFrame.to_parquet
 
+Iceberg
+~~~~~~~
+.. autosummary::
+    :toctree: api/
+
+    read_iceberg
+    DataFrame.to_iceberg
+
+.. warning:: ``read_iceberg`` is experimental and may change without warning.
+
 ORC
 ~~~
 .. autosummary::
@@ -187,13 +197,6 @@ SQL
    read_sql_query
    read_sql
    DataFrame.to_sql
-
-Google BigQuery
-~~~~~~~~~~~~~~~
-.. autosummary::
-   :toctree: api/
-
-   read_gbq
 
 STATA
 ~~~~~

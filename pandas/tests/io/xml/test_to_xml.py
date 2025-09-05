@@ -33,7 +33,7 @@ from pandas.io.xml import read_xml
 # [X] - KeyError: "...is not included in namespaces"
 # [X] - KeyError: "no valid column"
 # [X] - ValueError: "To use stylesheet, you need lxml installed..."
-# []  - OSError: (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
+# []  - OSError: (NEED PERMISSION ISSUE, DISK FULL, ETC.)
 # [X] - FileNotFoundError: "No such file or directory"
 # [X] - PermissionError: "Forbidden"
 
@@ -41,7 +41,7 @@ from pandas.io.xml import read_xml
 # [X] - TypeError: "...is not a valid type for attr_cols"
 # [X] - TypeError: "...is not a valid type for elem_cols"
 # [X] - LookupError: "unknown encoding"
-# []  - OSError: (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
+# []  - OSError: (NEED PERMISSION ISSUE, DISK FULL, ETC.)
 # [X] - FileNotFoundError: "No such file or directory"
 # [X] - KeyError: "...is not included in namespaces"
 # [X] - KeyError: "no valid column"
@@ -1034,26 +1034,23 @@ def test_stylesheet_buffered_reader(xsl_row_field_output, mode, geom_df):
     with open(
         xsl_row_field_output, mode, encoding="utf-8" if mode == "r" else None
     ) as f:
-        xsl_obj = f.read()
-
-    output = geom_df.to_xml(stylesheet=xsl_obj)
+        output = geom_df.to_xml(stylesheet=f)
 
     assert output == xsl_expected
 
 
 def test_stylesheet_wrong_path(geom_df):
-    lxml_etree = pytest.importorskip("lxml.etree")
+    pytest.importorskip("lxml.etree")
 
-    xsl = os.path.join("data", "xml", "row_field_output.xslt")
+    xsl = os.path.join("does", "not", "exist", "row_field_output.xslt")
 
     with pytest.raises(
-        lxml_etree.XMLSyntaxError,
-        match=("Start tag expected, '<' not found"),
+        FileNotFoundError, match=r"\[Errno 2\] No such file or director"
     ):
         geom_df.to_xml(stylesheet=xsl)
 
 
-@pytest.mark.parametrize("val", ["", b""])
+@pytest.mark.parametrize("val", [StringIO(""), BytesIO(b"")])
 def test_empty_string_stylesheet(val, geom_df):
     lxml_etree = pytest.importorskip("lxml.etree")
 
@@ -1095,9 +1092,9 @@ def test_incorrect_xsl_syntax(geom_df):
 </xsl:stylesheet>"""
 
     with pytest.raises(
-        lxml_etree.XMLSyntaxError, match=("Opening and ending tag mismatch")
+        lxml_etree.XMLSyntaxError, match="Opening and ending tag mismatch"
     ):
-        geom_df.to_xml(stylesheet=xsl)
+        geom_df.to_xml(stylesheet=StringIO(xsl))
 
 
 def test_incorrect_xsl_eval(geom_df):
@@ -1124,8 +1121,8 @@ def test_incorrect_xsl_eval(geom_df):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    with pytest.raises(lxml_etree.XSLTParseError, match=("failed to compile")):
-        geom_df.to_xml(stylesheet=xsl)
+    with pytest.raises(lxml_etree.XSLTParseError, match="failed to compile"):
+        geom_df.to_xml(stylesheet=StringIO(xsl))
 
 
 def test_incorrect_xsl_apply(geom_df):
@@ -1143,9 +1140,9 @@ def test_incorrect_xsl_apply(geom_df):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    with pytest.raises(lxml_etree.XSLTApplyError, match=("Cannot resolve URI")):
+    with pytest.raises(lxml_etree.XSLTApplyError, match="Cannot resolve URI"):
         with tm.ensure_clean("test.xml") as path:
-            geom_df.to_xml(path, stylesheet=xsl)
+            geom_df.to_xml(path, stylesheet=StringIO(xsl))
 
 
 def test_stylesheet_with_etree(geom_df):
@@ -1160,10 +1157,8 @@ def test_stylesheet_with_etree(geom_df):
         </xsl:copy>
     </xsl:template>"""
 
-    with pytest.raises(
-        ValueError, match=("To use stylesheet, you need lxml installed")
-    ):
-        geom_df.to_xml(parser="etree", stylesheet=xsl)
+    with pytest.raises(ValueError, match="To use stylesheet, you need lxml installed"):
+        geom_df.to_xml(parser="etree", stylesheet=StringIO(xsl))
 
 
 def test_style_to_csv(geom_df):
@@ -1190,7 +1185,7 @@ def test_style_to_csv(geom_df):
 
     if out_csv is not None:
         out_csv = out_csv.strip()
-    out_xml = geom_df.to_xml(stylesheet=xsl)
+    out_xml = geom_df.to_xml(stylesheet=StringIO(xsl))
 
     assert out_csv == out_xml
 
@@ -1224,7 +1219,7 @@ def test_style_to_string(geom_df):
 </xsl:stylesheet>"""
 
     out_str = geom_df.to_string()
-    out_xml = geom_df.to_xml(na_rep="NaN", stylesheet=xsl)
+    out_xml = geom_df.to_xml(na_rep="NaN", stylesheet=StringIO(xsl))
 
     assert out_xml == out_str
 
@@ -1269,7 +1264,7 @@ def test_style_to_json(geom_df):
 </xsl:stylesheet>"""
 
     out_json = geom_df.to_json()
-    out_xml = geom_df.to_xml(stylesheet=xsl)
+    out_xml = geom_df.to_xml(stylesheet=StringIO(xsl))
 
     assert out_json == out_xml
 
@@ -1350,7 +1345,7 @@ def test_ea_dtypes(any_numeric_ea_dtype, parser):
     assert equalize_decl(result).strip() == expected
 
 
-def test_unsuported_compression(parser, geom_df):
+def test_unsupported_compression(parser, geom_df):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
             geom_df.to_xml(path, parser=parser, compression="7z")
@@ -1360,14 +1355,14 @@ def test_unsuported_compression(parser, geom_df):
 
 
 @pytest.mark.single_cpu
-def test_s3_permission_output(parser, s3_public_bucket, geom_df):
+def test_s3_permission_output(parser, s3_bucket_public, geom_df):
     s3fs = pytest.importorskip("s3fs")
     pytest.importorskip("lxml")
 
     with tm.external_error_raised((PermissionError, FileNotFoundError)):
         fs = s3fs.S3FileSystem(anon=True)
-        fs.ls(s3_public_bucket.name)
+        fs.ls(s3_bucket_public.name)
 
         geom_df.to_xml(
-            f"s3://{s3_public_bucket.name}/geom.xml", compression="zip", parser=parser
+            f"s3://{s3_bucket_public.name}/geom.xml", compression="zip", parser=parser
         )

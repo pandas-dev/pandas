@@ -1,5 +1,3 @@
-import gc
-
 import numpy as np
 import pytest
 
@@ -9,32 +7,12 @@ from pandas import (
     Series,
 )
 
-pytest.importorskip("matplotlib")
+mpl = pytest.importorskip("matplotlib")
 pytest.importorskip("jinja2")
-
-import matplotlib as mpl
 
 from pandas.io.formats.style import Styler
 
-
-@pytest.fixture(autouse=True)
-def mpl_cleanup():
-    # matplotlib/testing/decorators.py#L24
-    # 1) Resets units registry
-    # 2) Resets rc_context
-    # 3) Closes all figures
-    mpl = pytest.importorskip("matplotlib")
-    mpl_units = pytest.importorskip("matplotlib.units")
-    plt = pytest.importorskip("matplotlib.pyplot")
-    orig_units_registry = mpl_units.registry.copy()
-    with mpl.rc_context():
-        mpl.use("template")
-        yield
-    mpl_units.registry.clear()
-    mpl_units.registry.update(orig_units_registry)
-    plt.close("all")
-    # https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.6.0.html#garbage-collection-is-no-longer-run-on-figure-close  # noqa: E501
-    gc.collect(1)
+pytestmark = pytest.mark.usefixtures("mpl_cleanup")
 
 
 @pytest.fixture
@@ -247,8 +225,8 @@ def test_background_gradient_gmap_dataframe_align(styler_blank, gmap, subset, ex
 @pytest.mark.parametrize(
     "gmap, axis, exp_gmap",
     [
-        (Series([2, 1], index=["Y", "X"]), 0, [[1, 1], [2, 2]]),  # revrse the index
-        (Series([2, 1], index=["B", "A"]), 1, [[1, 2], [1, 2]]),  # revrse the cols
+        (Series([2, 1], index=["Y", "X"]), 0, [[1, 1], [2, 2]]),  # reverse the index
+        (Series([2, 1], index=["B", "A"]), 1, [[1, 2], [1, 2]]),  # reverse the cols
         (Series([1, 2, 3], index=["X", "Y", "Z"]), 0, [[1, 1], [2, 2]]),  # add idx
         (Series([1, 2, 3], index=["A", "B", "C"]), 1, [[1, 2], [1, 2]]),  # add col
     ],

@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
   pull_request:
     branches:
       - main
-      - 2.2.x
+      - 2.3.x
     paths-ignore:
       - "doc/**"
       - "web/**"
@@ -22,23 +22,35 @@ defaults:
 
 jobs:
   ubuntu:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.platform }}
     timeout-minutes: 90
     strategy:
       matrix:
-        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
+        platform: [ubuntu-24.04, ubuntu-24.04-arm]
+        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
+        pandas_future_infer_string: ["1"]
         include:
           - name: "Downstream Compat"
-            env_file: actions-311-downstream_compat.yaml
+            env_file: actions-313-downstream_compat.yaml
             pattern: "not slow and not network and not single_cpu"
             pytest_target: "pandas/tests/test_downstream.py"
+            platform: ubuntu-24.04
           - name: "Minimum Versions"
-            env_file: actions-39-minimum_versions.yaml
+            env_file: actions-311-minimum_versions.yaml
             pattern: "not slow and not network and not single_cpu"
+            platform: ubuntu-24.04
+          - name: "Freethreading"
+            env_file: actions-313-freethreading.yaml
+            pattern: "not slow and not network and not single_cpu"
+            platform: ubuntu-24.04
+          - name: "Without PyArrow"
+            env_file: actions-312.yaml
+            pattern: "not slow and not network and not single_cpu"
+            platform: ubuntu-24.04
           - name: "Locale: it_IT"
-            env_file: actions-311.yaml
+            env_file: actions-313.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-it"
             # Use the utf8 version as the default, it has no bad side-effect.
@@ -47,8 +59,9 @@ jobs:
             # Also install it_IT (its encoding is ISO8859-1) but do not activate it.
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "it_IT"
+            platform: ubuntu-24.04
           - name: "Locale: zh_CN"
-            env_file: actions-311.yaml
+            env_file: actions-313.yaml
             pattern: "not slow and not network and not single_cpu"
             extra_apt: "language-pack-zh-hans"
             # Use the utf8 version as the default, it has no bad side-effect.
@@ -57,75 +70,42 @@ jobs:
             # Also install zh_CN (its encoding is gb2312) but do not activate it.
             # It will be temporarily activated during tests with locale.setlocale
             extra_loc: "zh_CN"
-          - name: "Copy-on-Write 3.9"
-            env_file: actions-39.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_copy_on_write: "1"
-          - name: "Copy-on-Write 3.10"
-            env_file: actions-310.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_copy_on_write: "1"
-          - name: "Copy-on-Write 3.11"
-            env_file: actions-311.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_copy_on_write: "1"
-          - name: "Copy-on-Write 3.12"
-            env_file: actions-312.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_copy_on_write: "1"
-          - name: "Copy-on-Write 3.11 (warnings)"
-            env_file: actions-311.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_copy_on_write: "warn"
-          - name: "Copy-on-Write 3.10 (warnings)"
-            env_file: actions-310.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_copy_on_write: "warn"
-          - name: "Copy-on-Write 3.9 (warnings)"
-            env_file: actions-39.yaml
-            pattern: "not slow and not network and not single_cpu"
-            pandas_copy_on_write: "warn"
-          - name: "Pypy"
-            env_file: actions-pypy-39.yaml
-            pattern: "not slow and not network and not single_cpu"
-            test_args: "--max-worker-restart 0"
+            platform: ubuntu-24.04
+          - name: "PANDAS_FUTURE_INFER_STRING=0"
+            env_file: actions-313.yaml
+            pandas_future_infer_string: "0"
+            platform: ubuntu-24.04
           - name: "Numpy Dev"
-            env_file: actions-311-numpydev.yaml
+            env_file: actions-313-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+            platform: ubuntu-24.04
           - name: "Pyarrow Nightly"
-            env_file: actions-311-pyarrownightly.yaml
+            env_file: actions-313-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"
-          - name: "ASAN / UBSAN"
-            env_file: actions-311-sanitizers.yaml
-            pattern: "not slow and not network and not single_cpu and not skip_ubsan"
-            asan_options: "ASAN_OPTIONS=detect_leaks=0"
-            preload: LD_PRELOAD=$(gcc -print-file-name=libasan.so)
-            meson_args: --config-settings=setup-args="-Db_sanitize=address,undefined"
-            cflags_adds: -fno-sanitize-recover=all
-            pytest_workers: -1  # disable pytest-xdist as it swallows stderr from ASAN
+            platform: ubuntu-24.04
       fail-fast: false
-    name: ${{ matrix.name || format('ubuntu-latest {0}', matrix.env_file) }}
+    name: ${{ matrix.name || format('{0} {1}', matrix.platform, matrix.env_file) }}
     env:
       PATTERN: ${{ matrix.pattern }}
       LANG: ${{ matrix.lang || 'C.UTF-8' }}
       LC_ALL: ${{ matrix.lc_all || '' }}
-      PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
-      PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
+      PANDAS_CI: '1'
+      PANDAS_FUTURE_INFER_STRING: ${{ matrix.pandas_future_infer_string || '1' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
-      PYTEST_WORKERS: ${{ matrix.pytest_workers || 'auto' }}
+      PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
-      NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'weak' || 'legacy' }}
       # Clipboard tests
       QT_QPA_PLATFORM: offscreen
+      REMOVE_PYARROW: ${{ matrix.name == 'Without PyArrow' && '1' || '0' }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_copy_on_write || '' }}
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_future_infer_string }}-${{ matrix.platform }}
       cancel-in-progress: true
 
     services:
       mysql:
-        image: mysql:8.0.33
+        image: mysql:9
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: yes
           MYSQL_DATABASE: pandas
@@ -138,7 +118,7 @@ jobs:
           - 3306:3306
 
       postgres:
-        image: postgres:13
+        image: postgres:17
         env:
           PGUSER: postgres
           POSTGRES_USER: postgres
@@ -153,22 +133,19 @@ jobs:
           - 5432:5432
 
       moto:
-        image: motoserver/moto:4.1.13
-        env:
-          AWS_ACCESS_KEY_ID: foobar_key
-          AWS_SECRET_ACCESS_KEY: foobar_secret
+        image: motoserver/moto:5.0.27
         ports:
           - 5000:5000
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
 
     - name: Extra installs
-      run: sudo apt-get update && sudo apt-get install -y ${{ matrix.extra_apt }}
-      if: ${{ matrix.extra_apt }}
+      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
+      run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0 ${{ matrix.extra_apt || ''}}
 
     - name: Generate extra locales
       # These extra locales will be available for locale.setlocale() calls in tests
@@ -184,24 +161,17 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas
       with:
-        meson_args: ${{ matrix.meson_args }}
-        cflags_adds: ${{ matrix.cflags_adds }}
+        # xref https://github.com/cython/cython/issues/6870
+        werror: ${{ matrix.name != 'Freethreading' }}
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
-      if: ${{ matrix.name != 'Pypy' }}
-      with:
-        preload: ${{ matrix.preload }}
-        asan_options: ${{ matrix.asan_options }}
       env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
-      with:
-        preload: ${{ matrix.preload }}
-        asan_options: ${{ matrix.asan_options }}
       env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 0
@@ -211,8 +181,9 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
-        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
+        # Note: Don't use macOS latest since macos 14 appears to be arm64 only
+        os: [macos-13, macos-14, windows-latest]
+        env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}
@@ -224,12 +195,11 @@ jobs:
       PANDAS_CI: 1
       PYTEST_TARGET: pandas
       PATTERN: "not slow and not db and not network and not single_cpu"
-      # GH 47443: PYTEST_WORKERS > 0 crashes Windows builds with memory related errors
-      PYTEST_WORKERS: ${{ matrix.os == 'macos-latest' && 'auto' || '0' }}
+      PYTEST_WORKERS: 'auto'
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -245,7 +215,7 @@ jobs:
         uses: ./.github/actions/run-tests
 
   Linux-32-bit:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     container:
       image: quay.io/pypa/manylinux2014_i686
       options: --platform linux/386
@@ -266,25 +236,26 @@ jobs:
           fi
       - name: Build environment and Run Tests
         # https://github.com/numpy/numpy/issues/24703#issuecomment-1722379388
+        # Note: Pinned to Cython 3.0.10 to avoid numerical instability in 32-bit environments
+        # https://github.com/pandas-dev/pandas/pull/61423
         run: |
-          /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
+          /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
-          python -m pip install numpy --config-settings=setup-args="-Dallow-noblas=true"
-          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 hypothesis>=6.46.1
-          python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
+          python -m pip install numpy -Csetup-args="-Dallow-noblas=true"
+          python -m pip install --no-cache-dir versioneer[toml] cython==3.0.10 python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
+          python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
-          export PANDAS_CI=1
-          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+          PANDAS_CI=1 python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-32bit
       cancel-in-progress: true
 
   Linux-Musl:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     container:
-      image: quay.io/pypa/musllinux_1_1_x86_64
+      image: quay.io/pypa/musllinux_1_2_x86_64
     steps:
       - name: Checkout pandas Repo
         # actions/checkout does not work since it requires node
@@ -306,18 +277,17 @@ jobs:
           apk add musl-locales
       - name: Build environment
         run: |
-          /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
+          /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
-          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 hypothesis>=6.46.1
-          python -m pip install --no-cache-dir --no-build-isolation -e . --config-settings=setup-args="--werror"
+          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytest>=7.3.2 pytest-xdist>=3.4.0 hypothesis>=6.84.0
+          python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
 
       - name: Run Tests
         run: |
           . ~/virtualenvs/pandas-dev/bin/activate
-          export PANDAS_CI=1
-          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+          PANDAS_CI=1 python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-musl
@@ -330,7 +300,7 @@ jobs:
     # In general, this will remain frozen(present, but not running) until:
     #    - The next unreleased Python version has released beta 1
     #      - This version should be available on GitHub Actions.
-    #    - Our required build/runtime dependencies(numpy, pytz, Cython, python-dateutil)
+    #    - Our required build/runtime dependencies(numpy, Cython, python-dateutil)
     #      support that unreleased Python version.
     #    To unfreeze, comment out the ``if: false`` condition, and make sure you update
     #    the name of the workflow and Python version in actions/setup-python ``python-version:``
@@ -343,7 +313,7 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    if: false # Uncomment this to freeze the workflow, comment it to unfreeze
+    if: false
     defaults:
       run:
         shell: bash -eou pipefail {0}
@@ -351,13 +321,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macOS-latest, windows-latest]
+        # Separate out macOS 13 and 14, since macOS 14 is arm64 only
+        os: [ubuntu-24.04, macOS-13, macOS-14, windows-latest]
 
     timeout-minutes: 90
 
     concurrency:
-      #https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.os }}-${{ matrix.pytest_target }}-dev
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.os }}-python-dev
       cancel-in-progress: true
 
     env:
@@ -367,24 +338,86 @@ jobs:
       PYTEST_TARGET: pandas
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up Python Dev Version
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12-dev'
+          python-version: '3.13-dev'
 
       - name: Build Environment
         run: |
           python --version
           python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
-          python -m pip install versioneer[toml]
-          python -m pip install python-dateutil pytz tzdata cython hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-cov
-          python -m pip install -ve . --no-build-isolation --no-index --no-deps --config-settings=setup-args="--werror"
+          python -m pip install versioneer[toml] python-dateutil tzdata cython hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0 pytest-cov
+          python -m pip install -ve . --no-build-isolation --no-index --no-deps -Csetup-args="--werror"
           python -m pip list
 
       - name: Run Tests
         uses: ./.github/actions/run-tests
+
+  # NOTE: this job must be kept in sync with the Pyodide build job in wheels.yml
+  emscripten:
+    # Note: the Python version, Emscripten toolchain version are determined
+    # by the Pyodide version. The appropriate versions can be found in the
+    # Pyodide repodata.json "info" field, or in the Makefile.envs file:
+    # https://github.com/pyodide/pyodide/blob/stable/Makefile.envs#L2
+    # The Node.js version can be determined via Pyodide:
+    # https://pyodide.org/en/stable/usage/index.html#node-js
+    name: Pyodide build
+    runs-on: ubuntu-24.04
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-wasm
+      cancel-in-progress: true
+    steps:
+      - name: Checkout pandas Repo
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python for pyodide-build
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Emscripten toolchain
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.58'
+          actions-cache-folder: emsdk-cache
+
+      - name: Install pyodide-build
+        run: pip install "pyodide-build>=0.29.2"
+
+      - name: Build pandas for Pyodide
+        run: |
+          pyodide build
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Pyodide virtual environment
+        env:
+          pyodide-version: '0.27.1'
+        run: |
+          pyodide xbuildenv install ${{ env.pyodide-version }}
+          pyodide venv .venv-pyodide
+          source .venv-pyodide/bin/activate
+          pip install dist/*.whl
+
+      - name: Test pandas for Pyodide
+        env:
+          PANDAS_CI: 1
+        run: |
+          source .venv-pyodide/bin/activate
+          pip install pytest hypothesis
+          # do not import pandas from the checked out repo
+          cd ..
+          python -c 'import pandas as pd; pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db"])'

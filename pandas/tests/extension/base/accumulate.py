@@ -18,14 +18,16 @@ class BaseAccumulateTests:
     def check_accumulate(self, ser: pd.Series, op_name: str, skipna: bool):
         try:
             alt = ser.astype("float64")
-        except TypeError:
-            # e.g. Period can't be cast to float64
+        except (TypeError, ValueError):
+            # e.g. Period can't be cast to float64 (TypeError)
+            #      String can't be cast to float64 (ValueError)
             alt = ser.astype(object)
 
         result = getattr(ser, op_name)(skipna=skipna)
         expected = getattr(alt, op_name)(skipna=skipna)
         tm.assert_series_equal(result, expected, check_dtype=False)
 
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
         op_name = all_numeric_accumulations
         ser = pd.Series(data)

@@ -73,23 +73,23 @@ class TestDatetimeConcat:
 
         exp_idx = DatetimeIndex(
             [
-                "2010-12-31 23:00:00+00:00",
-                "2011-01-01 00:00:00+00:00",
-                "2011-01-01 01:00:00+00:00",
                 "2010-12-31 15:00:00+00:00",
                 "2010-12-31 16:00:00+00:00",
                 "2010-12-31 17:00:00+00:00",
+                "2010-12-31 23:00:00+00:00",
+                "2011-01-01 00:00:00+00:00",
+                "2011-01-01 01:00:00+00:00",
             ]
         ).as_unit("ns")
 
         expected = DataFrame(
             [
-                [1, np.nan],
-                [2, np.nan],
-                [3, np.nan],
                 [np.nan, 1],
                 [np.nan, 2],
                 [np.nan, 3],
+                [1, np.nan],
+                [2, np.nan],
+                [3, np.nan],
             ],
             index=exp_idx,
             columns=["a", "b"],
@@ -213,7 +213,7 @@ class TestDatetimeConcat:
 
     @pytest.mark.parametrize("tz1", [None, "UTC"])
     @pytest.mark.parametrize("tz2", [None, "UTC"])
-    @pytest.mark.parametrize("item", [pd.NaT, Timestamp("20150101")])
+    @pytest.mark.parametrize("item", [pd.NaT, Timestamp("20150101").as_unit("ns")])
     def test_concat_NaT_dataframes_all_NaT_axis_0(self, tz1, tz2, item):
         # GH 12396
 
@@ -226,15 +226,6 @@ class TestDatetimeConcat:
         expected = expected.apply(lambda x: x.dt.tz_localize(tz2))
         if tz1 != tz2:
             expected = expected.astype(object)
-            if item is pd.NaT:
-                # GH#18463
-                # TODO: setting nan here is to keep the test passing as we
-                #  make assert_frame_equal stricter, but is nan really the
-                #  ideal behavior here?
-                if tz1 is not None:
-                    expected.iloc[-1, 0] = np.nan
-                else:
-                    expected.iloc[:-1, 0] = np.nan
 
         tm.assert_frame_equal(result, expected)
 
@@ -367,7 +358,7 @@ class TestTimezoneConcat:
 
         result = concat([Series(x), Series(y)], ignore_index=True)
         tm.assert_series_equal(result, Series(x + y))
-        assert result.dtype == "datetime64[ns, tzlocal()]"
+        assert result.dtype == "datetime64[s, tzlocal()]"
 
     def test_concat_tz_series_with_datetimelike(self):
         # see gh-12620: tz and timedelta
@@ -548,8 +539,8 @@ def test_concat_timedelta64_block():
     df = DataFrame({"time": rng})
 
     result = concat([df, df])
-    tm.assert_frame_equal(result.iloc[:10], df)
-    tm.assert_frame_equal(result.iloc[10:], df)
+    tm.assert_frame_equal(result.iloc[:10], df, check_index_type=False)
+    tm.assert_frame_equal(result.iloc[10:], df, check_index_type=False)
 
 
 def test_concat_multiindex_datetime_nat():
@@ -590,8 +581,9 @@ def test_concat_float_datetime64():
     result = concat([df_time.iloc[:0], df_float])
     tm.assert_frame_equal(result, expected)
 
-    expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
-    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = concat([df_time, df_float.iloc[:0]])
+    expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")}).astype(
+        object
+    )
+
+    result = concat([df_time, df_float.iloc[:0]])
     tm.assert_frame_equal(result, expected)

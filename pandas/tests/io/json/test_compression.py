@@ -2,6 +2,7 @@ from io import (
     BytesIO,
     StringIO,
 )
+import uuid
 
 import pytest
 
@@ -41,17 +42,19 @@ def test_read_zipped_json(datapath):
 
 @td.skip_if_not_us_locale
 @pytest.mark.single_cpu
-def test_with_s3_url(compression, s3_public_bucket, s3so):
+@pytest.mark.network
+def test_with_s3_url(compression, s3_bucket_public, s3so):
     # Bucket created in tests/io/conftest.py
     df = pd.read_json(StringIO('{"a": [1, 2, 3], "b": [4, 5, 6]}'))
 
+    key = f"{uuid.uuid4()}.json"
     with tm.ensure_clean() as path:
         df.to_json(path, compression=compression)
         with open(path, "rb") as f:
-            s3_public_bucket.put_object(Key="test-1", Body=f)
+            s3_bucket_public.put_object(Key=key, Body=f)
 
     roundtripped_df = pd.read_json(
-        f"s3://{s3_public_bucket.name}/test-1",
+        f"s3://{s3_bucket_public.name}/{key}",
         compression=compression,
         storage_options=s3so,
     )

@@ -109,6 +109,14 @@ void parser_set_default_options(parser_t *self) {
 
 parser_t *parser_new(void) { return (parser_t *)calloc(1, sizeof(parser_t)); }
 
+static void parser_clear_data_buffers(parser_t *self) {
+  free_if_not_null((void *)&self->stream);
+  free_if_not_null((void *)&self->words);
+  free_if_not_null((void *)&self->word_starts);
+  free_if_not_null((void *)&self->line_start);
+  free_if_not_null((void *)&self->line_fields);
+}
+
 static void parser_cleanup(parser_t *self) {
   // XXX where to put this
   free_if_not_null((void *)&self->error_msg);
@@ -119,6 +127,7 @@ static void parser_cleanup(parser_t *self) {
     self->skipset = NULL;
   }
 
+  parser_clear_data_buffers(self);
   if (self->cb_cleanup != NULL) {
     self->cb_cleanup(self->source);
     self->cb_cleanup = NULL;
@@ -139,7 +148,7 @@ int parser_init(parser_t *self) {
   self->warn_msg = NULL;
 
   // token stream
-  self->stream = malloc(STREAM_INIT_SIZE * sizeof(char));
+  self->stream = malloc(STREAM_INIT_SIZE);
   if (self->stream == NULL) {
     parser_cleanup(self);
     return PARSER_OUT_OF_MEMORY;
@@ -212,9 +221,8 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
   char *orig_ptr = (void *)self->stream;
   TRACE(("\n\nmake_stream_space: nbytes = %zu.  grow_buffer(self->stream...)\n",
          nbytes))
-  self->stream =
-      (char *)grow_buffer((void *)self->stream, self->stream_len,
-                          &self->stream_cap, nbytes * 2, sizeof(char), &status);
+  self->stream = (char *)grow_buffer((void *)self->stream, self->stream_len,
+                                     &self->stream_cap, nbytes * 2, 1, &status);
   TRACE(("make_stream_space: self->stream=%p, self->stream_len = %zu, "
          "self->stream_cap=%zu, status=%zu\n",
          self->stream, self->stream_len, self->stream_cap, status))

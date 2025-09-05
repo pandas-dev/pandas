@@ -17,7 +17,7 @@ class DummyArray(ExtensionArray):
     def __init__(self, data) -> None:
         self.data = data
 
-    def __array__(self, dtype):
+    def __array__(self, dtype=None, copy=None):
         return self.data
 
     @property
@@ -30,8 +30,10 @@ class DummyArray(ExtensionArray):
             if copy:
                 return type(self)(self.data)
             return self
-
-        return np.array(self, dtype=dtype, copy=copy)
+        elif not copy:
+            return np.asarray(self, dtype=dtype)
+        else:
+            return np.array(self, dtype=dtype, copy=copy)
 
 
 class TestExtensionArrayDtype:
@@ -91,8 +93,13 @@ class CapturingStringArray(pd.arrays.StringArray):
 def test_ellipsis_index():
     # GH#42430 1D slices over extension types turn into N-dimensional slices
     #  over ExtensionArrays
+    dtype = pd.StringDtype()
     df = pd.DataFrame(
-        {"col1": CapturingStringArray(np.array(["hello", "world"], dtype=object))}
+        {
+            "col1": CapturingStringArray(
+                np.array(["hello", "world"], dtype=object), dtype=dtype
+            )
+        }
     )
     _ = df.iloc[:1]
 

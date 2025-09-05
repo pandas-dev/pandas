@@ -266,20 +266,6 @@ def test_step(step):
     tm.assert_frame_equal(result, expected)
 
 
-def test_column_axis():
-    column_group_df = pd.DataFrame(
-        [[0, 1, 2, 3, 4, 5, 6], [0, 0, 1, 0, 1, 0, 2]],
-        columns=["A", "B", "C", "D", "E", "F", "G"],
-    )
-    msg = "DataFrame.groupby with axis=1"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        g = column_group_df.groupby(column_group_df.iloc[1], axis=1)
-    result = g._positional_selector[1:-1]
-    expected = column_group_df.iloc[:, [1, 3]]
-
-    tm.assert_frame_equal(result, expected)
-
-
 def test_columns_on_iter():
     # GitHub issue #44821
     df = pd.DataFrame({k: range(10) for k in "ABC"})

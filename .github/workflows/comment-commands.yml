@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   issue_assign:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: (!github.event.issue.pull_request) && github.event.comment.body == 'take'
     concurrency:
       group: ${{ github.actor }}-issue-assign
@@ -19,19 +19,17 @@ jobs:
           echo "Assigning issue ${{ github.event.issue.number }} to ${{ github.event.comment.user.login }}"
           curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"assignees": ["${{ github.event.comment.user.login }}"]}' https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/assignees
   preview_docs:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     if: github.event.issue.pull_request && github.event.comment.body == '/preview'
     concurrency:
       group: ${{ github.actor }}-preview-docs
     steps:
-      - run: |
-          if curl --output /dev/null --silent --head --fail "https://pandas.pydata.org/preview/${{ github.event.issue.number }}/"; then
-            curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"body": "Website preview of this PR available at: https://pandas.pydata.org/preview/${{ github.event.issue.number }}/"}' https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments
-          else
-            curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"body": "No preview found for PR #${{ github.event.issue.number }}. Did the docs build complete?"}' https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments
-          fi
+      - uses: pandas-dev/github-doc-previewer@v0.3.2
+        with:
+          previewer-server: "https://pandas.pydata.org/preview"
+          artifact-job: "Doc Build and Upload"
   asv_run:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     # TODO: Support more benchmarking options later, against different branches, against self, etc
     if: github.event.issue.pull_request && startsWith(github.event.comment.body, '@github-actions benchmark')
     defaults:
@@ -51,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 

@@ -4,12 +4,17 @@ from typing import (
     TYPE_CHECKING,
     Literal,
 )
-import warnings
 
 import numpy as np
 
-from pandas._libs import lib
-from pandas.util._exceptions import find_stack_level
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
+from pandas._libs.tslibs import (
+    Timedelta,
+    Timestamp,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
@@ -50,7 +55,8 @@ def to_numeric(
     """
     Convert argument to a numeric type.
 
-    The default return dtype is `float64` or `int64`
+    If the input is already of a numeric dtype, the dtype will be preserved.
+    For non-numeric inputs, the default return dtype is `float64` or `int64`
     depending on the data supplied. Use the `downcast` parameter
     to obtain other dtypes.
 
@@ -66,14 +72,10 @@ def to_numeric(
     ----------
     arg : scalar, list, tuple, 1-d array, or Series
         Argument to be converted.
-    errors : {'ignore', 'raise', 'coerce'}, default 'raise'
+
+    errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaN.
-        - If 'ignore', then invalid parsing will return the input.
-
-        .. versionchanged:: 2.2
-
-        "ignore" is deprecated. Catch exceptions explicitly instead.
 
     downcast : str, default None
         Can be 'integer', 'signed', 'unsigned', or 'float'.
@@ -95,14 +97,15 @@ def to_numeric(
         the dtype it is to be cast to, so if none of the dtypes
         checked satisfy that specification, no downcasting will be
         performed on the data.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
-        Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
 
-        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
+
+        * ``"numpy_nullable"``: returns nullable-dtype-backed object
+        * ``"pyarrow"``: returns with pyarrow-backed nullable object
 
         .. versionadded:: 2.0
 
@@ -111,6 +114,14 @@ def to_numeric(
     ret
         Numeric if parsing succeeded.
         Return type depends on input.  Series if Series, otherwise ndarray.
+
+    Raises
+    ------
+    ValueError
+        If the input contains non-numeric values and `errors='raise'`.
+    TypeError
+        If the input is not list-like, 1D, or scalar convertible to numeric,
+        such as nested lists or unsupported input types (e.g., dict).
 
     See Also
     --------
@@ -124,24 +135,24 @@ def to_numeric(
     --------
     Take separate series and convert to numeric, coercing when told to
 
-    >>> s = pd.Series(['1.0', '2', -3])
+    >>> s = pd.Series(["1.0", "2", -3])
     >>> pd.to_numeric(s)
     0    1.0
     1    2.0
     2   -3.0
     dtype: float64
-    >>> pd.to_numeric(s, downcast='float')
+    >>> pd.to_numeric(s, downcast="float")
     0    1.0
     1    2.0
     2   -3.0
     dtype: float32
-    >>> pd.to_numeric(s, downcast='signed')
+    >>> pd.to_numeric(s, downcast="signed")
     0    1
     1    2
     2   -3
     dtype: int8
-    >>> s = pd.Series(['apple', '1.0', '2', -3])
-    >>> pd.to_numeric(s, errors='coerce')
+    >>> s = pd.Series(["apple", "1.0", "2", -3])
+    >>> pd.to_numeric(s, errors="coerce")
     0    NaN
     1    1.0
     2    2.0
@@ -166,17 +177,8 @@ def to_numeric(
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
 
-    if errors not in ("ignore", "raise", "coerce"):
+    if errors not in ("raise", "coerce"):
         raise ValueError("invalid error value specified")
-    if errors == "ignore":
-        # GH#54467
-        warnings.warn(
-            "errors='ignore' is deprecated and will raise in a future version. "
-            "Use to_numeric without passing `errors` and catch exceptions "
-            "explicitly instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
 
     check_dtype_backend(dtype_backend)
 
@@ -200,14 +202,14 @@ def to_numeric(
             return float(arg)
         if is_number(arg):
             return arg
+        if isinstance(arg, (Timedelta, Timestamp)):
+            return arg._value
         is_scalars = True
         values = np.array([arg], dtype="O")
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError("arg must be a list, tuple, 1-d array, or Series")
     else:
         values = arg
-
-    orig_values = values
 
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
@@ -227,30 +229,24 @@ def to_numeric(
         values = values.view(np.int64)
     else:
         values = ensure_object(values)
-        coerce_numeric = errors not in ("ignore", "raise")
-        try:
-            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
-                values,
-                set(),
-                coerce_numeric=coerce_numeric,
-                convert_to_masked_nullable=dtype_backend is not lib.no_default
-                or isinstance(values_dtype, StringDtype)
-                and not values_dtype.storage == "pyarrow_numpy",
-            )
-        except (ValueError, TypeError):
-            if errors == "raise":
-                raise
-            values = orig_values
+        coerce_numeric = errors != "raise"
+        values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
+            values,
+            set(),
+            coerce_numeric=coerce_numeric,
+            convert_to_masked_nullable=dtype_backend is not lib.no_default
+            or (
+                isinstance(values_dtype, StringDtype)
+                and values_dtype.na_value is libmissing.NA
+            ),
+        )
 
     if new_mask is not None:
         # Remove unnecessary values, is expected later anyway and enables
         # downcasting
         values = values[~new_mask]
-    elif (
-        dtype_backend is not lib.no_default
-        and new_mask is None
-        or isinstance(values_dtype, StringDtype)
-        and not values_dtype.storage == "pyarrow_numpy"
+    elif (dtype_backend is not lib.no_default and new_mask is None) or (
+        isinstance(values_dtype, StringDtype) and values_dtype.na_value is libmissing.NA
     ):
         new_mask = np.zeros(values.shape, dtype=np.bool_)
 

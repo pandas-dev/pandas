@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
-
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -41,7 +39,7 @@ def test_get_dtypes(using_infer_string):
         names=["int", "string", "dt"],
     )
 
-    exp = "object" if not using_infer_string else "string"
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
         {
             "int": np.dtype("int64"),
@@ -61,7 +59,7 @@ def test_get_dtypes_no_level_name(using_infer_string):
             pd.date_range("20200101", periods=2, tz="UTC"),
         ],
     )
-    exp = "object" if not using_infer_string else "string"
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
         {
             "level_0": np.dtype("int64"),
@@ -82,7 +80,7 @@ def test_get_dtypes_duplicate_level_names(using_infer_string):
         ],
         names=["A", "A", "A"],
     ).dtypes
-    exp = "object" if not using_infer_string else "string"
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
         [np.dtype("int64"), exp, DatetimeTZDtype(tz="utc")],
         index=["A", "A", "A"],
@@ -150,11 +148,7 @@ def test_set_levels_codes_directly(idx):
     with pytest.raises(AttributeError, match=msg):
         idx.levels = new_levels
 
-    msg = (
-        "property 'codes' of 'MultiIndex' object has no setter"
-        if PY311
-        else "can't set attribute"
-    )
+    msg = "property 'codes' of 'MultiIndex' object has no setter"
     with pytest.raises(AttributeError, match=msg):
         idx.codes = new_codes
 
@@ -332,10 +326,8 @@ def test_set_value_keeps_names():
         index=idx,
     )
     df = df.sort_index()
-    assert df._is_copy is None
     assert df.index.names == ("Name", "Number")
     df.at[("grethe", "4"), "one"] = 99.34
-    assert df._is_copy is None
     assert df.index.names == ("Name", "Number")
 
 

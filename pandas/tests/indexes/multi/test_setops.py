@@ -382,7 +382,7 @@ def test_union_sort_other_incomparable():
     idx = MultiIndex.from_product([[1, pd.Timestamp("2000")], ["a", "b"]])
 
     # default, sort=None
-    with tm.assert_produces_warning(RuntimeWarning):
+    with tm.assert_produces_warning(RuntimeWarning, match="are unorderable"):
         result = idx.union(idx[:1])
     tm.assert_index_equal(result, idx)
 
@@ -757,7 +757,7 @@ def test_union_with_na_when_constructing_dataframe():
     series1 = Series(
         (1,),
         index=MultiIndex.from_arrays(
-            [Series([None], dtype="string"), Series([None], dtype="string")]
+            [Series([None], dtype="str"), Series([None], dtype="str")]
         ),
     )
     series2 = Series((10, 20), index=MultiIndex.from_tuples(((None, None), ("a", "b"))))

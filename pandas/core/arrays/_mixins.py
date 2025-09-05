@@ -5,6 +5,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -23,7 +24,6 @@ from pandas._typing import (
     PositionalIndexer2D,
     PositionalIndexerTuple,
     ScalarIndexer,
-    Self,
     SequenceIndexer,
     Shape,
     TakeIndexer,
@@ -33,7 +33,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 from pandas.util._validators import (
     validate_bool_kwarg,
-    validate_fillna_kwargs,
     validate_insert_loc,
 )
 
@@ -141,18 +140,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
             dt64_values = arr.view(dtype)
             return DatetimeArray._simple_new(dt64_values, dtype=dtype)
-
         elif lib.is_np_dtype(dtype, "m") and is_supported_dtype(dtype):
             from pandas.core.arrays import TimedeltaArray
 
             td64_values = arr.view(dtype)
             return TimedeltaArray._simple_new(td64_values, dtype=dtype)
-
-        # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
-        # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
-        # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
-        # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        return arr.view(dtype=dtype)  # type: ignore[arg-type]
+        return arr.view(dtype=dtype)
 
     def take(
         self,
@@ -209,7 +202,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmin", axis=axis)
 
     # Signature of "argmax" incompatible with supertype "ExtensionArray"
@@ -217,7 +210,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         # override base class by adding axis keyword
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
-            raise NotImplementedError
+            raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmax", axis=axis)
 
     def unique(self) -> Self:
@@ -248,7 +241,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
 
     @doc(ExtensionArray.shift)
-    def shift(self, periods: int = 1, fill_value=None):
+    def shift(self, periods: int = 1, fill_value=None) -> Self:
         # NB: shift is always along axis=0
         axis = 0
         fill_value = self._validate_scalar(fill_value)
@@ -265,15 +258,13 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return value
 
     @overload
-    def __getitem__(self, key: ScalarIndexer) -> Any:
-        ...
+    def __getitem__(self, key: ScalarIndexer) -> Any: ...
 
     @overload
     def __getitem__(
         self,
         key: SequenceIndexer | PositionalIndexerTuple,
-    ) -> Self:
-        ...
+    ) -> Self: ...
 
     def __getitem__(
         self,
@@ -296,13 +287,6 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         result = self._from_backing_data(result)
         return result
-
-    def _fill_mask_inplace(
-        self, method: str, limit: int | None, mask: npt.NDArray[np.bool_]
-    ) -> None:
-        # (for now) when self.ndim == 2, we assume axis=0
-        func = missing.get_fill_func(method, ndim=self.ndim)
-        func(self._ndarray.T, limit=limit, mask=mask.T)
 
     def _pad_or_backfill(
         self,
@@ -336,14 +320,15 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return new_values
 
     @doc(ExtensionArray.fillna)
-    def fillna(
-        self, value=None, method=None, limit: int | None = None, copy: bool = True
-    ) -> Self:
-        value, method = validate_fillna_kwargs(
-            value, method, validate_scalar_dict_value=False
-        )
-
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         mask = self.isna()
+        if limit is not None and limit < len(self):
+            # mypy doesn't like that mask can be an EA which need not have `cumsum`
+            modify = mask.cumsum() > limit  # type: ignore[union-attr]
+            if modify.any():
+                # Only copy mask if necessary
+                mask = mask.copy()
+                mask[modify] = False
         # error: Argument 2 to "check_value_size" has incompatible type
         # "ExtensionArray"; expected "ndarray"
         value = missing.check_value_size(
@@ -353,29 +338,15 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         )
 
         if mask.any():
-            if method is not None:
-                # (for now) when self.ndim == 2, we assume axis=0
-                func = missing.get_fill_func(method, ndim=self.ndim)
-                npvalues = self._ndarray.T
-                if copy:
-                    npvalues = npvalues.copy()
-                func(npvalues, limit=limit, mask=mask.T)
-                npvalues = npvalues.T
-
-                # TODO: NumpyExtensionArray didn't used to copy, need tests
-                #  for this
-                new_values = self._from_backing_data(npvalues)
+            # fill with value
+            if copy:
+                new_values = self.copy()
             else:
-                # fill with value
-                if copy:
-                    new_values = self.copy()
-                else:
-                    new_values = self[:]
-                new_values[mask] = value
+                new_values = self[:]
+            new_values[mask] = value
         else:
             # We validate the fill_value even if there is nothing to fill
-            if value is not None:
-                self._validate_setitem_value(value)
+            self._validate_setitem_value(value)
 
             if not copy:
                 new_values = self[:]
@@ -386,7 +357,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     # ------------------------------------------------------------------------
     # Reductions
 
-    def _wrap_reduction_result(self, axis: AxisInt | None, result):
+    def _wrap_reduction_result(self, axis: AxisInt | None, result) -> Any:
         if axis is None or self.ndim == 1:
             return self._box_func(result)
         return self._from_backing_data(result)
@@ -517,17 +488,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         fill_value = self._internal_fill_value
 
         res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
-
-        res_values = self._cast_quantile_result(res_values)
-        return self._from_backing_data(res_values)
-
-    # TODO: see if we can share this with other dispatch-wrapping methods
-    def _cast_quantile_result(self, res_values: np.ndarray) -> np.ndarray:
-        """
-        Cast the result of quantile_with_mask to an appropriate dtype
-        to pass to _from_backing_data in _quantile.
-        """
-        return res_values
+        if res_values.dtype == self._ndarray.dtype:
+            return self._from_backing_data(res_values)
+        else:
+            # e.g. test_quantile_empty we are empty integer dtype and res_values
+            #  has floating dtype
+            # TODO: technically __init__ isn't defined here.
+            #  Should we raise NotImplementedError and handle this on NumpyEA?
+            return type(self)(res_values)  # type: ignore[call-arg]
 
     # ------------------------------------------------------------------------
     # numpy-like methods

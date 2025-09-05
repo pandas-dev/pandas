@@ -4,6 +4,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Index,
     NaT,
@@ -20,8 +22,10 @@ import pandas._testing as tm
 
 class TestGetItem:
     def test_getitem_slice_keeps_name(self):
-        # GH#4226
-        tdi = timedelta_range("1d", "5d", freq="h", name="timebucket")
+        # GH#4226, GH#59051
+        msg = "'d' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            tdi = timedelta_range("1d", "5d", freq="h", name="timebucket")
         assert tdi[1:].name == tdi.name
 
     def test_getitem(self):
@@ -230,7 +234,7 @@ class TestTake:
 
     def test_take_equiv_getitem(self):
         tds = ["1day 02:00:00", "1 day 04:00:00", "1 day 10:00:00"]
-        idx = timedelta_range(start="1d", end="2d", freq="h", name="idx")
+        idx = timedelta_range(start="1D", end="2D", freq="h", name="idx")
         expected = TimedeltaIndex(tds, freq=None, name="idx")
 
         taken1 = idx.take([2, 4, 10])
@@ -260,8 +264,7 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         msg = (
-            "When allow_fill=True and fill_value is not None, "
-            "all indices must be >= -1"
+            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
         )
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)
@@ -337,8 +340,10 @@ class TestContains:
 
     def test_contains(self):
         # Checking for any NaT-like objects
-        # GH#13603
-        td = to_timedelta(range(5), unit="d") + offsets.Hour(1)
+        # GH#13603, GH#59051
+        msg = "'d' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            td = to_timedelta(range(5), unit="d") + offsets.Hour(1)
         for v in [NaT, None, float("nan"), np.nan]:
             assert v not in td
 

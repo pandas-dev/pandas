@@ -7,6 +7,9 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 
+from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.missing import na_value_for_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -17,6 +20,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
+from pandas.tests.groupby import get_groupby_method_args
 from pandas.util import _test_decorators as td
 
 
@@ -33,20 +37,17 @@ def test_basic_aggregations(dtype):
     for k, v in grouped:
         assert len(v) == 3
 
-    msg = "using SeriesGroupBy.mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        agged = grouped.aggregate(np.mean)
+    agged = grouped.aggregate(np.mean)
     assert agged[1] == 1
 
-    msg = "using SeriesGroupBy.mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = grouped.agg(np.mean)
+    expected = grouped.agg(np.mean)
     tm.assert_series_equal(agged, expected)  # shorthand
     tm.assert_series_equal(agged, grouped.mean())
     result = grouped.sum()
-    msg = "using SeriesGroupBy.sum"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = grouped.agg(np.sum)
+    expected = grouped.agg(np.sum)
+    if dtype == "int32":
+        # NumPy's sum returns int64
+        expected = expected.astype("int32")
     tm.assert_series_equal(result, expected)
 
     expected = grouped.apply(lambda x: x * x.sum())
@@ -55,29 +56,15 @@ def test_basic_aggregations(dtype):
     tm.assert_series_equal(transformed, expected)
 
     value_grouped = data.groupby(data)
-    msg = "using SeriesGroupBy.mean"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = value_grouped.aggregate(np.mean)
+    result = value_grouped.aggregate(np.mean)
     tm.assert_series_equal(result, agged, check_index_type=False)
 
     # complex agg
-    msg = "using SeriesGroupBy.[mean|std]"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        agged = grouped.aggregate([np.mean, np.std])
+    agged = grouped.aggregate([np.mean, np.std])
 
     msg = r"nested renamer is not supported"
     with pytest.raises(pd.errors.SpecificationError, match=msg):
         grouped.aggregate({"one": np.mean, "two": np.std})
-
-    group_constants = {0: 10, 1: 20, 2: 30}
-    msg = (
-        "Pinning the groupby key to each group in SeriesGroupBy.agg is deprecated, "
-        "and cases that relied on it will raise in a future version"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH#41090
-        agged = grouped.agg(lambda x: group_constants[x.name] + x.mean())
-    assert agged[1] == 21
 
     # corner cases
     msg = "Must produce aggregated value"
@@ -257,6 +244,64 @@ def test_empty(frame_or_series, all_boolean_reductions):
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.parametrize("how", ["idxmin", "idxmax"])
+def test_idxmin_idxmax_extremes(how, any_real_numpy_dtype):
+    # GH#57040
+    if any_real_numpy_dtype is int or any_real_numpy_dtype is float:
+        # No need to test
+        return
+    info = np.iinfo if "int" in any_real_numpy_dtype else np.finfo
+    min_value = info(any_real_numpy_dtype).min
+    max_value = info(any_real_numpy_dtype).max
+    df = DataFrame(
+        {"a": [2, 1, 1, 2], "b": [min_value, max_value, max_value, min_value]},
+        dtype=any_real_numpy_dtype,
+    )
+    gb = df.groupby("a")
+    result = getattr(gb, how)()
+    expected = DataFrame(
+        {"b": [1, 0]}, index=pd.Index([1, 2], name="a", dtype=any_real_numpy_dtype)
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["idxmin", "idxmax"])
+def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
+    # GH#57040
+    min_value = np.finfo(float_numpy_dtype).min
+    max_value = np.finfo(float_numpy_dtype).max
+    df = DataFrame(
+        {
+            "a": Series(np.repeat(range(1, 5), repeats=2), dtype="intp"),
+            "b": Series(
+                [
+                    np.nan,
+                    min_value,
+                    np.nan,
+                    max_value,
+                    min_value,
+                    np.nan,
+                    max_value,
+                    np.nan,
+                ],
+                dtype=float_numpy_dtype,
+            ),
+        },
+    )
+    gb = df.groupby("a")
+
+    if not skipna:
+        msg = f"{how} with skipna=False"
+        with pytest.raises(ValueError, match=msg):
+            getattr(gb, how)(skipna=skipna)
+        return
+    result = getattr(gb, how)(skipna=skipna)
+    expected = DataFrame(
+        {"b": [1, 3, 4, 6]}, index=pd.Index(range(1, 5), name="a", dtype="intp")
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "func, values",
     [
@@ -327,30 +372,32 @@ def test_groupby_non_arithmetic_agg_int_like_precision(method, data):
     tm.assert_frame_equal(result, expected)
 
 
-def test_idxmin_idxmax_axis1():
+@pytest.mark.parametrize("how", ["first", "last"])
+def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
+    # GH#57019
+    na_value = na_value_for_dtype(pandas_dtype(any_real_nullable_dtype))
     df = DataFrame(
-        np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "B", "C", "D"]
+        {
+            "a": [2, 1, 1, 2, 3, 3],
+            "b": [na_value, 3.0, na_value, 4.0, np.nan, np.nan],
+            "c": [na_value, 3.0, na_value, 4.0, np.nan, np.nan],
+        },
+        dtype=any_real_nullable_dtype,
     )
-    df["A"] = [1, 2, 3, 1, 2, 3, 1, 2, 3, 4]
+    gb = df.groupby("a", sort=sort)
+    method = getattr(gb, how)
+    result = method(skipna=skipna)
 
-    gb = df.groupby("A")
-
-    warn_msg = "DataFrameGroupBy.idxmax with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-        res = gb.idxmax(axis=1)
-
-    alt = df.iloc[:, 1:].idxmax(axis=1)
-    indexer = res.index.get_level_values(1)
-
-    tm.assert_series_equal(alt[indexer], res.droplevel("A"))
-
-    df["E"] = date_range("2016-01-01", periods=10)
-    gb2 = df.groupby("A")
-
-    msg = "'>' not supported between instances of 'Timestamp' and 'float'"
-    with pytest.raises(TypeError, match=msg):
-        with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            gb2.idxmax(axis=1)
+    ilocs = {
+        ("first", True): [3, 1, 4],
+        ("first", False): [0, 1, 4],
+        ("last", True): [3, 1, 5],
+        ("last", False): [3, 2, 5],
+    }[how, skipna]
+    expected = df.iloc[ilocs].set_index("a")
+    if sort:
+        expected = expected.sort_index()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_mean_no_overflow():
@@ -374,6 +421,239 @@ def test_mean_on_timedelta():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values, dtype, result_dtype",
+    [
+        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "float64", "float64"),
+        ([0, 1, pd.NA, 3, 4, 5, 6, 7, 8, 9], "Float64", "Float64"),
+        ([0, 1, pd.NA, 3, 4, 5, 6, 7, 8, 9], "Int64", "Float64"),
+        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "timedelta64[ns]", "timedelta64[ns]"),
+        (
+            pd.to_datetime(
+                [
+                    "2019-05-09",
+                    pd.NaT,
+                    "2019-05-11",
+                    "2019-05-12",
+                    "2019-05-13",
+                    "2019-05-14",
+                    "2019-05-15",
+                    "2019-05-16",
+                    "2019-05-17",
+                    "2019-05-18",
+                ]
+            ),
+            "datetime64[ns]",
+            "datetime64[ns]",
+        ),
+    ],
+)
+def test_mean_skipna(values, dtype, result_dtype, skipna):
+    # GH#15675
+    df = DataFrame(
+        {
+            "val": values,
+            "cat": ["A", "B"] * 5,
+        }
+    ).astype({"val": dtype})
+    # We need to recast the expected values to the result_dtype because
+    # Series.mean() changes the dtype to float64/object depending on the input dtype
+    expected = (
+        df.groupby("cat")["val"]
+        .apply(lambda x: x.mean(skipna=skipna))
+        .astype(result_dtype)
+    )
+    result = df.groupby("cat")["val"].mean(skipna=skipna)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "float64"),
+        ([0, 1, pd.NA, 3, 4, 5, 6, 7, 8, 9], "Float64"),
+        ([0, 1, pd.NA, 3, 4, 5, 6, 7, 8, 9], "Int64"),
+        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "timedelta64[ns]"),
+    ],
+)
+def test_sum_skipna(values, dtype, skipna):
+    # GH#15675
+    df = DataFrame(
+        {
+            "val": values,
+            "cat": ["A", "B"] * 5,
+        }
+    ).astype({"val": dtype})
+    # We need to recast the expected values to the original dtype because
+    # Series.sum() changes the dtype
+    expected = (
+        df.groupby("cat")["val"].apply(lambda x: x.sum(skipna=skipna)).astype(dtype)
+    )
+    result = df.groupby("cat")["val"].sum(skipna=skipna)
+    tm.assert_series_equal(result, expected)
+
+
+def test_sum_skipna_object(skipna):
+    # GH#15675
+    df = DataFrame(
+        {
+            "val": ["a", "b", np.nan, "d", "e", "f", "g", "h", "i", "j"],
+            "cat": ["A", "B"] * 5,
+        }
+    ).astype({"val": object})
+    if skipna:
+        expected = Series(
+            ["aegi", "bdfhj"], index=pd.Index(["A", "B"], name="cat"), name="val"
+        ).astype(object)
+    else:
+        expected = Series(
+            [np.nan, "bdfhj"], index=pd.Index(["A", "B"], name="cat"), name="val"
+        ).astype(object)
+    result = df.groupby("cat")["val"].sum(skipna=skipna)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "func, values, dtype, result_dtype",
+    [
+        ("prod", [0, 1, 3, np.nan, 4, 5, 6, 7, -8, 9], "float64", "float64"),
+        ("prod", [0, -1, 3, 4, 5, pd.NA, 6, 7, 8, 9], "Float64", "Float64"),
+        ("prod", [0, 1, 3, -4, 5, 6, 7, -8, pd.NA, 9], "Int64", "Int64"),
+        ("prod", [np.nan] * 10, "float64", "float64"),
+        ("prod", [pd.NA] * 10, "Float64", "Float64"),
+        ("prod", [pd.NA] * 10, "Int64", "Int64"),
+        ("var", [0, -1, 3, 4, np.nan, 5, 6, 7, 8, 9], "float64", "float64"),
+        ("var", [0, 1, 3, -4, 5, 6, 7, -8, 9, pd.NA], "Float64", "Float64"),
+        ("var", [0, -1, 3, 4, 5, -6, 7, pd.NA, 8, 9], "Int64", "Float64"),
+        ("var", [np.nan] * 10, "float64", "float64"),
+        ("var", [pd.NA] * 10, "Float64", "Float64"),
+        ("var", [pd.NA] * 10, "Int64", "Float64"),
+        ("std", [0, 1, 3, -4, 5, 6, 7, -8, np.nan, 9], "float64", "float64"),
+        ("std", [0, -1, 3, 4, 5, -6, 7, pd.NA, 8, 9], "Float64", "Float64"),
+        ("std", [0, 1, 3, -4, 5, 6, 7, -8, 9, pd.NA], "Int64", "Float64"),
+        ("std", [np.nan] * 10, "float64", "float64"),
+        ("std", [pd.NA] * 10, "Float64", "Float64"),
+        ("std", [pd.NA] * 10, "Int64", "Float64"),
+        ("sem", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "float64", "float64"),
+        ("sem", [0, 1, 3, -4, 5, 6, 7, -8, pd.NA, 9], "Float64", "Float64"),
+        ("sem", [0, -1, 3, 4, 5, -6, 7, 8, 9, pd.NA], "Int64", "Float64"),
+        ("sem", [np.nan] * 10, "float64", "float64"),
+        ("sem", [pd.NA] * 10, "Float64", "Float64"),
+        ("sem", [pd.NA] * 10, "Int64", "Float64"),
+        ("min", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "float64", "float64"),
+        ("min", [0, 1, 3, -4, 5, 6, 7, -8, pd.NA, 9], "Float64", "Float64"),
+        ("min", [0, -1, 3, 4, 5, -6, 7, 8, 9, pd.NA], "Int64", "Int64"),
+        (
+            "min",
+            [0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9],
+            "timedelta64[ns]",
+            "timedelta64[ns]",
+        ),
+        (
+            "min",
+            pd.to_datetime(
+                [
+                    "2019-05-09",
+                    pd.NaT,
+                    "2019-05-11",
+                    "2019-05-12",
+                    "2019-05-13",
+                    "2019-05-14",
+                    "2019-05-15",
+                    "2019-05-16",
+                    "2019-05-17",
+                    "2019-05-18",
+                ]
+            ),
+            "datetime64[ns]",
+            "datetime64[ns]",
+        ),
+        ("min", [np.nan] * 10, "float64", "float64"),
+        ("min", [pd.NA] * 10, "Float64", "Float64"),
+        ("min", [pd.NA] * 10, "Int64", "Int64"),
+        ("max", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "float64", "float64"),
+        ("max", [0, 1, 3, -4, 5, 6, 7, -8, pd.NA, 9], "Float64", "Float64"),
+        ("max", [0, -1, 3, 4, 5, -6, 7, 8, 9, pd.NA], "Int64", "Int64"),
+        (
+            "max",
+            [0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9],
+            "timedelta64[ns]",
+            "timedelta64[ns]",
+        ),
+        (
+            "max",
+            pd.to_datetime(
+                [
+                    "2019-05-09",
+                    pd.NaT,
+                    "2019-05-11",
+                    "2019-05-12",
+                    "2019-05-13",
+                    "2019-05-14",
+                    "2019-05-15",
+                    "2019-05-16",
+                    "2019-05-17",
+                    "2019-05-18",
+                ]
+            ),
+            "datetime64[ns]",
+            "datetime64[ns]",
+        ),
+        ("max", [np.nan] * 10, "float64", "float64"),
+        ("max", [pd.NA] * 10, "Float64", "Float64"),
+        ("max", [pd.NA] * 10, "Int64", "Int64"),
+        ("median", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "float64", "float64"),
+        ("median", [0, 1, 3, -4, 5, 6, 7, -8, pd.NA, 9], "Float64", "Float64"),
+        ("median", [0, -1, 3, 4, 5, -6, 7, 8, 9, pd.NA], "Int64", "Float64"),
+        (
+            "median",
+            [0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9],
+            "timedelta64[ns]",
+            "timedelta64[ns]",
+        ),
+        (
+            "median",
+            pd.to_datetime(
+                [
+                    "2019-05-09",
+                    pd.NaT,
+                    "2019-05-11",
+                    "2019-05-12",
+                    "2019-05-13",
+                    "2019-05-14",
+                    "2019-05-15",
+                    "2019-05-16",
+                    "2019-05-17",
+                    "2019-05-18",
+                ]
+            ),
+            "datetime64[ns]",
+            "datetime64[ns]",
+        ),
+        ("median", [np.nan] * 10, "float64", "float64"),
+        ("median", [pd.NA] * 10, "Float64", "Float64"),
+        ("median", [pd.NA] * 10, "Int64", "Float64"),
+    ],
+)
+def test_multifunc_skipna(func, values, dtype, result_dtype, skipna):
+    # GH#15675
+    df = DataFrame(
+        {
+            "val": values,
+            "cat": ["A", "B"] * 5,
+        }
+    ).astype({"val": dtype})
+    # We need to recast the expected values to the result_dtype as some operations
+    # change the dtype
+    expected = (
+        df.groupby("cat")["val"]
+        .apply(lambda x: getattr(x, func)(skipna=skipna))
+        .astype(result_dtype)
+    )
+    result = getattr(df.groupby("cat")["val"], func)(skipna=skipna)
+    tm.assert_series_equal(result, expected)
+
+
 def test_cython_median():
     arr = np.random.default_rng(2).standard_normal(1000)
     arr[::2] = np.nan
@@ -383,15 +663,11 @@ def test_cython_median():
     labels[::17] = np.nan
 
     result = df.groupby(labels).median()
-    msg = "using DataFrameGroupBy.median"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        exp = df.groupby(labels).agg(np.nanmedian)
+    exp = df.groupby(labels).agg(np.nanmedian)
     tm.assert_frame_equal(result, exp)
 
     df = DataFrame(np.random.default_rng(2).standard_normal((1000, 5)))
-    msg = "using DataFrameGroupBy.median"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = df.groupby(labels).agg(np.median)
+    rs = df.groupby(labels).agg(np.median)
     xp = df.groupby(labels).median()
     tm.assert_frame_equal(rs, xp)
 
@@ -424,7 +700,7 @@ def test_max_min_non_numeric():
     assert "ss" in result
 
 
-def test_max_min_object_multiple_columns():
+def test_max_min_object_multiple_columns(using_infer_string):
     # GH#41111 case where the aggregation is valid for some columns but not
     # others; we split object blocks column-wise, consistent with
     # DataFrame._reduce
@@ -437,7 +713,7 @@ def test_max_min_object_multiple_columns():
         }
     )
     df._consolidate_inplace()  # should already be consolidate, but double-check
-    assert len(df._mgr.blocks) == 2
+    assert len(df._mgr.blocks) == 3 if using_infer_string else 2
 
     gb = df.groupby("A")
 
@@ -667,16 +943,108 @@ def test_groupby_min_max_categorical(func):
 
 
 @pytest.mark.parametrize("func", ["min", "max"])
-def test_min_empty_string_dtype(func):
+def test_min_empty_string_dtype(func, string_dtype_no_object):
     # GH#55619
-    pytest.importorskip("pyarrow")
-    dtype = "string[pyarrow_numpy]"
+    dtype = string_dtype_no_object
     df = DataFrame({"a": ["a"], "b": "a", "c": "a"}, dtype=dtype).iloc[:0]
     result = getattr(df.groupby("a"), func)()
     expected = DataFrame(
         columns=["b", "c"], dtype=dtype, index=pd.Index([], dtype=dtype, name="a")
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("min_count", [0, 1])
+@pytest.mark.parametrize("test_series", [True, False])
+def test_string_dtype_all_na(
+    string_dtype_no_object, reduction_func, skipna, min_count, test_series
+):
+    # https://github.com/pandas-dev/pandas/issues/60985
+    if reduction_func == "corrwith":
+        # corrwith is deprecated.
+        return
+
+    dtype = string_dtype_no_object
+
+    if reduction_func in [
+        "any",
+        "all",
+        "idxmin",
+        "idxmax",
+        "mean",
+        "median",
+        "std",
+        "var",
+    ]:
+        kwargs = {"skipna": skipna}
+    elif reduction_func in ["kurt"]:
+        kwargs = {"min_count": min_count}
+    elif reduction_func in ["count", "nunique", "quantile", "sem", "size"]:
+        kwargs = {}
+    else:
+        kwargs = {"skipna": skipna, "min_count": min_count}
+
+    expected_dtype, expected_value = dtype, pd.NA
+    if reduction_func in ["all", "any"]:
+        expected_dtype = "bool"
+        # TODO: For skipna=False, bool(pd.NA) raises; should groupby?
+        expected_value = not skipna if reduction_func == "any" else True
+    elif reduction_func in ["count", "nunique", "size"]:
+        # TODO: Should be more consistent - return Int64 when dtype.na_value is pd.NA?
+        if (
+            test_series
+            and reduction_func == "size"
+            and dtype.storage == "pyarrow"
+            and dtype.na_value is pd.NA
+        ):
+            expected_dtype = "Int64"
+        else:
+            expected_dtype = "int64"
+        expected_value = 1 if reduction_func == "size" else 0
+    elif not skipna or min_count > 0:
+        expected_value = pd.NA
+    elif reduction_func == "sum":
+        # https://github.com/pandas-dev/pandas/pull/60936
+        expected_value = ""
+
+    df = DataFrame({"a": ["x"], "b": [pd.NA]}, dtype=dtype)
+    obj = df["b"] if test_series else df
+    args = get_groupby_method_args(reduction_func, obj)
+    gb = obj.groupby(df["a"])
+    method = getattr(gb, reduction_func)
+
+    if reduction_func in [
+        "mean",
+        "median",
+        "kurt",
+        "prod",
+        "quantile",
+        "sem",
+        "skew",
+        "std",
+        "var",
+    ]:
+        msg = f"dtype '{dtype}' does not support operation '{reduction_func}'"
+        with pytest.raises(TypeError, match=msg):
+            method(*args, **kwargs)
+        return
+    elif reduction_func in ["idxmin", "idxmax"]:
+        if skipna:
+            msg = f"{reduction_func} with skipna=True encountered all NA values"
+        else:
+            msg = f"{reduction_func} with skipna=False encountered an NA value."
+        with pytest.raises(ValueError, match=msg):
+            method(*args, **kwargs)
+        return
+
+    result = method(*args, **kwargs)
+    index = pd.Index(["x"], name="a", dtype=dtype)
+    if test_series or reduction_func == "size":
+        name = None if not test_series and reduction_func == "size" else "b"
+        expected = Series(expected_value, index=index, dtype=expected_dtype, name=name)
+    else:
+        expected = DataFrame({"b": expected_value}, index=index, dtype=expected_dtype)
+    tm.assert_equal(result, expected)
 
 
 def test_max_nan_bug():
@@ -886,15 +1254,11 @@ def test_intercept_builtin_sum():
     s = Series([1.0, 2.0, np.nan, 3.0])
     grouped = s.groupby([0, 1, 2, 2])
 
-    msg = "using SeriesGroupBy.sum"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH#53425
-        result = grouped.agg(builtins.sum)
-    msg = "using np.sum"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH#53425
-        result2 = grouped.apply(builtins.sum)
-    expected = grouped.sum()
+    # GH#53425
+    result = grouped.agg(builtins.sum)
+    # GH#53425
+    result2 = grouped.apply(builtins.sum)
+    expected = Series([1.0, 2.0, np.nan], index=np.array([0, 1, 2]))
     tm.assert_series_equal(result, expected)
     tm.assert_series_equal(result2, expected)
 
@@ -942,7 +1306,7 @@ def test_groupby_sum_timedelta_with_nat():
     df = DataFrame(
         {
             "a": [1, 1, 2, 2],
-            "b": [pd.Timedelta("1d"), pd.Timedelta("2d"), pd.Timedelta("3d"), pd.NaT],
+            "b": [pd.Timedelta("1D"), pd.Timedelta("2D"), pd.Timedelta("3D"), pd.NaT],
         }
     )
     td3 = pd.Timedelta(days=3)
@@ -1029,10 +1393,8 @@ def test_ops_general(op, targop):
     labels = np.random.default_rng(2).integers(0, 50, size=1000).astype(float)
 
     result = getattr(df.groupby(labels), op)()
-    warn = None if op in ("first", "last", "count", "sem") else FutureWarning
-    msg = f"using DataFrameGroupBy.{op}"
-    with tm.assert_produces_warning(warn, match=msg):
-        expected = df.groupby(labels).agg(targop)
+    kwargs = {"ddof": 1, "axis": 0} if op in ["std", "var"] else {}
+    expected = df.groupby(labels).agg(targop, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1077,41 +1439,32 @@ def test_apply_to_nullable_integer_returns_float(values, function):
         "median",
         "mean",
         "skew",
+        "kurt",
         "std",
         "var",
         "sem",
     ],
 )
-@pytest.mark.parametrize("axis", [0, 1])
-def test_regression_allowlist_methods(op, axis, skipna, sort):
+def test_regression_allowlist_methods(op, skipna, sort):
     # GH6944
     # GH 17537
     # explicitly test the allowlist methods
-    raw_frame = DataFrame([0])
-    if axis == 0:
-        frame = raw_frame
-        msg = "The 'axis' keyword in DataFrame.groupby is deprecated and will be"
-    else:
-        frame = raw_frame.T
-        msg = "DataFrame.groupby with axis=1 is deprecated"
+    frame = DataFrame([0])
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        grouped = frame.groupby(level=0, axis=axis, sort=sort)
+    grouped = frame.groupby(level=0, sort=sort)
 
-    if op == "skew":
-        # skew has skipna
+    if op in ["skew", "kurt", "sum", "mean"]:
+        # skew, kurt, sum, mean have skipna
         result = getattr(grouped, op)(skipna=skipna)
-        expected = frame.groupby(level=0).apply(
-            lambda h: getattr(h, op)(axis=axis, skipna=skipna)
-        )
+        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(skipna=skipna))
         if sort:
-            expected = expected.sort_index(axis=axis)
+            expected = expected.sort_index()
         tm.assert_frame_equal(result, expected)
     else:
         result = getattr(grouped, op)()
-        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(axis=axis))
+        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)())
         if sort:
-            expected = expected.sort_index(axis=axis)
+            expected = expected.sort_index()
         tm.assert_frame_equal(result, expected)
 
 
@@ -1139,7 +1492,7 @@ def test_groupby_prod_with_int64_dtype():
     tm.assert_frame_equal(result, expected)
 
 
-def test_groupby_std_datetimelike(warn_copy_on_write):
+def test_groupby_std_datetimelike():
     # GH#48481
     tdi = pd.timedelta_range("1 Day", periods=10000)
     ser = Series(tdi)

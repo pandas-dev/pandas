@@ -2,6 +2,7 @@
 Module that contains many useful utilities
 for validating data or function arguments
 """
+
 from __future__ import annotations
 
 from collections.abc import (
@@ -265,7 +266,7 @@ def validate_bool_kwarg(
             f'For argument "{arg_name}" expected type bool, received '
             f"type {type(value).__name__}."
         )
-    return value  # pyright: ignore[reportGeneralTypeIssues]
+    return value
 
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
@@ -335,20 +336,17 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     if q_arr.ndim == 0:
         if not 0 <= q_arr <= 1:
             raise ValueError(msg)
-    else:
-        if not all(0 <= qs <= 1 for qs in q_arr):
-            raise ValueError(msg)
+    elif not all(0 <= qs <= 1 for qs in q_arr):
+        raise ValueError(msg)
     return q_arr
 
 
 @overload
-def validate_ascending(ascending: BoolishT) -> BoolishT:
-    ...
+def validate_ascending(ascending: BoolishT) -> BoolishT: ...
 
 
 @overload
-def validate_ascending(ascending: Sequence[BoolishT]) -> list[BoolishT]:
-    ...
+def validate_ascending(ascending: Sequence[BoolishT]) -> list[BoolishT]: ...
 
 
 def validate_ascending(
@@ -444,7 +442,7 @@ def validate_insert_loc(loc: int, length: int) -> int:
         loc += length
     if not 0 <= loc <= length:
         raise IndexError(f"loc must be an integer between -{length} and {length}")
-    return loc  # pyright: ignore[reportGeneralTypeIssues]
+    return loc  # pyright: ignore[reportReturnType]
 
 
 def check_dtype_backend(dtype_backend) -> None:

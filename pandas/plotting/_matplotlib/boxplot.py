@@ -7,7 +7,7 @@ from typing import (
 )
 import warnings
 
-from matplotlib.artist import setp
+import matplotlib as mpl
 import numpy as np
 
 from pandas._libs import lib
@@ -20,6 +20,7 @@ from pandas.core.dtypes.missing import remove_na_arraylike
 
 import pandas as pd
 import pandas.core.common as com
+from pandas.util.version import Version
 
 from pandas.io.formats.printing import pprint_thing
 from pandas.plotting._matplotlib.core import (
@@ -54,7 +55,8 @@ def _set_ticklabels(ax: Axes, labels: list[str], is_vertical: bool, **kwargs) ->
     ticks = ax.get_xticks() if is_vertical else ax.get_yticks()
     if len(ticks) != len(labels):
         i, remainder = divmod(len(ticks), len(labels))
-        assert remainder == 0, remainder
+        if Version(mpl.__version__) < Version("3.10"):
+            assert remainder == 0, remainder
         labels *= i
     if is_vertical:
         ax.set_xticklabels(labels, **kwargs)
@@ -82,7 +84,7 @@ class BoxPlot(LinePlot):
 
         self.return_type = return_type
         # Do not call LinePlot.__init__ which may fill nan
-        MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
+        MPLPlot.__init__(self, data, **kwargs)
 
         if self.subplots:
             # Disable label ax sharing. Otherwise, all subplots shows last
@@ -121,8 +123,7 @@ class BoxPlot(LinePlot):
 
         if colormap is not None:
             warnings.warn(
-                "'color' and 'colormap' cannot be used "
-                "simultaneously. Using 'color'",
+                "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
                 stacklevel=find_stack_level(),
             )
 
@@ -189,7 +190,8 @@ class BoxPlot(LinePlot):
 
     def _make_plot(self, fig: Figure) -> None:
         if self.subplots:
-            self._return_obj = pd.Series(dtype=object)
+            obj_axes = []
+            obj_labels = []
 
             # Re-create iterated data if `by` is assigned by users
             data = (
@@ -198,10 +200,7 @@ class BoxPlot(LinePlot):
                 else self.data
             )
 
-            # error: Argument "data" to "_iter_data" of "MPLPlot" has
-            # incompatible type "object"; expected "DataFrame |
-            # dict[Hashable, Series | DataFrame]"
-            for i, (label, y) in enumerate(self._iter_data(data=data)):  # type: ignore[arg-type]
+            for i, (label, y) in enumerate(self._iter_data(data=data)):
                 ax = self._get_ax(i)
                 kwds = self.kwds.copy()
 
@@ -223,10 +222,12 @@ class BoxPlot(LinePlot):
                     ax, y, column_num=i, return_type=self.return_type, **kwds
                 )
                 self.maybe_color_bp(bp)
-                self._return_obj[label] = ret
+                obj_axes.append(ret)
+                obj_labels.append(label)
                 _set_ticklabels(
                     ax=ax, labels=ticklabels, is_vertical=self.orientation == "vertical"
                 )
+            self._return_obj = pd.Series(obj_axes, index=obj_labels, dtype=object)
         else:
             y = self.data.values.T
             ax = self._get_ax(0)
@@ -274,13 +275,13 @@ def maybe_color_bp(bp, color_tup, **kwds) -> None:
     # GH#30346, when users specifying those arguments explicitly, our defaults
     # for these four kwargs should be overridden; if not, use Pandas settings
     if not kwds.get("boxprops"):
-        setp(bp["boxes"], color=color_tup[0], alpha=1)
+        mpl.artist.setp(bp["boxes"], color=color_tup[0], alpha=1)
     if not kwds.get("whiskerprops"):
-        setp(bp["whiskers"], color=color_tup[1], alpha=1)
+        mpl.artist.setp(bp["whiskers"], color=color_tup[1], alpha=1)
     if not kwds.get("medianprops"):
-        setp(bp["medians"], color=color_tup[2], alpha=1)
+        mpl.artist.setp(bp["medians"], color=color_tup[2], alpha=1)
     if not kwds.get("capprops"):
-        setp(bp["caps"], color=color_tup[3], alpha=1)
+        mpl.artist.setp(bp["caps"], color=color_tup[3], alpha=1)
 
 
 def _grouped_plot_by_column(
@@ -311,8 +312,6 @@ def _grouped_plot_by_column(
         layout=layout,
     )
 
-    _axes = flatten_axes(axes)
-
     # GH 45465: move the "by" label based on "vert"
     xlabel, ylabel = kwargs.pop("xlabel", None), kwargs.pop("ylabel", None)
     if kwargs.get("vert", True):
@@ -322,8 +321,7 @@ def _grouped_plot_by_column(
 
     ax_values = []
 
-    for i, col in enumerate(columns):
-        ax = _axes[i]
+    for ax, col in zip(flatten_axes(axes), columns):
         gp_col = grouped[col]
         keys, values = zip(*gp_col)
         re_plotf = plotf(keys, values, ax, xlabel=xlabel, ylabel=ylabel, **kwargs)
@@ -405,7 +403,7 @@ def boxplot(
             ax.set_ylabel(pprint_thing(ylabel))
 
         keys = [pprint_thing(x) for x in keys]
-        values = [np.asarray(remove_na_arraylike(v), dtype=object) for v in values]
+        values = [remove_na_arraylike(v) for v in values]
         bp = ax.boxplot(values, **kwds)
         if fontsize is not None:
             ax.tick_params(axis="both", labelsize=fontsize)
@@ -455,7 +453,7 @@ def boxplot(
 
         if ax is None:
             rc = {"figure.figsize": figsize} if figsize is not None else {}
-            with plt.rc_context(rc):
+            with mpl.rc_context(rc):
                 ax = plt.gca()
         data = data._get_numeric_data()
         naxes = len(data.columns)
@@ -531,25 +529,18 @@ def boxplot_frame_groupby(
             figsize=figsize,
             layout=layout,
         )
-        axes = flatten_axes(axes)
-
-        ret = pd.Series(dtype=object)
-
-        for (key, group), ax in zip(grouped, axes):
+        data = {}
+        for (key, group), ax in zip(grouped, flatten_axes(axes)):
             d = group.boxplot(
                 ax=ax, column=column, fontsize=fontsize, rot=rot, grid=grid, **kwds
             )
             ax.set_title(pprint_thing(key))
-            ret.loc[key] = d
+            data[key] = d
+        ret = pd.Series(data)
         maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
     else:
         keys, frames = zip(*grouped)
-        if grouped.axis == 0:
-            df = pd.concat(frames, keys=keys, axis=1)
-        elif len(frames) > 1:
-            df = frames[0].join(frames[1::])
-        else:
-            df = frames[0]
+        df = pd.concat(frames, keys=keys, axis=1)
 
         # GH 16748, DataFrameGroupby fails when subplots=False and `column` argument
         # is assigned, and in this case, since `df` here becomes MI after groupby,

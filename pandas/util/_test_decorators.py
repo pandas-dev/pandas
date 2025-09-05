@@ -23,24 +23,21 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
+
 from __future__ import annotations
 
 import locale
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+from typing import TYPE_CHECKING
 
 import pytest
 
-from pandas._config import get_option
-
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pandas._typing import F
-
 
 from pandas.compat import (
     IS64,
+    WASM,
     is_platform_windows,
 )
 from pandas.compat._optional import import_optional_dependency
@@ -117,6 +114,10 @@ skip_if_not_us_locale = pytest.mark.skipif(
     locale.getlocale()[0] != "en_US",
     reason=f"Set local {locale.getlocale()[0]} is not en_US",
 )
+skip_if_wasm = pytest.mark.skipif(
+    WASM,
+    reason="does not support wasm",
+)
 
 
 def parametrize_fixture_doc(*args) -> Callable[[F], F]:
@@ -144,14 +145,3 @@ def parametrize_fixture_doc(*args) -> Callable[[F], F]:
         return fixture
 
     return documented_fixture
-
-
-skip_copy_on_write_not_yet_implemented = pytest.mark.xfail(
-    get_option("mode.copy_on_write") is True,
-    reason="Not yet implemented/adapted for Copy-on-Write mode",
-)
-
-skip_copy_on_write_invalid_test = pytest.mark.skipif(
-    get_option("mode.copy_on_write") is True,
-    reason="Test not valid for Copy-on-Write mode",
-)

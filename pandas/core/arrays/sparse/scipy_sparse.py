@@ -3,6 +3,7 @@ Interaction with scipy.sparse matrices.
 
 Currently only includes to_coo helpers.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -78,7 +79,7 @@ def _levels_to_axis(
         ax_coords = codes[valid_ilocs]
 
     ax_labels = ax_labels.tolist()
-    return ax_coords, ax_labels
+    return ax_coords, ax_labels  # pyright: ignore[reportReturnType]
 
 
 def _to_ijv(

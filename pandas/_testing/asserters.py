@@ -188,7 +188,7 @@ def assert_index_equal(
     check_order: bool = True,
     rtol: float = 1.0e-5,
     atol: float = 1.0e-8,
-    obj: str = "Index",
+    obj: str | None = None,
 ) -> None:
     """
     Check that left and right Index are equal.
@@ -196,7 +196,9 @@ def assert_index_equal(
     Parameters
     ----------
     left : Index
+        The first index to compare.
     right : Index
+        The second index to compare.
     exact : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
@@ -215,9 +217,14 @@ def assert_index_equal(
         Relative tolerance. Only used when check_exact is False.
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-    obj : str, default 'Index'
+    obj : str, default 'Index' or 'MultiIndex'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+
+    See Also
+    --------
+    testing.assert_series_equal : Check that two Series are equal.
+    testing.assert_frame_equal : Check that two DataFrames are equal.
 
     Examples
     --------
@@ -227,6 +234,9 @@ def assert_index_equal(
     >>> tm.assert_index_equal(a, b)
     """
     __tracebackhide__ = True
+
+    if obj is None:
+        obj = "MultiIndex" if isinstance(left, MultiIndex) else "Index"
 
     def _check_types(left, right, obj: str = "Index") -> None:
         if not exact:
@@ -276,7 +286,7 @@ def assert_index_equal(
         right = cast(MultiIndex, right)
 
         for level in range(left.nlevels):
-            lobj = f"MultiIndex level [{level}]"
+            lobj = f"{obj} level [{level}]"
             try:
                 # try comparison on levels/codes to avoid densifying MultiIndex
                 assert_index_equal(
@@ -307,7 +317,7 @@ def assert_index_equal(
                     obj=lobj,
                 )
             # get_level_values may change dtype
-            _check_types(left.levels[level], right.levels[level], obj=obj)
+            _check_types(left.levels[level], right.levels[level], obj=lobj)
 
     # skip exact index checking when `check_categorical` is False
     elif check_exact and check_categorical:
@@ -422,28 +432,6 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes") -> None:
     return None
 
 
-def assert_is_valid_plot_return_object(objs) -> None:
-    from matplotlib.artist import Artist
-    from matplotlib.axes import Axes
-
-    if isinstance(objs, (Series, np.ndarray)):
-        if isinstance(objs, Series):
-            objs = objs._values
-        for el in objs.ravel():
-            msg = (
-                "one of 'objs' is not a matplotlib Axes instance, "
-                f"type encountered {repr(type(el).__name__)}"
-            )
-            assert isinstance(el, (Axes, dict)), msg
-    else:
-        msg = (
-            "objs is neither an ndarray of Artist instances nor a single "
-            "ArtistArtist instance, tuple, or dict, 'objs' is a "
-            f"{repr(type(objs).__name__)}"
-        )
-        assert isinstance(objs, (Artist, tuple, dict)), msg
-
-
 def assert_is_sorted(seq) -> None:
     """Assert that the sequence is sorted."""
     if isinstance(seq, (Index, Series)):
@@ -542,7 +530,7 @@ def assert_interval_array_equal(
         kwargs["check_freq"] = False
 
     assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
-    assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
+    assert_equal(left._right, right._right, obj=f"{obj}.right", **kwargs)
 
     assert_attr_equal("closed", left, right, obj=obj)
 
@@ -593,13 +581,19 @@ def raise_assert_detail(
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif isinstance(left, (CategoricalDtype, NumpyEADtype, StringDtype)):
+    elif isinstance(left, (CategoricalDtype, NumpyEADtype)):
         left = repr(left)
+    elif isinstance(left, StringDtype):
+        # TODO(infer_string) this special case could be avoided if we have
+        # a more informative repr https://github.com/pandas-dev/pandas/issues/59342
+        left = f"StringDtype(storage={left.storage}, na_value={left.na_value})"
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif isinstance(right, (CategoricalDtype, NumpyEADtype, StringDtype)):
+    elif isinstance(right, (CategoricalDtype, NumpyEADtype)):
         right = repr(right)
+    elif isinstance(right, StringDtype):
+        right = f"StringDtype(storage={right.storage}, na_value={right.na_value})"
 
     msg += f"""
 [left]:  {left}
@@ -661,10 +655,10 @@ def assert_numpy_array_equal(
 
     if check_same == "same":
         if left_base is not right_base:
-            raise AssertionError(f"{repr(left_base)} is not {repr(right_base)}")
+            raise AssertionError(f"{left_base!r} is not {right_base!r}")
     elif check_same == "copy":
         if left_base is right_base:
-            raise AssertionError(f"{repr(left_base)} is {repr(right_base)}")
+            raise AssertionError(f"{left_base!r} is {right_base!r}")
 
     def _raise(left, right, err_msg) -> NoReturn:
         if err_msg is None:
@@ -707,6 +701,10 @@ def assert_extension_array_equal(
     """
     Check that left and right ExtensionArrays are equal.
 
+    This method compares two ``ExtensionArray`` instances for equality,
+    including checks for missing values, the dtype of the arrays, and
+    the exactness of the comparison (or tolerance when comparing floats).
+
     Parameters
     ----------
     left, right : ExtensionArray
@@ -732,6 +730,12 @@ def assert_extension_array_equal(
 
         .. versionadded:: 2.0.0
 
+    See Also
+    --------
+    testing.assert_series_equal : Check that left and right ``Series`` are equal.
+    testing.assert_frame_equal : Check that left and right ``DataFrame`` are equal.
+    testing.assert_index_equal : Check that left and right ``Index`` are equal.
+
     Notes
     -----
     Missing values are checked separately from valid values.
@@ -751,11 +755,8 @@ def assert_extension_array_equal(
         and atol is lib.no_default
     ):
         check_exact = (
-            is_numeric_dtype(left.dtype)
-            and not is_float_dtype(left.dtype)
-            or is_numeric_dtype(right.dtype)
-            and not is_float_dtype(right.dtype)
-        )
+            is_numeric_dtype(left.dtype) and not is_float_dtype(left.dtype)
+        ) or (is_numeric_dtype(right.dtype) and not is_float_dtype(right.dtype))
     elif check_exact is lib.no_default:
         check_exact = False
 
@@ -805,6 +806,24 @@ def assert_extension_array_equal(
         left_na, right_na, obj=f"{obj} NA mask", index_values=index_values
     )
 
+    # Specifically for StringArrayNumpySemantics, validate here we have a valid array
+    if (
+        isinstance(left.dtype, StringDtype)
+        and left.dtype.storage == "python"
+        and left.dtype.na_value is np.nan
+    ):
+        assert np.all(
+            [np.isnan(val) for val in left._ndarray[left_na]]  # type: ignore[attr-defined]
+        ), "wrong missing value sentinels"
+    if (
+        isinstance(right.dtype, StringDtype)
+        and right.dtype.storage == "python"
+        and right.dtype.na_value is np.nan
+    ):
+        assert np.all(
+            [np.isnan(val) for val in right._ndarray[right_na]]  # type: ignore[attr-defined]
+        ), "wrong missing value sentinels"
+
     left_valid = left[~left_na].to_numpy(dtype=object)
     right_valid = right[~right_na].to_numpy(dtype=object)
     if check_exact:
@@ -850,7 +869,9 @@ def assert_series_equal(
     Parameters
     ----------
     left : Series
+        First Series to compare.
     right : Series
+        Second Series to compare.
     check_dtype : bool, default True
         Whether to check the Series dtype is identical.
     check_index_type : bool or {'equiv'}, default 'equiv'
@@ -861,12 +882,19 @@ def assert_series_equal(
     check_names : bool, default True
         Whether to check the Series and Index names attribute.
     check_exact : bool, default False
-        Whether to compare number exactly.
+        Whether to compare number exactly. This also applies when checking
+        Index equivalence.
 
         .. versionchanged:: 2.2.0
 
             Defaults to True for integer dtypes if none of
             ``check_exact``, ``rtol`` and ``atol`` are specified.
+
+        .. versionchanged:: 3.0.0
+
+            check_exact for comparing the Indexes defaults to True by
+            checking if an Index is of integer dtypes.
+
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
@@ -894,6 +922,11 @@ def assert_series_equal(
 
         .. versionadded:: 1.5.0
 
+    See Also
+    --------
+    testing.assert_index_equal : Check that two Indexes are equal.
+    testing.assert_frame_equal : Check that two DataFrames are equal.
+
     Examples
     --------
     >>> from pandas import testing as tm
@@ -908,13 +941,22 @@ def assert_series_equal(
         and atol is lib.no_default
     ):
         check_exact = (
-            is_numeric_dtype(left.dtype)
-            and not is_float_dtype(left.dtype)
-            or is_numeric_dtype(right.dtype)
-            and not is_float_dtype(right.dtype)
+            is_numeric_dtype(left.dtype) and not is_float_dtype(left.dtype)
+        ) or (is_numeric_dtype(right.dtype) and not is_float_dtype(right.dtype))
+        left_index_dtypes = (
+            [left.index.dtype] if left.index.nlevels == 1 else left.index.dtypes
         )
+        right_index_dtypes = (
+            [right.index.dtype] if right.index.nlevels == 1 else right.index.dtypes
+        )
+        check_exact_index = all(
+            dtype.kind in "iu" for dtype in left_index_dtypes
+        ) or all(dtype.kind in "iu" for dtype in right_index_dtypes)
     elif check_exact is lib.no_default:
         check_exact = False
+        check_exact_index = False
+    else:
+        check_exact_index = check_exact
 
     rtol = rtol if rtol is not lib.no_default else 1.0e-5
     atol = atol if atol is not lib.no_default else 1.0e-8
@@ -935,7 +977,7 @@ def assert_series_equal(
         raise_assert_detail(obj, "Series length are different", msg1, msg2)
 
     if check_flags:
-        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
+        assert left.flags == right.flags, f"{left.flags!r} != {right.flags!r}"
 
     if check_index:
         # GH #38183
@@ -944,7 +986,7 @@ def assert_series_equal(
             right.index,
             exact=check_index_type,
             check_names=check_names,
-            check_exact=check_exact,
+            check_exact=check_exact_index,
             check_categorical=check_categorical,
             check_order=not check_like,
             rtol=rtol,
@@ -1141,7 +1183,10 @@ def assert_frame_equal(
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
     check_exact : bool, default False
-        Whether to compare number exactly.
+        Whether to compare number exactly. If False, the comparison uses the
+        relative tolerance (``rtol``) and absolute tolerance (``atol``)
+        parameters to determine if two values are considered close,
+        according to the formula: ``|a - b| <= (atol + rtol * |b|)``.
 
         .. versionchanged:: 2.2.0
 
@@ -1178,8 +1223,8 @@ def assert_frame_equal(
     but with columns of differing dtypes.
 
     >>> from pandas.testing import assert_frame_equal
-    >>> df1 = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
-    >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
+    >>> df1 = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    >>> df2 = pd.DataFrame({"a": [1, 2], "b": [3.0, 4.0]})
 
     df1 equals itself.
 
@@ -1215,11 +1260,11 @@ def assert_frame_equal(
     # shape comparison
     if left.shape != right.shape:
         raise_assert_detail(
-            obj, f"{obj} shape mismatch", f"{repr(left.shape)}", f"{repr(right.shape)}"
+            obj, f"{obj} shape mismatch", f"{left.shape!r}", f"{right.shape!r}"
         )
 
     if check_flags:
-        assert left.flags == right.flags, f"{repr(left.flags)} != {repr(right.flags)}"
+        assert left.flags == right.flags, f"{left.flags!r} != {right.flags!r}"
 
     # index comparison
     assert_index_equal(
@@ -1369,7 +1414,7 @@ def assert_sp_array_equal(left, right) -> None:
 
 def assert_contains_all(iterable, dic) -> None:
     for k in iterable:
-        assert k in dic, f"Did not contain item: {repr(k)}"
+        assert k in dic, f"Did not contain item: {k!r}"
 
 
 def assert_copy(iter1, iter2, **eql_kwargs) -> None:
@@ -1384,7 +1429,7 @@ def assert_copy(iter1, iter2, **eql_kwargs) -> None:
     for elem1, elem2 in zip(iter1, iter2):
         assert_almost_equal(elem1, elem2, **eql_kwargs)
         msg = (
-            f"Expected object {repr(type(elem1))} and object {repr(type(elem2))} to be "
+            f"Expected object {type(elem1)!r} and object {type(elem2)!r} to be "
             "different objects, but they were the same object."
         )
         assert elem1 is not elem2, msg

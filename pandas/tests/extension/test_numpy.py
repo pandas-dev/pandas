@@ -15,6 +15,7 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 Note: we do not bother with base.BaseIndexTests because NumpyExtensionArray
 will never be held in an Index.
 """
+
 import numpy as np
 import pytest
 
@@ -205,6 +206,18 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         super().test_shift_fill_value(data)
 
     @skip_nested
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        # The "scalar" for this array isn't a scalar.
+        super().test_fillna_limit_frame(data_missing)
+
+    @skip_nested
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        # The "scalar" for this array isn't a scalar.
+        super().test_fillna_limit_series(data_missing)
+
+    @skip_nested
     def test_fillna_copy_frame(self, data_missing):
         # The "scalar" for this array isn't a scalar.
         super().test_fillna_copy_frame(data_missing)
@@ -313,6 +326,7 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.skip("TODO: tests not written yet")
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_frame(self, data, all_numeric_reductions, skipna):
         pass
 

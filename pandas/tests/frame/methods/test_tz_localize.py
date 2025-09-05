@@ -50,14 +50,13 @@ class TestTZLocalize:
         with pytest.raises(TypeError, match="Already tz-aware"):
             ts.tz_localize("US/Eastern")
 
-    @pytest.mark.parametrize("copy", [True, False])
-    def test_tz_localize_copy_inplace_mutate(self, copy, frame_or_series):
+    def test_tz_localize_copy_inplace_mutate(self, frame_or_series):
         # GH#6326
         obj = frame_or_series(
             np.arange(0, 5), index=date_range("20131027", periods=5, freq="1h", tz=None)
         )
         orig = obj.copy()
-        result = obj.tz_localize("UTC", copy=copy)
+        result = obj.tz_localize("UTC")
         expected = frame_or_series(
             np.arange(0, 5),
             index=date_range("20131027", periods=5, freq="1h", tz="UTC"),

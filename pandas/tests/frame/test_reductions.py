@@ -6,8 +6,6 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -245,17 +243,11 @@ class TestDataFrameAnalytics:
             pytest.param("kurt", marks=td.skip_if_no("scipy")),
         ],
     )
-    def test_stat_op_api_float_string_frame(
-        self, float_string_frame, axis, opname, using_infer_string
-    ):
-        if (
-            (opname in ("sum", "min", "max") and axis == 0)
-            or opname
-            in (
-                "count",
-                "nunique",
-            )
-        ) and not (using_infer_string and opname == "sum"):
+    def test_stat_op_api_float_string_frame(self, float_string_frame, axis, opname):
+        if (opname in ("sum", "min", "max") and axis == 0) or opname in (
+            "count",
+            "nunique",
+        ):
             getattr(float_string_frame, opname)(axis=axis)
         else:
             if opname in ["var", "std", "sem", "skew", "kurt"]:
@@ -282,10 +274,11 @@ class TestDataFrameAnalytics:
                 msg = "'[><]=' not supported between instances of 'float' and 'str'"
             elif opname == "median":
                 msg = re.compile(
-                    r"Cannot convert \[.*\] to numeric|does not support", flags=re.S
+                    r"Cannot convert \[.*\] to numeric|does not support|Cannot perform",
+                    flags=re.S,
                 )
             if not isinstance(msg, re.Pattern):
-                msg = msg + "|does not support"
+                msg = msg + "|does not support|Cannot perform reduction"
             with pytest.raises(TypeError, match=msg):
                 getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
@@ -447,26 +440,16 @@ class TestDataFrameAnalytics:
                 "could not convert",
                 "can't multiply sequence by non-int",
                 "does not support",
+                "Cannot perform",
             ]
         )
         with pytest.raises(TypeError, match=msg):
             getattr(df, op)()
 
         with pd.option_context("use_bottleneck", False):
-            msg = "|".join(
-                [
-                    "Could not convert",
-                    "could not convert",
-                    "can't multiply sequence by non-int",
-                    "does not support",
-                ]
-            )
             with pytest.raises(TypeError, match=msg):
                 getattr(df, op)()
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="sum doesn't work for arrow strings"
-    )
     def test_reduce_mixed_frame(self):
         # GH 6806
         df = DataFrame(
@@ -490,10 +473,8 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(
             df.nunique(dropna=False), Series({"A": 1, "B": 3, "C": 3})
         )
-        tm.assert_series_equal(df.nunique(axis=1), Series({0: 1, 1: 2, 2: 2}))
-        tm.assert_series_equal(
-            df.nunique(axis=1, dropna=False), Series({0: 1, 1: 3, 2: 2})
-        )
+        tm.assert_series_equal(df.nunique(axis=1), Series([1, 2, 2]))
+        tm.assert_series_equal(df.nunique(axis=1, dropna=False), Series([1, 3, 2]))
 
     @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_mean_mixed_datetime_numeric(self, tz):
@@ -534,7 +515,7 @@ class TestDataFrameAnalytics:
         df = DataFrame(d)
 
         with pytest.raises(
-            TypeError, match="unsupported operand type|does not support"
+            TypeError, match="unsupported operand type|does not support|Cannot perform"
         ):
             df.mean()
         result = df[["A", "C"]].mean()
@@ -629,7 +610,7 @@ class TestDataFrameAnalytics:
                     "A": [12],
                     "B": [10.0],
                     "C": [np.nan],
-                    "D": np.array([np.nan], dtype=object),
+                    "D": Series([np.nan], dtype="str"),
                     "E": Categorical([np.nan], categories=["a"]),
                     "F": DatetimeIndex([pd.NaT], dtype="M8[ns]"),
                     "G": to_timedelta([pd.NaT]),
@@ -671,7 +652,7 @@ class TestDataFrameAnalytics:
                 "A": [12, 12, 19, 11],
                 "B": [10, 10, np.nan, 3],
                 "C": [1, np.nan, np.nan, np.nan],
-                "D": Series([np.nan, np.nan, "a", np.nan], dtype=object),
+                "D": Series([np.nan, np.nan, "a", np.nan], dtype="str"),
                 "E": Categorical([np.nan, np.nan, "a", np.nan]),
                 "F": DatetimeIndex(["NaT", "2000-01-02", "NaT", "NaT"], dtype="M8[ns]"),
                 "G": to_timedelta(["1 days", "nan", "nan", "nan"]),
@@ -691,24 +672,16 @@ class TestDataFrameAnalytics:
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
-    def test_mode_sortwarning(self, using_infer_string):
-        # Check for the warning that is raised when the mode
-        # results cannot be sorted
-
+    def test_mode_sort_with_na(self, using_infer_string):
         df = DataFrame({"A": [np.nan, np.nan, "a", "a"]})
         expected = DataFrame({"A": ["a", np.nan]})
-
-        warning = None if using_infer_string else UserWarning
-        with tm.assert_produces_warning(warning):
-            result = df.mode(dropna=False)
-            result = result.sort_values(by="A").reset_index(drop=True)
-
+        result = df.mode(dropna=False)
         tm.assert_frame_equal(result, expected)
 
     def test_mode_empty_df(self):
         df = DataFrame([], columns=["a", "b"])
+        expected = df.copy()
         result = df.mode()
-        expected = DataFrame([], columns=["a", "b"], index=Index([], dtype=np.int64))
         tm.assert_frame_equal(result, expected)
 
     def test_operators_timedelta64(self):
@@ -769,11 +742,11 @@ class TestDataFrameAnalytics:
 
         # excludes non-numeric
         result = mixed.min(axis=1, numeric_only=True)
-        expected = Series([1, 1, 1.0], index=[0, 1, 2])
+        expected = Series([1, 1, 1.0])
         tm.assert_series_equal(result, expected)
 
         # works when only those columns are selected
-        result = mixed[["A", "B"]].min(1)
+        result = mixed[["A", "B"]].min(axis=1)
         expected = Series([timedelta(days=-1)] * 3)
         tm.assert_series_equal(result, expected)
 
@@ -832,8 +805,8 @@ class TestDataFrameAnalytics:
     def test_sum_corner(self):
         empty_frame = DataFrame()
 
-        axis0 = empty_frame.sum(0)
-        axis1 = empty_frame.sum(1)
+        axis0 = empty_frame.sum(axis=0)
+        axis1 = empty_frame.sum(axis=1)
         assert isinstance(axis0, Series)
         assert isinstance(axis1, Series)
         assert len(axis0) == 0
@@ -860,6 +833,16 @@ class TestDataFrameAnalytics:
         else:
             expected_dtype = "object"
         expected = Series([], index=index, dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("min_count", [0, 1])
+    def test_axis_1_sum_na(self, string_dtype_no_object, skipna, min_count):
+        # https://github.com/pandas-dev/pandas/issues/60229
+        dtype = string_dtype_no_object
+        df = DataFrame({"a": [pd.NA]}, dtype=dtype)
+        result = df.sum(axis=1, skipna=skipna, min_count=min_count)
+        value = "" if skipna and min_count == 0 else pd.NA
+        expected = Series([value], dtype=dtype)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
@@ -967,20 +950,20 @@ class TestDataFrameAnalytics:
     def test_sum_bool(self, float_frame):
         # ensure this works, bug report
         bools = np.isnan(float_frame)
-        bools.sum(1)
-        bools.sum(0)
+        bools.sum(axis=1)
+        bools.sum(axis=0)
 
     def test_sum_mixed_datetime(self):
         # GH#30886
         df = DataFrame({"A": date_range("2000", periods=4), "B": [1, 2, 3, 4]}).reindex(
             [2, 3, 4]
         )
-        with pytest.raises(TypeError, match="does not support reduction 'sum'"):
+        with pytest.raises(TypeError, match="does not support operation 'sum'"):
             df.sum()
 
     def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data
-        msg = "Could not convert|does not support"
+        msg = "Could not convert|does not support|Cannot perform"
         with pytest.raises(TypeError, match=msg):
             float_string_frame.mean(axis=0)
 
@@ -990,7 +973,7 @@ class TestDataFrameAnalytics:
 
         # take mean of boolean column
         float_frame["bool"] = float_frame["A"] > 0
-        means = float_frame.mean(0)
+        means = float_frame.mean(axis=0)
         assert means["bool"] == float_frame["bool"].values.mean()
 
     def test_mean_datetimelike(self):
@@ -1043,13 +1026,13 @@ class TestDataFrameAnalytics:
 
     def test_stats_mixed_type(self, float_string_frame):
         with pytest.raises(TypeError, match="could not convert"):
-            float_string_frame.std(1)
+            float_string_frame.std(axis=1)
         with pytest.raises(TypeError, match="could not convert"):
-            float_string_frame.var(1)
+            float_string_frame.var(axis=1)
         with pytest.raises(TypeError, match="unsupported operand type"):
-            float_string_frame.mean(1)
+            float_string_frame.mean(axis=1)
         with pytest.raises(TypeError, match="could not convert"):
-            float_string_frame.skew(1)
+            float_string_frame.skew(axis=1)
 
     def test_sum_bools(self):
         df = DataFrame(index=range(1), columns=range(10))
@@ -1065,18 +1048,20 @@ class TestDataFrameAnalytics:
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
         for df in [frame, int_frame]:
-            warn = None
-            if skipna is False or axis == 1:
-                warn = None if df is int_frame else FutureWarning
-            msg = "The behavior of DataFrame.idxmin with all-NA values"
-            with tm.assert_produces_warning(warn, match=msg):
+            if (not skipna or axis == 1) and df is not int_frame:
+                if skipna:
+                    msg = "Encountered all NA values"
+                else:
+                    msg = "Encountered an NA value"
+                with pytest.raises(ValueError, match=msg):
+                    df.idxmin(axis=axis, skipna=skipna)
+                with pytest.raises(ValueError, match=msg):
+                    df.idxmin(axis=axis, skipna=skipna)
+            else:
                 result = df.idxmin(axis=axis, skipna=skipna)
-
-            msg2 = "The behavior of Series.idxmin"
-            with tm.assert_produces_warning(warn, match=msg2):
                 expected = df.apply(Series.idxmin, axis=axis, skipna=skipna)
-            expected = expected.astype(df.index.dtype)
-            tm.assert_series_equal(result, expected)
+                expected = expected.astype(df.index.dtype)
+                tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
@@ -1113,16 +1098,17 @@ class TestDataFrameAnalytics:
         frame.iloc[5:10] = np.nan
         frame.iloc[15:20, -2:] = np.nan
         for df in [frame, int_frame]:
-            warn = None
-            if skipna is False or axis == 1:
-                warn = None if df is int_frame else FutureWarning
-            msg = "The behavior of DataFrame.idxmax with all-NA values"
-            with tm.assert_produces_warning(warn, match=msg):
-                result = df.idxmax(axis=axis, skipna=skipna)
+            if (skipna is False or axis == 1) and df is frame:
+                if skipna:
+                    msg = "Encountered all NA values"
+                else:
+                    msg = "Encountered an NA value"
+                with pytest.raises(ValueError, match=msg):
+                    df.idxmax(axis=axis, skipna=skipna)
+                return
 
-            msg2 = "The behavior of Series.idxmax"
-            with tm.assert_produces_warning(warn, match=msg2):
-                expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
+            result = df.idxmax(axis=axis, skipna=skipna)
+            expected = df.apply(Series.idxmax, axis=axis, skipna=skipna)
             expected = expected.astype(df.index.dtype)
             tm.assert_series_equal(result, expected)
 
@@ -1180,27 +1166,24 @@ class TestDataFrameAnalytics:
     def test_idxmax_mixed_dtype(self):
         # don't cast to object, which would raise in nanops
         dti = date_range("2016-01-01", periods=3)
-
-        # Copying dti is needed for ArrayManager otherwise when we set
-        #  df.loc[0, 3] = pd.NaT below it edits dti
-        df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti.copy(deep=True)})
+        df = DataFrame({1: [0, 2, 1], 2: range(3)[::-1], 3: dti})
 
         result = df.idxmax()
-        expected = Series([1, 0, 2], index=[1, 2, 3])
+        expected = Series([1, 0, 2], index=range(1, 4))
         tm.assert_series_equal(result, expected)
 
         result = df.idxmin()
-        expected = Series([0, 2, 0], index=[1, 2, 3])
+        expected = Series([0, 2, 0], index=range(1, 4))
         tm.assert_series_equal(result, expected)
 
         # with NaTs
         df.loc[0, 3] = pd.NaT
         result = df.idxmax()
-        expected = Series([1, 0, 2], index=[1, 2, 3])
+        expected = Series([1, 0, 2], index=range(1, 4))
         tm.assert_series_equal(result, expected)
 
         result = df.idxmin()
-        expected = Series([0, 2, 1], index=[1, 2, 3])
+        expected = Series([0, 2, 1], index=range(1, 4))
         tm.assert_series_equal(result, expected)
 
         # with multi-column dt64 block
@@ -1208,11 +1191,11 @@ class TestDataFrameAnalytics:
         df._consolidate_inplace()
 
         result = df.idxmax()
-        expected = Series([1, 0, 2, 0], index=[1, 2, 3, 4])
+        expected = Series([1, 0, 2, 0], index=range(1, 5))
         tm.assert_series_equal(result, expected)
 
         result = df.idxmin()
-        expected = Series([0, 2, 1, 2], index=[1, 2, 3, 4])
+        expected = Series([0, 2, 1, 2], index=range(1, 5))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1272,7 +1255,6 @@ class TestDataFrameAnalytics:
     ):
         getattr(bool_frame_with_na, all_boolean_reductions)(axis=axis, bool_only=False)
 
-    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     def test_any_all_bool_frame(self, all_boolean_reductions, bool_frame_with_na):
         # GH#12863: numpy gives back non-boolean data for object type
         # so fill NaNs to compare with pandas behavior
@@ -1332,11 +1314,11 @@ class TestDataFrameAnalytics:
         result = df[["A", "B"]].any(axis=1, bool_only=True)
         tm.assert_series_equal(result, expected)
 
-        result = df.all(1)
+        result = df.all(axis=1)
         expected = Series([True, False, False], index=["a", "b", "c"])
         tm.assert_series_equal(result, expected)
 
-        result = df.all(1, bool_only=True)
+        result = df.all(axis=1, bool_only=True)
         tm.assert_series_equal(result, expected)
 
         # Axis is None
@@ -1350,9 +1332,7 @@ class TestDataFrameAnalytics:
         assert result is True
 
     @pytest.mark.parametrize("axis", [0, 1])
-    def test_any_all_object_dtype(
-        self, axis, all_boolean_reductions, skipna, using_infer_string
-    ):
+    def test_any_all_object_dtype(self, axis, all_boolean_reductions, skipna):
         # GH#35450
         df = DataFrame(
             data=[
@@ -1362,19 +1342,10 @@ class TestDataFrameAnalytics:
                 [np.nan, np.nan, "5", np.nan],
             ]
         )
-        if using_infer_string:
-            # na in object is True while in string pyarrow numpy it's false
-            val = not axis == 0 and not skipna and all_boolean_reductions == "all"
-        else:
-            val = True
         result = getattr(df, all_boolean_reductions)(axis=axis, skipna=skipna)
-        expected = Series([True, True, val, True])
+        expected = Series([True, True, True, True])
         tm.assert_series_equal(result, expected)
 
-    # GH#50947 deprecates this but it is not emitting a warning in some builds.
-    @pytest.mark.filterwarnings(
-        "ignore:'any' with datetime64 dtypes is deprecated.*:FutureWarning"
-    )
     def test_any_datetime(self):
         # GH 23070
         float_data = [1, np.nan, 3, np.nan]
@@ -1386,10 +1357,9 @@ class TestDataFrameAnalytics:
         ]
         df = DataFrame({"A": float_data, "B": datetime_data})
 
-        result = df.any(axis=1)
-
-        expected = Series([True, True, True, False])
-        tm.assert_series_equal(result, expected)
+        msg = "datetime64 type does not support operation 'any'"
+        with pytest.raises(TypeError, match=msg):
+            df.any(axis=1)
 
     def test_any_all_bool_only(self):
         # GH 25101
@@ -1472,32 +1442,32 @@ class TestDataFrameAnalytics:
 
         if any(isinstance(x, CategoricalDtype) for x in data.dtypes):
             with pytest.raises(
-                TypeError, match="dtype category does not support reduction"
+                TypeError, match=".* dtype category does not support operation"
             ):
                 func(data)
 
             # method version
             with pytest.raises(
-                TypeError, match="dtype category does not support reduction"
+                TypeError, match=".* dtype category does not support operation"
             ):
                 getattr(DataFrame(data), func.__name__)(axis=None)
-        else:
-            msg = "'(any|all)' with datetime64 dtypes is deprecated"
-            if data.dtypes.apply(lambda x: x.kind == "M").any():
-                warn = FutureWarning
-            else:
-                warn = None
+        if data.dtypes.apply(lambda x: x.kind == "M").any():
+            # GH#34479
+            msg = "datetime64 type does not support operation '(any|all)'"
+            with pytest.raises(TypeError, match=msg):
+                func(data)
 
-            with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-                # GH#34479
-                result = func(data)
+            # method version
+            with pytest.raises(TypeError, match=msg):
+                getattr(DataFrame(data), func.__name__)(axis=None)
+
+        elif data.dtypes.apply(lambda x: x != "category").any():
+            result = func(data)
             assert isinstance(result, np.bool_)
             assert result.item() is expected
 
             # method version
-            with tm.assert_produces_warning(warn, match=msg):
-                # GH#34479
-                result = getattr(DataFrame(data), func.__name__)(axis=None)
+            result = getattr(DataFrame(data), func.__name__)(axis=None)
             assert isinstance(result, np.bool_)
             assert result.item() is expected
 
@@ -1582,6 +1552,44 @@ class TestDataFrameReductions:
 
         res = df.max()
         exp = Series([pd.NaT], index=["foo"])
+        tm.assert_series_equal(res, exp)
+
+    def test_min_max_dt64_with_NaT_precision(self):
+        # GH#60646 Make sure the reduction doesn't cast input timestamps to
+        # float and lose precision.
+        df = DataFrame(
+            {"foo": [pd.NaT, pd.NaT, Timestamp("2012-05-01 09:20:00.123456789")]},
+            dtype="datetime64[ns]",
+        )
+
+        res = df.min(axis=1)
+        exp = df.foo.rename(None)
+        tm.assert_series_equal(res, exp)
+
+        res = df.max(axis=1)
+        exp = df.foo.rename(None)
+        tm.assert_series_equal(res, exp)
+
+    def test_min_max_td64_with_NaT_precision(self):
+        # GH#60646 Make sure the reduction doesn't cast input timedeltas to
+        # float and lose precision.
+        df = DataFrame(
+            {
+                "foo": [
+                    pd.NaT,
+                    pd.NaT,
+                    to_timedelta("10000 days 06:05:01.123456789"),
+                ],
+            },
+            dtype="timedelta64[ns]",
+        )
+
+        res = df.min(axis=1)
+        exp = df.foo.rename(None)
+        tm.assert_series_equal(res, exp)
+
+        res = df.max(axis=1)
+        exp = df.foo.rename(None)
         tm.assert_series_equal(res, exp)
 
     def test_min_max_dt64_with_NaT_skipna_false(self, request, tz_naive_fixture):
@@ -1740,19 +1748,19 @@ class TestNuisanceColumns:
         df = ser.to_frame()
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             getattr(ser, all_boolean_reductions)()
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             getattr(np, all_boolean_reductions)(ser)
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             getattr(df, all_boolean_reductions)(bool_only=False)
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             getattr(df, all_boolean_reductions)(bool_only=None)
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             getattr(np, all_boolean_reductions)(df, axis=0)
 
     def test_median_categorical_dtype_nuisance_column(self):
@@ -1761,22 +1769,22 @@ class TestNuisanceColumns:
         ser = df["A"]
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             ser.median()
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             df.median(numeric_only=False)
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             df.median()
 
         # same thing, but with an additional non-categorical column
         df["B"] = df["A"].astype(int)
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             df.median(numeric_only=False)
 
-        with pytest.raises(TypeError, match="does not support reduction"):
+        with pytest.raises(TypeError, match="does not support operation"):
             df.median()
 
         # TODO: np.median(df, axis=0) gives np.array([2.0, 2.0]) instead
@@ -1835,7 +1843,7 @@ class TestEmptyDataFrameReductions:
         df = DataFrame({0: [], 1: []}, dtype=dtype)
         result = getattr(df, opname)(min_count=0)
 
-        expected = Series([exp_value, exp_value], dtype=exp_dtype)
+        expected = Series([exp_value, exp_value], dtype=exp_dtype, index=range(2))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1858,7 +1866,7 @@ class TestEmptyDataFrameReductions:
         df = DataFrame({0: [], 1: []}, dtype=dtype)
         result = getattr(df, opname)(min_count=1)
 
-        expected = Series([np.nan, np.nan], dtype=exp_dtype)
+        expected = Series([np.nan, np.nan], dtype=exp_dtype, index=Index([0, 1]))
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1881,7 +1889,7 @@ class TestEmptyDataFrameReductions:
         df = DataFrame({0: [], 1: []}, dtype=dtype)
         result = getattr(df, opname)(min_count=0)
 
-        expected = Series([exp_value, exp_value], dtype=exp_dtype)
+        expected = Series([exp_value, exp_value], dtype=exp_dtype, index=Index([0, 1]))
         tm.assert_series_equal(result, expected)
 
     # TODO: why does min_count=1 impact the resulting Windows dtype
@@ -1906,8 +1914,41 @@ class TestEmptyDataFrameReductions:
         df = DataFrame({0: [], 1: []}, dtype=dtype)
         result = getattr(df, opname)(min_count=1)
 
-        expected = Series([pd.NA, pd.NA], dtype=exp_dtype)
+        expected = Series([pd.NA, pd.NA], dtype=exp_dtype, index=Index([0, 1]))
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"a": [0, 1, 2], "b": [pd.NaT, pd.NaT, pd.NaT]},
+            {"a": [0, 1, 2], "b": [Timestamp("1990-01-01"), pd.NaT, pd.NaT]},
+            {
+                "a": [0, 1, 2],
+                "b": [
+                    Timestamp("1990-01-01"),
+                    Timestamp("1991-01-01"),
+                    Timestamp("1992-01-01"),
+                ],
+            },
+            {
+                "a": [0, 1, 2],
+                "b": [pd.Timedelta("1 days"), pd.Timedelta("2 days"), pd.NaT],
+            },
+            {
+                "a": [0, 1, 2],
+                "b": [
+                    pd.Timedelta("1 days"),
+                    pd.Timedelta("2 days"),
+                    pd.Timedelta("3 days"),
+                ],
+            },
+        ],
+    )
+    def test_df_cov_pd_nat(self, data):
+        # GH #53115
+        df = DataFrame(data)
+        with pytest.raises(TypeError, match="not supported for cov"):
+            df.cov()
 
 
 def test_sum_timedelta64_skipna_false():
@@ -1938,9 +1979,6 @@ def test_sum_timedelta64_skipna_false():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    using_pyarrow_string_dtype(), reason="sum doesn't work with arrow strings"
-)
 def test_mixed_frame_with_integer_sum():
     # https://github.com/pandas-dev/pandas/issues/34520
     df = DataFrame([["a", 1]], columns=list("ab"))
@@ -1970,7 +2008,7 @@ def test_minmax_extensionarray(method, numeric_only):
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
     df = DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
-    with pytest.raises(TypeError, match="does not support reduction"):
+    with pytest.raises(TypeError, match="does not support operation|Cannot perform"):
         df.sum()
 
 
@@ -2121,15 +2159,14 @@ def test_numeric_ea_axis_1(method, skipna, min_count, any_numeric_ea_dtype):
     if method in ("prod", "product", "sum"):
         kwargs["min_count"] = min_count
 
-    warn = None
-    msg = None
     if not skipna and method in ("idxmax", "idxmin"):
-        warn = FutureWarning
-        msg = f"The behavior of DataFrame.{method} with all-NA values"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = getattr(df, method)(axis=1, **kwargs)
-    with tm.assert_produces_warning(warn, match=msg):
-        expected = getattr(expected_df, method)(axis=1, **kwargs)
+        with pytest.raises(ValueError, match="encountered an NA value"):
+            getattr(df, method)(axis=1, **kwargs)
+        with pytest.raises(ValueError, match="Encountered an NA value"):
+            getattr(expected_df, method)(axis=1, **kwargs)
+        return
+    result = getattr(df, method)(axis=1, **kwargs)
+    expected = getattr(expected_df, method)(axis=1, **kwargs)
     if method not in ("idxmax", "idxmin"):
         expected = expected.astype(expected_dtype)
     tm.assert_series_equal(result, expected)

@@ -137,7 +137,7 @@ def test_less_precise(data1, data2, any_float_dtype, decimals):
             DataFrame.from_records(
                 {"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
             ).c,
-            "MultiIndex level \\[0\\] are different",
+            "Series\\.index level \\[0\\] are different",
         ),
     ],
 )
@@ -214,24 +214,15 @@ Series values are different \\(33\\.33333 %\\)
 
 
 def test_series_equal_categorical_values_mismatch(rtol, using_infer_string):
-    if using_infer_string:
-        msg = """Series are different
+    dtype = "str" if using_infer_string else "object"
+    msg = f"""Series are different
 
 Series values are different \\(66\\.66667 %\\)
 \\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\['a', 'b', 'c'\\]
-Categories \\(3, string\\): \\[a, b, c\\]
+Categories \\(3, {dtype}\\): \\['a', 'b', 'c'\\]
 \\[right\\]: \\['a', 'c', 'b'\\]
-Categories \\(3, string\\): \\[a, b, c\\]"""
-    else:
-        msg = """Series are different
-
-Series values are different \\(66\\.66667 %\\)
-\\[index\\]: \\[0, 1, 2\\]
-\\[left\\]:  \\['a', 'b', 'c'\\]
-Categories \\(3, object\\): \\['a', 'b', 'c'\\]
-\\[right\\]: \\['a', 'c', 'b'\\]
-Categories \\(3, object\\): \\['a', 'b', 'c'\\]"""
+Categories \\(3, {dtype}\\): \\['a', 'b', 'c'\\]"""
 
     s1 = Series(Categorical(["a", "b", "c"]))
     s2 = Series(Categorical(["a", "c", "b"]))
@@ -257,7 +248,7 @@ Series values are different \\(100.0 %\\)
 
 def test_series_equal_categorical_mismatch(check_categorical, using_infer_string):
     if using_infer_string:
-        dtype = "string"
+        dtype = "str"
     else:
         dtype = "object"
     msg = f"""Attributes of Series are different
@@ -473,3 +464,46 @@ def test_assert_series_equal_int_tol():
     tm.assert_extension_array_equal(
         left.astype("Int64").values, right.astype("Int64").values, rtol=1.5
     )
+
+
+@pytest.mark.parametrize(
+    "left_idx, right_idx",
+    [
+        (
+            pd.Index([0, 0.2, 0.4, 0.6, 0.8, 1]),
+            pd.Index(np.linspace(0, 1, 6)),
+        ),
+        (
+            pd.MultiIndex.from_arrays([[0, 0, 0, 0, 1, 1], [0, 0.2, 0.4, 0.6, 0.8, 1]]),
+            pd.MultiIndex.from_arrays([[0, 0, 0, 0, 1, 1], np.linspace(0, 1, 6)]),
+        ),
+        (
+            pd.MultiIndex.from_arrays(
+                [["a", "a", "a", "b", "b", "b"], [1, 2, 3, 4, 5, 10000000000001]]
+            ),
+            pd.MultiIndex.from_arrays(
+                [["a", "a", "a", "b", "b", "b"], [1, 2, 3, 4, 5, 10000000000002]]
+            ),
+        ),
+        pytest.param(
+            pd.Index([1, 2, 3, 4, 5, 10000000000001]),
+            pd.Index([1, 2, 3, 4, 5, 10000000000002]),
+            marks=pytest.mark.xfail(reason="check_exact_index defaults to True"),
+        ),
+        pytest.param(
+            pd.MultiIndex.from_arrays(
+                [[0, 0, 0, 0, 1, 1], [1, 2, 3, 4, 5, 10000000000001]]
+            ),
+            pd.MultiIndex.from_arrays(
+                [[0, 0, 0, 0, 1, 1], [1, 2, 3, 4, 5, 10000000000002]]
+            ),
+            marks=pytest.mark.xfail(reason="check_exact_index defaults to True"),
+        ),
+    ],
+)
+def test_assert_series_equal_check_exact_index_default(left_idx, right_idx):
+    # GH#57067
+    ser1 = Series(np.zeros(6, dtype=int), left_idx)
+    ser2 = Series(np.zeros(6, dtype=int), right_idx)
+    tm.assert_series_equal(ser1, ser2)
+    tm.assert_frame_equal(ser1.to_frame(), ser2.to_frame())

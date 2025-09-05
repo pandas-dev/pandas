@@ -85,7 +85,7 @@ class BaseDtypeTests:
 
     def test_eq(self, dtype):
         assert dtype == dtype.name
-        assert dtype != "anonther_type"
+        assert dtype != "another_type"
 
     def test_construct_from_string_own_name(self, dtype):
         result = dtype.construct_from_string(dtype.name)
@@ -114,6 +114,7 @@ class BaseDtypeTests:
         # only case we can test in general)
         assert dtype._get_common_dtype([dtype]) == dtype
 
+    @pytest.mark.parametrize("skipna", [True, False])
     def test_infer_dtype(self, data, data_missing, skipna):
         # only testing that this works without raising an error
         res = infer_dtype(data, skipna=skipna)

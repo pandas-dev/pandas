@@ -8,6 +8,7 @@ from pandas._libs.tslibs.offsets import MonthEnd
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    PeriodIndex,
     Series,
     date_range,
     period_range,
@@ -235,25 +236,61 @@ class TestAsFreq:
         "freq, freq_depr",
         [
             ("2ME", "2M"),
+            ("2ME", "2m"),
             ("2QE", "2Q"),
             ("2QE-SEP", "2Q-SEP"),
             ("1BQE", "1BQ"),
             ("2BQE-SEP", "2BQ-SEP"),
-            ("1YE", "1Y"),
+            ("2BQE-SEP", "2bq-sep"),
+            ("1YE", "1y"),
             ("2YE-MAR", "2Y-MAR"),
-            ("1YE", "1A"),
-            ("2YE-MAR", "2A-MAR"),
-            ("2BYE-MAR", "2BA-MAR"),
         ],
     )
-    def test_asfreq_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
-        # GH#9586, #55978
-        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-        f"in a future version, please use '{freq[1:]}' instead."
+    def test_asfreq_frequency_M_Q_Y_raises(self, freq, freq_depr):
+        msg = f"Invalid frequency: {freq_depr}"
 
         index = date_range("1/1/2000", periods=4, freq=f"{freq[1:]}")
         df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
-        expected = df.asfreq(freq=freq)
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            result = df.asfreq(freq=freq_depr)
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            df.asfreq(freq=freq_depr)
+
+    @pytest.mark.parametrize(
+        "freq, error_msg",
+        [
+            (
+                "2MS",
+                "Invalid frequency: 2MS",
+            ),
+            (
+                offsets.MonthBegin(),
+                r"\<MonthBegin\> is not supported as period frequency",
+            ),
+            (
+                offsets.DateOffset(months=2),
+                r"\<DateOffset: months=2\> is not supported as period frequency",
+            ),
+        ],
+    )
+    def test_asfreq_unsupported_freq(self, freq, error_msg):
+        # https://github.com/pandas-dev/pandas/issues/56718
+        index = PeriodIndex(["2020-01-01", "2021-01-01"], freq="M")
+        df = DataFrame({"a": Series([0, 1], index=index)})
+
+        with pytest.raises(ValueError, match=error_msg):
+            df.asfreq(freq=freq)
+
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2YE", "2A"),
+            ("2BYE-MAR", "2BA-MAR"),
+        ],
+    )
+    def test_asfreq_frequency_A_BA_raises(self, freq, freq_depr):
+        msg = f"Invalid frequency: {freq_depr}"
+
+        index = date_range("1/1/2000", periods=4, freq=freq)
+        df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
+
+        with pytest.raises(ValueError, match=msg):
+            df.asfreq(freq=freq_depr)

@@ -38,7 +38,6 @@ Upsampling
    Resampler.ffill
    Resampler.bfill
    Resampler.nearest
-   Resampler.fillna
    Resampler.asfreq
    Resampler.interpolate
 

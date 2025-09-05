@@ -170,7 +170,7 @@ class TestDataFrameSortValues:
                 "a": pd.Series([18446637057563306014, 1162265347240853609]),
                 "b": pd.Series([1, 2]),
             },
-            index=pd.Index([1, 0]),
+            index=range(1, -1, -1),
         )
 
         tm.assert_frame_equal(result, expected)
@@ -331,21 +331,15 @@ class TestDataFrameSortValues:
         df2 = df.sort_values(by=["C", "B"])
         tm.assert_frame_equal(df1, df2)
 
-    def test_sort_values_frame_column_inplace_sort_exception(
-        self, float_frame, using_copy_on_write
-    ):
+    def test_sort_values_frame_column_inplace_sort_exception(self, float_frame):
         s = float_frame["A"]
         float_frame_orig = float_frame.copy()
-        if using_copy_on_write:
-            # INFO(CoW) Series is a new object, so can be changed inplace
-            # without modifying original datafame
-            s.sort_values(inplace=True)
-            tm.assert_series_equal(s, float_frame_orig["A"].sort_values())
-            # column in dataframe is not changed
-            tm.assert_frame_equal(float_frame, float_frame_orig)
-        else:
-            with pytest.raises(ValueError, match="This Series is a view"):
-                s.sort_values(inplace=True)
+        # INFO(CoW) Series is a new object, so can be changed inplace
+        # without modifying original datafame
+        s.sort_values(inplace=True)
+        tm.assert_series_equal(s, float_frame_orig["A"].sort_values())
+        # column in dataframe is not changed
+        tm.assert_frame_equal(float_frame, float_frame_orig)
 
         cp = s.copy()
         cp.sort_values()  # it works!
@@ -366,7 +360,7 @@ class TestDataFrameSortValues:
         df_reversed = DataFrame(
             {"int": int_values[::-1], "float": float_values[::-1]},
             columns=["int", "float"],
-            index=[1, 0],
+            index=range(1, -1, -1),
         )
 
         # NaT is not a "na" for int64 columns, so na_position must not
@@ -391,7 +385,7 @@ class TestDataFrameSortValues:
         df_reversed = DataFrame(
             {"datetime": [NaT, Timestamp("2016-01-01")], "float": float_values[::-1]},
             columns=["datetime", "float"],
-            index=[1, 0],
+            index=range(1, -1, -1),
         )
 
         df_sorted = df.sort_values(["datetime", "float"], na_position="first")
@@ -546,19 +540,19 @@ class TestDataFrameSortValues:
     @pytest.mark.parametrize(
         "original_dict, sorted_dict, ignore_index, output_index",
         [
-            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, True, [0, 1, 2]),
-            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, False, [2, 1, 0]),
+            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, True, range(3)),
+            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, False, range(2, -1, -1)),
             (
                 {"A": [1, 2, 3], "B": [2, 3, 4]},
                 {"A": [3, 2, 1], "B": [4, 3, 2]},
                 True,
-                [0, 1, 2],
+                range(3),
             ),
             (
                 {"A": [1, 2, 3], "B": [2, 3, 4]},
                 {"A": [3, 2, 1], "B": [4, 3, 2]},
                 False,
-                [2, 1, 0],
+                range(2, -1, -1),
             ),
         ],
     )
@@ -598,26 +592,6 @@ class TestDataFrameSortValues:
         result = expected.sort_values(["A", "date"])
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_item_cache(self, using_copy_on_write):
-        # previous behavior incorrect retained an invalid _item_cache entry
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
-        )
-        df["D"] = df["A"] * 2
-        ser = df["A"]
-        assert len(df._mgr.blocks) == 2
-
-        df.sort_values(by="A")
-
-        if using_copy_on_write:
-            ser.iloc[0] = 99
-            assert df.iloc[0, 0] == df["A"][0]
-            assert df.iloc[0, 0] != 99
-        else:
-            ser.values[0] = 99
-            assert df.iloc[0, 0] == df["A"][0]
-            assert df.iloc[0, 0] == 99
-
     def test_sort_values_reshaping(self):
         # GH 39426
         values = list(range(21))
@@ -639,6 +613,13 @@ class TestDataFrameSortValues:
         df = DataFrame({"A": [10, 20], "B": [1, 5]}, index=[2, 3])
         result = df.sort_values(by="A", ignore_index=True)
         expected = DataFrame({"A": [10, 20], "B": [1, 5]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_by_column_named_none(self):
+        # GH#61512
+        df = DataFrame([[3, 1], [2, 2]], columns=[None, "C1"])
+        result = df.sort_values(by=None)
+        expected = DataFrame([[2, 2], [3, 1]], columns=[None, "C1"], index=[1, 0])
         tm.assert_frame_equal(result, expected)
 
 

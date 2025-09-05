@@ -24,8 +24,8 @@ Highlights include:
 .. warning::
 
    0.13.1 fixes a bug that was caused by a combination of having numpy < 1.8, and doing
-   chained assignment on a string-like array. Please review :ref:`the docs<indexing.view_versus_copy>`,
-   chained indexing can have unexpected results and should generally be avoided.
+   chained assignment on a string-like array.
+   Chained indexing can have unexpected results and should generally be avoided.
 
    This would previously segfault:
 

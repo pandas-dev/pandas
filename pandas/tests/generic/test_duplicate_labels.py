@@ -1,4 +1,5 @@
 """Tests dealing with the NDFrame.allows_duplicates."""
+
 import operator
 
 import numpy as np
@@ -89,18 +90,6 @@ class TestPreserves:
         assert df.loc[[0]].flags.allows_duplicate_labels is False
         assert df.loc[0, ["A"]].flags.allows_duplicate_labels is False
 
-    def test_ndframe_getitem_caching_issue(
-        self, request, using_copy_on_write, warn_copy_on_write
-    ):
-        if not (using_copy_on_write or warn_copy_on_write):
-            request.applymarker(pytest.mark.xfail(reason="Unclear behavior."))
-        # NDFrame.__getitem__ will cache the first df['A']. May need to
-        # invalidate that cache? Update the cached entries?
-        df = pd.DataFrame({"A": [0]}).set_flags(allows_duplicate_labels=False)
-        assert df["A"].flags.allows_duplicate_labels is False
-        df.flags.allows_duplicate_labels = True
-        assert df["A"].flags.allows_duplicate_labels is True
-
     @pytest.mark.parametrize(
         "objs, kwargs",
         [
@@ -175,7 +164,6 @@ class TestPreserves:
                     allows_duplicate_labels=False
                 ),
                 False,
-                marks=not_implemented,
             ),
             # false true false
             pytest.param(
@@ -184,7 +172,6 @@ class TestPreserves:
                 ),
                 pd.DataFrame({"B": [0, 1]}, index=["a", "d"]),
                 False,
-                marks=not_implemented,
             ),
             # true true true
             (
@@ -307,7 +294,6 @@ class TestRaises:
         with pytest.raises(pd.errors.DuplicateLabelError, match=msg):
             pd.concat(objs, axis=1)
 
-    @not_implemented
     def test_merge_raises(self):
         a = pd.DataFrame({"A": [0, 1, 2]}, index=["a", "b", "c"]).set_flags(
             allows_duplicate_labels=False

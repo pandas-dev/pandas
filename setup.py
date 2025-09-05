@@ -37,7 +37,7 @@ def is_platform_mac():
 
 
 # note: sync with pyproject.toml, environment.yml and asv.conf.json
-min_cython_ver = "3.0.5"
+min_cython_ver = "3.0"
 
 try:
     from Cython import (
@@ -364,7 +364,7 @@ if is_platform_mac():
 # enable coverage by building cython files by setting the environment variable
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
 # with `--with-cython-coverage`enabled
-linetrace = os.environ.get("PANDAS_CYTHON_COVERAGE", False)
+linetrace = os.environ.get("PANDAS_CYTHON_COVERAGE", False)  # noqa: PLW1508
 if "--with-cython-coverage" in sys.argv:
     linetrace = True
     sys.argv.remove("--with-cython-coverage")

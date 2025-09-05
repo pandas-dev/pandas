@@ -29,10 +29,6 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 
 from pandas.io.common import file_path_to_url
 
@@ -112,13 +108,9 @@ def flavor_read_html(request):
 class TestReadHtml:
     def test_literal_html_deprecation(self, flavor_read_html):
         # GH 53785
-        msg = (
-            "Passing literal html to 'read_html' is deprecated and "
-            "will be removed in a future version. To read from a "
-            "literal string, wrap it in a 'StringIO' object."
-        )
+        msg = r"\[Errno 2\] No such file or director"
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(FileNotFoundError, match=msg):
             flavor_read_html(
                 """<table>
                 <thead>
@@ -154,9 +146,8 @@ class TestReadHtml:
         df = (
             DataFrame(
                 np.random.default_rng(2).random((4, 3)),
-                columns=pd.Index(list("abc"), dtype=object),
+                columns=pd.Index(list("abc")),
             )
-            # pylint: disable-next=consider-using-f-string
             .map("{:.3f}".format)
             .astype(float)
         )
@@ -170,9 +161,9 @@ class TestReadHtml:
         # GH#50286
         df = DataFrame(
             {
-                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "a": Series([1, NA, 3], dtype="Int64"),
                 "b": Series([1, 2, 3], dtype="Int64"),
-                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "c": Series([1.5, NA, 2.5], dtype="Float64"),
                 "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": [True, False, None],
                 "f": [True, False, True],
@@ -181,34 +172,26 @@ class TestReadHtml:
             }
         )
 
-        if string_storage == "python":
-            string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
-            string_array_na = StringArray(np.array(["a", "b", NA], dtype=np.object_))
-        elif dtype_backend == "pyarrow":
-            pa = pytest.importorskip("pyarrow")
-            from pandas.arrays import ArrowExtensionArray
-
-            string_array = ArrowExtensionArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowExtensionArray(pa.array(["a", "b", None]))
-        else:
-            pa = pytest.importorskip("pyarrow")
-            string_array = ArrowStringArray(pa.array(["a", "b", "c"]))
-            string_array_na = ArrowStringArray(pa.array(["a", "b", None]))
-
         out = df.to_html(index=False)
         with pd.option_context("mode.string_storage", string_storage):
             result = flavor_read_html(StringIO(out), dtype_backend=dtype_backend)[0]
 
+        if dtype_backend == "pyarrow":
+            pa = pytest.importorskip("pyarrow")
+            string_dtype = pd.ArrowDtype(pa.string())
+        else:
+            string_dtype = pd.StringDtype(string_storage)
+
         expected = DataFrame(
             {
-                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "a": Series([1, NA, 3], dtype="Int64"),
                 "b": Series([1, 2, 3], dtype="Int64"),
-                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "c": Series([1.5, NA, 2.5], dtype="Float64"),
                 "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": Series([True, False, NA], dtype="boolean"),
                 "f": Series([True, False, True], dtype="boolean"),
-                "g": string_array,
-                "h": string_array_na,
+                "g": Series(["a", "b", "c"], dtype=string_dtype),
+                "h": Series(["a", "b", None], dtype=string_dtype),
             }
         )
 
@@ -224,7 +207,9 @@ class TestReadHtml:
                 }
             )
 
-        tm.assert_frame_equal(result, expected)
+        # the storage of the str columns' Index is also affected by the
+        # string_storage setting -> ignore that for checking the result
+        tm.assert_frame_equal(result, expected, check_column_type=False)
 
     @pytest.mark.network
     @pytest.mark.single_cpu
@@ -760,7 +745,8 @@ class TestReadHtml:
             datapath("io", "data", "csv", "banklist.csv"),
             converters={"Updated Date": Timestamp, "Closing Date": Timestamp},
         )
-        assert df.shape == ground_truth.shape
+        # html is a truncated version of banklist since bs4 is slow to parse it
+        assert df.shape == (len(df), ground_truth.shape[1])
         old = [
             "First Vietnamese American Bank In Vietnamese",
             "Westernbank Puerto Rico En Espanol",
@@ -791,18 +777,19 @@ class TestReadHtml:
         converted = dfnew
         date_cols = ["Closing Date", "Updated Date"]
         converted[date_cols] = converted[date_cols].apply(to_datetime)
+        gtnew = gtnew[gtnew["Bank Name"].isin(converted["Bank Name"])].reset_index(
+            drop=True
+        )
         tm.assert_frame_equal(converted, gtnew)
 
     @pytest.mark.slow
-    def test_gold_canyon(self, banklist_data, flavor_read_html):
-        gc = "Gold Canyon"
+    def test_heartland_bank(self, banklist_data, flavor_read_html):
+        gc = "Heartland Bank"
         with open(banklist_data, encoding="utf-8") as f:
             raw_text = f.read()
 
         assert gc in raw_text
-        df = flavor_read_html(
-            banklist_data, match="Gold Canyon", attrs={"id": "table"}
-        )[0]
+        df = flavor_read_html(banklist_data, match=gc, attrs={"id": "table"})[0]
         assert gc in df.to_string()
 
     def test_different_number_of_cols(self, flavor_read_html):
@@ -1019,6 +1006,33 @@ class TestReadHtml:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_rowspan_in_header_overflowing_to_body(self, flavor_read_html):
+        # GH60210
+
+        result = flavor_read_html(
+            StringIO(
+                """
+            <table>
+                <tr>
+                    <th rowspan="2">A</th>
+                    <th>B</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                </tr>
+                <tr>
+                    <td>C</td>
+                    <td>2</td>
+                </tr>
+            </table>
+        """
+            )
+        )[0]
+
+        expected = DataFrame(data=[["A", 1], ["C", 2]], columns=["A", "B"])
+
+        tm.assert_frame_equal(result, expected)
+
     def test_header_inferred_from_rows_with_only_th(self, flavor_read_html):
         # GH17054
         result = flavor_read_html(
@@ -1049,30 +1063,20 @@ class TestReadHtml:
 
     def test_parse_dates_list(self, flavor_read_html):
         df = DataFrame({"date": date_range("1/1/2001", periods=10)})
-        expected = df.to_html()
-        res = flavor_read_html(StringIO(expected), parse_dates=[1], index_col=0)
-        tm.assert_frame_equal(df, res[0])
-        res = flavor_read_html(StringIO(expected), parse_dates=["date"], index_col=0)
-        tm.assert_frame_equal(df, res[0])
 
-    def test_parse_dates_combine(self, flavor_read_html):
-        raw_dates = Series(date_range("1/1/2001", periods=10))
-        df = DataFrame(
-            {
-                "date": raw_dates.map(lambda x: str(x.date())),
-                "time": raw_dates.map(lambda x: str(x.time())),
-            }
-        )
-        res = flavor_read_html(
-            StringIO(df.to_html()), parse_dates={"datetime": [1, 2]}, index_col=1
-        )
-        newdf = DataFrame({"datetime": raw_dates})
-        tm.assert_frame_equal(newdf, res[0])
+        expected = df[:]
+        expected["date"] = expected["date"].dt.as_unit("s")
+
+        str_df = df.to_html()
+        res = flavor_read_html(StringIO(str_df), parse_dates=[1], index_col=0)
+        tm.assert_frame_equal(expected, res[0])
+        res = flavor_read_html(StringIO(str_df), parse_dates=["date"], index_col=0)
+        tm.assert_frame_equal(expected, res[0])
 
     def test_wikipedia_states_table(self, datapath, flavor_read_html):
         data = datapath("io", "data", "html", "wikipedia_states.html")
-        assert os.path.isfile(data), f"{repr(data)} is not a file"
-        assert os.path.getsize(data), f"{repr(data)} is an empty file"
+        assert os.path.isfile(data), f"{data!r} is not a file"
+        assert os.path.getsize(data), f"{data!r} is an empty file"
         result = flavor_read_html(data, match="Arizona", header=1)[0]
         assert result.shape == (60, 12)
         assert "Unnamed" in result.columns[-1]
@@ -1405,7 +1409,7 @@ class TestReadHtml:
         try:
             with open(html_encoding_file, "rb") as fobj:
                 from_string = flavor_read_html(
-                    fobj.read(), encoding=encoding, index_col=0
+                    BytesIO(fobj.read()), encoding=encoding, index_col=0
                 ).pop()
 
             with open(html_encoding_file, "rb") as fobj:
@@ -1464,9 +1468,7 @@ class TestReadHtml:
             def seekable(self):
                 return True
 
-            # GH 49036 pylint checks for presence of __next__ for iterators
-            def __next__(self):
-                ...
+            def __next__(self): ...
 
             def __iter__(self) -> Iterator:
                 # `is_file_like` depends on the presence of

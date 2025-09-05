@@ -26,8 +26,6 @@ Properties
     DateOffset.normalize
     DateOffset.rule_code
     DateOffset.n
-    DateOffset.is_month_start
-    DateOffset.is_month_end
 
 Methods
 ~~~~~~~
@@ -35,7 +33,6 @@ Methods
    :toctree: api/
 
     DateOffset.copy
-    DateOffset.is_anchored
     DateOffset.is_on_offset
     DateOffset.is_month_start
     DateOffset.is_month_end
@@ -82,7 +79,6 @@ Methods
    :toctree: api/
 
     BusinessDay.copy
-    BusinessDay.is_anchored
     BusinessDay.is_on_offset
     BusinessDay.is_month_start
     BusinessDay.is_month_end
@@ -122,7 +118,6 @@ Methods
    :toctree: api/
 
     BusinessHour.copy
-    BusinessHour.is_anchored
     BusinessHour.is_on_offset
     BusinessHour.is_month_start
     BusinessHour.is_month_end
@@ -169,7 +164,6 @@ Methods
    :toctree: api/
 
     CustomBusinessDay.copy
-    CustomBusinessDay.is_anchored
     CustomBusinessDay.is_on_offset
     CustomBusinessDay.is_month_start
     CustomBusinessDay.is_month_end
@@ -209,7 +203,6 @@ Methods
    :toctree: api/
 
     CustomBusinessHour.copy
-    CustomBusinessHour.is_anchored
     CustomBusinessHour.is_on_offset
     CustomBusinessHour.is_month_start
     CustomBusinessHour.is_month_end
@@ -244,7 +237,6 @@ Methods
    :toctree: api/
 
     MonthEnd.copy
-    MonthEnd.is_anchored
     MonthEnd.is_on_offset
     MonthEnd.is_month_start
     MonthEnd.is_month_end
@@ -279,7 +271,6 @@ Methods
    :toctree: api/
 
     MonthBegin.copy
-    MonthBegin.is_anchored
     MonthBegin.is_on_offset
     MonthBegin.is_month_start
     MonthBegin.is_month_end
@@ -323,7 +314,6 @@ Methods
    :toctree: api/
 
     BusinessMonthEnd.copy
-    BusinessMonthEnd.is_anchored
     BusinessMonthEnd.is_on_offset
     BusinessMonthEnd.is_month_start
     BusinessMonthEnd.is_month_end
@@ -367,7 +357,6 @@ Methods
    :toctree: api/
 
     BusinessMonthBegin.copy
-    BusinessMonthBegin.is_anchored
     BusinessMonthBegin.is_on_offset
     BusinessMonthBegin.is_month_start
     BusinessMonthBegin.is_month_end
@@ -415,7 +404,6 @@ Methods
    :toctree: api/
 
     CustomBusinessMonthEnd.copy
-    CustomBusinessMonthEnd.is_anchored
     CustomBusinessMonthEnd.is_on_offset
     CustomBusinessMonthEnd.is_month_start
     CustomBusinessMonthEnd.is_month_end
@@ -463,7 +451,6 @@ Methods
    :toctree: api/
 
     CustomBusinessMonthBegin.copy
-    CustomBusinessMonthBegin.is_anchored
     CustomBusinessMonthBegin.is_on_offset
     CustomBusinessMonthBegin.is_month_start
     CustomBusinessMonthBegin.is_month_end
@@ -499,7 +486,6 @@ Methods
    :toctree: api/
 
     SemiMonthEnd.copy
-    SemiMonthEnd.is_anchored
     SemiMonthEnd.is_on_offset
     SemiMonthEnd.is_month_start
     SemiMonthEnd.is_month_end
@@ -535,7 +521,6 @@ Methods
    :toctree: api/
 
     SemiMonthBegin.copy
-    SemiMonthBegin.is_anchored
     SemiMonthBegin.is_on_offset
     SemiMonthBegin.is_month_start
     SemiMonthBegin.is_month_end
@@ -571,7 +556,6 @@ Methods
    :toctree: api/
 
     Week.copy
-    Week.is_anchored
     Week.is_on_offset
     Week.is_month_start
     Week.is_month_end
@@ -607,7 +591,6 @@ Methods
    :toctree: api/
 
     WeekOfMonth.copy
-    WeekOfMonth.is_anchored
     WeekOfMonth.is_on_offset
     WeekOfMonth.weekday
     WeekOfMonth.is_month_start
@@ -645,7 +628,6 @@ Methods
    :toctree: api/
 
     LastWeekOfMonth.copy
-    LastWeekOfMonth.is_anchored
     LastWeekOfMonth.is_on_offset
     LastWeekOfMonth.is_month_start
     LastWeekOfMonth.is_month_end
@@ -681,7 +663,6 @@ Methods
    :toctree: api/
 
     BQuarterEnd.copy
-    BQuarterEnd.is_anchored
     BQuarterEnd.is_on_offset
     BQuarterEnd.is_month_start
     BQuarterEnd.is_month_end
@@ -717,7 +698,6 @@ Methods
    :toctree: api/
 
     BQuarterBegin.copy
-    BQuarterBegin.is_anchored
     BQuarterBegin.is_on_offset
     BQuarterBegin.is_month_start
     BQuarterBegin.is_month_end
@@ -753,7 +733,6 @@ Methods
    :toctree: api/
 
     QuarterEnd.copy
-    QuarterEnd.is_anchored
     QuarterEnd.is_on_offset
     QuarterEnd.is_month_start
     QuarterEnd.is_month_end
@@ -789,7 +768,6 @@ Methods
    :toctree: api/
 
     QuarterBegin.copy
-    QuarterBegin.is_anchored
     QuarterBegin.is_on_offset
     QuarterBegin.is_month_start
     QuarterBegin.is_month_end
@@ -797,6 +775,146 @@ Methods
     QuarterBegin.is_quarter_end
     QuarterBegin.is_year_start
     QuarterBegin.is_year_end
+
+BHalfYearEnd
+------------
+.. autosummary::
+   :toctree: api/
+
+    BHalfYearEnd
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    BHalfYearEnd.freqstr
+    BHalfYearEnd.kwds
+    BHalfYearEnd.name
+    BHalfYearEnd.nanos
+    BHalfYearEnd.normalize
+    BHalfYearEnd.rule_code
+    BHalfYearEnd.n
+    BHalfYearEnd.startingMonth
+
+Methods
+~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    BHalfYearEnd.copy
+    BHalfYearEnd.is_on_offset
+    BHalfYearEnd.is_month_start
+    BHalfYearEnd.is_month_end
+    BHalfYearEnd.is_quarter_start
+    BHalfYearEnd.is_quarter_end
+    BHalfYearEnd.is_year_start
+    BHalfYearEnd.is_year_end
+
+BHalfYearBegin
+--------------
+.. autosummary::
+   :toctree: api/
+
+    BHalfYearBegin
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    BHalfYearBegin.freqstr
+    BHalfYearBegin.kwds
+    BHalfYearBegin.name
+    BHalfYearBegin.nanos
+    BHalfYearBegin.normalize
+    BHalfYearBegin.rule_code
+    BHalfYearBegin.n
+    BHalfYearBegin.startingMonth
+
+Methods
+~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    BHalfYearBegin.copy
+    BHalfYearBegin.is_on_offset
+    BHalfYearBegin.is_month_start
+    BHalfYearBegin.is_month_end
+    BHalfYearBegin.is_quarter_start
+    BHalfYearBegin.is_quarter_end
+    BHalfYearBegin.is_year_start
+    BHalfYearBegin.is_year_end
+
+HalfYearEnd
+-----------
+.. autosummary::
+   :toctree: api/
+
+    HalfYearEnd
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    HalfYearEnd.freqstr
+    HalfYearEnd.kwds
+    HalfYearEnd.name
+    HalfYearEnd.nanos
+    HalfYearEnd.normalize
+    HalfYearEnd.rule_code
+    HalfYearEnd.n
+    HalfYearEnd.startingMonth
+
+Methods
+~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    HalfYearEnd.copy
+    HalfYearEnd.is_on_offset
+    HalfYearEnd.is_month_start
+    HalfYearEnd.is_month_end
+    HalfYearEnd.is_quarter_start
+    HalfYearEnd.is_quarter_end
+    HalfYearEnd.is_year_start
+    HalfYearEnd.is_year_end
+
+HalfYearBegin
+-------------
+.. autosummary::
+   :toctree: api/
+
+    HalfYearBegin
+
+Properties
+~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    HalfYearBegin.freqstr
+    HalfYearBegin.kwds
+    HalfYearBegin.name
+    HalfYearBegin.nanos
+    HalfYearBegin.normalize
+    HalfYearBegin.rule_code
+    HalfYearBegin.n
+    HalfYearBegin.startingMonth
+
+Methods
+~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+    HalfYearBegin.copy
+    HalfYearBegin.is_on_offset
+    HalfYearBegin.is_month_start
+    HalfYearBegin.is_month_end
+    HalfYearBegin.is_quarter_start
+    HalfYearBegin.is_quarter_end
+    HalfYearBegin.is_year_start
+    HalfYearBegin.is_year_end
 
 BYearEnd
 --------
@@ -825,7 +943,6 @@ Methods
    :toctree: api/
 
     BYearEnd.copy
-    BYearEnd.is_anchored
     BYearEnd.is_on_offset
     BYearEnd.is_month_start
     BYearEnd.is_month_end
@@ -861,7 +978,6 @@ Methods
    :toctree: api/
 
     BYearBegin.copy
-    BYearBegin.is_anchored
     BYearBegin.is_on_offset
     BYearBegin.is_month_start
     BYearBegin.is_month_end
@@ -897,7 +1013,6 @@ Methods
    :toctree: api/
 
     YearEnd.copy
-    YearEnd.is_anchored
     YearEnd.is_on_offset
     YearEnd.is_month_start
     YearEnd.is_month_end
@@ -933,7 +1048,6 @@ Methods
    :toctree: api/
 
     YearBegin.copy
-    YearBegin.is_anchored
     YearBegin.is_on_offset
     YearBegin.is_month_start
     YearBegin.is_month_end
@@ -973,7 +1087,6 @@ Methods
     FY5253.copy
     FY5253.get_rule_code_suffix
     FY5253.get_year_end
-    FY5253.is_anchored
     FY5253.is_on_offset
     FY5253.is_month_start
     FY5253.is_month_end
@@ -1014,7 +1127,6 @@ Methods
     FY5253Quarter.copy
     FY5253Quarter.get_rule_code_suffix
     FY5253Quarter.get_weeks
-    FY5253Quarter.is_anchored
     FY5253Quarter.is_on_offset
     FY5253Quarter.year_has_extra_week
     FY5253Quarter.is_month_start
@@ -1050,7 +1162,6 @@ Methods
    :toctree: api/
 
     Easter.copy
-    Easter.is_anchored
     Easter.is_on_offset
     Easter.is_month_start
     Easter.is_month_end
@@ -1071,7 +1182,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Tick.delta
     Tick.freqstr
     Tick.kwds
     Tick.name
@@ -1086,7 +1196,6 @@ Methods
    :toctree: api/
 
     Tick.copy
-    Tick.is_anchored
     Tick.is_on_offset
     Tick.is_month_start
     Tick.is_month_end
@@ -1107,7 +1216,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Day.delta
     Day.freqstr
     Day.kwds
     Day.name
@@ -1122,7 +1230,6 @@ Methods
    :toctree: api/
 
     Day.copy
-    Day.is_anchored
     Day.is_on_offset
     Day.is_month_start
     Day.is_month_end
@@ -1143,7 +1250,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Hour.delta
     Hour.freqstr
     Hour.kwds
     Hour.name
@@ -1158,7 +1264,6 @@ Methods
    :toctree: api/
 
     Hour.copy
-    Hour.is_anchored
     Hour.is_on_offset
     Hour.is_month_start
     Hour.is_month_end
@@ -1179,7 +1284,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Minute.delta
     Minute.freqstr
     Minute.kwds
     Minute.name
@@ -1194,7 +1298,6 @@ Methods
    :toctree: api/
 
     Minute.copy
-    Minute.is_anchored
     Minute.is_on_offset
     Minute.is_month_start
     Minute.is_month_end
@@ -1215,7 +1318,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Second.delta
     Second.freqstr
     Second.kwds
     Second.name
@@ -1230,7 +1332,6 @@ Methods
    :toctree: api/
 
     Second.copy
-    Second.is_anchored
     Second.is_on_offset
     Second.is_month_start
     Second.is_month_end
@@ -1251,7 +1352,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Milli.delta
     Milli.freqstr
     Milli.kwds
     Milli.name
@@ -1266,7 +1366,6 @@ Methods
    :toctree: api/
 
     Milli.copy
-    Milli.is_anchored
     Milli.is_on_offset
     Milli.is_month_start
     Milli.is_month_end
@@ -1287,7 +1386,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Micro.delta
     Micro.freqstr
     Micro.kwds
     Micro.name
@@ -1302,7 +1400,6 @@ Methods
    :toctree: api/
 
     Micro.copy
-    Micro.is_anchored
     Micro.is_on_offset
     Micro.is_month_start
     Micro.is_month_end
@@ -1323,7 +1420,6 @@ Properties
 .. autosummary::
    :toctree: api/
 
-    Nano.delta
     Nano.freqstr
     Nano.kwds
     Nano.name
@@ -1338,7 +1434,6 @@ Methods
    :toctree: api/
 
     Nano.copy
-    Nano.is_anchored
     Nano.is_on_offset
     Nano.is_month_start
     Nano.is_month_end

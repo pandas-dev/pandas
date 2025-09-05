@@ -148,7 +148,7 @@ class TestSetIndex:
 
     def test_set_index(self, float_string_frame):
         df = float_string_frame
-        idx = Index(np.arange(len(df))[::-1])
+        idx = Index(np.arange(len(df) - 1, -1, -1, dtype=np.int64))
 
         df = df.set_index(idx)
         tm.assert_index_equal(df.index, idx)
@@ -628,7 +628,7 @@ class TestSetIndexCustomLabelType:
                 self.color = color
 
             def __str__(self) -> str:
-                return f"<Thing {repr(self.name)}>"
+                return f"<Thing {self.name!r}>"
 
             # necessary for pretty KeyError
             __repr__ = __str__
@@ -706,7 +706,7 @@ class TestSetIndexCustomLabelType:
                 self.color = color
 
             def __str__(self) -> str:
-                return f"<Thing {repr(self.name)}>"
+                return f"<Thing {self.name!r}>"
 
         thing1 = Thing("One", "red")
         thing2 = Thing("Two", "blue")

@@ -296,6 +296,7 @@ class TestnanopsDataFrame:
         self,
         testfunc,
         targfunc,
+        testar,
         testarval,
         targarval,
         skipna,
@@ -319,6 +320,13 @@ class TestnanopsDataFrame:
                 else:
                     targ = bool(targ)
 
+            if testfunc.__name__ in ["nanargmax", "nanargmin"] and (
+                testar.startswith("arr_nan")
+                or (testar.endswith("nan") and (not skipna or axis == 1))
+            ):
+                with pytest.raises(ValueError, match="Encountered .* NA value"):
+                    testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
+                return
             res = testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
 
             if (
@@ -350,6 +358,7 @@ class TestnanopsDataFrame:
         self.check_fun_data(
             testfunc,
             targfunc,
+            testar,
             testarval2,
             targarval2,
             skipna=skipna,
@@ -370,6 +379,7 @@ class TestnanopsDataFrame:
         self.check_fun_data(
             testfunc,
             targfunc,
+            testar,
             testarval,
             targarval,
             skipna=skipna,
@@ -527,11 +537,8 @@ class TestnanopsDataFrame:
         nullnan = isna(nans)
         if res.ndim:
             res[nullnan] = -1
-        elif (
-            hasattr(nullnan, "all")
-            and nullnan.all()
-            or not hasattr(nullnan, "all")
-            and nullnan
+        elif (hasattr(nullnan, "all") and nullnan.all()) or (
+            not hasattr(nullnan, "all") and nullnan
         ):
             res = -1
         return res
