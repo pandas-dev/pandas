@@ -6070,8 +6070,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
-            The second operand in this operation.
+        other : object
+            When a Series is provided, will align on indexes. For all other types,
+            will behave the same as ``==`` but with possibly different results due
+            to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -6139,8 +6141,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
-            The second operand in this operation.
+        other : object
+            When a Series is provided, will align on indexes. For all other types,
+            will behave the same as ``==`` but with possibly different results due
+            to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -6211,8 +6215,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
-            The second operand in this operation.
+        other : object
+            When a Series is provided, will align on indexes. For all other types,
+            will behave the same as ``==`` but with possibly different results due
+            to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
