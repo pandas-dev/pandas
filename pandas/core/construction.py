@@ -31,7 +31,6 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
     maybe_convert_platform,
-    maybe_infer_to_datetimelike,
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
@@ -176,7 +175,7 @@ def array(
     NumPy array.
 
     >>> pd.array(["a", "b"], dtype=str)
-    <ArrowStringArrayNumpySemantics>
+    <ArrowStringArray>
     ['a', 'b']
     Length: 2, dtype: str
 
@@ -612,7 +611,15 @@ def sanitize_array(
         if dtype is None:
             subarr = data
             if data.dtype == object and infer_object:
-                subarr = maybe_infer_to_datetimelike(data)
+                subarr = lib.maybe_convert_objects(
+                    data,
+                    # Here we do not convert numeric dtypes, as if we wanted that,
+                    #  numpy would have done it for us.
+                    convert_numeric=False,
+                    convert_non_numeric=True,
+                    convert_to_nullable_dtype=False,
+                    dtype_if_all_nat=np.dtype("M8[s]"),
+                )
             elif data.dtype.kind == "U" and using_string_dtype():
                 from pandas.core.arrays.string_ import StringDtype
 
@@ -659,7 +666,15 @@ def sanitize_array(
             subarr = maybe_convert_platform(data)
             if subarr.dtype == object:
                 subarr = cast(np.ndarray, subarr)
-                subarr = maybe_infer_to_datetimelike(subarr)
+                subarr = lib.maybe_convert_objects(
+                    subarr,
+                    # Here we do not convert numeric dtypes, as if we wanted that,
+                    #  numpy would have done it for us.
+                    convert_numeric=False,
+                    convert_non_numeric=True,
+                    convert_to_nullable_dtype=False,
+                    dtype_if_all_nat=np.dtype("M8[s]"),
+                )
 
     subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
 

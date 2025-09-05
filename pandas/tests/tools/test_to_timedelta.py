@@ -10,7 +10,10 @@ from pandas.compat import (
     IS64,
     WASM,
 )
-from pandas.errors import OutOfBoundsTimedelta
+from pandas.errors import (
+    OutOfBoundsTimedelta,
+    Pandas4Warning,
+)
 
 import pandas as pd
 from pandas import (
@@ -24,6 +27,10 @@ from pandas.core.arrays import TimedeltaArray
 
 
 class TestTimedeltas:
+    def test_to_timedelta_none(self):
+        # GH#23055
+        assert to_timedelta(None) is pd.NaT
+
     def test_to_timedelta_dt64_raises(self):
         # Passing datetime64-dtype data to TimedeltaIndex is no longer
         #  supported GH#29794
@@ -58,7 +65,7 @@ class TestTimedeltas:
         expected = Series([timedelta(days=1), timedelta(days=1, seconds=1)])
 
         msg = "'d' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = to_timedelta(Series(["1d", "1days 00:00:01"]))
         tm.assert_series_equal(result, expected)
 

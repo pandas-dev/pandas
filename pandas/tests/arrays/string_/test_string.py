@@ -21,10 +21,8 @@ from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.core.arrays.string_ import StringArrayNumpySemantics
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
-    ArrowStringArrayNumpySemantics,
 )
 
 
@@ -113,10 +111,10 @@ def test_repr(dtype):
         arr_name = "ArrowStringArray"
         expected = f"<{arr_name}>\n['a', <NA>, 'b']\nLength: 3, dtype: string"
     elif dtype.storage == "pyarrow" and dtype.na_value is np.nan:
-        arr_name = "ArrowStringArrayNumpySemantics"
+        arr_name = "ArrowStringArray"
         expected = f"<{arr_name}>\n['a', nan, 'b']\nLength: 3, dtype: str"
     elif dtype.storage == "python" and dtype.na_value is np.nan:
-        arr_name = "StringArrayNumpySemantics"
+        arr_name = "StringArray"
         expected = f"<{arr_name}>\n['a', nan, 'b']\nLength: 3, dtype: str"
     else:
         arr_name = "StringArray"
@@ -434,44 +432,45 @@ def test_comparison_methods_list(comparison_op, dtype):
 def test_constructor_raises(cls):
     if cls is pd.arrays.StringArray:
         msg = "StringArray requires a sequence of strings or pandas.NA"
-    elif cls is StringArrayNumpySemantics:
-        msg = "StringArrayNumpySemantics requires a sequence of strings or NaN"
+        kwargs = {"dtype": pd.StringDtype()}
     else:
         msg = "Unsupported type '<class 'numpy.ndarray'>' for ArrowExtensionArray"
+        kwargs = {}
 
     with pytest.raises(ValueError, match=msg):
-        cls(np.array(["a", "b"], dtype="S1"))
+        cls(np.array(["a", "b"], dtype="S1"), **kwargs)
 
     with pytest.raises(ValueError, match=msg):
-        cls(np.array([]))
+        cls(np.array([]), **kwargs)
 
-    if cls is pd.arrays.StringArray or cls is StringArrayNumpySemantics:
+    if cls is pd.arrays.StringArray:
         # GH#45057 np.nan and None do NOT raise, as they are considered valid NAs
         #  for string dtype
-        cls(np.array(["a", np.nan], dtype=object))
-        cls(np.array(["a", None], dtype=object))
+        cls(np.array(["a", np.nan], dtype=object), **kwargs)
+        cls(np.array(["a", None], dtype=object), **kwargs)
     else:
         with pytest.raises(ValueError, match=msg):
-            cls(np.array(["a", np.nan], dtype=object))
+            cls(np.array(["a", np.nan], dtype=object), **kwargs)
         with pytest.raises(ValueError, match=msg):
-            cls(np.array(["a", None], dtype=object))
+            cls(np.array(["a", None], dtype=object), **kwargs)
 
     with pytest.raises(ValueError, match=msg):
-        cls(np.array(["a", pd.NaT], dtype=object))
+        cls(np.array(["a", pd.NaT], dtype=object), **kwargs)
 
     with pytest.raises(ValueError, match=msg):
-        cls(np.array(["a", np.datetime64("NaT", "ns")], dtype=object))
+        cls(np.array(["a", np.datetime64("NaT", "ns")], dtype=object), **kwargs)
 
     with pytest.raises(ValueError, match=msg):
-        cls(np.array(["a", np.timedelta64("NaT", "ns")], dtype=object))
+        cls(np.array(["a", np.timedelta64("NaT", "ns")], dtype=object), **kwargs)
 
 
 @pytest.mark.parametrize("na", [np.nan, np.float64("nan"), float("nan"), None, pd.NA])
 def test_constructor_nan_like(na):
-    expected = pd.arrays.StringArray(np.array(["a", pd.NA]))
-    tm.assert_extension_array_equal(
-        pd.arrays.StringArray(np.array(["a", na], dtype="object")), expected
+    expected = pd.arrays.StringArray(np.array(["a", pd.NA]), dtype=pd.StringDtype())
+    result = pd.arrays.StringArray(
+        np.array(["a", na], dtype="object"), dtype=pd.StringDtype()
     )
+    tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("copy", [True, False])
@@ -482,14 +481,16 @@ def test_from_sequence_no_mutate(copy, cls, dtype):
 
     result = cls._from_sequence(nan_arr, dtype=dtype, copy=copy)
 
-    if cls in (ArrowStringArray, ArrowStringArrayNumpySemantics):
+    if cls is ArrowStringArray:
         import pyarrow as pa
 
-        expected = cls(pa.array(na_arr, type=pa.string(), from_pandas=True))
-    elif cls is StringArrayNumpySemantics:
-        expected = cls(nan_arr)
+        expected = cls(
+            pa.array(na_arr, type=pa.string(), from_pandas=True), dtype=dtype
+        )
+    elif dtype.na_value is np.nan:
+        expected = cls(nan_arr, dtype=dtype)
     else:
-        expected = cls(na_arr)
+        expected = cls(na_arr, dtype=dtype)
 
     tm.assert_extension_array_equal(result, expected)
     tm.assert_numpy_array_equal(nan_arr, expected_input)

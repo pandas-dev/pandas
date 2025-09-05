@@ -367,9 +367,9 @@ def test_orc_dtype_backend_numpy_nullable():
 
     expected = pd.DataFrame(
         {
-            "string": pd.array(np.array(["a", "b", "c"], dtype=np.object_)),
-            "string_with_nan": pd.array(np.array(["a", pd.NA, "c"], dtype=np.object_)),
-            "string_with_none": pd.array(np.array(["a", pd.NA, "c"], dtype=np.object_)),
+            "string": pd.array(["a", "b", "c"], dtype=pd.StringDtype()),
+            "string_with_nan": pd.array(["a", pd.NA, "c"], dtype=pd.StringDtype()),
+            "string_with_none": pd.array(["a", pd.NA, "c"], dtype=pd.StringDtype()),
             "int": pd.Series([1, 2, 3], dtype="Int64"),
             "int_with_nan": pd.Series([1, pd.NA, 3], dtype="Int64"),
             "na_only": pd.Series([pd.NA, pd.NA, pd.NA], dtype="Int64"),
