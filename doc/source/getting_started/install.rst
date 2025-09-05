@@ -153,6 +153,8 @@ Package                                                          Minimum support
 `tzdata <https://pypi.org/project/tzdata/>`__                    2023.3
 ================================================================ ==========================
 
+Generally, the minimum supported version is ~2 years old from the release date of a major or minor pandas version.
+
 .. _install.optional_dependencies:
 
 Optional dependencies
@@ -167,6 +169,9 @@ the method requiring that dependency is called.
 With pip, optional pandas dependencies can be installed or managed in a file (e.g. requirements.txt or pyproject.toml)
 as optional extras (e.g. ``pandas[performance, aws]``). All optional dependencies can be installed with ``pandas[all]``,
 and specific sets of dependencies are listed in the sections below.
+
+Generally, the minimum supported version is ~1 years old from the release date of a major or minor pandas version.
+It is possible that older versions of optional dependencies may still work, but they are not tested or considered supported.
 
 .. _install.recommended_dependencies:
 
