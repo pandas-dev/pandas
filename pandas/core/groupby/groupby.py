@@ -5639,7 +5639,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if using_string_dtype() and method == "sum":
                 if isinstance(output, Series) and isinstance(output.dtype, StringDtype):
                     d["fill_value"] = ""
-                    return output.reindex(**d)  # type: ignore[arg-type]
+                    return output.reindex(**d)  # type: ignore[return-value]
                 elif isinstance(output, DataFrame) and any(
                     isinstance(dtype, StringDtype) for dtype in output.dtypes
                 ):
@@ -5647,13 +5647,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     indices = np.nonzero(output.dtypes == "string")[0]
                     for idx in indices:
                         output.isetitem(idx, output.iloc[:, idx].astype(object))
-                    output = output.reindex(**d)
+                    output = output.reindex(**d)  # type: ignore[assignment, arg-type]
                     for idx in indices:
                         col = output.iloc[:, idx]
                         output.isetitem(
                             idx, col.mask(col == 0, "").astype(orig_dtypes.iloc[idx])
                         )
-                    return output
+                    return output  # type: ignore[return-value]
             return output.reindex(**d)  # type: ignore[arg-type]
 
         # GH 13204
