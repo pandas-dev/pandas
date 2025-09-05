@@ -318,8 +318,6 @@ jobs:
       run:
         shell: bash -eou pipefail {0}
     runs-on: ${{ matrix.os }}
-    # TEMP allow this to fail until we fixed all test failures (related to chained assignment warnings)
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -360,6 +358,8 @@ jobs:
 
       - name: Run Tests
         uses: ./.github/actions/run-tests
+        # TEMP allow this to fail until we fixed all test failures (related to chained assignment warnings)
+        continue-on-error: true
 
   # NOTE: this job must be kept in sync with the Pyodide build job in wheels.yml
   emscripten:
