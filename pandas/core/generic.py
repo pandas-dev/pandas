@@ -2062,7 +2062,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             **meta,
         }
 
-    @final
     def __setstate__(self, state) -> None:
         if isinstance(state, BlockManager):
             self._mgr = state
