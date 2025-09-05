@@ -171,7 +171,7 @@ as optional extras (e.g. ``pandas[performance, aws]``). All optional dependencie
 and specific sets of dependencies are listed in the sections below.
 
 Generally, the minimum supported version is ~1 years old from the release date of a major or minor pandas version.
-It is possible that older versions of optional dependencies may still work, but they are not tested or considered supported.
+Older versions of optional dependencies may still work, but they are not tested or considered supported.
 
 .. _install.recommended_dependencies:
 
