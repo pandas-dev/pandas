@@ -35,7 +35,6 @@ import pytest
 from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
-    PY311,
     PY312,
     is_ci_environment,
     is_platform_windows,
@@ -45,7 +44,9 @@ from pandas.compat import (
     pa_version_under20p0,
     pa_version_under21p0,
 )
+from pandas.errors import Pandas4Warning
 
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     CategoricalDtypeType,
@@ -271,6 +272,26 @@ def data_for_twos(data):
 
 
 class TestArrowArray(base.ExtensionTests):
+    def _construct_for_combine_add(self, left, right):
+        dtype = left.dtype
+
+        # in a couple cases, addition is not dtype-preserving
+        if dtype == "bool[pyarrow]":
+            dtype = pandas_dtype("int64[pyarrow]")
+        elif dtype == "int8[pyarrow]" and isinstance(right, type(left)):
+            dtype = pandas_dtype("int64[pyarrow]")
+
+        if isinstance(right, type(left)):
+            return left._from_sequence(
+                [a + b for (a, b) in zip(list(left), list(right))],
+                dtype=dtype,
+            )
+        else:
+            return left._from_sequence(
+                [a + right for a in list(left)],
+                dtype=dtype,
+            )
+
     def test_compare_scalar(self, data, comparison_op):
         ser = pd.Series(data)
         self._compare_other(ser, data, comparison_op, data[0])
@@ -344,13 +365,7 @@ class TestArrowArray(base.ExtensionTests):
 
     def test_from_sequence_of_strings_pa_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_time64(pa_dtype) and pa_dtype.equals("time64[ns]") and not PY311:
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="Nanosecond time parsing not supported.",
-                )
-            )
-        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
             _require_timezone_database(request)
 
         pa_array = data._pa_array.cast(pa.string())
@@ -792,6 +807,8 @@ class TestArrowArray(base.ExtensionTests):
 
         return tm.get_op_from_name(op_name)
 
+    # TODO: use EA._cast_pointwise_result, same with other test files that
+    #  override this
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         # BaseOpsUtil._combine can upcast expected dtype
         # (because it generates expected on python scalars)
@@ -801,16 +818,28 @@ class TestArrowArray(base.ExtensionTests):
         if op_name in ["eq", "ne", "lt", "le", "gt", "ge"]:
             return pointwise_result.astype("boolean[pyarrow]")
 
+        original_dtype = tm.get_dtype(expected)
+
         was_frame = False
         if isinstance(expected, pd.DataFrame):
             was_frame = True
             expected_data = expected.iloc[:, 0]
-            original_dtype = obj.iloc[:, 0].dtype
         else:
             expected_data = expected
-            original_dtype = obj.dtype
 
-        orig_pa_type = original_dtype.pyarrow_dtype
+        # the pointwise method will have retained our original dtype, while
+        #  the op(ser, other) version will have cast to 64bit
+        if type(other) is int and op_name not in ["__floordiv__"]:
+            if original_dtype.kind == "f":
+                return expected.astype("float64[pyarrow]")
+            else:
+                return expected.astype("int64[pyarrow]")
+        elif type(other) is float:
+            return expected.astype("float64[pyarrow]")
+
+        # error: Item "ExtensionDtype" of "dtype[Any] | ExtensionDtype" has
+        #  no attribute "pyarrow_dtype"
+        orig_pa_type = original_dtype.pyarrow_dtype  # type: ignore[union-attr]
         if not was_frame and isinstance(other, pd.Series):
             # i.e. test_arith_series_with_array
             if not (
@@ -840,29 +869,7 @@ class TestArrowArray(base.ExtensionTests):
 
         pa_expected = pa.array(expected_data._values)
 
-        if pa.types.is_duration(pa_expected.type):
-            if pa.types.is_date(orig_pa_type):
-                if pa.types.is_date64(orig_pa_type):
-                    # TODO: why is this different vs date32?
-                    unit = "ms"
-                else:
-                    unit = "s"
-            else:
-                # pyarrow sees sequence of datetime/timedelta objects and defaults
-                #  to "us" but the non-pointwise op retains unit
-                # timestamp or duration
-                unit = orig_pa_type.unit
-                if type(other) in [datetime, timedelta] and unit in ["s", "ms"]:
-                    # pydatetime/pytimedelta objects have microsecond reso, so we
-                    #  take the higher reso of the original and microsecond. Note
-                    #  this matches what we would do with DatetimeArray/TimedeltaArray
-                    unit = "us"
-
-            pa_expected = pa_expected.cast(f"duration[{unit}]")
-
-        elif pa.types.is_decimal(pa_expected.type) and pa.types.is_decimal(
-            orig_pa_type
-        ):
+        if pa.types.is_decimal(pa_expected.type) and pa.types.is_decimal(orig_pa_type):
             # decimal precision can resize in the result type depending on data
             # just compare the float values
             alt = getattr(obj, op_name)(other)
@@ -2686,8 +2693,9 @@ def test_dt_tz_localize_unsupported_tz_options():
         ser.dt.tz_localize("UTC", nonexistent="NaT")
 
 
-@pytest.mark.xfail(reason="Converts to UTC before localizing GH#61780")
-def test_dt_tz_localize_none():
+def test_dt_tz_localize_none(request):
+    _require_timezone_database(request)
+
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp("ns", tz="US/Pacific")),
@@ -2840,14 +2848,14 @@ def test_dt_to_pytimedelta():
     ser = pd.Series(data, dtype=ArrowDtype(pa.duration("ns")))
 
     msg = "The behavior of ArrowTemporalProperties.to_pytimedelta is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = ser.dt.to_pytimedelta()
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
     assert all(type(res) is timedelta for res in result)
 
     msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         expected = ser.astype("timedelta64[ns]").dt.to_pytimedelta()
     tm.assert_numpy_array_equal(result, expected)
 
@@ -3325,9 +3333,9 @@ def test_factorize_chunked_dictionary():
     )
     ser = pd.Series(ArrowExtensionArray(pa_array))
     res_indices, res_uniques = ser.factorize()
-    exp_indicies = np.array([0, 1], dtype=np.intp)
+    exp_indices = np.array([0, 1], dtype=np.intp)
     exp_uniques = pd.Index(ArrowExtensionArray(pa_array.combine_chunks()))
-    tm.assert_numpy_array_equal(res_indices, exp_indicies)
+    tm.assert_numpy_array_equal(res_indices, exp_indices)
     tm.assert_index_equal(res_uniques, exp_uniques)
 
 

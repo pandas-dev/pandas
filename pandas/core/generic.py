@@ -14,8 +14,10 @@ from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
+    Concatenate,
     Literal,
     NoReturn,
+    Self,
     cast,
     final,
     overload,
@@ -41,7 +43,6 @@ from pandas._typing import (
     Axis,
     AxisInt,
     CompressionOptions,
-    Concatenate,
     DtypeArg,
     DtypeBackend,
     DtypeObj,
@@ -66,7 +67,6 @@ from pandas._typing import (
     ReindexMethod,
     Renamer,
     Scalar,
-    Self,
     SequenceNotStr,
     SortKind,
     StorageOptions,
@@ -93,6 +93,7 @@ from pandas.errors import (
     AbstractMethodError,
     ChainedAssignmentError,
     InvalidIndexError,
+    Pandas4Warning,
 )
 from pandas.errors.cow import _chained_assignment_method_msg
 from pandas.util._decorators import (
@@ -2592,7 +2593,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 warnings.warn(
                     "The default 'epoch' date format is deprecated and will be removed "
                     "in a future version, please use 'iso' date format instead.",
-                    FutureWarning,
+                    Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
         elif date_format == "epoch":
@@ -2600,7 +2601,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             warnings.warn(
                 "'epoch' date format is deprecated and will be removed in a future "
                 "version, please use 'iso' date format instead.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
@@ -4379,12 +4380,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "version. Copy-on-Write is active in pandas since 3.0 which utilizes "
                 "a lazy copy mechanism that defers copies until necessary. Use "
                 ".copy() to make an eager copy if necessary.",
-                DeprecationWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
     # issue 58667
-    @deprecate_kwarg("method", None)
+    @deprecate_kwarg(Pandas4Warning, "method", new_arg_name=None)
     @final
     def reindex_like(
         self,
@@ -9135,12 +9136,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         from pandas.core.resample import get_resampler
 
         if convention is not lib.no_default:
+            # TODO: Enforce in 3.0 (#55968)
             warnings.warn(
                 f"The 'convention' keyword in {type(self).__name__}.resample is "
                 "deprecated and will be removed in a future version. "
                 "Explicitly cast PeriodIndex to DatetimeIndex before resampling "
                 "instead.",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore[warning_class]
                 stacklevel=find_stack_level(),
             )
         else:
@@ -10218,6 +10220,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         suffix : str, optional
             If str and periods is an iterable, this is added after the column
             name and before the shift value for each shifted column name.
+            For `Series` this parameter is unused and defaults to `None`.
 
         Returns
         -------
@@ -10519,8 +10522,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if ax._is_all_dates:
             from pandas.core.tools.datetimes import to_datetime
 
-            before = to_datetime(before)
-            after = to_datetime(after)
+            if before is not None:
+                # Avoid converting to NaT
+                before = to_datetime(before)
+            if after is not None:
+                # Avoid converting to NaT
+                after = to_datetime(after)
 
         if before is not None and after is not None and before > after:
             raise ValueError(f"Truncate: {after} must be after {before}")

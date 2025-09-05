@@ -15,6 +15,7 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
+    Self,
     cast,
 )
 import warnings
@@ -84,7 +85,6 @@ if TYPE_CHECKING:
         IntervalClosedType,
         Ordered,
         Scalar,
-        Self,
         npt,
         type_t,
     )
@@ -1053,7 +1053,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             warnings.warn(
                 "PeriodDtype[B] is deprecated and will be removed in a future "
                 "version. Use a DatetimeIndex with freq='B' instead",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore[warning_class]
                 stacklevel=find_stack_level(),
             )
 

@@ -5,6 +5,7 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
+    Self,
     cast,
     final,
 )
@@ -85,7 +86,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
         AxisInt,
-        Self,
         T,
         npt,
     )
@@ -1930,7 +1930,7 @@ class _iLocIndexer(_LocationIndexer):
                     labels = index.insert(len(index), key)
 
                     # We are expanding the Series/DataFrame values to match
-                    #  the length of thenew index `labels`.  GH#40096 ensure
+                    #  the length of the new index `labels`.  GH#40096 ensure
                     #  this is valid even if the index has duplicates.
                     taker = np.arange(len(index) + 1, dtype=np.intp)
                     taker[-1] = -1
@@ -2327,7 +2327,7 @@ class _iLocIndexer(_LocationIndexer):
                     df = df.infer_objects()
                 self.obj._mgr = df._mgr
             else:
-                self.obj._mgr = self.obj._append(value)._mgr
+                self.obj._mgr = self.obj._append_internal(value)._mgr
 
     def _ensure_iterable_column_indexer(self, column_indexer):
         """
@@ -2585,6 +2585,12 @@ class _AtIndexer(_ScalarAccessIndexer):
         return super().__getitem__(key)
 
     def __setitem__(self, key, value) -> None:
+        if not PYPY:
+            if sys.getrefcount(self.obj) <= 2:
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
+
         if self.ndim == 2 and not self._axes_are_unique:
             # GH#33041 fall back to .loc
             if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
@@ -2608,6 +2614,15 @@ class _iAtIndexer(_ScalarAccessIndexer):
             if not is_integer(i):
                 raise ValueError("iAt based indexing can only have integer indexers")
         return key
+
+    def __setitem__(self, key, value) -> None:
+        if not PYPY:
+            if sys.getrefcount(self.obj) <= 2:
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
+
+        return super().__setitem__(key, value)
 
 
 def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:

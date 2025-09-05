@@ -11,6 +11,7 @@ from typing import (
     Any,
     Literal,
     NoReturn,
+    Self,
     cast,
     final,
 )
@@ -49,6 +50,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     SparseDtype,
@@ -99,7 +101,6 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeObj,
         QuantileInterpolation,
-        Self,
         Shape,
         npt,
     )
@@ -1138,7 +1139,24 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
-                result[rl] = blk.iget((i, loc))
+                item = blk.iget((i, loc))
+                if (
+                    result.dtype.kind in "iub"
+                    and lib.is_float(item)
+                    and isna(item)
+                    and isinstance(blk.dtype, CategoricalDtype)
+                ):
+                    # GH#58954 caused bc interleaved_dtype is wrong for Categorical
+                    # TODO(GH#38240) this will be unnecessary
+                    # Note that doing this in a try/except would work for the
+                    #  integer case, but not for bool, which will cast the NaN
+                    #  entry to True.
+                    if result.dtype.kind == "b":
+                        new_dtype = object
+                    else:
+                        new_dtype = np.float64
+                    result = result.astype(new_dtype)
+                result[rl] = item
 
         if isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()

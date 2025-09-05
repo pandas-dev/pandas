@@ -25,6 +25,7 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
+    Concatenate,
     TypeVar,
     cast,
     overload,
@@ -51,7 +52,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
-        Concatenate,
         NpDtype,
         P,
         RandomState,
@@ -286,9 +286,9 @@ def index_labels_to_array(
         except TypeError:  # non-iterable
             labels = [labels]
 
-    labels = asarray_tuplesafe(labels, dtype=dtype)
+    rlabels = asarray_tuplesafe(labels, dtype=dtype)
 
-    return labels
+    return rlabels
 
 
 def maybe_make_list(obj):

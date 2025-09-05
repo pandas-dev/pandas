@@ -2,9 +2,12 @@ from datetime import (
     datetime,
     timedelta,
 )
+from pathlib import Path
 
 import numpy as np
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     NA,
@@ -803,7 +806,7 @@ def test_decode_with_dtype_none():
 def test_reversed_logical_ops(any_string_dtype):
     # GH#60234
     dtype = any_string_dtype
-    warn = None if dtype == object else FutureWarning
+    warn = None if dtype == object else Pandas4Warning
     left = Series([True, False, False, True])
     right = Series(["", "", "b", "c"], dtype=dtype)
 
@@ -821,4 +824,25 @@ def test_reversed_logical_ops(any_string_dtype):
     with tm.assert_produces_warning(warn, match=msg):
         result = left ^ right
     expected = left ^ right.astype(bool)
+    tm.assert_series_equal(result, expected)
+
+
+def test_pathlib_path_division(any_string_dtype, request):
+    # GH#61940
+    if any_string_dtype == object:
+        mark = pytest.mark.xfail(
+            reason="with NA present we go through _masked_arith_op which "
+            "raises TypeError bc Path is not recognized by lib.is_scalar."
+        )
+        request.applymarker(mark)
+
+    item = Path("/Users/Irv/")
+    ser = Series(["A", "B", NA], dtype=any_string_dtype)
+
+    result = item / ser
+    expected = Series([item / "A", item / "B", ser.dtype.na_value], dtype=object)
+    tm.assert_series_equal(result, expected)
+
+    result = ser / item
+    expected = Series(["A" / item, "B" / item, ser.dtype.na_value], dtype=object)
     tm.assert_series_equal(result, expected)

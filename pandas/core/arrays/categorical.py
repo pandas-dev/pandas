@@ -7,6 +7,7 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -102,10 +103,8 @@ if TYPE_CHECKING:
         AstypeArg,
         AxisInt,
         Dtype,
-        DtypeObj,
         NpDtype,
         Ordered,
-        Self,
         Shape,
         SortKind,
         npt,
@@ -242,9 +241,7 @@ def contains(cat, key, container) -> bool:
         return any(loc_ in container for loc_ in loc)
 
 
-# error: Definition of "delete/ravel/T/repeat/copy" in base class "NDArrayBacked"
-# is incompatible with definition in base class "ExtensionArray"
-class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):  # type: ignore[misc]
+class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):
     """
     Represent a categorical variable in classic R / S-plus fashion.
 
@@ -529,20 +526,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     ) -> Self:
         return cls(scalars, dtype=dtype, copy=copy)
 
-    @classmethod
-    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
-        if dtype is None:
-            # The _from_scalars strictness doesn't make much sense in this case.
-            raise NotImplementedError
-
-        res = cls._from_sequence(scalars, dtype=dtype)
-
-        # if there are any non-category elements in scalars, these will be
-        #  converted to NAs in res.
-        mask = isna(scalars)
-        if not (mask == res.isna()).all():
-            # Some non-category element in scalars got converted to NA in res.
-            raise ValueError
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        res = super()._cast_pointwise_result(values)
+        cat = type(self)._from_sequence(res, dtype=self.dtype)
+        if (cat.isna() == isna(res)).all():
+            # i.e. the conversion was non-lossy
+            return cat
         return res
 
     @overload
@@ -2951,9 +2940,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     def _delegate_property_get(self, name: str):
         return getattr(self._parent, name)
 
-    # error: Signature of "_delegate_property_set" incompatible with supertype
-    # "PandasDelegate"
-    def _delegate_property_set(self, name: str, new_values) -> None:  # type: ignore[override]
+    def _delegate_property_set(self, name: str, new_values) -> None:
         setattr(self._parent, name, new_values)
 
     @property
