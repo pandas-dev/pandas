@@ -300,29 +300,23 @@ class ArrowStringArrayMixin:
 
     def _str_match(
         self,
-        pat: str | re.Pattern,
+        pat: str,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if isinstance(pat, re.Pattern):
-            # GH#61952
-            pat = pat.pattern
-        if isinstance(pat, str) and not pat.startswith("^"):
+        if not pat.startswith("^"):
             pat = f"^{pat}"
         return self._str_contains(pat, case, flags, na, regex=True)
 
     def _str_fullmatch(
         self,
-        pat: str | re.Pattern,
+        pat: str,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if isinstance(pat, re.Pattern):
-            # GH#61952
-            pat = pat.pattern
-        if isinstance(pat, str) and (not pat.endswith("$") or pat.endswith("\\$")):
+        if not pat.endswith("$") or pat.endswith("\\$"):
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
 
