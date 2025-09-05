@@ -358,9 +358,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         )
 
     @staticmethod
-    def _preprocess_re_pattern(pat: re.Pattern, case: bool):
+    def _preprocess_re_pattern(pat: re.Pattern, case: bool) -> tuple[str, bool, int]:
+        pattern = pat.pattern
         flags = pat.flags
-        pat = pat.pattern
         # flags is not supported by pyarrow, but `case` is -> extract and remove
         if flags & re.IGNORECASE:
             case = False
@@ -368,7 +368,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         # when creating a pattern with re.compile and a string, it automatically
         # gets a UNICODE flag, while pyarrow assumes unicode for strings anyway
         flags = flags & ~re.UNICODE
-        return pat, case, flags
+        return pattern, case, flags
 
     def _str_contains(
         self,
