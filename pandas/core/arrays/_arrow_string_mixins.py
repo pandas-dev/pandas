@@ -311,7 +311,7 @@ class ArrowStringArrayMixin:
 
     def _str_match(
         self,
-        pat: str | re.Pattern,
+        pat: str,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -322,7 +322,7 @@ class ArrowStringArrayMixin:
 
     def _str_fullmatch(
         self,
-        pat: str | re.Pattern,
+        pat: str,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
