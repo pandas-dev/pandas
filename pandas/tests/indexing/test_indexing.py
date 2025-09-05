@@ -46,7 +46,7 @@ class TestFancy:
         df["bar"] = np.zeros(10, dtype=complex)
 
         # invalid
-        msg = "Must have equal len keys and value when setting with an iterable"
+        msg = "Length mismatch when setting Dataframe with an iterable"
         with pytest.raises(ValueError, match=msg):
             df.loc[df.index[2:5], "bar"] = np.array([2.33j, 1.23 + 0.1j, 2.2, 1.0])
 
@@ -67,7 +67,7 @@ class TestFancy:
         df["foo"] = np.zeros(10, dtype=np.float64)
         df["bar"] = np.zeros(10, dtype=complex)
 
-        msg = "Must have equal len keys and value when setting with an iterable"
+        msg = "Length mismatch when setting Dataframe with an iterable"
         with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
@@ -1036,7 +1036,7 @@ def test_scalar_setitem_with_nested_value(value):
     df = DataFrame({"A": [1, 2, 3]})
     msg = "|".join(
         [
-            "Must have equal len keys and value",
+            "Length mismatch when setting Dataframe with an iterable",
             "setting an array element with a sequence",
         ]
     )
@@ -1046,7 +1046,9 @@ def test_scalar_setitem_with_nested_value(value):
     # TODO For object dtype this happens as well, but should we rather preserve
     # the nested data and set as such?
     df = DataFrame({"A": [1, 2, 3], "B": np.array([1, "a", "b"], dtype=object)})
-    with pytest.raises(ValueError, match="Must have equal len keys and value"):
+    with pytest.raises(
+        ValueError, match="Length mismatch when setting Dataframe with an iterable"
+    ):
         df.loc[0, "B"] = value
     # if isinstance(value, np.ndarray):
     #     assert (df.loc[0, "B"] == value).all()
