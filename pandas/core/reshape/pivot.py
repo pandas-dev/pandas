@@ -13,6 +13,7 @@ from pandas._libs import lib
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
+    is_bool_dtype,
     is_list_like,
     is_nested_list_like,
     is_scalar,
@@ -23,6 +24,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
+from pandas.core.arrays.boolean import BooleanDtype
 import pandas.core.common as com
 from pandas.core.groupby import Grouper
 from pandas.core.indexes.api import (
@@ -408,6 +410,17 @@ def __internal_pivot_table(
     # GH 15193 Make sure empty columns are removed if dropna=True
     if isinstance(table, ABCDataFrame) and dropna:
         table = table.dropna(how="all", axis=1)
+
+    # GH#62244: Preserve boolean dtype instead of upcasting to float
+    if isinstance(table, ABCDataFrame):
+        for col in table.columns:
+            val = table[col]
+            if isinstance(val, ABCSeries):
+                # if the column is bool or was coerced to object with booleans
+                if is_bool_dtype(val.dtype) or (
+                    val.dtype == object and val.dropna().isin([True, False]).all()
+                ):
+                    table[col] = val.astype(BooleanDtype())
 
     return table
 

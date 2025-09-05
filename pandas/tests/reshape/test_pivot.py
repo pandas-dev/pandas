@@ -2618,6 +2618,25 @@ class TestPivotTable:
         expected.columns.name = "g2"
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_pivot_table_bool_preserves_boolean_dtype(self):
+        # GH#62244
+        df = DataFrame(
+            {
+                "A": ["foo", "foo", "bar"],
+                "B": ["x", "y", "x"],
+                "val": [True, False, True],
+            }
+        )
+
+        result = pivot_table(df, values="val", index="A", columns="B", aggfunc="any")
+
+        assert all(str(dtype) == "boolean" for dtype in result.dtypes)
+
+        assert result.loc["foo", "x"]
+        assert not result.loc["foo", "y"]
+        assert result.loc["bar", "x"]
+        assert pd.isna(result.loc["bar", "y"])
+
 
 class TestPivot:
     def test_pivot(self):

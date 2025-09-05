@@ -559,10 +559,10 @@ class TestDataFrameReshape:
         )
         rs = df.unstack()
         xp = DataFrame(
-            np.array([[False, np.nan], [np.nan, False]], dtype=object),
+            [[False, pd.NA], [pd.NA, False]],
             index=["a", "b"],
             columns=MultiIndex.from_arrays([["col", "col"], ["c", "l"]]),
-        )
+        ).astype("boolean")
         tm.assert_frame_equal(rs, xp)
 
     @pytest.mark.filterwarnings(
@@ -2734,3 +2734,40 @@ def test_stack_preserves_na(dtype, na_value, test_multiindex):
         )
     expected = Series(1, index=expected_index)
     tm.assert_series_equal(result, expected)
+
+
+class TestUnstackBool:
+    """Regression tests for GH#62244 (unstack bool dtype upcasting)."""
+
+    def test_unstack_bool_dataframe_preserves_boolean_dtype(self):
+        df = DataFrame(
+            {"level_0": ["foo", "toto"], "level_1": ["A", "B"], "val": [True, False]}
+        ).set_index(["level_0", "level_1"])
+
+        result = df.unstack("level_0")
+
+        assert all(str(dtype) in {"bool", "boolean"} for dtype in result.dtypes)
+
+        assert result.loc["A", ("val", "foo")]
+        assert pd.isna(result.loc["A", ("val", "toto")])
+        assert not result.loc["B", ("val", "toto")]
+
+    def test_unstack_bool_series_preserves_boolean_dtype(self):
+        s = Series([True, False], index=MultiIndex.from_product([["x", "y"], ["A"]]))
+        result = s.unstack(0)
+
+        assert all(str(dtype) in {"bool", "boolean"} for dtype in result.dtypes)
+
+    def test_unstack_bool_memory_usage_smaller_than_object(self):
+        df = DataFrame({"a": ["x", "y"], "b": [True, False]}).set_index("a")
+
+        obj_unstack = df.astype("object").unstack("a")
+        bool_unstack = df.astype("boolean").unstack("a")
+
+        obj_mem = obj_unstack.memory_usage(deep=True)
+        bool_mem = bool_unstack.memory_usage(deep=True)
+
+        obj_total = obj_mem.sum() if hasattr(obj_mem, "sum") else int(obj_mem)
+        bool_total = bool_mem.sum() if hasattr(bool_mem, "sum") else int(bool_mem)
+
+        assert bool_total < obj_total

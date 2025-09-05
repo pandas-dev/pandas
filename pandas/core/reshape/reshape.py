@@ -24,6 +24,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
+    is_bool_dtype,
     is_integer,
     needs_i8_conversion,
 )
@@ -241,13 +242,38 @@ class _Unstacker:
         if value_columns is None and values.shape[1] != 1:  # pragma: no cover
             raise ValueError("must pass column labels for multi-column data")
 
-        new_values, _ = self.get_new_values(values, fill_value)
+        new_values, new_mask = self.get_new_values(values, fill_value)
         columns = self.get_new_columns(value_columns)
         index = self.new_index
 
-        result = self.constructor(
-            new_values, index=index, columns=columns, dtype=new_values.dtype, copy=False
-        )
+        # If original values were numpy-bool, we need to respect the missing mask
+        # and produce a nullable boolean column (BooleanDtype).  For other dtypes
+        # fall back to the fast construction path.
+        from pandas.core.dtypes.common import is_bool_dtype
+
+        if is_bool_dtype(values.dtype):
+            # Build an object array from new_values so we can insert pd.NA where masked,
+            # then construct DataFrame and cast to nullable boolean dtype.
+            import pandas as pd
+
+            # Ensure we have an object array to insert pd.NA
+            tmp = new_values.astype(object, copy=True)
+            # new_mask is True where a value exists; missing positions are ~new_mask
+            tmp[~new_mask] = pd.NA
+
+            # Construct DataFrame from the tmp array, then convert to boolean dtype.
+            result = self.constructor(tmp, index=index, columns=columns, copy=False)
+            # Convert the relevant columns to nullable boolean
+            result = result.astype("boolean")
+        else:
+            result = self.constructor(
+                new_values,
+                index=index,
+                columns=columns,
+                dtype=new_values.dtype,
+                copy=False,
+            )
+
         if isinstance(values, np.ndarray):
             base, new_base = values.base, new_values.base
         elif isinstance(values, NDArrayBackedExtensionArray):
@@ -297,6 +323,25 @@ class _Unstacker:
             if not mask_all:
                 new_values[:] = fill_value
         else:
+            # GH#62244: special-case for bool to avoid upcasting to object
+            if is_bool_dtype(dtype):
+                data = np.empty(result_shape, dtype="bool")
+                new_mask = np.zeros(result_shape, dtype=bool)
+
+                libreshape.unstack(
+                    sorted_values.astype("bool", copy=False),
+                    mask.view("u1"),
+                    stride,
+                    length,
+                    width,
+                    data,
+                    new_mask.view("u1"),
+                )
+
+                # Return the raw numpy data + mask — pandas internals will wrap it
+                return data, new_mask
+
+            # default path for non-bool dtypes
             if not mask_all:
                 dtype, fill_value = maybe_promote(dtype, fill_value)
             new_values = np.empty(result_shape, dtype=dtype)
