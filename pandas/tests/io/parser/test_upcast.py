@@ -14,7 +14,6 @@ from pandas.core.arrays import (
     BooleanArray,
     FloatingArray,
     IntegerArray,
-    StringArray,
 )
 
 
@@ -95,7 +94,7 @@ def test_maybe_upcast_object(val, string_storage):
 
         if string_storage == "python":
             exp_val = "c" if val == "c" else NA
-            expected = StringArray(np.array(["a", "b", exp_val], dtype=np.object_))
+            expected = pd.array(["a", "b", exp_val], dtype=pd.StringDtype())
         else:
             exp_val = "c" if val == "c" else None
             expected = ArrowStringArray(pa.array(["a", "b", exp_val]))
