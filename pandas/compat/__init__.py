@@ -19,6 +19,7 @@ from pandas.compat._constants import (
     IS64,
     ISMUSL,
     PY312,
+    PY314,
     PYPY,
     WASM,
 )
@@ -155,6 +156,7 @@ __all__ = [
     "IS64",
     "ISMUSL",
     "PY312",
+    "PY314",
     "PYPY",
     "WASM",
     "is_numpy_dev",
