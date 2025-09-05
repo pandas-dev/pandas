@@ -1,6 +1,6 @@
 .. _whatsnew_232:
 
-What's new in 2.3.2 (August XX, 2025)
+What's new in 2.3.2 (August 21, 2025)
 -------------------------------------
 
 These are the changes in pandas 2.3.2. See :ref:`release` for a full changelog
@@ -25,11 +25,16 @@ Bug fixes
 - Fix :meth:`~DataFrame.to_json` with ``orient="table"`` to correctly use the
   "string" type in the JSON Table Schema for :class:`StringDtype` columns
   (:issue:`61889`)
-- Fixed ``~Series.str.match``, ``~Series.str.fullmatch`` and ``~Series.str.contains``
-  with compiled regex for the Arrow-backed string dtype (:issue:`61964`, :issue:`61942`)
+- Boolean operations (``|``, ``&``, ``^``) with bool-dtype objects on the left and :class:`StringDtype` objects on the right now cast the string to bool, with a deprecation warning (:issue:`60234`)
+- Fixed :meth:`~Series.str.match`, :meth:`~Series.str.fullmatch` and :meth:`~Series.str.contains`
+  string methods with compiled regex for the Arrow-backed string dtype (:issue:`61964`, :issue:`61942`)
+- Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` inconsistently
+  replacing matching values when missing values are present for string dtypes (:issue:`56599`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_232.contributors:
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v2.3.1..v2.3.2|HEAD

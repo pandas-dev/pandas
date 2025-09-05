@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import operator
+from pathlib import Path
 import re
 import textwrap
 from typing import (
@@ -829,10 +830,45 @@ class ArrowExtensionArray(
         # integer types. Otherwise these are boolean ops.
         if pa.types.is_integer(self._pa_array.type):
             return self._evaluate_op_method(other, op, ARROW_BIT_WISE_FUNCS)
+        elif (
+            (
+                pa.types.is_string(self._pa_array.type)
+                or pa.types.is_large_string(self._pa_array.type)
+            )
+            and op in (roperator.ror_, roperator.rand_, roperator.rxor)
+            and isinstance(other, np.ndarray)
+            and other.dtype == bool
+        ):
+            # GH#60234 backward compatibility for the move to StringDtype in 3.0
+            op_name = op.__name__[1:].strip("_")
+            warnings.warn(
+                f"'{op_name}' operations between boolean dtype and {self.dtype} are "
+                "deprecated and will raise in a future version. Explicitly "
+                "cast the strings to a boolean dtype before operating instead.",
+                DeprecationWarning,
+                stacklevel=find_stack_level(),
+            )
+            return op(other, self.astype(bool))
         else:
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
-    def _arith_method(self, other, op):
+    def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
+        if (
+            op in [operator.truediv, roperator.rtruediv]
+            and isinstance(other, Path)
+            and (
+                pa.types.is_string(self._pa_array.type)
+                or pa.types.is_large_string(self._pa_array.type)
+            )
+        ):
+            # GH#61940
+            return np.array(
+                [
+                    op(x, other) if isinstance(x, str) else self.dtype.na_value
+                    for x in self
+                ],
+                dtype=object,
+            )
         return self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
 
     def equals(self, other) -> bool:
