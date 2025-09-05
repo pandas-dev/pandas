@@ -689,6 +689,10 @@ class Cumulative:
             null_vals = vals.astype(float, copy=True)
             null_vals[::2, :] = np.nan
             null_vals[::3, :] = np.nan
+            if dtype in ["Int64", "Float64"]:
+                null_vals = null_vals.astype(object)
+                null_vals[::2, :] = NA
+                null_vals[::3, :] = NA
             df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
             df["key"] = keys
             self.df = df

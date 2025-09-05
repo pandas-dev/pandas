@@ -13,6 +13,8 @@ from typing import (
 )
 import warnings
 
+from pandas._config import option_context
+
 from pandas._libs import lib
 from pandas._libs.json import ujson_loads
 from pandas._libs.tslibs import timezones
@@ -384,7 +386,8 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
             'table="orient" can not yet read ISO-formatted Timedelta data'
         )
 
-    df = df.astype(dtypes)
+    with option_context("mode.nan_is_na", True):
+        df = df.astype(dtypes)
 
     if "primaryKey" in table["schema"]:
         df = df.set_index(table["schema"]["primaryKey"])
