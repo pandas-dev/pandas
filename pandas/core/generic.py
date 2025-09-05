@@ -3876,7 +3876,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             However, the python engine may be more feature complete than the
             pyarrow engine.
 
-            .. versionadded:: 2.1.0
+            .. versionadded:: 3.0.0
 
         Returns
         -------
