@@ -163,6 +163,7 @@ Other enhancements
 - :class:`pandas.api.typing.SASReader` is available for typing the output of :func:`read_sas` (:issue:`55689`)
 - Added :meth:`.Styler.to_typst` to write Styler objects to file, buffer or string in Typst format (:issue:`57617`)
 - Added missing :meth:`pandas.Series.info` to API reference (:issue:`60926`)
+- Pivoting or unstacking boolean columns (e.g., with :meth:`DataFrame.pivot_table`, :meth:`DataFrame.unstack`) now preserves them as nullable BooleanDtype, with missing values as ``pd.NA`` for improved memory usage and correctness. (:issue:`62244`)
 - :class:`pandas.api.typing.NoDefault` is available for typing ``no_default``
 - :func:`DataFrame.to_excel` now raises an ``UserWarning`` when the character count in a cell exceeds Excel's limitation of 32767 characters (:issue:`56954`)
 - :func:`pandas.merge` now validates the ``how`` parameter input (merge type) (:issue:`59435`)
@@ -292,6 +293,7 @@ These improvements also fixed certain bugs in groupby:
 - :meth:`.DataFrameGroupBy.nunique` would fail when there are multiple groupings, unobserved groups, and ``as_index=False`` (:issue:`52848`)
 - :meth:`.DataFrameGroupBy.sum` would have incorrect values when there are multiple groupings, unobserved groups, and non-numeric data (:issue:`43891`)
 - :meth:`.DataFrameGroupBy.value_counts` would produce incorrect results when used with some categorical and some non-categorical groupings and ``observed=False`` (:issue:`56016`)
+- Fixed boolean columns being upcast to float or object in :meth:`DataFrame.pivot_table` and :meth:`DataFrame.unstack`; these now remain as nullable BooleanDtype with missing values as ``pd.NA``. (:issue:`62244`)
 
 .. _whatsnew_300.notable_bug_fixes.notable_bug_fix2:
 
