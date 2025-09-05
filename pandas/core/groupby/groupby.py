@@ -5639,7 +5639,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if using_string_dtype() and method == "sum":
                 if isinstance(output, Series) and isinstance(output.dtype, StringDtype):
                     d["fill_value"] = ""
-                    return output.reindex(**d)  # type: ignore[return-value]
+                    return output.reindex(**d)  # type: ignore[return-value, arg-type]
                 elif isinstance(output, DataFrame) and any(
                     isinstance(dtype, StringDtype) for dtype in output.dtypes
                 ):
