@@ -22,7 +22,8 @@ become the default string dtype in pandas 3.0. See
 
 Bug fixes
 ^^^^^^^^^
--
+- Fix regression in ``~Series.str.contains``, ``~Series.str.match`` and ``~Series.str.fullmatch``
+  with a compiled regex and custom flags (:issue:`62240`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_233.contributors:

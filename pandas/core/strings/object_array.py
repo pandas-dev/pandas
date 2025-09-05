@@ -252,8 +252,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     ):
         if not case:
             flags |= re.IGNORECASE
-        if isinstance(pat, re.Pattern):
-            pat = pat.pattern
+
         regex = re.compile(pat, flags=flags)
 
         f = lambda x: regex.match(x) is not None
@@ -268,8 +267,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     ):
         if not case:
             flags |= re.IGNORECASE
-        if isinstance(pat, re.Pattern):
-            pat = pat.pattern
+
         regex = re.compile(pat, flags=flags)
 
         f = lambda x: regex.fullmatch(x) is not None
