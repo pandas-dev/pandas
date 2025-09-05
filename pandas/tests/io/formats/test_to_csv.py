@@ -146,7 +146,8 @@ $1$,$2$
             with pytest.raises(Error, match="escapechar"):
                 df.to_csv(path, doublequote=False, engine=engine)  # no escapechar set
 
-    def test_to_csv_escapechar(self, engine=engine):
+    def test_to_csv_escapechar(self, engine):
+        raises_if_pyarrow = check_raises_if_pyarrow("escapechar", engine)
         df = DataFrame({"col": ['a"a', '"bb"']})
         expected = """\
 "","col"
@@ -154,12 +155,13 @@ $1$,$2$
 "1","\\"bb\\""
 """
 
-        with tm.ensure_clean("test.csv") as path:  # QUOTE_ALL
-            df.to_csv(
-                path, quoting=1, doublequote=False, escapechar="\\", engine=engine
-            )
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected
+        with raises_if_pyarrow:
+            with tm.ensure_clean("test.csv") as path:  # QUOTE_ALL
+                df.to_csv(
+                    path, quoting=1, doublequote=False, escapechar="\\", engine=engine
+                )
+                with open(path, encoding="utf-8") as f:
+                    assert f.read() == expected
 
         df = DataFrame({"col": ["a,a", ",bb,"]})
         expected = """\
@@ -168,10 +170,11 @@ $1$,$2$
 1,\\,bb\\,
 """
 
-        with tm.ensure_clean("test.csv") as path:
-            df.to_csv(path, quoting=3, escapechar="\\", engine=engine)  # QUOTE_NONE
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected
+        with raises_if_pyarrow:
+            with tm.ensure_clean("test.csv") as path:
+                df.to_csv(path, quoting=3, escapechar="\\", engine=engine)  # QUOTE_NONE
+                with open(path, encoding="utf-8") as f:
+                    assert f.read() == expected
 
     @xfail_pyarrow
     def test_csv_to_string(self, engine):

@@ -291,6 +291,7 @@ class CSVFormatter:
             (self.lineterminator, os.linesep, "lineterminator"),
             (self.encoding, None, "encoding"),
             (self.errors, "strict", "errors"),
+            (self.escapechar, None, "escapechar"),
         ]
 
         for opt_val, default, option in unsupported_options:
