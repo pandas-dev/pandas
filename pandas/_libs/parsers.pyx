@@ -2129,12 +2129,13 @@ def sanitize_objects(ndarray[object] values, set na_values) -> int:
 
     for i in range(n):
         val = values[i]
+        memo_key = (val, type(val))
         if val in na_values:
             values[i] = onan
             na_count += 1
-        elif val in memo:
-            values[i] = memo[val]
+        elif memo_key in memo:
+            values[i] = memo[memo_key]
         else:
-            memo[val] = val
+            memo[memo_key] = val
 
     return na_count
