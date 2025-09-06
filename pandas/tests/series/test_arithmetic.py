@@ -763,7 +763,8 @@ class TestTimeSeriesArithmetic:
 
         ts_slice = ts[5:]
         ts2 = ts_slice.copy()
-        ts2.index = [x.date() for x in ts2.index]
+        # Explicitly convert date objects to Timestamps for alignment
+        ts2.index = [pd.Timestamp(x.date()) for x in ts2.index]
 
         result = ts + ts2
         result2 = ts2 + ts

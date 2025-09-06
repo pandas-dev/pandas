@@ -517,7 +517,7 @@ class TestGetIndexer:
         rng = date_range("1/1/2000", periods=20)
 
         result = rng.get_indexer(rng.map(lambda x: x.date()))
-        expected = rng.get_indexer(rng)
+        expected = np.full(len(rng), -1, dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer(self):
@@ -562,17 +562,22 @@ class TestGetIndexer:
             idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")
 
     @pytest.mark.parametrize(
-        "target",
+        "target, expected",
         [
-            [date(2020, 1, 1), Timestamp("2020-01-02")],
-            [Timestamp("2020-01-01"), date(2020, 1, 2)],
+            (
+                [date(2020, 1, 1), Timestamp("2020-01-02")],
+                np.array([-1, 1], dtype=np.intp),
+            ),
+            (
+                [Timestamp("2020-01-01"), Timestamp(date(2020, 1, 2))],
+                np.array([0, 1], dtype=np.intp),
+            ),
         ],
     )
-    def test_get_indexer_mixed_dtypes(self, target):
+    def test_get_indexer_mixed_dtypes(self, target, expected):
         # https://github.com/pandas-dev/pandas/issues/33741
         values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
         result = values.get_indexer(target)
-        expected = np.array([0, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
