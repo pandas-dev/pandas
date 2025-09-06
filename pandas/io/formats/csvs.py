@@ -348,7 +348,7 @@ class CSVFormatter:
                 # in function "writer"
                 # error: Argument "quoting" to "writer" has incompatible type "int";
                 # expected "Literal[0, 1, 2, 3]"
-                handle,  # pyright: ignore[reportGeneralTypeIssues]
+                handle,  # type: ignore[arg-type]
                 lineterminator=self.lineterminator,
                 delimiter=self.sep,
                 quoting=self.quoting,  # type: ignore[arg-type]
