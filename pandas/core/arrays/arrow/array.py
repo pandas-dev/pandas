@@ -1614,6 +1614,10 @@ class ArrowExtensionArray(
         if is_numeric_dtype(self.dtype):
             return map_array(self.to_numpy(), mapper, na_action=na_action)
         else:
+            # For "mM" cases, the super() method passes `self` without the
+            #  to_numpy call, which inside map_array casts to ndarray[object].
+            #  Without the to_numpy() call, NA is preserved instead of changed
+            #  to None.
             return super().map(mapper, na_action)
 
     @doc(ExtensionArray.duplicated)
