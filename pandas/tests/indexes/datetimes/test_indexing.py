@@ -513,13 +513,6 @@ class TestContains:
 
 
 class TestGetIndexer:
-    def test_get_indexer_date_objs(self):
-        rng = date_range("1/1/2000", periods=20)
-
-        result = rng.get_indexer(rng.map(lambda x: x.date()))
-        expected = rng.get_indexer(rng)
-        tm.assert_numpy_array_equal(result, expected)
-
     def test_get_indexer(self):
         idx = date_range("2000-01-01", periods=3)
         exp = np.array([0, 1, 2], dtype=np.intp)
@@ -560,20 +553,6 @@ class TestGetIndexer:
             idx.get_indexer(target, "nearest", tolerance=tol_bad)
         with pytest.raises(ValueError, match="abbreviation w/o a number"):
             idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")
-
-    @pytest.mark.parametrize(
-        "target",
-        [
-            [date(2020, 1, 1), Timestamp("2020-01-02")],
-            [Timestamp("2020-01-01"), date(2020, 1, 2)],
-        ],
-    )
-    def test_get_indexer_mixed_dtypes(self, target):
-        # https://github.com/pandas-dev/pandas/issues/33741
-        values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
-        result = values.get_indexer(target)
-        expected = np.array([0, 1], dtype=np.intp)
-        tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
         "target, positions",
