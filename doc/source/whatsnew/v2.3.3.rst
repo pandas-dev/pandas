@@ -24,6 +24,7 @@ Bug fixes
 ^^^^^^^^^
 - Fix regression in ``~Series.str.contains``, ``~Series.str.match`` and ``~Series.str.fullmatch``
   with a compiled regex and custom flags (:issue:`62240`)
+- Fixed bug in :func:`pandas.json_normalize` raising ``TypeError`` when non‑string elements were used in ``meta`` with ``record_path``; ``meta`` path elements are now coerced to strings when forming column labels (:issue:`62264`).
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_233.contributors:
