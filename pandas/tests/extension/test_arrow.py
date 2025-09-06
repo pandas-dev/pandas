@@ -65,6 +65,7 @@ from pandas.api.types import (
     is_string_dtype,
     is_unsigned_integer_dtype,
 )
+from pandas.core.algorithms import map_array
 from pandas.tests.extension import base
 
 pa = pytest.importorskip("pyarrow")
@@ -299,8 +300,9 @@ class TestArrowArray(base.ExtensionTests):
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
         if data_missing.dtype.kind in "mM":
-            result = data_missing.map(lambda x: x, na_action=na_action)
-            expected = data_missing.to_numpy(dtype=object)
+            mapper = lambda x: x
+            result = data_missing.map(mapper, na_action=na_action)
+            expected = map_array(data_missing.to_numpy(), mapper, na_action=na_action)
             tm.assert_numpy_array_equal(result, expected)
         else:
             result = data_missing.map(lambda x: x, na_action=na_action)
@@ -3587,3 +3589,16 @@ def test_timestamp_dtype_matches_to_datetime():
     expected = pd.Series([ts], dtype=dtype1).convert_dtypes(dtype_backend="pyarrow")
 
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["timestamp[ns][pyarrow]", "datetime64[ns]"])
+def test_map_timestamp(dtype):
+    # GH#61231
+    date_range = pd.date_range("2018-01-01", "2018-01-07")
+    df = pd.DataFrame({"a": date_range}).astype({"a": dtype})
+    date2pos = {date: i for i, date in enumerate(df["a"])}
+
+    result = df["a"].map(date2pos)
+    expected = pd.Series(range(len(date_range)), name="a")
+
+    tm.assert_series_equal(result, expected, check_dtype=False)
