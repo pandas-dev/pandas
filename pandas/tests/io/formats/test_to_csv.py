@@ -512,12 +512,9 @@ $1$,$2$
         self, ind, expected, frame_or_series, engine
     ):
         # see gh-19589
-        raises_if_pyarrow = check_raises_if_pyarrow("lineterminator", engine)
         obj = frame_or_series(pd.Series([1], ind, name="data"))
-
-        with raises_if_pyarrow:
-            result = obj.to_csv(lineterminator="\n", header=True, engine=engine)
-            assert result == expected
+        result = obj.to_csv(lineterminator="\n", header=True, engine=engine)
+        assert result == expected
 
     def test_to_csv_string_array_ascii(self, engine):
         # GH 10813
