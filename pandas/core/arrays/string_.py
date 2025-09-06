@@ -1029,10 +1029,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return self._wrap_reduction_result(axis, result)
 
     def value_counts(self, dropna: bool = True) -> Series:
-        from pandas.core.algorithms import value_counts_internal as value_counts
-
-        result = value_counts(self._ndarray, sort=False, dropna=dropna)
-        result.index = result.index.astype(self.dtype)
+        result = super().value_counts(dropna=dropna)
 
         if self.dtype.na_value is libmissing.NA:
             result = result.astype("Int64")

@@ -99,7 +99,10 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import Index
+    from pandas import (
+        Index,
+        Series,
+    )
 
 _extension_array_shared_docs: dict[str, str] = {}
 
@@ -1672,6 +1675,13 @@ class ExtensionArray:
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
+
+    def value_counts(self, dropna: bool = True) -> Series:
+        from pandas.core.algorithms import value_counts_internal as value_counts
+
+        result = value_counts(self.to_numpy(copy=False), sort=False, dropna=dropna)
+        result.index = result.index.astype(self.dtype)
+        return result
 
     # ------------------------------------------------------------------------
     # Indexing methods

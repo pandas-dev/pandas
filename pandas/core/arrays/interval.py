@@ -75,7 +75,6 @@ from pandas.core.algorithms import (
     isin,
     take,
     unique,
-    value_counts_internal as value_counts,
 )
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import (
@@ -105,7 +104,6 @@ if TYPE_CHECKING:
 
     from pandas import (
         Index,
-        Series,
     )
 
 
@@ -1196,28 +1194,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             return self._validate_listlike(value)
 
         return value_left, value_right
-
-    def value_counts(self, dropna: bool = True) -> Series:
-        """
-        Returns a Series containing counts of each interval.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            Don't include counts of NaN.
-
-        Returns
-        -------
-        counts : Series
-
-        See Also
-        --------
-        Series.value_counts
-        """
-        # TODO: implement this is a non-naive way!
-        result = value_counts(np.asarray(self), dropna=dropna)
-        result.index = result.index.astype(self.dtype)
-        return result
 
     # ---------------------------------------------------------------------
     # Rendering Methods
