@@ -1129,6 +1129,9 @@ class _MergeOperation:
         return result
 
     def get_result(self) -> DataFrame:
+        """
+        Execute the merge.
+        """
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
@@ -1148,7 +1151,7 @@ class _MergeOperation:
         self._maybe_restore_index_levels(result)
 
         return result.__finalize__(
-            types.SimpleNamespace(input_objs=[self.left, self.right]), method="merge"
+            self.left, method="merge"
         )
 
     @final
@@ -1167,6 +1170,12 @@ class _MergeOperation:
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
     ) -> tuple[DataFrame, DataFrame]:
+        """
+        Add one indicator column to each of the left and right inputs to a merge operation.
+
+        These columns are used to produce another column in the output of the merge, indicating
+        for each row of the output whether it was produced using the left, right or both inputs.
+        """
         columns = left.columns.union(right.columns)
 
         for i in ["_left_indicator", "_right_indicator"]:
@@ -1193,6 +1202,12 @@ class _MergeOperation:
 
     @final
     def _indicator_post_merge(self, result: DataFrame) -> DataFrame:
+        """
+        Add an indicator column to the merge result.
+
+        This column indicates for each row of the output whether it was produced using the left,
+        right or both inputs.
+        """
         result["_left_indicator"] = result["_left_indicator"].fillna(0)
         result["_right_indicator"] = result["_right_indicator"].fillna(0)
 
