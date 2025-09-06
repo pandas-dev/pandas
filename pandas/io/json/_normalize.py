@@ -524,7 +524,16 @@ def json_normalize(
             # TODO: handle record value which are lists, at least error
             #       reasonably
             data = nested_to_record(data, sep=sep, max_level=max_level)
-        return DataFrame(data, index=index)
+        
+        result = DataFrame(data, index=index)
+        
+        # Apply record_prefix if provided, even when record_path is None
+        if record_prefix is not None:
+            # Use nested_to_record with prefix to properly handle separators
+            prefixed_data = nested_to_record(data, prefix=record_prefix, sep=sep, level=1)
+            result = DataFrame(prefixed_data, index=index)
+        
+        return result
     elif not isinstance(record_path, list):
         record_path = [record_path]
 

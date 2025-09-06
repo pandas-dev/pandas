@@ -569,6 +569,16 @@ class TestJSONNormalize:
         result = json_normalize(series, "counties")
         tm.assert_index_equal(result.index, idx.repeat([3, 2]))
 
+    def test_record_prefix_without_record_path(self):
+        # GH 62205: record_prefix should be applied even when record_path is None
+        data = Series([{"k": f"{i}", "m": "q"} for i in range(5)])
+        result = json_normalize(data, record_prefix="T")
+        expected = DataFrame({
+            "T.k": [f"{i}" for i in range(5)],
+            "T.m": ["q"] * 5
+        })
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
