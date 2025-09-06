@@ -6,6 +6,7 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
     pre-commit run pandas-errors-documented --all-files
 """
+
 from __future__ import annotations
 
 import argparse
