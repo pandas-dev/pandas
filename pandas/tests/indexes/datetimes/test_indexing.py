@@ -10,6 +10,7 @@ import pytest
 
 from pandas._libs import index as libindex
 from pandas.compat.numpy import np_long
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -513,6 +514,26 @@ class TestContains:
 
 
 class TestGetIndexer:
+    @td.skip_if_no("pyarrow")
+    @pytest.mark.parametrize("as_td", [True, False])
+    def test_get_indexer_pyarrow(self, as_td):
+        # GH#62277
+        index = date_range("2016-01-01", periods=3)
+        target = index.astype("timestamp[ns][pyarrow]")[::-1]
+        if as_td:
+            # Test duration dtypes while we're here
+            index = index - index[0]
+            target = target - target[-1]
+
+        result = index.get_indexer(target)
+
+        expected = np.array([2, 1, 0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # Reversed op should work the same
+        result2 = target.get_indexer(index)
+        tm.assert_numpy_array_equal(result2, expected)
+
     def test_get_indexer_date_objs(self):
         rng = date_range("1/1/2000", periods=20)
 
