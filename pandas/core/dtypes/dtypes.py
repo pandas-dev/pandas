@@ -1642,7 +1642,10 @@ class BaseMaskedDtype(ExtensionDtype):
     @cache_readonly
     def itemsize(self) -> int:
         """Return the number of bytes in this dtype"""
+        if hasattr(self.pyarrow_dtype, "bit_width"):
+            return self.pyarrow_dtype.bit_width // 8
         return self.numpy_dtype.itemsize
+
 
     def construct_array_type(self) -> type_t[BaseMaskedArray]:
         """
@@ -2307,7 +2310,10 @@ class ArrowDtype(StorageExtensionDtype):
     @cache_readonly
     def itemsize(self) -> int:
         """Return the number of bytes in this dtype"""
+        if hasattr(self.pyarrow_dtype, "bit_width"):
+            return self.pyarrow_dtype.bit_width // 8
         return self.numpy_dtype.itemsize
+
 
     def construct_array_type(self) -> type_t[ArrowExtensionArray]:
         """
