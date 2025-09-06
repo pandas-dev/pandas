@@ -38,6 +38,7 @@ from pandas.util._decorators import (
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -157,6 +158,8 @@ class SeriesGroupBy(GroupBy[Series]):
     def _get_data_to_aggregate(
         self, *, numeric_only: bool = False, name: str | None = None
     ) -> SingleBlockManager:
+        validate_bool_kwarg(numeric_only, "numeric_only")
+
         ser = self._obj_with_exclusions
         single = ser._mgr
         if numeric_only and not is_numeric_dtype(ser.dtype):
@@ -683,6 +686,7 @@ class SeriesGroupBy(GroupBy[Series]):
         )
 
     def _cython_transform(self, how: str, numeric_only: bool = False, **kwargs):
+        validate_bool_kwarg(numeric_only, "numeric_only")
         obj = self._obj_with_exclusions
 
         try:
@@ -2180,6 +2184,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         # We have multi-block tests
         #  e.g. test_rank_min_int, test_cython_transform_frame
         #  test_transform_numeric_ret
+        validate_bool_kwarg(numeric_only, "numeric_only")
+
         mgr: BlockManager = self._get_data_to_aggregate(
             numeric_only=numeric_only, name=how
         )
@@ -2500,6 +2506,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _get_data_to_aggregate(
         self, *, numeric_only: bool = False, name: str | None = None
     ) -> BlockManager:
+        validate_bool_kwarg(numeric_only, "numeric_only")
         obj = self._obj_with_exclusions
         mgr = obj._mgr
         if numeric_only:
