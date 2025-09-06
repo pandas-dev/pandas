@@ -292,6 +292,7 @@ def json_normalize(
         assumed to be an array of records.
     meta : list of paths (str or list of str), default None
         Fields to use as metadata for each record in resulting table.
+        Path elements are converted to strings before joining into column labels.
     meta_prefix : str, default None
         If True, prefix records with dotted path, e.g. foo.bar.field if
         meta is ['foo', 'bar'].
@@ -321,6 +322,12 @@ def json_normalize(
     --------
     DataFrame : Two-dimensional, size-mutable, potentially heterogeneous tabular data.
     Series : One-dimensional ndarray with axis labels (including time series).
+
+    Notes
+    -----
+    Column labels are constructed by joining path elements,
+    with sep and are always strings after normalization;
+    non-string elements in meta paths are coerced to strings.
 
     Examples
     --------
