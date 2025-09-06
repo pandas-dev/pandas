@@ -63,3 +63,14 @@ class TestDatetimeIndexArithmetic:
         result = (dti + dti.freq)[:-1]
         expected = dti[1:]
         tm.assert_index_equal(result, expected)
+
+    def test_sub_timestamp_preserves_day_freq(self):
+        # GH#62094
+        dti = date_range("2021-01-01", periods=5, freq="D")
+        ts = Timestamp("2020-01-01")
+
+        result = dti - ts
+
+        # The one crucial assertion:
+        assert isinstance(result, TimedeltaIndex)
+        assert result.freq == dti.freq
