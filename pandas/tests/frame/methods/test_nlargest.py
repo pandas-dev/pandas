@@ -10,7 +10,6 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -158,9 +157,7 @@ class TestNLargestNSmallest:
 
         result = df.nlargest(n, order)
         expected = df.sort_values(order, ascending=False, kind="stable").head(n)
-        if Version(np.__version__) >= Version("1.25") and (
-            (order == ["a"] and n in (1, 2, 3, 4)) or ((order == ["a", "b"]) and n == 5)
-        ):
+        if (order == ["a"] and n in (1, 2, 3, 4)) or ((order == ["a", "b"]) and n == 5):
             request.applymarker(
                 pytest.mark.xfail(
                     reason=(

@@ -11,10 +11,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas.compat import HAS_PYARROW
-from pandas.compat.pyarrow import (
-    pa_version_under12p1,
-    pa_version_under19p0,
-)
+from pandas.compat.pyarrow import pa_version_under19p0
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -601,8 +598,6 @@ def test_arrow_array(dtype):
     data = pd.array(["a", "b", "c"], dtype=dtype)
     arr = pa.array(data)
     expected = pa.array(list(data), type=pa.large_string(), from_pandas=True)
-    if dtype.storage == "pyarrow" and pa_version_under12p1:
-        expected = pa.chunked_array(expected)
     if dtype.storage == "python":
         expected = pc.cast(expected, pa.string())
     assert arr.equals(expected)

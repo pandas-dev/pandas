@@ -19,7 +19,6 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.util.version import Version
 
 
 def tests_value_counts_index_names_category_column():
@@ -237,16 +236,15 @@ def test_bad_subset(education_df):
 
 def test_basic(education_df, request):
     # gh43564
-    if Version(np.__version__) >= Version("1.25"):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason=(
-                    "pandas default unstable sorting of duplicates"
-                    "issue with numpy>=1.25 with AVX instructions"
-                ),
-                strict=False,
-            )
+    request.applymarker(
+        pytest.mark.xfail(
+            reason=(
+                "pandas default unstable sorting of duplicates"
+                "issue with numpy>=1.25 with AVX instructions"
+            ),
+            strict=False,
         )
+    )
     result = education_df.groupby("country")[["gender", "education"]].value_counts(
         normalize=True
     )
@@ -302,7 +300,7 @@ def test_against_frame_and_seriesgroupby(
     # - 3-way compare against:
     #   - apply with :meth:`~DataFrame.value_counts`
     #   - `~SeriesGroupBy.value_counts`
-    if Version(np.__version__) >= Version("1.25") and frame and sort and normalize:
+    if frame and sort and normalize:
         request.applymarker(
             pytest.mark.xfail(
                 reason=(
@@ -480,7 +478,7 @@ def test_data_frame_value_counts(
 def test_dropna_combinations(
     group_dropna, count_dropna, expected_rows, expected_values, request
 ):
-    if Version(np.__version__) >= Version("1.25") and not group_dropna:
+    if not group_dropna:
         request.applymarker(
             pytest.mark.xfail(
                 reason=(
@@ -587,16 +585,15 @@ def test_categorical_single_grouper_with_only_observed_categories(
 ):
     # Test single categorical grouper with only observed grouping categories
     # when non-groupers are also categorical
-    if Version(np.__version__) >= Version("1.25"):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason=(
-                    "pandas default unstable sorting of duplicates"
-                    "issue with numpy>=1.25 with AVX instructions"
-                ),
-                strict=False,
-            )
+    request.applymarker(
+        pytest.mark.xfail(
+            reason=(
+                "pandas default unstable sorting of duplicates"
+                "issue with numpy>=1.25 with AVX instructions"
+            ),
+            strict=False,
         )
+    )
 
     gp = education_df.astype("category").groupby(
         "country", as_index=as_index, observed=observed
@@ -695,16 +692,15 @@ def test_categorical_single_grouper_observed_true(
 ):
     # GH#46357
 
-    if Version(np.__version__) >= Version("1.25"):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason=(
-                    "pandas default unstable sorting of duplicates"
-                    "issue with numpy>=1.25 with AVX instructions"
-                ),
-                strict=False,
-            )
+    request.applymarker(
+        pytest.mark.xfail(
+            reason=(
+                "pandas default unstable sorting of duplicates"
+                "issue with numpy>=1.25 with AVX instructions"
+            ),
+            strict=False,
         )
+    )
 
     expected_index = [
         ("FR", "male", "low"),
@@ -775,16 +771,15 @@ def test_categorical_single_grouper_observed_false(
 ):
     # GH#46357
 
-    if Version(np.__version__) >= Version("1.25"):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason=(
-                    "pandas default unstable sorting of duplicates"
-                    "issue with numpy>=1.25 with AVX instructions"
-                ),
-                strict=False,
-            )
+    request.applymarker(
+        pytest.mark.xfail(
+            reason=(
+                "pandas default unstable sorting of duplicates"
+                "issue with numpy>=1.25 with AVX instructions"
+            ),
+            strict=False,
         )
+    )
 
     expected_index = [
         ("FR", "male", "low"),
@@ -926,16 +921,15 @@ def test_categorical_non_groupers(
     # GH#46357 Test non-observed categories are included in the result,
     # regardless of `observed`
 
-    if Version(np.__version__) >= Version("1.25"):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason=(
-                    "pandas default unstable sorting of duplicates"
-                    "issue with numpy>=1.25 with AVX instructions"
-                ),
-                strict=False,
-            )
+    request.applymarker(
+        pytest.mark.xfail(
+            reason=(
+                "pandas default unstable sorting of duplicates"
+                "issue with numpy>=1.25 with AVX instructions"
+            ),
+            strict=False,
         )
+    )
 
     education_df = education_df.copy()
     education_df["gender"] = education_df["gender"].astype("category")

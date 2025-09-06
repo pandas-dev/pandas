@@ -20,7 +20,7 @@ dependencies:
   - numpy
 
   # optional dependencies
-  - hypothesis>=6.84.0
+  - hypothesis>=6.116.0
 
   - pip:
     # No free-threaded coveragepy (with the C-extension) on conda-forge yet
