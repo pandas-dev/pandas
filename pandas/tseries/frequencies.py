@@ -27,7 +27,7 @@ from pandas._libs.tslibs.fields import (
 from pandas._libs.tslibs.offsets import (
     DateOffset,
     Day,
-    to_offset,
+    to_offset as _to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
 from pandas.util._decorators import cache_readonly
@@ -53,6 +53,12 @@ if TYPE_CHECKING:
         TimedeltaIndex,
     )
     from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+
+_DEPRECATED_FREQ_ALIASES = {
+    "H": "h",
+    "T": "min",
+    "S": "s",
+}
 # --------------------------------------------------------------------
 # Offset related functions
 
@@ -598,6 +604,21 @@ def _is_monthly(rule: str) -> bool:
 def _is_weekly(rule: str) -> bool:
     rule = rule.upper()
     return rule == "W" or rule.startswith("W-")
+
+
+def to_offset(freq):
+    try:
+        return _to_offset(freq)
+    except Exception as err:
+        if isinstance(freq, str) and freq in _DEPRECATED_FREQ_ALIASES:
+            suggestion = _DEPRECATED_FREQ_ALIASES[freq]
+            raise ValueError(
+                f"Invalid frequency '{freq}'. This alias was deprecated and removed. "
+                f"Did you mean '{suggestion}'?"
+            ) from None
+        raise ValueError(
+            f"Invalid frequency: {freq}, failed to parse with error message: {err}"
+        ) from None
 
 
 __all__ = [
