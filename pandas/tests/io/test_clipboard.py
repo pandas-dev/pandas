@@ -350,11 +350,7 @@ class TestClipboard:
         # GH#50502
         if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
-            if engine == "c" and string_storage == "pyarrow":
-                # TODO avoid this exception?
-                string_dtype = pd.ArrowDtype(pa.large_string())
-            else:
-                string_dtype = pd.ArrowDtype(pa.string())
+            string_dtype = pd.ArrowDtype(pa.string())
         else:
             string_dtype = pd.StringDtype(string_storage)
 

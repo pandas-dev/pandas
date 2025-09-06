@@ -128,10 +128,10 @@ class StringDtype(StorageExtensionDtype):
     Examples
     --------
     >>> pd.StringDtype()
-    <StringDtype(storage='python', na_value=<NA>)>
-
-    >>> pd.StringDtype(storage="pyarrow")
     <StringDtype(na_value=<NA>)>
+
+    >>> pd.StringDtype(storage="python")
+    <StringDtype(storage='python', na_value=<NA>)>
     """
 
     @property
@@ -156,16 +156,11 @@ class StringDtype(StorageExtensionDtype):
     ) -> None:
         # infer defaults
         if storage is None:
-            if na_value is not libmissing.NA:
-                storage = get_option("mode.string_storage")
-                if storage == "auto":
-                    if HAS_PYARROW:
-                        storage = "pyarrow"
-                    else:
-                        storage = "python"
-            else:
-                storage = get_option("mode.string_storage")
-                if storage == "auto":
+            storage = get_option("mode.string_storage")
+            if storage == "auto":
+                if HAS_PYARROW:
+                    storage = "pyarrow"
+                else:
                     storage = "python"
 
         if storage == "pyarrow_numpy":
@@ -611,7 +606,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     Examples
     --------
     >>> pd.array(["This is", "some text", None, "data."], dtype="string")
-    <StringArray>
+    <ArrowStringArray>
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
 
@@ -623,7 +618,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     ['1', 1]
     Length: 2, dtype: object
     >>> pd.array(["1", 1], dtype="string")
-    <StringArray>
+    <ArrowStringArray>
     ['1', '1']
     Length: 2, dtype: string
 
@@ -631,7 +626,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     For comparison methods, `StringArray` returns a :class:`pandas.BooleanArray`:
 
-    >>> pd.array(["a", None, "c"], dtype="string") == "a"
+    >>> pd.array(["a", None, "c"], dtype="string[python]") == "a"
     <BooleanArray>
     [True, <NA>, False]
     Length: 3, dtype: boolean
