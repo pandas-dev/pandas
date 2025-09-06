@@ -1005,22 +1005,6 @@ def test_resample_to_period_monthly_buglet(unit):
     tm.assert_index_equal(result.index, exp_index)
 
 
-def test_period_with_agg():
-    # aggregate a period resampler with a lambda
-    s2 = Series(
-        np.random.default_rng(2).integers(0, 5, 50),
-        index=period_range("2012-01-01", freq="h", periods=50),
-        dtype="float64",
-    )
-
-    expected = s2.to_timestamp().resample("D").mean().to_period()
-    msg = "Resampling with a PeriodIndex is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = s2.resample("D")
-    result = rs.agg(lambda x: x.mean())
-    tm.assert_series_equal(result, expected)
-
-
 def test_resample_segfault(unit):
     # GH 8573
     # segfaulting in older versions

@@ -14,7 +14,6 @@ from pandas.core.groupby import (
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.resample import (
     DatetimeIndexResamplerGroupby,
-    PeriodIndexResamplerGroupby,
     Resampler,
     TimedeltaIndexResamplerGroupby,
     TimeGrouper,
@@ -48,7 +47,6 @@ __all__ = [
     "NAType",
     "NaTType",
     "NoDefault",
-    "PeriodIndexResamplerGroupby",
     "Resampler",
     "Rolling",
     "RollingGroupby",

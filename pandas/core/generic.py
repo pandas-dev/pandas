@@ -8835,12 +8835,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Which bin edge label to label bucket with. The default is 'left'
             for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
             'BA', 'BQE', and 'W' which all have a default of 'right'.
-        convention : {{'start', 'end', 's', 'e'}}, default 'start'
-            For `PeriodIndex` only, controls whether to use the start or
-            end of `rule`.
-
-            .. deprecated:: 2.2.0
-                Convert PeriodIndex to DatetimeIndex before resampling instead.
         on : str, optional
             For a DataFrame, column to use instead of index for resampling.
             Column must be datetime-like.

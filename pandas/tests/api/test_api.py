@@ -267,7 +267,6 @@ class TestApi(Base):
         "NaTType",
         "NAType",
         "NoDefault",
-        "PeriodIndexResamplerGroupby",
         "Resampler",
         "Rolling",
         "RollingGroupby",
