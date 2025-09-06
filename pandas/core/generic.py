@@ -9271,6 +9271,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4    snake          NaN           NaN       NaN        5.0       NaN
         """
         axis_int = self._get_axis_number(axis)
+        validate_bool_kwarg(numeric_only, "numeric_only")
 
         if na_option not in {"keep", "top", "bottom"}:
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
@@ -11282,6 +11283,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Series | bool:
         nv.validate_logical_func((), kwargs, fname=name)
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+        validate_bool_kwarg(bool_only, "bool_only")
 
         if self.ndim > 1 and axis is None:
             # Reduce along one dimension then the other, to simplify DataFrame._reduce
@@ -11415,6 +11417,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Series | float:
         nv.validate_stat_ddof_func((), kwargs, fname=name)
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+        validate_bool_kwarg(numeric_only, "numeric_only")
 
         return self._reduce(
             func, name, axis=axis, numeric_only=numeric_only, skipna=skipna, ddof=ddof
@@ -11473,6 +11476,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nv.validate_func(name, (), kwargs)
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+        validate_bool_kwarg(numeric_only, "numeric_only")
 
         return self._reduce(
             func, name=name, axis=axis, skipna=skipna, numeric_only=numeric_only
@@ -11577,6 +11581,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         nv.validate_func(name, (), kwargs)
 
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
+        validate_bool_kwarg(numeric_only, "numeric_only")
 
         return self._reduce(
             func,
