@@ -1256,3 +1256,39 @@ def test_categorical_nan_no_dtype_conversion():
     expected = pd.DataFrame({"a": Categorical([1], [1]), "b": [1]})
     df.loc[0, "a"] = np.array([1])
     tm.assert_frame_equal(df, expected)
+
+
+import pyarrow as pa
+
+class TestArrowDtype:
+    @pytest.mark.parametrize(
+        "pa_dtype, expected_itemsize",
+        [
+            (pytest.param(lambda: pa.date32(), 4, id="date32")),
+            (pytest.param(lambda: pa.date64(), 8, id="date64")),  
+            (pytest.param(lambda: pa.time32('s'), 4, id="time32_s")),
+            (pytest.param(lambda: pa.time64('us'), 8, id="time64_us")),
+            (pytest.param(lambda: pa.int32(), 4, id="int32")),
+            (pytest.param(lambda: pa.int64(), 8, id="int64")),
+        ],
+    )
+    def test_itemsize_with_bit_width(self, pa_dtype, expected_itemsize):
+        """Test that ArrowDtype.itemsize correctly uses bit_width when available."""
+        pytest.importorskip("pyarrow", "12.0.1")
+        from pandas.core.dtypes.dtypes import ArrowDtype
+        
+        dtype = ArrowDtype(pa_dtype())
+        assert dtype.itemsize == expected_itemsize
+
+    def test_itemsize_fallback_to_numpy(self):
+        """Test itemsize falls back to numpy_dtype when bit_width unavailable."""
+        pytest.importorskip("pyarrow", "12.0.1")  
+        import pyarrow as pa
+        from pandas.core.dtypes.dtypes import ArrowDtype
+        
+        # string types don't have bit_width
+        dtype = ArrowDtype(pa.string())
+        # Should fall back to numpy behavior without error
+        result = dtype.itemsize
+        assert isinstance(result, int)
+        assert result > 0
