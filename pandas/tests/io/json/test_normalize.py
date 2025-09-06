@@ -569,6 +569,23 @@ class TestJSONNormalize:
         result = json_normalize(series, "counties")
         tm.assert_index_equal(result.index, idx.repeat([3, 2]))
 
+    def test_json_normalize_meta_int_key_with_record_path(self):
+        # GH#62264
+        data = [{"name": "Alice", 12: 20, "purchases": [{"pid": 301}, {"pid": 302}]}]
+
+        result = json_normalize(data, record_path=["purchases"], meta=[12, "name"])
+
+        expected = DataFrame(
+            {
+                "pid": [301, 302],
+                "12": np.array([20, 20], dtype=object),
+                "name": ["Alice", "Alice"],
+            },
+            columns=["pid", "12", "name"],
+        )
+
+        tm.assert_frame_equal(result[["pid", "12", "name"]], expected)
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
