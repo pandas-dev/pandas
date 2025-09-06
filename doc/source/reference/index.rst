@@ -55,6 +55,7 @@ to be stable.
    extensions
    testing
    missing_value
+   aliases
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
 .. these methods.
