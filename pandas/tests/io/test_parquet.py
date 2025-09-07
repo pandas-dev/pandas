@@ -1145,7 +1145,7 @@ class TestParquetPyArrow(Base):
         df.to_parquet(path, schema=pa.schema([("a", pa.decimal128(5))]))
         result = read_parquet(path)
         if pa_version_under19p0:
-            expected = pd.DataFrame({"a": ["123"]}, dtype="string[python]")
+            expected = pd.DataFrame({"a": ["123"]}, dtype="string")
         else:
             expected = pd.DataFrame({"a": [Decimal("123.00")]}, dtype="object")
         tm.assert_frame_equal(result, expected)

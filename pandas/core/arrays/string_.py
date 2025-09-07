@@ -75,6 +75,10 @@ from pandas.core.missing import isna
 
 from pandas.io.formats import printing
 
+if HAS_PYARROW:
+    import pyarrow as pa
+    import pyarrow.compute as pc
+
 if TYPE_CHECKING:
     from collections.abc import MutableMapping
 
@@ -337,7 +341,15 @@ class StringDtype(StorageExtensionDtype):
         Construct StringArray from pyarrow Array/ChunkedArray.
         """
         if self.storage == "pyarrow":
-            from pandas.core.arrays.string_arrow import ArrowStringArray
+            from pandas.core.arrays.string_arrow import (
+                ArrowStringArray,
+                _chk_pyarrow_available,
+            )
+
+            _chk_pyarrow_available()
+
+            if not pa.types.is_large_string(array.type):
+                array = pc.cast(array, pa.large_string())
 
             return ArrowStringArray(array, dtype=self)
 
