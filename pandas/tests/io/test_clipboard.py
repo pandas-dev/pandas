@@ -1,3 +1,4 @@
+import importlib
 from textwrap import dedent
 
 import numpy as np
@@ -18,6 +19,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
+import pandas.io.clipboard
 from pandas.io.clipboard import (
     CheckedCall,
     _stringifyText,
@@ -169,8 +171,21 @@ def test_stringify_text(text):
             _stringifyText(text)
 
 
-@pytest.fixture
-def set_pyqt_clipboard(monkeypatch):
+@pytest.fixture(
+    params=[
+        pytest.param(("qtpy.QtWidgets", "QApplication"), marks=[]),
+        pytest.param(("PyQt6.QtWidgets", "QApplication"), marks=[]),
+        pytest.param(("PyQt5.QtWidgets", "QApplication"), marks=[]),
+    ],
+    ids=["qtpy", "PyQt6", "PyQt5"],
+)
+def set_pyqt_clipboard(monkeypatch, request):
+    module, attribute = request.param
+    qt_module = importlib.import_module(module)
+    q_application_binding = getattr(qt_module, attribute)
+
+    get_qapp_binding = lambda x: q_application_binding
+    monkeypatch.setattr(pandas.io.clipboard, "_import_module", get_qapp_binding)
     qt_cut, qt_paste = init_qt_clipboard()
     with monkeypatch.context() as m:
         m.setattr(pd.io.clipboard, "clipboard_set", qt_cut)
