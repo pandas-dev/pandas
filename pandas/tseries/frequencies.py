@@ -613,8 +613,7 @@ def to_offset(freq):
         if isinstance(freq, str) and freq in _DEPRECATED_FREQ_ALIASES:
             suggestion = _DEPRECATED_FREQ_ALIASES[freq]
             raise ValueError(
-                f"Invalid frequency '{freq}'. This alias was deprecated and removed. "
-                f"Did you mean '{suggestion}'?"
+                f"Invalid frequency '{freq}'. Did you mean '{suggestion}'?"
             ) from None
         raise ValueError(
             f"Invalid frequency: {freq}, failed to parse with error message: {err}"
