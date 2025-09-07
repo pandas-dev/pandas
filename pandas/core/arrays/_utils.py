@@ -22,26 +22,27 @@ if TYPE_CHECKING:
 
 def to_numpy_dtype_inference(
     arr: ArrayLike, dtype: npt.DTypeLike | None, na_value, hasna: bool
-) -> tuple[npt.DTypeLike, Any]:
+) -> tuple[np.dtype | None, Any]:
+    result_dtype: np.dtype | None
+    inferred_numeric_dtype = False
     if dtype is None and is_numeric_dtype(arr.dtype):
-        dtype_given = False
+        inferred_numeric_dtype = True
         if hasna:
             if arr.dtype.kind == "b":
-                dtype = np.dtype(np.object_)
+                result_dtype = np.dtype(np.object_)
             else:
                 if arr.dtype.kind in "iu":
-                    dtype = np.dtype(np.float64)
+                    result_dtype = np.dtype(np.float64)
                 else:
-                    dtype = arr.dtype.numpy_dtype  # type: ignore[union-attr]
+                    result_dtype = arr.dtype.numpy_dtype
                 if na_value is lib.no_default:
                     na_value = np.nan
         else:
-            dtype = arr.dtype.numpy_dtype  # type: ignore[union-attr]
+            result_dtype = arr.dtype.numpy_dtype
     elif dtype is not None:
-        dtype = np.dtype(dtype)
-        dtype_given = True
+        result_dtype = np.dtype(dtype)
     else:
-        dtype_given = True
+        result_dtype = None
 
     if na_value is lib.no_default:
         if dtype is None or not hasna:
@@ -55,9 +56,9 @@ def to_numpy_dtype_inference(
         else:
             na_value = arr.dtype.na_value
 
-    if not dtype_given and hasna:
+    if inferred_numeric_dtype and hasna:
         try:
-            np_can_hold_element(dtype, na_value)  # type: ignore[arg-type]
+            np_can_hold_element(result_dtype, na_value)  # type: ignore[arg-type]
         except LossySetitemError:
-            dtype = np.dtype(np.object_)
-    return dtype, na_value
+            result_dtype = np.dtype(np.object_)
+    return result_dtype, na_value
