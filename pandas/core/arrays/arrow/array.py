@@ -17,6 +17,7 @@ import unicodedata
 import warnings
 
 import numpy as np
+import pyarrow.compute as pc
 
 from pandas._libs import lib
 from pandas._libs.tslibs import (
@@ -920,6 +921,8 @@ class ArrowExtensionArray(
             raise NotImplementedError(f"{op.__name__} not implemented.")
 
         try:
+            other = pc.fill_null(other, False)
+            self._pa_array = pc.fill_null(self._pa_array, False)
             result = pc_func(self._pa_array, other)
         except pa.ArrowNotImplementedError as err:
             raise TypeError(self._op_method_error_message(other_original, op)) from err
