@@ -7,6 +7,7 @@ RUN apt-get install -y build-essential git valgrind
 RUN git clone -b 3.10 --depth 1 https://github.com/python/cpython.git /clones/cpython
 RUN apt-get install -y libbz2-dev libffi-dev libssl-dev zlib1g-dev liblzma-dev libsqlite3-dev libreadline-dev
 RUN cd /clones/cpython && ./configure --with-pydebug && CFLAGS="-g3" make -s -j$(nproc) && make altinstall
+RUN ln -sf /usr/local/bin/python3.10 /usr/local/bin/python3
 
 # gdb installation
 RUN apt-get install -y wget libgmp-dev
@@ -31,4 +32,4 @@ RUN python3 -m pip install \
 # with meson where only having a python3 executable and not python
 # would cause the build to fail. This symlink could be removed if
 # users stick to always calling python3 within the container
-RUN ln -s /usr/local/bin/python3 /usr/local/bin/python
+RUN ln -sf /usr/local/bin/python3 /usr/local/bin/python
