@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -639,7 +641,7 @@ class TestRolling:
         )
         msg = "'d' is deprecated and will be removed in a future version."
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = (
                 df.groupby("group")
                 .rolling("3d", on="date", closed="left")["column1"]
