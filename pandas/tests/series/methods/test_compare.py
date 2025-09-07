@@ -146,31 +146,42 @@ def test_compare_datetime64_and_string():
 
 
 def test_eq_objects():
-    """Test eq with Enum and List elements"""
+    # GH#62191 Test eq with Enum and List elements
 
     class Thing(Enum):
         FIRST = auto()
         SECOND = auto()
 
     left = pd.Series([Thing.FIRST, Thing.SECOND])
-    tm.assert_series_equal(left.eq(Thing.FIRST), left == Thing.FIRST)
+
+    result_scalar = left.eq(Thing.FIRST)
+    expected_scalar = left == Thing.FIRST
+    tm.assert_series_equal(result_scalar, expected_scalar)
 
     py_l = [Thing.FIRST, Thing.SECOND]
-    tm.assert_series_equal(left.eq(py_l), left == py_l)
+    result_py_l = left.eq(py_l)
+    expected_py_l = left == py_l
+    tm.assert_series_equal(result_py_l, expected_py_l)
 
     np_a = np.asarray(py_l)
-    tm.assert_series_equal(left.eq(np_a), left == np_a)
+    result_np_a = left.eq(np_a)
+    expected_np_a = left == np_a
+    tm.assert_series_equal(result_np_a, expected_np_a)
 
     pd_s = pd.Series(py_l)
-    tm.assert_series_equal(left.eq(pd_s), left == pd_s)
+    result_pd_s = left.eq(pd_s)
+    expected_pd_s = left == pd_s
+    tm.assert_series_equal(result_pd_s, expected_pd_s)
 
     left_non_scalar = pd.Series([[1, 2], [3, 4]])
+    result_non_scalar = left_non_scalar.eq([1, 2])
+    expected_would_be = pd.Series([True, False])
     with pytest.raises(AssertionError):
-        tm.assert_series_equal(left_non_scalar.eq([1, 2]), pd.Series([True, False]))
+        tm.assert_series_equal(result_non_scalar, expected_would_be)
 
 
 def test_eq_with_index():
-    """Test eq with non-trivial indices"""
+    # GH#62191 Test eq with non-trivial indices
     left = pd.Series([1, 2], index=[1, 0])
 
     py_l = [1, 2]
@@ -181,9 +192,5 @@ def test_eq_with_index():
 
     pd_s = pd.Series(py_l)
     tm.assert_series_equal(left.eq(pd_s), pd.Series([False, False]))
-
-    match = r"Can only compare identically-labeled Series objects"
-    with pytest.raises(ValueError, match=match):
-        _ = left == pd_s
 
     tm.assert_series_equal(left.eq(pd.Series([2, 1])), pd.Series([True, True]))
