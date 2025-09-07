@@ -8,6 +8,8 @@ import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.internals import create_dataframe_from_blocks
@@ -38,7 +40,7 @@ def test_namespace():
     ]
 
     result = [x for x in dir(internals) if not x.startswith("__")]
-    assert set(result) == set(expected + modules)
+    assert set(result) == set(expected + modules), set(result) ^ set(expected + modules)
 
 
 @pytest.mark.parametrize(
@@ -51,7 +53,7 @@ def test_namespace():
 def test_deprecations(name):
     # GH#55139
     msg = f"{name} is deprecated.* Use public APIs instead"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         getattr(internals, name)
 
 
@@ -60,7 +62,7 @@ def test_make_block_2d_with_dti():
     dti = pd.date_range("2012", periods=3, tz="UTC")
 
     msg = "make_block is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         blk = api.make_block(dti, placement=[0])
 
     assert blk.shape == (1, 3)
@@ -75,7 +77,7 @@ def test_create_block_manager_from_blocks_deprecated():
         "create_block_manager_from_blocks is deprecated and will be "
         "removed in a future version. Use public APIs instead"
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         internals.create_block_manager_from_blocks
 
 

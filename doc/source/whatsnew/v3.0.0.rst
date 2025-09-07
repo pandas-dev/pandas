@@ -895,6 +895,7 @@ Timedelta
 - Accuracy improvement in :meth:`Timedelta.to_pytimedelta` to round microseconds consistently for large nanosecond based Timedelta (:issue:`57841`)
 - Bug in :class:`Timedelta` constructor failing to raise when passed an invalid keyword (:issue:`53801`)
 - Bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
+- Bug in multiplication operations with ``timedelta64`` dtype failing to raise ``TypeError`` when multiplying by ``bool`` objects or dtypes (:issue:`58054`)
 
 Timezones
 ^^^^^^^^^
@@ -920,6 +921,7 @@ Conversion
 - Bug in :meth:`Series.astype` might modify read-only array inplace when casting to a string dtype (:issue:`57212`)
 - Bug in :meth:`Series.convert_dtypes` and :meth:`DataFrame.convert_dtypes` removing timezone information for objects with :class:`ArrowDtype` (:issue:`60237`)
 - Bug in :meth:`Series.reindex` not maintaining ``float32`` type when a ``reindex`` introduces a missing value (:issue:`45857`)
+- Bug in :meth:`to_datetime` and :meth:`to_timedelta` with input ``None`` returning ``None`` instead of ``NaT``, inconsistent with other conversion methods (:issue:`23055`)
 
 Strings
 ^^^^^^^
@@ -946,11 +948,14 @@ Indexing
 - Bug in :meth:`Series.mask` unexpectedly filling ``pd.NA`` (:issue:`60729`)
 - Bug in printing :attr:`Index.names` and :attr:`MultiIndex.levels` would not escape single quotes (:issue:`60190`)
 - Bug in reindexing of :class:`DataFrame` with :class:`PeriodDtype` columns in case of consolidated block (:issue:`60980`, :issue:`60273`)
+- Bug in :meth:`DataFrame.loc.__getitem__` and :meth:`DataFrame.iloc.__getitem__` with a :class:`CategoricalDtype` column with integer categories raising when trying to index a row containing a ``NaN`` entry (:issue:`58954`)
+- Bug in :meth:`Index.__getitem__` incorrectly raising with a 0-dim ``np.ndarray`` key (:issue:`55601`)
 
 Missing
 ^^^^^^^
 - Bug in :meth:`DataFrame.fillna` and :meth:`Series.fillna` that would ignore the ``limit`` argument on :class:`.ExtensionArray` dtypes (:issue:`58001`)
 - Bug in :meth:`NA.__and__`, :meth:`NA.__or__` and :meth:`NA.__xor__` when operating with ``np.bool_`` objects (:issue:`58427`)
+- Bug in ``divmod`` between :class:`NA` and ``Int64`` dtype objects (:issue:`62196`)
 -
 
 MultiIndex
@@ -1119,6 +1124,7 @@ Other
 - Bug in ``Series.list`` methods not preserving the original :class:`Index`. (:issue:`58425`)
 - Bug in ``Series.list`` methods not preserving the original name. (:issue:`60522`)
 - Bug in ``Series.replace`` when the Series was created from an :class:`Index` and Copy-On-Write is enabled (:issue:`61622`)
+- Bug in ``divmod`` and ``rdivmod`` with :class:`DataFrame`, :class:`Series`, and :class:`Index` with ``bool`` dtypes failing to raise, which was inconsistent with ``__floordiv__`` behavior (:issue:`46043`)
 - Bug in printing a :class:`DataFrame` with a :class:`DataFrame` stored in :attr:`DataFrame.attrs` raised a ``ValueError`` (:issue:`60455`)
 - Bug in printing a :class:`Series` with a :class:`DataFrame` stored in :attr:`Series.attrs` raised a ``ValueError`` (:issue:`60568`)
 - Fixed bug where the :class:`DataFrame` constructor misclassified array-like objects with a ``.name`` attribute as :class:`Series` or :class:`Index` (:issue:`61443`)

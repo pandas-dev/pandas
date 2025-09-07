@@ -476,7 +476,7 @@ def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
                 zipped = zip(arr_values, mask)
             else:
                 zipped = zip(arr_values.T, mask.T)
-            return np.array([_nanargminmax(v, m, func) for v, m in zipped])  # type: ignore[arg-type]
+            return np.array([_nanargminmax(v, m, func) for v, m in zipped])
         return func(arr_values, axis=axis)
 
     return _nanargminmax(arr_values, mask, func)
@@ -533,9 +533,11 @@ def _ensure_key_mapped_multiindex(
         sort_levels = range(index.nlevels)
 
     mapped = [
-        ensure_key_mapped(index._get_level_values(level), key)
-        if level in sort_levels
-        else index._get_level_values(level)
+        (
+            ensure_key_mapped(index._get_level_values(level), key)
+            if level in sort_levels
+            else index._get_level_values(level)
+        )
         for level in range(index.nlevels)
     ]
 

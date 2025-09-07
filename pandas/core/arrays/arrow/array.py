@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import operator
+from pathlib import Path
 import re
 import textwrap
 from typing import (
@@ -28,6 +29,7 @@ from pandas.compat import (
     pa_version_under12p1,
     pa_version_under13p0,
 )
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
@@ -943,14 +945,30 @@ class ArrowExtensionArray(
                 f"'{op_name}' operations between boolean dtype and {self.dtype} are "
                 "deprecated and will raise in a future version. Explicitly "
                 "cast the strings to a boolean dtype before operating instead.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
             return op(other, self.astype(bool))
         else:
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
-    def _arith_method(self, other, op) -> Self:
+    def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
+        if (
+            op in [operator.truediv, roperator.rtruediv]
+            and isinstance(other, Path)
+            and (
+                pa.types.is_string(self._pa_array.type)
+                or pa.types.is_large_string(self._pa_array.type)
+            )
+        ):
+            # GH#61940
+            return np.array(
+                [
+                    op(x, other) if isinstance(x, str) else self.dtype.na_value
+                    for x in self
+                ],
+                dtype=object,
+            )
         return self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
 
     def equals(self, other) -> bool:
