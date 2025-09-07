@@ -14,6 +14,7 @@ from pandas import (
     Timestamp,
     date_range,
     to_datetime,
+    to_numeric,
 )
 import pandas._testing as tm
 from pandas.tests.frame.common import _check_mixed_float
@@ -669,6 +670,26 @@ class TestFillNA:
             }
         )
         tm.assert_frame_equal(pdf.fillna({("x", "b"): -2, "x": -1}), expected)
+
+    def test_fillna_preserves_numeric_conversion(self):
+        # GH#14407 regression test
+        df = DataFrame(
+            {
+                "c1": ["A", "B", "C"],
+                "c2": ["1", "2", "3"],
+                "c3": [0.1, 0.2, 0.3],
+                "c4": [0, 1, 2],
+            }
+        )
+
+        result = df.apply(lambda x: to_numeric(x, errors="coerce")).fillna(df)
+
+        expected = Series(
+            {"c1": "object", "c2": "int64", "c3": "float64", "c4": "int64"},
+            name="dtype",
+        )
+
+        assert result.dtypes.astype(str).equals(expected)
 
 
 def test_fillna_nonconsolidated_frame():
