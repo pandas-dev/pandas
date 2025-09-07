@@ -177,7 +177,8 @@ def test_stringify_text(text):
             ("qtpy.QtWidgets", "QApplication"),
             marks=[
                 pytest.mark.xfail(
-                    importlib.util.find_spec("qtpy.QtWidgets") is None,
+                    importlib.util.find_spec("qtpy") is None
+                    or importlib.util.find_spec("qtpy.QtWidgets") is None,
                     reason="qtpy isn't installed",
                 )
             ],
@@ -186,7 +187,8 @@ def test_stringify_text(text):
             ("PyQt6.QtWidgets", "QApplication"),
             marks=[
                 pytest.mark.xfail(
-                    importlib.util.find_spec("PyQt6.QtWidgets") is None,
+                    importlib.util.find_spec("PyQt6") is None
+                    or importlib.util.find_spec("PyQt6.QtWidgets") is None,
                     reason="PyQt6 isn't installed",
                 )
             ],
@@ -195,7 +197,8 @@ def test_stringify_text(text):
             ("PyQt5.QtWidgets", "QApplication"),
             marks=[
                 pytest.mark.xfail(
-                    importlib.util.find_spec("PyQt5.QtWidgets") is None,
+                    importlib.util.find_spec("PyQt5") is None
+                    or importlib.util.find_spec("PyQt5.QtWidgets") is None,
                     reason="PyQt5 isn't installed",
                 )
             ],
