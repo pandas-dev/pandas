@@ -3,24 +3,24 @@ from datetime import (
     timezone,
 )
 
+from dateutil.relativedelta import MO
 import pytest
 
 from pandas import (
+    DateOffset,
     DatetimeIndex,
     Series,
+    Timestamp,
 )
 import pandas._testing as tm
 
 from pandas.tseries.holiday import (
-    MO,
     SA,
     AbstractHolidayCalendar,
-    DateOffset,
     EasterMonday,
     GoodFriday,
     Holiday,
     HolidayCalendarFactory,
-    Timestamp,
     USColumbusDay,
     USFederalHolidayCalendar,
     USLaborDay,
@@ -361,7 +361,7 @@ def test_holiday_with_exclusion():
     end = Timestamp("2025-05-31")
     exclude = DatetimeIndex([Timestamp("2022-05-30")])  # Queen's platinum Jubilee
 
-    queens_jubilee_uk_spring_bank_holiday: Holiday = Holiday(
+    queens_jubilee_uk_spring_bank_holiday = Holiday(
         "Queen's Jubilee UK Spring Bank Holiday",
         month=5,
         day=31,
@@ -394,7 +394,7 @@ def test_holiday_with_multiple_exclusions():
         ]
     )  # Yakudoshi new year
 
-    yakudoshi_new_year: Holiday = Holiday(
+    yakudoshi_new_year = Holiday(
         "Yakudoshi New Year", month=1, day=1, exclude_dates=exclude
     )
 

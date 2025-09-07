@@ -1175,6 +1175,7 @@ class RangeIndex(Index):
         """
         Conserve RangeIndex type for scalar and slice keys.
         """
+        key = lib.item_from_zerodim(key)
         if key is Ellipsis:
             key = slice(None)
         if isinstance(key, slice):

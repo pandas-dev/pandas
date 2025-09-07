@@ -257,11 +257,13 @@ class CSVFormatter:
             storage_options=self.storage_options,
         ) as handles:
             # Note: self.encoding is irrelevant here
+            # error: Argument "quoting" to "writer" has incompatible type "int";
+            # expected "Literal[0, 1, 2, 3]"
             self.writer = csvlib.writer(
                 handles.handle,
                 lineterminator=self.lineterminator,
                 delimiter=self.sep,
-                quoting=self.quoting,
+                quoting=self.quoting,  # type: ignore[arg-type]
                 doublequote=self.doublequote,
                 escapechar=self.escapechar,
                 quotechar=self.quotechar,

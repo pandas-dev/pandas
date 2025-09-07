@@ -197,11 +197,7 @@ def _period_dispatch(meth: F) -> F:
     return cast(F, new_meth)
 
 
-# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
-# incompatible with definition in base class "ExtensionArray"
-class DatetimeLikeArrayMixin(  # type: ignore[misc]
-    OpsMixin, NDArrayBackedExtensionArray
-):
+class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 

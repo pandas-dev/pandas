@@ -61,6 +61,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     DataError,
+    Pandas4Warning,
 )
 from pandas.util._decorators import (
     Appender,
@@ -557,7 +558,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 "and will be removed. In a future version `groups` by one element "
                 "list will return tuple. Use ``df.groupby(by='a').groups`` "
                 "instead of ``df.groupby(by=['a']).groups`` to avoid this warning",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
         return self._grouper.groups
@@ -2922,9 +2923,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
         if not self.as_index:
-            # error: Incompatible types in assignment (expression has
-            # type "DataFrame", variable has type "Series")
-            result = result.rename("size").reset_index()  # type: ignore[assignment]
+            result = result.rename("size").reset_index()
         return result
 
     @final
@@ -5703,10 +5702,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     "Specify observed=True in groupby instead."
                 )
         elif not skipna and self._obj_with_exclusions.isna().any(axis=None):
-            raise ValueError(
-                f"{type(self).__name__}.{how} with skipna=False encountered an NA "
-                f"value."
-            )
+            raise ValueError(f"{how} with skipna=False encountered an NA value.")
 
         result = self._agg_general(
             numeric_only=numeric_only,
@@ -5724,8 +5720,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = res.astype(index.dtype)
         elif skipna and res.lt(0).any(axis=None):
             raise ValueError(
-                f"{type(self).__name__}.{how} with skipna=True encountered all NA "
-                f"values in a group."
+                f"{how} with skipna=True encountered all NA values in a group."
             )
         else:
             if isinstance(index, MultiIndex):
@@ -5758,24 +5753,26 @@ def get_groupby(
     grouper: ops.BaseGrouper | None = None,
     group_keys: bool = True,
 ) -> GroupBy:
-    klass: type[GroupBy]
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 
-        klass = SeriesGroupBy
+        return SeriesGroupBy(
+            obj=obj,
+            keys=by,
+            grouper=grouper,
+            group_keys=group_keys,
+        )
     elif isinstance(obj, DataFrame):
         from pandas.core.groupby.generic import DataFrameGroupBy
 
-        klass = DataFrameGroupBy
+        return DataFrameGroupBy(
+            obj=obj,
+            keys=by,
+            grouper=grouper,
+            group_keys=group_keys,
+        )
     else:  # pragma: no cover
         raise TypeError(f"invalid type: {obj}")
-
-    return klass(
-        obj=obj,
-        keys=by,
-        grouper=grouper,
-        group_keys=group_keys,
-    )
 
 
 def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiIndex:
