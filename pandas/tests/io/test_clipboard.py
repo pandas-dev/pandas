@@ -173,9 +173,33 @@ def test_stringify_text(text):
 
 @pytest.fixture(
     params=[
-        pytest.param(("qtpy.QtWidgets", "QApplication"), marks=[]),
-        pytest.param(("PyQt6.QtWidgets", "QApplication"), marks=[]),
-        pytest.param(("PyQt5.QtWidgets", "QApplication"), marks=[]),
+        pytest.param(
+            ("qtpy.QtWidgets", "QApplication"),
+            marks=[
+                pytest.mark.xfail(
+                    importlib.util.find_spec("qtpy") is None,
+                    reason="qtpy isn't installed",
+                )
+            ],
+        ),
+        pytest.param(
+            ("PyQt6.QtWidgets", "QApplication"),
+            marks=[
+                pytest.mark.xfail(
+                    importlib.util.find_spec("PyQt6") is None,
+                    reason="PyQt6 isn't installed",
+                )
+            ],
+        ),
+        pytest.param(
+            ("PyQt5.QtWidgets", "QApplication"),
+            marks=[
+                pytest.mark.xfail(
+                    importlib.util.find_spec("PyQt5") is None,
+                    reason="PyQt5 isn't installed",
+                )
+            ],
+        ),
     ],
     ids=["qtpy", "PyQt6", "PyQt5"],
 )
