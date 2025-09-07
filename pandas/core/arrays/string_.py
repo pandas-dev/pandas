@@ -546,10 +546,10 @@ class BaseStringArray(ExtensionArray):
         else:
             return self._str_map_str_or_object(dtype, na_value, arr, f, mask)
 
-    def view(self, dtype: Dtype | None = None) -> ArrayLike:
+    def view(self, dtype: Dtype | None = None) -> Self:
         if dtype is not None:
             raise TypeError("Cannot change data-type for string array.")
-        return super().view(dtype=dtype)
+        return super().view()
 
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
