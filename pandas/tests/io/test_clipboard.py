@@ -217,11 +217,14 @@ def set_pyqt_clipboard(monkeypatch, request):
     with monkeypatch.context() as m:
         m.setattr(pd.io.clipboard, "clipboard_set", qt_cut)
         m.setattr(pd.io.clipboard, "clipboard_get", qt_paste)
-        yield
+        yield module, attribute
 
 
 @pytest.fixture
-def clipboard(qapp):
+def clipboard(set_pyqt_clipboard):
+    module, attribute = set_pyqt_clipboard
+    qt_module = importlib.import_module(module)
+    qapp = getattr(qt_module, attribute)
     clip = qapp.clipboard()
     yield clip
     clip.clear()
