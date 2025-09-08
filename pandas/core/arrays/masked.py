@@ -517,11 +517,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         hasna = self._hasna
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
         if dtype is None:
-            dtype = object
+            dtype = np.dtype(object)
 
         if hasna:
             if (
-                dtype != object
+                dtype != np.dtype(object)
                 and not is_string_dtype(dtype)
                 and na_value is libmissing.NA
             ):
