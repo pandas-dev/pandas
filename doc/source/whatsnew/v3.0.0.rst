@@ -490,12 +490,6 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+---------------------+
 | Package                | New Minimum Version |
 +========================+=====================+
-| pyarrow                | 12.0.1              |
-+------------------------+---------------------+
-| pytz                   | 2023.4              |
-+------------------------+---------------------+
-| fastparquet            | 2024.2.0            |
-+------------------------+---------------------+
 | adbc-driver-postgresql | 1.2.0               |
 +------------------------+---------------------+
 | adbc-driver-sqlite     | 1.2.0               |
@@ -504,33 +498,57 @@ Optional libraries below the lowest tested version may still work, but are not c
 +------------------------+---------------------+
 | beautifulsoup4         | 4.12.3              |
 +------------------------+---------------------+
-| fsspec                 | 2024.2.0            |
+| bottleneck             | 1.4.2               |
 +------------------------+---------------------+
-| gcsfs                  | 2024.2.0            |
+| fastparquet            | 2024.11.0           |
 +------------------------+---------------------+
-| s3fs                   | 2024.2.0            |
+| fsspec                 | 2024.10.0           |
++------------------------+---------------------+
+| hypothesis             | 6.116.0             |
++------------------------+---------------------+
+| gcsfs                  | 2024.10.0           |
++------------------------+---------------------+
+| Jinja2                 | 3.1.5               |
++------------------------+---------------------+
+| lxml                   | 5.3.0               |
 +------------------------+---------------------+
 | Jinja2                 | 3.1.3               |
 +------------------------+---------------------+
-| matplotlib             | 3.8.3               |
+| matplotlib             | 3.9.3               |
 +------------------------+---------------------+
-| numba                  | 0.59.0              |
+| numba                  | 0.60.0              |
 +------------------------+---------------------+
-| numexpr                | 2.9.0               |
+| numexpr                | 2.10.2              |
 +------------------------+---------------------+
-| psycopg2               | 2.9.9               |
+| qtpy                   | 2.4.2               |
 +------------------------+---------------------+
-| pymysql                | 1.1.0               |
+| openpyxl               | 3.1.5               |
 +------------------------+---------------------+
-| pyreadstat             | 1.2.6               |
+| psycopg2               | 2.9.10              |
 +------------------------+---------------------+
-| SciPy                  | 1.12.0              |
+| pyarrow                | 13.0.0              |
 +------------------------+---------------------+
-| xarray                 | 2024.1.0            |
+| pymysql                | 1.1.1               |
++------------------------+---------------------+
+| pyreadstat             | 1.2.8               |
++------------------------+---------------------+
+| pytables               | 3.10.1              |
++------------------------+---------------------+
+| python-calamine        | 0.3.0               |
++------------------------+---------------------+
+| pytz                   | 2024.2              |
++------------------------+---------------------+
+| s3fs                   | 2024.10.0           |
++------------------------+---------------------+
+| SciPy                  | 1.14.1              |
++------------------------+---------------------+
+| sqlalchemy             | 2.0.36              |
++------------------------+---------------------+
+| xarray                 | 2024.10.0           |
 +------------------------+---------------------+
 | xlsxwriter             | 3.2.0               |
 +------------------------+---------------------+
-| zstandard              | 0.22.0              |
+| zstandard              | 0.23.0              |
 +------------------------+---------------------+
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
@@ -879,6 +897,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.is_year_start` and :meth:`DatetimeIndex.is_quarter_start` does not raise on Custom business days frequencies bigger then "1C" (:issue:`58664`)
 - Bug in :meth:`DatetimeIndex.is_year_start` and :meth:`DatetimeIndex.is_quarter_start` returning ``False`` on double-digit frequencies (:issue:`58523`)
 - Bug in :meth:`DatetimeIndex.union` and :meth:`DatetimeIndex.intersection` when ``unit`` was non-nanosecond (:issue:`59036`)
+- Bug in :meth:`Index.union` with a ``pyarrow`` timestamp dtype incorrectly returning ``object`` dtype (:issue:`58421`)
 - Bug in :meth:`Series.dt.microsecond` producing incorrect results for pyarrow backed :class:`Series`. (:issue:`59154`)
 - Bug in :meth:`to_datetime` not respecting dayfirst if an uncommon date string was passed. (:issue:`58859`)
 - Bug in :meth:`to_datetime` on float array with missing values throwing ``FloatingPointError`` (:issue:`58419`)
@@ -988,6 +1007,7 @@ I/O
 - Bug in :meth:`DataFrame.to_string` that raised ``StopIteration`` with nested DataFrames. (:issue:`16098`)
 - Bug in :meth:`HDFStore.get` was failing to save data of dtype datetime64[s] correctly (:issue:`59004`)
 - Bug in :meth:`HDFStore.select` causing queries on categorical string columns to return unexpected results (:issue:`57608`)
+- Bug in :meth:`MultiIndex.factorize` incorrectly raising on length-0 indexes (:issue:`57517`)
 - Bug in :meth:`read_csv` causing segmentation fault when ``encoding_errors`` is not a string. (:issue:`59059`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``index_col`` is specified and ``na_values`` is a dict containing the key ``None``. (:issue:`57547`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``nrows`` and ``iterator`` are specified without specifying a ``chunksize``. (:issue:`59079`)
@@ -1066,6 +1086,8 @@ Reshaping
 - Bug in :meth:`concat` where concatenating DataFrame and Series with ``ignore_index = True`` drops the series name (:issue:`60723`, :issue:`56257`)
 - Bug in :func:`melt` where calling with duplicate column names in ``id_vars`` raised a misleading ``AttributeError`` (:issue:`61475`)
 - Bug in :meth:`DataFrame.merge` where user-provided suffixes could result in duplicate column names if the resulting names matched existing columns. Now raises a :class:`MergeError` in such cases. (:issue:`61402`)
+- Bug in :meth:`DataFrame.merge` with :class:`CategoricalDtype` columns incorrectly raising ``RecursionError`` (:issue:`56376`)
+-
 
 Sparse
 ^^^^^^
