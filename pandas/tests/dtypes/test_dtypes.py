@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
@@ -168,7 +169,7 @@ class TestCategoricalDtype(Base):
 
     def test_basic(self, dtype):
         msg = "is_categorical_dtype is deprecated"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert is_categorical_dtype(dtype)
 
             factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
@@ -298,7 +299,7 @@ class TestDatetimeTZDtype(Base):
 
     def test_compat(self, dtype):
         msg = "is_datetime64tz_dtype is deprecated"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert is_datetime64tz_dtype(dtype)
             assert is_datetime64tz_dtype("datetime64[ns, US/Eastern]")
         assert is_datetime64_any_dtype(dtype)

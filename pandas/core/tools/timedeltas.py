@@ -182,7 +182,7 @@ def to_timedelta(
         raise ValueError("errors must be one of 'raise', or 'coerce'.")
 
     if arg is None:
-        return arg
+        return NaT
     elif isinstance(arg, ABCSeries):
         values = _convert_listlike(arg._values, unit=unit, errors=errors)
         return arg._constructor(values, index=arg.index, name=arg.name)

@@ -243,9 +243,7 @@ def contains(cat, key, container) -> bool:
         return any(loc_ in container for loc_ in loc)
 
 
-# error: Definition of "delete/ravel/T/repeat/copy" in base class "NDArrayBacked"
-# is incompatible with definition in base class "ExtensionArray"
-class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):  # type: ignore[misc]
+class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):
     """
     Represent a categorical variable in classic R / S-plus fashion.
 
@@ -2964,9 +2962,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     def _delegate_property_get(self, name: str):
         return getattr(self._parent, name)
 
-    # error: Signature of "_delegate_property_set" incompatible with supertype
-    # "PandasDelegate"
-    def _delegate_property_set(self, name: str, new_values) -> None:  # type: ignore[override]
+    def _delegate_property_set(self, name: str, new_values) -> None:
         setattr(self._parent, name, new_values)
 
     @property
