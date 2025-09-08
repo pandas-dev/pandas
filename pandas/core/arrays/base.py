@@ -1804,6 +1804,12 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
+    @overload
+    def view(self) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
+
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
         """
         Return a view on the array.
