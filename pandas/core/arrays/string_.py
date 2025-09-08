@@ -344,10 +344,10 @@ class StringDtype(StorageExtensionDtype):
         if self.storage == "pyarrow":
             from pandas.core.arrays.string_arrow import (
                 ArrowStringArray,
-                _chk_pyarrow_available,
+                _check_pyarrow_available,
             )
 
-            _chk_pyarrow_available()
+            _check_pyarrow_available()
 
             if not pa.types.is_large_string(array.type):
                 array = pc.cast(array, pa.large_string())
