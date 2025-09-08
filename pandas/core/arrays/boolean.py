@@ -49,9 +49,8 @@ class BooleanDtype(BaseMaskedDtype):
      arrays in pandas objects.
 
      .. warning::
-
-     BooleanDtype is considered experimental. The implementation and
-     parts of the API may change without warning.
+        BooleanDtype is considered experimental. The implementation and
+        parts of the API may change without warning.
 
      Attributes
      ----------
@@ -76,6 +75,33 @@ class BooleanDtype(BaseMaskedDtype):
     Examples
      --------
      Create a Series with BooleanDtype:
+=======
+        BooleanDtype is considered experimental. The implementation and
+        parts of the API may change without warning.
+
+    Attributes
+    ----------
+    name : str
+        String identifying the dtype ('boolean').
+    kind : str
+        The kind of data ('b' for boolean).
+    numpy_dtype : numpy.dtype
+        The underlying NumPy dtype used ('bool').
+    type : type
+        The scalar type for elements of this dtype (np.bool_).
+
+
+    See Also
+    --------
+    BooleanArray : Extension array for boolean data with missing values.
+    StringDtype : Extension dtype for string data.
+    array : Create a pandas array with a specific dtype.
+    Series : One-dimensional ndarray with axis labels.
+    DataFrame : Two-dimensional, size-mutable, tabular data.
+
+   Examples
+    --------
+    Create a Series with BooleanDtype:
 
      >>> s = pd.Series([True, False, None], dtype="boolean")
      >>> s
