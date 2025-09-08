@@ -32,7 +32,6 @@ def test_shares_memory_string():
     assert tm.shares_memory(obj, obj)
 
 
-# Unit tests for tm.shares_memory (#55372)
 def test_shares_memory_numpy():
     arr = np.arange(10)
     view = arr[:5]
