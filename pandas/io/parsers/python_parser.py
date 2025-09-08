@@ -21,6 +21,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import Scalar
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -77,7 +78,6 @@ if TYPE_CHECKING:
         ArrayLike,
         DtypeObj,
         ReadCsvBuffer,
-        Scalar,
         T,
     )
 
@@ -954,7 +954,9 @@ class PythonParser(ParserBase):
         """
         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
             raise ParserError(msg)
-        if self.on_bad_lines == self.BadLineHandleMethod.WARN:
+        if self.on_bad_lines == self.BadLineHandleMethod.WARN or callable(
+            self.on_bad_lines
+        ):
             warnings.warn(
                 f"Skipping line {row_num}: {msg}\n",
                 ParserWarning,
@@ -1193,34 +1195,31 @@ class PythonParser(ParserBase):
                     if callable(self.on_bad_lines):
                         new_l = self.on_bad_lines(_content)
                         if new_l is not None:
-                            # Truncate extra elements and warn.
+                            new_l = cast(list[Scalar], new_l)
                             if len(new_l) > col_len:
-                                warnings.warn(
-                                    "Header/names length != data length. "
-                                    "Extra fields dropped.",
-                                    ParserWarning,
-                                    stacklevel=find_stack_level(),
-                                )
+                                row_num = self.pos - (content_len - i + footers)
+                                bad_lines.append((row_num, len(new_l), "callable"))
                                 new_l = new_l[:col_len]
-                            content.append(new_l)  # pyright: ignore[reportArgumentType]
+                            content.append(new_l)
+
                     elif self.on_bad_lines in (
                         self.BadLineHandleMethod.ERROR,
                         self.BadLineHandleMethod.WARN,
                     ):
                         row_num = self.pos - (content_len - i + footers)
-                        bad_lines.append((row_num, actual_len))
+                        bad_lines.append((row_num, actual_len, "normal"))
                         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
                             break
-                    else:
-                        content.append(_content)
                 else:
                     content.append(_content)
 
-            for row_num, actual_len in bad_lines:
+            for row_num, actual_len, source in bad_lines:
                 msg = (
                     f"Expected {col_len} fields in line {row_num + 1}, saw {actual_len}"
                 )
-                if (
+                if source == "callable":
+                    msg += " from bad_lines callable"
+                elif (
                     self.delimiter
                     and len(self.delimiter) > 1
                     and self.quoting != csv.QUOTE_NONE
