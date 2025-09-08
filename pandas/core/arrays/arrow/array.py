@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import operator
+from pathlib import Path
 import re
 import textwrap
 from typing import (
@@ -25,8 +26,7 @@ from pandas._libs.tslibs import (
 )
 from pandas.compat import (
     HAS_PYARROW,
-    pa_version_under12p1,
-    pa_version_under13p0,
+    PYARROW_MIN_VERSION,
 )
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import doc
@@ -292,8 +292,11 @@ class ArrowExtensionArray(
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
-        if pa_version_under12p1:
-            msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
+        if not HAS_PYARROW:
+            msg = (
+                f"pyarrow>={PYARROW_MIN_VERSION} is required for PyArrow "
+                "backed ArrowExtensionArray."
+            )
             raise ImportError(msg)
         if isinstance(values, pa.Array):
             self._pa_array = pa.chunked_array([values])
@@ -951,7 +954,23 @@ class ArrowExtensionArray(
         else:
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
-    def _arith_method(self, other, op) -> Self:
+    def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
+        if (
+            op in [operator.truediv, roperator.rtruediv]
+            and isinstance(other, Path)
+            and (
+                pa.types.is_string(self._pa_array.type)
+                or pa.types.is_large_string(self._pa_array.type)
+            )
+        ):
+            # GH#61940
+            return np.array(
+                [
+                    op(x, other) if isinstance(x, str) else self.dtype.na_value
+                    for x in self
+                ],
+                dtype=object,
+            )
         return self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
 
     def equals(self, other) -> bool:
@@ -1841,8 +1860,6 @@ class ArrowExtensionArray(
 
         data_to_reduce = self._pa_array
 
-        cast_kwargs = {} if pa_version_under13p0 else {"safe": False}
-
         if name in ["any", "all"] and (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
@@ -1947,15 +1964,14 @@ class ArrowExtensionArray(
         if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
             result = result.cast(pa_type)
         if name in ["median", "mean"] and pa.types.is_temporal(pa_type):
-            if not pa_version_under13p0:
-                nbits = pa_type.bit_width
-                if nbits == 32:
-                    result = result.cast(pa.int32(), **cast_kwargs)
-                else:
-                    result = result.cast(pa.int64(), **cast_kwargs)
+            nbits = pa_type.bit_width
+            if nbits == 32:
+                result = result.cast(pa.int32(), safe=False)
+            else:
+                result = result.cast(pa.int64(), safe=False)
             result = result.cast(pa_type)
         if name in ["std", "sem"] and pa.types.is_temporal(pa_type):
-            result = result.cast(pa.int64(), **cast_kwargs)
+            result = result.cast(pa.int64(), safe=False)
             if pa.types.is_duration(pa_type):
                 result = result.cast(pa_type)
             elif pa.types.is_time(pa_type):
@@ -2326,8 +2342,7 @@ class ArrowExtensionArray(
             raise TypeError(f"Cannot interpolate with {self.dtype} dtype")
 
         if (
-            not pa_version_under13p0
-            and method == "linear"
+            method == "linear"
             and limit_area is None
             and limit is None
             and limit_direction == "forward"
