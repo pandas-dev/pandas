@@ -6071,9 +6071,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Parameters
         ----------
         other : Series or scalar value
-            The second operand in this operation. Only `np.ndarray`, `list`, `tuple`,
-            and `Series` are considered "list-like" by pandas. All other types will
-            be treated as scalar values.
+            The second operand in this operation.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
