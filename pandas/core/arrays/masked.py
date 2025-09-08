@@ -797,6 +797,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 #  will be all-True, but since this is division, we want
                 #  to end up with floating dtype.
                 result = result.astype(np.float64)
+            elif op_name in {"divmod", "rdivmod"}:
+                # GH#62196
+                res = self._maybe_mask_result(result, mask)
+                return res, res.copy()
         else:
             # Make sure we do this before the "pow" mask checks
             #  to get an expected exception message on shape mismatch.

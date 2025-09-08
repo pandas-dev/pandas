@@ -12,7 +12,10 @@ from pandas._config import is_nan_na
 
 from pandas.util._exceptions import find_stack_level
 
-from pandas import StringDtype
+from pandas import (
+    ArrowDtype,
+    StringDtype,
+)
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BooleanArray,
@@ -1453,7 +1456,13 @@ def _maybe_upcast(
 
     elif arr.dtype == np.object_:
         if use_dtype_backend:
-            dtype = StringDtype()
+            if dtype_backend == "pyarrow":
+                # using the StringDtype below would use large_string by default
+                # keep here to pyarrow's default of string
+                import pyarrow as pa
+                dtype = ArrowDtype(pa.string())
+            else:
+                dtype = StringDtype()
             cls = dtype.construct_array_type()
             arr = cls._from_sequence(arr, dtype=dtype)
 

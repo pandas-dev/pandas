@@ -5044,9 +5044,13 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self._values, BaseMaskedArray):
             # This is only used if our array is monotonic, so no NAs present
             return self._values._data
-        elif isinstance(self._values, ArrowExtensionArray):
+        elif (
+            isinstance(self._values, ArrowExtensionArray)
+            and self.dtype.kind not in "mM"
+        ):
             # This is only used if our array is monotonic, so no missing values
             # present
+            # "mM" cases will go through _get_engine_target and cast to i8
             return self._values.to_numpy()
 
         # TODO: exclude ABCRangeIndex case here as it copies
@@ -5388,6 +5392,12 @@ class Index(IndexOpsMixin, PandasObject):
 
             # See also: Block.coerce_to_target_dtype
             dtype = self._find_common_type_compat(value)
+            if dtype == self.dtype:
+                # GH#56376 avoid RecursionError
+                raise AssertionError(
+                    "Something has gone wrong. Please report a bug at "
+                    "github.com/pandas-dev/pandas"
+                ) from err
             return self.astype(dtype).putmask(mask, value)
 
         values = self._values.copy()
