@@ -921,8 +921,10 @@ class ArrowExtensionArray(
 
         try:
             if HAS_PYARROW:
-                other = pc.fill_null(other, False)
-                self._pa_array = pc.fill_null(self._pa_array, False)
+                if pa.types.is_boolean(self._pa_array.type):
+                    other = pc.fill_null(other, False)
+                    self._pa_array = pc.fill_null(self._pa_array, False)
+
             result = pc_func(self._pa_array, other)
         except pa.ArrowNotImplementedError as err:
             raise TypeError(self._op_method_error_message(other_original, op)) from err
