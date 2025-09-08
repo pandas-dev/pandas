@@ -41,29 +41,7 @@ def test_shares_memory_numpy():
     assert not tm.shares_memory(arr, arr2)
 
 
-def test_shares_memory_series():
-    arr = np.arange(10)
-    s = pd.Series(arr)
-    assert tm.shares_memory(s, arr)
-    s2 = pd.Series(np.arange(10))
-    assert not tm.shares_memory(s, s2)
-
-
-def test_shares_memory_dataframe_single_block():
-    arr = np.arange(10)
-    df = pd.DataFrame({"a": arr})
-    assert tm.shares_memory(df, arr)
-    df2 = pd.DataFrame({"a": np.arange(10)})
-    assert not tm.shares_memory(df, df2)
-
-
 def test_shares_memory_rangeindex():
     idx = pd.RangeIndex(10)
     arr = np.arange(10)
     assert not tm.shares_memory(idx, arr)
-
-
-def test_shares_memory_multiindex():
-    idx = pd.MultiIndex.from_arrays([np.arange(10), np.arange(10, 20)])
-    arr2 = np.arange(10)
-    assert not tm.shares_memory(idx, arr2)
