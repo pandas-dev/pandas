@@ -546,7 +546,7 @@ class BaseStringArray(ExtensionArray):
         else:
             return self._str_map_str_or_object(dtype, na_value, arr, f, mask)
 
-    def view(self, dtype: Dtype | None = None) -> Self:
+    def view(self, dtype: Dtype | None = None) -> ExtensionArray:
         if dtype is not None:
             raise TypeError("Cannot change data-type for string array.")
         return super().view()
