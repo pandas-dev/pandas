@@ -199,7 +199,7 @@ class TestConvertDtypes:
             {
                 "a": [1, 2, 3],
                 "b": [4, 5, 6],
-                "c": pd.Series(["a"] * 3, dtype="string[python]"),
+                "c": pd.Series(["a"] * 3, dtype="string"),
             }
         )
         tm.assert_frame_equal(result, expected)
@@ -209,7 +209,7 @@ class TestConvertDtypes:
         # GH#56581
         df = pd.DataFrame([["a", datetime.time(18, 12)]], columns=["a", "b"])
         result = df.convert_dtypes()
-        expected = df.astype({"a": "string[python]"})
+        expected = df.astype({"a": "string"})
         tm.assert_frame_equal(result, expected)
 
     def test_convert_dtype_pyarrow_timezone_preserve(self):

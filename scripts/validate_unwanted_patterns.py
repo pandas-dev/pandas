@@ -58,6 +58,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_fill_limit_area_1d",
     "_make_block",
     "_DatetimeTZBlock",
+    "_chk_pyarrow_available",
 }
 
 
