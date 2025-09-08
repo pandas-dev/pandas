@@ -238,7 +238,7 @@ def to_pyarrow_type(
     return None
 
 
-class ArrowExtensionArray(
+class ArrowExtensionArray(  # type: ignore[misc]
     OpsMixin,
     ExtensionArraySupportsAnyAll,
     ArrowStringArrayMixin,
