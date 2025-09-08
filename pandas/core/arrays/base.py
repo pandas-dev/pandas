@@ -1677,6 +1677,18 @@ class ExtensionArray:
         return self.take(ind)
 
     def value_counts(self, dropna: bool = True) -> Series:
+        """
+        Return a Series containing counts of unique values.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't include counts of NA values.
+
+        Returns
+        -------
+        Series
+        """
         from pandas.core.algorithms import value_counts_internal as value_counts
 
         result = value_counts(self.to_numpy(copy=False), sort=False, dropna=dropna)
