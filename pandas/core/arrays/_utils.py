@@ -15,13 +15,14 @@ from pandas.core.dtypes.common import is_numeric_dtype
 
 if TYPE_CHECKING:
     from pandas._typing import (
-        ArrayLike,
         npt,
     )
 
+    from pandas.core.arrays.base import ExtensionArray
+
 
 def to_numpy_dtype_inference(
-    arr: ArrayLike, dtype: npt.DTypeLike | None, na_value, hasna: bool
+    arr: ExtensionArray, dtype: npt.DTypeLike | None, na_value, hasna: bool
 ) -> tuple[np.dtype | None, Any]:
     result_dtype: np.dtype | None
     inferred_numeric_dtype = False
@@ -34,11 +35,11 @@ def to_numpy_dtype_inference(
                 if arr.dtype.kind in "iu":
                     result_dtype = np.dtype(np.float64)
                 else:
-                    result_dtype = arr.dtype.numpy_dtype  # type: ignore[union-attr]
+                    result_dtype = arr.dtype.numpy_dtype  # type: ignore[attr-defined]
                 if na_value is lib.no_default:
                     na_value = np.nan
         else:
-            result_dtype = arr.dtype.numpy_dtype  # type: ignore[union-attr]
+            result_dtype = arr.dtype.numpy_dtype  # type: ignore[attr-defined]
     elif dtype is not None:
         result_dtype = np.dtype(dtype)
     else:
