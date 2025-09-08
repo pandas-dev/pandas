@@ -307,7 +307,7 @@ if a is NoDefault:
         "DeprecationWarning",
         "PendingDeprecationWarning",
         "Pandas4Warning",
-        "RuntimeWarning"
+        "RuntimeWarning",
     ],
 )
 @pytest.mark.parametrize("pdlint_ignore", [True, False])

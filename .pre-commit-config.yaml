@@ -32,7 +32,7 @@ repos:
         exclude: ^pandas/tests
         args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
     -   id: ruff-format
-        exclude: ^scripts|^pandas/tests/frame/test_query_eval.py
+        exclude: ^pandas/tests/frame/test_query_eval.py
 -   repo: https://github.com/jendrikseipp/vulture
     rev: v2.14
     hooks:
