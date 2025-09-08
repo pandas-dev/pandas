@@ -1727,6 +1727,17 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
         if tipo is not None:
             # TODO: itemsize check?
+
+            if isinstance(tipo, CategoricalDtype):
+                # GH#56376
+                if tipo.categories.dtype.kind not in "iuf":
+                    # Anything other than float/integer we cannot hold
+                    raise LossySetitemError
+                casted = np.asarray(element, dtype=dtype)
+                if np.array_equal(casted, element, equal_nan=True):
+                    return casted
+                raise LossySetitemError
+
             if tipo.kind not in "iuf":
                 # Anything other than float/integer we cannot hold
                 raise LossySetitemError
