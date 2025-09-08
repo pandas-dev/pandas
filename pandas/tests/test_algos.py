@@ -582,6 +582,16 @@ class TestUnique:
                 expected = expected.normalize()
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_factorize_multiindex_empty(self):
+        # GH#57517
+        mi = MultiIndex.from_product(
+            [Index([], name="a", dtype=object), Index([], name="i", dtype="f4")]
+        )
+        codes, uniques = mi.factorize()
+        exp_codes = np.array([], dtype=np.intp)
+        tm.assert_numpy_array_equal(codes, exp_codes)
+        tm.assert_index_equal(uniques, mi[:0])
+
     def test_dtype_preservation(self, any_numpy_dtype):
         # GH 15442
         if any_numpy_dtype in (tm.BYTES_DTYPES + tm.STRING_DTYPES):
