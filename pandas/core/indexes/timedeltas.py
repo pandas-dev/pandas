@@ -196,9 +196,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         Can we compare values of the given dtype to our own?
         """
         if isinstance(dtype, ArrowDtype):
-            import pyarrow as pa
-
-            return pa.types.is_duration(dtype.pyarrow_dtype)
+            return dtype.kind == "m"
         return lib.is_np_dtype(dtype, "m")  # aka self._data._is_recognized_dtype
 
     # -------------------------------------------------------------------

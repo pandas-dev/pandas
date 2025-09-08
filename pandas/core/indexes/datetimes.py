@@ -389,11 +389,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         if isinstance(dtype, ArrowDtype):
             # GH#62277
-            import pyarrow as pa
+            if dtype.kind != "M":
+                return False
 
             pa_dtype = dtype.pyarrow_dtype
-            if not pa.types.is_timestamp(pa_dtype):
-                return False
             if (pa_dtype.tz is None) ^ (self.tz is None):
                 return False
             return True
