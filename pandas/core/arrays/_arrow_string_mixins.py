@@ -14,7 +14,6 @@ import numpy as np
 from pandas._libs import lib
 from pandas.compat import (
     HAS_PYARROW,
-    pa_version_under13p0,
     pa_version_under17p0,
 )
 
@@ -134,12 +133,6 @@ class ArrowStringArrayMixin:
     def _str_slice(
         self, start: int | None = None, stop: int | None = None, step: int | None = None
     ) -> Self:
-        if pa_version_under13p0:
-            # GH#59724
-            result = self._apply_elementwise(lambda val: val[start:stop:step])
-            return self._from_pyarrow_array(
-                pa.chunked_array(result, type=self._pa_array.type)
-            )
         if start is None:
             if step is not None and step < 0:
                 # GH#59710
@@ -202,14 +195,10 @@ class ArrowStringArrayMixin:
         return self._from_pyarrow_array(pc.utf8_swapcase(self._pa_array))
 
     def _str_removeprefix(self, prefix: str):
-        if not pa_version_under13p0:
-            starts_with = pc.starts_with(self._pa_array, pattern=prefix)
-            removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
-            result = pc.if_else(starts_with, removed, self._pa_array)
-            return self._from_pyarrow_array(result)
-        predicate = lambda val: val.removeprefix(prefix)
-        result = self._apply_elementwise(predicate)
-        return self._from_pyarrow_array(pa.chunked_array(result))
+        starts_with = pc.starts_with(self._pa_array, pattern=prefix)
+        removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
+        result = pc.if_else(starts_with, removed, self._pa_array)
+        return self._from_pyarrow_array(result)
 
     def _str_removesuffix(self, suffix: str):
         ends_with = pc.ends_with(self._pa_array, pattern=suffix)
@@ -332,15 +321,6 @@ class ArrowStringArrayMixin:
         return self._str_match(pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if (
-            pa_version_under13p0
-            and not (start != 0 and end is not None)
-            and not (start == 0 and end is None)
-        ):
-            # GH#59562
-            res_list = self._apply_elementwise(lambda val: val.find(sub, start, end))
-            return self._convert_int_result(pa.chunked_array(res_list))
-
         if (start == 0 or start is None) and end is None:
             result = pc.find_substring(self._pa_array, sub)
         else:

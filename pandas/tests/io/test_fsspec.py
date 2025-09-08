@@ -6,6 +6,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas.compat import HAS_PYARROW
+from pandas.compat.pyarrow import pa_version_under14p0
 
 from pandas import (
     DataFrame,
@@ -179,7 +180,8 @@ def test_excel_options(fsspectest):
 
 
 @pytest.mark.xfail(
-    using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string) fastparquet"
+    using_string_dtype() and HAS_PYARROW and not pa_version_under14p0,
+    reason="TODO(infer_string) fastparquet",
 )
 def test_to_parquet_new_file(cleared_fs, df1):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
