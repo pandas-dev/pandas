@@ -50,8 +50,8 @@ class BooleanDtype(BaseMaskedDtype):
 
     .. warning::
 
-        BooleanDtype is considered experimental. The implementation and
-        parts of the API may change without warning.
+    BooleanDtype is considered experimental. The implementation and
+    parts of the API may change without warning.
 
     Attributes
     ----------
