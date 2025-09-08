@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -720,9 +721,9 @@ class TestBase:
         # non-standard categories
         dtype = CategoricalDtype(idx.unique().tolist()[:-1], ordered)
         msg = "Constructing a Categorical with a dtype and values containing"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = idx.astype(dtype, copy=copy)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected = CategoricalIndex(idx, name=name, dtype=dtype)
         tm.assert_index_equal(result, expected, exact=True)
 

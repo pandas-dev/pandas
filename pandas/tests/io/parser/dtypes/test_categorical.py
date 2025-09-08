@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import parsers as libparsers
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -332,6 +333,6 @@ def test_categorical_unexpected_categories(all_parsers):
     expected = DataFrame({"b": Categorical(["d", "a", None, "d"], dtype=dtype["b"])})
 
     msg = "Constructing a Categorical with a dtype and values containing"
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), dtype=dtype)
     tm.assert_frame_equal(result, expected)

@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -625,9 +626,9 @@ class TestAstypeCategorical:
         # different categories
         dtype = CategoricalDtype(list("adc"), dtype_ordered)
         msg = "Constructing a Categorical with a dtype and values containing"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = ser.astype(dtype)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected = Series(s_data, name=name, dtype=dtype)
         tm.assert_series_equal(result, expected)
 

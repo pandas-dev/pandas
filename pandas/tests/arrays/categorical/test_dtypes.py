@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas import (
@@ -75,20 +77,20 @@ class TestCategoricalDtypes:
             (["b", "a", "c"], ["a", "b"], ["a", "b"], None),
             (["b", "a", "c"], ["a", "b"], ["b", "a"], None),
             # Introduce NaNs
-            (["a", "b", "c"], ["a", "b"], ["a"], FutureWarning),
-            (["a", "b", "c"], ["a", "b"], ["b"], FutureWarning),
-            (["b", "a", "c"], ["a", "b"], ["a"], FutureWarning),
-            (["b", "a", "c"], ["a", "b"], ["b"], FutureWarning),
+            (["a", "b", "c"], ["a", "b"], ["a"], Pandas4Warning),
+            (["a", "b", "c"], ["a", "b"], ["b"], Pandas4Warning),
+            (["b", "a", "c"], ["a", "b"], ["a"], Pandas4Warning),
+            (["b", "a", "c"], ["a", "b"], ["b"], Pandas4Warning),
             # No overlap
-            (["a", "b", "c"], ["a", "b"], ["d", "e"], FutureWarning),
+            (["a", "b", "c"], ["a", "b"], ["d", "e"], Pandas4Warning),
         ],
     )
     def test_set_dtype_many(self, values, categories, new_categories, warn, ordered):
         msg = "Constructing a Categorical with a dtype and values containing"
-        warn1 = FutureWarning if set(values).difference(categories) else None
+        warn1 = Pandas4Warning if set(values).difference(categories) else None
         with tm.assert_produces_warning(warn1, match=msg):
             c = Categorical(values, categories)
-        warn2 = FutureWarning if set(values).difference(new_categories) else None
+        warn2 = Pandas4Warning if set(values).difference(new_categories) else None
         with tm.assert_produces_warning(warn2, match=msg):
             expected = Categorical(values, new_categories, ordered)
         result = c._set_dtype(expected.dtype, copy=True)
@@ -96,7 +98,7 @@ class TestCategoricalDtypes:
 
     def test_set_dtype_no_overlap(self):
         msg = "Constructing a Categorical with a dtype and values containing"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             c = Categorical(["a", "b", "c"], ["d", "e"])
         result = c._set_dtype(CategoricalDtype(["a", "b"]), copy=True)
         expected = Categorical([None, None, None], categories=["a", "b"])

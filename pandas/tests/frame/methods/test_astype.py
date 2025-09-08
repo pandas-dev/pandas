@@ -306,7 +306,7 @@ class TestAstype:
         ids=repr,
     )
     @pytest.mark.filterwarnings(
-        "ignore:Constructing a Categorical with a dtype and values:FutureWarning"
+        "ignore:Constructing a Categorical with a dtype and values"
     )
     def test_astype_categorical(self, dtype):
         # GH#18099

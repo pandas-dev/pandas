@@ -63,7 +63,7 @@ def test_categorical_pyarrow():
 
 
 @pytest.mark.filterwarnings(
-    "ignore:Constructing a Categorical with a dtype and values containing:FutureWarning"
+    "ignore:Constructing a Categorical with a dtype and values containing"
 )
 def test_empty_categorical_pyarrow():
     # https://github.com/pandas-dev/pandas/issues/53077

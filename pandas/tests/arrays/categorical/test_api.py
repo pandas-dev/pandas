@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -291,11 +293,11 @@ class TestCategoricalAPI:
     def test_set_categories_many(self, values, categories, new_categories, ordered):
         msg = "Constructing a Categorical with a dtype and values containing"
 
-        warn1 = FutureWarning if set(values).difference(categories) else None
+        warn1 = Pandas4Warning if set(values).difference(categories) else None
         with tm.assert_produces_warning(warn1, match=msg):
             c = Categorical(values, categories)
 
-        warn2 = FutureWarning if set(values).difference(new_categories) else None
+        warn2 = Pandas4Warning if set(values).difference(new_categories) else None
         with tm.assert_produces_warning(warn2, match=msg):
             expected = Categorical(values, new_categories, ordered)
 

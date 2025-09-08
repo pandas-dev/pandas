@@ -2,6 +2,8 @@ from datetime import datetime
 
 import numpy as np
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -142,7 +144,7 @@ class TestCategoricalConcat:
 
         # wrong categories -> uses concat_compat, which casts to object
         msg = "Constructing a Categorical with a dtype and values containing"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             df3 = DataFrame(
                 {"A": a, "B": Categorical(b, categories=list("abe"))}
             ).set_index("B")

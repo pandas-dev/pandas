@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     IntervalDtype,
@@ -48,9 +50,9 @@ class AstypeTests:
         categories = index.dropna().unique().values[:-1]
         dtype = CategoricalDtype(categories=categories, ordered=True)
         msg = "Constructing a Categorical with a dtype and values containing"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = index.astype(dtype)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected = CategoricalIndex(
                 index.values, categories=categories, ordered=True
             )

@@ -3,6 +3,7 @@ import pytest
 
 from pandas._libs import index as libindex
 from pandas._libs.arrays import NDArrayBacked
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -194,7 +195,7 @@ class TestCategoricalIndex:
         dtype = CategoricalDtype(categories, ordered=ordered)
 
         msg = "Constructing a Categorical with a dtype and values containing"
-        warn = None if expected_data == [1] else FutureWarning
+        warn = None if expected_data == [1] else Pandas4Warning
         with tm.assert_produces_warning(warn, match=msg):
             idx = CategoricalIndex(data, dtype=dtype)
             expected = CategoricalIndex(expected_data, dtype=dtype)

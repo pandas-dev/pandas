@@ -16,7 +16,10 @@ from pandas._libs import (
 )
 from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -393,7 +396,7 @@ class TestSeriesConstructors:
 
     def test_constructor_categorical(self):
         msg = "Constructing a Categorical with a dtype and values containing"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"])
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)

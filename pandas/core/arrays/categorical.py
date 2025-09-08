@@ -24,6 +24,7 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas.compat.numpy import function as nv
+from pandas.errors import Pandas4Warning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
@@ -582,7 +583,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                     "Constructing a Categorical with a dtype and values containing "
                     "non-null entries not in that dtype's categories is deprecated "
                     "and will raise in a future version.",
-                    FutureWarning,
+                    Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
 
@@ -3019,7 +3020,7 @@ def _get_codes_for_values(
             "Constructing a Categorical with a dtype and values containing "
             "non-null entries not in that dtype's categories is deprecated "
             "and will raise in a future version.",
-            FutureWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
     return coerce_indexer_dtype(codes, categories)
@@ -3076,7 +3077,7 @@ def recode_for_categories(
                 "Constructing a Categorical with a dtype and values containing "
                 "non-null entries not in that dtype's categories is deprecated "
                 "and will raise in a future version.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
     indexer = coerce_indexer_dtype(codes_in_old_cats, new_categories)
