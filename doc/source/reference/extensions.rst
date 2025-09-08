@@ -58,6 +58,7 @@ objects.
       api.extensions.ExtensionArray.isin
       api.extensions.ExtensionArray.isna
       api.extensions.ExtensionArray.ravel
+   api.extensions.ExtensionArray.map
       api.extensions.ExtensionArray.repeat
       api.extensions.ExtensionArray.searchsorted
       api.extensions.ExtensionArray.shift

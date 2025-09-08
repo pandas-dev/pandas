@@ -2510,7 +2510,9 @@ class ExtensionArray:
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
+    def map(self, mapper, 
+            na_action: Literal["ignore"] | None = None,
+            preserve_dtype: bool = False):
         """
         Map values using an input mapping or function.
 
@@ -2522,6 +2524,12 @@ class ExtensionArray:
             If 'ignore', propagate NA values, without passing them to the
             mapping correspondence. If 'ignore' is not supported, a
             ``NotImplementedError`` should be raised.
+        preserve_dtype : bool, default False
+            If True, attempt to cast the elementwise result back to the
+            original ExtensionArray type (and dtype) when possible. This is
+            primarily intended for identity or dtype-preserving mappings.
+            If False, the result of the mapping is returned as produced by
+            the underlying implementation (typically a NumPy ndarray).
 
         Returns
         -------
@@ -2531,7 +2539,9 @@ class ExtensionArray:
             a MultiIndex will be returned.
         """
         results = map_array(self, mapper, na_action=na_action)
-        return self._cast_pointwise_result(results)
+        if preserve_dtype:
+            results = self._cast_pointwise_result(results)
+        return results
 
     # ------------------------------------------------------------------------
     # GroupBy Methods
