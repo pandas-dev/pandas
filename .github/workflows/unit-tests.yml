@@ -343,7 +343,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python Dev Version
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.13-dev'
 
@@ -381,7 +381,7 @@ jobs:
 
       - name: Set up Python for pyodide-build
         id: setup-python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
