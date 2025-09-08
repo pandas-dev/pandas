@@ -58,7 +58,7 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_fill_limit_area_1d",
     "_make_block",
     "_DatetimeTZBlock",
-    "_chk_pyarrow_available",
+    "_check_pyarrow_available",
 }
 
 
@@ -185,17 +185,11 @@ def strings_with_wrong_placed_whitespace(
 
     For example:
 
-    >>> rule = (
-    ...    "We want the space at the end of the line, "
-    ...    "not at the beginning"
-    ... )
+    >>> rule = "We want the space at the end of the line, not at the beginning"
 
     Instead of:
 
-    >>> rule = (
-    ...    "We want the space at the end of the line,"
-    ...    " not at the beginning"
-    ... )
+    >>> rule = "We want the space at the end of the line, not at the beginning"
 
     Parameters
     ----------
@@ -235,17 +229,11 @@ def strings_with_wrong_placed_whitespace(
 
         For example, this is bad:
 
-        >>> rule = (
-        ...    "We want the space at the end of the line,"
-        ...    " not at the beginning"
-        ... )
+        >>> rule = "We want the space at the end of the line, not at the beginning"
 
         And what we want is:
 
-        >>> rule = (
-        ...    "We want the space at the end of the line, "
-        ...    "not at the beginning"
-        ... )
+        >>> rule = "We want the space at the end of the line, not at the beginning"
 
         And if the string is ending with a new line character (\n) we
         do not want any trailing whitespaces after it.
@@ -253,17 +241,17 @@ def strings_with_wrong_placed_whitespace(
         For example, this is bad:
 
         >>> rule = (
-        ...    "We want the space at the begging of "
-        ...    "the line if the previous line is ending with a \n "
-        ...    "not at the end, like always"
+        ...     "We want the space at the begging of "
+        ...     "the line if the previous line is ending with a \n "
+        ...     "not at the end, like always"
         ... )
 
         And what we do want is:
 
         >>> rule = (
-        ...    "We want the space at the begging of "
-        ...    "the line if the previous line is ending with a \n"
-        ...    " not at the end, like always"
+        ...     "We want the space at the begging of "
+        ...     "the line if the previous line is ending with a \n"
+        ...     " not at the end, like always"
         ... )
         """
         if first_line.endswith(r"\n"):
@@ -325,10 +313,14 @@ def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[tuple[int,
     while nodes:
         in_annotation, node = nodes.pop()
         if not in_annotation and (
-            (isinstance(node, ast.Name)  # Case `NoDefault`
-            and node.id == "NoDefault")
-            or (isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
-            and node.attr == "NoDefault")
+            (
+                isinstance(node, ast.Name)  # Case `NoDefault`
+                and node.id == "NoDefault"
+            )
+            or (
+                isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
+                and node.attr == "NoDefault"
+            )
         ):
             yield (node.lineno, "NoDefault is used not only for typing")
 
@@ -348,6 +340,7 @@ def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[tuple[int,
                     for value in reversed(value)
                     if isinstance(value, ast.AST)
                 )
+
 
 def doesnt_use_pandas_warnings(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
     """
@@ -372,9 +365,8 @@ def doesnt_use_pandas_warnings(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
         if not isinstance(node, ast.Call):
             continue
 
-        if (
-            isinstance(node.func, ast.Attribute)
-            and isinstance(node.func.value, ast.Name)
+        if isinstance(node.func, ast.Attribute) and isinstance(
+            node.func.value, ast.Name
         ):
             # Check for `warnings.warn`.
             if node.func.value.id != "warnings" or node.func.attr != "warn":
@@ -388,10 +380,9 @@ def doesnt_use_pandas_warnings(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
             for k in range(node.lineno - 1, node.end_lineno + 1)
         ):
             continue
-        values = (
-                [arg.id for arg in node.args if isinstance(arg, ast.Name)]
-                + [kw.value.id for kw in node.keywords if kw.arg == "category"]
-        )
+        values = [arg.id for arg in node.args if isinstance(arg, ast.Name)] + [
+            kw.value.id for kw in node.keywords if kw.arg == "category"
+        ]
         for value in values:
             matches = re.match(DEPRECATION_WARNINGS_PATTERN, value)
             if matches is not None:
@@ -399,7 +390,7 @@ def doesnt_use_pandas_warnings(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
                     node.lineno,
                     f"Don't use {matches[0]}, use a pandas-specific warning in "
                     f"pd.errors instead. You can add "
-                    f"`# pdlint: ignore[warning_class]` to override."
+                    f"`# pdlint: ignore[warning_class]` to override.",
                 )
 
 
