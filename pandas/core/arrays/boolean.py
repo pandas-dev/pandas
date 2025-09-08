@@ -43,7 +43,10 @@ class BooleanDtype(BaseMaskedDtype):
     """
     Extension dtype for boolean data, with support for missing values.
 
-    BooleanDtype is used to represent boolean data (True/False) with the ability to handle missing (NA) values through pandas' extension dtype system. This allows for efficient storage, computation, and interoperability with nullable boolean arrays in pandas objects.
+    BooleanDtype is used to represent boolean data (True/False), with the ability to
+    handle missing (NA) values through pandas' extension dtype system. This allows
+    for efficient storage, computation, and interoperability with nullable boolean
+    arrays in pandas objects.
 
     .. warning::
 
