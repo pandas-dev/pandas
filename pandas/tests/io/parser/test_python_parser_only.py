@@ -432,7 +432,7 @@ def test_on_bad_lines_callable_not_expected_length(python_parser_only):
     bad_sio = StringIO(data)
 
     result = parser.read_csv_check_warnings(
-        ParserWarning, "Length of header or names", bad_sio, on_bad_lines=lambda x: x
+        ParserWarning, "from bad_lines callable", bad_sio, on_bad_lines=lambda x: x
     )
     expected = DataFrame({"a": [1, 2, 3], "b": [2, 3, 4]})
     tm.assert_frame_equal(result, expected)
@@ -568,21 +568,16 @@ def test_no_thousand_convert_for_non_numeric_cols(python_parser_only, dtype, exp
 def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
     python_parser_only, index_col
 ):
-    """
-    GH#61837 regression: callable on_bad_lines returning extra fields must emit a
-    ParserWarning and drop extras regardless of index_col. [2][3]
-    """
+    # GH#61837
     parser = python_parser_only
     data = "id,field_1,field_2\n101,A,B\n102,C,D,E\n103,F,G\n"
 
     def fixer(bad_line):
-        # Over-return to trigger truncation + warning
         return list(bad_line) + ["EXTRA1", "EXTRA2"]
 
-    # Assert ParserWarning is emitted using module helper
-    df = parser.read_csv_check_warnings(
+    result = parser.read_csv_check_warnings(
         ParserWarning,
-        "Length of header or names",
+        "from bad_lines callable",
         StringIO(data),
         on_bad_lines=fixer,
         index_col=index_col,
@@ -602,4 +597,4 @@ def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
             index=Index([101, 102, 103], name="id"),
         )
 
-    tm.assert_frame_equal(df, expected)
+    tm.assert_frame_equal(result, expected)
