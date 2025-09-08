@@ -50,21 +50,20 @@ class BooleanDtype(BaseMaskedDtype):
 
     .. warning::
 
-    BooleanDtype is considered experimental. The implementation and
-    parts of the API may change without warning.
+        BooleanDtype is considered experimental. The implementation and
+        parts of the API may change without warning.
 
     Attributes
     ----------
     name : str
         String identifying the dtype ('boolean').
-    na_value : pandas.NA
-        The scalar missing value used for this dtype.
     kind : str
         The kind of data ('b' for boolean).
     numpy_dtype : numpy.dtype
         The underlying NumPy dtype used ('bool').
     type : type
         The scalar type for elements of this dtype (np.bool_).
+
 
     See Also
     --------
@@ -74,7 +73,7 @@ class BooleanDtype(BaseMaskedDtype):
     Series : One-dimensional ndarray with axis labels.
     DataFrame : Two-dimensional, size-mutable, tabular data.
 
-    Examples
+   Examples
     --------
     Create a Series with BooleanDtype:
 
