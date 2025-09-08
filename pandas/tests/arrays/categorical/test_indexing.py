@@ -223,7 +223,7 @@ class TestCategoricalIndexing:
     @pytest.mark.parametrize("dtype", [None, "category", "key"])
     def test_get_indexer_non_unique(self, idx_values, key_values, key_class, dtype):
         # GH 21448
-        key = key_class(key_values, categories=range(1, 5))
+        key = key_class(key_values, categories=range(1, 6))
 
         if dtype == "key":
             dtype = key.dtype

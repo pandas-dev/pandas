@@ -77,7 +77,7 @@ By passing a :class:`pandas.Categorical` object to a ``Series`` or assigning it 
 .. ipython:: python
 
     raw_cat = pd.Categorical(
-        ["a", "b", "c", "a"], categories=["b", "c", "d"], ordered=False
+        [None, "b", "c", None], categories=["b", "c", "d"], ordered=False
     )
     s = pd.Series(raw_cat)
     s
@@ -145,7 +145,7 @@ of :class:`~pandas.api.types.CategoricalDtype`.
 
     from pandas.api.types import CategoricalDtype
 
-    s = pd.Series(["a", "b", "c", "a"])
+    s = pd.Series([None, "b", "c", None])
     cat_type = CategoricalDtype(categories=["b", "c", "d"], ordered=True)
     s_cat = s.astype(cat_type)
     s_cat

@@ -499,11 +499,14 @@ When using ``dtype=CategoricalDtype``, "unexpected" values outside of
 ``dtype.categories`` are treated as missing values.
 
 .. ipython:: python
+   :okwarning:
 
    dtype = CategoricalDtype(["a", "b", "d"])  # No 'c'
    pd.read_csv(StringIO(data), dtype={"col1": dtype}).col1
 
-This matches the behavior of :meth:`Categorical.set_categories`.
+This matches the behavior of :meth:`Categorical.set_categories`. This behavior is
+deprecated. In a future version, the presence of non-NA values that are not
+among the specified categories will raise.
 
 .. note::
 
