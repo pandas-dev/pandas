@@ -513,7 +513,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             return np.asarray(self, dtype=dtype)
 
-    @overload
+    @overload  # type: ignore[override]
     def view(self) -> Self: ...
 
     @overload

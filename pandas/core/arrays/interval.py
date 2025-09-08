@@ -1378,7 +1378,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Parameters
         ----------
-        other : %(klass)s
+        other : Interval
             Interval to check against for an overlap.
 
         Returns
