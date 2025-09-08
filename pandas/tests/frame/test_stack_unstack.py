@@ -105,8 +105,12 @@ class TestDataFrameReshape:
         )
         tm.assert_frame_equal(result, expected)
 
-        # From a series with incorrect data type for fill_value
-        result = data.unstack(fill_value=0.5)
+        msg = (
+            "Using a fill_value that cannot be held in the existing dtype is deprecated"
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            # From a series with incorrect data type for fill_value
+            result = data.unstack(fill_value=0.5)
         expected = DataFrame(
             {"a": [1, 0.5, 5], "b": [2, 4, 0.5]}, index=["x", "y", "z"], dtype=float
         )
@@ -161,8 +165,12 @@ class TestDataFrameReshape:
         expected["B"] = expected["B"].astype(np.float64)
         tm.assert_frame_equal(result, expected)
 
-        # From a dataframe with incorrect data type for fill_value
-        result = df.unstack(fill_value=0.5)
+        msg = (
+            "Using a fill_value that cannot be held in the existing dtype is deprecated"
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            # From a dataframe with incorrect data type for fill_value
+            result = df.unstack(fill_value=0.5)
 
         rows = [[1, 3, 2, 4], [0.5, 5, 0.5, 6], [7, 0.5, 8, 0.5]]
         expected = DataFrame(rows, index=list("xyz"), dtype=float)
