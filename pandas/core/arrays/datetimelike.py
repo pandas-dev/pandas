@@ -508,8 +508,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             return np.asarray(self, dtype=dtype)
 
-    @overload
-    def view(self) -> ExtensionArray: ...
+    @overload  # type: ignore[override]
+    def view(self) -> Self: ...
 
     @overload
     def view(self, dtype: Literal["M8[ns]"]) -> DatetimeArray: ...
