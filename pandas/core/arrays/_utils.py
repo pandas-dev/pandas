@@ -34,11 +34,11 @@ def to_numpy_dtype_inference(
                 if arr.dtype.kind in "iu":
                     result_dtype = np.dtype(np.float64)
                 else:
-                    result_dtype = arr.dtype.numpy_dtype
+                    result_dtype = arr.dtype.numpy_dtype  # type: ignore[union-attr]
                 if na_value is lib.no_default:
                     na_value = np.nan
         else:
-            result_dtype = arr.dtype.numpy_dtype
+            result_dtype = arr.dtype.numpy_dtype  # type: ignore[union-attr]
     elif dtype is not None:
         result_dtype = np.dtype(dtype)
     else:
