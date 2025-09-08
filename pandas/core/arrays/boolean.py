@@ -77,7 +77,6 @@ class BooleanDtype(BaseMaskedDtype):
     --------
     Create a Series with BooleanDtype:
 
-    >>> import pandas as pd
     >>> s = pd.Series([True, False, None], dtype='boolean')
     >>> s
     0     True
