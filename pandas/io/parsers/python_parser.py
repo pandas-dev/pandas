@@ -1189,11 +1189,19 @@ class PythonParser(ParserBase):
 
             for i, _content in iter_content:
                 actual_len = len(_content)
-
                 if actual_len > col_len:
                     if callable(self.on_bad_lines):
                         new_l = self.on_bad_lines(_content)
                         if new_l is not None:
+                            # Truncate extra elements and warn.
+                            if len(new_l) > col_len:
+                                warnings.warn(
+                                    "Header/names length != data length. "
+                                    "Extra fields dropped.",
+                                    ParserWarning,
+                                    stacklevel=find_stack_level(),
+                                )
+                                new_l = new_l[:col_len]
                             content.append(new_l)  # pyright: ignore[reportArgumentType]
                     elif self.on_bad_lines in (
                         self.BadLineHandleMethod.ERROR,
@@ -1201,9 +1209,10 @@ class PythonParser(ParserBase):
                     ):
                         row_num = self.pos - (content_len - i + footers)
                         bad_lines.append((row_num, actual_len))
-
                         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
                             break
+                    else:
+                        content.append(_content)
                 else:
                     content.append(_content)
 
