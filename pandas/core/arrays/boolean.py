@@ -41,30 +41,58 @@ if TYPE_CHECKING:
 @register_extension_dtype
 class BooleanDtype(BaseMaskedDtype):
     """
-    Extension dtype for boolean data.
+    Extension dtype for boolean data, with support for missing values.
+
+    BooleanDtype is used to represent boolean data (True/False) with the ability to handle missing (NA) values through pandas' extension dtype system. This allows for efficient storage, computation, and interoperability with nullable boolean arrays in pandas objects.
 
     .. warning::
 
-       BooleanDtype is considered experimental. The implementation and
-       parts of the API may change without warning.
+    BooleanDtype is considered experimental. The implementation and
+    parts of the API may change without warning.
 
     Attributes
     ----------
-    None
-
-    Methods
-    -------
-    None
+    name : str
+        String identifying the dtype ('boolean').
+    na_value : pandas.NA
+        The scalar missing value used for this dtype.
+    kind : str
+        The kind of data ('b' for boolean).
+    numpy_dtype : numpy.dtype
+        The underlying NumPy dtype used ('bool').
+    type : type
+        The scalar type for elements of this dtype (np.bool_).
 
     See Also
     --------
+    BooleanArray : Extension array for boolean data with missing values.
     StringDtype : Extension dtype for string data.
+    array : Create a pandas array with a specific dtype.
+    Series : One-dimensional ndarray with axis labels.
+    DataFrame : Two-dimensional, size-mutable, tabular data.
 
     Examples
     --------
+    Create a Series with BooleanDtype:
+
+    >>> import pandas as pd
+    >>> s = pd.Series([True, False, None], dtype='boolean')
+    >>> s
+    0     True
+    1    False
+    2     <NA>
+    dtype: boolean
+
+    You can construct BooleanDtype directly:
+
     >>> pd.BooleanDtype()
     BooleanDtype
-    """
+
+    Check that a Series has BooleanDtype:
+
+    >>> s.dtype
+    BooleanDtype
+"""
 
     name: ClassVar[str] = "boolean"
 
