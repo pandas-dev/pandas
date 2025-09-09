@@ -2415,9 +2415,6 @@ class ExtensionArray:
         See Series.rank.__doc__.
         """
 
-        if axis != 0:
-            raise NotImplementedError
-
         return rank(
             self,
             axis=axis,

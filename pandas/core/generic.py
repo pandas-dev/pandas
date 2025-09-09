@@ -9277,33 +9277,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError(msg)
 
         def ranker(blk_values):
-            if isinstance(blk_values, ExtensionArray) and blk_values.ndim == 1:
+            if axis_int == 0:
+                blk_values = blk_values.T
+            if isinstance(blk_values, ExtensionArray):
                 ranks = blk_values._rank(
-                    axis=0,
+                    axis=axis_int,
                     method=method,
                     ascending=ascending,
                     na_option=na_option,
                     pct=pct,
                 )
             else:
-                if axis_int == 0:
-                    ranks = algos.rank(
-                        blk_values.T,
-                        axis=axis_int,
-                        method=method,
-                        ascending=ascending,
-                        na_option=na_option,
-                        pct=pct,
-                    ).T
-                else:
-                    ranks = algos.rank(
-                        blk_values,
-                        axis=axis_int,
-                        method=method,
-                        ascending=ascending,
-                        na_option=na_option,
-                        pct=pct,
-                    )
+                ranks = algos.rank(
+                    blk_values,
+                    axis=axis_int,
+                    method=method,
+                    ascending=ascending,
+                    na_option=na_option,
+                    pct=pct,
+                )
+            if axis_int == 0:
+                ranks = ranks.T
             return ranks
 
         if numeric_only:
