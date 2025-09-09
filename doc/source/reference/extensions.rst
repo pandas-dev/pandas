@@ -68,7 +68,6 @@ objects.
       api.extensions.ExtensionArray.ndim
       api.extensions.ExtensionArray.shape
       api.extensions.ExtensionArray.tolist
-      api.extensions.ExtensionArray.value_counts
 
 Additionally, we have some utility methods for ensuring your object
 behaves correctly.
