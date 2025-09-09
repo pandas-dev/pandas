@@ -274,6 +274,36 @@ class TestDatetimeConcat:
         result = concat([first, second])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_concat_series_columns_nonoverlap_5min_units(self, unit):
+        # GH#58471
+        idx1 = date_range("2024-01-01", periods=24 * 12, freq="5min", unit=unit)
+        idx2 = date_range("2024-01-02", periods=24 * 12, freq="5min", unit=unit)
+        s1 = Series(np.arange(len(idx1)), index=idx1, name="a")
+        s2 = Series(np.arange(len(idx2)), index=idx2, name="b")
+        df = concat([s1, s2], axis=1)
+        result = df.index
+        expected = date_range("2024-01-01", "2024-01-02 23:55", freq="5min", unit=unit)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_concat_series_columns_month_end_units_order_insensitive(self, unit):
+        # GH#58471
+        idx1 = date_range(start="2015-01-31", end="2016-01-31", freq="ME", unit=unit)
+        idx2 = date_range(start="2015-02-28", end="2016-02-29", freq="ME", unit=unit)
+        s1 = Series(np.arange(len(idx1)), index=idx1, name="m1")
+        s2 = Series(np.arange(len(idx2)), index=idx2, name="m2")
+        df1 = concat([s1, s2], axis=1)
+        df2 = concat([s2, s1], axis=1)
+
+        result1 = df1.index
+        expected1 = idx1.union(idx2)
+        tm.assert_index_equal(result1, expected1)
+
+        result2 = df2.index
+        expected2 = idx2.union(idx1)
+        tm.assert_index_equal(result2, expected2)
+
 
 class TestTimezoneConcat:
     def test_concat_tz_series(self):
