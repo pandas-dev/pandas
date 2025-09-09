@@ -203,7 +203,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     Examples
     --------
     >>> t = pd.CategoricalDtype(categories=["b", "a"], ordered=True)
-    >>> pd.Series(["a", "b", "a", "c"], dtype=t)
+    >>> pd.Series(["a", "b", "a", None], dtype=t)
     0      a
     1      b
     2      a
