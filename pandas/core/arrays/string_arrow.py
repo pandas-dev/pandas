@@ -16,8 +16,7 @@ from pandas._libs import (
 )
 from pandas.compat import (
     HAS_PYARROW,
-    pa_version_under12p1,
-    pa_version_under13p0,
+    PYARROW_MIN_VERSION,
     pa_version_under16p0,
 )
 from pandas.util._exceptions import find_stack_level
@@ -55,6 +54,7 @@ if TYPE_CHECKING:
         ArrayLike,
         Dtype,
         NpDtype,
+        Scalar,
         npt,
     )
 
@@ -63,9 +63,12 @@ if TYPE_CHECKING:
     from pandas import Series
 
 
-def _chk_pyarrow_available() -> None:
-    if pa_version_under12p1:
-        msg = "pyarrow>=12.0.1 is required for PyArrow backed ArrowExtensionArray."
+def _check_pyarrow_available() -> None:
+    if not HAS_PYARROW:
+        msg = (
+            f"pyarrow>={PYARROW_MIN_VERSION} is required for PyArrow "
+            "backed ArrowExtensionArray."
+        )
         raise ImportError(msg)
 
 
@@ -127,7 +130,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _dtype: StringDtype  # type: ignore[assignment]
 
     def __init__(self, values, *, dtype: StringDtype | None = None) -> None:
-        _chk_pyarrow_available()
+        _check_pyarrow_available()
         if isinstance(values, (pa.Array, pa.ChunkedArray)) and (
             pa.types.is_string(values.type)
             or _is_string_view(values.type)
@@ -193,7 +196,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     ) -> Self:
         from pandas.core.arrays.masked import BaseMaskedArray
 
-        _chk_pyarrow_available()
+        _check_pyarrow_available()
 
         if dtype and not (isinstance(dtype, str) and dtype == "string"):
             dtype = pandas_dtype(dtype)
@@ -240,11 +243,12 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
         if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
+            # TODO: Enforce in 3.0 (#59615)
             # GH#59561
             warnings.warn(
                 f"Allowing a non-bool 'na' in obj.str.{method_name} is deprecated "
                 "and will raise in a future version.",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore[warning_class]
                 stacklevel=find_stack_level(),
             )
             na = bool(na)
@@ -332,14 +336,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_startswith = ArrowStringArrayMixin._str_startswith
     _str_endswith = ArrowStringArrayMixin._str_endswith
     _str_pad = ArrowStringArrayMixin._str_pad
-    _str_match = ArrowStringArrayMixin._str_match
-    _str_fullmatch = ArrowStringArrayMixin._str_fullmatch
     _str_lower = ArrowStringArrayMixin._str_lower
     _str_upper = ArrowStringArrayMixin._str_upper
     _str_strip = ArrowStringArrayMixin._str_strip
     _str_lstrip = ArrowStringArrayMixin._str_lstrip
     _str_rstrip = ArrowStringArrayMixin._str_rstrip
     _str_removesuffix = ArrowStringArrayMixin._str_removesuffix
+    _str_removeprefix = ArrowStringArrayMixin._str_removeprefix
+    _str_find = ArrowStringArrayMixin._str_find
     _str_get = ArrowStringArrayMixin._str_get
     _str_capitalize = ArrowStringArrayMixin._str_capitalize
     _str_title = ArrowStringArrayMixin._str_title
@@ -347,6 +351,28 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _str_slice_replace = ArrowStringArrayMixin._str_slice_replace
     _str_len = ArrowStringArrayMixin._str_len
     _str_slice = ArrowStringArrayMixin._str_slice
+
+    @staticmethod
+    def _is_re_pattern_with_flags(pat: str | re.Pattern) -> bool:
+        # check if `pat` is a compiled regex pattern with flags that are not
+        # supported by pyarrow
+        return (
+            isinstance(pat, re.Pattern)
+            and (pat.flags & ~(re.IGNORECASE | re.UNICODE)) != 0
+        )
+
+    @staticmethod
+    def _preprocess_re_pattern(pat: re.Pattern, case: bool) -> tuple[str, bool, int]:
+        pattern = pat.pattern
+        flags = pat.flags
+        # flags is not supported by pyarrow, but `case` is -> extract and remove
+        if flags & re.IGNORECASE:
+            case = False
+            flags = flags & ~re.IGNORECASE
+        # when creating a pattern with re.compile and a string, it automatically
+        # gets a UNICODE flag, while pyarrow assumes unicode for strings anyway
+        flags = flags & ~re.UNICODE
+        return pattern, case, flags
 
     def _str_contains(
         self,
@@ -356,12 +382,41 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         na=lib.no_default,
         regex: bool = True,
     ):
-        if flags:
+        if flags or self._is_re_pattern_with_flags(pat):
             return super()._str_contains(pat, case, flags, na, regex)
         if isinstance(pat, re.Pattern):
-            pat = pat.pattern
+            # TODO flags passed separately by user are ignored
+            pat, case, flags = self._preprocess_re_pattern(pat, case)
 
         return ArrowStringArrayMixin._str_contains(self, pat, case, flags, na, regex)
+
+    def _str_match(
+        self,
+        pat: str | re.Pattern,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
+    ):
+        if flags or self._is_re_pattern_with_flags(pat):
+            return super()._str_match(pat, case, flags, na)
+        if isinstance(pat, re.Pattern):
+            pat, case, flags = self._preprocess_re_pattern(pat, case)
+
+        return ArrowStringArrayMixin._str_match(self, pat, case, flags, na)
+
+    def _str_fullmatch(
+        self,
+        pat: str | re.Pattern,
+        case: bool = True,
+        flags: int = 0,
+        na: Scalar | lib.NoDefault = lib.no_default,
+    ):
+        if flags or self._is_re_pattern_with_flags(pat):
+            return super()._str_fullmatch(pat, case, flags, na)
+        if isinstance(pat, re.Pattern):
+            pat, case, flags = self._preprocess_re_pattern(pat, case)
+
+        return ArrowStringArrayMixin._str_fullmatch(self, pat, case, flags, na)
 
     def _str_replace(
         self,
@@ -385,26 +440,11 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         else:
             return ArrowExtensionArray._str_repeat(self, repeats=repeats)
 
-    def _str_removeprefix(self, prefix: str):
-        if not pa_version_under13p0:
-            return ArrowStringArrayMixin._str_removeprefix(self, prefix)
-        return super()._str_removeprefix(prefix)
-
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
             return super()._str_count(pat, flags)
         result = pc.count_substring_regex(self._pa_array, pat)
         return self._convert_int_result(result)
-
-    def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if (
-            pa_version_under13p0
-            and not (start != 0 and end is not None)
-            and not (start == 0 and end is None)
-        ):
-            # GH#59562
-            return super()._str_find(sub, start, end)
-        return ArrowStringArrayMixin._str_find(self, sub, start, end)
 
     def _str_get_dummies(self, sep: str = "|", dtype: NpDtype | None = None):
         if dtype is None:
