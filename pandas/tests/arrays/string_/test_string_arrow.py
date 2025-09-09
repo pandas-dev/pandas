@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -14,7 +15,6 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
-    ArrowStringArrayNumpySemantics,
 )
 
 
@@ -26,10 +26,10 @@ def test_eq_all_na():
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_config(string_storage, using_infer_string):
+def test_config(string_storage):
     # with the default string_storage setting
     # always "python" at the moment
-    assert StringDtype().storage == "python"
+    assert StringDtype().storage == "pyarrow" if HAS_PYARROW else "python"
 
     with pd.option_context("string_storage", string_storage):
         assert StringDtype().storage == string_storage
@@ -178,16 +178,13 @@ def test_from_sequence_wrong_dtype_raises(using_infer_string):
 
 @td.skip_if_installed("pyarrow")
 def test_pyarrow_not_installed_raises():
-    msg = re.escape("pyarrow>=12.0.1 is required for PyArrow backed")
+    msg = re.escape("pyarrow>=13.0.0 is required for PyArrow backed")
 
     with pytest.raises(ImportError, match=msg):
         StringDtype(storage="pyarrow")
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray([])
-
-    with pytest.raises(ImportError, match=msg):
-        ArrowStringArrayNumpySemantics([])
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray._from_sequence(["a", None, "b"])

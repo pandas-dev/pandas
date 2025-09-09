@@ -20,12 +20,14 @@ def __getattr__(name: str):
     # GH#55139
     import warnings
 
+    from pandas.errors import Pandas4Warning
+
     if name == "create_block_manager_from_blocks":
-        # GH#33892
+        # GH#33892, GH#58715
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
-            FutureWarning,
+            Pandas4Warning,
             # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
             # on hard-coding stacklevel
             stacklevel=2,
@@ -42,7 +44,7 @@ def __getattr__(name: str):
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
-            FutureWarning,
+            Pandas4Warning,
             # https://github.com/pandas-dev/pandas/pull/55139#pullrequestreview-1720690758
             # on hard-coding stacklevel
             stacklevel=2,

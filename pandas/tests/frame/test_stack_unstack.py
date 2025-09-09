@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -104,8 +105,12 @@ class TestDataFrameReshape:
         )
         tm.assert_frame_equal(result, expected)
 
-        # From a series with incorrect data type for fill_value
-        result = data.unstack(fill_value=0.5)
+        msg = (
+            "Using a fill_value that cannot be held in the existing dtype is deprecated"
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            # From a series with incorrect data type for fill_value
+            result = data.unstack(fill_value=0.5)
         expected = DataFrame(
             {"a": [1, 0.5, 5], "b": [2, 4, 0.5]}, index=["x", "y", "z"], dtype=float
         )
@@ -160,8 +165,12 @@ class TestDataFrameReshape:
         expected["B"] = expected["B"].astype(np.float64)
         tm.assert_frame_equal(result, expected)
 
-        # From a dataframe with incorrect data type for fill_value
-        result = df.unstack(fill_value=0.5)
+        msg = (
+            "Using a fill_value that cannot be held in the existing dtype is deprecated"
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            # From a dataframe with incorrect data type for fill_value
+            result = df.unstack(fill_value=0.5)
 
         rows = [[1, 3, 2, 4], [0.5, 5, 0.5, 6], [7, 0.5, 8, 0.5]]
         expected = DataFrame(rows, index=list("xyz"), dtype=float)
@@ -255,8 +264,8 @@ class TestDataFrameReshape:
         result = data.unstack()
         expected = DataFrame(
             {
-                "a": pd.Categorical(list("axa"), categories=list("abc")),
-                "b": pd.Categorical(list("bcx"), categories=list("abc")),
+                "a": pd.Categorical(["a", None, "a"], categories=list("abc")),
+                "b": pd.Categorical(["b", "c", None], categories=list("abc")),
             },
             index=list("xyz"),
         )
@@ -1066,7 +1075,7 @@ class TestDataFrameReshape:
         # GH 8039
         t = datetime(2014, 1, 1)
         df = DataFrame([1, 2, 3, 4], columns=MultiIndex.from_tuples([(t, "A", "B")]))
-        warn = None if future_stack else FutureWarning
+        warn = None if future_stack else Pandas4Warning
         msg = "The previous implementation of stack is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
             result = df.stack(future_stack=future_stack)

@@ -38,7 +38,6 @@ from pandas.compat import (
     PY312,
     is_ci_environment,
     is_platform_windows,
-    pa_version_under13p0,
     pa_version_under14p0,
     pa_version_under19p0,
     pa_version_under20p0,
@@ -46,6 +45,7 @@ from pandas.compat import (
 )
 from pandas.errors import Pandas4Warning
 
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     CategoricalDtypeType,
@@ -271,6 +271,26 @@ def data_for_twos(data):
 
 
 class TestArrowArray(base.ExtensionTests):
+    def _construct_for_combine_add(self, left, right):
+        dtype = left.dtype
+
+        # in a couple cases, addition is not dtype-preserving
+        if dtype == "bool[pyarrow]":
+            dtype = pandas_dtype("int64[pyarrow]")
+        elif dtype == "int8[pyarrow]" and isinstance(right, type(left)):
+            dtype = pandas_dtype("int64[pyarrow]")
+
+        if isinstance(right, type(left)):
+            return left._from_sequence(
+                [a + b for (a, b) in zip(list(left), list(right))],
+                dtype=dtype,
+            )
+        else:
+            return left._from_sequence(
+                [a + right for a in list(left)],
+                dtype=dtype,
+            )
+
     def test_compare_scalar(self, data, comparison_op):
         ser = pd.Series(data)
         self._compare_other(ser, data, comparison_op, data[0])
@@ -411,20 +431,7 @@ class TestArrowArray(base.ExtensionTests):
                 data, all_numeric_accumulations, skipna
             )
 
-        if pa_version_under13p0 and all_numeric_accumulations != "cumsum":
-            # xfailing takes a long time to run because pytest
-            # renders the exception messages even when not showing them
-            opt = request.config.option
-            if opt.markexpr and "not slow" in opt.markexpr:
-                pytest.skip(
-                    f"{all_numeric_accumulations} not implemented for pyarrow < 9"
-                )
-            mark = pytest.mark.xfail(
-                reason=f"{all_numeric_accumulations} not implemented for pyarrow < 9"
-            )
-            request.applymarker(mark)
-
-        elif all_numeric_accumulations == "cumsum" and (
+        if all_numeric_accumulations == "cumsum" and (
             pa.types.is_boolean(pa_type) or pa.types.is_decimal(pa_type)
         ):
             request.applymarker(
@@ -786,6 +793,8 @@ class TestArrowArray(base.ExtensionTests):
 
         return tm.get_op_from_name(op_name)
 
+    # TODO: use EA._cast_pointwise_result, same with other test files that
+    #  override this
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         # BaseOpsUtil._combine can upcast expected dtype
         # (because it generates expected on python scalars)
@@ -795,16 +804,28 @@ class TestArrowArray(base.ExtensionTests):
         if op_name in ["eq", "ne", "lt", "le", "gt", "ge"]:
             return pointwise_result.astype("boolean[pyarrow]")
 
+        original_dtype = tm.get_dtype(expected)
+
         was_frame = False
         if isinstance(expected, pd.DataFrame):
             was_frame = True
             expected_data = expected.iloc[:, 0]
-            original_dtype = obj.iloc[:, 0].dtype
         else:
             expected_data = expected
-            original_dtype = obj.dtype
 
-        orig_pa_type = original_dtype.pyarrow_dtype
+        # the pointwise method will have retained our original dtype, while
+        #  the op(ser, other) version will have cast to 64bit
+        if type(other) is int and op_name not in ["__floordiv__"]:
+            if original_dtype.kind == "f":
+                return expected.astype("float64[pyarrow]")
+            else:
+                return expected.astype("int64[pyarrow]")
+        elif type(other) is float:
+            return expected.astype("float64[pyarrow]")
+
+        # error: Item "ExtensionDtype" of "dtype[Any] | ExtensionDtype" has
+        #  no attribute "pyarrow_dtype"
+        orig_pa_type = original_dtype.pyarrow_dtype  # type: ignore[union-attr]
         if not was_frame and isinstance(other, pd.Series):
             # i.e. test_arith_series_with_array
             if not (
@@ -834,29 +855,7 @@ class TestArrowArray(base.ExtensionTests):
 
         pa_expected = pa.array(expected_data._values)
 
-        if pa.types.is_duration(pa_expected.type):
-            if pa.types.is_date(orig_pa_type):
-                if pa.types.is_date64(orig_pa_type):
-                    # TODO: why is this different vs date32?
-                    unit = "ms"
-                else:
-                    unit = "s"
-            else:
-                # pyarrow sees sequence of datetime/timedelta objects and defaults
-                #  to "us" but the non-pointwise op retains unit
-                # timestamp or duration
-                unit = orig_pa_type.unit
-                if type(other) in [datetime, timedelta] and unit in ["s", "ms"]:
-                    # pydatetime/pytimedelta objects have microsecond reso, so we
-                    #  take the higher reso of the original and microsecond. Note
-                    #  this matches what we would do with DatetimeArray/TimedeltaArray
-                    unit = "us"
-
-            pa_expected = pa_expected.cast(f"duration[{unit}]")
-
-        elif pa.types.is_decimal(pa_expected.type) and pa.types.is_decimal(
-            orig_pa_type
-        ):
+        if pa.types.is_decimal(pa_expected.type) and pa.types.is_decimal(orig_pa_type):
             # decimal precision can resize in the result type depending on data
             # just compare the float values
             alt = getattr(obj, op_name)(other)
@@ -1930,9 +1929,6 @@ def test_str_find_large_start():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
-)
 @pytest.mark.parametrize("start", [-15, -3, 0, 1, 15, None])
 @pytest.mark.parametrize("end", [-15, -1, 0, 3, 15, None])
 @pytest.mark.parametrize("sub", ["", "az", "abce", "a", "caa"])
@@ -3320,9 +3316,9 @@ def test_factorize_chunked_dictionary():
     )
     ser = pd.Series(ArrowExtensionArray(pa_array))
     res_indices, res_uniques = ser.factorize()
-    exp_indicies = np.array([0, 1], dtype=np.intp)
+    exp_indices = np.array([0, 1], dtype=np.intp)
     exp_uniques = pd.Index(ArrowExtensionArray(pa_array.combine_chunks()))
-    tm.assert_numpy_array_equal(res_indices, exp_indicies)
+    tm.assert_numpy_array_equal(res_indices, exp_indices)
     tm.assert_index_equal(res_uniques, exp_uniques)
 
 
@@ -3459,9 +3455,6 @@ def test_string_to_datetime_parsing_cast():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
-)
 def test_interpolate_not_numeric(data):
     if not data.dtype._is_numeric:
         ser = pd.Series(data)
@@ -3470,9 +3463,6 @@ def test_interpolate_not_numeric(data):
             pd.Series(data).interpolate()
 
 
-@pytest.mark.skipif(
-    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
-)
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_interpolate_linear(dtype):
     ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)
