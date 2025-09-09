@@ -35,7 +35,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
-    maybe_cast_pointwise_result,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -44,7 +43,6 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     ensure_uint64,
     is_1d_only_ea_dtype,
-    is_string_dtype,
 )
 from pandas.core.dtypes.missing import (
     isna,
@@ -52,7 +50,6 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core.arrays import Categorical
-from pandas.core.arrays.arrow.array import ArrowExtensionArray
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import grouper
 from pandas.core.indexes.api import (
@@ -721,7 +718,7 @@ class BaseGrouper:
             return self.groupings[0].groups
         result_index, ids = self.result_index_and_ids
         values = result_index._values
-        categories = Categorical(ids, categories=range(len(result_index)))
+        categories = Categorical.from_codes(ids, categories=range(len(result_index)))
         result = {
             # mypy is not aware that group has to be an integer
             values[group]: self.axis.take(axis_ilocs)  # type: ignore[call-overload]
@@ -966,29 +963,7 @@ class BaseGrouper:
         np.ndarray or ExtensionArray
         """
         result = self._aggregate_series_pure_python(obj, func)
-        npvalues = lib.maybe_convert_objects(result, try_float=False)
-
-        if isinstance(obj._values, ArrowExtensionArray):
-            # When obj.dtype is a string, any object can be cast. Only do so if the
-            # UDF returned strings or NA values.
-            if not is_string_dtype(obj.dtype) or lib.is_string_array(
-                npvalues, skipna=True
-            ):
-                out = maybe_cast_pointwise_result(
-                    npvalues, obj.dtype, numeric_only=True, same_dtype=preserve_dtype
-                )
-            else:
-                out = npvalues
-
-        elif not isinstance(obj._values, np.ndarray):
-            # we can preserve a little bit more aggressively with EA dtype
-            #  because maybe_cast_pointwise_result will do a try/except
-            #  with _from_sequence.  NB we are assuming here that _from_sequence
-            #  is sufficiently strict that it casts appropriately.
-            out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
-        else:
-            out = npvalues
-        return out
+        return obj.array._cast_pointwise_result(result)
 
     @final
     def _aggregate_series_pure_python(
