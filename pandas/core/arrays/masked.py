@@ -1395,9 +1395,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         return self._wrap_reduction_result("max", result, skipna=skipna, axis=axis)
 
-    def map(self, mapper, 
-            na_action: Literal["ignore"] | None = None,
-            preserve_dtype: bool = False):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None = None,
+        preserve_dtype: bool = False,
+    ):
         """See ExtensionArray.map."""
         result = map_array(self.to_numpy(), mapper, na_action=na_action)
         if preserve_dtype:
