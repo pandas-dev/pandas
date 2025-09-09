@@ -2516,9 +2516,12 @@ class ExtensionArray:
 
         return arraylike.default_array_ufunc(self, ufunc, method, *inputs, **kwargs)
 
-    def map(self, mapper, 
-            na_action: Literal["ignore"] | None = None,
-            preserve_dtype: bool = False):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None = None,
+        preserve_dtype: bool = False,
+    ):
         """
         Map values using an input mapping or function.
 
