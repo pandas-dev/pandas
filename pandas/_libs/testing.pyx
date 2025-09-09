@@ -52,7 +52,7 @@ cpdef assert_dict_equal(a, b, bint compare_keys=True):
 
 cpdef assert_almost_equal(a, b,
                           rtol=1.e-5, atol=1.e-8,
-                          bint check_dtype=True,
+                          bint check_dtype=True, bint strict_na=True,
                           obj=None, lobj=None, robj=None, index_values=None):
     """
     Check that left and right objects are almost equal.
@@ -67,6 +67,7 @@ cpdef assert_almost_equal(a, b,
         Absolute tolerance.
     check_dtype: bool, default True
         check dtype if both a and b are np.ndarray.
+    strict_na : bool, default True
     obj : str, default None
         Specify object name being compared, internally used to show
         appropriate assertion message.
@@ -155,7 +156,9 @@ cpdef assert_almost_equal(a, b,
 
         for i in range(len(a)):
             try:
-                assert_almost_equal(a[i], b[i], rtol=rtol, atol=atol)
+                assert_almost_equal(
+                    a[i], b[i], rtol=rtol, atol=atol, strict_na=strict_na
+                )
             except AssertionError:
                 is_unequal = True
                 diff += 1
@@ -185,8 +188,10 @@ cpdef assert_almost_equal(a, b,
         if is_matching_na(a, b, nan_matches_none=False):
             return True
         elif checknull(b):
-            # GH#18463
-            raise AssertionError(f"Mismatched null-like values {a} != {b}")
+            if strict_na:
+                raise AssertionError(f"Mismatched null-like values {a} != {b}")
+            else:
+                return True
         raise AssertionError(f"{a} != {b}")
     elif checknull(b):
         raise AssertionError(f"{a} != {b}")
