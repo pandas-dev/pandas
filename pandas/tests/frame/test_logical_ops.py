@@ -24,19 +24,31 @@ class TestDataFrameLogicalOperators:
                 [True, False, np.nan],
                 [True, False, True],
                 operator.and_,
-                [True, False, False],
+                [
+                    True,
+                    False,
+                    np.nan,
+                ],  # changed last element, Kleene AND with Unknown gives Unknown
             ),
             (
                 [True, False, True],
                 [True, False, np.nan],
                 operator.and_,
-                [True, False, False],
+                [
+                    True,
+                    False,
+                    np.nan,
+                ],  # changed last element, Kleene AND with Unknown gives Unknown
             ),
             (
                 [True, False, np.nan],
                 [True, False, True],
                 operator.or_,
-                [True, False, False],
+                [
+                    True,
+                    False,
+                    True,
+                ],  # change last element, Kleene Or of True and unknown gives true
             ),
             (
                 [True, False, True],
@@ -157,16 +169,21 @@ class TestDataFrameLogicalOperators:
     def test_logical_with_nas(self):
         d = DataFrame({"a": [np.nan, False], "b": [True, True]})
 
-        # GH4947
-        # bool comparisons should return bool
+        # In Kleene logic:
+        # NaN OR True  → True
+        # False OR True → True
         result = d["a"] | d["b"]
-        expected = Series([False, True])
+        expected = Series([True, True])
         tm.assert_series_equal(result, expected)
 
-        # GH4604, automatic casting here
+        # If we explicitly fill NaN with False first:
+        # row0: False OR True → True
+        # row1: False OR True → True
         result = d["a"].fillna(False) | d["b"]
         expected = Series([True, True])
         tm.assert_series_equal(result, expected)
+
+        # Redundant check (same as above)
         result = d["a"].fillna(False) | d["b"]
         expected = Series([True, True])
         tm.assert_series_equal(result, expected)

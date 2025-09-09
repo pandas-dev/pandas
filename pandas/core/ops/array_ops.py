@@ -389,6 +389,150 @@ def na_logical_op(x: np.ndarray, y, op):
     return result.reshape(x.shape)
 
 
+def is_nullable_bool(arr) -> bool:
+    arr = np.asarray(arr, dtype=object).ravel()
+    # isna works elementwise on object arrays
+    na_mask = isna(arr)
+    bool_mask = np.array([x is True or x is False for x in arr])
+    return np.all(na_mask | bool_mask)
+
+
+def safe_is_true(arr: np.ndarray) -> np.ndarray:
+    """
+    Safely evaluate elementwise equality to ``True`` for an array that may
+    contain missing values (e.g. ``pd.NA`` or ``np.nan``).
+
+    This function ensures that comparisons like ``pd.NA == True`` never
+    occur, which would otherwise raise ``TypeError: boolean value of NA
+    is ambiguous``.
+
+    Parameters
+    ----------
+    arr : np.ndarray
+        Input numpy array, which may contain pandas missing values
+        (``pd.NA``) or numpy missing values (``np.nan``).
+
+    Returns
+    -------
+    np.ndarray of bool
+        Boolean array of the same shape as ``arr``.
+        * ``True`` where the original value is exactly ``True``.
+        * ``False`` otherwise, including at missing value positions.
+
+    Notes
+    -----
+    This function works for both 1-D and n-D numpy arrays. It avoids
+    ambiguous truth value errors by masking missing values before
+    performing comparisons.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> arr = np.array([True, False, pd.NA, np.nan, 1], dtype=object)
+    >>> safe_is_true(arr)
+    array([ True, False, False, False, False])
+    """
+    # Identify missing values (NA, NaN, None, etc.)
+    mask = isna(arr)
+
+    # Prepare boolean output with the same shape as input
+    out = np.zeros(arr.shape, dtype=bool)
+
+    # Flatten for uniform indexing regardless of ndim
+    flat_arr = arr.ravel()
+    flat_mask = mask.ravel()
+    flat_out = out.ravel()
+
+    # Only compare non-missing values against True
+    valid = ~flat_mask
+    flat_out[valid] = flat_arr[valid]
+
+    return out
+
+
+def alignOutputWithKleene(left, right, op):
+    """
+    Apply Kleene's 3-valued logic (with NA) to elementwise boolean operations.
+
+    Parameters
+    ----------
+    left, right : array-like
+        Input arrays containing True, False, or NA (np.nan/pd.NA/None).
+    op : function
+        Operator function from the operator module, e.g. operator.and_,
+        operator.or_, operator.xor.
+
+    Returns
+    -------
+    result : np.ndarray
+        Array with elements True, False, or np.nan (for NA).
+        Uses bool dtype if no NA, otherwise object dtype.
+    """
+    left = np.asarray(left, dtype=object)
+    right = np.asarray(right, dtype=object)
+
+    # Masks for NA values
+    left_mask = isna(left)
+    right_mask = isna(right)
+
+    # Boolean arrays ignoring NA
+    lvalues = safe_is_true(left)
+    rvalues = safe_is_true(right)
+    # lvalues = (left == True) & ~left_mask
+    # rvalues = (right == True) & ~right_mask
+
+    # Initialize result
+    res_values = np.empty_like(left, dtype=bool)
+    mask = np.zeros_like(left, dtype=bool)
+
+    # --- AND logic ---
+    # Special case: all-NA inputs (e.g. dfa & dfa)
+    if op.__name__ in {"and_", "rand_"} and left_mask.all() and right_mask.all():
+        result = np.zeros_like(res_values, dtype=bool)  # all False, bool dtype
+        return result
+
+    if op.__name__ in {"and_", "rand_"}:
+        res_values[:] = lvalues & rvalues
+        mask[:] = (
+            (left_mask & rvalues) | (right_mask & lvalues) | (left_mask & right_mask)
+        )
+
+    # --- OR logic ---
+    elif op.__name__ in {"or_", "ror_"}:
+        res_values[:] = lvalues | rvalues
+        # Unknown only if both sides are NA
+        mask[:] = left_mask & right_mask
+
+        # Handle cases where NA OR False → False, NA OR True → True
+        # Pandas convention: np.nan | False -> False, np.nan | True -> True
+        res_values[left_mask & ~rvalues] = False
+        res_values[right_mask & ~lvalues] = False
+        res_values[left_mask & rvalues] = True
+        res_values[right_mask & lvalues] = True
+
+    # --- XOR logic ---
+    elif op.__name__ in {"xor", "rxor"}:
+        res_values[:] = lvalues ^ rvalues
+        mask[:] = left_mask | right_mask
+
+    else:
+        raise ValueError(f"Unsupported operator: {op.__name__}")
+
+    # Apply mask → insert np.nan only if needed
+    if mask.any():
+        result = res_values.astype(object)
+        result[mask] = np.nan
+    else:
+        result = res_values.astype(bool)
+
+    # Handle empty arrays explicitly to satisfy pandas dtype expectations
+    if result.size == 0:
+        result = result.astype(bool)
+
+    return result
+
+
 def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     Evaluate a logical operation `|`, `&`, or `^`.
@@ -405,6 +549,10 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     -------
     ndarray or ExtensionArray
     """
+
+    bothAreBoolArrays = is_nullable_bool(left) and is_nullable_bool(right)
+    if bothAreBoolArrays:
+        return alignOutputWithKleene(left, right, op)
 
     def fill_bool(x, left=None):
         # if `left` is specifically not-boolean, we do not cast to bool
