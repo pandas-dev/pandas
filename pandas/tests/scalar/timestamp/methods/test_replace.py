@@ -199,7 +199,7 @@ class TestTimestampReplace:
     def test_replace_updates_unit(self):
         # GH#57749
         ts = Timestamp("2023-07-15 23:08:12.134567123")
-        ts2 = Timestamp(datetime.utcfromtimestamp(int(ts.timestamp())))
+        ts2 = Timestamp("2023-07-15 23:08:12.000000")
         assert ts2.unit == "us"
         result = ts2.replace(microsecond=ts.microsecond, nanosecond=ts.nanosecond)
         assert result.unit == "ns"
