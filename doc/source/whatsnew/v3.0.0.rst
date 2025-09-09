@@ -647,6 +647,7 @@ Other Deprecations
 - Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
 - Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
 - Deprecated ``pd.core.internals.api.maybe_infer_ndim`` (:issue:`40226`)
+- Deprecated allowing constructing or casting to :class:`Categorical` with non-NA values that are not present in specified ``dtype.categories`` (:issue:`40996`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.all`, :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`DataFrame.mean`, :meth:`DataFrame.median`, :meth:`DataFrame.sem`, :meth:`DataFrame.var`, :meth:`DataFrame.std`, :meth:`DataFrame.skew`, :meth:`DataFrame.kurt`, :meth:`Series.all`,  :meth:`Series.min`, :meth:`Series.max`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`Series.mean`, :meth:`Series.median`, :meth:`Series.sem`, :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.skew`, and :meth:`Series.kurt`. (:issue:`57087`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_markdown` except ``buf``. (:issue:`57280`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_string` except ``buf``. (:issue:`57280`)
@@ -969,6 +970,8 @@ Indexing
 - Bug in reindexing of :class:`DataFrame` with :class:`PeriodDtype` columns in case of consolidated block (:issue:`60980`, :issue:`60273`)
 - Bug in :meth:`DataFrame.loc.__getitem__` and :meth:`DataFrame.iloc.__getitem__` with a :class:`CategoricalDtype` column with integer categories raising when trying to index a row containing a ``NaN`` entry (:issue:`58954`)
 - Bug in :meth:`Index.__getitem__` incorrectly raising with a 0-dim ``np.ndarray`` key (:issue:`55601`)
+- Bug in indexing on a :class:`DatetimeIndex` with a ``timestamp[pyarrow]`` dtype or on a :class:`TimedeltaIndex` with a ``duration[pyarrow]`` dtype (:issue:`62277`)
+-
 
 Missing
 ^^^^^^^
@@ -1137,6 +1140,7 @@ Other
 - Bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
 - Bug in :meth:`Series.dt` methods in :class:`ArrowDtype` that were returning incorrect values. (:issue:`57355`)
 - Bug in :meth:`Series.isin` raising ``TypeError`` when series is large (>10**6) and ``values`` contains NA (:issue:`60678`)
+- Bug in :meth:`Series.map` with a ``timestamp[pyarrow]`` dtype or ``duration[pyarrow]`` dtype incorrectly returning all-``NaN`` entries (:issue:`61231`)
 - Bug in :meth:`Series.mode` where an exception was raised when taking the mode with nullable types with no null values in the series. (:issue:`58926`)
 - Bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
 - Bug in :meth:`Series.replace` and :meth:`DataFrame.replace` throwing ``ValueError`` when ``regex=True`` and all NA values. (:issue:`60688`)
@@ -1149,8 +1153,10 @@ Other
 - Bug in ``divmod`` and ``rdivmod`` with :class:`DataFrame`, :class:`Series`, and :class:`Index` with ``bool`` dtypes failing to raise, which was inconsistent with ``__floordiv__`` behavior (:issue:`46043`)
 - Bug in printing a :class:`DataFrame` with a :class:`DataFrame` stored in :attr:`DataFrame.attrs` raised a ``ValueError`` (:issue:`60455`)
 - Bug in printing a :class:`Series` with a :class:`DataFrame` stored in :attr:`Series.attrs` raised a ``ValueError`` (:issue:`60568`)
+- Deprecated the keyword ``check_datetimelike_compat`` in :meth:`testing.assert_frame_equal` and :meth:`testing.assert_series_equal` (:issue:`55638`)
 - Fixed bug where the :class:`DataFrame` constructor misclassified array-like objects with a ``.name`` attribute as :class:`Series` or :class:`Index` (:issue:`61443`)
 - Fixed regression in :meth:`DataFrame.from_records` not initializing subclasses properly (:issue:`57008`)
+-
 
 .. ***DO NOT USE THIS SECTION***
 
