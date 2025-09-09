@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
 )
 
@@ -13,6 +14,7 @@ from pandas._libs import index as libindex
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.common import is_scalar
@@ -20,7 +22,6 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
-    isna,
 )
 
 from pandas.core.arrays.categorical import (
@@ -43,7 +44,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
-        Self,
         npt,
     )
 
@@ -76,6 +76,7 @@ if TYPE_CHECKING:
     Categorical,
     wrap=True,
 )
+@set_module("pandas")
 class CategoricalIndex(NDArrayBackedExtensionIndex):
     """
     Index based on an underlying :class:`Categorical`.
@@ -256,6 +257,12 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         else:
             values = other
 
+            codes = self.categories.get_indexer(values)
+            if ((codes == -1) & ~values.isna()).any():
+                # GH#37667 see test_equals_non_category
+                raise TypeError(
+                    "categories must match existing categories when appending"
+                )
             cat = Categorical(other, dtype=self.dtype)
             other = CategoricalIndex(cat)
             if not other.isin(values).all():
@@ -263,12 +270,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
                     "cannot append a non-category item to a CategoricalIndex"
                 )
             cat = other._values
-
-            if not ((cat == values) | (isna(cat) & isna(values))).all():
-                # GH#37667 see test_equals_non_category
-                raise TypeError(
-                    "categories must match existing categories when appending"
-                )
 
         return cat
 
@@ -377,8 +378,13 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         # if key is a NaN, check if any NaN is in self.
         if is_valid_na_for_dtype(key, self.categories.dtype):
             return self.hasnans
-
-        return contains(self, key, container=self._engine)
+        if self.categories._typ == "rangeindex":
+            container: Index | libindex.IndexEngine | libindex.ExtensionEngine = (
+                self.categories
+            )
+        else:
+            container = self._engine
+        return contains(self, key, container=container)
 
     def reindex(
         self, target, method=None, level=None, limit: int | None = None, tolerance=None

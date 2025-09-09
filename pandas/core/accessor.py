@@ -7,14 +7,23 @@ that can be mixed into or pinned onto other pandas classes.
 
 from __future__ import annotations
 
+import functools
 from typing import (
-    Callable,
+    TYPE_CHECKING,
     final,
 )
 import warnings
 
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from pandas._typing import TypeT
+
+    from pandas import Index
+    from pandas.core.generic import NDFrame
 
 
 class DirNamesMixin:
@@ -79,7 +88,7 @@ class PandasDelegate:
         cls
             Class to add the methods/properties to.
         delegate
-            Class to get methods/properties and doc-strings.
+            Class to get methods/properties and docstrings.
         accessors : list of str
             List of accessors to add.
         typ : {'property', 'method'}
@@ -109,11 +118,11 @@ class PandasDelegate:
             )
 
         def _create_delegator_method(name: str):
+            method = getattr(delegate, accessor_mapping(name))
+
+            @functools.wraps(method)
             def f(self, *args, **kwargs):
                 return self._delegate_method(name, *args, **kwargs)
-
-            f.__name__ = name
-            f.__doc__ = getattr(delegate, accessor_mapping(name)).__doc__
 
             return f
 
@@ -150,7 +159,7 @@ def delegate_names(
     Parameters
     ----------
     delegate : object
-        The class to get methods/properties & doc-strings.
+        The class to get methods/properties & docstrings.
     accessors : Sequence[str]
         List of accessor to add.
     typ : {'property', 'method'}
@@ -188,17 +197,11 @@ def delegate_names(
     return add_delegate_accessors
 
 
-# Ported with modifications from xarray; licence at LICENSES/XARRAY_LICENSE
-# https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
-# 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
-# 2. We use a UserWarning instead of a custom Warning
-
-
-class CachedAccessor:
+class Accessor:
     """
     Custom property-like object.
 
-    A descriptor for caching accessors.
+    A descriptor for accessors.
 
     Parameters
     ----------
@@ -222,17 +225,18 @@ class CachedAccessor:
         if obj is None:
             # we're accessing the attribute of the class, i.e., Dataset.geo
             return self._accessor
-        accessor_obj = self._accessor(obj)
-        # Replace the property with the accessor object. Inspired by:
-        # https://www.pydanny.com/cached-property.html
-        # We need to use object.__setattr__ because we overwrite __setattr__ on
-        # NDFrame
-        object.__setattr__(obj, self._name, accessor_obj)
-        return accessor_obj
+        return self._accessor(obj)
 
 
-@doc(klass="", others="")
-def _register_accessor(name: str, cls):
+# Alias kept for downstream libraries
+# TODO: Deprecate as name is now misleading
+CachedAccessor = Accessor
+
+
+@doc(klass="", examples="", others="")
+def _register_accessor(
+    name: str, cls: type[NDFrame | Index]
+) -> Callable[[TypeT], TypeT]:
     """
     Register a custom accessor on {klass} objects.
 
@@ -255,54 +259,29 @@ def _register_accessor(name: str, cls):
 
     Notes
     -----
-    When accessed, your accessor will be initialized with the pandas object
-    the user is interacting with. So the signature must be
+    This function allows you to register a custom-defined accessor class for {klass}.
+    The requirements for the accessor class are as follows:
 
-    .. code-block:: python
+    * Must contain an init method that:
 
-        def __init__(self, pandas_object):  # noqa: E999
-            ...
+      * accepts a single {klass} object
 
-    For consistency with pandas methods, you should raise an ``AttributeError``
-    if the data passed to your accessor has an incorrect dtype.
+      * raises an AttributeError if the {klass} object does not have correctly
+        matching inputs for the accessor
 
-    >>> pd.Series(["a", "b"]).dt
-    Traceback (most recent call last):
-    ...
-    AttributeError: Can only use .dt accessor with datetimelike values
+    * Must contain a method for each access pattern.
+
+      * The methods should be able to take any argument signature.
+
+      * Accessible using the @property decorator if no additional arguments are
+        needed.
 
     Examples
     --------
-    In your library code::
-
-        @pd.api.extensions.register_dataframe_accessor("geo")
-        class GeoAccessor:
-            def __init__(self, pandas_obj):
-                self._obj = pandas_obj
-
-            @property
-            def center(self):
-                # return the geographic center point of this DataFrame
-                lat = self._obj.latitude
-                lon = self._obj.longitude
-                return (float(lon.mean()), float(lat.mean()))
-
-            def plot(self):
-                # plot this array's data on a map, e.g., using Cartopy
-                pass
-
-    Back in an interactive IPython session:
-
-        .. code-block:: ipython
-
-            In [1]: ds = pd.DataFrame({{"longitude": np.linspace(0, 10),
-               ...:                    "latitude": np.linspace(0, 20)}})
-            In [2]: ds.geo.center
-            Out[2]: (5.0, 10.0)
-            In [3]: ds.geo.plot()  # plots data on a map
+    {examples}
     """
 
-    def decorator(accessor):
+    def decorator(accessor: TypeT) -> TypeT:
         if hasattr(cls, name):
             warnings.warn(
                 f"registration of accessor {accessor!r} under name "
@@ -311,29 +290,106 @@ def _register_accessor(name: str, cls):
                 UserWarning,
                 stacklevel=find_stack_level(),
             )
-        setattr(cls, name, CachedAccessor(name, accessor))
+        setattr(cls, name, Accessor(name, accessor))
         cls._accessors.add(name)
         return accessor
 
     return decorator
 
 
-@doc(_register_accessor, klass="DataFrame")
-def register_dataframe_accessor(name: str):
+_register_df_examples = """
+An accessor that only accepts integers could
+have a class defined like this:
+
+>>> @pd.api.extensions.register_dataframe_accessor("int_accessor")
+... class IntAccessor:
+...     def __init__(self, pandas_obj):
+...         if not all(pandas_obj[col].dtype == 'int64' for col in pandas_obj.columns):
+...             raise AttributeError("All columns must contain integer values only")
+...         self._obj = pandas_obj
+...
+...     def sum(self):
+...         return self._obj.sum()
+...
+>>> df = pd.DataFrame([[1, 2], ['x', 'y']])
+>>> df.int_accessor
+Traceback (most recent call last):
+...
+AttributeError: All columns must contain integer values only.
+>>> df = pd.DataFrame([[1, 2], [3, 4]])
+>>> df.int_accessor.sum()
+0    4
+1    6
+dtype: int64"""
+
+
+@doc(_register_accessor, klass="DataFrame", examples=_register_df_examples)
+def register_dataframe_accessor(name: str) -> Callable[[TypeT], TypeT]:
     from pandas import DataFrame
 
     return _register_accessor(name, DataFrame)
 
 
-@doc(_register_accessor, klass="Series")
-def register_series_accessor(name: str):
+_register_series_examples = """
+An accessor that only accepts integers could
+have a class defined like this:
+
+>>> @pd.api.extensions.register_series_accessor("int_accessor")
+... class IntAccessor:
+...     def __init__(self, pandas_obj):
+...         if not pandas_obj.dtype == 'int64':
+...             raise AttributeError("The series must contain integer data only")
+...         self._obj = pandas_obj
+...
+...     def sum(self):
+...         return self._obj.sum()
+...
+>>> df = pd.Series([1, 2, 'x'])
+>>> df.int_accessor
+Traceback (most recent call last):
+...
+AttributeError: The series must contain integer data only.
+>>> df = pd.Series([1, 2, 3])
+>>> df.int_accessor.sum()
+np.int64(6)"""
+
+
+@doc(_register_accessor, klass="Series", examples=_register_series_examples)
+def register_series_accessor(name: str) -> Callable[[TypeT], TypeT]:
     from pandas import Series
 
     return _register_accessor(name, Series)
 
 
-@doc(_register_accessor, klass="Index")
-def register_index_accessor(name: str):
+_register_index_examples = """
+An accessor that only accepts integers could
+have a class defined like this:
+
+>>> @pd.api.extensions.register_index_accessor("int_accessor")
+... class IntAccessor:
+...     def __init__(self, pandas_obj):
+...         if not all(isinstance(x, int) for x in pandas_obj):
+...             raise AttributeError("The index must only be an integer value")
+...         self._obj = pandas_obj
+...
+...     def even(self):
+...         return [x for x in self._obj if x % 2 == 0]
+>>> df = pd.DataFrame.from_dict(
+...     {"row1": {"1": 1, "2": "a"}, "row2": {"1": 2, "2": "b"}}, orient="index"
+... )
+>>> df.index.int_accessor
+Traceback (most recent call last):
+...
+AttributeError: The index must only be an integer value.
+>>> df = pd.DataFrame(
+...     {"col1": [1, 2, 3, 4], "col2": ["a", "b", "c", "d"]}, index=[1, 2, 5, 8]
+... )
+>>> df.index.int_accessor.even()
+[2, 8]"""
+
+
+@doc(_register_accessor, klass="Index", examples=_register_index_examples)
+def register_index_accessor(name: str) -> Callable[[TypeT], TypeT]:
     from pandas import Index
 
     return _register_accessor(name, Index)

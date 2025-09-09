@@ -7,6 +7,8 @@ import json
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -32,7 +34,7 @@ def df_schema():
         {
             "A": [1, 2, 3, 4],
             "B": ["a", "b", "c", "c"],
-            "C": pd.date_range("2016-01-01", freq="d", periods=4),
+            "C": pd.date_range("2016-01-01", freq="D", periods=4),
             "D": pd.timedelta_range("1h", periods=4, freq="min"),
         },
         index=pd.Index(range(4), name="idx"),
@@ -45,12 +47,12 @@ def df_table():
         {
             "A": [1, 2, 3, 4],
             "B": ["a", "b", "c", "c"],
-            "C": pd.date_range("2016-01-01", freq="d", periods=4),
+            "C": pd.date_range("2016-01-01", freq="D", periods=4),
             "D": pd.timedelta_range("1h", periods=4, freq="min"),
             "E": pd.Series(pd.Categorical(["a", "b", "c", "c"])),
             "F": pd.Series(pd.Categorical(["a", "b", "c", "c"], ordered=True)),
             "G": [1.0, 2.0, 3, 4.0],
-            "H": pd.date_range("2016-01-01", freq="d", periods=4, tz="US/Central"),
+            "H": pd.date_range("2016-01-01", freq="D", periods=4, tz="US/Central"),
         },
         index=pd.Index(range(4), name="idx"),
     )
@@ -70,7 +72,7 @@ class TestBuildSchema:
             "primaryKey": ["idx"],
         }
         if using_infer_string:
-            expected["fields"][2] = {"name": "B", "type": "any", "extDtype": "string"}
+            expected["fields"][2] = {"name": "B", "type": "string", "extDtype": "str"}
         assert result == expected
         result = build_table_schema(df_schema)
         assert "pandas_version" in result
@@ -115,20 +117,20 @@ class TestBuildSchema:
                 {"name": "C", "type": "datetime"},
                 {"name": "D", "type": "duration"},
             ],
-            "primaryKey": ("level_0", "level_1"),
+            "primaryKey": ["level_0", "level_1"],
         }
         if using_infer_string:
             expected["fields"][0] = {
                 "name": "level_0",
-                "type": "any",
-                "extDtype": "string",
+                "type": "string",
+                "extDtype": "str",
             }
-            expected["fields"][3] = {"name": "B", "type": "any", "extDtype": "string"}
+            expected["fields"][3] = {"name": "B", "type": "string", "extDtype": "str"}
         assert result == expected
 
         df.index.names = ["idx0", None]
         expected["fields"][0]["name"] = "idx0"
-        expected["primaryKey"] = ("idx0", "level_1")
+        expected["primaryKey"] = ["idx0", "level_1"]
         result = build_table_schema(df, version=False)
         assert result == expected
 
@@ -303,7 +305,7 @@ class TestTableOrient:
         ]
 
         if using_infer_string:
-            fields[2] = {"name": "B", "type": "any", "extDtype": "string"}
+            fields[2] = {"name": "B", "type": "string", "extDtype": "str"}
 
         schema = {"fields": fields, "primaryKey": ["idx"]}
         data = [
@@ -451,12 +453,17 @@ class TestTableOrient:
         assert result == expected
 
     def test_date_format_raises(self, df_table):
-        msg = (
+        error_msg = (
             "Trying to write with `orient='table'` and `date_format='epoch'`. Table "
             "Schema requires dates to be formatted with `date_format='iso'`"
         )
-        with pytest.raises(ValueError, match=msg):
-            df_table.to_json(orient="table", date_format="epoch")
+        warning_msg = (
+            "'epoch' date format is deprecated and will be removed in a future "
+            "version, please use 'iso' date format instead."
+        )
+        with pytest.raises(ValueError, match=error_msg):
+            with tm.assert_produces_warning(Pandas4Warning, match=warning_msg):
+                df_table.to_json(orient="table", date_format="epoch")
 
         # others work
         df_table.to_json(orient="table", date_format="iso")
@@ -542,7 +549,7 @@ class TestTableOrient:
                 },
                 CategoricalDtype(categories=["a", "b", "c"], ordered=True),
             ),
-            ({"type": "string"}, "object"),
+            ({"type": "string"}, None),
         ],
     )
     def test_convert_json_field_to_pandas_type(self, inp, exp):
@@ -598,21 +605,21 @@ class TestTableOrient:
             (pd.Index([1], name="myname"), "myname", "name"),
             (
                 pd.MultiIndex.from_product([("a", "b"), ("c", "d")]),
-                ("level_0", "level_1"),
+                ["level_0", "level_1"],
                 "names",
             ),
             (
                 pd.MultiIndex.from_product(
                     [("a", "b"), ("c", "d")], names=["n1", "n2"]
                 ),
-                ("n1", "n2"),
+                ["n1", "n2"],
                 "names",
             ),
             (
                 pd.MultiIndex.from_product(
                     [("a", "b"), ("c", "d")], names=["n1", None]
                 ),
-                ("n1", "level_1"),
+                ["n1", "level_1"],
                 "names",
             ),
         ],
@@ -634,7 +641,7 @@ class TestTableOrient:
         # GH 19130
         df = DataFrame(index=idx)
         df.index.name = "index"
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(UserWarning, match="not round-trippable"):
             set_default_names(df)
 
     def test_timestamp_in_columns(self):
@@ -682,7 +689,7 @@ class TestTableOrientReader:
             {"ints": [1, 2, 3, 4]},
             {"objects": ["a", "b", "c", "d"]},
             {"objects": ["1", "2", "3", "4"]},
-            {"date_ranges": pd.date_range("2016-01-01", freq="d", periods=4)},
+            {"date_ranges": pd.date_range("2016-01-01", freq="D", periods=4)},
             {"categoricals": pd.Series(pd.Categorical(["a", "b", "c", "c"]))},
             {
                 "ordered_cats": pd.Series(
@@ -694,7 +701,7 @@ class TestTableOrientReader:
             {"bools": [True, False, False, True]},
             {
                 "timezones": pd.date_range(
-                    "2016-01-01", freq="d", periods=4, tz="US/Central"
+                    "2016-01-01", freq="D", periods=4, tz="US/Central"
                 )  # added in # GH 35973
             },
         ],
@@ -733,7 +740,7 @@ class TestTableOrientReader:
             {"ints": [1, 2, 3, 4]},
             {"objects": ["a", "b", "c", "d"]},
             {"objects": ["1", "2", "3", "4"]},
-            {"date_ranges": pd.date_range("2016-01-01", freq="d", periods=4)},
+            {"date_ranges": pd.date_range("2016-01-01", freq="D", periods=4)},
             {"categoricals": pd.Series(pd.Categorical(["a", "b", "c", "c"]))},
             {
                 "ordered_cats": pd.Series(
@@ -745,7 +752,7 @@ class TestTableOrientReader:
             {"bools": [True, False, False, True]},
             {
                 "timezones": pd.date_range(
-                    "2016-01-01", freq="d", periods=4, tz="US/Central"
+                    "2016-01-01", freq="D", periods=4, tz="US/Central"
                 )  # added in # GH 35973
             },
         ],
@@ -767,15 +774,15 @@ class TestTableOrientReader:
             pd.Index(range(4)),
             pd.date_range(
                 "2020-08-30",
-                freq="d",
+                freq="D",
                 periods=4,
             )._with_freq(None),
             pd.date_range(
-                "2020-08-30", freq="d", periods=4, tz="US/Central"
+                "2020-08-30", freq="D", periods=4, tz="US/Central"
             )._with_freq(None),
             pd.MultiIndex.from_product(
                 [
-                    pd.date_range("2020-08-30", freq="d", periods=2, tz="US/Central"),
+                    pd.date_range("2020-08-30", freq="D", periods=2, tz="US/Central"),
                     ["x", "y"],
                 ],
             ),
@@ -785,10 +792,10 @@ class TestTableOrientReader:
         "vals",
         [
             {"floats": [1.1, 2.2, 3.3, 4.4]},
-            {"dates": pd.date_range("2020-08-30", freq="d", periods=4)},
+            {"dates": pd.date_range("2020-08-30", freq="D", periods=4)},
             {
                 "timezones": pd.date_range(
-                    "2020-08-30", freq="d", periods=4, tz="Europe/London"
+                    "2020-08-30", freq="D", periods=4, tz="Europe/London"
                 )
             },
         ],
@@ -805,12 +812,12 @@ class TestTableOrientReader:
             {
                 "A": [1, 2, 3, 4],
                 "B": ["a", "b", "c", "c"],
-                "C": pd.date_range("2016-01-01", freq="d", periods=4),
+                "C": pd.date_range("2016-01-01", freq="D", periods=4),
                 # 'D': pd.timedelta_range('1h', periods=4, freq='min'),
                 "E": pd.Series(pd.Categorical(["a", "b", "c", "c"])),
                 "F": pd.Series(pd.Categorical(["a", "b", "c", "c"], ordered=True)),
                 "G": [1.1, 2.2, 3.3, 4.4],
-                "H": pd.date_range("2016-01-01", freq="d", periods=4, tz="US/Central"),
+                "H": pd.date_range("2016-01-01", freq="D", periods=4, tz="US/Central"),
                 "I": [True, False, False, True],
             },
             index=pd.Index(range(4), name="idx"),

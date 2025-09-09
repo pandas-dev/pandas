@@ -12,6 +12,7 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
 )
 from decimal import Decimal
 from fractions import Fraction
@@ -27,7 +28,6 @@ from typing import (
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs import (
     lib,
@@ -35,6 +35,7 @@ from pandas._libs import (
     ops as libops,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.cast import find_result_type
@@ -240,8 +241,6 @@ def test_is_list_like_generic():
     # is_list_like was yielding false positives for Generic classes in python 3.11
     T = TypeVar("T")
 
-    # https://github.com/pylint-dev/pylint/issues/9398
-    # pylint: disable=multiple-statements
     class MyDataFrame(DataFrame, Generic[T]): ...
 
     tstc = MyDataFrame[int]
@@ -250,6 +249,15 @@ def test_is_list_like_generic():
     assert not inference.is_list_like(tstc)
     assert isinstance(tst, DataFrame)
     assert inference.is_list_like(tst)
+
+
+def test_is_list_like_native_container_types():
+    # GH 61565
+    # is_list_like was yielding false positives for native container types
+    assert not inference.is_list_like(list[int])
+    assert not inference.is_list_like(list[str])
+    assert not inference.is_list_like(tuple[int])
+    assert not inference.is_list_like(tuple[str])
 
 
 def test_is_sequence():
@@ -832,7 +840,11 @@ class TestInference:
 
         out = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         # no OutOfBoundsDatetime/OutOfBoundsTimedeltas
-        tm.assert_numpy_array_equal(out, arr)
+        if dtype == "datetime64[ns]":
+            expected = np.array(["2363-10-04"], dtype="M8[us]")
+        else:
+            expected = arr
+        tm.assert_numpy_array_equal(out, expected)
 
     def test_maybe_convert_objects_mixed_datetimes(self):
         ts = Timestamp("now")
@@ -938,9 +950,9 @@ class TestInference:
     def test_maybe_convert_objects_nullable_boolean(self):
         # GH50047
         arr = np.array([True, False], dtype=object)
-        exp = np.array([True, False])
+        exp = BooleanArray._from_sequence([True, False], dtype="boolean")
         out = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
-        tm.assert_numpy_array_equal(out, exp)
+        tm.assert_extension_array_equal(out, exp)
 
         arr = np.array([True, False, pd.NaT], dtype=object)
         exp = np.array([True, False, pd.NaT], dtype=object)
@@ -1020,7 +1032,7 @@ class TestInference:
 
     def test_mixed_dtypes_remain_object_array(self):
         # GH14956
-        arr = np.array([datetime(2015, 1, 1, tzinfo=pytz.utc), 1], dtype=object)
+        arr = np.array([datetime(2015, 1, 1, tzinfo=timezone.utc), 1], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(result, arr)
 
@@ -1385,6 +1397,19 @@ class TestTypeInference:
         arr = np.array([na_value, Period("2011-01", freq="D"), na_value])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
+    @pytest.mark.parametrize("na_value", [pd.NA, np.nan])
+    def test_infer_dtype_numeric_with_na(self, na_value):
+        # GH61621
+        ser = Series([1, 2, na_value], dtype=object)
+        assert lib.infer_dtype(ser, skipna=True) == "integer"
+
+        ser = Series([1.0, 2.0, na_value], dtype=object)
+        assert lib.infer_dtype(ser, skipna=True) == "floating"
+
+        # GH#61976
+        ser = Series([1 + 1j, na_value], dtype=object)
+        assert lib.infer_dtype(ser, skipna=True) == "complex"
+
     def test_infer_dtype_all_nan_nat_like(self):
         arr = np.array([np.nan, np.nan])
         assert lib.infer_dtype(arr, skipna=True) == "floating"
@@ -1580,6 +1605,31 @@ class TestTypeInference:
         )
         assert not lib.is_string_array(np.array([1, 2]))
 
+    @pytest.mark.parametrize(
+        "func",
+        [
+            "is_bool_array",
+            "is_date_array",
+            "is_datetime_array",
+            "is_datetime64_array",
+            "is_float_array",
+            "is_integer_array",
+            "is_interval_array",
+            "is_string_array",
+            "is_time_array",
+            "is_timedelta_or_timedelta64_array",
+        ],
+    )
+    def test_is_dtype_array_empty_obj(self, func):
+        # https://github.com/pandas-dev/pandas/pull/60796
+        func = getattr(lib, func)
+
+        arr = np.empty((2, 0), dtype=object)
+        assert not func(arr)
+
+        arr = np.empty((0, 2), dtype=object)
+        assert not func(arr)
+
     def test_to_object_array_tuples(self):
         r = (5, 6)
         values = [r]
@@ -1627,7 +1677,7 @@ class TestTypeInference:
         result = lib.infer_dtype(Series(arr), skipna=True)
         assert result == "categorical"
 
-        arr = Categorical(list("abc"), categories=["cegfab"], ordered=True)
+        arr = Categorical([None, None, None], categories=["cegfab"], ordered=True)
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "categorical"
 
@@ -1809,7 +1859,7 @@ class TestNumberScalar:
         assert is_datetime64_any_dtype(ts)
         assert is_datetime64_any_dtype(tsa)
 
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert not is_datetime64tz_dtype("datetime64")
             assert not is_datetime64tz_dtype("datetime64[ns]")
             assert not is_datetime64tz_dtype(ts)
@@ -1923,7 +1973,7 @@ class TestIsScalar:
         assert not is_scalar(pd.array([1, 2, 3]))
 
     def test_is_scalar_number(self):
-        # Number() is not recognied by PyNumber_Check, so by extension
+        # Number() is not recognized by PyNumber_Check, so by extension
         #  is not recognized by is_scalar, but instances of non-abstract
         #  subclasses are.
 

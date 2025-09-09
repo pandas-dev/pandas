@@ -17,10 +17,12 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Literal,
+    Self,
     TypedDict,
+    Unpack,
+    cast,
     overload,
 )
 import warnings
@@ -33,14 +35,16 @@ from pandas.errors import (
     AbstractMethodError,
     ParserWarning,
 )
-from pandas.util._decorators import Appender
+from pandas.util._decorators import (
+    Appender,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_file_like,
     is_float,
-    is_hashable,
     is_integer,
     is_list_like,
     pandas_dtype,
@@ -71,6 +75,7 @@ from pandas.io.parsers.python_parser import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterable,
         Mapping,
@@ -87,9 +92,7 @@ if TYPE_CHECKING:
         HashableT,
         IndexLabel,
         ReadCsvBuffer,
-        Self,
         StorageOptions,
-        Unpack,
         UsecolsArgType,
     )
 
@@ -116,12 +119,8 @@ if TYPE_CHECKING:
         )
         keep_default_na: bool
         na_filter: bool
-        verbose: bool | lib.NoDefault
         skip_blank_lines: bool
         parse_dates: bool | Sequence[Hashable] | None
-        infer_datetime_format: bool | lib.NoDefault
-        keep_date_col: bool | lib.NoDefault
-        date_parser: Callable | lib.NoDefault
         date_format: str | dict[Hashable, str] | None
         dayfirst: bool
         cache_dates: bool
@@ -138,18 +137,17 @@ if TYPE_CHECKING:
         encoding_errors: str | None
         dialect: str | csv.Dialect | None
         on_bad_lines: str
-        delim_whitespace: bool | lib.NoDefault
         low_memory: bool
         memory_map: bool
         float_precision: Literal["high", "legacy", "round_trip"] | None
         storage_options: StorageOptions | None
         dtype_backend: DtypeBackend | lib.NoDefault
+
 else:
     _read_shared = dict
 
 
-_doc_read_csv_and_table = (
-    r"""
+_doc_read_csv_and_table = r"""
 {summary}
 
 Also supports optionally iterating or breaking of the file
@@ -195,6 +193,12 @@ header : int, Sequence of int, 'infer' or None, default 'infer'
     parameter ignores commented lines and empty lines if
     ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
     data rather than the first line of the file.
+
+    When inferred from the file contents, headers are kept distinct from
+    each other by renaming duplicate names with a numeric suffix of the form
+    ``".{{count}}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
+    Empty headers are named ``"Unnamed: {{i}}"`` or ``"Unnamed: {{i}}_level_{{level}}"``
+    in the case of MultiIndex columns.
 names : Sequence of Hashable, optional
     Sequence of column labels to apply. If the file contains a header row,
     then you should explicitly pass ``header=0`` to override the column names.
@@ -269,13 +273,22 @@ skipfooter : int, default 0
     Number of lines at bottom of file to skip (Unsupported with ``engine='c'``).
 nrows : int, optional
     Number of rows of file to read. Useful for reading pieces of large files.
+    Refers to the number of data rows in the returned DataFrame, excluding:
+
+    * The header row containing column names.
+    * Rows before the header row, if ``header=1`` or larger.
+
+    Example usage:
+
+    * To read the first 999,999 (non-header) rows:
+      ``read_csv(..., nrows=999999)``
+
+    * To read rows 1,000,000 through 1,999,999:
+      ``read_csv(..., skiprows=1000000, nrows=999999)``
 na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, optional
     Additional strings to recognize as ``NA``/``NaN``. If ``dict`` passed, specific
     per-column ``NA`` values.  By default the following values are interpreted as
-    ``NaN``: " """
-    + fill('", "'.join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
-    + """ ".
-
+    ``NaN``: "{na_values_str}".
 keep_default_na : bool, default True
     Whether or not to include the default ``NaN`` values when parsing the data.
     Depending on whether ``na_values`` is passed in, the behavior is as follows:
@@ -295,25 +308,15 @@ na_filter : bool, default True
     Detect missing value markers (empty strings and the value of ``na_values``). In
     data without any ``NA`` values, passing ``na_filter=False`` can improve the
     performance of reading a large file.
-verbose : bool, default False
-    Indicate number of ``NA`` values placed in non-numeric columns.
-
-    .. deprecated:: 2.2.0
 skip_blank_lines : bool, default True
     If ``True``, skip over blank lines rather than interpreting as ``NaN`` values.
-parse_dates : bool, None, list of Hashable, list of lists or dict of {{Hashable : \
-list}}, default None
+parse_dates : bool, None, list of Hashable, default None
     The behavior is as follows:
 
     * ``bool``. If ``True`` -> try parsing the index.
-    * ``None``. Behaves like ``True`` if ``date_parser`` or ``date_format`` are
-      specified.
+    * ``None``. Behaves like ``True`` if ``date_format`` is specified.
     * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
       each as a separate date column.
-    * ``list`` of ``list``. e.g.  If ``[[1, 3]]`` -> combine columns 1 and 3 and parse
-      as a single date column. Values are joined with a space before parsing.
-    * ``dict``, e.g. ``{{'foo' : [1, 3]}}`` -> parse columns 1, 3 as date and call
-      result 'foo'. Values are joined with a space before parsing.
 
     If a column or index cannot be represented as an array of ``datetime``,
     say because of an unparsable value or a mixture of timezones, the column
@@ -322,34 +325,8 @@ list}}, default None
     :func:`~pandas.read_csv`.
 
     Note: A fast-path exists for iso8601-formatted dates.
-infer_datetime_format : bool, default False
-    If ``True`` and ``parse_dates`` is enabled, pandas will attempt to infer the
-    format of the ``datetime`` strings in the columns, and if it can be inferred,
-    switch to a faster method of parsing them. In some cases this can increase
-    the parsing speed by 5-10x.
-
-    .. deprecated:: 2.0.0
-        A strict version of this argument is now the default, passing it has no effect.
-
-keep_date_col : bool, default False
-    If ``True`` and ``parse_dates`` specifies combining multiple columns then
-    keep the original columns.
-date_parser : Callable, optional
-    Function to use for converting a sequence of string columns to an array of
-    ``datetime`` instances. The default uses ``dateutil.parser.parser`` to do the
-    conversion. pandas will try to call ``date_parser`` in three different ways,
-    advancing to the next if an exception occurs: 1) Pass one or more arrays
-    (as defined by ``parse_dates``) as arguments; 2) concatenate (row-wise) the
-    string values from the columns defined by ``parse_dates`` into a single array
-    and pass that; and 3) call ``date_parser`` once for each row using one or
-    more strings (corresponding to the columns defined by ``parse_dates``) as
-    arguments.
-
-    .. deprecated:: 2.0.0
-       Use ``date_format`` instead, or read in as ``object`` and then apply
-       :func:`~pandas.to_datetime` as-needed.
 date_format : str or dict of column -> format, optional
-    Format to use for parsing dates when used in conjunction with ``parse_dates``.
+    Format to use for parsing dates and/or times when used in conjunction with ``parse_dates``.
     The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
     `strftime documentation
     <https://docs.python.org/3/library/datetime.html
@@ -358,9 +335,9 @@ date_format : str or dict of column -> format, optional
     You can also pass:
 
     - "ISO8601", to parse any `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_
-        time string (not necessarily in exactly the same format);
+      time string (not necessarily in exactly the same format);
     - "mixed", to infer the format for each element individually. This is risky,
-        and you should probably use it along with `dayfirst`.
+      and you should probably use it along with `dayfirst`.
 
     .. versionadded:: 2.0.0
 dayfirst : bool, default False
@@ -393,8 +370,7 @@ lineterminator : str (length 1), optional
 quotechar : str (length 1), optional
     Character used to denote the start and end of a quoted item. Quoted
     items can include the ``delimiter`` and it will be ignored.
-quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or csv.QUOTE_NONNUMERIC, \
-3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
     Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
     ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that only fields containing special
     characters are quoted (e.g., characters defined in ``quotechar``, ``delimiter``,
@@ -433,39 +409,33 @@ dialect : str or csv.Dialect, optional
     documentation for more details.
 on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
     Specifies what to do upon encountering a bad line (a line with too many fields).
-    Allowed values are :
+    Allowed values are:
 
     - ``'error'``, raise an Exception when a bad line is encountered.
     - ``'warn'``, raise a warning when a bad line is encountered and skip that line.
     - ``'skip'``, skip bad lines without raising or warning when they are encountered.
+    - Callable, function that will process a single bad line.
+        - With ``engine='python'``, function with signature
+          ``(bad_line: list[str]) -> list[str] | None``.
+          ``bad_line`` is a list of strings split by the ``sep``.
+          If the function returns ``None``, the bad line will be ignored.
+          If the function returns a new ``list`` of strings with more elements than
+          expected, a ``ParserWarning`` will be emitted while dropping extra elements.
+        - With ``engine='pyarrow'``, function with signature
+          as described in pyarrow documentation: `invalid_row_handler
+          <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
+          #pyarrow.csv.ParseOptions.invalid_row_handler>`_.
 
     .. versionadded:: 1.3.0
 
     .. versionadded:: 1.4.0
 
-        - Callable, function with signature
-          ``(bad_line: list[str]) -> list[str] | None`` that will process a single
-          bad line. ``bad_line`` is a list of strings split by the ``sep``.
-          If the function returns ``None``, the bad line will be ignored.
-          If the function returns a new ``list`` of strings with more elements than
-          expected, a ``ParserWarning`` will be emitted while dropping extra elements.
-          Only supported when ``engine='python'``
+        Callable
 
     .. versionchanged:: 2.2.0
 
-        - Callable, function with signature
-          as described in `pyarrow documentation
-          <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
-          #pyarrow.csv.ParseOptions.invalid_row_handler>`_ when ``engine='pyarrow'``
+        Callable for ``engine='pyarrow'``
 
-delim_whitespace : bool, default False
-    Specifies whether or not whitespace (e.g. ``' '`` or ``'\\t'``) will be
-    used as the ``sep`` delimiter. Equivalent to setting ``sep='\\s+'``. If this option
-    is set to ``True``, nothing should be passed in for the ``delimiter``
-    parameter.
-
-    .. deprecated:: 2.2.0
-        Use ``sep="\\s+"`` instead.
 low_memory : bool, default True
     Internally process the file in chunks, resulting in lower memory use
     while parsing, but possibly mixed type inference.  To ensure no mixed
@@ -485,14 +455,14 @@ float_precision : {{'high', 'legacy', 'round_trip'}}, optional
 
 {storage_options}
 
-dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+dtype_backend : {{'numpy_nullable', 'pyarrow'}}
     Back-end data type applied to the resultant :class:`DataFrame`
-    (still experimental). Behaviour is as follows:
+    (still experimental). If not specified, the default behavior
+    is to not use nullable data types. If specified, the behavior
+    is as follows:
 
     * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-      (default).
-    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-      DataFrame.
+    * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype` :class:`DataFrame`
 
     .. versionadded:: 2.0
 
@@ -511,12 +481,85 @@ read_fwf : Read a table of fixed-width formatted lines into DataFrame.
 Examples
 --------
 >>> pd.{func_name}('data.csv')  # doctest: +SKIP
-"""
-)
+   Name  Value
+0   foo      1
+1   bar      2
+2  #baz      3
+
+Index and header can be specified via the `index_col` and `header` arguments.
+
+>>> pd.{func_name}('data.csv', header=None)  # doctest: +SKIP
+      0      1
+0  Name  Value
+1   foo      1
+2   bar      2
+3  #baz      3
+
+>>> pd.{func_name}('data.csv', index_col='Value')  # doctest: +SKIP
+       Name
+Value
+1       foo
+2       bar
+3      #baz
+
+Column types are inferred but can be explicitly specified using the dtype argument.
+
+>>> pd.{func_name}('data.csv', dtype={{'Value': float}})  # doctest: +SKIP
+   Name  Value
+0   foo    1.0
+1   bar    2.0
+2  #baz    3.0
+
+True, False, and NA values, and thousands separators have defaults,
+but can be explicitly specified, too. Supply the values you would like
+as strings or lists of strings!
+
+>>> pd.{func_name}('data.csv', na_values=['foo', 'bar'])  # doctest: +SKIP
+   Name  Value
+0   NaN      1
+1   NaN      2
+2  #baz      3
+
+Comment lines in the input file can be skipped using the `comment` argument.
+
+>>> pd.{func_name}('data.csv', comment='#')  # doctest: +SKIP
+  Name  Value
+0  foo      1
+1  bar      2
+
+By default, columns with dates will be read as ``object`` rather than  ``datetime``.
+
+>>> df = pd.{func_name}('tmp.csv')  # doctest: +SKIP
+
+>>> df  # doctest: +SKIP
+   col 1       col 2            col 3
+0     10  10/04/2018  Sun 15 Jan 2023
+1     20  15/04/2018  Fri 12 May 2023
+
+>>> df.dtypes  # doctest: +SKIP
+col 1     int64
+col 2    object
+col 3    object
+dtype: object
+
+Specific columns can be parsed as dates by using the `parse_dates` and
+`date_format` arguments.
+
+>>> df = pd.{func_name}(
+...     'tmp.csv',
+...     parse_dates=[1, 2],
+...     date_format={{'col 2': '%d/%m/%Y', 'col 3': '%a %d %b %Y'}},
+... )  # doctest: +SKIP
+
+>>> df.dtypes  # doctest: +SKIP
+col 1             int64
+col 2    datetime64[ns]
+col 3    datetime64[ns]
+dtype: object
+"""  # noqa: E501
 
 
 class _C_Parser_Defaults(TypedDict):
-    delim_whitespace: Literal[False]
     na_filter: Literal[True]
     low_memory: Literal[True]
     memory_map: Literal[False]
@@ -524,7 +567,6 @@ class _C_Parser_Defaults(TypedDict):
 
 
 _c_parser_defaults: _C_Parser_Defaults = {
-    "delim_whitespace": False,
     "na_filter": True,
     "low_memory": True,
     "memory_map": False,
@@ -550,13 +592,11 @@ _pyarrow_unsupported = {
     "thousands",
     "memory_map",
     "dialect",
-    "delim_whitespace",
     "quoting",
     "lineterminator",
     "converters",
     "iterator",
     "dayfirst",
-    "verbose",
     "skipinitialspace",
     "low_memory",
 }
@@ -634,13 +674,10 @@ def _read(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str], kwds
 ) -> DataFrame | TextFileReader:
     """Generic reader of line files."""
-    # if we pass a date_parser and parse_dates=False, we should not parse the
+    # if we pass a date_format and parse_dates=False, we should not parse the
     # dates GH#44366
     if kwds.get("parse_dates", None) is None:
-        if (
-            kwds.get("date_parser", lib.no_default) is lib.no_default
-            and kwds.get("date_format", None) is None
-        ):
+        if kwds.get("date_format", None) is None:
             kwds["parse_dates"] = False
         else:
             kwds["parse_dates"] = True
@@ -648,6 +685,14 @@ def _read(
     # Extract some of the arguments (pass chunksize on).
     iterator = kwds.get("iterator", False)
     chunksize = kwds.get("chunksize", None)
+
+    # Check type of encoding_errors
+    errors = kwds.get("encoding_errors", "strict")
+    if not isinstance(errors, str):
+        raise ValueError(
+            f"encoding_errors must be a string, got {type(errors).__name__}"
+        )
+
     if kwds.get("engine") == "pyarrow":
         if iterator:
             raise ValueError(
@@ -722,12 +767,16 @@ def read_csv(
         summary="Read a comma-separated values (csv) file into DataFrame.",
         see_also_func_name="read_table",
         see_also_func_summary="Read general delimited file into DataFrame.",
+        na_values_str=fill(
+            '", "'.join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    "
+        ),
         _default_sep="','",
         storage_options=_shared_docs["storage_options"],
         decompression_options=_shared_docs["decompression_options"]
         % "filepath_or_buffer",
     )
 )
+@set_module("pandas")
 def read_csv(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
@@ -749,19 +798,14 @@ def read_csv(
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values: Hashable
-    | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    na_values: (
+        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+    ) = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
-    verbose: bool | lib.NoDefault = lib.no_default,
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
-    infer_datetime_format: bool | lib.NoDefault = lib.no_default,
-    keep_date_col: bool | lib.NoDefault = lib.no_default,
-    date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
@@ -784,78 +828,12 @@ def read_csv(
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
-    delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
-    if keep_date_col is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'keep_date_col' keyword in pd.read_csv is deprecated and "
-            "will be removed in a future version. Explicitly remove unwanted "
-            "columns after parsing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        keep_date_col = False
-
-    if lib.is_list_like(parse_dates):
-        # GH#55569
-        depr = False
-        # error: Item "bool" of "bool | Sequence[Hashable] | None" has no
-        # attribute "__iter__" (not iterable)
-        if not all(is_hashable(x) for x in parse_dates):  # type: ignore[union-attr]
-            depr = True
-        elif isinstance(parse_dates, dict) and any(
-            lib.is_list_like(x) for x in parse_dates.values()
-        ):
-            depr = True
-        if depr:
-            warnings.warn(
-                "Support for nested sequences for 'parse_dates' in pd.read_csv "
-                "is deprecated. Combine the desired columns with pd.to_datetime "
-                "after parsing instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-    if infer_datetime_format is not lib.no_default:
-        warnings.warn(
-            "The argument 'infer_datetime_format' is deprecated and will "
-            "be removed in a future version. "
-            "A strict version of it is now the default, see "
-            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
-            "You can safely remove this argument.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-    if delim_whitespace is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'delim_whitespace' keyword in pd.read_csv is deprecated and "
-            "will be removed in a future version. Use ``sep='\\s+'`` instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        delim_whitespace = False
-
-    if verbose is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'verbose' keyword in pd.read_csv is deprecated and "
-            "will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        verbose = False
-
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -864,7 +842,6 @@ def read_csv(
     kwds_defaults = _refine_defaults_read(
         dialect,
         delimiter,
-        delim_whitespace,
         engine,
         sep,
         on_bad_lines,
@@ -925,12 +902,16 @@ def read_table(
         see_also_func_summary=(
             "Read a comma-separated values (csv) file into DataFrame."
         ),
+        na_values_str=fill(
+            '", "'.join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    "
+        ),
         _default_sep=r"'\\t' (tab-stop)",
         storage_options=_shared_docs["storage_options"],
         decompression_options=_shared_docs["decompression_options"]
         % "filepath_or_buffer",
     )
 )
+@set_module("pandas")
 def read_table(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
@@ -952,19 +933,14 @@ def read_table(
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values: Hashable
-    | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    na_values: (
+        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+    ) = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
-    verbose: bool | lib.NoDefault = lib.no_default,
     skip_blank_lines: bool = True,
     # Datetime Handling
     parse_dates: bool | Sequence[Hashable] | None = None,
-    infer_datetime_format: bool | lib.NoDefault = lib.no_default,
-    keep_date_col: bool | lib.NoDefault = lib.no_default,
-    date_parser: Callable | lib.NoDefault = lib.no_default,
     date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
@@ -987,69 +963,12 @@ def read_table(
     # Error Handling
     on_bad_lines: str = "error",
     # Internal
-    delim_whitespace: bool | lib.NoDefault = lib.no_default,
     low_memory: bool = _c_parser_defaults["low_memory"],
     memory_map: bool = False,
     float_precision: Literal["high", "legacy", "round_trip"] | None = None,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame | TextFileReader:
-    if keep_date_col is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'keep_date_col' keyword in pd.read_table is deprecated and "
-            "will be removed in a future version. Explicitly remove unwanted "
-            "columns after parsing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        keep_date_col = False
-
-    # error: Item "bool" of "bool | Sequence[Hashable]" has no attribute "__iter__"
-    if lib.is_list_like(parse_dates) and not all(is_hashable(x) for x in parse_dates):  # type: ignore[union-attr]
-        # GH#55569
-        warnings.warn(
-            "Support for nested sequences for 'parse_dates' in pd.read_table "
-            "is deprecated. Combine the desired columns with pd.to_datetime "
-            "after parsing instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-    if infer_datetime_format is not lib.no_default:
-        warnings.warn(
-            "The argument 'infer_datetime_format' is deprecated and will "
-            "be removed in a future version. "
-            "A strict version of it is now the default, see "
-            "https://pandas.pydata.org/pdeps/0004-consistent-to-datetime-parsing.html. "
-            "You can safely remove this argument.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-
-    if delim_whitespace is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'delim_whitespace' keyword in pd.read_table is deprecated and "
-            "will be removed in a future version. Use ``sep='\\s+'`` instead",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        delim_whitespace = False
-
-    if verbose is not lib.no_default:
-        # GH#55569
-        warnings.warn(
-            "The 'verbose' keyword in pd.read_table is deprecated and "
-            "will be removed in a future version.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
-    else:
-        verbose = False
-
     # locals() should never be modified
     kwds = locals().copy()
     del kwds["filepath_or_buffer"]
@@ -1058,7 +977,6 @@ def read_table(
     kwds_defaults = _refine_defaults_read(
         dialect,
         delimiter,
-        delim_whitespace,
         engine,
         sep,
         on_bad_lines,
@@ -1110,6 +1028,7 @@ def read_fwf(
 ) -> DataFrame: ...
 
 
+@set_module("pandas")
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
@@ -1139,7 +1058,7 @@ def read_fwf(
         ``file://localhost/path/to/table.csv``.
     colspecs : list of tuple (int, int) or 'infer'. optional
         A list of tuples giving the extents of the fixed-width
-        fields of each line as half-open intervals (i.e.,  [from, to[ ).
+        fields of each line as half-open intervals (i.e.,  [from, to] ).
         String value 'infer' can be used to instruct the parser to try
         detecting the column specifications from the first 100 rows of
         the data which are not being skipped via skiprows (default='infer').
@@ -1300,8 +1219,7 @@ class TextFileReader(abc.Iterator):
                 and value != getattr(value, "value", default)
             ):
                 raise ValueError(
-                    f"The {argname!r} option is not supported with the "
-                    f"'pyarrow' engine"
+                    f"The {argname!r} option is not supported with the 'pyarrow' engine"
                 )
             options[argname] = value
 
@@ -1340,6 +1258,16 @@ class TextFileReader(abc.Iterator):
             raise ValueError(
                 "The 'python' engine cannot iterate through this file buffer."
             )
+        if hasattr(f, "encoding"):
+            file_encoding = f.encoding
+            orig_reader_enc = self.orig_options.get("encoding", None)
+            any_none = file_encoding is None or orig_reader_enc is None
+            if file_encoding != orig_reader_enc and not any_none:
+                file_path = getattr(f, "name", None)
+                raise ValueError(
+                    f"The specified reader encoding {orig_reader_enc} is different "
+                    f"from the encoding {file_encoding} of file {file_path}."
+                )
 
     def _clean_options(
         self, options: dict[str, Any], engine: CSVEngine
@@ -1355,17 +1283,10 @@ class TextFileReader(abc.Iterator):
                 engine = "python"
 
         sep = options["delimiter"]
-        delim_whitespace = options["delim_whitespace"]
 
-        if sep is None and not delim_whitespace:
-            if engine in ("c", "pyarrow"):
-                fallback_reason = (
-                    f"the '{engine}' engine does not support "
-                    "sep=None with delim_whitespace=False"
-                )
-                engine = "python"
-        elif sep is not None and len(sep) > 1:
+        if sep is not None and len(sep) > 1:
             if engine == "c" and sep == r"\s+":
+                # delim_whitespace passed on to pandas._libs.parsers.TextReader
                 result["delim_whitespace"] = True
                 del result["delimiter"]
             elif engine not in ("python", "python-fwf"):
@@ -1376,9 +1297,6 @@ class TextFileReader(abc.Iterator):
                     r"different from '\s+' are interpreted as regex)"
                 )
                 engine = "python"
-        elif delim_whitespace:
-            if "python" in engine:
-                result["delimiter"] = r"\s+"
         elif sep is not None:
             encodeable = True
             encoding = sys.getfilesystemencoding() or "utf-8"
@@ -1477,8 +1395,7 @@ class TextFileReader(abc.Iterator):
             if not is_integer(skiprows) and skiprows is not None:
                 # pyarrow expects skiprows to be passed as an integer
                 raise ValueError(
-                    "skiprows argument must be an integer when using "
-                    "engine='pyarrow'"
+                    "skiprows argument must be an integer when using engine='pyarrow'"
                 )
         else:
             if is_integer(skiprows):
@@ -1515,6 +1432,7 @@ class TextFileReader(abc.Iterator):
             "pyarrow": ArrowParserWrapper,
             "python-fwf": FixedWidthFieldParser,
         }
+
         if engine not in mapping:
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
@@ -1640,7 +1558,10 @@ class TextFileReader(abc.Iterator):
         if self.nrows is not None:
             if self._currow >= self.nrows:
                 raise StopIteration
-            size = min(size, self.nrows - self._currow)
+            if size is None:
+                size = self.nrows - self._currow
+            else:
+                size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
 
     def __enter__(self) -> Self:
@@ -1684,10 +1605,6 @@ def TextParser(*args, **kwds) -> TextFileReader:
     comment : str, optional
         Comment out remainder of line
     parse_dates : bool, default False
-    keep_date_col : bool, default False
-    date_parser : function, optional
-
-        .. deprecated:: 2.0.0
     date_format : str or dict of column -> format, default ``None``
 
         .. versionadded:: 2.0.0
@@ -1735,7 +1652,7 @@ def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = T
             if keep_default_na:
                 v = set(v) | STR_NA_VALUES
 
-            na_values[k] = v
+            na_values[k] = _stringify_na_values(v, floatify)
         na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
         if not is_list_like(na_values):
@@ -1749,7 +1666,7 @@ def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = T
     return na_values, na_fvalues
 
 
-def _floatify_na_values(na_values):
+def _floatify_na_values(na_values) -> set[float]:
     # create float versions of the na_values
     result = set()
     for v in na_values:
@@ -1792,7 +1709,6 @@ def _stringify_na_values(na_values, floatify: bool) -> set[str | float]:
 def _refine_defaults_read(
     dialect: str | csv.Dialect | None,
     delimiter: str | None | lib.NoDefault,
-    delim_whitespace: bool,
     engine: CSVEngine | None,
     sep: str | None | lib.NoDefault,
     on_bad_lines: str | Callable,
@@ -1812,14 +1728,6 @@ def _refine_defaults_read(
         documentation for more details.
     delimiter : str or object
         Alias for sep.
-    delim_whitespace : bool
-        Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
-        used as the sep. Equivalent to setting ``sep='\\s+'``. If this option
-        is set to True, nothing should be passed in for the ``delimiter``
-        parameter.
-
-        .. deprecated:: 2.2.0
-            Use ``sep="\\s+"`` instead.
     engine : {{'c', 'python'}}
         Parser engine to use. The C engine is faster while the python engine is
         currently more feature-complete.
@@ -1839,12 +1747,6 @@ def _refine_defaults_read(
     -------
     kwds : dict
         Input parameters with correct values.
-
-    Raises
-    ------
-    ValueError :
-        If a delimiter was specified with ``sep`` (or ``delimiter``) and
-        ``delim_whitespace=True``.
     """
     # fix types for sep, delimiter to Union(str, Any)
     delim_default = defaults["delimiter"]
@@ -1874,12 +1776,6 @@ def _refine_defaults_read(
     # Alias sep -> delimiter.
     if delimiter is None:
         delimiter = sep
-
-    if delim_whitespace and (delimiter is not lib.no_default):
-        raise ValueError(
-            "Specified a delimiter with both sep and "
-            "delim_whitespace=True; you can only specify one."
-        )
 
     if delimiter == "\n":
         raise ValueError(
@@ -1923,7 +1819,7 @@ def _refine_defaults_read(
     return kwds
 
 
-def _extract_dialect(kwds: dict[str, Any]) -> csv.Dialect | None:
+def _extract_dialect(kwds: dict[str, str | csv.Dialect]) -> csv.Dialect | None:
     """
     Extract concrete csv dialect instance.
 
@@ -1935,12 +1831,16 @@ def _extract_dialect(kwds: dict[str, Any]) -> csv.Dialect | None:
         return None
 
     dialect = kwds["dialect"]
-    if dialect in csv.list_dialects():
-        dialect = csv.get_dialect(dialect)
+    if isinstance(dialect, str) and dialect in csv.list_dialects():
+        # get_dialect is typed to return a `_csv.Dialect` for some reason in typeshed
+        tdialect = cast(csv.Dialect, csv.get_dialect(dialect))
+        _validate_dialect(tdialect)
 
-    _validate_dialect(dialect)
+    else:
+        _validate_dialect(dialect)
+        tdialect = cast(csv.Dialect, dialect)
 
-    return dialect
+    return tdialect
 
 
 MANDATORY_DIALECT_ATTRS = (
@@ -1953,7 +1853,7 @@ MANDATORY_DIALECT_ATTRS = (
 )
 
 
-def _validate_dialect(dialect: csv.Dialect) -> None:
+def _validate_dialect(dialect: csv.Dialect | str) -> None:
     """
     Validate csv dialect instance.
 

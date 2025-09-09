@@ -191,7 +191,7 @@ def test_unary_accumulate_axis():
 
 def test_frame_outer_disallowed():
     df = pd.DataFrame({"A": [1, 2]})
-    with pytest.raises(NotImplementedError, match=""):
+    with pytest.raises(NotImplementedError, match="^$"):
         # deprecation enforced in 2.0
         np.subtract.outer(df, df)
 
@@ -245,6 +245,7 @@ def test_alignment_deprecation_enforced():
         np.add(s2, df1)
 
 
+@pytest.mark.single_cpu
 def test_alignment_deprecation_many_inputs_enforced():
     # Enforced in 2.0
     # https://github.com/pandas-dev/pandas/issues/39184

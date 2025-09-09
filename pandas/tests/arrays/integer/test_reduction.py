@@ -102,9 +102,7 @@ def test_groupby_reductions(op, expected):
         ["all", Series([True, True, True], index=["A", "B", "C"], dtype="boolean")],
     ],
 )
-def test_mixed_reductions(op, expected, using_infer_string):
-    if op in ["any", "all"] and using_infer_string:
-        expected = expected.astype("bool")
+def test_mixed_reductions(op, expected):
     df = DataFrame(
         {
             "A": ["a", "b", "b"],

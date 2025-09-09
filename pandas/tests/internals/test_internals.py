@@ -10,6 +10,7 @@ import pytest
 
 from pandas._libs.internals import BlockPlacement
 from pandas.compat import IS64
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -347,7 +348,7 @@ class TestBlock:
         # GH#37799
         values = np.random.default_rng(2).standard_normal((3, 4))
         blk = new_block(values, placement=BlockPlacement([3, 1, 6]), ndim=2)
-        result = blk._split()
+        result = list(blk._split())
 
         # check that we get views, not copies
         values[:] = -9999
@@ -621,7 +622,7 @@ class TestBlockManager:
         mgr.iset(1, np.array(["2."] * N, dtype=np.object_))
         mgr.iset(2, np.array(["foo."] * N, dtype=np.object_))
         new_mgr = mgr.convert()
-        dtype = "string[pyarrow_numpy]" if using_infer_string else np.object_
+        dtype = "str" if using_infer_string else np.object_
         assert new_mgr.iget(0).dtype == dtype
         assert new_mgr.iget(1).dtype == dtype
         assert new_mgr.iget(2).dtype == dtype
@@ -735,8 +736,6 @@ class TestBlockManager:
         mgr = create_mgr("a: f8; b: i8; c: f8; d: i8; e: f8; f: bool; g: f8-2")
 
         reindexed = mgr.reindex_axis(["g", "c", "a", "d"], axis=0)
-        # reindex_axis does not consolidate_inplace, as that risks failing to
-        #  invalidate _item_cache
         assert not reindexed.is_consolidated()
 
         tm.assert_index_equal(reindexed.items, Index(["g", "c", "a", "d"]))
@@ -1280,19 +1279,19 @@ class TestCanHoldElement:
         # `elem` to not have the same length as `arr`
         ii2 = IntervalIndex.from_breaks(arr[:-1], closed="neither")
         elem = element(ii2)
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
         ii3 = IntervalIndex.from_breaks([Timestamp(1), Timestamp(3), Timestamp(4)])
         elem = element(ii3)
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
         ii4 = IntervalIndex.from_breaks([Timedelta(1), Timedelta(3), Timedelta(4)])
         elem = element(ii4)
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, ii, False)
         assert not blk._can_hold_element(elem)
 
@@ -1312,13 +1311,23 @@ class TestCanHoldElement:
         # `elem` to not have the same length as `arr`
         pi2 = pi.asfreq("D")[:-1]
         elem = element(pi2)
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, pi, False)
 
         dti = pi.to_timestamp("s")[:-1]
         elem = element(dti)
-        with tm.assert_produces_warning(FutureWarning):
+        with pytest.raises(TypeError, match="Invalid value"):
             self.check_series_setitem(elem, pi, False)
+
+    def test_period_reindex_axis(self):
+        # GH#60273 Test reindexing of block with PeriodDtype
+        pi = period_range("2020", periods=5, freq="Y")
+        blk = new_block(pi._data.reshape(5, 1), BlockPlacement(slice(5)), ndim=2)
+        mgr = BlockManager(blocks=(blk,), axes=[Index(np.arange(5)), Index(["a"])])
+        reindexed = mgr.reindex_axis(Index([0, 2, 4]), axis=0)
+        result = DataFrame._from_mgr(reindexed, axes=reindexed.axes)
+        expected = DataFrame([[pi[0], pi[2], pi[4]]], columns=[0, 2, 4], index=["a"])
+        tm.assert_frame_equal(result, expected)
 
     def check_can_hold_element(self, obj, elem, inplace: bool):
         blk = obj._mgr.blocks[0]
@@ -1366,8 +1375,10 @@ def test_validate_ndim():
     placement = BlockPlacement(slice(2))
     msg = r"Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
 
+    depr_msg = "make_block is deprecated"
     with pytest.raises(ValueError, match=msg):
-        make_block(values, placement, ndim=2)
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+            make_block(values, placement, ndim=2)
 
 
 def test_block_shape():
@@ -1382,8 +1393,12 @@ def test_make_block_no_pandas_array(block_maker):
     # https://github.com/pandas-dev/pandas/pull/24866
     arr = pd.arrays.NumpyExtensionArray(np.array([1, 2]))
 
+    depr_msg = "make_block is deprecated"
+    warn = DeprecationWarning if block_maker is make_block else None
+
     # NumpyExtensionArray, no dtype
-    result = block_maker(arr, BlockPlacement(slice(len(arr))), ndim=arr.ndim)
+    with tm.assert_produces_warning(warn, match=depr_msg):
+        result = block_maker(arr, BlockPlacement(slice(len(arr))), ndim=arr.ndim)
     assert result.dtype.kind in ["i", "u"]
 
     if block_maker is make_block:
@@ -1391,14 +1406,16 @@ def test_make_block_no_pandas_array(block_maker):
         assert result.is_extension is False
 
         # NumpyExtensionArray, NumpyEADtype
-        result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
+        with tm.assert_produces_warning(warn, match=depr_msg):
+            result = block_maker(arr, slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim)
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False
 
-        # new_block no longer taked dtype keyword
+        # new_block no longer accepts dtype keyword
         # ndarray, NumpyEADtype
-        result = block_maker(
-            arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim
-        )
+        with tm.assert_produces_warning(warn, match=depr_msg):
+            result = block_maker(
+                arr.to_numpy(), slice(len(arr)), dtype=arr.dtype, ndim=arr.ndim
+            )
         assert result.dtype.kind in ["i", "u"]
         assert result.is_extension is False

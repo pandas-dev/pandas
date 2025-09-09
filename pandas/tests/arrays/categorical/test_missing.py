@@ -3,6 +3,8 @@ import collections
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
@@ -29,8 +31,9 @@ class TestCategoricalMissing:
         categories = list(range(10))
         labels = np.random.default_rng(2).integers(0, 10, 20)
         labels[::5] = -1
-
-        cat = Categorical(labels, categories)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            cat = Categorical(labels, categories)
         repr(cat)
 
         tm.assert_numpy_array_equal(isna(cat), labels == -1)
@@ -52,7 +55,7 @@ class TestCategoricalMissing:
 
     def test_set_dtype_nans(self):
         c = Categorical(["a", "b", np.nan])
-        result = c._set_dtype(CategoricalDtype(["a", "c"]))
+        result = c._set_dtype(CategoricalDtype(["a", "c"]), copy=True)
         tm.assert_numpy_array_equal(result.codes, np.array([0, -1, -1], dtype="int8"))
 
     def test_set_item_nan(self):
@@ -61,34 +64,6 @@ class TestCategoricalMissing:
 
         exp = Categorical([1, np.nan, 3], categories=[1, 2, 3])
         tm.assert_categorical_equal(cat, exp)
-
-    @pytest.mark.parametrize(
-        "fillna_kwargs, msg",
-        [
-            (
-                {"value": 1, "method": "ffill"},
-                "Cannot specify both 'value' and 'method'.",
-            ),
-            ({}, "Must specify a fill 'value' or 'method'."),
-            ({"method": "bad"}, "Invalid fill method. Expecting .* bad"),
-            (
-                {"value": Series([1, 2, 3, 4, "a"])},
-                "Cannot setitem on a Categorical with a new category",
-            ),
-        ],
-    )
-    def test_fillna_raises(self, fillna_kwargs, msg):
-        # https://github.com/pandas-dev/pandas/issues/19682
-        # https://github.com/pandas-dev/pandas/issues/13628
-        cat = Categorical([1, 2, 3, None, None])
-
-        if len(fillna_kwargs) == 1 and "value" in fillna_kwargs:
-            err = TypeError
-        else:
-            err = ValueError
-
-        with pytest.raises(err, match=msg):
-            cat.fillna(**fillna_kwargs)
 
     @pytest.mark.parametrize("named", [True, False])
     def test_fillna_iterable_category(self, named):
@@ -149,7 +124,7 @@ class TestCategoricalMissing:
     @pytest.mark.parametrize(
         "na_value, dtype",
         [
-            (pd.NaT, "datetime64[ns]"),
+            (pd.NaT, "datetime64[s]"),
             (None, "float64"),
             (np.nan, "float64"),
             (pd.NA, "float64"),

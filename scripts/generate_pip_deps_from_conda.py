@@ -12,20 +12,20 @@ Usage:
     generated with this script:
     $ python scripts/generate_pip_deps_from_conda.py --compare
 """
+
 import argparse
 import pathlib
 import re
 import sys
+import tomllib
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 import yaml
 
 EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
-REMAP_VERSION = {"tzdata": "2022.7"}
+REMAP_VERSION = {"tzdata": "2023.3"}
 CONDA_TO_PIP = {
+    "versioneer": "versioneer[toml]",
+    "meson": "meson[ninja]",
     "pytables": "tables",
     "psycopg2": "psycopg2-binary",
     "dask-core": "dask",

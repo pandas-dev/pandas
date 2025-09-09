@@ -12,7 +12,7 @@ import pandas._testing as tm
 
 
 def test_import_optional():
-    match = "Missing .*notapackage.* pip .* conda .* notapackage"
+    match = "Import .*notapackage.* pip .* conda .* notapackage"
     with pytest.raises(ImportError, match=match) as exc_info:
         import_optional_dependency("notapackage")
     # The original exception should be there as context:
@@ -42,7 +42,7 @@ def test_bad_version(monkeypatch):
     result = import_optional_dependency("fakemodule", min_version="0.8")
     assert result is module
 
-    with tm.assert_produces_warning(UserWarning):
+    with tm.assert_produces_warning(UserWarning, match=match):
         result = import_optional_dependency("fakemodule", errors="warn")
     assert result is None
 
@@ -53,7 +53,7 @@ def test_bad_version(monkeypatch):
     with pytest.raises(ImportError, match="Pandas requires version '1.1.0'"):
         import_optional_dependency("fakemodule", min_version="1.1.0")
 
-    with tm.assert_produces_warning(UserWarning):
+    with tm.assert_produces_warning(UserWarning, match="Pandas requires version"):
         result = import_optional_dependency(
             "fakemodule", errors="warn", min_version="1.1.0"
         )
@@ -81,7 +81,7 @@ def test_submodule(monkeypatch):
     with pytest.raises(ImportError, match=match):
         import_optional_dependency("fakemodule.submodule")
 
-    with tm.assert_produces_warning(UserWarning):
+    with tm.assert_produces_warning(UserWarning, match=match):
         result = import_optional_dependency("fakemodule.submodule", errors="warn")
     assert result is None
 

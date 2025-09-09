@@ -35,15 +35,15 @@ class TestDataFrame:
             columns=MultiIndex.from_tuples([("C", x) for x in list("xyz")]),
         )
 
-        level_names = ("L1", "L2")
+        level_names = ["L1", "L2"]
 
         result = methodcaller(func, level_names)(df)
         assert result.index.names == level_names
-        assert result.columns.names == (None, None)
+        assert result.columns.names == [None, None]
 
         result = methodcaller(func, level_names, axis=1)(df)
-        assert result.columns.names == level_names
-        assert result.index.names == (None, None)
+        assert result.columns.names == ["L1", "L2"]
+        assert result.index.names == [None, None]
 
     def test_nonzero_single_element(self):
         df = DataFrame([[False, False]])
@@ -80,12 +80,16 @@ class TestDataFrame:
         def finalize(self, other, method=None, **kwargs):
             for name in self._metadata:
                 if method == "merge":
-                    left, right = other.left, other.right
+                    left, right = other.input_objs
                     value = getattr(left, name, "") + "|" + getattr(right, name, "")
                     object.__setattr__(self, name, value)
                 elif method == "concat":
                     value = "+".join(
-                        [getattr(o, name) for o in other.objs if getattr(o, name, None)]
+                        [
+                            getattr(o, name)
+                            for o in other.input_objs
+                            if getattr(o, name, None)
+                        ]
                     )
                     object.__setattr__(self, name, value)
                 else:

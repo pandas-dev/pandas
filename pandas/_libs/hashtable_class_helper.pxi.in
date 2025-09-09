@@ -3,7 +3,7 @@ Template for each `dtype` helper function for hashtable
 
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
-
+from cpython.unicode cimport PyUnicode_AsUTF8
 
 {{py:
 
@@ -98,7 +98,6 @@ from pandas._libs.khash cimport (
 # VectorData
 # ----------------------------------------------------------------------
 
-from pandas._libs.tslibs.util cimport get_c_string
 from pandas._libs.missing cimport C_NA
 
 
@@ -163,8 +162,9 @@ ctypedef fused vector_data:
     Complex64VectorData
     StringVectorData
 
-cdef bint needs_resize(vector_data *data) noexcept nogil:
-    return data.size == data.capacity
+
+cdef bint needs_resize(Py_ssize_t nelems, Py_ssize_t capacity) noexcept nogil:
+    return nelems >= capacity
 
 # ----------------------------------------------------------------------
 # Vector
@@ -214,8 +214,8 @@ cdef class {{name}}Vector(Vector):
         self.ao = np.empty(self.data.capacity, dtype=np.{{dtype}})
         self.data.data = <{{c_type}}*>self.ao.data
 
-    cdef resize(self):
-        self.data.capacity = max(self.data.capacity * 4, _INIT_VEC_CAP)
+    cdef resize(self, Py_ssize_t new_size):
+        self.data.capacity = max(new_size, _INIT_VEC_CAP)
         self.ao.resize(self.data.capacity, refcheck=False)
         self.data.data = <{{c_type}}*>self.ao.data
 
@@ -234,17 +234,28 @@ cdef class {{name}}Vector(Vector):
 
     cdef void append(self, {{c_type}} x) noexcept:
 
-        if needs_resize(&self.data):
+        if needs_resize(self.data.size, self.data.capacity):
             if self.external_view_exists:
                 raise ValueError("external reference but "
                                  "Vector.resize() needed")
-            self.resize()
+            self.resize(self.data.capacity * 4)
 
         append_data_{{dtype}}(&self.data, x)
 
     cdef extend(self, const {{c_type}}[:] x):
-        for i in range(len(x)):
-            self.append(x[i])
+        cdef Py_ssize_t x_size = len(x)
+        if x_size == 0:
+            return
+
+        cdef Py_ssize_t needed_size = self.data.size + x_size
+        if needs_resize(needed_size, self.data.capacity):
+            if self.external_view_exists:
+                raise ValueError("external reference but "
+                                 "Vector.resize() needed")
+            self.resize(needed_size)
+
+        memcpy(self.data.data + self.data.size, &x[0], x_size * sizeof({{c_type}}))
+        self.data.size = needed_size
 
 {{endfor}}
 
@@ -260,7 +271,7 @@ cdef class StringVector(Vector):
         if self.data.data is NULL:
             raise MemoryError()
 
-    cdef resize(self):
+    cdef resize(self, Py_ssize_t new_size):
         cdef:
             char **orig_data
             Py_ssize_t i, orig_capacity
@@ -297,8 +308,8 @@ cdef class StringVector(Vector):
 
     cdef void append(self, char *x) noexcept:
 
-        if needs_resize(&self.data):
-            self.resize()
+        if needs_resize(self.data.size, self.data.capacity):
+            self.resize(self.data.capacity * 4)
 
         append_data_string(&self.data, x)
 
@@ -524,7 +535,7 @@ cdef class {{name}}HashTable(HashTable):
             int ret = 0
             {{c_type}} val
             khiter_t k
-            int8_t na_position = self.na_position
+            Py_ssize_t na_position = self.na_position
 
         if self.uses_mask and mask is None:
             raise NotImplementedError  # pragma: no cover
@@ -545,6 +556,49 @@ cdef class {{name}}HashTable(HashTable):
                     self.table.vals[k] = i
         self.na_position = na_position
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    def hash_inner_join(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> tuple[ndarray, ndarray]:
+        cdef:
+            Py_ssize_t i, n = len(values)
+            {{c_type}} val
+            khiter_t k
+            Int64Vector locs = Int64Vector()
+            Int64Vector self_locs = Int64Vector()
+            Int64VectorData *l
+            Int64VectorData *sl
+            Py_ssize_t na_position = self.na_position
+
+        l = &locs.data
+        sl = &self_locs.data
+
+        if self.uses_mask and mask is None:
+            raise NotImplementedError  # pragma: no cover
+
+        with nogil:
+            for i in range(n):
+                if self.uses_mask and mask[i]:
+                    if self.na_position == -1:
+                        continue
+                    if needs_resize(l.size, l.capacity):
+                        with gil:
+                            locs.resize(locs.data.capacity * 4)
+                            self_locs.resize(locs.data.capacity * 4)
+                    append_data_int64(l, i)
+                    append_data_int64(sl, na_position)
+                else:
+                    val = {{to_c_type}}(values[i])
+                    k = kh_get_{{dtype}}(self.table, val)
+                    if k != self.table.n_buckets:
+                        if needs_resize(l.size, l.capacity):
+                            with gil:
+                                locs.resize(locs.data.capacity * 4)
+                                self_locs.resize(locs.data.capacity * 4)
+                        append_data_int64(l, i)
+                        append_data_int64(sl, self.table.vals[k])
+
+        return self_locs.to_array(), locs.to_array()
+
     @cython.boundscheck(False)
     def lookup(self, const {{dtype}}_t[:] values, const uint8_t[:] mask = None) -> ndarray:
         # -> np.ndarray[np.intp]
@@ -555,7 +609,7 @@ cdef class {{name}}HashTable(HashTable):
             {{c_type}} val
             khiter_t k
             intp_t[::1] locs = np.empty(n, dtype=np.intp)
-            int8_t na_position = self.na_position
+            Py_ssize_t na_position = self.na_position
 
         if self.uses_mask and mask is None:
             raise NotImplementedError  # pragma: no cover
@@ -684,18 +738,18 @@ cdef class {{name}}HashTable(HashTable):
                             continue
 
                         seen_na = True
-                        if needs_resize(ud):
+                        if needs_resize(ud.size, ud.capacity):
                             with gil:
                                 if uniques.external_view_exists:
                                     raise ValueError("external reference to "
                                                      "uniques held, but "
                                                      "Vector.resize() needed")
-                                uniques.resize()
+                                uniques.resize(uniques.data.capacity * 4)
                                 if result_mask.external_view_exists:
                                     raise ValueError("external reference to "
                                                      "result_mask held, but "
                                                      "Vector.resize() needed")
-                                result_mask.resize()
+                                result_mask.resize(result_mask.data.capacity * 4)
                         append_data_{{dtype}}(ud, val)
                         append_data_uint8(rmd, 1)
                         continue
@@ -706,19 +760,19 @@ cdef class {{name}}HashTable(HashTable):
                     # k hasn't been seen yet
                     k = kh_put_{{dtype}}(self.table, val, &ret)
 
-                    if needs_resize(ud):
+                    if needs_resize(ud.size, ud.capacity):
                         with gil:
                             if uniques.external_view_exists:
                                 raise ValueError("external reference to "
                                                  "uniques held, but "
                                                  "Vector.resize() needed")
-                            uniques.resize()
+                            uniques.resize(uniques.data.capacity * 4)
                             if use_result_mask:
                                 if result_mask.external_view_exists:
                                     raise ValueError("external reference to "
                                                      "result_mask held, but "
                                                      "Vector.resize() needed")
-                                result_mask.resize()
+                                result_mask.resize(result_mask.data.capacity * 4)
                     append_data_{{dtype}}(ud, val)
                     if use_result_mask:
                         append_data_uint8(rmd, 0)
@@ -849,9 +903,9 @@ cdef class {{name}}HashTable(HashTable):
                     k = kh_put_{{dtype}}(self.table, val, &ret)
                     self.table.vals[k] = count
 
-                    if needs_resize(ud):
+                    if needs_resize(ud.size, ud.capacity):
                         with gil:
-                            uniques.resize()
+                            uniques.resize(uniques.data.capacity * 4)
                     append_data_{{dtype}}(ud, val)
                     labels[i] = count
                     count += 1
@@ -867,8 +921,8 @@ cdef class {{name}}Factorizer(Factorizer):
         {{name}}HashTable table
         {{name}}Vector uniques
 
-    def __cinit__(self, size_hint: int):
-        self.table = {{name}}HashTable(size_hint)
+    def __cinit__(self, size_hint: int, uses_mask: bool = False):
+        self.table = {{name}}HashTable(size_hint, uses_mask=uses_mask)
         self.uniques = {{name}}Vector()
 
     def factorize(self, const {{c_type}}[:] values,
@@ -898,6 +952,9 @@ cdef class {{name}}Factorizer(Factorizer):
                                        na_value=na_value, mask=mask)
         self.count = len(self.uniques)
         return labels
+
+    def hash_inner_join(self, const {{c_type}}[:] values, const uint8_t[:] mask = None) -> tuple[np.ndarray, np.ndarray]:
+        return self.table.hash_inner_join(values, mask)
 
 {{endfor}}
 
@@ -940,7 +997,7 @@ cdef class StringHashTable(HashTable):
         cdef:
             khiter_t k
             const char *v
-        v = get_c_string(val)
+        v = PyUnicode_AsUTF8(val)
 
         k = kh_get_str(self.table, v)
         if k != self.table.n_buckets:
@@ -954,7 +1011,7 @@ cdef class StringHashTable(HashTable):
             int ret = 0
             const char *v
 
-        v = get_c_string(key)
+        v = PyUnicode_AsUTF8(key)
 
         k = kh_put_str(self.table, v, &ret)
         if kh_exist_str(self.table, k):
@@ -979,7 +1036,7 @@ cdef class StringHashTable(HashTable):
             raise MemoryError()
         for i in range(n):
             val = values[i]
-            v = get_c_string(val)
+            v = PyUnicode_AsUTF8(val)
             vecs[i] = v
 
         with nogil:
@@ -1013,11 +1070,11 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, str):
-                # GH#31499 if we have a np.str_ get_c_string won't recognize
+                # GH#31499 if we have a np.str_ PyUnicode_AsUTF8 won't recognize
                 #  it as a str, even though isinstance does.
-                v = get_c_string(<str>val)
+                v = PyUnicode_AsUTF8(<str>val)
             else:
-                v = get_c_string(self.na_string_sentinel)
+                v = PyUnicode_AsUTF8(self.na_string_sentinel)
             vecs[i] = v
 
         with nogil:
@@ -1051,11 +1108,11 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, str):
-                # GH#31499 if we have a np.str_ get_c_string won't recognize
+                # GH#31499 if we have a np.str_ PyUnicode_AsUTF8 won't recognize
                 #  it as a str, even though isinstance does.
-                v = get_c_string(<str>val)
+                v = PyUnicode_AsUTF8(<str>val)
             else:
-                v = get_c_string(self.na_string_sentinel)
+                v = PyUnicode_AsUTF8(self.na_string_sentinel)
             vecs[i] = v
 
         with nogil:
@@ -1114,11 +1171,13 @@ cdef class StringHashTable(HashTable):
             const char **vecs
             khiter_t k
             bint use_na_value
+            bint non_null_na_value
 
         if return_inverse:
             labels = np.zeros(n, dtype=np.intp)
         uindexer = np.empty(n, dtype=np.int64)
         use_na_value = na_value is not None
+        non_null_na_value = not checknull(na_value)
 
         # assign pointers and pre-filter out missing (if ignore_na)
         vecs = <const char **>malloc(n * sizeof(char *))
@@ -1129,7 +1188,12 @@ cdef class StringHashTable(HashTable):
 
             if (ignore_na
                 and (not isinstance(val, str)
-                     or (use_na_value and val == na_value))):
+                     or (use_na_value and (
+                        (non_null_na_value and val == na_value) or
+                        (not non_null_na_value and is_matching_na(val, na_value)))
+                        )
+                    )
+                ):
                 # if missing values do not count as unique values (i.e. if
                 # ignore_na is True), we can skip the actual value, and
                 # replace the label with na_sentinel directly
@@ -1137,9 +1201,9 @@ cdef class StringHashTable(HashTable):
             else:
                 # if ignore_na is False, we also stringify NaN/None/etc.
                 try:
-                    v = get_c_string(<str>val)
+                    v = PyUnicode_AsUTF8(<str>val)
                 except UnicodeEncodeError:
-                    v = get_c_string(<str>repr(val))
+                    v = PyUnicode_AsUTF8(<str>repr(val))
                 vecs[i] = v
 
         # compute
@@ -1395,10 +1459,11 @@ cdef class PyObjectHashTable(HashTable):
             object val
             khiter_t k
             bint use_na_value
-
+            bint non_null_na_value
         if return_inverse:
             labels = np.empty(n, dtype=np.intp)
         use_na_value = na_value is not None
+        non_null_na_value = not checknull(na_value)
 
         for i in range(n):
             val = values[i]
@@ -1406,7 +1471,11 @@ cdef class PyObjectHashTable(HashTable):
 
             if ignore_na and (
                 checknull(val)
-                or (use_na_value and val == na_value)
+                or (use_na_value and (
+                    (non_null_na_value and val == na_value) or
+                    (not non_null_na_value and is_matching_na(val, na_value))
+                    )
+                )
             ):
                 # if missing values do not count as unique values (i.e. if
                 # ignore_na is True), skip the hashtable entry for them, and

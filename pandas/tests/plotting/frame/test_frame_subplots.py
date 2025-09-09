@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_linux
-from pandas.compat.numpy import np_version_gte1p24
 
 import pandas as pd
 from pandas import (
@@ -187,9 +186,9 @@ class TestDataFramePlotsSubplots:
         data = {
             "numeric": np.array([1, 2, 5]),
             "period": [
-                pd.Period("2017-08-01 00:00:00", freq="H"),
-                pd.Period("2017-08-01 02:00", freq="H"),
-                pd.Period("2017-08-02 00:00:00", freq="H"),
+                pd.Period("2017-08-01 00:00:00", freq="h"),
+                pd.Period("2017-08-01 02:00", freq="h"),
+                pd.Period("2017-08-02 00:00:00", freq="h"),
             ],
             "categorical": pd.Categorical(
                 ["c", "b", "a"], categories=["a", "b", "c"], ordered=False
@@ -327,7 +326,7 @@ class TestDataFramePlotsSubplots:
     def test_subplots_multiple_axes_2_dim(self, layout, exp_layout):
         # GH 5353, 6970, GH 7069
         # pass 2-dim axes and invalid layout
-        # invalid lauout should not affect to input and return value
+        # invalid layout should not affect to input and return value
         # (show warning is tested in
         # TestDataFrameGroupByPlots.test_grouped_box_multiple_axes
         _, axes = mpl.pyplot.subplots(2, 2)
@@ -335,7 +334,7 @@ class TestDataFramePlotsSubplots:
             np.random.default_rng(2).random((10, 4)),
             index=list(string.ascii_letters[:10]),
         )
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="layout keyword is ignored"):
             returned = df.plot(
                 subplots=True, ax=axes, layout=layout, sharex=False, sharey=False
             )
@@ -423,7 +422,7 @@ class TestDataFramePlotsSubplots:
         assert len(ax.right_ax.lines) == 5
 
     @pytest.mark.xfail(
-        np_version_gte1p24 and is_platform_linux(),
+        is_platform_linux(),
         reason="Weird rounding problems",
         strict=False,
     )
@@ -438,7 +437,7 @@ class TestDataFramePlotsSubplots:
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
 
     @pytest.mark.xfail(
-        np_version_gte1p24 and is_platform_linux(),
+        is_platform_linux(),
         reason="Weird rounding problems",
         strict=False,
     )
@@ -501,7 +500,7 @@ class TestDataFramePlotsSubplots:
             columns=list("AB"),
         )
         _, axes = plt.subplots(2, 1)
-        with tm.assert_produces_warning(UserWarning):
+        with tm.assert_produces_warning(UserWarning, match="sharex and sharey"):
             axes = df.plot(subplots=True, ax=axes, sharex=True)
         for ax in axes:
             assert len(ax.lines) == 1

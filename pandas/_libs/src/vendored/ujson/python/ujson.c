@@ -40,6 +40,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
 #include "numpy/arrayobject.h"
 
@@ -383,6 +384,10 @@ PyMODINIT_FUNC PyInit_json(void) {
   if (module == NULL) {
     return NULL;
   }
+
+#ifdef Py_GIL_DISABLED
+  PyUnstable_Module_SetGIL(module, Py_MOD_GIL_NOT_USED);
+#endif
 
 #ifndef PYPY_VERSION
   PyObject *mod_decimal = PyImport_ImportModule("decimal");

@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     Index,
@@ -36,11 +38,11 @@ def test_groupby_preserves_subclass(obj, groupby_func):
 
     args = get_groupby_method_args(groupby_func, obj)
 
-    warn = FutureWarning if groupby_func == "fillna" else None
-    msg = f"{type(grouped).__name__}.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=msg, raise_on_extra_warnings=False):
+    warn = Pandas4Warning if groupby_func == "corrwith" else None
+    msg = f"{type(grouped).__name__}.corrwith is deprecated"
+    with tm.assert_produces_warning(warn, match=msg):
         result1 = getattr(grouped, groupby_func)(*args)
-    with tm.assert_produces_warning(warn, match=msg, raise_on_extra_warnings=False):
+    with tm.assert_produces_warning(warn, match=msg):
         result2 = grouped.agg(groupby_func, *args)
 
     # Reduction or transformation kernels should preserve type
@@ -72,18 +74,11 @@ def test_groupby_preserves_metadata():
         assert group.testattr == "hello"
         return group.testattr
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(
-        DeprecationWarning,
-        match=msg,
-        raise_on_extra_warnings=False,
-        check_stacklevel=False,
-    ):
-        result = custom_df.groupby("c").apply(func)
+    result = custom_df.groupby("c").apply(func)
     expected = tm.SubclassedSeries(["hello"] * 3, index=Index([7, 8, 9], name="c"))
     tm.assert_series_equal(result, expected)
 
-    result = custom_df.groupby("c").apply(func, include_groups=False)
+    result = custom_df.groupby("c").apply(func)
     tm.assert_series_equal(result, expected)
 
     # https://github.com/pandas-dev/pandas/pull/56761
@@ -109,7 +104,7 @@ def test_groupby_resample_preserves_subclass(obj):
 
     df = obj(
         {
-            "Buyer": "Carl Carl Carl Carl Joe Carl".split(),
+            "Buyer": Series("Carl Carl Carl Carl Joe Carl".split(), dtype=object),
             "Quantity": [18, 3, 5, 1, 9, 3],
             "Date": [
                 datetime(2013, 9, 1, 13, 0),
@@ -124,12 +119,5 @@ def test_groupby_resample_preserves_subclass(obj):
     df = df.set_index("Date")
 
     # Confirm groupby.resample() preserves dataframe type
-    msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(
-        DeprecationWarning,
-        match=msg,
-        raise_on_extra_warnings=False,
-        check_stacklevel=False,
-    ):
-        result = df.groupby("Buyer").resample("5D").sum()
+    result = df.groupby("Buyer").resample("5D").sum()
     assert isinstance(result, obj)

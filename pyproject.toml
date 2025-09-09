@@ -2,16 +2,13 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python==0.13.1",
-    "meson==1.2.1",
+    "meson-python>=0.13.1",
+    "meson>=1.2.1,<2",
     "wheel",
-    "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    # Any NumPy version should be fine for compiling.  Users are unlikely
-    # to get a NumPy<1.25 so the result will be compatible with all relevant
-    # NumPy versions (if not it is presumably compatible with their version).
-    # Pin <2.0 for releases until tested against an RC.  But explicitly allow
-    # testing the `.dev0` nightlies (which require the extra index).
-    "numpy>1.22.4,<=2.0.0.dev0",
+    "Cython<4.0.0a0",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    # Force numpy higher than 2.0rc1, so that built wheels are compatible
+    # with both numpy 1 and 2
+    "numpy>=2.0.0rc1",
     "versioneer[toml]"
 ]
 
@@ -28,13 +25,11 @@ authors = [
   { name = 'The Pandas Development Team', email='pandas-dev@python.org' },
 ]
 license = {file = 'LICENSE'}
-requires-python = '>=3.9'
+requires-python = '>=3.11'
 dependencies = [
-  "numpy>=1.23.5; python_version<'3.12'",
-  "numpy>=1.26.0; python_version>='3.12'",
+  "numpy>=1.26.0",
   "python-dateutil>=2.8.2",
-  "pytz>=2020.1",
-  "tzdata>=2022.7"
+  "tzdata>=2023.3"
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
@@ -46,10 +41,9 @@ classifiers = [
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.9',
-    'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
     'Topic :: Scientific/Engineering'
 ]
 
@@ -62,66 +56,66 @@ repository = 'https://github.com/pandas-dev/pandas'
 matplotlib = "pandas:plotting._matplotlib"
 
 [project.optional-dependencies]
-test = ['hypothesis>=6.46.1', 'pytest>=7.3.2', 'pytest-xdist>=2.2.0']
-pyarrow = ['pyarrow>=10.0.1']
-performance = ['bottleneck>=1.3.6', 'numba>=0.56.4', 'numexpr>=2.8.4']
-computation = ['scipy>=1.10.0', 'xarray>=2022.12.0']
-fss = ['fsspec>=2022.11.0']
-aws = ['s3fs>=2022.11.0']
-gcp = ['gcsfs>=2022.11.0']
-excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.0', 'python-calamine>=0.1.7', 'pyxlsb>=1.0.10', 'xlrd>=2.0.1', 'xlsxwriter>=3.0.5']
-parquet = ['pyarrow>=10.0.1']
-feather = ['pyarrow>=10.0.1']
-hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
-        #'blosc>=1.20.1',
-        'tables>=3.8.0']
-spss = ['pyreadstat>=1.2.0']
-postgresql = ['SQLAlchemy>=2.0.0', 'psycopg2>=2.9.6', 'adbc-driver-postgresql>=0.8.0']
-mysql = ['SQLAlchemy>=2.0.0', 'pymysql>=1.0.2']
-sql-other = ['SQLAlchemy>=2.0.0', 'adbc-driver-postgresql>=0.8.0', 'adbc-driver-sqlite>=0.8.0']
-html = ['beautifulsoup4>=4.11.2', 'html5lib>=1.1', 'lxml>=4.9.2']
-xml = ['lxml>=4.9.2']
-plot = ['matplotlib>=3.6.3']
-output-formatting = ['jinja2>=3.1.2', 'tabulate>=0.9.0']
-clipboard = ['PyQt5>=5.15.9', 'qtpy>=2.3.0']
-compression = ['zstandard>=0.19.0']
-all = ['adbc-driver-postgresql>=0.8.0',
-       'adbc-driver-sqlite>=0.8.0',
-       'beautifulsoup4>=4.11.2',
-       # blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
-       #'blosc>=1.21.3',
-       'bottleneck>=1.3.6',
-       'fastparquet>=2023.04.0',
-       'fsspec>=2022.11.0',
-       'gcsfs>=2022.11.0',
+test = ['hypothesis>=6.116.0', 'pytest>=7.3.2', 'pytest-xdist>=3.4.0']
+pyarrow = ['pyarrow>=13.0.0']
+performance = ['bottleneck>=1.4.2', 'numba>=0.60.0', 'numexpr>=2.10.2']
+computation = ['scipy>=1.14.1', 'xarray>=2024.10.0']
+fss = ['fsspec>=2024.10.0']
+aws = ['s3fs>=2024.10.0']
+gcp = ['gcsfs>=2024.10.0']
+excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.5', 'python-calamine>=0.3.0', 'pyxlsb>=1.0.10', 'xlrd>=2.0.1', 'xlsxwriter>=3.2.0']
+parquet = ['pyarrow>=13.0.0']
+feather = ['pyarrow>=13.0.0']
+iceberg = ['pyiceberg>=0.8.1']
+hdf5 = ['tables>=3.10.1']
+spss = ['pyreadstat>=1.2.8']
+postgresql = ['SQLAlchemy>=2.0.36', 'psycopg2>=2.9.10', 'adbc-driver-postgresql>=1.2.0']
+mysql = ['SQLAlchemy>=2.0.36', 'pymysql>=1.1.1']
+sql-other = ['SQLAlchemy>=2.0.36', 'adbc-driver-postgresql>=1.2.0', 'adbc-driver-sqlite>=1.2.0']
+html = ['beautifulsoup4>=4.12.3', 'html5lib>=1.1', 'lxml>=5.3.0']
+xml = ['lxml>=5.3.0']
+plot = ['matplotlib>=3.9.3']
+output-formatting = ['jinja2>=3.1.5', 'tabulate>=0.9.0']
+clipboard = ['PyQt5>=5.15.9', 'qtpy>=2.4.2']
+compression = ['zstandard>=0.23.0']
+timezone = ['pytz>=2024.2']
+all = ['adbc-driver-postgresql>=1.2.0',
+       'adbc-driver-sqlite>=1.2.0',
+       'beautifulsoup4>=4.12.3',
+       'bottleneck>=1.4.2',
+       'fastparquet>=2024.11.0',
+       'fsspec>=2024.10.0',
+       'gcsfs>=2024.10.0',
        'html5lib>=1.1',
-       'hypothesis>=6.46.1',
-       'jinja2>=3.1.2',
-       'lxml>=4.9.2',
-       'matplotlib>=3.6.3',
-       'numba>=0.56.4',
-       'numexpr>=2.8.4',
+       'hypothesis>=6.116.0',
+       'jinja2>=3.1.5',
+       'lxml>=5.3.0',
+       'matplotlib>=3.9.3',
+       'numba>=0.60.0',
+       'numexpr>=2.10.2',
        'odfpy>=1.4.1',
-       'openpyxl>=3.1.0',
-       'psycopg2>=2.9.6',
-       'pyarrow>=10.0.1',
-       'pymysql>=1.0.2',
+       'openpyxl>=3.1.5',
+       'psycopg2>=2.9.10',
+       'pyarrow>=13.0.0',
+       'pyiceberg>=0.8.1',
+       'pymysql>=1.1.1',
        'PyQt5>=5.15.9',
-       'pyreadstat>=1.2.0',
+       'pyreadstat>=1.2.8',
        'pytest>=7.3.2',
-       'pytest-xdist>=2.2.0',
-       'python-calamine>=0.1.7',
+       'pytest-xdist>=3.4.0',
+       'python-calamine>=0.3.0',
+       'pytz>=2024.2',
        'pyxlsb>=1.0.10',
-       'qtpy>=2.3.0',
-       'scipy>=1.10.0',
-       's3fs>=2022.11.0',
-       'SQLAlchemy>=2.0.0',
-       'tables>=3.8.0',
+       'qtpy>=2.4.2',
+       'scipy>=1.14.1',
+       's3fs>=2024.10.0',
+       'SQLAlchemy>=2.0.36',
+       'tables>=3.10.1',
        'tabulate>=0.9.0',
-       'xarray>=2022.12.0',
+       'xarray>=2024.10.0',
        'xlrd>=2.0.1',
-       'xlsxwriter>=3.0.5',
-       'zstandard>=0.19.0']
+       'xlsxwriter>=3.2.0',
+       'zstandard>=0.23.0']
 
 # TODO: Remove after setuptools support is dropped.
 [tool.setuptools]
@@ -149,30 +143,39 @@ parentdir_prefix = "pandas-"
 setup = ['--vsenv'] # For Windows
 
 [tool.cibuildwheel]
-skip = "cp36-* cp37-* cp38-* pp* *_i686 *_ppc64le *_s390x"
-build-verbosity = "3"
+skip = ["*_i686", "*_ppc64le", "*_s390x"]
+build-verbosity = 3
 environment = {LDFLAGS="-Wl,--strip-all"}
-test-requires = "hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0"
+test-extras = "test"
 test-command = """
   PANDAS_CI='1' python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
+enable = ["cpython-freethreading"]
+before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
+environment = {}
 before-build = "pip install delvewheel"
+test-command = """
+  set PANDAS_CI='1' && \
+  python -c "import pandas as pd; \
+  pd.test(extra_args=['--no-strict-data-files', '-m not clipboard and not single_cpu and not slow and not network and not db']);" \
+  """
 repair-wheel-command = "delvewheel repair -w {dest_dir} {wheel}"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-manylinux_aarch64*"
+test-command = """
+  PANDAS_CI='1' python -c 'import pandas as pd; \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db and not fails_arm_wheels", "-n 2", "--no-strict-data-files"]); \
+  pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
+  """
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
 before-test = "apk update && apk add musl-locales"
-
-[[tool.cibuildwheel.overrides]]
-select = "*-win*"
-# We test separately for Windows, since we use
-# the windowsservercore docker image to check if any dlls are
-# missing from the wheel
-test-command = ""
 
 [[tool.cibuildwheel.overrides]]
 # Don't strip wheels on macOS.
@@ -181,9 +184,21 @@ test-command = ""
 select = "*-macosx*"
 environment = {CFLAGS="-g0"}
 
+[[tool.cibuildwheel.overrides]]
+select = "*pyodide*"
+test-requires = "pytest>=7.3.2 hypothesis>=6.116.0"
+# Pyodide repairs wheels on its own, using auditwheel-emscripten
+repair-wheel-command = ""
+# https://github.com/pyodide/pyodide/issues/5805
+build-verbosity = 1
+test-command = """
+  PANDAS_CI='1' python -c 'import pandas as pd; \
+  pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
+  """
+
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py311"
 fix = true
 
 [tool.ruff.lint]
@@ -217,8 +232,8 @@ select = [
   "TID",
   # implicit string concatenation
   "ISC",
-  # type-checking imports
-  "TCH",
+  # flake8-type-checking
+  "TC",
   # comprehensions
   "C4",
   # pygrep-hooks
@@ -237,6 +252,12 @@ select = [
   "G",
   # flake8-future-annotations
   "FA",
+  # unconventional-import-alias
+  "ICN001",
+  # flake8-slots
+  "SLOT",
+  # flake8-raise
+  "RSE"
 ]
 
 ignore = [
@@ -249,16 +270,12 @@ ignore = [
   "B007",
   # controversial
   "B008",
-  # setattr is used to side-step mypy
-  "B009",
   # getattr is used to side-step mypy
   "B010",
   # tests use comparisons but not their returned value
   "B015",
   # Function definition does not bind loop variable
   "B023",
-  # Only works with python >=3.10
-  "B905",
   # Too many arguments to function call
   "PLR0913",
   # Too many returns
@@ -281,10 +298,6 @@ ignore = [
   "PERF102",
   # try-except-in-loop, becomes useless in Python 3.11
   "PERF203",
-  # pytest-missing-fixture-name-underscore
-  "PT004",
-  # pytest-incorrect-fixture-name-underscore
-  "PT005",
   # pytest-parametrize-names-wrong-type
   "PT006",
   # pytest-parametrize-values-wrong-type
@@ -301,7 +314,10 @@ ignore = [
   "PT019",
   # The following rules may cause conflicts when used with the formatter:
   "ISC001",
-
+  # if-stmt-min-max
+  "PLR1730",
+  # nan-comparison
+  "PLW0177",
 
   ### TODO: Enable gradually
   # Useless statement
@@ -312,10 +328,70 @@ ignore = [
   "PLR0124",
   # collection-literal-concatenation
   "RUF005",
-  # pairwise-over-zipped (>=PY310 only)
+  # pairwise-over-zipped
   "RUF007",
   # mutable-class-default
-  "RUF012"
+  "RUF012",
+  # type-comparison
+  "E721",
+  # repeated-equality-comparison
+  "PLR1714",
+  # self-or-cls-assignment
+  "PLW0642",
+  # literal-membership
+  "PLR6201", # 847 errors
+  # Method could be a function, class method, or static method
+  "PLR6301", # 11411 errors
+  # Private name import
+  "PLC2701", # 27 errors
+  # Too many positional arguments (6/5)
+  "PLR0917", # 470 errors
+  # compare-to-empty-string
+  "PLC1901",
+  # `tempfile.NamedTemporaryFile` in text mode without explicit `encoding` argument
+  "PLW1514", # 1 error
+  # Object does not implement `__hash__` method
+  "PLW1641", # 16 errors
+  # Bad or misspelled dunder method name
+  "PLW3201", # 69 errors, seems to be all false positive
+  # Unnecessary lookup of dictionary value by key
+  "PLR1733", # 5 errors, it seems like we wannt to ignore these
+  # Unnecessary lookup of list item by index
+  "PLR1736", # 4 errors, we're currently having inline pylint ignore
+  # Unpacking a dictionary in iteration without calling `.items()`
+  "PLE1141", # autofixable
+  # import-outside-toplevel
+  "PLC0415",
+  # unnecessary-dunder-call
+  "PLC2801",
+  # comparison-with-itself
+  "PLR0124",
+  # too-many-public-methods
+  "PLR0904",
+  # too-many-return-statements
+  "PLR0911",
+  # too-many-branches
+  "PLR0912",
+  # too-many-arguments
+  "PLR0913",
+  # too-many-locals
+  "PLR0914",
+  # too-many-statements
+  "PLR0915",
+  # too-many-boolean-expressions
+  "PLR0916",
+  # too-many-nested-blocks
+  "PLR1702",
+  # redefined-argument-from-local
+  "PLR1704",
+  # unnecessary-lambda
+  "PLW0108",
+  # global-statement
+  "PLW0603",
+  # runtime-cast-value
+  "TC006",
+  # zip-without-explicit-strict
+  "B905",
 ]
 
 exclude = [
@@ -355,7 +431,7 @@ exclude = [
 "pandas/tests/*" = ["B028", "FLY"]
 "scripts/*" = ["B028"]
 # Keep this one enabled
-"pandas/_typing.py" = ["TCH"]
+"pandas/_typing.py" = ["TC"]
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
@@ -363,110 +439,6 @@ mark-parentheses = false
 
 [tool.ruff.format]
 docstring-code-format = true
-
-[tool.pylint.messages_control]
-max-line-length = 88
-disable = [
- # intentionally turned off
-  "bad-mcs-classmethod-argument",
-  "broad-except",
-  "c-extension-no-member",
-  "comparison-with-itself",
-  "consider-using-enumerate",
-  "import-error",
-  "import-outside-toplevel",
-  "invalid-name",
-  "invalid-unary-operand-type",
-  "line-too-long",
-  "no-else-continue",
-  "no-else-raise",
-  "no-else-return",
-  "no-member",
-  "no-name-in-module",
-  "not-an-iterable",
-  "overridden-final-method",
-  "pointless-statement",
-  "redundant-keyword-arg",
-  "singleton-comparison",
-  "too-many-ancestors",
-  "too-many-arguments",
-  "too-many-boolean-expressions",
-  "too-many-branches",
-  "too-many-function-args",
-  "too-many-instance-attributes",
-  "too-many-locals",
-  "too-many-nested-blocks",
-  "too-many-public-methods",
-  "too-many-return-statements",
-  "too-many-statements",
-  "unexpected-keyword-arg",
-  "ungrouped-imports",
-  "unsubscriptable-object",
-  "unsupported-assignment-operation",
-  "unsupported-membership-test",
-  "unused-import",
-  "use-dict-literal",
-  "use-implicit-booleaness-not-comparison",
-  "use-implicit-booleaness-not-len",
-  "wrong-import-order",
-  "wrong-import-position",
-  "redefined-loop-name",
-
- # misc
-  "abstract-class-instantiated",
-  "no-value-for-parameter",
-  "undefined-variable",
-  "unpacking-non-sequence",
-  "used-before-assignment",
-
- # pylint type "C": convention, for programming standard violation
-  "missing-class-docstring",
-  "missing-function-docstring",
-  "missing-module-docstring",
-  "superfluous-parens",
-  "too-many-lines",
-  "unidiomatic-typecheck",
-  "unnecessary-dunder-call",
-  "unnecessary-lambda-assignment",
-
-  # pylint type "R": refactor, for bad code smell
-  "consider-using-with",
-  "cyclic-import",
-  "duplicate-code",
-  "inconsistent-return-statements",
-  "redefined-argument-from-local",
-  "too-few-public-methods",
-
-  # pylint type "W": warning, for python specific problems
-  "abstract-method",
-  "arguments-differ",
-  "arguments-out-of-order",
-  "arguments-renamed",
-  "attribute-defined-outside-init",
-  "broad-exception-raised",
-  "comparison-with-callable",
-  "dangerous-default-value",
-  "deprecated-module",
-  "eval-used",
-  "expression-not-assigned",
-  "fixme",
-  "global-statement",
-  "invalid-overridden-method",
-  "keyword-arg-before-vararg",
-  "possibly-unused-variable",
-  "protected-access",
-  "raise-missing-from",
-  "redefined-builtin",
-  "redefined-outer-name",
-  "self-cls-assignment",
-  "signature-differs",
-  "super-init-not-called",
-  "try-except-raise",
-  "unnecessary-lambda",
-  "unused-argument",
-  "unused-variable",
-  "using-constant-test"
-]
 
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
@@ -484,6 +456,10 @@ filterwarnings = [
   "error:::pandas",
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
+  "error::pytest.PytestWarning",
+  # e.g. Module already imported so cannot be rewritten; _hypothesis_globals
+  "ignore::pytest.PytestAssertRewriteWarning",
+  "ignore::pytest.PytestCacheWarning",
   # TODO(PY311-minimum): Specify EncodingWarning
   # Ignore 3rd party EncodingWarning but raise on pandas'
   "ignore:.*encoding.* argument not specified",
@@ -510,6 +486,10 @@ markers = [
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
   "skip_ubsan: Tests known to fail UBSAN check",
+  # TODO: someone should investigate this ...
+  # these tests only fail in the wheel builder and don't fail in regular
+  # ARM CI
+  "fails_arm_wheels: Tests that fail in the ARM wheel build only",
 ]
 
 [tool.mypy]
@@ -568,7 +548,6 @@ module = [
   "pandas._libs.*",
   "pandas._testing.*", # TODO
   "pandas.compat.numpy.function", # TODO
-  "pandas.compat.compressors", # TODO
   "pandas.core._numba.executor", # TODO
   "pandas.core.array_algos.masked_reductions", # TODO
   "pandas.core.array_algos.putmask", # TODO
@@ -769,5 +748,5 @@ exclude_lines = [
 directory = "coverage_html_report"
 
 [tool.codespell]
-ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext"
+ignore-words-list = "blocs, coo, hist, nd, sav, ser, recuse, nin, timere, expec, expecs, indext, SME, NotIn, tructures, tru, indx, abd, ABD"
 ignore-regex = 'https://([\w/\.])+'

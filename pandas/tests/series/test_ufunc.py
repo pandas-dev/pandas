@@ -16,7 +16,10 @@ def ufunc(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False], ids=["sparse", "dense"])
+@pytest.fixture(
+    params=[pytest.param(True, marks=pytest.mark.fails_arm_wheels), False],
+    ids=["sparse", "dense"],
+)
 def sparse(request):
     return request.param
 
@@ -289,7 +292,7 @@ class TestNumpyReductions:
         else:
             msg = "|".join(
                 [
-                    "does not support reduction",
+                    "does not support operation",
                     "unsupported operand type",
                     "ufunc 'multiply' cannot use operands",
                 ]
@@ -319,7 +322,7 @@ class TestNumpyReductions:
         else:
             msg = "|".join(
                 [
-                    "does not support reduction",
+                    "does not support operation",
                     "unsupported operand type",
                     "ufunc 'add' cannot use operands",
                 ]
@@ -411,7 +414,7 @@ def test_outer():
     ser = pd.Series([1, 2, 3])
     obj = np.array([1, 2, 3])
 
-    with pytest.raises(NotImplementedError, match=""):
+    with pytest.raises(NotImplementedError, match="^$"):
         np.subtract.outer(ser, obj)
 
 

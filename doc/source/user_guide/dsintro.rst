@@ -87,8 +87,9 @@ index will be pulled out.
 
 **From scalar value**
 
-If ``data`` is a scalar value, an index must be
-provided. The value will be repeated to match the length of **index**.
+If ``data`` is a scalar value, the value will be repeated to match
+the length of **index**.  If the **index** is not provided, it defaults
+to ``RangeIndex(1)``.
 
 .. ipython:: python
 
@@ -325,7 +326,7 @@ This case is handled identically to a dict of arrays.
 
 .. ipython:: python
 
-   data = np.zeros((2,), dtype=[("A", "i4"), ("B", "f4"), ("C", "a10")])
+   data = np.zeros((2,), dtype=[("A", "i4"), ("B", "f4"), ("C", "S10")])
    data[:] = [(1, 2.0, "Hello"), (2, 3.0, "World")]
 
    pd.DataFrame(data)
@@ -551,6 +552,12 @@ a function of one argument to be evaluated on the DataFrame being assigned to.
 .. ipython:: python
 
    iris.assign(sepal_ratio=lambda x: (x["SepalWidth"] / x["SepalLength"])).head()
+
+or, using :meth:`pandas.col`:
+
+.. ipython:: python
+
+   iris.assign(sepal_ratio=pd.col("SepalWidth") / pd.col("SepalLength")).head()
 
 :meth:`~pandas.DataFrame.assign` **always** returns a copy of the data, leaving the original
 DataFrame untouched.

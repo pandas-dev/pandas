@@ -3,7 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
@@ -137,20 +137,15 @@ class TestSeriesReplace:
         # API change from 0.12?
         # GH 5319
         ser = pd.Series([0, np.nan, 2, 3, 4])
-        expected = ser.ffill()
         msg = (
-            "Series.replace without 'value' and with non-dict-like "
-            "'to_replace' is deprecated"
+            "Series.replace must specify either 'value', "
+            "a dict-like 'to_replace', or dict-like 'regex'"
         )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.replace([np.nan])
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            ser.replace([np.nan])
 
-        ser = pd.Series([0, np.nan, 2, 3, 4])
-        expected = ser.ffill()
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.replace(np.nan)
-        tm.assert_series_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            ser.replace(np.nan)
 
     def test_replace_datetime64(self):
         # GH 5797
@@ -182,32 +177,16 @@ class TestSeriesReplace:
 
     def test_replace_with_single_list(self):
         ser = pd.Series([0, 1, 2, 3, 4])
-        msg2 = (
-            "Series.replace without 'value' and with non-dict-like "
-            "'to_replace' is deprecated"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            result = ser.replace([1, 2, 3])
-        tm.assert_series_equal(result, pd.Series([0, 0, 0, 0, 4]))
-
-        s = ser.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            return_value = s.replace([1, 2, 3], inplace=True)
-        assert return_value is None
-        tm.assert_series_equal(s, pd.Series([0, 0, 0, 0, 4]))
-
-        # make sure things don't get corrupted when fillna call fails
-        s = ser.copy()
         msg = (
-            r"Invalid fill method\. Expecting pad \(ffill\) or backfill "
-            r"\(bfill\)\. Got crash_cymbal"
+            "Series.replace must specify either 'value', "
+            "a dict-like 'to_replace', or dict-like 'regex'"
         )
-        msg3 = "The 'method' keyword in Series.replace is deprecated"
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg3):
-                return_value = s.replace([1, 2, 3], inplace=True, method="crash_cymbal")
-            assert return_value is None
-        tm.assert_series_equal(s, ser)
+            ser.replace([1, 2, 3])
+
+        s = ser.copy()
+        with pytest.raises(ValueError, match=msg):
+            s.replace([1, 2, 3], inplace=True)
 
     def test_replace_mixed_types(self):
         ser = pd.Series(np.arange(5), dtype="int64")
@@ -380,7 +359,6 @@ class TestSeriesReplace:
         expected = pd.Series([1, np.nan, 3, np.nan, 4, 5], dtype=object)
         tm.assert_series_equal(expected, result)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't fill 0 in string")
     @pytest.mark.parametrize(
         "categorical, numeric",
         [
@@ -391,9 +369,7 @@ class TestSeriesReplace:
     def test_replace_categorical(self, categorical, numeric):
         # GH 24971, GH#23305
         ser = pd.Series(pd.Categorical(categorical, categories=["A", "B"]))
-        msg = "with CategoricalDtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = ser.replace({"A": 1, "B": 2})
+        result = ser.cat.rename_categories({"A": 1, "B": 2})
         expected = pd.Series(numeric).astype("category")
         if 2 not in expected.cat.categories:
             # i.e. categories should be [1, 2] even if there are no "B"s present
@@ -401,16 +377,13 @@ class TestSeriesReplace:
             expected = expected.cat.add_categories(2)
         tm.assert_series_equal(expected, result, check_categorical=False)
 
-    @pytest.mark.parametrize(
-        "data, data_exp", [(["a", "b", "c"], ["b", "b", "c"]), (["a"], ["b"])]
-    )
-    def test_replace_categorical_inplace(self, data, data_exp):
+    def test_replace_categorical_inplace(self):
         # GH 53358
+        data = ["a", "b", "c"]
+        data_exp = ["b", "b", "c"]
         result = pd.Series(data, dtype="category")
-        msg = "with CategoricalDtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result.replace(to_replace="a", value="b", inplace=True)
-        expected = pd.Series(data_exp, dtype="category")
+        result.replace(to_replace="a", value="b", inplace=True)
+        expected = pd.Series(pd.Categorical(data_exp, categories=data))
         tm.assert_series_equal(result, expected)
 
     def test_replace_categorical_single(self):
@@ -425,24 +398,9 @@ class TestSeriesReplace:
         expected = expected.cat.remove_unused_categories()
         assert c[2] != "foo"
 
-        msg = "with CategoricalDtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = c.replace(c[2], "foo")
+        result = c.cat.rename_categories({c.values[2]: "foo"})
         tm.assert_series_equal(expected, result)
         assert c[2] != "foo"  # ensure non-inplace call does not alter original
-
-        msg = "with CategoricalDtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            return_value = c.replace(c[2], "foo", inplace=True)
-        assert return_value is None
-        tm.assert_series_equal(expected, c)
-
-        first_value = c[0]
-        msg = "with CategoricalDtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            return_value = c.replace(c[1], c[0], inplace=True)
-        assert return_value is None
-        assert c[0] == c[1] == first_value  # test replacing with existing value
 
     def test_replace_with_no_overflowerror(self):
         # GH 25616
@@ -496,13 +454,8 @@ class TestSeriesReplace:
             r"Expecting 'to_replace' to be either a scalar, array-like, "
             r"dict or None, got invalid type.*"
         )
-        msg2 = (
-            "Series.replace without 'value' and with non-dict-like "
-            "'to_replace' is deprecated"
-        )
         with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                series.replace(lambda x: x.strip())
+            series.replace(lambda x: x.strip())
 
     @pytest.mark.parametrize("frame", [False, True])
     def test_replace_nonbool_regex(self, frame):
@@ -543,68 +496,21 @@ class TestSeriesReplace:
         with pytest.raises(ValueError, match=msg):
             ser.replace(to_replace, value)
 
+    def test_replace_dict_like_with_dict_like(self):
+        # GH 59452
+        s = pd.Series([1, 2, 3, 4, 5])
+        to_replace = pd.Series([1])
+        value = pd.Series([75])
+        msg = "to_replace and value cannot be dict-like for Series.replace"
+        with pytest.raises(ValueError, match=msg):
+            s.replace(to_replace, value)
+
     def test_replace_extension_other(self, frame_or_series):
         # https://github.com/pandas-dev/pandas/issues/34530
         obj = frame_or_series(pd.array([1, 2, 3], dtype="Int64"))
         result = obj.replace("", "")  # no exception
         # should not have changed dtype
         tm.assert_equal(obj, result)
-
-    def _check_replace_with_method(self, ser: pd.Series):
-        df = ser.to_frame()
-
-        msg1 = "The 'method' keyword in Series.replace is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg1):
-            res = ser.replace(ser[1], method="pad")
-        expected = pd.Series([ser[0], ser[0]] + list(ser[2:]), dtype=ser.dtype)
-        tm.assert_series_equal(res, expected)
-
-        msg2 = "The 'method' keyword in DataFrame.replace is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            res_df = df.replace(ser[1], method="pad")
-        tm.assert_frame_equal(res_df, expected.to_frame())
-
-        ser2 = ser.copy()
-        with tm.assert_produces_warning(FutureWarning, match=msg1):
-            res2 = ser2.replace(ser[1], method="pad", inplace=True)
-        assert res2 is None
-        tm.assert_series_equal(ser2, expected)
-
-        with tm.assert_produces_warning(FutureWarning, match=msg2):
-            res_df2 = df.replace(ser[1], method="pad", inplace=True)
-        assert res_df2 is None
-        tm.assert_frame_equal(df, expected.to_frame())
-
-    def test_replace_ea_dtype_with_method(self, any_numeric_ea_dtype):
-        arr = pd.array([1, 2, pd.NA, 4], dtype=any_numeric_ea_dtype)
-        ser = pd.Series(arr)
-
-        self._check_replace_with_method(ser)
-
-    @pytest.mark.parametrize("as_categorical", [True, False])
-    def test_replace_interval_with_method(self, as_categorical):
-        # in particular interval that can't hold NA
-
-        idx = pd.IntervalIndex.from_breaks(range(4))
-        ser = pd.Series(idx)
-        if as_categorical:
-            ser = ser.astype("category")
-
-        self._check_replace_with_method(ser)
-
-    @pytest.mark.parametrize("as_period", [True, False])
-    @pytest.mark.parametrize("as_categorical", [True, False])
-    def test_replace_datetimelike_with_method(self, as_period, as_categorical):
-        idx = pd.date_range("2016-01-01", periods=5, tz="US/Pacific")
-        if as_period:
-            idx = idx.tz_localize(None).to_period("D")
-
-        ser = pd.Series(idx)
-        ser.iloc[-2] = pd.NaT
-        if as_categorical:
-            ser = ser.astype("category")
-
-        self._check_replace_with_method(ser)
 
     def test_replace_with_compiled_regex(self):
         # https://github.com/pandas-dev/pandas/issues/35680
@@ -722,11 +628,17 @@ class TestSeriesReplace:
         with pytest.raises(TypeError, match="Invalid value"):
             ints.replace(1, 9.5)
 
-    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't fill 1 in string")
     @pytest.mark.parametrize("regex", [False, True])
     def test_replace_regex_dtype_series(self, regex):
         # GH-48644
-        series = pd.Series(["0"])
+        series = pd.Series(["0"], dtype=object)
+        expected = pd.Series([1], dtype=object)
+        result = series.replace(to_replace="0", value=1, regex=regex)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("regex", [False, True])
+    def test_replace_regex_dtype_series_string(self, regex):
+        series = pd.Series(["0"], dtype="str")
         expected = pd.Series([1], dtype=object)
         result = series.replace(to_replace="0", value=1, regex=regex)
         tm.assert_series_equal(result, expected)
@@ -750,20 +662,18 @@ class TestSeriesReplace:
         expected = pd.Series([1, None], dtype=object)
         tm.assert_series_equal(result, expected)
 
-    def test_replace_change_dtype_series(self, using_infer_string):
+    def test_replace_change_dtype_series(self):
         # GH#25797
-        df = pd.DataFrame.from_dict({"Test": ["0.5", True, "0.6"]})
-        warn = FutureWarning if using_infer_string else None
-        with tm.assert_produces_warning(warn, match="Downcasting"):
-            df["Test"] = df["Test"].replace([True], [np.nan])
-        expected = pd.DataFrame.from_dict({"Test": ["0.5", np.nan, "0.6"]})
+        df = pd.DataFrame({"Test": ["0.5", True, "0.6"]}, dtype=object)
+        df["Test"] = df["Test"].replace([True], [np.nan])
+        expected = pd.DataFrame({"Test": ["0.5", np.nan, "0.6"]}, dtype=object)
         tm.assert_frame_equal(df, expected)
 
-        df = pd.DataFrame.from_dict({"Test": ["0.5", None, "0.6"]})
+        df = pd.DataFrame({"Test": ["0.5", None, "0.6"]}, dtype=object)
         df["Test"] = df["Test"].replace([None], [np.nan])
         tm.assert_frame_equal(df, expected)
 
-        df = pd.DataFrame.from_dict({"Test": ["0.5", None, "0.6"]})
+        df = pd.DataFrame({"Test": ["0.5", None, "0.6"]}, dtype=object)
         df["Test"] = df["Test"].fillna(np.nan)
         tm.assert_frame_equal(df, expected)
 
@@ -800,3 +710,19 @@ class TestSeriesReplace:
         expected = ser.copy()
         result = ser.replace(0.0, True)
         tm.assert_series_equal(result, expected)
+
+    def test_replace_all_NA(self):
+        # GH#60688
+        df = pd.Series([pd.NA, pd.NA])
+        result = df.replace({r"^#": "$"}, regex=True)
+        expected = pd.Series([pd.NA, pd.NA])
+        tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_replace_from_index():
+    # https://github.com/pandas-dev/pandas/issues/61622
+    idx = pd.Index(["a", "b", "c"], dtype="string[pyarrow]")
+    expected = pd.Series(["d", "b", "c"], dtype="string[pyarrow]")
+    result = pd.Series(idx).replace({"z": "b", "a": "d"})
+    tm.assert_series_equal(result, expected)

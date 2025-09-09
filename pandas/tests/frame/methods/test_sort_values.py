@@ -10,7 +10,6 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.util.version import Version
 
 
 class TestDataFrameSortValues:
@@ -170,7 +169,7 @@ class TestDataFrameSortValues:
                 "a": pd.Series([18446637057563306014, 1162265347240853609]),
                 "b": pd.Series([1, 2]),
             },
-            index=pd.Index([1, 0]),
+            index=range(1, -1, -1),
         )
 
         tm.assert_frame_equal(result, expected)
@@ -360,7 +359,7 @@ class TestDataFrameSortValues:
         df_reversed = DataFrame(
             {"int": int_values[::-1], "float": float_values[::-1]},
             columns=["int", "float"],
-            index=[1, 0],
+            index=range(1, -1, -1),
         )
 
         # NaT is not a "na" for int64 columns, so na_position must not
@@ -385,7 +384,7 @@ class TestDataFrameSortValues:
         df_reversed = DataFrame(
             {"datetime": [NaT, Timestamp("2016-01-01")], "float": float_values[::-1]},
             columns=["datetime", "float"],
-            index=[1, 0],
+            index=range(1, -1, -1),
         )
 
         df_sorted = df.sort_values(["datetime", "float"], na_position="first")
@@ -540,19 +539,19 @@ class TestDataFrameSortValues:
     @pytest.mark.parametrize(
         "original_dict, sorted_dict, ignore_index, output_index",
         [
-            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, True, [0, 1, 2]),
-            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, False, [2, 1, 0]),
+            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, True, range(3)),
+            ({"A": [1, 2, 3]}, {"A": [3, 2, 1]}, False, range(2, -1, -1)),
             (
                 {"A": [1, 2, 3], "B": [2, 3, 4]},
                 {"A": [3, 2, 1], "B": [4, 3, 2]},
                 True,
-                [0, 1, 2],
+                range(3),
             ),
             (
                 {"A": [1, 2, 3], "B": [2, 3, 4]},
                 {"A": [3, 2, 1], "B": [4, 3, 2]},
                 False,
-                [2, 1, 0],
+                range(2, -1, -1),
             ),
         ],
     )
@@ -592,21 +591,6 @@ class TestDataFrameSortValues:
         result = expected.sort_values(["A", "date"])
         tm.assert_frame_equal(result, expected)
 
-    def test_sort_values_item_cache(self):
-        # previous behavior incorrect retained an invalid _item_cache entry
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
-        )
-        df["D"] = df["A"] * 2
-        ser = df["A"]
-        assert len(df._mgr.blocks) == 2
-
-        df.sort_values(by="A")
-
-        ser.iloc[0] = 99
-        assert df.iloc[0, 0] == df["A"][0]
-        assert df.iloc[0, 0] != 99
-
     def test_sort_values_reshaping(self):
         # GH 39426
         values = list(range(21))
@@ -628,6 +612,13 @@ class TestDataFrameSortValues:
         df = DataFrame({"A": [10, 20], "B": [1, 5]}, index=[2, 3])
         result = df.sort_values(by="A", ignore_index=True)
         expected = DataFrame({"A": [10, 20], "B": [1, 5]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_by_column_named_none(self):
+        # GH#61512
+        df = DataFrame([[3, 1], [2, 2]], columns=[None, "C1"])
+        result = df.sort_values(by=None)
+        expected = DataFrame([[2, 2], [3, 1]], columns=[None, "C1"], index=[1, 0])
         tm.assert_frame_equal(result, expected)
 
 
@@ -842,10 +833,7 @@ class TestSortValuesLevelAsStr:
         self, df_none, df_idx, sort_names, ascending, request
     ):
         # GH#14353
-        if (
-            Version(np.__version__) >= Version("1.25")
-            and request.node.callspec.id == "df_idx0-inner-True"
-        ):
+        if request.node.callspec.id == "df_idx0-inner-True":
             request.applymarker(
                 pytest.mark.xfail(
                     reason=(
@@ -857,7 +845,7 @@ class TestSortValuesLevelAsStr:
             )
 
         # Get index levels from df_idx
-        levels = list(df_idx.index.names)
+        levels = df_idx.index.names
 
         # Compute expected by sorting on columns and the setting index
         expected = df_none.sort_values(
@@ -875,7 +863,7 @@ class TestSortValuesLevelAsStr:
         # GH#14353
 
         # Get levels from df_idx
-        levels = list(df_idx.index.names)
+        levels = df_idx.index.names
 
         # Compute expected by sorting on axis=0, setting index levels, and then
         # transposing. For some cases this will result in a frame with
@@ -889,16 +877,15 @@ class TestSortValuesLevelAsStr:
         # Compute result by transposing and sorting on axis=1.
         result = df_idx.T.sort_values(by=sort_names, ascending=ascending, axis=1)
 
-        if Version(np.__version__) >= Version("1.25"):
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason=(
-                        "pandas default unstable sorting of duplicates"
-                        "issue with numpy>=1.25 with AVX instructions"
-                    ),
-                    strict=False,
-                )
+        request.applymarker(
+            pytest.mark.xfail(
+                reason=(
+                    "pandas default unstable sorting of duplicates"
+                    "issue with numpy>=1.25 with AVX instructions"
+                ),
+                strict=False,
             )
+        )
 
         tm.assert_frame_equal(result, expected)
 

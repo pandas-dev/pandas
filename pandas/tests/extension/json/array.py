@@ -54,8 +54,7 @@ class JSONDtype(ExtensionDtype):
     name = "json"
     na_value: Mapping[str, Any] = UserDict()
 
-    @classmethod
-    def construct_array_type(cls) -> type_t[JSONArray]:
+    def construct_array_type(self) -> type_t[JSONArray]:
         """
         Return the array type associated with this dtype.
 
@@ -90,6 +89,13 @@ class JSONArray(ExtensionArray):
     @classmethod
     def _from_factorized(cls, values, original):
         return cls([UserDict(x) for x in values if x != ()])
+
+    def _cast_pointwise_result(self, values):
+        result = super()._cast_pointwise_result(values)
+        try:
+            return type(self)._from_sequence(result, dtype=self.dtype)
+        except (ValueError, TypeError):
+            return result
 
     def __getitem__(self, item):
         if isinstance(item, tuple):
@@ -148,12 +154,20 @@ class JSONArray(ExtensionArray):
         return NotImplemented
 
     def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
         if dtype is None:
             dtype = object
         if dtype == object:
             # on py38 builds it looks like numpy is inferring to a non-1D array
             return construct_1d_object_array_from_listlike(list(self))
-        return np.asarray(self.data, dtype=dtype)
+        if copy is None:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            return np.asarray(self.data, dtype=dtype)
+        return np.asarray(self.data, dtype=dtype, copy=copy)
 
     @property
     def nbytes(self) -> int:
@@ -168,8 +182,7 @@ class JSONArray(ExtensionArray):
         # an ndarary.
         indexer = np.asarray(indexer)
         msg = (
-            "Index is out of bounds or cannot do a "
-            "non-empty take from an empty array."
+            "Index is out of bounds or cannot do a non-empty take from an empty array."
         )
 
         if allow_fill:
@@ -208,9 +221,8 @@ class JSONArray(ExtensionArray):
                 return self.copy()
             return self
         elif isinstance(dtype, StringDtype):
-            value = self.astype(str)  # numpy doesn't like nested dicts
             arr_cls = dtype.construct_array_type()
-            return arr_cls._from_sequence(value, dtype=dtype, copy=False)
+            return arr_cls._from_sequence(self, dtype=dtype, copy=False)
         elif not copy:
             return np.asarray([dict(x) for x in self], dtype=dtype)
         else:

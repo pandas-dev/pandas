@@ -6,6 +6,7 @@ and latex files. This module also applies to display formatting.
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Generator,
     Hashable,
     Mapping,
@@ -22,7 +23,6 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Final,
     cast,
 )
@@ -67,7 +67,6 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.api import (
@@ -78,7 +77,6 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
     check_parent_directory,
@@ -116,7 +114,7 @@ common_docstring: Final = """
         columns : array-like, optional, default None
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
-            %(col_space)s.
+            %(col_space)s
         header : %(header_type)s, optional
             %(header)s.
         index : bool, optional, default True
@@ -245,7 +243,11 @@ class SeriesFormatter:
                 series = series.iloc[:max_rows]
             else:
                 row_num = max_rows // 2
-                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
+                _len = len(series)
+                _slice = np.hstack(
+                    [np.arange(row_num), np.arange(_len - row_num, _len)]
+                )
+                series = series.iloc[_slice]
             self.tr_row_num = row_num
         else:
             self.tr_row_num = None
@@ -452,7 +454,7 @@ class DataFrameFormatter:
         self.na_rep = na_rep
         self.formatters = self._initialize_formatters(formatters)
         self.justify = self._initialize_justify(justify)
-        self.float_format = float_format
+        self.float_format = self._validate_float_format(float_format)
         self.sparsify = self._initialize_sparsify(sparsify)
         self.show_index_names = index_names
         self.decimal = decimal
@@ -563,7 +565,7 @@ class DataFrameFormatter:
             result = {}
         elif isinstance(col_space, (int, str)):
             result = {"": col_space}
-            result.update({column: col_space for column in self.frame.columns})
+            result.update(dict.fromkeys(self.frame.columns, col_space))
         elif isinstance(col_space, Mapping):
             for column in col_space.keys():
                 if column not in self.frame.columns and column != "":
@@ -669,9 +671,9 @@ class DataFrameFormatter:
         assert self.max_cols_fitted is not None
         col_num = self.max_cols_fitted // 2
         if col_num >= 1:
-            left = self.tr_frame.iloc[:, :col_num]
-            right = self.tr_frame.iloc[:, -col_num:]
-            self.tr_frame = concat((left, right), axis=1)
+            _len = len(self.tr_frame.columns)
+            _slice = np.hstack([np.arange(col_num), np.arange(_len - col_num, _len)])
+            self.tr_frame = self.tr_frame.iloc[:, _slice]
 
             # truncate formatter
             if isinstance(self.formatters, (list, tuple)):
@@ -682,7 +684,7 @@ class DataFrameFormatter:
         else:
             col_num = cast(int, self.max_cols)
             self.tr_frame = self.tr_frame.iloc[:, :col_num]
-        self.tr_col_num = col_num
+        self.tr_col_num: int = col_num
 
     def _truncate_vertically(self) -> None:
         """Remove rows, which are not to be displayed.
@@ -847,6 +849,29 @@ class DataFrameFormatter:
             names.append("" if columns.name is None else columns.name)
         return names
 
+    def _validate_float_format(
+        self, fmt: FloatFormatType | None
+    ) -> FloatFormatType | None:
+        """
+        Validates and processes the float_format argument.
+        Converts new-style format strings to callables.
+        """
+        if fmt is None or callable(fmt):
+            return fmt
+
+        if isinstance(fmt, str):
+            if "%" in fmt:
+                # Keeps old-style format strings as they are (C code handles them)
+                return fmt
+            else:
+                try:
+                    _ = fmt.format(1.0)  # Test with an arbitrary float
+                    return fmt.format
+                except (ValueError, KeyError, IndexError) as e:
+                    raise ValueError(f"Invalid new-style format string {fmt!r}") from e
+
+        raise ValueError("float_format must be a string or callable")
+
 
 class DataFrameRenderer:
     """Class for creating dataframe output in multiple formats.
@@ -855,7 +880,7 @@ class DataFrameRenderer:
         - to_csv
         - to_latex
 
-    Called in pandas.core.frame.DataFrame:
+    Called in pandas.DataFrame:
         - to_html
         - to_string
 
@@ -894,9 +919,13 @@ class DataFrameRenderer:
             ``<table>`` tag, in addition to the default "dataframe".
         notebook : {True, False}, optional, default False
             Whether the generated HTML is for IPython Notebook.
-        border : int
-            A ``border=border`` attribute is included in the opening
-            ``<table>`` tag. Default ``pd.options.display.html.border``.
+        border : int or bool
+            When an integer value is provided, it sets the border attribute in
+            the opening tag, specifying the thickness of the border.
+            If ``False`` or ``0`` is passed, the border attribute will not
+            be present in the ``<table>`` tag.
+            The default value for this parameter is governed by
+            ``pd.options.display.html.border``.
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
         render_links : bool, default False
@@ -1024,7 +1053,7 @@ def save_to_buffer(
 @contextmanager
 def _get_buffer(
     buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
-) -> Generator[WriteBuffer[str], None, None] | Generator[StringIO, None, None]:
+) -> Generator[WriteBuffer[str]] | Generator[StringIO]:
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.
@@ -1211,8 +1240,6 @@ class _GenericArrayFormatter:
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
-            elif isinstance(x, StringDtype):
-                return repr(x)
             else:
                 # object dtype
                 return str(formatter(x))
@@ -1558,6 +1585,9 @@ def format_percentiles(
     >>> format_percentiles([0, 0.5, 0.02001, 0.5, 0.666666, 0.9999])
     ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
     """
+    if len(percentiles) == 0:
+        return []
+
     percentiles = np.asarray(percentiles)
 
     # It checks for np.nan as well
@@ -1749,7 +1779,7 @@ def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[st
         # The split will give [{"", "-"}, "xxx", "+/-", "xxx", "j", ""]
         # Therefore, the imaginary part is the 4th and 3rd last elements,
         # and the real part is everything before the imaginary part
-        trimmed = re.split(r"([j+-])", x)
+        trimmed = re.split(r"(?<!e)([j+-])", x)
         real_part.append("".join(trimmed[:-4]))
         imag_part.append("".join(trimmed[-4:-2]))
 
@@ -1926,6 +1956,9 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     """
     Format float representation in DataFrame with SI notation.
 
+    Sets the floating-point display format for ``DataFrame`` objects using engineering
+    notation (SI units), allowing easier readability of values across wide ranges.
+
     Parameters
     ----------
     accuracy : int, default 3
@@ -1936,6 +1969,13 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     Returns
     -------
     None
+        This method does not return a value. it updates the global display format
+        for floats in DataFrames.
+
+    See Also
+    --------
+    set_option : Set the value of the specified option or options.
+    reset_option : Reset one or more options to their default value.
 
     Examples
     --------

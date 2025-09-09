@@ -8,12 +8,10 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
-import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
@@ -101,27 +99,9 @@ def concat_compat(
     # Creating an empty array directly is tempting, but the winnings would be
     # marginal given that it would still require shape & dtype calculation and
     # np.concatenate which has them both implemented is compiled.
-    orig = to_concat
     non_empties = [x for x in to_concat if _is_nonempty(x, axis)]
-    if non_empties and axis == 0 and not ea_compat_axis:
-        # ea_compat_axis see GH#39574
-        to_concat = non_empties
 
     any_ea, kinds, target_dtype = _get_result_dtype(to_concat, non_empties)
-
-    if len(to_concat) < len(orig):
-        _, _, alt_dtype = _get_result_dtype(orig, non_empties)
-        if alt_dtype != target_dtype:
-            # GH#39122
-            warnings.warn(
-                "The behavior of array concatenation with empty entries is "
-                "deprecated. In a future version, this will no longer exclude "
-                "empty items when determining the result dtype. "
-                "To retain the old behavior, exclude the empty entries before "
-                "the concat operation.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
 
     if target_dtype is not None:
         to_concat = [astype_array(arr, target_dtype, copy=False) for arr in to_concat]
@@ -210,6 +190,7 @@ def union_categoricals(
     Returns
     -------
     Categorical
+        The union of categories being combined.
 
     Raises
     ------
@@ -220,6 +201,11 @@ def union_categoricals(
         - sort_categories=True and Categoricals are ordered
     ValueError
         Empty list of categoricals passed
+
+    See Also
+    --------
+    CategoricalDtype : Type for categorical data with the categories and orderedness.
+    Categorical : Represent a categorical variable in classic R / S-plus fashion.
 
     Notes
     -----
@@ -237,7 +223,7 @@ def union_categoricals(
     >>> b = pd.Categorical(["a", "b"])
     >>> pd.api.types.union_categoricals([a, b])
     ['b', 'c', 'a', 'b']
-    Categories (3, object): ['b', 'c', 'a']
+    Categories (3, str): ['b', 'c', 'a']
 
     By default, the resulting categories will be ordered as they appear
     in the `categories` of the data. If you want the categories to be
@@ -245,7 +231,7 @@ def union_categoricals(
 
     >>> pd.api.types.union_categoricals([a, b], sort_categories=True)
     ['b', 'c', 'a', 'b']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     `union_categoricals` also works with the case of combining two
     categoricals of the same categories and order information (e.g. what
@@ -255,7 +241,7 @@ def union_categoricals(
     >>> b = pd.Categorical(["a", "b", "a"], ordered=True)
     >>> pd.api.types.union_categoricals([a, b])
     ['a', 'b', 'a', 'b', 'a']
-    Categories (2, object): ['a' < 'b']
+    Categories (2, str): ['a' < 'b']
 
     Raises `TypeError` because the categories are ordered and not identical.
 
@@ -273,7 +259,7 @@ def union_categoricals(
     >>> b = pd.Categorical(["c", "b", "a"], ordered=True)
     >>> pd.api.types.union_categoricals([a, b], ignore_order=True)
     ['a', 'b', 'c', 'c', 'b', 'a']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     `union_categoricals` also works with a `CategoricalIndex`, or `Series`
     containing categorical data, but note that the resulting array will
@@ -283,7 +269,7 @@ def union_categoricals(
     >>> b = pd.Series(["a", "b"], dtype="category")
     >>> pd.api.types.union_categoricals([a, b])
     ['b', 'c', 'a', 'b']
-    Categories (3, object): ['b', 'c', 'a']
+    Categories (3, str): ['b', 'c', 'a']
     """
     from pandas import Categorical
     from pandas.core.arrays.categorical import recode_for_categories
@@ -332,7 +318,8 @@ def union_categoricals(
             categories = categories.sort_values()
 
         new_codes = [
-            recode_for_categories(c.codes, c.categories, categories) for c in to_union
+            recode_for_categories(c.codes, c.categories, categories, copy=False)
+            for c in to_union
         ]
         new_codes = np.concatenate(new_codes)
     else:

@@ -1,0 +1,179 @@
+.. _whatsnew_230:
+
+What's new in 2.3.0 (June 4, 2025)
+------------------------------------
+
+These are the changes in pandas 2.3.0. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_230.upcoming_changes:
+
+Upcoming changes in pandas 3.0
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+pandas 3.0 will bring two bigger changes to the default behavior of pandas.
+
+Dedicated string data type by default
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Historically, pandas represented string columns with NumPy ``object`` data type.
+This representation has numerous problems: it is not specific to strings (any
+Python object can be stored in an ``object``-dtype array, not just strings) and
+it is often not very efficient (both performance wise and for memory usage).
+
+Starting with the upcoming pandas 3.0 release, a dedicated string data type will
+be enabled by default (backed by PyArrow under the hood, if installed, otherwise
+falling back to NumPy). This means that pandas will start inferring columns
+containing string data as the new ``str`` data type when creating pandas
+objects, such as in constructors or IO functions.
+
+Old behavior:
+
+.. code-block:: python
+
+    >>> ser = pd.Series(["a", "b"])
+    0    a
+    1    b
+    dtype: object
+
+New behavior:
+
+.. code-block:: python
+
+    >>> ser = pd.Series(["a", "b"])
+    0    a
+    1    b
+    dtype: str
+
+The string data type that is used in these scenarios will mostly behave as NumPy
+object would, including missing value semantics and general operations on these
+columns.
+
+However, the introduction of a new default dtype will also have some breaking
+consequences to your code (for example when checking for the ``.dtype`` being
+object dtype). To allow testing it in advance of the pandas 3.0 release, this
+future dtype inference logic can be enabled in pandas 2.3 with:
+
+.. code-block:: python
+
+   pd.options.future.infer_string = True
+
+See the :ref:`string_migration_guide` for more details on the behaviour changes
+and how to adapt your code to the new default.
+
+Copy-on-Write
+^^^^^^^^^^^^^
+
+The currently optional mode Copy-on-Write will be enabled by default in pandas 3.0. There
+won't be an option to retain the legacy behavior.
+
+In summary, the new "copy-on-write" behaviour will bring changes in behavior in
+how pandas operates with respect to copies and views.
+
+1. The result of *any* indexing operation (subsetting a DataFrame or Series in any way,
+   i.e. including accessing a DataFrame column as a Series) or any method returning a
+   new DataFrame or Series, always *behaves as if* it were a copy in terms of user
+   API.
+2. As a consequence, if you want to modify an object (DataFrame or Series), the only way
+   to do this is to directly modify that object itself.
+
+Because every single indexing step now behaves as a copy, this also means that
+"chained assignment" (updating a DataFrame with multiple setitem steps) will
+stop working. Because this now consistently never works, the
+``SettingWithCopyWarning`` will be removed.
+
+The new behavioral semantics are explained in more detail in the
+:ref:`user guide about Copy-on-Write <copy_on_write>`.
+
+The new behavior can be enabled since pandas 2.0 with the following option:
+
+.. code-block:: python
+
+   pd.options.mode.copy_on_write = True
+
+Some of the behaviour changes allow a clear deprecation, like the changes in
+chained assignment. Other changes are more subtle and thus, the warnings are
+hidden behind an option that can be enabled since pandas 2.2:
+
+.. code-block:: python
+
+   pd.options.mode.copy_on_write = "warn"
+
+This mode will warn in many different scenarios that aren't actually relevant to
+most queries. We recommend exploring this mode, but it is not necessary to get rid
+of all of these warnings. The :ref:`migration guide <copy_on_write.migration_guide>`
+explains the upgrade process in more detail.
+
+.. _whatsnew_230.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+.. _whatsnew_230.enhancements.other:
+
+Other enhancements
+^^^^^^^^^^^^^^^^^^
+
+- :meth:`pandas.api.interchange.from_dataframe` now uses the `PyCapsule Interface <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`_ if available, only falling back to the Dataframe Interchange Protocol if that fails (:issue:`60739`)
+- The semantics for the ``copy`` keyword in ``__array__`` methods (i.e. called
+  when using ``np.array()`` or ``np.asarray()`` on pandas objects) has been
+  updated to work correctly with NumPy >= 2 (:issue:`57739`)
+- :meth:`Series.str.decode` result now has :class:`StringDtype` when ``future.infer_string`` is True (:issue:`60709`)
+- :meth:`~Series.to_hdf` and :meth:`~DataFrame.to_hdf` now round-trip with :class:`StringDtype`  (:issue:`60663`)
+- Improved ``repr`` of :class:`.NumpyExtensionArray` to account for NEP51 (:issue:`61085`)
+- The :meth:`Series.str.decode` has gained the argument ``dtype`` to control the dtype of the result (:issue:`60940`)
+- The :meth:`~Series.cumsum`, :meth:`~Series.cummin`, and :meth:`~Series.cummax` reductions are now implemented for :class:`StringDtype` columns (:issue:`60633`)
+- The :meth:`~Series.sum` reduction is now implemented for :class:`StringDtype` columns (:issue:`59853`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+- Deprecated allowing non-``bool`` values for ``na`` in :meth:`.str.contains`, :meth:`.str.startswith`, and :meth:`.str.endswith` for dtypes that do not already disallow these (:issue:`59615`)
+- Deprecated the ``"pyarrow_numpy"`` storage option for :class:`StringDtype` (:issue:`60152`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+
+Numeric
+^^^^^^^
+- Bug in :meth:`Series.mode` and :meth:`DataFrame.mode` with ``dropna=False`` where not all dtypes would sort in the presence of ``NA`` values (:issue:`60702`)
+- Bug in :meth:`Series.round` where a ``TypeError`` would always raise with ``object`` dtype (:issue:`61206`)
+
+Strings
+^^^^^^^
+- Bug in :meth:`Series.__pos__` and :meth:`DataFrame.__pos__` where an ``Exception`` was not raised for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`60710`)
+- Bug in :meth:`Series.rank` for :class:`StringDtype` with ``storage="pyarrow"`` that incorrectly returned integer results with ``method="average"`` and raised an error if it would truncate results (:issue:`59768`)
+- Bug in :meth:`Series.replace` with :class:`StringDtype` when replacing with a non-string value was not upcasting to ``object`` dtype (:issue:`60282`)
+- Bug in :meth:`Series.str.center` with :class:`StringDtype` with ``storage="pyarrow"`` not matching the python behavior in corner cases with an odd number of fill characters (:issue:`54792`)
+- Bug in :meth:`Series.str.replace` when ``n < 0`` for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`59628`)
+- Bug in :meth:`Series.str.slice` with negative ``step`` with :class:`ArrowDtype` and :class:`StringDtype` with ``storage="pyarrow"`` giving incorrect results (:issue:`59710`)
+
+Indexing
+^^^^^^^^
+- Bug in :meth:`Index.get_indexer` round-tripping through string dtype when ``infer_string`` is enabled (:issue:`55834`)
+
+I/O
+^^^
+- Bug in :meth:`DataFrame.to_excel` which stored decimals as strings instead of numbers (:issue:`49598`)
+
+Other
+^^^^^
+- Fixed usage of ``inspect`` when the optional dependencies ``pyarrow`` or ``jinja2``
+  are not installed (:issue:`60196`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_230.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v2.2.3..v2.3.0

@@ -290,10 +290,16 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
 
-        result = three_days / index
-        tm.assert_equal(result, expected)
+        if isinstance(three_days, pd.offsets.Day):
+            # GH#41943 Day is no longer timedelta-like
+            msg = "unsupported operand type"
+            with pytest.raises(TypeError, match=msg):
+                three_days / index
+        else:
+            result = three_days / index
+            tm.assert_equal(result, expected)
+            msg = "cannot use operands with types dtype"
 
-        msg = "cannot use operands with types dtype"
         with pytest.raises(TypeError, match=msg):
             index / three_days
 
@@ -855,6 +861,19 @@ class TestMultiplicationDivision:
             result = 0 % s
             expected = Series([np.nan, 0.0])
             tm.assert_series_equal(result, expected)
+
+    def test_non_1d_ea_raises_notimplementederror(self):
+        # GH#61866
+        ea_array = array([1, 2, 3, 4, 5], dtype="Int64").reshape(5, 1)
+        np_array = np.array([1, 2, 3, 4, 5], dtype=np.int64).reshape(5, 1)
+
+        msg = "can only perform ops with 1-d structures"
+
+        with pytest.raises(NotImplementedError, match=msg):
+            ea_array * np_array
+
+        with pytest.raises(NotImplementedError, match=msg):
+            np_array * ea_array
 
 
 class TestAdditionSubtraction:
@@ -1451,7 +1470,7 @@ def test_fill_value_inf_masking():
     expected = pd.DataFrame(
         {"A": [np.inf, 1.0, 0.0, 1.0], "B": [0.0, np.nan, 0.0, np.nan]}
     )
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_index_type=False)
 
 
 def test_dataframe_div_silenced():

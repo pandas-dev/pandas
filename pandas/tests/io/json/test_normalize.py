@@ -172,7 +172,7 @@ class TestJSONNormalize:
     )
     def test_accepted_input(self, data, record_path, exception_type):
         if exception_type is not None:
-            with pytest.raises(exception_type, match=""):
+            with pytest.raises(exception_type, match="^$"):
                 json_normalize(data, record_path=record_path)
         else:
             result = json_normalize(data, record_path=record_path)
@@ -516,7 +516,7 @@ class TestJSONNormalize:
             ],
             record_path=["info"],
         )
-        expected = DataFrame({"i": 2}, index=[0])
+        expected = DataFrame({"i": 2}, index=range(1))
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("value", ["false", "true", "{}", "1", '"text"'])

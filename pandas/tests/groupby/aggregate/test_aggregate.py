@@ -5,12 +5,12 @@ test .agg behavior / note that .apply is tested generally in test_groupby.py
 import datetime
 import functools
 from functools import partial
-import re
 
 import numpy as np
 import pytest
 
 from pandas.errors import SpecificationError
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -24,6 +24,7 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.arrays import ArrowExtensionArray
 from pandas.core.groupby.grouper import Grouping
 
 
@@ -76,6 +77,32 @@ def test_agg_ser_multi_key(df):
     results = df.C.groupby([df.A, df.B]).aggregate(f)
     expected = df.groupby(["A", "B"]).sum()["C"]
     tm.assert_series_equal(results, expected)
+
+
+def test_agg_with_missing_values():
+    # GH#58810
+    missing_df = DataFrame(
+        {
+            "nan": [np.nan, np.nan, np.nan, np.nan],
+            "na": [pd.NA, pd.NA, pd.NA, pd.NA],
+            "nat": [pd.NaT, pd.NaT, pd.NaT, pd.NaT],
+            "none": [None, None, None, None],
+            "values": [1, 2, 3, 4],
+        }
+    )
+
+    result = missing_df.agg(x=("nan", "min"), y=("na", "min"), z=("values", "sum"))
+
+    expected = DataFrame(
+        {
+            "nan": [np.nan, np.nan, np.nan],
+            "na": [np.nan, np.nan, np.nan],
+            "values": [np.nan, np.nan, 10.0],
+        },
+        index=["x", "y", "z"],
+    )
+
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_aggregation_mixed_dtype():
@@ -149,6 +176,7 @@ def test_agg_apply_corner(ts, tsframe):
     tm.assert_frame_equal(grouped.agg("sum"), exp_df)
 
     res = grouped.apply(np.sum, axis=0)
+    exp_df = exp_df.reset_index(drop=True)
     tm.assert_frame_equal(res, exp_df)
 
 
@@ -175,6 +203,8 @@ def test_with_na_groups(any_real_numpy_dtype):
 
     agged = grouped.agg(f)
     expected = Series([4.0, 2.0], index=["bar", "foo"])
+    if values.dtype == np.float32:
+        expected = expected.astype(np.float32)
 
     tm.assert_series_equal(agged, expected)
 
@@ -288,7 +318,7 @@ def test_wrap_agg_out(three_group):
     grouped = three_group.groupby(["A", "B"])
 
     def func(ser):
-        if ser.dtype == object:
+        if ser.dtype == object or ser.dtype == "string":
             raise TypeError("Test error message")
         return ser.sum()
 
@@ -533,6 +563,14 @@ def test_callable_result_dtype_frame(
     op = getattr(df.groupby(keys)[["c"]], method)
     result = op(lambda x: x.astype(result_dtype).iloc[0])
     expected_index = pd.RangeIndex(0, 1) if method == "transform" else agg_index
+
+    if method == "aggregate":
+        # _cast_pointwise_result retains the input's dtype where feasible
+        if input_dtype == "float32" and result_dtype == "float64":
+            result_dtype = "float32"
+        if input_dtype == "int32" and result_dtype == "int64":
+            result_dtype = "int32"
+
     expected = DataFrame({"c": [df["c"].iloc[0]]}, index=expected_index).astype(
         result_dtype
     )
@@ -831,8 +869,8 @@ class TestNamedAggregationDataFrame:
 
     def test_missing_raises(self):
         df = DataFrame({"A": [0, 1], "B": [1, 2]})
-        match = re.escape("Column(s) ['C'] do not exist")
-        with pytest.raises(KeyError, match=match):
+        msg = r"Label\(s\) \['C'\] do not exist"
+        with pytest.raises(KeyError, match=msg):
             df.groupby("A").agg(c=("C", "sum"))
 
     def test_agg_namedtuple(self):
@@ -1115,7 +1153,7 @@ def test_aggregate_mixed_types():
     expected = DataFrame(
         expected_data,
         index=Index([2, "group 1"], dtype="object", name="grouping"),
-        columns=Index(["X", "Y", "Z"], dtype="object"),
+        columns=Index(["X", "Y", "Z"]),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1728,3 +1766,226 @@ def test_groupby_aggregation_empty_group():
     msg = "length must not be 0"
     with pytest.raises(ValueError, match=msg):
         df.groupby("A", observed=False).agg(func)
+
+
+def test_groupby_aggregation_duplicate_columns_single_dict_value():
+    # GH#55041
+    df = DataFrame(
+        [[1, 2, 3, 4], [1, 3, 4, 5], [2, 4, 5, 6]],
+        columns=["a", "b", "c", "c"],
+    )
+    gb = df.groupby("a")
+    result = gb.agg({"c": "sum"})
+
+    expected = DataFrame(
+        [[7, 9], [5, 6]], columns=["c", "c"], index=Index([1, 2], name="a")
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregation_duplicate_columns_multiple_dict_values():
+    # GH#55041
+    df = DataFrame(
+        [[1, 2, 3, 4], [1, 3, 4, 5], [2, 4, 5, 6]],
+        columns=["a", "b", "c", "c"],
+    )
+    gb = df.groupby("a")
+    result = gb.agg({"c": ["sum", "min", "max", "min"]})
+
+    expected = DataFrame(
+        [[7, 3, 4, 3, 9, 4, 5, 4], [5, 5, 5, 5, 6, 6, 6, 6]],
+        columns=MultiIndex(
+            levels=[["c"], ["sum", "min", "max"]],
+            codes=[[0, 0, 0, 0, 0, 0, 0, 0], [0, 1, 2, 1, 0, 1, 2, 1]],
+        ),
+        index=Index([1, 2], name="a"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregation_duplicate_columns_some_empty_result():
+    # GH#55041
+    df = DataFrame(
+        [
+            [1, 9843, 43, 54, 7867],
+            [2, 940, 9, -34, 44],
+            [1, -34, -546, -549358, 0],
+            [2, 244, -33, -100, 44],
+        ],
+        columns=["a", "b", "b", "c", "c"],
+    )
+    gb = df.groupby("a")
+    result = gb.agg({"b": [], "c": ["var"]})
+
+    expected = DataFrame(
+        [[1.509268e11, 30944844.5], [2.178000e03, 0.0]],
+        columns=MultiIndex(levels=[["c"], ["var"]], codes=[[0, 0], [0, 0]]),
+        index=Index([1, 2], name="a"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregation_multi_index_duplicate_columns():
+    # GH#55041
+    df = DataFrame(
+        [
+            [1, -9843, 43, 54, 7867],
+            [2, 940, 9, -34, 44],
+            [1, -34, 546, -549358, 0],
+            [2, 244, -33, -100, 44],
+        ],
+        columns=MultiIndex(
+            levels=[["level1.1", "level1.2"], ["level2.1", "level2.2"]],
+            codes=[[0, 0, 0, 1, 1], [0, 1, 1, 0, 1]],
+        ),
+        index=MultiIndex(
+            levels=[["level1.1", "level1.2"], ["level2.1", "level2.2"]],
+            codes=[[0, 0, 0, 1], [0, 1, 1, 0]],
+        ),
+    )
+    gb = df.groupby(level=0)
+    result = gb.agg({("level1.1", "level2.2"): "min"})
+
+    expected = DataFrame(
+        [[-9843, 9], [244, -33]],
+        columns=MultiIndex(levels=[["level1.1"], ["level2.2"]], codes=[[0, 0], [0, 0]]),
+        index=Index(["level1.1", "level1.2"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregation_func_list_multi_index_duplicate_columns():
+    # GH#55041
+    df = DataFrame(
+        [
+            [1, -9843, 43, 54, 7867],
+            [2, 940, 9, -34, 44],
+            [1, -34, 546, -549358, 0],
+            [2, 244, -33, -100, 44],
+        ],
+        columns=MultiIndex(
+            levels=[["level1.1", "level1.2"], ["level2.1", "level2.2"]],
+            codes=[[0, 0, 0, 1, 1], [0, 1, 1, 0, 1]],
+        ),
+        index=MultiIndex(
+            levels=[["level1.1", "level1.2"], ["level2.1", "level2.2"]],
+            codes=[[0, 0, 0, 1], [0, 1, 1, 0]],
+        ),
+    )
+    gb = df.groupby(level=0)
+    result = gb.agg({("level1.1", "level2.2"): ["min", "max"]})
+
+    expected = DataFrame(
+        [[-9843, 940, 9, 546], [244, 244, -33, -33]],
+        columns=MultiIndex(
+            levels=[["level1.1"], ["level2.2"], ["min", "max"]],
+            codes=[[0, 0, 0, 0], [0, 0, 0, 0], [0, 1, 0, 1]],
+        ),
+        index=Index(["level1.1", "level1.2"]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize(
+    "dtype",
+    ["float[pyarrow]", "int64[pyarrow]", "uint64[pyarrow]", "bool[pyarrow]"],
+)
+def test_agg_lambda_pyarrow_dtype_conversion(dtype):
+    # GH#59601
+    # Test PyArrow dtype conversion back to PyArrow dtype
+    df = DataFrame(
+        {
+            "A": ["c1", "c2", "c3", "c1", "c2", "c3"],
+            "B": pd.array([100, 200, 255, 0, 199, 40392], dtype=dtype),
+        }
+    )
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x.min())
+
+    expected = DataFrame(
+        {"B": pd.array([0, 199, 255], dtype=dtype)},
+        index=Index(["c1", "c2", "c3"], name="A"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_agg_lambda_complex128_dtype_conversion():
+    # GH#59601
+    df = DataFrame(
+        {"A": ["c1", "c2", "c3"], "B": pd.array([100, 200, 255], "int64[pyarrow]")}
+    )
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: complex(x.sum(), x.count()))
+
+    expected = DataFrame(
+        {
+            "B": pd.array(
+                [complex(100, 1), complex(200, 1), complex(255, 1)], dtype="complex128"
+            ),
+        },
+        index=Index(["c1", "c2", "c3"], name="A"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_agg_lambda_numpy_uint64_to_pyarrow_dtype_conversion():
+    # GH#59601
+    df = DataFrame(
+        {
+            "A": ["c1", "c2", "c3"],
+            "B": pd.array([100, 200, 255], dtype="uint64[pyarrow]"),
+        }
+    )
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: np.uint64(x.sum()))
+
+    expected = DataFrame(
+        {
+            "B": pd.array([100, 200, 255], dtype="uint64[pyarrow]"),
+        },
+        index=Index(["c1", "c2", "c3"], name="A"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_agg_lambda_pyarrow_struct_to_object_dtype_conversion():
+    # GH#59601
+    import pyarrow as pa
+
+    df = DataFrame(
+        {
+            "A": ["c1", "c2", "c3"],
+            "B": pd.array([100, 200, 255], dtype="int64[pyarrow]"),
+        }
+    )
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: {"number": 1})
+
+    arr = pa.array([{"number": 1}, {"number": 1}, {"number": 1}])
+    expected = DataFrame(
+        {"B": ArrowExtensionArray(arr)},
+        index=Index(["c1", "c2", "c3"], name="A"),
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_builtin_sum():
+    df = DataFrame(columns=["Group", "Data"])
+    result = df.groupby(["Group"], as_index=False)["Data"].agg("sum")
+    expected = DataFrame(columns=["Group", "Data"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_aggregate_empty_udf():
+    def func(x):
+        return sum(x)
+
+    df = DataFrame(columns=["Group", "Data"])
+    result = df.groupby(["Group"], as_index=False)["Data"].agg(func)
+    expected = DataFrame(columns=["Group", "Data"])
+    tm.assert_frame_equal(result, expected)

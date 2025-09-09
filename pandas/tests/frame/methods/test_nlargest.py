@@ -10,7 +10,6 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -74,7 +73,7 @@ class TestNLargestNSmallest:
         )
         if "b" in order:
             error_msg = (
-                f"Column 'b' has dtype (object|string), "
+                f"Column 'b' has dtype (object|str), "
                 f"cannot use method '{nselect_method}' with this dtype"
             )
             with pytest.raises(TypeError, match=error_msg):
@@ -82,6 +81,7 @@ class TestNLargestNSmallest:
         else:
             ascending = nselect_method == "nsmallest"
             result = getattr(df, nselect_method)(n, order)
+            result.index = pd.Index(list(result.index))
             expected = df.sort_values(order, ascending=ascending).head(n)
             tm.assert_frame_equal(result, expected)
 
@@ -132,7 +132,7 @@ class TestNLargestNSmallest:
         df = pd.DataFrame({"a": [1] * 5, "b": [1, 2, 3, 4, 5]})
 
         result = df.nlargest(3, "a")
-        expected = pd.DataFrame({"a": [1] * 3, "b": [1, 2, 3]}, index=[0, 1, 2])
+        expected = pd.DataFrame({"a": [1] * 3, "b": [1, 2, 3]}, index=range(3))
         tm.assert_frame_equal(result, expected)
 
         result = df.nsmallest(3, "a")
@@ -152,14 +152,12 @@ class TestNLargestNSmallest:
             index=[0, 0, 1, 1, 1],
         )
         result = df.nsmallest(n, order)
-        expected = df.sort_values(order).head(n)
+        expected = df.sort_values(order, kind="stable").head(n)
         tm.assert_frame_equal(result, expected)
 
         result = df.nlargest(n, order)
-        expected = df.sort_values(order, ascending=False).head(n)
-        if Version(np.__version__) >= Version("1.25") and (
-            (order == ["a"] and n in (1, 2, 3, 4)) or (order == ["a", "b"]) and n == 5
-        ):
+        expected = df.sort_values(order, ascending=False, kind="stable").head(n)
+        if (order == ["a"] and n in (1, 2, 3, 4)) or ((order == ["a", "b"]) and n == 5):
             request.applymarker(
                 pytest.mark.xfail(
                     reason=(
@@ -179,18 +177,20 @@ class TestNLargestNSmallest:
         result = df.nlargest(4, "a", keep="all")
         expected = pd.DataFrame(
             {
-                "a": {0: 5, 1: 4, 2: 4, 4: 3, 5: 3, 6: 3, 7: 3},
-                "b": {0: 10, 1: 9, 2: 8, 4: 5, 5: 50, 6: 10, 7: 20},
-            }
+                "a": [5, 4, 4, 3, 3, 3, 3],
+                "b": [10, 9, 8, 5, 50, 10, 20],
+            },
+            index=[0, 1, 2, 4, 5, 6, 7],
         )
         tm.assert_frame_equal(result, expected)
 
         result = df.nsmallest(2, "a", keep="all")
         expected = pd.DataFrame(
             {
-                "a": {3: 2, 4: 3, 5: 3, 6: 3, 7: 3},
-                "b": {3: 7, 4: 5, 5: 50, 6: 10, 7: 20},
-            }
+                "a": [2, 3, 3, 3, 3],
+                "b": [7, 5, 50, 10, 20],
+            },
+            index=range(3, 8),
         )
         tm.assert_frame_equal(result, expected)
 

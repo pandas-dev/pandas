@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Download all wheels for a pandas version.
 #
@@ -11,11 +11,12 @@
 # one by one to the dist/ directory where they would be generated.
 
 VERSION=$1
-mkdir -p $(dirname -- $0)/../dist
-DIST_DIR="$(realpath $(dirname -- $0)/../dist)"
+BASE_DIR=$(dirname -- $0)
+mkdir -p $BASE_DIR/../dist
+DIST_DIR="$(realpath $BASE_DIR/../dist)"
 
-if [ -z $VERSION ]; then
-    printf "Usage:\n\t$0 <version>\n\nWhere <version> is for example 1.5.3"
+if [ -z "$VERSION" ]; then
+    printf "Usage:\n\t%s <version>\n\nWhere <version> is for example 1.5.3"  "$0"
     exit 1
 fi
 
@@ -23,7 +24,7 @@ curl "https://anaconda.org/multibuild-wheels-staging/pandas/files?version=${VERS
     grep "href=\"/multibuild-wheels-staging/pandas/${VERSION}" | \
     sed -r 's/.*<a href="([^"]+\.(whl|tar.gz))">.*/\1/g' | \
     awk '{print "https://anaconda.org" $0 }' | \
-    xargs wget -P $DIST_DIR
+    xargs wget -P "$DIST_DIR"
 
-printf "\nWheels downloaded to $DIST_DIR\nYou can upload them to PyPI using:\n\n"
-printf "\ttwine upload ${DIST_DIR}/pandas-${VERSION}*.{whl,tar.gz} --skip-existing"
+printf '\nWheels downloaded to %s\nYou can upload them to PyPI using:\n\n' "$DIST_DIR"
+printf "\ttwine upload %s/pandas-%s*.{whl,tar.gz} --skip-existing" "$DIST_DIR" "$VERSION"

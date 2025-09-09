@@ -31,8 +31,7 @@ class PandasBuffer(Buffer):
                 x = x.copy()
             else:
                 raise RuntimeError(
-                    "Exports cannot be zero-copy in the case "
-                    "of a non-contiguous buffer"
+                    "Exports cannot be zero-copy in the case of a non-contiguous buffer"
                 )
 
         # Store the numpy array in which the data resides as a private
@@ -114,7 +113,7 @@ class PandasBufferPyarrow(Buffer):
         """
         Represent this structure as DLPack interface.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def __dlpack_device__(self) -> tuple[DlpackDeviceType, int | None]:
         """

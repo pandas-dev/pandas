@@ -4,13 +4,17 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Self,
+)
 
 import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     NaT,
     Period,
     Resolution,
@@ -20,6 +24,7 @@ from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.common import is_integer
@@ -49,7 +54,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
-        Self,
         npt,
     )
 
@@ -81,6 +85,7 @@ def _new_PeriodIndex(cls, **d):
     wrap=True,
 )
 @inherit_names(["is_leap_year"], PeriodArray)
+@set_module("pandas")
 class PeriodIndex(DatetimeIndexOpsMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.
@@ -261,18 +266,30 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         Parameters
         ----------
         year : int, array, or Series, default None
+            Year for the PeriodIndex.
         quarter : int, array, or Series, default None
+            Quarter for the PeriodIndex.
         month : int, array, or Series, default None
+            Month for the PeriodIndex.
         day : int, array, or Series, default None
+            Day for the PeriodIndex.
         hour : int, array, or Series, default None
+            Hour for the PeriodIndex.
         minute : int, array, or Series, default None
+            Minute for the PeriodIndex.
         second : int, array, or Series, default None
+            Second for the PeriodIndex.
         freq : str or period object, optional
             One of pandas period strings or corresponding objects.
 
         Returns
         -------
         PeriodIndex
+
+        See Also
+        --------
+        PeriodIndex.from_ordinals : Construct a PeriodIndex from ordinals.
+        PeriodIndex.to_timestamp : Cast to DatetimeArray/Index.
 
         Examples
         --------
@@ -311,6 +328,12 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         -------
         PeriodIndex
 
+        See Also
+        --------
+        PeriodIndex.from_fields : Construct a PeriodIndex from fields
+            (year, month, day, etc.).
+        PeriodIndex.to_timestamp : Cast to DatetimeArray/Index.
+
         Examples
         --------
         >>> idx = pd.PeriodIndex.from_ordinals([-1, 0, 1], freq="Q")
@@ -347,7 +370,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             of self.freq.  Note IncompatibleFrequency subclasses ValueError.
         """
         if isinstance(other, (timedelta, np.timedelta64, Tick, np.ndarray)):
-            if isinstance(self.freq, Tick):
+            if isinstance(self.freq, (Tick, Day)):
                 # _check_timedeltalike_freq_compat will raise if incompatible
                 delta = self._data._check_timedeltalike_freq_compat(other)
                 return delta
@@ -545,6 +568,14 @@ def period_range(
     Returns
     -------
     PeriodIndex
+        A PeriodIndex of fixed frequency periods.
+
+    See Also
+    --------
+    date_range : Returns a fixed frequency DatetimeIndex.
+    Period : Represents a period of time.
+    PeriodIndex : Immutable ndarray holding ordinal values indicating regular periods
+        in time.
 
     Notes
     -----

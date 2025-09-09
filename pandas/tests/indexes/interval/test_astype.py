@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     IntervalDtype,
@@ -47,8 +49,13 @@ class AstypeTests:
         # non-default params
         categories = index.dropna().unique().values[:-1]
         dtype = CategoricalDtype(categories=categories, ordered=True)
-        result = index.astype(dtype)
-        expected = CategoricalIndex(index.values, categories=categories, ordered=True)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = index.astype(dtype)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = CategoricalIndex(
+                index.values, categories=categories, ordered=True
+            )
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -185,6 +192,12 @@ class TestFloatSubtype(AstypeTests):
         msg = "Cannot convert .* to .*; subtypes are incompatible"
         with pytest.raises(TypeError, match=msg):
             index.astype(dtype)
+
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
+    def test_astype_category(self, index):
+        super().test_astype_category(index)
 
 
 class TestDatetimelikeSubtype(AstypeTests):

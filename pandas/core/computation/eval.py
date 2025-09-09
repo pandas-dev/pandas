@@ -14,7 +14,10 @@ import warnings
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import (
+    is_extension_array_dtype,
+    is_string_dtype,
+)
 
 from pandas.core.computation.engines import ENGINES
 from pandas.core.computation.expr import (
@@ -185,14 +188,10 @@ def eval(
     """
     Evaluate a Python expression as a string using various backends.
 
-    The following arithmetic operations are supported: ``+``, ``-``, ``*``,
-    ``/``, ``**``, ``%``, ``//`` (python engine only) along with the following
-    boolean operations: ``|`` (or), ``&`` (and), and ``~`` (not).
-    Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`,
-    :keyword:`or`, and :keyword:`not` with the same semantics as the
-    corresponding bitwise operators.  :class:`~pandas.Series` and
-    :class:`~pandas.DataFrame` objects are supported and behave as they would
-    with plain ol' Python evaluation.
+    .. warning::
+
+        This function can run arbitrary code which can make you vulnerable to code
+        injection if you pass user input to this function.
 
     Parameters
     ----------
@@ -202,6 +201,34 @@ def eval(
         <https://docs.python.org/3/reference/simple_stmts.html#simple-statements>`__,
         only Python `expressions
         <https://docs.python.org/3/reference/simple_stmts.html#expression-statements>`__.
+
+        By default, with the numexpr engine, the following operations are supported:
+
+        - Arithmetic operations: ``+``, ``-``, ``*``, ``/``, ``**``, ``%``
+        - Boolean operations: ``|`` (or), ``&`` (and), and ``~`` (not)
+        - Comparison operators: ``<``, ``<=``, ``==``, ``!=``, ``>=``, ``>``
+
+        Furthermore, the following mathematical functions are supported:
+
+        - Trigonometric: ``sin``, ``cos``, ``tan``, ``arcsin``, ``arccos``, \
+            ``arctan``, ``arctan2``, ``sinh``, ``cosh``, ``tanh``, ``arcsinh``, \
+            ``arccosh`` and ``arctanh``
+        - Logarithms: ``log`` natural, ``log10`` base 10, ``log1p`` log(1+x)
+        - Absolute Value ``abs``
+        - Square root ``sqrt``
+        - Exponential ``exp`` and Exponential minus one ``expm1``
+
+        See the numexpr engine `documentation
+        <https://numexpr.readthedocs.io/en/latest/user_guide.html#supported-functions>`__
+        for further function support details.
+
+        Using the ``'python'`` engine allows the use of native Python operators
+        such as floor division ``//``, in addition to built-in and user-defined
+        Python functions.
+
+        Additionally, the ``'pandas'`` parser allows the use of :keyword:`and`,
+        :keyword:`or`, and :keyword:`not` with the same semantics as the
+        corresponding bitwise operators.
     parser : {'pandas', 'python'}, default 'pandas'
         The parser to use to construct the syntax tree from the expression. The
         default of ``'pandas'`` parses code slightly different than standard
@@ -340,11 +367,16 @@ def eval(
         parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
 
         if engine == "numexpr" and (
-            is_extension_array_dtype(parsed_expr.terms.return_type)
-            or getattr(parsed_expr.terms, "operand_types", None) is not None
-            and any(
-                is_extension_array_dtype(elem)
-                for elem in parsed_expr.terms.operand_types
+            (
+                is_extension_array_dtype(parsed_expr.terms.return_type)
+                and not is_string_dtype(parsed_expr.terms.return_type)
+            )
+            or (
+                getattr(parsed_expr.terms, "operand_types", None) is not None
+                and any(
+                    (is_extension_array_dtype(elem) and not is_string_dtype(elem))
+                    for elem in parsed_expr.terms.operand_types
+                )
             )
         ):
             warnings.warn(

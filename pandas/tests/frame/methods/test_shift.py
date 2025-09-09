@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -320,7 +322,7 @@ class TestDataFrameShift:
         def get_cat_values(ndframe):
             # For Series we could just do ._values; for DataFrame
             #  we may be able to do this if we ever have 2D Categoricals
-            return ndframe._mgr.arrays[0]
+            return ndframe._mgr.blocks[0].values
 
         cat = get_cat_values(obj)
 
@@ -560,7 +562,7 @@ class TestDataFrameShift:
         # same thing but not consolidated; pre-2.0 we got different behavior
         df3 = DataFrame({"A": ser})
         df3["B"] = ser
-        assert len(df3._mgr.arrays) == 2
+        assert len(df3._mgr.blocks) == 2
         result = df3.shift(1, axis=1, fill_value=0)
         tm.assert_frame_equal(result, expected)
 
@@ -621,7 +623,7 @@ class TestDataFrameShift:
         # same thing but not consolidated
         df3 = DataFrame({"A": ser})
         df3["B"] = ser
-        assert len(df3._mgr.arrays) == 2
+        assert len(df3._mgr.blocks) == 2
         result = df3.shift(-1, axis=1, fill_value="foo")
         tm.assert_frame_equal(result, expected)
 
@@ -747,3 +749,48 @@ class TestDataFrameShift:
         df = DataFrame()
         result = df.shift(1, axis=1)
         tm.assert_frame_equal(result, df)
+
+    def test_shift_with_offsets_freq_empty(self):
+        # GH#60102
+        dates = date_range("2020-01-01", periods=3, freq="D")
+        offset = offsets.Day()
+        shifted_dates = dates + offset
+        df = DataFrame(index=dates)
+        df_shifted = DataFrame(index=shifted_dates)
+        result = df.shift(freq=offset)
+        tm.assert_frame_equal(result, df_shifted)
+
+    def test_series_shift_interval_preserves_closed(self):
+        # GH#60389
+        ser = Series(
+            [pd.Interval(1, 2, closed="right"), pd.Interval(2, 3, closed="right")]
+        )
+        result = ser.shift(1)
+        expected = Series([np.nan, pd.Interval(1, 2, closed="right")])
+        tm.assert_series_equal(result, expected)
+
+    def test_shift_invalid_fill_value_deprecation(self):
+        # GH#53802
+        df = DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": [True, False, True],
+            }
+        )
+
+        msg = "shifting with a fill value that cannot"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.shift(1, fill_value="foo")
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["a"].shift(1, fill_value="foo")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["b"].shift(1, fill_value="foo")
+
+        # An incompatible null value
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.shift(1, fill_value=NaT)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["a"].shift(1, fill_value=NaT)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["b"].shift(1, fill_value=NaT)

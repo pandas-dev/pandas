@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+)
 
 import numpy as np
 
@@ -11,6 +15,9 @@ from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class IntegerDtype(NumericDtype):
@@ -23,11 +30,12 @@ class IntegerDtype(NumericDtype):
     The attributes name & type are set when these subclasses are created.
     """
 
+    # The value used to fill '_data' to avoid upcasting
+    _internal_fill_value = 1
     _default_np_dtype = np.dtype(np.int64)
-    _checker = is_integer_dtype
+    _checker: Callable[[Any], bool] = is_integer_dtype
 
-    @classmethod
-    def construct_array_type(cls) -> type[IntegerArray]:
+    def construct_array_type(self) -> type[IntegerArray]:
         """
         Return the array type associated with this dtype.
 
@@ -103,6 +111,12 @@ class IntegerArray(NumericArray):
     -------
     IntegerArray
 
+    See Also
+    --------
+    array : Create an array using the appropriate dtype, including ``IntegerArray``.
+    Int32Dtype : An ExtensionDtype for int32 integer data.
+    UInt16Dtype : An ExtensionDtype for uint16 integer data.
+
     Examples
     --------
     Create an IntegerArray with :func:`pandas.array`.
@@ -128,14 +142,6 @@ class IntegerArray(NumericArray):
 
     _dtype_cls = IntegerDtype
 
-    # The value used to fill '_data' to avoid upcasting
-    _internal_fill_value = 1
-    # Fill values used for any/all
-    # Incompatible types in assignment (expression has type "int", base class
-    # "BaseMaskedArray" defined the type as "<typing special form>")
-    _truthy_value = 1  # type: ignore[assignment]
-    _falsey_value = 0  # type: ignore[assignment]
-
 
 _dtype_docstring = """
 An ExtensionDtype for {dtype} integer data.
@@ -149,6 +155,13 @@ None
 Methods
 -------
 None
+
+See Also
+--------
+Int8Dtype : 8-bit nullable integer type.
+Int16Dtype : 16-bit nullable integer type.
+Int32Dtype : 32-bit nullable integer type.
+Int64Dtype : 64-bit nullable integer type.
 
 Examples
 --------

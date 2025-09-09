@@ -99,7 +99,7 @@ class TestSeriesStatReductions:
             # mean, idxmax, idxmin, min, and max are valid for dates
             if name not in ["max", "min", "mean", "median", "std"]:
                 ds = Series(date_range("1/1/2001", periods=10))
-                msg = f"does not support reduction '{name}'"
+                msg = f"does not support operation '{name}'"
                 with pytest.raises(TypeError, match=msg):
                     f(ds)
 

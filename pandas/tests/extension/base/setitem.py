@@ -203,6 +203,22 @@ class BaseSetitemTests:
         tm.assert_equal(arr, expected)
 
     @pytest.mark.parametrize(
+        "idx",
+        [[0, 0, 1], pd.array([0, 0, 1], dtype="Int64"), np.array([0, 0, 1])],
+        ids=["list", "integer-array", "numpy-array"],
+    )
+    def test_setitem_integer_array_with_repeats(self, data, idx, box_in_series):
+        arr = data[:5].copy()
+        expected = data.take([2, 3, 2, 3, 4])
+
+        if box_in_series:
+            arr = pd.Series(arr)
+            expected = pd.Series(expected)
+
+        arr[idx] = [arr[2], arr[2], arr[3]]
+        tm.assert_equal(arr, expected)
+
+    @pytest.mark.parametrize(
         "idx, box_in_series",
         [
             ([0, 1, 2, pd.NA], False),
@@ -358,7 +374,7 @@ class BaseSetitemTests:
 
     def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
-        df = expected = pd.DataFrame({0: pd.Series(data)})
+        df = expected = pd.DataFrame(pd.Series(data))
         result = pd.DataFrame(index=df.index)
 
         key = full_indexer(df)
@@ -424,11 +440,11 @@ class BaseSetitemTests:
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_invalid(self, data, invalid_scalar):
-        msg = ""  # messages vary by subclass, so we do not test it
-        with pytest.raises((ValueError, TypeError), match=msg):
+        # messages vary by subclass, so we do not test it
+        with pytest.raises((ValueError, TypeError), match=None):
             data[0] = invalid_scalar
 
-        with pytest.raises((ValueError, TypeError), match=msg):
+        with pytest.raises((ValueError, TypeError), match=None):
             data[:] = invalid_scalar
 
     def test_setitem_2d_values(self, data):

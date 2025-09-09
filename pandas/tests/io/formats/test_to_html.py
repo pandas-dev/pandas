@@ -94,8 +94,7 @@ def test_to_html_with_column_specific_col_space_raises():
     )
 
     msg = (
-        "Col_space length\\(\\d+\\) should match "
-        "DataFrame number of columns\\(\\d+\\)"
+        "Col_space length\\(\\d+\\) should match DataFrame number of columns\\(\\d+\\)"
     )
     with pytest.raises(ValueError, match=msg):
         df.to_html(col_space=[30, 40])
@@ -934,9 +933,11 @@ class TestReprHTML:
     def test_repr_html_mathjax(self):
         df = DataFrame([[1, 2], [3, 4]])
         assert "tex2jax_ignore" not in df._repr_html_()
+        assert "mathjax_ignore" not in df._repr_html_()
 
         with option_context("display.html.use_mathjax", False):
             assert "tex2jax_ignore" in df._repr_html_()
+            assert "mathjax_ignore" in df._repr_html_()
 
     def test_repr_html_wide(self):
         max_cols = 20

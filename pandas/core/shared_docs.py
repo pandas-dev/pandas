@@ -49,6 +49,8 @@ behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
 for more details.
 
 A passed user-defined-function will be passed a Series for evaluation.
+
+If ``func`` defines an index relabeling, ``axis`` must be ``0`` or ``index``.
 {examples}"""
 
 _shared_docs["compare"] = """
@@ -63,9 +65,9 @@ align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
     Determine which axis to align the comparison on.
 
     * 0, or 'index' : Resulting differences are stacked vertically
-        with rows drawn alternately from self and other.
+      with rows drawn alternately from self and other.
     * 1, or 'columns' : Resulting differences are aligned horizontally
-        with columns drawn alternately from self and other.
+      with columns drawn alternately from self and other.
 
 keep_shape : bool, default False
     If true, all rows and columns are kept.
@@ -378,7 +380,7 @@ _shared_docs["replace"] = """
               replaced with `value`
             - str: string exactly matching `to_replace` will be replaced
               with `value`
-            - regex: regexs matching `to_replace` will be replaced with
+            - regex: regexes matching `to_replace` will be replaced with
               `value`
 
         * list of str, regex, or numeric:
@@ -386,7 +388,7 @@ _shared_docs["replace"] = """
             - First, if `to_replace` and `value` are both lists, they
               **must** be the same length.
             - Second, if ``regex=True`` then all of the strings in **both**
-              lists will be interpreted as regexs otherwise they will match
+              lists will be interpreted as regexes otherwise they will match
               directly. This doesn't matter much for `value` since there
               are only a few possible substitution regexes you can use.
             - str, regex and numeric rules apply as above.
@@ -429,20 +431,11 @@ _shared_docs["replace"] = """
         filled). Regular expressions, strings and lists or dicts of such
         objects are also allowed.
     {inplace}
-    limit : int, default None
-        Maximum size gap to forward or backward fill.
-
-        .. deprecated:: 2.1.0
     regex : bool or same types as `to_replace`, default False
         Whether to interpret `to_replace` and/or `value` as regular
         expressions. Alternatively, this could be a regular expression or a
         list, dict, or array of regular expressions in which case
         `to_replace` must be ``None``.
-    method : {{'pad', 'ffill', 'bfill'}}
-        The method to use when for replacement, when `to_replace` is a
-        scalar, list or tuple and `value` is ``None``.
-
-        .. deprecated:: 2.1.0
 
     Returns
     -------
@@ -538,14 +531,6 @@ _shared_docs["replace"] = """
     3  1  8  d
     4  4  9  e
 
-    >>> s.replace([1, 2], method='bfill')
-    0    3
-    1    3
-    2    3
-    3    4
-    4    5
-    dtype: int64
-
     **dict-like `to_replace`**
 
     >>> df.replace({{0: 10, 1: 100}})
@@ -615,7 +600,7 @@ _shared_docs["replace"] = """
     When one uses a dict as the `to_replace` value, it is like the
     value(s) in the dict are equal to the `value` parameter.
     ``s.replace({{'a': None}})`` is equivalent to
-    ``s.replace(to_replace={{'a': None}}, value=None, method=None)``:
+    ``s.replace(to_replace={{'a': None}}, value=None)``:
 
     >>> s.replace({{'a': None}})
     0      10
@@ -625,24 +610,7 @@ _shared_docs["replace"] = """
     4    None
     dtype: object
 
-    When ``value`` is not explicitly passed and `to_replace` is a scalar, list
-    or tuple, `replace` uses the method parameter (default 'pad') to do the
-    replacement. So this is why the 'a' values are being replaced by 10
-    in rows 1 and 2 and 'b' in row 4 in this case.
-
-    >>> s.replace('a')
-    0    10
-    1    10
-    2    10
-    3     b
-    4     b
-    dtype: object
-
-        .. deprecated:: 2.1.0
-            The 'method' parameter and padding behavior are deprecated.
-
-    On the other hand, if ``None`` is explicitly passed for ``value``, it will
-    be respected:
+    If ``None`` is explicitly passed for ``value``, it will be respected:
 
     >>> s.replace('a', None)
     0      10
@@ -680,134 +648,4 @@ _shared_docs["replace"] = """
     2  2  e  e
     3  3  d  e
     4  4  e  e
-"""
-
-_shared_docs["idxmin"] = """
-    Return index of first occurrence of minimum over requested axis.
-
-    NA/null values are excluded.
-
-    Parameters
-    ----------
-    axis : {{0 or 'index', 1 or 'columns'}}, default 0
-        The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-    skipna : bool, default True
-        Exclude NA/null values. If an entire row/column is NA, the result
-        will be NA.
-    numeric_only : bool, default {numeric_only_default}
-        Include only `float`, `int` or `boolean` data.
-
-        .. versionadded:: 1.5.0
-
-    Returns
-    -------
-    Series
-        Indexes of minima along the specified axis.
-
-    Raises
-    ------
-    ValueError
-        * If the row/column is empty
-
-    See Also
-    --------
-    Series.idxmin : Return index of the minimum element.
-
-    Notes
-    -----
-    This method is the DataFrame version of ``ndarray.argmin``.
-
-    Examples
-    --------
-    Consider a dataset containing food consumption in Argentina.
-
-    >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                   'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                   index=['Pork', 'Wheat Products', 'Beef'])
-
-    >>> df
-                    consumption  co2_emissions
-    Pork                  10.51         37.20
-    Wheat Products       103.11         19.66
-    Beef                  55.48       1712.00
-
-    By default, it returns the index for the minimum value in each column.
-
-    >>> df.idxmin()
-    consumption                Pork
-    co2_emissions    Wheat Products
-    dtype: object
-
-    To return the index for the minimum value in each row, use ``axis="columns"``.
-
-    >>> df.idxmin(axis="columns")
-    Pork                consumption
-    Wheat Products    co2_emissions
-    Beef                consumption
-    dtype: object
-"""
-
-_shared_docs["idxmax"] = """
-    Return index of first occurrence of maximum over requested axis.
-
-    NA/null values are excluded.
-
-    Parameters
-    ----------
-    axis : {{0 or 'index', 1 or 'columns'}}, default 0
-        The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-    skipna : bool, default True
-        Exclude NA/null values. If an entire row/column is NA, the result
-        will be NA.
-    numeric_only : bool, default {numeric_only_default}
-        Include only `float`, `int` or `boolean` data.
-
-        .. versionadded:: 1.5.0
-
-    Returns
-    -------
-    Series
-        Indexes of maxima along the specified axis.
-
-    Raises
-    ------
-    ValueError
-        * If the row/column is empty
-
-    See Also
-    --------
-    Series.idxmax : Return index of the maximum element.
-
-    Notes
-    -----
-    This method is the DataFrame version of ``ndarray.argmax``.
-
-    Examples
-    --------
-    Consider a dataset containing food consumption in Argentina.
-
-    >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                   'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                   index=['Pork', 'Wheat Products', 'Beef'])
-
-    >>> df
-                    consumption  co2_emissions
-    Pork                  10.51         37.20
-    Wheat Products       103.11         19.66
-    Beef                  55.48       1712.00
-
-    By default, it returns the index for the maximum value in each column.
-
-    >>> df.idxmax()
-    consumption     Wheat Products
-    co2_emissions             Beef
-    dtype: object
-
-    To return the index for the maximum value in each row, use ``axis="columns"``.
-
-    >>> df.idxmax(axis="columns")
-    Pork              co2_emissions
-    Wheat Products     consumption
-    Beef              co2_emissions
-    dtype: object
 """

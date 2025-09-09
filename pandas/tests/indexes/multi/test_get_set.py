@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
-
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -41,7 +39,7 @@ def test_get_dtypes(using_infer_string):
         names=["int", "string", "dt"],
     )
 
-    exp = "object" if not using_infer_string else "string"
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
         {
             "int": np.dtype("int64"),
@@ -61,7 +59,7 @@ def test_get_dtypes_no_level_name(using_infer_string):
             pd.date_range("20200101", periods=2, tz="UTC"),
         ],
     )
-    exp = "object" if not using_infer_string else "string"
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
         {
             "level_0": np.dtype("int64"),
@@ -82,7 +80,7 @@ def test_get_dtypes_duplicate_level_names(using_infer_string):
         ],
         names=["A", "A", "A"],
     ).dtypes
-    exp = "object" if not using_infer_string else "string"
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
         [np.dtype("int64"), exp, DatetimeTZDtype(tz="utc")],
         index=["A", "A", "A"],
@@ -101,16 +99,16 @@ def test_get_level_number_out_of_bounds(multiindex_dataframe_random_data):
 
 def test_set_name_methods(idx):
     # so long as these are synonyms, we don't need to test set_names
-    index_names = ("first", "second")
+    index_names = ["first", "second"]
     assert idx.rename == idx.set_names
-    new_names = tuple(name + "SUFFIX" for name in index_names)
+    new_names = [name + "SUFFIX" for name in index_names]
     ind = idx.set_names(new_names)
     assert idx.names == index_names
     assert ind.names == new_names
     msg = "Length of names must match number of levels in MultiIndex"
     with pytest.raises(ValueError, match=msg):
         ind.set_names(new_names + new_names)
-    new_names2 = tuple(name + "SUFFIX2" for name in new_names)
+    new_names2 = [name + "SUFFIX2" for name in new_names]
     res = ind.set_names(new_names2, inplace=True)
     assert res is None
     assert ind.names == new_names2
@@ -118,11 +116,11 @@ def test_set_name_methods(idx):
     # set names for specific level (# GH7792)
     ind = idx.set_names(new_names[0], level=0)
     assert idx.names == index_names
-    assert ind.names == (new_names[0], index_names[1])
+    assert ind.names == [new_names[0], index_names[1]]
 
     res = ind.set_names(new_names2[0], level=0, inplace=True)
     assert res is None
-    assert ind.names == (new_names2[0], index_names[1])
+    assert ind.names == [new_names2[0], index_names[1]]
 
     # set names for multiple levels
     ind = idx.set_names(new_names, level=[0, 1])
@@ -150,11 +148,7 @@ def test_set_levels_codes_directly(idx):
     with pytest.raises(AttributeError, match=msg):
         idx.levels = new_levels
 
-    msg = (
-        "property 'codes' of 'MultiIndex' object has no setter"
-        if PY311
-        else "can't set attribute"
-    )
+    msg = "property 'codes' of 'MultiIndex' object has no setter"
     with pytest.raises(AttributeError, match=msg):
         idx.codes = new_codes
 

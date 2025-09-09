@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Hashable,
     Iterator,
 )
@@ -10,8 +11,8 @@ from sys import getsizeof
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -27,6 +28,7 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -57,9 +59,12 @@ if TYPE_CHECKING:
         Dtype,
         JoinHow,
         NaPosition,
-        Self,
+        NumpySorter,
         npt,
     )
+
+    from pandas import Series
+
 _empty_range = range(0)
 _dtype_int64 = np.dtype(np.int64)
 
@@ -70,6 +75,7 @@ def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
     return start + abs(step) * no_steps
 
 
+@set_module("pandas")
 class RangeIndex(Index):
     """
     Immutable Index implementing a monotonic integer range.
@@ -86,7 +92,9 @@ class RangeIndex(Index):
     start : int (default: 0), range, or other RangeIndex instance
         If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
+        The end value of the range (exclusive).
     step : int (default: 1)
+        The step size of the range.
     dtype : np.int64
         Unused, accepted for homogeneity with other index types.
     copy : bool, default False
@@ -182,9 +190,30 @@ class RangeIndex(Index):
         """
         Create :class:`pandas.RangeIndex` from a ``range`` object.
 
+        This method provides a way to create a :class:`pandas.RangeIndex` directly
+        from a Python ``range`` object. The resulting :class:`RangeIndex` will have
+        the same start, stop, and step values as the input ``range`` object.
+        It is particularly useful for constructing indices in an efficient and
+        memory-friendly manner.
+
+        Parameters
+        ----------
+        data : range
+            The range object to be converted into a RangeIndex.
+        name : str, default None
+            Name to be stored in the index.
+        dtype : Dtype or None
+            Data type for the RangeIndex. If None, the default integer type will
+            be used.
+
         Returns
         -------
         RangeIndex
+
+        See Also
+        --------
+        RangeIndex : Immutable Index implementing a monotonic integer range.
+        Index : Immutable sequence used for indexing and alignment.
 
         Examples
         --------
@@ -289,6 +318,16 @@ class RangeIndex(Index):
         """
         The value of the `start` parameter (``0`` if this was not supplied).
 
+        This property returns the starting value of the `RangeIndex`. If the `start`
+        value is not explicitly provided during the creation of the `RangeIndex`,
+        it defaults to 0.
+
+        See Also
+        --------
+        RangeIndex : Immutable index implementing a range-based index.
+        RangeIndex.stop : Returns the stop value of the `RangeIndex`.
+        RangeIndex.step : Returns the step value of the `RangeIndex`.
+
         Examples
         --------
         >>> idx = pd.RangeIndex(5)
@@ -307,6 +346,17 @@ class RangeIndex(Index):
         """
         The value of the `stop` parameter.
 
+        This property returns the `stop` value of the RangeIndex, which defines the
+        upper (or lower, in case of negative steps) bound of the index range. The
+        `stop` value is exclusive, meaning the RangeIndex includes values up to but
+        not including this value.
+
+        See Also
+        --------
+        RangeIndex : Immutable index representing a range of integers.
+        RangeIndex.start : The start value of the RangeIndex.
+        RangeIndex.step : The step size between elements in the RangeIndex.
+
         Examples
         --------
         >>> idx = pd.RangeIndex(5)
@@ -323,6 +373,15 @@ class RangeIndex(Index):
     def step(self) -> int:
         """
         The value of the `step` parameter (``1`` if this was not supplied).
+
+        The ``step`` parameter determines the increment (or decrement in the case
+        of negative values) between consecutive elements in the ``RangeIndex``.
+
+        See Also
+        --------
+        RangeIndex : Immutable index implementing a range-based index.
+        RangeIndex.stop : Returns the stop value of the RangeIndex.
+        RangeIndex.start : Returns the start value of the RangeIndex.
 
         Examples
         --------
@@ -1116,6 +1175,7 @@ class RangeIndex(Index):
         """
         Conserve RangeIndex type for scalar and slice keys.
         """
+        key = lib.item_from_zerodim(key)
         if key is Ellipsis:
             key = slice(None)
         if isinstance(key, slice):
@@ -1157,7 +1217,7 @@ class RangeIndex(Index):
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
         if is_integer(other) and other != 0:
-            if len(self) == 0 or self.start % other == 0 and self.step % other == 0:
+            if len(self) == 0 or (self.start % other == 0 and self.step % other == 0):
                 start = self.start // other
                 step = self.step // other
                 stop = start + len(self) * step
@@ -1359,3 +1419,64 @@ class RangeIndex(Index):
                 taken += self.start
 
         return self._shallow_copy(taken, name=self.name)
+
+    def value_counts(
+        self,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+        bins=None,
+        dropna: bool = True,
+    ) -> Series:
+        from pandas import Series
+
+        if bins is not None:
+            return super().value_counts(
+                normalize=normalize,
+                sort=sort,
+                ascending=ascending,
+                bins=bins,
+                dropna=dropna,
+            )
+        name = "proportion" if normalize else "count"
+        data: npt.NDArray[np.floating] | npt.NDArray[np.signedinteger] = np.ones(
+            len(self), dtype=np.int64
+        )
+        if normalize:
+            data = data / len(self)
+        return Series(data, index=self.copy(), name=name)
+
+    def searchsorted(  # type: ignore[override]
+        self,
+        value,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter | None = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        if side not in {"left", "right"} or sorter is not None:
+            return super().searchsorted(value=value, side=side, sorter=sorter)
+
+        was_scalar = False
+        if is_scalar(value):
+            was_scalar = True
+            array_value = np.array([value])
+        else:
+            array_value = np.asarray(value)
+        if array_value.dtype.kind not in "iu":
+            return super().searchsorted(value=value, side=side, sorter=sorter)
+
+        if flip := (self.step < 0):
+            rng = self._range[::-1]
+            start = rng.start
+            step = rng.step
+            shift = side == "right"
+        else:
+            start = self.start
+            step = self.step
+            shift = side == "left"
+        result = (array_value - start - int(shift)) // step + 1
+        if flip:
+            result = len(self) - result
+        result = np.maximum(np.minimum(result, len(self)), 0)
+        if was_scalar:
+            return np.intp(result.item())
+        return result.astype(np.intp, copy=False)

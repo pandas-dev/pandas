@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
+from pandas._config import using_string_dtype
 
 import pandas.util._test_decorators as td
 
@@ -64,10 +64,7 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(orig, obj.values)
         assert orig.squeeze()[1] == 1.5
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="interpolate doesn't work for string"
-    )
-    def test_interp_basic(self):
+    def test_interp_basic(self, using_infer_string):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -76,7 +73,8 @@ class TestDataFrameInterpolate:
                 "D": list("abcd"),
             }
         )
-        msg = "DataFrame cannot interpolate with object dtype"
+        dtype = "str" if using_infer_string else "object"
+        msg = f"[Cc]annot interpolate with {dtype} dtype"
         with pytest.raises(TypeError, match=msg):
             df.interpolate()
 
@@ -86,11 +84,11 @@ class TestDataFrameInterpolate:
             df.interpolate(inplace=True)
 
         # check we DID operate inplace
-        assert np.shares_memory(df["C"]._values, cvalues)
-        assert np.shares_memory(df["D"]._values, dvalues)
+        assert tm.shares_memory(df["C"]._values, cvalues)
+        assert tm.shares_memory(df["D"]._values, dvalues)
 
     @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="interpolate doesn't work for string"
+        using_string_dtype(), reason="interpolate doesn't work for string"
     )
     def test_interp_basic_with_non_range_index(self, using_infer_string):
         df = DataFrame(
@@ -109,7 +107,7 @@ class TestDataFrameInterpolate:
         else:
             result = df.set_index("C").interpolate()
             expected = df.set_index("C")
-            expected.loc[3, "A"] = 3
+            expected.loc[3, "A"] = 2.66667
             expected.loc[5, "B"] = 9
             tm.assert_frame_equal(result, expected)
 
@@ -129,13 +127,7 @@ class TestDataFrameInterpolate:
                 "C": [1, 2, 3, 5],
             }
         )
-        msg = (
-            r"method must be one of \['linear', 'time', 'index', 'values', "
-            r"'nearest', 'zero', 'slinear', 'quadratic', 'cubic', "
-            r"'barycentric', 'krogh', 'spline', 'polynomial', "
-            r"'from_derivatives', 'piecewise_polynomial', 'pchip', 'akima', "
-            r"'cubicspline'\]. Got 'not_a_method' instead."
-        )
+        msg = "Can not interpolate with method=not_a_method"
         with pytest.raises(ValueError, match=msg):
             df.interpolate(method="not_a_method")
 
@@ -398,12 +390,9 @@ class TestDataFrameInterpolate:
             df["D"] = np.nan
             df["E"] = 1.0
 
-        method2 = method if method != "pad" else "ffill"
-        expected = getattr(df, method2)(axis=axis)
-        msg = f"DataFrame.interpolate with method={method} is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.interpolate(method=method, axis=axis)
-        tm.assert_frame_equal(result, expected)
+        msg = f"Can not interpolate with method={method}"
+        with pytest.raises(ValueError, match=msg):
+            df.interpolate(method=method, axis=axis)
 
     def test_interpolate_empty_df(self):
         # GH#53199

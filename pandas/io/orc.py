@@ -9,16 +9,13 @@ from typing import (
     Literal,
 )
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._validators import check_dtype_backend
 
-import pandas as pd
 from pandas.core.indexes.api import default_index
 
-from pandas.io._util import arrow_string_types_mapper
+from pandas.io._util import arrow_table_to_pandas
 from pandas.io.common import (
     get_handle,
     is_fsspec_url,
@@ -48,6 +45,13 @@ def read_orc(
     """
     Load an ORC object from the file path, returning a DataFrame.
 
+    This method reads an ORC (Optimized Row Columnar) file into a pandas
+    DataFrame using the `pyarrow.orc` library. ORC is a columnar storage format
+    that provides efficient compression and fast retrieval for analytical workloads.
+    It allows reading specific columns, handling different filesystem
+    types (such as local storage, cloud storage via fsspec, or pyarrow filesystem),
+    and supports different data type backends, including `numpy_nullable` and `pyarrow`.
+
     Parameters
     ----------
     path : str, path object, or file-like object
@@ -61,19 +65,20 @@ def read_orc(
         Output always follows the ordering of the file and not the columns list.
         This mirrors the original behaviour of
         :external+pyarrow:py:meth:`pyarrow.orc.ORCFile.read`.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
     filesystem : fsspec or pyarrow filesystem, default None
-        Filesystem object to use when reading the parquet file.
+        Filesystem object to use when reading the orc file.
 
         .. versionadded:: 2.1.0
 
@@ -84,6 +89,14 @@ def read_orc(
     -------
     DataFrame
         DataFrame based on the ORC file.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_spss : Read an SPSS file into a pandas DataFrame.
+    read_sas : Load a SAS file into a pandas DataFrame.
+    read_feather : Load a feather-format object into a pandas DataFrame.
 
     Notes
     -----
@@ -99,7 +112,7 @@ def read_orc(
     --------
     >>> result = pd.read_orc("example_pa.orc")  # doctest: +SKIP
     """
-    # we require a newer version of pyarrow than we support for parquet
+    # we require a newer version of pyarrow than we support for orc
 
     orc = import_optional_dependency("pyarrow.orc")
 
@@ -118,21 +131,7 @@ def read_orc(
         pa_table = orc.read_table(
             source=source, columns=columns, filesystem=filesystem, **kwargs
         )
-    if dtype_backend is not lib.no_default:
-        if dtype_backend == "pyarrow":
-            df = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
-        else:
-            from pandas.io._util import _arrow_dtype_mapping
-
-            mapping = _arrow_dtype_mapping()
-            df = pa_table.to_pandas(types_mapper=mapping.get)
-        return df
-    else:
-        if using_pyarrow_string_dtype():
-            types_mapper = arrow_string_types_mapper()
-        else:
-            types_mapper = None
-        return pa_table.to_pandas(types_mapper=types_mapper)
+    return arrow_table_to_pandas(pa_table, dtype_backend=dtype_backend)
 
 
 def to_orc(
@@ -219,7 +218,6 @@ def to_orc(
 
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")
-    pyarrow = import_optional_dependency(engine, min_version="10.0.1")
     pa = import_optional_dependency("pyarrow")
     orc = import_optional_dependency("pyarrow.orc")
 
@@ -230,7 +228,7 @@ def to_orc(
     with get_handle(path, "wb", is_text=False) as handles:
         try:
             orc.write_table(
-                pyarrow.Table.from_pandas(df, preserve_index=index),
+                pa.Table.from_pandas(df, preserve_index=index),
                 handles.handle,
                 **engine_kwargs,
             )

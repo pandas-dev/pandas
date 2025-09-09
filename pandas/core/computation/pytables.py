@@ -12,6 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
+    Self,
 )
 
 import numpy as np
@@ -42,10 +43,7 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        Self,
-        npt,
-    )
+    from pandas._typing import npt
 
 
 class PyTablesScope(_scope.Scope):
@@ -205,7 +203,7 @@ class BinOp(ops.BinOp):
         val = v.tostring(self.encoding)
         return f"({self.lhs} {self.op} {val})"
 
-    def convert_value(self, v) -> TermValue:
+    def convert_value(self, conv_val) -> TermValue:
         """
         convert the expression that is in the term to something that is
         accepted by pytables
@@ -219,44 +217,45 @@ class BinOp(ops.BinOp):
         kind = ensure_decoded(self.kind)
         meta = ensure_decoded(self.meta)
         if kind == "datetime" or (kind and kind.startswith("datetime64")):
-            if isinstance(v, (int, float)):
-                v = stringify(v)
-            v = ensure_decoded(v)
-            v = Timestamp(v).as_unit("ns")
-            if v.tz is not None:
-                v = v.tz_convert("UTC")
-            return TermValue(v, v._value, kind)
+            if isinstance(conv_val, (int, float)):
+                conv_val = stringify(conv_val)
+            conv_val = ensure_decoded(conv_val)
+            conv_val = Timestamp(conv_val).as_unit("ns")
+            if conv_val.tz is not None:
+                conv_val = conv_val.tz_convert("UTC")
+            return TermValue(conv_val, conv_val._value, kind)
         elif kind in ("timedelta64", "timedelta"):
-            if isinstance(v, str):
-                v = Timedelta(v)
+            if isinstance(conv_val, str):
+                conv_val = Timedelta(conv_val)
             else:
-                v = Timedelta(v, unit="s")
-            v = v.as_unit("ns")._value
-            return TermValue(int(v), v, kind)
+                conv_val = Timedelta(conv_val, unit="s")
+            conv_val = conv_val.as_unit("ns")._value
+            return TermValue(int(conv_val), conv_val, kind)
         elif meta == "category":
             metadata = extract_array(self.metadata, extract_numpy=True)
             result: npt.NDArray[np.intp] | np.intp | int
-            if v not in metadata:
+            if conv_val not in metadata:
                 result = -1
             else:
-                result = metadata.searchsorted(v, side="left")
+                # Find the index of the first match of conv_val in metadata
+                result = np.flatnonzero(metadata == conv_val)[0]
             return TermValue(result, result, "integer")
         elif kind == "integer":
             try:
-                v_dec = Decimal(v)
+                v_dec = Decimal(conv_val)
             except InvalidOperation:
                 # GH 54186
                 # convert v to float to raise float's ValueError
-                float(v)
+                float(conv_val)
             else:
-                v = int(v_dec.to_integral_exact(rounding="ROUND_HALF_EVEN"))
-            return TermValue(v, v, kind)
+                conv_val = int(v_dec.to_integral_exact(rounding="ROUND_HALF_EVEN"))
+            return TermValue(conv_val, conv_val, kind)
         elif kind == "float":
-            v = float(v)
-            return TermValue(v, v, kind)
+            conv_val = float(conv_val)
+            return TermValue(conv_val, conv_val, kind)
         elif kind == "bool":
-            if isinstance(v, str):
-                v = v.strip().lower() not in [
+            if isinstance(conv_val, str):
+                conv_val = conv_val.strip().lower() not in [
                     "false",
                     "f",
                     "no",
@@ -268,13 +267,15 @@ class BinOp(ops.BinOp):
                     "",
                 ]
             else:
-                v = bool(v)
-            return TermValue(v, v, kind)
-        elif isinstance(v, str):
+                conv_val = bool(conv_val)
+            return TermValue(conv_val, conv_val, kind)
+        elif isinstance(conv_val, str):
             # string quoting
-            return TermValue(v, stringify(v), "string")
+            return TermValue(conv_val, stringify(conv_val), "string")
         else:
-            raise TypeError(f"Cannot compare {v} of type {type(v)} to {kind} column")
+            raise TypeError(
+                f"Cannot compare {conv_val} of type {type(conv_val)} to {kind} column"
+            )
 
     def convert_values(self) -> None:
         pass
@@ -408,11 +409,12 @@ class UnaryOp(ops.UnaryOp):
         operand = operand.prune(klass)
 
         if operand is not None and (
-            issubclass(klass, ConditionBinOp)
-            and operand.condition is not None
-            or not issubclass(klass, ConditionBinOp)
-            and issubclass(klass, FilterBinOp)
-            and operand.filter is not None
+            (issubclass(klass, ConditionBinOp) and operand.condition is not None)
+            or (
+                not issubclass(klass, ConditionBinOp)
+                and issubclass(klass, FilterBinOp)
+                and operand.filter is not None
+            )
         ):
             return operand.invert()
         return None

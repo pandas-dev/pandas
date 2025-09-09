@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-import warnings
 
 from pandas._libs import (
     index as libindex,
@@ -14,13 +13,13 @@ from pandas._libs.tslibs import (
     Timedelta,
     to_offset,
 )
-from pandas._libs.tslibs.timedeltas import disallow_ambiguous_unit
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -53,6 +52,7 @@ if TYPE_CHECKING:
     ],
     TimedeltaArray,
 )
+@set_module("pandas")
 class TimedeltaIndex(DatetimeTimedeltaMixin):
     """
     Immutable Index of timedelta64 data.
@@ -63,12 +63,6 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     ----------
     data : array-like (1-dimensional), optional
         Optional timedelta-like data to construct index with.
-    unit : {'D', 'h', 'm', 's', 'ms', 'us', 'ns'}, optional
-        The unit of ``data``.
-
-        .. deprecated:: 2.2.0
-         Use ``pd.to_timedelta`` instead.
-
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
         ``'infer'`` can be passed in order to set the frequency of the index as
@@ -151,40 +145,16 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     def __new__(
         cls,
         data=None,
-        unit=lib.no_default,
         freq=lib.no_default,
-        closed=lib.no_default,
         dtype=None,
         copy: bool = False,
         name=None,
     ):
-        if closed is not lib.no_default:
-            # GH#52628
-            warnings.warn(
-                f"The 'closed' keyword in {cls.__name__} construction is "
-                "deprecated and will be removed in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-
-        if unit is not lib.no_default:
-            # GH#55499
-            warnings.warn(
-                f"The 'unit' keyword in {cls.__name__} construction is "
-                "deprecated and will be removed in a future version. "
-                "Use pd.to_timedelta instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        else:
-            unit = None
-
         name = maybe_extract_name(name, data, cls)
 
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
 
-        disallow_ambiguous_unit(unit)
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
@@ -211,7 +181,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         # - Cases checked above all return/raise before reaching here - #
 
         tdarr = TimedeltaArray._from_sequence_not_strict(
-            data, freq=freq, unit=unit, dtype=dtype, copy=copy
+            data, freq=freq, unit=None, dtype=dtype, copy=copy
         )
         refs = None
         if not copy and isinstance(data, (ABCSeries, Index)):
@@ -225,6 +195,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         """
         Can we compare values of the given dtype to our own?
         """
+        if isinstance(dtype, ArrowDtype):
+            return dtype.kind == "m"
         return lib.is_np_dtype(dtype, "m")  # aka self._data._is_recognized_dtype
 
     # -------------------------------------------------------------------
@@ -268,6 +240,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         return "timedelta64"
 
 
+@set_module("pandas")
 def timedelta_range(
     start=None,
     end=None,
@@ -305,6 +278,11 @@ def timedelta_range(
     -------
     TimedeltaIndex
         Fixed frequency, with day as the default.
+
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
+    period_range : Return a fixed frequency PeriodIndex.
 
     Notes
     -----

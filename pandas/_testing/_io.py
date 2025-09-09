@@ -7,21 +7,18 @@ import tarfile
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
 )
 import uuid
 import zipfile
 
-from pandas.compat import (
-    get_bz2_file,
-    get_lzma_file,
-)
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 from pandas._testing.contexts import ensure_clean
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         FilePath,
         ReadPickleBuffer,
@@ -84,12 +81,12 @@ def round_trip_pathlib(writer, reader, path: str | None = None):
     if path is None:
         path = "___pathlib___"
     with ensure_clean(path) as path:
-        writer(Path(path))  # type: ignore[arg-type]
-        obj = reader(Path(path))  # type: ignore[arg-type]
+        writer(Path(path))
+        obj = reader(Path(path))
     return obj
 
 
-def write_to_compressed(compression, path, data, dest: str = "test") -> None:
+def write_to_compressed(compression, path: str, data, dest: str = "test") -> None:
     """
     Write data to a compressed file.
 
@@ -129,13 +126,21 @@ def write_to_compressed(compression, path, data, dest: str = "test") -> None:
     elif compression == "gzip":
         compress_method = gzip.GzipFile
     elif compression == "bz2":
-        compress_method = get_bz2_file()
+        import bz2
+
+        compress_method = bz2.BZ2File
     elif compression == "zstd":
         compress_method = import_optional_dependency("zstandard").open
     elif compression == "xz":
-        compress_method = get_lzma_file()
+        import lzma
+
+        compress_method = lzma.LZMAFile
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
 
-    with compress_method(path, mode=mode) as f:
+    # error: No overload variant of "ZipFile" matches argument types "str", "str"
+    # error: No overload variant of "BZ2File" matches argument types "str", "str"
+    # error: Argument "mode" to "TarFile" has incompatible type "str";
+    #  expected "Literal['r', 'a', 'w', 'x']
+    with compress_method(path, mode=mode) as f:  # type: ignore[call-overload, arg-type]
         getattr(f, method)(*args)

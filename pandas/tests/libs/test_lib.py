@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 import pytest
 
@@ -283,3 +285,25 @@ def test_no_default_pickle():
     # GH#40397
     obj = tm.round_trip_pickle(lib.no_default)
     assert obj is lib.no_default
+
+
+def test_ensure_string_array_copy():
+    # ensure the original array is not modified in case of copy=False with
+    # pickle-roundtripped object dtype array
+    # https://github.com/pandas-dev/pandas/issues/54654
+    arr = np.array(["a", None], dtype=object)
+    arr = pickle.loads(pickle.dumps(arr))
+    result = lib.ensure_string_array(arr, copy=False)
+    assert not np.shares_memory(arr, result)
+    assert arr[1] is None
+    assert result[1] is np.nan
+
+
+def test_ensure_string_array_list_of_lists():
+    # GH#61155: ensure list of lists doesn't get converted to string
+    arr = [list("test"), list("word")]
+    result = lib.ensure_string_array(arr)
+
+    # Each item in result should still be a list, not a stringified version
+    expected = np.array(["['t', 'e', 's', 't']", "['w', 'o', 'r', 'd']"], dtype=object)
+    tm.assert_numpy_array_equal(result, expected)

@@ -129,7 +129,7 @@ bar2,12,13,14,15
         tm.assert_frame_equal(reader.get_chunk(size=2), expected.iloc[:2])
         tm.assert_frame_equal(reader.get_chunk(size=4), expected.iloc[2:5])
 
-        with pytest.raises(StopIteration, match=""):
+        with pytest.raises(StopIteration, match="^$"):
             reader.get_chunk(size=3)
 
 
@@ -229,7 +229,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
     assert result.a.dtype == float
 
 
-def test_warn_if_chunks_have_mismatched_type(all_parsers):
+def test_warn_if_chunks_have_mismatched_type(all_parsers, using_infer_string):
     warning_type = None
     parser = all_parsers
     size = 10000
@@ -253,12 +253,16 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
     else:
         df = parser.read_csv_check_warnings(
             warning_type,
-            r"Columns \(0\) have mixed types. "
+            r"Columns \(0: a\) have mixed types. "
             "Specify dtype option on import or set low_memory=False.",
             buf,
         )
-
-    assert df.a.dtype == object
+    if parser.engine == "c" and parser.low_memory:
+        assert df.a.dtype == object
+    elif using_infer_string:
+        assert df.a.dtype == "str"
+    else:
+        assert df.a.dtype == object
 
 
 @pytest.mark.parametrize("iterator", [True, False])

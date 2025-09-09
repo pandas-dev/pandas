@@ -9,7 +9,6 @@ from numpy cimport (
     intp_t,
     ndarray,
     uint8_t,
-    uint64_t,
 )
 
 cnp.import_array()
@@ -253,14 +252,24 @@ cdef class IndexEngine:
         return self.sizeof()
 
     cpdef _update_from_sliced(self, IndexEngine other, reverse: bool):
-        self.unique = other.unique
-        self.need_unique_check = other.need_unique_check
+        if other.unique:
+            self.unique = other.unique
+            self.need_unique_check = other.need_unique_check
+
         if not other.need_monotonic_check and (
                 other.is_monotonic_increasing or other.is_monotonic_decreasing):
-            self.need_monotonic_check = other.need_monotonic_check
-            # reverse=True means the index has been reversed
-            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
-            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
+            self.need_monotonic_check = 0
+            if len(self.values) > 0 and self.values[0] != self.values[-1]:
+                # reverse=True means the index has been reversed
+                if reverse:
+                    self.monotonic_inc = other.monotonic_dec
+                    self.monotonic_dec = other.monotonic_inc
+                else:
+                    self.monotonic_inc = other.monotonic_inc
+                    self.monotonic_dec = other.monotonic_dec
+            else:
+                self.monotonic_inc = 1
+                self.monotonic_dec = 1
 
     @property
     def is_unique(self) -> bool:
@@ -548,6 +557,23 @@ cdef class StringEngine(IndexEngine):
             raise KeyError(val)
         return str(val)
 
+cdef class StringObjectEngine(ObjectEngine):
+
+    cdef:
+        object na_value
+
+    def __init__(self, ndarray values, na_value):
+        super().__init__(values)
+        self.na_value = na_value
+
+    cdef _check_type(self, object val):
+        if isinstance(val, str):
+            return val
+        elif checknull(val):
+            return self.na_value
+        else:
+            raise KeyError(val)
+
 
 cdef class DatetimeEngine(Int64Engine):
 
@@ -699,8 +725,7 @@ cdef class BaseMultiIndexCodesEngine:
     Keys are located by first locating each component against the respective
     level, then locating (the integer representation of) codes.
     """
-    def __init__(self, object levels, object labels,
-                 ndarray[uint64_t, ndim=1] offsets):
+    def __init__(self, object levels, object labels, ndarray offsets):
         """
         Parameters
         ----------
@@ -708,7 +733,7 @@ cdef class BaseMultiIndexCodesEngine:
             Levels of the MultiIndex.
         labels : list-like of numpy arrays of integer dtype
             Labels of the MultiIndex.
-        offsets : numpy array of uint64 dtype
+        offsets : numpy array of int dtype
             Pre-calculated offsets, one for each level of the index.
         """
         self.levels = levels
@@ -718,8 +743,9 @@ cdef class BaseMultiIndexCodesEngine:
         # with positive integers (-1 for NaN becomes 1). This enables us to
         # differentiate between values that are missing in other and matching
         # NaNs. We will set values that are not found to 0 later:
-        labels_arr = np.array(labels, dtype="int64").T + multiindex_nulls_shift
-        codes = labels_arr.astype("uint64", copy=False)
+        codes = np.array(labels).T
+        codes += multiindex_nulls_shift  # inplace sum optimisation
+
         self.level_has_nans = [-1 in lab for lab in labels]
 
         # Map each codes combination in the index to an integer unambiguously
@@ -731,8 +757,37 @@ cdef class BaseMultiIndexCodesEngine:
         # integers representing labels: we will use its get_loc and get_indexer
         self._base.__init__(self, lab_ints)
 
-    def _codes_to_ints(self, ndarray[uint64_t] codes) -> np.ndarray:
-        raise NotImplementedError("Implemented by subclass")  # pragma: no cover
+    def _codes_to_ints(self, ndarray codes) -> np.ndarray:
+        """
+        Transform combination(s) of uint in one uint or Python integer (each), in a
+        strictly monotonic way (i.e. respecting the lexicographic order of integer
+        combinations).
+
+        Parameters
+        ----------
+        codes : 1- or 2-dimensional array of dtype uint
+            Combinations of integers (one per row)
+
+        Returns
+        -------
+        scalar or 1-dimensional array, of dtype _codes_dtype
+            Integer(s) representing one combination (each).
+        """
+        # To avoid overflows, first make sure we are working with the right dtype:
+        codes = codes.astype(self._codes_dtype, copy=False)
+
+        # Shift the representation of each level by the pre-calculated number of bits:
+        codes <<= self.offsets  # inplace shift optimisation
+
+        # Now sum and OR are in fact interchangeable. This is a simple
+        # composition of the (disjunct) significant bits of each level (i.e.
+        # each column in "codes") in a single positive integer (per row):
+        if codes.ndim == 1:
+            # Single key
+            return np.bitwise_or.reduce(codes)
+
+        # Multiple keys
+        return np.bitwise_or.reduce(codes, axis=1)
 
     def _extract_level_codes(self, target) -> np.ndarray:
         """
@@ -748,7 +803,7 @@ cdef class BaseMultiIndexCodesEngine:
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-        level_codes = list(target._recode_for_new_levels(self.levels))
+        level_codes = list(target._recode_for_new_levels(self.levels, copy=True))
         for i, codes in enumerate(level_codes):
             if self.levels[i].hasnans:
                 na_index = self.levels[i].isna().nonzero()[0][0]
@@ -757,7 +812,7 @@ cdef class BaseMultiIndexCodesEngine:
             codes[codes > 0] += 1
             if self.level_has_nans[i]:
                 codes[target.codes[i] == -1] += 1
-        return self._codes_to_ints(np.array(level_codes, dtype="uint64").T)
+        return self._codes_to_ints(np.array(level_codes, dtype=self._codes_dtype).T)
 
     def get_indexer(self, target: np.ndarray) -> np.ndarray:
         """
@@ -788,7 +843,7 @@ cdef class BaseMultiIndexCodesEngine:
             raise KeyError(key)
 
         # Transform indices into single integer:
-        lab_int = self._codes_to_ints(np.array(indices, dtype="uint64"))
+        lab_int = self._codes_to_ints(np.array(indices, dtype=self._codes_dtype))
 
         return self._base.get_loc(self, lab_int)
 
@@ -854,14 +909,24 @@ cdef class SharedEngine:
         pass
 
     cpdef _update_from_sliced(self, ExtensionEngine other, reverse: bool):
-        self.unique = other.unique
-        self.need_unique_check = other.need_unique_check
+        if other.unique:
+            self.unique = other.unique
+            self.need_unique_check = other.need_unique_check
+
         if not other.need_monotonic_check and (
                 other.is_monotonic_increasing or other.is_monotonic_decreasing):
-            self.need_monotonic_check = other.need_monotonic_check
-            # reverse=True means the index has been reversed
-            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
-            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
+            self.need_monotonic_check = 0
+            if len(self.values) > 0 and self.values[0] != self.values[-1]:
+                # reverse=True means the index has been reversed
+                if reverse:
+                    self.monotonic_inc = other.monotonic_dec
+                    self.monotonic_dec = other.monotonic_inc
+                else:
+                    self.monotonic_inc = other.monotonic_inc
+                    self.monotonic_dec = other.monotonic_dec
+            else:
+                self.monotonic_inc = 1
+                self.monotonic_dec = 1
 
     @property
     def is_unique(self) -> bool:

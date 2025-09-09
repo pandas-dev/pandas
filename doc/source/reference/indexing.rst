@@ -98,6 +98,7 @@ Conversion
    :toctree: api/
 
    Index.astype
+   Index.infer_objects
    Index.item
    Index.map
    Index.ravel
@@ -389,6 +390,7 @@ Conversion
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
    DatetimeIndex.to_frame
+   DatetimeIndex.to_julian_date
 
 Methods
 ~~~~~~~

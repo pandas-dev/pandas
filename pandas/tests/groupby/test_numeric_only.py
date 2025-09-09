@@ -3,6 +3,7 @@ import re
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -28,7 +29,8 @@ class TestNumericOnly:
                 "group": [1, 1, 2],
                 "int": [1, 2, 3],
                 "float": [4.0, 5.0, 6.0],
-                "string": list("abc"),
+                "string": Series(["a", "b", "c"], dtype="str"),
+                "object": Series(["a", "b", "c"], dtype=object),
                 "category_string": Series(list("abc")).astype("category"),
                 "category_int": [7, 8, 9],
                 "datetime": date_range("20130101", periods=3),
@@ -40,6 +42,7 @@ class TestNumericOnly:
                 "int",
                 "float",
                 "string",
+                "object",
                 "category_string",
                 "category_int",
                 "datetime",
@@ -112,6 +115,7 @@ class TestNumericOnly:
                 "int",
                 "float",
                 "string",
+                "object",
                 "category_string",
                 "category_int",
                 "datetime",
@@ -159,7 +163,9 @@ class TestNumericOnly:
 
         # object dtypes for transformations are not implemented in Cython and
         # have no Python fallback
-        exception = NotImplementedError if method.startswith("cum") else TypeError
+        exception = (
+            (NotImplementedError, TypeError) if method.startswith("cum") else TypeError
+        )
 
         if method in ("min", "max", "cummin", "cummax", "cumsum", "cumprod"):
             # The methods default to numeric_only=False and raise TypeError
@@ -170,6 +176,7 @@ class TestNumericOnly:
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     # cumsum/cummin/cummax/cumprod
                     "function is not implemented for this dtype",
+                    f"dtype 'str' does not support operation '{method}'",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -180,6 +187,7 @@ class TestNumericOnly:
                     "category type does not support sum operations",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
+                    f"dtype 'str' does not support operation '{method}'",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -197,6 +205,7 @@ class TestNumericOnly:
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
+                    f"dtype 'str' does not support operation '{method}'",
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -236,6 +245,7 @@ class TestNumericOnly:
         ("quantile", True),
         ("sem", True),
         ("skew", True),
+        ("kurt", True),
         ("std", True),
         ("sum", True),
         ("var", True),
@@ -256,21 +266,25 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
     method = getattr(gb, kernel)
     if has_arg and numeric_only is True:
         # Cases where b does not appear in the result
-        result = method(*args, **kwargs)
+        if kernel == "corrwith":
+            warn = Pandas4Warning
+            msg = "DataFrameGroupBy.corrwith is deprecated"
+        else:
+            warn = None
+            msg = ""
+        with tm.assert_produces_warning(warn, match=msg):
+            result = method(*args, **kwargs)
         assert "b" not in result.columns
     elif (
         # kernels that work on any dtype and have numeric_only arg
         kernel in ("first", "last")
         or (
             # kernels that work on any dtype and don't have numeric_only arg
-            kernel in ("any", "all", "bfill", "ffill", "fillna", "nth", "nunique")
+            kernel in ("any", "all", "bfill", "ffill", "nth", "nunique")
             and numeric_only is lib.no_default
         )
     ):
-        warn = FutureWarning if kernel == "fillna" else None
-        msg = "DataFrameGroupBy.fillna is deprecated"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = method(*args, **kwargs)
+        result = method(*args, **kwargs)
         assert "b" in result.columns
     elif has_arg:
         assert numeric_only is not True
@@ -284,19 +298,27 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
             [
                 "not allowed for this dtype",
                 "cannot be performed against 'object' dtypes",
-                # On PY39 message is "a number"; on PY310 and after is "a real number"
-                "must be a string or a.* number",
+                "must be a string or a real number",
                 "unsupported operand type",
                 "function is not implemented for this dtype",
                 re.escape(f"agg function failed [how->{kernel},dtype->object]"),
             ]
         )
-        if kernel == "idxmin":
+        if kernel == "quantile":
+            msg = "dtype 'object' does not support operation 'quantile'"
+        elif kernel == "idxmin":
             msg = "'<' not supported between instances of 'type' and 'type'"
         elif kernel == "idxmax":
             msg = "'>' not supported between instances of 'type' and 'type'"
         with pytest.raises(exception, match=msg):
-            method(*args, **kwargs)
+            if kernel == "corrwith":
+                warn = Pandas4Warning
+                msg = "DataFrameGroupBy.corrwith is deprecated"
+            else:
+                warn = None
+                msg = ""
+            with tm.assert_produces_warning(warn, match=msg):
+                method(*args, **kwargs)
     elif not has_arg and numeric_only is not lib.no_default:
         with pytest.raises(
             TypeError, match="got an unexpected keyword argument 'numeric_only'"
@@ -310,7 +332,6 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
             method(*args, **kwargs)
 
 
-@pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
 @pytest.mark.parametrize("dtype", [bool, int, float, object])
 def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
@@ -359,13 +380,14 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "max",
         "prod",
         "skew",
+        "kurt",
     )
 
     # Test default behavior; kernels that fail may be enabled in the future but kernels
     # that succeed should not be allowed to fail (without deprecation, at least)
     if groupby_func in fails_on_numeric_object and dtype is object:
         if groupby_func == "quantile":
-            msg = "cannot be performed against 'object' dtypes"
+            msg = "dtype 'object' does not support operation 'quantile'"
         else:
             msg = "is not supported for object dtype"
         with pytest.raises(TypeError, match=msg):
@@ -388,6 +410,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "quantile",
         "sem",
         "skew",
+        "kurt",
         "std",
         "sum",
         "var",
