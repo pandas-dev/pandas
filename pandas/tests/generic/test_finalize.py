@@ -781,7 +781,7 @@ has_metadata.attrs = metadata
 @pytest.mark.parametrize(["left", "right", "expected"],
                          [(no_metadata, has_metadata, metadata),
                           (has_metadata, no_metadata, metadata),
-                          (no_metadata, no_metadata, {})])
+                          (no_metadata, no_metadata, {})], ids=["left-empty", "right-empty", "both-empty"])
 def test_merge_propagates_metadata_if_one_input_has_no_metadata(left: pd.DataFrame, right: pd.DataFrame, expected: dict):
     """
     Check that if the metadata for one input to pandas.merge is empty, the result

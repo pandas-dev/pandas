@@ -9142,7 +9142,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 "deprecated and will be removed in a future version. "
                 "Explicitly cast PeriodIndex to DatetimeIndex before resampling "
                 "instead.",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore[warning_class]
                 stacklevel=find_stack_level(),
             )
         else:
@@ -10522,8 +10522,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if ax._is_all_dates:
             from pandas.core.tools.datetimes import to_datetime
 
-            before = to_datetime(before)
-            after = to_datetime(after)
+            if before is not None:
+                # Avoid converting to NaT
+                before = to_datetime(before)
+            if after is not None:
+                # Avoid converting to NaT
+                after = to_datetime(after)
 
         if before is not None and after is not None and before > after:
             raise ValueError(f"Truncate: {after} must be after {before}")

@@ -472,6 +472,11 @@ class TimedeltaArray(dtl.TimelikeOps):
     @unpack_zerodim_and_defer("__mul__")
     def __mul__(self, other) -> Self:
         if is_scalar(other):
+            if lib.is_bool(other):
+                raise TypeError(
+                    f"Cannot multiply '{self.dtype}' by bool, explicitly cast to "
+                    "integers instead"
+                )
             # numpy will accept float and int, raise TypeError for others
             result = self._ndarray * other
             if result.dtype.kind != "m":
@@ -489,6 +494,13 @@ class TimedeltaArray(dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
+
+        if other.dtype.kind == "b":
+            # GH#58054
+            raise TypeError(
+                f"Cannot multiply '{self.dtype}' by bool, explicitly cast to "
+                "integers instead"
+            )
         if len(other) != len(self) and not lib.is_np_dtype(other.dtype, "m"):
             # Exclude timedelta64 here so we correctly raise TypeError
             #  for that instead of ValueError

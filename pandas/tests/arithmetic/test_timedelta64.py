@@ -11,6 +11,7 @@ import pytest
 from pandas._libs.tslibs import timezones
 from pandas.compat import WASM
 from pandas.errors import OutOfBoundsDatetime
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -1555,6 +1556,51 @@ class TestTimedeltaArraylikeMulDivOps:
         tm.assert_equal(result, expected)
         commute = tdi * other
         tm.assert_equal(commute, expected)
+
+    def test_td64arr_mul_bool_scalar_raises(self, box_with_array):
+        # GH#58054
+        ser = Series(np.arange(5) * timedelta(hours=1))
+        obj = tm.box_expected(ser, box_with_array)
+
+        msg = r"Cannot multiply 'timedelta64\[ns\]' by bool"
+        with pytest.raises(TypeError, match=msg):
+            True * obj
+        with pytest.raises(TypeError, match=msg):
+            obj * True
+        with pytest.raises(TypeError, match=msg):
+            np.True_ * obj
+        with pytest.raises(TypeError, match=msg):
+            obj * np.True_
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            bool,
+            "boolean",
+            pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_td64arr_mul_bool_raises(self, dtype, box_with_array):
+        # GH#58054
+        ser = Series(np.arange(5) * timedelta(hours=1))
+        obj = tm.box_expected(ser, box_with_array)
+
+        other = Series(np.arange(5) < 0.5, dtype=dtype)
+        other = tm.box_expected(other, box_with_array)
+
+        msg = r"Cannot multiply 'timedelta64\[ns\]' by bool"
+        with pytest.raises(TypeError, match=msg):
+            obj * other
+
+        msg2 = msg.replace("rmul", "mul")
+        if dtype == "bool[pyarrow]":
+            # We go through ArrowEA.__mul__ which gives a different message
+            msg2 = (
+                r"operation 'mul' not supported for dtype 'bool\[pyarrow\]' "
+                r"with dtype 'timedelta64\[ns\]'"
+            )
+        with pytest.raises(TypeError, match=msg2):
+            other * obj
 
     # ------------------------------------------------------------------
     # __div__, __rdiv__
