@@ -902,6 +902,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.union` and :meth:`DatetimeIndex.intersection` when ``unit`` was non-nanosecond (:issue:`59036`)
 - Bug in :meth:`Index.union` with a ``pyarrow`` timestamp dtype incorrectly returning ``object`` dtype (:issue:`58421`)
 - Bug in :meth:`Series.dt.microsecond` producing incorrect results for pyarrow backed :class:`Series`. (:issue:`59154`)
+- Bug in :meth:`Timestamp.replace` failing to update ``unit`` attribute when replacement introduces non-zero ``nanosecond`` or ``microsecond`` (:issue:`57749`)
 - Bug in :meth:`to_datetime` not respecting dayfirst if an uncommon date string was passed. (:issue:`58859`)
 - Bug in :meth:`to_datetime` on float array with missing values throwing ``FloatingPointError`` (:issue:`58419`)
 - Bug in :meth:`to_datetime` on float32 df with year, month, day etc. columns leads to precision issues and incorrect result. (:issue:`60506`)
