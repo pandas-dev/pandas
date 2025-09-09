@@ -1945,7 +1945,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
-        # TODO: Enforce in 3.0 (#55968)
+        # TODO: Plan to fix resampling with PeriodIndex instead (#55968)
+        # see https://github.com/pandas-dev/pandas/pull/62270#issuecomment-3262411892
         warnings.warn(
             "Resampling a groupby with a PeriodIndex is deprecated. "
             "Cast to DatetimeIndex before resampling instead.",

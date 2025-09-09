@@ -3018,7 +3018,7 @@ class Period(_Period):
             # GH#53446
             import warnings
 
-            # TODO: Enforce in 3.0 (#53511)
+            # TODO: Need to find an alternative before this deprecation can be enforced (#53511)
             from pandas.util._exceptions import find_stack_level
             warnings.warn(
                 "Period with BDay freq is deprecated and will be removed "
