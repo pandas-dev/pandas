@@ -12,7 +12,6 @@ import pytest
 import pandas as pd
 from pandas import read_orc
 import pandas._testing as tm
-from pandas.core.arrays import StringArray
 
 pytest.importorskip("pyarrow.orc")
 
@@ -368,13 +367,9 @@ def test_orc_dtype_backend_numpy_nullable():
 
     expected = pd.DataFrame(
         {
-            "string": StringArray(np.array(["a", "b", "c"], dtype=np.object_)),
-            "string_with_nan": StringArray(
-                np.array(["a", pd.NA, "c"], dtype=np.object_)
-            ),
-            "string_with_none": StringArray(
-                np.array(["a", pd.NA, "c"], dtype=np.object_)
-            ),
+            "string": pd.array(["a", "b", "c"], dtype=pd.StringDtype()),
+            "string_with_nan": pd.array(["a", pd.NA, "c"], dtype=pd.StringDtype()),
+            "string_with_none": pd.array(["a", pd.NA, "c"], dtype=pd.StringDtype()),
             "int": pd.Series([1, 2, 3], dtype="Int64"),
             "int_with_nan": pd.Series([1, pd.NA, 3], dtype="Int64"),
             "na_only": pd.Series([pd.NA, pd.NA, pd.NA], dtype="Int64"),

@@ -11,7 +11,6 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -182,9 +181,8 @@ class TestNSorted:
 
         result = df.nlargest(n, columns)
         expected = df.sort_values(columns, ascending=False, kind="stable").head(n)
-        if Version(np.__version__) >= Version("1.25") and (
-            (columns == ["a"] and n in (1, 2, 3, 4))
-            or ((columns == ["a", "b"]) and n == 5)
+        if (columns == ["a"] and n in (1, 2, 3, 4)) or (
+            (columns == ["a", "b"]) and n == 5
         ):
             request.applymarker(
                 pytest.mark.xfail(

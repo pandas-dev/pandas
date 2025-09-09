@@ -13,6 +13,7 @@ Usage::
     $ ./validate_docstrings.py
     $ ./validate_docstrings.py pandas.DataFrame.head
 """
+
 from __future__ import annotations
 
 import argparse
@@ -380,13 +381,13 @@ def print_validate_all_results(
         )
         for err_code in actual_failures - expected_failures:
             sys.stdout.write(
-                f'{prefix}{res["file"]}:{res["file_line"]}:'
+                f"{prefix}{res['file']}:{res['file_line']}:"
                 f"{err_code}:{func_name}:{error_messages[err_code]}\n"
             )
             exit_status += 1
         for err_code in ignore_errors.get(func_name, set()) - actual_failures:
             sys.stdout.write(
-                f'{prefix}{res["file"]}:{res["file_line"]}:'
+                f"{prefix}{res['file']}:{res['file_line']}:"
                 f"{err_code}:{func_name}:"
                 "EXPECTED TO FAIL, BUT NOT FAILING\n"
             )
@@ -419,7 +420,7 @@ def print_validate_one_results(
 
     sys.stderr.write(header("Validation"))
     if result["errors"]:
-        sys.stderr.write(f'{len(result["errors"])} Errors found for `{func_name}`:\n')
+        sys.stderr.write(f"{len(result['errors'])} Errors found for `{func_name}`:\n")
         for err_code, err_desc in result["errors"]:
             sys.stderr.write(f"\t{err_code}\t{err_desc}\n")
     else:
