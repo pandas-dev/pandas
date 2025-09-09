@@ -17,7 +17,6 @@ from numpy import ma
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
-from pandas._libs.missing import NA
 
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
@@ -380,7 +379,7 @@ def dict_to_mgr(
         columns = ensure_index(columns)
         if dtype is not None and not isinstance(dtype, np.dtype):
             # e.g. test_dataframe_from_dict_of_series
-            arrays = [NA] * len(columns)
+            arrays = [dtype.na_value] * len(columns)
         else:
             arrays = [np.nan] * len(columns)
         midxs = set()
