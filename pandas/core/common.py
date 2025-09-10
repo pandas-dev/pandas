@@ -286,9 +286,9 @@ def index_labels_to_array(
         except TypeError:  # non-iterable
             labels = [labels]
 
-    labels = asarray_tuplesafe(labels, dtype=dtype)
+    rlabels = asarray_tuplesafe(labels, dtype=dtype)
 
-    return labels
+    return rlabels
 
 
 def maybe_make_list(obj):

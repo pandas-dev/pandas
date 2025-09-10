@@ -114,7 +114,9 @@ class OpenpyxlWriter(ExcelWriter):
             self._handles.handle.truncate()
 
     @classmethod
-    def _convert_to_style_kwargs(cls, style_dict: dict) -> dict[str, Serialisable]:
+    def _convert_to_style_kwargs(
+        cls, style_dict: dict[str, Serialisable]
+    ) -> dict[str, Serialisable]:
         """
         Convert a style_dict to a set of kwargs suitable for initializing
         or updating-on-copy an openpyxl v2 style object.
