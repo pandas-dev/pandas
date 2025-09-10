@@ -270,6 +270,42 @@ column with another DataFrame's index.
     indexed_df2 = df2.set_index("key")
     pd.merge(df1, indexed_df2, left_on="key", right_index=True)
 
+:meth:`~pandas.merge` also supports joining on multiple columns by passing a list of column names.
+
+.. code-block:: sql
+
+    SELECT *
+    FROM df1_multi
+    INNER JOIN df2_multi
+      ON df1_multi.key1 = df2_multi.key1
+        AND df1_multi.key2 = df2_multi.key2;
+
+.. ipython:: python
+
+    df1_multi = pd.DataFrame({
+        "key1": ["A", "B", "C", "D"],
+        "key2": [1, 2, 3, 4],
+        "value": np.random.randn(4)
+    })
+    df2_multi = pd.DataFrame({
+        "key1": ["B", "D", "D", "E"],
+        "key2": [2, 4, 4, 5],
+        "value": np.random.randn(4)
+    })
+    pd.merge(df1_multi, df2_multi, on=["key1", "key2"])
+
+If the columns have different names between DataFrames, on can be replaced with left_on and
+right_on.
+
+.. ipython:: python
+
+    df2_multi = pd.DataFrame({
+        "key_1": ["B", "D", "D", "E"],
+        "key_2": [2, 4, 4, 5],
+        "value": np.random.randn(4)
+    })
+    pd.merge(df1_multi, df2_multi, left_on=["key1", "key2"], right_on=["key_1", "key_2"])
+
 LEFT OUTER JOIN
 ~~~~~~~~~~~~~~~
 
