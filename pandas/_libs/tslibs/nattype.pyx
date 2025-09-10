@@ -1828,7 +1828,11 @@ default 'raise'
     @property
     def tzinfo(self) -> None:
         return None
-
+    
+    @property
+    def __module__(self) -> str:
+        return "pandas"
+    
     def as_unit(self, str unit, bint round_ok=True) -> "NaTType":
         """
         Convert the underlying int64 representation to the given unit.
@@ -1868,6 +1872,7 @@ default 'raise'
 
 
 c_NaT = NaTType()  # C-visible
+c_NaT.__module__ = "pandas"
 NaT = c_NaT        # Python-visible
 
 
