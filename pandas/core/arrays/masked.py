@@ -539,7 +539,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
                 data = self._data.astype(dtype, copy=copy)
-            if self._readonly and astype_is_view(self.dtype, dtype):
+            if self._readonly and not copy and astype_is_view(self.dtype, dtype):
                 data = data.view()
                 data.flags.writeable = False
         return data

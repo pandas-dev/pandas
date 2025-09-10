@@ -130,3 +130,26 @@ def test_to_numpy_copy():
     result = arr.to_numpy(dtype="float64", copy=True)
     result[0] = 10
     tm.assert_extension_array_equal(arr, pd.array([0.1, 0.2, 0.3], dtype="Float64"))
+
+
+def test_to_numpy_readonly():
+    arr = pd.array([0.1, 0.2, 0.3], dtype="Float64")
+    arr._readonly = True
+    result = arr.to_numpy(dtype="float64")
+    assert not result.flags.writeable
+
+    result = arr.to_numpy(dtype="float64", copy=True)
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="float32")
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="object")
+    assert result.flags.writeable
+
+
+def test_asarray_readonly():
+    arr = pd.array([0.1, 0.2, 0.3], dtype="Float64")
+    arr._readonly = True
+    result = np.asarray(arr, copy=False)
+    assert not result.flags.writeable

@@ -155,6 +155,33 @@ def test_to_numpy():
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_to_numpy_readonly():
+    arr = NumpyExtensionArray(np.array([1, 2, 3]))
+    arr._readonly = True
+    result = arr.to_numpy()
+    assert not result.flags.writeable
+
+    result = arr.to_numpy(copy=True)
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="f8")
+    assert result.flags.writeable
+
+
+@pytest.mark.parametrize("dtype", [None, "int64"])
+def test_asarray_readonly(dtype):
+    arr = NumpyExtensionArray(np.array([1, 2, 3]))
+    arr._readonly = True
+    result = np.asarray(arr, dtype=dtype)
+    assert not result.flags.writeable
+
+    result = np.asarray(arr, dtype=dtype, copy=True)
+    assert result.flags.writeable
+
+    result = np.asarray(arr, dtype=dtype, copy=False)
+    assert not result.flags.writeable
+
+
 # ----------------------------------------------------------------------------
 # Setitem
 
