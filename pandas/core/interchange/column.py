@@ -335,7 +335,7 @@ class PandasColumn(Column):
                 # this is already single-chunk by the time we get here.
                 arr = arr._pa_array.chunks[0]  # type: ignore[attr-defined]
                 buffer = PandasBufferPyarrow(
-                    arr.buffers()[1],  # type: ignore[attr-defined]
+                    arr.buffers()[1],
                     length=len(arr),
                 )
                 return buffer, dtype
