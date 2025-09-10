@@ -390,6 +390,10 @@ def na_logical_op(x: np.ndarray, y, op):
 
 
 def is_nullable_bool(arr) -> bool:
+    if isinstance(arr, np.ndarray):
+        if arr.size == 0:
+            return True
+
     arr = np.asarray(arr, dtype=object).ravel()
     # isna works elementwise on object arrays
     na_mask = isna(arr)
@@ -550,10 +554,6 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     ndarray or ExtensionArray
     """
 
-    bothAreBoolArrays = is_nullable_bool(left) and is_nullable_bool(right)
-    if bothAreBoolArrays:
-        return alignOutputWithKleene(left, right, op)
-
     def fill_bool(x, left=None):
         # if `left` is specifically not-boolean, we do not cast to bool
         if x.dtype.kind in "cfO":
@@ -597,12 +597,15 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
             is_other_int_dtype = lib.is_integer(rvalues)
 
         res_values = na_logical_op(lvalues, rvalues, op)
+        bothAreBoolArrays = is_nullable_bool(left) and is_nullable_bool(right)
+        # print("Yes both are bools", bothAreBoolArrays)
+        if bothAreBoolArrays:
+            return alignOutputWithKleene(left, right, op)
 
         # For int vs int `^`, `|`, `&` are bitwise operators and return
         #   integer dtypes.  Otherwise these are boolean ops
         if not (left.dtype.kind in "iu" and is_other_int_dtype):
             res_values = fill_bool(res_values)
-
     return res_values
 
 

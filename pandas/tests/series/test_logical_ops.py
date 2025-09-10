@@ -37,11 +37,12 @@ class TestSeriesLogicalOps:
         index = list("bca")
 
         s_tft = Series([True, False, True], index=index)
-        s_fff = Series([False, False, False], index=index)
+        # s_fff = Series([False, False, False], index=index)
         s_empty = Series([], dtype=object)
 
         res = s_tft & s_empty
-        expected = s_fff.sort_index()
+        # changed the test case output to align with kleene principle
+        expected = Series([np.nan, False, np.nan], index=index).sort_index()
         tm.assert_series_equal(res, expected)
 
         res = s_tft | s_empty
@@ -180,8 +181,8 @@ class TestSeriesLogicalOps:
             r"Logical ops \(and, or, xor\) between Pandas objects and "
             "dtype-less sequences"
         )
-
-        expected = Series([True, False, False, False, False])
+        # changed the test case output to align with kleene principle
+        expected = Series([True, False, np.nan, False, np.nan])
         with pytest.raises(TypeError, match=msg):
             left & right
         result = left & np.array(right)
@@ -200,8 +201,8 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
         result = left | Series(right)
         tm.assert_series_equal(result, expected)
-
-        expected = Series([False, True, True, True, True])
+        # changed the test case output to align with kleene principle
+        expected = Series([False, True, np.nan, True, np.nan])
         with pytest.raises(TypeError, match=msg):
             left ^ right
         result = left ^ np.array(right)
@@ -368,12 +369,12 @@ class TestSeriesLogicalOps:
         # rhs is bigger
         a = Series([True, False, True], list("bca"))
         b = Series([False, True, False, True], list("abcd"))
-
-        expected = Series([False, True, False, False], list("abcd"))
+        # changed the test case output to align with kleene principle
+        expected = Series([False, True, False, np.nan], list("abcd"))
         result = a & b
         tm.assert_series_equal(result, expected)
-
-        expected = Series([True, True, False, False], list("abcd"))
+        # changed the test case output to align with kleene principle
+        expected = Series([True, True, False, True], list("abcd"))
         result = a | b
         tm.assert_series_equal(result, expected)
 
@@ -383,7 +384,8 @@ class TestSeriesLogicalOps:
         empty = Series([], dtype=object)
 
         result = a & empty
-        expected = Series([False, False, False], list("abc"))
+        # changed the test case output to align with kleene principle
+        expected = Series([np.nan, np.nan, False], list("abc"))
         tm.assert_series_equal(result, expected)
 
         result = a | empty
@@ -407,7 +409,9 @@ class TestSeriesLogicalOps:
             Series(np.nan, b.index),
             Series(np.nan, a.index),
         ]:
-            result = a[a | e]
+            result = a[(a | e).astype("boolean")]
+            # cast to boolean because object dtype with nan
+            # cannot be compared to True
             tm.assert_series_equal(result, a[a])
 
         for e in [Series(["z"])]:
@@ -459,16 +463,16 @@ class TestSeriesLogicalOps:
         # GH#1134
         s1 = Series([True, False, True], index=list("ABC"), name="x")
         s2 = Series([True, True, False], index=list("ABD"), name="x")
-
-        exp = Series([True, False, False, False], index=list("ABCD"), name="x")
+        # changed the test case output to align with kleene principle
+        exp = Series([True, False, np.nan, False], index=list("ABCD"), name="x")
         tm.assert_series_equal(s1 & s2, exp)
         tm.assert_series_equal(s2 & s1, exp)
 
         # True | np.nan => True
         exp_or1 = Series([True, True, True, False], index=list("ABCD"), name="x")
         tm.assert_series_equal(s1 | s2, exp_or1)
-        # np.nan | True => np.nan, filled with False
-        exp_or = Series([True, True, False, False], index=list("ABCD"), name="x")
+        # np.nan | True => True (should be)
+        exp_or = Series([True, True, True, False], index=list("ABCD"), name="x")
         tm.assert_series_equal(s2 | s1, exp_or)
 
         # DataFrame doesn't fill nan with False
@@ -482,13 +486,13 @@ class TestSeriesLogicalOps:
         # different length
         s3 = Series([True, False, True], index=list("ABC"), name="x")
         s4 = Series([True, True, True, True], index=list("ABCD"), name="x")
-
-        exp = Series([True, False, True, False], index=list("ABCD"), name="x")
+        # changed the test case output to align with kleene principle
+        exp = Series([True, False, True, np.nan], index=list("ABCD"), name="x")
         tm.assert_series_equal(s3 & s4, exp)
         tm.assert_series_equal(s4 & s3, exp)
 
         # np.nan | True => np.nan, filled with False
-        exp_or1 = Series([True, True, True, False], index=list("ABCD"), name="x")
+        exp_or1 = Series([True, True, True, True], index=list("ABCD"), name="x")
         tm.assert_series_equal(s3 | s4, exp_or1)
         # True | np.nan => True
         exp_or = Series([True, True, True, True], index=list("ABCD"), name="x")
