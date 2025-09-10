@@ -13,6 +13,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -756,7 +757,7 @@ class TestDataFrameSelectReindex:
         )
 
         msg = "'d' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             time_freq = date_range("2012-01-01", "2012-01-03", freq="d")
         some_cols = ["a", "b"]
 

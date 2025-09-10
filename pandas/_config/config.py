@@ -73,6 +73,7 @@ if TYPE_CHECKING:
 
 class DeprecatedOption(NamedTuple):
     key: str
+    category: type[Warning]
     msg: str | None
     rkey: str | None
     removal_ver: str | None
@@ -589,6 +590,7 @@ def register_option(
 
 def deprecate_option(
     key: str,
+    category: type[Warning],
     msg: str | None = None,
     rkey: str | None = None,
     removal_ver: str | None = None,
@@ -608,6 +610,8 @@ def deprecate_option(
     key : str
         Name of the option to be deprecated.
         must be a fully-qualified option name (e.g "x.y.z.rkey").
+    category : Warning
+        Warning class for the deprecation.
     msg : str, optional
         Warning message to output when the key is referenced.
         if no message is given a default message will be emitted.
@@ -631,7 +635,7 @@ def deprecate_option(
     if key in _deprecated_options:
         raise OptionError(f"Option '{key}' has already been defined as deprecated.")
 
-    _deprecated_options[key] = DeprecatedOption(key, msg, rkey, removal_ver)
+    _deprecated_options[key] = DeprecatedOption(key, category, msg, rkey, removal_ver)
 
 
 #
@@ -693,8 +697,8 @@ def _get_registered_option(key: str):
 
 def _translate_key(key: str) -> str:
     """
-    if key id deprecated and a replacement key defined, will return the
-    replacement key, otherwise returns `key` as - is
+    if `key` is deprecated and a replacement key defined, will return the
+    replacement key, otherwise returns `key` as-is
     """
     d = _get_deprecated_option(key)
     if d:
@@ -716,7 +720,7 @@ def _warn_if_deprecated(key: str) -> bool:
         if d.msg:
             warnings.warn(
                 d.msg,
-                FutureWarning,
+                d.category,
                 stacklevel=find_stack_level(),
             )
         else:
@@ -728,7 +732,11 @@ def _warn_if_deprecated(key: str) -> bool:
             else:
                 msg += ", please refrain from using it."
 
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                msg,
+                d.category,
+                stacklevel=find_stack_level(),
+            )
         return True
     return False
 

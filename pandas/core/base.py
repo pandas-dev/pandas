@@ -90,7 +90,7 @@ _shared_docs: dict[str, str] = {}
 
 class PandasObject(DirNamesMixin):
     """
-    Baseclass for various pandas objects.
+    Base class for various pandas objects.
     """
 
     # results from calls to methods decorated with cache_readonly get added to _cache
@@ -1298,7 +1298,11 @@ class IndexOpsMixin(OpsMixin):
 
         if isinstance(self, ABCMultiIndex):
             # preserve MultiIndex
-            uniques = self._constructor(uniques)
+            if len(self) == 0:
+                # GH#57517
+                uniques = self[:0]
+            else:
+                uniques = self._constructor(uniques)
         else:
             from pandas import Index
 
