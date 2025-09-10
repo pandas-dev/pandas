@@ -254,6 +254,7 @@ def get_resolution(
 # -------------------------------------------------------------------------
 
 
+@cython.overflowcheck(True)
 @cython.cdivision(False)
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -292,8 +293,12 @@ cpdef ndarray normalize_i8_timestamps(ndarray stamps, tzinfo tz, NPY_DATETIMEUNI
             res_val = NPY_NAT
         else:
             local_val = info.utc_val_to_local_val(utc_val, &pos)
-            res_val = local_val - (local_val % ppd)
-
+            try:
+                res_val = local_val - (local_val % ppd)
+            except OverflowError as err:
+                raise ValueError(
+                    "Cannot normalize Timestamp without integer overflow"
+                ) from err
         # Analogous to: result[i] = res_val
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
