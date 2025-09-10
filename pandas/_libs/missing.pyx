@@ -375,9 +375,9 @@ class NAType(C_NAType):
     >>> True | pd.NA
     True
     """
+    __module__ = "pandas"
 
     _instance = None
-    __module__ = "pandas"
 
     def __new__(cls, *args, **kwargs):
         if NAType._instance is None:
