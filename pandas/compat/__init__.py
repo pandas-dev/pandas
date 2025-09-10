@@ -26,8 +26,7 @@ from pandas.compat._constants import (
 from pandas.compat.numpy import is_numpy_dev
 from pandas.compat.pyarrow import (
     HAS_PYARROW,
-    pa_version_under12p1,
-    pa_version_under13p0,
+    PYARROW_MIN_VERSION,
     pa_version_under14p0,
     pa_version_under14p1,
     pa_version_under16p0,
@@ -157,11 +156,10 @@ __all__ = [
     "ISMUSL",
     "PY312",
     "PY314",
+    "PYARROW_MIN_VERSION",
     "PYPY",
     "WASM",
     "is_numpy_dev",
-    "pa_version_under12p1",
-    "pa_version_under13p0",
     "pa_version_under14p0",
     "pa_version_under14p1",
     "pa_version_under16p0",
