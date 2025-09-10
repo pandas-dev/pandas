@@ -464,13 +464,13 @@ class BaseSetitemTests:
         data_orig = data.copy()
         assert data_orig._readonly is False
 
-        with pytest.raises(ValueError, match="Cannot modify readonly array"):
+        with pytest.raises(ValueError, match="Cannot modify read-only array"):
             data[0] = data[1]
 
-        with pytest.raises(ValueError, match="Cannot modify readonly array"):
+        with pytest.raises(ValueError, match="Cannot modify read-only array"):
             data[0:3] = data[1]
 
-        with pytest.raises(ValueError, match="Cannot modify readonly array"):
+        with pytest.raises(ValueError, match="Cannot modify read-only array"):
             data[np.array([True] * len(data))] = data[1]
 
         tm.assert_extension_array_equal(data, data_orig)

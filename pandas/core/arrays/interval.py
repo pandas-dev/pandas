@@ -730,7 +730,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     def __setitem__(self, key, value) -> None:
         if self._readonly:
-            raise ValueError("Cannot modify readonly array")
+            raise ValueError("Cannot modify read-only array")
 
         value_left, value_right = self._validate_setitem_value(value)
         key = check_array_indexer(self, key)

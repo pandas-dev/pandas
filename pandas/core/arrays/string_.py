@@ -815,7 +815,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
     def __setitem__(self, key, value) -> None:
         if self._readonly:
-            raise ValueError("Cannot modify readonly array")
+            raise ValueError("Cannot modify read-only array")
 
         value = self._maybe_convert_setitem_value(value)
 

@@ -596,7 +596,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
     def __setitem__(self, key, value) -> None:
         if self._readonly:
-            raise ValueError("Cannot modify readonly array")
+            raise ValueError("Cannot modify read-only array")
         # I suppose we could allow setting of non-fill_value elements.
         # TODO(SparseArray.__setitem__): remove special cases in
         # ExtensionBlock.where

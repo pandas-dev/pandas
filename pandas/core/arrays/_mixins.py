@@ -257,7 +257,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
     def __setitem__(self, key, value) -> None:
         if self._readonly:
-            raise ValueError("Cannot modify readonly array")
+            raise ValueError("Cannot modify read-only array")
 
         key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)

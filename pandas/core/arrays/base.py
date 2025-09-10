@@ -480,7 +480,7 @@ class ExtensionArray:
         # on a copy of the data.
         # Check if the array is readonly
         if self._readonly:
-            raise ValueError("Cannot modify readonly array")
+            raise ValueError("Cannot modify read-only array")
 
         raise NotImplementedError(f"{type(self)} does not implement __setitem__.")
 

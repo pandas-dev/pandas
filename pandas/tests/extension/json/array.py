@@ -127,7 +127,7 @@ class JSONArray(ExtensionArray):
 
     def __setitem__(self, key, value) -> None:
         if self._readonly:
-            raise ValueError("Cannot modify readonly array")
+            raise ValueError("Cannot modify read-only array")
 
         if isinstance(key, numbers.Integral):
             self.data[key] = value
