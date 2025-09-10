@@ -402,41 +402,6 @@ def is_nullable_bool(arr) -> bool:
 
 
 def safe_is_true(arr: np.ndarray) -> np.ndarray:
-    """
-    Safely evaluate elementwise equality to ``True`` for an array that may
-    contain missing values (e.g. ``pd.NA`` or ``np.nan``).
-
-    This function ensures that comparisons like ``pd.NA == True`` never
-    occur, which would otherwise raise ``TypeError: boolean value of NA
-    is ambiguous``.
-
-    Parameters
-    ----------
-    arr : np.ndarray
-        Input numpy array, which may contain pandas missing values
-        (``pd.NA``) or numpy missing values (``np.nan``).
-
-    Returns
-    -------
-    np.ndarray of bool
-        Boolean array of the same shape as ``arr``.
-        * ``True`` where the original value is exactly ``True``.
-        * ``False`` otherwise, including at missing value positions.
-
-    Notes
-    -----
-    This function works for both 1-D and n-D numpy arrays. It avoids
-    ambiguous truth value errors by masking missing values before
-    performing comparisons.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> import pandas as pd
-    >>> arr = np.array([True, False, pd.NA, np.nan, 1], dtype=object)
-    >>> safe_is_true(arr)
-    array([ True, False, False, False, False])
-    """
     # Identify missing values (NA, NaN, None, etc.)
     mask = isna(arr)
 
@@ -450,7 +415,8 @@ def safe_is_true(arr: np.ndarray) -> np.ndarray:
 
     # Only compare non-missing values against True
     valid = ~flat_mask
-    flat_out[valid] = flat_arr[valid]
+
+    flat_out[valid] = [x is True for x in flat_arr[valid]]
 
     return out
 
