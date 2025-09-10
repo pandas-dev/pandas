@@ -398,7 +398,8 @@ def is_nullable_bool(arr) -> bool:
     # isna works elementwise on object arrays
     na_mask = isna(arr)
     bool_mask = np.array([x is True or x is False for x in arr])
-    return np.all(na_mask | bool_mask)
+     return bool(np.all(na_mask | bool_mask))
+    #return np.all(na_mask | bool_mask)
 
 
 def safe_is_true(arr: np.ndarray) -> np.ndarray:
