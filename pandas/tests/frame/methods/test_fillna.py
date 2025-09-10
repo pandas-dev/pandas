@@ -256,6 +256,21 @@ class TestFillNA:
         idx = TimedeltaIndex(["1 days", "2 days", "1 days", NaT, NaT])
         df = DataFrame({"a": Categorical(idx)})
         tm.assert_frame_equal(df.fillna(value=NaT), df)
+        
+    def test_fillna_with_categorical_series(self):
+        df = DataFrame({
+            'cats': Categorical(['A', 'B', 'C']),
+            'ints': [1.0, 2.0, np.nan]
+        })
+       
+        filler = Series(Categorical([10.0, 20.0, 30.0]))
+        df.fillna({'ints': filler}, inplace=True)
+        
+        expected = DataFrame({
+            'cats': Categorical(['A', 'B', 'C']),
+            'ints': [1.0, 2.0, 30.0]
+        })
+        tm.assert_frame_equal(df, expected)
 
     def test_fillna_no_downcast(self, frame_or_series):
         # GH#45603 preserve object dtype
