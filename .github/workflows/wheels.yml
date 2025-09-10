@@ -48,12 +48,12 @@ jobs:
       sdist_file: ${{ steps.save-path.outputs.sdist_name }}
     steps:
       - name: Checkout pandas
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -119,7 +119,7 @@ jobs:
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout pandas
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -137,7 +137,7 @@ jobs:
       # removes unnecessary files from the release
       - name: Download sdist (not macOS)
         #if: ${{ matrix.buildplat[1] != 'macosx_*' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: sdist
           path: ./dist
@@ -160,7 +160,7 @@ jobs:
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.1.3
+        uses: pypa/cibuildwheel@v3.1.4
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:

@@ -108,6 +108,7 @@ class TestPDApi(Base):
     funcs = [
         "array",
         "bdate_range",
+        "col",
         "concat",
         "crosstab",
         "cut",
@@ -261,6 +262,7 @@ class TestApi(Base):
         "ExpandingGroupby",
         "ExponentialMovingWindow",
         "ExponentialMovingWindowGroupby",
+        "Expression",
         "FrozenList",
         "JsonReader",
         "NaTType",

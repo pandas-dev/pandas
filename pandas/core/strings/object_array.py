@@ -21,8 +21,6 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core.strings.base import BaseStringArrayMethods
-
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
@@ -35,7 +33,7 @@ if TYPE_CHECKING:
     )
 
 
-class ObjectStringArrayMixin(BaseStringArrayMethods):
+class ObjectStringArrayMixin:
     """
     String Methods operating on object-dtype ndarrays.
     """
@@ -43,6 +41,12 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     def __len__(self) -> int:
         # For typing, _str_map relies on the object being sized.
         raise NotImplementedError
+
+    def _str_getitem(self, key):
+        if isinstance(key, slice):
+            return self._str_slice(start=key.start, stop=key.stop, step=key.step)
+        else:
+            return self._str_get(key)
 
     def _str_map(
         self,
@@ -155,11 +159,12 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 upper_pat = pat.upper()
                 f = lambda x: upper_pat in x.upper()
         if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
+            # TODO: Enforce in 3.0 (#59615)
             # GH#59561
             warnings.warn(
                 "Allowing a non-bool 'na' in obj.str.contains is deprecated "
                 "and will raise in a future version.",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore[warning_class]
                 stacklevel=find_stack_level(),
             )
         return self._str_map(f, na, dtype=np.dtype("bool"))
@@ -167,11 +172,12 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     def _str_startswith(self, pat, na=lib.no_default):
         f = lambda x: x.startswith(pat)
         if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
+            # TODO: Enforce in 3.0 (#59615)
             # GH#59561
             warnings.warn(
                 "Allowing a non-bool 'na' in obj.str.startswith is deprecated "
                 "and will raise in a future version.",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore[warning_class]
                 stacklevel=find_stack_level(),
             )
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
@@ -179,11 +185,12 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     def _str_endswith(self, pat, na=lib.no_default):
         f = lambda x: x.endswith(pat)
         if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
+            # TODO: Enforce in 3.0 (#59615)
             # GH#59561
             warnings.warn(
                 "Allowing a non-bool 'na' in obj.str.endswith is deprecated "
                 "and will raise in a future version.",
-                FutureWarning,
+                FutureWarning,  # pdlint: ignore[warning_class]
                 stacklevel=find_stack_level(),
             )
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
@@ -255,8 +262,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     ):
         if not case:
             flags |= re.IGNORECASE
-        if isinstance(pat, re.Pattern):
-            pat = pat.pattern
+
         regex = re.compile(pat, flags=flags)
 
         f = lambda x: regex.match(x) is not None
@@ -271,8 +277,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     ):
         if not case:
             flags |= re.IGNORECASE
-        if isinstance(pat, re.Pattern):
-            pat = pat.pattern
+
         regex = re.compile(pat, flags=flags)
 
         f = lambda x: regex.fullmatch(x) is not None
