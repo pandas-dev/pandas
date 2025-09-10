@@ -695,7 +695,7 @@ def nanmean(
     """
     if values.dtype == object and len(values) > 1_000 and mask is None:
         # GH#54754 if we are going to fail, try to fail-fast
-        nanmean(values[:5], axis=axis, skipna=skipna)
+        nanmean(values[:1000], axis=axis, skipna=skipna)
 
     dtype = values.dtype
     values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
