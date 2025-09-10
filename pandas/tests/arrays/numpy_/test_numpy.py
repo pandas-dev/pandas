@@ -170,7 +170,7 @@ def test_to_numpy_readonly():
     assert result.flags.writeable
 
 
-@pytest.mark.skipif(not np_version_gt2)
+@pytest.mark.skipif(not np_version_gt2, reason="copy keyword introduced in np 2.0")
 @pytest.mark.parametrize("dtype", [None, "int64"])
 def test_asarray_readonly(dtype):
     arr = NumpyExtensionArray(np.array([1, 2, 3], dtype="int64"))
