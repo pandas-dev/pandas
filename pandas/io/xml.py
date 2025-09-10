@@ -666,7 +666,7 @@ class _LxmlFrameParser(_XMLFrameParser):
 
 
 def get_data_from_filepath(
-    filepath_or_buffer: FilePath | bytes | ReadBuffer[bytes] | ReadBuffer[str],
+    filepath_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
     encoding: str | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
@@ -678,9 +678,9 @@ def get_data_from_filepath(
         1. filepath (string-like)
         2. file-like object (e.g. open file object, StringIO)
     """
-    filepath_or_buffer = stringify_path(filepath_or_buffer)  # type: ignore[arg-type]
-    with get_handle(  # pyright: ignore[reportCallIssue]
-        filepath_or_buffer,  # pyright: ignore[reportArgumentType]
+    filepath_or_buffer = stringify_path(filepath_or_buffer)
+    with get_handle(
+        filepath_or_buffer,
         "r",
         encoding=encoding,
         compression=compression,
@@ -693,7 +693,9 @@ def get_data_from_filepath(
         )
 
 
-def preprocess_data(data) -> io.StringIO | io.BytesIO:
+def preprocess_data(
+    data: str | bytes | io.StringIO | io.BytesIO,
+) -> io.StringIO | io.BytesIO:
     """
     Convert extracted raw data.
 
@@ -711,7 +713,7 @@ def preprocess_data(data) -> io.StringIO | io.BytesIO:
     return data
 
 
-def _data_to_frame(data, **kwargs) -> DataFrame:
+def _data_to_frame(data: list[dict[str, str | None]], **kwargs) -> DataFrame:
     """
     Convert parsed data to Data Frame.
 
