@@ -133,8 +133,27 @@ ListLike: TypeAlias = AnyArrayLike | SequenceNotStr | range
 
 PythonScalar: TypeAlias = str | float | bool
 DatetimeLikeScalar: TypeAlias = Union["Period", "Timestamp", "Timedelta"]
-PandasScalar: TypeAlias = Union["Period", "Timestamp", "Timedelta", "Interval"]
-Scalar: TypeAlias = PythonScalar | PandasScalar | np.datetime64 | np.timedelta64 | date
+
+# aligned with pandas-stubs - typical scalars found in Series.  Explicitly leaves
+# out object
+_IndexIterScalar: TypeAlias = Union[
+    str,
+    bytes,
+    date,
+    datetime,
+    timedelta,
+    np.datetime64,
+    np.timedelta64,
+    bool,
+    int,
+    float,
+    "Timestamp",
+    "Timedelta",
+]
+Scalar: TypeAlias = Union[
+    _IndexIterScalar, "Interval", complex, np.integer, np.floating, np.complexfloating
+]
+
 IntStrT = TypeVar("IntStrT", bound=int | str)
 
 # timestamp and timedelta convertible types
