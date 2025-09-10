@@ -1,0 +1,5 @@
+{
+  "packageManager": "python",
+  "packageName": "jupyterlite_pyodide_kernel",
+  "uninstallInstructions": "Use your Python package manager (pip, conda, etc.) to uninstall the package jupyterlite_pyodide_kernel"
+}
