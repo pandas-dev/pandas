@@ -61,7 +61,7 @@ Here are just a few of the things that pandas does well:
   - Intuitive [**merging**][merging] and [**joining**][joining] data
     sets
   - Flexible [**reshaping**][reshape] and [**pivoting**][pivot-table] of
-    data sets
+    data sets.
   - [**Hierarchical**][mi] labeling of axes (possible to have multiple
     labels per tick)
   - Robust I/O tools for loading data from [**flat files**][flat-files]
