@@ -659,6 +659,19 @@ class TestFrameFlexArithmetic:
         result = df.div(df[0], axis="index")
         tm.assert_frame_equal(result, expected)
 
+    def test_arith_flex_zero_len_raises(self):
+        # GH 19522 passing fill_value to frame flex arith methods should
+        # raise even in the zero-length special cases
+        ser_len0 = Series([], dtype=object)
+        df_len0 = DataFrame(columns=["A", "B"])
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+
+        msg = r"unsupported operand type\(s\) for \+: 'int' and 'str'"
+        with pytest.raises(TypeError, match=msg):
+            df.add(ser_len0, fill_value="E")
+
+        df_len0.sub(df["A"], axis=None, fill_value=3)
+
     def test_flex_add_scalar_fill_value(self):
         # GH#12723
         dat = np.array([0, 1, np.nan, 3, 4, 5], dtype="float")

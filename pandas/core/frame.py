@@ -8468,7 +8468,23 @@ class DataFrame(NDFrame, OpsMixin):
         blockwise.
         """
         rvalues = series._values
-        if not isinstance(rvalues, np.ndarray):
+        if lib.is_np_dtype(rvalues.dtype):
+            # We can losslessly+cheaply cast to ndarray
+            # i.e. ndarray or dt64[naive], td64
+            # TODO(EA2D): no need to special case with 2D EAs
+            rvalues = np.asarray(rvalues)
+
+            if axis == 0:
+                rvalues = rvalues.reshape(-1, 1)
+            else:
+                rvalues = rvalues.reshape(1, -1)
+
+            rvalues = np.broadcast_to(rvalues, self.shape)
+            # pass dtype to avoid doing inference
+            df = self._constructor(rvalues, dtype=rvalues.dtype)
+
+        else:
+            # GH#61581
             if axis == 0:
                 df = DataFrame(dict.fromkeys(range(self.shape[1]), rvalues))
             else:
@@ -8477,23 +8493,9 @@ class DataFrame(NDFrame, OpsMixin):
                     {i: rvalues[[i]].repeat(nrows) for i in range(self.shape[1])},
                     dtype=rvalues.dtype,
                 )
-            df.index = self.index
-            df.columns = self.columns
-            return df
-
-        if axis == 0:
-            rvalues = rvalues.reshape(-1, 1)
-        else:
-            rvalues = rvalues.reshape(1, -1)
-
-        rvalues = np.broadcast_to(rvalues, self.shape)
-        # pass dtype to avoid doing inference
-        return self._constructor(
-            rvalues,
-            index=self.index,
-            columns=self.columns,
-            dtype=rvalues.dtype,
-        ).__finalize__(series)
+        df.index = self.index
+        df.columns = self.columns
+        return df.__finalize__(series)
 
     def _flex_arith_method(
         self, other, op, *, axis: Axis = "columns", level=None, fill_value=None

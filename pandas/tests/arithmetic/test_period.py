@@ -1375,7 +1375,6 @@ class TestPeriodIndexArithmetic:
 
         with pytest.raises(TypeError, match=msg):
             arr + pd.DataFrame([ts])
-
         with pytest.raises(TypeError, match=msg):
             pd.DataFrame([ts]) + arr
 
