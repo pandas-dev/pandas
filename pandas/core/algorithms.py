@@ -12,6 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Literal,
     cast,
+    overload,
 )
 import warnings
 
@@ -312,6 +313,18 @@ def _check_object_for_strings(values: np.ndarray) -> str:
 # --------------- #
 # top-level algos #
 # --------------- #
+
+
+@overload
+def unique(values: np.ndarray) -> np.ndarray: ...
+@overload
+def unique(values: Index) -> Index: ...
+@overload
+def unique(values: Series) -> np.ndarray: ...
+@overload
+def unique(values: Categorical) -> Categorical: ...
+@overload
+def unique(values: ExtensionArray) -> ExtensionArray: ...
 
 
 def unique(values):

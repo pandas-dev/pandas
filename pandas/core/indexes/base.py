@@ -3301,7 +3301,9 @@ class Index(IndexOpsMixin, PandasObject):
                 if is_numeric_dtype(self.dtype):
                     # This is faster, because Index.unique() checks for uniqueness
                     # before calculating the unique values.
-                    res = algos.unique1d(res_indexer)
+                    res: Index | ExtensionArray | np.ndarray = algos.unique1d(
+                        res_indexer
+                    )
                 else:
                     result = self.take(indexer)
                     res = result.drop_duplicates()
