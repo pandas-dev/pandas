@@ -92,13 +92,26 @@ if TYPE_CHECKING:
         Sequence,
     )
     from enum import Enum
+    from typing import (
+        Protocol,
+        type_check_only,
+    )
 
     class ellipsis(Enum):
         Ellipsis = "..."
 
     Ellipsis = ellipsis.Ellipsis
 
-    from scipy.sparse import spmatrix
+    from scipy.sparse import (
+        csc_array,
+        csc_matrix,
+    )
+
+    @type_check_only
+    class _SparseMatrixLike(Protocol):
+        @property
+        def shape(self, /) -> tuple[int, int]: ...
+        def tocsc(self, /) -> csc_array | csc_matrix: ...
 
     from pandas._typing import NumpySorter
 
@@ -119,6 +132,7 @@ if TYPE_CHECKING:
     )
 
     from pandas import Series
+
 
 else:
     ellipsis = type(Ellipsis)
@@ -511,7 +525,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return new
 
     @classmethod
-    def from_spmatrix(cls, data: spmatrix) -> Self:
+    def from_spmatrix(cls, data: _SparseMatrixLike) -> Self:
         """
         Create a SparseArray from a scipy.sparse matrix.
 
@@ -543,10 +557,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         # our sparse index classes require that the positions be strictly
         # increasing. So we need to sort loc, and arr accordingly.
-        data = data.tocsc()
-        data.sort_indices()
-        arr = data.data
-        idx = data.indices
+        data_csc = data.tocsc()
+        data_csc.sort_indices()
+        arr = data_csc.data
+        idx = data_csc.indices
 
         zero = np.array(0, dtype=arr.dtype).item()
         dtype = SparseDtype(arr.dtype, zero)
@@ -1217,10 +1231,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             data = np.concatenate(values)
             indices_arr = np.concatenate(indices)
-            # error: Argument 2 to "IntIndex" has incompatible type
-            # "ndarray[Any, dtype[signedinteger[_32Bit]]]";
-            # expected "Sequence[int]"
-            sp_index = IntIndex(length, indices_arr)  # type: ignore[arg-type]
+            sp_index = IntIndex(length, indices_arr)
 
         else:
             # when concatenating block indices, we don't claim that you'll
