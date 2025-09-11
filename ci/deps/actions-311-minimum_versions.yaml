@@ -62,5 +62,4 @@ dependencies:
   - zstandard=0.23.0
 
   - pip:
-    - PyQt6==6.7.1
     - tzdata==2023.3
