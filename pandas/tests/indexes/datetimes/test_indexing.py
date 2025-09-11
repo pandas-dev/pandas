@@ -547,6 +547,7 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result2, expected)
 
     def test_get_indexer_date_objs(self):
+        # Behavior for get_indexer with date objects changed in GH#62158.
         rng = date_range("1/1/2000", periods=20)
 
         result = rng.get_indexer(rng.map(lambda x: x.date()))
