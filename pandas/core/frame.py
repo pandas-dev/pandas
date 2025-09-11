@@ -8450,12 +8450,17 @@ class DataFrame(NDFrame, OpsMixin):
         """
         rvalues = series._values
         if not isinstance(rvalues, np.ndarray):
-            # TODO(EA2D): no need to special-case with 2D EAs
-            if rvalues.dtype in ("datetime64[ns]", "timedelta64[ns]"):
-                # We can losslessly+cheaply cast to ndarray
-                rvalues = np.asarray(rvalues)
+            if axis == 0:
+                df = DataFrame(dict.fromkeys(range(self.shape[1]), rvalues))
             else:
-                return series
+                nrows = self.shape[0]
+                df = DataFrame(
+                    {i: rvalues[[i]].repeat(nrows) for i in range(self.shape[1])},
+                    dtype=rvalues.dtype,
+                )
+            df.index = self.index
+            df.columns = self.columns
+            return df
 
         if axis == 0:
             rvalues = rvalues.reshape(-1, 1)
@@ -8478,11 +8483,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         if self._should_reindex_frame_op(other, op, axis, fill_value, level):
             return self._arith_method_with_reindex(other, op)
-
-        if isinstance(other, Series) and fill_value is not None:
-            # TODO: We could allow this in cases where we end up going
-            #  through the DataFrame path
-            raise NotImplementedError(f"fill_value {fill_value} not supported.")
 
         other = ops.maybe_prepare_scalar_for_op(other, self.shape)
         self, other = self._align_for_op(other, axis, flex=True, level=level)

@@ -626,12 +626,6 @@ class TestFrameFlexArithmetic:
         expected = float_frame.sort_index() * np.nan
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            float_frame.add(float_frame.iloc[0], fill_value=3)
-
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            float_frame.add(float_frame.iloc[0], axis="index", fill_value=3)
-
     @pytest.mark.parametrize("op", ["add", "sub", "mul", "mod"])
     def test_arith_flex_series_ops(self, simple_frame, op):
         # after arithmetic refactor, add truediv here
@@ -664,19 +658,6 @@ class TestFrameFlexArithmetic:
             expected = expected.astype(any_real_numpy_dtype)
         result = df.div(df[0], axis="index")
         tm.assert_frame_equal(result, expected)
-
-    def test_arith_flex_zero_len_raises(self):
-        # GH 19522 passing fill_value to frame flex arith methods should
-        # raise even in the zero-length special cases
-        ser_len0 = Series([], dtype=object)
-        df_len0 = DataFrame(columns=["A", "B"])
-        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
-
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            df.add(ser_len0, fill_value="E")
-
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            df_len0.sub(df["A"], axis=None, fill_value=3)
 
     def test_flex_add_scalar_fill_value(self):
         # GH#12723
@@ -2192,3 +2173,61 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
     expected.columns = expected.columns.astype(string_dtype_no_object)
 
     tm.assert_frame_equal(result, expected)
+
+
+dt_params = [
+    (tm.ALL_INT_NUMPY_DTYPES[0], 5),
+    (tm.ALL_INT_EA_DTYPES[0], 5),
+    (tm.FLOAT_NUMPY_DTYPES[0], 4.9),
+    (tm.FLOAT_EA_DTYPES[0], 4.9),
+]
+
+axes = [0, 1]
+
+
+@pytest.mark.parametrize(
+    "data_type,fill_val, axis",
+    [(dt, val, axis) for axis in axes for dt, val in dt_params],
+)
+def test_df_fill_value_dtype(data_type, fill_val, axis):
+    # GH 61581
+    base_data = np.arange(25).reshape(5, 5)
+    mult_list = [1, np.nan, 5, np.nan, 3]
+    np_int_flag = 0
+
+    try:
+        mult_data = pd.array(mult_list, dtype=data_type)
+    except ValueError as e:
+        # Numpy int type cannot represent NaN, it will end up here
+        if "cannot convert float NaN to integer" in str(e):
+            mult_data = np.asarray(mult_list)
+            np_int_flag = 1
+
+    columns = list("ABCDE")
+    df = DataFrame(base_data, columns=columns)
+
+    for i in range(df.shape[0]):
+        try:
+            df.iat[i, i] = np.nan
+            df.iat[i + 1, i] = pd.NA
+            df.iat[i + 3, i] = pd.NA
+        except IndexError:
+            pass
+
+    mult_mat = np.broadcast_to(mult_data, df.shape)
+    if axis == 0:
+        mask = np.isnan(mult_mat).T
+    else:
+        mask = np.isnan(mult_mat)
+    mask = df.isna().values & mask
+
+    df_result = df.mul(mult_data, axis=axis, fill_value=fill_val)
+    if np_int_flag == 1:
+        mult_np = np.nan_to_num(mult_data, nan=fill_val)
+        df_expected = (df.fillna(fill_val).mul(mult_np, axis=axis)).mask(mask, np.nan)
+    else:
+        df_expected = (
+            df.fillna(fill_val).mul(mult_data.fillna(fill_val), axis=axis)
+        ).mask(mask, np.nan)
+
+    tm.assert_frame_equal(df_result, df_expected)

@@ -876,6 +876,13 @@ class ArrowExtensionArray(
             or pa.types.is_binary(pa_type)
         ):
             if op in [operator.add, roperator.radd]:
+                # pyarrow gets upset if you try to join a NullArray
+                if (
+                    pa.types.is_integer(other.type)
+                    or pa.types.is_floating(other.type)
+                    or pa.types.is_null(other.type)
+                ):
+                    other = other.cast(pa_type)
                 sep = pa.scalar("", type=pa_type)
                 try:
                     if op is operator.add:
@@ -906,7 +913,7 @@ class ArrowExtensionArray(
                 raise TypeError("Can only string multiply by an integer.")
             pa_integral = pc.if_else(pc.less(integral, 0), 0, integral)
             result = pc.binary_repeat(binary, pa_integral)
-            return self._from_pyarrow_array(result)
+            return type(self)(result)
         if (
             isinstance(other, pa.Scalar)
             and pc.is_null(other).as_py()
