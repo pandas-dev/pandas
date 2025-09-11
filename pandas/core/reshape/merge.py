@@ -1138,6 +1138,8 @@ class _MergeOperation:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         result = self._reindex_and_concat(join_index, left_indexer, right_indexer)
+
+        # Is this call to __finalize__ really necessary?
         result = result.__finalize__(
             types.SimpleNamespace(input_objs=[self.left, self.right]),
             method=self._merge_type,
@@ -1150,6 +1152,8 @@ class _MergeOperation:
 
         self._maybe_restore_index_levels(result)
 
+        # __finalize is responsible for copying the metadata from the inputs to merge
+        # to the result.
         return result.__finalize__(
             types.SimpleNamespace(input_objs=[self.left, self.right]),
             method="merge"
