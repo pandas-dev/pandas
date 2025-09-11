@@ -8,6 +8,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import PY314
+
 from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_dtype,
@@ -2394,10 +2396,18 @@ def test_merge_suffix_raises(suffixes):
         merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 
 
+TWO_GOT_THREE = "2, got 3" if PY314 else "2"
+
+
 @pytest.mark.parametrize(
     "col1, col2, suffixes, msg",
     [
-        ("a", "a", ("a", "b", "c"), r"too many values to unpack \(expected 2\)"),
+        (
+            "a",
+            "a",
+            ("a", "b", "c"),
+            (rf"too many values to unpack \(expected {TWO_GOT_THREE}\)"),
+        ),
         ("a", "a", tuple("a"), r"not enough values to unpack \(expected 2, got 1\)"),
     ],
 )
