@@ -385,7 +385,11 @@ class TestJSONNormalize:
         s = Series([{"k": f"{i}", "m": "q"} for i in range(3)])
         result = json_normalize(s, record_prefix="T.")
         expected = DataFrame(
-            [{"T.k": "0", "T.m": "q"}, {"T.k": "1", "T.m": "q"}, {"T.k": "2", "T.m": "q"}]
+            [
+                {"T.k": "0", "T.m": "q"},
+                {"T.k": "1", "T.m": "q"},
+                {"T.k": "2", "T.m": "q"},
+            ]
         )
         tm.assert_frame_equal(result, expected)
 
