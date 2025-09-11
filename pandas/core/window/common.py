@@ -106,7 +106,9 @@ def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
                             [*arg2_levels, result_level], names=result_names
                         )
                         # GH 34440
-                        num_levels = len(result.index.levels)
+                        num_levels = len(
+                            result.index.levels  # pyright: ignore[reportAttributeAccessIssue]
+                        )
                         new_order = [num_levels - 1] + list(range(num_levels - 1))
                         result = result.reorder_levels(new_order).sort_index()
                     else:
