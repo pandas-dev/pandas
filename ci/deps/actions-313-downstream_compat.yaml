@@ -44,7 +44,6 @@ dependencies:
   - pyarrow>=13.0.0
   - pyiceberg>=0.8.1
   - pymysql>=1.1.1
-  - pyqt>=5.15.9
   - pyreadstat>=1.2.8
   - pytables>=3.10.1
   - python-calamine>=0.3.0

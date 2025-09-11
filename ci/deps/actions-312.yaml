@@ -39,7 +39,6 @@ dependencies:
   - numexpr>=2.10.2
   - odfpy>=1.4.1
   - qtpy>=2.4.2
-  - pyqt>=5.15.9
   - openpyxl>=3.1.5
   - psycopg2>=2.9.10
   - pyarrow>=13.0.0
