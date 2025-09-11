@@ -18,7 +18,6 @@ dependencies:
   - pytest-xdist>=3.4.0
   - pytest-qt>=4.4.0
   - pytest-localserver
-  - pyqt>=5.15.9
   - coverage
 
   # required dependencies
@@ -122,5 +121,5 @@ dependencies:
   - jupyterlite-pyodide-kernel
 
   - pip:
-      - PyQt6>=6.7.1
+      - PyQt6>=6.7.1 # test dependency
       - tzdata>=2023.3
