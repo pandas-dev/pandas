@@ -313,7 +313,7 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    if: false
+    # if: false
     defaults:
       run:
         shell: bash -eou pipefail {0}
@@ -345,7 +345,7 @@ jobs:
       - name: Set up Python Dev Version
         uses: actions/setup-python@v6
         with:
-          python-version: '3.13-dev'
+          python-version: '3.14-dev'
 
       - name: Build Environment
         run: |
@@ -358,6 +358,8 @@ jobs:
 
       - name: Run Tests
         uses: ./.github/actions/run-tests
+        # TEMP allow this to fail until we fixed all test failures (related to chained assignment warnings)
+        continue-on-error: true
 
   # NOTE: this job must be kept in sync with the Pyodide build job in wheels.yml
   emscripten:
