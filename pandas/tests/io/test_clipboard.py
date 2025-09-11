@@ -1,4 +1,3 @@
-import importlib
 from textwrap import dedent
 
 import numpy as np
@@ -19,7 +18,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-import pandas.io.clipboard
 from pandas.io.clipboard import (
     CheckedCall,
     _stringifyText,
@@ -171,60 +169,17 @@ def test_stringify_text(text):
             _stringifyText(text)
 
 
-@pytest.fixture(
-    params=[
-        pytest.param(
-            ("qtpy.QtWidgets", "QApplication"),
-            marks=[
-                pytest.mark.xfail(
-                    importlib.util.find_spec("qtpy") is None
-                    or importlib.util.find_spec("qtpy.QtWidgets") is None,
-                    reason="qtpy isn't installed",
-                )
-            ],
-        ),
-        pytest.param(
-            ("PyQt6.QtWidgets", "QApplication"),
-            marks=[
-                pytest.mark.xfail(
-                    importlib.util.find_spec("PyQt6") is None
-                    or importlib.util.find_spec("PyQt6.QtWidgets") is None,
-                    reason="PyQt6 isn't installed",
-                )
-            ],
-        ),
-        pytest.param(
-            ("PyQt5.QtWidgets", "QApplication"),
-            marks=[
-                pytest.mark.xfail(
-                    importlib.util.find_spec("PyQt5") is None
-                    or importlib.util.find_spec("PyQt5.QtWidgets") is None,
-                    reason="PyQt5 isn't installed",
-                )
-            ],
-        ),
-    ],
-    ids=["qtpy", "PyQt6", "PyQt5"],
-)
-def set_pyqt_clipboard(monkeypatch, request):
-    module, attribute = request.param
-    qt_module = importlib.import_module(module)
-    q_application_binding = getattr(qt_module, attribute)
-
-    get_qapp_binding = lambda x: q_application_binding
-    monkeypatch.setattr(pandas.io.clipboard, "_import_module", get_qapp_binding)
+@pytest.fixture
+def set_pyqt_clipboard(monkeypatch):
     qt_cut, qt_paste = init_qt_clipboard()
     with monkeypatch.context() as m:
         m.setattr(pd.io.clipboard, "clipboard_set", qt_cut)
         m.setattr(pd.io.clipboard, "clipboard_get", qt_paste)
-        yield module, attribute
+        yield
 
 
 @pytest.fixture
-def clipboard(set_pyqt_clipboard):
-    module, attribute = set_pyqt_clipboard
-    qt_module = importlib.import_module(module)
-    qapp = getattr(qt_module, attribute)
+def clipboard(qapp):
     clip = qapp.clipboard()
     yield clip
     clip.clear()
