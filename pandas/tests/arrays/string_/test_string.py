@@ -249,7 +249,6 @@ def test_mul(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH-28527")
 def test_add_strings(dtype):
     arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
     df = pd.DataFrame([["t", "y", "v", "w"]], dtype=object)
