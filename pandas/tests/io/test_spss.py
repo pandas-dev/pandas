@@ -6,7 +6,6 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.util.version import Version
 
 pyreadstat = pytest.importorskip("pyreadstat")
 
@@ -165,7 +164,6 @@ def test_spss_metadata(datapath):
         "file_format": "sav/zsav",
         "creation_time": datetime.datetime(2015, 2, 6, 14, 33, 36),
         "modification_time": datetime.datetime(2015, 2, 6, 14, 33, 36),
+        "mr_sets": {},
     }
-    if Version(pyreadstat.__version__) >= Version("1.2.8"):
-        metadata["mr_sets"] = {}
     tm.assert_dict_equal(df.attrs, metadata)
