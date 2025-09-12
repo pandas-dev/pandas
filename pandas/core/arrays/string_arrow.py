@@ -419,7 +419,17 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         flags: int = 0,
         regex: bool = True,
     ):
-        if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
+        if (
+            isinstance(pat, re.Pattern)
+            or callable(repl)
+            or not case
+            or flags
+            or (  # substitution contains a named group pattern
+                # https://docs.python.org/3/library/re.html
+                isinstance(repl, str)
+                and (r"\g<" in repl or re.search(r"\\\d", repl) is not None)
+            )
+        ):
             return super()._str_replace(pat, repl, n, case, flags, regex)
 
         return ArrowStringArrayMixin._str_replace(
