@@ -2,6 +2,8 @@ import pytest
 
 from pandas._libs.tslibs import offsets
 
+import pandas as pd
+
 from pandas.tseries.frequencies import (
     is_subperiod,
     is_superperiod,
@@ -27,3 +29,9 @@ from pandas.tseries.frequencies import (
 def test_super_sub_symmetry(p1, p2, expected):
     assert is_superperiod(p1, p2) is expected
     assert is_subperiod(p2, p1) is expected
+
+
+def test_deprecated_freq_alias_error():
+    # GH#62259
+    with pytest.raises(ValueError, match="Invalid frequency 'H'.*Did you mean 'h'?"):
+        pd.date_range("2012-01-01", periods=3, freq="H")
