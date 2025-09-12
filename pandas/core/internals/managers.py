@@ -572,7 +572,7 @@ class BaseBlockManager(PandasObject):
                     self._iset_split_block(  # type: ignore[attr-defined]
                         0, blk_loc, values
                     )
-                    # first block equals values we are setting to -> select all columns
+                    # first block equals values we are setting to -> set to all columns
                     col_indexer = slice(None)
                     row_indexer = indexer[0]
                     if isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
