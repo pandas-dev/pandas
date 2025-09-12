@@ -925,7 +925,6 @@ Conversion
 
 Strings
 ^^^^^^^
-- Bug in :meth:`Series.str.replace` using named capture groups (e.g., ``\g<name>``) with ``string[pyarrow]`` dtype would raise an error (:issue:`57636`)
 - Bug in :meth:`Series.value_counts` would not respect ``sort=False`` for series having ``string`` dtype (:issue:`55224`)
 -
 
