@@ -13,6 +13,7 @@ from pandas import (
     NaT,
     Timedelta,
     TimedeltaIndex,
+    Timestamp,
     offsets,
     to_timedelta,
 )
@@ -261,6 +262,36 @@ def test_from_tick_reso():
     with pytest.raises(ValueError, match=msg):
         # GH#41943 Day is no longer a Tick
         Timedelta(tick)
+
+
+def test_tick_offset_arithmetic_consistency():
+    # GH#62310: Timedelta construction from Tick offset objects should
+    # behave consistently with Timedelta keyword arguments
+
+    # Construct Timedelta from Tick offset vs keyword argument
+    tick_td = Timedelta(offsets.Hour(1))
+    kwarg_td = Timedelta(hours=1)
+
+    # Both should represent the same duration
+    assert tick_td == kwarg_td
+    assert tick_td.value == kwarg_td.value
+
+    # Subtraction with Timestamp
+    ts = Timestamp("2020-01-01 02:00:00")
+    result1 = ts - tick_td
+    result2 = ts - kwarg_td
+    assert result1 == result2 == Timestamp("2020-01-01 01:00:00")
+
+    # Addition with Timestamp
+    ts2 = Timestamp("2020-01-01 00:00:00")
+    result3 = ts2 + tick_td
+    result4 = ts2 + kwarg_td
+    assert result3 == result4 == Timestamp("2020-01-01 01:00:00")
+
+    # Timedelta arithmetic
+    assert tick_td - kwarg_td == Timedelta(0)
+    assert kwarg_td - tick_td == Timedelta(0)
+    assert tick_td + kwarg_td == Timedelta(hours=2)
 
 
 def test_construction():

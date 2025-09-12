@@ -2012,6 +2012,8 @@ class Timedelta(_Timedelta):
                            "milliseconds", "microseconds", "nanoseconds"}
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
+        cdef NPY_DATETIMEUNIT in_reso
+        cdef NPY_DATETIMEUNIT target_reso
         unsupported_kwargs = set(kwargs)
         unsupported_kwargs.difference_update(cls._req_any_kwargs_new)
         if unsupported_kwargs or (
@@ -2134,9 +2136,30 @@ class Timedelta(_Timedelta):
             return cls._from_value_and_reso(new_value, reso=new_reso)
 
         elif is_tick_object(value):
-            new_reso = get_supported_reso(value._creso)
-            new_value = delta_to_nanoseconds(value, reso=new_reso)
-            return cls._from_value_and_reso(new_value, reso=new_reso)
+            # GH#62310
+            # Handle Tick offsets
+            in_reso = value._creso
+
+            if in_reso == NPY_DATETIMEUNIT.NPY_FR_ns:
+                target_reso = NPY_DATETIMEUNIT.NPY_FR_ns
+            elif in_reso == NPY_DATETIMEUNIT.NPY_FR_us:
+                target_reso = NPY_DATETIMEUNIT.NPY_FR_us
+            elif in_reso == NPY_DATETIMEUNIT.NPY_FR_ms:
+                target_reso = NPY_DATETIMEUNIT.NPY_FR_ms
+            elif in_reso in (
+                NPY_DATETIMEUNIT.NPY_FR_s,
+                NPY_DATETIMEUNIT.NPY_FR_m,
+                NPY_DATETIMEUNIT.NPY_FR_h,
+            ):
+                target_reso = NPY_DATETIMEUNIT.NPY_FR_s
+            else:
+                raise ValueError(
+                    f"Value must be Timedelta, string, integer, float, timedelta "
+                    f"or convertible, not {type(value).__name__}"
+                )
+
+            new_value = delta_to_nanoseconds(value, reso=target_reso)
+            return cls._from_value_and_reso(new_value, reso=target_reso)
 
         elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
