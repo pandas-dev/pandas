@@ -14,6 +14,10 @@ from pandas import (
 )
 from pandas.core.strings.accessor import StringMethods
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:.str accessor on object dtype:FutureWarning"
+)
+
 # subset of the full set from pandas/conftest.py
 _any_allowed_skipna_inferred_dtype = [
     ("string", ["a", np.nan, "c"]),
@@ -214,3 +218,11 @@ def test_api_for_categorical(any_string_method, any_string_dtype):
     else:
         # str.cat(others=None) returns string, for example
         assert result == expected
+
+
+def test_object_str_deprecated():
+    # GH#29710
+    ser = Series(["a", "b", "c"], dtype=object)
+    msg = ".str accessor on object dtype"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        ser.str
