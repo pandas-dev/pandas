@@ -102,6 +102,10 @@ class TestSelectDtypes:
             ri = df.select_dtypes(include=[str])
             tm.assert_frame_equal(ri, ei)
 
+        ri = df.select_dtypes(include=["object"])
+        ei = df[["a"]]
+        tm.assert_frame_equal(ri, ei)
+
     def test_select_dtypes_exclude_using_list_like(self):
         df = DataFrame(
             {
@@ -309,17 +313,15 @@ class TestSelectDtypes:
         df["g"] = df.f.diff()
         assert not hasattr(np, "u8")
         r = df.select_dtypes(include=["i8", "O"], exclude=["timedelta"])
-        if using_infer_string:
-            e = df[["b"]]
-        else:
-            e = df[["a", "b"]]
+        # if using_infer_string:
+        #     TODO warn
+        e = df[["a", "b"]]
         tm.assert_frame_equal(r, e)
 
         r = df.select_dtypes(include=["i8", "O", "timedelta64[ns]"])
-        if using_infer_string:
-            e = df[["b", "g"]]
-        else:
-            e = df[["a", "b", "g"]]
+        # if using_infer_string:
+        #     TODO warn
+        e = df[["a", "b", "g"]]
         tm.assert_frame_equal(r, e)
 
     def test_select_dtypes_empty(self):
