@@ -380,6 +380,19 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_record_prefix_no_record_path_series(self):
+        # Ensure record_prefix is applied when record_path is None for Series input
+        s = Series([{"k": f"{i}", "m": "q"} for i in range(3)])
+        result = json_normalize(s, record_prefix="T.")
+        expected = DataFrame(
+            [
+                {"T.k": "0", "T.m": "q"},
+                {"T.k": "1", "T.m": "q"},
+                {"T.k": "2", "T.m": "q"},
+            ]
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_non_ascii_key(self):
         testjson = (
             b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},'
