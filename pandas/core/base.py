@@ -1102,7 +1102,7 @@ class IndexOpsMixin(OpsMixin):
             # i.e. ExtensionArray
             result = values.unique()
         else:
-            result = algorithms.unique1d(values)
+            result = algorithms.unique1d(values)  # type: ignore[assignment]
         return result
 
     @final

@@ -32,7 +32,7 @@ def _get_commit_hash() -> str | None:
     except ImportError:
         from pandas._version import get_versions
 
-        versions = get_versions()  # type: ignore[no-untyped-call]
+        versions = get_versions()
         return versions["full-revisionid"]
 
 
