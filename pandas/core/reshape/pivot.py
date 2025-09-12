@@ -76,12 +76,12 @@ def pivot_table(
         Input pandas DataFrame object.
     values : list-like or scalar, optional
         Column or columns to aggregate.
-    index : column, Grouper, array, or list of the previous
+    index : column, Grouper, array, or sequence of the previous
         Keys to group by on the pivot table index. If a list is passed,
         it can contain any of the other types (except list). If an array is
         passed, it must be the same length as the data and will be used in
         the same manner as column values.
-    columns : column, Grouper, array, or list of the previous
+    columns : column, Grouper, array, or sequence of the previous
         Keys to group by on the pivot table column. If a list is passed,
         it can contain any of the other types (except list). If an array is
         passed, it must be the same length as the data and will be used in
@@ -336,6 +336,11 @@ def __internal_pivot_table(
         values = list(values)
 
     grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
+    if values_passed:
+        # GH#57876 and GH#61292
+        # mypy is not aware `grouped[values]` will always be a DataFrameGroupBy
+        grouped = grouped[values]  # type: ignore[assignment]
+
     agged = grouped.agg(aggfunc, **kwargs)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
@@ -391,6 +396,7 @@ def __internal_pivot_table(
             observed=dropna,
             margins_name=margins_name,
             fill_value=fill_value,
+            dropna=dropna,
         )
 
     # discard the top level
@@ -417,6 +423,7 @@ def _add_margins(
     observed: bool,
     margins_name: Hashable = "All",
     fill_value=None,
+    dropna: bool = True,
 ):
     if not isinstance(margins_name, str):
         raise ValueError("margins_name argument must be a string")
@@ -443,7 +450,9 @@ def _add_margins(
     if not values and isinstance(table, ABCSeries):
         # If there are no values and the table is a series, then there is only
         # one column in the data. Compute grand margin and return it.
-        return table._append(table._constructor({key: grand_margin[margins_name]}))
+        return table._append_internal(
+            table._constructor({key: grand_margin[margins_name]})
+        )
 
     elif values:
         marginal_result_set = _generate_marginal_results(
@@ -456,6 +465,7 @@ def _add_margins(
             kwargs,
             observed,
             margins_name,
+            dropna,
         )
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
@@ -464,7 +474,7 @@ def _add_margins(
         # no values, and table is a DataFrame
         assert isinstance(table, ABCDataFrame)
         marginal_result_set = _generate_marginal_results_without_values(
-            table, data, rows, cols, aggfunc, kwargs, observed, margins_name
+            table, data, rows, cols, aggfunc, kwargs, observed, margins_name, dropna
         )
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
@@ -494,7 +504,7 @@ def _add_margins(
         margin_dummy[cols] = margin_dummy[cols].apply(
             maybe_downcast_to_dtype, args=(dtype,)
         )
-    result = result._append(margin_dummy)
+    result = result._append_internal(margin_dummy)
     result.index.names = row_names
 
     return result
@@ -533,6 +543,7 @@ def _generate_marginal_results(
     kwargs,
     observed: bool,
     margins_name: Hashable = "All",
+    dropna: bool = True,
 ):
     margin_keys: list | Index
     if len(cols) > 0:
@@ -546,7 +557,7 @@ def _generate_marginal_results(
         if len(rows) > 0:
             margin = (
                 data[rows + values]
-                .groupby(rows, observed=observed)
+                .groupby(rows, observed=observed, dropna=dropna)
                 .agg(aggfunc, **kwargs)
             )
             cat_axis = 1
@@ -562,7 +573,7 @@ def _generate_marginal_results(
         else:
             margin = (
                 data[cols[:1] + values]
-                .groupby(cols[:1], observed=observed)
+                .groupby(cols[:1], observed=observed, dropna=dropna)
                 .agg(aggfunc, **kwargs)
                 .T
             )
@@ -605,7 +616,9 @@ def _generate_marginal_results(
 
     if len(cols) > 0:
         row_margin = (
-            data[cols + values].groupby(cols, observed=observed).agg(aggfunc, **kwargs)
+            data[cols + values]
+            .groupby(cols, observed=observed, dropna=dropna)
+            .agg(aggfunc, **kwargs)
         )
         row_margin = row_margin.stack()
 
@@ -628,6 +641,7 @@ def _generate_marginal_results_without_values(
     kwargs,
     observed: bool,
     margins_name: Hashable = "All",
+    dropna: bool = True,
 ):
     margin_keys: list | Index
     if len(cols) > 0:
@@ -640,7 +654,7 @@ def _generate_marginal_results_without_values(
             return (margins_name,) + ("",) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data.groupby(rows, observed=observed)[rows].apply(
+            margin = data.groupby(rows, observed=observed, dropna=dropna)[rows].apply(
                 aggfunc, **kwargs
             )
             all_key = _all_key()
@@ -649,7 +663,9 @@ def _generate_marginal_results_without_values(
             margin_keys.append(all_key)
 
         else:
-            margin = data.groupby(level=0, observed=observed).apply(aggfunc, **kwargs)
+            margin = data.groupby(level=0, observed=observed, dropna=dropna).apply(
+                aggfunc, **kwargs
+            )
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -660,7 +676,7 @@ def _generate_marginal_results_without_values(
         margin_keys = table.columns
 
     if len(cols):
-        row_margin = data.groupby(cols, observed=observed)[cols].apply(
+        row_margin = data.groupby(cols, observed=observed, dropna=dropna)[cols].apply(
             aggfunc, **kwargs
         )
     else:
@@ -703,11 +719,11 @@ def pivot(
     ----------
     data : DataFrame
         Input pandas DataFrame object.
-    columns : str or object or a list of str
+    columns : Hashable or a sequence of the previous
         Column to use to make new frame's columns.
-    index : str or object or a list of str, optional
+    index : Hashable or a sequence of the previous, optional
         Column to use to make new frame's index. If not given, uses existing index.
-    values : str, object or a list of the previous, optional
+    values : Hashable or a sequence of the previous, optional
         Column(s) to use for populating new frame's values. If not
         specified, all remaining columns will be used and the result will
         have hierarchically indexed columns.
@@ -1171,7 +1187,7 @@ def _normalize(
 
         elif normalize == "index":
             index_margin = index_margin / index_margin.sum()
-            table = table._append(index_margin, ignore_index=True)
+            table = table._append_internal(index_margin, ignore_index=True)
             table = table.fillna(0)
             table.index = table_index
 
@@ -1180,7 +1196,7 @@ def _normalize(
             index_margin = index_margin / index_margin.sum()
             index_margin.loc[margins_name] = 1
             table = concat([table, column_margin], axis=1)
-            table = table._append(index_margin, ignore_index=True)
+            table = table._append_internal(index_margin, ignore_index=True)
 
             table = table.fillna(0)
             table.index = table_index

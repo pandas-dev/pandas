@@ -380,7 +380,7 @@ _shared_docs["replace"] = """
               replaced with `value`
             - str: string exactly matching `to_replace` will be replaced
               with `value`
-            - regex: regexs matching `to_replace` will be replaced with
+            - regex: regexes matching `to_replace` will be replaced with
               `value`
 
         * list of str, regex, or numeric:
@@ -388,7 +388,7 @@ _shared_docs["replace"] = """
             - First, if `to_replace` and `value` are both lists, they
               **must** be the same length.
             - Second, if ``regex=True`` then all of the strings in **both**
-              lists will be interpreted as regexs otherwise they will match
+              lists will be interpreted as regexes otherwise they will match
               directly. This doesn't matter much for `value` since there
               are only a few possible substitution regexes you can use.
             - str, regex and numeric rules apply as above.

@@ -13,6 +13,7 @@ import zipfile
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1030,7 +1031,13 @@ class TestStata:
         # {c : c[-2:] for c in columns}
         path = temp_file
         expected.index.name = "index"
-        expected.to_stata(path, convert_dates=date_conversion)
+        msg = (
+            "Converting object-dtype columns of datetimes to datetime64 "
+            "when writing to stata is deprecated"
+        )
+        exp_object = expected.astype(object)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            exp_object.to_stata(path, convert_dates=date_conversion)
         written_and_read_again = self.read_dta(path)
 
         tm.assert_frame_equal(
@@ -2050,9 +2057,10 @@ the string values returned are correct."""
         ["numpy_nullable", pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))],
     )
     def test_read_write_ea_dtypes(self, dtype_backend, temp_file, tmp_path):
+        dtype = "Int64" if dtype_backend == "numpy_nullable" else "int64[pyarrow]"
         df = DataFrame(
             {
-                "a": [1, 2, None],
+                "a": pd.array([1, 2, None], dtype=dtype),
                 "b": ["a", "b", "c"],
                 "c": [True, False, None],
                 "d": [1.5, 2.5, 3.5],
@@ -2587,3 +2595,27 @@ def test_many_strl(temp_file, version):
     lbls = ["".join(v) for v in itertools.product(*([string.ascii_letters] * 3))]
     value_labels = {"col": {i: lbls[i] for i in range(n)}}
     df.to_stata(temp_file, value_labels=value_labels, version=version)
+
+
+@pytest.mark.parametrize("version", [117, 118, 119, None])
+def test_strl_missings(temp_file, version):
+    # GH 23633
+    # Check that strl supports None and pd.NA
+    df = DataFrame(
+        [
+            {"str1": "string" * 500, "number": 0},
+            {"str1": None, "number": 1},
+            {"str1": pd.NA, "number": 1},
+        ]
+    )
+    df.to_stata(temp_file, version=version)
+
+
+@pytest.mark.parametrize("version", [117, 118, 119, None])
+def test_ascii_error(temp_file, version):
+    # GH #61583
+    # Check that 2 byte long unicode characters doesn't cause export error
+    df = DataFrame({"doubleByteCol": ["§" * 1500]})
+    df.to_stata(temp_file, write_index=0, version=version)
+    df_input = read_stata(temp_file)
+    tm.assert_frame_equal(df, df_input)

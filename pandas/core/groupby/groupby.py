@@ -25,7 +25,10 @@ from functools import (
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Concatenate,
     Literal,
+    Self,
+    TypeAlias,
     TypeVar,
     Union,
     cast,
@@ -58,6 +61,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     DataError,
+    Pandas4Warning,
 )
 from pandas.util._decorators import (
     Appender,
@@ -81,6 +85,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
+    is_string_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -106,7 +111,6 @@ from pandas.core.arrays import (
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
-    ArrowStringArrayNumpySemantics,
 )
 from pandas.core.base import (
     PandasObject,
@@ -141,11 +145,10 @@ from pandas.core.util.numba_ import (
 
 if TYPE_CHECKING:
     from pandas._libs.tslibs import BaseOffset
+    from pandas._libs.tslibs.timedeltas import Timedelta
     from pandas._typing import (
         Any,
-        Concatenate,
         P,
-        Self,
         T,
     )
 
@@ -447,13 +450,13 @@ class GroupByPlot(PandasObject):
         return attr
 
 
-_KeysArgType = Union[
-    Hashable,
-    list[Hashable],
-    Callable[[Hashable], Hashable],
-    list[Callable[[Hashable], Hashable]],
-    Mapping[Hashable, Hashable],
-]
+_KeysArgType: TypeAlias = (
+    Hashable
+    | list[Hashable]
+    | Callable[[Hashable], Hashable]
+    | list[Callable[[Hashable], Hashable]]
+    | Mapping[Hashable, Hashable]
+)
 
 
 class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
@@ -555,7 +558,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 "and will be removed. In a future version `groups` by one element "
                 "list will return tuple. Use ``df.groupby(by='a').groups`` "
                 "instead of ``df.groupby(by=['a']).groups`` to avoid this warning",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
         return self._grouper.groups
@@ -955,9 +958,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         level = self.level
         result = self._grouper.get_iterator(self._selected_obj)
         # mypy: Argument 1 to "len" has incompatible type "Hashable"; expected "Sized"
-        if (
-            (is_list_like(level) and len(level) == 1)  # type: ignore[arg-type]
-            or (isinstance(keys, list) and len(keys) == 1)
+        if (is_list_like(level) and len(level) == 1) or (  # type: ignore[arg-type]
+            isinstance(keys, list) and len(keys) == 1
         ):
             # GH#42795 - when keys is a list, return tuples even when length is 1
             result = (((key,), group) for key, group in result)
@@ -1724,8 +1726,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # preserve the kind of exception that raised
             raise type(err)(msg) from err
 
-        if ser.dtype == object:
+        dtype = ser.dtype
+        if dtype == object:
             res_values = res_values.astype(object, copy=False)
+        elif is_string_dtype(dtype):
+            # mypy doesn't infer dtype is an ExtensionDtype
+            string_array_cls = dtype.construct_array_type()  # type: ignore[union-attr]
+            res_values = string_array_cls._from_sequence(res_values, dtype=dtype)
 
         # If we are DataFrameGroupBy and went through a SeriesGroupByPath
         # then we need to reshape
@@ -1777,7 +1784,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         new_mgr = data.grouped_reduce(array_func)
         res = self._wrap_agged_manager(new_mgr)
         if how in ["idxmin", "idxmax"]:
-            res = self._wrap_idxmax_idxmin(res)
+            # mypy expects how to be Literal["idxmin", "idxmax"].
+            res = self._wrap_idxmax_idxmin(res, how=how, skipna=kwargs["skipna"])  # type: ignore[arg-type]
         out = self._wrap_aggregated_output(res)
         return out
 
@@ -1878,7 +1886,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             mask.fill(False)
             mask[indices.astype(int)] = True
             # mask fails to broadcast when passed to where; broadcast manually.
-            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
+            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T  # type: ignore[assignment]
             filtered = self._selected_obj.where(mask)  # Fill with NaNs.
         return filtered
 
@@ -2888,10 +2896,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
         if isinstance(self.obj, Series):
             if isinstance(self.obj.array, ArrowExtensionArray):
-                if isinstance(self.obj.array, ArrowStringArrayNumpySemantics):
-                    dtype_backend = None
-                elif isinstance(self.obj.array, ArrowStringArray):
-                    dtype_backend = "numpy_nullable"
+                if isinstance(self.obj.array, ArrowStringArray):
+                    if self.obj.array.dtype.na_value is np.nan:
+                        dtype_backend = None
+                    else:
+                        dtype_backend = "numpy_nullable"
                 else:
                     dtype_backend = "pyarrow"
             elif isinstance(self.obj.array, BaseMaskedArray):
@@ -2914,9 +2923,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
         if not self.as_index:
-            # error: Incompatible types in assignment (expression has
-            # type "DataFrame", variable has type "Series")
-            result = result.rename("size").reset_index()  # type: ignore[assignment]
+            result = result.rename("size").reset_index()
         return result
 
     @final
@@ -3803,44 +3810,179 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    @Substitution(name="groupby")
-    @Appender(_common_see_also)
-    def expanding(self, *args, **kwargs) -> ExpandingGroupby:
+    def expanding(
+        self,
+        min_periods: int = 1,
+        method: str = "single",
+    ) -> ExpandingGroupby:
         """
-        Return an expanding grouper, providing expanding
-        functionality per group.
+        Return an expanding grouper, providing expanding functionality per group.
+
+        Parameters
+        ----------
+        min_periods : int, default 1
+            Minimum number of observations in window required to have a value;
+            otherwise, result is ``np.nan``.
+
+        method : str {'single', 'table'}, default 'single'
+            Execute the expanding operation per single column or row (``'single'``)
+            or over the entire object (``'table'``).
+
+            This argument is only implemented when specifying ``engine='numba'``
+            in the method call.
 
         Returns
         -------
         pandas.api.typing.ExpandingGroupby
+            An object that supports expanding transformations over each group.
+
+        See Also
+        --------
+        Series.expanding : Expanding transformations for Series.
+        DataFrame.expanding : Expanding transformations for DataFrames.
+        Series.groupby : Apply a function groupby to a Series.
+        DataFrame.groupby : Apply a function groupby.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Class": ["A", "A", "A", "B", "B", "B"],
+        ...         "Value": [10, 20, 30, 40, 50, 60],
+        ...     }
+        ... )
+        >>> df
+        Class  Value
+        0     A     10
+        1     A     20
+        2     A     30
+        3     B     40
+        4     B     50
+        5     B     60
+
+        >>> df.groupby("Class").expanding().mean()
+                Value
+        Class
+        A     0   10.0
+              1   15.0
+              2   20.0
+        B     3   40.0
+              4   45.0
+              5   50.0
         """
         from pandas.core.window import ExpandingGroupby
 
         return ExpandingGroupby(
             self._selected_obj,
-            *args,
+            min_periods=min_periods,
+            method=method,
             _grouper=self._grouper,
-            **kwargs,
         )
 
     @final
-    @Substitution(name="groupby")
-    @Appender(_common_see_also)
-    def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
+    def ewm(
+        self,
+        com: float | None = None,
+        span: float | None = None,
+        halflife: float | str | Timedelta | None = None,
+        alpha: float | None = None,
+        min_periods: int | None = 0,
+        adjust: bool = True,
+        ignore_na: bool = False,
+        times: np.ndarray | Series | None = None,
+        method: str = "single",
+    ) -> ExponentialMovingWindowGroupby:
         """
         Return an ewm grouper, providing ewm functionality per group.
+
+        Parameters
+        ----------
+        com : float, optional
+            Specify decay in terms of center of mass.
+            Alternative to ``span``, ``halflife``, and ``alpha``.
+
+        span : float, optional
+            Specify decay in terms of span.
+
+        halflife : float, str, or Timedelta, optional
+            Specify decay in terms of half-life.
+
+        alpha : float, optional
+            Specify smoothing factor directly.
+
+        min_periods : int, default 0
+            Minimum number of observations in the window required to have a value;
+            otherwise, result is ``np.nan``.
+
+        adjust : bool, default True
+            Divide by decaying adjustment factor to account for imbalance in
+            relative weights.
+
+        ignore_na : bool, default False
+            Ignore missing values when calculating weights.
+
+        times : str or array-like of datetime64, optional
+            Times corresponding to the observations.
+
+        method : {'single', 'table'}, default 'single'
+            Execute the operation per group independently (``'single'``) or over the
+            entire object before regrouping (``'table'``). Only applicable to
+            ``mean()``, and only when using ``engine='numba'``.
 
         Returns
         -------
         pandas.api.typing.ExponentialMovingWindowGroupby
+            An object that supports exponentially weighted moving transformations over
+            each group.
+
+        See Also
+        --------
+        Series.ewm : EWM transformations for Series.
+        DataFrame.ewm : EWM transformations for DataFrames.
+        Series.groupby : Apply a function groupby to a Series.
+        DataFrame.groupby : Apply a function groupby.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Class": ["A", "A", "A", "B", "B", "B"],
+        ...         "Value": [10, 20, 30, 40, 50, 60],
+        ...     }
+        ... )
+        >>> df
+        Class  Value
+        0     A     10
+        1     A     20
+        2     A     30
+        3     B     40
+        4     B     50
+        5     B     60
+
+        >>> df.groupby("Class").ewm(com=0.5).mean()
+                     Value
+        Class
+        A     0  10.000000
+              1  17.500000
+              2  26.153846
+        B     3  40.000000
+              4  47.500000
+              5  56.153846
         """
         from pandas.core.window import ExponentialMovingWindowGroupby
 
         return ExponentialMovingWindowGroupby(
             self._selected_obj,
-            *args,
+            com=com,
+            span=span,
+            halflife=halflife,
+            alpha=alpha,
+            min_periods=min_periods,
+            adjust=adjust,
+            ignore_na=ignore_na,
+            times=times,
+            method=method,
             _grouper=self._grouper,
-            **kwargs,
         )
 
     @final
@@ -4441,11 +4583,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     )
 
             if vals.ndim == 1:
-                out = out.ravel("K")
+                out = out.ravel("K")  # type: ignore[assignment]
                 if result_mask is not None:
-                    result_mask = result_mask.ravel("K")
+                    result_mask = result_mask.ravel("K")  # type: ignore[assignment]
             else:
-                out = out.reshape(ncols, ngroups * nqs)
+                out = out.reshape(ncols, ngroups * nqs)  # type: ignore[assignment]
 
             return post_processor(out, inference, result_mask, orig_vals)
 
@@ -4486,13 +4628,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         --------
         >>> df = pd.DataFrame({"color": ["red", None, "red", "blue", "blue", "red"]})
         >>> df
-           color
-        0    red
-        1   None
-        2    red
-        3   blue
-        4   blue
-        5    red
+          color
+        0   red
+        1   NaN
+        2   red
+        3  blue
+        4  blue
+        5   red
         >>> df.groupby("color").ngroup()
         0    1.0
         1    NaN
@@ -5175,8 +5317,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 shifted = shifted.astype("float32")
         else:
             to_coerce = [c for c, dtype in obj.dtypes.items() if dtype in dtypes_to_f32]
-            if len(to_coerce):
-                shifted = shifted.astype({c: "float32" for c in to_coerce})
+            if to_coerce:
+                shifted = shifted.astype(dict.fromkeys(to_coerce, "float32"))
 
         return obj - shifted
 
@@ -5560,10 +5702,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     "Specify observed=True in groupby instead."
                 )
         elif not skipna and self._obj_with_exclusions.isna().any(axis=None):
-            raise ValueError(
-                f"{type(self).__name__}.{how} with skipna=False encountered an NA "
-                f"value."
-            )
+            raise ValueError(f"{how} with skipna=False encountered an NA value.")
 
         result = self._agg_general(
             numeric_only=numeric_only,
@@ -5573,10 +5712,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
         return result
 
-    def _wrap_idxmax_idxmin(self, res: NDFrameT) -> NDFrameT:
+    def _wrap_idxmax_idxmin(
+        self, res: NDFrameT, how: Literal["idxmax", "idxmin"], skipna: bool
+    ) -> NDFrameT:
         index = self.obj.index
         if res.size == 0:
             result = res.astype(index.dtype)
+        elif skipna and res.lt(0).any(axis=None):
+            raise ValueError(
+                f"{how} with skipna=True encountered all NA values in a group."
+            )
         else:
             if isinstance(index, MultiIndex):
                 index = index.to_flat_index()
@@ -5608,24 +5753,26 @@ def get_groupby(
     grouper: ops.BaseGrouper | None = None,
     group_keys: bool = True,
 ) -> GroupBy:
-    klass: type[GroupBy]
     if isinstance(obj, Series):
         from pandas.core.groupby.generic import SeriesGroupBy
 
-        klass = SeriesGroupBy
+        return SeriesGroupBy(
+            obj=obj,
+            keys=by,
+            grouper=grouper,
+            group_keys=group_keys,
+        )
     elif isinstance(obj, DataFrame):
         from pandas.core.groupby.generic import DataFrameGroupBy
 
-        klass = DataFrameGroupBy
+        return DataFrameGroupBy(
+            obj=obj,
+            keys=by,
+            grouper=grouper,
+            group_keys=group_keys,
+        )
     else:  # pragma: no cover
         raise TypeError(f"invalid type: {obj}")
-
-    return klass(
-        obj=obj,
-        keys=by,
-        grouper=grouper,
-        group_keys=group_keys,
-    )
 
 
 def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiIndex:

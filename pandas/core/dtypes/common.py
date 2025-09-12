@@ -21,6 +21,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.tslibs import conversion
+from pandas.errors import Pandas4Warning
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
@@ -235,7 +236,7 @@ def is_sparse(arr) -> bool:
     warnings.warn(
         "is_sparse is deprecated and will be removed in a future "
         "version. Check `isinstance(dtype, pd.SparseDtype)` instead.",
-        DeprecationWarning,
+        Pandas4Warning,
         stacklevel=2,
     )
 
@@ -370,7 +371,7 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     warnings.warn(
         "is_datetime64tz_dtype is deprecated and will be removed in a future "
         "version. Check `isinstance(dtype, pd.DatetimeTZDtype)` instead.",
-        DeprecationWarning,
+        Pandas4Warning,
         stacklevel=2,
     )
     if isinstance(arr_or_dtype, DatetimeTZDtype):
@@ -466,7 +467,7 @@ def is_period_dtype(arr_or_dtype) -> bool:
     warnings.warn(
         "is_period_dtype is deprecated and will be removed in a future version. "
         "Use `isinstance(dtype, pd.PeriodDtype)` instead",
-        DeprecationWarning,
+        Pandas4Warning,
         stacklevel=2,
     )
     if isinstance(arr_or_dtype, ExtensionDtype):
@@ -524,7 +525,7 @@ def is_interval_dtype(arr_or_dtype) -> bool:
     warnings.warn(
         "is_interval_dtype is deprecated and will be removed in a future version. "
         "Use `isinstance(dtype, pd.IntervalDtype)` instead",
-        DeprecationWarning,
+        Pandas4Warning,
         stacklevel=2,
     )
     if isinstance(arr_or_dtype, ExtensionDtype):
@@ -578,7 +579,7 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     warnings.warn(
         "is_categorical_dtype is deprecated and will be removed in a future "
         "version. Use isinstance(dtype, pd.CategoricalDtype) instead",
-        DeprecationWarning,
+        Pandas4Warning,
         stacklevel=2,
     )
     if isinstance(arr_or_dtype, ExtensionDtype):
@@ -655,24 +656,38 @@ def is_dtype_equal(source, target) -> bool:
 
     Parameters
     ----------
-    source : The first dtype to compare
-    target : The second dtype to compare
+    source : type or str
+        The first dtype to compare.
+    target : type or str
+        The second dtype to compare.
 
     Returns
     -------
     boolean
         Whether or not the two dtypes are equal.
 
+    See Also
+    --------
+    api.types.is_categorical_dtype : Check whether the provided array or dtype
+                                            is of the Categorical dtype.
+    api.types.is_string_dtype : Check whether the provided array or dtype
+                                       is of the string dtype.
+    api.types.is_object_dtype : Check whether an array-like or dtype is of the
+                                       object dtype.
+
     Examples
     --------
+    >>> from pandas.api.types import is_dtype_equal
     >>> is_dtype_equal(int, float)
     False
     >>> is_dtype_equal("int", int)
     True
     >>> is_dtype_equal(object, "category")
     False
+    >>> from pandas.core.dtypes.dtypes import CategoricalDtype
     >>> is_dtype_equal(CategoricalDtype(), "category")
     True
+    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
     >>> is_dtype_equal(DatetimeTZDtype(tz="UTC"), "datetime64")
     False
     """
@@ -959,7 +974,7 @@ def is_int64_dtype(arr_or_dtype) -> bool:
     warnings.warn(
         "is_int64_dtype is deprecated and will be removed in a future "
         "version. Use dtype == np.int64 instead.",
-        DeprecationWarning,
+        Pandas4Warning,
         stacklevel=2,
     )
     return _is_dtype_type(arr_or_dtype, classes(np.int64))
@@ -1154,10 +1169,10 @@ def is_numeric_v_string_like(a: ArrayLike, b) -> bool:
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
 
-    is_a_numeric_array = is_a_array and a.dtype.kind in ("u", "i", "f", "c", "b")
-    is_b_numeric_array = is_b_array and b.dtype.kind in ("u", "i", "f", "c", "b")
-    is_a_string_array = is_a_array and a.dtype.kind in ("S", "U")
-    is_b_string_array = is_b_array and b.dtype.kind in ("S", "U")
+    is_a_numeric_array = is_a_array and a.dtype.kind in "uifcb"
+    is_b_numeric_array = is_b_array and b.dtype.kind in "uifcb"
+    is_a_string_array = is_a_array and a.dtype.kind in "SU"
+    is_b_string_array = is_b_array and b.dtype.kind in "SU"
 
     is_b_scalar_string_like = not is_b_array and isinstance(b, str)
 
@@ -1422,7 +1437,7 @@ def is_bool_dtype(arr_or_dtype) -> bool:
                     "The behavior of is_bool_dtype with an object-dtype Index "
                     "of bool objects is deprecated. In a future version, "
                     "this will return False. Cast the Index to a bool dtype instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
             return True

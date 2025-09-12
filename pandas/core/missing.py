@@ -34,7 +34,6 @@ from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
     is_numeric_dtype,
-    is_numeric_v_string_like,
     is_object_dtype,
     needs_i8_conversion,
 )
@@ -46,7 +45,11 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from typing import TypeAlias
+
     from pandas import Index
+
+    _CubicBC: TypeAlias = Literal["not-a-knot", "clamped", "natural", "periodic"]
 
 
 def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):
@@ -64,75 +67,56 @@ def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):
     return value
 
 
-def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
+def mask_missing(arr: ArrayLike, value) -> npt.NDArray[np.bool_]:
     """
     Return a masking array of same size/shape as arr
-    with entries equaling any member of values_to_mask set to True
+    with entries equaling value set to True.
 
     Parameters
     ----------
     arr : ArrayLike
-    values_to_mask: list, tuple, or scalar
+    value : scalar-like
+        Caller has ensured `not is_list_like(value)` and that it can be held
+        by `arr`.
 
     Returns
     -------
     np.ndarray[bool]
     """
-    # When called from Block.replace/replace_list, values_to_mask is a scalar
-    #  known to be holdable by arr.
-    # When called from Series._single_replace, values_to_mask is tuple or list
-    dtype, values_to_mask = infer_dtype_from(values_to_mask)
+    dtype, value = infer_dtype_from(value)
 
-    if isinstance(dtype, np.dtype):
-        values_to_mask = np.array(values_to_mask, dtype=dtype)
-    else:
-        cls = dtype.construct_array_type()
-        if not lib.is_list_like(values_to_mask):
-            values_to_mask = [values_to_mask]
-        values_to_mask = cls._from_sequence(values_to_mask, dtype=dtype, copy=False)
-
-    potential_na = False
-    if is_object_dtype(arr.dtype):
-        # pre-compute mask to avoid comparison to NA
-        potential_na = True
-        arr_mask = ~isna(arr)
-
-    na_mask = isna(values_to_mask)
-    nonna = values_to_mask[~na_mask]
+    if isna(value):
+        return isna(arr)
 
     # GH 21977
     mask = np.zeros(arr.shape, dtype=bool)
     if (
         is_numeric_dtype(arr.dtype)
         and not is_bool_dtype(arr.dtype)
-        and is_bool_dtype(nonna.dtype)
+        and lib.is_bool(value)
     ):
+        # e.g. test_replace_ea_float_with_bool, see GH#62048
         pass
     elif (
-        is_bool_dtype(arr.dtype)
-        and is_numeric_dtype(nonna.dtype)
-        and not is_bool_dtype(nonna.dtype)
+        is_bool_dtype(arr.dtype) and is_numeric_dtype(dtype) and not lib.is_bool(value)
     ):
+        # e.g. test_replace_ea_float_with_bool, see GH#62048
         pass
+    elif is_numeric_dtype(arr.dtype) and isinstance(value, str):
+        # GH#29553 prevent numpy deprecation warnings
+        pass
+    elif is_object_dtype(arr.dtype):
+        # pre-compute mask to avoid comparison to NA
+        # e.g. test_replace_na_in_obj_column
+        arr_mask = ~isna(arr)
+        mask[arr_mask] = arr[arr_mask] == value
     else:
-        for x in nonna:
-            if is_numeric_v_string_like(arr, x):
-                # GH#29553 prevent numpy deprecation warnings
-                pass
-            else:
-                if potential_na:
-                    new_mask = np.zeros(arr.shape, dtype=np.bool_)
-                    new_mask[arr_mask] = arr[arr_mask] == x
-                else:
-                    new_mask = arr == x
+        new_mask = arr == value
 
-                    if not isinstance(new_mask, np.ndarray):
-                        # usually BooleanArray
-                        new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
-                mask |= new_mask
-
-    if na_mask.any():
-        mask |= isna(arr)
+        if not isinstance(new_mask, np.ndarray):
+            # usually BooleanArray
+            new_mask = new_mask.to_numpy(dtype=bool, na_value=False)
+        mask = new_mask
 
     return mask
 
@@ -241,7 +225,8 @@ def find_valid_index(how: str, is_valid: npt.NDArray[np.bool_]) -> int | None:
         return None
 
     if is_valid.ndim == 2:
-        is_valid = is_valid.any(axis=1)  # reduce axis 1
+        # reduce axis 1
+        is_valid = is_valid.any(axis=1)  # type: ignore[assignment]
 
     if how == "first":
         idxpos = is_valid[::].argmax()
@@ -404,10 +389,7 @@ def interpolate_2d_inplace(
             **kwargs,
         )
 
-    # error: No overload variant of "apply_along_axis" matches
-    # argument types "Callable[[ndarray[Any, Any]], None]",
-    # "int", "ndarray[Any, Any]"
-    np.apply_along_axis(func, axis, data)  # type: ignore[call-overload]
+    np.apply_along_axis(func, axis, data)
 
 
 def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
@@ -674,7 +656,7 @@ def _akima_interpolate(
     xi: np.ndarray,
     yi: np.ndarray,
     x: np.ndarray,
-    der: int | list[int] | None = 0,
+    der: int = 0,
     axis: AxisInt = 0,
 ):
     """
@@ -695,10 +677,8 @@ def _akima_interpolate(
     x : np.ndarray
         Of length M.
     der : int, optional
-        How many derivatives to extract; None for all potentially
-        nonzero derivatives (that is a number equal to the number
-        of points), or a list of derivatives to extract. This number
-        includes the function value as 0th derivative.
+        How many derivatives to extract. This number includes the function
+        value as 0th derivative.
     axis : int, optional
         Axis in the yi array corresponding to the x-coordinate values.
 
@@ -724,9 +704,9 @@ def _cubicspline_interpolate(
     yi: np.ndarray,
     x: np.ndarray,
     axis: AxisInt = 0,
-    bc_type: str | tuple[Any, Any] = "not-a-knot",
-    extrapolate=None,
-):
+    bc_type: _CubicBC | tuple[Any, Any] = "not-a-knot",
+    extrapolate: Literal["periodic"] | bool | None = None,
+) -> np.ndarray:
     """
     Convenience function for cubic spline data interpolator.
 

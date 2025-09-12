@@ -603,7 +603,7 @@ def nansum(
     skipna: bool = True,
     min_count: int = 0,
     mask: npt.NDArray[np.bool_] | None = None,
-) -> float:
+) -> npt.NDArray[np.floating] | float | NaTType:
     """
     Sum the elements along an axis ignoring NaNs
 
@@ -1014,7 +1014,11 @@ def nanvar(
     avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
     if axis is not None:
         avg = np.expand_dims(avg, axis)
-    sqr = _ensure_numeric((avg - values) ** 2)
+    if values.dtype.kind == "c":
+        # Need to use absolute value for complex numbers.
+        sqr = _ensure_numeric(abs(avg - values) ** 2)
+    else:
+        sqr = _ensure_numeric((avg - values) ** 2)
     if mask is not None:
         np.putmask(sqr, mask, 0)
     result = sqr.sum(axis=axis, dtype=np.float64) / d

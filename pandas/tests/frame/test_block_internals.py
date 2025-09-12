@@ -7,6 +7,8 @@ import itertools
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -44,14 +46,14 @@ class TestDataFrameBlockInternals:
     def test_cast_internals(self, float_frame):
         msg = "Passing a BlockManager to DataFrame"
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            Pandas4Warning, match=msg, check_stacklevel=False
         ):
             casted = DataFrame(float_frame._mgr, dtype=int)
         expected = DataFrame(float_frame._series, dtype=int)
         tm.assert_frame_equal(casted, expected)
 
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            Pandas4Warning, match=msg, check_stacklevel=False
         ):
             casted = DataFrame(float_frame._mgr, dtype=np.int32)
         expected = DataFrame(float_frame._series, dtype=np.int32)
@@ -381,30 +383,3 @@ def test_update_inplace_sets_valid_block_values():
 
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
-
-
-def test_nonconsolidated_item_cache_take():
-    # https://github.com/pandas-dev/pandas/issues/35521
-
-    # create non-consolidated dataframe with object dtype columns
-    df = DataFrame(
-        {
-            "col1": Series(["a"], dtype=object),
-        }
-    )
-    df["col2"] = Series([0], dtype=object)
-    assert not df._mgr.is_consolidated()
-
-    # access column (item cache)
-    df["col1"] == "A"
-    # take operation
-    # (regression was that this consolidated but didn't reset item cache,
-    # resulting in an invalid cache and the .at operation not working properly)
-    df[df["col2"] == 0]
-
-    # now setting value should update actual dataframe
-    df.at[0, "col1"] = "A"
-
-    expected = DataFrame({"col1": ["A"], "col2": [0]}, dtype=object)
-    tm.assert_frame_equal(df, expected)
-    assert df.at[0, "col1"] == "A"

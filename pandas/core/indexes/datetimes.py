@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import datetime as dt
 import operator
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Self,
+)
 import warnings
 
 import numpy as np
@@ -30,7 +33,10 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import is_scalar
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
@@ -55,7 +61,6 @@ if TYPE_CHECKING:
         DtypeObj,
         Frequency,
         IntervalClosedType,
-        Self,
         TimeAmbiguous,
         TimeNonexistent,
         npt,
@@ -220,6 +225,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     to_pydatetime
     to_series
     to_frame
+    to_julian_date
     month_name
     day_name
     mean
@@ -381,6 +387,16 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Can we compare values of the given dtype to our own?
         """
+        if isinstance(dtype, ArrowDtype):
+            # GH#62277
+            if dtype.kind != "M":
+                return False
+
+            pa_dtype = dtype.pyarrow_dtype
+            if (pa_dtype.tz is None) ^ (self.tz is None):
+                return False
+            return True
+
         if self.tz is not None:
             # If we have tz, we can compare to tzaware
             return isinstance(dtype, DatetimeTZDtype)
@@ -890,9 +906,11 @@ def date_range(
     Notes
     -----
     Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
-    exactly three must be specified. If ``freq`` is omitted, the resulting
-    ``DatetimeIndex`` will have ``periods`` linearly spaced elements between
-    ``start`` and ``end`` (closed on both sides).
+    a maximum of three can be specified at once. Of the three parameters
+    ``start``, ``end``, and ``periods``, at least two must be specified.
+    If ``freq`` is omitted, the resulting ``DatetimeIndex`` will have
+    ``periods`` linearly spaced elements between ``start`` and ``end``
+    (closed on both sides).
 
     To learn more about the frequency strings, please see
     :ref:`this link<timeseries.offset_aliases>`.

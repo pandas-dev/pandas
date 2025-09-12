@@ -21,7 +21,10 @@ from pandas._libs.tslibs import (
     iNaT,
     parsing,
 )
-from pandas.compat import WASM
+from pandas.compat import (
+    PY314,
+    WASM,
+)
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -56,6 +59,16 @@ PARSING_ERR_MSG = (
     r"for each element individually. You might want to use `dayfirst` "
     r"alongside this."
 )
+
+if PY314:
+    NOT_99 = ", not 99"
+    DAY_IS_OUT_OF_RANGE = (
+        r"day \d{1,2} must be in range 1\.\.\d{1,2} for "
+        r"month \d{1,2} in year \d{4}"
+    )
+else:
+    NOT_99 = ""
+    DAY_IS_OUT_OF_RANGE = "day is out of range for month"
 
 
 class TestTimeConversionFormats:
@@ -531,6 +544,10 @@ class TestTimeConversionFormats:
 
 
 class TestToDatetime:
+    def test_to_datetime_none(self):
+        # GH#23055
+        assert to_datetime(None) is NaT
+
     @pytest.mark.filterwarnings("ignore:Could not infer format")
     def test_to_datetime_overflow(self):
         # we should get an OutOfBoundsDatetime, NOT OverflowError
@@ -1051,7 +1068,9 @@ class TestToDatetime:
     def test_to_datetime_today_now_unicode_bytes(self, arg):
         to_datetime([arg])
 
-    @pytest.mark.filterwarnings("ignore:Timestamp.utcnow is deprecated:FutureWarning")
+    @pytest.mark.filterwarnings(
+        "ignore:Timestamp.utcnow is deprecated:DeprecationWarning"
+    )
     @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     @pytest.mark.parametrize(
         "format, expected_ds",
@@ -1372,7 +1391,7 @@ class TestToDatetime:
                 r'^Given date string "a" not likely a datetime$',
                 r'^unconverted data remains when parsing with format "%H:%M:%S": "9". '
                 f"{PARSING_ERR_MSG}$",
-                r"^second must be in 0..59: 00:01:99$",
+                rf"^second must be in 0..59{NOT_99}: 00:01:99$",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -1424,7 +1443,7 @@ class TestToDatetime:
                 f"{PARSING_ERR_MSG}$",
                 r'^unconverted data remains when parsing with format "%H:%M:%S": "9". '
                 f"{PARSING_ERR_MSG}$",
-                r"^second must be in 0..59: 00:01:99$",
+                rf"^second must be in 0..59{NOT_99}: 00:01:99$",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -2851,7 +2870,10 @@ class TestDaysInMonth:
         assert isna(to_datetime(arg, errors="coerce", format=format, cache=cache))
 
     def test_day_not_in_month_raise(self, cache):
-        msg = "day is out of range for month: 2015-02-29"
+        if PY314:
+            msg = "day 29 must be in range 1..28 for month 2 in year 2015: 2015-02-29"
+        else:
+            msg = "day is out of range for month: 2015-02-29"
         with pytest.raises(ValueError, match=msg):
             to_datetime("2015-02-29", errors="raise", cache=cache)
 
@@ -2861,12 +2883,12 @@ class TestDaysInMonth:
             (
                 "2015-02-29",
                 "%Y-%m-%d",
-                f"^day is out of range for month. {PARSING_ERR_MSG}$",
+                f"^{DAY_IS_OUT_OF_RANGE}. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-29-02",
                 "%Y-%d-%m",
-                f"^day is out of range for month. {PARSING_ERR_MSG}$",
+                f"^{DAY_IS_OUT_OF_RANGE}. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-02-32",
@@ -2883,12 +2905,12 @@ class TestDaysInMonth:
             (
                 "2015-04-31",
                 "%Y-%m-%d",
-                f"^day is out of range for month. {PARSING_ERR_MSG}$",
+                f"^{DAY_IS_OUT_OF_RANGE}. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-31-04",
                 "%Y-%d-%m",
-                f"^day is out of range for month. {PARSING_ERR_MSG}$",
+                f"^{DAY_IS_OUT_OF_RANGE}. {PARSING_ERR_MSG}$",
             ),
         ],
     )
@@ -3365,8 +3387,7 @@ class TestShouldCache:
 
 def test_nullable_integer_to_datetime():
     # Test for #30050
-    ser = Series([1, 2, None, 2**61, None])
-    ser = ser.astype("Int64")
+    ser = Series([1, 2, None, 2**61, None], dtype="Int64")
     ser_copy = ser.copy()
 
     res = to_datetime(ser, unit="ns")
@@ -3512,6 +3533,54 @@ def test_to_datetime_mixed_not_necessarily_iso8601_coerce():
         ["2020-01-01", "01-01-2000"], format="ISO8601", errors="coerce"
     )
     tm.assert_index_equal(result, DatetimeIndex(["2020-01-01 00:00:00", NaT]))
+
+
+def test_to_datetime_iso8601_utc_single_naive():
+    # GH#61389
+    result = to_datetime("2023-10-15T14:30:00", utc=True, format="ISO8601")
+    expected = Timestamp("2023-10-15 14:30:00+00:00")
+    assert result == expected
+
+
+def test_to_datetime_iso8601_utc_mixed_negative_offset():
+    # GH#61389
+    data = ["2023-10-15T10:30:00-12:00", "2023-10-15T14:30:00"]
+    result = to_datetime(data, utc=True, format="ISO8601")
+
+    expected = DatetimeIndex(
+        [Timestamp("2023-10-15 22:30:00+00:00"), Timestamp("2023-10-15 14:30:00+00:00")]
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_to_datetime_iso8601_utc_mixed_positive_offset():
+    # GH#61389
+    data = ["2023-10-15T10:30:00+08:00", "2023-10-15T14:30:00"]
+    result = to_datetime(data, utc=True, format="ISO8601")
+
+    expected = DatetimeIndex(
+        [Timestamp("2023-10-15 02:30:00+00:00"), Timestamp("2023-10-15 14:30:00+00:00")]
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_to_datetime_iso8601_utc_mixed_both_offsets():
+    # GH#61389
+    data = [
+        "2023-10-15T10:30:00+08:00",
+        "2023-10-15T12:30:00-05:00",
+        "2023-10-15T14:30:00",
+    ]
+    result = to_datetime(data, utc=True, format="ISO8601")
+
+    expected = DatetimeIndex(
+        [
+            Timestamp("2023-10-15 02:30:00+00:00"),
+            Timestamp("2023-10-15 17:30:00+00:00"),
+            Timestamp("2023-10-15 14:30:00+00:00"),
+        ]
+    )
+    tm.assert_index_equal(result, expected)
 
 
 def test_unknown_tz_raises():

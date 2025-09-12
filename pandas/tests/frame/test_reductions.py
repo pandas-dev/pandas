@@ -1917,6 +1917,39 @@ class TestEmptyDataFrameReductions:
         expected = Series([pd.NA, pd.NA], dtype=exp_dtype, index=Index([0, 1]))
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"a": [0, 1, 2], "b": [pd.NaT, pd.NaT, pd.NaT]},
+            {"a": [0, 1, 2], "b": [Timestamp("1990-01-01"), pd.NaT, pd.NaT]},
+            {
+                "a": [0, 1, 2],
+                "b": [
+                    Timestamp("1990-01-01"),
+                    Timestamp("1991-01-01"),
+                    Timestamp("1992-01-01"),
+                ],
+            },
+            {
+                "a": [0, 1, 2],
+                "b": [pd.Timedelta("1 days"), pd.Timedelta("2 days"), pd.NaT],
+            },
+            {
+                "a": [0, 1, 2],
+                "b": [
+                    pd.Timedelta("1 days"),
+                    pd.Timedelta("2 days"),
+                    pd.Timedelta("3 days"),
+                ],
+            },
+        ],
+    )
+    def test_df_cov_pd_nat(self, data):
+        # GH #53115
+        df = DataFrame(data)
+        with pytest.raises(TypeError, match="not supported for cov"):
+            df.cov()
+
 
 def test_sum_timedelta64_skipna_false():
     # GH#17235
@@ -2127,9 +2160,7 @@ def test_numeric_ea_axis_1(method, skipna, min_count, any_numeric_ea_dtype):
         kwargs["min_count"] = min_count
 
     if not skipna and method in ("idxmax", "idxmin"):
-        # GH#57745 - EAs use groupby for axis=1 which still needs a proper deprecation.
-        msg = f"The behavior of DataFrame.{method} with all-NA values"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pytest.raises(ValueError, match="encountered an NA value"):
             getattr(df, method)(axis=1, **kwargs)
         with pytest.raises(ValueError, match="Encountered an NA value"):
             getattr(expected_df, method)(axis=1, **kwargs)
