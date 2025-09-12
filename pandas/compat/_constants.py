@@ -19,7 +19,7 @@ PYPY = platform.python_implementation() == "PyPy"
 WASM = (sys.platform == "emscripten") or (platform.machine() in ["wasm32", "wasm64"])
 ISMUSL = "musl" in (sysconfig.get_config_var("HOST_GNU_TYPE") or "")
 REF_COUNT = 2
-WARNING_CHECK_BROKEN = PY314
+WARNING_CHECK_DISABLED = PY314
 
 
 __all__ = [

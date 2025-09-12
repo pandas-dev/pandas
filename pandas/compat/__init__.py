@@ -21,7 +21,7 @@ from pandas.compat._constants import (
     PY312,
     PY314,
     PYPY,
-    WARNING_CHECK_BROKEN,
+    WARNING_CHECK_DISABLED,
     WASM,
 )
 from pandas.compat.numpy import is_numpy_dev
@@ -159,7 +159,7 @@ __all__ = [
     "PY314",
     "PYARROW_MIN_VERSION",
     "PYPY",
-    "WARNING_CHECK_BROKEN",
+    "WARNING_CHECK_DISABLED",
     "WASM",
     "is_numpy_dev",
     "pa_version_under14p0",

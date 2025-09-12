@@ -14,7 +14,7 @@ import uuid
 
 from pandas.compat import (
     PYPY,
-    WARNING_CHECK_BROKEN,
+    WARNING_CHECK_DISABLED,
 )
 from pandas.errors import ChainedAssignmentError
 
@@ -166,7 +166,7 @@ def with_csv_dialect(name: str, **kwargs) -> Generator[None]:
 def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
     from pandas._testing import assert_produces_warning
 
-    if PYPY or WARNING_CHECK_BROKEN:
+    if PYPY or WARNING_CHECK_DISABLED:
         if not extra_warnings:
             from contextlib import nullcontext
 

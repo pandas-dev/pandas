@@ -18,7 +18,7 @@ from pandas._libs.lib import item_from_zerodim
 from pandas.compat import PYPY
 from pandas.compat._constants import (
     REF_COUNT,
-    WARNING_CHECK_BROKEN,
+    WARNING_CHECK_DISABLED,
 )
 from pandas.errors import (
     AbstractMethodError,
@@ -917,7 +917,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        if not PYPY and not WARNING_CHECK_BROKEN:
+        if not PYPY and not WARNING_CHECK_DISABLED:
             if sys.getrefcount(self.obj) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -2585,7 +2585,7 @@ class _AtIndexer(_ScalarAccessIndexer):
         return super().__getitem__(key)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and not WARNING_CHECK_BROKEN:
+        if not PYPY and not WARNING_CHECK_DISABLED:
             if sys.getrefcount(self.obj) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
@@ -2616,7 +2616,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
         return key
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and not WARNING_CHECK_BROKEN:
+        if not PYPY and not WARNING_CHECK_DISABLED:
             if sys.getrefcount(self.obj) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
