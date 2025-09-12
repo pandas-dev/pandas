@@ -148,14 +148,6 @@ _all_methods = [
         operator.methodcaller("melt", id_vars=["A"], value_vars=["B"]),
     ),
     (pd.DataFrame, frame_data, operator.methodcaller("map", lambda x: x)),
-    pytest.param(
-        (
-            pd.DataFrame,
-            frame_data,
-            operator.methodcaller("merge", pd.DataFrame({"A": [1]})),
-        ),
-        marks=not_implemented_mark,
-    ),
     (pd.DataFrame, frame_data, operator.methodcaller("round", 2)),
     (pd.DataFrame, frame_data, operator.methodcaller("corr")),
     pytest.param(
@@ -675,3 +667,136 @@ def test_finalize_frame_series_name():
     df = pd.DataFrame({"name": [1, 2]})
     result = pd.Series([1, 2]).__finalize__(df)
     assert result.name is None
+
+# ----------------------------------------------------------------------------
+# Tests for merge
+
+@pytest.mark.parametrize(["allow_duplication_on_left", "allow_duplication_on_right"],
+[
+    (False, False),
+    (False, True),
+    (True, False),
+    (True, True)
+])
+@pytest.mark.parametrize(["how"], [
+    ("left",),
+    ("right",),
+    ("inner",),
+    ("outer",),
+    ("left_anti",),
+    ("right_anti",),
+    ("cross",),
+])
+def test_merge_sets_duplication_allowance_flag(how, allow_duplication_on_left, allow_duplication_on_right):
+    """
+    Check that DataFrame.merge correctly sets the allow_duplicate_labels flag
+    on its result.
+
+    The flag on the result should be set to true if and only if both arguments to merge
+    have their flags set to True.
+    """
+    # Arrange
+    left = pd.DataFrame({"test": [1]}).set_flags(allows_duplicate_labels=allow_duplication_on_left)
+    right = pd.DataFrame({"test": [1]}).set_flags(allows_duplicate_labels=allow_duplication_on_right)
+
+    # Act
+    if not how == "cross":
+        result = left.merge(right, how=how, on="test")
+    else:
+        result = left.merge(right, how=how)
+
+    # Assert
+    expected_duplication_allowance = allow_duplication_on_left and allow_duplication_on_right
+    assert result.flags.allows_duplicate_labels == expected_duplication_allowance
+
+@pytest.mark.parametrize(["allow_duplication_on_left", "allow_duplication_on_right"],
+[
+    (False, False),
+    (False, True),
+    (True, False),
+    (True, True)
+])
+def test_merge_asof_sets_duplication_allowance_flag(allow_duplication_on_left, allow_duplication_on_right):
+    """
+    Check that pandas.merge_asof correctly sets the allow_duplicate_labels flag
+    on its result.
+
+    The flag on the result should be set to true if and only if both arguments to merge_asof
+    have their flags set to True.
+    """
+    # Arrange
+    left = pd.DataFrame({"test": [1]}).set_flags(allows_duplicate_labels=allow_duplication_on_left)
+    right = pd.DataFrame({"test": [1]}).set_flags(allows_duplicate_labels=allow_duplication_on_right)
+
+    # Act
+    result = pd.merge_asof(left, right)
+
+    # Assert
+    expected_duplication_allowance = allow_duplication_on_left and allow_duplication_on_right
+    assert result.flags.allows_duplicate_labels == expected_duplication_allowance
+
+def test_merge_propagates_metadata_from_equal_input_metadata():
+    """
+    Check that pandas.merge sets the metadata of its result to a deep copy of the metadata from
+    its left input, if the metadata from both inputs are equal.
+    """
+    # Arrange
+    metadata = {"a": 2}
+    left = pd.DataFrame({"test": [1]})
+    left.attrs = metadata
+    right = pd.DataFrame({"test": [1]})
+    right.attrs = metadata.copy()
+
+    # Act
+    result = left.merge(right, how="inner", on="test")
+
+    # Assert
+    assert result.attrs == metadata
+    left.attrs = {"b": 3}
+    assert result.attrs == metadata
+
+def test_merge_does_not_propagate_metadata_from_unequal_input_metadata():
+    """
+    Check that the metadata for the result of pandas.merge is empty if the metadata
+    for both inputs to pandas.merge are not equal.
+    """
+    # Arrange
+    left = pd.DataFrame({"test": [1]})
+    left.attrs = {"a": 2}
+    right = pd.DataFrame({"test": [1]})
+    right.attrs = {"b": 3}
+
+    # Act
+    result = left.merge(right, how="inner", on="test")
+
+    # Assert
+    assert result.attrs == {}
+
+no_metadata = pd.DataFrame({"test": [1]})
+
+metadata = {"a": 2}
+has_metadata = pd.DataFrame({"test": [1]})
+has_metadata.attrs = metadata
+
+@pytest.mark.parametrize(["left", "right", "expected"],
+                         [(no_metadata, has_metadata, metadata),
+                          (has_metadata, no_metadata, metadata),
+                          (no_metadata, no_metadata, {})], ids=["left-empty", "right-empty", "both-empty"])
+def test_merge_propagates_metadata_if_one_input_has_no_metadata(left: pd.DataFrame, right: pd.DataFrame, expected: dict):
+    """
+    Check that if the metadata for one input to pandas.merge is empty, the result
+    of merge has the same metadata as the other input.
+
+    (empty)         (A)      (A)         (empty)    (empty)       (empty)
+       |             |        |             |          |             |
+        --> merge <--          --> merge <--            --> merge <--
+              |                      |                        |
+             (A)                    (A)                    (empty)
+    """
+    # Arrange
+
+    # Act
+    result = left.merge(right, how="inner", on="test")
+
+    # Assert
+    assert result.attrs == expected
