@@ -148,6 +148,9 @@ class DateArray(ExtensionArray):
             raise NotImplementedError("only ints are supported as indexes")
 
     def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         if not isinstance(key, int):
             raise NotImplementedError("only ints are supported as indexes")
 

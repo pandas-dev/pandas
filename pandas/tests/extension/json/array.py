@@ -126,6 +126,9 @@ class JSONArray(ExtensionArray):
             return type(self)([self.data[i] for i in item])
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:
@@ -158,7 +161,6 @@ class JSONArray(ExtensionArray):
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
             )
-
         if dtype is None:
             dtype = object
         if dtype == object:
