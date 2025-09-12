@@ -2,6 +2,7 @@
 Tests that comments are properly handled during parsing
 for all of the parsers defined in parsers.py
 """
+
 from io import StringIO
 
 import numpy as np
@@ -30,10 +31,8 @@ def test_comment(all_parsers, na_values):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "read_kwargs", [{}, {"lineterminator": "*"}, {"delim_whitespace": True}]
-)
-def test_line_comment(all_parsers, read_kwargs, request):
+@pytest.mark.parametrize("read_kwargs", [{}, {"lineterminator": "*"}, {"sep": r"\s+"}])
+def test_line_comment(all_parsers, read_kwargs):
     parser = all_parsers
     data = """# empty
 A,B,C
@@ -41,7 +40,7 @@ A,B,C
 #ignore this line
 5.,NaN,10.0
 """
-    if read_kwargs.get("delim_whitespace"):
+    if read_kwargs.get("sep"):
         data = data.replace(",", " ")
     elif read_kwargs.get("lineterminator"):
         data = data.replace("\n", read_kwargs.get("lineterminator"))
@@ -64,7 +63,6 @@ A,B,C
         return
 
     result = parser.read_csv(StringIO(data), **read_kwargs)
-
     expected = DataFrame(
         [[1.0, 2.0, 4.0], [5.0, np.nan, 10.0]], columns=["A", "B", "C"]
     )

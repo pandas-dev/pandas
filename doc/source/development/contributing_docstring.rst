@@ -142,7 +142,7 @@ backticks. The following are considered inline code:
 
         With several mistakes in the docstring.
 
-        It has a blank like after the signature ``def func():``.
+        It has a blank line after the signature ``def func():``.
 
         The text 'Some function' should go in the line after the
         opening quotes of the docstring, not in the same line.
@@ -939,8 +939,8 @@ Each shared docstring will have a base template with variables, like
 Finally, docstrings can also be appended to with the ``doc`` decorator.
 
 In this example, we'll create a parent docstring normally (this is like
-``pandas.core.generic.NDFrame``. Then we'll have two children (like
-``pandas.core.series.Series`` and ``pandas.core.frame.DataFrame``). We'll
+``pandas.core.generic.NDFrame``). Then we'll have two children (like
+``pandas.Series`` and ``pandas.DataFrame``). We'll
 substitute the class names in this docstring.
 
 .. code-block:: python
@@ -995,5 +995,5 @@ mapping function names to docstrings. Wherever possible, we prefer using
 ``doc``, since the docstring-writing processes is slightly closer to normal.
 
 See ``pandas.core.generic.NDFrame.fillna`` for an example template, and
-``pandas.core.series.Series.fillna`` and ``pandas.core.generic.frame.fillna``
+``pandas.Series.fillna`` and ``pandas.core.generic.frame.fillna``
 for the filled versions.

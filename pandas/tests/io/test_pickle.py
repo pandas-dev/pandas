@@ -10,9 +10,9 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+
 from __future__ import annotations
 
-from array import array
 import bz2
 import datetime
 import functools
@@ -31,13 +31,8 @@ import zipfile
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    get_lzma_file,
-    is_platform_little_endian,
-)
+from pandas.compat import is_platform_little_endian
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.compressors import flatten_buffer
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -81,36 +76,8 @@ def compare_element(result, expected, typ):
 # ---------------------
 
 
-@pytest.mark.parametrize(
-    "data",
-    [
-        b"123",
-        b"123456",
-        bytearray(b"123"),
-        memoryview(b"123"),
-        pickle.PickleBuffer(b"123"),
-        array("I", [1, 2, 3]),
-        memoryview(b"123456").cast("B", (3, 2)),
-        memoryview(b"123456").cast("B", (3, 2))[::2],
-        np.arange(12).reshape((3, 4), order="C"),
-        np.arange(12).reshape((3, 4), order="F"),
-        np.arange(12).reshape((3, 4), order="C")[:, ::2],
-    ],
-)
-def test_flatten_buffer(data):
-    result = flatten_buffer(data)
-    expected = memoryview(data).tobytes("A")
-    assert result == expected
-    if isinstance(data, (bytes, bytearray)):
-        assert result is data
-    elif isinstance(result, memoryview):
-        assert result.ndim == 1
-        assert result.format == "B"
-        assert result.contiguous
-        assert result.shape == (result.nbytes,)
-
-
 def test_pickles(datapath):
+    pytest.importorskip("pytz")
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
 
@@ -230,16 +197,6 @@ def test_pickle_path_pathlib():
     tm.assert_frame_equal(df, result)
 
 
-def test_pickle_path_localpath():
-    df = DataFrame(
-        1.1 * np.arange(120).reshape((30, 4)),
-        columns=Index(list("ABCD"), dtype=object),
-        index=Index([f"i-{i}" for i in range(30)], dtype=object),
-    )
-    result = tm.round_trip_localpath(df.to_pickle, pd.read_pickle)
-    tm.assert_frame_equal(df, result)
-
-
 # ---------------------
 # test pickle compression
 # ---------------------
@@ -271,7 +228,9 @@ class TestCompression:
                     tarinfo = tar.gettarinfo(src_path, os.path.basename(src_path))
                     tar.addfile(tarinfo, fh)
         elif compression == "xz":
-            f = get_lzma_file()(dest_path, "w")
+            import lzma
+
+            f = lzma.LZMAFile(dest_path, "w")
         elif compression == "zstd":
             f = import_optional_dependency("zstandard").open(dest_path, "wb")
         else:
@@ -310,13 +269,13 @@ class TestCompression:
 
     @pytest.mark.parametrize("compression", ["", "None", "bad", "7z"])
     def test_write_explicit_bad(self, compression, get_random_path):
-        with pytest.raises(ValueError, match="Unrecognized compression type"):
-            with tm.ensure_clean(get_random_path) as path:
-                df = DataFrame(
-                    1.1 * np.arange(120).reshape((30, 4)),
-                    columns=Index(list("ABCD"), dtype=object),
-                    index=Index([f"i-{i}" for i in range(30)], dtype=object),
-                )
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
+        with tm.ensure_clean(get_random_path) as path:
+            with pytest.raises(ValueError, match="Unrecognized compression type"):
                 df.to_pickle(path, compression=compression)
 
     def test_write_infer(self, compression_ext, get_random_path):
@@ -410,31 +369,6 @@ class TestProtocol:
             tm.assert_frame_equal(df, df2)
 
 
-@pytest.mark.parametrize(
-    ["pickle_file", "excols"],
-    [
-        ("test_py27.pkl", Index(["a", "b", "c"])),
-        (
-            "test_mi_py27.pkl",
-            pd.MultiIndex.from_arrays([["a", "b", "c"], ["A", "B", "C"]]),
-        ),
-    ],
-)
-def test_unicode_decode_error(datapath, pickle_file, excols):
-    # pickle file written with py27, should be readable without raising
-    #  UnicodeDecodeError, see GH#28645 and GH#31988
-    path = datapath("io", "data", "pickle", pickle_file)
-    df = pd.read_pickle(path)
-
-    # just test the columns are correct since the values are random
-    tm.assert_index_equal(df.columns, excols)
-
-
-# ---------------------
-# tests for buffer I/O
-# ---------------------
-
-
 def test_pickle_buffer_roundtrip():
     with tm.ensure_clean() as path:
         df = DataFrame(
@@ -446,55 +380,6 @@ def test_pickle_buffer_roundtrip():
             df.to_pickle(fh)
         with open(path, "rb") as fh:
             result = pd.read_pickle(fh)
-        tm.assert_frame_equal(df, result)
-
-
-# ---------------------
-# tests for URL I/O
-# ---------------------
-
-
-@pytest.mark.parametrize(
-    "mockurl", ["http://url.com", "ftp://test.com", "http://gzip.com"]
-)
-def test_pickle_generalurl_read(monkeypatch, mockurl):
-    def python_pickler(obj, path):
-        with open(path, "wb") as fh:
-            pickle.dump(obj, fh, protocol=-1)
-
-    class MockReadResponse:
-        def __init__(self, path) -> None:
-            self.file = open(path, "rb")
-            if "gzip" in path:
-                self.headers = {"Content-Encoding": "gzip"}
-            else:
-                self.headers = {"Content-Encoding": ""}
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            self.close()
-
-        def read(self):
-            return self.file.read()
-
-        def close(self):
-            return self.file.close()
-
-    with tm.ensure_clean() as path:
-
-        def mock_urlopen_read(*args, **kwargs):
-            return MockReadResponse(path)
-
-        df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
-        )
-        python_pickler(df, path)
-        monkeypatch.setattr("urllib.request.urlopen", mock_urlopen_read)
-        result = pd.read_pickle(mockurl)
         tm.assert_frame_equal(df, result)
 
 
@@ -600,7 +485,6 @@ def test_pickle_strings(string_series):
     tm.assert_series_equal(unp_series, string_series)
 
 
-@td.skip_array_manager_invalid_test
 def test_pickle_preserves_block_ndim():
     # GH#37631
     ser = Series(list("abc")).astype("category").iloc[[0]]
@@ -638,15 +522,3 @@ def test_pickle_frame_v124_unpickle_130(datapath):
 
     expected = DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)
-
-
-def test_pickle_pos_args_deprecation():
-    # GH-54229
-    df = DataFrame({"a": [1, 2, 3]})
-    msg = (
-        r"Starting with pandas version 3.0 all arguments of to_pickle except for the "
-        r"argument 'path' will be keyword-only."
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        buffer = io.BytesIO()
-        df.to_pickle(buffer, "infer")

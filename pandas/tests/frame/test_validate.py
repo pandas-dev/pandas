@@ -3,11 +3,6 @@ import pytest
 from pandas.core.frame import DataFrame
 
 
-@pytest.fixture
-def dataframe():
-    return DataFrame({"a": [1, 2], "b": [3, 4]})
-
-
 class TestDataFrameValidate:
     """Tests for error handling related to data types of method arguments."""
 
@@ -24,7 +19,8 @@ class TestDataFrameValidate:
         ],
     )
     @pytest.mark.parametrize("inplace", [1, "True", [1, 2, 3], 5.0])
-    def test_validate_bool_args(self, dataframe, func, inplace):
+    def test_validate_bool_args(self, func, inplace):
+        dataframe = DataFrame({"a": [1, 2], "b": [3, 4]})
         msg = 'For argument "inplace" expected type bool'
         kwargs = {"inplace": inplace}
 

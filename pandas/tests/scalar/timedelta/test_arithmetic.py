@@ -1,6 +1,7 @@
 """
 Tests for scalar Timedelta arithmetic ops
 """
+
 from datetime import (
     datetime,
     timedelta,
@@ -78,7 +79,7 @@ class TestTimedeltaAdditionSubtraction:
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
     def test_td_add_datetimelike_scalar(self, op):
         # GH#19738
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
 
         result = op(td, datetime(2016, 1, 1))
         if op is operator.add:
@@ -110,7 +111,7 @@ class TestTimedeltaAdditionSubtraction:
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
     def test_td_add_td(self, op):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
 
         result = op(td, Timedelta(days=10))
         assert isinstance(result, Timedelta)
@@ -118,35 +119,35 @@ class TestTimedeltaAdditionSubtraction:
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
     def test_td_add_pytimedelta(self, op):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         result = op(td, timedelta(days=9))
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=19)
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
     def test_td_add_timedelta64(self, op):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         result = op(td, np.timedelta64(-4, "D"))
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=6)
 
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
     def test_td_add_offset(self, op):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
 
         result = op(td, offsets.Hour(6))
         assert isinstance(result, Timedelta)
         assert result == Timedelta(days=10, hours=6)
 
     def test_td_sub_td(self):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         expected = Timedelta(0, unit="ns")
         result = td - td
         assert isinstance(result, Timedelta)
         assert result == expected
 
     def test_td_sub_pytimedelta(self):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         expected = Timedelta(0, unit="ns")
 
         result = td - td.to_pytimedelta()
@@ -158,7 +159,7 @@ class TestTimedeltaAdditionSubtraction:
         assert result == expected
 
     def test_td_sub_timedelta64(self):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         expected = Timedelta(0, unit="ns")
 
         result = td - td.to_timedelta64()
@@ -171,12 +172,12 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_sub_nat(self):
         # In this context pd.NaT is treated as timedelta-like
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         result = td - NaT
         assert result is NaT
 
     def test_td_sub_td64_nat(self):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         td_nat = np.timedelta64("NaT")
 
         result = td - td_nat
@@ -186,13 +187,13 @@ class TestTimedeltaAdditionSubtraction:
         assert result is NaT
 
     def test_td_sub_offset(self):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         result = td - offsets.Hour(1)
         assert isinstance(result, Timedelta)
         assert result == Timedelta(239, unit="h")
 
     def test_td_add_sub_numeric_raises(self):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         msg = "unsupported operand type"
         for other in [2, 2.0, np.int64(2), np.float64(2)]:
             with pytest.raises(TypeError, match=msg):
@@ -233,7 +234,7 @@ class TestTimedeltaAdditionSubtraction:
             other - td
 
     def test_td_rsub_nat(self):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         result = NaT - td
         assert result is NaT
 
@@ -241,7 +242,7 @@ class TestTimedeltaAdditionSubtraction:
         assert result is NaT
 
     def test_td_rsub_offset(self):
-        result = offsets.Hour(1) - Timedelta(10, unit="d")
+        result = offsets.Hour(1) - Timedelta(10, unit="D")
         assert isinstance(result, Timedelta)
         assert result == Timedelta(-239, unit="h")
 
@@ -361,7 +362,7 @@ class TestTimedeltaMultiplicationDivision:
     @pytest.mark.parametrize("op", [operator.mul, ops.rmul])
     def test_td_mul_nat(self, op, td_nat):
         # GH#19819
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         typs = "|".join(["numpy.timedelta64", "NaTType", "Timedelta"])
         msg = "|".join(
             [
@@ -376,7 +377,7 @@ class TestTimedeltaMultiplicationDivision:
     @pytest.mark.parametrize("op", [operator.mul, ops.rmul])
     def test_td_mul_nan(self, op, nan):
         # np.float64('NaN') has a 'dtype' attr, avoid treating as array
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         result = op(td, nan)
         assert result is NaT
 
@@ -418,7 +419,7 @@ class TestTimedeltaMultiplicationDivision:
 
     def test_td_mul_numeric_ndarray_0d(self):
         td = Timedelta("1 day")
-        other = np.array(2)
+        other = np.array(2, dtype=np.int64)
         assert other.ndim == 0
         expected = Timedelta("2 days")
 
@@ -448,7 +449,7 @@ class TestTimedeltaMultiplicationDivision:
 
     def test_td_div_timedeltalike_scalar(self):
         # GH#19738
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
 
         result = td / offsets.Hour(1)
         assert result == 240
@@ -479,7 +480,7 @@ class TestTimedeltaMultiplicationDivision:
 
     def test_td_div_numeric_scalar(self):
         # GH#19738
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
 
         result = td / 2
         assert isinstance(result, Timedelta)
@@ -499,7 +500,7 @@ class TestTimedeltaMultiplicationDivision:
     )
     def test_td_div_nan(self, nan):
         # np.float64('NaN') has a 'dtype' attr, avoid treating as array
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         result = td / nan
         assert result is NaT
 
@@ -531,7 +532,7 @@ class TestTimedeltaMultiplicationDivision:
 
     def test_td_rdiv_timedeltalike_scalar(self):
         # GH#19738
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
         result = offsets.Hour(1) / td
         assert result == 1 / 240.0
 
@@ -539,7 +540,7 @@ class TestTimedeltaMultiplicationDivision:
 
     def test_td_rdiv_na_scalar(self):
         # GH#31869 None gets cast to NaT
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
 
         result = NaT / td
         assert np.isnan(result)
@@ -559,7 +560,7 @@ class TestTimedeltaMultiplicationDivision:
             np.nan / td
 
     def test_td_rdiv_ndarray(self):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
 
         arr = np.array([td], dtype=object)
         result = arr / td
@@ -582,7 +583,7 @@ class TestTimedeltaMultiplicationDivision:
             arr / td
 
     def test_td_rdiv_ndarray_0d(self):
-        td = Timedelta(10, unit="d")
+        td = Timedelta(10, unit="D")
 
         arr = np.array(td.asm8)
 
@@ -622,6 +623,7 @@ class TestTimedeltaMultiplicationDivision:
             [
                 r"Invalid dtype datetime64\[D\] for __floordiv__",
                 "'dtype' is an invalid keyword argument for this function",
+                "this function got an unexpected keyword argument 'dtype'",
                 r"ufunc '?floor_divide'? cannot use operands with types",
             ]
         )
@@ -955,17 +957,19 @@ class TestTimedeltaMultiplicationDivision:
     @pytest.mark.parametrize(
         "arr",
         [
-            np.array([Timestamp("20130101 9:01"), Timestamp("20121230 9:02")]),
-            np.array([Timestamp("2021-11-09 09:54:00"), Timedelta("1D")]),
+            [Timestamp("20130101 9:01"), Timestamp("20121230 9:02")],
+            [Timestamp("2021-11-09 09:54:00"), Timedelta("1D")],
         ],
     )
     def test_td_op_timedelta_timedeltalike_array(self, op, arr):
+        arr = np.array(arr)
         msg = "unsupported operand type|cannot use operands with types"
         with pytest.raises(TypeError, match=msg):
             op(arr, Timedelta("1D"))
 
 
 class TestTimedeltaComparison:
+    @pytest.mark.skip_ubsan
     def test_compare_pytimedelta_bounds(self):
         # GH#49021 don't overflow on comparison with very large pytimedeltas
 
@@ -1034,7 +1038,7 @@ class TestTimedeltaComparison:
         cls = tick_classes
 
         off = cls(4)
-        td = off.delta
+        td = off._as_pd_timedelta
         assert isinstance(td, Timedelta)
 
         assert td == off
@@ -1177,5 +1181,5 @@ def test_ops_error_str():
         with pytest.raises(TypeError, match=msg):
             left > right
 
-        assert not left == right  # pylint: disable=unneeded-not
+        assert not left == right
         assert left != right

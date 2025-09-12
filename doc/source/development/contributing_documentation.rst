@@ -14,7 +14,7 @@ experts. If something in the docs doesn't make sense to you, updating the
 relevant section after you figure it out is a great way to ensure it will help
 the next person. Please visit the `issues page <https://github.com/pandas-dev/pandas/issues?page=1&q=is%3Aopen+sort%3Aupdated-desc+label%3ADocs>`__
 for a full list of issues that are currently open regarding the
-Pandas documentation.
+pandas documentation.
 
 
 
@@ -156,6 +156,11 @@ If you want to do a full clean build, do::
 
     python make.py clean
     python make.py html
+
+.. tip::
+  If ``python make.py html`` exits with an error status,
+  try running the command ``python make.py html --num-jobs=1``
+  to identify the cause of the error.
 
 You can tell ``make.py`` to compile only a single section of the docs, greatly
 reducing the turn-around time for checking your changes.

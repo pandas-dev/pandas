@@ -7,12 +7,16 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas.compat import IS64
+from pandas.compat._constants import (
+    IS64,
+    WASM,
+)
 from pandas.errors import EmptyDataError
-import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+
+from pandas.io.sas.sas7bdat import SAS7BDATReader
 
 
 @pytest.fixture
@@ -26,9 +30,9 @@ def data_test_ix(request, dirpath):
     fname = os.path.join(dirpath, f"test_sas7bdat_{i}.csv")
     df = pd.read_csv(fname)
     epoch = datetime(1960, 1, 1)
-    t1 = pd.to_timedelta(df["Column4"], unit="d")
+    t1 = pd.to_timedelta(df["Column4"], unit="D")
     df["Column4"] = (epoch + t1).astype("M8[s]")
-    t2 = pd.to_timedelta(df["Column12"], unit="d")
+    t2 = pd.to_timedelta(df["Column12"], unit="D")
     df["Column12"] = (epoch + t2).astype("M8[s]")
     for k in range(df.shape[1]):
         col = df.iloc[:, k]
@@ -41,15 +45,15 @@ def data_test_ix(request, dirpath):
 class TestSAS7BDAT:
     @pytest.mark.slow
     def test_from_file(self, dirpath, data_test_ix):
-        df0, test_ix = data_test_ix
+        expected, test_ix = data_test_ix
         for k in test_ix:
             fname = os.path.join(dirpath, f"test{k}.sas7bdat")
             df = pd.read_sas(fname, encoding="utf-8")
-            tm.assert_frame_equal(df, df0)
+            tm.assert_frame_equal(df, expected)
 
     @pytest.mark.slow
     def test_from_buffer(self, dirpath, data_test_ix):
-        df0, test_ix = data_test_ix
+        expected, test_ix = data_test_ix
         for k in test_ix:
             fname = os.path.join(dirpath, f"test{k}.sas7bdat")
             with open(fname, "rb") as f:
@@ -59,37 +63,26 @@ class TestSAS7BDAT:
                 buf, format="sas7bdat", iterator=True, encoding="utf-8"
             ) as rdr:
                 df = rdr.read()
-            tm.assert_frame_equal(df, df0)
+            tm.assert_frame_equal(df, expected)
 
     @pytest.mark.slow
     def test_from_iterator(self, dirpath, data_test_ix):
-        df0, test_ix = data_test_ix
+        expected, test_ix = data_test_ix
         for k in test_ix:
             fname = os.path.join(dirpath, f"test{k}.sas7bdat")
             with pd.read_sas(fname, iterator=True, encoding="utf-8") as rdr:
                 df = rdr.read(2)
-                tm.assert_frame_equal(df, df0.iloc[0:2, :])
+                tm.assert_frame_equal(df, expected.iloc[0:2, :])
                 df = rdr.read(3)
-                tm.assert_frame_equal(df, df0.iloc[2:5, :])
+                tm.assert_frame_equal(df, expected.iloc[2:5, :])
 
     @pytest.mark.slow
     def test_path_pathlib(self, dirpath, data_test_ix):
-        df0, test_ix = data_test_ix
+        expected, test_ix = data_test_ix
         for k in test_ix:
             fname = Path(os.path.join(dirpath, f"test{k}.sas7bdat"))
             df = pd.read_sas(fname, encoding="utf-8")
-            tm.assert_frame_equal(df, df0)
-
-    @td.skip_if_no("py.path")
-    @pytest.mark.slow
-    def test_path_localpath(self, dirpath, data_test_ix):
-        from py.path import local as LocalPath
-
-        df0, test_ix = data_test_ix
-        for k in test_ix:
-            fname = LocalPath(os.path.join(dirpath, f"test{k}.sas7bdat"))
-            df = pd.read_sas(fname, encoding="utf-8")
-            tm.assert_frame_equal(df, df0)
+            tm.assert_frame_equal(df, expected)
 
     @pytest.mark.slow
     @pytest.mark.parametrize("chunksize", (3, 5, 10, 11))
@@ -126,8 +119,6 @@ def test_encoding_options(datapath):
         except AttributeError:
             pass
     tm.assert_frame_equal(df1, df2)
-
-    from pandas.io.sas.sas7bdat import SAS7BDATReader
 
     with contextlib.closing(SAS7BDATReader(fname, convert_header_text=False)) as rdr:
         df3 = rdr.read()
@@ -180,6 +171,7 @@ def test_airline(datapath):
     tm.assert_frame_equal(df, df0)
 
 
+@pytest.mark.skipif(WASM, reason="Pyodide/WASM has 32-bitness")
 def test_date_time(datapath):
     # Support of different SAS date/datetime formats (PR #15871)
     fname = datapath("io", "sas", "data", "datetime.sas7bdat")
@@ -189,10 +181,9 @@ def test_date_time(datapath):
         fname, parse_dates=["Date1", "Date2", "DateTime", "DateTimeHi", "Taiw"]
     )
     # GH 19732: Timestamps imported from sas will incur floating point errors
-    # 2023-11-16 we don't know the correct "expected" result bc we do not have
-    #  access to SAS to read the sas7bdat file. We are really just testing
-    #  that we are "close". This only seems to be an issue near the
-    #  implementation bounds.
+    # See GH#56014 for discussion of the correct "expected" results
+    #  We are really just testing that we are "close". This only seems to be
+    #  an issue near the implementation bounds.
 
     df[df.columns[3]] = df.iloc[:, 3].dt.round("us")
     df0["Date1"] = df0["Date1"].astype("M8[s]")
@@ -249,11 +240,13 @@ def test_zero_variables(datapath):
         pd.read_sas(fname)
 
 
-def test_zero_rows(datapath):
+@pytest.mark.parametrize("encoding", [None, "utf8"])
+def test_zero_rows(datapath, encoding):
     # GH 18198
     fname = datapath("io", "sas", "data", "zero_rows.sas7bdat")
-    result = pd.read_sas(fname)
-    expected = pd.DataFrame([{"char_field": "a", "num_field": 1.0}]).iloc[:0]
+    result = pd.read_sas(fname, encoding=encoding)
+    str_value = b"a" if encoding is None else "a"
+    expected = pd.DataFrame([{"char_field": str_value, "num_field": 1.0}]).iloc[:0]
     tm.assert_frame_equal(result, expected)
 
 
@@ -266,11 +259,13 @@ def test_corrupt_read(datapath):
         pd.read_sas(fname)
 
 
+@pytest.mark.xfail(WASM, reason="failing with currently set tolerances on WASM")
 def test_max_sas_date(datapath):
     # GH 20927
     # NB. max datetime in SAS dataset is 31DEC9999:23:59:59.999
     #    but this is read as 29DEC9999:23:59:59.998993 by a buggy
     #    sas7bdat module
+    # See also GH#56014 for discussion of the correct "expected" results.
     fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
     df = pd.read_sas(fname, encoding="iso-8859-1")
 
@@ -304,6 +299,7 @@ def test_max_sas_date(datapath):
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.xfail(WASM, reason="failing with currently set tolerances on WASM")
 def test_max_sas_date_iterator(datapath):
     # GH 20927
     # when called as an iterator, only those chunks with a date > pd.Timestamp.max
@@ -349,6 +345,7 @@ def test_max_sas_date_iterator(datapath):
     tm.assert_frame_equal(results[1], expected[1])
 
 
+@pytest.mark.skipif(WASM, reason="Pyodide/WASM has 32-bitness")
 def test_null_date(datapath):
     fname = datapath("io", "sas", "data", "dates_null.sas7bdat")
     df = pd.read_sas(fname, encoding="utf-8")
@@ -408,7 +405,7 @@ def test_0x40_control_byte(datapath):
     fname = datapath("io", "sas", "data", "0x40controlbyte.sas7bdat")
     df = pd.read_sas(fname, encoding="ascii")
     fname = datapath("io", "sas", "data", "0x40controlbyte.csv")
-    df0 = pd.read_csv(fname, dtype="object")
+    df0 = pd.read_csv(fname, dtype="str")
     tm.assert_frame_equal(df, df0)
 
 

@@ -1,11 +1,12 @@
 import re
+import warnings
 import weakref
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
@@ -122,7 +123,9 @@ class TestCategoricalDtype(Base):
 
     dtype1 = CategoricalDtype(["a", "b"], ordered=True)
     dtype2 = CategoricalDtype(["x", "y"], ordered=False)
-    c = Categorical([0, 1], dtype=dtype1)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        c = Categorical([0, 1], dtype=dtype1)
 
     @pytest.mark.parametrize(
         "values, categories, ordered, dtype, expected",
@@ -166,7 +169,7 @@ class TestCategoricalDtype(Base):
 
     def test_basic(self, dtype):
         msg = "is_categorical_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert is_categorical_dtype(dtype)
 
             factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
@@ -250,10 +253,14 @@ class TestDatetimeTZDtype(Base):
 
     def test_alias_to_unit_bad_alias_raises(self):
         # 23990
-        with pytest.raises(TypeError, match=""):
+        with pytest.raises(
+            TypeError, match="Cannot construct a 'DatetimeTZDtype' from"
+        ):
             DatetimeTZDtype("this is a bad string")
 
-        with pytest.raises(TypeError, match=""):
+        with pytest.raises(
+            TypeError, match="Cannot construct a 'DatetimeTZDtype' from"
+        ):
             DatetimeTZDtype("datetime64[ns, US/NotATZ]")
 
     def test_hash_vs_equality(self, dtype):
@@ -292,7 +299,7 @@ class TestDatetimeTZDtype(Base):
 
     def test_compat(self, dtype):
         msg = "is_datetime64tz_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert is_datetime64tz_dtype(dtype)
             assert is_datetime64tz_dtype("datetime64[ns, US/Eastern]")
         assert is_datetime64_any_dtype(dtype)
@@ -353,14 +360,14 @@ class TestDatetimeTZDtype(Base):
 
     def test_basic(self, dtype):
         msg = "is_datetime64tz_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             assert is_datetime64tz_dtype(dtype)
 
         dr = date_range("20130101", periods=3, tz="US/Eastern")
         s = Series(dr, name="A")
 
         # dtypes
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             assert is_datetime64tz_dtype(s.dtype)
             assert is_datetime64tz_dtype(s)
             assert not is_datetime64tz_dtype(np.dtype("float64"))
@@ -391,8 +398,9 @@ class TestDatetimeTZDtype(Base):
 
     def test_tz_standardize(self):
         # GH 24713
+        pytz = pytest.importorskip("pytz")
         tz = pytz.timezone("US/Eastern")
-        dr = date_range("2013-01-01", periods=3, tz="US/Eastern")
+        dr = date_range("2013-01-01", periods=3, tz=tz)
         dtype = DatetimeTZDtype("ns", dr.tz)
         assert dtype.tz == tz
         dtype = DatetimeTZDtype("ns", dr[0].tz)
@@ -445,12 +453,12 @@ class TestPeriodDtype(Base):
 
     def test_cannot_use_custom_businessday(self):
         # GH#52534
-        msg = "CustomBusinessDay is not supported as period frequency"
+        msg = "C is not supported as period frequency"
+        msg1 = "<CustomBusinessDay> is not supported as period frequency"
         msg2 = r"PeriodDtype\[B\] is deprecated"
-        with pytest.raises(TypeError, match=msg):
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                PeriodDtype("C")
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(ValueError, match=msg):
+            PeriodDtype("C")
+        with pytest.raises(ValueError, match=msg1):
             with tm.assert_produces_warning(FutureWarning, match=msg2):
                 PeriodDtype(pd.offsets.CustomBusinessDay())
 
@@ -531,7 +539,7 @@ class TestPeriodDtype(Base):
 
     def test_basic(self, dtype):
         msg = "is_period_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             assert is_period_dtype(dtype)
 
             pidx = pd.period_range("2013-01-01 09:00", periods=5, freq="h")
@@ -619,7 +627,7 @@ class TestIntervalDtype(Base):
         i = IntervalDtype(subtype, closed="right")
         assert i.subtype == np.dtype("int64")
         msg = "is_interval_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             assert is_interval_dtype(i)
 
     @pytest.mark.parametrize(
@@ -642,7 +650,7 @@ class TestIntervalDtype(Base):
         i = IntervalDtype(subtype)
         assert i.subtype is None
         msg = "is_interval_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             assert is_interval_dtype(i)
 
     @pytest.mark.parametrize(
@@ -660,8 +668,7 @@ class TestIntervalDtype(Base):
     def test_construction_not_supported(self, subtype):
         # GH 19016
         msg = (
-            "category, object, and string subtypes are not supported "
-            "for IntervalDtype"
+            "category, object, and string subtypes are not supported for IntervalDtype"
         )
         with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)
@@ -815,7 +822,7 @@ class TestIntervalDtype(Base):
 
     def test_basic(self, dtype):
         msg = "is_interval_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             assert is_interval_dtype(dtype)
 
             ii = IntervalIndex.from_breaks(range(3))
@@ -830,7 +837,7 @@ class TestIntervalDtype(Base):
 
     def test_basic_dtype(self):
         msg = "is_interval_dtype is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             assert is_interval_dtype("interval[int64, both]")
             assert is_interval_dtype(IntervalIndex.from_tuples([(0, 1)]))
             assert is_interval_dtype(IntervalIndex.from_breaks(np.arange(4)))
@@ -959,25 +966,24 @@ class TestCategoricalDtypeParametrized:
         c2 = CategoricalDtype(["b", "a"], ordered=True)
         assert c1 is not c2
 
-    @pytest.mark.parametrize("ordered1", [True, False, None])
     @pytest.mark.parametrize("ordered2", [True, False, None])
-    def test_categorical_equality(self, ordered1, ordered2):
+    def test_categorical_equality(self, ordered, ordered2):
         # same categories, same order
         # any combination of None/False are equal
         # True/True is the only combination with True that are equal
-        c1 = CategoricalDtype(list("abc"), ordered1)
+        c1 = CategoricalDtype(list("abc"), ordered)
         c2 = CategoricalDtype(list("abc"), ordered2)
         result = c1 == c2
-        expected = bool(ordered1) is bool(ordered2)
+        expected = bool(ordered) is bool(ordered2)
         assert result is expected
 
         # same categories, different order
         # any combination of None/False are equal (order doesn't matter)
         # any combination with True are not equal (different order of cats)
-        c1 = CategoricalDtype(list("abc"), ordered1)
+        c1 = CategoricalDtype(list("abc"), ordered)
         c2 = CategoricalDtype(list("cab"), ordered2)
         result = c1 == c2
-        expected = (bool(ordered1) is False) and (bool(ordered2) is False)
+        expected = (bool(ordered) is False) and (bool(ordered2) is False)
         assert result is expected
 
         # different categories
@@ -985,9 +991,9 @@ class TestCategoricalDtypeParametrized:
         assert c1 != c2
 
         # none categories
-        c1 = CategoricalDtype(list("abc"), ordered1)
+        c1 = CategoricalDtype(list("abc"), ordered)
         c2 = CategoricalDtype(None, ordered2)
-        c3 = CategoricalDtype(None, ordered1)
+        c3 = CategoricalDtype(None, ordered)
         assert c1 != c2
         assert c2 != c1
         assert c2 == c3
@@ -1059,7 +1065,7 @@ class TestCategoricalDtypeParametrized:
         c1 = CategoricalDtype(["a", "b"], ordered=ordered)
         assert str(c1) == "category"
         # Py2 will have unicode prefixes
-        dtype = "string" if using_infer_string else "object"
+        dtype = "str" if using_infer_string else "object"
         pat = (
             r"CategoricalDtype\(categories=\[.*\], ordered={ordered}, "
             rf"categories_dtype={dtype}\)"
@@ -1178,7 +1184,7 @@ def test_is_dtype_no_warning(check):
         or check is is_datetime64tz_dtype
         or check is is_period_dtype
     ):
-        warn = FutureWarning
+        warn = DeprecationWarning
 
     with tm.assert_produces_warning(warn, match=msg):
         check(data)
@@ -1231,4 +1237,25 @@ def test_multi_column_dtype_assignment():
     tm.assert_frame_equal(df, expected)
 
     df["b"] = 0
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_empty_labels_no_dtype_conversion():
+    # GH 29707
+
+    df = pd.DataFrame({"a": [2, 3]})
+    expected = df.copy()
+    assert df.a.dtype == "int64"
+    df.loc[[]] = 0.1
+
+    assert df.a.dtype == "int64"
+    tm.assert_frame_equal(df, expected)
+
+
+def test_categorical_nan_no_dtype_conversion():
+    # GH 43996
+
+    df = pd.DataFrame({"a": Categorical([np.nan], [1]), "b": [1]})
+    expected = pd.DataFrame({"a": Categorical([1], [1]), "b": [1]})
+    df.loc[0, "a"] = np.array([1])
     tm.assert_frame_equal(df, expected)

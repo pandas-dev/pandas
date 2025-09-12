@@ -2,24 +2,20 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
+from collections.abc import Callable
 import functools
 from functools import partial
 import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    DefaultDict,
     Literal,
+    TypeAlias,
     cast,
 )
-import warnings
 
 import numpy as np
 
-from pandas._config import option_context
-
-from pandas._libs import lib
 from pandas._libs.internals import BlockValuesRefs
 from pandas._typing import (
     AggFuncType,
@@ -34,7 +30,6 @@ from pandas._typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
 from pandas.util._decorators import cache_readonly
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
@@ -44,10 +39,7 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_sequence,
 )
-from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
-    ExtensionDtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCNDFrame,
@@ -57,12 +49,17 @@ from pandas.core.dtypes.generic import (
 from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.util.numba_ import (
+    get_jit_arguments,
+    prepare_function_arguments,
+)
 
 if TYPE_CHECKING:
     from collections.abc import (
         Generator,
         Hashable,
         Iterable,
+        MutableMapping,
         Sequence,
     )
 
@@ -75,8 +72,111 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
+ResType: TypeAlias = dict[int, Any]
 
-ResType = dict[int, Any]
+
+class BaseExecutionEngine(abc.ABC):
+    """
+    Base class for execution engines for map and apply methods.
+
+    An execution engine receives all the parameters of a call to
+    ``apply`` or ``map``, such as the data container, the function,
+    etc. and takes care of running the execution.
+
+    Supporting different engines allows functions to be JIT compiled,
+    run in parallel, and others. Besides the default executor which
+    simply runs the code with the Python interpreter and pandas.
+    """
+
+    @staticmethod
+    @abc.abstractmethod
+    def map(
+        data: Series | DataFrame | np.ndarray,
+        func: AggFuncType,
+        args: tuple,
+        kwargs: dict[str, Any],
+        decorator: Callable | None,
+        skip_na: bool,
+    ):
+        """
+        Executor method to run functions elementwise.
+
+        In general, pandas uses ``map`` for running functions elementwise,
+        but ``Series.apply`` with the default ``by_row='compat'`` will also
+        call this executor function.
+
+        Parameters
+        ----------
+        data : Series, DataFrame or NumPy ndarray
+            The object to use for the data. Some methods implement a ``raw``
+            parameter which will convert the original pandas object to a
+            NumPy array, which will then be passed here to the executor.
+        func : function or NumPy ufunc
+            The function to execute.
+        args : tuple
+            Positional arguments to be passed to ``func``.
+        kwargs : dict
+            Keyword arguments to be passed to ``func``.
+        decorator : function, optional
+            For JIT compilers and other engines that need to decorate the
+            function ``func``, this is the decorator to use. While the
+            executor may already know which is the decorator to use, this
+            is useful as for a single executor the user can specify for
+            example ``numba.jit`` or ``numba.njit(nogil=True)``, and this
+            decorator parameter will contain the exact decorator from the
+            executor the user wants to use.
+        skip_na : bool
+            Whether the function should be called for missing values or not.
+            This is specified by the pandas user as ``map(na_action=None)``
+            or ``map(na_action='ignore')``.
+        """
+
+    @staticmethod
+    @abc.abstractmethod
+    def apply(
+        data: Series | DataFrame | np.ndarray,
+        func: AggFuncType,
+        args: tuple,
+        kwargs: dict[str, Any],
+        decorator: Callable,
+        axis: Axis,
+    ):
+        """
+        Executor method to run functions by an axis.
+
+        While we can see ``map`` as executing the function for each cell
+        in a ``DataFrame`` (or ``Series``), ``apply`` will execute the
+        function for each column (or row).
+
+        Parameters
+        ----------
+        data : Series, DataFrame or NumPy ndarray
+            The object to use for the data. Some methods implement a ``raw``
+            parameter which will convert the original pandas object to a
+            NumPy array, which will then be passed here to the executor.
+        func : function or NumPy ufunc
+            The function to execute.
+        args : tuple
+            Positional arguments to be passed to ``func``.
+        kwargs : dict
+            Keyword arguments to be passed to ``func``.
+        decorator : function, optional
+            For JIT compilers and other engines that need to decorate the
+            function ``func``, this is the decorator to use. While the
+            executor may already know which is the decorator to use, this
+            is useful as for a single executor the user can specify for
+            example ``numba.jit`` or ``numba.njit(nogil=True)``, and this
+            decorator parameter will contain the exact decorator from the
+            executor the user wants to use.
+        axis : {0 or 'index', 1 or 'columns'}
+            0 or 'index' should execute the function passing each column as
+            parameter. 1 or 'columns' should execute the function passing
+            each row as parameter. The default executor engine passes rows
+            as pandas ``Series``. Other executor engines should probably
+            expect functions to be implemented this way for compatibility.
+            But passing rows as other data structures is technically possible
+            as far as the function ``func`` is implemented accordingly.
+        """
 
 
 def frame_apply(
@@ -92,15 +192,18 @@ def frame_apply(
     kwargs=None,
 ) -> FrameApply:
     """construct and return a row or column based frame apply object"""
+    _, func, columns, _ = reconstruct_func(func, **kwargs)
+
     axis = obj._get_axis_number(axis)
     klass: type[FrameApply]
     if axis == 0:
         klass = FrameRowApply
     elif axis == 1:
+        if columns:
+            raise NotImplementedError(
+                f"Named aggregation is not supported when {axis=}."
+            )
         klass = FrameColumnApply
-
-    _, func, _, _ = reconstruct_func(func, **kwargs)
-    assert func is not None
 
     return klass(
         obj,
@@ -178,10 +281,7 @@ class Apply(metaclass=abc.ABCMeta):
         Result of aggregation, or None if agg cannot be performed by
         this method.
         """
-        obj = self.obj
         func = self.func
-        args = self.args
-        kwargs = self.kwargs
 
         if isinstance(func, str):
             return self.apply_str()
@@ -191,12 +291,6 @@ class Apply(metaclass=abc.ABCMeta):
         elif is_list_like(func):
             # we require a list, but not a 'str'
             return self.agg_list_like()
-
-        if callable(func):
-            f = com.get_cython_func(func)
-            if f and not args and not kwargs:
-                warn_alias_replacement(obj, func, f)
-                return getattr(obj, f)()
 
         # caller can react
         return None
@@ -234,7 +328,7 @@ class Apply(metaclass=abc.ABCMeta):
             if is_series:
                 func = {com.get_callable_name(v) or v: v for v in func}
             else:
-                func = {col: func for col in obj}
+                func = dict.fromkeys(obj, func)
 
         if is_dict_like(func):
             func = cast(AggFuncTypeDict, func)
@@ -257,12 +351,8 @@ class Apply(metaclass=abc.ABCMeta):
             and not obj.empty
         ):
             raise ValueError("Transform function failed")
-        # error: Argument 1 to "__get__" of "AxisProperty" has incompatible type
-        # "Union[Series, DataFrame, GroupBy[Any], SeriesGroupBy,
-        # DataFrameGroupBy, BaseWindow, Resampler]"; expected "Union[DataFrame,
-        # Series]"
         if not isinstance(result, (ABCSeries, ABCDataFrame)) or not result.index.equals(
-            obj.index  # type: ignore[arg-type]
+            obj.index
         ):
             raise ValueError("Function did not transform")
 
@@ -302,12 +392,6 @@ class Apply(metaclass=abc.ABCMeta):
 
         if isinstance(func, str):
             return self._apply_str(obj, func, *args, **kwargs)
-
-        if not args and not kwargs:
-            f = com.get_cython_func(func)
-            if f:
-                warn_alias_replacement(obj, func, f)
-                return getattr(obj, f)()
 
         # Two possible ways to use a UDF - apply or call directly
         try:
@@ -491,8 +575,24 @@ class Apply(metaclass=abc.ABCMeta):
 
                 keys += [key] * len(key_data)
                 results += key_data
-        else:
+        elif is_groupby:
             # key used for column selection and output
+
+            df = selected_obj
+            results, keys = [], []
+            for key, how in func.items():
+                cols = df[key]
+
+                if cols.ndim == 1:
+                    series = obj._gotitem(key, ndim=1, subset=cols)
+                    results.append(getattr(series, op_name)(how, **kwargs))
+                    keys.append(key)
+                else:
+                    for _, col in cols.items():
+                        series = obj._gotitem(key, ndim=1, subset=col)
+                        results.append(getattr(series, op_name)(how, **kwargs))
+                        keys.append(key)
+        else:
             results = [
                 getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwargs)
                 for key, how in func.items()
@@ -516,11 +616,14 @@ class Apply(metaclass=abc.ABCMeta):
         is_ndframe = [isinstance(r, ABCNDFrame) for r in result_data]
 
         if all(is_ndframe):
-            results = dict(zip(result_index, result_data))
+            results = [result for result in result_data if not result.empty]
             keys_to_use: Iterable[Hashable]
-            keys_to_use = [k for k in result_index if not results[k].empty]
+            keys_to_use = [k for k, v in zip(result_index, result_data) if not v.empty]
             # Have to check, if at least one DataFrame is not empty.
-            keys_to_use = keys_to_use if keys_to_use != [] else result_index
+            if keys_to_use == []:
+                keys_to_use = result_index
+                results = result_data
+
             if selected_obj.ndim == 2:
                 # keys are columns, so we can preserve names
                 ktu = Index(keys_to_use)
@@ -529,7 +632,7 @@ class Apply(metaclass=abc.ABCMeta):
 
             axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
             result = concat(
-                {k: results[k] for k in keys_to_use},
+                results,
                 axis=axis,
                 keys=keys_to_use,
             )
@@ -584,22 +687,10 @@ class Apply(metaclass=abc.ABCMeta):
                 "axis" not in arg_names or func in ("corrwith", "skew")
             ):
                 raise ValueError(f"Operation {func} does not support axis=1")
-            if "axis" in arg_names:
-                if isinstance(obj, (SeriesGroupBy, DataFrameGroupBy)):
-                    # Try to avoid FutureWarning for deprecated axis keyword;
-                    # If self.axis matches the axis we would get by not passing
-                    #  axis, we safely exclude the keyword.
-
-                    default_axis = 0
-                    if func in ["idxmax", "idxmin"]:
-                        # DataFrameGroupBy.idxmax, idxmin axis defaults to self.axis,
-                        # whereas other axis keywords default to 0
-                        default_axis = self.obj.axis
-
-                    if default_axis != self.axis:
-                        self.kwargs["axis"] = self.axis
-                else:
-                    self.kwargs["axis"] = self.axis
+            if "axis" in arg_names and not isinstance(
+                obj, (SeriesGroupBy, DataFrameGroupBy)
+            ):
+                self.kwargs["axis"] = self.axis
         return self._apply_str(obj, func, *self.args, **self.kwargs)
 
     def apply_list_or_dict_like(self) -> DataFrame | Series:
@@ -660,7 +751,8 @@ class Apply(metaclass=abc.ABCMeta):
 
             cols = Index(list(func.keys())).difference(obj.columns, sort=True)
             if len(cols) > 0:
-                raise KeyError(f"Column(s) {list(cols)} do not exist")
+                # GH 58474
+                raise KeyError(f"Label(s) {list(cols)} do not exist")
 
         aggregator_types = (list, tuple, dict)
 
@@ -695,7 +787,7 @@ class Apply(metaclass=abc.ABCMeta):
             # people may aggregate on a non-callable attribute
             # but don't let them think they can pass args to it
             assert len(args) == 0
-            assert len([kwarg for kwarg in kwargs if kwarg not in ["axis"]]) == 0
+            assert not any(kwarg == "axis" for kwarg in kwargs)
             return f
         elif hasattr(np, func) and hasattr(obj, "__array__"):
             # in particular exclude Window
@@ -812,7 +904,7 @@ class FrameApply(NDFrameApply):
 
     @property
     @abc.abstractmethod
-    def series_generator(self) -> Generator[Series, None, None]:
+    def series_generator(self) -> Generator[Series]:
         pass
 
     @staticmethod
@@ -827,7 +919,7 @@ class FrameApply(NDFrameApply):
     def apply_with_numba(self):
         pass
 
-    def validate_values_for_numba(self):
+    def validate_values_for_numba(self) -> None:
         # Validate column dtyps all OK
         for colname, dtype in self.obj.dtypes.items():
             if not is_numeric_dtype(dtype):
@@ -1003,16 +1095,21 @@ class FrameApply(NDFrameApply):
             return wrapper
 
         if engine == "numba":
-            engine_kwargs = {} if engine_kwargs is None else engine_kwargs
-
+            args, kwargs = prepare_function_arguments(
+                self.func,  # type: ignore[arg-type]
+                self.args,
+                self.kwargs,
+                num_required_args=1,
+            )
             # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
             # incompatible type "Callable[..., Any] | str | list[Callable
             # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
             # list[Callable[..., Any] | str]]"; expected "Hashable"
             nb_looper = generate_apply_looper(
-                self.func, **engine_kwargs  # type: ignore[arg-type]
+                self.func,  # type: ignore[arg-type]
+                **get_jit_arguments(engine_kwargs),
             )
-            result = nb_looper(self.values, self.axis)
+            result = nb_looper(self.values, self.axis, *args)
             # If we made the result 2-D, squeeze it back to 1-D
             result = np.squeeze(result)
         else:
@@ -1075,14 +1172,12 @@ class FrameApply(NDFrameApply):
 
         results = {}
 
-        with option_context("mode.chained_assignment", None):
-            for i, v in enumerate(series_gen):
-                # ignore SettingWithCopy here in case the user mutates
-                results[i] = self.func(v, *self.args, **self.kwargs)
-                if isinstance(results[i], ABCSeries):
-                    # If we have a view on v, we need to make a copy because
-                    #  series_generator will swap out the underlying data
-                    results[i] = results[i].copy(deep=False)
+        for i, v in enumerate(series_gen):
+            results[i] = self.func(v, *self.args, **self.kwargs)
+            if isinstance(results[i], ABCSeries):
+                # If we have a view on v, we need to make a copy because
+                #  series_generator will swap out the underlying data
+                results[i] = results[i].copy(deep=False)
 
         return results, res_index
 
@@ -1135,7 +1230,7 @@ class FrameRowApply(FrameApply):
     axis: AxisInt = 0
 
     @property
-    def series_generator(self) -> Generator[Series, None, None]:
+    def series_generator(self) -> Generator[Series]:
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
 
     @staticmethod
@@ -1155,36 +1250,35 @@ class FrameRowApply(FrameApply):
         # Currently the parallel argument doesn't get passed through here
         # (it's disabled) since the dicts in numba aren't thread-safe.
         @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
-        def numba_func(values, col_names, df_index):
+        def numba_func(values, col_names, df_index, *args):
             results = {}
             for j in range(values.shape[1]):
                 # Create the series
                 ser = Series(
                     values[:, j], index=df_index, name=maybe_cast_str(col_names[j])
                 )
-                results[j] = jitted_udf(ser)
+                results[j] = jitted_udf(ser, *args)
             return results
 
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
+        func = cast(Callable, self.func)
+        args, kwargs = prepare_function_arguments(
+            func, self.args, self.kwargs, num_required_args=1
+        )
         nb_func = self.generate_numba_apply_func(
-            cast(Callable, self.func), **self.engine_kwargs
+            func, **get_jit_arguments(self.engine_kwargs)
         )
         from pandas.core._numba.extensions import set_numba_data
 
         index = self.obj.index
-        if index.dtype == "string":
-            index = index.astype(object)
-
         columns = self.obj.columns
-        if columns.dtype == "string":
-            columns = columns.astype(object)
 
         # Convert from numba dict to regular dict
         # Our isinstance checks in the df constructor don't pass for numbas typed dict
         with set_numba_data(index) as index, set_numba_data(columns) as columns:
-            res = dict(nb_func(self.values, columns, index))
+            res = dict(nb_func(self.values, columns, index, *args))
         return res
 
     @property
@@ -1245,7 +1339,7 @@ class FrameColumnApply(FrameApply):
         return result.T
 
     @property
-    def series_generator(self) -> Generator[Series, None, None]:
+    def series_generator(self) -> Generator[Series]:
         values = self.values
         values = ensure_wrapped_if_datetimelike(values)
         assert len(values) > 0
@@ -1255,7 +1349,7 @@ class FrameColumnApply(FrameApply):
         ser = self.obj._ixs(0, axis=0)
         mgr = ser._mgr
 
-        is_view = mgr.blocks[0].refs.has_reference()  # type: ignore[union-attr]
+        is_view = mgr.blocks[0].refs.has_reference()
 
         if isinstance(ser.dtype, ExtensionDtype):
             # values will be incorrect for this block
@@ -1277,7 +1371,7 @@ class FrameColumnApply(FrameApply):
                     # -> if that happened and `ser` is already a copy, then we reset
                     # the refs here to avoid triggering a unnecessary CoW inside the
                     # applied function (https://github.com/pandas-dev/pandas/pull/56212)
-                    mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])  # type: ignore[union-attr]
+                    mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])
                 yield ser
 
     @staticmethod
@@ -1292,7 +1386,7 @@ class FrameColumnApply(FrameApply):
         jitted_udf = numba.extending.register_jitable(func)
 
         @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
-        def numba_func(values, col_names_index, index):
+        def numba_func(values, col_names_index, index, *args):
             results = {}
             # Currently the parallel argument doesn't get passed through here
             # (it's disabled) since the dicts in numba aren't thread-safe.
@@ -1304,25 +1398,30 @@ class FrameColumnApply(FrameApply):
                     index=col_names_index,
                     name=maybe_cast_str(index[i]),
                 )
-                results[i] = jitted_udf(ser)
+                results[i] = jitted_udf(ser, *args)
 
             return results
 
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
+        func = cast(Callable, self.func)
+        args, kwargs = prepare_function_arguments(
+            func, self.args, self.kwargs, num_required_args=1
+        )
         nb_func = self.generate_numba_apply_func(
-            cast(Callable, self.func), **self.engine_kwargs
+            func, **get_jit_arguments(self.engine_kwargs)
         )
 
         from pandas.core._numba.extensions import set_numba_data
 
         # Convert from numba dict to regular dict
         # Our isinstance checks in the df constructor don't pass for numbas typed dict
-        with set_numba_data(self.obj.index) as index, set_numba_data(
-            self.columns
-        ) as columns:
-            res = dict(nb_func(self.values, columns, index))
+        with (
+            set_numba_data(self.obj.index) as index,
+            set_numba_data(self.columns) as columns,
+        ):
+            res = dict(nb_func(self.values, columns, index, *args))
 
         return res
 
@@ -1364,7 +1463,7 @@ class FrameColumnApply(FrameApply):
         result.index = res_index
 
         # infer dtypes
-        result = result.infer_objects(copy=False)
+        result = result.infer_objects()
 
         return result
 
@@ -1379,23 +1478,10 @@ class SeriesApply(NDFrameApply):
         obj: Series,
         func: AggFuncType,
         *,
-        convert_dtype: bool | lib.NoDefault = lib.no_default,
         by_row: Literal[False, "compat", "_compat"] = "compat",
         args,
         kwargs,
     ) -> None:
-        if convert_dtype is lib.no_default:
-            convert_dtype = True
-        else:
-            warnings.warn(
-                "the convert_dtype parameter is deprecated and will be removed in a "
-                "future version.  Do ``ser.astype(object).apply()`` "
-                "instead if you want ``convert_dtype=False``.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        self.convert_dtype = convert_dtype
-
         super().__init__(
             obj,
             func,
@@ -1433,22 +1519,7 @@ class SeriesApply(NDFrameApply):
             func = self.func
             # string, list-like, and dict-like are entirely handled in super
             assert callable(func)
-
-            # GH53325: The setup below is just to keep current behavior while emitting a
-            # deprecation message. In the future this will all be replaced with a simple
-            # `result = f(self.obj, *self.args, **self.kwargs)`.
-            try:
-                result = obj.apply(func, args=self.args, **self.kwargs)
-            except (ValueError, AttributeError, TypeError):
-                result = func(obj, *self.args, **self.kwargs)
-            else:
-                msg = (
-                    f"using {func} in {type(obj).__name__}.agg cannot aggregate and "
-                    f"has been deprecated. Use {type(obj).__name__}.transform to "
-                    f"keep behavior unchanged."
-                )
-                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-
+            result = func(obj, *self.args, **self.kwargs)
         return result
 
     def apply_empty_result(self) -> Series:
@@ -1497,16 +1568,7 @@ class SeriesApply(NDFrameApply):
 
         else:
             curried = func
-
-        # row-wise access
-        # apply doesn't have a `na_action` keyword and for backward compat reasons
-        # we need to give `na_action="ignore"` for categorical data.
-        # TODO: remove the `na_action="ignore"` when that default has been changed in
-        #  Categorical (GH51645).
-        action = "ignore" if isinstance(obj.dtype, CategoricalDtype) else None
-        mapped = obj._map_values(
-            mapper=curried, na_action=action, convert=self.convert_dtype
-        )
+        mapped = obj._map_values(mapper=curried)
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
             # GH#43986 Need to do list(mapped) in order to get treated as nested
@@ -1583,7 +1645,7 @@ class GroupByApply(Apply):
         assert op_name in ["agg", "apply"]
 
         obj = self.obj
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if op_name == "apply":
             by_row = "_compat" if self.by_row else False
             kwargs.update({"by_row": by_row})
@@ -1642,7 +1704,7 @@ class ResamplerWindowApply(GroupByApply):
 
 def reconstruct_func(
     func: AggFuncType | None, **kwargs
-) -> tuple[bool, AggFuncType, list[str] | None, npt.NDArray[np.intp] | None]:
+) -> tuple[bool, AggFuncType, tuple[str, ...] | None, npt.NDArray[np.intp] | None]:
     """
     This is the internal function to reconstruct func given if there is relabeling
     or not and also normalize the keyword to get new order of columns.
@@ -1668,7 +1730,7 @@ def reconstruct_func(
     -------
     relabelling: bool, if there is relabelling or not
     func: normalized and mangled func
-    columns: list of column names
+    columns: tuple of column names
     order: array of columns indices
 
     Examples
@@ -1680,7 +1742,7 @@ def reconstruct_func(
     (False, 'min', None, None)
     """
     relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
-    columns: list[str] | None = None
+    columns: tuple[str, ...] | None = None
     order: npt.NDArray[np.intp] | None = None
 
     if not relabeling:
@@ -1688,15 +1750,21 @@ def reconstruct_func(
             # GH 28426 will raise error if duplicated function names are used and
             # there is no reassigned name
             raise SpecificationError(
-                "Function names must be unique if there is no new column names "
-                "assigned"
+                "Function names must be unique if there is no new column names assigned"
             )
         if func is None:
             # nicer error message
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
     if relabeling:
-        func, columns, order = normalize_keyword_aggregation(kwargs)
+        # error: Incompatible types in assignment (expression has type
+        # "MutableMapping[Hashable, list[Callable[..., Any] | str]]", variable has type
+        # "Callable[..., Any] | str | list[Callable[..., Any] | str] |
+        # MutableMapping[Hashable, Callable[..., Any] | str | list[Callable[..., Any] |
+        # str]] | None")
+        func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
+            kwargs
+        )
     assert func is not None
 
     return relabeling, func, columns, order
@@ -1730,7 +1798,11 @@ def is_multi_agg_with_relabel(**kwargs) -> bool:
 
 def normalize_keyword_aggregation(
     kwargs: dict,
-) -> tuple[dict, list[str], npt.NDArray[np.intp]]:
+) -> tuple[
+    MutableMapping[Hashable, list[AggFuncTypeBase]],
+    tuple[str, ...],
+    npt.NDArray[np.intp],
+]:
     """
     Normalize user-provided "named aggregation" kwargs.
     Transforms from the new ``Mapping[str, NamedAgg]`` style kwargs
@@ -1744,7 +1816,7 @@ def normalize_keyword_aggregation(
     -------
     aggspec : dict
         The transformed kwargs.
-    columns : List[str]
+    columns : tuple[str, ...]
         The user-provided keys.
     col_idx_order : List[int]
         List of columns indices.
@@ -1759,13 +1831,11 @@ def normalize_keyword_aggregation(
     # Normalize the aggregation functions as Mapping[column, List[func]],
     # process normally, then fixup the names.
     # TODO: aggspec type: typing.Dict[str, List[AggScalar]]
-    # May be hitting https://github.com/python/mypy/issues/5958
-    # saying it doesn't have an attribute __name__
-    aggspec: DefaultDict = defaultdict(list)
+    aggspec = defaultdict(list)
     order = []
-    columns, pairs = list(zip(*kwargs.items()))
+    columns = tuple(kwargs.keys())
 
-    for column, aggfunc in pairs:
+    for column, aggfunc in kwargs.values():
         aggspec[column].append(aggfunc)
         order.append((column, com.get_callable_name(aggfunc) or aggfunc))
 
@@ -1788,14 +1858,14 @@ def normalize_keyword_aggregation(
 
 
 def _make_unique_kwarg_list(
-    seq: Sequence[tuple[Any, Any]]
+    seq: Sequence[tuple[Any, Any]],
 ) -> Sequence[tuple[Any, Any]]:
     """
     Uniquify aggfunc name of the pairs in the order list
 
     Examples:
     --------
-    >>> kwarg_list = [('a', '<lambda>'), ('a', '<lambda>'), ('b', '<lambda>')]
+    >>> kwarg_list = [("a", "<lambda>"), ("a", "<lambda>"), ("b", "<lambda>")]
     >>> _make_unique_kwarg_list(kwarg_list)
     [('a', '<lambda>_0'), ('a', '<lambda>_1'), ('b', '<lambda>')]
     """
@@ -1827,7 +1897,7 @@ def relabel_result(
     >>> from pandas.core.apply import relabel_result
     >>> result = pd.DataFrame(
     ...     {"A": [np.nan, 2, np.nan], "C": [6, np.nan, np.nan], "B": [np.nan, 4, 2.5]},
-    ...     index=["max", "mean", "min"]
+    ...     index=["max", "mean", "min"],
     ... )
     >>> funcs = {"A": ["max"], "C": ["max"], "B": ["mean", "min"]}
     >>> columns = ("foo", "aab", "bar", "dat")
@@ -1877,12 +1947,14 @@ def relabel_result(
                 com.get_callable_name(f) if not isinstance(f, str) else f for f in fun
             ]
             col_idx_order = Index(s.index).get_indexer(fun)
-            s = s.iloc[col_idx_order]
-
+            valid_idx = col_idx_order != -1
+            if valid_idx.any():
+                s = s.iloc[col_idx_order[valid_idx]]
         # assign the new user-provided "named aggregation" as index names, and reindex
         # it based on the whole user-provided names.
-        s.index = reordered_indexes[idx : idx + len(fun)]
-        reordered_result_in_dict[col] = s.reindex(columns, copy=False)
+        if not s.empty:
+            s.index = reordered_indexes[idx : idx + len(fun)]
+        reordered_result_in_dict[col] = s.reindex(columns)
         idx = idx + len(fun)
     return reordered_result_in_dict
 
@@ -1940,7 +2012,8 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
     for aggfunc in aggfuncs:
         if com.get_callable_name(aggfunc) == "<lambda>":
             aggfunc = partial(aggfunc)
-            aggfunc.__name__ = f"<lambda_{i}>"
+            # error: "partial[Any]" has no attribute "__name__"; maybe "__new__"?
+            aggfunc.__name__ = f"<lambda_{i}>"  # type: ignore[attr-defined]
             i += 1
         mangled_aggfuncs.append(aggfunc)
 
@@ -1966,7 +2039,7 @@ def maybe_mangle_lambdas(agg_spec: Any) -> Any:
 
     Examples
     --------
-    >>> maybe_mangle_lambdas('sum')
+    >>> maybe_mangle_lambdas("sum")
     'sum'
     >>> maybe_mangle_lambdas([lambda: 1, lambda: 2])  # doctest: +SKIP
     [<function __main__.<lambda_0>,
@@ -2011,7 +2084,7 @@ def validate_func_kwargs(
 
     Examples
     --------
-    >>> validate_func_kwargs({'one': 'min', 'two': 'max'})
+    >>> validate_func_kwargs({"one": "min", "two": "max"})
     (['one', 'two'], ['min', 'max'])
     """
     tuple_given_message = "func is expected but received {} in **kwargs."
@@ -2030,24 +2103,4 @@ def validate_func_kwargs(
 def include_axis(op_name: Literal["agg", "apply"], colg: Series | DataFrame) -> bool:
     return isinstance(colg, ABCDataFrame) or (
         isinstance(colg, ABCSeries) and op_name == "agg"
-    )
-
-
-def warn_alias_replacement(
-    obj: AggObjType,
-    func: Callable,
-    alias: str,
-) -> None:
-    if alias.startswith("np."):
-        full_alias = alias
-    else:
-        full_alias = f"{type(obj).__name__}.{alias}"
-        alias = f'"{alias}"'
-    warnings.warn(
-        f"The provided callable {func} is currently using "
-        f"{full_alias}. In a future version of pandas, "
-        f"the provided callable will be used directly. To keep current "
-        f"behavior pass the string {alias} instead.",
-        category=FutureWarning,
-        stacklevel=find_stack_level(),
     )

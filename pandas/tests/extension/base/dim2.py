@@ -1,6 +1,7 @@
 """
 Tests for 2D compatibility.
 """
+
 import numpy as np
 import pytest
 
@@ -30,6 +31,16 @@ class Dim2CompatTests:
             if test_func.__qualname__.startswith("Dim2CompatTests"):
                 # TODO: is there a less hacky way of checking this?
                 pytest.skip(f"{dtype} does not support 2D.")
+
+    def test_shift_2d(self, data):
+        arr2d = data.repeat(2).reshape(-1, 2)
+
+        for n in [1, -2]:
+            for fill_value in [None, data[0]]:
+                result = arr2d.shift(n, fill_value=fill_value)
+                expected_col = data.shift(n, fill_value=fill_value)
+                tm.assert_extension_array_equal(result[:, 0], expected_col)
+                tm.assert_extension_array_equal(result[:, 1], expected_col)
 
     def test_transpose(self, data):
         arr2d = data.repeat(2).reshape(-1, 2)
@@ -90,9 +101,9 @@ class Dim2CompatTests:
         assert arr2d.shape == (data.size, 1)
         assert len(arr2d) == len(data)
 
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             data.reshape((data.size, 2))
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             data.reshape(data.size, 2)
 
     def test_getitem_2d(self, data):

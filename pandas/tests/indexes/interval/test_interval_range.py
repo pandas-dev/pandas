@@ -84,9 +84,7 @@ class TestIntervalRange:
         tm.assert_index_equal(result, expected)
 
         # GH 20976: linspace behavior defined from start/end/periods
-        if not breaks.freq.is_anchored() and tz is None:
-            # matches expected only for non-anchored offsets and tz naive
-            # (anchored/DST transitions cause unequal spacing in expected)
+        if not breaks.freq.n == 1 and tz is None:
             result = interval_range(
                 start=start, end=end, periods=periods, name=name, closed=closed
             )
@@ -222,13 +220,26 @@ class TestIntervalRange:
         expected = "int64" if is_integer(start + end) else "float64"
         assert result == expected
 
+    @pytest.mark.parametrize(
+        "start, end, expected",
+        [
+            (np.int8(1), np.int8(10), np.dtype("int8")),
+            (np.int8(1), np.float16(10), np.dtype("float64")),
+            (np.float32(1), np.float32(10), np.dtype("float32")),
+            (1, 10, np.dtype("int64")),
+            (1, 10.0, np.dtype("float64")),
+        ],
+    )
+    def test_interval_dtype(self, start, end, expected):
+        result = interval_range(start=start, end=end).dtype.subtype
+        assert result == expected
+
     def test_interval_range_fractional_period(self):
         # float value for periods
-        expected = interval_range(start=0, periods=10)
-        msg = "Non-integer 'periods' in pd.date_range, .* pd.interval_range"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = interval_range(start=0, periods=10.5)
-        tm.assert_index_equal(result, expected)
+        msg = "periods must be an integer, got 10.5"
+        ts = Timestamp("2024-03-25")
+        with pytest.raises(TypeError, match=msg):
+            interval_range(ts, periods=10.5)
 
     def test_constructor_coverage(self):
         # equivalent timestamp-like start/end
@@ -328,7 +339,7 @@ class TestIntervalRange:
             interval_range(start=Timedelta("1 day"), end=Timedelta("10 days"), freq=2)
 
         # invalid periods
-        msg = "periods must be a number, got foo"
+        msg = "periods must be an integer, got foo"
         with pytest.raises(TypeError, match=msg):
             interval_range(start=0, periods="foo")
 

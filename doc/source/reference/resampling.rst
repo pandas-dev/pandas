@@ -5,7 +5,7 @@
 ==========
 Resampling
 ==========
-.. currentmodule:: pandas.api.typing
+.. currentmodule:: pandas.core.resample
 
 :class:`pandas.api.typing.Resampler` instances are returned by
 resample calls: :func:`pandas.DataFrame.resample`, :func:`pandas.Series.resample`.
@@ -38,7 +38,6 @@ Upsampling
    Resampler.ffill
    Resampler.bfill
    Resampler.nearest
-   Resampler.fillna
    Resampler.asfreq
    Resampler.interpolate
 

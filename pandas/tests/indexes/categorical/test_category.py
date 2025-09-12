@@ -3,6 +3,7 @@ import pytest
 
 from pandas._libs import index as libindex
 from pandas._libs.arrays import NDArrayBacked
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -19,6 +20,9 @@ from pandas.core.indexes.api import (
 class TestCategoricalIndex:
     @pytest.fixture
     def simple_index(self) -> CategoricalIndex:
+        """
+        Fixture that provides a CategoricalIndex.
+        """
         return CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
 
     def test_can_hold_identifiers(self):
@@ -47,7 +51,7 @@ class TestCategoricalIndex:
 
         # invalid -> cast to object
         expected = ci.astype(object).insert(0, "d")
-        result = ci.insert(0, "d")
+        result = ci.insert(0, "d").astype(object)
         tm.assert_index_equal(result, expected, exact=True)
 
         # GH 18295 (test missing)
@@ -121,11 +125,11 @@ class TestCategoricalIndex:
         assert idx.is_unique is False
         assert idx.has_duplicates is True
 
-        idx = CategoricalIndex([0, 1], categories=[2, 3], name="foo")
+        idx = CategoricalIndex([None, None], categories=[2, 3], name="foo")
         assert idx.is_unique is False
         assert idx.has_duplicates is True
 
-        idx = CategoricalIndex([0, 1, 2, 3], categories=[1, 2, 3], name="foo")
+        idx = CategoricalIndex([None, 1, 2, 3], categories=[1, 2, 3], name="foo")
         assert idx.is_unique is True
         assert idx.has_duplicates is False
 
@@ -142,7 +146,7 @@ class TestCategoricalIndex:
                 },
             ),
             (
-                [1, 1, 1],
+                [None, None, None],
                 list("abc"),
                 {
                     "first": np.array([False, True, True]),
@@ -151,7 +155,7 @@ class TestCategoricalIndex:
                 },
             ),
             (
-                [2, "a", "b"],
+                [None, "a", "b"],
                 list("abc"),
                 {
                     "first": np.zeros(shape=(3), dtype=np.bool_),
@@ -190,8 +194,11 @@ class TestCategoricalIndex:
     def test_unique(self, data, categories, expected_data, ordered):
         dtype = CategoricalDtype(categories, ordered=ordered)
 
-        idx = CategoricalIndex(data, dtype=dtype)
-        expected = CategoricalIndex(expected_data, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        warn = None if expected_data == [1] else Pandas4Warning
+        with tm.assert_produces_warning(warn, match=msg):
+            idx = CategoricalIndex(data, dtype=dtype)
+            expected = CategoricalIndex(expected_data, dtype=dtype)
         tm.assert_index_equal(idx.unique(), expected)
 
     def test_repr_roundtrip(self):
@@ -389,3 +396,10 @@ class TestCategoricalIndex2:
                 ["a", "b", np.nan, "d", "d", "a"], categories=list("dba"), ordered=True
             ),
         )
+
+
+def test_contains_rangeindex_categories_no_engine():
+    ci = CategoricalIndex(range(3))
+    assert 2 in ci
+    assert 5 not in ci
+    assert "_engine" not in ci._cache

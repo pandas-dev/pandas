@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.errors import (
-    IndexingError,
-    PerformanceWarning,
-)
+from pandas.errors import IndexingError
 
 import pandas as pd
 from pandas import (
@@ -14,14 +11,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-
-
-@pytest.fixture
-def single_level_multiindex():
-    """single level MultiIndex"""
-    return MultiIndex(
-        levels=[["foo", "bar", "baz", "qux"]], codes=[[0, 1, 2, 3]], names=["first"]
-    )
 
 
 @pytest.fixture
@@ -44,7 +33,7 @@ class TestMultiIndexLoc:
         df.loc[("bar", "two"), 1] = 7
         assert df.loc[("bar", "two"), 1] == 7
 
-    def test_loc_getitem_general(self, any_real_numpy_dtype):
+    def test_loc_getitem_general(self, performance_warning, any_real_numpy_dtype):
         # GH#2817
         dtype = any_real_numpy_dtype
         data = {
@@ -57,8 +46,7 @@ class TestMultiIndexLoc:
         df = df.set_index(keys=["col", "num"])
         key = 4.0, 12
 
-        # emits a PerformanceWarning, ok
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(performance_warning):
             tm.assert_frame_equal(df.loc[key], df.iloc[2:])
 
         # this is ok
@@ -117,7 +105,7 @@ class TestMultiIndexLoc:
         empty = Series(data=[], dtype=np.float64)
         expected = Series(
             [],
-            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            index=MultiIndex(levels=index.levels, codes=[[], []]),
             dtype=np.float64,
         )
         result = x.loc[empty]
@@ -141,7 +129,7 @@ class TestMultiIndexLoc:
         empty = np.array([])
         expected = Series(
             [],
-            index=MultiIndex(levels=index.levels, codes=[[], []], dtype=np.float64),
+            index=MultiIndex(levels=index.levels, codes=[[], []]),
             dtype="float64",
         )
         result = x.loc[empty]
@@ -277,8 +265,10 @@ class TestMultiIndexLoc:
         result = s.loc[2:4:2, "a":"c"]
         tm.assert_series_equal(result, expected)
 
-    def test_get_loc_single_level(self, single_level_multiindex):
-        single_level = single_level_multiindex
+    def test_get_loc_single_level(self):
+        single_level = MultiIndex(
+            levels=[["foo", "bar", "baz", "qux"]], codes=[[0, 1, 2, 3]], names=["first"]
+        )
         s = Series(
             np.random.default_rng(2).standard_normal(len(single_level)),
             index=single_level,
@@ -389,6 +379,29 @@ class TestMultiIndexLoc:
             index=mi,
             columns=["a", "b", "c", "d"],
         )
+        tm.assert_frame_equal(df, expected)
+
+    def test_multiindex_setitem_axis_set(self):
+        # GH#58116
+        dates = pd.date_range("2001-01-01", freq="D", periods=2)
+        ids = ["i1", "i2", "i3"]
+        index = MultiIndex.from_product([dates, ids], names=["date", "identifier"])
+        df = DataFrame(0.0, index=index, columns=["A", "B"])
+        df.loc(axis=0)["2001-01-01", ["i1", "i3"]] = None
+
+        expected = DataFrame(
+            [
+                [None, None],
+                [0.0, 0.0],
+                [None, None],
+                [0.0, 0.0],
+                [0.0, 0.0],
+                [0.0, 0.0],
+            ],
+            index=index,
+            columns=["A", "B"],
+        )
+
         tm.assert_frame_equal(df, expected)
 
     def test_sorted_multiindex_after_union(self):
@@ -588,7 +601,7 @@ def test_loc_nan_multiindex(using_infer_string):
         np.ones((1, 4)),
         index=Index(
             [np.nan],
-            dtype="object" if not using_infer_string else "string[pyarrow_numpy]",
+            dtype="object" if not using_infer_string else "str",
             name="u3",
         ),
         columns=Index(["d1", "d2", "d3", "d4"]),
@@ -744,7 +757,7 @@ class TestKeyErrorsWithMultiIndex:
         df = DataFrame(np.arange(12).reshape(4, 3), columns=["A", "B", "C"])
         df2 = df.set_index(["A", "B"])
 
-        with pytest.raises(KeyError, match="1"):
+        with pytest.raises(KeyError, match="6"):
             df2.loc[(1, 6)]
 
     def test_missing_key_raises_keyerror2(self):

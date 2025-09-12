@@ -1,6 +1,9 @@
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
+from pandas.compat.numpy import np_version_gt2
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -18,9 +21,10 @@ from pandas.core.arrays import (
     NumpyExtensionArray,
     PeriodArray,
     SparseArray,
+    StringArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
+from pandas.core.arrays.string_arrow import ArrowStringArray
 
 
 class TestToIterable:
@@ -218,7 +222,7 @@ class TestToIterable:
 )
 def test_values_consistent(arr, expected_type, dtype, using_infer_string):
     if using_infer_string and dtype == "object":
-        expected_type = ArrowStringArrayNumpySemantics
+        expected_type = ArrowStringArray if HAS_PYARROW else StringArray
     l_values = Series(arr)._values
     r_values = pd.Index(arr)._values
     assert type(l_values) is expected_type
@@ -251,13 +255,16 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
     [
         (pd.Categorical(["a", "b"]), "_codes"),
         (PeriodArray._from_sequence(["2000", "2001"], dtype="period[D]"), "_ndarray"),
-        (pd.array([0, np.nan], dtype="Int64"), "_data"),
+        (pd.array([0, pd.NA], dtype="Int64"), "_data"),
         (IntervalArray.from_breaks([0, 1]), "_left"),
         (SparseArray([0, 1]), "_sparse_values"),
-        (DatetimeArray(np.array([1, 2], dtype="datetime64[ns]")), "_ndarray"),
+        (
+            DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[ns]")),
+            "_ndarray",
+        ),
         # tz-aware Datetime
         (
-            DatetimeArray(
+            DatetimeArray._from_sequence(
                 np.array(
                     ["2000-01-01T12:00:00", "2000-01-02T12:00:00"], dtype="M8[ns]"
                 ),
@@ -267,7 +274,7 @@ def test_numpy_array_all_dtypes(any_numpy_dtype):
         ),
     ],
 )
-def test_array(arr, attr, index_or_series, request):
+def test_array(arr, attr, index_or_series):
     box = index_or_series
 
     result = box(arr, copy=False).array
@@ -287,46 +294,51 @@ def test_array_multiindex_raises():
 
 
 @pytest.mark.parametrize(
-    "arr, expected",
+    "arr, expected, zero_copy",
     [
-        (np.array([1, 2], dtype=np.int64), np.array([1, 2], dtype=np.int64)),
-        (pd.Categorical(["a", "b"]), np.array(["a", "b"], dtype=object)),
+        (np.array([1, 2], dtype=np.int64), np.array([1, 2], dtype=np.int64), True),
+        (pd.Categorical(["a", "b"]), np.array(["a", "b"], dtype=object), False),
         (
             pd.core.arrays.period_array(["2000", "2001"], freq="D"),
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
+            False,
         ),
-        (pd.array([0, np.nan], dtype="Int64"), np.array([0, np.nan])),
+        (pd.array([0, pd.NA], dtype="Int64"), np.array([0, np.nan]), False),
         (
             IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
+            False,
         ),
-        (SparseArray([0, 1]), np.array([0, 1], dtype=np.int64)),
+        (SparseArray([0, 1]), np.array([0, 1], dtype=np.int64), False),
         # tz-naive datetime
         (
-            DatetimeArray(np.array(["2000", "2001"], dtype="M8[ns]")),
+            DatetimeArray._from_sequence(np.array(["2000", "2001"], dtype="M8[ns]")),
             np.array(["2000", "2001"], dtype="M8[ns]"),
+            True,
         ),
         # tz-aware stays tz`-aware
         (
-            DatetimeArray(
-                np.array(
-                    ["2000-01-01T06:00:00", "2000-01-02T06:00:00"], dtype="M8[ns]"
-                ),
-                dtype=DatetimeTZDtype(tz="US/Central"),
-            ),
+            DatetimeArray._from_sequence(
+                np.array(["2000-01-01T06:00:00", "2000-01-02T06:00:00"], dtype="M8[ns]")
+            )
+            .tz_localize("UTC")
+            .tz_convert("US/Central"),
             np.array(
                 [
                     Timestamp("2000-01-01", tz="US/Central"),
                     Timestamp("2000-01-02", tz="US/Central"),
                 ]
             ),
+            False,
         ),
         # Timedelta
         (
-            TimedeltaArray(
-                np.array([0, 3600000000000], dtype="i8").view("m8[ns]"), freq="h"
+            TimedeltaArray._from_sequence(
+                np.array([0, 3600000000000], dtype="i8").view("m8[ns]"),
+                dtype=np.dtype("m8[ns]"),
             ),
             np.array([0, 3600000000000], dtype="m8[ns]"),
+            True,
         ),
         # GH#26406 tz is preserved in Categorical[dt64tz]
         (
@@ -337,10 +349,11 @@ def test_array_multiindex_raises():
                     Timestamp("2016-01-02", tz="US/Pacific"),
                 ]
             ),
+            False,
         ),
     ],
 )
-def test_to_numpy(arr, expected, index_or_series_or_array, request):
+def test_to_numpy(arr, expected, zero_copy, index_or_series_or_array):
     box = index_or_series_or_array
 
     with tm.assert_produces_warning(None):
@@ -351,6 +364,28 @@ def test_to_numpy(arr, expected, index_or_series_or_array, request):
 
     result = np.asarray(thing)
     tm.assert_numpy_array_equal(result, expected)
+
+    # Additionally, we check the `copy=` semantics for array/asarray
+    # (these are implemented by us via `__array__`).
+    result_cp1 = np.array(thing, copy=True)
+    result_cp2 = np.array(thing, copy=True)
+    # When called with `copy=True` NumPy/we should ensure a copy was made
+    assert not np.may_share_memory(result_cp1, result_cp2)
+
+    if not np_version_gt2:
+        # copy=False semantics are only supported in NumPy>=2.
+        return
+
+    if not zero_copy:
+        with pytest.raises(ValueError, match="Unable to avoid copy while creating"):
+            # An error is always acceptable for `copy=False`
+            np.array(thing, copy=False)
+
+    else:
+        result_nocopy1 = np.array(thing, copy=False)
+        result_nocopy2 = np.array(thing, copy=False)
+        # If copy=False was given, these must share the same data
+        assert np.may_share_memory(result_nocopy1, result_nocopy2)
 
 
 @pytest.mark.parametrize("as_series", [True, False])
@@ -364,13 +399,13 @@ def test_to_numpy_copy(arr, as_series, using_infer_string):
 
     # no copy by default
     result = obj.to_numpy()
-    if using_infer_string and arr.dtype == object:
+    if using_infer_string and arr.dtype == object and obj.dtype.storage == "pyarrow":
         assert np.shares_memory(arr, result) is False
     else:
         assert np.shares_memory(arr, result) is True
 
     result = obj.to_numpy(copy=False)
-    if using_infer_string and arr.dtype == object:
+    if using_infer_string and arr.dtype == object and obj.dtype.storage == "pyarrow":
         assert np.shares_memory(arr, result) is False
     else:
         assert np.shares_memory(arr, result) is True
@@ -381,7 +416,7 @@ def test_to_numpy_copy(arr, as_series, using_infer_string):
 
 
 @pytest.mark.parametrize("as_series", [True, False])
-def test_to_numpy_dtype(as_series, unit):
+def test_to_numpy_dtype(as_series):
     tz = "US/Eastern"
     obj = pd.DatetimeIndex(["2000", "2001"], tz=tz)
     if as_series:
@@ -410,7 +445,7 @@ def test_to_numpy_dtype(as_series, unit):
             [Timestamp("2000"), Timestamp("2000"), pd.NaT],
             None,
             Timestamp("2000"),
-            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
+            [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
 )
@@ -452,7 +487,7 @@ def test_to_numpy_na_value_numpy_dtype(
             [(0, Timestamp("2021")), (0, Timestamp("2022")), (1, Timestamp("2000"))],
             None,
             Timestamp("2000"),
-            [np.datetime64("2000-01-01T00:00:00.000000000")] * 3,
+            [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
 )
@@ -497,22 +532,23 @@ def test_to_numpy_dataframe_na_value(data, dtype, na_value):
 
 
 @pytest.mark.parametrize(
-    "data, expected",
+    "data, expected_data",
     [
         (
             {"a": pd.array([1, 2, None])},
-            np.array([[1.0], [2.0], [np.nan]], dtype=float),
+            [[1.0], [2.0], [np.nan]],
         ),
         (
             {"a": [1, 2, 3], "b": [1, 2, 3]},
-            np.array([[1, 1], [2, 2], [3, 3]], dtype=float),
+            [[1, 1], [2, 2], [3, 3]],
         ),
     ],
 )
-def test_to_numpy_dataframe_single_block(data, expected):
+def test_to_numpy_dataframe_single_block(data, expected_data):
     # https://github.com/pandas-dev/pandas/issues/33820
     df = pd.DataFrame(data)
     result = df.to_numpy(dtype=float, na_value=np.nan)
+    expected = np.array(expected_data, dtype=float)
     tm.assert_numpy_array_equal(result, expected)
 
 

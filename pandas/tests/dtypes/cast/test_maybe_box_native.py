@@ -17,7 +17,7 @@ from pandas import (
     "obj,expected_dtype",
     [
         (b"\x00\x10", bytes),
-        (int(4), int),
+        ((4), int),
         (np.uint(4), int),
         (np.int32(-4), int),
         (np.uint8(4), int),

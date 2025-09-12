@@ -98,23 +98,23 @@ class TestDataFrameFilter:
         tm.assert_frame_equal(result, exp)
 
     @pytest.mark.parametrize(
-        "name,expected",
+        "name,expected_data",
         [
-            ("a", DataFrame({"a": [1, 2]})),
-            ("a", DataFrame({"a": [1, 2]})),
-            ("あ", DataFrame({"あ": [3, 4]})),
+            ("a", {"a": [1, 2]}),
+            ("あ", {"あ": [3, 4]}),
         ],
     )
-    def test_filter_unicode(self, name, expected):
+    def test_filter_unicode(self, name, expected_data):
         # GH13101
         df = DataFrame({"a": [1, 2], "あ": [3, 4]})
+        expected = DataFrame(expected_data)
 
         tm.assert_frame_equal(df.filter(like=name), expected)
         tm.assert_frame_equal(df.filter(regex=name), expected)
 
-    @pytest.mark.parametrize("name", ["a", "a"])
-    def test_filter_bytestring(self, name):
+    def test_filter_bytestring(self):
         # GH13101
+        name = "a"
         df = DataFrame({b"a": [1, 2], b"b": [3, 4]})
         expected = DataFrame({b"a": [1, 2]})
 

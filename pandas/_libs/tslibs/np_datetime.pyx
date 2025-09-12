@@ -1,3 +1,4 @@
+cimport cython
 from cpython.datetime cimport (
     PyDateTime_CheckExact,
     PyDateTime_DATE_GET_HOUR,
@@ -17,6 +18,7 @@ from cpython.object cimport (
     Py_LT,
     Py_NE,
 )
+from cpython.unicode cimport PyUnicode_AsUTF8AndSize
 from libc.stdint cimport INT64_MAX
 
 import_datetime()
@@ -38,10 +40,11 @@ from numpy cimport (
 )
 
 from pandas._libs.tslibs.dtypes cimport (
+    get_supported_reso,
+    is_supported_unit,
     npy_unit_to_abbrev,
     npy_unit_to_attrname,
 )
-from pandas._libs.tslibs.util cimport get_c_string_buf_and_size
 
 
 cdef extern from "pandas/datetime/pd_datetime.h":
@@ -88,6 +91,28 @@ cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype):
 def py_get_unit_from_dtype(dtype):
     # for testing get_unit_from_dtype; adds 896 bytes to the .so file.
     return get_unit_from_dtype(dtype)
+
+
+def get_supported_dtype(dtype: cnp.dtype) -> cnp.dtype:
+    reso = get_unit_from_dtype(dtype)
+    new_reso = get_supported_reso(reso)
+    new_unit = npy_unit_to_abbrev(new_reso)
+
+    # Accessing dtype.kind here incorrectly(?) gives "" instead of "m"/"M",
+    #  so we check type_num instead
+    if dtype.type_num == cnp.NPY_DATETIME:
+        new_dtype = np.dtype(f"M8[{new_unit}]")
+    else:
+        new_dtype = np.dtype(f"m8[{new_unit}]")
+    return new_dtype
+
+
+def is_supported_dtype(dtype: cnp.dtype) -> bool:
+    if dtype.type_num not in [cnp.NPY_DATETIME, cnp.NPY_TIMEDELTA]:
+        raise ValueError("is_unitless dtype must be datetime64 or timedelta64")
+    cdef:
+        NPY_DATETIMEUNIT unit = get_unit_from_dtype(dtype)
+    return is_supported_unit(unit)
 
 
 def is_unitless(dtype: cnp.dtype) -> bool:
@@ -151,6 +176,15 @@ class OutOfBoundsDatetime(ValueError):
     """
     Raised when the datetime is outside the range that can be represented.
 
+    This error occurs when attempting to convert or parse a datetime value
+    that exceeds the bounds supported by pandas' internal datetime
+    representation.
+
+    See Also
+    --------
+    to_datetime : Convert argument to datetime.
+    Timestamp : Pandas replacement for python ``datetime.datetime`` object.
+
     Examples
     --------
     >>> pd.to_datetime("08335394550")
@@ -166,6 +200,10 @@ class OutOfBoundsTimedelta(ValueError):
     Raised when encountering a timedelta value that cannot be represented.
 
     Representation should be within a timedelta64[ns].
+
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
 
     Examples
     --------
@@ -306,7 +344,7 @@ cdef int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
-    format: str | None=None,
+    str format=None,
     bint exact=True,
 ) except? -1:
     cdef:
@@ -316,13 +354,13 @@ cdef int string_to_dts(
         const char* format_buf
         FormatRequirement format_requirement
 
-    buf = get_c_string_buf_and_size(val, &length)
+    buf = PyUnicode_AsUTF8AndSize(val, &length)
     if format is None:
         format_buf = b""
         format_length = 0
         format_requirement = INFER_FORMAT
     else:
-        format_buf = get_c_string_buf_and_size(format, &format_length)
+        format_buf = PyUnicode_AsUTF8AndSize(format, &format_length)
         format_requirement = <FormatRequirement>exact
     return parse_iso_8601_datetime(buf, length, want_exc,
                                    dts, out_bestunit, out_local, out_tzoffset,
@@ -571,7 +609,7 @@ cdef int64_t get_conversion_factor(
     ):
         raise ValueError("unit-less resolutions are not supported")
     if from_unit > to_unit:
-        raise ValueError
+        raise ValueError("from_unit must be <= to_unit")
 
     if from_unit == to_unit:
         return 1
@@ -678,3 +716,43 @@ cdef int64_t _convert_reso_with_dtstruct(
         raise OutOfBoundsDatetime from err
 
     return result
+
+
+@cython.overflowcheck(True)
+cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right):
+    """
+    Overflow-safe addition for datetime64/timedelta64 dtypes.
+
+    `right` may either be zero-dim or of the same shape as `left`.
+    """
+    cdef:
+        Py_ssize_t N = left.size
+        int64_t lval, rval, res_value
+        ndarray iresult = cnp.PyArray_EMPTY(
+            left.ndim, left.shape, cnp.NPY_INT64, 0
+        )
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew3(iresult, left, right)
+
+    # Note: doing this try/except outside the loop improves performance over
+    #  doing it inside the loop.
+    try:
+        for i in range(N):
+            # Analogous to: lval = lvalues[i]
+            lval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+
+            # Analogous to: rval = rvalues[i]
+            rval = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 2))[0]
+
+            if lval == NPY_DATETIME_NAT or rval == NPY_DATETIME_NAT:
+                res_value = NPY_DATETIME_NAT
+            else:
+                res_value = lval + rval
+
+            # Analogous to: result[i] = res_value
+            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_value
+
+            cnp.PyArray_MultiIter_NEXT(mi)
+    except OverflowError as err:
+        raise OverflowError("Overflow in int64 addition") from err
+
+    return iresult

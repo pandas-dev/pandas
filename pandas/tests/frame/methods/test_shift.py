@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -32,23 +32,20 @@ class TestDataFrameShift:
         expected2 = DataFrame([12345] * 5, dtype="Float64")
         tm.assert_frame_equal(res2, expected2)
 
-    def test_shift_deprecate_freq_and_fill_value(self, frame_or_series):
+    def test_shift_disallow_freq_and_fill_value(self, frame_or_series):
         # Can't pass both!
         obj = frame_or_series(
             np.random.default_rng(2).standard_normal(5),
             index=date_range("1/1/2000", periods=5, freq="h"),
         )
 
-        msg = (
-            "Passing a 'freq' together with a 'fill_value' silently ignores the "
-            "fill_value"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        msg = "Passing a 'freq' together with a 'fill_value'"
+        with pytest.raises(ValueError, match=msg):
             obj.shift(1, fill_value=1, freq="h")
 
         if frame_or_series is DataFrame:
             obj.columns = date_range("1/1/2000", periods=1, freq="h")
-            with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pytest.raises(ValueError, match=msg):
                 obj.shift(1, axis=1, fill_value=1, freq="h")
 
     @pytest.mark.parametrize(
@@ -325,7 +322,7 @@ class TestDataFrameShift:
         def get_cat_values(ndframe):
             # For Series we could just do ._values; for DataFrame
             #  we may be able to do this if we ever have 2D Categoricals
-            return ndframe._mgr.arrays[0]
+            return ndframe._mgr.blocks[0].values
 
         cat = get_cat_values(obj)
 
@@ -423,13 +420,12 @@ class TestDataFrameShift:
         tm.assert_frame_equal(shifted[0], shifted[1])
         tm.assert_frame_equal(shifted[0], shifted[2])
 
-    def test_shift_axis1_multiple_blocks(self, using_array_manager):
+    def test_shift_axis1_multiple_blocks(self):
         # GH#35488
         df1 = DataFrame(np.random.default_rng(2).integers(1000, size=(5, 3)))
         df2 = DataFrame(np.random.default_rng(2).integers(1000, size=(5, 2)))
         df3 = pd.concat([df1, df2], axis=1)
-        if not using_array_manager:
-            assert len(df3._mgr.blocks) == 2
+        assert len(df3._mgr.blocks) == 2
 
         result = df3.shift(2, axis=1)
 
@@ -449,8 +445,7 @@ class TestDataFrameShift:
         # Case with periods < 0
         # rebuild df3 because `take` call above consolidated
         df3 = pd.concat([df1, df2], axis=1)
-        if not using_array_manager:
-            assert len(df3._mgr.blocks) == 2
+        assert len(df3._mgr.blocks) == 2
         result = df3.shift(-2, axis=1)
 
         expected = df3.take([2, 3, 4, -1, -1], axis=1)
@@ -466,7 +461,6 @@ class TestDataFrameShift:
 
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_array_manager_not_yet_implemented  # TODO(ArrayManager) axis=1 support
     def test_shift_axis1_multiple_blocks_with_int_fill(self):
         # GH#42719
         rng = np.random.default_rng(2)
@@ -568,7 +562,7 @@ class TestDataFrameShift:
         # same thing but not consolidated; pre-2.0 we got different behavior
         df3 = DataFrame({"A": ser})
         df3["B"] = ser
-        assert len(df3._mgr.arrays) == 2
+        assert len(df3._mgr.blocks) == 2
         result = df3.shift(1, axis=1, fill_value=0)
         tm.assert_frame_equal(result, expected)
 
@@ -629,7 +623,7 @@ class TestDataFrameShift:
         # same thing but not consolidated
         df3 = DataFrame({"A": ser})
         df3["B"] = ser
-        assert len(df3._mgr.arrays) == 2
+        assert len(df3._mgr.blocks) == 2
         result = df3.shift(-1, axis=1, fill_value="foo")
         tm.assert_frame_equal(result, expected)
 
@@ -722,13 +716,6 @@ class TestDataFrameShift:
             df.shift(1, freq="h"),
         )
 
-        msg = (
-            "Passing a 'freq' together with a 'fill_value' silently ignores the "
-            "fill_value"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.shift([1, 2], fill_value=1, freq="h")
-
     def test_shift_with_iterable_check_other_arguments(self):
         # GH#44424
         data = {"a": [1, 2], "b": [4, 5]}
@@ -756,3 +743,54 @@ class TestDataFrameShift:
         msg = "Cannot specify `suffix` if `periods` is an int."
         with pytest.raises(ValueError, match=msg):
             df.shift(1, suffix="fails")
+
+    def test_shift_axis_one_empty(self):
+        # GH#57301
+        df = DataFrame()
+        result = df.shift(1, axis=1)
+        tm.assert_frame_equal(result, df)
+
+    def test_shift_with_offsets_freq_empty(self):
+        # GH#60102
+        dates = date_range("2020-01-01", periods=3, freq="D")
+        offset = offsets.Day()
+        shifted_dates = dates + offset
+        df = DataFrame(index=dates)
+        df_shifted = DataFrame(index=shifted_dates)
+        result = df.shift(freq=offset)
+        tm.assert_frame_equal(result, df_shifted)
+
+    def test_series_shift_interval_preserves_closed(self):
+        # GH#60389
+        ser = Series(
+            [pd.Interval(1, 2, closed="right"), pd.Interval(2, 3, closed="right")]
+        )
+        result = ser.shift(1)
+        expected = Series([np.nan, pd.Interval(1, 2, closed="right")])
+        tm.assert_series_equal(result, expected)
+
+    def test_shift_invalid_fill_value_deprecation(self):
+        # GH#53802
+        df = DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": [True, False, True],
+            }
+        )
+
+        msg = "shifting with a fill value that cannot"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.shift(1, fill_value="foo")
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["a"].shift(1, fill_value="foo")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["b"].shift(1, fill_value="foo")
+
+        # An incompatible null value
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.shift(1, fill_value=NaT)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["a"].shift(1, fill_value=NaT)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["b"].shift(1, fill_value=NaT)

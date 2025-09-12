@@ -1,0 +1,33 @@
+.. _whatsnew_233:
+
+What's new in 2.3.3 (September XX, 2025)
+----------------------------------------
+
+These are the changes in pandas 2.3.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_233.string_fixes:
+
+Improvements and fixes for the StringDtype
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Most changes in this release are related to :class:`StringDtype` which will
+become the default string dtype in pandas 3.0. See
+:ref:`whatsnew_230.upcoming_changes` for more details.
+
+.. _whatsnew_233.string_fixes.bugs:
+
+Bug fixes
+^^^^^^^^^
+- Fix bug in :meth:`Series.str.replace` using named capture groups (e.g., ``\g<name>``) with the Arrow-backed dtype would raise an error (:issue:`57636`)
+- Fix regression in ``~Series.str.contains``, ``~Series.str.match`` and ``~Series.str.fullmatch``
+  with a compiled regex and custom flags (:issue:`62240`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_233.contributors:
+
+Contributors
+~~~~~~~~~~~~

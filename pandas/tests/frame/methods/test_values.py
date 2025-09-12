@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     NaT,
@@ -15,15 +13,10 @@ import pandas._testing as tm
 
 
 class TestDataFrameValues:
-    @td.skip_array_manager_invalid_test
-    def test_values(self, float_frame, using_copy_on_write):
-        if using_copy_on_write:
-            with pytest.raises(ValueError, match="read-only"):
-                float_frame.values[:, 0] = 5.0
-            assert (float_frame.values[:, 0] != 5).all()
-        else:
+    def test_values(self, float_frame):
+        with pytest.raises(ValueError, match="read-only"):
             float_frame.values[:, 0] = 5.0
-            assert (float_frame.values[:, 0] == 5).all()
+        assert (float_frame.values[:, 0] != 5).all()
 
     def test_more_values(self, float_string_frame):
         values = float_string_frame.values
@@ -231,36 +224,26 @@ class TestDataFrameValues:
 
 
 class TestPrivateValues:
-    @td.skip_array_manager_invalid_test
-    def test_private_values_dt64tz(self, using_copy_on_write):
+    def test_private_values_dt64tz(self):
         dta = date_range("2000", periods=4, tz="US/Central")._data.reshape(-1, 1)
 
         df = DataFrame(dta, columns=["A"])
         tm.assert_equal(df._values, dta)
 
-        if using_copy_on_write:
-            assert not np.shares_memory(df._values._ndarray, dta._ndarray)
-        else:
-            # we have a view
-            assert np.shares_memory(df._values._ndarray, dta._ndarray)
+        assert not np.shares_memory(df._values._ndarray, dta._ndarray)
 
         # TimedeltaArray
         tda = dta - dta
         df2 = df - df
         tm.assert_equal(df2._values, tda)
 
-    @td.skip_array_manager_invalid_test
-    def test_private_values_dt64tz_multicol(self, using_copy_on_write):
+    def test_private_values_dt64tz_multicol(self):
         dta = date_range("2000", periods=8, tz="US/Central")._data.reshape(-1, 2)
 
         df = DataFrame(dta, columns=["A", "B"])
         tm.assert_equal(df._values, dta)
 
-        if using_copy_on_write:
-            assert not np.shares_memory(df._values._ndarray, dta._ndarray)
-        else:
-            # we have a view
-            assert np.shares_memory(df._values._ndarray, dta._ndarray)
+        assert not np.shares_memory(df._values._ndarray, dta._ndarray)
 
         # TimedeltaArray
         tda = dta - dta
@@ -273,7 +256,7 @@ class TestPrivateValues:
         df = DataFrame({"A": dta[:4]}, copy=False)
         df["B"] = dta[4:]
 
-        assert len(df._mgr.arrays) == 2
+        assert len(df._mgr.blocks) == 2
 
         result = df._values
         expected = dta.reshape(2, 4).T

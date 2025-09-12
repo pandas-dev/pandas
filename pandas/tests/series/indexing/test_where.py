@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas.core.dtypes.common import is_integer
 
 import pandas as pd
@@ -55,15 +53,13 @@ def test_where_unsafe_upcast(dtype, expected_dtype):
     s = Series(np.arange(10), dtype=dtype)
     values = [2.5, 3.5, 4.5, 5.5, 6.5]
     mask = s < 5
-    expected = Series(values + list(range(5, 10)), dtype=expected_dtype)
-    warn = (
-        None
-        if np.dtype(dtype).kind == np.dtype(expected_dtype).kind == "f"
-        else FutureWarning
-    )
-    with tm.assert_produces_warning(warn, match="incompatible dtype"):
+    if np.dtype(dtype).kind == np.dtype(expected_dtype).kind == "f":
         s[mask] = values
-    tm.assert_series_equal(s, expected)
+        expected = Series(values + list(range(5, 10)), dtype=expected_dtype)
+        tm.assert_series_equal(s, expected)
+    else:
+        with pytest.raises(TypeError, match="Invalid value"):
+            s[mask] = values
 
 
 def test_where_unsafe():
@@ -74,9 +70,10 @@ def test_where_unsafe():
     mask = s > 5
     expected = Series(list(range(6)) + values, dtype="float64")
 
-    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+    with pytest.raises(TypeError, match="Invalid value"):
         s[mask] = values
-    tm.assert_series_equal(s, expected)
+    s = s.astype("float64")
+    s[mask] = values
 
     # see gh-3235
     s = Series(np.arange(10), dtype="int64")
@@ -201,7 +198,7 @@ def test_where_invalid_input(cond):
     s = Series([1, 2, 3])
     msg = "Boolean array expected for the condition"
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(TypeError, match=msg):
         s.where(cond)
 
     msg = "Array conditional must be same shape as self"
@@ -232,7 +229,6 @@ def test_where_ndframe_align():
     tm.assert_series_equal(out, expected)
 
 
-@pytest.mark.xfail(using_pyarrow_string_dtype(), reason="can't set ints into string")
 def test_where_setitem_invalid():
     # GH 2702
     # make sure correct exceptions are raised on invalid list assignment
@@ -242,7 +238,7 @@ def test_where_setitem_invalid():
         "different length than the value"
     )
     # slice
-    s = Series(list("abc"))
+    s = Series(list("abc"), dtype=object)
 
     with pytest.raises(ValueError, match=msg("slice")):
         s[0:3] = list(range(27))
@@ -252,18 +248,18 @@ def test_where_setitem_invalid():
     tm.assert_series_equal(s.astype(np.int64), expected)
 
     # slice with step
-    s = Series(list("abcdef"))
+    s = Series(list("abcdef"), dtype=object)
 
     with pytest.raises(ValueError, match=msg("slice")):
         s[0:4:2] = list(range(27))
 
-    s = Series(list("abcdef"))
+    s = Series(list("abcdef"), dtype=object)
     s[0:4:2] = list(range(2))
     expected = Series([0, "b", 1, "d", "e", "f"])
     tm.assert_series_equal(s, expected)
 
     # neg slices
-    s = Series(list("abcdef"))
+    s = Series(list("abcdef"), dtype=object)
 
     with pytest.raises(ValueError, match=msg("slice")):
         s[:-1] = list(range(27))
@@ -273,18 +269,18 @@ def test_where_setitem_invalid():
     tm.assert_series_equal(s, expected)
 
     # list
-    s = Series(list("abc"))
+    s = Series(list("abc"), dtype=object)
 
     with pytest.raises(ValueError, match=msg("list-like")):
         s[[0, 1, 2]] = list(range(27))
 
-    s = Series(list("abc"))
+    s = Series(list("abc"), dtype=object)
 
     with pytest.raises(ValueError, match=msg("list-like")):
         s[[0, 1, 2]] = list(range(2))
 
     # scalar
-    s = Series(list("abc"))
+    s = Series(list("abc"), dtype=object)
     s[0] = list(range(10))
     expected = Series([list(range(10)), "b", "c"])
     tm.assert_series_equal(s, expected)
@@ -297,11 +293,7 @@ def test_where_setitem_invalid():
 @pytest.mark.parametrize(
     "item", [2.0, np.nan, np.finfo(float).max, np.finfo(float).min]
 )
-# Test numpy arrays, lists and tuples as the input to be
-# broadcast
-@pytest.mark.parametrize(
-    "box", [lambda x: np.array([x]), lambda x: [x], lambda x: (x,)]
-)
+@pytest.mark.parametrize("box", [np.array, list, tuple])
 def test_broadcast(size, mask, item, box):
     # GH#8801, GH#4195
     selection = np.resize(mask, size)
@@ -320,11 +312,11 @@ def test_broadcast(size, mask, item, box):
     tm.assert_series_equal(s, expected)
 
     s = Series(data)
-    result = s.where(~selection, box(item))
+    result = s.where(~selection, box([item]))
     tm.assert_series_equal(result, expected)
 
     s = Series(data)
-    result = s.mask(selection, box(item))
+    result = s.mask(selection, box([item]))
     tm.assert_series_equal(result, expected)
 
 
@@ -388,34 +380,6 @@ def test_where_numeric_with_string():
     assert is_integer(w[2])
     assert isinstance(w[0], str)
     assert w.dtype == "object"
-
-
-@pytest.mark.parametrize("dtype", ["timedelta64[ns]", "datetime64[ns]"])
-def test_where_datetimelike_coerce(dtype):
-    ser = Series([1, 2], dtype=dtype)
-    expected = Series([10, 10])
-    mask = np.array([False, False])
-
-    msg = "Downcasting behavior in Series and DataFrame methods 'where'"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = ser.where(mask, [10, 10])
-    tm.assert_series_equal(rs, expected)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = ser.where(mask, 10)
-    tm.assert_series_equal(rs, expected)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = ser.where(mask, 10.0)
-    tm.assert_series_equal(rs, expected)
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = ser.where(mask, [10.0, 10.0])
-    tm.assert_series_equal(rs, expected)
-
-    rs = ser.where(mask, [10.0, np.nan])
-    expected = Series([10, np.nan], dtype="object")
-    tm.assert_series_equal(rs, expected)
 
 
 def test_where_datetimetz():

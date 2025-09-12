@@ -36,6 +36,7 @@ Exceptions and warnings
    errors.DuplicateLabelError
    errors.EmptyDataError
    errors.IncompatibilityWarning
+   errors.IncompatibleFrequency
    errors.IndexingError
    errors.InvalidColumnName
    errors.InvalidComparison
@@ -51,6 +52,12 @@ Exceptions and warnings
    errors.OptionError
    errors.OutOfBoundsDatetime
    errors.OutOfBoundsTimedelta
+   errors.PandasChangeWarning
+   errors.Pandas4Warning
+   errors.Pandas5Warning
+   errors.PandasPendingDeprecationWarning
+   errors.PandasDeprecationWarning
+   errors.PandasFutureWarning
    errors.ParserError
    errors.ParserWarning
    errors.PerformanceWarning
@@ -58,8 +65,6 @@ Exceptions and warnings
    errors.PossiblePrecisionLoss
    errors.PyperclipException
    errors.PyperclipWindowsException
-   errors.SettingWithCopyError
-   errors.SettingWithCopyWarning
    errors.SpecificationError
    errors.UndefinedVariableError
    errors.UnsortedIndexError

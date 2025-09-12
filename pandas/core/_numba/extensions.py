@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import operator
+from typing import Self
 
 import numba
 from numba import types
@@ -49,7 +50,8 @@ from pandas.core.series import Series
 @contextmanager
 def set_numba_data(index: Index):
     numba_data = index._data
-    if numba_data.dtype == object:
+    if numba_data.dtype in (object, "string"):
+        numba_data = np.asarray(numba_data)
         if not lib.is_string_array(numba_data):
             raise ValueError(
                 "The numba engine only supports using string or numeric column names"
@@ -84,7 +86,7 @@ class IndexType(types.Type):
     def as_array(self):
         return types.Array(self.dtype, 1, self.layout)
 
-    def copy(self, dtype=None, ndim: int = 1, layout=None):
+    def copy(self, dtype=None, ndim: int = 1, layout=None) -> Self:
         assert ndim == 1
         if dtype is None:
             dtype = self.dtype
@@ -114,7 +116,7 @@ class SeriesType(types.Type):
     def as_array(self):
         return self.values
 
-    def copy(self, dtype=None, ndim: int = 1, layout: str = "C"):
+    def copy(self, dtype=None, ndim: int = 1, layout: str = "C") -> Self:
         assert ndim == 1
         assert layout == "C"
         if dtype is None:
@@ -123,7 +125,7 @@ class SeriesType(types.Type):
 
 
 @typeof_impl.register(Index)
-def typeof_index(val, c):
+def typeof_index(val, c) -> IndexType:
     """
     This will assume that only strings are in object dtype
     index.
@@ -136,7 +138,7 @@ def typeof_index(val, c):
 
 
 @typeof_impl.register(Series)
-def typeof_series(val, c):
+def typeof_series(val, c) -> SeriesType:
     index = typeof_impl(val.index, c)
     arrty = typeof_impl(val.values, c)
     namety = typeof_impl(val.name, c)
@@ -532,7 +534,7 @@ class IlocType(types.Type):
 
 
 @typeof_impl.register(_iLocIndexer)
-def typeof_iloc(val, c):
+def typeof_iloc(val, c) -> IlocType:
     objtype = typeof_impl(val.obj, c)
     return IlocType(objtype)
 

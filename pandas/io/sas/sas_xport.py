@@ -7,9 +7,9 @@ The file format is defined here:
 
 https://support.sas.com/content/dam/SAS/support/en/technical-papers/record-layout-of-a-sas-version-5-or-6-data-set-in-sas-transport-xport-format.pdf
 """
+
 from __future__ import annotations
 
-from collections import abc
 from datetime import datetime
 import struct
 from typing import TYPE_CHECKING
@@ -23,7 +23,7 @@ from pandas.util._exceptions import find_stack_level
 import pandas as pd
 
 from pandas.io.common import get_handle
-from pandas.io.sas.sasreader import ReaderBase
+from pandas.io.sas.sasreader import SASReader
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -33,19 +33,16 @@ if TYPE_CHECKING:
         ReadBuffer,
     )
 _correct_line1 = (
-    "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
-    "000000000000000000000000000000  "
+    "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!000000000000000000000000000000  "
 )
 _correct_header1 = (
     "HEADER RECORD*******MEMBER  HEADER RECORD!!!!!!!000000000000000001600000000"
 )
 _correct_header2 = (
-    "HEADER RECORD*******DSCRPTR HEADER RECORD!!!!!!!"
-    "000000000000000000000000000000  "
+    "HEADER RECORD*******DSCRPTR HEADER RECORD!!!!!!!000000000000000000000000000000  "
 )
 _correct_obs_header = (
-    "HEADER RECORD*******OBS     HEADER RECORD!!!!!!!"
-    "000000000000000000000000000000  "
+    "HEADER RECORD*******OBS     HEADER RECORD!!!!!!!000000000000000000000000000000  "
 )
 _fieldkeys = [
     "ntype",
@@ -251,7 +248,7 @@ def _parse_float_vec(vec):
     return ieee
 
 
-class XportReader(ReaderBase, abc.Iterator):
+class XportReader(SASReader):
     __doc__ = _xport_reader_doc
 
     def __init__(
@@ -288,7 +285,7 @@ class XportReader(ReaderBase, abc.Iterator):
     def _get_row(self):
         return self.filepath_or_buffer.read(80).decode()
 
-    def _read_header(self):
+    def _read_header(self) -> None:
         self.filepath_or_buffer.seek(0)
 
         # read file header

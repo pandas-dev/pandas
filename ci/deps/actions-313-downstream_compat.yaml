@@ -1,0 +1,74 @@
+# Non-dependencies that pandas utilizes or has compatibility with pandas objects
+name: pandas-dev
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+
+  # build dependencies
+  - versioneer
+  - cython<4.0.0a0
+  - meson=1.2.1
+  - meson-python=0.13.1
+
+  # test dependencies
+  - pytest>=7.3.2
+  - pytest-cov
+  - pytest-xdist>=3.4.0
+  - pytest-localserver>=0.8.1
+  - pytest-qt>=4.4.0
+  - boto3=1.37.3
+
+  # required dependencies
+  - python-dateutil
+  - numpy
+
+  # optional dependencies
+  - adbc-driver-postgresql>=1.2.0
+  - beautifulsoup4>=4.12.3
+  - bottleneck>=1.4.2
+  - fastparquet>=2024.11.0
+  - fsspec>=2024.10.0
+  - html5lib>=1.1
+  - hypothesis>=6.116.0
+  - gcsfs>=2024.10.0
+  - jinja2>=3.1.5
+  - lxml>=5.3.0
+  - matplotlib>=3.9.3
+  - numba>=0.60.0
+  - numexpr>=2.10.2
+  - odfpy>=1.4.1
+  - qtpy>=2.4.2
+  - openpyxl>=3.1.5
+  - psycopg2>=2.9.10
+  - pyarrow>=13.0.0
+  - pyiceberg>=0.8.1
+  - pymysql>=1.1.1
+  - pyqt>=5.15.9
+  - pyreadstat>=1.2.8
+  - pytables>=3.10.1
+  - python-calamine>=0.3.0
+  - pytz>=2024.2
+  - pyxlsb>=1.0.10
+  - s3fs>=2024.10.0
+  - scipy>=1.14.1
+  - sqlalchemy>=2.0.36
+  - tabulate>=0.9.0
+  - xarray>=2024.10.0
+  - xlrd>=2.0.1
+  - xlsxwriter>=3.2.0
+  - zstandard>=0.23.0
+
+  # downstream packages
+  - botocore
+  - cftime
+  - dask
+  - ipython
+  - seaborn
+  - scikit-learn
+  - statsmodels
+  - coverage
+  - pandas-datareader
+  - pyyaml
+  - pip:
+    - tzdata>=2023.3

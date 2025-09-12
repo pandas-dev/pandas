@@ -1,10 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
-import pandas.util._test_decorators as td
-
 from pandas import (
     NA,
     Categorical,
@@ -24,13 +20,10 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.mark.xfail(
-    using_pyarrow_string_dtype(), reason="share memory doesn't work for arrow"
-)
 def test_reindex(datetime_series, string_series):
     identity = string_series.reindex(string_series.index)
 
-    assert np.may_share_memory(string_series.index, identity.index)
+    assert tm.shares_memory(string_series.index, identity.index)
 
     assert identity.index.is_(string_series.index)
     assert identity.index.identical(string_series.index)
@@ -137,15 +130,13 @@ def test_reindex_pad2():
     # GH4604
     s = Series([1, 2, 3, 4, 5], index=["a", "b", "c", "d", "e"])
     new_index = ["a", "g", "c", "f"]
-    expected = Series([1, 1, 3, 3], index=new_index)
+    expected = Series([1, 1, 3, 3.0], index=new_index)
 
     # this changes dtype because the ffill happens after
     result = s.reindex(new_index).ffill()
-    tm.assert_series_equal(result, expected.astype("float64"))
+    tm.assert_series_equal(result, expected)
 
-    msg = "The 'downcast' keyword in ffill is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.reindex(new_index).ffill(downcast="infer")
+    result = s.reindex(new_index).ffill()
     tm.assert_series_equal(result, expected)
 
     expected = Series([1, 5, 3, 5], index=new_index)
@@ -157,20 +148,16 @@ def test_reindex_inference():
     # inference of new dtype
     s = Series([True, False, False, True], index=list("abcd"))
     new_index = "agc"
-    msg = "Downcasting object dtype arrays on"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.reindex(list(new_index)).ffill()
-    expected = Series([True, True, False], index=list(new_index))
+    result = s.reindex(list(new_index)).ffill()
+    expected = Series([True, True, False], index=list(new_index), dtype=object)
     tm.assert_series_equal(result, expected)
 
 
 def test_reindex_downcasting():
     # GH4618 shifted series downcasting
     s = Series(False, index=range(5))
-    msg = "Downcasting object dtype arrays on"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.shift(1).bfill()
-    expected = Series(False, index=range(5))
+    result = s.shift(1).bfill()
+    expected = Series(False, index=range(5), dtype=object)
     tm.assert_series_equal(result, expected)
 
 
@@ -242,13 +229,15 @@ def test_reindex_categorical():
     tm.assert_series_equal(result, expected)
 
     # partial reindexing
-    expected = Series(Categorical(values=["b", "c"], categories=["a", "b", "c"]))
-    expected.index = [1, 2]
+    expected = Series(
+        Categorical(values=["b", "c"], categories=["a", "b", "c"]), index=range(1, 3)
+    )
     result = s.reindex([1, 2])
     tm.assert_series_equal(result, expected)
 
-    expected = Series(Categorical(values=["c", np.nan], categories=["a", "b", "c"]))
-    expected.index = [2, 3]
+    expected = Series(
+        Categorical(values=["c", np.nan], categories=["a", "b", "c"]), index=range(2, 4)
+    )
     result = s.reindex([2, 3])
     tm.assert_series_equal(result, expected)
 
@@ -269,11 +258,11 @@ def test_reindex_fill_value():
     # floats
     floats = Series([1.0, 2.0, 3.0])
     result = floats.reindex([1, 2, 3])
-    expected = Series([2.0, 3.0, np.nan], index=[1, 2, 3])
+    expected = Series([2.0, 3.0, np.nan], index=range(1, 4))
     tm.assert_series_equal(result, expected)
 
     result = floats.reindex([1, 2, 3], fill_value=0)
-    expected = Series([2.0, 3.0, 0], index=[1, 2, 3])
+    expected = Series([2.0, 3.0, 0], index=range(1, 4))
     tm.assert_series_equal(result, expected)
 
     # -----------------------------------------------------------
@@ -281,12 +270,12 @@ def test_reindex_fill_value():
     ints = Series([1, 2, 3])
 
     result = ints.reindex([1, 2, 3])
-    expected = Series([2.0, 3.0, np.nan], index=[1, 2, 3])
+    expected = Series([2.0, 3.0, np.nan], index=range(1, 4))
     tm.assert_series_equal(result, expected)
 
     # don't upcast
     result = ints.reindex([1, 2, 3], fill_value=0)
-    expected = Series([2, 3, 0], index=[1, 2, 3])
+    expected = Series([2, 3, 0], index=range(1, 4))
     assert issubclass(result.dtype.type, np.integer)
     tm.assert_series_equal(result, expected)
 
@@ -295,11 +284,11 @@ def test_reindex_fill_value():
     objects = Series([1, 2, 3], dtype=object)
 
     result = objects.reindex([1, 2, 3])
-    expected = Series([2, 3, np.nan], index=[1, 2, 3], dtype=object)
+    expected = Series([2, 3, np.nan], index=range(1, 4), dtype=object)
     tm.assert_series_equal(result, expected)
 
     result = objects.reindex([1, 2, 3], fill_value="foo")
-    expected = Series([2, 3, "foo"], index=[1, 2, 3], dtype=object)
+    expected = Series([2, 3, "foo"], index=range(1, 4), dtype=object)
     tm.assert_series_equal(result, expected)
 
     # ------------------------------------------------------------
@@ -307,18 +296,17 @@ def test_reindex_fill_value():
     bools = Series([True, False, True])
 
     result = bools.reindex([1, 2, 3])
-    expected = Series([False, True, np.nan], index=[1, 2, 3], dtype=object)
+    expected = Series([False, True, np.nan], index=range(1, 4), dtype=object)
     tm.assert_series_equal(result, expected)
 
     result = bools.reindex([1, 2, 3], fill_value=False)
-    expected = Series([False, True, False], index=[1, 2, 3])
+    expected = Series([False, True, False], index=range(1, 4))
     tm.assert_series_equal(result, expected)
 
 
-@td.skip_array_manager_not_yet_implemented
 @pytest.mark.parametrize("dtype", ["datetime64[ns]", "timedelta64[ns]"])
 @pytest.mark.parametrize("fill_value", ["string", 0, Timedelta(0)])
-def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_manager):
+def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value):
     # https://github.com/pandas-dev/pandas/issues/42921
     if dtype == "timedelta64[ns]" and fill_value == Timedelta(0):
         # use the scalar that is not compatible with the dtype for this test
@@ -327,7 +315,7 @@ def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_m
     ser = Series([NaT], dtype=dtype)
 
     result = ser.reindex([0, 1], fill_value=fill_value)
-    expected = Series([NaT, fill_value], index=[0, 1], dtype=object)
+    expected = Series([NaT, fill_value], index=range(2), dtype=object)
     tm.assert_series_equal(result, expected)
 
 
@@ -433,7 +421,7 @@ def test_reindexing_with_float64_NA_log():
     tm.assert_numpy_array_equal(result, expected)
     with tm.assert_produces_warning(None):
         result_log = np.log(s_reindex)
-        expected_log = Series([0, np.nan, np.nan], dtype=Float64Dtype())
+        expected_log = Series([0, NA, NA], dtype=Float64Dtype())
         tm.assert_series_equal(result_log, expected_log)
 
 
@@ -445,4 +433,42 @@ def test_reindex_expand_nonnano_nat(dtype):
     expected = Series(
         np.array([1, getattr(np, dtype)("nat", "s")], dtype=f"{dtype}[s]")
     )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "name, expected_match_level_a",
+    [
+        ("a", True),
+        (None, False),
+        ("x", False),
+    ],
+)
+def test_reindex_multiindex_automatic_level(name, expected_match_level_a):
+    series = Series([26.73, 24.255], index=Index([81, 82], name=name))
+    target = MultiIndex.from_product(
+        [[81, 82], [np.nan], ["2018-06-01", "2018-07-01"]], names=["a", "b", "c"]
+    )
+
+    result = series.reindex(target)
+
+    if expected_match_level_a:
+        expected = Series(
+            data=[26.73, 26.73, 24.255, 24.255],
+            index=MultiIndex.from_product(
+                [[81, 82], [np.nan], ["2018-06-01", "2018-07-01"]],
+                names=["a", "b", "c"],
+            ),
+            dtype=series.dtype,
+        )
+    else:
+        expected = Series(
+            data=[np.nan] * 4,
+            index=MultiIndex.from_product(
+                [[81, 82], [np.nan], ["2018-06-01", "2018-07-01"]],
+                names=["a", "b", "c"],
+            ),
+            dtype=series.dtype,
+        )
+
     tm.assert_series_equal(result, expected)

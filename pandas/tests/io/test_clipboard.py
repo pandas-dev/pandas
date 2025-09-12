@@ -17,10 +17,6 @@ from pandas import (
     read_clipboard,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 
 from pandas.io.clipboard import (
     CheckedCall,
@@ -222,7 +218,7 @@ class TestClipboard:
 
     # Separator is ignored when excel=False and should produce a warning
     def test_copy_delim_warning(self, df):
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(UserWarning, match="ignores the sep argument"):
             df.to_clipboard(excel=False, sep="\t")
 
     # Tests that the default behavior of to_clipboard is tab
@@ -349,19 +345,14 @@ class TestClipboard:
 
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_read_clipboard_dtype_backend(
-        self, clipboard, string_storage, dtype_backend, engine
+        self, clipboard, string_storage, dtype_backend, engine, using_infer_string
     ):
         # GH#50502
-        if string_storage == "pyarrow" or dtype_backend == "pyarrow":
+        if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
-
-        if string_storage == "python":
-            string_array = StringArray(np.array(["x", "y"], dtype=np.object_))
-            string_array_na = StringArray(np.array(["x", NA], dtype=np.object_))
-
+            string_dtype = pd.ArrowDtype(pa.string())
         else:
-            string_array = ArrowStringArray(pa.array(["x", "y"]))
-            string_array_na = ArrowStringArray(pa.array(["x", None]))
+            string_dtype = pd.StringDtype(string_storage)
 
         text = """a,b,c,d,e,f,g,h,i
 x,1,4.0,x,2,4.0,,True,False
@@ -373,10 +364,10 @@ y,2,5.0,,,,,False,"""
 
         expected = DataFrame(
             {
-                "a": string_array,
+                "a": Series(["x", "y"], dtype=string_dtype),
                 "b": Series([1, 2], dtype="Int64"),
                 "c": Series([4.0, 5.0], dtype="Float64"),
-                "d": string_array_na,
+                "d": Series(["x", None], dtype=string_dtype),
                 "e": Series([2, NA], dtype="Int64"),
                 "f": Series([4.0, NA], dtype="Float64"),
                 "g": Series([NA, NA], dtype="Int64"),
@@ -395,6 +386,11 @@ y,2,5.0,,,,,False,"""
             )
             expected["g"] = ArrowExtensionArray(pa.array([None, None]))
 
+        if using_infer_string:
+            expected.columns = expected.columns.astype(
+                pd.StringDtype(string_storage, na_value=np.nan)
+            )
+
         tm.assert_frame_equal(result, expected)
 
     def test_invalid_dtype_backend(self):
@@ -404,13 +400,3 @@ y,2,5.0,,,,,False,"""
         )
         with pytest.raises(ValueError, match=msg):
             read_clipboard(dtype_backend="numpy")
-
-    def test_to_clipboard_pos_args_deprecation(self):
-        # GH-54229
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            r"Starting with pandas version 3.0 all arguments of to_clipboard "
-            r"will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.to_clipboard(True, None)

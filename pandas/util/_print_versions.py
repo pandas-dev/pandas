@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import codecs
 import json
 import locale
 import os
@@ -45,7 +44,7 @@ def _get_sys_info() -> dict[str, JSONSerializable]:
     language_code, encoding = locale.getlocale()
     return {
         "commit": _get_commit_hash(),
-        "python": ".".join([str(i) for i in sys.version_info]),
+        "python": platform.python_version(),
         "python-bits": struct.calcsize("P") * 8,
         "OS": uname_result.system,
         "OS-release": uname_result.release,
@@ -67,36 +66,27 @@ def _get_dependency_info() -> dict[str, JSONSerializable]:
         "pandas",
         # required
         "numpy",
-        "pytz",
         "dateutil",
         # install / build,
-        "setuptools",
         "pip",
         "Cython",
-        # test
-        "pytest",
-        "hypothesis",
         # docs
         "sphinx",
-        # Other, need a min version
-        "blosc",
-        "feather",
-        "xlsxwriter",
-        "lxml.etree",
-        "html5lib",
-        "pymysql",
-        "psycopg2",
-        "jinja2",
         # Other, not imported.
         "IPython",
-        "pandas_datareader",
     ]
+    # Optional dependencies
     deps.extend(list(VERSIONS))
 
     result: dict[str, JSONSerializable] = {}
     for modname in deps:
-        mod = import_optional_dependency(modname, errors="ignore")
-        result[modname] = get_version(mod) if mod else None
+        try:
+            mod = import_optional_dependency(modname, errors="ignore")
+        except Exception:
+            # Dependency conflicts may cause a non ImportError
+            result[modname] = "N/A"
+        else:
+            result[modname] = get_version(mod) if mod else None
     return result
 
 
@@ -114,6 +104,11 @@ def show_versions(as_json: str | bool = False) -> None:
         * If str, it will be considered as a path to a file.
           Info will be written to that file in JSON format.
         * If True, outputs info in JSON format to the console.
+
+    See Also
+    --------
+    get_option : Retrieve the value of the specified option.
+    set_option : Set the value of the specified option or options.
 
     Examples
     --------
@@ -147,7 +142,7 @@ def show_versions(as_json: str | bool = False) -> None:
             sys.stdout.writelines(json.dumps(j, indent=2))
         else:
             assert isinstance(as_json, str)  # needed for mypy
-            with codecs.open(as_json, "wb", encoding="utf8") as f:
+            with open(as_json, "w", encoding="utf-8") as f:
                 json.dump(j, f, indent=2)
 
     else:

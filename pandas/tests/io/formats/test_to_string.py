@@ -10,6 +10,10 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     CategoricalIndex,
     DataFrame,
@@ -33,6 +37,16 @@ def _three_digit_exp():
 
 
 class TestDataFrameToStringFormatters:
+    def test_keyword_deprecation(self):
+        # GH 57280
+        msg = (
+            "Starting with pandas version 4.0 all arguments of to_string "
+            "except for the argument 'buf' will be keyword-only."
+        )
+        s = Series(["a", "b"])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            s.to_string(None, "NaN")
+
     def test_to_string_masked_ea_with_formatter(self):
         # GH#39336
         df = DataFrame(
@@ -120,20 +134,17 @@ class TestDataFrameToStringFormatters:
         )
         assert result == expected
 
-        def test_to_string_index_formatter(self):
-            df = DataFrame([range(5), range(5, 10), range(10, 15)])
-
-            rs = df.to_string(formatters={"__index__": lambda x: "abc"[x]})
-
-            xp = dedent(
-                """\
-                0   1   2   3   4
-            a   0   1   2   3   4
-            b   5   6   7   8   9
-            c  10  11  12  13  14\
-            """
-            )
-            assert rs == xp
+    def test_to_string_index_formatter(self):
+        df = DataFrame([range(5), range(5, 10), range(10, 15)])
+        rs = df.to_string(formatters={"__index__": lambda x: "abc"[x]})
+        xp = dedent(
+            """\
+            0   1   2   3   4
+        a   0   1   2   3   4
+        b   5   6   7   8   9
+        c  10  11  12  13  14"""
+        )
+        assert rs == xp
 
     def test_no_extra_space(self):
         # GH#52690: Check that no extra space is given
@@ -368,17 +379,11 @@ class TestToStringNumericFormatting:
         # sadness per above
         if _three_digit_exp():
             expected = (
-                "               a\n"
-                "0  1.500000e+000\n"
-                "1  1.000000e-017\n"
-                "2 -5.500000e-007"
+                "               a\n0  1.500000e+000\n1  1.000000e-017\n2 -5.500000e-007"
             )
         else:
             expected = (
-                "              a\n"
-                "0  1.500000e+00\n"
-                "1  1.000000e-17\n"
-                "2 -5.500000e-07"
+                "              a\n0  1.500000e+00\n1  1.000000e-17\n2 -5.500000e-07"
             )
         assert result == expected
 
@@ -407,6 +412,24 @@ class TestToStringNumericFormatting:
                 "1  0.27394+0.23515j\n"
                 "2  0.26975+0.32506j\n"
                 "3 -0.00000-1.00000j"
+            )
+            assert result == expected
+
+    def test_to_string_complex_float_formatting_with_exponents(self):
+        # GH #60393
+        with option_context("display.precision", 6):
+            df = DataFrame(
+                {
+                    "x": [
+                        (1.8816e-09 + 0j),
+                        (1.8816e-09 + 3.39676e-09j),
+                    ]
+                }
+            )
+            result = df.to_string()
+            expected = (
+                "                            x\n0  1.881600e-09+0.000000e+00j\n"
+                "1  1.881600e-09+3.396760e-09j"
             )
             assert result == expected
 
@@ -756,23 +779,11 @@ class TestDataFrameToString:
         result = df.dtypes.to_string()
         expected = dedent(
             """\
-            x    string[pyarrow]
-            y     string[python]
-            z     int64[pyarrow]"""
+            x            string
+            y            string
+            z    int64[pyarrow]"""
         )
         assert result == expected
-
-    def test_to_string_pos_args_deprecation(self):
-        # GH#54229
-        df = DataFrame({"a": [1, 2, 3]})
-        msg = (
-            "Starting with pandas version 3.0 all arguments of to_string "
-            "except for the "
-            "argument 'buf' will be keyword-only."
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            buf = StringIO()
-            df.to_string(buf, None, None, True, True)
 
     def test_to_string_utf8_columns(self):
         n = "\u05d0".encode()
@@ -849,6 +860,7 @@ class TestDataFrameToString:
         frame.to_string()
 
     # TODO: split or simplify this test?
+    @pytest.mark.xfail(using_string_dtype(), reason="fix when arrow is default")
     def test_to_string_index_with_nan(self):
         # GH#2850
         df = DataFrame(
@@ -953,6 +965,13 @@ class TestDataFrameToString:
             repr(df)
         finally:
             sys.stdin = _stdin
+
+    def test_nested_dataframe(self):
+        df1 = DataFrame({"level1": [["row1"], ["row2"]]})
+        df2 = DataFrame({"level3": [{"level2": df1}]})
+        result = df2.to_string()
+        expected = "                   level3\n0  {'level2': ['level1']}"
+        assert result == expected
 
 
 class TestSeriesToString:
@@ -1187,13 +1206,7 @@ class TestSeriesToString:
         ser[::2] = np.nan
 
         result = ser.to_string()
-        expected = (
-            "0       NaN\n"
-            "1    1.5678\n"
-            "2       NaN\n"
-            "3   -3.0000\n"
-            "4       NaN"
-        )
+        expected = "0       NaN\n1    1.5678\n2       NaN\n3   -3.0000\n4       NaN"
         assert result == expected
 
     def test_to_string_with_datetimeindex(self):

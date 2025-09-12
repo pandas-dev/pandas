@@ -11,7 +11,7 @@ import pandas._testing as tm
 # np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
 @pytest.mark.filterwarnings("ignore:invalid value encountered in sign:RuntimeWarning")
 def test_ufuncs_single(ufunc):
-    a = pd.array([1, 2, -3, np.nan], dtype="Float64")
+    a = pd.array([1, 2, -3, pd.NA], dtype="Float64")
     result = ufunc(a)
     expected = pd.array(ufunc(a.astype(float)), dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
@@ -24,7 +24,7 @@ def test_ufuncs_single(ufunc):
 
 @pytest.mark.parametrize("ufunc", [np.log, np.exp, np.sin, np.cos, np.sqrt])
 def test_ufuncs_single_float(ufunc):
-    a = pd.array([1.0, 0.2, 3.0, np.nan], dtype="Float64")
+    a = pd.array([1.0, 0.2, 3.0, pd.NA], dtype="Float64")
     with np.errstate(invalid="ignore"):
         result = ufunc(a)
         expected = pd.array(ufunc(a.astype(float)), dtype="Float64")
@@ -40,7 +40,7 @@ def test_ufuncs_single_float(ufunc):
 @pytest.mark.parametrize("ufunc", [np.add, np.subtract])
 def test_ufuncs_binary_float(ufunc):
     # two FloatingArrays
-    a = pd.array([1, 0.2, -3, np.nan], dtype="Float64")
+    a = pd.array([1, 0.2, -3, pd.NA], dtype="Float64")
     result = ufunc(a, a)
     expected = pd.array(ufunc(a.astype(float), a.astype(float)), dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
@@ -88,7 +88,7 @@ def test_ufunc_reduce_raises(values):
     ],
 )
 def test_stat_method(pandasmethname, kwargs):
-    s = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, np.nan, np.nan], dtype="Float64")
+    s = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, pd.NA, pd.NA], dtype="Float64")
     pandasmeth = getattr(s, pandasmethname)
     result = pandasmeth(**kwargs)
     s2 = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6], dtype="float64")
@@ -127,7 +127,6 @@ def test_value_counts_with_normalize():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("min_count", [0, 4])
 def test_floating_array_sum(skipna, min_count, dtype):
     arr = pd.array([1, 2, 3, None], dtype=dtype)
@@ -171,7 +170,6 @@ def test_preserve_dtypes(op):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("method", ["min", "max"])
 def test_floating_array_min_max(skipna, method, dtype):
     arr = pd.array([0.0, 1.0, None], dtype=dtype)
@@ -183,7 +181,6 @@ def test_floating_array_min_max(skipna, method, dtype):
         assert result is pd.NA
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("min_count", [0, 9])
 def test_floating_array_prod(skipna, min_count, dtype):
     arr = pd.array([1.0, 2.0, None], dtype=dtype)

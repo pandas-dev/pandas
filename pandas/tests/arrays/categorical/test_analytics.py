@@ -97,7 +97,6 @@ class TestCategoricalAnalytics:
         "values, categories",
         [(["a", "b", "c", np.nan], list("cba")), ([1, 2, 3, np.nan], [3, 2, 1])],
     )
-    @pytest.mark.parametrize("skipna", [True, False])
     @pytest.mark.parametrize("function", ["min", "max"])
     def test_min_max_with_nan(self, values, categories, function, skipna):
         # GH 25303
@@ -111,7 +110,6 @@ class TestCategoricalAnalytics:
             assert result == expected
 
     @pytest.mark.parametrize("function", ["min", "max"])
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_only_nan(self, function, skipna):
         # https://github.com/pandas-dev/pandas/issues/33450
         cat = Categorical([np.nan], categories=[1, 2], ordered=True)
@@ -296,7 +294,7 @@ class TestCategoricalAnalytics:
         exp = 3 + 3 * 8  # 3 int8s for values + 3 int64s for categories
         assert cat.nbytes == exp
 
-    def test_memory_usage(self):
+    def test_memory_usage(self, using_infer_string):
         cat = Categorical([1, 2, 3])
 
         # .categories is an index, so we include the hashtable
@@ -304,7 +302,13 @@ class TestCategoricalAnalytics:
         assert 0 < cat.nbytes <= cat.memory_usage(deep=True)
 
         cat = Categorical(["foo", "foo", "bar"])
-        assert cat.memory_usage(deep=True) > cat.nbytes
+        if using_infer_string:
+            if cat.categories.dtype.storage == "python":
+                assert cat.memory_usage(deep=True) > cat.nbytes
+            else:
+                assert cat.memory_usage(deep=True) >= cat.nbytes
+        else:
+            assert cat.memory_usage(deep=True) > cat.nbytes
 
         if not PYPY:
             # sys.getsizeof will call the .memory_usage with

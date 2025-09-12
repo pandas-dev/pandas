@@ -6,6 +6,7 @@ import pytest
 from pandas import (
     DataFrame,
     MultiIndex,
+    Series,
     option_context,
 )
 
@@ -22,7 +23,9 @@ from pandas.io.formats.style_render import (
 
 @pytest.fixture
 def df():
-    return DataFrame({"A": [0, 1], "B": [-0.61, -1.22], "C": ["ab", "cd"]})
+    return DataFrame(
+        {"A": [0, 1], "B": [-0.61, -1.22], "C": Series(["ab", "cd"], dtype=object)}
+    )
 
 
 @pytest.fixture
@@ -1055,10 +1058,10 @@ def test_concat_chain():
 
 
 @pytest.mark.parametrize(
-    "df, expected",
+    "columns, expected",
     [
         (
-            DataFrame(),
+            None,
             dedent(
                 """\
             \\begin{tabular}{l}
@@ -1067,7 +1070,7 @@ def test_concat_chain():
             ),
         ),
         (
-            DataFrame(columns=["a", "b", "c"]),
+            ["a", "b", "c"],
             dedent(
                 """\
             \\begin{tabular}{llll}
@@ -1081,7 +1084,8 @@ def test_concat_chain():
 @pytest.mark.parametrize(
     "clines", [None, "all;data", "all;index", "skip-last;data", "skip-last;index"]
 )
-def test_empty_clines(df: DataFrame, expected: str, clines: str):
+def test_empty_clines(columns, expected: str, clines: str):
     # GH 47203
+    df = DataFrame(columns=columns)
     result = df.style.to_latex(clines=clines)
     assert result == expected

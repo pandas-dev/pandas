@@ -141,7 +141,6 @@ class TestGetLoc:
             with pytest.raises(KeyError, match=str(scalar)):
                 index.get_loc(scalar)
 
-    @pytest.mark.parametrize("other_closed", ["left", "right", "both", "neither"])
     @pytest.mark.parametrize("left, right", [(0, 5), (-1, 4), (-1, 6), (6, 7)])
     def test_get_loc_length_one_interval(self, left, right, closed, other_closed):
         # GH 20921
@@ -341,6 +340,9 @@ class TestGetIndexer:
         expected = index.get_indexer(target)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
     def test_get_indexer_categorical_with_nans(self):
         # GH#41934 nans in both index and in target
         ii = IntervalIndex.from_breaks(range(5))

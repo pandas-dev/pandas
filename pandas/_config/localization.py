@@ -3,6 +3,7 @@ Helpers for configuring locale settings.
 
 Name `localization` is chosen to avoid overlap with builtin `locale` module.
 """
+
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -10,7 +11,10 @@ import locale
 import platform
 import re
 import subprocess
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 from pandas._config.config import options
 
@@ -21,7 +25,7 @@ if TYPE_CHECKING:
 @contextmanager
 def set_locale(
     new_locale: str | tuple[str, str], lc_var: int = locale.LC_ALL
-) -> Generator[str | tuple[str, str], None, None]:
+) -> Generator[str | tuple[str, str]]:
     """
     Context manager for temporarily setting a locale.
 
@@ -152,7 +156,7 @@ def get_locales(
         out_locales = []
         for x in split_raw_locales:
             try:
-                out_locales.append(str(x, encoding=options.display.encoding))
+                out_locales.append(str(x, encoding=cast(str, options.display.encoding)))
             except UnicodeError:
                 # 'locale -a' is used to populated 'raw_locales' and on
                 # Redhat 7 Linux (and maybe others) prints locale names

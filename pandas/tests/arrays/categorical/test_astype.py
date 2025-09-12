@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
+    NA,
     Categorical,
     CategoricalDtype,
     CategoricalIndex,
@@ -34,7 +37,7 @@ class TestAstype:
             array([0, 0], dtype="timedelta64[ns]"),
             array([Period("2019"), Period("2020")], dtype="period[Y-DEC]"),
             array([Interval(0, 1), Interval(1, 2)], dtype="interval"),
-            array([1, np.nan], dtype="Int64"),
+            array([1, NA], dtype="Int64"),
         ],
     )
     def test_astype_category_to_extension_dtype(self, expected):
@@ -81,7 +84,6 @@ class TestAstype:
         expected = array(codes, dtype="Float64") / 2
         tm.assert_extension_array_equal(res, expected)
 
-    @pytest.mark.parametrize("ordered", [True, False])
     def test_astype(self, ordered):
         # string
         cat = Categorical(list("abbaaccc"), ordered=ordered)
@@ -89,7 +91,7 @@ class TestAstype:
         expected = np.array(cat)
         tm.assert_numpy_array_equal(result, expected)
 
-        msg = r"Cannot cast object dtype to float64"
+        msg = r"Cannot cast object|str dtype to float64"
         with pytest.raises(ValueError, match=msg):
             cat.astype(float)
 
@@ -108,11 +110,10 @@ class TestAstype:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("dtype_ordered", [True, False])
-    @pytest.mark.parametrize("cat_ordered", [True, False])
-    def test_astype_category(self, dtype_ordered, cat_ordered):
+    def test_astype_category(self, dtype_ordered, ordered):
         # GH#10696/GH#18593
         data = list("abcaacbab")
-        cat = Categorical(data, categories=list("bac"), ordered=cat_ordered)
+        cat = Categorical(data, categories=list("bac"), ordered=ordered)
 
         # standard categories
         dtype = CategoricalDtype(ordered=dtype_ordered)
@@ -122,8 +123,11 @@ class TestAstype:
 
         # non-standard categories
         dtype = CategoricalDtype(list("adc"), dtype_ordered)
-        result = cat.astype(dtype)
-        expected = Categorical(data, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = cat.astype(dtype)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = Categorical(data, dtype=dtype)
         tm.assert_categorical_equal(result, expected)
 
         if dtype_ordered is False:
@@ -131,6 +135,14 @@ class TestAstype:
             result = cat.astype("category")
             expected = cat
             tm.assert_categorical_equal(result, expected)
+
+    def test_astype_category_copy_false_nocopy_codes(self):
+        # GH#62000
+        cat = Categorical([3, 2, 4, 1])
+        new = cat.astype("category", copy=False)
+        assert tm.shares_memory(new.codes, cat.codes)
+        new = cat.astype("category", copy=True)
+        assert not tm.shares_memory(new.codes, cat.codes)
 
     def test_astype_object_datetime_categories(self):
         # GH#40754

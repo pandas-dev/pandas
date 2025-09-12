@@ -15,6 +15,9 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 dtypes = [
     ('uint8_t', 'uint8_t'),
     ('uint8_t', 'object'),
+    ('uint16_t', 'uint16_t'),
+    ('uint32_t', 'uint32_t'),
+    ('uint64_t', 'uint64_t'),
     ('int8_t', 'int8_t'),
     ('int8_t', 'int32_t'),
     ('int8_t', 'int64_t'),
@@ -184,6 +187,17 @@ def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 
     fv = fill_value
 
+    {{if c_type_in == c_type_out != "object"}}
+    with nogil:
+        for i in range(n):
+            for j in range(k):
+                idx = indexer[j]
+                if idx == -1:
+                    out[i, j] = fv
+                else:
+                    out[i, j] = values[i, idx]
+
+    {{else}}
     for i in range(n):
         for j in range(k):
             idx = indexer[j]
@@ -195,6 +209,7 @@ def take_2d_axis1_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
                 {{else}}
                 out[i, j] = values[i, idx]
                 {{endif}}
+    {{endif}}
 
 
 @cython.wraparound(False)

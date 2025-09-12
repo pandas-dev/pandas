@@ -1,7 +1,6 @@
 from datetime import timezone
 
 import pytest
-import pytz
 
 from pandas._libs.tslibs import timezones
 
@@ -28,7 +27,7 @@ class TestTZLocalize:
         expected0 = Series([expected0])
         expected1 = Series([expected1])
 
-        with tm.external_error_raised(pytz.AmbiguousTimeError):
+        with tm.external_error_raised(ValueError):
             ser.dt.tz_localize("US/Central")
 
         result = ser.dt.tz_localize("US/Central", ambiguous=True)
@@ -79,11 +78,11 @@ class TestTZLocalize:
         df = ser.to_frame()
 
         if method == "raise":
-            with tm.external_error_raised(pytz.NonExistentTimeError):
+            with tm.external_error_raised(ValueError):
                 dti.tz_localize(tz, nonexistent=method)
-            with tm.external_error_raised(pytz.NonExistentTimeError):
+            with tm.external_error_raised(ValueError):
                 ser.tz_localize(tz, nonexistent=method)
-            with tm.external_error_raised(pytz.NonExistentTimeError):
+            with tm.external_error_raised(ValueError):
                 df.tz_localize(tz, nonexistent=method)
 
         elif exp == "invalid":

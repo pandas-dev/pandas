@@ -4,6 +4,7 @@ from pandas import (
     Categorical,
     CategoricalDtype,
     CategoricalIndex,
+    Index,
     Series,
     date_range,
     option_context,
@@ -13,10 +14,12 @@ from pandas import (
 
 
 class TestCategoricalReprWithFactor:
-    def test_print(self, factor):
+    def test_print(self, using_infer_string):
+        factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
+        dtype = "str" if using_infer_string else "object"
         expected = [
             "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
-            "Categories (3, object): ['a' < 'b' < 'c']",
+            f"Categories (3, {dtype}): ['a' < 'b' < 'c']",
         ]
         expected = "\n".join(expected)
         actual = repr(factor)
@@ -26,7 +29,7 @@ class TestCategoricalReprWithFactor:
 class TestCategoricalRepr:
     def test_big_print(self):
         codes = np.array([0, 1, 2, 0, 1, 2] * 100)
-        dtype = CategoricalDtype(categories=["a", "b", "c"])
+        dtype = CategoricalDtype(categories=Index(["a", "b", "c"], dtype=object))
         factor = Categorical.from_codes(codes, dtype=dtype)
         expected = [
             "['a', 'b', 'c', 'a', 'b', ..., 'b', 'c', 'a', 'b', 'c']",
@@ -40,13 +43,13 @@ class TestCategoricalRepr:
         assert actual == expected
 
     def test_empty_print(self):
-        factor = Categorical([], ["a", "b", "c"])
+        factor = Categorical([], Index(["a", "b", "c"], dtype=object))
         expected = "[], Categories (3, object): ['a', 'b', 'c']"
         actual = repr(factor)
         assert actual == expected
 
         assert expected == actual
-        factor = Categorical([], ["a", "b", "c"], ordered=True)
+        factor = Categorical([], Index(["a", "b", "c"], dtype=object), ordered=True)
         expected = "[], Categories (3, object): ['a' < 'b' < 'c']"
         actual = repr(factor)
         assert expected == actual
@@ -66,12 +69,15 @@ class TestCategoricalRepr:
         with option_context("display.width", None):
             assert exp == repr(a)
 
-    def test_unicode_print(self):
+    def test_unicode_print(self, using_infer_string):
         c = Categorical(["aaaaa", "bb", "cccc"] * 20)
         expected = """\
 ['aaaaa', 'bb', 'cccc', 'aaaaa', 'bb', ..., 'bb', 'cccc', 'aaaaa', 'bb', 'cccc']
 Length: 60
 Categories (3, object): ['aaaaa', 'bb', 'cccc']"""
+
+        if using_infer_string:
+            expected = expected.replace("object", "str")
 
         assert repr(c) == expected
 
@@ -80,6 +86,9 @@ Categories (3, object): ['aaaaa', 'bb', 'cccc']"""
 ['ああああ', 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', ..., 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', 'ううううううう']
 Length: 60
 Categories (3, object): ['ああああ', 'いいいいい', 'ううううううう']"""  # noqa: E501
+
+        if using_infer_string:
+            expected = expected.replace("object", "str")
 
         assert repr(c) == expected
 
@@ -91,7 +100,10 @@ Categories (3, object): ['ああああ', 'いいいいい', 'うううううう�
 Length: 60
 Categories (3, object): ['ああああ', 'いいいいい', 'ううううううう']"""  # noqa: E501
 
-            assert repr(c) == expected
+        if using_infer_string:
+            expected = expected.replace("object", "str")
+
+        assert repr(c) == expected
 
     def test_categorical_repr(self):
         c = Categorical([1, 2, 3])

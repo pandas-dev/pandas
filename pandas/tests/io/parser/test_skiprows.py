@@ -42,7 +42,9 @@ def test_skip_rows_bug(all_parsers, skiprows):
         StringIO(text), skiprows=skiprows, header=None, index_col=0, parse_dates=True
     )
     index = Index(
-        [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)], name=0
+        [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+        dtype="M8[s]",
+        name=0,
     )
 
     expected = DataFrame(
@@ -85,7 +87,9 @@ def test_skip_rows_blank(all_parsers):
         StringIO(text), skiprows=6, header=None, index_col=0, parse_dates=True
     )
     index = Index(
-        [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)], name=0
+        [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
+        dtype="M8[s]",
+        name=0,
     )
 
     expected = DataFrame(
@@ -187,9 +191,10 @@ def test_skip_row_with_newline_and_quote(all_parsers, data, exp_data):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # ValueError: The 'delim_whitespace' option is not supported
+@xfail_pyarrow  # ValueError: the 'pyarrow' engine does not support regex separators
 @pytest.mark.parametrize(
-    "lineterminator", ["\n", "\r\n", "\r"]  # "LF"  # "CRLF"  # "CR"
+    "lineterminator",
+    ["\n", "\r\n", "\r"],  # "LF"  # "CRLF"  # "CR"
 )
 def test_skiprows_lineterminator(all_parsers, lineterminator, request):
     # see gh-9079
@@ -216,10 +221,11 @@ def test_skiprows_lineterminator(all_parsers, lineterminator, request):
         request.applymarker(mark)
 
     data = data.replace("\n", lineterminator)
+
     result = parser.read_csv(
         StringIO(data),
         skiprows=1,
-        delim_whitespace=True,
+        sep=r"\s+",
         names=["date", "time", "var", "flag", "oflag"],
     )
     tm.assert_frame_equal(result, expected)
@@ -240,8 +246,8 @@ def test_skiprows_infield_quote(all_parsers):
 @pytest.mark.parametrize(
     "kwargs,expected",
     [
-        ({}, DataFrame({"1": [3, 5]})),
-        ({"header": 0, "names": ["foo"]}, DataFrame({"foo": [3, 5]})),
+        ({}, "1"),
+        ({"header": 0, "names": ["foo"]}, "foo"),
     ],
 )
 def test_skip_rows_callable(all_parsers, kwargs, expected):
@@ -249,6 +255,7 @@ def test_skip_rows_callable(all_parsers, kwargs, expected):
     data = "a\n1\n2\n3\n4\n5"
 
     result = parser.read_csv(StringIO(data), skiprows=lambda x: x % 2 == 0, **kwargs)
+    expected = DataFrame({expected: [3, 5]})
     tm.assert_frame_equal(result, expected)
 
 

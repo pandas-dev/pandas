@@ -18,6 +18,7 @@ Usage::
 As a pre-commit hook:
     pre-commit run validate-errors-locations --all-files
 """
+
 from __future__ import annotations
 
 import argparse
@@ -71,7 +72,7 @@ class Visitor(ast.NodeVisitor):
 
 def validate_exception_and_warning_placement(
     file_path: str, file_content: str, errors: set[str]
-):
+) -> None:
     tree = ast.parse(file_content)
     visitor = Visitor(file_path, errors)
     visitor.visit(tree)

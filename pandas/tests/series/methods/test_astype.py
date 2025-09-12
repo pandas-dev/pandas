@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -76,7 +77,7 @@ class TestAstypeAPI:
 
         dt1 = dtype_class({"abc": str})
         result = ser.astype(dt1)
-        expected = Series(["0", "2", "4", "6", "8"], name="abc", dtype=object)
+        expected = Series(["0", "2", "4", "6", "8"], name="abc", dtype="str")
         tm.assert_series_equal(result, expected)
 
         dt2 = dtype_class({"abc": "float64"})
@@ -164,18 +165,23 @@ class TestAstype:
 
     @pytest.mark.parametrize("dtype", [str, np.str_])
     @pytest.mark.parametrize(
-        "series",
+        "data",
         [
-            Series([string.digits * 10, rand_str(63), rand_str(64), rand_str(1000)]),
-            Series([string.digits * 10, rand_str(63), rand_str(64), np.nan, 1.0]),
+            [string.digits * 10, rand_str(63), rand_str(64), rand_str(1000)],
+            [string.digits * 10, rand_str(63), rand_str(64), np.nan, 1.0],
         ],
     )
-    def test_astype_str_map(self, dtype, series, using_infer_string):
+    def test_astype_str_map(self, dtype, data, using_infer_string):
         # see GH#4405
+        series = Series(data)
+        using_string_dtype = using_infer_string and dtype is str
         result = series.astype(dtype)
-        expected = series.map(str)
-        if using_infer_string:
-            expected = expected.astype(object)
+        if using_string_dtype:
+            expected = series.map(lambda val: str(val) if val is not np.nan else np.nan)
+        else:
+            expected = series.map(str)
+            if using_infer_string:
+                expected = expected.astype(object)
         tm.assert_series_equal(result, expected)
 
     def test_astype_float_to_period(self):
@@ -212,7 +218,7 @@ class TestAstype:
         # GH#10442 : testing astype(str) is correct for Series/DatetimeIndex
         dti = date_range("2012-01-01", periods=3)
         result = Series(dti).astype(str)
-        expected = Series(["2012-01-01", "2012-01-02", "2012-01-03"], dtype=object)
+        expected = Series(["2012-01-01", "2012-01-02", "2012-01-03"], dtype="str")
         tm.assert_series_equal(result, expected)
 
     def test_astype_dt64tz_to_str(self):
@@ -225,7 +231,7 @@ class TestAstype:
                 "2012-01-02 00:00:00-05:00",
                 "2012-01-03 00:00:00-05:00",
             ],
-            dtype=object,
+            dtype="str",
         )
         tm.assert_series_equal(result, expected)
 
@@ -285,22 +291,22 @@ class TestAstype:
         ts = Series([Timestamp("2010-01-04 00:00:00")])
         res = ts.astype(str)
 
-        expected = Series(["2010-01-04"], dtype=object)
+        expected = Series(["2010-01-04"], dtype="str")
         tm.assert_series_equal(res, expected)
 
         ts = Series([Timestamp("2010-01-04 00:00:00", tz="US/Eastern")])
         res = ts.astype(str)
 
-        expected = Series(["2010-01-04 00:00:00-05:00"], dtype=object)
+        expected = Series(["2010-01-04 00:00:00-05:00"], dtype="str")
         tm.assert_series_equal(res, expected)
 
     def test_astype_str_cast_td64(self):
         # see GH#9757
 
-        td = Series([Timedelta(1, unit="d")])
+        td = Series([Timedelta(1, unit="D")])
         ser = td.astype(str)
 
-        expected = Series(["1 days"], dtype=object)
+        expected = Series(["1 days"], dtype="str")
         tm.assert_series_equal(ser, expected)
 
     def test_dt64_series_astype_object(self):
@@ -342,12 +348,11 @@ class TestAstype:
             with pytest.raises((ValueError, TypeError), match=msg):
                 ser.astype(float, errors=errors)
 
-    @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
-    def test_astype_from_float_to_str(self, dtype):
+    def test_astype_from_float_to_str(self, any_float_dtype):
         # https://github.com/pandas-dev/pandas/issues/36451
-        ser = Series([0.1], dtype=dtype)
+        ser = Series([0.1], dtype=any_float_dtype)
         result = ser.astype(str)
-        expected = Series(["0.1"], dtype=object)
+        expected = Series(["0.1"], dtype="str")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -358,11 +363,13 @@ class TestAstype:
             (NA, "<NA>"),
         ],
     )
-    def test_astype_to_str_preserves_na(self, value, string_value):
+    def test_astype_to_str_preserves_na(self, value, string_value, using_infer_string):
         # https://github.com/pandas-dev/pandas/issues/36904
         ser = Series(["a", "b", value], dtype=object)
         result = ser.astype(str)
-        expected = Series(["a", "b", string_value], dtype=object)
+        expected = Series(
+            ["a", "b", None if using_infer_string else string_value], dtype="str"
+        )
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["float32", "float64", "int64", "int32"])
@@ -374,21 +381,19 @@ class TestAstype:
         assert as_typed.name == ser.name
 
     @pytest.mark.parametrize("value", [np.nan, np.inf])
-    @pytest.mark.parametrize("dtype", [np.int32, np.int64])
-    def test_astype_cast_nan_inf_int(self, dtype, value):
+    def test_astype_cast_nan_inf_int(self, any_int_numpy_dtype, value):
         # gh-14265: check NaN and inf raise error when converting to int
         msg = "Cannot convert non-finite values \\(NA or inf\\) to integer"
         ser = Series([value])
 
         with pytest.raises(ValueError, match=msg):
-            ser.astype(dtype)
+            ser.astype(any_int_numpy_dtype)
 
-    @pytest.mark.parametrize("dtype", [int, np.int8, np.int64])
-    def test_astype_cast_object_int_fail(self, dtype):
+    def test_astype_cast_object_int_fail(self, any_int_numpy_dtype):
         arr = Series(["car", "house", "tree", "1"])
         msg = r"invalid literal for int\(\) with base 10: 'car'"
         with pytest.raises(ValueError, match=msg):
-            arr.astype(dtype)
+            arr.astype(any_int_numpy_dtype)
 
     def test_astype_float_to_uint_negatives_raise(
         self, float_numpy_dtype, any_unsigned_int_numpy_dtype
@@ -462,13 +467,9 @@ class TestAstype:
         expected = Series(True, dtype="bool")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dtype",
-        tm.ALL_INT_EA_DTYPES + tm.FLOAT_EA_DTYPES,
-    )
-    def test_astype_ea_to_datetimetzdtype(self, dtype):
+    def test_astype_ea_to_datetimetzdtype(self, any_numeric_ea_dtype):
         # GH37553
-        ser = Series([4, 0, 9], dtype=dtype)
+        ser = Series([4, 0, 9], dtype=any_numeric_ea_dtype)
         result = ser.astype(DatetimeTZDtype(tz="US/Pacific"))
 
         expected = Series(
@@ -538,12 +539,12 @@ class TestAstypeCategorical:
         expected = ser
         tm.assert_series_equal(ser.astype("category"), expected)
         tm.assert_series_equal(ser.astype(CategoricalDtype()), expected)
-        msg = r"Cannot cast object|string dtype to float64"
+        msg = r"Cannot cast object|str dtype to float64"
         with pytest.raises(ValueError, match=msg):
             ser.astype("float64")
 
         cat = Series(Categorical(["a", "b", "b", "a", "a", "c", "c", "c"]))
-        exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"], dtype=object)
+        exp = Series(["a", "b", "b", "a", "a", "c", "c", "c"], dtype="str")
         tm.assert_series_equal(cat.astype("str"), exp)
         s2 = Series(Categorical(["1", "2", "3", "4"]))
         exp2 = Series([1, 2, 3, 4]).astype("int")
@@ -624,8 +625,11 @@ class TestAstypeCategorical:
 
         # different categories
         dtype = CategoricalDtype(list("adc"), dtype_ordered)
-        result = ser.astype(dtype)
-        expected = Series(s_data, name=name, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.astype(dtype)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = Series(s_data, name=name, dtype=dtype)
         tm.assert_series_equal(result, expected)
 
         if dtype_ordered is False:
@@ -672,4 +676,12 @@ class TestAstypeCategorical:
         # GH45798
         result = Series([Timedelta(1), np.nan], dtype="timedelta64[ns]")
         expected = Series([Timedelta(1), NaT], dtype="timedelta64[ns]")
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_astype_int_na_string(self):
+        # GH#57418
+        ser = Series([12, NA], dtype="Int64[pyarrow]")
+        result = ser.astype("string[pyarrow]")
+        expected = Series(["12", NA], dtype="string[pyarrow]")
         tm.assert_series_equal(result, expected)

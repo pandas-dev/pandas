@@ -17,11 +17,11 @@ jobs:
   deprecation_update:
     permissions:
       issues: write
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
-      DEPRECATION_TRACKER_ISSUE: 50578
+      DEPRECATION_TRACKER_ISSUE: 56596
     steps:
-    - uses: actions/github-script@v7
+    - uses: actions/github-script@v8
       id: update-deprecation-issue
       with:
         script: |

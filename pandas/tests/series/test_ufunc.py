@@ -5,8 +5,6 @@ import string
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
@@ -18,7 +16,10 @@ def ufunc(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False], ids=["sparse", "dense"])
+@pytest.fixture(
+    params=[pytest.param(True, marks=pytest.mark.fails_arm_wheels), False],
+    ids=["sparse", "dense"],
+)
 def sparse(request):
     return request.param
 
@@ -291,7 +292,7 @@ class TestNumpyReductions:
         else:
             msg = "|".join(
                 [
-                    "does not support reduction",
+                    "does not support operation",
                     "unsupported operand type",
                     "ufunc 'multiply' cannot use operands",
                 ]
@@ -321,7 +322,7 @@ class TestNumpyReductions:
         else:
             msg = "|".join(
                 [
-                    "does not support reduction",
+                    "does not support operation",
                     "unsupported operand type",
                     "ufunc 'add' cannot use operands",
                 ]
@@ -413,7 +414,7 @@ def test_outer():
     ser = pd.Series([1, 2, 3])
     obj = np.array([1, 2, 3])
 
-    with pytest.raises(NotImplementedError, match=""):
+    with pytest.raises(NotImplementedError, match="^$"):
         np.subtract.outer(ser, obj)
 
 
@@ -425,6 +426,13 @@ def test_np_matmul():
 
     result = np.matmul(df1, df2)
     tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize("box", [pd.Index, pd.Series])
+def test_np_matmul_1D(box):
+    result = np.matmul(box([1, 2]), box([2, 3]))
+    assert result == 8
+    assert isinstance(result, np.int64)
 
 
 def test_array_ufuncs_for_many_arguments():
@@ -449,8 +457,7 @@ def test_array_ufuncs_for_many_arguments():
         ufunc(ser, ser, df)
 
 
-# TODO(CoW) see https://github.com/pandas-dev/pandas/pull/51082
-@td.skip_copy_on_write_not_yet_implemented
+@pytest.mark.xfail(reason="see https://github.com/pandas-dev/pandas/pull/51082")
 def test_np_fix():
     # np.fix is not a ufunc but is composed of several ufunc calls under the hood
     # with `out` and `where` keywords

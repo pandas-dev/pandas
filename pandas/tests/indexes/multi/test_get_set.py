@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
-
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -34,23 +32,25 @@ def test_get_level_number_integer(idx):
         idx._get_level_number("fourth")
 
 
-def test_get_dtypes():
+def test_get_dtypes(using_infer_string):
     # Test MultiIndex.dtypes (# Gh37062)
     idx_multitype = MultiIndex.from_product(
         [[1, 2, 3], ["a", "b", "c"], pd.date_range("20200101", periods=2, tz="UTC")],
         names=["int", "string", "dt"],
     )
+
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
         {
             "int": np.dtype("int64"),
-            "string": np.dtype("O"),
+            "string": exp,
             "dt": DatetimeTZDtype(tz="utc"),
         }
     )
     tm.assert_series_equal(expected, idx_multitype.dtypes)
 
 
-def test_get_dtypes_no_level_name():
+def test_get_dtypes_no_level_name(using_infer_string):
     # Test MultiIndex.dtypes (# GH38580 )
     idx_multitype = MultiIndex.from_product(
         [
@@ -59,17 +59,18 @@ def test_get_dtypes_no_level_name():
             pd.date_range("20200101", periods=2, tz="UTC"),
         ],
     )
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
         {
             "level_0": np.dtype("int64"),
-            "level_1": np.dtype("O"),
+            "level_1": exp,
             "level_2": DatetimeTZDtype(tz="utc"),
         }
     )
     tm.assert_series_equal(expected, idx_multitype.dtypes)
 
 
-def test_get_dtypes_duplicate_level_names():
+def test_get_dtypes_duplicate_level_names(using_infer_string):
     # Test MultiIndex.dtypes with non-unique level names (# GH45174)
     result = MultiIndex.from_product(
         [
@@ -79,8 +80,9 @@ def test_get_dtypes_duplicate_level_names():
         ],
         names=["A", "A", "A"],
     ).dtypes
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
-        [np.dtype("int64"), np.dtype("O"), DatetimeTZDtype(tz="utc")],
+        [np.dtype("int64"), exp, DatetimeTZDtype(tz="utc")],
         index=["A", "A", "A"],
     )
     tm.assert_series_equal(result, expected)
@@ -146,11 +148,7 @@ def test_set_levels_codes_directly(idx):
     with pytest.raises(AttributeError, match=msg):
         idx.levels = new_levels
 
-    msg = (
-        "property 'codes' of 'MultiIndex' object has no setter"
-        if PY311
-        else "can't set attribute"
-    )
+    msg = "property 'codes' of 'MultiIndex' object has no setter"
     with pytest.raises(AttributeError, match=msg):
         idx.codes = new_codes
 
@@ -328,10 +326,8 @@ def test_set_value_keeps_names():
         index=idx,
     )
     df = df.sort_index()
-    assert df._is_copy is None
     assert df.index.names == ("Name", "Number")
     df.at[("grethe", "4"), "one"] = 99.34
-    assert df._is_copy is None
     assert df.index.names == ("Name", "Number")
 
 

@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   analyze:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
@@ -27,9 +27,9 @@ jobs:
           - python
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v2
+      - uses: actions/checkout@v5
+      - uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-      - uses: github/codeql-action/autobuild@v2
-      - uses: github/codeql-action/analyze@v2
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3

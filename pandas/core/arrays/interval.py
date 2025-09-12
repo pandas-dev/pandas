@@ -9,10 +9,10 @@ import textwrap
 from typing import (
     TYPE_CHECKING,
     Literal,
-    Union,
+    Self,
+    TypeAlias,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -28,12 +28,10 @@ from pandas._typing import (
     ArrayLike,
     AxisInt,
     Dtype,
-    FillnaOptions,
     IntervalClosedType,
     NpDtype,
     PositionalIndexer,
     ScalarIndexer,
-    Self,
     SequenceIndexer,
     SortKind,
     TimeArrayLike,
@@ -77,8 +75,8 @@ from pandas.core.algorithms import (
     isin,
     take,
     unique,
-    value_counts_internal as value_counts,
 )
+from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import (
     ExtensionArray,
     _extension_array_shared_docs,
@@ -99,18 +97,18 @@ from pandas.core.ops import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Iterator,
         Sequence,
     )
 
     from pandas import (
         Index,
-        Series,
     )
 
 
-IntervalSide = Union[TimeArrayLike, np.ndarray]
-IntervalOrNA = Union[Interval, float]
+IntervalSide: TypeAlias = TimeArrayLike | np.ndarray
+IntervalOrNA: TypeAlias = Interval | float
 
 _interval_shared_docs: dict[str, str] = {}
 
@@ -121,9 +119,7 @@ _shared_docs_kwargs = {
 }
 
 
-_interval_shared_docs[
-    "class"
-] = """
+_interval_shared_docs["class"] = """
 %(summary)s
 
 Parameters
@@ -232,7 +228,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         dtype: Dtype | None = None,
         copy: bool = False,
         verify_integrity: bool = True,
-    ):
+    ) -> Self:
         data = extract_array(data, extract_numpy=True)
 
         if isinstance(data, cls):
@@ -370,11 +366,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right = ensure_wrapped_if_datetimelike(right)
         right = extract_array(right, extract_numpy=True)
 
-        lbase = getattr(left, "_ndarray", left).base
-        rbase = getattr(right, "_ndarray", right).base
-        if lbase is not None and lbase is rbase:
-            # If these share data, then setitem could corrupt our IA
-            right = right.copy()
+        if isinstance(left, ArrowExtensionArray) or isinstance(
+            right, ArrowExtensionArray
+        ):
+            pass
+        else:
+            lbase = getattr(left, "_ndarray", left)
+            lbase = getattr(lbase, "_data", lbase).base
+            rbase = getattr(right, "_ndarray", right)
+            rbase = getattr(rbase, "_data", rbase).base
+            if lbase is not None and lbase is rbase:
+                # If these share data, then setitem could corrupt our IA
+                right = right.copy()
 
         dtype = IntervalDtype(left.dtype, closed=closed)
 
@@ -699,12 +702,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return len(self._left)
 
     @overload
-    def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA:
-        ...
+    def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA: ...
 
     @overload
-    def __getitem__(self, key: SequenceIndexer) -> Self:
-        ...
+    def __getitem__(self, key: SequenceIndexer) -> Self: ...
 
     def __getitem__(self, key: PositionalIndexer) -> Self | IntervalOrNA:
         key = check_array_indexer(self, key)
@@ -889,16 +890,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[-1]
         return obj[indexer]
 
-    def _pad_or_backfill(  # pylint: disable=useless-parent-delegation
-        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
-    ) -> Self:
-        # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
-        #  this method entirely.
-        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
-
-    def fillna(
-        self, value=None, method=None, limit: int | None = None, copy: bool = True
-    ) -> Self:
+    def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         """
         Fill NA/NaN values using the specified method.
 
@@ -909,17 +901,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             Alternatively, a Series or dict can be used to fill in different
             values for each index. The value should not be a list. The
             value(s) passed should be either Interval objects or NA/NaN.
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            (Not implemented yet for IntervalArray)
-            Method to use for filling holes in reindexed Series
         limit : int, default None
             (Not implemented yet for IntervalArray)
-            If method is specified, this is the maximum number of consecutive
-            NaN values to forward/backward fill. In other words, if there is
-            a gap with more than this number of consecutive NaNs, it will only
-            be partially filled. If method is not specified, this is the
-            maximum number of entries along the entire axis where NaNs will be
-            filled.
+            The maximum number of entries where NA values will be filled.
         copy : bool, default True
             Whether to make a copy of the data before filling. If False, then
             the original should be modified and no new memory should be allocated.
@@ -932,8 +916,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         if copy is False:
             raise NotImplementedError
-        if method is not None:
-            return super().fillna(value=value, method=method, limit=limit)
+        if limit is not None:
+            raise ValueError("limit must be None")
 
         value_left, value_right = self._validate_scalar(value)
 
@@ -1069,9 +1053,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             from pandas import Index
 
             fill_value = Index(self._left, copy=False)._na_value
-            empty = IntervalArray.from_breaks([fill_value] * (empty_len + 1))
+            empty = IntervalArray.from_breaks(
+                [fill_value] * (empty_len + 1), closed=self.closed
+            )
         else:
-            empty = self._from_sequence([fill_value] * empty_len)
+            empty = self._from_sequence([fill_value] * empty_len, dtype=self.dtype)
 
         if periods > 0:
             a = empty
@@ -1209,39 +1195,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return value_left, value_right
 
-    def value_counts(self, dropna: bool = True) -> Series:
-        """
-        Returns a Series containing counts of each interval.
-
-        Parameters
-        ----------
-        dropna : bool, default True
-            Don't include counts of NaN.
-
-        Returns
-        -------
-        counts : Series
-
-        See Also
-        --------
-        Series.value_counts
-        """
-        # TODO: implement this is a non-naive way!
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                "The behavior of value_counts with object-dtype is deprecated",
-                category=FutureWarning,
-            )
-            result = value_counts(np.asarray(self), dropna=dropna)
-            # Once the deprecation is enforced, we will need to do
-            #  `result.index = result.index.astype(self.dtype)`
-        return result
-
     # ---------------------------------------------------------------------
     # Rendering Methods
 
-    def _formatter(self, boxed: bool = False):
+    def _formatter(self, boxed: bool = False) -> Callable[[object], str]:
         # returning 'str' here causes us to render as e.g. "(0, 1]" instead of
         #  "Interval(0, 1, closed='right')"
         return str
@@ -1253,6 +1210,22 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def left(self) -> Index:
         """
         Return the left endpoints of each Interval in the IntervalArray as an Index.
+
+        This property provides access to the left endpoints of the intervals
+        contained within the IntervalArray. This can be useful for analyses where
+        the starting point of each interval is of interest, such as in histogram
+        creation, data aggregation, or any scenario requiring the identification
+        of the beginning of defined ranges. This property returns a ``pandas.Index``
+        object containing the midpoint for each interval.
+
+        See Also
+        --------
+        arrays.IntervalArray.right : Return the right endpoints of each Interval in
+            the IntervalArray as an Index.
+        arrays.IntervalArray.mid : Return the midpoint of each Interval in the
+            IntervalArray as an Index.
+        arrays.IntervalArray.contains : Check elementwise if the Intervals contain
+            the value.
 
         Examples
         --------
@@ -1274,6 +1247,21 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return the right endpoints of each Interval in the IntervalArray as an Index.
 
+        This property extracts the right endpoints from each interval contained within
+        the IntervalArray. This can be helpful in use cases where you need to work
+        with or compare only the upper bounds of intervals, such as when performing
+        range-based filtering, determining interval overlaps, or visualizing the end
+        boundaries of data segments.
+
+        See Also
+        --------
+        arrays.IntervalArray.left : Return the left endpoints of each Interval in
+            the IntervalArray as an Index.
+        arrays.IntervalArray.mid : Return the midpoint of each Interval in the
+            IntervalArray as an Index.
+        arrays.IntervalArray.contains : Check elementwise if the Intervals contain
+            the value.
+
         Examples
         --------
 
@@ -1294,6 +1282,20 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         Return an Index with entries denoting the length of each Interval.
 
+        The length of an interval is calculated as the difference between
+        its `right` and `left` bounds. This property is particularly useful
+        when working with intervals where the size of the interval is an important
+        attribute, such as in time-series analysis or spatial data analysis.
+
+        See Also
+        --------
+        arrays.IntervalArray.left : Return the left endpoints of each Interval in
+            the IntervalArray as an Index.
+        arrays.IntervalArray.right : Return the right endpoints of each Interval in
+            the IntervalArray as an Index.
+        arrays.IntervalArray.mid : Return the midpoint of each Interval in the
+            IntervalArray as an Index.
+
         Examples
         --------
 
@@ -1311,6 +1313,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def mid(self) -> Index:
         """
         Return the midpoint of each Interval in the IntervalArray as an Index.
+
+        The midpoint of an interval is calculated as the average of its
+        ``left`` and ``right`` bounds. This property returns a ``pandas.Index`` object
+        containing the midpoint for each interval.
+
+        See Also
+        --------
+        Interval.left : Return left bound for the interval.
+        Interval.right : Return right bound for the interval.
+        Interval.length : Return the length of each interval.
 
         Examples
         --------
@@ -1339,7 +1351,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Parameters
         ----------
-        other : %(klass)s
+        other : Interval
             Interval to check against for an overlap.
 
         Returns
@@ -1410,6 +1422,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         Either ``left``, ``right``, ``both`` or ``neither``.
 
+        See Also
+        --------
+        IntervalArray.closed : Returns inclusive side of the IntervalArray.
+        Interval.closed : Returns inclusive side of the Interval.
+        IntervalIndex.closed : Returns inclusive side of the IntervalIndex.
+
         Examples
         --------
 
@@ -1451,12 +1469,26 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
     )
 
-    @Appender(
-        _interval_shared_docs["set_closed"]
-        % {
-            "klass": "IntervalArray",
-            "examples": textwrap.dedent(
-                """\
+    def set_closed(self, closed: IntervalClosedType) -> Self:
+        """
+        Return an identical IntervalArray closed on the specified side.
+
+        Parameters
+        ----------
+        closed : {'left', 'right', 'both', 'neither'}
+            Whether the intervals are closed on the left-side, right-side, both
+            or neither.
+
+        Returns
+        -------
+        IntervalArray
+            A new IntervalArray with the specified side closures.
+
+        See Also
+        --------
+        IntervalArray.closed : Returns inclusive side of the Interval.
+        arrays.IntervalArray.closed : Returns inclusive side of the IntervalArray.
+
         Examples
         --------
         >>> index = pd.arrays.IntervalArray.from_breaks(range(4))
@@ -1464,15 +1496,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         <IntervalArray>
         [(0, 1], (1, 2], (2, 3]]
         Length: 3, dtype: interval[int64, right]
-        >>> index.set_closed('both')
+        >>> index.set_closed("both")
         <IntervalArray>
         [[0, 1], [1, 2], [2, 3]]
         Length: 3, dtype: interval[int64, both]
         """
-            ),
-        }
-    )
-    def set_closed(self, closed: IntervalClosedType) -> Self:
         if closed not in VALID_CLOSED:
             msg = f"invalid option for 'closed': {closed}"
             raise ValueError(msg)
@@ -1481,9 +1509,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         dtype = IntervalDtype(left.dtype, closed=closed)
         return self._simple_new(left, right, dtype=dtype)
 
-    _interval_shared_docs[
-        "is_non_overlapping_monotonic"
-    ] = """
+    _interval_shared_docs["is_non_overlapping_monotonic"] = """
         Return a boolean whether the %(klass)s is non-overlapping and monotonic.
 
         Non-overlapping means (no Intervals share points), and monotonic means
@@ -1526,10 +1552,54 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
 
     @property
-    @Appender(
-        _interval_shared_docs["is_non_overlapping_monotonic"] % _shared_docs_kwargs
-    )
     def is_non_overlapping_monotonic(self) -> bool:
+        """
+        Return a boolean whether the IntervalArray/IntervalIndex\
+        is non-overlapping and monotonic.
+
+        Non-overlapping means (no Intervals share points), and monotonic means
+        either monotonic increasing or monotonic decreasing.
+
+        See Also
+        --------
+        overlaps : Check if two IntervalIndex objects overlap.
+
+        Examples
+        --------
+        For arrays:
+
+        >>> interv_arr = pd.arrays.IntervalArray([pd.Interval(0, 1), pd.Interval(1, 5)])
+        >>> interv_arr
+        <IntervalArray>
+        [(0, 1], (1, 5]]
+        Length: 2, dtype: interval[int64, right]
+        >>> interv_arr.is_non_overlapping_monotonic
+        True
+
+        >>> interv_arr = pd.arrays.IntervalArray(
+        ...     [pd.Interval(0, 1), pd.Interval(-1, 0.1)]
+        ... )
+        >>> interv_arr
+        <IntervalArray>
+        [(0.0, 1.0], (-1.0, 0.1]]
+        Length: 2, dtype: interval[float64, right]
+        >>> interv_arr.is_non_overlapping_monotonic
+        False
+
+        For Interval Index:
+
+        >>> interv_idx = pd.interval_range(start=0, end=2)
+        >>> interv_idx
+        IntervalIndex([(0, 1], (1, 2]], dtype='interval[int64, right]')
+        >>> interv_idx.is_non_overlapping_monotonic
+        True
+
+        >>> interv_idx = pd.interval_range(start=0, end=2, closed="both")
+        >>> interv_idx
+        IntervalIndex([[0, 1], [1, 2]], dtype='interval[int64, both]')
+        >>> interv_idx.is_non_overlapping_monotonic
+        False
+        """
         # must be increasing  (e.g., [0, 1), [1, 2), [2, 3), ... )
         # or decreasing (e.g., [-1, 0), [-2, -1), [-3, -2), ...)
         # we already require left <= right
@@ -1552,11 +1622,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # Conversion
 
-    def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
+    def __array__(
+        self, dtype: NpDtype | None = None, copy: bool | None = None
+    ) -> np.ndarray:
         """
         Return the IntervalArray's data as a numpy array of Interval
         objects (with dtype='object')
         """
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
         left = self._left
         right = self._right
         mask = self.isna()
@@ -1639,39 +1716,52 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
     )
 
-    @Appender(
-        _interval_shared_docs["to_tuples"]
-        % {
-            "return_type": (
-                "ndarray (if self is IntervalArray) or Index (if self is IntervalIndex)"
-            ),
-            "examples": textwrap.dedent(
-                """\
-
-         Examples
-         --------
-         For :class:`pandas.IntervalArray`:
-
-         >>> idx = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2)])
-         >>> idx
-         <IntervalArray>
-         [(0, 1], (1, 2]]
-         Length: 2, dtype: interval[int64, right]
-         >>> idx.to_tuples()
-         array([(0, 1), (1, 2)], dtype=object)
-
-         For :class:`pandas.IntervalIndex`:
-
-         >>> idx = pd.interval_range(start=0, end=2)
-         >>> idx
-         IntervalIndex([(0, 1], (1, 2]], dtype='interval[int64, right]')
-         >>> idx.to_tuples()
-         Index([(0, 1), (1, 2)], dtype='object')
-         """
-            ),
-        }
-    )
     def to_tuples(self, na_tuple: bool = True) -> np.ndarray:
+        """
+        Return an ndarray (if self is IntervalArray) or Index \
+        (if self is IntervalIndex) of tuples of the form (left, right).
+
+        Parameters
+        ----------
+        na_tuple : bool, default True
+            If ``True``, return ``NA`` as a tuple ``(nan, nan)``. If ``False``,
+            just return ``NA`` as ``nan``.
+
+        Returns
+        -------
+        ndarray or Index
+            An ndarray of tuples representing the intervals
+                if `self` is an IntervalArray.
+            An Index of tuples representing the intervals
+                if `self` is an IntervalIndex.
+
+        See Also
+        --------
+        IntervalArray.to_list : Convert IntervalArray to a list of tuples.
+        IntervalArray.to_numpy : Convert IntervalArray to a numpy array.
+        IntervalArray.unique : Find unique intervals in an IntervalArray.
+
+        Examples
+        --------
+        For :class:`pandas.IntervalArray`:
+
+        >>> idx = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2)])
+        >>> idx
+        <IntervalArray>
+        [(0, 1], (1, 2]]
+        Length: 2, dtype: interval[int64, right]
+        >>> idx.to_tuples()
+        array([(np.int64(0), np.int64(1)), (np.int64(1), np.int64(2))],
+              dtype=object)
+
+        For :class:`pandas.IntervalIndex`:
+
+        >>> idx = pd.interval_range(start=0, end=2)
+        >>> idx
+        IntervalIndex([(0, 1], (1, 2]], dtype='interval[int64, right]')
+        >>> idx.to_tuples()
+        Index([(0, 1), (1, 2)], dtype='object')
+        """
         tuples = com.asarray_tuplesafe(zip(self._left, self._right))
         if not na_tuple:
             # GH 18756
@@ -1715,6 +1805,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(new_left, new_right)
 
     def delete(self, loc) -> Self:
+        new_left: np.ndarray | DatetimeArray | TimedeltaArray
+        new_right: np.ndarray | DatetimeArray | TimedeltaArray
         if isinstance(self._left, np.ndarray):
             new_left = np.delete(self._left, loc)
             assert isinstance(self._right, np.ndarray)
@@ -1766,22 +1858,40 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     """
     )
 
-    @Appender(
-        _interval_shared_docs["contains"]
-        % {
-            "klass": "IntervalArray",
-            "examples": textwrap.dedent(
-                """\
+    def contains(self, other):
+        """
+        Check elementwise if the Intervals contain the value.
+
+        Return a boolean mask whether the value is contained in the Intervals
+        of the IntervalArray.
+
+        Parameters
+        ----------
+        other : scalar
+            The value to check whether it is contained in the Intervals.
+
+        Returns
+        -------
+        boolean array
+            A boolean mask whether the value is contained in the Intervals.
+
+        See Also
+        --------
+        Interval.contains : Check whether Interval object contains value.
+        IntervalArray.overlaps : Check if an Interval overlaps the values in the
+            IntervalArray.
+
+        Examples
+        --------
         >>> intervals = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 3), (2, 4)])
         >>> intervals
         <IntervalArray>
         [(0, 1], (1, 3], (2, 4]]
         Length: 3, dtype: interval[int64, right]
+
+        >>> intervals.contains(0.5)
+        array([ True, False, False])
         """
-            ),
-        }
-    )
-    def contains(self, other):
         if isinstance(other, Interval):
             raise NotImplementedError("contains not implemented for two intervals")
 
@@ -1789,12 +1899,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             other < self._right if self.open_right else other <= self._right
         )
 
-    def isin(self, values) -> npt.NDArray[np.bool_]:
-        if not hasattr(values, "dtype"):
-            values = np.array(values)
-        values = extract_array(values, extract_numpy=True)
-
-        if isinstance(values.dtype, IntervalDtype):
+    def isin(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
+        if isinstance(values, IntervalArray):
             if self.closed != values.closed:
                 # not comparable -> no overlap
                 return np.zeros(self.shape, dtype=bool)
@@ -1846,9 +1952,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         dtype = self._left.dtype
         if needs_i8_conversion(dtype):
             assert isinstance(self._left, (DatetimeArray, TimedeltaArray))
-            new_left = type(self._left)._from_sequence(nc[:, 0], dtype=dtype)
+            new_left: DatetimeArray | TimedeltaArray | np.ndarray = type(
+                self._left
+            )._from_sequence(nc[:, 0], dtype=dtype)
             assert isinstance(self._right, (DatetimeArray, TimedeltaArray))
-            new_right = type(self._right)._from_sequence(nc[:, 1], dtype=dtype)
+            new_right: DatetimeArray | TimedeltaArray | np.ndarray = type(
+                self._right
+            )._from_sequence(nc[:, 1], dtype=dtype)
         else:
             assert isinstance(dtype, np.dtype)
             new_left = nc[:, 0].view(dtype)

@@ -12,31 +12,31 @@ So this file is somewhat an extensions to `ci/code_checks.sh`
 
 import argparse
 import ast
-from collections.abc import Iterable
+from collections.abc import (
+    Callable,
+    Iterable,
+)
+import re
 import sys
 import token
 import tokenize
-from typing import (
-    IO,
-    Callable,
-)
+from typing import IO
 
+DEPRECATION_WARNINGS_PATTERN = re.compile(
+    r"(PendingDeprecation|Deprecation|Future)Warning"
+)
 PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_extension_array_shared_docs",
     "_index_shared_docs",
     "_interval_shared_docs",
     "_merge_doc",
     "_shared_docs",
-    "_apply_docs",
     "_new_Index",
     "_new_PeriodIndex",
-    "_agg_template_series",
-    "_agg_template_frame",
     "_pipe_template",
     "_apply_groupings_depr",
     "__main__",
     "_transform_template",
-    "_use_inf_as_na",
     "_get_plot_backend",
     "_matplotlib",
     "_arrow_utils",
@@ -50,14 +50,15 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_global_config",
     "_chained_assignment_msg",
     "_chained_assignment_method_msg",
-    "_chained_assignment_warning_msg",
-    "_chained_assignment_warning_method_msg",
-    "_check_cacher",
     "_version_meson",
     # The numba extensions need this to mock the iloc object
     "_iLocIndexer",
-    # TODO(3.0): GH#55043 - remove upon removal of ArrayManager
+    # TODO(4.0): GH#55043 - remove upon removal of CoW option
     "_get_option",
+    "_fill_limit_area_1d",
+    "_make_block",
+    "_DatetimeTZBlock",
+    "_check_pyarrow_available",
 }
 
 
@@ -92,65 +93,6 @@ def _get_literal_string_prefix_len(token_string: str) -> int:
         )
     except ValueError:
         return 0
-
-
-def bare_pytest_raises(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
-    """
-    Test Case for bare pytest raises.
-
-    For example, this is wrong:
-
-    >>> with pytest.raise(ValueError):
-    ...     # Some code that raises ValueError
-
-    And this is what we want instead:
-
-    >>> with pytest.raise(ValueError, match="foo"):
-    ...     # Some code that raises ValueError
-
-    Parameters
-    ----------
-    file_obj : IO
-        File-like object containing the Python code to validate.
-
-    Yields
-    ------
-    line_number : int
-        Line number of unconcatenated string.
-    msg : str
-        Explanation of the error.
-
-    Notes
-    -----
-    GH #23922
-    """
-    contents = file_obj.read()
-    tree = ast.parse(contents)
-
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-
-        try:
-            if not (node.func.value.id == "pytest" and node.func.attr == "raises"):
-                continue
-        except AttributeError:
-            continue
-
-        if not node.keywords:
-            yield (
-                node.lineno,
-                "Bare pytests raise have been found. "
-                "Please pass in the argument 'match' as well the exception.",
-            )
-        # Means that there are arguments that are being passed in,
-        # now we validate that `match` is one of the passed in arguments
-        elif not any(keyword.arg == "match" for keyword in node.keywords):
-            yield (
-                node.lineno,
-                "Bare pytests raise have been found. "
-                "Please pass in the argument 'match' as well the exception.",
-            )
 
 
 PRIVATE_FUNCTIONS_ALLOWED = {"sys._getframe"}  # no known alternative
@@ -232,7 +174,7 @@ def private_import_across_module(file_obj: IO[str]) -> Iterable[tuple[int, str]]
                 continue
 
             if module_name.startswith("_"):
-                yield (node.lineno, f"Import of internal function {repr(module_name)}")
+                yield (node.lineno, f"Import of internal function {module_name!r}")
 
 
 def strings_with_wrong_placed_whitespace(
@@ -243,17 +185,11 @@ def strings_with_wrong_placed_whitespace(
 
     For example:
 
-    >>> rule = (
-    ...    "We want the space at the end of the line, "
-    ...    "not at the beginning"
-    ... )
+    >>> rule = "We want the space at the end of the line, not at the beginning"
 
     Instead of:
 
-    >>> rule = (
-    ...    "We want the space at the end of the line,"
-    ...    " not at the beginning"
-    ... )
+    >>> rule = "We want the space at the end of the line, not at the beginning"
 
     Parameters
     ----------
@@ -293,17 +229,11 @@ def strings_with_wrong_placed_whitespace(
 
         For example, this is bad:
 
-        >>> rule = (
-        ...    "We want the space at the end of the line,"
-        ...    " not at the beginning"
-        ... )
+        >>> rule = "We want the space at the end of the line, not at the beginning"
 
         And what we want is:
 
-        >>> rule = (
-        ...    "We want the space at the end of the line, "
-        ...    "not at the beginning"
-        ... )
+        >>> rule = "We want the space at the end of the line, not at the beginning"
 
         And if the string is ending with a new line character (\n) we
         do not want any trailing whitespaces after it.
@@ -311,17 +241,17 @@ def strings_with_wrong_placed_whitespace(
         For example, this is bad:
 
         >>> rule = (
-        ...    "We want the space at the begging of "
-        ...    "the line if the previous line is ending with a \n "
-        ...    "not at the end, like always"
+        ...     "We want the space at the begging of "
+        ...     "the line if the previous line is ending with a \n "
+        ...     "not at the end, like always"
         ... )
 
         And what we do want is:
 
         >>> rule = (
-        ...    "We want the space at the begging of "
-        ...    "the line if the previous line is ending with a \n"
-        ...    " not at the end, like always"
+        ...     "We want the space at the begging of "
+        ...     "the line if the previous line is ending with a \n"
+        ...     " not at the end, like always"
         ... )
         """
         if first_line.endswith(r"\n"):
@@ -383,10 +313,14 @@ def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[tuple[int,
     while nodes:
         in_annotation, node = nodes.pop()
         if not in_annotation and (
-            isinstance(node, ast.Name)  # Case `NoDefault`
-            and node.id == "NoDefault"
-            or isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
-            and node.attr == "NoDefault"
+            (
+                isinstance(node, ast.Name)  # Case `NoDefault`
+                and node.id == "NoDefault"
+            )
+            or (
+                isinstance(node, ast.Attribute)  # Cases e.g. `lib.NoDefault`
+                and node.attr == "NoDefault"
+            )
         ):
             yield (node.lineno, "NoDefault is used not only for typing")
 
@@ -405,6 +339,58 @@ def nodefault_used_not_only_for_typing(file_obj: IO[str]) -> Iterable[tuple[int,
                     (next_in_annotation, value)
                     for value in reversed(value)
                     if isinstance(value, ast.AST)
+                )
+
+
+def doesnt_use_pandas_warnings(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
+    """
+    Checking that pandas-specific warnings are used for deprecations.
+
+    Parameters
+    ----------
+    file_obj : IO
+        File-like object containing the Python code to validate.
+
+    Yields
+    ------
+    line_number : int
+        Line number of the warning.
+    msg : str
+        Explanation of the error.
+    """
+    contents = file_obj.read()
+    lines = contents.split("\n")
+    tree = ast.parse(contents)
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+
+        if isinstance(node.func, ast.Attribute) and isinstance(
+            node.func.value, ast.Name
+        ):
+            # Check for `warnings.warn`.
+            if node.func.value.id != "warnings" or node.func.attr != "warn":
+                continue
+        elif isinstance(node.func, ast.Name):
+            # Check for just `warn` when using `from warnings import warn`.
+            if node.func.id != "warn":
+                continue
+        if any(
+            "# pdlint: ignore[warning_class]" in lines[k]
+            for k in range(node.lineno - 1, node.end_lineno + 1)
+        ):
+            continue
+        values = [arg.id for arg in node.args if isinstance(arg, ast.Name)] + [
+            kw.value.id for kw in node.keywords if kw.arg == "category"
+        ]
+        for value in values:
+            matches = re.match(DEPRECATION_WARNINGS_PATTERN, value)
+            if matches is not None:
+                yield (
+                    node.lineno,
+                    f"Don't use {matches[0]}, use a pandas-specific warning in "
+                    f"pd.errors instead. You can add "
+                    f"`# pdlint: ignore[warning_class]` to override.",
                 )
 
 
@@ -456,11 +442,11 @@ def main(
 
 if __name__ == "__main__":
     available_validation_types: list[str] = [
-        "bare_pytest_raises",
         "private_function_across_module",
         "private_import_across_module",
         "strings_with_wrong_placed_whitespace",
         "nodefault_used_not_only_for_typing",
+        "doesnt_use_pandas_warnings",
     ]
 
     parser = argparse.ArgumentParser(description="Unwanted patterns checker.")

@@ -2,6 +2,7 @@
 Tests that work on both the Python and C engines but do not have a
 specific classification into the other test modules.
 """
+
 from io import StringIO
 
 import numpy as np
@@ -128,7 +129,7 @@ bar2,12,13,14,15
         tm.assert_frame_equal(reader.get_chunk(size=2), expected.iloc[:2])
         tm.assert_frame_equal(reader.get_chunk(size=4), expected.iloc[2:5])
 
-        with pytest.raises(StopIteration, match=""):
+        with pytest.raises(StopIteration, match="^$"):
             reader.get_chunk(size=3)
 
 
@@ -220,20 +221,15 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
     data = "a\n" + "\n".join(integers + ["1.0", "2.0"] + integers)
 
     # Coercions should work without warnings.
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
-    depr_msg = "Passing a BlockManager to DataFrame"
-    with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
-        with monkeypatch.context() as m:
-            m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
-            result = parser.read_csv(StringIO(data))
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+        result = parser.read_csv(StringIO(data))
 
     assert type(result.a[0]) is np.float64
     assert result.a.dtype == float
 
 
-def test_warn_if_chunks_have_mismatched_type(all_parsers):
+def test_warn_if_chunks_have_mismatched_type(all_parsers, using_infer_string):
     warning_type = None
     parser = all_parsers
     size = 10000
@@ -251,21 +247,22 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
     buf = StringIO(data)
 
     if parser.engine == "pyarrow":
-        df = parser.read_csv_check_warnings(
-            DeprecationWarning,
-            "Passing a BlockManager to DataFrame is deprecated",
+        df = parser.read_csv(
             buf,
-            check_stacklevel=False,
         )
     else:
         df = parser.read_csv_check_warnings(
             warning_type,
-            r"Columns \(0\) have mixed types. "
+            r"Columns \(0: a\) have mixed types. "
             "Specify dtype option on import or set low_memory=False.",
             buf,
         )
-
-    assert df.a.dtype == object
+    if parser.engine == "c" and parser.low_memory:
+        assert df.a.dtype == object
+    elif using_infer_string:
+        assert df.a.dtype == "str"
+    else:
+        assert df.a.dtype == object
 
 
 @pytest.mark.parametrize("iterator", [True, False])

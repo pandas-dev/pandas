@@ -136,9 +136,13 @@ class IndexAppend:
             self.int_idxs.append(i_idx)
             o_idx = i_idx.astype(str)
             self.object_idxs.append(o_idx)
+        self.same_range_idx = [self.range_idx] * N
 
     def time_append_range_list(self):
         self.range_idx.append(self.range_idxs)
+
+    def time_append_range_list_same(self):
+        self.range_idx.append(self.same_range_idx)
 
     def time_append_int_list(self):
         self.int_idx.append(self.int_idxs)

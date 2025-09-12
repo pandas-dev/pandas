@@ -32,8 +32,10 @@ How do I create plots in pandas?
     air_quality.head()
 
 .. note::
-    The usage of the ``index_col`` and ``parse_dates`` parameters of the ``read_csv`` function to define the first (0th) column as
-    index of the resulting ``DataFrame`` and convert the dates in the column to :class:`Timestamp` objects, respectively.
+    The ``index_col=0`` and ``parse_dates=True`` parameters passed to the ``read_csv`` function define
+    the first (0th) column as index of the resulting ``DataFrame`` and convert the dates in the column
+    to :class:`Timestamp`  objects, respectively.
+
 
 .. raw:: html
 
@@ -85,7 +87,7 @@ I want to plot only the columns of the data table with the data from Paris.
     air_quality["station_paris"].plot()
     plt.show()
 
-To plot a specific column, use the selection method of the
+To plot a specific column, use a selection method from the
 :ref:`subset data tutorial <10min_tut_03_subset>` in combination with the :meth:`~DataFrame.plot`
 method. Hence, the :meth:`~DataFrame.plot` method works on both ``Series`` and
 ``DataFrame``.
@@ -127,7 +129,7 @@ standard Python to get an overview of the available plot methods:
     ]
 
 .. note::
-    In many development environments as well as IPython and
+    In many development environments such as IPython and
     Jupyter Notebook, use the TAB button to get an overview of the available
     methods, for example ``air_quality.plot.`` + TAB.
 
@@ -238,7 +240,7 @@ This strategy is applied in the previous example:
 
 -  The ``.plot.*`` methods are applicable on both Series and DataFrames.
 -  By default, each of the columns is plotted as a different element
-   (line, boxplot,…).
+   (line, boxplot, …).
 -  Any plot created by pandas is a Matplotlib object.
 
 .. raw:: html

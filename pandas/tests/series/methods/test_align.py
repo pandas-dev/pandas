@@ -52,44 +52,7 @@ def test_align(datetime_series, first_slice, second_slice, join_type, fill):
     assert eb.name == "ts"
 
 
-@pytest.mark.parametrize(
-    "first_slice,second_slice",
-    [
-        [[2, None], [None, -5]],
-        [[None, 0], [None, -5]],
-        [[None, -5], [None, 0]],
-        [[None, 0], [None, 0]],
-    ],
-)
-@pytest.mark.parametrize("method", ["pad", "bfill"])
-@pytest.mark.parametrize("limit", [None, 1])
-def test_align_fill_method(
-    datetime_series, first_slice, second_slice, join_type, method, limit
-):
-    a = datetime_series[slice(*first_slice)]
-    b = datetime_series[slice(*second_slice)]
-
-    msg = (
-        "The 'method', 'limit', and 'fill_axis' keywords in Series.align "
-        "are deprecated"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        aa, ab = a.align(b, join=join_type, method=method, limit=limit)
-
-    join_index = a.index.join(b.index, how=join_type)
-    ea = a.reindex(join_index)
-    eb = b.reindex(join_index)
-
-    msg2 = "Series.fillna with 'method' is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg2):
-        ea = ea.fillna(method=method, limit=limit)
-        eb = eb.fillna(method=method, limit=limit)
-
-    tm.assert_series_equal(aa, ea)
-    tm.assert_series_equal(ab, eb)
-
-
-def test_align_nocopy(datetime_series, using_copy_on_write):
+def test_align_nocopy(datetime_series):
     b = datetime_series[:5].copy()
 
     # do copy
@@ -100,12 +63,9 @@ def test_align_nocopy(datetime_series, using_copy_on_write):
 
     # do not copy
     a = datetime_series.copy()
-    ra, _ = a.align(b, join="left", copy=False)
+    ra, _ = a.align(b, join="left")
     ra[:5] = 5
-    if using_copy_on_write:
-        assert not (a[:5] == 5).any()
-    else:
-        assert (a[:5] == 5).all()
+    assert not (a[:5] == 5).any()
 
     # do copy
     a = datetime_series.copy()
@@ -117,24 +77,17 @@ def test_align_nocopy(datetime_series, using_copy_on_write):
     # do not copy
     a = datetime_series.copy()
     b = datetime_series[:5].copy()
-    _, rb = a.align(b, join="right", copy=False)
+    _, rb = a.align(b, join="right")
     rb[:2] = 5
-    if using_copy_on_write:
-        assert not (b[:2] == 5).any()
-    else:
-        assert (b[:2] == 5).all()
+    assert not (b[:2] == 5).any()
 
 
-def test_align_same_index(datetime_series, using_copy_on_write):
-    a, b = datetime_series.align(datetime_series, copy=False)
-    if not using_copy_on_write:
-        assert a.index is datetime_series.index
-        assert b.index is datetime_series.index
-    else:
-        assert a.index.is_(datetime_series.index)
-        assert b.index.is_(datetime_series.index)
+def test_align_same_index(datetime_series):
+    a, b = datetime_series.align(datetime_series)
+    assert a.index.is_(datetime_series.index)
+    assert b.index.is_(datetime_series.index)
 
-    a, b = datetime_series.align(datetime_series, copy=True)
+    a, b = datetime_series.align(datetime_series)
     assert a.index is not datetime_series.index
     assert b.index is not datetime_series.index
     assert a.index.is_(datetime_series.index)
@@ -176,22 +129,6 @@ def test_align_multiindex():
     tm.assert_series_equal(expr, res2l)
 
 
-@pytest.mark.parametrize("method", ["backfill", "bfill", "pad", "ffill", None])
-def test_align_with_dataframe_method(method):
-    # GH31788
-    ser = Series(range(3), index=range(3))
-    df = pd.DataFrame(0.0, index=range(3), columns=range(3))
-
-    msg = (
-        "The 'method', 'limit', and 'fill_axis' keywords in Series.align "
-        "are deprecated"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result_ser, result_df = ser.align(df, method=method)
-    tm.assert_series_equal(result_ser, ser)
-    tm.assert_frame_equal(result_df, df)
-
-
 def test_align_dt64tzindex_mismatched_tzs():
     idx1 = date_range("2001", periods=5, freq="h", tz="US/Eastern")
     ser = Series(np.random.default_rng(2).standard_normal(len(idx1)), index=idx1)
@@ -209,6 +146,19 @@ def test_align_periodindex(join_type):
 
     # TODO: assert something?
     ts.align(ts[::2], join=join_type)
+
+
+def test_align_stringindex(any_string_dtype):
+    left = Series(range(3), index=pd.Index(["a", "b", "d"], dtype=any_string_dtype))
+    right = Series(range(3), index=pd.Index(["a", "b", "c"], dtype=any_string_dtype))
+    result_left, result_right = left.align(right)
+
+    expected_idx = pd.Index(["a", "b", "c", "d"], dtype=any_string_dtype)
+    expected_left = Series([0, 1, np.nan, 2], index=expected_idx)
+    expected_right = Series([0, 1, 2, np.nan], index=expected_idx)
+
+    tm.assert_series_equal(result_left, expected_left)
+    tm.assert_series_equal(result_right, expected_right)
 
 
 def test_align_left_fewer_levels():

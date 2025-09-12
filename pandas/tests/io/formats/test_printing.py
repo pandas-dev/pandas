@@ -1,10 +1,33 @@
 # Note! This file is aimed specifically at pandas.io.formats.printing utility
 # functions, not the general printing of pandas objects.
+from collections.abc import Mapping
 import string
+
+import pytest
 
 import pandas._config.config as cf
 
+import pandas as pd
+
 from pandas.io.formats import printing
+
+
+@pytest.mark.parametrize(
+    "input_names, expected_names",
+    [
+        (["'a b"], "['\\'a b']"),  # Escape leading quote
+        (["test's b"], "['test\\'s b']"),  # Escape apostrophe
+        (["'test' b"], "['\\'test\\' b']"),  # Escape surrounding quotes
+        (["test b'"], "['test b\\'']"),  # Escape single quote
+        (["test\n' b"], "['test\\n\\' b']"),  # Escape quotes, preserve newline
+    ],
+)
+def test_formatted_index_names(input_names, expected_names):
+    # GH#60190
+    df = pd.DataFrame({name: [1, 2, 3] for name in input_names}).set_index(input_names)
+    formatted_names = str(df.index.names)
+
+    assert formatted_names == expected_names
 
 
 def test_adjoin():
@@ -14,6 +37,17 @@ def test_adjoin():
     adjoined = printing.adjoin(2, *data)
 
     assert adjoined == expected
+
+
+class MyMapping(Mapping):
+    def __getitem__(self, key):
+        return 4
+
+    def __iter__(self):
+        return iter(["a", "b"])
+
+    def __len__(self):
+        return 2
 
 
 class TestPPrintThing:
@@ -41,6 +75,15 @@ class TestPPrintThing:
 
     def test_repr_set(self):
         assert printing.pprint_thing({1}) == "{1}"
+
+    def test_repr_dict(self):
+        assert printing.pprint_thing({"a": 4, "b": 4}) == "{'a': 4, 'b': 4}"
+
+    def test_repr_mapping(self):
+        assert printing.pprint_thing(MyMapping()) == "{'a': 4, 'b': 4}"
+
+    def test_repr_frozenset(self):
+        assert printing.pprint_thing(frozenset([1, 2])) == "frozenset({1, 2})"
 
 
 class TestFormatBase:

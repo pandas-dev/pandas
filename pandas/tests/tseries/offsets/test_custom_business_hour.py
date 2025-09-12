@@ -1,6 +1,7 @@
 """
 Tests for offsets.CustomBusinessHour
 """
+
 from __future__ import annotations
 
 from datetime import (
@@ -269,28 +270,22 @@ class TestCustomBusinessHour:
         (
             CustomBusinessHour(holidays=holidays),
             {
-                Timestamp("2014-07-01 15:00")
-                + Nano(5): Timestamp("2014-07-01 16:00")
+                Timestamp("2014-07-01 15:00") + Nano(5): Timestamp("2014-07-01 16:00")
                 + Nano(5),
-                Timestamp("2014-07-01 16:00")
-                + Nano(5): Timestamp("2014-07-03 09:00")
+                Timestamp("2014-07-01 16:00") + Nano(5): Timestamp("2014-07-03 09:00")
                 + Nano(5),
-                Timestamp("2014-07-01 16:00")
-                - Nano(5): Timestamp("2014-07-01 17:00")
+                Timestamp("2014-07-01 16:00") - Nano(5): Timestamp("2014-07-01 17:00")
                 - Nano(5),
             },
         ),
         (
             CustomBusinessHour(-1, holidays=holidays),
             {
-                Timestamp("2014-07-01 15:00")
-                + Nano(5): Timestamp("2014-07-01 14:00")
+                Timestamp("2014-07-01 15:00") + Nano(5): Timestamp("2014-07-01 14:00")
                 + Nano(5),
-                Timestamp("2014-07-01 10:00")
-                + Nano(5): Timestamp("2014-07-01 09:00")
+                Timestamp("2014-07-01 10:00") + Nano(5): Timestamp("2014-07-01 09:00")
                 + Nano(5),
-                Timestamp("2014-07-01 10:00")
-                - Nano(5): Timestamp("2014-06-26 17:00")
+                Timestamp("2014-07-01 10:00") - Nano(5): Timestamp("2014-06-26 17:00")
                 - Nano(5),
             },
         ),

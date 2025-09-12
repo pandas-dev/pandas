@@ -12,36 +12,32 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
     pre-commit run validate-min-versions-in-sync --all-files
 """
+
 from __future__ import annotations
 
 import pathlib
 import sys
+import tomllib
+from typing import Any
 
 import yaml
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
-
-from typing import Any
-
 from scripts.generate_pip_deps_from_conda import CONDA_TO_PIP
 
-DOC_PATH = pathlib.Path("doc/source/getting_started/install.rst").resolve()
+BASE_PATH = pathlib.Path(__file__).parents[1]
+DOC_PATH = (BASE_PATH / "doc/source/getting_started/install.rst").resolve()
 CI_PATH = next(
-    pathlib.Path("ci/deps").absolute().glob("actions-*-minimum_versions.yaml")
+    (BASE_PATH / "ci/deps").absolute().glob("actions-*-minimum_versions.yaml")
 )
-CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
-SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
-YAML_PATH = pathlib.Path("ci/deps")
-ENV_PATH = pathlib.Path("environment.yml")
-EXCLUDE_DEPS = {"tzdata", "blosc", "pandas-gbq", "pyqt", "pyqt5"}
-EXCLUSION_LIST = frozenset(["python=3.8[build=*_pypy]"])
+CODE_PATH = (BASE_PATH / "pandas/compat/_optional.py").resolve()
+SETUP_PATH = (BASE_PATH / "pyproject.toml").resolve()
+YAML_PATH = BASE_PATH / "ci/deps"
+ENV_PATH = BASE_PATH / "environment.yml"
+EXCLUDE_DEPS = {"tzdata", "pyqt", "pyqt5"}
 # pandas package is not available
 # in pre-commit environment
-sys.path.append("pandas/compat")
-sys.path.append("pandas/util")
+sys.path.append(str(BASE_PATH / "pandas/compat"))
+sys.path.append(str(BASE_PATH / "pandas/util"))
 import _exceptions
 import version
 
@@ -105,15 +101,11 @@ def get_operator_from(dependency: str) -> str | None:
 
 
 def get_yaml_map_from(
-    yaml_dic: list[str | dict[str, list[str]]]
+    yaml_dic: list[str | dict[str, list[str]]],
 ) -> dict[str, list[str] | None]:
     yaml_map: dict[str, list[str] | None] = {}
     for dependency in yaml_dic:
-        if (
-            isinstance(dependency, dict)
-            or dependency in EXCLUSION_LIST
-            or dependency in yaml_map
-        ):
+        if isinstance(dependency, dict) or dependency in yaml_map:
             continue
         search_text = str(dependency)
         operator = get_operator_from(search_text)
@@ -124,11 +116,6 @@ def get_yaml_map_from(
             yaml_package, yaml_version2 = yaml_dependency.split(operator)
             yaml_version2 = operator + yaml_version2
             yaml_map[yaml_package] = [yaml_version1, yaml_version2]
-        elif "[build=*_pypy]" in dependency:
-            search_text = search_text.replace("[build=*_pypy]", "")
-            yaml_package, yaml_version = search_text.split(operator)
-            yaml_version = operator + yaml_version
-            yaml_map[yaml_package] = [yaml_version]
         elif operator is not None:
             yaml_package, yaml_version = search_text.split(operator)
             yaml_version = operator + yaml_version
@@ -143,7 +130,7 @@ def clean_version_list(
     yaml_versions: list[str], toml_version: version.Version
 ) -> list[str]:
     for i in range(len(yaml_versions)):
-        yaml_version = yaml_versions[i]
+        yaml_version = yaml_versions[i].strip()
         operator = get_operator_from(yaml_version)
         assert operator is not None
         if "<=" in operator or ">=" in operator:
@@ -164,8 +151,6 @@ def pin_min_versions_to_yaml_file(
 ) -> str:
     data = yaml_file_data
     for yaml_package, yaml_versions in yaml_map.items():
-        if yaml_package in EXCLUSION_LIST:
-            continue
         old_dep = yaml_package
         if yaml_versions is not None:
             old_dep = old_dep + ", ".join(yaml_versions)

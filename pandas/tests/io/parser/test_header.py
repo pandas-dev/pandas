@@ -32,8 +32,7 @@ def test_read_with_bad_header(all_parsers):
     msg = r"but only \d+ lines in file"
 
     with pytest.raises(ValueError, match=msg):
-        s = StringIO(",,")
-        parser.read_csv(s, header=[10])
+        parser.read_csv(StringIO(",,"), header=[10])
 
 
 def test_negative_header(all_parsers):
@@ -163,7 +162,7 @@ R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
             {"index_col": ["foo", "bar"]},
             (
                 "index_col must only contain "
-                "row numbers when specifying "
+                "integers of column positions when specifying "
                 "a multi-index header"
             ),
         ),
@@ -369,7 +368,7 @@ def test_header_multi_index_common_format_malformed2(all_parsers):
     parser = all_parsers
     expected = DataFrame(
         np.array([[2, 3, 4, 5, 6], [8, 9, 10, 11, 12]], dtype="int64"),
-        index=Index([1, 7]),
+        index=range(1, 13, 6),
         columns=MultiIndex(
             levels=[["a", "b", "c"], ["r", "s", "t", "u", "v"]],
             codes=[[0, 0, 1, 2, 2], [0, 1, 2, 3, 4]],
@@ -539,7 +538,7 @@ def test_mangles_multi_index(all_parsers, data, expected):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is requireds
+@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize("index_col", [None, [0]])
 @pytest.mark.parametrize(
     "columns", [None, (["", "Unnamed"]), (["Unnamed", ""]), (["Unnamed", "NotUnnamed"])]
@@ -671,7 +670,7 @@ def test_header_none_and_on_bad_lines_skip(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # TypeError: an integer is requireds
+@xfail_pyarrow  # TypeError: an integer is required
 def test_header_missing_rows(all_parsers):
     # GH#47400
     parser = all_parsers
@@ -683,7 +682,7 @@ def test_header_missing_rows(all_parsers):
         parser.read_csv(StringIO(data), header=[0, 1, 2])
 
 
-# ValueError: The 'delim_whitespace' option is not supported with the 'pyarrow' engine
+# ValueError: the 'pyarrow' engine does not support regex separators
 @xfail_pyarrow
 def test_header_multiple_whitespaces(all_parsers):
     # GH#54931
@@ -696,7 +695,7 @@ def test_header_multiple_whitespaces(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-# ValueError: The 'delim_whitespace' option is not supported with the 'pyarrow' engine
+# ValueError: the 'pyarrow' engine does not support regex separators
 @xfail_pyarrow
 def test_header_delim_whitespace(all_parsers):
     # GH#54918
@@ -705,8 +704,7 @@ def test_header_delim_whitespace(all_parsers):
 1,2
 3,4
     """
-
-    result = parser.read_csv(StringIO(data), delim_whitespace=True)
+    result = parser.read_csv(StringIO(data), sep=r"\s+")
     expected = DataFrame({"a,b": ["1,2", "3,4"]})
     tm.assert_frame_equal(result, expected)
 

@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas import (
     Index,
@@ -175,3 +176,60 @@ class TestJoin:
         index = RangeIndex(start=0, stop=20, step=2)
         joined = index.join(index, how=join_type)
         assert index is joined
+
+
+@pytest.mark.parametrize(
+    "left, right, expected, expected_lidx, expected_ridx, how",
+    [
+        [RangeIndex(2), RangeIndex(3), RangeIndex(2), None, [0, 1], "left"],
+        [RangeIndex(2), RangeIndex(2), RangeIndex(2), None, None, "left"],
+        [RangeIndex(2), RangeIndex(20, 22), RangeIndex(2), None, [-1, -1], "left"],
+        [RangeIndex(2), RangeIndex(3), RangeIndex(3), [0, 1, -1], None, "right"],
+        [RangeIndex(2), RangeIndex(2), RangeIndex(2), None, None, "right"],
+        [
+            RangeIndex(2),
+            RangeIndex(20, 22),
+            RangeIndex(20, 22),
+            [-1, -1],
+            None,
+            "right",
+        ],
+        [RangeIndex(2), RangeIndex(3), RangeIndex(2), [0, 1], [0, 1], "inner"],
+        [RangeIndex(2), RangeIndex(2), RangeIndex(2), None, None, "inner"],
+        [RangeIndex(2), RangeIndex(1, 3), RangeIndex(1, 2), [1], [0], "inner"],
+        [RangeIndex(2), RangeIndex(3), RangeIndex(3), [0, 1, -1], [0, 1, 2], "outer"],
+        [RangeIndex(2), RangeIndex(2), RangeIndex(2), None, None, "outer"],
+        [
+            RangeIndex(2),
+            RangeIndex(2, 4),
+            RangeIndex(4),
+            [0, 1, -1, -1],
+            [-1, -1, 0, 1],
+            "outer",
+        ],
+        [RangeIndex(2), RangeIndex(0), RangeIndex(2), None, [-1, -1], "left"],
+        [RangeIndex(2), RangeIndex(0), RangeIndex(0), [], None, "right"],
+        [RangeIndex(2), RangeIndex(0), RangeIndex(0), [], None, "inner"],
+        [RangeIndex(2), RangeIndex(0), RangeIndex(2), None, [-1, -1], "outer"],
+    ],
+)
+@pytest.mark.parametrize(
+    "right_type", [RangeIndex, lambda x: Index(list(x), dtype=x.dtype)]
+)
+def test_join_preserves_rangeindex(
+    left, right, expected, expected_lidx, expected_ridx, how, right_type
+):
+    result, lidx, ridx = left.join(right_type(right), how=how, return_indexers=True)
+    tm.assert_index_equal(result, expected, exact=True)
+
+    if expected_lidx is None:
+        assert lidx is expected_lidx
+    else:
+        exp_lidx = np.array(expected_lidx, dtype=np.intp)
+        tm.assert_numpy_array_equal(lidx, exp_lidx)
+
+    if expected_ridx is None:
+        assert ridx is expected_ridx
+    else:
+        exp_ridx = np.array(expected_ridx, dtype=np.intp)
+        tm.assert_numpy_array_equal(ridx, exp_ridx)

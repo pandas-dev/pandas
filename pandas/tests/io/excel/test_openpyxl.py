@@ -1,6 +1,7 @@
 import contextlib
 from pathlib import Path
 import re
+import uuid
 
 import numpy as np
 import pytest
@@ -21,6 +22,13 @@ openpyxl = pytest.importorskip("openpyxl")
 @pytest.fixture
 def ext():
     return ".xlsx"
+
+
+@pytest.fixture
+def tmp_excel(ext, tmp_path):
+    tmp = tmp_path / f"{uuid.uuid4()}{ext}"
+    tmp.touch()
+    return str(tmp)
 
 
 def test_to_excel_styleconverter():
@@ -56,7 +64,7 @@ def test_to_excel_styleconverter():
     assert kw["protection"] == protection
 
 
-def test_write_cells_merge_styled(ext):
+def test_write_cells_merge_styled(tmp_excel):
     from pandas.io.formats.excel import ExcelCell
 
     sheet_name = "merge_styled"
@@ -78,72 +86,73 @@ def test_write_cells_merge_styled(ext):
         )
     ]
 
-    with tm.ensure_clean(ext) as path:
-        with _OpenpyxlWriter(path) as writer:
-            writer._write_cells(initial_cells, sheet_name=sheet_name)
-            writer._write_cells(merge_cells, sheet_name=sheet_name)
+    with _OpenpyxlWriter(tmp_excel) as writer:
+        writer._write_cells(initial_cells, sheet_name=sheet_name)
+        writer._write_cells(merge_cells, sheet_name=sheet_name)
 
-            wks = writer.sheets[sheet_name]
-        xcell_b1 = wks["B1"]
-        xcell_a2 = wks["A2"]
-        assert xcell_b1.font == openpyxl_sty_merged
-        assert xcell_a2.font == openpyxl_sty_merged
+        wks = writer.sheets[sheet_name]
+    xcell_b1 = wks["B1"]
+    xcell_a2 = wks["A2"]
+    assert xcell_b1.font == openpyxl_sty_merged
+    assert xcell_a2.font == openpyxl_sty_merged
 
 
 @pytest.mark.parametrize("iso_dates", [True, False])
-def test_engine_kwargs_write(ext, iso_dates):
+def test_engine_kwargs_write(tmp_excel, iso_dates):
     # GH 42286 GH 43445
     engine_kwargs = {"iso_dates": iso_dates}
-    with tm.ensure_clean(ext) as f:
-        with ExcelWriter(f, engine="openpyxl", engine_kwargs=engine_kwargs) as writer:
-            assert writer.book.iso_dates == iso_dates
-            # ExcelWriter won't allow us to close without writing something
-            DataFrame().to_excel(writer)
+    with ExcelWriter(
+        tmp_excel, engine="openpyxl", engine_kwargs=engine_kwargs
+    ) as writer:
+        assert writer.book.iso_dates == iso_dates
+        # ExcelWriter won't allow us to close without writing something
+        DataFrame().to_excel(writer)
 
 
-def test_engine_kwargs_append_invalid(ext):
+def test_engine_kwargs_append_invalid(tmp_excel):
     # GH 43445
     # test whether an invalid engine kwargs actually raises
-    with tm.ensure_clean(ext) as f:
-        DataFrame(["hello", "world"]).to_excel(f)
-        with pytest.raises(
-            TypeError,
-            match=re.escape(
-                "load_workbook() got an unexpected keyword argument 'apple_banana'"
-            ),
-        ):
-            with ExcelWriter(
-                f, engine="openpyxl", mode="a", engine_kwargs={"apple_banana": "fruit"}
-            ) as writer:
-                # ExcelWriter needs us to write something to close properly
-                DataFrame(["good"]).to_excel(writer, sheet_name="Sheet2")
+    DataFrame(["hello", "world"]).to_excel(tmp_excel)
+    with pytest.raises(
+        TypeError,
+        match=re.escape(
+            "load_workbook() got an unexpected keyword argument 'apple_banana'"
+        ),
+    ):
+        with ExcelWriter(
+            tmp_excel,
+            engine="openpyxl",
+            mode="a",
+            engine_kwargs={"apple_banana": "fruit"},
+        ) as writer:
+            # ExcelWriter needs us to write something to close properly
+            DataFrame(["good"]).to_excel(writer, sheet_name="Sheet2")
 
 
 @pytest.mark.parametrize("data_only, expected", [(True, 0), (False, "=1+1")])
-def test_engine_kwargs_append_data_only(ext, data_only, expected):
+def test_engine_kwargs_append_data_only(tmp_excel, data_only, expected):
     # GH 43445
     # tests whether the data_only engine_kwarg actually works well for
     # openpyxl's load_workbook
-    with tm.ensure_clean(ext) as f:
-        DataFrame(["=1+1"]).to_excel(f)
-        with ExcelWriter(
-            f, engine="openpyxl", mode="a", engine_kwargs={"data_only": data_only}
-        ) as writer:
-            assert writer.sheets["Sheet1"]["B2"].value == expected
-            # ExcelWriter needs us to writer something to close properly?
-            DataFrame().to_excel(writer, sheet_name="Sheet2")
+    DataFrame(["=1+1"]).to_excel(tmp_excel)
+    with ExcelWriter(
+        tmp_excel, engine="openpyxl", mode="a", engine_kwargs={"data_only": data_only}
+    ) as writer:
+        assert writer.sheets["Sheet1"]["B2"].value == expected
+        # ExcelWriter needs us to writer something to close properly?
+        DataFrame().to_excel(writer, sheet_name="Sheet2")
 
-        # ensure that data_only also works for reading
-        #  and that formulas/values roundtrip
-        assert (
-            pd.read_excel(
-                f,
-                sheet_name="Sheet1",
-                engine="openpyxl",
-                engine_kwargs={"data_only": data_only},
-            ).iloc[0, 1]
-            == expected
-        )
+    # ensure that data_only also works for reading
+    #  and that formulas/values roundtrip
+    assert (
+        pd.read_excel(
+            tmp_excel,
+            sheet_name="Sheet1",
+            engine="openpyxl",
+            engine_kwargs={"data_only": data_only},
+        ).iloc[0, 1]
+        == expected
+    )
 
 
 @pytest.mark.parametrize("kwarg_name", ["read_only", "data_only"])
@@ -162,26 +171,25 @@ def test_engine_kwargs_append_reader(datapath, ext, kwarg_name, kwarg_value):
 @pytest.mark.parametrize(
     "mode,expected", [("w", ["baz"]), ("a", ["foo", "bar", "baz"])]
 )
-def test_write_append_mode(ext, mode, expected):
+def test_write_append_mode(tmp_excel, mode, expected):
     df = DataFrame([1], columns=["baz"])
 
-    with tm.ensure_clean(ext) as f:
-        wb = openpyxl.Workbook()
-        wb.worksheets[0].title = "foo"
-        wb.worksheets[0]["A1"].value = "foo"
-        wb.create_sheet("bar")
-        wb.worksheets[1]["A1"].value = "bar"
-        wb.save(f)
+    wb = openpyxl.Workbook()
+    wb.worksheets[0].title = "foo"
+    wb.worksheets[0]["A1"].value = "foo"
+    wb.create_sheet("bar")
+    wb.worksheets[1]["A1"].value = "bar"
+    wb.save(tmp_excel)
 
-        with ExcelWriter(f, engine="openpyxl", mode=mode) as writer:
-            df.to_excel(writer, sheet_name="baz", index=False)
+    with ExcelWriter(tmp_excel, engine="openpyxl", mode=mode) as writer:
+        df.to_excel(writer, sheet_name="baz", index=False)
 
-        with contextlib.closing(openpyxl.load_workbook(f)) as wb2:
-            result = [sheet.title for sheet in wb2.worksheets]
-            assert result == expected
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb2:
+        result = [sheet.title for sheet in wb2.worksheets]
+        assert result == expected
 
-            for index, cell_value in enumerate(expected):
-                assert wb2.worksheets[index]["A1"].value == cell_value
+        for index, cell_value in enumerate(expected):
+            assert wb2.worksheets[index]["A1"].value == cell_value
 
 
 @pytest.mark.parametrize(
@@ -192,26 +200,25 @@ def test_write_append_mode(ext, mode, expected):
         ("overlay", 1, ["pear", "banana"]),
     ],
 )
-def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected):
+def test_if_sheet_exists_append_modes(tmp_excel, if_sheet_exists, num_sheets, expected):
     # GH 40230
     df1 = DataFrame({"fruit": ["apple", "banana"]})
     df2 = DataFrame({"fruit": ["pear"]})
 
-    with tm.ensure_clean(ext) as f:
-        df1.to_excel(f, engine="openpyxl", sheet_name="foo", index=False)
-        with ExcelWriter(
-            f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
-        ) as writer:
-            df2.to_excel(writer, sheet_name="foo", index=False)
+    df1.to_excel(tmp_excel, engine="openpyxl", sheet_name="foo", index=False)
+    with ExcelWriter(
+        tmp_excel, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
+    ) as writer:
+        df2.to_excel(writer, sheet_name="foo", index=False)
 
-        with contextlib.closing(openpyxl.load_workbook(f)) as wb:
-            assert len(wb.sheetnames) == num_sheets
-            assert wb.sheetnames[0] == "foo"
-            result = pd.read_excel(wb, "foo", engine="openpyxl")
-            assert list(result["fruit"]) == expected
-            if len(wb.sheetnames) == 2:
-                result = pd.read_excel(wb, wb.sheetnames[1], engine="openpyxl")
-                tm.assert_frame_equal(result, df2)
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        assert len(wb.sheetnames) == num_sheets
+        assert wb.sheetnames[0] == "foo"
+        result = pd.read_excel(wb, "foo", engine="openpyxl")
+        assert list(result["fruit"]) == expected
+        if len(wb.sheetnames) == 2:
+            result = pd.read_excel(wb, wb.sheetnames[1], engine="openpyxl")
+            tm.assert_frame_equal(result, df2)
 
 
 @pytest.mark.parametrize(
@@ -223,28 +230,29 @@ def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected
         (1, 1, ["hello", "world"], ["goodbye", "poop"]),
     ],
 )
-def test_append_overlay_startrow_startcol(ext, startrow, startcol, greeting, goodbye):
+def test_append_overlay_startrow_startcol(
+    tmp_excel, startrow, startcol, greeting, goodbye
+):
     df1 = DataFrame({"greeting": ["hello", "world"], "goodbye": ["goodbye", "people"]})
     df2 = DataFrame(["poop"])
 
-    with tm.ensure_clean(ext) as f:
-        df1.to_excel(f, engine="openpyxl", sheet_name="poo", index=False)
-        with ExcelWriter(
-            f, engine="openpyxl", mode="a", if_sheet_exists="overlay"
-        ) as writer:
-            # use startrow+1 because we don't have a header
-            df2.to_excel(
-                writer,
-                index=False,
-                header=False,
-                startrow=startrow + 1,
-                startcol=startcol,
-                sheet_name="poo",
-            )
+    df1.to_excel(tmp_excel, engine="openpyxl", sheet_name="poo", index=False)
+    with ExcelWriter(
+        tmp_excel, engine="openpyxl", mode="a", if_sheet_exists="overlay"
+    ) as writer:
+        # use startrow+1 because we don't have a header
+        df2.to_excel(
+            writer,
+            index=False,
+            header=False,
+            startrow=startrow + 1,
+            startcol=startcol,
+            sheet_name="poo",
+        )
 
-        result = pd.read_excel(f, sheet_name="poo", engine="openpyxl")
-        expected = DataFrame({"greeting": greeting, "goodbye": goodbye})
-        tm.assert_frame_equal(result, expected)
+    result = pd.read_excel(tmp_excel, sheet_name="poo", engine="openpyxl")
+    expected = DataFrame({"greeting": greeting, "goodbye": goodbye})
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -265,29 +273,27 @@ def test_append_overlay_startrow_startcol(ext, startrow, startcol, greeting, goo
         ),
     ],
 )
-def test_if_sheet_exists_raises(ext, if_sheet_exists, msg):
+def test_if_sheet_exists_raises(tmp_excel, if_sheet_exists, msg):
     # GH 40230
     df = DataFrame({"fruit": ["pear"]})
-    with tm.ensure_clean(ext) as f:
-        with pytest.raises(ValueError, match=re.escape(msg)):
-            df.to_excel(f, sheet_name="foo", engine="openpyxl")
-            with ExcelWriter(
-                f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
-            ) as writer:
-                df.to_excel(writer, sheet_name="foo")
+    df.to_excel(tmp_excel, sheet_name="foo", engine="openpyxl")
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        with ExcelWriter(
+            tmp_excel, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
+        ) as writer:
+            df.to_excel(writer, sheet_name="foo")
 
 
-def test_to_excel_with_openpyxl_engine(ext):
+def test_to_excel_with_openpyxl_engine(tmp_excel):
     # GH 29854
-    with tm.ensure_clean(ext) as filename:
-        df1 = DataFrame({"A": np.linspace(1, 10, 10)})
-        df2 = DataFrame({"B": np.linspace(1, 20, 10)})
-        df = pd.concat([df1, df2], axis=1)
-        styled = df.style.map(
-            lambda val: f"color: {'red' if val < 0 else 'black'}"
-        ).highlight_max()
+    df1 = DataFrame({"A": np.linspace(1, 10, 10)})
+    df2 = DataFrame({"B": np.linspace(1, 20, 10)})
+    df = pd.concat([df1, df2], axis=1)
+    styled = df.style.map(
+        lambda val: f"color: {'red' if val < 0 else 'black'}"
+    ).highlight_max()
 
-        styled.to_excel(filename, engine="openpyxl")
+    styled.to_excel(tmp_excel, engine="openpyxl")
 
 
 @pytest.mark.parametrize("read_only", [True, False])
@@ -337,25 +343,24 @@ def test_read_with_bad_dimension(
     tm.assert_frame_equal(result, expected)
 
 
-def test_append_mode_file(ext):
+def test_append_mode_file(tmp_excel):
     # GH 39576
     df = DataFrame()
 
-    with tm.ensure_clean(ext) as f:
-        df.to_excel(f, engine="openpyxl")
+    df.to_excel(tmp_excel, engine="openpyxl")
 
-        with ExcelWriter(
-            f, mode="a", engine="openpyxl", if_sheet_exists="new"
-        ) as writer:
-            df.to_excel(writer)
+    with ExcelWriter(
+        tmp_excel, mode="a", engine="openpyxl", if_sheet_exists="new"
+    ) as writer:
+        df.to_excel(writer)
 
-        # make sure that zip files are not concatenated by making sure that
-        # "docProps/app.xml" only occurs twice in the file
-        data = Path(f).read_bytes()
-        first = data.find(b"docProps/app.xml")
-        second = data.find(b"docProps/app.xml", first + 1)
-        third = data.find(b"docProps/app.xml", second + 1)
-        assert second != -1 and third == -1
+    # make sure that zip files are not concatenated by making sure that
+    # "docProps/app.xml" only occurs twice in the file
+    data = Path(tmp_excel).read_bytes()
+    first = data.find(b"docProps/app.xml")
+    second = data.find(b"docProps/app.xml", first + 1)
+    third = data.find(b"docProps/app.xml", second + 1)
+    assert second != -1 and third == -1
 
 
 # When read_only is None, use read_excel instead of a workbook
@@ -396,13 +401,12 @@ def test_read_empty_with_blank_row(datapath, ext, read_only):
     tm.assert_frame_equal(result, expected)
 
 
-def test_book_and_sheets_consistent(ext):
+def test_book_and_sheets_consistent(tmp_excel):
     # GH#45687 - Ensure sheets is updated if user modifies book
-    with tm.ensure_clean(ext) as f:
-        with ExcelWriter(f, engine="openpyxl") as writer:
-            assert writer.sheets == {}
-            sheet = writer.book.create_sheet("test_name", 0)
-            assert writer.sheets == {"test_name": sheet}
+    with ExcelWriter(tmp_excel, engine="openpyxl") as writer:
+        assert writer.sheets == {}
+        sheet = writer.book.create_sheet("test_name", 0)
+        assert writer.sheets == {"test_name": sheet}
 
 
 def test_ints_spelled_with_decimals(datapath, ext):

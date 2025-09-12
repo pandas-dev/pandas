@@ -1,6 +1,7 @@
 """
 data hash pandas / numpy objects
 """
+
 from __future__ import annotations
 
 import itertools
@@ -105,7 +106,8 @@ def hash_pandas_object(
 
     Returns
     -------
-    Series of uint64, same length as the object
+    Series of uint64
+        Same length as the object.
 
     Examples
     --------
@@ -242,6 +244,7 @@ def hash_array(
     Parameters
     ----------
     vals : ndarray or ExtensionArray
+        The input array to hash.
     encoding : str, default 'utf8'
         Encoding for data & key when strings.
     hash_key : str, default _default_hash_key
@@ -254,6 +257,11 @@ def hash_array(
     -------
     ndarray[np.uint64, ndim=1]
         Hashed values, same length as the vals.
+
+    See Also
+    --------
+    util.hash_pandas_object : Return a data hash of the Index/Series/DataFrame.
+    util.hash_tuples : Hash an MultiIndex / listlike-of-tuples efficiently.
 
     Examples
     --------
@@ -336,4 +344,7 @@ def _hash_ndarray(
     vals ^= vals >> 27
     vals *= np.uint64(0x94D049BB133111EB)
     vals ^= vals >> 31
-    return vals
+    # error: Incompatible return value type (got "Any | ndarray[tuple[int, ...],
+    # dtype[signedinteger[Any]]]", expected "ndarray[tuple[int, ...],
+    # dtype[unsignedinteger[_64Bit]]]")
+    return vals  # type: ignore[return-value]

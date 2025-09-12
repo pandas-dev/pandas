@@ -1,6 +1,7 @@
 """
 Tests for statistical reductions of 2nd moment or higher: var, skew, kurt, ...
 """
+
 import inspect
 
 import numpy as np
@@ -13,16 +14,10 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    PeriodArray,
-    TimedeltaArray,
-)
 
 
 class TestDatetimeLikeStatReductions:
-    @pytest.mark.parametrize("box", [Series, pd.Index, DatetimeArray])
-    def test_dt64_mean(self, tz_naive_fixture, box):
+    def test_dt64_mean(self, tz_naive_fixture, index_or_series_or_array):
         tz = tz_naive_fixture
 
         dti = date_range("2001-01-01", periods=11, tz=tz)
@@ -30,20 +25,19 @@ class TestDatetimeLikeStatReductions:
         dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
         dtarr = dti._data
 
-        obj = box(dtarr)
+        obj = index_or_series_or_array(dtarr)
         assert obj.mean() == pd.Timestamp("2001-01-06", tz=tz)
         assert obj.mean(skipna=False) == pd.Timestamp("2001-01-06", tz=tz)
 
         # dtarr[-2] will be the first date 2001-01-1
         dtarr[-2] = pd.NaT
 
-        obj = box(dtarr)
+        obj = index_or_series_or_array(dtarr)
         assert obj.mean() == pd.Timestamp("2001-01-06 07:12:00", tz=tz)
         assert obj.mean(skipna=False) is pd.NaT
 
-    @pytest.mark.parametrize("box", [Series, pd.Index, PeriodArray])
     @pytest.mark.parametrize("freq", ["s", "h", "D", "W", "B"])
-    def test_period_mean(self, box, freq):
+    def test_period_mean(self, index_or_series_or_array, freq):
         # GH#24757
         dti = date_range("2001-01-01", periods=11)
         # shuffle so that we are not just working with monotone-increasing
@@ -53,7 +47,7 @@ class TestDatetimeLikeStatReductions:
         msg = r"PeriodDtype\[B\] is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
             parr = dti._data.to_period(freq)
-        obj = box(parr)
+        obj = index_or_series_or_array(parr)
         with pytest.raises(TypeError, match="ambiguous"):
             obj.mean()
         with pytest.raises(TypeError, match="ambiguous"):
@@ -67,13 +61,12 @@ class TestDatetimeLikeStatReductions:
         with pytest.raises(TypeError, match="ambiguous"):
             obj.mean(skipna=True)
 
-    @pytest.mark.parametrize("box", [Series, pd.Index, TimedeltaArray])
-    def test_td64_mean(self, box):
+    def test_td64_mean(self, index_or_series_or_array):
         m8values = np.array([0, 3, -2, -7, 1, 2, -1, 3, 5, -2, 4], "m8[D]")
         tdi = pd.TimedeltaIndex(m8values).as_unit("ns")
 
         tdarr = tdi._data
-        obj = box(tdarr, copy=False)
+        obj = index_or_series_or_array(tdarr, copy=False)
 
         result = obj.mean()
         expected = np.array(tdarr).mean()
@@ -106,7 +99,7 @@ class TestSeriesStatReductions:
             # mean, idxmax, idxmin, min, and max are valid for dates
             if name not in ["max", "min", "mean", "median", "std"]:
                 ds = Series(date_range("1/1/2001", periods=10))
-                msg = f"does not support reduction '{name}'"
+                msg = f"does not support operation '{name}'"
                 with pytest.raises(TypeError, match=msg):
                     f(ds)
 

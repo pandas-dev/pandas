@@ -3,14 +3,16 @@ test_insert is specifically for the DataFrame.insert method; not to be
 confused with tests with "insert" in their names that are really testing
 __setitem__.
 """
+
 import numpy as np
 import pytest
-
-from pandas.errors import PerformanceWarning
 
 from pandas import (
     DataFrame,
     Index,
+    MultiIndex,
+    NaT,
+    Timestamp,
 )
 import pandas._testing as tm
 
@@ -71,29 +73,6 @@ class TestDataFrameInsert:
         )
         tm.assert_frame_equal(df, exp)
 
-    def test_insert_item_cache(self, using_array_manager, using_copy_on_write):
-        df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
-        ser = df[0]
-
-        if using_array_manager:
-            expected_warning = None
-        else:
-            # with BlockManager warn about high fragmentation of single dtype
-            expected_warning = PerformanceWarning
-
-        with tm.assert_produces_warning(expected_warning):
-            for n in range(100):
-                df[n + 3] = df[1] * n
-
-        if using_copy_on_write:
-            ser.iloc[0] = 99
-            assert df.iloc[0, 0] == df[0][0]
-            assert df.iloc[0, 0] != 99
-        else:
-            ser.values[0] = 99
-            assert df.iloc[0, 0] == df[0][0]
-            assert df.iloc[0, 0] == 99
-
     def test_insert_EA_no_warning(self):
         # PerformanceWarning about fragmented frame should not be raised when
         # using EAs (https://github.com/pandas-dev/pandas/issues/44098)
@@ -118,3 +97,23 @@ class TestDataFrameInsert:
         df = DataFrame({"a": [1, 2]})
         df.insert(np.int64(0), "b", 0)
         tm.assert_frame_equal(df, DataFrame({"b": [0, 0], "a": [1, 2]}))
+
+    def test_insert_delete_mixed_multiindex_columns(self):
+        # GH#56853
+
+        df = DataFrame({("A", Timestamp("2024-01-01")): [0]})
+        df.insert(1, "B", [1])
+
+        expected = DataFrame(
+            [[0, 1]],
+            columns=MultiIndex.from_tuples(
+                [("A", Timestamp("2024-01-01")), ("B", NaT)]
+            ),
+        )
+        tm.assert_frame_equal(df, expected)
+
+        # Should not raise RecursionError (this was the original bug)
+        del df["B"]
+
+        expected = DataFrame({("A", Timestamp("2024-01-01")): [0]})
+        tm.assert_frame_equal(df, expected)

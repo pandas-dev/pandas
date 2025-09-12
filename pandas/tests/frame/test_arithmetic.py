@@ -11,8 +11,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -57,7 +55,7 @@ class DummyElement:
         self.value = value
         self.dtype = np.dtype(dtype)
 
-    def __array__(self):
+    def __array__(self, dtype=None, copy=None):
         return np.array(self.value, dtype=self.dtype)
 
     def __str__(self) -> str:
@@ -301,8 +299,7 @@ class TestFrameComparisons:
 
 class TestFrameFlexComparisons:
     # TODO: test_bool_flex_frame needs a better name
-    @pytest.mark.parametrize("op", ["eq", "ne", "gt", "lt", "ge", "le"])
-    def test_bool_flex_frame(self, op):
+    def test_bool_flex_frame(self, comparison_op):
         data = np.random.default_rng(2).standard_normal((5, 3))
         other_data = np.random.default_rng(2).standard_normal((5, 3))
         df = DataFrame(data)
@@ -312,8 +309,8 @@ class TestFrameFlexComparisons:
         # DataFrame
         assert df.eq(df).values.all()
         assert not df.ne(df).values.any()
-        f = getattr(df, op)
-        o = getattr(operator, op)
+        f = getattr(df, comparison_op.__name__)
+        o = comparison_op
         # No NAs
         tm.assert_frame_equal(f(other), o(df, other))
         # Unaligned
@@ -432,8 +429,8 @@ class TestFrameFlexComparisons:
 
     def test_bool_flex_frame_object_dtype(self):
         # corner, dtype=object
-        df1 = DataFrame({"col": ["foo", np.nan, "bar"]})
-        df2 = DataFrame({"col": ["foo", datetime.now(), "bar"]})
+        df1 = DataFrame({"col": ["foo", np.nan, "bar"]}, dtype=object)
+        df2 = DataFrame({"col": ["foo", datetime.now(), "bar"]}, dtype=object)
         result = df1.ne(df2)
         exp = DataFrame({"col": [False, True, False]})
         tm.assert_frame_equal(result, exp)
@@ -456,25 +453,23 @@ class TestFrameFlexComparisons:
         result = df.ne(pd.NaT)
         assert result.iloc[0, 0].item() is True
 
-    @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
-    def test_df_flex_cmp_constant_return_types(self, opname):
+    def test_df_flex_cmp_constant_return_types(self, comparison_op):
         # GH 15077, non-empty DataFrame
         df = DataFrame({"x": [1, 2, 3], "y": [1.0, 2.0, 3.0]})
         const = 2
 
-        result = getattr(df, opname)(const).dtypes.value_counts()
+        result = getattr(df, comparison_op.__name__)(const).dtypes.value_counts()
         tm.assert_series_equal(
             result, Series([2], index=[np.dtype(bool)], name="count")
         )
 
-    @pytest.mark.parametrize("opname", ["eq", "ne", "gt", "lt", "ge", "le"])
-    def test_df_flex_cmp_constant_return_types_empty(self, opname):
+    def test_df_flex_cmp_constant_return_types_empty(self, comparison_op):
         # GH 15077 empty DataFrame
         df = DataFrame({"x": [1, 2, 3], "y": [1.0, 2.0, 3.0]})
         const = 2
 
         empty = df.iloc[:0]
-        result = getattr(empty, opname)(const).dtypes.value_counts()
+        result = getattr(empty, comparison_op.__name__)(const).dtypes.value_counts()
         tm.assert_series_equal(
             result, Series([2], index=[np.dtype(bool)], name="count")
         )
@@ -624,10 +619,12 @@ class TestFrameFlexArithmetic:
 
         # corner cases
         result = float_frame.add(float_frame[:0])
-        tm.assert_frame_equal(result, float_frame * np.nan)
+        expected = float_frame.sort_index() * np.nan
+        tm.assert_frame_equal(result, expected)
 
         result = float_frame[:0].add(float_frame)
-        tm.assert_frame_equal(result, float_frame * np.nan)
+        expected = float_frame.sort_index() * np.nan
+        tm.assert_frame_equal(result, expected)
 
         with pytest.raises(NotImplementedError, match="fill_value"):
             float_frame.add(float_frame.iloc[0], fill_value=3)
@@ -659,11 +656,12 @@ class TestFrameFlexArithmetic:
         tm.assert_frame_equal(df.div(row), df / row)
         tm.assert_frame_equal(df.div(col, axis=0), (df.T / col).T)
 
-    @pytest.mark.parametrize("dtype", ["int64", "float64"])
-    def test_arith_flex_series_broadcasting(self, dtype):
+    def test_arith_flex_series_broadcasting(self, any_real_numpy_dtype):
         # broadcasting issue in GH 7325
-        df = DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype=dtype)
+        df = DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype=any_real_numpy_dtype)
         expected = DataFrame([[np.nan, np.inf], [1.0, 1.5], [1.0, 1.25]])
+        if any_real_numpy_dtype == "float32":
+            expected = expected.astype(any_real_numpy_dtype)
         result = df.div(df[0], axis="index")
         tm.assert_frame_equal(result, expected)
 
@@ -832,6 +830,43 @@ class TestFrameFlexArithmetic:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_multiindex_operations_part_align_axis1(self):
+        # GH#61009 Test DataFrame-Series arithmetic operation
+        # with partly aligned MultiIndex and axis = 1
+        df = DataFrame(
+            [[1, 2, 3], [3, 4, 5]],
+            index=[2010, 2020],
+            columns=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+
+        series = Series(
+            [0.4],
+            index=MultiIndex.from_product([["b"], ["a"]], names=["mod", "scen"]),
+        )
+
+        expected = DataFrame(
+            [[1.4, 2.4, np.nan], [3.4, 4.4, np.nan]],
+            index=[2010, 2020],
+            columns=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+        result = df.add(series, axis=1)
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):
@@ -887,15 +922,10 @@ class TestFrameArithmetic:
         tm.assert_frame_equal(result, expected)
 
     def test_df_arith_2d_array_rowlike_broadcasts(
-        self, request, all_arithmetic_operators, using_array_manager
+        self, request, all_arithmetic_operators
     ):
         # GH#23000
         opname = all_arithmetic_operators
-
-        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
-            # TODO(ArrayManager) decide on dtypes
-            td.mark_array_manager_not_yet_implemented(request)
-
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
 
@@ -914,15 +944,10 @@ class TestFrameArithmetic:
         tm.assert_frame_equal(result, expected)
 
     def test_df_arith_2d_array_collike_broadcasts(
-        self, request, all_arithmetic_operators, using_array_manager
+        self, request, all_arithmetic_operators
     ):
         # GH#23000
         opname = all_arithmetic_operators
-
-        if using_array_manager and opname in ("__rmod__", "__rfloordiv__"):
-            # TODO(ArrayManager) decide on dtypes
-            td.mark_array_manager_not_yet_implemented(request)
-
         arr = np.arange(6).reshape(3, 2)
         df = DataFrame(arr, columns=[True, False], index=["A", "B", "C"])
 
@@ -1104,7 +1129,7 @@ class TestFrameArithmetic:
                     and expr.USE_NUMEXPR
                     and switch_numexpr_min_elements == 0
                 ):
-                    warn = UserWarning  # "evaluating in Python space because ..."
+                    warn = UserWarning
             else:
                 msg = (
                     f"cannot perform __{op.__name__}__ with this "
@@ -1112,17 +1137,16 @@ class TestFrameArithmetic:
                 )
 
             with pytest.raises(TypeError, match=msg):
-                with tm.assert_produces_warning(warn):
+                with tm.assert_produces_warning(warn, match="evaluating in Python"):
                     op(df, elem.value)
 
         elif (op, dtype) in skip:
             if op in [operator.add, operator.mul]:
                 if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
-                    # "evaluating in Python space because ..."
                     warn = UserWarning
                 else:
                     warn = None
-                with tm.assert_produces_warning(warn):
+                with tm.assert_produces_warning(warn, match="evaluating in Python"):
                     op(df, elem.value)
 
             else:
@@ -1246,9 +1270,8 @@ class TestFrameArithmeticUnsorted:
 
         # since filling converts dtypes from object, changed expected to be
         # object
-        msg = "Downcasting object dtype arrays"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            filled = df.fillna(np.nan)
+
+        filled = df.fillna(np.nan)
         result = op(df, 3)
         expected = op(filled, 3).astype(object)
         expected[pd.isna(expected)] = np.nan
@@ -1259,14 +1282,10 @@ class TestFrameArithmeticUnsorted:
         expected[pd.isna(expected)] = np.nan
         tm.assert_frame_equal(result, expected)
 
-        msg = "Downcasting object dtype arrays"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = op(df, df.fillna(7))
+        result = op(df, df.fillna(7))
         tm.assert_frame_equal(result, expected)
 
-        msg = "Downcasting object dtype arrays"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = op(df.fillna(7), df)
+        result = op(df.fillna(7), df)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op,res", [("__eq__", False), ("__ne__", True)])
@@ -1565,7 +1584,12 @@ class TestFrameArithmeticUnsorted:
         )
 
         f = getattr(operator, compare_operators_no_eq_ne)
-        msg = "'[<>]=?' not supported between instances of 'str' and 'int'"
+        msg = "|".join(
+            [
+                "'[<>]=?' not supported between instances of 'str' and 'int'",
+                "Invalid comparison between dtype=str and int",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             f(df, 0)
 
@@ -1976,7 +2000,12 @@ def test_dataframe_blockwise_slicelike():
     "df, col_dtype",
     [
         (DataFrame([[1.0, 2.0], [4.0, 5.0]], columns=list("ab")), "float64"),
-        (DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")), "object"),
+        (
+            DataFrame([[1.0, "b"], [4.0, "b"]], columns=list("ab")).astype(
+                {"b": object}
+            ),
+            "object",
+        ),
     ],
 )
 def test_dataframe_operation_with_non_numeric_types(df, col_dtype):
@@ -2008,23 +2037,16 @@ def test_arith_list_of_arraylike_raise(to_add):
         to_add + df
 
 
-def test_inplace_arithmetic_series_update(using_copy_on_write, warn_copy_on_write):
+def test_inplace_arithmetic_series_update():
     # https://github.com/pandas-dev/pandas/issues/36373
     df = DataFrame({"A": [1, 2, 3]})
     df_orig = df.copy()
     series = df["A"]
     vals = series._values
 
-    with tm.assert_cow_warning(warn_copy_on_write):
-        series += 1
-    if using_copy_on_write:
-        assert series._values is not vals
-        tm.assert_frame_equal(df, df_orig)
-    else:
-        assert series._values is vals
-
-        expected = DataFrame({"A": [2, 3, 4]})
-        tm.assert_frame_equal(df, expected)
+    series += 1
+    assert series._values is not vals
+    tm.assert_frame_equal(df, df_orig)
 
 
 def test_arithmetic_multiindex_align():
@@ -2043,6 +2065,51 @@ def test_arithmetic_multiindex_align():
         columns=MultiIndex.from_product([[0], [1]], names=["a", "b"]),
     )
     result = df1 - df2
+    tm.assert_frame_equal(result, expected)
+
+
+def test_arithmetic_multiindex_column_align():
+    # GH#60498
+    df1 = DataFrame(
+        data=100,
+        columns=MultiIndex.from_product(
+            [["1A", "1B"], ["2A", "2B"]], names=["Lev1", "Lev2"]
+        ),
+        index=["C1", "C2"],
+    )
+    df2 = DataFrame(
+        data=np.array([[0.1, 0.25], [0.2, 0.45]]),
+        columns=MultiIndex.from_product([["1A", "1B"]], names=["Lev1"]),
+        index=["C1", "C2"],
+    )
+    expected = DataFrame(
+        data=np.array([[10.0, 10.0, 25.0, 25.0], [20.0, 20.0, 45.0, 45.0]]),
+        columns=MultiIndex.from_product(
+            [["1A", "1B"], ["2A", "2B"]], names=["Lev1", "Lev2"]
+        ),
+        index=["C1", "C2"],
+    )
+    result = df1 * df2
+    tm.assert_frame_equal(result, expected)
+
+
+def test_arithmetic_multiindex_column_align_with_fillvalue():
+    # GH#60903
+    df1 = DataFrame(
+        data=[[1.0, 2.0]],
+        columns=MultiIndex.from_tuples([("A", "one"), ("A", "two")]),
+    )
+    df2 = DataFrame(
+        data=[[3.0, 4.0]],
+        columns=MultiIndex.from_tuples([("B", "one"), ("B", "two")]),
+    )
+    expected = DataFrame(
+        data=[[1.0, 2.0, 3.0, 4.0]],
+        columns=MultiIndex.from_tuples(
+            [("A", "one"), ("A", "two"), ("B", "one"), ("B", "two")]
+        ),
+    )
+    result = df1.add(df2, fill_value=0)
     tm.assert_frame_equal(result, expected)
 
 
@@ -2114,11 +2181,14 @@ def test_enum_column_equality():
     tm.assert_series_equal(result, expected)
 
 
-def test_mixed_col_index_dtype():
+def test_mixed_col_index_dtype(string_dtype_no_object):
     # GH 47382
     df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])
     df2 = DataFrame(columns=list("abc"), data=0.0, index=[0])
-    df1.columns = df2.columns.astype("string")
+    df1.columns = df2.columns.astype(string_dtype_no_object)
     result = df1 + df2
     expected = DataFrame(columns=list("abc"), data=1.0, index=[0])
+
+    expected.columns = expected.columns.astype(string_dtype_no_object)
+
     tm.assert_frame_equal(result, expected)

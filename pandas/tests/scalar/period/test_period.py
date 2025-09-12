@@ -3,14 +3,12 @@ from datetime import (
     datetime,
     timedelta,
 )
+import re
 
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import (
-    iNaT,
-    period as libperiod,
-)
+from pandas._libs.tslibs import iNaT
 from pandas._libs.tslibs.ccalendar import (
     DAYS,
     MONTHS,
@@ -18,6 +16,8 @@ from pandas._libs.tslibs.ccalendar import (
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas.compat import PY314
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     NaT,
@@ -31,15 +31,43 @@ import pandas._testing as tm
 bday_msg = "Period with BDay freq is deprecated"
 
 
-class TestPeriodConstruction:
+class TestPeriodDisallowedFreqs:
+    @pytest.mark.parametrize(
+        "freq, freq_msg",
+        [
+            (offsets.BYearBegin(), "BYearBegin"),
+            (offsets.YearBegin(2), "YearBegin"),
+            (offsets.QuarterBegin(startingMonth=12), "QuarterBegin"),
+            (offsets.BusinessMonthEnd(2), "BusinessMonthEnd"),
+        ],
+    )
+    def test_offsets_not_supported(self, freq, freq_msg):
+        # GH#55785
+        msg = re.escape(f"{freq} is not supported as period frequency")
+        with pytest.raises(ValueError, match=msg):
+            Period(year=2014, freq=freq)
+
     def test_custom_business_day_freq_raises(self):
         # GH#52534
-        msg = "CustomBusinessDay is not supported as period frequency"
-        with pytest.raises(TypeError, match=msg):
+        msg = "C is not supported as period frequency"
+        with pytest.raises(ValueError, match=msg):
             Period("2023-04-10", freq="C")
-        with pytest.raises(TypeError, match=msg):
+        msg = f"{offsets.CustomBusinessDay().base} is not supported as period frequency"
+        with pytest.raises(ValueError, match=msg):
             Period("2023-04-10", freq=offsets.CustomBusinessDay())
 
+    def test_invalid_frequency_error_message(self):
+        msg = "WOM-1MON is not supported as period frequency"
+        with pytest.raises(ValueError, match=msg):
+            Period("2012-01-02", freq="WOM-1MON")
+
+    def test_invalid_frequency_period_error_message(self):
+        msg = "Invalid frequency: ME"
+        with pytest.raises(ValueError, match=msg):
+            Period("2012-01-02", freq="ME")
+
+
+class TestPeriodConstruction:
     def test_from_td64nat_raises(self):
         # GH#44507
         td = NaT.to_numpy("m8[ns]")
@@ -82,14 +110,18 @@ class TestPeriodConstruction:
         assert i1 == i3
 
         i1 = Period("1982", freq="min")
-        i2 = Period("1982", freq="MIN")
+        msg = "'MIN' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            i2 = Period("1982", freq="MIN")
         assert i1 == i2
 
         i1 = Period(year=2005, month=3, day=1, freq="D")
         i2 = Period("3/1/2005", freq="D")
         assert i1 == i2
 
-        i3 = Period(year=2005, month=3, day=1, freq="d")
+        msg = "'d' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            i3 = Period(year=2005, month=3, day=1, freq="d")
         assert i1 == i3
 
         i1 = Period("2007-01-01 09:00:00.001")
@@ -114,9 +146,13 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match=msg):
             Period("2007-1-1", freq="X")
 
+    def test_tuple_freq_disallowed(self):
         # GH#34703 tuple freq disallowed
         with pytest.raises(TypeError, match="pass as a string instead"):
             Period("1982", freq=("Min", 1))
+
+        with pytest.raises(TypeError, match="pass as a string instead"):
+            Period("2006-12-31", ("w", 1))
 
     def test_construction_from_timestamp_nanos(self):
         # GH#46811 don't drop nanos from Timestamp
@@ -135,7 +171,9 @@ class TestPeriodConstruction:
 
     def test_construction_bday(self):
         # Biz day construction, roll forward if non-weekday
-        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="'b' is deprecated", raise_on_extra_warnings=False
+        ):
             i1 = Period("3/10/12", freq="B")
             i2 = Period("3/10/12", freq="D")
             assert i1 == i2.asfreq("B")
@@ -310,7 +348,10 @@ class TestPeriodConstruction:
         msg = '^Given date string "-2000" not likely a datetime$'
         with pytest.raises(ValueError, match=msg):
             Period("-2000", "Y")
-        msg = "day is out of range for month"
+        if PY314:
+            msg = "day 0 must be in range 1..31 for month 1 in year 1: 0"
+        else:
+            msg = "day is out of range for month"
         with pytest.raises(DateParseError, match=msg):
             Period("0", "Y")
         msg = "Unknown datetime string format, unable to parse"
@@ -418,7 +459,7 @@ class TestPeriodConstruction:
 
     def test_period_from_ordinal(self):
         p = Period("2011-01", freq="M")
-        res = Period._from_ordinal(p.ordinal, freq="M")
+        res = Period._from_ordinal(p.ordinal, freq=p.freq)
         assert p == res
         assert isinstance(res, Period)
 
@@ -580,6 +621,27 @@ class TestPeriodConstruction:
         # Integer overflow for Period over the maximum timestamp
         p = Period(ordinal=2562048 + hour, freq="1h")
         assert p.hour == hour
+
+    @pytest.mark.filterwarnings(
+        "ignore:Period with BDay freq is deprecated:FutureWarning"
+    )
+    @pytest.mark.parametrize(
+        "freq,freq_depr",
+        [("2W", "2w"), ("2W-FRI", "2w-fri"), ("2D", "2d"), ("2B", "2b")],
+    )
+    def test_period_deprecated_lowercase_freq(self, freq, freq_depr):
+        # GH#58998
+        msg = (
+            f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
+        )
+
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=msg, raise_on_extra_warnings=False
+        ):
+            result = Period("2016-03-01 09:00", freq=freq_depr)
+
+        expected = Period("2016-03-01 09:00", freq=freq)
+        assert result == expected
 
 
 class TestPeriodMethods:
@@ -938,7 +1000,6 @@ class TestPeriodProperties:
         qedec_date = Period(freq="Q-DEC", year=2007, quarter=1)
         qejan_date = Period(freq="Q-JAN", year=2007, quarter=1)
         qejun_date = Period(freq="Q-JUN", year=2007, quarter=1)
-        #
         for x in range(3):
             for qd in (qedec_date, qejan_date, qejun_date):
                 assert (qd + x).qyear == 2007
@@ -963,7 +1024,6 @@ class TestPeriodProperties:
     def test_properties_weekly(self):
         # Test properties on Periods with daily frequency.
         w_date = Period(freq="W", year=2007, month=1, day=7)
-        #
         assert w_date.year == 2007
         assert w_date.quarter == 1
         assert w_date.month == 1
@@ -993,7 +1053,6 @@ class TestPeriodProperties:
         # Test properties on Periods with daily frequency.
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
             b_date = Period(freq="B", year=2007, month=1, day=1)
-        #
         assert b_date.year == 2007
         assert b_date.quarter == 1
         assert b_date.month == 1
@@ -1036,7 +1095,6 @@ class TestPeriodProperties:
     def test_properties_minutely(self):
         # Test properties on Periods with minutely frequency.
         t_date = Period(freq="Min", year=2007, month=1, day=1, hour=0, minute=0)
-        #
         assert t_date.quarter == 1
         assert t_date.month == 1
         assert t_date.day == 1
@@ -1055,7 +1113,6 @@ class TestPeriodProperties:
         s_date = Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0, second=0
         )
-        #
         assert s_date.year == 2007
         assert s_date.quarter == 1
         assert s_date.month == 1
@@ -1072,13 +1129,6 @@ class TestPeriodProperties:
             ).days_in_month
             == 29
         )
-
-
-class TestPeriodField:
-    def test_get_period_field_array_raises_on_out_of_range(self):
-        msg = "Buffer dtype mismatch, expected 'const int64_t' but got 'double'"
-        with pytest.raises(ValueError, match=msg):
-            libperiod.get_period_field_arr(-1, np.empty(1), 0)
 
 
 class TestPeriodComparisons:
@@ -1127,15 +1177,3 @@ def test_negone_ordinals():
     repr(period)
     period = Period(ordinal=-1, freq="W")
     repr(period)
-
-
-def test_invalid_frequency_error_message():
-    msg = "WeekOfMonth is not supported as period frequency"
-    with pytest.raises(TypeError, match=msg):
-        Period("2012-01-02", freq="WOM-1MON")
-
-
-def test_invalid_frequency_period_error_message():
-    msg = "for Period, please use 'M' instead of 'ME'"
-    with pytest.raises(ValueError, match=msg):
-        Period("2012-01-02", freq="ME")

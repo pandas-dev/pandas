@@ -10,6 +10,8 @@ from collections.abc import (
 )
 from typing import (
     TYPE_CHECKING,
+    Generic,
+    Literal,
     cast,
     final,
 )
@@ -28,20 +30,34 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import BaseMaskedDtype
 
+from pandas.core.indexes.api import default_index
+
 if TYPE_CHECKING:
     from pandas._typing import (
         DtypeObj,
         IndexLabel,
+        NDFrameT,
     )
 
     from pandas import (
         DataFrame,
+        Index,
         Series,
     )
+else:
+    # Generic[...] requires a non-str, provide it with a plain TypeVar at
+    # runtime to avoid circular imports
+    from pandas._typing import T
+
+    NDFrameT = T
+    DataFrame = T
+    Series = T
 
 
-class SelectN:
-    def __init__(self, obj, n: int, keep: str) -> None:
+class SelectN(Generic[NDFrameT]):
+    def __init__(
+        self, obj: NDFrameT, n: int, keep: Literal["first", "last", "all"]
+    ) -> None:
         self.obj = obj
         self.n = n
         self.keep = keep
@@ -49,15 +65,15 @@ class SelectN:
         if self.keep not in ("first", "last", "all"):
             raise ValueError('keep must be either "first", "last" or "all"')
 
-    def compute(self, method: str) -> DataFrame | Series:
+    def compute(self, method: str) -> NDFrameT:
         raise NotImplementedError
 
     @final
-    def nlargest(self):
+    def nlargest(self) -> NDFrameT:
         return self.compute("nlargest")
 
     @final
-    def nsmallest(self):
+    def nsmallest(self) -> NDFrameT:
         return self.compute("nsmallest")
 
     @final
@@ -72,7 +88,7 @@ class SelectN:
         return needs_i8_conversion(dtype)
 
 
-class SelectNSeries(SelectN):
+class SelectNSeries(SelectN[Series]):
     """
     Implement n largest/smallest for Series
 
@@ -98,15 +114,25 @@ class SelectNSeries(SelectN):
         if n <= 0:
             return self.obj[[]]
 
-        dropped = self.obj.dropna()
-        nan_index = self.obj.drop(dropped.index)
+        # Save index and reset to default index to avoid performance impact
+        # from when index contains duplicates
+        original_index: Index = self.obj.index
+        default_index = self.obj.reset_index(drop=True)
 
-        # slow method
-        if n >= len(self.obj):
+        # Slower method used when taking the full length of the series
+        # In this case, it is equivalent to a sort.
+        if n >= len(default_index):
             ascending = method == "nsmallest"
-            return self.obj.sort_values(ascending=ascending).head(n)
+            result = default_index.sort_values(ascending=ascending, kind="stable").head(
+                n
+            )
+            result.index = original_index.take(result.index)
+            return result
 
-        # fast method
+        # Fast method used in the general case
+        dropped = default_index.dropna()
+        nan_index = default_index.drop(dropped.index)
+
         new_dtype = dropped.dtype
 
         # Similar to algorithms._ensure_data
@@ -145,7 +171,7 @@ class SelectNSeries(SelectN):
         else:
             kth_val = np.nan
         (ns,) = np.nonzero(arr <= kth_val)
-        inds = ns[arr[ns].argsort(kind="mergesort")]
+        inds = ns[arr[ns].argsort(kind="stable")]
 
         if self.keep != "all":
             inds = inds[:n]
@@ -160,10 +186,12 @@ class SelectNSeries(SelectN):
             # reverse indices
             inds = narr - 1 - inds
 
-        return concat([dropped.iloc[inds], nan_index]).iloc[:findex]
+        result = concat([dropped.iloc[inds], nan_index]).iloc[:findex]
+        result.index = original_index.take(result.index)
+        return result
 
 
-class SelectNFrame(SelectN):
+class SelectNFrame(SelectN[DataFrame]):
     """
     Implement n largest/smallest for DataFrame
 
@@ -179,7 +207,13 @@ class SelectNFrame(SelectN):
     nordered : DataFrame
     """
 
-    def __init__(self, obj: DataFrame, n: int, keep: str, columns: IndexLabel) -> None:
+    def __init__(
+        self,
+        obj: DataFrame,
+        n: int,
+        keep: Literal["first", "last", "all"],
+        columns: IndexLabel,
+    ) -> None:
         super().__init__(obj, n, keep)
         if not is_list_like(columns) or isinstance(columns, tuple):
             columns = [columns]
@@ -189,8 +223,6 @@ class SelectNFrame(SelectN):
         self.columns = columns
 
     def compute(self, method: str) -> DataFrame:
-        from pandas.core.api import Index
-
         n = self.n
         frame = self.obj
         columns = self.columns
@@ -199,11 +231,11 @@ class SelectNFrame(SelectN):
             dtype = frame[column].dtype
             if not self.is_valid_dtype_n_method(dtype):
                 raise TypeError(
-                    f"Column {repr(column)} has dtype {dtype}, "
-                    f"cannot use method {repr(method)} with this dtype"
+                    f"Column {column!r} has dtype {dtype}, "
+                    f"cannot use method {method!r} with this dtype"
                 )
 
-        def get_indexer(current_indexer, other_indexer):
+        def get_indexer(current_indexer: Index, other_indexer: Index) -> Index:
             """
             Helper function to concat `current_indexer` and `other_indexer`
             depending on `method`
@@ -217,7 +249,7 @@ class SelectNFrame(SelectN):
         original_index = frame.index
         cur_frame = frame = frame.reset_index(drop=True)
         cur_n = n
-        indexer = Index([], dtype=np.int64)
+        indexer: Index = default_index(0)
 
         for i, column in enumerate(columns):
             # For each column we apply method to cur_frame[column].
@@ -266,4 +298,4 @@ class SelectNFrame(SelectN):
 
         ascending = method == "nsmallest"
 
-        return frame.sort_values(columns, ascending=ascending, kind="mergesort")
+        return frame.sort_values(columns, ascending=ascending, kind="stable")

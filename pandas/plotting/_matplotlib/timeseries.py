@@ -48,7 +48,6 @@ if TYPE_CHECKING:
     from pandas._typing import NDFrameT
 
     from pandas import (
-        DataFrame,
         DatetimeIndex,
         Index,
         PeriodIndex,
@@ -86,9 +85,12 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
             )
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
-            how = "last"
-            series = getattr(series.resample("D"), how)().dropna()
-            series = getattr(series.resample(ax_freq), how)().dropna()
+            # Resampling with PeriodDtype is deprecated, so we convert to
+            #  DatetimeIndex, resample, then convert back.
+            ser_ts = series.to_timestamp()
+            ser_d = ser_ts.resample("D").last().dropna()
+            ser_freq = ser_d.resample(ax_freq).last().dropna()
+            series = ser_freq.to_period(ax_freq)
             freq = ax_freq
         elif is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
@@ -202,7 +204,10 @@ def _get_ax_freq(ax: Axes):
 
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
-    freqstr = to_offset(freq, is_period=True).rule_code
+    if isinstance(freq, BaseOffset):
+        freqstr = freq.name
+    else:
+        freqstr = to_offset(freq, is_period=True).rule_code
 
     return get_period_alias(freqstr)
 
@@ -225,8 +230,8 @@ def _get_freq(ax: Axes, series: Series):
     return freq, ax_freq
 
 
-def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
-    freq = _get_index_freq(data.index)
+def use_dynamic_x(ax: Axes, index: Index) -> bool:
+    freq = _get_index_freq(index)
     ax_freq = _get_ax_freq(ax)
 
     if freq is None:  # convert irregular if axes has freq info
@@ -244,18 +249,15 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
         return False
 
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
-    if isinstance(data.index, ABCDatetimeIndex):
+    if isinstance(index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
-        base = to_offset(
-            freq_str, is_period=True
-        )._period_dtype_code  # type: ignore[attr-defined]
-        x = data.index
+        base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
         if base <= FreqGroup.FR_DAY.value:
-            return x[:1].is_normalized
-        period = Period(x[0], freq_str)
+            return index[:1].is_normalized
+        period = Period(index[0], freq_str)
         assert isinstance(period, Period)
-        return period.to_timestamp().tz_localize(x.tz) == x[0]
+        return period.to_timestamp().tz_localize(index.tz) == index[0]
     return True
 
 
@@ -306,7 +308,7 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
             if isinstance(data.index, ABCDatetimeIndex):
                 data = data.tz_localize(None).to_period(freq=freq_str)
             elif isinstance(data.index, ABCPeriodIndex):
-                data.index = data.index.asfreq(freq=freq_str)
+                data.index = data.index.asfreq(freq=freq_str, how="start")
     return data
 
 
@@ -329,7 +331,7 @@ def format_dateaxis(
     default, changing the limits of the x axis will intelligently change
     the positions of the ticks.
     """
-    from matplotlib import pylab
+    import matplotlib.pyplot as plt
 
     # handle index specific formatting
     # Note: DatetimeIndex does not use this
@@ -361,4 +363,20 @@ def format_dateaxis(
     else:
         raise TypeError("index type not supported")
 
-    pylab.draw_if_interactive()
+    plt.draw_if_interactive()
+
+
+def prepare_ts_data(
+    series: Series, ax: Axes, kwargs: dict[str, Any]
+) -> tuple[BaseOffset | str, Series]:
+    freq, data = maybe_resample(series, ax, kwargs)
+
+    # Set ax with freq info
+    decorate_axes(ax, freq)
+    # digging deeper
+    if hasattr(ax, "left_ax"):
+        decorate_axes(ax.left_ax, freq)
+    if hasattr(ax, "right_ax"):
+        decorate_axes(ax.right_ax, freq)
+
+    return freq, data

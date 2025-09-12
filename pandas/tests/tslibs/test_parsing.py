@@ -1,11 +1,12 @@
 """
 Tests for Timestamp parsing, aimed at pandas/_libs/tslibs/parsing.pyx
 """
+
 from datetime import datetime
 import re
 
 from dateutil.parser import parse as du_parse
-from dateutil.tz import tzlocal
+from hypothesis import given
 import numpy as np
 import pytest
 
@@ -16,34 +17,45 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
 from pandas.compat import (
     ISMUSL,
+    WASM,
     is_platform_windows,
 )
 import pandas.util._test_decorators as td
 
+# Usually we wouldn't want this import in this test file (which is targeted at
+#  tslibs.parsing), but it is convenient to test the Timestamp constructor at
+#  the same time as the other parsing functions.
+from pandas import Timestamp
 import pandas._testing as tm
+from pandas._testing._hypothesis import DATETIME_NO_TZ
 
 
+@pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
 @pytest.mark.skipif(
     is_platform_windows() or ISMUSL,
     reason="TZ setting incorrect on Windows and MUSL Linux",
 )
 def test_parsing_tzlocal_deprecated():
     # GH#50791
-    msg = (
-        "Parsing 'EST' as tzlocal.*"
-        "Pass the 'tz' keyword or call tz_localize after construction instead"
+    msg = "|".join(
+        [
+            r"Parsing 'EST' as tzlocal \(dependent on system timezone\) "
+            r"is no longer supported\. "
+            "Pass the 'tz' keyword or call tz_localize after construction instead",
+            ".*included an un-recognized timezone",
+        ]
     )
     dtstr = "Jan 15 2004 03:00 EST"
 
     with tm.set_timezone("US/Eastern"):
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res, _ = parse_datetime_string_with_reso(dtstr)
+        with pytest.raises(ValueError, match=msg):
+            parse_datetime_string_with_reso(dtstr)
 
-        assert isinstance(res.tzinfo, tzlocal)
+        with pytest.raises(ValueError, match=msg):
+            parsing.py_parse_datetime_string(dtstr)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = parsing.py_parse_datetime_string(dtstr)
-        assert isinstance(res.tzinfo, tzlocal)
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(dtstr)
 
 
 def test_parse_datetime_string_with_reso():
@@ -122,10 +134,7 @@ def test_does_not_convert_mixed_integer(date_string, expected):
         (
             "2013Q1",
             {"freq": "INVLD-L-DEC-SAT"},
-            (
-                "Unable to retrieve month information "
-                "from given freq: INVLD-L-DEC-SAT"
-            ),
+            ("Unable to retrieve month information from given freq: INVLD-L-DEC-SAT"),
         ),
     ],
 )
@@ -216,6 +225,7 @@ def test_parsers_month_freq(date_str, expected):
         ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %I:%M:%S %p"),
         ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %I:%M:%S %p"),
         ("27.03.2003 14:55:00.000", "%d.%m.%Y %H:%M:%S.%f"),  # GH50317
+        ("2023-11-09T20:23:46Z", "%Y-%m-%dT%H:%M:%S%z"),  # GH57452
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
@@ -366,4 +376,48 @@ def test_guess_datetime_format_f(input):
     # https://github.com/pandas-dev/pandas/issues/49043
     result = parsing.guess_datetime_format(input)
     expected = "%Y-%m-%dT%H:%M:%S.%f"
+    assert result == expected
+
+
+def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
+    msg, result = None, None
+    try:
+        result = call(date_string, **kwargs)
+    except ValueError as err:
+        msg = str(err)
+    return msg, result
+
+
+@given(DATETIME_NO_TZ)
+@pytest.mark.parametrize("delimiter", list(" -./"))
+@pytest.mark.parametrize("dayfirst", [True, False])
+@pytest.mark.parametrize(
+    "date_format",
+    ["%d %m %Y", "%m %d %Y", "%m %Y", "%Y %m %d", "%y %m %d", "%Y%m%d", "%y%m%d"],
+)
+def test_hypothesis_delimited_date(
+    request, date_format, dayfirst, delimiter, test_datetime
+):
+    if date_format == "%m %Y" and delimiter == ".":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="parse_datetime_string cannot reliably tell whether "
+                "e.g. %m.%Y is a float or a date",
+                strict=False,
+            )
+        )
+    date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
+
+    except_out_dateutil, result = _helper_hypothesis_delimited_date(
+        parsing.py_parse_datetime_string, date_string, dayfirst=dayfirst
+    )
+    except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+        du_parse,
+        date_string,
+        default=datetime(1, 1, 1),
+        dayfirst=dayfirst,
+        yearfirst=False,
+    )
+
+    assert except_out_dateutil == except_in_dateutil
     assert result == expected

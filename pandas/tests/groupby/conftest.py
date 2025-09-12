@@ -13,26 +13,6 @@ from pandas.core.groupby.base import (
 )
 
 
-@pytest.fixture(params=[True, False])
-def sort(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def as_index(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def dropna(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def observed(request):
-    return request.param
-
-
 @pytest.fixture
 def df():
     return DataFrame(
@@ -112,7 +92,7 @@ def three_group():
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def slice_test_df():
     data = [
         [0, "a", "a0_at_0"],
@@ -128,7 +108,7 @@ def slice_test_df():
     return df.set_index("Index")
 
 
-@pytest.fixture()
+@pytest.fixture
 def slice_test_grouped(slice_test_df):
     return slice_test_df.groupby("Group", as_index=False)
 
@@ -150,28 +130,6 @@ def transformation_func(request):
 @pytest.fixture(params=sorted(reduction_kernels) + sorted(transformation_kernels))
 def groupby_func(request):
     """yields both aggregation and transformation functions."""
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def parallel(request):
-    """parallel keyword argument for numba.jit"""
-    return request.param
-
-
-# Can parameterize nogil & nopython over True | False, but limiting per
-# https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
-
-
-@pytest.fixture(params=[False])
-def nogil(request):
-    """nogil keyword argument for numba.jit"""
-    return request.param
-
-
-@pytest.fixture(params=[True])
-def nopython(request):
-    """nopython keyword argument for numba.jit"""
     return request.param
 
 

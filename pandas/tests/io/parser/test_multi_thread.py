@@ -2,6 +2,7 @@
 Tests multithreading behaviour for reading and
 parsing files for each parser defined in parsers.py
 """
+
 from contextlib import ExitStack
 from io import BytesIO
 from multiprocessing.pool import ThreadPool
@@ -12,6 +13,7 @@ import pytest
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
+from pandas.util.version import Version
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
@@ -23,10 +25,16 @@ pytestmark = [
 ]
 
 
-@xfail_pyarrow  # ValueError: Found non-unique column index
-def test_multi_thread_string_io_read_csv(all_parsers):
+@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
+def test_multi_thread_string_io_read_csv(all_parsers, request):
     # see gh-11786
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        if Version(pa.__version__) < Version("16.0"):
+            request.applymarker(
+                pytest.mark.xfail(reason="# ValueError: Found non-unique column index")
+            )
     max_row_range = 100
     num_files = 10
 
@@ -144,7 +152,8 @@ def test_multi_thread_path_multipart_read_csv(all_parsers):
     with tm.ensure_clean(file_name) as path:
         df.to_csv(path)
 
-        final_dataframe = _generate_multi_thread_dataframe(
-            parser, path, num_rows, num_tasks
-        )
-        tm.assert_frame_equal(df, final_dataframe)
+        result = _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks)
+
+    expected = df[:]
+    expected["date"] = expected["date"].astype("M8[s]")
+    tm.assert_frame_equal(result, expected)

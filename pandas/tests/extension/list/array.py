@@ -3,6 +3,7 @@ Test extension array for storing nested data in a pandas container.
 
 The ListArray stores an ndarray of lists.
 """
+
 from __future__ import annotations
 
 import numbers
@@ -29,8 +30,7 @@ class ListDtype(ExtensionDtype):
     name = "list"
     na_value = np.nan
 
-    @classmethod
-    def construct_array_type(cls) -> type_t[ListArray]:
+    def construct_array_type(self) -> type_t[ListArray]:
         """
         Return the array type associated with this dtype.
 
@@ -54,7 +54,7 @@ class ListArray(ExtensionArray):
         self.data = values
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         data = np.empty(len(scalars), dtype=object)
         data[:] = scalars
         return cls(data)
@@ -80,8 +80,7 @@ class ListArray(ExtensionArray):
         # an ndarary.
         indexer = np.asarray(indexer)
         msg = (
-            "Index is out of bounds or cannot do a "
-            "non-empty take from an empty array."
+            "Index is out of bounds or cannot do a non-empty take from an empty array."
         )
 
         if allow_fill:
@@ -115,7 +114,10 @@ class ListArray(ExtensionArray):
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # numpy has problems with astype(str) for nested elements
             return np.array([str(x) for x in self.data], dtype=dtype)
-        return np.array(self.data, dtype=dtype, copy=copy)
+        elif not copy:
+            return np.asarray(self.data, dtype=dtype)
+        else:
+            return np.array(self.data, dtype=dtype, copy=copy)
 
     @classmethod
     def _concat_same_type(cls, to_concat):

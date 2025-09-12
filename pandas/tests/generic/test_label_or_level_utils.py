@@ -34,15 +34,6 @@ def df_ambig(df):
     return df
 
 
-@pytest.fixture
-def df_duplabels(df):
-    """DataFrame with level 'L1' and labels 'L2', 'L3', and 'L2'"""
-    df = df.set_index(["L1"])
-    df = pd.concat([df, df["L2"]], axis=1)
-
-    return df
-
-
 # Test is label/level reference
 # =============================
 def get_labels_levels(df_levels):
@@ -229,7 +220,9 @@ def test_get_label_or_level_values_df_ambig(df_ambig, axis):
     assert_label_values(df_ambig, ["L3"], axis=axis)
 
 
-def test_get_label_or_level_values_df_duplabels(df_duplabels, axis):
+def test_get_label_or_level_values_df_duplabels(df, axis):
+    df = df.set_index(["L1"])
+    df_duplabels = pd.concat([df, df["L2"]], axis=1)
     axis = df_duplabels._get_axis_number(axis)
     # Transpose frame if axis == 1
     if axis == 1:

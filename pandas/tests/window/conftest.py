@@ -51,28 +51,6 @@ def min_periods(request):
 
 
 @pytest.fixture(params=[True, False])
-def parallel(request):
-    """parallel keyword argument for numba.jit"""
-    return request.param
-
-
-# Can parameterize nogil & nopython over True | False, but limiting per
-# https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
-
-
-@pytest.fixture(params=[False])
-def nogil(request):
-    """nogil keyword argument for numba.jit"""
-    return request.param
-
-
-@pytest.fixture(params=[True])
-def nopython(request):
-    """nopython keyword argument for numba.jit"""
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
 def adjust(request):
     """adjust keyword argument for ewm"""
     return request.param

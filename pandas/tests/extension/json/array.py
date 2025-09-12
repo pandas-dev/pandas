@@ -11,6 +11,7 @@ internally that specifically check for dicts, and does non-scalar things
 in that case. We *want* the dictionaries to be treated as scalars, so we
 hack around pandas by using UserDicts.
 """
+
 from __future__ import annotations
 
 from collections import (
@@ -53,8 +54,7 @@ class JSONDtype(ExtensionDtype):
     name = "json"
     na_value: Mapping[str, Any] = UserDict()
 
-    @classmethod
-    def construct_array_type(cls) -> type_t[JSONArray]:
+    def construct_array_type(self) -> type_t[JSONArray]:
         """
         Return the array type associated with this dtype.
 
@@ -83,12 +83,19 @@ class JSONArray(ExtensionArray):
         # self._values = self.values = self.data
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         return cls(scalars)
 
     @classmethod
     def _from_factorized(cls, values, original):
         return cls([UserDict(x) for x in values if x != ()])
+
+    def _cast_pointwise_result(self, values):
+        result = super()._cast_pointwise_result(values)
+        try:
+            return type(self)._from_sequence(result, dtype=self.dtype)
+        except (ValueError, TypeError):
+            return result
 
     def __getitem__(self, item):
         if isinstance(item, tuple):
@@ -112,7 +119,9 @@ class JSONArray(ExtensionArray):
         else:
             item = pd.api.indexers.check_array_indexer(self, item)
             if is_bool_dtype(item.dtype):
-                return self._from_sequence([x for x, m in zip(self, item) if m])
+                return type(self)._from_sequence(
+                    [x for x, m in zip(self, item) if m], dtype=self.dtype
+                )
             # integer
             return type(self)([self.data[i] for i in item])
 
@@ -144,13 +153,21 @@ class JSONArray(ExtensionArray):
     def __ne__(self, other):
         return NotImplemented
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
         if dtype is None:
             dtype = object
         if dtype == object:
             # on py38 builds it looks like numpy is inferring to a non-1D array
             return construct_1d_object_array_from_listlike(list(self))
-        return np.asarray(self.data, dtype=dtype)
+        if copy is None:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            return np.asarray(self.data, dtype=dtype)
+        return np.asarray(self.data, dtype=dtype, copy=copy)
 
     @property
     def nbytes(self) -> int:
@@ -165,8 +182,7 @@ class JSONArray(ExtensionArray):
         # an ndarary.
         indexer = np.asarray(indexer)
         msg = (
-            "Index is out of bounds or cannot do a "
-            "non-empty take from an empty array."
+            "Index is out of bounds or cannot do a non-empty take from an empty array."
         )
 
         if allow_fill:
@@ -187,7 +203,7 @@ class JSONArray(ExtensionArray):
             except IndexError as err:
                 raise IndexError(msg) from err
 
-        return self._from_sequence(output)
+        return type(self)._from_sequence(output, dtype=self.dtype)
 
     def copy(self):
         return type(self)(self.data[:])
@@ -205,10 +221,12 @@ class JSONArray(ExtensionArray):
                 return self.copy()
             return self
         elif isinstance(dtype, StringDtype):
-            value = self.astype(str)  # numpy doesn't like nested dicts
-            return dtype.construct_array_type()._from_sequence(value, copy=False)
-
-        return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
+            arr_cls = dtype.construct_array_type()
+            return arr_cls._from_sequence(self, dtype=dtype, copy=False)
+        elif not copy:
+            return np.asarray([dict(x) for x in self], dtype=dtype)
+        else:
+            return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
     def unique(self):
         # Parent method doesn't work since np.array will try to infer
@@ -231,6 +249,10 @@ class JSONArray(ExtensionArray):
         # Bypass NumPy's shape inference to get a (N,) array of tuples.
         frozen = [tuple(x.items()) for x in self]
         return construct_1d_object_array_from_listlike(frozen)
+
+    def _pad_or_backfill(self, *, method, limit=None, copy=True):
+        # GH#56616 - test EA method without limit_area argument
+        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
 
 
 def make_data():

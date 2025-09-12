@@ -9,8 +9,9 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
-pytest.importorskip("xarray")
+xarray = pytest.importorskip("xarray")
 
 
 class TestDataFrameToXArray:
@@ -29,70 +30,61 @@ class TestDataFrameToXArray:
             }
         )
 
-    def test_to_xarray_index_types(self, index_flat, df, using_infer_string):
+    def test_to_xarray_index_types(self, index_flat, df, request):
         index = index_flat
         # MultiIndex is tested in test_to_xarray_with_multiindex
         if len(index) == 0:
             pytest.skip("Test doesn't make sense for empty index")
-
-        from xarray import Dataset
+        if Version(xarray.__version__) < Version("2025.9.0"):
+            pytest.skip("Xarray bug https://github.com/pydata/xarray/issues/9661")
 
         df.index = index[:4]
         df.index.name = "foo"
         df.columns.name = "bar"
         result = df.to_xarray()
-        assert result.dims["foo"] == 4
+        assert result.sizes["foo"] == 4
         assert len(result.coords) == 1
         assert len(result.data_vars) == 8
         tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
-        assert isinstance(result, Dataset)
+        assert isinstance(result, xarray.Dataset)
 
         # idempotency
         # datetimes w/tz are preserved
         # column names are lost
         expected = df.copy()
-        expected["f"] = expected["f"].astype(
-            object if not using_infer_string else "string[pyarrow_numpy]"
-        )
         expected.columns.name = None
         tm.assert_frame_equal(result.to_dataframe(), expected)
 
     def test_to_xarray_empty(self, df):
-        from xarray import Dataset
-
         df.index.name = "foo"
         result = df[0:0].to_xarray()
-        assert result.dims["foo"] == 0
-        assert isinstance(result, Dataset)
+        assert result.sizes["foo"] == 0
+        assert isinstance(result, xarray.Dataset)
 
     def test_to_xarray_with_multiindex(self, df, using_infer_string):
-        from xarray import Dataset
-
         # MultiIndex
         df.index = MultiIndex.from_product([["a"], range(4)], names=["one", "two"])
         result = df.to_xarray()
-        assert result.dims["one"] == 1
-        assert result.dims["two"] == 4
+        assert result.sizes["one"] == 1
+        assert result.sizes["two"] == 4
         assert len(result.coords) == 2
         assert len(result.data_vars) == 8
         tm.assert_almost_equal(list(result.coords.keys()), ["one", "two"])
-        assert isinstance(result, Dataset)
+        assert isinstance(result, xarray.Dataset)
 
         result = result.to_dataframe()
         expected = df.copy()
         expected["f"] = expected["f"].astype(
-            object if not using_infer_string else "string[pyarrow_numpy]"
+            object if not using_infer_string else "str"
         )
         expected.columns.name = None
         tm.assert_frame_equal(result, expected)
 
 
 class TestSeriesToXArray:
-    def test_to_xarray_index_types(self, index_flat):
-        index = index_flat
+    def test_to_xarray_index_types(self, index_flat, request):
         # MultiIndex is tested in test_to_xarray_with_multiindex
-
-        from xarray import DataArray
+        index = index_flat
 
         ser = Series(range(len(index)), index=index, dtype="int64")
         ser.index.name = "foo"
@@ -101,30 +93,26 @@ class TestSeriesToXArray:
         assert len(result) == len(index)
         assert len(result.coords) == 1
         tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
-        assert isinstance(result, DataArray)
+        assert isinstance(result, xarray.DataArray)
 
         # idempotency
         tm.assert_series_equal(result.to_series(), ser)
 
     def test_to_xarray_empty(self):
-        from xarray import DataArray
-
         ser = Series([], dtype=object)
         ser.index.name = "foo"
         result = ser.to_xarray()
         assert len(result) == 0
         assert len(result.coords) == 1
         tm.assert_almost_equal(list(result.coords.keys()), ["foo"])
-        assert isinstance(result, DataArray)
+        assert isinstance(result, xarray.DataArray)
 
     def test_to_xarray_with_multiindex(self):
-        from xarray import DataArray
-
         mi = MultiIndex.from_product([["a", "b"], range(3)], names=["one", "two"])
         ser = Series(range(6), dtype="int64", index=mi)
         result = ser.to_xarray()
         assert len(result) == 2
         tm.assert_almost_equal(list(result.coords.keys()), ["one", "two"])
-        assert isinstance(result, DataArray)
+        assert isinstance(result, xarray.DataArray)
         res = result.to_series()
         tm.assert_series_equal(res, ser)

@@ -1,4 +1,5 @@
-""" test orc compat """
+"""test orc compat"""
+
 import datetime
 from decimal import Decimal
 from io import BytesIO
@@ -11,7 +12,6 @@ import pytest
 import pandas as pd
 from pandas import read_orc
 import pandas._testing as tm
-from pandas.core.arrays import StringArray
 
 pytest.importorskip("pyarrow.orc")
 
@@ -27,22 +27,7 @@ def dirpath(datapath):
     return datapath("io", "data", "orc")
 
 
-@pytest.fixture(
-    params=[
-        np.array([1, 20], dtype="uint64"),
-        pd.Series(["a", "b", "a"], dtype="category"),
-        [pd.Interval(left=0, right=2), pd.Interval(left=0, right=5)],
-        [pd.Period("2022-01-03", freq="D"), pd.Period("2022-01-04", freq="D")],
-    ]
-)
-def orc_writer_dtypes_not_supported(request):
-    # Examples of dataframes with dtypes for which conversion to ORC
-    # hasn't been implemented yet, that is, Category, unsigned integers,
-    # interval, period and sparse.
-    return pd.DataFrame({"unimpl": request.param})
-
-
-def test_orc_reader_empty(dirpath):
+def test_orc_reader_empty(dirpath, using_infer_string):
     columns = [
         "boolean1",
         "byte1",
@@ -63,11 +48,12 @@ def test_orc_reader_empty(dirpath):
         "float32",
         "float64",
         "object",
-        "object",
+        "str" if using_infer_string else "object",
     ]
     expected = pd.DataFrame(index=pd.RangeIndex(0))
     for colname, dtype in zip(columns, dtypes):
         expected[colname] = pd.Series(dtype=dtype)
+    expected.columns = expected.columns.astype("str")
 
     inputfile = os.path.join(dirpath, "TestOrcFile.emptyFile.orc")
     got = read_orc(inputfile, columns=columns)
@@ -294,17 +280,27 @@ def test_orc_roundtrip_bytesio():
     tm.assert_equal(expected, got)
 
 
+@pytest.mark.parametrize(
+    "orc_writer_dtypes_not_supported",
+    [
+        np.array([1, 20], dtype="uint64"),
+        pd.Series(["a", "b", "a"], dtype="category"),
+        [pd.Interval(left=0, right=2), pd.Interval(left=0, right=5)],
+        [pd.Period("2022-01-03", freq="D"), pd.Period("2022-01-04", freq="D")],
+    ],
+)
 def test_orc_writer_dtypes_not_supported(orc_writer_dtypes_not_supported):
     # GH44554
     # PyArrow gained ORC write support with the current argument order
     pytest.importorskip("pyarrow")
 
+    df = pd.DataFrame({"unimpl": orc_writer_dtypes_not_supported})
     msg = "The dtype of one or more columns is not supported yet."
     with pytest.raises(NotImplementedError, match=msg):
-        orc_writer_dtypes_not_supported.to_orc()
+        df.to_orc()
 
 
-def test_orc_dtype_backend_pyarrow():
+def test_orc_dtype_backend_pyarrow(using_infer_string):
     pytest.importorskip("pyarrow")
     df = pd.DataFrame(
         {
@@ -325,6 +321,8 @@ def test_orc_dtype_backend_pyarrow():
             ],
         }
     )
+    # FIXME: without casting to ns we do not round-trip correctly
+    df["datetime_with_nat"] = df["datetime_with_nat"].astype("M8[ns]")
 
     bytes_data = df.copy().to_orc()
     result = read_orc(BytesIO(bytes_data), dtype_backend="pyarrow")
@@ -335,6 +333,13 @@ def test_orc_dtype_backend_pyarrow():
             for col in df.columns
         }
     )
+    if using_infer_string:
+        # ORC does not preserve distinction between string and large string
+        # -> the default large string comes back as string
+        string_dtype = pd.ArrowDtype(pa.string())
+        expected["string"] = expected["string"].astype(string_dtype)
+        expected["string_with_nan"] = expected["string_with_nan"].astype(string_dtype)
+        expected["string_with_none"] = expected["string_with_none"].astype(string_dtype)
 
     tm.assert_frame_equal(result, expected)
 
@@ -362,13 +367,9 @@ def test_orc_dtype_backend_numpy_nullable():
 
     expected = pd.DataFrame(
         {
-            "string": StringArray(np.array(["a", "b", "c"], dtype=np.object_)),
-            "string_with_nan": StringArray(
-                np.array(["a", pd.NA, "c"], dtype=np.object_)
-            ),
-            "string_with_none": StringArray(
-                np.array(["a", pd.NA, "c"], dtype=np.object_)
-            ),
+            "string": pd.array(["a", "b", "c"], dtype=pd.StringDtype()),
+            "string_with_nan": pd.array(["a", pd.NA, "c"], dtype=pd.StringDtype()),
+            "string_with_none": pd.array(["a", pd.NA, "c"], dtype=pd.StringDtype()),
             "int": pd.Series([1, 2, 3], dtype="Int64"),
             "int_with_nan": pd.Series([1, pd.NA, 3], dtype="Int64"),
             "na_only": pd.Series([pd.NA, pd.NA, pd.NA], dtype="Int64"),
@@ -430,7 +431,7 @@ def test_string_inference(tmp_path):
         result = read_orc(path)
     expected = pd.DataFrame(
         data={"a": ["x", "y"]},
-        dtype="string[pyarrow_numpy]",
-        columns=pd.Index(["a"], dtype="string[pyarrow_numpy]"),
+        dtype=pd.StringDtype(na_value=np.nan),
+        columns=pd.Index(["a"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     tm.assert_frame_equal(result, expected)

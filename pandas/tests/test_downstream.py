@@ -1,7 +1,10 @@
 """
 Testing that we work in the downstream packages
 """
+
 import array
+from functools import partial
+import importlib
 import subprocess
 import sys
 
@@ -9,7 +12,6 @@ import numpy as np
 import pytest
 
 from pandas.errors import IntCastingNaNError
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -19,10 +21,7 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    DatetimeArray,
-    TimedeltaArray,
-)
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -46,6 +45,8 @@ def test_dask(df):
         pd.set_option("compute.use_numexpr", olduse)
 
 
+# TODO(CoW) see https://github.com/pandas-dev/pandas/pull/51082
+@pytest.mark.skip(reason="not implemented with CoW")
 def test_dask_ufunc():
     # dask sets "compute.use_numexpr" to False, so catch the current value
     # and ensure to reset it afterwards to avoid impacting other tests
@@ -58,8 +59,8 @@ def test_dask_ufunc():
         s = Series([1.5, 2.3, 3.7, 4.0])
         ds = dd.from_pandas(s, npartitions=2)
 
-        result = da.fix(ds).compute()
-        expected = np.fix(s)
+        result = da.log(ds).compute()
+        expected = np.log(s)
         tm.assert_series_equal(result, expected)
     finally:
         pd.set_option("compute.use_numexpr", olduse)
@@ -102,7 +103,7 @@ def test_xarray_cftimeindex_nearest():
     cftime = pytest.importorskip("cftime")
     xarray = pytest.importorskip("xarray")
 
-    times = xarray.cftime_range("0001", periods=2)
+    times = xarray.date_range("0001", periods=2, use_cftime=True)
     key = cftime.DatetimeGregorian(2000, 1, 1)
     result = times.get_indexer([key], method="nearest")
     expected = 1
@@ -153,7 +154,7 @@ def test_scikit_learn():
     clf.predict(digits.data[-1:])
 
 
-def test_seaborn():
+def test_seaborn(mpl_cleanup):
     seaborn = pytest.importorskip("seaborn")
     tips = DataFrame(
         {"day": pd.date_range("2023", freq="D", periods=5), "total_bill": range(5)}
@@ -161,7 +162,10 @@ def test_seaborn():
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
+@pytest.mark.xfail(reason="pandas_datareader uses old variant of deprecate_kwarg")
 def test_pandas_datareader():
+    # https://github.com/pandas-dev/pandas/pull/61468
+    # https://github.com/pydata/pandas-datareader/issues/1005
     pytest.importorskip("pandas_datareader")
 
 
@@ -186,44 +190,24 @@ def test_yaml_dump(df):
     tm.assert_frame_equal(df, loaded2)
 
 
-@pytest.mark.single_cpu
-def test_missing_required_dependency():
-    # GH 23868
-    # To ensure proper isolation, we pass these flags
-    # -S : disable site-packages
-    # -s : disable user site-packages
-    # -E : disable PYTHON* env vars, especially PYTHONPATH
-    # https://github.com/MacPython/pandas-wheels/pull/50
+@pytest.mark.parametrize("dependency", ["numpy", "dateutil", "tzdata"])
+def test_missing_required_dependency(monkeypatch, dependency):
+    # GH#61030, GH61273
+    original_import = __import__
+    mock_error = ImportError(f"Mock error for {dependency}")
 
-    pyexe = sys.executable.replace("\\", "/")
+    def mock_import(name, *args, **kwargs):
+        if name == dependency:
+            raise mock_error
+        return original_import(name, *args, **kwargs)
 
-    # We skip this test if pandas is installed as a site package. We first
-    # import the package normally and check the path to the module before
-    # executing the test which imports pandas with site packages disabled.
-    call = [pyexe, "-c", "import pandas;print(pandas.__file__)"]
-    output = subprocess.check_output(call).decode()
-    if "site-packages" in output:
-        pytest.skip("pandas installed as site package")
+    monkeypatch.setattr("builtins.__import__", mock_import)
 
-    # This test will fail if pandas is installed as a site package. The flags
-    # prevent pandas being imported and the test will report Failed: DID NOT
-    # RAISE <class 'subprocess.CalledProcessError'>
-    call = [pyexe, "-sSE", "-c", "import pandas"]
-
-    msg = (
-        rf"Command '\['{pyexe}', '-sSE', '-c', 'import pandas'\]' "
-        "returned non-zero exit status 1."
-    )
-
-    with pytest.raises(subprocess.CalledProcessError, match=msg) as exc:
-        subprocess.check_output(call, stderr=subprocess.STDOUT)
-
-    output = exc.value.stdout.decode()
-    for name in ["numpy", "pytz", "dateutil"]:
-        assert name in output
+    with pytest.raises(ImportError, match=dependency):
+        importlib.reload(importlib.import_module("pandas"))
 
 
-def test_frame_setitem_dask_array_into_new_col():
+def test_frame_setitem_dask_array_into_new_col(request):
     # GH#47128
 
     # dask sets "compute.use_numexpr" to False, so catch the current value
@@ -231,7 +215,14 @@ def test_frame_setitem_dask_array_into_new_col():
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
+        dask = pytest.importorskip("dask")
         da = pytest.importorskip("dask.array")
+        if Version(dask.__version__) <= Version("2025.1.0") and Version(
+            np.__version__
+        ) >= Version("2.1"):
+            request.applymarker(
+                pytest.mark.xfail(reason="loc.__setitem__ incorrectly mutated column c")
+            )
 
         dda = da.array([1, 2])
         df = DataFrame({"a": ["a", "b"]})
@@ -261,85 +252,36 @@ def test_pandas_priority():
     assert right + left is left
 
 
-@pytest.fixture(
-    params=[
-        "memoryview",
-        "array",
-        pytest.param("dask", marks=td.skip_if_no("dask.array")),
-        pytest.param("xarray", marks=td.skip_if_no("xarray")),
-    ]
-)
-def array_likes(request):
-    """
-    Fixture giving a numpy array and a parametrized 'data' object, which can
-    be a memoryview, array, dask or xarray object created from the numpy array.
-    """
-    # GH#24539 recognize e.g xarray, dask, ...
-    arr = np.array([1, 2, 3], dtype=np.int64)
-
-    name = request.param
-    if name == "memoryview":
-        data = memoryview(arr)
-    elif name == "array":
-        data = array.array("i", arr)
-    elif name == "dask":
-        import dask.array
-
-        data = dask.array.array(arr)
-    elif name == "xarray":
-        import xarray as xr
-
-        data = xr.DataArray(arr)
-
-    return arr, data
-
-
 @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
-def test_from_obscure_array(dtype, array_likes):
+@pytest.mark.parametrize(
+    "box", [memoryview, partial(array.array, "i"), "dask", "xarray"]
+)
+def test_from_obscure_array(dtype, box):
     # GH#24539 recognize e.g xarray, dask, ...
     # Note: we dont do this for PeriodArray bc _from_sequence won't accept
     #  an array of integers
     # TODO: could check with arraylike of Period objects
-    arr, data = array_likes
+    # GH#24539 recognize e.g xarray, dask, ...
+    arr = np.array([1, 2, 3], dtype=np.int64)
+    if box == "dask":
+        da = pytest.importorskip("dask.array")
+        data = da.array(arr)
+    elif box == "xarray":
+        xr = pytest.importorskip("xarray")
+        data = xr.DataArray(arr)
+    else:
+        data = box(arr)
 
-    cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]
-
-    expected = cls(arr)
-    result = cls._from_sequence(data)
-    tm.assert_extension_array_equal(result, expected)
-
-    if not isinstance(data, memoryview):
-        # FIXME(GH#44431) these raise on memoryview and attempted fix
-        #  fails on py3.10
-        func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
-        result = func(arr).array
-        expected = func(data).array
-        tm.assert_equal(result, expected)
+    func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
+    result = func(arr).array
+    expected = func(data).array
+    tm.assert_equal(result, expected)
 
     # Let's check the Indexes while we're here
     idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]
     result = idx_cls(arr)
     expected = idx_cls(data)
     tm.assert_index_equal(result, expected)
-
-
-def test_dataframe_consortium() -> None:
-    """
-    Test some basic methods of the dataframe consortium standard.
-
-    Full testing is done at https://github.com/data-apis/dataframe-api-compat,
-    this is just to check that the entry point works as expected.
-    """
-    pytest.importorskip("dataframe_api_compat")
-    df_pd = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    df = df_pd.__dataframe_consortium_standard__()
-    result_1 = df.get_column_names()
-    expected_1 = ["a", "b"]
-    assert result_1 == expected_1
-
-    ser = Series([1, 2, 3], name="a")
-    col = ser.__column_consortium_standard__()
-    assert col.name == "a"
 
 
 def test_xarray_coerce_unit():

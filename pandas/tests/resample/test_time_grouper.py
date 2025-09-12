@@ -57,12 +57,8 @@ def test_count(test_series):
 
 def test_numpy_reduction(test_series):
     result = test_series.resample("YE", closed="right").prod()
-
-    msg = "using SeriesGroupBy.prod"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = test_series.groupby(lambda x: x.year).agg(np.prod)
+    expected = test_series.groupby(lambda x: x.year).agg(np.prod)
     expected.index = result.index
-
     tm.assert_series_equal(result, expected)
 
 
@@ -197,7 +193,7 @@ def test_aggregate_nth():
 )
 def test_resample_entirely_nat_window(method, method_args, unit):
     ser = Series([0] * 2 + [np.nan] * 2, index=date_range("2017", periods=4))
-    result = methodcaller(method, **method_args)(ser.resample("2d"))
+    result = methodcaller(method, **method_args)(ser.resample("2D"))
 
     exp_dti = pd.DatetimeIndex(["2017-01-01", "2017-01-03"], dtype="M8[ns]", freq="2D")
     expected = Series([0.0, unit], index=exp_dti)
@@ -296,7 +292,7 @@ def test_repr():
     # GH18203
     result = repr(Grouper(key="A", freq="h"))
     expected = (
-        "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, dropna=True, "
+        "TimeGrouper(key='A', freq=<Hour>, sort=True, dropna=True, "
         "closed='left', label='left', how='mean', "
         "convention='e', origin='start_day')"
     )
@@ -304,7 +300,7 @@ def test_repr():
 
     result = repr(Grouper(key="A", freq="h", origin="2000-01-01"))
     expected = (
-        "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, dropna=True, "
+        "TimeGrouper(key='A', freq=<Hour>, sort=True, dropna=True, "
         "closed='left', label='left', how='mean', "
         "convention='e', origin=Timestamp('2000-01-01 00:00:00'))"
     )
@@ -337,54 +333,104 @@ def test_upsample_sum(method, method_args, expected_values):
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_resample_interpolate():
+@pytest.fixture
+def groupy_test_df():
+    return DataFrame(
+        {"price": [10, 11, 9], "volume": [50, 60, 50]},
+        index=date_range("01/01/2018", periods=3, freq="W"),
+    )
+
+
+def test_groupby_resample_interpolate_raises(groupy_test_df):
     # GH 35325
-    d = {"price": [10, 11, 9], "volume": [50, 60, 50]}
 
-    df = DataFrame(d)
+    # Make a copy of the test data frame that has index.name=None
+    groupy_test_df_without_index_name = groupy_test_df.copy()
+    groupy_test_df_without_index_name.index.name = None
 
-    df["week_starting"] = date_range("01/01/2018", periods=3, freq="W")
+    dfs = [groupy_test_df, groupy_test_df_without_index_name]
 
-    msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = (
-            df.set_index("week_starting")
-            .groupby("volume")
-            .resample("1D")
-            .interpolate(method="linear")
+    for df in dfs:
+        with pytest.raises(
+            NotImplementedError,
+            match="Direct interpolation of MultiIndex data frames is not supported",
+        ):
+            df.groupby("volume").resample("1D").interpolate(method="linear")
+
+
+def test_groupby_resample_interpolate_with_apply_syntax(groupy_test_df):
+    # GH 35325
+
+    # Make a copy of the test data frame that has index.name=None
+    groupy_test_df_without_index_name = groupy_test_df.copy()
+    groupy_test_df_without_index_name.index.name = None
+
+    dfs = [groupy_test_df, groupy_test_df_without_index_name]
+
+    for df in dfs:
+        result = df.groupby("volume").apply(
+            lambda x: x.resample("1D").interpolate(method="linear"),
         )
 
-    volume = [50] * 15 + [60]
-    week_starting = list(date_range("2018-01-07", "2018-01-21")) + [
-        Timestamp("2018-01-14")
-    ]
+        volume = [50] * 15 + [60]
+        week_starting = list(date_range("2018-01-07", "2018-01-21")) + [
+            Timestamp("2018-01-14")
+        ]
+        expected_ind = pd.MultiIndex.from_arrays(
+            [volume, week_starting],
+            names=["volume", df.index.name],
+        )
+
+        expected = DataFrame(
+            data={
+                "price": [
+                    10.0,
+                    9.928571428571429,
+                    9.857142857142858,
+                    9.785714285714286,
+                    9.714285714285714,
+                    9.642857142857142,
+                    9.571428571428571,
+                    9.5,
+                    9.428571428571429,
+                    9.357142857142858,
+                    9.285714285714286,
+                    9.214285714285714,
+                    9.142857142857142,
+                    9.071428571428571,
+                    9.0,
+                    11.0,
+                ]
+            },
+            index=expected_ind,
+        )
+        tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_resample_interpolate_with_apply_syntax_off_grid(groupy_test_df):
+    """Similar test as test_groupby_resample_interpolate_with_apply_syntax but
+    with resampling that results in missing anchor points when interpolating.
+    See GH#21351."""
+    # GH#21351
+    result = groupy_test_df.groupby("volume").apply(
+        lambda x: x.resample("265h").interpolate(method="linear")
+    )
+
+    volume = [50, 50, 60]
+    week_starting = pd.DatetimeIndex(
+        [
+            Timestamp("2018-01-07"),
+            Timestamp("2018-01-18 01:00:00"),
+            Timestamp("2018-01-14"),
+        ]
+    ).as_unit("ns")
     expected_ind = pd.MultiIndex.from_arrays(
         [volume, week_starting],
         names=["volume", "week_starting"],
     )
 
     expected = DataFrame(
-        data={
-            "price": [
-                10.0,
-                9.928571428571429,
-                9.857142857142858,
-                9.785714285714286,
-                9.714285714285714,
-                9.642857142857142,
-                9.571428571428571,
-                9.5,
-                9.428571428571429,
-                9.357142857142858,
-                9.285714285714286,
-                9.214285714285714,
-                9.142857142857142,
-                9.071428571428571,
-                9.0,
-                11.0,
-            ],
-            "volume": [50.0] * 15 + [60],
-        },
+        data={"price": [10.0, 9.5, 11.0]},
         index=expected_ind,
     )
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_names=False)

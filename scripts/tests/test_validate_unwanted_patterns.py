@@ -5,160 +5,12 @@ import pytest
 from scripts import validate_unwanted_patterns
 
 
-class TestBarePytestRaises:
-    @pytest.mark.parametrize(
-        "data",
-        [
-            (
-                """
-    with pytest.raises(ValueError, match="foo"):
-        pass
-    """
-            ),
-            (
-                """
-    # with pytest.raises(ValueError, match="foo"):
-    #    pass
-    """
-            ),
-            (
-                """
-    # with pytest.raises(ValueError):
-    #    pass
-    """
-            ),
-            (
-                """
-    with pytest.raises(
-        ValueError,
-        match="foo"
-    ):
-        pass
-    """
-            ),
-        ],
-    )
-    def test_pytest_raises(self, data):
-        fd = io.StringIO(data.strip())
-        result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
-        assert result == []
-
-    @pytest.mark.parametrize(
-        "data, expected",
-        [
-            (
-                (
-                    """
-    with pytest.raises(ValueError):
-        pass
-    """
-                ),
-                [
-                    (
-                        1,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
-            ),
-            (
-                (
-                    """
-    with pytest.raises(ValueError, match="foo"):
-        with pytest.raises(ValueError):
-            pass
-        pass
-    """
-                ),
-                [
-                    (
-                        2,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
-            ),
-            (
-                (
-                    """
-    with pytest.raises(ValueError):
-        with pytest.raises(ValueError, match="foo"):
-            pass
-        pass
-    """
-                ),
-                [
-                    (
-                        1,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
-            ),
-            (
-                (
-                    """
-    with pytest.raises(
-        ValueError
-    ):
-        pass
-    """
-                ),
-                [
-                    (
-                        1,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
-            ),
-            (
-                (
-                    """
-    with pytest.raises(
-        ValueError,
-        # match = "foo"
-    ):
-        pass
-    """
-                ),
-                [
-                    (
-                        1,
-                        (
-                            "Bare pytests raise have been found. "
-                            "Please pass in the argument 'match' "
-                            "as well the exception."
-                        ),
-                    ),
-                ],
-            ),
-        ],
-    )
-    def test_pytest_raises_raises(self, data, expected):
-        fd = io.StringIO(data.strip())
-        result = list(validate_unwanted_patterns.bare_pytest_raises(fd))
-        assert result == expected
-
-
 class TestStringsWithWrongPlacedWhitespace:
     @pytest.mark.parametrize(
         "data",
         [
             (
-                """
+                r"""
     msg = (
         "foo\n"
         " bar"
@@ -200,7 +52,7 @@ class TestStringsWithWrongPlacedWhitespace:
             ),
         ],
     )
-    def test_strings_with_wrong_placed_whitespace(self, data):
+    def test_strings_with_wrong_placed_whitespace(self, data) -> None:
         fd = io.StringIO(data.strip())
         result = list(
             validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
@@ -369,7 +221,7 @@ class TestStringsWithWrongPlacedWhitespace:
             ),
         ],
     )
-    def test_strings_with_wrong_placed_whitespace_raises(self, data, expected):
+    def test_strings_with_wrong_placed_whitespace_raises(self, data, expected) -> None:
         fd = io.StringIO(data.strip())
         result = list(
             validate_unwanted_patterns.strings_with_wrong_placed_whitespace(fd)
@@ -401,7 +253,7 @@ b: lib.NoDefault = lib.no_default
             ),
         ],
     )
-    def test_nodefault_used_not_only_for_typing(self, data):
+    def test_nodefault_used_not_only_for_typing(self, data) -> None:
         fd = io.StringIO(data.strip())
         result = list(validate_unwanted_patterns.nodefault_used_not_only_for_typing(fd))
         assert result == []
@@ -440,7 +292,41 @@ if a is NoDefault:
             ),
         ],
     )
-    def test_nodefault_used_not_only_for_typing_raises(self, data, expected):
+    def test_nodefault_used_not_only_for_typing_raises(self, data, expected) -> None:
         fd = io.StringIO(data.strip())
         result = list(validate_unwanted_patterns.nodefault_used_not_only_for_typing(fd))
         assert result == expected
+
+
+@pytest.mark.parametrize("function", ["warnings.warn", "warn"])
+@pytest.mark.parametrize("positional", [True, False])
+@pytest.mark.parametrize(
+    "category",
+    [
+        "FutureWarning",
+        "DeprecationWarning",
+        "PendingDeprecationWarning",
+        "Pandas4Warning",
+        "RuntimeWarning",
+    ],
+)
+@pytest.mark.parametrize("pdlint_ignore", [True, False])
+def test_doesnt_use_pandas_warnings(function, positional, category, pdlint_ignore):
+    code = (
+        f"{function}({'  # pdlint: ignore[warning_class]' if pdlint_ignore else ''}\n"
+        f'   "message",\n'
+        f"   {'' if positional else 'category='}{category},\n"
+        f")\n"
+    )
+    flag_issue = (
+        category in ["FutureWarning", "DeprecationWarning", "PendingDeprecationWarning"]
+        and not pdlint_ignore
+    )
+    fd = io.StringIO(code)
+    result = list(validate_unwanted_patterns.doesnt_use_pandas_warnings(fd))
+    if flag_issue:
+        assert len(result) == 1
+        assert result[0][0] == 1
+        assert result[0][1].startswith(f"Don't use {category}")
+    else:
+        assert len(result) == 0

@@ -4,11 +4,8 @@ with different size combinations. This is to ensure stability of the sorting
 and proper parameter handling
 """
 
-
 import numpy as np
 import pytest
-
-import pandas.util._test_decorators as td
 
 from pandas import (
     Categorical,
@@ -22,7 +19,6 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.util.version import Version
 
 
 def tests_value_counts_index_names_category_column():
@@ -76,9 +72,6 @@ def seed_df(seed_nans, n, m):
 @pytest.mark.parametrize("bins", [None, [0, 5]], ids=repr)
 @pytest.mark.parametrize("isort", [True, False])
 @pytest.mark.parametrize("normalize, name", [(True, "proportion"), (False, "count")])
-@pytest.mark.parametrize("sort", [True, False])
-@pytest.mark.parametrize("ascending", [True, False])
-@pytest.mark.parametrize("dropna", [True, False])
 def test_series_groupby_value_counts(
     seed_nans,
     num_rows,
@@ -235,14 +228,6 @@ def education_df():
     )
 
 
-def test_axis(education_df):
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gp = education_df.groupby("country", axis=1)
-    with pytest.raises(NotImplementedError, match="axis"):
-        gp.value_counts()
-
-
 def test_bad_subset(education_df):
     gp = education_df.groupby("country")
     with pytest.raises(ValueError, match="subset"):
@@ -251,16 +236,15 @@ def test_bad_subset(education_df):
 
 def test_basic(education_df, request):
     # gh43564
-    if Version(np.__version__) >= Version("1.25"):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason=(
-                    "pandas default unstable sorting of duplicates"
-                    "issue with numpy>=1.25 with AVX instructions"
-                ),
-                strict=False,
-            )
+    request.applymarker(
+        pytest.mark.xfail(
+            reason=(
+                "pandas default unstable sorting of duplicates"
+                "issue with numpy>=1.25 with AVX instructions"
+            ),
+            strict=False,
         )
+    )
     result = education_df.groupby("country")[["gender", "education"]].value_counts(
         normalize=True
     )
@@ -269,10 +253,10 @@ def test_basic(education_df, request):
         index=MultiIndex.from_tuples(
             [
                 ("FR", "male", "low"),
-                ("FR", "female", "high"),
                 ("FR", "male", "medium"),
-                ("US", "female", "high"),
+                ("FR", "female", "high"),
                 ("US", "male", "low"),
+                ("US", "female", "high"),
             ],
             names=["country", "gender", "education"],
         ),
@@ -295,10 +279,18 @@ def _frame_value_counts(df, keys, normalize, sort, ascending):
         (True, False),
     ],
 )
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize("frame", [True, False])
 def test_against_frame_and_seriesgroupby(
-    education_df, groupby, normalize, name, sort, ascending, as_index, frame, request
+    education_df,
+    groupby,
+    normalize,
+    name,
+    sort,
+    ascending,
+    as_index,
+    frame,
+    request,
+    using_infer_string,
 ):
     # test all parameters:
     # - Use column, array or function as by= parameter
@@ -308,7 +300,7 @@ def test_against_frame_and_seriesgroupby(
     # - 3-way compare against:
     #   - apply with :meth:`~DataFrame.value_counts`
     #   - `~SeriesGroupBy.value_counts`
-    if Version(np.__version__) >= Version("1.25") and frame and sort and normalize:
+    if frame and sort and normalize:
         request.applymarker(
             pytest.mark.xfail(
                 reason=(
@@ -330,25 +322,19 @@ def test_against_frame_and_seriesgroupby(
     )
     if frame:
         # compare against apply with DataFrame value_counts
-        warn = FutureWarning if groupby == "column" else None
-        msg = "DataFrameGroupBy.apply operated on the grouping columns"
-        with tm.assert_produces_warning(warn, match=msg):
-            expected = gp.apply(
-                _frame_value_counts, ["gender", "education"], normalize, sort, ascending
-            )
+        expected = gp.apply(
+            _frame_value_counts, ["gender", "education"], normalize, sort, ascending
+        )
 
         if as_index:
             tm.assert_series_equal(result, expected)
         else:
             name = "proportion" if normalize else "count"
             expected = expected.reset_index().rename({0: name}, axis=1)
-            if groupby == "column":
-                expected = expected.rename({"level_0": "country"}, axis=1)
-                expected["country"] = np.where(expected["country"], "US", "FR")
-            elif groupby == "function":
-                expected["level_0"] = expected["level_0"] == 1
+            if groupby in ["array", "function"] and (not as_index and frame):
+                expected.insert(loc=0, column="level_0", value=result["level_0"])
             else:
-                expected["level_0"] = np.where(expected["level_0"], "US", "FR")
+                expected.insert(loc=0, column="country", value=result["country"])
             tm.assert_frame_equal(result, expected)
     else:
         # compare against SeriesGroupBy value_counts
@@ -362,24 +348,24 @@ def test_against_frame_and_seriesgroupby(
             index_frame["gender"] = index_frame["both"].str.split("-").str.get(0)
             index_frame["education"] = index_frame["both"].str.split("-").str.get(1)
             del index_frame["both"]
-            index_frame = index_frame.rename({0: None}, axis=1)
-            expected.index = MultiIndex.from_frame(index_frame)
+            index_frame2 = index_frame.rename({0: None}, axis=1)
+            expected.index = MultiIndex.from_frame(index_frame2)
+
+            if index_frame2.columns.isna()[0]:
+                # with using_infer_string, the columns in index_frame as string
+                #  dtype, which makes the rename({0: None}) above use np.nan
+                #  instead of None, so we need to set None more explicitly.
+                expected.index.names = [None] + expected.index.names[1:]
             tm.assert_series_equal(result, expected)
         else:
             expected.insert(1, "gender", expected["both"].str.split("-").str.get(0))
             expected.insert(2, "education", expected["both"].str.split("-").str.get(1))
+            if using_infer_string:
+                expected = expected.astype({"gender": "str", "education": "str"})
             del expected["both"]
             tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        object,
-        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
-        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
-    ],
-)
 @pytest.mark.parametrize("normalize", [True, False])
 @pytest.mark.parametrize(
     "sort, ascending, expected_rows, expected_count, expected_group_size",
@@ -397,8 +383,10 @@ def test_compound(
     expected_rows,
     expected_count,
     expected_group_size,
-    dtype,
+    any_string_dtype,
+    using_infer_string,
 ):
+    dtype = any_string_dtype
     education_df = education_df.astype(dtype)
     education_df.columns = education_df.columns.astype(dtype)
     # Multiple groupby keys and as_index=False
@@ -415,20 +403,18 @@ def test_compound(
         expected["proportion"] = expected_count
         expected["proportion"] /= expected_group_size
         if dtype == "string[pyarrow]":
+            # TODO(nullable) also string[python] should return nullable dtypes
             expected["proportion"] = expected["proportion"].convert_dtypes()
     else:
         expected["count"] = expected_count
         if dtype == "string[pyarrow]":
             expected["count"] = expected["count"].convert_dtypes()
+    if using_infer_string and dtype == object:
+        expected = expected.astype(
+            {"country": "str", "gender": "str", "education": "str"}
+        )
+
     tm.assert_frame_equal(result, expected)
-
-
-@pytest.fixture
-def animals_df():
-    return DataFrame(
-        {"key": [1, 1, 1, 1], "num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
-        index=["falcon", "dog", "cat", "ant"],
-    )
 
 
 @pytest.mark.parametrize(
@@ -448,10 +434,14 @@ def animals_df():
     ],
 )
 def test_data_frame_value_counts(
-    animals_df, sort, ascending, normalize, name, expected_data, expected_index
+    sort, ascending, normalize, name, expected_data, expected_index
 ):
     # 3-way compare with :meth:`~DataFrame.value_counts`
     # Tests from frame/methods/test_value_counts.py
+    animals_df = DataFrame(
+        {"key": [1, 1, 1, 1], "num_legs": [2, 4, 4, 6], "num_wings": [2, 0, 0, 0]},
+        index=["falcon", "dog", "cat", "ant"],
+    )
     result_frame = animals_df.value_counts(
         sort=sort, ascending=ascending, normalize=normalize
     )
@@ -471,37 +461,24 @@ def test_data_frame_value_counts(
     tm.assert_series_equal(result_frame_groupby, expected)
 
 
-@pytest.fixture
-def nulls_df():
-    n = np.nan
-    return DataFrame(
-        {
-            "A": [1, 1, n, 4, n, 6, 6, 6, 6],
-            "B": [1, 1, 3, n, n, 6, 6, 6, 6],
-            "C": [1, 2, 3, 4, 5, 6, n, 8, n],
-            "D": [1, 2, 3, 4, 5, 6, 7, n, n],
-        }
-    )
-
-
 @pytest.mark.parametrize(
     "group_dropna, count_dropna, expected_rows, expected_values",
     [
         (
             False,
             False,
-            [0, 1, 3, 5, 7, 6, 8, 2, 4],
+            [0, 1, 3, 5, 6, 7, 8, 2, 4],
             [0.5, 0.5, 1.0, 0.25, 0.25, 0.25, 0.25, 1.0, 1.0],
         ),
         (False, True, [0, 1, 3, 5, 2, 4], [0.5, 0.5, 1.0, 1.0, 1.0, 1.0]),
-        (True, False, [0, 1, 5, 7, 6, 8], [0.5, 0.5, 0.25, 0.25, 0.25, 0.25]),
+        (True, False, [0, 1, 5, 6, 7, 8], [0.5, 0.5, 0.25, 0.25, 0.25, 0.25]),
         (True, True, [0, 1, 5], [0.5, 0.5, 1.0]),
     ],
 )
 def test_dropna_combinations(
-    nulls_df, group_dropna, count_dropna, expected_rows, expected_values, request
+    group_dropna, count_dropna, expected_rows, expected_values, request
 ):
-    if Version(np.__version__) >= Version("1.25") and not group_dropna:
+    if not group_dropna:
         request.applymarker(
             pytest.mark.xfail(
                 reason=(
@@ -511,6 +488,14 @@ def test_dropna_combinations(
                 strict=False,
             )
         )
+    nulls_df = DataFrame(
+        {
+            "A": [1, 1, np.nan, 4, np.nan, 6, 6, 6, 6],
+            "B": [1, 1, 3, np.nan, np.nan, 6, 6, 6, 6],
+            "C": [1, 2, 3, 4, 5, 6, np.nan, 8, np.nan],
+            "D": [1, 2, 3, 4, 5, 6, 7, np.nan, np.nan],
+        }
+    )
     gp = nulls_df.groupby(["A", "B"], dropna=group_dropna)
     result = gp.value_counts(normalize=True, sort=True, dropna=count_dropna)
     columns = DataFrame()
@@ -521,17 +506,6 @@ def test_dropna_combinations(
     tm.assert_series_equal(result, expected)
 
 
-@pytest.fixture
-def names_with_nulls_df(nulls_fixture):
-    return DataFrame(
-        {
-            "key": [1, 1, 1, 1],
-            "first_name": ["John", "Anne", "John", "Beth"],
-            "middle_name": ["Smith", nulls_fixture, nulls_fixture, "Louise"],
-        },
-    )
-
-
 @pytest.mark.parametrize(
     "dropna, expected_data, expected_index",
     [
@@ -539,7 +513,7 @@ def names_with_nulls_df(nulls_fixture):
             True,
             [1, 1],
             MultiIndex.from_arrays(
-                [(1, 1), ("Beth", "John"), ("Louise", "Smith")],
+                [(1, 1), ("John", "Beth"), ("Smith", "Louise")],
                 names=["key", "first_name", "middle_name"],
             ),
         ),
@@ -552,7 +526,7 @@ def names_with_nulls_df(nulls_fixture):
                     Index(["Anne", "Beth", "John"]),
                     Index(["Louise", "Smith", np.nan]),
                 ],
-                codes=[[0, 0, 0, 0], [0, 1, 2, 2], [2, 0, 1, 2]],
+                codes=[[0, 0, 0, 0], [2, 0, 2, 1], [1, 2, 2, 0]],
                 names=["key", "first_name", "middle_name"],
             ),
         ),
@@ -560,11 +534,18 @@ def names_with_nulls_df(nulls_fixture):
 )
 @pytest.mark.parametrize("normalize, name", [(False, "count"), (True, "proportion")])
 def test_data_frame_value_counts_dropna(
-    names_with_nulls_df, dropna, normalize, name, expected_data, expected_index
+    nulls_fixture, dropna, normalize, name, expected_data, expected_index
 ):
     # GH 41334
     # 3-way compare with :meth:`~DataFrame.value_counts`
     # Tests with nulls from frame/methods/test_value_counts.py
+    names_with_nulls_df = DataFrame(
+        {
+            "key": [1, 1, 1, 1],
+            "first_name": ["John", "Anne", "John", "Beth"],
+            "middle_name": ["Smith", nulls_fixture, nulls_fixture, "Louise"],
+        },
+    )
     result_frame = names_with_nulls_df.value_counts(dropna=dropna, normalize=normalize)
     expected = Series(
         data=expected_data,
@@ -583,7 +564,6 @@ def test_data_frame_value_counts_dropna(
     tm.assert_series_equal(result_frame_groupby, expected)
 
 
-@pytest.mark.parametrize("as_index", [False, True])
 @pytest.mark.parametrize("observed", [False, True])
 @pytest.mark.parametrize(
     "normalize, name, expected_data",
@@ -605,16 +585,15 @@ def test_categorical_single_grouper_with_only_observed_categories(
 ):
     # Test single categorical grouper with only observed grouping categories
     # when non-groupers are also categorical
-    if Version(np.__version__) >= Version("1.25"):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason=(
-                    "pandas default unstable sorting of duplicates"
-                    "issue with numpy>=1.25 with AVX instructions"
-                ),
-                strict=False,
-            )
+    request.applymarker(
+        pytest.mark.xfail(
+            reason=(
+                "pandas default unstable sorting of duplicates"
+                "issue with numpy>=1.25 with AVX instructions"
+            ),
+            strict=False,
         )
+    )
 
     gp = education_df.astype("category").groupby(
         "country", as_index=as_index, observed=observed
@@ -624,17 +603,17 @@ def test_categorical_single_grouper_with_only_observed_categories(
     expected_index = MultiIndex.from_tuples(
         [
             ("FR", "male", "low"),
-            ("FR", "female", "high"),
             ("FR", "male", "medium"),
+            ("FR", "female", "high"),
+            ("FR", "male", "high"),
             ("FR", "female", "low"),
             ("FR", "female", "medium"),
-            ("FR", "male", "high"),
-            ("US", "female", "high"),
             ("US", "male", "low"),
+            ("US", "female", "high"),
+            ("US", "male", "medium"),
+            ("US", "male", "high"),
             ("US", "female", "low"),
             ("US", "female", "medium"),
-            ("US", "male", "high"),
-            ("US", "male", "medium"),
         ],
         names=["country", "gender", "education"],
     )
@@ -693,7 +672,6 @@ def assert_categorical_single_grouper(
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "normalize, name, expected_data",
     [
@@ -714,30 +692,29 @@ def test_categorical_single_grouper_observed_true(
 ):
     # GH#46357
 
-    if Version(np.__version__) >= Version("1.25"):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason=(
-                    "pandas default unstable sorting of duplicates"
-                    "issue with numpy>=1.25 with AVX instructions"
-                ),
-                strict=False,
-            )
+    request.applymarker(
+        pytest.mark.xfail(
+            reason=(
+                "pandas default unstable sorting of duplicates"
+                "issue with numpy>=1.25 with AVX instructions"
+            ),
+            strict=False,
         )
+    )
 
     expected_index = [
         ("FR", "male", "low"),
-        ("FR", "female", "high"),
         ("FR", "male", "medium"),
+        ("FR", "female", "high"),
+        ("FR", "male", "high"),
         ("FR", "female", "low"),
         ("FR", "female", "medium"),
-        ("FR", "male", "high"),
-        ("US", "female", "high"),
         ("US", "male", "low"),
+        ("US", "female", "high"),
+        ("US", "male", "medium"),
+        ("US", "male", "high"),
         ("US", "female", "low"),
         ("US", "female", "medium"),
-        ("US", "male", "high"),
-        ("US", "male", "medium"),
     ]
 
     assert_categorical_single_grouper(
@@ -751,7 +728,6 @@ def test_categorical_single_grouper_observed_true(
     )
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "normalize, name, expected_data",
     [
@@ -795,36 +771,35 @@ def test_categorical_single_grouper_observed_false(
 ):
     # GH#46357
 
-    if Version(np.__version__) >= Version("1.25"):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason=(
-                    "pandas default unstable sorting of duplicates"
-                    "issue with numpy>=1.25 with AVX instructions"
-                ),
-                strict=False,
-            )
+    request.applymarker(
+        pytest.mark.xfail(
+            reason=(
+                "pandas default unstable sorting of duplicates"
+                "issue with numpy>=1.25 with AVX instructions"
+            ),
+            strict=False,
         )
+    )
 
     expected_index = [
         ("FR", "male", "low"),
-        ("FR", "female", "high"),
         ("FR", "male", "medium"),
+        ("FR", "female", "high"),
+        ("FR", "male", "high"),
         ("FR", "female", "low"),
         ("FR", "female", "medium"),
-        ("FR", "male", "high"),
-        ("US", "female", "high"),
         ("US", "male", "low"),
+        ("US", "female", "high"),
+        ("US", "male", "medium"),
+        ("US", "male", "high"),
         ("US", "female", "low"),
         ("US", "female", "medium"),
-        ("US", "male", "high"),
-        ("US", "male", "medium"),
-        ("ASIA", "female", "high"),
-        ("ASIA", "female", "low"),
-        ("ASIA", "female", "medium"),
-        ("ASIA", "male", "high"),
         ("ASIA", "male", "low"),
         ("ASIA", "male", "medium"),
+        ("ASIA", "male", "high"),
+        ("ASIA", "female", "low"),
+        ("ASIA", "female", "medium"),
+        ("ASIA", "female", "high"),
     ]
 
     assert_categorical_single_grouper(
@@ -838,7 +813,6 @@ def test_categorical_single_grouper_observed_false(
     )
 
 
-@pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "observed, expected_index",
     [
@@ -855,8 +829,8 @@ def test_categorical_single_grouper_observed_false(
                 ("US", "high", "male"),
                 ("US", "low", "male"),
                 ("US", "low", "female"),
-                ("US", "medium", "female"),
                 ("US", "medium", "male"),
+                ("US", "medium", "female"),
             ],
         ),
         (
@@ -924,7 +898,6 @@ def test_categorical_multiple_groupers(
         tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("as_index", [False, True])
 @pytest.mark.parametrize("observed", [False, True])
 @pytest.mark.parametrize(
     "normalize, name, expected_data",
@@ -948,16 +921,15 @@ def test_categorical_non_groupers(
     # GH#46357 Test non-observed categories are included in the result,
     # regardless of `observed`
 
-    if Version(np.__version__) >= Version("1.25"):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason=(
-                    "pandas default unstable sorting of duplicates"
-                    "issue with numpy>=1.25 with AVX instructions"
-                ),
-                strict=False,
-            )
+    request.applymarker(
+        pytest.mark.xfail(
+            reason=(
+                "pandas default unstable sorting of duplicates"
+                "issue with numpy>=1.25 with AVX instructions"
+            ),
+            strict=False,
         )
+    )
 
     education_df = education_df.copy()
     education_df["gender"] = education_df["gender"].astype("category")
@@ -968,17 +940,17 @@ def test_categorical_non_groupers(
 
     expected_index = [
         ("FR", "male", "low"),
-        ("FR", "female", "high"),
         ("FR", "male", "medium"),
+        ("FR", "female", "high"),
+        ("FR", "male", "high"),
         ("FR", "female", "low"),
         ("FR", "female", "medium"),
-        ("FR", "male", "high"),
-        ("US", "female", "high"),
         ("US", "male", "low"),
+        ("US", "female", "high"),
+        ("US", "male", "medium"),
+        ("US", "male", "high"),
         ("US", "female", "low"),
         ("US", "female", "medium"),
-        ("US", "male", "high"),
-        ("US", "male", "medium"),
     ]
     expected_series = Series(
         data=expected_data,
@@ -1033,7 +1005,6 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
         ("level", list("abcd") + ["level_1"], ["a", None, "d", "b", "c", "level_1"]),
     ],
 )
-@pytest.mark.parametrize("as_index", [False, True])
 def test_column_label_duplicates(test, columns, expected_names, as_index):
     # GH 44992
     # Test for duplicate input column labels and generated duplicate labels
@@ -1198,7 +1169,7 @@ def test_value_counts_sort(sort, vc_sort, normalize):
     if sort and vc_sort:
         taker = [0, 1, 2]
     elif sort and not vc_sort:
-        taker = [0, 1, 2]
+        taker = [1, 0, 2]
     elif not sort and vc_sort:
         taker = [0, 2, 1]
     else:
@@ -1235,7 +1206,29 @@ def test_value_counts_sort_categorical(sort, vc_sort, normalize):
     elif not sort and vc_sort:
         taker = [0, 2, 1, 3]
     else:
-        taker = [2, 3, 0, 1]
+        taker = [2, 1, 0, 3]
     expected = expected.take(taker)
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("groupby_sort", [True, False])
+def test_value_counts_all_na(sort, dropna, groupby_sort):
+    # GH#59989
+    df = DataFrame({"a": [2, 1, 1], "b": np.nan})
+    gb = df.groupby("a", sort=groupby_sort)
+    result = gb.value_counts(sort=sort, dropna=dropna)
+
+    kwargs = {"levels": [[1, 2], [np.nan]], "names": ["a", "b"]}
+    if dropna:
+        data = []
+        index = MultiIndex(codes=[[], []], **kwargs)
+    elif not groupby_sort and not sort:
+        data = [1, 2]
+        index = MultiIndex(codes=[[1, 0], [0, 0]], **kwargs)
+    else:
+        data = [2, 1]
+        index = MultiIndex(codes=[[0, 1], [0, 0]], **kwargs)
+    expected = Series(data, index=index, dtype="int64", name="count")
 
     tm.assert_series_equal(result, expected)

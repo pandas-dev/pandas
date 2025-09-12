@@ -3,12 +3,9 @@ import sys
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 from pandas.compat import PYPY
 
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
     is_object_dtype,
 )
 
@@ -17,7 +14,6 @@ from pandas import (
     Index,
     Series,
 )
-import pandas._testing as tm
 
 
 def test_isnull_notnull_docstrings():
@@ -82,10 +78,7 @@ def test_ndarray_compat_properties(index_or_series_obj):
     assert Series([1]).item() == 1
 
 
-@pytest.mark.skipif(
-    PYPY or using_pyarrow_string_dtype(),
-    reason="not relevant for PyPy doesn't work properly for arrow strings",
-)
+@pytest.mark.skipif(PYPY, reason="not relevant for PyPy")
 def test_memory_usage(index_or_series_memory_obj):
     obj = index_or_series_memory_obj
     # Clear index caches so that len(obj) == 0 report 0 memory usage
@@ -99,18 +92,21 @@ def test_memory_usage(index_or_series_memory_obj):
     res = obj.memory_usage()
     res_deep = obj.memory_usage(deep=True)
 
-    is_object = is_object_dtype(obj) or (is_ser and is_object_dtype(obj.index))
-    is_categorical = isinstance(obj.dtype, pd.CategoricalDtype) or (
-        is_ser and isinstance(obj.index.dtype, pd.CategoricalDtype)
-    )
-    is_object_string = is_dtype_equal(obj, "string[python]") or (
-        is_ser and is_dtype_equal(obj.index.dtype, "string[python]")
-    )
+    def _is_object_dtype(obj):
+        if isinstance(obj, pd.MultiIndex):
+            return any(_is_object_dtype(level) for level in obj.levels)
+        elif isinstance(obj.dtype, pd.CategoricalDtype):
+            return _is_object_dtype(obj.dtype.categories)
+        elif isinstance(obj.dtype, pd.StringDtype):
+            return obj.dtype.storage == "python"
+        return is_object_dtype(obj)
+
+    has_objects = _is_object_dtype(obj) or (is_ser and _is_object_dtype(obj.index))
 
     if len(obj) == 0:
         expected = 0
         assert res_deep == res == expected
-    elif is_object or is_categorical or is_object_string:
+    elif has_objects:
         # only deep will pick them up
         assert res_deep > res
     else:
@@ -130,9 +126,13 @@ def test_memory_usage_components_series(series_with_simple_index):
     assert total_usage == non_index_usage + index_usage
 
 
-@pytest.mark.parametrize("dtype", tm.NARROW_NP_DTYPES)
-def test_memory_usage_components_narrow_series(dtype):
-    series = Series(range(5), dtype=dtype, index=[f"i-{i}" for i in range(5)], name="a")
+def test_memory_usage_components_narrow_series(any_real_numpy_dtype):
+    series = Series(
+        range(5),
+        dtype=any_real_numpy_dtype,
+        index=[f"i-{i}" for i in range(5)],
+        name="a",
+    )
     total_usage = series.memory_usage(index=True)
     non_index_usage = series.memory_usage(index=False)
     index_usage = series.index.memory_usage()
@@ -180,9 +180,7 @@ def test_access_by_position(index_flat):
     assert index[-1] == index[size - 1]
 
     msg = f"index {size} is out of bounds for axis 0 with size {size}"
-    if is_dtype_equal(index.dtype, "string[pyarrow]") or is_dtype_equal(
-        index.dtype, "string[pyarrow_numpy]"
-    ):
+    if isinstance(index.dtype, pd.StringDtype) and index.dtype.storage == "pyarrow":
         msg = "index out of bounds"
     with pytest.raises(IndexError, match=msg):
         index[size]

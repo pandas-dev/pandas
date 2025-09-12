@@ -55,15 +55,15 @@ def test_array_scalar_like_equivalence(data, all_arithmetic_operators):
     scalar_array = pd.array([scalar] * len(data), dtype=data.dtype)
 
     # TODO also add len-1 array (np.array([scalar], dtype=data.dtype.numpy_dtype))
-    for scalar in [scalar, data.dtype.type(scalar)]:
+    for val in [scalar, data.dtype.type(scalar)]:
         if is_bool_not_implemented(data, all_arithmetic_operators):
             msg = "operator '.*' not implemented for bool dtypes"
             with pytest.raises(NotImplementedError, match=msg):
-                op(data, scalar)
+                op(data, val)
             with pytest.raises(NotImplementedError, match=msg):
                 op(data, scalar_array)
         else:
-            result = op(data, scalar)
+            result = op(data, val)
             expected = op(data, scalar_array)
             tm.assert_extension_array_equal(result, expected)
 
@@ -214,13 +214,13 @@ def test_error_len_mismatch(data, all_arithmetic_operators):
         msg = "operator '.*' not implemented for bool dtypes"
         err = NotImplementedError
 
-    for other in [other, np.array(other)]:
+    for val in [other, np.array(other)]:
         with pytest.raises(err, match=msg):
-            op(data, other)
+            op(data, val)
 
         s = pd.Series(data)
         with pytest.raises(err, match=msg):
-            op(s, other)
+            op(s, val)
 
 
 @pytest.mark.parametrize("op", ["__neg__", "__abs__", "__invert__"])
@@ -246,3 +246,26 @@ def test_unary_op_does_not_propagate_mask(data, op):
     expected = result.copy(deep=True)
     ser[0] = None
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Int32", "Float32", "Float64"])
+def test_divmod_pdna(dtype):
+    # GH#62196
+    ser = pd.Series([1, 2, 3], dtype=dtype)
+    res = divmod(pd.NA, ser)
+    assert isinstance(res, tuple) and len(res) == 2
+
+    exp = pd.Series([pd.NA, pd.NA, pd.NA], dtype=dtype)
+    tm.assert_series_equal(res[0], exp)
+    tm.assert_series_equal(res[1], exp)
+
+    tm.assert_series_equal(res[0], pd.NA // ser)
+    tm.assert_series_equal(res[1], pd.NA % ser)
+
+    res = divmod(ser, pd.NA)
+    assert isinstance(res, tuple) and len(res) == 2
+    tm.assert_series_equal(res[0], exp)
+    tm.assert_series_equal(res[1], exp)
+
+    tm.assert_series_equal(res[0], ser // pd.NA)
+    tm.assert_series_equal(res[1], ser % pd.NA)

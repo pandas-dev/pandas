@@ -1,15 +1,11 @@
-from contextlib import nullcontext
 from datetime import datetime
 from decimal import Decimal
 
 import numpy as np
 import pytest
 
-from pandas._config import config as cf
-
 from pandas._libs import missing as libmissing
 from pandas._libs.tslibs import iNaT
-from pandas.compat.numpy import np_version_gte1p25
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -54,25 +50,6 @@ def test_notna_notnull(notna_f):
     assert not notna_f(None)
     assert not notna_f(np.nan)
 
-    msg = "use_inf_as_na option is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        with cf.option_context("mode.use_inf_as_na", False):
-            assert notna_f(np.inf)
-            assert notna_f(-np.inf)
-
-            arr = np.array([1.5, np.inf, 3.5, -np.inf])
-            result = notna_f(arr)
-            assert result.all()
-
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        with cf.option_context("mode.use_inf_as_na", True):
-            assert not notna_f(np.inf)
-            assert not notna_f(-np.inf)
-
-            arr = np.array([1.5, np.inf, 3.5, -np.inf])
-            result = notna_f(arr)
-            assert result.sum() == 2
-
 
 @pytest.mark.parametrize("null_func", [notna, notnull, isna, isnull])
 @pytest.mark.parametrize(
@@ -88,10 +65,7 @@ def test_notna_notnull(notna_f):
     ],
 )
 def test_null_check_is_series(null_func, ser):
-    msg = "use_inf_as_na option is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        with cf.option_context("mode.use_inf_as_na", False):
-            assert isinstance(null_func(ser), Series)
+    assert isinstance(null_func(ser), Series)
 
 
 class TestIsNA:
@@ -232,10 +206,7 @@ class TestIsNA:
         objs = [dta, dta.tz_localize("US/Eastern"), dta - dta, dta.to_period("D")]
 
         for obj in objs:
-            msg = "use_inf_as_na option is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
-                with cf.option_context("mode.use_inf_as_na", True):
-                    result = isna(obj)
+            result = isna(obj)
 
             tm.assert_numpy_array_equal(result, expected)
 
@@ -350,7 +321,7 @@ class TestIsNA:
 
     def test_decimal(self):
         # scalars GH#23530
-        a = Decimal(1.0)
+        a = Decimal("1.0")
         assert isna(a) is False
         assert notna(a) is True
 
@@ -485,15 +456,7 @@ def test_array_equivalent_dti(dtype_equal):
 )
 def test_array_equivalent_series(val):
     arr = np.array([1, 2])
-    msg = "elementwise comparison failed"
-    cm = (
-        # stacklevel is chosen to make sense when called from .equals
-        tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False)
-        if isinstance(val, str) and not np_version_gte1p25
-        else nullcontext()
-    )
-    with cm:
-        assert not array_equivalent(Series([arr, arr]), Series([arr, val]))
+    assert not array_equivalent(Series([arr, arr]), Series([arr, val]))
 
 
 def test_array_equivalent_array_mismatched_shape():
@@ -531,7 +494,6 @@ def test_array_equivalent_different_dtype_but_equal():
         (fix_now, fix_utcnow),
         (fix_now.to_datetime64(), fix_utcnow),
         (fix_now.to_pydatetime(), fix_utcnow),
-        (fix_now, fix_utcnow),
         (fix_now.to_datetime64(), fix_utcnow.to_pydatetime()),
         (fix_now.to_pydatetime(), fix_utcnow.to_pydatetime()),
     ],
@@ -725,6 +687,9 @@ def test_array_equivalent_index_with_tuples():
         ("f2", np.nan),
         ("f4", np.nan),
         ("f8", np.nan),
+        # Complex
+        ("c8", np.nan),
+        ("c16", np.nan),
         # Object
         ("O", np.nan),
         # Interval
@@ -744,22 +709,16 @@ class TestNAObj:
     def _check_behavior(self, arr, expected):
         result = libmissing.isnaobj(arr)
         tm.assert_numpy_array_equal(result, expected)
-        result = libmissing.isnaobj(arr, inf_as_na=True)
-        tm.assert_numpy_array_equal(result, expected)
 
         arr = np.atleast_2d(arr)
         expected = np.atleast_2d(expected)
 
         result = libmissing.isnaobj(arr)
         tm.assert_numpy_array_equal(result, expected)
-        result = libmissing.isnaobj(arr, inf_as_na=True)
-        tm.assert_numpy_array_equal(result, expected)
 
         # Test fortran order
         arr = arr.copy(order="F")
         result = libmissing.isnaobj(arr)
-        tm.assert_numpy_array_equal(result, expected)
-        result = libmissing.isnaobj(arr, inf_as_na=True)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_basic(self):
@@ -810,8 +769,8 @@ na_vals = (
         np.datetime64("NaT"),
         np.timedelta64("NaT"),
     ]
-    + [np.datetime64("NaT", unit) for unit in m8_units]
-    + [np.timedelta64("NaT", unit) for unit in m8_units]
+    + [np.datetime64("NaT", unit) for unit in m8_units]  # type: ignore[call-overload]
+    + [np.timedelta64("NaT", unit) for unit in m8_units]  # type: ignore[call-overload]
 )
 
 inf_vals = [
@@ -843,7 +802,8 @@ never_na_vals = [
 class TestLibMissing:
     @pytest.mark.parametrize("func", [libmissing.checknull, isna])
     @pytest.mark.parametrize(
-        "value", na_vals + sometimes_na_vals  # type: ignore[operator]
+        "value",
+        na_vals + sometimes_na_vals,  # type: ignore[operator]
     )
     def test_checknull_na_vals(self, func, value):
         assert func(value)
@@ -864,22 +824,15 @@ class TestLibMissing:
         assert not func(value)
 
     @pytest.mark.parametrize(
-        "value", na_vals + sometimes_na_vals  # type: ignore[operator]
+        "value",
+        na_vals + sometimes_na_vals,  # type: ignore[operator]
     )
     def test_checknull_old_na_vals(self, value):
-        assert libmissing.checknull(value, inf_as_na=True)
-
-    @pytest.mark.parametrize("value", inf_vals)
-    def test_checknull_old_inf_vals(self, value):
-        assert libmissing.checknull(value, inf_as_na=True)
+        assert libmissing.checknull(value)
 
     @pytest.mark.parametrize("value", int_na_vals)
     def test_checknull_old_intna_vals(self, value):
-        assert not libmissing.checknull(value, inf_as_na=True)
-
-    @pytest.mark.parametrize("value", int_na_vals)
-    def test_checknull_old_never_na_vals(self, value):
-        assert not libmissing.checknull(value, inf_as_na=True)
+        assert not libmissing.checknull(value)
 
     def test_is_matching_na(self, nulls_fixture, nulls_fixture2):
         left = nulls_fixture

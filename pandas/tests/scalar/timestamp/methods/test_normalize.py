@@ -6,7 +6,6 @@ from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 
 class TestTimestampNormalize:
     @pytest.mark.parametrize("arg", ["2013-11-30", "2013-11-30 12:00:00"])
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_normalize(self, tz_naive_fixture, arg, unit):
         tz = tz_naive_fixture
         ts = Timestamp(arg, tz=tz).as_unit(unit)
@@ -20,3 +19,11 @@ class TestTimestampNormalize:
         result = Timestamp("1969-01-01 09:00:00").normalize()
         expected = Timestamp("1969-01-01 00:00:00")
         assert result == expected
+
+    def test_normalize_overflow_raises(self):
+        # GH#60583
+        ts = Timestamp.min
+
+        msg = "Cannot normalize Timestamp without integer overflow"
+        with pytest.raises(ValueError, match=msg):
+            ts.normalize()

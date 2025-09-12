@@ -480,19 +480,17 @@ def test_rank_avg_even_vals(dtype, upper):
     tm.assert_frame_equal(result, exp_df)
 
 
-@pytest.mark.parametrize("ties_method", ["average", "min", "max", "first", "dense"])
-@pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("na_option", ["keep", "top", "bottom"])
 @pytest.mark.parametrize("pct", [True, False])
 @pytest.mark.parametrize(
     "vals", [["bar", "bar", "foo", "bar", "baz"], ["bar", np.nan, "foo", np.nan, "baz"]]
 )
-def test_rank_object_dtype(ties_method, ascending, na_option, pct, vals):
+def test_rank_object_dtype(rank_method, ascending, na_option, pct, vals):
     df = DataFrame({"key": ["foo"] * 5, "val": vals})
     mask = df["val"].isna()
 
     gb = df.groupby("key")
-    res = gb.rank(method=ties_method, ascending=ascending, na_option=na_option, pct=pct)
+    res = gb.rank(method=rank_method, ascending=ascending, na_option=na_option, pct=pct)
 
     # construct our expected by using numeric values with the same ordering
     if mask.any():
@@ -502,15 +500,13 @@ def test_rank_object_dtype(ties_method, ascending, na_option, pct, vals):
 
     gb2 = df2.groupby("key")
     alt = gb2.rank(
-        method=ties_method, ascending=ascending, na_option=na_option, pct=pct
+        method=rank_method, ascending=ascending, na_option=na_option, pct=pct
     )
 
     tm.assert_frame_equal(res, alt)
 
 
 @pytest.mark.parametrize("na_option", [True, "bad", 1])
-@pytest.mark.parametrize("ties_method", ["average", "min", "max", "first", "dense"])
-@pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("pct", [True, False])
 @pytest.mark.parametrize(
     "vals",
@@ -520,13 +516,13 @@ def test_rank_object_dtype(ties_method, ascending, na_option, pct, vals):
         [1, np.nan, 2, np.nan, 3],
     ],
 )
-def test_rank_naoption_raises(ties_method, ascending, na_option, pct, vals):
+def test_rank_naoption_raises(rank_method, ascending, na_option, pct, vals):
     df = DataFrame({"key": ["foo"] * 5, "val": vals})
     msg = "na_option must be one of 'keep', 'top', or 'bottom'"
 
     with pytest.raises(ValueError, match=msg):
         df.groupby("key").rank(
-            method=ties_method, ascending=ascending, na_option=na_option, pct=pct
+            method=rank_method, ascending=ascending, na_option=na_option, pct=pct
         )
 
 
@@ -607,80 +603,6 @@ def test_rank_pct_equal_values_on_group_transition(use_nan):
         expected = Series([1 / 3, 2 / 3, 1, 1], name="val")
 
     tm.assert_series_equal(result, expected)
-
-
-def test_rank_multiindex():
-    # GH27721
-    df = concat(
-        {
-            "a": DataFrame({"col1": [3, 4], "col2": [1, 2]}),
-            "b": DataFrame({"col3": [5, 6], "col4": [7, 8]}),
-        },
-        axis=1,
-    )
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby(level=0, axis=1)
-    msg = "DataFrameGroupBy.rank with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = gb.rank(axis=1)
-
-    expected = concat(
-        [
-            df["a"].rank(axis=1),
-            df["b"].rank(axis=1),
-        ],
-        axis=1,
-        keys=["a", "b"],
-    )
-    tm.assert_frame_equal(result, expected)
-
-
-def test_groupby_axis0_rank_axis1():
-    # GH#41320
-    df = DataFrame(
-        {0: [1, 3, 5, 7], 1: [2, 4, 6, 8], 2: [1.5, 3.5, 5.5, 7.5]},
-        index=["a", "a", "b", "b"],
-    )
-    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby(level=0, axis=0)
-
-    msg = "DataFrameGroupBy.rank with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = gb.rank(axis=1)
-
-    # This should match what we get when "manually" operating group-by-group
-    expected = concat([df.loc["a"].rank(axis=1), df.loc["b"].rank(axis=1)], axis=0)
-    tm.assert_frame_equal(res, expected)
-
-    # check that we haven't accidentally written a case that coincidentally
-    # matches rank(axis=0)
-    msg = "The 'axis' keyword in DataFrameGroupBy.rank"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        alt = gb.rank(axis=0)
-    assert not alt.equals(expected)
-
-
-def test_groupby_axis0_cummax_axis1():
-    # case where groupby axis is 0 and axis keyword in transform is 1
-
-    # df has mixed dtype -> multiple blocks
-    df = DataFrame(
-        {0: [1, 3, 5, 7], 1: [2, 4, 6, 8], 2: [1.5, 3.5, 5.5, 7.5]},
-        index=["a", "a", "b", "b"],
-    )
-    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby(level=0, axis=0)
-
-    msg = "DataFrameGroupBy.cummax with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        cmax = gb.cummax(axis=1)
-    expected = df[[0, 1]].astype(np.float64)
-    expected[2] = expected[1]
-    tm.assert_frame_equal(cmax, expected)
 
 
 def test_non_unique_index():

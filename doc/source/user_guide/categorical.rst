@@ -77,7 +77,7 @@ By passing a :class:`pandas.Categorical` object to a ``Series`` or assigning it 
 .. ipython:: python
 
     raw_cat = pd.Categorical(
-        ["a", "b", "c", "a"], categories=["b", "c", "d"], ordered=False
+        [None, "b", "c", None], categories=["b", "c", "d"], ordered=False
     )
     s = pd.Series(raw_cat)
     s
@@ -145,7 +145,7 @@ of :class:`~pandas.api.types.CategoricalDtype`.
 
     from pandas.api.types import CategoricalDtype
 
-    s = pd.Series(["a", "b", "c", "a"])
+    s = pd.Series([None, "b", "c", None])
     cat_type = CategoricalDtype(categories=["b", "c", "d"], ordered=True)
     s_cat = s.astype(cat_type)
     s_cat
@@ -245,7 +245,8 @@ Equality semantics
 
 Two instances of :class:`~pandas.api.types.CategoricalDtype` compare equal
 whenever they have the same categories and order. When comparing two
-unordered categoricals, the order of the ``categories`` is not considered.
+unordered categoricals, the order of the ``categories`` is not considered. Note
+that categories with different dtypes are not the same.
 
 .. ipython:: python
 
@@ -262,6 +263,16 @@ All instances of ``CategoricalDtype`` compare equal to the string ``'category'``
 .. ipython:: python
 
    c1 == "category"
+
+Notice that the ``categories_dtype`` should be considered, especially when comparing with
+two empty ``CategoricalDtype`` instances.
+
+.. ipython:: python
+
+    c2 = pd.Categorical(np.array([], dtype=object))
+    c3 = pd.Categorical(np.array([], dtype=float))
+
+    c2.dtype == c3.dtype
 
 Description
 -----------
@@ -782,7 +793,7 @@ Assigning a ``Categorical`` to parts of a column of other types will use the val
     :okwarning:
 
     df = pd.DataFrame({"a": [1, 1, 1, 1, 1], "b": ["a", "a", "a", "a", "a"]})
-    df.loc[1:2, "a"] = pd.Categorical(["b", "b"], categories=["a", "b"])
+    df.loc[1:2, "a"] = pd.Categorical([2, 2], categories=[2, 3])
     df.loc[2:3, "b"] = pd.Categorical(["b", "b"], categories=["a", "b"])
     df
     df.dtypes
