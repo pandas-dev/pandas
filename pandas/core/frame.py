@@ -50,7 +50,10 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
-from pandas.compat._constants import REF_COUNT
+from pandas.compat._constants import (
+    REF_COUNT,
+    WARNING_CHECK_DISABLED,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -4296,8 +4299,8 @@ class DataFrame(NDFrame, OpsMixin):
         z  3  50
         # Values for 'a' and 'b' are completely ignored!
         """
-        if not PYPY:
-            if sys.getrefcount(self) <= 3:
+        if not PYPY and not WARNING_CHECK_DISABLED:
+            if sys.getrefcount(self) <= REF_COUNT + 1:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -9211,7 +9214,7 @@ class DataFrame(NDFrame, OpsMixin):
         1  2  500.0
         2  3    6.0
         """
-        if not PYPY:
+        if not PYPY and not WARNING_CHECK_DISABLED:
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
