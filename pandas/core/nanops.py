@@ -693,6 +693,10 @@ def nanmean(
     >>> nanops.nanmean(s.values)
     np.float64(1.5)
     """
+    if values.dtype == object and len(values) > 1_000 and mask is None:
+        # GH#54754 if we are going to fail, try to fail-fast
+        nanmean(values[:1000], axis=axis, skipna=skipna)
+
     dtype = values.dtype
     values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
     dtype_sum = _get_dtype_max(dtype)
