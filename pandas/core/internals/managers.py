@@ -572,13 +572,13 @@ class BaseBlockManager(PandasObject):
                     self._iset_split_block(  # type: ignore[attr-defined]
                         0, blk_loc, values
                     )
-                    # first block equals values
-                    col_indexer: slice | np.ndarray
-                    if isinstance(indexer[1], slice) and indexer[1] == slice(None):
-                        col_indexer = slice(None)
-                    else:
-                        col_indexer = np.arange(len(blk_loc))
-                    self.blocks[0].setitem((indexer[0], col_indexer), value)
+                    # first block equals values we are setting to -> select all columns
+                    col_indexer = slice(None)
+                    row_indexer = indexer[0]
+                    if isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
+                        # numpy cannot handle a 2d indexer in combo with a slice
+                        row_indexer = np.squeeze(row_indexer, axis=1)
+                    self.blocks[0].setitem((row_indexer, col_indexer), value)
                     return self
             # No need to split if we either set all columns or on a single block
             # manager
