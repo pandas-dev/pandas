@@ -11,6 +11,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Literal,
+    TypeVar,
     cast,
     overload,
 )
@@ -104,6 +105,8 @@ if TYPE_CHECKING:
         BaseMaskedArray,
         ExtensionArray,
     )
+
+    T = TypeVar("T", bound=Index | Categorical | ExtensionArray)
 
 
 # --------------- #
@@ -316,15 +319,9 @@ def _check_object_for_strings(values: np.ndarray) -> str:
 
 
 @overload
-def unique(values: np.ndarray) -> np.ndarray: ...
+def unique(values: T) -> T: ...
 @overload
-def unique(values: Index) -> Index: ...
-@overload
-def unique(values: Series) -> np.ndarray: ...
-@overload
-def unique(values: Categorical) -> Categorical: ...
-@overload
-def unique(values: ExtensionArray) -> ExtensionArray: ...
+def unique(values: np.ndarray | Series) -> np.ndarray: ...
 
 
 def unique(values):
