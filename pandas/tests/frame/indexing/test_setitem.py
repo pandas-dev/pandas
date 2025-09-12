@@ -1370,6 +1370,22 @@ class TestDataFrameSetitemCopyViewSemantics:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_iloc_setitem_view_2dblock(self):
+        # https://github.com/pandas-dev/pandas/issues/60309
+        df = DataFrame({"A": [1, 4, 1, 5], "B": [2, 5, 2, 6], "C": [3, 6, 1, 7]})
+        df_orig = df.copy()
+        df_sub = df[["B", "C"]]
+
+        # Perform the iloc operation
+        df_sub.iloc[[1, 3], :] = [[2, 2], [2, 2]]
+
+        # Check that original DataFrame is unchanged
+        tm.assert_frame_equal(df, df_orig)
+
+        # Check that df is modified correctly
+        expected = DataFrame({"B": [2, 2, 2, 2], "C": [3, 2, 1, 2]}, index=df.index)
+        tm.assert_frame_equal(df_sub, expected)
+
 
 def test_full_setter_loc_incompatible_dtype():
     # https://github.com/pandas-dev/pandas/issues/55791
