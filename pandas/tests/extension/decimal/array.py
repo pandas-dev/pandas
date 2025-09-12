@@ -25,7 +25,6 @@ from pandas.api.types import (
     is_scalar,
 )
 from pandas.core import arraylike
-from pandas.core.algorithms import value_counts_internal as value_counts
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     ExtensionArray,
@@ -293,9 +292,6 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
 
         return np.asarray(res, dtype=bool)
-
-    def value_counts(self, dropna: bool = True):
-        return value_counts(self.to_numpy(), dropna=dropna)
 
     # We override fillna here to simulate a 3rd party EA that has done so. This
     #  lets us test a 3rd-party EA that has not yet updated to include a "copy"

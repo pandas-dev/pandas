@@ -642,7 +642,7 @@ class TestPivotTable:
         )
 
         df = df.set_index("ts").reset_index()
-        mins = df.ts.map(lambda x: x.replace(hour=0, minute=0, second=0, microsecond=0))
+        mins = df.ts.map(lambda x: x.replace(hour=0, minute=0, second=0))
 
         result = pivot_table(
             df.set_index("ts").reset_index(),

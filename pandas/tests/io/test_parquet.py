@@ -790,7 +790,7 @@ class TestParquetPyArrow(Base):
                 ),
                 # test for ordered flag
                 "c": pd.Categorical(
-                    ["a", "b", "c", "a", "c", "b"],
+                    [None, "b", "c", None, "c", "b"],
                     categories=["b", "c", "d"],
                     ordered=True,
                 ),
