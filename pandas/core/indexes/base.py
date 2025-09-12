@@ -3301,12 +3301,10 @@ class Index(IndexOpsMixin, PandasObject):
                 if is_numeric_dtype(self.dtype):
                     # This is faster, because Index.unique() checks for uniqueness
                     # before calculating the unique values.
-                    res: Index | ExtensionArray | np.ndarray = algos.unique1d(
-                        res_indexer
-                    )
+                    res = algos.unique1d(res_indexer)
                 else:
                     result = self.take(indexer)
-                    res = result.drop_duplicates()
+                    res = result.drop_duplicates()  # type: ignore[assignment]
                 return ensure_wrapped_if_datetimelike(res)
 
         res_values = self._intersection_via_get_indexer(other, sort=sort)
