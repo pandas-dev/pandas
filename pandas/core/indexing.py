@@ -2585,8 +2585,8 @@ class _AtIndexer(_ScalarAccessIndexer):
         return super().__getitem__(key)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if sys.getrefcount(self.obj) <= 2:
+        if not PYPY and not WARNING_CHECK_BROKEN:
+            if sys.getrefcount(self.obj) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -2616,8 +2616,8 @@ class _iAtIndexer(_ScalarAccessIndexer):
         return key
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if sys.getrefcount(self.obj) <= 2:
+        if not PYPY and not WARNING_CHECK_BROKEN:
+            if sys.getrefcount(self.obj) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
