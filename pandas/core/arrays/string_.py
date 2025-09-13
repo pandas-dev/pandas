@@ -119,10 +119,10 @@ class StringDtype(StorageExtensionDtype):
     Examples
     --------
     >>> pd.StringDtype()
-    string[python]
+    <StringDtype(storage='python', na_value=<NA>)>
 
     >>> pd.StringDtype(storage="pyarrow")
-    string[pyarrow]
+    <StringDtype(na_value=<NA>)>
     """
 
     @property
@@ -194,11 +194,8 @@ class StringDtype(StorageExtensionDtype):
         self._na_value = na_value
 
     def __repr__(self) -> str:
-        if self._na_value is libmissing.NA:
-            return f"{self.name}[{self.storage}]"
-        else:
-            # TODO add more informative repr
-            return self.name
+        storage = "" if self.storage == "pyarrow" else "storage='python', "
+        return f"<StringDtype({storage}na_value={self._na_value})>"
 
     def __eq__(self, other: object) -> bool:
         # we need to override the base class __eq__ because na_value (NA or NaN)
