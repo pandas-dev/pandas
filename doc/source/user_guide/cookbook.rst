@@ -239,6 +239,14 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
 
    df[~((df.AAA <= 6) & (df.index.isin([0, 2, 4])))]
 
+Using isin() to filter for values directly (this returns a series of boolean values).
+
+.. ipython:: python
+   df = pd.DataFrame(
+       {"AAA": [4, 5, 6, 7], "BBB": [10, 20, 30, 40], "CCC": [100, 50, -30, -50]}
+   )
+   df["AAA"].isin([5, 7])
+
 New columns
 ***********
 
