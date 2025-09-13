@@ -143,7 +143,7 @@ class _Unstacker:
         self.removed_level_full = index.levels[self.level]
         self.unique_nan_index: int = -1
         if not self.sort:
-            unique_codes = np.unique(self.index.codes[self.level])
+            unique_codes: np.ndarray = unique(self.index.codes[self.level])
             if self.has_nan:
                 # drop nan codes, because they are not represented in level
                 nan_mask = unique_codes == -1
