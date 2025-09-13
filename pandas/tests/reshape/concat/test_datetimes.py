@@ -274,6 +274,58 @@ class TestDatetimeConcat:
         result = concat([first, second])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_concat_series_columns_nonoverlap_5min_units(self, unit):
+        # GH#58471
+        # Non-overlapping daily blocks at 5-minute frequency
+        # should union to a continuous 3-day 5min range
+        idx1 = date_range("2024-01-01", periods=24 * 12, freq="5min", unit=unit)
+        idx2 = date_range("2024-01-02", periods=24 * 12, freq="5min", unit=unit)
+        idx3 = date_range("2024-01-03", periods=24 * 12, freq="5min", unit=unit)
+
+        s1 = Series(np.arange(len(idx1)), index=idx1, name="a")
+        s2 = Series(np.arange(len(idx2)), index=idx2, name="b")
+        s3 = Series(np.arange(len(idx3)), index=idx3, name="c")
+
+        df = concat([s1, s2, s3], axis=1)
+
+        exp = date_range("2024-01-01", "2024-01-03 23:55", freq="5min", unit=unit)
+        tm.assert_index_equal(df.index, exp, check_exact=True)
+
+    @pytest.mark.parametrize("unit", ["us", "ms", "s"])
+    def test_concat_series_columns_daily_units_no_bogus_dates(self, unit):
+        # GH#58471
+        # Overlapping daily ranges at micro/milli/second units
+        # must not lose rows or create bogus future dates
+        idx1 = date_range("2013-08-16", "2024-05-01", freq="D", unit=unit)
+        idx2 = date_range("2015-09-19", "2024-05-01", freq="D", unit=unit)
+
+        s1 = Series(np.arange(len(idx1)), index=idx1, name="x")
+        s2 = Series(np.arange(len(idx2)), index=idx2, name="y")
+
+        df = concat([s1, s2], axis=1)
+
+        exp = date_range(idx1[0], idx2[-1], freq="D", unit=unit)
+        tm.assert_index_equal(df.index, exp, check_exact=True)
+
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_concat_series_columns_month_end_units_order_insensitive(self, unit):
+        # GH#58471
+        # Monthly-end ranges should be order-insensitive
+        # and preserve the full union
+        idx1 = date_range(start="2015-01-31", end="2023-01-31", freq="ME", unit=unit)
+        idx2 = date_range(start="2014-01-31", end="2024-01-31", freq="ME", unit=unit)
+
+        s1 = Series(np.arange(len(idx1)), index=idx1, name="m1")
+        s2 = Series(np.arange(len(idx2)), index=idx2, name="m2")
+
+        df1 = concat([s1, s2], axis=1).sort_index()
+        df2 = concat([s2, s1], axis=1).sort_index()
+
+        exp = date_range(start=idx2[0], end=idx2[-1], freq="ME", unit=unit)
+        tm.assert_index_equal(df1.index, exp, check_exact=True)
+        tm.assert_index_equal(df2.index, exp, check_exact=True)
+
 
 class TestTimezoneConcat:
     def test_concat_tz_series(self):
