@@ -260,7 +260,7 @@ class KdePlot(HistPlot):
 
     @classmethod
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
-    def _plot(  #  type: ignore[override]
+    def _plot(  # type: ignore[override]
         cls,
         ax: Axes,
         y: np.ndarray,
@@ -277,6 +277,8 @@ class KdePlot(HistPlot):
         y = remove_na_arraylike(y)
         gkde = gaussian_kde(y, bw_method=bw_method, weights=weights)
 
+        # gaussian_kde.evaluate(None) raises TypeError, so pyright requires this check
+        assert ind is not None
         y = gkde.evaluate(ind)
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
         return lines
