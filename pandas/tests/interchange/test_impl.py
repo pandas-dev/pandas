@@ -62,6 +62,9 @@ def test_categorical_pyarrow():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Constructing a Categorical with a dtype and values containing"
+)
 def test_empty_categorical_pyarrow():
     # https://github.com/pandas-dev/pandas/issues/53077
     pa = pytest.importorskip("pyarrow", "11.0.0")
@@ -282,7 +285,7 @@ def test_empty_pyarrow(data):
 
 
 def test_multi_chunk_pyarrow() -> None:
-    pa = pytest.importorskip("pyarrow", "11.0.0")
+    pa = pytest.importorskip("pyarrow", "14.0.0")
     n_legs = pa.chunked_array([[2, 2, 4], [4, 5, 100]])
     names = ["n_legs"]
     table = pa.table([n_legs], names=names)
@@ -488,7 +491,7 @@ def test_pandas_nullable_with_missing_values(
 ) -> None:
     # https://github.com/pandas-dev/pandas/issues/57643
     # https://github.com/pandas-dev/pandas/issues/57664
-    pa = pytest.importorskip("pyarrow", "11.0.0")
+    pa = pytest.importorskip("pyarrow", "14.0.0")
     import pyarrow.interchange as pai
 
     if expected_dtype == "timestamp[us, tz=Asia/Kathmandu]":
@@ -554,7 +557,7 @@ def test_pandas_nullable_without_missing_values(
     data: list, dtype: str, expected_dtype: str
 ) -> None:
     # https://github.com/pandas-dev/pandas/issues/57643
-    pa = pytest.importorskip("pyarrow", "11.0.0")
+    pa = pytest.importorskip("pyarrow", "14.0.0")
     import pyarrow.interchange as pai
 
     if expected_dtype == "timestamp[us, tz=Asia/Kathmandu]":

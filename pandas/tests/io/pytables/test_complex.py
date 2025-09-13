@@ -82,6 +82,9 @@ def test_complex_mixed_fixed(tmp_path, setup_path):
     tm.assert_frame_equal(df, reread)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:`alltrue` is deprecated as of NumPy 1.25.0:DeprecationWarning"
+)
 def test_complex_mixed_table(tmp_path, setup_path):
     complex64 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex64

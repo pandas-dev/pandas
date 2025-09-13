@@ -388,8 +388,11 @@ Pre-release
 
 3. Make sure the CI is green for the last commit of the branch being released.
 
-4. If not a release candidate, make sure all backporting pull requests to the branch
-   being released are merged.
+4. If not a release candidate, make sure all backporting pull requests to the
+   branch being released are merged, and no merged pull requests are missing a
+   backport (check the
+   ["Still Needs Manual Backport"](https://github.com/pandas-dev/pandas/labels/Still%20Needs%20Manual%20Backport)
+   label for this).
 
 5. Create a new issue and milestone for the version after the one being released.
    If the release was a release candidate, we would usually want to create issues and
@@ -435,6 +438,9 @@ which will be triggered when the tag is pushed.
 
     scripts/download_wheels.sh <VERSION>
 
+   ATTENTION: this is currently not downloading *all* wheels, and you have to
+   manually download the remainings wheels and sdist!
+
 4. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
 
    - Tag: ``<version>``
@@ -463,15 +469,22 @@ Post-Release
 ````````````
 
 1. Update symlinks to stable documentation by logging in to our web server, and
-   editing ``/var/www/html/pandas-docs/stable`` to point to ``version/<latest-version>``
-   for major and minor releases, or ``version/<minor>`` to ``version/<patch>`` for
+   editing ``/var/www/html/pandas-docs/stable`` to point to ``version/<X.Y>``
+   for major and minor releases, or ``version/<X.Y>`` to ``version/<patch>`` for
    patch releases. The exact instructions are (replace the example version numbers by
    the appropriate ones for the version you are releasing):
 
    - Log in to the server and use the correct user.
    - ``cd /var/www/html/pandas-docs/``
-   - ``ln -sfn version/2.1 stable`` (for a major or minor release)
-   - ``ln -sfn version/2.0.3 version/2.0`` (for a patch release)
+   - For a major or minor release (assuming the ``/version/2.1.0/`` docs have been uploaded to the server):
+
+     -  Create a new X.Y symlink to X.Y.Z: ``cd version; ln -sfn 2.1.0 2.1``
+     -  Update stable symlink to point to X.Y: ``ln -sfn version/2.1 stable``
+
+   - For a patch release (assuming the ``/version/2.1.3/`` docs have been uploaded to the server):
+
+     - Update the X.Y symlink to the new X.Y.Z patch version: ``cd version; ln -sfn 2.1.3 2.1``
+     - (the stable symlink should already be pointing to the correct X.Y version)
 
 2. If releasing a major or minor release, open a PR in our source code to update
    ``web/pandas/versions.json``, to have the desired versions in the documentation

@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    TypeAlias,
     cast,
 )
 
@@ -71,7 +72,7 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
-ResType = dict[int, Any]
+ResType: TypeAlias = dict[int, Any]
 
 
 class BaseExecutionEngine(abc.ABC):
@@ -1644,7 +1645,7 @@ class GroupByApply(Apply):
         assert op_name in ["agg", "apply"]
 
         obj = self.obj
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if op_name == "apply":
             by_row = "_compat" if self.by_row else False
             kwargs.update({"by_row": by_row})
@@ -2011,7 +2012,8 @@ def _managle_lambda_list(aggfuncs: Sequence[Any]) -> Sequence[Any]:
     for aggfunc in aggfuncs:
         if com.get_callable_name(aggfunc) == "<lambda>":
             aggfunc = partial(aggfunc)
-            aggfunc.__name__ = f"<lambda_{i}>"
+            # error: "partial[Any]" has no attribute "__name__"; maybe "__new__"?
+            aggfunc.__name__ = f"<lambda_{i}>"  # type: ignore[attr-defined]
             i += 1
         mangled_aggfuncs.append(aggfunc)
 

@@ -20,10 +20,10 @@ dependencies:
   - numpy
 
   # optional dependencies
-  - hypothesis>=6.84.0
+  - hypothesis>=6.116.0
 
   - pip:
     # No free-threaded coveragepy (with the C-extension) on conda-forge yet
     - pytest-cov
-    - "tzdata>=2022.7"
+    - tzdata>=2023.3
     - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"

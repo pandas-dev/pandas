@@ -26,6 +26,7 @@ from typing import (
     TYPE_CHECKING,
     AnyStr,
     Final,
+    Self,
     cast,
 )
 import warnings
@@ -38,6 +39,7 @@ from pandas._libs.writers import max_len_string_array
 from pandas.errors import (
     CategoricalConversionWarning,
     InvalidColumnName,
+    Pandas4Warning,
     PossiblePrecisionLoss,
     ValueLabelTypeMismatch,
 )
@@ -84,7 +86,6 @@ if TYPE_CHECKING:
         CompressionOptions,
         FilePath,
         ReadBuffer,
-        Self,
         StorageOptions,
         WriteBuffer,
     )
@@ -393,14 +394,22 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 d["days"] = np.asarray(diff).astype("m8[D]").view("int64")
 
         elif infer_dtype(dates, skipna=False) == "datetime":
+            warnings.warn(
+                # GH#56536
+                "Converting object-dtype columns of datetimes to datetime64 when "
+                "writing to stata is deprecated. Call "
+                "`df=df.infer_objects(copy=False)` before writing to stata instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
             if delta:
                 delta = dates._values - stata_epoch
 
                 def f(x: timedelta) -> float:
-                    return US_PER_DAY * x.days + 1000000 * x.seconds + x.microseconds
+                    return US_PER_DAY * x.days + 1_000_000 * x.seconds + x.microseconds
 
                 v = np.vectorize(f)
-                d["delta"] = v(delta)
+                d["delta"] = v(delta) // 1_000  # convert back to ms
             if year:
                 year_month = dates.apply(lambda x: 100 * x.year + x.month)
                 d["year"] = year_month._values // 100
@@ -2739,7 +2748,7 @@ supported types."""
                 encoded = self.data[col].str.encode(self._encoding)
                 # If larger than _max_string_length do nothing
                 if (
-                    max_len_string_array(ensure_object(encoded._values))
+                    max_len_string_array(ensure_object(self.data[col]._values))
                     <= self._max_string_length
                 ):
                     self.data[col] = encoded
@@ -3263,11 +3272,15 @@ class StataStrLWriter:
             bio.write(gso_type)
 
             # llll
-            utf8_string = bytes(strl, "utf-8")
-            bio.write(struct.pack(len_type, len(utf8_string) + 1))
+            if isinstance(strl, str):
+                strl_convert = bytes(strl, "utf-8")
+            else:
+                strl_convert = strl
+
+            bio.write(struct.pack(len_type, len(strl_convert) + 1))
 
             # xxx...xxx
-            bio.write(utf8_string)
+            bio.write(strl_convert)
             bio.write(null)
 
         return bio.getvalue()

@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
 
 def holds_integer(column: Index) -> bool:
-    return column.inferred_type in {"integer", "mixed-integer"}
+    return column.dtype.kind in "iu"
 
 
 def hist_series(

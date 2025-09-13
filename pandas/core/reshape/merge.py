@@ -10,6 +10,7 @@ from collections.abc import (
 )
 import datetime
 from functools import partial
+import types
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -1134,7 +1135,10 @@ class _MergeOperation:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         result = self._reindex_and_concat(join_index, left_indexer, right_indexer)
-        result = result.__finalize__(self, method=self._merge_type)
+        result = result.__finalize__(
+            types.SimpleNamespace(input_objs=[self.left, self.right]),
+            method=self._merge_type,
+        )
 
         if self.indicator:
             result = self._indicator_post_merge(result)
@@ -1143,7 +1147,9 @@ class _MergeOperation:
 
         self._maybe_restore_index_levels(result)
 
-        return result.__finalize__(self, method="merge")
+        return result.__finalize__(
+            types.SimpleNamespace(input_objs=[self.left, self.right]), method="merge"
+        )
 
     @final
     @cache_readonly
@@ -1322,13 +1328,13 @@ class _MergeOperation:
                 # if we have an all missing left_indexer
                 # make sure to just use the right values or vice-versa
                 if left_indexer is not None and (left_indexer == -1).all():
-                    key_col = Index(rvals)
+                    key_col = Index(rvals, dtype=rvals.dtype, copy=False)
                     result_dtype = rvals.dtype
                 elif right_indexer is not None and (right_indexer == -1).all():
-                    key_col = Index(lvals)
+                    key_col = Index(lvals, dtype=lvals.dtype, copy=False)
                     result_dtype = lvals.dtype
                 else:
-                    key_col = Index(lvals)
+                    key_col = Index(lvals, dtype=lvals.dtype, copy=False)
                     if left_indexer is not None:
                         mask_left = left_indexer == -1
                         key_col = key_col.where(~mask_left, rvals)
@@ -1350,9 +1356,11 @@ class _MergeOperation:
                     if isinstance(result.index, MultiIndex):
                         key_col.name = name
                         idx_list = [
-                            result.index.get_level_values(level_name)
-                            if level_name != name
-                            else key_col
+                            (
+                                result.index.get_level_values(level_name)
+                                if level_name != name
+                                else key_col
+                            )
                             for level_name in result.index.names
                         ]
 
@@ -2179,9 +2187,8 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        # error: Cannot determine type of "__add__"
-        join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
-        join_codes = join_codes + [restore_codes]  # type: ignore[has-type]
+        join_levels = join_levels + [restore_levels]
+        join_codes = join_codes + [restore_codes]
         join_names = join_names + [dropped_level_name]
 
     return join_levels, join_codes, join_names

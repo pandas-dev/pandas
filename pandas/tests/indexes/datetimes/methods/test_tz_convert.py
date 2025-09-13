@@ -283,3 +283,10 @@ class TestTZConvert:
         result = dr[::-1].hour
         exp = dr.hour[::-1]
         tm.assert_almost_equal(result, exp)
+
+    def test_dti_tz_convert_day_freq_not_preserved(self):
+        # GH#51716
+        dti = date_range("2020-3-28", periods=5, freq="D", tz="Europe/London")
+        result = dti.tz_convert("UTC")
+        assert (result == dti).all()
+        assert result.freq is None

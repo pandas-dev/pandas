@@ -31,7 +31,6 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime,
     maybe_cast_to_integer_array,
     maybe_convert_platform,
-    maybe_infer_to_datetimelike,
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
@@ -176,9 +175,9 @@ def array(
     NumPy array.
 
     >>> pd.array(["a", "b"], dtype=str)
-    <NumpyExtensionArray>
+    <ArrowStringArray>
     ['a', 'b']
-    Length: 2, dtype: str32
+    Length: 2, dtype: str
 
     This would instead return the new ExtensionArray dedicated for string
     data. If you really need the new array to be backed by a  NumPy array,
@@ -230,14 +229,14 @@ def array(
     Length: 2, dtype: Float64
 
     >>> pd.array(["a", None, "c"])
-    <StringArray>
+    <ArrowStringArray>
     ['a', <NA>, 'c']
     Length: 3, dtype: string
 
-    >>> with pd.option_context("string_storage", "pyarrow"):
+    >>> with pd.option_context("string_storage", "python"):
     ...     arr = pd.array(["a", None, "c"])
     >>> arr
-    <ArrowStringArray>
+    <StringArray>
     ['a', <NA>, 'c']
     Length: 3, dtype: string
 
@@ -250,7 +249,7 @@ def array(
 
     >>> pd.array(["a", "b", "a"], dtype="category")
     ['a', 'b', 'a']
-    Categories (2, object): ['a', 'b']
+    Categories (2, str): ['a', 'b']
 
     Or specify the actual dtype
 
@@ -258,7 +257,7 @@ def array(
     ...     ["a", "b", "a"], dtype=pd.CategoricalDtype(["a", "b", "c"], ordered=True)
     ... )
     ['a', 'b', 'a']
-    Categories (3, object): ['a' < 'b' < 'c']
+    Categories (3, str): ['a' < 'b' < 'c']
 
     If pandas does not infer a dedicated extension type a
     :class:`arrays.NumpyExtensionArray` is returned.
@@ -454,7 +453,7 @@ def extract_array(
     --------
     >>> extract_array(pd.Series(["a", "b", "c"], dtype="category"))
     ['a', 'b', 'c']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     Other objects like lists, arrays, and DataFrames are just passed through.
 
@@ -612,7 +611,15 @@ def sanitize_array(
         if dtype is None:
             subarr = data
             if data.dtype == object and infer_object:
-                subarr = maybe_infer_to_datetimelike(data)
+                subarr = lib.maybe_convert_objects(
+                    data,
+                    # Here we do not convert numeric dtypes, as if we wanted that,
+                    #  numpy would have done it for us.
+                    convert_numeric=False,
+                    convert_non_numeric=True,
+                    convert_to_nullable_dtype=False,
+                    dtype_if_all_nat=np.dtype("M8[s]"),
+                )
             elif data.dtype.kind == "U" and using_string_dtype():
                 from pandas.core.arrays.string_ import StringDtype
 
@@ -659,7 +666,15 @@ def sanitize_array(
             subarr = maybe_convert_platform(data)
             if subarr.dtype == object:
                 subarr = cast(np.ndarray, subarr)
-                subarr = maybe_infer_to_datetimelike(subarr)
+                subarr = lib.maybe_convert_objects(
+                    subarr,
+                    # Here we do not convert numeric dtypes, as if we wanted that,
+                    #  numpy would have done it for us.
+                    convert_numeric=False,
+                    convert_non_numeric=True,
+                    convert_to_nullable_dtype=False,
+                    dtype_if_all_nat=np.dtype("M8[s]"),
+                )
 
     subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
 

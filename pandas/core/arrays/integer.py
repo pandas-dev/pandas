@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+)
 
 import numpy as np
 
@@ -11,6 +15,9 @@ from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class IntegerDtype(NumericDtype):
@@ -26,10 +33,9 @@ class IntegerDtype(NumericDtype):
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = 1
     _default_np_dtype = np.dtype(np.int64)
-    _checker = is_integer_dtype
+    _checker: Callable[[Any], bool] = is_integer_dtype
 
-    @classmethod
-    def construct_array_type(cls) -> type[IntegerArray]:
+    def construct_array_type(self) -> type[IntegerArray]:
         """
         Return the array type associated with this dtype.
 

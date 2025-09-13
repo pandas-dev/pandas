@@ -17,7 +17,11 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.errors import OutOfBoundsDatetime
+from pandas.compat import PY314
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
 
 from pandas import (
     NA,
@@ -218,7 +222,10 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
         with pytest.raises(ValueError, match=msg):
             Timestamp(2000, 13, 1)
 
-        msg = "day is out of range for month"
+        if PY314:
+            msg = "must be in range 1..31 for month 1 in year 2000"
+        else:
+            msg = "day is out of range for month"
         with pytest.raises(ValueError, match=msg):
             Timestamp(2000, 1, 0)
         with pytest.raises(ValueError, match=msg):
@@ -242,7 +249,10 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
         with pytest.raises(ValueError, match=msg):
             Timestamp(year=2000, month=13, day=1)
 
-        msg = "day is out of range for month"
+        if PY314:
+            msg = "must be in range 1..31 for month 1 in year 2000"
+        else:
+            msg = "day is out of range for month"
         with pytest.raises(ValueError, match=msg):
             Timestamp(year=2000, month=1, day=0)
         with pytest.raises(ValueError, match=msg):
@@ -325,13 +335,13 @@ class TestTimestampClassMethodConstructors:
     def test_utcnow_deprecated(self):
         # GH#56680
         msg = "Timestamp.utcnow is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             Timestamp.utcnow()
 
     def test_utcfromtimestamp_deprecated(self):
         # GH#56680
         msg = "Timestamp.utcfromtimestamp is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             Timestamp.utcfromtimestamp(43)
 
     def test_constructor_strptime(self):
@@ -478,6 +488,13 @@ class TestTimestampResolutionInference:
 
 
 class TestTimestampConstructors:
+    def test_disallow_dt64_with_weird_unit(self):
+        # GH#25611
+        dt64 = np.datetime64(1, "500m")
+        msg = "np.datetime64 objects with units containing a multiplier"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(dt64)
+
     def test_weekday_but_no_day_raises(self):
         # GH#52659
         msg = "Parsing datetimes with weekday but no day information is not supported"

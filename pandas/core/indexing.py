@@ -5,7 +5,7 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
-    TypeVar,
+    Self,
     cast,
     final,
 )
@@ -82,7 +82,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
         AxisInt,
-        Self,
+        T,
         npt,
     )
 
@@ -91,7 +91,6 @@ if TYPE_CHECKING:
         Series,
     )
 
-T = TypeVar("T")
 # "null slice"
 _NS = slice(None, None)
 _one_ellipsis_message = "indexer may only contain one '...' entry"
@@ -610,6 +609,22 @@ class IndexingMixin:
 
         Please see the :ref:`user guide<advanced.advanced_hierarchical>`
         for more details and explanations of advanced indexing.
+
+        **Assignment with Series**
+
+        When assigning a Series to .loc[row_indexer, col_indexer], pandas aligns
+        the Series by index labels, not by order or position.
+
+        Series assignment with .loc and index alignment:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 2])
+        >>> s = pd.Series([10, 20], index=[1, 0])  # Note reversed order
+        >>> df.loc[:, "B"] = s  # Aligns by index, not order
+        >>> df
+           A   B
+        0  1  20.0
+        1  2  10.0
+        2  3 NaN
         """
         return _LocIndexer("loc", self)
 
@@ -1066,8 +1081,10 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         tup = self._validate_key_length(tup)
 
-        for i, key in enumerate(tup):
-            if is_label_like(key):
+        # Reverse tuple so that we are indexing along columns before rows
+        # and avoid unintended dtype inference. # GH60600
+        for i, key in zip(range(len(tup) - 1, -1, -1), reversed(tup)):
+            if is_label_like(key) or is_list_like(key):
                 # We don't need to check for tuples here because those are
                 #  caught by the _is_nested_tuple_indexer check above.
                 section = self._getitem_axis(key, axis=i)
@@ -1609,9 +1626,17 @@ class _iLocIndexer(_LocationIndexer):
             if not is_numeric_dtype(arr.dtype):
                 raise IndexError(f".iloc requires numeric indexers, got {arr}")
 
-            # check that the key does not exceed the maximum size of the index
-            if len(arr) and (arr.max() >= len_axis or arr.min() < -len_axis):
-                raise IndexError("positional indexers are out-of-bounds")
+            if len(arr):
+                if isinstance(arr.dtype, ExtensionDtype):
+                    arr_max = arr._reduce("max")
+                    arr_min = arr._reduce("min")
+                else:
+                    arr_max = np.max(arr)
+                    arr_min = np.min(arr)
+
+                # check that the key does not exceed the maximum size
+                if arr_max >= len_axis or arr_min < -len_axis:
+                    raise IndexError("positional indexers are out-of-bounds")
         else:
             raise ValueError(f"Can only index by location with a [{self._valid_types}]")
 
@@ -1901,7 +1926,7 @@ class _iLocIndexer(_LocationIndexer):
                     labels = index.insert(len(index), key)
 
                     # We are expanding the Series/DataFrame values to match
-                    #  the length of thenew index `labels`.  GH#40096 ensure
+                    #  the length of the new index `labels`.  GH#40096 ensure
                     #  this is valid even if the index has duplicates.
                     taker = np.arange(len(index) + 1, dtype=np.intp)
                     taker[-1] = -1
@@ -2298,7 +2323,7 @@ class _iLocIndexer(_LocationIndexer):
                     df = df.infer_objects()
                 self.obj._mgr = df._mgr
             else:
-                self.obj._mgr = self.obj._append(value)._mgr
+                self.obj._mgr = self.obj._append_internal(value)._mgr
 
     def _ensure_iterable_column_indexer(self, column_indexer):
         """
@@ -2556,6 +2581,12 @@ class _AtIndexer(_ScalarAccessIndexer):
         return super().__getitem__(key)
 
     def __setitem__(self, key, value) -> None:
+        if not PYPY:
+            if sys.getrefcount(self.obj) <= 2:
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
+
         if self.ndim == 2 and not self._axes_are_unique:
             # GH#33041 fall back to .loc
             if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):
@@ -2579,6 +2610,15 @@ class _iAtIndexer(_ScalarAccessIndexer):
             if not is_integer(i):
                 raise ValueError("iAt based indexing can only have integer indexers")
         return key
+
+    def __setitem__(self, key, value) -> None:
+        if not PYPY:
+            if sys.getrefcount(self.obj) <= 2:
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
+
+        return super().__setitem__(key, value)
 
 
 def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:

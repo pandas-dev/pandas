@@ -60,6 +60,14 @@ def test_not_change_nan_loc(series, new_series, expected_ser):
     tm.assert_frame_equal(df.notna(), ~expected)
 
 
+def test_loc_dtype():
+    # GH 60600
+    df = DataFrame([["a", 1.0, 2.0], ["b", 3.0, 4.0]])
+    result = df.loc[0, [1, 2]]
+    expected = Series([1.0, 2.0], index=[1, 2], dtype=float, name=0)
+    tm.assert_series_equal(result, expected)
+
+
 class TestLoc:
     def test_none_values_on_string_columns(self, using_infer_string):
         # Issue #32218
@@ -441,7 +449,7 @@ class TestLocBaseIndependent:
 
         msg = (
             rf"\"None of \[Index\(\[1, 2\], dtype='{np.dtype(int)}'\)\] are "
-            r"in the \[index\]\""
+            r"in the \[columns\]\""
         )
         with pytest.raises(KeyError, match=msg):
             df.loc[[1, 2], [1, 2]]
@@ -807,7 +815,7 @@ class TestLocBaseIndependent:
 
         result = df.loc[0, [1, 2]]
         expected = Series(
-            [1, 3], index=Index([1, 2], dtype=object), dtype=object, name=0
+            [1, 3], index=Index([1, 2], dtype=object), dtype="int64", name=0
         )
         tm.assert_series_equal(result, expected)
 
@@ -1620,6 +1628,31 @@ class TestLocBaseIndependent:
 
         expected = DataFrame({"a": [1, 2, 2, 1, 1], "b": ["a", "a", "a", "a", "a"]})
         tm.assert_frame_equal(df, expected)
+
+    def test_loc_with_nat_in_tzaware_index(self):
+        # GH#54409
+        timestamp = to_datetime("2023-01-01", utc=True)
+        df = DataFrame(
+            {
+                "index": Series([pd.NaT, timestamp]),
+                "value": Series([0, 1]),
+            }
+        ).set_index("index")
+
+        # Works fine when mixing NaT and valid values
+        result = df.loc[
+            Series([pd.NaT, timestamp, timestamp], dtype=df.index.dtype),
+            "value",
+        ]
+        expected = [0, 1, 1]
+        assert result.tolist() == expected
+
+        # Regression check: all-NaT lookup should return [0], not raise
+        result = df.loc[
+            Series([pd.NaT], dtype=df.index.dtype),
+            "value",
+        ]
+        assert result.tolist() == [0]
 
 
 class TestLocWithEllipsis:
