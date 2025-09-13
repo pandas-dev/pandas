@@ -7,6 +7,7 @@ from datetime import (
 from typing import (
     Any,
     Literal,
+    Self,
     TypeVar,
     overload,
 )
@@ -16,7 +17,6 @@ import numpy as np
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._typing import (
     OffsetCalendar,
-    Self,
     npt,
 )
 
@@ -116,7 +116,7 @@ class Tick(SingleConstructorOffset):
 
 def delta_to_tick(delta: timedelta) -> Tick: ...
 
-class Day(Tick): ...
+class Day(BaseOffset): ...
 class Hour(Tick): ...
 class Minute(Tick): ...
 class Second(Tick): ...
@@ -156,7 +156,12 @@ class YearOffset(SingleConstructorOffset):
 
 class BYearEnd(YearOffset): ...
 class BYearBegin(YearOffset): ...
-class YearEnd(YearOffset): ...
+
+class YearEnd(YearOffset):
+    def __new__(
+        cls, n: int = ..., normalize: bool = ..., month: int | None = ...
+    ) -> Self: ...
+
 class YearBegin(YearOffset): ...
 
 class QuarterOffset(SingleConstructorOffset):
@@ -230,7 +235,13 @@ class FY5253Quarter(FY5253Mixin):
         variation: Literal["nearest", "last"] = ...,
     ) -> None: ...
 
-class Easter(SingleConstructorOffset): ...
+class Easter(SingleConstructorOffset):
+    def __init__(
+        self,
+        n: int = ...,
+        normalize: bool = ...,
+        method: int = ...,
+    ) -> None: ...
 
 class _CustomBusinessMonth(BusinessMixin):
     def __init__(

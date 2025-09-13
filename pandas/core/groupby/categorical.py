@@ -46,14 +46,14 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
         # In cases with c.ordered, this is equivalent to
         #  return c.remove_unused_categories(), c
 
-        take_codes = unique1d(c.codes[c.codes != -1])  # type: ignore[no-untyped-call]
+        take_codes = unique1d(c.codes[c.codes != -1])
 
         if sort:
             take_codes = np.sort(take_codes)
 
         # we recode according to the uniques
         categories = c.categories.take(take_codes)
-        codes = recode_for_categories(c.codes, c.categories, categories)
+        codes = recode_for_categories(c.codes, c.categories, categories, copy=False)
 
         # return a new categorical that maps our new codes
         # and categories
@@ -68,7 +68,7 @@ def recode_for_groupby(c: Categorical, sort: bool, observed: bool) -> Categorica
 
     # GH:46909: Re-ordering codes faster than using (set|add|reorder)_categories
     # GH 38140: exclude nan from indexer for categories
-    unique_notnan_codes = unique1d(c.codes[c.codes != -1])  # type: ignore[no-untyped-call]
+    unique_notnan_codes = unique1d(c.codes[c.codes != -1])
     if sort:
         unique_notnan_codes = np.sort(unique_notnan_codes)
     if (num_cat := len(c.categories)) > len(unique_notnan_codes):

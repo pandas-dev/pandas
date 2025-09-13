@@ -42,6 +42,7 @@ import typing
 import feedparser
 import jinja2
 import markdown
+from markdown.extensions.toc import TocExtension
 from packaging import version
 import requests
 import yaml
@@ -100,20 +101,15 @@ class Preprocessors:
         posts = []
         # posts from the file system
         if context["blog"]["posts_path"]:
-            posts_path = os.path.join(
-                context["source_path"], *context["blog"]["posts_path"].split("/")
-            )
-            for fname in os.listdir(posts_path):
-                if fname.startswith("index."):
+            posts_path = context["source_path"] / context["blog"]["posts_path"]
+            for fname in posts_path.iterdir():
+                if fname.name.startswith("index."):
                     continue
-                link = (
-                    f"/{context['blog']['posts_path']}"
-                    f"/{os.path.splitext(fname)[0]}.html"
-                )
+                link = f"/{context['blog']['posts_path']}/{fname.stem}.html"
                 md = markdown.Markdown(
                     extensions=context["main"]["markdown_extensions"]
                 )
-                with open(os.path.join(posts_path, fname), encoding="utf-8") as f:
+                with fname.open(encoding="utf-8") as f:
                     html = md.convert(f.read())
                 title = md.Meta["title"][0]
                 summary = re.sub(tag_expr, "", html)
@@ -386,15 +382,15 @@ def get_callable(obj_as_str: str) -> object:
     return obj
 
 
-def get_context(config_fname: str, **kwargs):
+def get_context(config_fname: pathlib.Path, **kwargs):
     """
     Load the config yaml as the base context, and enrich it with the
     information added by the context preprocessors defined in the file.
     """
-    with open(config_fname, encoding="utf-8") as f:
+    with config_fname.open(encoding="utf-8") as f:
         context = yaml.safe_load(f)
 
-    context["source_path"] = os.path.dirname(config_fname)
+    context["source_path"] = config_fname.parent
     context.update(kwargs)
 
     preprocessors = (
@@ -409,14 +405,13 @@ def get_context(config_fname: str, **kwargs):
     return context
 
 
-def get_source_files(source_path: str) -> typing.Generator[str, None, None]:
+def get_source_files(source_path: pathlib.Path) -> typing.Generator[str, None, None]:
     """
     Generate the list of files present in the source directory.
     """
-    for root, dirs, fnames in os.walk(source_path):
-        root_rel_path = os.path.relpath(root, source_path)
-        for fname in fnames:
-            yield os.path.join(root_rel_path, fname)
+    for path in source_path.rglob("*"):
+        if path.is_file():
+            yield path.relative_to(source_path)
 
 
 def extend_base_template(content: str, base_template: str) -> str:
@@ -432,8 +427,8 @@ def extend_base_template(content: str, base_template: str) -> str:
 
 
 def main(
-    source_path: str,
-    target_path: str,
+    source_path: pathlib.Path,
+    target_path: pathlib.Path,
 ) -> int:
     """
     Copy every file in the source directory to the target directory.
@@ -441,7 +436,18 @@ def main(
     For ``.md`` and ``.html`` files, render them with the context
     before copying them. ``.md`` files are transformed to HTML.
     """
-    config_fname = os.path.join(source_path, "config.yml")
+
+    # Sanity check: validate that versions.json is valid JSON
+    versions_path = source_path / "versions.json"
+    with versions_path.open(encoding="utf-8") as f:
+        try:
+            json.load(f)
+        except json.JSONDecodeError as e:
+            raise RuntimeError(
+                f"Invalid versions.json: {e}. Ensure it is valid JSON."
+            ) from e
+
+    config_fname = source_path / "config.yml"
 
     shutil.rmtree(target_path, ignore_errors=True)
     os.makedirs(target_path, exist_ok=True)
@@ -450,40 +456,40 @@ def main(
     context = get_context(config_fname, target_path=target_path)
     sys.stderr.write("Context generated\n")
 
-    templates_path = os.path.join(source_path, context["main"]["templates_path"])
+    templates_path = source_path / context["main"]["templates_path"]
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
 
     for fname in get_source_files(source_path):
-        if os.path.normpath(fname) in context["main"]["ignore"]:
+        if fname.as_posix() in context["main"]["ignore"]:
             continue
-
         sys.stderr.write(f"Processing {fname}\n")
-        dirname = os.path.dirname(fname)
-        os.makedirs(os.path.join(target_path, dirname), exist_ok=True)
+        dirname = fname.parent
+        (target_path / dirname).mkdir(parents=True, exist_ok=True)
 
-        extension = os.path.splitext(fname)[-1]
+        extension = fname.suffix
         if extension in (".html", ".md"):
-            with open(os.path.join(source_path, fname), encoding="utf-8") as f:
+            with (source_path / fname).open(encoding="utf-8") as f:
                 content = f.read()
             if extension == ".md":
+                toc = TocExtension(
+                    title="Table of Contents",
+                    toc_depth="2-3",
+                    permalink=" #",
+                )
                 body = markdown.markdown(
-                    content, extensions=context["main"]["markdown_extensions"]
+                    content, extensions=context["main"]["markdown_extensions"] + [toc]
                 )
                 # Apply Bootstrap's table formatting manually
                 # Python-Markdown doesn't let us config table attributes by hand
                 body = body.replace("<table>", '<table class="table table-bordered">')
                 content = extend_base_template(body, context["main"]["base_template"])
-            context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
+            context["base_url"] = "../" * (len(fname.parents) - 1)
             content = jinja_env.from_string(content).render(**context)
-            fname_html = os.path.splitext(fname)[0] + ".html"
-            with open(
-                os.path.join(target_path, fname_html), "w", encoding="utf-8"
-            ) as f:
+            fname_html = fname.with_suffix(".html").name
+            with (target_path / dirname / fname_html).open("w", encoding="utf-8") as f:
                 f.write(content)
         else:
-            shutil.copy(
-                os.path.join(source_path, fname), os.path.join(target_path, dirname)
-            )
+            shutil.copy(source_path / fname, target_path / fname)
 
 
 if __name__ == "__main__":
@@ -495,4 +501,4 @@ if __name__ == "__main__":
         "--target-path", default="build", help="directory where to write the output"
     )
     args = parser.parse_args()
-    sys.exit(main(args.source_path, args.target_path))
+    sys.exit(main(pathlib.Path(args.source_path), pathlib.Path(args.target_path)))

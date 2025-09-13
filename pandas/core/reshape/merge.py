@@ -10,6 +10,7 @@ from collections.abc import (
 )
 import datetime
 from functools import partial
+import types
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -198,15 +199,15 @@ def merge(
           to SQL left anti join; preserve key order.
         * right_anti: use only keys from right frame that are not in left frame, similar
           to SQL right anti join; preserve key order.
-    on : label or list
+    on : Hashable or a sequence of the previous
         Column or index level names to join on. These must be found in both
         DataFrames. If `on` is None and not merging on indexes then this defaults
         to the intersection of the columns in both DataFrames.
-    left_on : label or list, or array-like
+    left_on : Hashable or a sequence of the previous, or array-like
         Column or index level names to join on in the left DataFrame. Can also
         be an array or list of arrays of the length of the left DataFrame.
         These arrays are treated as if they are columns.
-    right_on : label or list, or array-like
+    right_on : Hashable or a sequence of the previous, or array-like
         Column or index level names to join on in the right DataFrame. Can also
         be an array or list of arrays of the length of the right DataFrame.
         These arrays are treated as if they are columns.
@@ -536,13 +537,13 @@ def merge_ordered(
         First pandas object to merge.
     right : DataFrame or named Series
         Second pandas object to merge.
-    on : label or list
+    on : Hashable or a sequence of the previous
         Field names to join on. Must be found in both DataFrames.
-    left_on : label or list, or array-like
+    left_on : Hashable or a sequence of the previous, or array-like
         Field names to join on in left DataFrame. Can be a vector or list of
         vectors of the length of the DataFrame to use a particular vector as
         the join key instead of columns.
-    right_on : label or list, or array-like
+    right_on : Hashable or a sequence of the previous, or array-like
         Field names to join on in right DataFrame or vector/list of vectors per
         left_on docs.
     left_by : column name or list of column names
@@ -1134,7 +1135,10 @@ class _MergeOperation:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         result = self._reindex_and_concat(join_index, left_indexer, right_indexer)
-        result = result.__finalize__(self, method=self._merge_type)
+        result = result.__finalize__(
+            types.SimpleNamespace(input_objs=[self.left, self.right]),
+            method=self._merge_type,
+        )
 
         if self.indicator:
             result = self._indicator_post_merge(result)
@@ -1143,7 +1147,9 @@ class _MergeOperation:
 
         self._maybe_restore_index_levels(result)
 
-        return result.__finalize__(self, method="merge")
+        return result.__finalize__(
+            types.SimpleNamespace(input_objs=[self.left, self.right]), method="merge"
+        )
 
     @final
     @cache_readonly
@@ -1322,13 +1328,13 @@ class _MergeOperation:
                 # if we have an all missing left_indexer
                 # make sure to just use the right values or vice-versa
                 if left_indexer is not None and (left_indexer == -1).all():
-                    key_col = Index(rvals)
+                    key_col = Index(rvals, dtype=rvals.dtype, copy=False)
                     result_dtype = rvals.dtype
                 elif right_indexer is not None and (right_indexer == -1).all():
-                    key_col = Index(lvals)
+                    key_col = Index(lvals, dtype=lvals.dtype, copy=False)
                     result_dtype = lvals.dtype
                 else:
-                    key_col = Index(lvals)
+                    key_col = Index(lvals, dtype=lvals.dtype, copy=False)
                     if left_indexer is not None:
                         mask_left = left_indexer == -1
                         key_col = key_col.where(~mask_left, rvals)
@@ -1350,9 +1356,11 @@ class _MergeOperation:
                     if isinstance(result.index, MultiIndex):
                         key_col.name = name
                         idx_list = [
-                            result.index.get_level_values(level_name)
-                            if level_name != name
-                            else key_col
+                            (
+                                result.index.get_level_values(level_name)
+                                if level_name != name
+                                else key_col
+                            )
                             for level_name in result.index.names
                         ]
 
@@ -2179,9 +2187,8 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        # error: Cannot determine type of "__add__"
-        join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
-        join_codes = join_codes + [restore_codes]  # type: ignore[has-type]
+        join_levels = join_levels + [restore_levels]
+        join_codes = join_codes + [restore_codes]
         join_names = join_names + [dropped_level_name]
 
     return join_levels, join_codes, join_names
@@ -3062,13 +3069,16 @@ def _items_overlap_with_suffix(
     if not llabels.is_unique:
         # Only warn when duplicates are caused because of suffixes, already duplicated
         # columns in origin should not warn
-        dups = llabels[(llabels.duplicated()) & (~left.duplicated())].tolist()
+        dups.extend(llabels[(llabels.duplicated()) & (~left.duplicated())].tolist())
     if not rlabels.is_unique:
         dups.extend(rlabels[(rlabels.duplicated()) & (~right.duplicated())].tolist())
+    # Suffix addition creates duplicate to pre-existing column name
+    dups.extend(llabels.intersection(right.difference(to_rename)).tolist())
+    dups.extend(rlabels.intersection(left.difference(to_rename)).tolist())
     if dups:
         raise MergeError(
             f"Passing 'suffixes' which cause duplicate columns {set(dups)} is "
-            f"not allowed.",
+            "not allowed.",
         )
 
     return llabels, rlabels

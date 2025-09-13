@@ -1,0 +1,76 @@
+.. _whatsnew_231:
+
+What's new in 2.3.1 (July 7, 2025)
+------------------------------------
+
+These are the changes in pandas 2.3.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_231.string_fixes:
+
+Improvements and fixes for the StringDtype
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Most changes in this release are related to :class:`StringDtype` which will
+become the default string dtype in pandas 3.0. See
+:ref:`whatsnew_230.upcoming_changes` for more details.
+
+.. _whatsnew_231.string_fixes.string_comparisons:
+
+Comparisons between different string dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions, comparing :class:`Series` of different string dtypes (e.g. ``pd.StringDtype("pyarrow", na_value=pd.NA)`` against ``pd.StringDtype("python", na_value=np.nan)``) would result in inconsistent resulting dtype or incorrectly raise (:issue:`60639`). pandas will now use the hierarchy
+
+    object < (python, NaN) < (pyarrow, NaN) < (python, NA) < (pyarrow, NA)
+
+in determining the result dtype when there are different string dtypes compared. Some examples:
+
+- When ``pd.StringDtype("pyarrow", na_value=pd.NA)`` is compared against any other string dtype, the result will always be ``boolean[pyarrow]``.
+- When ``pd.StringDtype("python", na_value=pd.NA)`` is compared against ``pd.StringDtype("pyarrow", na_value=np.nan)``, the result will be ``boolean``, the NumPy-backed nullable extension array.
+- When ``pd.StringDtype("python", na_value=pd.NA)`` is compared against ``pd.StringDtype("python", na_value=np.nan)``, the result will be ``boolean``, the NumPy-backed nullable extension array.
+
+.. _whatsnew_231.string_fixes.ignore_empty:
+
+Index set operations ignore empty RangeIndex and object dtype Index
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When enabling the ``future.infer_string`` option, :class:`Index` set operations (like
+union or intersection) will now ignore the dtype of an empty :class:`RangeIndex` or
+empty :class:`Index` with ``object`` dtype when determining the dtype of the resulting
+Index (:issue:`60797`).
+
+This ensures that combining such empty Index with strings will infer the string dtype
+correctly, rather than defaulting to ``object`` dtype. For example:
+
+.. code-block:: python
+
+    >>> pd.options.future.infer_string = True
+    >>> df = pd.DataFrame()
+    >>> df.columns.dtype
+    dtype('int64')               # default RangeIndex for empty columns
+    >>> df["a"] = [1, 2, 3]
+    >>> df.columns.dtype
+    <StringDtype(na_value=nan)>  # new columns use string dtype instead of object dtype
+
+.. _whatsnew_231.string_fixes.bugs:
+
+Bug fixes
+^^^^^^^^^
+- Bug in :meth:`.DataFrameGroupBy.min`, :meth:`.DataFrameGroupBy.max`, :meth:`.Resampler.min`, :meth:`.Resampler.max` where all NA values of string dtype would return float instead of string dtype (:issue:`60810`)
+- Bug in :meth:`DataFrame.join` incorrectly downcasting object-dtype indexes (:issue:`61771`)
+- Bug in :meth:`DataFrame.sum` with ``axis=1``, :meth:`.DataFrameGroupBy.sum` or :meth:`.SeriesGroupBy.sum` with ``skipna=True``, and :meth:`.Resampler.sum` with all NA values of :class:`StringDtype` resulted in ``0`` instead of the empty string ``""`` (:issue:`60229`)
+- Fixed bug in :meth:`DataFrame.explode` and :meth:`Series.explode` where methods would fail with ``dtype="str"`` (:issue:`61623`)
+- Fixed bug in unpickling objects pickled in pandas versions pre-2.3.0 that used :class:`StringDtype` (:issue:`61763`)
+
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_231.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v2.3.0..v2.3.1

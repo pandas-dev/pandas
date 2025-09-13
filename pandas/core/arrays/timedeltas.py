@@ -4,6 +4,7 @@ from datetime import timedelta
 import operator
 from typing import (
     TYPE_CHECKING,
+    Self,
     cast,
 )
 
@@ -14,6 +15,7 @@ from pandas._libs import (
     tslibs,
 )
 from pandas._libs.tslibs import (
+    Day,
     NaT,
     NaTType,
     Tick,
@@ -23,6 +25,7 @@ from pandas._libs.tslibs import (
     iNaT,
     is_supported_dtype,
     periods_per_second,
+    to_offset,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
 from pandas._libs.tslibs.fields import (
@@ -62,14 +65,13 @@ import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
     from pandas._typing import (
         AxisInt,
         DateTimeErrorChoices,
         DtypeObj,
         NpDtype,
-        Self,
         npt,
     )
 
@@ -147,7 +149,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     _typ = "timedeltaarray"
     _internal_fill_value = np.timedelta64("NaT", "ns")
     _recognized_scalars = (timedelta, np.timedelta64, Tick)
-    _is_recognized_dtype = lambda x: lib.is_np_dtype(x, "m")
+    _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: lib.is_np_dtype(x, "m")
     _infer_matches = ("timedelta", "timedelta64")
 
     @property
@@ -216,7 +218,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     def _simple_new(  # type: ignore[override]
         cls,
         values: npt.NDArray[np.timedelta64],
-        freq: Tick | None = None,
+        freq: Tick | Day | None = None,
         dtype: np.dtype[np.timedelta64] = TD64NS_DTYPE,
     ) -> Self:
         # Require td64 dtype, not unit-less, matching values.dtype
@@ -224,7 +226,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         assert not tslibs.is_unitless(dtype)
         assert isinstance(values, np.ndarray), type(values)
         assert dtype == values.dtype
-        assert freq is None or isinstance(freq, Tick)
+        assert freq is None or isinstance(freq, (Tick, Day))
 
         result = super()._simple_new(values=values, dtype=dtype)
         result._freq = freq
@@ -462,7 +464,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     # Arithmetic Methods
 
     def _add_offset(self, other):
-        assert not isinstance(other, Tick)
+        assert not isinstance(other, (Tick, Day))
         raise TypeError(
             f"cannot add the type {type(other).__name__} to a {type(self).__name__}"
         )
@@ -470,6 +472,11 @@ class TimedeltaArray(dtl.TimelikeOps):
     @unpack_zerodim_and_defer("__mul__")
     def __mul__(self, other) -> Self:
         if is_scalar(other):
+            if lib.is_bool(other):
+                raise TypeError(
+                    f"Cannot multiply '{self.dtype}' by bool, explicitly cast to "
+                    "integers instead"
+                )
             # numpy will accept float and int, raise TypeError for others
             result = self._ndarray * other
             if result.dtype.kind != "m":
@@ -487,6 +494,13 @@ class TimedeltaArray(dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
+
+        if other.dtype.kind == "b":
+            # GH#58054
+            raise TypeError(
+                f"Cannot multiply '{self.dtype}' by bool, explicitly cast to "
+                "integers instead"
+            )
         if len(other) != len(self) and not lib.is_np_dtype(other.dtype, "m"):
             # Exclude timedelta64 here so we correctly raise TypeError
             #  for that instead of ValueError
@@ -544,7 +558,13 @@ class TimedeltaArray(dtl.TimelikeOps):
             if self.freq is not None:
                 # Note: freq gets division, not floor-division, even if op
                 #  is floordiv.
-                freq = self.freq / other
+                if isinstance(self.freq, Day):
+                    if self.freq.n % other == 0:
+                        freq = Day(self.freq.n // other)
+                    else:
+                        freq = to_offset(Timedelta(days=self.freq.n)) / other
+                else:
+                    freq = self.freq / other
                 if freq.nanos == 0 and self.freq.nanos != 0:
                     # e.g. if self.freq is Nano(1) then dividing by 2
                     #  rounds down to zero
@@ -1053,7 +1073,7 @@ def sequence_to_td64ns(
     copy: bool = False,
     unit=None,
     errors: DateTimeErrorChoices = "raise",
-) -> tuple[np.ndarray, Tick | None]:
+) -> tuple[np.ndarray, Tick | Day | None]:
     """
     Parameters
     ----------
@@ -1071,7 +1091,7 @@ def sequence_to_td64ns(
     -------
     converted : numpy.ndarray
         The sequence converted to a numpy array with dtype ``timedelta64[ns]``.
-    inferred_freq : Tick or None
+    inferred_freq : Tick, Day, or None
         The inferred frequency of the sequence.
 
     Raises

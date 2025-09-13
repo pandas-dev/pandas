@@ -158,9 +158,9 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
-         0     1    2
-    0  ant   bee  cat
-    1  dog  None  fly
+         0    1    2
+    0  ant  bee  cat
+    1  dog  NaN  fly
     >>> pd.isna(df)
            0      1      2
     0  False  False  False
@@ -373,9 +373,9 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
-         0     1    2
-    0  ant   bee  cat
-    1  dog  None  fly
+         0    1    2
+    0  ant  bee  cat
+    1  dog  NaN  fly
     >>> pd.notna(df)
           0      1     2
     0  True   True  True

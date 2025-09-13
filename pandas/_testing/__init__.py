@@ -18,7 +18,7 @@ from pandas._config.localization import (
     set_locale,
 )
 
-from pandas.compat import pa_version_under10p1
+from pandas.compat import HAS_PYARROW
 
 import pandas as pd
 from pandas import (
@@ -183,7 +183,7 @@ NP_NAT_OBJECTS = [
     ]
 ]
 
-if not pa_version_under10p1:
+if HAS_PYARROW:
     import pyarrow as pa
 
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
@@ -348,8 +348,9 @@ class SubclassedDataFrame(DataFrame):
     def _constructor(self):
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def _constructor_sliced(self):
+    def _constructor_sliced(self):  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
 

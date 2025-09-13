@@ -1023,8 +1023,6 @@ cdef class Tick(SingleConstructorOffset):
     # Note: Without making this cpdef, we get AttributeError when calling
     #  from __mul__
     cpdef Tick _next_higher_resolution(Tick self):
-        if type(self) is Day:
-            return Hour(self.n * 24)
         if type(self) is Hour:
             return Minute(self.n * 60)
         if type(self) is Minute:
@@ -1173,7 +1171,7 @@ cdef class Tick(SingleConstructorOffset):
         self.normalize = False
 
 
-cdef class Day(Tick):
+cdef class Day(SingleConstructorOffset):
     """
     Offset ``n`` days.
 
@@ -1203,10 +1201,72 @@ cdef class Day(Tick):
     >>> ts + Day(-4)
     Timestamp('2022-12-05 15:00:00')
     """
+    _adjust_dst = True
+    _attributes = tuple(["n", "normalize"])
     _nanos_inc = 24 * 3600 * 1_000_000_000
     _prefix = "D"
     _period_dtype_code = PeriodDtypeCode.D
     _creso = NPY_DATETIMEUNIT.NPY_FR_D
+
+    def __init__(self, n=1, normalize=False):
+        BaseOffset.__init__(self, n)
+        if normalize:
+            # GH#21427
+            raise ValueError(
+                "Day offset with `normalize=True` are not allowed."
+            )
+
+    def is_on_offset(self, dt) -> bool:
+        return True
+
+    @apply_wraps
+    def _apply(self, other):
+        if isinstance(other, Day):
+            # TODO: why isn't this handled in __add__?
+            return Day(self.n + other.n)
+        return other + np.timedelta64(self.n, "D")
+
+    def _apply_array(self, dtarr):
+        return dtarr + np.timedelta64(self.n, "D")
+
+    @cache_readonly
+    def freqstr(self) -> str:
+        """
+        Return a string representing the frequency.
+
+        Examples
+        --------
+        >>> pd.Day(5).freqstr
+        '5D'
+
+        >>> pd.offsets.Day(1).freqstr
+        'D'
+        """
+        if self.n != 1:
+            return str(self.n) + "D"
+        return "D"
+
+    # Having this here isn't strictly-correct post-GH#61985
+    #  but this gets called in timedelta.get_unit_for_round in cases where
+    #  Day unambiguously means 24h.
+    @property
+    def nanos(self) -> int64_t:
+        """
+        Returns an integer of the total number of nanoseconds.
+
+        See Also
+        --------
+        tseries.offsets.Hour.nanos :
+            Returns an integer of the total number of nanoseconds.
+        tseries.offsets.Day.nanos :
+            Returns an integer of the total number of nanoseconds.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour(5).nanos
+        18000000000000
+        """
+        return self.n * self._nanos_inc
 
 
 cdef class Hour(Tick):
@@ -1431,16 +1491,13 @@ cdef class Nano(Tick):
 def delta_to_tick(delta: timedelta) -> Tick:
     if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
         # nanoseconds only for pd.Timedelta
-        if delta.seconds == 0:
-            return Day(delta.days)
+        seconds = delta.days * 86400 + delta.seconds
+        if seconds % 3600 == 0:
+            return Hour(seconds / 3600)
+        elif seconds % 60 == 0:
+            return Minute(seconds / 60)
         else:
-            seconds = delta.days * 86400 + delta.seconds
-            if seconds % 3600 == 0:
-                return Hour(seconds / 3600)
-            elif seconds % 60 == 0:
-                return Minute(seconds / 60)
-            else:
-                return Second(seconds)
+            return Second(seconds)
     else:
         nanos = delta_to_nanoseconds(delta)
         if nanos % 1_000_000 == 0:
@@ -2680,14 +2737,31 @@ cdef class BYearBegin(YearOffset):
     _prefix = "BYS"
     _day_opt = "business_start"
 
+# The pair of classes `_YearEnd` and `YearEnd` exist because of
+# https://github.com/cython/cython/issues/3873
 
-cdef class YearEnd(YearOffset):
+cdef class _YearEnd(YearOffset):
+    _default_month = 12
+    _prefix = "YE"
+    _day_opt = "end"
+
+    cdef readonly:
+        int _period_dtype_code
+
+    def __init__(self, n=1, normalize=False, month=None):
+        # Because YearEnd can be the freq for a Period, define its
+        #  _period_dtype_code at construction for performance
+        YearOffset.__init__(self, n, normalize, month)
+        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
+
+
+class YearEnd(_YearEnd):
     """
     DateOffset increments between calendar year end dates.
 
     YearEnd goes to the next date which is the end of the year.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of years represented.
@@ -2721,18 +2795,8 @@ cdef class YearEnd(YearOffset):
     Timestamp('2022-12-31 00:00:00')
     """
 
-    _default_month = 12
-    _prefix = "YE"
-    _day_opt = "end"
-
-    cdef readonly:
-        int _period_dtype_code
-
-    def __init__(self, n=1, normalize=False, month=None):
-        # Because YearEnd can be the freq for a Period, define its
-        #  _period_dtype_code at construction for performance
-        YearOffset.__init__(self, n, normalize, month)
-        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
+    def __new__(cls, n=1, normalize=False, month=None):
+        return _YearEnd.__new__(cls, n, normalize, month)
 
 
 cdef class YearBegin(YearOffset):
@@ -4520,6 +4584,12 @@ cdef class Easter(SingleConstructorOffset):
         The number of years represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
+    method : int, default 3
+        The method used to calculate the date of Easter. Valid options are:
+        - 1 (EASTER_JULIAN): Original calculation in Julian calendar
+        - 2 (EASTER_ORTHODOX): Original method, date converted to Gregorian calendar
+        - 3 (EASTER_WESTERN): Revised method, in Gregorian calendar
+        These constants are defined in the `dateutil.easter` module.
 
     See Also
     --------
@@ -4532,15 +4602,32 @@ cdef class Easter(SingleConstructorOffset):
     Timestamp('2022-04-17 00:00:00')
     """
 
+    _attributes = tuple(["n", "normalize", "method"])
+
+    cdef readonly:
+        int method
+
+    from dateutil.easter import EASTER_WESTERN
+
+    def __init__(self, n=1, normalize=False, method=EASTER_WESTERN):
+        BaseOffset.__init__(self, n, normalize)
+
+        self.method = method
+
+        if method < 1 or method > 3:
+            raise ValueError(f"Method must be 1<=method<=3, got {method}")
+
     cpdef __setstate__(self, state):
+        from dateutil.easter import EASTER_WESTERN
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
+        self.method = state.pop("method", EASTER_WESTERN)
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
         from dateutil.easter import easter
 
-        current_easter = easter(other.year)
+        current_easter = easter(other.year, method=self.method)
         current_easter = datetime(
             current_easter.year, current_easter.month, current_easter.day
         )
@@ -4555,7 +4642,7 @@ cdef class Easter(SingleConstructorOffset):
 
         # NOTE: easter returns a datetime.date so we have to convert to type of
         # other
-        new = easter(other.year + n)
+        new = easter(other.year + n, method=self.method)
         new = datetime(
             new.year,
             new.month,
@@ -4573,7 +4660,7 @@ cdef class Easter(SingleConstructorOffset):
 
         from dateutil.easter import easter
 
-        return date(dt.year, dt.month, dt.day) == easter(dt.year)
+        return date(dt.year, dt.month, dt.day) == easter(dt.year, method=self.method)
 
 
 # ----------------------------------------------------------------------
@@ -5105,12 +5192,15 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
     if name in _lite_rule_alias:
         return name
     if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
+        from pandas.errors import Pandas4Warning
+
+        # https://github.com/pandas-dev/pandas/pull/59240
         warnings.warn(
             f"\'{name}\' is deprecated and will be removed "
             f"in a future version, please use "
-            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\'"
-            f" instead.",
-            FutureWarning,
+            f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
+            f"instead.",
+            Pandas4Warning,
             stacklevel=find_stack_level(),
             )
         return c_PERIOD_AND_OFFSET_DEPR_FREQSTR[name]
@@ -5119,12 +5209,15 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
         if name == _name:
             continue
         if _name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR.values():
+            from pandas.errors import Pandas4Warning
+
+            # https://github.com/pandas-dev/pandas/pull/59240
             warnings.warn(
                 f"\'{name}\' is deprecated and will be removed "
                 f"in a future version, please use "
-                f"\'{_name}\'"
-                f" instead.",
-                FutureWarning,
+                f"\'{_name}\' "
+                f"instead.",
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
                 )
             return _name
@@ -5309,6 +5402,17 @@ cpdef to_offset(freq, bint is_period=False):
             raise ValueError(INVALID_FREQ_ERR_MSG.format(
                 f"{freq}, failed to parse with error message: {repr(err)}")
             ) from err
+
+        # TODO(3.0?) once deprecation of "d" is enforced, the check for it here
+        #  can be removed
+        if (
+                isinstance(result, Hour)
+                and result.n % 24 == 0
+                and ("d" in freq or "D" in freq)
+        ):
+            # Since Day is no longer a Tick, delta_to_tick returns Hour above,
+            #  so we convert back here.
+            result = Day(result.n // 24)
     else:
         result = None
 

@@ -218,11 +218,11 @@ pandas supports point releases (e.g. ``1.4.3``) that aim to:
 
 1. Fix bugs in new features introduced in the first minor version release.
 
-  * e.g. If a new feature was added in ``1.4`` and contains a bug, a fix can be applied in ``1.4.3``
+   * e.g. If a new feature was added in ``1.4`` and contains a bug, a fix can be applied in ``1.4.3``
 
 2. Fix bugs that used to work in a few minor releases prior. There should be agreement between core team members that a backport is appropriate.
 
-  * e.g. If a feature worked in ``1.2`` and stopped working since ``1.3``, a fix can be applied in ``1.4.3``.
+   * e.g. If a feature worked in ``1.2`` and stopped working since ``1.3``, a fix can be applied in ``1.4.3``.
 
 Since pandas minor releases are based on GitHub branches (e.g. point release of ``1.4`` are based off the ``1.4.x`` branch),
 "backporting" means merging a pull request fix to the ``main`` branch and correct minor branch associated with the next point release.
@@ -289,8 +289,8 @@ The required steps for adding a maintainer are:
 1. Contact the contributor and ask their interest to join.
 2. Add the contributor to the appropriate `GitHub Team <https://github.com/orgs/pandas-dev/teams>`_ if accepted the invitation.
 
-  * ``pandas-core`` is for core team members
-  * ``pandas-triage`` is for pandas triage members
+   * ``pandas-core`` is for core team members
+   * ``pandas-triage`` is for pandas triage members
 
 If adding to ``pandas-core``, there are two additional steps:
 
@@ -388,8 +388,11 @@ Pre-release
 
 3. Make sure the CI is green for the last commit of the branch being released.
 
-4. If not a release candidate, make sure all backporting pull requests to the branch
-   being released are merged.
+4. If not a release candidate, make sure all backporting pull requests to the
+   branch being released are merged, and no merged pull requests are missing a
+   backport (check the
+   ["Still Needs Manual Backport"](https://github.com/pandas-dev/pandas/labels/Still%20Needs%20Manual%20Backport)
+   label for this).
 
 5. Create a new issue and milestone for the version after the one being released.
    If the release was a release candidate, we would usually want to create issues and
@@ -435,6 +438,9 @@ which will be triggered when the tag is pushed.
 
     scripts/download_wheels.sh <VERSION>
 
+   ATTENTION: this is currently not downloading *all* wheels, and you have to
+   manually download the remainings wheels and sdist!
+
 4. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
 
    - Tag: ``<version>``
@@ -462,15 +468,22 @@ Post-Release
 ````````````
 
 1. Update symlinks to stable documentation by logging in to our web server, and
-   editing ``/var/www/html/pandas-docs/stable`` to point to ``version/<latest-version>``
-   for major and minor releases, or ``version/<minor>`` to ``version/<patch>`` for
+   editing ``/var/www/html/pandas-docs/stable`` to point to ``version/<X.Y>``
+   for major and minor releases, or ``version/<X.Y>`` to ``version/<patch>`` for
    patch releases. The exact instructions are (replace the example version numbers by
    the appropriate ones for the version you are releasing):
 
-    - Log in to the server and use the correct user.
-    - ``cd /var/www/html/pandas-docs/``
-    - ``ln -sfn version/2.1 stable`` (for a major or minor release)
-    - ``ln -sfn version/2.0.3 version/2.0`` (for a patch release)
+   - Log in to the server and use the correct user.
+   - ``cd /var/www/html/pandas-docs/``
+   - For a major or minor release (assuming the ``/version/2.1.0/`` docs have been uploaded to the server):
+
+     -  Create a new X.Y symlink to X.Y.Z: ``cd version; ln -sfn 2.1.0 2.1``
+     -  Update stable symlink to point to X.Y: ``ln -sfn version/2.1 stable``
+
+   - For a patch release (assuming the ``/version/2.1.3/`` docs have been uploaded to the server):
+
+     - Update the X.Y symlink to the new X.Y.Z patch version: ``cd version; ln -sfn 2.1.3 2.1``
+     - (the stable symlink should already be pointing to the correct X.Y version)
 
 2. If releasing a major or minor release, open a PR in our source code to update
    ``web/pandas/versions.json``, to have the desired versions in the documentation
@@ -487,8 +500,8 @@ Post-Release
 6. Announce the new release in the official channels (use previous announcements
    for reference):
 
-    - The pandas-dev and pydata mailing lists
-    - X, Mastodon, Telegram and LinkedIn
+   - The pandas-dev and pydata mailing lists
+   - X, Mastodon, Telegram and LinkedIn
 
 7. Update this release instructions to fix anything incorrect and to update about any
    change since the last release.
