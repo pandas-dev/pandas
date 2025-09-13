@@ -7027,6 +7027,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         d    string[python]
         e             Int64
         f           Float64
+        dtype: object
 
         Start with a Series of strings and missing data represented by ``np.nan``.
 
