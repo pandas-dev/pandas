@@ -452,8 +452,8 @@ which will be triggered when the tag is pushed.
      (e.g. releasing 1.4.5 after 1.5 has been released)
 
 5. Verify wheels are uploaded automatically by GitHub Actions
-   via [**Trusted Publishing**](https://docs.pypi.org/trusted-publishers/)
-   when the GitHub [*Release*](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases)
+   via `**Trusted Publishing** <https://docs.pypi.org/trusted-publishers/>`__
+   when the GitHub `*Release* <https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases>`__
    is published. Do not run ``twine upload`` manually.
 
 6. The GitHub release will after some hours trigger an
