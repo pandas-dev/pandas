@@ -242,6 +242,7 @@ Ambiguity arises when an index consists of integers with a non-zero start or non
 Using isin() to filter for values directly (this returns a series of boolean values).
 
 .. ipython:: python
+
    df = pd.DataFrame(
        {"AAA": [4, 5, 6, 7], "BBB": [10, 20, 30, 40], "CCC": [100, 50, -30, -50]}
    )
