@@ -143,16 +143,10 @@ class _Unstacker:
         self.removed_level_full = index.levels[self.level]
         self.unique_nan_index: int = -1
         if not self.sort:
-            unique_codes = unique(self.index.codes[self.level])
+            unique_codes = np.unique(self.index.codes[self.level])
             if self.has_nan:
                 # drop nan codes, because they are not represented in level
                 nan_mask = unique_codes == -1
-
-                if TYPE_CHECKING:
-                    # make explicit that nan_mask is an array
-                    # to remove this pyright diagnostic:
-                    # The method "__invert__" in class "bool" is deprecated
-                    nan_mask = cast(ArrayLike, nan_mask)
 
                 unique_codes = unique_codes[~nan_mask]
                 self.unique_nan_index = np.flatnonzero(nan_mask)[0]
