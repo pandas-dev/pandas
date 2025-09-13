@@ -66,6 +66,7 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.api import (
@@ -1231,6 +1232,8 @@ class _GenericArrayFormatter:
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
+            elif isinstance(x, StringDtype) and x.na_value is NA:
+                return repr(x)
             else:
                 # object dtype
                 return str(formatter(x))

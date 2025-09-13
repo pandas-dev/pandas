@@ -126,11 +126,11 @@ def test_repr(dtype):
 def test_dtype_repr(dtype):
     if dtype.storage == "pyarrow":
         if dtype.na_value is pd.NA:
-            assert repr(dtype) == "<StringDtype(na_value=<NA>)>"
+            assert repr(dtype) == "string[pyarrow]"
         else:
             assert repr(dtype) == "<StringDtype(na_value=nan)>"
     elif dtype.na_value is pd.NA:
-        assert repr(dtype) == "<StringDtype(storage='python', na_value=<NA>)>"
+        assert repr(dtype) == "string[python]"
     else:
         assert repr(dtype) == "<StringDtype(storage='python', na_value=nan)>"
 
