@@ -8,6 +8,8 @@ from typing import (
 
 import numpy as np
 
+from pandas.util._decorators import set_module
+
 from pandas.core.dtypes.base import register_extension_dtype
 from pandas.core.dtypes.common import is_float_dtype
 
@@ -168,6 +170,7 @@ Float64Dtype()
 
 
 @register_extension_dtype
+@set_module("pandas")
 class Float32Dtype(FloatingDtype):
     type = np.float32
     name: ClassVar[str] = "Float32"
@@ -175,6 +178,7 @@ class Float32Dtype(FloatingDtype):
 
 
 @register_extension_dtype
+@set_module("pandas")
 class Float64Dtype(FloatingDtype):
     type = np.float64
     name: ClassVar[str] = "Float64"
