@@ -594,6 +594,68 @@ def test_replace_callable_raises(any_string_dtype, repl):
         values.str.replace("a", repl, regex=True)
 
 
+@pytest.mark.parametrize(
+    "repl, expected_list",
+    [
+        (
+            r"\g<three> \g<two> \g<one>",
+            ["Three Two One", "Baz Bar Foo"],
+        ),
+        (
+            r"\g<3> \g<2> \g<1>",
+            ["Three Two One", "Baz Bar Foo"],
+        ),
+        (
+            r"\g<2>0",
+            ["Two0", "Bar0"],
+        ),
+        (
+            r"\g<2>0 \1",
+            ["Two0 One", "Bar0 Foo"],
+        ),
+    ],
+    ids=[
+        "named_groups_full_swap",
+        "numbered_groups_full_swap",
+        "single_group_with_literal",
+        "mixed_group_reference_with_literal",
+    ],
+)
+@pytest.mark.parametrize("use_compile", [True, False])
+def test_replace_named_groups_regex_swap(
+    any_string_dtype, use_compile, repl, expected_list
+):
+    # GH#57636
+    ser = Series(["One Two Three", "Foo Bar Baz"], dtype=any_string_dtype)
+    pattern = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
+    if use_compile:
+        pattern = re.compile(pattern)
+    result = ser.str.replace(pattern, repl, regex=True)
+    expected = Series(expected_list, dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "repl",
+    [
+        r"\g<20>",
+        r"\20",
+    ],
+)
+@pytest.mark.parametrize("use_compile", [True, False])
+def test_replace_named_groups_regex_swap_expected_fail(
+    any_string_dtype, repl, use_compile
+):
+    # GH#57636
+    pattern = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
+    if use_compile:
+        pattern = re.compile(pattern)
+    ser = Series(["One Two Three", "Foo Bar Baz"], dtype=any_string_dtype)
+
+    with pytest.raises(re.error, match="invalid group reference"):
+        ser.str.replace(pattern, repl, regex=True)
+
+
 def test_replace_callable_named_groups(any_string_dtype):
     # test regex named groups
     ser = Series(["Foo Bar Baz", np.nan], dtype=any_string_dtype)
