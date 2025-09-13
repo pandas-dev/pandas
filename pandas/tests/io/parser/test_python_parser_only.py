@@ -562,3 +562,44 @@ def test_no_thousand_convert_for_non_numeric_cols(python_parser_only, dtype, exp
     expected = DataFrame(expected)
     expected.insert(0, "a", ["0000,7995", "3,03,001,00514", "4923,600,041"])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("index_col", [None, 0])
+def test_on_bad_lines_callable_warns_and_truncates_with_index_col(
+    python_parser_only, index_col
+):
+    """
+    GH#61837 regression: callable on_bad_lines returning extra fields must emit a
+    ParserWarning and drop extras regardless of index_col. [2][3]
+    """
+    parser = python_parser_only
+    data = "id,field_1,field_2\n101,A,B\n102,C,D,E\n103,F,G\n"
+
+    def fixer(bad_line):
+        # Over-return to trigger truncation + warning
+        return list(bad_line) + ["EXTRA1", "EXTRA2"]
+
+    # Assert ParserWarning is emitted using module helper
+    df = parser.read_csv_check_warnings(
+        ParserWarning,
+        "Length of header or names",
+        StringIO(data),
+        on_bad_lines=fixer,
+        index_col=index_col,
+    )
+
+    if index_col is None:
+        expected = DataFrame(
+            {
+                "id": [101, 102, 103],
+                "field_1": ["A", "C", "F"],
+                "field_2": ["B", "D", "G"],
+            }
+        )
+    else:
+        expected = DataFrame(
+            {"field_1": ["A", "C", "F"], "field_2": ["B", "D", "G"]},
+            index=Index([101, 102, 103], name="id"),
+        )
+
+    tm.assert_frame_equal(df, expected)

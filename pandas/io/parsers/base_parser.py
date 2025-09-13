@@ -621,12 +621,15 @@ class ParserBase:
             empty_str_or_na = empty_str | isna(data[-1])  # type: ignore[operator]
             if len(columns) == len(data) - 1 and np.all(empty_str_or_na):
                 return
-            warnings.warn(
-                "Length of header or names does not match length of data. This leads "
-                "to a loss of data with index_col=False.",
-                ParserWarning,
-                stacklevel=find_stack_level(),
-            )
+            # Don't warn if on_bad_lines is set to handle bad lines
+            if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
+                warnings.warn(
+                    "Length of header or names does not match length of data. "
+                    "This leads "
+                    "to a loss of data with index_col=False.",
+                    ParserWarning,
+                    stacklevel=find_stack_level(),
+                )
 
     @final
     def _validate_usecols_names(self, usecols: SequenceT, names: Sequence) -> SequenceT:

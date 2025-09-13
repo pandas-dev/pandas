@@ -21,6 +21,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import Scalar
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -77,7 +78,6 @@ if TYPE_CHECKING:
         ArrayLike,
         DtypeObj,
         ReadCsvBuffer,
-        Scalar,
         T,
     )
 
@@ -1189,21 +1189,35 @@ class PythonParser(ParserBase):
 
             for i, _content in iter_content:
                 actual_len = len(_content)
-
                 if actual_len > col_len:
                     if callable(self.on_bad_lines):
                         new_l = self.on_bad_lines(_content)
                         if new_l is not None:
-                            content.append(new_l)  # pyright: ignore[reportArgumentType]
+                            # Truncate extra elements and warn.
+                            new_l = cast(list[Scalar], new_l)
+                            if len(new_l) > col_len:
+                                warnings.warn(
+                                    "Length of header or names does not match length "
+                                    "of data. This leads "
+                                    "to a loss of data with index_col=False.",
+                                    ParserWarning,
+                                    stacklevel=find_stack_level(),
+                                )
+                                new_l = new_l[:col_len]
+                            content.append(new_l)
+                    elif self.on_bad_lines == self.BadLineHandleMethod.ERROR:
+                        row_num = self.pos - (content_len - i + footers)
+                        bad_lines.append((row_num, actual_len))
+                        break
                     elif self.on_bad_lines in (
-                        self.BadLineHandleMethod.ERROR,
                         self.BadLineHandleMethod.WARN,
+                        self.BadLineHandleMethod.SKIP,
                     ):
                         row_num = self.pos - (content_len - i + footers)
                         bad_lines.append((row_num, actual_len))
-
-                        if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
-                            break
+                        # For WARN and SKIP, don't append the bad content
+                    else:
+                        content.append(_content)
                 else:
                     content.append(_content)
 
