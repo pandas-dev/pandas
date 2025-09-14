@@ -351,9 +351,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     __pandas_priority__ = 3000
 
     # Override cache_readonly bc Series is mutable
-    # error: Incompatible types in assignment (expression has type "property",
-    # base class "IndexOpsMixin" defined the type as "Callable[[IndexOpsMixin], bool]")
-    hasnans = property(  # type: ignore[assignment]
+    hasnans = property(
         # error: "Callable[[IndexOpsMixin], bool]" has no attribute "fget"
         base.IndexOpsMixin.hasnans.fget,  # type: ignore[attr-defined]
         doc=base.IndexOpsMixin.hasnans.__doc__,
@@ -1963,6 +1961,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
+    )
     def groupby(
         self,
         by=None,
