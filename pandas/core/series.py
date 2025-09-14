@@ -2514,15 +2514,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         nv.validate_round(args, kwargs)
-        if self.dtype == "object":
-            try:
-                round_func = functools.partial(round, ndigits=decimals)
-                new_values = self._map_values(round_func)
-                return self._constructor(
-                    new_values, index=self.index, copy=False
-                ).__finalize__(self, method="map")
-            except TypeError as e:
-                raise TypeError("Expected numeric entries for dtype object.") from e
         new_mgr = self._mgr.round(decimals=decimals)
         return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
             self, method="round"
