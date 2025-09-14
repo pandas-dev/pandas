@@ -534,6 +534,14 @@ class TestGetIndexer:
         result2 = target.get_indexer(index)
         tm.assert_numpy_array_equal(result2, expected)
 
+    def test_get_indexer_date_objs(self):
+        # GH#62158 date objects lose indexing special case
+        rng = date_range("1/1/2000", periods=20)
+        result = rng.get_indexer(rng.map(lambda x: x.date()))
+
+        expected = np.full(len(rng), -1, dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_get_indexer(self):
         idx = date_range("2000-01-01", periods=3)
         exp = np.array([0, 1, 2], dtype=np.intp)
@@ -574,6 +582,20 @@ class TestGetIndexer:
             idx.get_indexer(target, "nearest", tolerance=tol_bad)
         with pytest.raises(ValueError, match="abbreviation w/o a number"):
             idx.get_indexer(idx[[0]], method="nearest", tolerance="foo")
+
+    @pytest.mark.parametrize(
+        "target, expected",
+        [
+            ([date(2020, 1, 1), Timestamp("2020-01-02")], np.array([-1, 1], dtype=np.intp)),
+            ([Timestamp("2020-01-01"), date(2020, 1, 2)], np.array([0, -1], dtype=np.intp)),
+        ],
+    )
+    def test_get_indexer_mixed_dtypes(self, target, expected):
+        # GH#33741 regression test: mixed dtypes should not error
+        # GH#62158 date objects lose indexing special case
+        values = DatetimeIndex([Timestamp("2020-01-01"), Timestamp("2020-01-02")])
+        result = values.get_indexer(target)
+        tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
         "target, positions",

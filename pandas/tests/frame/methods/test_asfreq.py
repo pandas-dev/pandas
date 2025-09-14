@@ -185,6 +185,15 @@ class TestAsFreq:
         actual_series = ts.asfreq(freq="1s", fill_value=9.0)
         tm.assert_series_equal(expected_series, actual_series)
 
+    def test_asfreq_with_date_object_index(self, frame_or_series):
+        # GH#62158 date objects lose indexing special case
+        rng = date_range("1/1/2000", periods=20)
+        ts = frame_or_series(np.random.default_rng(2).standard_normal(20), index=rng)
+        ts.index = [x.date() for x in ts.index]
+
+        with pytest.raises(TypeError, match="Cannot compare Timestamp with datetime.date"):
+            ts.asfreq("4h", method="ffill")
+
     def test_asfreq_with_unsorted_index(self, frame_or_series):
         # GH#39805
         # Test that rows are not dropped when the datetime index is out of order
