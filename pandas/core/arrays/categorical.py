@@ -1551,6 +1551,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         Series.apply : Apply more complex functions on a
             :class:`~pandas.Series`.
 
+        Notes
+        -----
+        The mapping function is applied to the categories, not to
+        each element of the array.
+
         Examples
         --------
         >>> cat = pd.Categorical(["a", "b", "c"])
