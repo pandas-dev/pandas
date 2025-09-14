@@ -254,6 +254,5 @@ jobs:
       - name: Publish to **PyPI** (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://upload.pypi.org/legacy/
           packages-dir: upload
           skip-existing: true
