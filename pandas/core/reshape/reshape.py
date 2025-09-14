@@ -419,7 +419,10 @@ class _Unstacker:
             # Otherwise, we just use each level item exactly once:
             stride = len(self.removed_level) + self.has_nan
             repeater = np.arange(stride) - self.lift
-            if self.has_nan and self.lift == 0:
+            if self.has_nan and not self.sort:
+                assert self.unique_nan_index > -1, (
+                    "`unique_nan_index` not properly initialized"
+                )
                 # assign -1 where should be nan according to the unique values.
                 repeater[self.unique_nan_index] = -1
                 # compensate for the removed index level
