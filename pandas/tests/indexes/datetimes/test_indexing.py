@@ -586,8 +586,14 @@ class TestGetIndexer:
     @pytest.mark.parametrize(
         "target, expected",
         [
-            ([date(2020, 1, 1), Timestamp("2020-01-02")], np.array([-1, 1], dtype=np.intp)),
-            ([Timestamp("2020-01-01"), date(2020, 1, 2)], np.array([0, -1], dtype=np.intp)),
+            (
+                [date(2020, 1, 1), Timestamp("2020-01-02")],
+                np.array([-1, 1], dtype=np.intp),
+            ),
+            (
+                [Timestamp("2020-01-01"), date(2020, 1, 2)],
+                np.array([0, -1], dtype=np.intp),
+            ),
         ],
     )
     def test_get_indexer_mixed_dtypes(self, target, expected):

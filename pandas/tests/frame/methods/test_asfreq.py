@@ -191,7 +191,9 @@ class TestAsFreq:
         ts = frame_or_series(np.random.default_rng(2).standard_normal(20), index=rng)
         ts.index = [x.date() for x in ts.index]
 
-        with pytest.raises(TypeError, match="Cannot compare Timestamp with datetime.date"):
+        with pytest.raises(
+            TypeError, match="Cannot compare Timestamp with datetime.date"
+        ):
             ts.asfreq("4h", method="ffill")
 
     def test_asfreq_with_unsorted_index(self, frame_or_series):
