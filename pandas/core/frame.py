@@ -71,7 +71,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import (
     find_stack_level,
-    rewrite_warning,
 )
 from pandas.util._validators import (
     validate_ascending,
@@ -727,7 +726,7 @@ class DataFrame(NDFrame, OpsMixin):
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
 
@@ -9375,6 +9374,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
+    )
     def groupby(
         self,
         by=None,
@@ -9894,7 +9896,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "removed in a future version of pandas. See the What's New notes "
                 "for pandas 2.1.0 for details. Do not specify the future_stack "
                 "argument to adopt the new implementation and silence this warning.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
@@ -11926,25 +11928,13 @@ class DataFrame(NDFrame, OpsMixin):
                     row_index = np.tile(np.arange(nrows), ncols)
                     col_index = np.repeat(np.arange(ncols), nrows)
                     ser = Series(arr, index=col_index, copy=False)
-                    # GroupBy will raise a warning with SeriesGroupBy as the object,
-                    # likely confusing users
-                    with rewrite_warning(
-                        target_message=(
-                            f"The behavior of SeriesGroupBy.{name} with all-NA values"
-                        ),
-                        target_category=FutureWarning,
-                        new_message=(
-                            f"The behavior of {type(self).__name__}.{name} with all-NA "
-                            "values, or any-NA and skipna=False, is deprecated. In "
-                            "a future version this will raise ValueError"
-                        ),
-                    ):
-                        result = ser.groupby(row_index).agg(name, **kwds)
+                    if name == "all":
+                        # Behavior here appears incorrect; preserving
+                        # for backwards compatibility for now.
+                        # See https://github.com/pandas-dev/pandas/issues/57171
+                        skipna = True
+                    result = ser.groupby(row_index).agg(name, **kwds, skipna=skipna)
                     result.index = df.index
-                    if not skipna and name not in ("any", "all"):
-                        mask = df.isna().to_numpy(dtype=np.bool_).any(axis=1)
-                        other = -1 if name in ("idxmax", "idxmin") else lib.no_default
-                        result = result.mask(mask, other)
                     return result
 
             df = df.T
@@ -13258,13 +13248,11 @@ class DataFrame(NDFrame, OpsMixin):
         # indices will always be np.ndarray since axis is not N
 
         if (indices == -1).any():
-            warnings.warn(
-                f"The behavior of {type(self).__name__}.idxmin with all-NA "
-                "values, or any-NA and skipna=False, is deprecated. In a future "
-                "version this will raise ValueError",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            if skipna:
+                msg = "Encountered all NA values"
+            else:
+                msg = "Encountered an NA values with skipna=False"
+            raise ValueError(msg)
 
         index = data._get_axis(axis)
         result = algorithms.take(
@@ -13365,13 +13353,11 @@ class DataFrame(NDFrame, OpsMixin):
         # indices will always be 1d array since axis is not None
 
         if (indices == -1).any():
-            warnings.warn(
-                f"The behavior of {type(self).__name__}.idxmax with all-NA "
-                "values, or any-NA and skipna=False, is deprecated. In a future "
-                "version this will raise ValueError",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            if skipna:
+                msg = "Encountered all NA values"
+            else:
+                msg = "Encountered an NA values with skipna=False"
+            raise ValueError(msg)
 
         index = data._get_axis(axis)
         result = algorithms.take(

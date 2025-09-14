@@ -1,7 +1,6 @@
 cimport cython
 from cython cimport Py_ssize_t
 from libc.math cimport (
-    fabs,
     sqrt,
 )
 from libc.stdlib cimport (
@@ -70,13 +69,6 @@ tiebreakers = {
     "first": TIEBREAK_FIRST,
     "dense": TIEBREAK_DENSE,
 }
-
-
-cdef bint are_diff(object left, object right):
-    try:
-        return fabs(left - right) > FP_ERR
-    except TypeError:
-        return left != right
 
 
 class Infinity:
@@ -1135,12 +1127,8 @@ cdef void rank_sorted_1d(
             dups += 1
             sum_ranks += i - grp_start + 1
 
-            if numeric_object_t is object:
-                next_val_diff = at_end or are_diff(masked_vals[sort_indexer[i]],
-                                                   masked_vals[sort_indexer[i+1]])
-            else:
-                next_val_diff = at_end or (masked_vals[sort_indexer[i]]
-                                           != masked_vals[sort_indexer[i+1]])
+            next_val_diff = at_end or (masked_vals[sort_indexer[i]]
+                                       != masked_vals[sort_indexer[i+1]])
 
             # We'll need this check later anyway to determine group size, so just
             # compute it here since shortcircuiting won't help

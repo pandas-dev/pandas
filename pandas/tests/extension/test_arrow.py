@@ -38,7 +38,6 @@ from pandas.compat import (
     PY312,
     is_ci_environment,
     is_platform_windows,
-    pa_version_under13p0,
     pa_version_under14p0,
     pa_version_under19p0,
     pa_version_under20p0,
@@ -432,20 +431,7 @@ class TestArrowArray(base.ExtensionTests):
                 data, all_numeric_accumulations, skipna
             )
 
-        if pa_version_under13p0 and all_numeric_accumulations != "cumsum":
-            # xfailing takes a long time to run because pytest
-            # renders the exception messages even when not showing them
-            opt = request.config.option
-            if opt.markexpr and "not slow" in opt.markexpr:
-                pytest.skip(
-                    f"{all_numeric_accumulations} not implemented for pyarrow < 9"
-                )
-            mark = pytest.mark.xfail(
-                reason=f"{all_numeric_accumulations} not implemented for pyarrow < 9"
-            )
-            request.applymarker(mark)
-
-        elif all_numeric_accumulations == "cumsum" and (
+        if all_numeric_accumulations == "cumsum" and (
             pa.types.is_boolean(pa_type) or pa.types.is_decimal(pa_type)
         ):
             request.applymarker(
@@ -1943,9 +1929,6 @@ def test_str_find_large_start():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
-)
 @pytest.mark.parametrize("start", [-15, -3, 0, 1, 15, None])
 @pytest.mark.parametrize("end", [-15, -1, 0, 3, 15, None])
 @pytest.mark.parametrize("sub", ["", "az", "abce", "a", "caa"])
@@ -3333,9 +3316,9 @@ def test_factorize_chunked_dictionary():
     )
     ser = pd.Series(ArrowExtensionArray(pa_array))
     res_indices, res_uniques = ser.factorize()
-    exp_indicies = np.array([0, 1], dtype=np.intp)
+    exp_indices = np.array([0, 1], dtype=np.intp)
     exp_uniques = pd.Index(ArrowExtensionArray(pa_array.combine_chunks()))
-    tm.assert_numpy_array_equal(res_indices, exp_indicies)
+    tm.assert_numpy_array_equal(res_indices, exp_indices)
     tm.assert_index_equal(res_uniques, exp_uniques)
 
 
@@ -3472,9 +3455,6 @@ def test_string_to_datetime_parsing_cast():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
-)
 def test_interpolate_not_numeric(data):
     if not data.dtype._is_numeric:
         ser = pd.Series(data)
@@ -3483,9 +3463,6 @@ def test_interpolate_not_numeric(data):
             pd.Series(data).interpolate()
 
 
-@pytest.mark.skipif(
-    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
-)
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_interpolate_linear(dtype):
     ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)
