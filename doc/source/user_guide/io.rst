@@ -3928,7 +3928,28 @@ We can see that we got the same content back, which we had earlier written to th
 
 .. note::
 
-   You may need to install xclip or xsel (with PyQt6, PyQt5, PyQt4 or qtpy) on Linux to use these methods.
+   On Linux, you may need to install one of these clipboard utilities:
+
+   - wl-clipboard (for Wayland sessions)
+   - xclip (for X11 sessions)
+   - xsel (for X11 sessions)
+
+   For example, on Debian-based systems:
+
+   .. code-block:: bash
+
+      sudo apt-get install wl-clipboard
+      sudo apt-get install xclip
+      sudo apt-get install xsel
+
+   Alternatively, you can install one of these Python packages,
+   but their support is limited on Linux and work more reliably
+   on OSX and Windows:
+
+   - PyQt6
+   - PySide6
+   - PyQt5
+
 
 .. _io.pickle:
 
