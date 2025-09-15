@@ -123,7 +123,7 @@ class PandasExtensionDtype(ExtensionDtype):
     # problem dealing with multiple inheritance from PandasExtensionDtype
     # and ExtensionDtype's @properties in the subclasses below. The kind and
     # type variables in those subclasses are explicitly typed below.
-    subdtype = None
+    subdtype: DtypeObj | None = None
     str: str_type
     num = 100
     shape: tuple[int, ...] = ()
@@ -1604,7 +1604,7 @@ class BaseMaskedDtype(ExtensionDtype):
     Base class for dtypes for BaseMaskedArray subclasses.
     """
 
-    base = None
+    base: DtypeObj | None = None
     type: type
     _internal_fill_value: Scalar
 
