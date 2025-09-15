@@ -10918,6 +10918,13 @@ class DataFrame(NDFrame, OpsMixin):
                 ),
             )
             row_df = other.to_frame().T
+            if isinstance(self.index.dtype, ExtensionDtype):
+                # GH#41626 retain e.g. CategoricalDtype if reached via
+                #  df.loc[key] = item
+                row_df.index = self.index.array._cast_pointwise_result(
+                    row_df.index._values
+                )
+
             # infer_objects is needed for
             #  test_append_empty_frame_to_series_with_dateutil_tz
             other = row_df.infer_objects().rename_axis(index.names)
