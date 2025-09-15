@@ -45,6 +45,7 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from typing import TypeAlias
 
     from pandas import Index
@@ -548,7 +549,7 @@ def _interpolate_scipy_wrapper(
     new_x = np.asarray(new_x)
 
     # ignores some kwargs that could be passed along.
-    alt_methods = {
+    alt_methods: dict[str, Callable[..., np.ndarray]] = {
         "barycentric": interpolate.barycentric_interpolate,
         "krogh": interpolate.krogh_interpolate,
         "from_derivatives": _from_derivatives,
@@ -566,6 +567,7 @@ def _interpolate_scipy_wrapper(
         "cubic",
         "polynomial",
     ]
+    terp: Callable[..., np.ndarray] | None
     if method in interp1d_methods:
         if method == "polynomial":
             kind = order
