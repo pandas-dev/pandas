@@ -72,7 +72,7 @@ Alias                                Meaning
 :py:type:`ReadCsvBuffer`             Additional argument type corresponding to buffers for :meth:`pandas.read_csv`
 :py:type:`ReadPickleBuffer`          Additional argument type corresponding to buffers for :meth:`pandas.read_pickle`
 :py:type:`ReindexMethod`             Argument type for ``reindex`` in :meth:`reindex`
-:py:type:`Scalar`                    Regular non-object types that can be stored in :class:`Series`
+:py:type:`Scalar`                    Types that can be stored in :class:`Series` with non-object dtype
 :py:type:`SequenceNotStr`            Used for arguments that require sequences, but not plain strings
 :py:type:`SliceType`                 Argument types for ``start`` and ``end`` in :meth:`Index.slice_locs`
 :py:type:`SortKind`                  Argument type for ``kind`` in :meth:`sort_index` and :meth:`sort_values`
