@@ -321,9 +321,9 @@ class ArrowStringArrayMixin:
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if not pat.endswith("$") and not pat.startswith("^"):
+        if (not pat.endswith("$") or pat.endswith("\\$")) and not pat.startswith("^"):
             pat = f"^({pat})$"
-        elif not pat.endswith("$"):
+        elif not pat.endswith("$") or pat.endswith("\\$"):
             pat = f"^({pat[1:]})$"
         elif not pat.startswith("^"):
             pat = f"^({pat[0:-1]})$"
