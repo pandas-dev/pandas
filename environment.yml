@@ -91,6 +91,9 @@ dependencies:
   - sphinx
   - sphinx-design
   - sphinx-copybutton
+
+  # static typing
+  - scipy-stubs
   - types-python-dateutil
   - types-PyMySQL
   - types-pytz

@@ -171,26 +171,6 @@ class TestDecimalArray(base.ExtensionTests):
         ):
             super().test_fillna_limit_series(data_missing)
 
-    @pytest.mark.parametrize("dropna", [True, False])
-    def test_value_counts(self, all_data, dropna):
-        all_data = all_data[:10]
-        if dropna:
-            other = np.array(all_data[~all_data.isna()])
-        else:
-            other = all_data
-
-        vcs = pd.Series(all_data).value_counts(dropna=dropna)
-        vcs_ex = pd.Series(other).value_counts(dropna=dropna)
-
-        with decimal.localcontext() as ctx:
-            # avoid raising when comparing Decimal("NAN") < Decimal(2)
-            ctx.traps[decimal.InvalidOperation] = False
-
-            result = vcs.sort_index()
-            expected = vcs_ex.sort_index()
-
-        tm.assert_series_equal(result, expected)
-
     def test_series_repr(self, data):
         # Overriding this base test to explicitly test that
         # the custom _formatter is used
