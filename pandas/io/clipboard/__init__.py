@@ -175,6 +175,7 @@ def init_qt_clipboard():
     qt_qapplication_bindings = [
         ("qtpy.QtWidgets", "QApplication"),
         ("PyQt6.QtWidgets", "QApplication"),
+        ("PySide6.QtWidgets", "QApplication"),
         ("PyQt5.QtWidgets", "QApplication"),
         ("PyQt4.QtGui", "QApplication"),
     ]
