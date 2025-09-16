@@ -126,6 +126,13 @@ class TestIntervalArray(base.ExtensionTests):
     def test_astype_str(self, data):
         super().test_astype_str(data)
 
+    @pytest.mark.xfail(
+        reason="Test is invalid for IntervalDtype, needs to be adapted for "
+        "this dtype with an index with index._index_as_unique."
+    )
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data):
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
 
 # TODO: either belongs in tests.arrays.interval or move into base tests.
 def test_fillna_non_scalar_raises(data_missing):
