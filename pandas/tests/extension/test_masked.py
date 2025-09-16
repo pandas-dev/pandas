@@ -362,9 +362,6 @@ class TestMaskedArrays(base.ExtensionTests):
         tm.assert_series_equal(result, expected)
 
     def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
-        if data.dtype.kind == "b":
-            mark = pytest.mark.xfail(reason="GH#62344 incorrectly casts to object")
-            request.applymarker(mark)
         super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
 
     @pytest.mark.parametrize(
