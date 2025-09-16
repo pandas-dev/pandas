@@ -11774,7 +11774,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             If 0 or 'index' counts are generated for each column.
             If 1 or 'columns' counts are generated for each row.
-        numeric_only : bool, default False.
+        numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
         Returns
