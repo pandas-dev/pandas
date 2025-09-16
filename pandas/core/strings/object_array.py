@@ -544,3 +544,6 @@ class ObjectStringArrayMixin:
                 return empty_row
 
         return [f(val) for val in np.asarray(self)]
+
+    def _str_zfill(self, width: int):
+        return self._str_map(lambda x: x.zfill(width))
