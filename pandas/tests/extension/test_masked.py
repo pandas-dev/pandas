@@ -371,12 +371,8 @@ class TestMaskedArrays(base.ExtensionTests):
             (pd.array([1, 2]), [pd.NA, pd.NA]),
         ],
     )
-    def test_cast_pointwise_result_all_na_respects_dtype(self, arr, values):
-        """
-        GH#62344
-        Ensure that _cast_pointwise_result respects the original dtype
-        even when the result consists entirely of NA values.
-        """
+    def test_cast_pointwise_result_all_na_respects_original_dtype(self, arr, values):
+        # GH#62344
         result = arr._cast_pointwise_result(values)
         assert result.dtype == arr.dtype
         assert all(x is pd.NA for x in result)
