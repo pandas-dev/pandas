@@ -1181,9 +1181,6 @@ class ExcelWriter(Generic[_WorkbookT]):
 
         return object.__new__(cls)
 
-    # declare external properties you can count on
-    _path = None
-
     @property
     def supported_extensions(self) -> tuple[str, ...]:
         """Extensions that writer engine supports."""

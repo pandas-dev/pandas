@@ -69,7 +69,7 @@ TD64NS_DTYPE = conversion.TD64NS_DTYPE
 INT64_DTYPE = np.dtype(np.int64)
 
 # oh the troubles to reduce import time
-_is_scipy_sparse = None
+_is_scipy_sparse: Callable[[ArrayLike], bool] | None = None
 
 ensure_float64 = algos.ensure_float64
 ensure_int64 = algos.ensure_int64

@@ -534,7 +534,7 @@ enable_error_code = "ignore-without-code"
 # Miscellaneous strictness flags
 allow_untyped_globals = false
 allow_redefinition = false
-local_partial_types = false
+local_partial_types = true
 implicit_reexport = true
 strict_equality = true
 # Configuring error messages

@@ -63,10 +63,10 @@ if TYPE_CHECKING:
     from pandas._libs.tslibs.offsets import BaseOffset
 
 
-_mpl_units = {}  # Cache for units overwritten by us
+_mpl_units: dict = {}  # Cache for units overwritten by us
 
 
-def get_pairs():
+def get_pairs() -> list[tuple[type, type[mdates.DateConverter]]]:
     pairs = [
         (Timestamp, DatetimeConverter),
         (Period, PeriodConverter),

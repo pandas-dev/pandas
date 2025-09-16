@@ -202,7 +202,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # Constructors
 
-    _freq = None
+    _freq: Tick | Day | None = None
 
     @classmethod
     def _validate_dtype(cls, values, dtype):
