@@ -219,9 +219,6 @@ class TestCategoricalConcat:
         dfx = pd.concat([df1, df2])
         tm.assert_index_equal(df["grade"].cat.categories, dfx["grade"].cat.categories)
 
-        dfa = df1._append_internal(df2)
-        tm.assert_index_equal(df["grade"].cat.categories, dfa["grade"].cat.categories)
-
     def test_categorical_index_upcast(self):
         # GH 17629
         # test upcasting to object when concatenating on categorical indexes
