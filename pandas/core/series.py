@@ -4389,11 +4389,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         provides a method for default values), then this default is used
         rather than ``NaN``.
 
-        When the Series has ``⁠dtype="category"⁠``, the function is applied
-        to the categories and not to each individual value. This means
-        that if the same category appears multiple times, the function is
-        only called once for that category, and the result is reused for
-        all occurrences. Missing values (NaN) are not passed to the function.
+        
 
         Examples
         --------
