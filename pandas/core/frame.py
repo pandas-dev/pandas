@@ -10917,18 +10917,16 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(self.index.dtype, ExtensionDtype):
             # GH#41626 retain e.g. CategoricalDtype if reached via
             #  df.loc[key] = item
-            row_df.index = self.index.array._cast_pointwise_result(
-                row_df.index._values
-            )
+            row_df.index = self.index.array._cast_pointwise_result(row_df.index._values)
 
         # infer_objects is needed for
         #  test_append_empty_frame_to_series_with_dateutil_tz
-        other = row_df.infer_objects().rename_axis(index.names)
+        row_df = row_df.infer_objects().rename_axis(index.names)
 
         from pandas.core.reshape.concat import concat
 
         result = concat(
-            [self, other],
+            [self, row_df],
             ignore_index=ignore_index,
         )
         return result.__finalize__(self, method="append")
