@@ -8,7 +8,7 @@ Community tutorials
 
 This is a guide to many pandas tutorials by the community, geared mainly for new users.
 
-pandas cookbook by Julia Evans
+Pandas Cookbook by Julia Evans
 ------------------------------
 
 The goal of this 2015 cookbook (by `Julia Evans <https://jvns.ca>`_) is to
@@ -34,7 +34,7 @@ additional practice.
 Learn pandas by Hernan Rojas
 ----------------------------
 
-A set of lesson for new pandas users: https://bitbucket.org/hrojas/learn-pandas
+A set of lessons for new pandas users: https://bitbucket.org/hrojas/learn-pandas
 
 Practical data analysis with Python
 -----------------------------------
@@ -75,7 +75,7 @@ Excel charts with pandas, vincent and xlsxwriter
 
 *  `Using Pandas and XlsxWriter to create Excel charts <https://pandas-xlsxwriter-charts.readthedocs.io/>`_
 
-Joyful pandas
+Modern pandas
 -------------
 
 A tutorial written in Chinese by Yuanhao Geng. It covers the basic operations
