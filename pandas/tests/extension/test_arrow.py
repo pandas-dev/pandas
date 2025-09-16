@@ -1865,7 +1865,7 @@ def test_str_match(pat, case, na, exp):
 @pytest.mark.parametrize(
     "pat, case, na, exp",
     [
-        ["abc", False, None, [True, True, False, None]],
+        ["abc", False, None, [True, False, False, None]],
         ["Abc", True, None, [False, False, False, None]],
         ["bc", True, None, [False, False, False, None]],
         ["ab", False, None, [False, False, False, None]],
@@ -1878,18 +1878,19 @@ def test_str_match(pat, case, na, exp):
         ["Abc\\$", True, None, [False, False, False, None]],
     ],
 )
-def test_str_fullmatch(pat, case, na, exp):
-    ser = pd.Series(["abc", "abc$", "$abc", None], dtype=ArrowDtype(pa.string()))
-    result = ser.str.fullmatch(pat, case=case, na=na)
-    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
-    tm.assert_series_equal(result, expected)
-
-def test_str_fullmatch_against_python_fullmatch(pat, case, na, exp):
-    ser = pd.Series(["abc", "abc$", "$abc", None], dtype=ArrowDtype(pa.string()))
-    ser2 = pd.Series(["abc", "abc$", "$abc", None], dtype=str)
-    result = ser.str.fullmatch(pat, case=case, na=na)
-    result2 = ser2.str.fullmatch(pat, case=case, na=na)
-    tm.assert_series_equal(result, result2)
+class TestFullmatch:
+    def test_str_fullmatch(self, pat, case, na, exp):
+        ser = pd.Series(["abc", "abc$", "$abc", None], dtype=ArrowDtype(pa.string()))
+        result = ser.str.fullmatch(pat, case=case, na=na)
+        expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+        tm.assert_series_equal(result, expected)
+    
+    def test_str_fullmatch_against_python_fullmatch(self, pat, case, na, exp):
+        ser = pd.Series(["abc", "abc$", "$abc", None], dtype=ArrowDtype(pa.string()))
+        ser2 = pd.Series(["abc", "abc$", "$abc", None], dtype=str)
+        result = ser.str.fullmatch(pat, case=case, na=na)
+        result2 = ser2.str.fullmatch(pat, case=case, na=na)
+        tm.assert_series_equal(result, result2)
 
 
 @pytest.mark.parametrize(
