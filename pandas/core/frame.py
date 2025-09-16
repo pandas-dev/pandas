@@ -10893,61 +10893,43 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _append_internal(
         self,
-        other,
+        other: Series,
         ignore_index: bool = False,
-        verify_integrity: bool = False,
-        sort: bool = False,
     ) -> DataFrame:
-        if isinstance(other, (Series, dict)):
-            if isinstance(other, dict):
-                if not ignore_index:
-                    raise TypeError("Can only append a dict if ignore_index=True")
-                other = Series(other)
-            if other.name is None and not ignore_index:
-                raise TypeError(
-                    "Can only append a Series if ignore_index=True "
-                    "or if the Series has a name"
-                )
+        assert isinstance(other, Series), type(other)
 
-            index = Index(
-                [other.name],
-                name=(
-                    self.index.names
-                    if isinstance(self.index, MultiIndex)
-                    else self.index.name
-                ),
+        if other.name is None and not ignore_index:
+            raise TypeError(
+                "Can only append a Series if ignore_index=True "
+                "or if the Series has a name"
             )
-            row_df = other.to_frame().T
-            if isinstance(self.index.dtype, ExtensionDtype):
-                # GH#41626 retain e.g. CategoricalDtype if reached via
-                #  df.loc[key] = item
-                row_df.index = self.index.array._cast_pointwise_result(
-                    row_df.index._values
-                )
 
-            # infer_objects is needed for
-            #  test_append_empty_frame_to_series_with_dateutil_tz
-            other = row_df.infer_objects().rename_axis(index.names)
-        elif isinstance(other, list):
-            if not other:
-                pass
-            elif not isinstance(other[0], DataFrame):
-                other = DataFrame(other)
-                if self.index.name is not None and not ignore_index:
-                    other.index.name = self.index.name
+        index = Index(
+            [other.name],
+            name=(
+                self.index.names
+                if isinstance(self.index, MultiIndex)
+                else self.index.name
+            ),
+        )
+
+        row_df = other.to_frame().T
+        if isinstance(self.index.dtype, ExtensionDtype):
+            # GH#41626 retain e.g. CategoricalDtype if reached via
+            #  df.loc[key] = item
+            row_df.index = self.index.array._cast_pointwise_result(
+                row_df.index._values
+            )
+
+        # infer_objects is needed for
+        #  test_append_empty_frame_to_series_with_dateutil_tz
+        other = row_df.infer_objects().rename_axis(index.names)
 
         from pandas.core.reshape.concat import concat
 
-        if isinstance(other, (list, tuple)):
-            to_concat = [self, *other]
-        else:
-            to_concat = [self, other]
-
         result = concat(
-            to_concat,
+            [self, other],
             ignore_index=ignore_index,
-            verify_integrity=verify_integrity,
-            sort=sort,
         )
         return result.__finalize__(self, method="append")
 
