@@ -2,7 +2,6 @@
 
 Parentheses vs. Square Brackets in Python and pandas
 ====================================================
-
 In both Python and pandas, it’s important to understand the difference between parentheses ``()`` and square brackets ``[]``:
 
 - **Parentheses** are used to call functions and methods. For example, ``df.mean()`` calculates the mean of a DataFrame, and parentheses are also used to group expressions, such as ``(a + b) * c``, or to create tuples: ``(1, 2, 3)``.
@@ -12,4 +11,3 @@ Remember:
 **Use [] for selection or indexing, and () for calling functions or grouping expressions.**
 
 For more explanation, see `Brackets in Python and pandas <https://python-public-policy.afeld.me/en/columbia/brackets.html>`__.
-
