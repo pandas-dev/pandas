@@ -1880,9 +1880,16 @@ def test_str_match(pat, case, na, exp):
 )
 def test_str_fullmatch(pat, case, na, exp):
     ser = pd.Series(["abc", "abc$", "$abc", None], dtype=ArrowDtype(pa.string()))
-    result = ser.str.match(pat, case=case, na=na)
+    result = ser.str.fullmatch(pat, case=case, na=na)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
     tm.assert_series_equal(result, expected)
+
+def test_str_fullmatch_against_python_fullmatch(pat, case, na):
+    ser = pd.Series(["abc", "abc$", "$abc", None], dtype=ArrowDtype(pa.string()))
+    ser2 = pd.Series(["abc", "abc$", "$abc", None], dtype=str)
+    result = ser.str.fullmatch(pat, case=case, na=na)
+    result2 = ser2.str.fullmatch(pat, case=case, na=na)
+    tm.assert_series_equal(result, result2)
 
 
 @pytest.mark.parametrize(
