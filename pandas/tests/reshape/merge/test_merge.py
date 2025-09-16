@@ -1378,6 +1378,9 @@ class TestMerge:
         # GH 24212
         # pd.merge gets [0, 1, 2, -1, -1, -1] as left_indexer, ensure that
         # -1 is interpreted as a missing value instead of the last element
+        if index.dtype == "float32" and expected_index.dtype == "float64":
+            # GH#41626
+            expected_index = expected_index.astype("float32")
         df1 = DataFrame({"a": [0, 1, 2], "key": [0, 1, 2]}, index=index)
         df2 = DataFrame({"b": [0, 1, 2, 3, 4, 5]})
         result = df1.merge(df2, left_on="key", right_index=True, how=how)

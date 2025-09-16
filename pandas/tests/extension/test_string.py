@@ -257,6 +257,14 @@ class TestStringArray(base.ExtensionTests):
             request.applymarker(mark)
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(
+        self, data, request, using_infer_string
+    ):
+        if not using_infer_string and data.dtype.storage == "python":
+            mark = pytest.mark.xfail(reason="Casts to object")
+            request.applymarker(mark)
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
 
 class Test2DCompat(base.Dim2CompatTests):
     @pytest.fixture(autouse=True)
