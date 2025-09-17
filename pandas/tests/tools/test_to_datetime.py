@@ -22,6 +22,7 @@ from pandas._libs.tslibs import (
     iNaT,
     parsing,
 )
+from pandas.compat import PY314
 from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
@@ -56,6 +57,17 @@ PARSING_ERR_MSG = (
     r"for each element individually. You might want to use `dayfirst` "
     r"alongside this."
 )
+
+if PY314:
+    NOT_99 = ", not 99"
+    DAY_IS_OUT_OF_RANGE = (
+        r"day \d{1,2} must be in range 1\.\.\d{1,2} for month \d{1,2} in year \d{4}"
+        ", at position 0"
+    )
+else:
+    NOT_99 = ""
+    DAY_IS_OUT_OF_RANGE = "day is out of range for month, at position 0"
+
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:errors='ignore' is deprecated:FutureWarning"
@@ -1451,7 +1463,7 @@ class TestToDatetime:
                 r'^Given date string "a" not likely a datetime, at position 0$',
                 r'^unconverted data remains when parsing with format "%H:%M:%S": "9", '
                 f"at position 0. {PARSING_ERR_MSG}$",
-                r"^second must be in 0..59: 00:01:99, at position 0$",
+                rf"^second must be in 0..59{NOT_99}: 00:01:99, at position 0$",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -1509,7 +1521,7 @@ class TestToDatetime:
                 f"{PARSING_ERR_MSG}$",
                 r'^unconverted data remains when parsing with format "%H:%M:%S": "9", '
                 f"at position 0. {PARSING_ERR_MSG}$",
-                r"^second must be in 0..59: 00:01:99, at position 0$",
+                rf"^second must be in 0..59{NOT_99}: 00:01:99, at position 0$",
             ]
         )
         with pytest.raises(ValueError, match=msg):
@@ -3012,7 +3024,10 @@ class TestDaysInMonth:
         assert isna(to_datetime(arg, errors="coerce", format=format, cache=cache))
 
     def test_day_not_in_month_raise(self, cache):
-        msg = "day is out of range for month: 2015-02-29, at position 0"
+        if PY314:
+            msg = "day 29 must be in range 1..28 for month 2 in year 2015: 2015-02-29"
+        else:
+            msg = "day is out of range for month: 2015-02-29"
         with pytest.raises(ValueError, match=msg):
             to_datetime("2015-02-29", errors="raise", cache=cache)
 
@@ -3022,12 +3037,12 @@ class TestDaysInMonth:
             (
                 "2015-02-29",
                 "%Y-%m-%d",
-                f"^day is out of range for month, at position 0. {PARSING_ERR_MSG}$",
+                f"^{DAY_IS_OUT_OF_RANGE}. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-29-02",
                 "%Y-%d-%m",
-                f"^day is out of range for month, at position 0. {PARSING_ERR_MSG}$",
+                f"^{DAY_IS_OUT_OF_RANGE}. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-02-32",
@@ -3044,12 +3059,12 @@ class TestDaysInMonth:
             (
                 "2015-04-31",
                 "%Y-%m-%d",
-                f"^day is out of range for month, at position 0. {PARSING_ERR_MSG}$",
+                f"^{DAY_IS_OUT_OF_RANGE}. {PARSING_ERR_MSG}$",
             ),
             (
                 "2015-31-04",
                 "%Y-%d-%m",
-                f"^day is out of range for month, at position 0. {PARSING_ERR_MSG}$",
+                f"^{DAY_IS_OUT_OF_RANGE}. {PARSING_ERR_MSG}$",
             ),
         ],
     )

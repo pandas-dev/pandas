@@ -16,6 +16,7 @@ from pandas._libs.tslibs.ccalendar import (
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas.compat import PY314
 
 from pandas import (
     NaT,
@@ -342,7 +343,10 @@ class TestPeriodConstruction:
         msg = '^Given date string "-2000" not likely a datetime$'
         with pytest.raises(ValueError, match=msg):
             Period("-2000", "Y")
-        msg = "day is out of range for month"
+        if PY314:
+            msg = "day 0 must be in range 1..31 for month 1 in year 1: 0"
+        else:
+            msg = "day is out of range for month"
         with pytest.raises(DateParseError, match=msg):
             Period("0", "Y")
         msg = "Unknown datetime string format, unable to parse"
