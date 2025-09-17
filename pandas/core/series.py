@@ -6161,9 +6161,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                         np.bool_,
                     ):
                         warnings.warn(
-                            "Operation between non boolean Series with different "
-                            "indexes will no longer return a boolean result in "
-                            "a future version. Cast both Series to object type "
+                            "Operation between Series with different indexes "
+                            "that are not of numpy boolean or object dtype "
+                            "will no longer return a numpy boolean result "
+                            "in a future version. "
+                            "Cast both Series to object type "
                             "to maintain the prior behavior.",
                             FutureWarning,
                             stacklevel=find_stack_level(),
