@@ -1,43 +1,16 @@
-"""  
-Data structure for 1-dimensional cross-sectional and time series data  
-"""  
-from __future__ import annotations  
+"""
+Data structure for 1-dimensional cross-sectional and time series data
+"""
 
-from collections.abc import (  
-    Callable,  
-    Hashable,  
-    Iterable,  
-    Mapping,  
-    Sequence,  
-)  
-import functools  
-import operator  
-import sys  
-from textwrap import dedent  
-from typing import (  
-    IO,  
-    TYPE_CHECKING,  
-    Any,  
-    Literal,  
-    Self,  
-    cast,  
-    overload,  
-)  
-import warnings  
+from __future__ import annotations
 
-import numpy as np  
-
-from pandas._libs import (  
-    lib,  
-    properties,  
-    reshape,  
-)  
-from pandas._libs.lib import is_range_indexer
+import numpy as np
 
 # ... (rest of imports and code) ...
 
 # Navigate to line 5892-5894 area to implement the patch:
 # The _flex_method function needs modification to handle 0-dimensional numpy arrays
+
 
 def _flex_method(self, other, op, *, level=None, fill_value=None, axis: Axis = 0):
     if axis is not None:
@@ -48,7 +21,7 @@ def _flex_method(self, other, op, *, level=None, fill_value=None, axis: Axis = 0
     elif isinstance(other, (np.ndarray, list, tuple)):
         # Fix for issue #59053: Handle 0-dimensional numpy arrays as scalars
         # Skip length check for scalar numpy arrays (ndim == 0) to avoid TypeError
-        if hasattr(other, 'ndim') and other.ndim == 0:
+        if hasattr(other, "ndim") and other.ndim == 0:
             # Treat 0-dimensional arrays as scalars, skip len() check
             pass
         else:
@@ -64,5 +37,6 @@ def _flex_method(self, other, op, *, level=None, fill_value=None, axis: Axis = 0
                 return op(self, fill_value)
             self = self.fillna(fill_value)
         return op(self, other)
+
 
 # Continue with the rest of the file content...
