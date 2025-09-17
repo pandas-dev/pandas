@@ -175,3 +175,7 @@ License
 
 .. literalinclude:: ../../../LICENSE
    :language: none
+
+
+.. note::
+   Pandas is continuously improving thanks to contributions from the community.
