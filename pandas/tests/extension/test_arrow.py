@@ -1067,6 +1067,15 @@ class TestArrowArray(base.ExtensionTests):
         expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
         tm.assert_series_equal(result, expected)
 
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_date(pa_dtype):
+            mark = pytest.mark.xfail(
+                reason="GH#62343 incorrectly casts to timestamp[ms][pyarrow]"
+            )
+            request.applymarker(mark)
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
 
 class TestLogicalOps:
     """Various Series and DataFrame logical ops methods."""
