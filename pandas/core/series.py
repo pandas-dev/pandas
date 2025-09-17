@@ -3,16 +3,17 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from pandas.core.base import Axis
 from pandas.core import ops
 from pandas.core.dtypes.missing import isna
 
-# Type alias to avoid circular import
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
+    from pandas.core.base import Axis
     from pandas import Series
+
 
 def _flex_method(
     self,
@@ -26,7 +27,7 @@ def _flex_method(
     if axis is not None:
         self._get_axis_number(axis)
     res_name = ops.get_op_result_name(self, other)
-    if isinstance(other, self.__class__):
+    if isinstance(other, type(self)):
         return self._binop(other, op, level=level, fill_value=fill_value)
     elif isinstance(other, (np.ndarray, list, tuple)):
         # Fix for issue #59053: Handle 0-dimensional numpy arrays as scalars
