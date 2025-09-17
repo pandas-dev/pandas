@@ -8,6 +8,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import PY314
+
 from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_dtype,
@@ -1376,6 +1378,9 @@ class TestMerge:
         # GH 24212
         # pd.merge gets [0, 1, 2, -1, -1, -1] as left_indexer, ensure that
         # -1 is interpreted as a missing value instead of the last element
+        if index.dtype == "float32" and expected_index.dtype == "float64":
+            # GH#41626
+            expected_index = expected_index.astype("float32")
         df1 = DataFrame({"a": [0, 1, 2], "key": [0, 1, 2]}, index=index)
         df2 = DataFrame({"b": [0, 1, 2, 3, 4, 5]})
         result = df1.merge(df2, left_on="key", right_index=True, how=how)
@@ -2420,10 +2425,18 @@ def test_merge_suffix_raises(suffixes):
         merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 
 
+TWO_GOT_THREE = "2, got 3" if PY314 else "2"
+
+
 @pytest.mark.parametrize(
     "col1, col2, suffixes, msg",
     [
-        ("a", "a", ("a", "b", "c"), r"too many values to unpack \(expected 2\)"),
+        (
+            "a",
+            "a",
+            ("a", "b", "c"),
+            (rf"too many values to unpack \(expected {TWO_GOT_THREE}\)"),
+        ),
         ("a", "a", tuple("a"), r"not enough values to unpack \(expected 2, got 1\)"),
     ],
 )
