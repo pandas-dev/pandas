@@ -16,6 +16,10 @@ from pandas.tests.strings import (
     is_object_or_nan_string_dtype,
 )
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:.str accessor on object dtype:FutureWarning"
+)
+
 # --------------------------------------------------------------------------------------
 # str.contains
 # --------------------------------------------------------------------------------------
@@ -1248,6 +1252,9 @@ def test_translate_mixed_object():
 # --------------------------------------------------------------------------------------
 
 
+@pytest.mark.filterwarnings(
+    "ignore:.str accessor on object dtype is deprecated:FutureWarning"
+)
 def test_flags_kwarg(any_string_dtype):
     data = {
         "Dave": "dave@google.com",
@@ -1274,7 +1281,8 @@ def test_flags_kwarg(any_string_dtype):
     result = data.str.count(pat, flags=re.IGNORECASE)
     assert result.iloc[0] == 1
 
+    data_str = data.str
     msg = "has match groups"
     with tm.assert_produces_warning(UserWarning, match=msg):
-        result = data.str.contains(pat, flags=re.IGNORECASE)
+        result = data_str.contains(pat, flags=re.IGNORECASE)
     assert result.iloc[0]

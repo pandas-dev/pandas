@@ -9,6 +9,10 @@ from pandas import (
     _testing as tm,
 )
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:.str accessor on object dtype:FutureWarning"
+)
+
 
 def test_title(any_string_dtype):
     s = Series(["FOO", "BAR", np.nan, "Blah", "blurg"], dtype=any_string_dtype)
