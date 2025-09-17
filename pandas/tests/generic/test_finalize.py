@@ -690,9 +690,9 @@ def test_finalize_frame_series_name():
     ("cross",),
 ])
 def test_merge_sets_duplication_allowance_flag(
-    how,
-    allow_on_left,
-    allow_on_right
+    how: str,
+    allow_on_left: bool,
+    allow_on_right: bool
 ):
     """
     Check that DataFrame.merge correctly sets the allow_duplicate_labels flag
@@ -729,8 +729,8 @@ def test_merge_sets_duplication_allowance_flag(
     ]
 )
 def test_merge_asof_sets_duplication_allowance_flag(
-    allow_on_left,
-    allow_on_right
+    allow_on_left: bool,
+    allow_on_right: bool
 ):
     """
     Check that pandas.merge_asof correctly sets the allow_duplicate_labels flag
