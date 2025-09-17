@@ -1910,10 +1910,11 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(indexer, tuple):
             nindexer = []
             for i, idx in enumerate(indexer):
-                if isinstance(idx, dict):
+                idx, missing = convert_missing_indexer(idx)
+                if missing:
                     # reindex the axis to the new value
                     # and set inplace
-                    key, _ = convert_missing_indexer(idx)
+                    key = idx
 
                     # if this is the items axes, then take the main missing
                     # path first
