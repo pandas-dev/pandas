@@ -28,6 +28,7 @@ import argparse
 import collections
 import datetime
 import importlib
+import io
 import itertools
 import json
 import operator
@@ -36,6 +37,7 @@ import pathlib
 import re
 import shutil
 import sys
+import tarfile
 import time
 import typing
 
@@ -66,7 +68,7 @@ class Preprocessors:
     """
 
     @staticmethod
-    def current_year(context):
+    def current_year(context: dict) -> dict:
         """
         Add the current year to the context, so it can be used for the copyright
         note, or other places where it is needed.
@@ -75,15 +77,69 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def navbar_add_info(context):
+    def download_translated_content(context: dict) -> dict:
+        """
+        Download the translations from the mirror translations repository.
+        https://github.com/Scientific-Python-Translations/pandas-translations
+
+        All translated languages are downloaded, extracted and place inside the
+        ``pandas`` folder in a separate folder for each language (e.g. ``pandas/es``).
+
+        The extracted folder and the translations folders are deleted before
+        downloading the information, so the translations are always up to date.
+        """
+        base_folder = os.path.dirname(__file__)
+        extract_path = os.path.join(base_folder, context["translations"]["source_path"])
+        shutil.rmtree(extract_path, ignore_errors=True)
+        response = requests.get(context["translations"]["url"])
+        if response.status_code == 200:
+            with tarfile.open(None, "r:gz", io.BytesIO(response.content)) as tar:
+                tar.extractall(base_folder)
+        else:
+            raise Exception(f"Failed to download translations: {response.status_code}")
+
+        for lang in list(context["translations"]["languages"].keys())[1:]:
+            shutil.rmtree(os.path.join(base_folder, "pandas", lang), ignore_errors=True)
+            shutil.move(
+                os.path.join(extract_path, lang),
+                os.path.join(base_folder, "pandas", lang),
+            )
+        return context
+
+    @staticmethod
+    def add_navbar_content(context: dict) -> dict:
+        """
+        Add the navbar content to the context.
+
+        The navbar content is loaded for all available languages.
+        """
+        context["navbar"] = {}
+        for lang in context["translations"]["languages"]:
+            path = os.path.join(
+                context["source_path"],
+                "" if lang == "en" else f"{lang}",
+                context["main"]["navbar_fname"],
+            )
+            if os.path.exists(path):
+                with open(
+                    path,
+                    encoding="utf-8",
+                ) as f:
+                    navbar_lang = yaml.safe_load(f)
+                context["navbar"][lang] = navbar_lang["navbar"]
+
+        return context
+
+    @staticmethod
+    def navbar_add_info(context: dict) -> dict:
         """
         Items in the main navigation bar can be direct links, or dropdowns with
         subitems. This context preprocessor adds a boolean field
         ``has_subitems`` that tells which one of them every element is. It
         also adds a ``slug`` field to be used as a CSS id.
         """
-        for i, item in enumerate(context["navbar"]):
-            context["navbar"][i] = dict(
+        for i, item in enumerate(context["navbar"]["en"]):
+            context["navbar"]["en"][i] = dict(
                 item,
                 has_subitems=isinstance(item["target"], list),
                 slug=(item["name"].replace(" ", "-").lower()),
@@ -91,7 +147,40 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def blog_add_posts(context):
+    def navbar_add_translated_info(context: dict) -> dict:
+        """
+        Prepare the translated navbar information for the template.
+
+        Items in the main navigation bar can be direct links, or dropdowns with
+        subitems. This context preprocessor adds a boolean field
+        ``has_subitems`` that tells which one of them every element is. It
+        also adds a ``slug`` field to be used as a CSS id.
+        """
+
+        def update_target(item: dict, prefix: str) -> None:
+            if item.get("translated", True):
+                item["target"] = f"{prefix}/{item['target']}"
+            else:
+                item["target"] = f"../{item['target']}"
+
+        for lang in list(context["translations"]["languages"].keys())[1:]:
+            for i, item in enumerate(context["navbar"][lang]):
+                has_subitems = isinstance(item["target"], list)
+                if has_subitems:
+                    for sub_item in item["target"]:
+                        update_target(sub_item, lang)
+                else:
+                    update_target(item, lang)
+
+                context["navbar"][lang][i] = dict(
+                    item,
+                    has_subitems=has_subitems,
+                    slug=(item["name"].replace(" ", "-").lower()),
+                )
+        return context
+
+    @staticmethod
+    def blog_add_posts(context: dict) -> dict:
         """
         Given the blog feed defined in the configuration yaml, this context
         preprocessor fetches the posts in the feeds, and returns the relevant
@@ -158,7 +247,7 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def maintainers_add_info(context):
+    def maintainers_add_info(context: dict) -> dict:
         """
         Given the active maintainers defined in the yaml file, it fetches
         the GitHub user information for them.
@@ -208,7 +297,7 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def home_add_releases(context):
+    def home_add_releases(context: dict) -> dict:
         context["releases"] = []
 
         github_repo_url = context["main"]["github_repo_url"]
@@ -268,7 +357,7 @@ class Preprocessors:
         return context
 
     @staticmethod
-    def roadmap_pdeps(context):
+    def roadmap_pdeps(context: dict) -> dict:
         """
         PDEP's (pandas enhancement proposals) are not part of the bar
         navigation. They are included as lists in the "Roadmap" page
@@ -382,7 +471,7 @@ def get_callable(obj_as_str: str) -> object:
     return obj
 
 
-def get_context(config_fname: pathlib.Path, **kwargs):
+def get_context(config_fname: pathlib.Path, **kwargs: dict) -> dict:
     """
     Load the config yaml as the base context, and enrich it with the
     information added by the context preprocessors defined in the file.
@@ -447,26 +536,28 @@ def main(
                 f"Invalid versions.json: {e}. Ensure it is valid JSON."
             ) from e
 
-    config_fname = source_path / "config.yml"
-
     shutil.rmtree(target_path, ignore_errors=True)
     os.makedirs(target_path, exist_ok=True)
 
     sys.stderr.write("Generating context...\n")
-    context = get_context(config_fname, target_path=target_path)
+    context = get_context(
+        pathlib.Path(source_path, "config.yml"),
+        target_path=target_path,
+    )
     sys.stderr.write("Context generated\n")
 
     templates_path = source_path / context["main"]["templates_path"]
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path))
-
-    for fname in get_source_files(source_path):
-        if fname.as_posix() in context["main"]["ignore"]:
+    for pathname in get_source_files(source_path):
+        fname = str(pathname)
+        context["lang"] = fname[0:2] if fname[2] == "/" else "en"
+        if pathname.as_posix() in context["main"]["ignore"]:
             continue
         sys.stderr.write(f"Processing {fname}\n")
-        dirname = fname.parent
+        dirname = pathname.parent
         (target_path / dirname).mkdir(parents=True, exist_ok=True)
 
-        extension = fname.suffix
+        extension = pathname.suffix
         if extension in (".html", ".md"):
             with (source_path / fname).open(encoding="utf-8") as f:
                 content = f.read()
@@ -483,13 +574,16 @@ def main(
                 # Python-Markdown doesn't let us config table attributes by hand
                 body = body.replace("<table>", '<table class="table table-bordered">')
                 content = extend_base_template(body, context["main"]["base_template"])
-            context["base_url"] = "../" * (len(fname.parents) - 1)
+            context["base_url"] = "../" * (len(pathname.parents) - 1)
             content = jinja_env.from_string(content).render(**context)
-            fname_html = fname.with_suffix(".html").name
+            fname_html = pathname.with_suffix(".html").name
             with (target_path / dirname / fname_html).open("w", encoding="utf-8") as f:
                 f.write(content)
         else:
-            shutil.copy(source_path / fname, target_path / fname)
+            shutil.copy(
+                os.path.join(source_path, fname), os.path.join(target_path, dirname)
+            )
+    return 0
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 main:
   templates_path: _templates
   base_template: "layout.html"
+  navbar_fname: "navbar.yml"
   production_url: "https://pandas.pydata.org/"
   ignore:
   - _templates/layout.html
@@ -8,7 +9,10 @@ main:
   github_repo_url: pandas-dev/pandas
   context_preprocessors:
   - pandas_web.Preprocessors.current_year
+  - pandas_web.Preprocessors.download_translated_content
+  - pandas_web.Preprocessors.add_navbar_content
   - pandas_web.Preprocessors.navbar_add_info
+  - pandas_web.Preprocessors.navbar_add_translated_info
   - pandas_web.Preprocessors.blog_add_posts
   - pandas_web.Preprocessors.maintainers_add_info
   - pandas_web.Preprocessors.home_add_releases
@@ -24,39 +28,6 @@ static:
   css:
   - static/css/pandas.css
   - static/css/codehilite.css
-navbar:
-  - name: "About us"
-    target:
-    - name: "About pandas"
-      target: about/
-    - name: "Project roadmap"
-      target: about/roadmap.html
-    - name: "Governance"
-      target: about/governance.html
-    - name: "Team"
-      target: about/team.html
-    - name: "Sponsors"
-      target: about/sponsors.html
-    - name: "Citing and logo"
-      target: about/citing.html
-  - name: "Getting started"
-    target: getting_started.html
-  - name: "Documentation"
-    target: docs/
-  - name: "Community"
-    target:
-    - name: "Blog"
-      target: community/blog/
-    - name: "Ask a question (StackOverflow)"
-      target: https://stackoverflow.com/questions/tagged/pandas
-    - name: "Code of conduct"
-      target: community/coc.html
-    - name: "Ecosystem"
-      target: community/ecosystem.html
-    - name: "Benchmarks"
-      target: community/benchmarks.html
-  - name: "Contribute"
-    target: contribute.html
 blog:
   num_posts: 50
   posts_path: community/blog
@@ -203,3 +174,10 @@ sponsors:
     kind: partner
 roadmap:
   pdeps_path: pdeps
+translations:
+  url: https://github.com/Scientific-Python-Translations/pandas-translations/archive/refs/heads/main.tar.gz
+  source_path: pandas-translations-main/web/pandas/
+  languages:
+    en: English
+    es: Español
+    pt: Português
