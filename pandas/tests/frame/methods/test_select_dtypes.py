@@ -483,3 +483,10 @@ class TestSelectDtypes:
         result = df.select_dtypes(include=["number"])
         result.iloc[0, 0] = 0
         tm.assert_frame_equal(df, df_orig)
+
+    def test_select_dtypes_empty_frame():
+        # Test that select_dtypes works on a completely empty DataFrame
+        df = DataFrame()
+        result = df.select_dtypes(include="int64")
+        expected = DataFrame()
+        tm.assert_frame_equal(result, expected)
