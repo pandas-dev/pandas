@@ -1,18 +1,19 @@
 """
 Data structure for 1-dimensional cross-sectional and time series data
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas.core import ops
 from pandas.core.dtypes.missing import isna
+
+from pandas.core import ops
 
 if TYPE_CHECKING:
     from pandas.core.base import Axis
-    from pandas import Series
 
 
 def _flex_method(
