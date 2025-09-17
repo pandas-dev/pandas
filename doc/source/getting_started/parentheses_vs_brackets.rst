@@ -1,10 +1,10 @@
 Parentheses vs. Brackets in pandas
 ==================================
 
-In pandas, beginners often get confused between **parentheses `()`** and **square brackets `[]`**.  
+In pandas, beginners often get confused between **parentheses ``()``** and **square brackets ``[]``**.
 Understanding the difference is essential for using pandas effectively.
 
-**Parentheses `()`** are used to **call functions or methods**:
+**Parentheses ``()``** are used to **call functions or methods**:
 
 .. code-block:: python
 
@@ -14,7 +14,7 @@ Understanding the difference is essential for using pandas effectively.
     # Call the head() method to see first 5 rows
     df.head()
 
-**Square brackets `[]`** are used to **access data or select columns**:
+**Square brackets ``[]``** are used to **access data or select columns**:
 
 .. code-block:: python
 
@@ -26,8 +26,8 @@ Understanding the difference is essential for using pandas effectively.
 
 **Key points:**
 
-- `()` always executes something (a function/method).  
-- `[]` always retrieves data (like indexing or slicing).  
+- `()` always executes something (a function/method).
+- `[]` always retrieves data (like indexing or slicing).
 - Mixing them up is a common source of errors for new pandas users.
 
 **Additional examples:**
