@@ -186,9 +186,9 @@ class IndexingMixin:
         ``.iloc`` will raise ``IndexError`` if a requested indexer is
         out-of-bounds, except *slice* indexers which allow out-of-bounds
         indexing (this conforms with python/numpy *slice* semantics).
-        
-        It is also worth noting, iloc converts all elements returned into the same 
-        pandas dtype and all numeric dtype conversions follow the numpy promotion 
+
+        It is also worth noting, iloc converts all elements returned into the same
+        pandas dtype and all numeric dtype conversions follow the numpy promotion
         rules.
 
         See more at :ref:`Selection by Position <indexing.integer>`.
