@@ -15,6 +15,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
 )
+from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
@@ -46,6 +47,7 @@ if TYPE_CHECKING:
     )
 
 
+@set_module("pandas")
 def to_numeric(
     arg,
     errors: DateTimeErrorChoices = "raise",
