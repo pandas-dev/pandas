@@ -528,48 +528,7 @@ Data sets often contain more than just numerical data. pandas provides a wide ra
             </div>
         </div>
 
-        <div class="card tutorial-card">
-            <div class="card-header collapsed card-link" data-bs-toggle="collapse" data-bs-target="#collapseEleven">
-                <div class="d-flex flex-row tutorial-card-header-1">
-                    <div class="d-flex flex-row tutorial-card-header-2">
-                        <button class="btn btn-dark btn-sm"></button>
-                        How to use parentheses vs square brackets?
-                    </div>
-                    <span class="badge gs-badge-link">
 
-:ref:`Straight to tutorial...<10min_tut_11_brackets_vs_parenthesis>`
-
-.. raw:: html
-
-                    </span>
-                </div>
-            </div>
-            <div id="collapseEleven" class="collapse" data-parent="#accordion">
-                <div class="card-body">
-
-Understanding the difference between parentheses and square brackets is crucial for pandas users. Parentheses are used for function calls and grouping, while square brackets are for indexing and selection.
-
-.. raw:: html
-
-                    <div class="d-flex flex-row">
-                        <span class="badge gs-badge-link">
-
-:ref:`To introduction tutorial <10min_tut_11_brackets_vs_parenthesis>`
-
-.. raw:: html
-
-                        </span>
-                        <span class="badge gs-badge-link">
-
-:ref:`To user guide <indexing>`
-
-.. raw:: html
-
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
 
     </div>
     </div>
