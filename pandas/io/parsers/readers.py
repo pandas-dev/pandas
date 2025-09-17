@@ -11,6 +11,7 @@ from collections import (
     defaultdict,
 )
 import csv
+from inspect import isfunction
 import sys
 from textwrap import fill
 from typing import (
@@ -28,6 +29,8 @@ from typing import (
 import warnings
 
 import numpy as np
+
+from pandas._config import get_option
 
 from pandas._libs import lib
 from pandas._libs.parsers import STR_NA_VALUES
@@ -1516,8 +1519,10 @@ class TextFileReader(abc.Iterator):
 
             if hasattr(self, "orig_options"):
                 dtype_arg = self.orig_options.get("dtype", None)
+                usecols = self.orig_options.get("usecols", None)
             else:
                 dtype_arg = None
+                usecols = None
 
             if isinstance(dtype_arg, dict):
                 dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
@@ -1529,6 +1534,17 @@ class TextFileReader(abc.Iterator):
                 dtype = defaultdict(lambda: dtype_arg)
             else:
                 dtype = None
+
+            if get_option("future.usecols_use_order"):
+                if usecols is None or isfunction(usecols):
+                    # Doesn't change anything if function or None gets passed
+                    pass
+                elif len(usecols) == len(columns):
+                    # uses size of number in usecols to determine corresponding columns
+                    value_ranked = {v: i for i, v in enumerate(sorted(usecols))}
+                    usecols_pressed = [value_ranked[v] for v in usecols]
+                    columns = [columns[i] for i in usecols_pressed]
+                    col_dict = {k: col_dict[k] for k in columns}
 
             if dtype is not None:
                 new_col_dict = {}
@@ -1548,7 +1564,6 @@ class TextFileReader(abc.Iterator):
                 index=index,
                 copy=False,
             )
-
             self._currow += new_rows
         return df
 
