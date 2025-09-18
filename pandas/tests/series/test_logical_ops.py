@@ -46,7 +46,8 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(res, expected)
 
         res = s_tft | s_empty
-        expected = s_tft.sort_index()
+        # changed the test case output to align with kleene principle
+        expected = Series([True, np.nan, True], index=index).sort_index()
         tm.assert_series_equal(res, expected)
 
     def test_logical_operators_int_dtype_with_int_dtype(self):
@@ -389,7 +390,7 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(result, expected)
 
         result = a | empty
-        expected = Series([True, True, False], list("abc"))
+        expected = Series([True, True, np.nan], list("abc"))
         tm.assert_series_equal(result, expected)
 
         # vs non-matching
@@ -469,10 +470,10 @@ class TestSeriesLogicalOps:
         tm.assert_series_equal(s2 & s1, exp)
 
         # True | np.nan => True
-        exp_or1 = Series([True, True, True, False], index=list("ABCD"), name="x")
+        exp_or1 = Series([True, True, True, np.nan], index=list("ABCD"), name="x")
         tm.assert_series_equal(s1 | s2, exp_or1)
         # np.nan | True => True (should be)
-        exp_or = Series([True, True, True, False], index=list("ABCD"), name="x")
+        exp_or = Series([True, True, True, np.nan], index=list("ABCD"), name="x")
         tm.assert_series_equal(s2 | s1, exp_or)
 
         # DataFrame doesn't fill nan with False

@@ -462,24 +462,35 @@ def alignOutputWithKleene(left, right, op):
         result = np.zeros_like(res_values, dtype=bool)  # all False, bool dtype
         return result
 
-    if op.__name__ in {"and_", "rand_"}:
+    elif op.__name__ in {"and_", "rand_"}:
         res_values[:] = lvalues & rvalues
-        mask[:] = (
-            (left_mask & rvalues) | (right_mask & lvalues) | (left_mask & right_mask)
-        )
+        mask[:] = False
+
+        # Case 1: True & NA → NA
+        mask[lvalues & right_mask] = True
+        mask[rvalues & left_mask] = True
+
+        # Case 2: False & NA → False (keep False, no NA)
+        # Case 3: NA & NA → NA
+        mask[left_mask & right_mask] = True
 
     # --- OR logic ---
     elif op.__name__ in {"or_", "ror_"}:
         res_values[:] = lvalues | rvalues
-        # Unknown only if both sides are NA
-        mask[:] = left_mask & right_mask
 
-        # Handle cases where NA OR False → False, NA OR True → True
-        # Pandas convention: np.nan | False -> False, np.nan | True -> True
-        res_values[left_mask & ~rvalues] = False
-        res_values[right_mask & ~lvalues] = False
+        # Start fresh mask
+        mask[:] = False
+
+        # Case 1: NA | True → True (keep, no NA)
         res_values[left_mask & rvalues] = True
         res_values[right_mask & lvalues] = True
+
+        # Case 2: NA | False → NA
+        mask[left_mask & ~rvalues] = True
+        mask[right_mask & ~lvalues] = True
+
+        # Case 3: NA | NA → NA
+        mask[left_mask & right_mask] = True
 
     # --- XOR logic ---
     elif op.__name__ in {"xor", "rxor"}:
