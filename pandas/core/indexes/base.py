@@ -470,7 +470,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     str = Accessor("str", StringMethods)
 
-    _references = None
+    _references: BlockValuesRefs | None = None
 
     # --------------------------------------------------------------------
     # Constructors
@@ -640,7 +640,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     @classmethod
     def _simple_new(
-        cls, values: ArrayLike, name: Hashable | None = None, refs=None
+        cls,
+        values: ArrayLike,
+        name: Hashable | None = None,
+        refs: BlockValuesRefs | None = None,
     ) -> Self:
         """
         We require that we have a dtype compat for the values. If we are passed
@@ -3304,7 +3307,7 @@ class Index(IndexOpsMixin, PandasObject):
                     res = algos.unique1d(res_indexer)
                 else:
                     result = self.take(indexer)
-                    res = result.drop_duplicates()
+                    res = result.drop_duplicates()  # type: ignore[assignment]
                 return ensure_wrapped_if_datetimelike(res)
 
         res_values = self._intersection_via_get_indexer(other, sort=sort)
@@ -5042,9 +5045,13 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self._values, BaseMaskedArray):
             # This is only used if our array is monotonic, so no NAs present
             return self._values._data
-        elif isinstance(self._values, ArrowExtensionArray):
+        elif (
+            isinstance(self._values, ArrowExtensionArray)
+            and self.dtype.kind not in "mM"
+        ):
             # This is only used if our array is monotonic, so no missing values
             # present
+            # "mM" cases will go through _get_engine_target and cast to i8
             return self._values.to_numpy()
 
         # TODO: exclude ABCRangeIndex case here as it copies
@@ -5386,6 +5393,12 @@ class Index(IndexOpsMixin, PandasObject):
 
             # See also: Block.coerce_to_target_dtype
             dtype = self._find_common_type_compat(value)
+            if dtype == self.dtype:
+                # GH#56376 avoid RecursionError
+                raise AssertionError(
+                    "Something has gone wrong. Please report a bug at "
+                    "github.com/pandas-dev/pandas"
+                ) from err
             return self.astype(dtype).putmask(mask, value)
 
         values = self._values.copy()

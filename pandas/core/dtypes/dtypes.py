@@ -49,7 +49,7 @@ from pandas._libs.tslibs.dtypes import (
 from pandas._libs.tslibs.offsets import BDay
 from pandas.compat import (
     HAS_PYARROW,
-    pa_version_under12p1,
+    PYARROW_MIN_VERSION,
 )
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import set_module
@@ -123,7 +123,7 @@ class PandasExtensionDtype(ExtensionDtype):
     # problem dealing with multiple inheritance from PandasExtensionDtype
     # and ExtensionDtype's @properties in the subclasses below. The kind and
     # type variables in those subclasses are explicitly typed below.
-    subdtype = None
+    subdtype: DtypeObj | None = None
     str: str_type
     num = 100
     shape: tuple[int, ...] = ()
@@ -203,7 +203,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     Examples
     --------
     >>> t = pd.CategoricalDtype(categories=["b", "a"], ordered=True)
-    >>> pd.Series(["a", "b", "a", "c"], dtype=t)
+    >>> pd.Series(["a", "b", "a", None], dtype=t)
     0      a
     1      b
     2      a
@@ -1604,7 +1604,7 @@ class BaseMaskedDtype(ExtensionDtype):
     Base class for dtypes for BaseMaskedArray subclasses.
     """
 
-    base = None
+    base: DtypeObj | None = None
     type: type
     _internal_fill_value: Scalar
 
@@ -2189,8 +2189,10 @@ class ArrowDtype(StorageExtensionDtype):
 
     def __init__(self, pyarrow_dtype: pa.DataType) -> None:
         super().__init__("pyarrow")
-        if pa_version_under12p1:
-            raise ImportError("pyarrow>=12.0.1 is required for ArrowDtype")
+        if not HAS_PYARROW:
+            raise ImportError(
+                f"pyarrow>={PYARROW_MIN_VERSION} is required for ArrowDtype"
+            )
         if not isinstance(pyarrow_dtype, pa.DataType):
             raise ValueError(
                 f"pyarrow_dtype ({pyarrow_dtype}) must be an instance "
@@ -2341,8 +2343,10 @@ class ArrowDtype(StorageExtensionDtype):
         if string in ("string[pyarrow]", "str[pyarrow]"):
             # Ensure Registry.find skips ArrowDtype to use StringDtype instead
             raise TypeError("string[pyarrow] should be constructed by StringDtype")
-        if pa_version_under12p1:
-            raise ImportError("pyarrow>=10.0.1 is required for ArrowDtype")
+        if not HAS_PYARROW:
+            raise ImportError(
+                f"pyarrow>={PYARROW_MIN_VERSION} is required for ArrowDtype"
+            )
 
         base_type = string[:-9]  # get rid of "[pyarrow]"
         try:

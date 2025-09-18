@@ -19,3 +19,11 @@ class TestTimestampNormalize:
         result = Timestamp("1969-01-01 09:00:00").normalize()
         expected = Timestamp("1969-01-01 00:00:00")
         assert result == expected
+
+    def test_normalize_overflow_raises(self):
+        # GH#60583
+        ts = Timestamp.min
+
+        msg = "Cannot normalize Timestamp without integer overflow"
+        with pytest.raises(ValueError, match=msg):
+            ts.normalize()

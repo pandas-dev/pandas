@@ -38,7 +38,6 @@ from pandas.compat import (
     PY312,
     is_ci_environment,
     is_platform_windows,
-    pa_version_under13p0,
     pa_version_under14p0,
     pa_version_under19p0,
     pa_version_under20p0,
@@ -432,20 +431,7 @@ class TestArrowArray(base.ExtensionTests):
                 data, all_numeric_accumulations, skipna
             )
 
-        if pa_version_under13p0 and all_numeric_accumulations != "cumsum":
-            # xfailing takes a long time to run because pytest
-            # renders the exception messages even when not showing them
-            opt = request.config.option
-            if opt.markexpr and "not slow" in opt.markexpr:
-                pytest.skip(
-                    f"{all_numeric_accumulations} not implemented for pyarrow < 9"
-                )
-            mark = pytest.mark.xfail(
-                reason=f"{all_numeric_accumulations} not implemented for pyarrow < 9"
-            )
-            request.applymarker(mark)
-
-        elif all_numeric_accumulations == "cumsum" and (
+        if all_numeric_accumulations == "cumsum" and (
             pa.types.is_boolean(pa_type) or pa.types.is_decimal(pa_type)
         ):
             request.applymarker(
@@ -1080,6 +1066,15 @@ class TestArrowArray(base.ExtensionTests):
             exp = [True, True, None]
         expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
         tm.assert_series_equal(result, expected)
+
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_date(pa_dtype):
+            mark = pytest.mark.xfail(
+                reason="GH#62343 incorrectly casts to timestamp[ms][pyarrow]"
+            )
+            request.applymarker(mark)
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
 
 
 class TestLogicalOps:
@@ -1943,9 +1938,6 @@ def test_str_find_large_start():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
-)
 @pytest.mark.parametrize("start", [-15, -3, 0, 1, 15, None])
 @pytest.mark.parametrize("end", [-15, -1, 0, 3, 15, None])
 @pytest.mark.parametrize("sub", ["", "az", "abce", "a", "caa"])
@@ -3472,9 +3464,6 @@ def test_string_to_datetime_parsing_cast():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
-)
 def test_interpolate_not_numeric(data):
     if not data.dtype._is_numeric:
         ser = pd.Series(data)
@@ -3483,9 +3472,6 @@ def test_interpolate_not_numeric(data):
             pd.Series(data).interpolate()
 
 
-@pytest.mark.skipif(
-    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
-)
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_interpolate_linear(dtype):
     ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)
