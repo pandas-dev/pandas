@@ -1819,6 +1819,18 @@ class TestRank:
         s = Series([1, 2**63], dtype=dtype)
         tm.assert_numpy_array_equal(algos.rank(s), exp)
 
+    @pytest.mark.parametrize("method", ["average", "min", "max"])
+    def test_rank_tiny_values(self, method):
+        # GH62036: regression test for ranking with tiny float values
+        exp = np.array([4.0, 1.0, 3.0, np.nan, 2.0], dtype=np.float64)
+        s = Series(
+            [5.4954145e29, -9.791984e-21, 9.3715776e-26, pd.NA, 1.8790257e-28],
+            dtype="Float64",
+        )
+        s = s.astype(object)
+        result = algos.rank(s, method=method)
+        tm.assert_numpy_array_equal(result, exp)
+
     def test_too_many_ndims(self):
         arr = np.array([[[1, 2, 3], [4, 5, 6], [7, 8, 9]]])
         msg = "Array with ndim > 2 are not supported"

@@ -16,6 +16,7 @@ import pytest
 
 from pandas._libs import index as libindex
 from pandas.errors import IndexingError
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -1963,6 +1964,22 @@ class TestLocWithMultiIndex:
 
 
 class TestLocSetitemWithExpansion:
+    @td.skip_if_no("pyarrow")
+    def test_loc_setitem_with_expansion_preserves_ea_dtype(self):
+        # GH#41626 retain index.dtype in setitem-with-expansion
+        idx = Index([Timestamp(0).date()], dtype="date32[pyarrow]")
+        df = DataFrame({"A": range(1)}, index=idx)
+        item = Timestamp("1970-01-02").date()
+
+        df.loc[item] = 1
+
+        exp_index = Index([idx[0], item], dtype=idx.dtype)
+        tm.assert_index_equal(df.index, exp_index)
+
+        ser = df["A"].iloc[:-1]
+        ser.loc[item] = 1
+        tm.assert_index_equal(ser.index, exp_index)
+
     def test_loc_setitem_with_expansion_large_dataframe(self, monkeypatch):
         # GH#10692
         size_cutoff = 50
