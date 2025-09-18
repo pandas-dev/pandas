@@ -1093,8 +1093,8 @@ Reshaping
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when manipulating empty :class:`DataFrame` with an :class:`ExtentionDtype` (:issue:`59123`)
 - Bug in :meth:`concat` where concatenating DataFrame and Series with ``ignore_index = True`` drops the series name (:issue:`60723`, :issue:`56257`)
 - Bug in :func:`melt` where calling with duplicate column names in ``id_vars`` raised a misleading ``AttributeError`` (:issue:`61475`)
-- Bug in :meth:`DataFrame.merge` where user-provided suffixes could result in duplicate column names if the resulting names matched existing columns. Now raises a :class:`MergeError` in such cases. (:issue:`61402`)
 - Bug in :meth:`DataFrame.merge` where the result of a merge does not contain any metadata or flag information from the inputs to the merge. (:issue:`28283`)
+- Bug in :meth:`DataFrame.merge` where user-provided suffixes could result in duplicate column names if the resulting names matched existing columns. Now raises a :class:`MergeError` in such cases. (:issue:`61402`)
 - Bug in :meth:`DataFrame.merge` with :class:`CategoricalDtype` columns incorrectly raising ``RecursionError`` (:issue:`56376`)
 - Bug in :meth:`DataFrame.merge` with a ``float32`` index incorrectly casting the index to ``float64`` (:issue:`41626`)
 

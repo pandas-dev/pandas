@@ -78,7 +78,12 @@ class TestDataFrame:
         # merging with override
         # GH 6923
 
-        def finalize(self: DataFrame, other: DataFrame, method: Literal["merge", "concat"] | None = None, **kwargs):
+        def finalize(
+            self: DataFrame,
+            other: DataFrame,
+            method: Literal["merge", "concat"] | None = None,
+            **kwargs,
+        ):
             for name in self._metadata:
                 if method == "merge":
                     left, right = other.input_objs

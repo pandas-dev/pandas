@@ -1155,8 +1155,7 @@ class _MergeOperation:
         # __finalize is responsible for copying the metadata from the inputs to merge
         # to the result.
         return result.__finalize__(
-            types.SimpleNamespace(input_objs=[self.left, self.right]),
-            method="merge"
+            types.SimpleNamespace(input_objs=[self.left, self.right]), method="merge"
         )
 
     @final
@@ -1212,8 +1211,8 @@ class _MergeOperation:
         """
         Add an indicator column to the merge result.
 
-        This column indicates for each row of the output whether it was produced using the left,
-        right or both inputs.
+        This column indicates for each row of the output whether it was produced using
+        the left, right or both inputs.
         """
         result["_left_indicator"] = result["_left_indicator"].fillna(0)
         result["_right_indicator"] = result["_right_indicator"].fillna(0)
