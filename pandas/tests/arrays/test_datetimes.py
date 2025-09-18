@@ -93,6 +93,15 @@ class TestNonNano:
         res = dta.normalize()
         tm.assert_extension_array_equal(res, expected)
 
+    def test_normalize_overflow_raises(self):
+        # GH#60583
+        ts = pd.Timestamp.min
+        dta = DatetimeArray._from_sequence([ts], dtype="M8[ns]")
+
+        msg = "Cannot normalize Timestamp without integer overflow"
+        with pytest.raises(ValueError, match=msg):
+            dta.normalize()
+
     def test_simple_new_requires_match(self, unit):
         arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
         dtype = DatetimeTZDtype(unit, "UTC")
