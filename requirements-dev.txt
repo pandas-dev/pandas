@@ -67,6 +67,7 @@ sphinx
 sphinx-design
 sphinx-copybutton
 sphinx-toggleprompt
+scipy-stubs
 types-python-dateutil
 types-PyMySQL
 types-pytz

@@ -16,6 +16,7 @@ import pytest
 
 from pandas._libs import index as libindex
 from pandas.errors import IndexingError
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -1629,6 +1630,31 @@ class TestLocBaseIndependent:
         expected = DataFrame({"a": [1, 2, 2, 1, 1], "b": ["a", "a", "a", "a", "a"]})
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_with_nat_in_tzaware_index(self):
+        # GH#54409
+        timestamp = to_datetime("2023-01-01", utc=True)
+        df = DataFrame(
+            {
+                "index": Series([pd.NaT, timestamp]),
+                "value": Series([0, 1]),
+            }
+        ).set_index("index")
+
+        # Works fine when mixing NaT and valid values
+        result = df.loc[
+            Series([pd.NaT, timestamp, timestamp], dtype=df.index.dtype),
+            "value",
+        ]
+        expected = [0, 1, 1]
+        assert result.tolist() == expected
+
+        # Regression check: all-NaT lookup should return [0], not raise
+        result = df.loc[
+            Series([pd.NaT], dtype=df.index.dtype),
+            "value",
+        ]
+        assert result.tolist() == [0]
+
 
 class TestLocWithEllipsis:
     @pytest.fixture
@@ -1938,6 +1964,22 @@ class TestLocWithMultiIndex:
 
 
 class TestLocSetitemWithExpansion:
+    @td.skip_if_no("pyarrow")
+    def test_loc_setitem_with_expansion_preserves_ea_dtype(self):
+        # GH#41626 retain index.dtype in setitem-with-expansion
+        idx = Index([Timestamp(0).date()], dtype="date32[pyarrow]")
+        df = DataFrame({"A": range(1)}, index=idx)
+        item = Timestamp("1970-01-02").date()
+
+        df.loc[item] = 1
+
+        exp_index = Index([idx[0], item], dtype=idx.dtype)
+        tm.assert_index_equal(df.index, exp_index)
+
+        ser = df["A"].iloc[:-1]
+        ser.loc[item] = 1
+        tm.assert_index_equal(ser.index, exp_index)
+
     def test_loc_setitem_with_expansion_large_dataframe(self, monkeypatch):
         # GH#10692
         size_cutoff = 50
