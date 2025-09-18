@@ -171,7 +171,9 @@ class Preprocessors:
 
         maintainers_info = {}
         for user in (
-            context["maintainers"]["active"] + context["maintainers"]["inactive"]
+            context["maintainers"]["active"]
+            + context["maintainers"]["inactive"]
+            + context["maintainers"]["pandasstubs"]
         ):
             resp = requests.get(
                 f"https://api.github.com/users/{user}",
