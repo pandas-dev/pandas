@@ -1176,10 +1176,12 @@ class _MergeOperation:
         self, left: DataFrame, right: DataFrame
     ) -> tuple[DataFrame, DataFrame]:
         """
-        Add one indicator column to each of the left and right inputs to a merge operation.
+        Add one indicator column to each of the left and right inputs to a
+        merge operation.
 
-        These columns are used to produce another column in the output of the merge, indicating
-        for each row of the output whether it was produced using the left, right or both inputs.
+        These columns are used to produce another column in the output of the
+        merge, indicating for each row of the output whether it was produced
+        using the left, right or both inputs.
         """
         columns = left.columns.union(right.columns)
 

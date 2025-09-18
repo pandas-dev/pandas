@@ -10,6 +10,8 @@ import pytest
 
 import pandas as pd
 
+from pandas._typing import MergeHow
+
 # TODO:
 # * Binary methods (mul, div, etc.)
 # * Binary outputs (align, etc.)
@@ -690,7 +692,7 @@ def test_finalize_frame_series_name():
     ("cross",),
 ])
 def test_merge_sets_duplication_allowance_flag(
-    how: str,
+    how: MergeHow,
     allow_on_left: bool,
     allow_on_right: bool
 ):
