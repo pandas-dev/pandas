@@ -274,6 +274,7 @@ def merge(
     merge_ordered : Merge with optional filling/interpolation.
     merge_asof : Merge on nearest keys.
     DataFrame.join : Similar method using indices.
+    :ref:`merging` : User Guide on merging, joining, concantenating, and comparing.
 
     Examples
     --------
