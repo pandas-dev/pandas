@@ -1,5 +1,4 @@
-"""An exhaustive list of pandas methods exercising NDFrame.__finalize__.
-"""
+"""An exhaustive list of pandas methods exercising NDFrame.__finalize__."""
 
 import operator
 import re
@@ -7,8 +6,9 @@ import re
 import numpy as np
 import pytest
 
-import pandas as pd
 from pandas._typing import MergeHow
+
+import pandas as pd
 
 # TODO:
 # * Binary methods (mul, div, etc.)
@@ -577,7 +577,8 @@ def test_datetime_property(attr):
 
 
 @pytest.mark.parametrize(
-    "attr", ["days", "seconds", "microseconds", "nanoseconds", "components"],
+    "attr",
+    ["days", "seconds", "microseconds", "nanoseconds", "components"],
 )
 def test_timedelta_property(attr):
     s = pd.Series(pd.timedelta_range("2000", periods=4))
@@ -621,7 +622,8 @@ def test_categorical_accessor(method):
 
 
 @pytest.mark.parametrize(
-    "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})],
+    "obj",
+    [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})],
 )
 @pytest.mark.parametrize(
     "method",
@@ -640,7 +642,8 @@ def test_groupby_finalize(obj, method):
 
 
 @pytest.mark.parametrize(
-    "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})],
+    "obj",
+    [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})],
 )
 @pytest.mark.parametrize(
     "method",
@@ -689,7 +692,9 @@ def test_finalize_frame_series_name():
     ],
 )
 def test_merge_sets_duplication_allowance_flag(
-    how: MergeHow, allow_on_left: bool, allow_on_right: bool,
+    how: MergeHow,
+    allow_on_left: bool,
+    allow_on_right: bool,
 ):
     """Check that DataFrame.merge correctly sets the allow_duplicate_labels flag
     on its result.
@@ -719,7 +724,8 @@ def test_merge_sets_duplication_allowance_flag(
     [(False, False), (False, True), (True, False), (True, True)],
 )
 def test_merge_asof_sets_duplication_allowance_flag(
-    allow_on_left: bool, allow_on_right: bool,
+    allow_on_left: bool,
+    allow_on_right: bool,
 ):
     """Check that pandas.merge_asof correctly sets the allow_duplicate_labels flag
     on its result.
@@ -794,7 +800,9 @@ has_metadata.attrs = {"a": 2}
     ids=["left-empty", "right-empty", "both-empty"],
 )
 def test_merge_does_not_propagate_metadata_if_one_input_has_no_metadata(
-    left: pd.DataFrame, right: pd.DataFrame, expected: dict,
+    left: pd.DataFrame,
+    right: pd.DataFrame,
+    expected: dict,
 ):
     """Check that if the metadata for one input to pandas.merge is empty, the result
     of merge has the same metadata as the other input.
