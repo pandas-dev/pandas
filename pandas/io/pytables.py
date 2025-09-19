@@ -114,7 +114,10 @@ if TYPE_CHECKING:
         Iterator,
         Sequence,
     )
-    from types import TracebackType
+    from types import (
+        ModuleType,
+        TracebackType,
+    )
 
     from tables import (
         Col,
@@ -227,7 +230,7 @@ with config.config_prefix("io.hdf"):
     )
 
 # oh the troubles to reduce import time
-_table_mod = None
+_table_mod: ModuleType | None = None
 _table_file_open_policy_is_strict = False
 
 
