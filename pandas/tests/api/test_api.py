@@ -457,5 +457,6 @@ def test_set_module():
     assert pd.to_timedelta.__module__ == "pandas"
     assert pd.to_numeric.__module__ == "pandas"
     assert pd.NamedAgg.__module__ == "pandas"
+    assert pd.IndexSlice.__module__ == "pandas"
     assert api.typing.SeriesGroupBy.__module__ == "pandas.api.typing"
     assert api.typing.DataFrameGroupBy.__module__ == "pandas.api.typing"
