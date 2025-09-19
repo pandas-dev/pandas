@@ -844,3 +844,20 @@ def test_factorize_sort_without_freq():
     tda = dta - dta[0]
     with pytest.raises(NotImplementedError, match=msg):
         tda.factorize(sort=True)
+
+
+def test_dt64_non_nano_offset_no_rounding():
+    # GH#56586
+    dti = pd.date_range("2016-01-01", periods=3, unit="s")
+    offset = pd.offsets.CustomBusinessDay(offset=pd.Timedelta("1ms"))
+    result = dti + offset
+
+    assert result.dtype == np.dtype("datetime64[ms]")
+    expected = pd.DatetimeIndex(
+        [
+            pd.Timestamp("2016-01-02 00:00:00.001"),
+            pd.Timestamp("2016-01-03 00:00:00.001"),
+            pd.Timestamp("2016-01-04 00:00:00.001"),
+        ]
+    )
+    assert all(result == expected)

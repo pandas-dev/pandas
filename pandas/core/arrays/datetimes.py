@@ -817,7 +817,16 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             result = type(self)._from_sequence(res_values, dtype=self.dtype)
 
         else:
-            result = type(self)._simple_new(res_values, dtype=res_values.dtype)
+            units = ["ns", "us", "ms", "s", "m", "h", "D"]
+            res_unit = self.unit
+            if hasattr(offset, "offset"):
+                offset_unit = Timedelta(offset.offset).unit
+                idx_self = units.index(self.unit)
+                idx_offset = units.index(offset_unit)
+                res_unit = units[min(idx_self, idx_offset)]
+            dtype = tz_to_dtype(self.tz, unit=res_unit)
+            result = type(self)._simple_new(res_values, dtype=dtype)
+
             if offset.normalize:
                 result = result.normalize()
                 result._freq = None
