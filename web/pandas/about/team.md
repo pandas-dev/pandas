@@ -29,6 +29,29 @@ If you want to support pandas development, you can find information in the [dona
     {% endfor %}
 </div>
 
+## Maintainers of `pandas-stubs`
+
+<div class="card-group maintainers">
+    {% for username in maintainers.pandasstubs %}
+        {% set person = maintainers.github_info.get(username) %}
+        <div class="card">
+            <img class="card-img-top" alt="" src="{{ person.avatar_url }}"/>
+            <div class="card-body">
+                <h6 class="card-title">
+                    {% if person.blog %}
+                        <a href="{{ person.blog }}">
+                            {{ person.name or person.login }}
+                        </a>
+                    {% else %}
+                        {{ person.name or person.login }}
+                    {% endif %}
+                </h6>
+                <p class="card-text small"><a href="{{ person.html_url }}">{{ person.login }}</a></p>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
 ## Diversity and Inclusion
 
 > _pandas_ expressly welcomes and encourages contributions from anyone who faces under-representation, discrimination in the technology industry
