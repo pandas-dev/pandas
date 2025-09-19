@@ -1,0 +1,266 @@
+Metadata-Version: 2.1
+Name: pandocfilters
+Version: 1.5.1
+Summary: Utilities for writing pandoc filters in python
+Home-page: http://github.com/jgm/pandocfilters
+Author: John MacFarlane
+Author-email: fiddlosopher@gmail.com
+License: BSD-3-Clause
+Keywords: pandoc
+Classifier: Development Status :: 3 - Alpha
+Classifier: Environment :: Console
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Topic :: Text Processing :: Filters
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Requires-Python: >=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*
+License-File: LICENSE
+
+pandocfilters
+=============
+
+A python module for writing `pandoc <http://pandoc.org/>`_ filters
+
+What are pandoc filters?
+--------------------------
+Pandoc filters
+are pipes that read a JSON serialization of the Pandoc AST
+from stdin, transform it in some way, and write it to stdout.
+They can be used with pandoc (>= 1.12) either using pipes ::
+
+    pandoc -t json -s | ./caps.py | pandoc -f json
+
+or using the ``--filter`` (or ``-F``) command-line option. ::
+
+    pandoc --filter ./caps.py -s
+
+For more on pandoc filters, see the pandoc documentation under ``--filter``
+and `the tutorial on writing filters`__.
+
+__ http://johnmacfarlane.net/pandoc/scripting.html
+
+For an alternative library for writing pandoc filters, with
+a more "Pythonic" design, see `panflute`__.
+
+__ https://github.com/sergiocorreia/panflute
+
+Compatibility
+----------------
+Pandoc 1.16 introduced link and image `attributes` to the existing
+`caption` and `target` arguments, requiring a change in pandocfilters
+that breaks backwards compatibility. Consequently, you should use:
+
+- pandocfilters version <= 1.2.4 for pandoc versions 1.12--1.15, and
+- pandocfilters version >= 1.3.0 for pandoc versions >= 1.16.
+
+Pandoc 1.17.3 (pandoc-types 1.17.*) introduced a new JSON format.
+pandocfilters 1.4.0 should work with both the old and the new
+format.
+
+Installing
+--------------
+Run this inside the present directory::
+
+    python setup.py install
+
+Or install from PyPI::
+
+    pip install pandocfilters
+
+Available functions
+----------------------
+The main functions ``pandocfilters`` exports are
+
+-  ``walk(x, action, format, meta)``
+
+   Walk a tree, applying an action to every object. Returns a modified
+   tree. An action is a function of the form
+   ``action(key, value, format, meta)``, where:
+
+   -  ``key`` is the type of the pandoc object (e.g. 'Str', 'Para')
+   -  ``value`` is the contents of the object (e.g. a string for 'Str', a list of
+      inline elements for 'Para')
+   -  ``format`` is the target output format (as supplied by the
+      ``format`` argument of ``walk``)
+   -  ``meta`` is the document's metadata
+
+   The return of an action is either:
+
+   -  ``None``: this means that the object should remain unchanged
+   -  a pandoc object: this will replace the original object
+   -  a list of pandoc objects: these will replace the original object;
+      the list is merged with the neighbors of the original objects
+      (spliced into the list the original object belongs to); returning
+      an empty list deletes the object
+
+-  ``toJSONFilter(action)``
+
+   Like ``toJSONFilters``, but takes a single action as argument.
+
+-  ``toJSONFilters(actions)``
+
+   Generate a JSON-to-JSON filter from stdin to stdout
+
+   The filter:
+
+   -  reads a JSON-formatted pandoc document from stdin
+   -  transforms it by walking the tree and performing the actions
+   -  returns a new JSON-formatted pandoc document to stdout
+
+   The argument ``actions`` is a list of functions of the form
+   ``action(key, value, format, meta)``, as described in more detail
+   under ``walk``.
+
+   This function calls ``applyJSONFilters``, with the ``format``
+   argument provided by the first command-line argument, if present.
+   (Pandoc sets this by default when calling filters.)
+
+-  ``applyJSONFilters(actions, source, format="")``
+
+   Walk through JSON structure and apply filters
+
+   This:
+
+   -  reads a JSON-formatted pandoc document from a source string
+   -  transforms it by walking the tree and performing the actions
+   -  returns a new JSON-formatted pandoc document as a string
+
+   The ``actions`` argument is a list of functions (see ``walk`` for a
+   full description).
+
+   The argument ``source`` is a string encoded JSON object.
+
+   The argument ``format`` is a string describing the output format.
+
+   Returns a new JSON-formatted pandoc document.
+
+-  ``stringify(x)``
+
+   Walks the tree x and returns concatenated string content, leaving out
+   all formatting.
+
+-  ``attributes(attrs)``
+
+   Returns an attribute list, constructed from the dictionary attrs.
+
+How to use
+----------
+Most users will only need ``toJSONFilter``.  Here is a simple example
+of its use::
+
+    #!/usr/bin/env python
+
+    """
+    Pandoc filter to convert all regular text to uppercase.
+    Code, link URLs, etc. are not affected.
+    """
+
+    from pandocfilters import toJSONFilter, Str
+
+    def caps(key, value, format, meta):
+      if key == 'Str':
+        return Str(value.upper())
+
+    if __name__ == "__main__":
+      toJSONFilter(caps)
+
+Examples
+--------
+
+The examples subdirectory in the source repository contains the
+following filters. These filters should provide a useful starting point
+for developing your own pandocfilters.
+
+``abc.py``
+    Pandoc filter to process code blocks with class ``abc`` containing ABC
+    notation into images. Assumes that abcm2ps and ImageMagick's convert
+    are in the path. Images are put in the abc-images directory.
+
+``caps.py``
+    Pandoc filter to convert all regular text to uppercase. Code, link
+    URLs, etc. are not affected.
+
+``blockdiag.py``
+    Pandoc filter to process code blocks with class "blockdiag" into
+    generated images. Needs utils from http://blockdiag.com.
+
+``comments.py``
+    Pandoc filter that causes everything between
+    ``<!-- BEGIN COMMENT -->`` and ``<!-- END COMMENT -->`` to be ignored.
+    The comment lines must appear on lines by themselves, with blank
+    lines surrounding
+
+``deemph.py``
+    Pandoc filter that causes emphasized text to be displayed in ALL
+    CAPS.
+
+``deflists.py``
+    Pandoc filter to convert definition lists to bullet lists with the
+    defined terms in strong emphasis (for compatibility with standard
+    markdown).
+
+``gabc.py``
+    Pandoc filter to convert code blocks with class "gabc" to LaTeX
+    \\gabcsnippet commands in LaTeX output, and to images in HTML output.
+
+``graphviz.py``
+    Pandoc filter to process code blocks with class ``graphviz`` into
+    graphviz-generated images.
+
+``lilypond.py``
+    Pandoc filter to process code blocks with class "ly" containing
+    Lilypond notation.
+
+``metavars.py``
+    Pandoc filter to allow interpolation of metadata fields into a
+    document. ``%{fields}`` will be replaced by the field's value, assuming
+    it is of the type ``MetaInlines`` or ``MetaString``.
+
+``myemph.py``
+    Pandoc filter that causes emphasis to be rendered using the custom
+    macro ``\myemph{...}`` rather than ``\emph{...}`` in latex. Other output
+    formats are unaffected.
+
+``plantuml.py``
+    Pandoc filter to process code blocks with class ``plantuml`` to images.
+    Needs `plantuml.jar` from http://plantuml.com/.
+
+``ditaa.py``
+    Pandoc filter to process code blocks with class ``ditaa`` to images.
+    Needs `ditaa.jar` from http://ditaa.sourceforge.net/.
+
+``theorem.py``
+    Pandoc filter to convert divs with ``class="theorem"`` to LaTeX theorem
+    environments in LaTeX output, and to numbered theorems in HTML
+    output.
+
+``tikz.py``
+    Pandoc filter to process raw latex tikz environments into images.
+    Assumes that pdflatex is in the path, and that the standalone
+    package is available. Also assumes that ImageMagick's convert is in
+    the path. Images are put in the ``tikz-images`` directory.
+
+API documentation
+-----------------
+
+By default most filters use ``get_filename4code`` to
+create a directory ``...-images`` to save temporary
+files. This directory doesn't get removed as it can be used as a cache so that
+later pandoc runs don't have to recreate files if they already exist. The
+directory is generated in the current directory.
+
+If you prefer to have a clean directory after running pandoc filters, you
+can set an environment variable ``PANDOCFILTER_CLEANUP`` to any non-empty value such as `1`
+which forces the code to create a temporary directory that will be removed
+by the end of execution.

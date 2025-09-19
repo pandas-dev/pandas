@@ -1,0 +1,70 @@
+.bd-sidebar-primary div#rtd-footer-container {
+  position: sticky;
+  bottom: -1rem;
+  margin: -1rem; // ignore sidebar padding
+
+  .rst-versions.rst-badge {
+    position: unset;
+    font-size: 0.9em;
+    font-family: var(--pst-font-family-base);
+    max-width: unset;
+
+    .rst-current-version {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+      height: 2.5rem;
+      transition: background-color 0.2s ease-out;
+      background-color: var(--pst-color-background);
+      color: var(--pst-color-success);
+      border-top: 1px solid var(--pst-color-border);
+    }
+
+    .fa.fa-book {
+      color: var(--pst-color-text-muted);
+      margin-right: auto;
+
+      &::after {
+        color: var(--pst-color-text-base);
+        content: "Read The Docs";
+        font-family: var(--pst-font-family-base);
+        font-weight: var(--pst-admonition-font-weight-heading);
+      }
+    }
+
+    .fa.fa-caret-down {
+      color: var(--pst-color-text-muted);
+    }
+  }
+
+  .rst-versions.rst-badge.shift-up {
+    .rst-current-version {
+      border-bottom: 1px solid var(--pst-color-border);
+    }
+  }
+
+  .rst-other-versions {
+    background-color: var(--pst-color-surface);
+    color: var(--pst-color-text-base);
+
+    dl {
+      dd a {
+        color: var(--pst-color-text-muted);
+      }
+    }
+
+    hr {
+      background-color: var(--pst-color-border);
+    }
+
+    small a {
+      color: var(--pst-color-link);
+    }
+
+    input {
+      padding-left: 0.5rem;
+      border: 1px solid var(--pst-color-border);
+      background-color: var(--pst-color-surface);
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "jupyter.lab.setting-icon": "ui-components:text-editor",
+  "jupyter.lab.setting-icon-label": "CodeMirror",
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "codemirror:delete-line",
+      "keys": ["Accel D"],
+      "selector": ".cm-content"
+    },
+    {
+      "command": "codemirror:delete-line",
+      "keys": ["Accel Shift K"],
+      "selector": ".cm-content"
+    },
+    {
+      "command": "codemirror:toggle-block-comment",
+      "keys": ["Alt A"],
+      "selector": ".cm-content"
+    },
+    {
+      "command": "codemirror:toggle-comment",
+      "keys": ["Accel /"],
+      "selector": ".cm-content"
+    },
+    {
+      "command": "codemirror:select-next-occurrence",
+      "keys": ["Accel Shift D"],
+      "selector": ".cm-content"
+    }
+  ],
+  "title": "CodeMirror",
+  "description": "Text editor settings for all CodeMirror editors.",
+  "properties": {
+    "defaultConfig": {
+      "default": {},
+      "title": "Default editor configuration",
+      "description": "Base configuration used by all CodeMirror editors.",
+      "type": "object"
+    }
+  },
+  "type": "object"
+}

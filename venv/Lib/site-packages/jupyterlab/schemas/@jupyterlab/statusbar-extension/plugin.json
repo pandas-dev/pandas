@@ -1,0 +1,37 @@
+{
+  "jupyter.lab.setting-icon": "ui-components:settings",
+  "jupyter.lab.setting-icon-label": "Status Bar",
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-view",
+        "items": [
+          {
+            "type": "submenu",
+            "submenu": {
+              "id": "jp-mainmenu-view-appearance",
+              "items": [
+                {
+                  "command": "statusbar:toggle",
+                  "rank": 15
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "title": "Status Bar",
+  "description": "Status Bar settings.",
+  "properties": {
+    "visible": {
+      "type": "boolean",
+      "title": "Status Bar Visibility",
+      "description": "Whether to show status bar or not",
+      "default": true
+    }
+  },
+  "additionalProperties": false,
+  "type": "object"
+}
