@@ -19,3 +19,4 @@ Getting started tutorials
     08_combine_dataframes
     09_timeseries
     10_text_data
+    11_brackets_vs_parenthesis

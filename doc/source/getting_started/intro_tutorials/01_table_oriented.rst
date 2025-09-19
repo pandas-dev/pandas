@@ -29,7 +29,7 @@ documentation.
 pandas data table representation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. image:: ../../_static/schemas/01_table_dataframe.svg
+.. image:: ../../_static/schemas/01_dataframe.svg
    :align: center
 
 .. raw:: html
