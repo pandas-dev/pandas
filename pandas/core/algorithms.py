@@ -1101,7 +1101,6 @@ def rank(
         )
     else:
         raise TypeError("Array with ndim > 2 are not supported.")
-
     return ranks
 
 
