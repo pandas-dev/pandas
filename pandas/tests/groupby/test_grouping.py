@@ -876,19 +876,16 @@ class TestGrouping:
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
 
     def test_groupby_grouper_immutable_list_item(self):
-        # GH 26564 - prevent 'ValueError: all keys need to be the same shape' when re-using a list of groupers
-        df1 = pd.DataFrame(
-            [
-                ["05/29/2019"], 
-                ["05/28/2019"]
-            ], 
-            columns=["date"]).assign(date=lambda df: pd.to_datetime(df["date"])
+        # GH 26564 - prevent 'ValueError: all keys need to be the same shape'
+        # when reusing a list of groupers
+        df1 = DataFrame([["05/29/2019"], ["05/28/2019"]], columns=["date"]).assign(
+            date=lambda df: pd.to_datetime(df["date"])
         )
-        df2 = pd.DataFrame(
-            columns=["date"]).assign(date=lambda df: pd.to_datetime(df["date"])
+        df2 = DataFrame(columns=["date"]).assign(
+            date=lambda df: pd.to_datetime(df["date"])
         )
 
-        groupers = [pd.Grouper(key="date", freq="1D")]
+        groupers = [Grouper(key="date", freq="1D")]
 
         df1.groupby(groupers).head()
         # no error
