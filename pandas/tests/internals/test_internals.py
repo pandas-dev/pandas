@@ -1348,7 +1348,7 @@ class TestCanHoldElement:
             ser[: len(elem)] = elem
 
         if inplace:
-            assert ser.array is arr  # i.e. setting was done inplace
+            assert ser._values is arr  # i.e. setting was done inplace
         else:
             assert ser.dtype == object
 
