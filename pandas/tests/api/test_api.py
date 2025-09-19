@@ -13,6 +13,7 @@ from pandas.api import (
     types as api_types,
     typing as api_typing,
 )
+from pandas.api.typing import aliases as api_aliases
 
 
 class Base:
@@ -277,6 +278,7 @@ class TestApi(Base):
         "TimedeltaIndexResamplerGroupby",
         "TimeGrouper",
         "Window",
+        "aliases",
     ]
     allowed_api_types = [
         "is_any_real_numeric_dtype",
@@ -344,6 +346,73 @@ class TestApi(Base):
         "ExtensionScalarOpsMixin",
     ]
     allowed_api_executors = ["BaseExecutionEngine"]
+    allowed_api_aliases = [
+        "AggFuncType",
+        "AlignJoin",
+        "AnyAll",
+        "AnyArrayLike",
+        "ArrayLike",
+        "AstypeArg",
+        "Axes",
+        "Axis",
+        "CSVEngine",
+        "ColspaceArgType",
+        "CompressionOptions",
+        "CorrelationMethod",
+        "DropKeep",
+        "Dtype",
+        "DtypeArg",
+        "DtypeBackend",
+        "DtypeObj",
+        "ExcelWriterIfSheetExists",
+        "ExcelWriterMergeCells",
+        "FilePath",
+        "FillnaOptions",
+        "FloatFormatType",
+        "FormattersType",
+        "FromDictOrient",
+        "HTMLFlavors",
+        "IgnoreRaise",
+        "IndexLabel",
+        "InterpolateOptions",
+        "JSONEngine",
+        "JSONSerializable",
+        "JoinHow",
+        "JoinValidate",
+        "MergeHow",
+        "MergeValidate",
+        "NaPosition",
+        "NsmallestNlargestKeep",
+        "OpenFileErrors",
+        "Ordered",
+        "ParquetCompressionOptions",
+        "QuantileInterpolation",
+        "ReadBuffer",
+        "ReadCsvBuffer",
+        "ReadPickleBuffer",
+        "ReindexMethod",
+        "Scalar",
+        "SequenceNotStr",
+        "SliceType",
+        "SortKind",
+        "StorageOptions",
+        "Suffixes",
+        "TakeIndexer",
+        "TimeAmbiguous",
+        "TimeGrouperOrigin",
+        "TimeNonexistent",
+        "TimeUnit",
+        "TimedeltaConvertibleTypes",
+        "TimestampConvertibleTypes",
+        "ToStataByteorder",
+        "ToTimestampHow",
+        "UpdateJoin",
+        "UsecolsArgType",
+        "WindowingRankType",
+        "WriteBuffer",
+        "WriteExcelBuffer",
+        "XMLParsers",
+    ]
 
     def test_api(self):
         self.check(api, self.allowed_api_dirs)
@@ -365,6 +434,9 @@ class TestApi(Base):
 
     def test_api_executors(self):
         self.check(api_executors, self.allowed_api_executors)
+
+    def test_api_typing_aliases(self):
+        self.check(api_aliases, self.allowed_api_aliases)
 
 
 class TestErrors(Base):
