@@ -6096,10 +6096,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Propagate metadata from other to self.
 
+        This is the default implementation. Subclasses may override this method to
+        implement their own metadata handling.
+
         Parameters
         ----------
         other : the object from which to get the attributes that we are going
-            to propagate
+            to propagate. If ``other`` has an ``input_objs`` attribute, then
+            this attribute must contain an iterable of objects, each with an
+            ``attrs`` attribute, in which case, each such ``attrs`` instance
+            must be a dictionary that is equal to all of the others.
         method : str, optional
             A passed method name providing context on where ``__finalize__``
             was called.
