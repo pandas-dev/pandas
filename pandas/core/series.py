@@ -4380,6 +4380,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         provides a method for default values), then this default is used
         rather than ``NaN``.
 
+        
+
         Examples
         --------
         >>> s = pd.Series(["cat", "dog", np.nan, "rabbit"])
@@ -4418,6 +4420,34 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         1     I am a dog
         2            NaN
         3  I am a rabbit
+        dtype: object
+
+        For categorical data, the function is only applied to the categories:
+
+        >>> s = pd.Series(list("cabaa"))
+        >>> s.map(print)
+        c
+        a
+        b
+        a
+        a
+        0    None
+        1    None
+        2    None
+        3    None
+        4    None
+        dtype: object
+
+        >>> s_cat = s.astype("category")
+        >>> s_cat.map(print)  # function called once per unique category
+        a
+        b
+        c
+        0    None
+        1    None
+        2    None
+        3    None
+        4    None
         dtype: object
         """
         if func is None:
