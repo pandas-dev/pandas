@@ -18,6 +18,21 @@ jobs:
       - run: |
           echo "Assigning issue ${{ github.event.issue.number }} to ${{ github.event.comment.user.login }}"
           curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"assignees": ["${{ github.event.comment.user.login }}"]}' https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/assignees
+  issue_unassign:
+    runs-on: ubuntu-24.04
+    if: (!github.event.issue.pull_request) && github.event.comment.body == 'unassign'
+    concurrency:
+      group: ${{ github.actor }}-issue-unassign
+    steps:
+      - run: |
+          echo "Removing ${{ github.event.comment.user.login }} from issue ${{ github.event.issue.number }} assignees"
+          curl -L \
+            -X DELETE \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/assignees \
+            -d '{"assignees": ["${{ github.event.comment.user.login }}"]}'
   preview_docs:
     runs-on: ubuntu-24.04
     if: github.event.issue.pull_request && github.event.comment.body == '/preview'
