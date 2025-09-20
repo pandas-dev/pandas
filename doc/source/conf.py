@@ -57,6 +57,7 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
     "sphinx_copybutton",
+    "sphinx_toggleprompt",
     "sphinx_design",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
@@ -460,6 +461,10 @@ latex_documents = [
 
 # If false, no module index is generated.
 # latex_use_modindex = True
+
+# Configure copybutton to strip Python REPL prompts and output when copying code cells
+copybutton_prompt_text = r">>> |\.\.\.:|In \[\d+\]:\n?|Out\[\d+\]:\n?"
+copybutton_prompt_is_regexp = True
 
 
 if include_api:

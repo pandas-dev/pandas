@@ -91,6 +91,7 @@ dependencies:
   - sphinx
   - sphinx-design
   - sphinx-copybutton
+  - sphinx-toggleprompt
 
   # static typing
   - scipy-stubs
