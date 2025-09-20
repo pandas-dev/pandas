@@ -384,6 +384,7 @@ def test_chunksize_second_block_shorter(all_parsers):
 
 
 def test_chunksize_skip_bad_line_with_bad_line_first_in_the_chunk(all_parsers):
+    # GH#61973
     parser = all_parsers
     data = "a,b\n1,2\n3\n4,5,extra\n6,7"
 
