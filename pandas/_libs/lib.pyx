@@ -2545,7 +2545,6 @@ def maybe_convert_objects(ndarray[object] objects,
                           bint convert_numeric=True,  # NB: different default!
                           bint convert_to_nullable_dtype=False,
                           bint convert_non_numeric=False,
-                          object dtype_if_all_na=None,
                           object dtype_if_all_nat=None) -> "ArrayLike":
     """
     Type inference function-- convert object array to proper dtype
@@ -2567,8 +2566,6 @@ def maybe_convert_objects(ndarray[object] objects,
         encountered, whether to convert and return an Boolean/IntegerArray.
     convert_non_numeric : bool, default False
         Whether to convert datetime, timedelta, period, interval types.
-    dtype_if_all_na : np.dtype, ExtensionDtype, or None, default None
-        Dtype to cast to if we have all-NA or all-None.
     dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None
         Dtype to cast to if we have all-NaT.
 
@@ -2840,16 +2837,6 @@ def maybe_convert_objects(ndarray[object] objects,
                 seen.object_ = True
         else:
             seen.object_ = True
-
-    elif seen.null_:
-        if not seen.object_ and not seen.numeric_ and not seen.bool_:
-            # all NaT, None, or nan (at least one NA or None)
-            dtype = dtype_if_all_na
-            if dtype is not None:
-                cls = dtype.construct_array_type()
-                obj = cls._from_sequence([], dtype=dtype)
-                taker = -np.ones((<object>objects).shape, dtype=np.intp)
-                return obj.take(taker, allow_fill=True)
 
     if not convert_numeric:
         # Note: we count "bool" as numeric here. This is because
