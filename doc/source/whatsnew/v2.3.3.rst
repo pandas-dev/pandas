@@ -25,6 +25,8 @@ Bug fixes
 - Fix bug in :meth:`Series.str.replace` using named capture groups (e.g., ``\g<name>``) with the Arrow-backed dtype would raise an error (:issue:`57636`)
 - Fix regression in ``~Series.str.contains``, ``~Series.str.match`` and ``~Series.str.fullmatch``
   with a compiled regex and custom flags (:issue:`62240`)
+- Fix regression in ``on_bad_lines`` callable when returning too many fields: now emits
+  ``ParserWarning`` and truncates extra fields regardless of ``index_col`` (:issue:`61837`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_233.contributors:
