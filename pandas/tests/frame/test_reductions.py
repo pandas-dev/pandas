@@ -2173,11 +2173,7 @@ def test_numeric_ea_axis_1(method, skipna, min_count, any_numeric_ea_dtype):
 
 
 def test_mean_nullable_int_axis_1():
-    """
-    Test DataFrame.mean(axis=1) with nullable Int64 dtype.
-
-    Ensures correct results with skipna=True and skipna=False.
-    """
+    # GH##36585
     df = DataFrame(
         {"a": [1, 2, 3, 4], "b": Series([1, 2, 4, None], dtype=pd.Int64Dtype())}
     )
