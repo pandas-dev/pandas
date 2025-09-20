@@ -250,7 +250,7 @@ def assert_cow_warning(warn=True, match=None, **kwargs):
     """
     from pandas._testing import assert_produces_warning
 
-    if not warn:
+    if not warn or WARNING_CHECK_DISABLED:
         from contextlib import nullcontext
 
         return nullcontext()
