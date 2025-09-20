@@ -566,6 +566,62 @@ def unstack(
 def unstack(
     obj: Series | DataFrame, level, fill_value=None, sort: bool = True
 ) -> Series | DataFrame:
+    """
+    Pivot a level of the (necessarily hierarchical) index labels.
+
+    Parameters
+    ----------
+    obj : Series or DataFrame
+        Object with multi-level index to unstack
+    level : int, str, or list of these, default -1
+        Level(s) of index to unstack. Can pass level name.
+    fill_value : scalar, default None
+        Replace missing values resulting from unstacking. The default will
+        depend on the data type of the unstacked values.
+    sort : bool, default True
+        Sort the level values in the resulting MultiIndex.
+
+    Returns
+    -------
+    Series or DataFrame
+        Unstacked values. A DataFrame if the original was a Series,
+        otherwise will have the same type as the input.
+
+    See Also
+    --------
+    DataFrame.stack : Stack, a.k.a. pivot, a DataFrame from Series
+        with multi-level index.
+    DataFrame.pivot : Reshape based on column values instead of pivoting
+        a level.
+    DataFrame.melt : Unpivot a DataFrame from wide to long format.
+
+    Notes
+    -----
+    See :ref:`reshaping` in the user guide for more details and examples.
+
+    Examples
+    --------
+    >>> index = pd.MultiIndex.from_tuples(
+    ...     [("one", "a"), ("one", "b"), ("two", "a"), ("two", "b")]
+    ... )
+    >>> s = pd.Series(np.arange(1, 5, dtype=np.int64), index=index)
+    >>> s
+    one  a    1
+         b    2
+    two  a    3
+         b    4
+    dtype: int64
+
+    >>> s.unstack(level=-1)
+         a  b
+    one  1  2
+    two  3  4
+
+    >>> s.unstack(level=0)
+       one  two
+    a    1    3
+    b    2    4
+    """
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,
@@ -660,11 +716,40 @@ def stack(
 ) -> Series | DataFrame:
     """
     Convert DataFrame to Series with multi-level Index. Columns become the
-    second level of the resulting hierarchical index
+    second level of the resulting hierarchical index.
+
+    Parameters
+    ----------
+    frame : DataFrame
+        DataFrame to be stacked
+    level : int, str, or list of these, default -1
+        Level(s) to stack from the column axis onto the index
+        axis, leaving the other levels as columns. Can pass level
+        name or number.
+    dropna : bool, default True
+        Whether to drop missing values from the resulting Series/DataFrame
+    sort : bool, default True
+        Whether to sort the levels of the resulting MultiIndex
 
     Returns
     -------
-    stacked : Series or DataFrame
+    Series or DataFrame
+        Stacked values from the DataFrame. Will be a Series if only one
+        column remains, otherwise a DataFrame.
+
+    See Also
+    --------
+    DataFrame.unstack : Unstack, a.k.a. pivot, DataFrame from Series
+        with multi-level index.
+    DataFrame.pivot : Reshape based on column values instead of pivoting
+        a level.
+    DataFrame.pivot_table : Generalization of pivot that can handle
+        duplicate values for one index/column pair.
+    DataFrame.melt : Unpivot a DataFrame from wide to long format.
+
+    Notes
+    -----
+    See :ref:`reshaping` in the user guide for more details and examples.
     """
 
     def stack_factorize(index):

@@ -713,20 +713,83 @@ def pivot(
     unique values from specified `index` / `columns` to form axes of the
     resulting DataFrame. This function does not support data
     aggregation, multiple values will result in a MultiIndex in the
-    columns. See the :ref:`User Guide <reshaping>` for more on reshaping.
+    columns. See the :ref:`reshaping` section in the user guide for more details.
 
     Parameters
     ----------
     data : DataFrame
         Input pandas DataFrame object.
-    columns : Hashable or a sequence of the previous
-        Column to use to make new frame's columns.
-    index : Hashable or a sequence of the previous, optional
+    columns : Hashable or sequence
+        Column to use to make new frame's columns. The values in this column
+        will become the new column names.
+    index : Hashable or sequence, optional
         Column to use to make new frame's index. If not given, uses existing index.
-    values : Hashable or a sequence of the previous, optional
+        The values in this column will become the new index labels.
+    values : Hashable or sequence, optional
         Column(s) to use for populating new frame's values. If not
         specified, all remaining columns will be used and the result will
         have hierarchically indexed columns.
+
+    Returns
+    -------
+    DataFrame
+        Returns reshaped DataFrame with new index/columns labels.
+
+    See Also
+    --------
+    DataFrame.pivot_table : Generalization of pivot that can handle
+        duplicate values for one index/column pair.
+    DataFrame.unstack : Pivot based on the index values instead of a
+        column.
+    DataFrame.melt : Unpivot a DataFrame from wide to long format.
+    DataFrame.wide_to_long : Wide panel to long format. Less flexible but more
+        user-friendly than melt.
+
+    Notes
+    -----
+    For additional examples and detailed information, see the :ref:`reshaping`
+    section in the user guide.
+
+    Raises
+    ------
+    ValueError
+        When there are any duplicates in any of the index, columns, or values.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'foo': ['one', 'one', 'two', 'two'],
+    ...                    'bar': ['A', 'B', 'A', 'B'],
+    ...                    'baz': [1, 2, 3, 4]})
+    >>> df
+       foo bar  baz
+    0  one   A    1
+    1  one   B    2
+    2  two   A    3
+    3  two   B    4
+
+    >>> df.pivot(index='foo', columns='bar', values='baz')
+    bar  A  B
+    foo
+    one  1  2
+    two  3  4
+
+    >>> df = pd.DataFrame({'foo': ['one', 'one', 'two', 'two'],
+    ...                    'bar': ['A', 'B', 'A', 'B'],
+    ...                    'baz': [1, 2, 3, 4],
+    ...                    'zoo': ['x', 'y', 'z', 'w']})
+    >>> df
+       foo bar  baz zoo
+    0  one   A    1   x
+    1  one   B    2   y
+    2  two   A    3   z
+    3  two   B    4   w
+
+    >>> df.pivot(index='foo', columns='bar')
+            baz       zoo
+    bar       A  B    A  B
+    foo
+    one       1  2    x  y
+    two       3  4    z  w
 
     Returns
     -------
@@ -933,28 +996,84 @@ def crosstab(
     Compute a simple cross tabulation of two (or more) factors.
 
     By default, computes a frequency table of the factors unless an
-    array of values and an aggregation function are passed.
+    array of values and an aggregation function are passed. See the
+    :ref:`reshaping` section in the user guide for more details.
 
     Parameters
     ----------
     index : array-like, Series, or list of arrays/Series
-        Values to group by in the rows.
+        Values to group by in the rows. If a list of arrays is passed,
+        a MultiIndex is created.
     columns : array-like, Series, or list of arrays/Series
-        Values to group by in the columns.
+        Values to group by in the columns. If a list of arrays is passed,
+        a MultiIndex is created.
     values : array-like, optional
         Array of values to aggregate according to the factors.
         Requires `aggfunc` be specified.
     rownames : sequence, default None
         If passed, must match number of row arrays passed.
+        Used as the row index names.
     colnames : sequence, default None
         If passed, must match number of column arrays passed.
+        Used as the column index names.
     aggfunc : function, optional
         If specified, requires `values` be specified as well.
+        Function to use for aggregation. Defaults to numpy.sum if
+        values are provided.
     margins : bool, default False
         Add row/column margins (subtotals).
     margins_name : str, default 'All'
         Name of the row/column that will contain the totals
         when margins is True.
+    dropna : bool, default True
+        Do not include columns whose entries are all NaN.
+    normalize : bool or {0, 1, 'all', 'index', 'columns'}, default False
+        Normalize by dividing all values by the sum of values.
+        - If passed 'all' or True, will normalize over all values.
+        - If passed 'index' or 0, will normalize over each row.
+        - If passed 'columns' or 1, will normalize over each column.
+
+    Returns
+    -------
+    DataFrame
+        Cross tabulation of the data.
+
+    See Also
+    --------
+    DataFrame.pivot : Reshape data based on column values.
+    DataFrame.pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
+
+    Notes
+    -----
+    For more details and examples, see the :ref:`reshaping` section in the
+    user guide.
+
+    Any Series passed will have their name attributes used unless row/column
+    names for the cross-tabulation are specified.
+
+    Examples
+    --------
+    >>> a = np.array(["foo", "foo", "foo", "foo", "bar", "bar",
+    ...               "bar", "bar", "foo", "foo", "foo"], dtype=object)
+    >>> b = np.array(["one", "one", "one", "two", "one", "one",
+    ...               "one", "two", "two", "two", "one"], dtype=object)
+    >>> c = np.array(["dull", "dull", "shiny", "dull", "dull", "shiny",
+    ...               "shiny", "dull", "shiny", "shiny", "shiny"],
+    ...              dtype=object)
+    >>> pd.crosstab(a, [b, c], rownames=['a'], colnames=['b', 'c'])
+    b    one        two
+    c    dull shiny dull shiny
+    a
+    bar     1     2    1     0
+    foo     2     2    1     3
+
+    >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
+    >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
+    >>> pd.crosstab(foo, bar)  # Columns will be in category order
+         d  e  f
+    a    1  0  0
+    b    0  1  0
+    c    0  0  0
     dropna : bool, default True
         Do not include columns whose entries are all NaN.
     normalize : bool, {'all', 'index', 'columns'}, or {0,1}, default False
