@@ -1,0 +1,9 @@
+[console_scripts]
+jlpm = jupyterlab.jlpmapp:main
+jupyter-lab = jupyterlab.labapp:main
+jupyter-labextension = jupyterlab.labextensions:main
+jupyter-labhub = jupyterlab.labhubapp:main
+
+[jupyterlab.extension_manager_v1]
+pypi = jupyterlab.extensions:get_pypi_manager
+readonly = jupyterlab.extensions:get_readonly_manager

@@ -1,0 +1,47 @@
+Metadata-Version: 2.1
+Name: lark
+Version: 1.2.2
+Summary: a modern parsing library
+Author-email: Erez Shinan <erezshin@gmail.com>
+License: MIT
+Project-URL: Homepage, https://github.com/lark-parser/lark
+Project-URL: Download, https://github.com/lark-parser/lark/tarball/master
+Keywords: Earley,LALR,parser,parsing,ast
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Text Processing :: General
+Classifier: Topic :: Text Processing :: Linguistic
+Classifier: License :: OSI Approved :: MIT License
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Provides-Extra: atomic_cache
+Requires-Dist: atomicwrites ; extra == 'atomic_cache'
+Provides-Extra: interegular
+Requires-Dist: interegular <0.4.0,>=0.3.1 ; extra == 'interegular'
+Provides-Extra: nearley
+Requires-Dist: js2py ; extra == 'nearley'
+Provides-Extra: regex
+Requires-Dist: regex ; extra == 'regex'
+
+Lark is a modern general-purpose parsing library for Python.
+With Lark, you can parse any context-free grammar, efficiently, with very little code.
+Main Features:
+- Builds a parse-tree (AST) automagically, based on the structure of the grammar
+- Earley parser
+- Can parse all context-free grammars
+- Full support for ambiguous grammars
+- LALR(1) parser
+- Fast and light, competitive with PLY
+- Can generate a stand-alone parser
+- CYK parser, for highly ambiguous grammars
+- EBNF grammar
+- Unicode fully supported
+- Automatic line & column tracking
+- Standard library of terminals (strings, numbers, names, etc.)
+- Import grammars from Nearley.js
+- Extensive test suite
+- And much more!
+Since version 1.2, only Python versions 3.8 and up are supported.

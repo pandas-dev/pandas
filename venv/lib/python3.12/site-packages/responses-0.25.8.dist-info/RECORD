@@ -1,0 +1,15 @@
+responses-0.25.8.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+responses-0.25.8.dist-info/LICENSE,sha256=SJ7LcLREfANKEJeKSwjaAVyb2fqVyjrq8hnZgVQWpnw,10835
+responses-0.25.8.dist-info/METADATA,sha256=H5pTNeydAjA_zYK96euDe1JxRMyn1cZokl36HiGd320,47187
+responses-0.25.8.dist-info/RECORD,,
+responses-0.25.8.dist-info/WHEEL,sha256=tZoeGjtWxWRfdplE7E3d45VPlLNQnvbKiYnx7gwAy8A,92
+responses-0.25.8.dist-info/top_level.txt,sha256=aQhzfC0bq4TkAaB_Yr-7cv4u2Xnc8WiVzvh4KdZo0Qo,10
+responses/__init__.py,sha256=4AFwl1-8fuQ6arE3ZzqcABtAoItDh1hZGnSHx4Hqknw,43817
+responses/__pycache__/__init__.cpython-312.pyc,,
+responses/__pycache__/_recorder.cpython-312.pyc,,
+responses/__pycache__/matchers.cpython-312.pyc,,
+responses/__pycache__/registries.cpython-312.pyc,,
+responses/_recorder.py,sha256=C41_J0Lo3K1HS7KHOy98yEbbMc7IiuE9c1K70ZSORXw,5637
+responses/matchers.py,sha256=74QgQoUS-n9YSU6CoJEiia5N7KiATDthFvyyZegV9EY,13654
+responses/py.typed,sha256=mlZbqXbnNhPUr669Z2yZBDwmTMglqEtLjcZRiZhdxOs,158
+responses/registries.py,sha256=MwW_tCMSKWOo2PjyK70RWGUjaHwjt6pc8PBRfEDEihE,4141

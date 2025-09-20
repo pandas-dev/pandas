@@ -1,0 +1,267 @@
+properties:
+
+  temporary-directory:
+    type:
+    - string
+    - "null"
+    description: |
+      Temporary directory for local disk storage /tmp, /scratch,
+      or /local.  This directory is used during dask spill-to-disk operations.
+
+      When the value is "null" (default), dask will create a directory from
+      where dask was launched: `cwd/dask-worker-space`
+
+  visualization:
+    type: object
+    properties:
+      engine:
+        type:
+          - string
+          - 'null'
+        description: |
+          Visualization engine to use when calling ``.visualize()`` on a Dask collection.
+          Currently supports ``'graphviz'``, ``'ipycytoscape'``, and ``'cytoscape'``
+          (alias for ``'ipycytoscape'``)
+
+  tokenize:
+    type: object
+    properties:
+      ensure-deterministic:
+        type:
+        - boolean
+        description: |
+          If ``true``, tokenize will error instead of falling back to uuids
+          when a deterministic token cannot be generated. Defaults to
+          ``false``.
+
+  dataframe:
+    type: object
+    properties:
+
+      backend:
+        type:
+        - string
+        - "null"
+        description: |
+          Backend to use for supported dataframe-creation functions.
+          Default is "pandas".
+
+      shuffle:
+        type: object
+        properties:
+
+          method:
+            type:
+            - string
+            - "null"
+            description: |
+              The default shuffle method to choose. Possible values are disk,
+              tasks, p2p. If null, pick best method depending on application.
+
+          compression:
+            type:
+            - string
+            - "null"
+            description: |
+              Compression algorithm used for on disk-shuffling. Partd, the library used
+              for compression supports ZLib, BZ2, and SNAPPY
+
+
+      parquet:
+        type: object
+        properties:
+
+          metadata-task-size-local:
+            type: integer
+            description: |
+              The number of files to handle within each metadata-processing
+              task when reading a parquet dataset from a LOCAL file system.
+              Specifying 0 will result in serial execution on the client.
+
+          metadata-task-size-remote:
+            type: integer
+            description: |
+              The number of files to handle within each metadata-processing
+              task when reading a parquet dataset from a REMOTE file system.
+              Specifying 0 will result in serial execution on the client.
+          minimum-partition-size:
+            type: integer
+            description: |
+              The minimum in-memory size of a single partition after reading
+              from parquet. Smaller parquet files will be combined into
+              a single partitions to reach this threshold.
+
+      convert-string:
+        type: [boolean, 'null']
+        description: |
+          Whether to convert string-like data to pyarrow strings.
+      query-planning:
+        type: [boolean, "null"]
+        description: |
+          Whether to use query planning.
+
+  array:
+    type: object
+    properties:
+
+      backend:
+        type:
+        - string
+        - "null"
+        description: |
+          Backend to use for supported array-creation functions.
+          Default is "numpy".
+
+      chunk-size:
+        type:
+        - integer
+        - string
+        description: |
+          The default chunk size to target. Default is "128MiB".
+
+      chunk-size-tolerance:
+        type: number
+        description: |
+          Upper tolerance for different algorithms when creating output chunks.
+          Default is 1.25. This means that the algorithms can exceed
+          the average input chunk size along this dimension by 25%.
+
+      rechunk:
+        type: object
+        properties:
+
+          method:
+            type:
+            - string
+            - "null"
+            description: |
+              The method to use for rechunking. Possible values are tasks or p2p.
+              If null, pick best method depending on application.
+
+          threshold:
+            type: integer
+            description: |
+              The graph growth factor above which task-based shuffling introduces
+              an intermediate step.
+
+      svg:
+        type: object
+        properties:
+
+          size:
+            type: integer
+            description: |
+              The size of pixels used when displaying a dask array as an SVG image.
+              This is used, for example, for nice rendering in a Jupyter notebook
+
+      slicing:
+        type: object
+        properties:
+          split-large-chunks:
+            type: [boolean, 'null']
+            description: |
+              How to handle large chunks created when slicing Arrays. By default a
+              warning is produced. Set to ``False`` to silence the warning
+              and allow large output chunks. Set to ``True`` to silence the
+              warning and avoid large output chunks.
+      query-planning:
+        type: [boolean, "null"]
+        description: |
+          Whether to use query planning for arrays.
+
+  optimization:
+    type: object
+    properties:
+
+      annotations:
+        type: object
+        properties:
+          fuse:
+            type: boolean
+            description: |
+              If adjacent blockwise layers have different annotations (e.g., one has
+              retries=3 and another has retries=4), Dask can make an attempt to merge
+              those annotations according to some simple rules. ``retries`` is set to
+              the max of the layers, ``priority`` is set to the max of the layers,
+              ``resources`` are set to the max of all the resources, ``workers`` is
+              set to the intersection of the requested workers. If this setting is
+              disabled, then adjacent blockwise layers with different annotations
+              will *not* be fused.
+
+      fuse:
+        type: object
+        description: Options for Dask's task fusion optimizations
+        properties:
+
+          active:
+            type: [boolean, 'null']
+            description: |
+              Turn task fusion on/off. This option refers to the fusion of a
+              fully-materialized task graph (not a high-Level graph). By default
+              (None), the active task-fusion option will be treated as ``False``
+              for Dask-Dataframe collections, and as ``True`` for all other graphs
+              (including Dask-Array collections).
+
+          ave-width:
+            type: number
+            minimum: 0
+            description:
+              Upper limit for width, where width = num_nodes / height, a good measure
+              of parallelizability
+
+          max-width:
+            type: [number, 'null']
+            minimum: 0
+            description:
+              Don't fuse if total width is greater than this. Set to null to dynamically
+              adjust to 1.5 + ave_width * log(ave_width + 1)
+
+          max-height:
+            type: number
+            minimum: 0
+            description: Don't fuse more than this many levels
+
+          max-depth-new-edges:
+            type: [number, 'null']
+            minimum: 0
+            description:
+              Don't fuse if new dependencies are added after this many levels.
+              Set to null to dynamically adjust to ave_width * 1.5.
+
+          rename-keys:
+            type: boolean
+            description:
+              Set to true to rename the fused keys with `default_fused_keys_renamer`.
+              Renaming fused keys can keep the graph more understandable and
+              comprehensible, but it comes at the cost of additional processing. If
+              False, then the top-most key will be used. For advanced usage, a function
+              to create the new name is also accepted.
+
+          delayed:
+            type: boolean
+            description: |
+              Whether to fuse adjacent delayed calls together. This can be useful to ensure
+              that an independent chain of delayed calls is executed in a single task to
+              reduce the memory footprint on a single worker.
+
+  admin:
+    type: object
+    properties:
+      async-client-fallback:
+        type: [string, 'null']
+        description: |
+          If not null, replace an asynchronous Client in get_scheduler/compute
+          with the provided scheduler type instead.
+
+      traceback:
+        type: object
+        properties:
+
+          shorten:
+            description:
+              Clean up Dask tracebacks for readability.
+              Remove all modules that match one of the listed regular expressions.
+              Always preserve the first and last frame.
+            type: array
+            items:
+              type: string

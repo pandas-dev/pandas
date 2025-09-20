@@ -1,0 +1,5 @@
+module QtQuick.Controls.Imagine
+plugin qtquickcontrols2imaginestyleplugin
+classname QtQuickControls2ImagineStylePlugin
+depends QtQuick.Controls 2.5
+depends QtGraphicalEffects 1.0

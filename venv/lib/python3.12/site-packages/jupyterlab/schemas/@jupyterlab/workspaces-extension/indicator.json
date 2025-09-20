@@ -1,0 +1,37 @@
+{
+  "title": "Workspace Indicator",
+  "description": "Workspace Indicator Settings",
+  "jupyter.lab.toolbars": {
+    "TopBar": [
+      {
+        "name": "workspaceIndicator",
+        "rank": 1000,
+        "disabled": true
+      }
+    ]
+  },
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-view",
+        "items": [
+          {
+            "type": "submenu",
+            "submenu": {
+              "id": "jp-mainmenu-view-appearance",
+              "items": [
+                {
+                  "command": "workspace-indicator:toggle",
+                  "rank": 16
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}

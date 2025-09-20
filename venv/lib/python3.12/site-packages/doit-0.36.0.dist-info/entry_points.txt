@@ -1,0 +1,3 @@
+[console_scripts]
+doit = doit.__main__:main
+

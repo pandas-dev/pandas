@@ -1,0 +1,190 @@
+- case: test_mypy_pipe_lambda_noarg_return_type
+  main: |
+    from xarray import DataTree
+
+    dt = DataTree().pipe(lambda data: data)
+
+    reveal_type(dt)  # N: Revealed type is "xarray.core.datatree.DataTree"
+
+- case: test_mypy_pipe_lambda_posarg_return_type
+  main: |
+    from xarray import DataTree
+
+    dt = DataTree().pipe(lambda data, arg: arg, "foo")
+
+    reveal_type(dt)  # N: Revealed type is "builtins.str"
+
+- case: test_mypy_pipe_lambda_chaining_return_type
+  main: |
+    from xarray import DataTree
+
+    answer = DataTree().pipe(lambda data, arg: arg, "foo").count("o")
+
+    reveal_type(answer)  # N: Revealed type is "builtins.int"
+
+- case: test_mypy_pipe_lambda_missing_arg
+  main: |
+    from xarray import DataTree
+
+    # Call to pipe missing argument for lambda parameter `arg`
+    dt = DataTree().pipe(lambda data, arg: data)
+  out: |
+    main:4: error: No overload variant of "pipe" of "DataTree" matches argument type "Callable[[Any, Any], Any]"  [call-overload]
+    main:4: note: Possible overload variants:
+    main:4: note:     def [P`2, T] pipe(self, func: Callable[[DataTree, **P], T], *args: P.args, **kwargs: P.kwargs) -> T
+    main:4: note:     def [T] pipe(self, func: tuple[Callable[..., T], str], *args: Any, **kwargs: Any) -> T
+
+- case: test_mypy_pipe_lambda_extra_arg
+  main: |
+    from xarray import DataTree
+
+    # Call to pipe with extra argument for lambda
+    dt = DataTree().pipe(lambda data: data, "oops!")
+  out: |
+    main:4: error: No overload variant of "pipe" of "DataTree" matches argument types "Callable[[Any], Any]", "str"  [call-overload]
+    main:4: note: Possible overload variants:
+    main:4: note:     def [P`2, T] pipe(self, func: Callable[[DataTree, **P], T], *args: P.args, **kwargs: P.kwargs) -> T
+    main:4: note:     def [T] pipe(self, func: tuple[Callable[..., T], str], *args: Any, **kwargs: Any) -> T
+
+- case: test_mypy_pipe_function_missing_posarg
+  main: |
+    from xarray import DataTree
+
+    def f(dt: DataTree, arg: int) -> DataTree:
+        return dt
+
+    # Call to pipe missing argument for function parameter `arg`
+    dt = DataTree().pipe(f)
+  out: |
+    main:7: error: No overload variant of "pipe" of "DataTree" matches argument type "Callable[[DataTree, int], DataTree]"  [call-overload]
+    main:7: note: Possible overload variants:
+    main:7: note:     def [P`2, T] pipe(self, func: Callable[[DataTree, **P], T], *args: P.args, **kwargs: P.kwargs) -> T
+    main:7: note:     def [T] pipe(self, func: tuple[Callable[..., T], str], *args: Any, **kwargs: Any) -> T
+
+- case: test_mypy_pipe_function_extra_posarg
+  main: |
+    from xarray import DataTree
+
+    def f(dt: DataTree, arg: int) -> DataTree:
+        return dt
+
+    # Call to pipe missing keyword for kwonly parameter `kwonly`
+    dt = DataTree().pipe(f, 42, "oops!")
+  out: |
+    main:7: error: No overload variant of "pipe" of "DataTree" matches argument types "Callable[[DataTree, int], DataTree]", "int", "str"  [call-overload]
+    main:7: note: Possible overload variants:
+    main:7: note:     def [P`2, T] pipe(self, func: Callable[[DataTree, **P], T], *args: P.args, **kwargs: P.kwargs) -> T
+    main:7: note:     def [T] pipe(self, func: tuple[Callable[..., T], str], *args: Any, **kwargs: Any) -> T
+
+- case: test_mypy_pipe_function_missing_kwarg
+  main: |
+    from xarray import DataTree
+
+    def f(dt: DataTree, arg: int, *, kwonly: int) -> DataTree:
+        return dt
+
+    # Call to pipe missing argument for kwonly parameter `kwonly`
+    dt = DataTree().pipe(f, 42)
+  out: |
+    main:7: error: No overload variant of "pipe" of "DataTree" matches argument types "Callable[[DataTree, int, NamedArg(int, 'kwonly')], DataTree]", "int"  [call-overload]
+    main:7: note: Possible overload variants:
+    main:7: note:     def [P`2, T] pipe(self, func: Callable[[DataTree, **P], T], *args: P.args, **kwargs: P.kwargs) -> T
+    main:7: note:     def [T] pipe(self, func: tuple[Callable[..., T], str], *args: Any, **kwargs: Any) -> T
+
+- case: test_mypy_pipe_function_missing_keyword
+  main: |
+    from xarray import DataTree
+
+    def f(dt: DataTree, arg: int, *, kwonly: int) -> DataTree:
+        return dt
+
+    # Call to pipe missing keyword for kwonly parameter `kwonly`
+    dt = DataTree().pipe(f, 42, 99)
+  out: |
+    main:7: error: No overload variant of "pipe" of "DataTree" matches argument types "Callable[[DataTree, int, NamedArg(int, 'kwonly')], DataTree]", "int", "int"  [call-overload]
+    main:7: note: Possible overload variants:
+    main:7: note:     def [P`2, T] pipe(self, func: Callable[[DataTree, **P], T], *args: P.args, **kwargs: P.kwargs) -> T
+    main:7: note:     def [T] pipe(self, func: tuple[Callable[..., T], str], *args: Any, **kwargs: Any) -> T
+
+- case: test_mypy_pipe_function_unexpected_keyword
+  main: |
+    from xarray import DataTree
+
+    def f(dt: DataTree, arg: int, *, kwonly: int) -> DataTree:
+        return dt
+
+    # Call to pipe using wrong keyword: `kw` instead of `kwonly`
+    dt = DataTree().pipe(f, 42, kw=99)
+  out: |
+    main:7: error: Unexpected keyword argument "kw" for "pipe" of "DataTree"  [call-arg]
+
+- case: test_mypy_pipe_tuple_return_type_datatree
+  main: |
+    from xarray import DataTree
+
+    def f(arg: int, dt: DataTree) -> DataTree:
+        return dt
+
+    dt = DataTree().pipe((f, "dt"), 42)
+    reveal_type(dt)  # N: Revealed type is "xarray.core.datatree.DataTree"
+
+- case: test_mypy_pipe_tuple_return_type_other
+  main: |
+    from xarray import DataTree
+
+    def f(arg: int, dt: DataTree) -> int:
+        return arg
+
+    answer = DataTree().pipe((f, "dt"), 42)
+
+    reveal_type(answer)  # N: Revealed type is "builtins.int"
+
+- case: test_mypy_pipe_tuple_missing_arg
+  main: |
+    from xarray import DataTree
+
+    def f(arg: int, dt: DataTree) -> DataTree:
+        return dt
+
+    # Since we cannot provide a precise type annotation when passing a tuple to
+    # pipe, there's not enough information for type analysis to indicate that
+    # we are missing an argument for parameter `arg`, so we get no error here.
+
+    dt = DataTree().pipe((f, "dt"))
+    reveal_type(dt)  # N: Revealed type is "xarray.core.datatree.DataTree"
+
+    # Rather than passing a tuple, passing a lambda that calls `f` with args in
+    # the correct order allows for proper type analysis, indicating (perhaps
+    # somewhat cryptically) that we failed to pass an argument for `arg`.
+
+    dt = DataTree().pipe(lambda data, arg: f(arg, data))
+  out: |
+    main:17: error: No overload variant of "pipe" of "DataTree" matches argument type "Callable[[Any, Any], DataTree]"  [call-overload]
+    main:17: note: Possible overload variants:
+    main:17: note:     def [P`9, T] pipe(self, func: Callable[[DataTree, **P], T], *args: P.args, **kwargs: P.kwargs) -> T
+    main:17: note:     def [T] pipe(self, func: tuple[Callable[..., T], str], *args: Any, **kwargs: Any) -> T
+
+- case: test_mypy_pipe_tuple_extra_arg
+  main: |
+    from xarray import DataTree
+
+    def f(arg: int, dt: DataTree) -> DataTree:
+        return dt
+
+    # Since we cannot provide a precise type annotation when passing a tuple to
+    # pipe, there's not enough information for type analysis to indicate that
+    # we are providing too many args for `f`, so we get no error here.
+
+    dt = DataTree().pipe((f, "dt"), 42, "foo")
+    reveal_type(dt)  # N: Revealed type is "xarray.core.datatree.DataTree"
+
+    # Rather than passing a tuple, passing a lambda that calls `f` with args in
+    # the correct order allows for proper type analysis, indicating (perhaps
+    # somewhat cryptically) that we passed too many arguments.
+
+    dt = DataTree().pipe(lambda data, arg: f(arg, data), 42, "foo")
+  out: |
+    main:17: error: No overload variant of "pipe" of "DataTree" matches argument types "Callable[[Any, Any], DataTree]", "int", "str"  [call-overload]
+    main:17: note: Possible overload variants:
+    main:17: note:     def [P`9, T] pipe(self, func: Callable[[DataTree, **P], T], *args: P.args, **kwargs: P.kwargs) -> T
+    main:17: note:     def [T] pipe(self, func: tuple[Callable[..., T], str], *args: Any, **kwargs: Any) -> T

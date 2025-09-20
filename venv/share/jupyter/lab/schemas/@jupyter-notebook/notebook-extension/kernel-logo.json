@@ -1,0 +1,10 @@
+{
+  "title": "Kernel logo",
+  "description": "Kernel logo in the top area",
+  "jupyter.lab.toolbars": {
+    "TopBar": [{ "name": "kernelLogo", "rank": 110 }]
+  },
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}

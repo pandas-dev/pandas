@@ -1,0 +1,85 @@
+Metadata-Version: 2.1
+Name: locket
+Version: 1.0.0
+Summary: File-based locks for Python on Linux and Windows
+Home-page: http://github.com/mwilliamson/locket.py
+Author: Michael Williamson
+Author-email: mike@zwobble.org
+License: BSD-2-Clause
+Keywords: lock filelock lockfile process
+Platform: UNKNOWN
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Operating System :: Unix
+Classifier: Operating System :: Microsoft :: Windows
+Requires-Python: >=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*
+License-File: LICENSE
+
+locket.py: File-based locks for Python on Linux and Windows
+===========================================================
+
+Locket implements a file-based lock that can be used by multiple processes provided they use the same path.
+
+.. code-block:: python
+
+    import locket
+
+    # Wait for lock
+    with locket.lock_file("path/to/lock/file"):
+        perform_action()
+
+    # Raise LockError if lock cannot be acquired immediately
+    with locket.lock_file("path/to/lock/file", timeout=0):
+        perform_action()
+
+    # Raise LockError if lock cannot be acquired after thirty seconds
+    with locket.lock_file("path/to/lock/file", timeout=30):
+        perform_action()
+
+    # Without context managers:
+    lock = locket.lock_file("path/to/lock/file")
+    try:
+        lock.acquire()
+        perform_action()
+    finally:
+        lock.release()
+
+Locks largely behave as (non-reentrant) ``Lock`` instances from the ``threading``
+module in the standard library. Specifically, their behaviour is:
+
+* Locks are uniquely identified by the file being locked,
+  both in the same process and across different processes.
+
+* Locks are either in a locked or unlocked state.
+
+* When the lock is unlocked, calling ``acquire()`` returns immediately and changes
+  the lock state to locked.
+
+* When the lock is locked, calling ``acquire()`` will block until the lock state
+  changes to unlocked, or until the timeout expires.
+
+* If a process holds a lock, any thread in that process can call ``release()`` to
+  change the state to unlocked.
+
+* Calling ``release()`` on an unlocked lock raises ``LockError``.
+
+* Behaviour of locks after ``fork`` is undefined.
+
+Installation
+------------
+
+.. code-block:: sh
+
+    pip install locket
+
+
