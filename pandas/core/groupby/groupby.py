@@ -70,6 +70,7 @@ from pandas.util._decorators import (
     doc,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     coerce_indexer_dtype,
@@ -5676,6 +5677,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             idxmax or idxmin for the groupby operation.
         """
+        validate_bool_kwarg(numeric_only, "numeric_only")
         if not self.observed and any(
             ping._passed_categorical for ping in self._grouper.groupings
         ):

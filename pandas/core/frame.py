@@ -11424,6 +11424,7 @@ class DataFrame(NDFrame, OpsMixin):
         dogs   1.0   NaN
         cats   NaN   1.0
         """  # noqa: E501
+        validate_bool_kwarg(numeric_only, "numeric_only")
         data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
         idx = cols.copy()
@@ -11580,6 +11581,7 @@ class DataFrame(NDFrame, OpsMixin):
         b       NaN  1.248003  0.191417
         c -0.150812  0.191417  0.895202
         """
+        validate_bool_kwarg(numeric_only, "numeric_only")
         data = self._get_numeric_data() if numeric_only else self
         if any(blk.dtype.kind in "mM" for blk in self._mgr.blocks):
             msg = (
@@ -11684,6 +11686,7 @@ class DataFrame(NDFrame, OpsMixin):
         e    NaN
         dtype: float64
         """
+        validate_bool_kwarg(numeric_only, "numeric_only")
         axis = self._get_axis_number(axis)
         this = self._get_numeric_data() if numeric_only else self
 
@@ -11819,6 +11822,7 @@ class DataFrame(NDFrame, OpsMixin):
         4    3
         dtype: int64
         """
+        validate_bool_kwarg(numeric_only, "numeric_only")
         axis = self._get_axis_number(axis)
 
         if numeric_only:
@@ -13067,6 +13071,7 @@ class DataFrame(NDFrame, OpsMixin):
         *args,
         **kwargs,
     ) -> Self:
+        validate_bool_kwarg(numeric_only, "numeric_only")
         data = self._get_numeric_data() if numeric_only else self
         return NDFrame.cummin(data, axis, skipna, *args, **kwargs)
 
@@ -13079,6 +13084,7 @@ class DataFrame(NDFrame, OpsMixin):
         *args,
         **kwargs,
     ) -> Self:
+        validate_bool_kwarg(numeric_only, "numeric_only")
         data = self._get_numeric_data() if numeric_only else self
         return NDFrame.cummax(data, axis, skipna, *args, **kwargs)
 
@@ -13091,6 +13097,7 @@ class DataFrame(NDFrame, OpsMixin):
         *args,
         **kwargs,
     ) -> Self:
+        validate_bool_kwarg(numeric_only, "numeric_only")
         data = self._get_numeric_data() if numeric_only else self
         return NDFrame.cumsum(data, axis, skipna, *args, **kwargs)
 
@@ -13103,6 +13110,7 @@ class DataFrame(NDFrame, OpsMixin):
         *args,
         **kwargs,
     ) -> Self:
+        validate_bool_kwarg(numeric_only, "numeric_only")
         data = self._get_numeric_data() if numeric_only else self
         return NDFrame.cumprod(data, axis, skipna, *args, **kwargs)
 
@@ -13221,6 +13229,7 @@ class DataFrame(NDFrame, OpsMixin):
         Beef                consumption
         dtype: object
         """
+        validate_bool_kwarg(numeric_only, "numeric_only")
         axis = self._get_axis_number(axis)
 
         if self.empty and len(self.axes[axis]):
@@ -13326,6 +13335,7 @@ class DataFrame(NDFrame, OpsMixin):
         Beef              co2_emissions
         dtype: object
         """
+        validate_bool_kwarg(numeric_only, "numeric_only")
         axis = self._get_axis_number(axis)
 
         if self.empty and len(self.axes[axis]):
@@ -13452,6 +13462,7 @@ class DataFrame(NDFrame, OpsMixin):
         spider   0.0  8.0
         ostrich  2.0  NaN
         """
+        validate_bool_kwarg(numeric_only, "numeric_only")
         data = self if not numeric_only else self._get_numeric_data()
 
         def f(s):
@@ -13590,6 +13601,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         validate_percentile(q)
         axis = self._get_axis_number(axis)
+        validate_bool_kwarg(numeric_only, "numeric_only")
 
         if not is_list_like(q):
             # BlockManager.quantile expects listlike, so we wrap and unwrap here
