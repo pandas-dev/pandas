@@ -1,0 +1,71 @@
+{
+  "name": "@jupyterlab/docmanager-extension",
+  "version": "4.4.7",
+  "description": "JupyterLab - Document Manager Extension",
+  "homepage": "https://github.com/jupyterlab/jupyterlab",
+  "bugs": {
+    "url": "https://github.com/jupyterlab/jupyterlab/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jupyterlab/jupyterlab.git"
+  },
+  "license": "BSD-3-Clause",
+  "author": "Project Jupyter",
+  "sideEffects": [
+    "style/**/*.css",
+    "style/index.js"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "style": "style/index.css",
+  "directories": {
+    "lib": "lib/"
+  },
+  "files": [
+    "lib/*.d.ts",
+    "lib/*.js.map",
+    "lib/*.js",
+    "schema/*.json",
+    "style/**/*.css",
+    "style/index.js",
+    "src/**/*.{ts,tsx}"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "rimraf lib && rimraf tsconfig.tsbuildinfo",
+    "watch": "tsc -b --watch"
+  },
+  "dependencies": {
+    "@jupyterlab/application": "^4.4.7",
+    "@jupyterlab/apputils": "^4.5.7",
+    "@jupyterlab/coreutils": "^6.4.7",
+    "@jupyterlab/docmanager": "^4.4.7",
+    "@jupyterlab/docregistry": "^4.4.7",
+    "@jupyterlab/services": "^7.4.7",
+    "@jupyterlab/settingregistry": "^4.4.7",
+    "@jupyterlab/statedb": "^4.4.7",
+    "@jupyterlab/statusbar": "^4.4.7",
+    "@jupyterlab/translation": "^4.4.7",
+    "@jupyterlab/ui-components": "^4.4.7",
+    "@lumino/algorithm": "^2.0.3",
+    "@lumino/commands": "^2.3.2",
+    "@lumino/coreutils": "^2.2.1",
+    "@lumino/disposable": "^2.1.4",
+    "@lumino/signaling": "^2.1.4",
+    "@lumino/widgets": "^2.7.1",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "rimraf": "~5.0.5",
+    "typescript": "~5.5.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "jupyterlab": {
+    "extension": true,
+    "schemaDir": "schema"
+  },
+  "styleModule": "style/index.js"
+}

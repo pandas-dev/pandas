@@ -1,0 +1,102 @@
+Metadata-Version: 2.4
+Name: feedparser
+Version: 6.0.12
+Summary: Universal feed parser, handles RSS 0.9x, RSS 1.0, RSS 2.0, CDF, Atom 0.3, and Atom 1.0 feeds
+Home-page: https://github.com/kurtmckee/feedparser
+Download-URL: https://pypi.python.org/pypi/feedparser
+Author: Kurt McKee
+Author-email: contactme@kurtmckee.org
+License: BSD-2-Clause
+Keywords: atom,cdf,feed,parser,rdf,rss
+Platform: POSIX
+Platform: Windows
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Text Processing :: Markup :: XML
+Requires-Python: >=3.6
+Description-Content-Type: text/x-rst
+License-File: LICENSE
+Requires-Dist: sgmllib3k
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: download-url
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: license-file
+Dynamic: platform
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+..
+    This file is part of feedparser.
+    Copyright 2010-2025 Kurt McKee <contactme@kurtmckee.org>
+    Copyright 2002-2008 Mark Pilgrim
+    Released under the BSD 2-clause license.
+
+
+feedparser
+##########
+
+Parse Atom and RSS feeds in Python.
+
+----
+
+
+Installation
+============
+
+feedparser can be installed by running pip:
+
+..  code-block:: console
+
+    $ pip install feedparser
+
+
+Documentation
+=============
+
+The feedparser documentation is available on the web at:
+
+    https://feedparser.readthedocs.io/en/latest/
+
+It is also included in its source format, ReST, in the ``docs/`` directory.
+To build the documentation you'll need the Sphinx package, which is available at:
+
+    https://www.sphinx-doc.org/
+
+You can then build HTML pages using a command similar to:
+
+..  code-block:: console
+
+    $ sphinx-build -b html docs/ fpdocs
+
+This will produce HTML documentation in the ``fpdocs/`` directory.
+
+
+Testing
+=======
+
+Feedparser has an extensive test suite, powered by tox. To run it, type this:
+
+..  code-block:: console
+
+    $ python -m venv venv
+    $ source venv/bin/activate  # or "venv\bin\activate.ps1" on Windows
+    (venv) $ pip install -r requirements-dev.txt
+    (venv) $ tox
+
+This will spawn an HTTP server that will listen on port 8097. The tests will
+fail if that port is in use.

@@ -1,0 +1,46 @@
+from typing import Literal, Self, TypeAlias, TypedDict, final, overload, type_check_only
+from typing_extensions import Unpack
+
+import numpy as np
+import numpy.typing as npt
+import optype.numpy as onp
+import optype.numpy.compat as npc
+
+from scipy._typing import ExitMixin
+from scipy.io._typing import FileLike
+
+__all__ = ["FortranEOFError", "FortranFile", "FortranFormattingError"]
+
+_FileModeRW: TypeAlias = Literal["r", "w"]
+
+@final
+@type_check_only
+class _DTypeKwargs(TypedDict, total=False):
+    dtype: npt.DTypeLike
+
+###
+
+class FortranEOFError(TypeError, OSError): ...
+class FortranFormattingError(TypeError, OSError): ...
+
+class FortranFile(ExitMixin):
+    def __init__(self, /, filename: FileLike[bytes], mode: _FileModeRW = "r", header_dtype: npt.DTypeLike = ...) -> None: ...
+    def __enter__(self, /) -> Self: ...
+    def close(self, /) -> None: ...
+    def write_record(self, /, *items: onp.ToArrayND) -> None: ...
+    @overload
+    def read_record(self, /, *dtypes: npt.DTypeLike) -> onp.Array1D[np.void]: ...
+    @overload
+    def read_record(self, /, *dtypes: npt.DTypeLike, **kwargs: Unpack[_DTypeKwargs]) -> onp.Array1D[np.void]: ...
+    @overload
+    def read_ints(self, /) -> onp.Array1D[np.int32]: ...
+    @overload
+    def read_ints(self, /, dtype: onp.AnyIntegerDType) -> onp.Array1D[npc.integer]: ...
+    @overload
+    def read_ints(self, /, dtype: npt.DTypeLike) -> onp.Array1D: ...
+    @overload
+    def read_reals(self, /) -> onp.Array1D[np.float64]: ...
+    @overload
+    def read_reals(self, /, dtype: onp.AnyFloatingDType) -> onp.Array1D[npc.floating]: ...
+    @overload
+    def read_reals(self, /, dtype: npt.DTypeLike) -> onp.Array1D: ...

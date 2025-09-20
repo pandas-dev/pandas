@@ -1,0 +1,1 @@
+"use strict";(self["webpackChunk_jupyterlab_application_top"]=self["webpackChunk_jupyterlab_application_top"]||[]).push([[9213],{99213:(e,a,p)=>{p.d(a,{createArchitectureServices:()=>t.S});var t=p(38936);var c=p(32464)}}]);

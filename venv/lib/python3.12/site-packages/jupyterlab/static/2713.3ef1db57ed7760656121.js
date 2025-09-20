@@ -1,0 +1,1 @@
+"use strict";(self["webpackChunk_jupyterlab_application_top"]=self["webpackChunk_jupyterlab_application_top"]||[]).push([[2713],{42713:(e,a,p)=>{p.d(a,{createTreemapServices:()=>t.d});var t=p(83167);var r=p(32464)}}]);

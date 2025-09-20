@@ -1,0 +1,88 @@
+"""Handle efficient discovery of"""
+
+import sys
+import warnings
+from copy import deepcopy
+from functools import lru_cache
+
+from ..constants import ADDON_ENTRYPOINT
+
+# See compatibility note on `group` keyword in
+# https://docs.python.org/3/library/importlib.metadata.html#entry-points
+if sys.version_info < (3, 10):  # pragma: no cover
+    from importlib_metadata import entry_points
+else:  # pragma: no cover
+    from importlib.metadata import entry_points
+
+
+def merge_addon_aliases(base_aliases, force=None):
+    """Update CLI aliases from addons."""
+    new_aliases = deepcopy(base_aliases)
+
+    for name, impl in get_addon_implementations(force).items():
+        addon_aliases = getattr(impl, "aliases", {})
+
+        for alias, trait_name in addon_aliases.items():
+            if alias in new_aliases:
+                warnings.warn(f"[lite] [{name}] alias --{alias} cannot be redefined", stacklevel=2)
+                continue
+            new_aliases[alias] = trait_name
+
+    return new_aliases
+
+
+def merge_addon_flags(base_flags, force=None):
+    """Update CLI flags from addons."""
+    new_flags = deepcopy(base_flags)
+
+    for name, impl in get_addon_implementations(force).items():
+        addon_flags = getattr(impl, "flags", {})
+
+        for flag, config_help in addon_flags.items():
+            if flag not in new_flags:
+                new_flags[flag] = config_help
+            else:
+                flag_config, flag_help = new_flags[flag]
+                config, help_str = config_help
+                for cls_name, traits in config.items():
+                    if cls_name in flag_config:
+                        warnings.warn(
+                            f"[lite] [{name}] --{flag} cannot redefine {cls_name}",
+                            stacklevel=2,
+                        )
+                        continue
+                    flag_config[cls_name] = traits
+                new_flags[flag] = (flag_config, "\n".join([flag_help, help_str]))
+
+    return new_flags
+
+
+@lru_cache(1)
+def get_addon_implementations(force=None):
+    """Load (and cache) addon implementations.
+
+    Pass some noise (like `date.date`) to the ``force`` argument to reload.
+    """
+    addon_implementations = {}
+    for name, entry_point in get_addon_entry_points(force).items():
+        try:
+            addon_implementations[name] = entry_point.load()
+        except Exception as err:  # pragma: no cover
+            warnings.warn(f"[lite] [{name}] failed to load: {err}", stacklevel=2)
+    return addon_implementations
+
+
+@lru_cache(1)
+def get_addon_entry_points(force=None):
+    """Discover (and cache) modern entrypoints as a ``dict`` with sorted keys.
+
+    Pass some noise (like `date.date`) to the ``force`` argument to reload.
+    """
+    all_entry_points = {}
+    for entry_point in entry_points(group=ADDON_ENTRYPOINT):
+        name = entry_point.name
+        if name in all_entry_points:  # pragma: no cover
+            warnings.warn(f"[lite] [{name}] addon already registered.", stacklevel=2)
+            continue
+        all_entry_points[name] = entry_point
+    return dict(sorted(all_entry_points.items()))

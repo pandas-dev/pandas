@@ -62,12 +62,75 @@ def melt(
     frame : DataFrame
         The DataFrame to unpivot.
     id_vars : scalar, tuple, list, or ndarray, optional
-        Column(s) to use as identifier variables.
+        Column(s) to use as identifier variables. These columns will remain
+        as columns in the output DataFrame.
     value_vars : scalar, tuple, list, or ndarray, optional
         Column(s) to unpivot. If not specified, uses all columns that
         are not set as `id_vars`.
     var_name : scalar, tuple, list, or ndarray, optional
-        Name to use for the 'variable' column. If None it uses
+        Name to use for the 'variable' column. If None, defaults to
+        'variable' or uses frame.columns.name.
+    value_name : scalar, default 'value'
+        Name to use for the 'value' column.
+    col_level : int or str, optional
+        If columns are a MultiIndex then use this level to melt.
+    ignore_index : bool, default True
+        If True, original index is ignored. If False, the original index is retained
+        and will be repeated, same as `frame.index`.
+
+    Returns
+    -------
+    DataFrame
+        Unpivoted DataFrame with new style index.
+
+    See Also
+    --------
+    DataFrame.pivot : Convert DataFrame from long format to wide format.
+    DataFrame.pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
+    DataFrame.wide_to_long : Wide panel to long format. Less flexible but more
+        user-friendly than melt.
+
+    Notes
+    -----
+    For more details and examples, see the :ref:`reshaping` section in the
+    user guide.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
+    ...                    'B': {0: 1, 1: 3, 2: 5},
+    ...                    'C': {0: 2, 1: 4, 2: 6}})
+    >>> df
+       A  B  C
+    0  a  1  2
+    1  b  3  4
+    2  c  5  6
+
+    >>> pd.melt(df, id_vars=['A'], value_vars=['B'])
+       A variable  value
+    0  a        B      1
+    1  b        B      3
+    2  c        B      5
+
+    >>> pd.melt(df, id_vars=['A'], value_vars=['B', 'C'])
+       A variable  value
+    0  a        B      1
+    1  b        B      3
+    2  c        B      5
+    3  a        C      2
+    4  b        C      4
+    5  c        C      6
+
+    The same operation with 'id_vars' not specified:
+
+    >>> pd.melt(df, value_vars=['A', 'B'])
+    variable value
+    0        A     a
+    1        A     b
+    2        A     c
+    3        B     1
+    4        B     3
+    5        B     5
         ``frame.columns.name`` or 'variable'. Must be a scalar if columns are a
         MultiIndex.
     value_name : scalar, default 'value'
@@ -367,44 +430,102 @@ def wide_to_long(
     r"""
     Unpivot a DataFrame from wide to long format.
 
-    Less flexible but more user-friendly than melt.
+    This function provides a user-friendly approach to reshape wide-format data
+    into long format, particularly useful for panel data and repeated measurements.
+    For more details, see the :ref:`reshaping` section in the user guide.
 
-    With stubnames ['A', 'B'], this function expects to find one or more
-    group of columns with format
-    A-suffix1, A-suffix2,..., B-suffix1, B-suffix2,...
-    You specify what you want to call this suffix in the resulting long format
-    with `j` (for example `j='year'`)
-
-    Each row of these wide variables are assumed to be uniquely identified by
-    `i` (can be a single column name or a list of column names)
-
-    All remaining variables in the data frame are left intact.
+    The function expects to find groups of columns with format:
+    stub1_suffix1, stub1_suffix2,..., stub2_suffix1, stub2_suffix2,...
+    where suffixes are numbers or strings.
 
     Parameters
     ----------
     df : DataFrame
-        The wide-format DataFrame.
+        The wide-format DataFrame to transform.
     stubnames : str or list-like
-        The stub name(s). The wide format variables are assumed to
-        start with the stub names.
+        The stub name(s). These are the common prefixes of the variables
+        that need to be unpivoted. For example, if your columns are
+        'A_1', 'A_2', 'B_1', 'B_2', then the stubnames would be ['A', 'B'].
     i : str or list-like
-        Column(s) to use as id variable(s).
+        Column(s) to use as identifier variables. These columns will identify
+        unique entities and will be part of the resulting MultiIndex.
     j : str
-        The name of the sub-observation variable. What you wish to name your
-        suffix in the long format.
+        The name of the 'variable' column in the output. This is what you
+        want to call the suffix values from your wide variables.
+        For example, if your suffixes are years, you might use j='year'.
     sep : str, default ""
         A character indicating the separation of the variable names
-        in the wide format, to be stripped from the names in the long format.
-        For example, if your column names are A-suffix1, A-suffix2, you
-        can strip the hyphen by specifying `sep='-'`.
+        in the wide format. For example, if your column names are A-suffix1,
+        A-suffix2, specify sep='-' to remove the hyphen.
     suffix : str, default '\\d+'
-        A regular expression capturing the wanted suffixes. '\\d+' captures
-        numeric suffixes. Suffixes with no numbers could be specified with the
-        negated character class '\\D+'. You can also further disambiguate
-        suffixes, for example, if your wide variables are of the form A-one,
-        B-two,.., and you have an unrelated column A-rating, you can ignore the
-        last one by specifying `suffix='(!?one|two)'`. When all suffixes are
-        numeric, they are cast to int64/float64.
+        A regular expression capturing the wanted suffixes. Defaults to '\\d+'
+        which captures numeric suffixes. Use '\\D+' for non-numeric suffixes.
+        For more complex cases, you can specify a pattern like
+        '(!?one|two)' to match specific strings.
+
+    Returns
+    -------
+    DataFrame
+        Reshaped DataFrame in long format with MultiIndex.
+
+    See Also
+    --------
+    melt : More flexible unpivoting that allows custom specification of value
+        variables.
+    DataFrame.pivot : Reshape long-format data into wide format.
+    DataFrame.pivot_table : Create a spreadsheet-style pivot table.
+
+    Notes
+    -----
+    - All stubnames should share the same format for their suffixes.
+    - Numeric suffixes will be converted to int64/float64.
+    - Non-matching columns are left as is in the resulting DataFrame.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({
+    ...     'family': ['Miller', 'Smith'],
+    ...     'height_2000': [60, 65],
+    ...     'height_2001': [62, 66],
+    ...     'weight_2000': [150, 165],
+    ...     'weight_2001': [155, 170],
+    ... })
+    >>> df
+         family  height_2000  height_2001  weight_2000  weight_2001
+    0  Miller           60           62          150          155
+    1   Smith           65           66          165          170
+
+    >>> pd.wide_to_long(df, 
+    ...                 stubnames=['height', 'weight'], 
+    ...                 i='family', 
+    ...                 j='year')
+                      height  weight
+    family year                    
+    Miller 2000        60    150
+           2001        62    155
+    Smith  2000        65    165
+           2001        66    170
+
+    Using non-numeric suffixes:
+
+    >>> df = pd.DataFrame({
+    ...     'subject': ['A', 'B'],
+    ...     'height_pre': [60, 65],
+    ...     'height_post': [62, 66],
+    ...     'weight_pre': [150, 165],
+    ...     'weight_post': [155, 170],
+    ... })
+    >>> pd.wide_to_long(df,
+    ...                 stubnames=['height', 'weight'],
+    ...                 i='subject',
+    ...                 j='time',
+    ...                 suffix='(pre|post)')
+                       height  weight
+    subject time                    
+    A       pre         60    150
+            post        62    155
+    B       pre         65    165
+            post        66    170
 
     Returns
     -------

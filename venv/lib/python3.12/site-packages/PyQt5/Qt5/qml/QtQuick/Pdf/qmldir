@@ -1,0 +1,4 @@
+module QtQuick.Pdf
+plugin pdfplugin
+classname QtQuick2PdfPlugin
+typeinfo plugins.qmltypes

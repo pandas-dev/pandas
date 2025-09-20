@@ -1,0 +1,240 @@
+# Copyright 2013-2019 The Meson development team
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+from __future__ import annotations
+
+import functools
+import typing as T
+import os
+import re
+
+from ..environment import detect_cpu_family
+from .base import DependencyMethods, detect_compiler, SystemDependency
+from .configtool import ConfigToolDependency
+from .detect import packages
+from .factory import factory_methods
+from .pkgconfig import PkgConfigDependency
+
+if T.TYPE_CHECKING:
+    from .factory import DependencyGenerator
+    from ..environment import Environment, MachineChoice
+
+
+@factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
+def mpi_factory(env: 'Environment',
+                for_machine: 'MachineChoice',
+                kwargs: T.Dict[str, T.Any],
+                methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
+    language = kwargs.get('language', 'c')
+    if language not in {'c', 'cpp', 'fortran'}:
+        # OpenMPI doesn't work without any other languages
+        return []
+
+    candidates: T.List['DependencyGenerator'] = []
+    compiler = detect_compiler('mpi', env, for_machine, language)
+    if not compiler:
+        return []
+    compiler_is_intel = compiler.get_id() in {'intel', 'intel-cl'}
+
+    # Only OpenMPI has pkg-config, and it doesn't work with the intel compilers
+    if DependencyMethods.PKGCONFIG in methods and not compiler_is_intel:
+        pkg_name = None
+        if language == 'c':
+            pkg_name = 'ompi-c'
+        elif language == 'cpp':
+            pkg_name = 'ompi-cxx'
+        elif language == 'fortran':
+            pkg_name = 'ompi-fort'
+        candidates.append(functools.partial(
+            PkgConfigDependency, pkg_name, env, kwargs, language=language))
+
+    if DependencyMethods.CONFIG_TOOL in methods:
+        nwargs = kwargs.copy()
+
+        if compiler_is_intel:
+            if env.machines[for_machine].is_windows():
+                nwargs['version_arg'] = '-v'
+                nwargs['returncode_value'] = 3
+
+            if language == 'c':
+                tool_names = [os.environ.get('I_MPI_CC'), 'mpiicc']
+            elif language == 'cpp':
+                tool_names = [os.environ.get('I_MPI_CXX'), 'mpiicpc']
+            elif language == 'fortran':
+                tool_names = [os.environ.get('I_MPI_F90'), 'mpiifort']
+
+            cls = IntelMPIConfigToolDependency  # type: T.Type[ConfigToolDependency]
+        else: # OpenMPI, which doesn't work with intel
+            #
+            # We try the environment variables for the tools first, but then
+            # fall back to the hardcoded names
+            if language == 'c':
+                tool_names = [os.environ.get('MPICC'), 'mpicc']
+            elif language == 'cpp':
+                tool_names = [os.environ.get('MPICXX'), 'mpic++', 'mpicxx', 'mpiCC']
+            elif language == 'fortran':
+                tool_names = [os.environ.get(e) for e in ['MPIFC', 'MPIF90', 'MPIF77']]
+                tool_names.extend(['mpifort', 'mpif90', 'mpif77'])
+
+            cls = OpenMPIConfigToolDependency
+
+        tool_names = [t for t in tool_names if t]  # remove empty environment variables
+        assert tool_names
+
+        nwargs['tools'] = tool_names
+        candidates.append(functools.partial(
+            cls, tool_names[0], env, nwargs, language=language))
+
+    if DependencyMethods.SYSTEM in methods:
+        candidates.append(functools.partial(
+            MSMPIDependency, 'msmpi', env, kwargs, language=language))
+
+    return candidates
+
+packages['mpi'] = mpi_factory
+
+
+class _MPIConfigToolDependency(ConfigToolDependency):
+
+    def _filter_compile_args(self, args: T.List[str]) -> T.List[str]:
+        """
+        MPI wrappers return a bunch of garbage args.
+        Drop -O2 and everything that is not needed.
+        """
+        result = []
+        multi_args: T.Tuple[str, ...] = ('-I', )
+        if self.language == 'fortran':
+            fc = self.env.coredata.compilers[self.for_machine]['fortran']
+            multi_args += fc.get_module_incdir_args()
+
+        include_next = False
+        for f in args:
+            if f.startswith(('-D', '-f') + multi_args) or f == '-pthread' \
+                    or (f.startswith('-W') and f != '-Wall' and not f.startswith('-Werror')):
+                result.append(f)
+                if f in multi_args:
+                    # Path is a separate argument.
+                    include_next = True
+            elif include_next:
+                include_next = False
+                result.append(f)
+        return result
+
+    def _filter_link_args(self, args: T.List[str]) -> T.List[str]:
+        """
+        MPI wrappers return a bunch of garbage args.
+        Drop -O2 and everything that is not needed.
+        """
+        result = []
+        include_next = False
+        for f in args:
+            if self._is_link_arg(f):
+                result.append(f)
+                if f in {'-L', '-Xlinker'}:
+                    include_next = True
+            elif include_next:
+                include_next = False
+                result.append(f)
+        return result
+
+    def _is_link_arg(self, f: str) -> bool:
+        if self.clib_compiler.id == 'intel-cl':
+            return f == '/link' or f.startswith('/LIBPATH') or f.endswith('.lib')   # always .lib whether static or dynamic
+        else:
+            return (f.startswith(('-L', '-l', '-Xlinker')) or
+                    f == '-pthread' or
+                    (f.startswith('-W') and f != '-Wall' and not f.startswith('-Werror')))
+
+
+class IntelMPIConfigToolDependency(_MPIConfigToolDependency):
+
+    """Wrapper around Intel's mpiicc and friends."""
+
+    version_arg = '-v'  # --version is not the same as -v
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[str] = None):
+        super().__init__(name, env, kwargs, language=language)
+        if not self.is_found:
+            return
+
+        args = self.get_config_value(['-show'], 'link and compile args')
+        self.compile_args = self._filter_compile_args(args)
+        self.link_args = self._filter_link_args(args)
+
+    def _sanitize_version(self, out: str) -> str:
+        v = re.search(r'(\d{4}) Update (\d)', out)
+        if v:
+            return '{}.{}'.format(v.group(1), v.group(2))
+        return out
+
+
+class OpenMPIConfigToolDependency(_MPIConfigToolDependency):
+
+    """Wrapper around OpenMPI mpicc and friends."""
+
+    version_arg = '--showme:version'
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[str] = None):
+        super().__init__(name, env, kwargs, language=language)
+        if not self.is_found:
+            return
+
+        c_args = self.get_config_value(['--showme:compile'], 'compile_args')
+        self.compile_args = self._filter_compile_args(c_args)
+
+        l_args = self.get_config_value(['--showme:link'], 'link_args')
+        self.link_args = self._filter_link_args(l_args)
+
+    def _sanitize_version(self, out: str) -> str:
+        v = re.search(r'\d+.\d+.\d+', out)
+        if v:
+            return v.group(0)
+        return out
+
+
+class MSMPIDependency(SystemDependency):
+
+    """The Microsoft MPI."""
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[str] = None):
+        super().__init__(name, env, kwargs, language=language)
+        # MSMPI only supports the C API
+        if language not in {'c', 'fortran', None}:
+            self.is_found = False
+            return
+        # MSMPI is only for windows, obviously
+        if not self.env.machines[self.for_machine].is_windows():
+            return
+
+        incdir = os.environ.get('MSMPI_INC')
+        arch = detect_cpu_family(self.env.coredata.compilers.host)
+        libdir = None
+        if arch == 'x86':
+            libdir = os.environ.get('MSMPI_LIB32')
+            post = 'x86'
+        elif arch == 'x86_64':
+            libdir = os.environ.get('MSMPI_LIB64')
+            post = 'x64'
+
+        if libdir is None or incdir is None:
+            self.is_found = False
+            return
+
+        self.is_found = True
+        self.link_args = ['-l' + os.path.join(libdir, 'msmpi')]
+        self.compile_args = ['-I' + incdir, '-I' + os.path.join(incdir, post)]
+        if self.language == 'fortran':
+            self.link_args.append('-l' + os.path.join(libdir, 'msmpifec'))

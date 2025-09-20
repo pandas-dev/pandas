@@ -1,0 +1,373 @@
+"""a JupyterLite addon for supporting piplite wheels"""
+
+import datetime
+import json
+import re
+import urllib.parse
+from hashlib import md5, sha256
+from pathlib import Path
+from typing import List as _List
+
+import doit.tools
+from jupyterlite_core.constants import (
+    ALL_JSON,
+    JSON_FMT,
+    JUPYTERLITE_JSON,
+    LAB_EXTENSIONS,
+    UTF8,
+)
+from traitlets import List
+
+from ._base import _BaseAddon
+
+from ..constants import (
+    ALL_WHL,
+    PIPLITE_INDEX_SCHEMA,
+    PIPLITE_URLS,
+    PKG_JSON_PIPLITE,
+    PKG_JSON_WHEELDIR,
+    PYODIDE_KERNEL_NPM_NAME,
+    PYPI_WHEELS,
+    KERNEL_SETTINGS_SCHEMA,
+)
+
+
+class PipliteAddon(_BaseAddon):
+    __all__ = ["post_init", "build", "post_build", "check"]
+
+    # traits
+    piplite_urls: _List[str] = List(
+        help="Local paths or URLs of piplite-compatible wheels to copy and index",
+    ).tag(config=True)
+
+    # CLI
+    aliases = {
+        "piplite-wheels": "PipliteAddon.piplite_urls",
+    }
+
+    @property
+    def output_wheels(self):
+        """where wheels will go in the output folder"""
+        return self.manager.output_dir / PYPI_WHEELS
+
+    @property
+    def wheel_cache(self):
+        """where wheels will go in the cache folder"""
+        return self.manager.cache_dir / "wheels"
+
+    @property
+    def output_extensions(self):
+        """where labextensions will go in the output folder"""
+        return self.manager.output_dir / LAB_EXTENSIONS
+
+    @property
+    def output_kernel_extension(self):
+        """the location of the Pyodide kernel labextension static assets"""
+        return self.output_extensions / PYODIDE_KERNEL_NPM_NAME
+
+    @property
+    def schemas(self):
+        """the path to the as-deployed schema in the labextension"""
+        return self.output_kernel_extension / "static/schema"
+
+    @property
+    def piplite_schema(self):
+        """the schema for Warehouse-like API indexes"""
+        return self.schemas / PIPLITE_INDEX_SCHEMA
+
+    @property
+    def settings_schema(self):
+        """the schema for the Pyodide kernel labextension"""
+        return self.schemas / KERNEL_SETTINGS_SCHEMA
+
+    def post_init(self, manager):
+        """handle downloading of wheels"""
+        task_names = []
+        for path_or_url in self.piplite_urls:
+            for task in self.resolve_one_wheel(path_or_url):
+                if task["name"] in task_names:
+                    self.log.warning(
+                        "[piplite] skipping-already scheduled wheel task %s: %s",
+                        task["name"],
+                        task["targets"],
+                    )
+                    continue
+                yield task
+                task_names += [task["name"]]
+
+    def build(self, manager):
+        """yield a doit task to copy each local wheel into the output_dir"""
+        for wheel in list_wheels(manager.lite_dir / PYPI_WHEELS):
+            yield from self.resolve_one_wheel(str(wheel.resolve()))
+
+    def post_build(self, manager):
+        """update the root jupyter-lite.json with user-provided ``pipliteUrls``"""
+        jupyterlite_json = manager.output_dir / JUPYTERLITE_JSON
+        whl_metas = []
+
+        wheels = list_wheels(self.output_wheels)
+        pkg_jsons = sorted(
+            [
+                *self.output_extensions.glob("*/package.json"),
+                *self.output_extensions.glob("@*/*/package.json"),
+            ]
+        )
+
+        for wheel in wheels:
+            whl_meta = self.wheel_cache / f"{wheel.name}.meta.json"
+            whl_metas += [whl_meta]
+            yield self.task(
+                name=f"meta:{whl_meta.name}",
+                doc=f"ensure {wheel} metadata",
+                file_dep=[wheel],
+                actions=[
+                    (doit.tools.create_folder, [whl_meta.parent]),
+                    (self.index_wheel, [wheel, whl_meta]),
+                ],
+                targets=[whl_meta],
+            )
+
+        if whl_metas or pkg_jsons:
+            whl_index = self.manager.output_dir / PYPI_WHEELS / ALL_JSON
+
+            yield self.task(
+                name="patch",
+                doc=f"ensure {JUPYTERLITE_JSON} includes any piplite wheels",
+                file_dep=[*whl_metas, jupyterlite_json],
+                actions=[
+                    (
+                        self.patch_jupyterlite_json,
+                        [jupyterlite_json, whl_index, whl_metas, pkg_jsons],
+                    )
+                ],
+                targets=[whl_index],
+            )
+
+    def check(self, manager):
+        """verify that all JSON for settings and Warehouse API are valid"""
+
+        for config_path in self.get_output_config_paths():
+            yield from self.check_one_config_path(config_path)
+
+    def check_one_config_path(self, config_path):
+        """verify the settings and Warehouse API for a single jupyter-lite config"""
+        if not config_path.exists():
+            return
+
+        rel_path = config_path.relative_to(self.manager.output_dir)
+        config = self.get_pyodide_settings(config_path)
+
+        yield self.task(
+            name=f"validate:settings:{rel_path}",
+            doc=f"validate {config_path} with the pyodide kernel settings schema",
+            actions=[
+                (self.validate_one_json_file, [self.settings_schema, None, config]),
+            ],
+            file_dep=[self.settings_schema, config_path],
+        )
+
+        urls = config.get(PIPLITE_URLS, [])
+
+        for wheel_index_url in urls:
+            yield from self.check_one_wheel_index(wheel_index_url)
+
+    def check_one_wheel_index(self, wheel_index_url):
+        """validate one wheel index against the Warehouse schema"""
+        if not wheel_index_url.startswith("./"):  # pragma: no cover
+            return
+
+        wheel_index_url = wheel_index_url.split("?")[0].split("#")[0]
+
+        path = self.manager.output_dir / wheel_index_url
+
+        if not path.exists():  # pragma: no cover
+            return
+
+        yield self.task(
+            name=f"validate:wheels:{wheel_index_url}",
+            doc=f"validate {wheel_index_url} with the piplite API schema",
+            file_dep=[path],
+            actions=[(self.validate_one_json_file, [self.piplite_schema, path])],
+        )
+
+    def resolve_one_wheel(self, path_or_url):
+        """download a single wheel, and copy to the cache"""
+        local_path = None
+        will_fetch = False
+
+        if re.findall(r"^https?://", path_or_url):
+            url = urllib.parse.urlparse(path_or_url)
+            name = url.path.split("/")[-1]
+            dest = self.wheel_cache / name
+            local_path = dest
+            if not dest.exists():
+                yield self.task(
+                    name=f"fetch:{name}",
+                    doc=f"fetch the wheel {name}",
+                    actions=[(self.fetch_one, [path_or_url, dest])],
+                    targets=[dest],
+                )
+                will_fetch = True
+        else:
+            local_path = (self.manager.lite_dir / path_or_url).resolve()
+
+        if local_path.is_dir():
+            for wheel in list_wheels(local_path):
+                yield from self.copy_wheel(wheel)
+        elif local_path.exists() or will_fetch:
+            suffix = local_path.suffix
+
+            if suffix == ".whl":
+                yield from self.copy_wheel(local_path)
+
+        else:  # pragma: no cover
+            raise FileNotFoundError(path_or_url)
+
+    def copy_wheel(self, wheel):
+        """copy one wheel to output"""
+        dest = self.output_wheels / wheel.name
+        if dest == wheel:  # pragma: no cover
+            return
+        yield self.task(
+            name=f"copy:whl:{wheel.name}",
+            file_dep=[wheel],
+            targets=[dest],
+            actions=[(self.copy_one, [wheel, dest])],
+        )
+
+    def patch_jupyterlite_json(self, config_path, user_whl_index, whl_metas, pkg_jsons):
+        """add the piplite wheels to jupyter-lite.json"""
+        plugin_config = self.get_pyodide_settings(config_path)
+        old_urls = plugin_config.get(PIPLITE_URLS, [])
+
+        new_urls = []
+
+        # first add user-specified wheels from piplite_urls
+        if whl_metas:
+            metadata = {}
+            for whl_meta in whl_metas:
+                meta = json.loads(whl_meta.read_text(**UTF8))
+                whl = self.output_wheels / whl_meta.name.replace(".json", "")
+                metadata[whl] = meta["name"], meta["version"], meta["release"]
+
+            write_wheel_index(self.output_wheels, metadata)
+            user_whl_index_url, user_whl_index_url_with_sha = self.get_index_urls(
+                user_whl_index
+            )
+
+            added_build = False
+
+            for url in old_urls:
+                if url.split("#")[0].split("?")[0] == user_whl_index_url:
+                    new_urls += [user_whl_index_url_with_sha]
+                    added_build = True
+                else:
+                    new_urls += [url]
+
+            if not added_build:
+                new_urls = [user_whl_index_url_with_sha, *new_urls]
+        else:
+            new_urls = old_urls
+
+        # ...then add wheels from federated extensions...
+        for pkg_json in pkg_jsons or []:
+            pkg_data = json.loads(pkg_json.read_text(**UTF8))
+            wheel_dir = pkg_data.get(PKG_JSON_PIPLITE, {}).get(PKG_JSON_WHEELDIR)
+            if wheel_dir:
+                pkg_whl_index = pkg_json.parent / wheel_dir / ALL_JSON
+                if pkg_whl_index.exists():
+                    pkg_whl_index_url_with_sha = self.get_index_urls(pkg_whl_index)[1]
+                    if pkg_whl_index_url_with_sha not in new_urls:
+                        new_urls += [pkg_whl_index_url_with_sha]
+
+        # ... and only update if actually changed
+        if new_urls:
+            plugin_config[PIPLITE_URLS] = new_urls
+            self.set_pyodide_settings(config_path, plugin_config)
+
+    def get_index_urls(self, whl_index):
+        """get output dir relative URLs for all.json files"""
+        whl_index_sha256 = sha256(whl_index.read_bytes()).hexdigest()
+        whl_index_url = f"./{whl_index.relative_to(self.manager.output_dir).as_posix()}"
+        whl_index_url_with_sha = f"{whl_index_url}?sha256={whl_index_sha256}"
+        return whl_index_url, whl_index_url_with_sha
+
+    def index_wheel(self, whl_path, whl_meta):
+        """Generate an intermediate file representation to merge with other releases"""
+        name, version, release = get_wheel_fileinfo(whl_path)
+        whl_meta.write_text(
+            json.dumps(dict(name=name, version=version, release=release), **JSON_FMT),
+            **UTF8,
+        )
+        self.maybe_timestamp(whl_meta)
+
+
+def list_wheels(wheel_dir):
+    """get all wheels we know how to handle in a directory"""
+    return sorted(sum([[*wheel_dir.glob(f"*{whl}")] for whl in ALL_WHL], []))
+
+
+def get_wheel_fileinfo(whl_path):
+    """Generate a minimal Warehouse-like JSON API entry from a wheel"""
+    import pkginfo
+
+    metadata = pkginfo.get_metadata(str(whl_path))
+    whl_stat = whl_path.stat()
+    whl_isodate = (
+        datetime.datetime.fromtimestamp(whl_stat.st_mtime, tz=datetime.timezone.utc)
+        .isoformat()
+        .split("+")[0]
+        + "Z"
+    )
+    whl_bytes = whl_path.read_bytes()
+    whl_sha256 = sha256(whl_bytes).hexdigest()
+    whl_md5 = md5(whl_bytes).hexdigest()
+
+    release = {
+        "comment_text": "",
+        "digests": {"sha256": whl_sha256, "md5": whl_md5},
+        "downloads": -1,
+        "filename": whl_path.name,
+        "has_sig": False,
+        "md5_digest": whl_md5,
+        "packagetype": "bdist_wheel",
+        "python_version": "py3",
+        "requires_python": metadata.requires_python,
+        "size": whl_stat.st_size,
+        "upload_time": whl_isodate,
+        "upload_time_iso_8601": whl_isodate,
+        "url": f"./{whl_path.name}",
+        "yanked": False,
+        "yanked_reason": None,
+    }
+
+    return metadata.name, metadata.version, release
+
+
+def get_wheel_index(wheels, metadata=None):
+    """Get the raw python object representing a wheel index for a bunch of wheels
+
+    If given, metadata should be a dictionary of the form:
+
+        {Path: (name, version, metadata)}
+    """
+    metadata = metadata or {}
+    all_json = {}
+
+    for whl_path in sorted(wheels):
+        name, version, release = metadata.get(whl_path, get_wheel_fileinfo(whl_path))
+        # https://peps.python.org/pep-0503/#normalized-names
+        normalized_name = re.sub(r"[-_.]+", "-", name).lower()
+        if normalized_name not in all_json:
+            all_json[normalized_name] = {"releases": {}}
+        all_json[normalized_name]["releases"][version] = [release]
+
+    return all_json
+
+
+def write_wheel_index(whl_dir, metadata=None):
+    """Write out an all.json for a directory of wheels"""
+    wheel_index = Path(whl_dir) / ALL_JSON
+    index_data = get_wheel_index(list_wheels(whl_dir), metadata)
+    wheel_index.write_text(json.dumps(index_data, **JSON_FMT), **UTF8)
+    return wheel_index

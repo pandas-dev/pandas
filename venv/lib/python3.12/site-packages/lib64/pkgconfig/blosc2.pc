@@ -1,0 +1,14 @@
+prefix=/tmp/tmp_attmzoz/wheel/platlib
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib64
+sharedlibdir=${libdir}
+includedir=${prefix}/include
+
+Name: blosc2
+Description: A blocking, shuffling and lossless compression library
+URL: https://blosc.org/
+Version: 2.21.2
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lblosc2
+Cflags: -I${includedir}

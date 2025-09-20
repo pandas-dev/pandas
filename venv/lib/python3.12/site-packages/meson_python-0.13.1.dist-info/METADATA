@@ -1,0 +1,85 @@
+Metadata-Version: 2.1
+Name: meson-python
+Version: 0.13.1
+Summary: Meson Python build backend (PEP 517)
+Keywords: meson build backend pep517 package
+Home-page: https://github.com/mesonbuild/meson-python
+Author-Email: Filipe Laíns <lains@riseup.net>
+License: Copyright © 2022 the meson-python contributors
+        Copyright © 2021 Quansight Labs and Filipe Laíns
+        
+        Permission is hereby granted, free of charge, to any person obtaining a
+        copy of this software and associated documentation files (the "Software"),
+        to deal in the Software without restriction, including without limitation
+        the rights to use, copy, modify, merge, publish, distribute, sublicense,
+        and/or sell copies of the Software, and to permit persons to whom the
+        Software is furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice (including the next
+        paragraph) shall be included in all copies or substantial portions of the
+        Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+        THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+        FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+        DEALINGS IN THE SOFTWARE.
+Classifier: Development Status :: 4 - Beta
+Classifier: Programming Language :: Python
+Project-URL: Homepage, https://github.com/mesonbuild/meson-python
+Project-URL: Repository, https://github.com/mesonbuild/meson-python
+Project-URL: Documentation, https://meson-python.readthedocs.io/
+Project-URL: Changelog, https://meson-python.readthedocs.io/en/latest/changelog.html
+Requires-Python: >=3.7
+Requires-Dist: colorama; os_name == "nt"
+Requires-Dist: meson>=0.63.3
+Requires-Dist: pyproject-metadata>=0.7.1
+Requires-Dist: tomli>=1.0.0; python_version < "3.11"
+Requires-Dist: setuptools>=60.0; python_version >= "3.12"
+Requires-Dist: build; extra == "test"
+Requires-Dist: pytest>=6.0; extra == "test"
+Requires-Dist: pytest-cov[toml]; extra == "test"
+Requires-Dist: pytest-mock; extra == "test"
+Requires-Dist: auditwheel; extra == "test"
+Requires-Dist: cython>=0.29.34; extra == "test"
+Requires-Dist: wheel; extra == "test"
+Requires-Dist: typing-extensions>=3.7.4; python_version < "3.10" and extra == "test"
+Requires-Dist: furo>=2021.08.31; extra == "docs"
+Requires-Dist: sphinx~=4.0; extra == "docs"
+Requires-Dist: sphinx-autodoc-typehints>=1.10; extra == "docs"
+Requires-Dist: sphinx-contributors>=0.2.2; extra == "docs"
+Requires-Dist: sphinx-copybutton>=0.5.0; extra == "docs"
+Requires-Dist: sphinx-design>=0.1.0; extra == "docs"
+Requires-Dist: sphinx-autobuild; extra == "docs"
+Requires-Dist: sphinxcontrib-spelling>=7.0.0; extra == "docs"
+Requires-Dist: sphinxext-opengraph>=0.7.0; extra == "docs"
+Provides-Extra: test
+Provides-Extra: docs
+Description-Content-Type: text/x-rst
+
+.. SPDX-FileCopyrightText: 2021 The meson-python developers
+
+.. SPDX-License-Identifier: MIT
+
+meson-python
+============
+
+``meson-python`` is a Python build backend built on top of the Meson__
+build system. It enables to use Meson for the configuration and build
+steps of Python packages. Meson is an open source build system meant
+to be both extremely fast, and, even more importantly, as user
+friendly as possible. ``meson-python`` is best suited for building
+Python packages containing extension modules implemented in languages
+such as C, C++, Cython, Fortran, Pythran, or Rust. Consult the
+documentation__ for more details.
+
+Questions regarding the use of ``meson-python`` can be directed to the
+discussions__ space on GitHub. Bug reports and feature requests can be
+filed as GitHub issues__.
+
+__ https://mesonbuild.com/
+__ https://meson-python.readthedocs.io/en/latest/
+__ https://github.com/mesonbuild/meson-python/discussions/
+__ https://github.com/mesonbuild/meson-python/issues/

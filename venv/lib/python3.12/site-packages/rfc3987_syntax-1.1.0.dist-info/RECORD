@@ -1,0 +1,13 @@
+rfc3987_syntax-1.1.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+rfc3987_syntax-1.1.0.dist-info/METADATA,sha256=elGK5btWhVaLU3Bh6CB6TbunZq54WxatJtkwrThTyw0,7688
+rfc3987_syntax-1.1.0.dist-info/RECORD,,
+rfc3987_syntax-1.1.0.dist-info/WHEEL,sha256=qtCwoSJWgHk21S1Kb4ihdzI2rlJ1ZKaIurTj_ngOhyQ,87
+rfc3987_syntax-1.1.0.dist-info/licenses/LICENSE,sha256=UO767jYX7ZM3IL0cE8YBroSkPyc8FX4ltZX_F3s0kd0,1067
+rfc3987_syntax/CITATION.cff,sha256=DbqhTtX6C37tz2MC2hpVY0Hnf01tBLV_8w8O1J0vFzs,1847
+rfc3987_syntax/__init__.py,sha256=SVwi-xKf24T1MEnPB7xbKkjAY645dykx2iBbhsZpMvs,30
+rfc3987_syntax/__pycache__/__init__.cpython-312.pyc,,
+rfc3987_syntax/__pycache__/syntax_helpers.cpython-312.pyc,,
+rfc3987_syntax/__pycache__/utils.cpython-312.pyc,,
+rfc3987_syntax/syntax_helpers.py,sha256=d113bPxaoj-TFHzKenoMNiRS5NhVN8JFOqq1R4VXzik,4072
+rfc3987_syntax/syntax_rfc3987.lark,sha256=szeUSuo4k9m-T_XBBk0HgCqj23f7jj4Cdk9tdVrisPU,2742
+rfc3987_syntax/utils.py,sha256=5j4oyJuURqY6q7DB4khLIY__btk0LXKOGp-tkhtNtQo,136

@@ -1,0 +1,6 @@
+[console_scripts]
+jupyter-piplite = jupyterlite_pyodide_kernel.app:main
+
+[jupyterlite.addon.v0]
+jupyterlite-pyodide-kernel-piplite = jupyterlite_pyodide_kernel.addons.piplite:PipliteAddon
+jupyterlite-pyodide-kernel-pyodide = jupyterlite_pyodide_kernel.addons.pyodide:PyodideAddon

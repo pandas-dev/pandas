@@ -102,7 +102,7 @@ def quantile_with_mask(
             interpolation=interpolation,
         )
 
-        result = np.asarray(result)  # type: ignore[assignment]
+        result = np.asarray(result)
         result = result.T
 
     return result

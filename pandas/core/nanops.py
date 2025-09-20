@@ -898,7 +898,7 @@ def _get_counts_nanvar(
             # error: Incompatible types in assignment (expression has type
             # "float", variable has type "Union[floating[Any], ndarray[Any,
             # dtype[floating[Any]]]]")
-            count = np.nan  # type: ignore[assignment]
+            count = np.nan
             d = np.nan
     else:
         # count is not narrowed by is_float check

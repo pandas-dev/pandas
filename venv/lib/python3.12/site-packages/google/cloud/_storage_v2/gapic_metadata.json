@@ -1,0 +1,263 @@
+ {
+  "comment": "This file maps proto services/RPCs to the corresponding library clients/methods",
+  "language": "python",
+  "libraryPackage": "google.cloud.storage_v2",
+  "protoPackage": "google.storage.v2",
+  "schema": "1.0",
+  "services": {
+    "Storage": {
+      "clients": {
+        "grpc": {
+          "libraryClient": "StorageClient",
+          "rpcs": {
+            "BidiReadObject": {
+              "methods": [
+                "bidi_read_object"
+              ]
+            },
+            "BidiWriteObject": {
+              "methods": [
+                "bidi_write_object"
+              ]
+            },
+            "CancelResumableWrite": {
+              "methods": [
+                "cancel_resumable_write"
+              ]
+            },
+            "ComposeObject": {
+              "methods": [
+                "compose_object"
+              ]
+            },
+            "CreateBucket": {
+              "methods": [
+                "create_bucket"
+              ]
+            },
+            "DeleteBucket": {
+              "methods": [
+                "delete_bucket"
+              ]
+            },
+            "DeleteObject": {
+              "methods": [
+                "delete_object"
+              ]
+            },
+            "GetBucket": {
+              "methods": [
+                "get_bucket"
+              ]
+            },
+            "GetIamPolicy": {
+              "methods": [
+                "get_iam_policy"
+              ]
+            },
+            "GetObject": {
+              "methods": [
+                "get_object"
+              ]
+            },
+            "ListBuckets": {
+              "methods": [
+                "list_buckets"
+              ]
+            },
+            "ListObjects": {
+              "methods": [
+                "list_objects"
+              ]
+            },
+            "LockBucketRetentionPolicy": {
+              "methods": [
+                "lock_bucket_retention_policy"
+              ]
+            },
+            "MoveObject": {
+              "methods": [
+                "move_object"
+              ]
+            },
+            "QueryWriteStatus": {
+              "methods": [
+                "query_write_status"
+              ]
+            },
+            "ReadObject": {
+              "methods": [
+                "read_object"
+              ]
+            },
+            "RestoreObject": {
+              "methods": [
+                "restore_object"
+              ]
+            },
+            "RewriteObject": {
+              "methods": [
+                "rewrite_object"
+              ]
+            },
+            "SetIamPolicy": {
+              "methods": [
+                "set_iam_policy"
+              ]
+            },
+            "StartResumableWrite": {
+              "methods": [
+                "start_resumable_write"
+              ]
+            },
+            "TestIamPermissions": {
+              "methods": [
+                "test_iam_permissions"
+              ]
+            },
+            "UpdateBucket": {
+              "methods": [
+                "update_bucket"
+              ]
+            },
+            "UpdateObject": {
+              "methods": [
+                "update_object"
+              ]
+            },
+            "WriteObject": {
+              "methods": [
+                "write_object"
+              ]
+            }
+          }
+        },
+        "grpc-async": {
+          "libraryClient": "StorageAsyncClient",
+          "rpcs": {
+            "BidiReadObject": {
+              "methods": [
+                "bidi_read_object"
+              ]
+            },
+            "BidiWriteObject": {
+              "methods": [
+                "bidi_write_object"
+              ]
+            },
+            "CancelResumableWrite": {
+              "methods": [
+                "cancel_resumable_write"
+              ]
+            },
+            "ComposeObject": {
+              "methods": [
+                "compose_object"
+              ]
+            },
+            "CreateBucket": {
+              "methods": [
+                "create_bucket"
+              ]
+            },
+            "DeleteBucket": {
+              "methods": [
+                "delete_bucket"
+              ]
+            },
+            "DeleteObject": {
+              "methods": [
+                "delete_object"
+              ]
+            },
+            "GetBucket": {
+              "methods": [
+                "get_bucket"
+              ]
+            },
+            "GetIamPolicy": {
+              "methods": [
+                "get_iam_policy"
+              ]
+            },
+            "GetObject": {
+              "methods": [
+                "get_object"
+              ]
+            },
+            "ListBuckets": {
+              "methods": [
+                "list_buckets"
+              ]
+            },
+            "ListObjects": {
+              "methods": [
+                "list_objects"
+              ]
+            },
+            "LockBucketRetentionPolicy": {
+              "methods": [
+                "lock_bucket_retention_policy"
+              ]
+            },
+            "MoveObject": {
+              "methods": [
+                "move_object"
+              ]
+            },
+            "QueryWriteStatus": {
+              "methods": [
+                "query_write_status"
+              ]
+            },
+            "ReadObject": {
+              "methods": [
+                "read_object"
+              ]
+            },
+            "RestoreObject": {
+              "methods": [
+                "restore_object"
+              ]
+            },
+            "RewriteObject": {
+              "methods": [
+                "rewrite_object"
+              ]
+            },
+            "SetIamPolicy": {
+              "methods": [
+                "set_iam_policy"
+              ]
+            },
+            "StartResumableWrite": {
+              "methods": [
+                "start_resumable_write"
+              ]
+            },
+            "TestIamPermissions": {
+              "methods": [
+                "test_iam_permissions"
+              ]
+            },
+            "UpdateBucket": {
+              "methods": [
+                "update_bucket"
+              ]
+            },
+            "UpdateObject": {
+              "methods": [
+                "update_object"
+              ]
+            },
+            "WriteObject": {
+              "methods": [
+                "write_object"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

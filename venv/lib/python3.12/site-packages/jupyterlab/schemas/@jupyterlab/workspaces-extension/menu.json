@@ -1,0 +1,70 @@
+{
+  "title": "Workspaces Menu",
+  "description": "Workspaces Menu",
+  "jupyter.lab.menus": {
+    "main": [
+      {
+        "id": "jp-mainmenu-file",
+        "items": [
+          {
+            "type": "submenu",
+            "rank": 10,
+            "submenu": {
+              "id": "jp-mainmenu-file-workspaces",
+              "label": "Workspaces",
+              "items": [
+                {
+                  "command": "workspace-ui:open",
+                  "rank": 0
+                },
+                {
+                  "command": "workspace-ui:create-new",
+                  "rank": 1
+                },
+                {
+                  "command": "workspace-ui:clone",
+                  "rank": 2
+                },
+                {
+                  "command": "workspace-ui:rename",
+                  "rank": 3
+                },
+                {
+                  "command": "workspace-ui:save",
+                  "rank": 4
+                },
+                {
+                  "command": "workspace-ui:save-as",
+                  "rank": 5
+                },
+                {
+                  "command": "workspace-ui:import",
+                  "rank": 6
+                },
+                {
+                  "command": "workspace-ui:export",
+                  "rank": 7
+                },
+                {
+                  "type": "separator",
+                  "rank": 8
+                },
+                {
+                  "command": "workspace-ui:reset",
+                  "rank": 9
+                },
+                {
+                  "command": "workspace-ui:delete",
+                  "rank": 10
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "properties": {},
+  "additionalProperties": false,
+  "type": "object"
+}
