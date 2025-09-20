@@ -3339,11 +3339,12 @@ class TestLocSeries:
         expected = DataFrame({"a": [999, 200], "b": [3, 4]})
         tm.assert_frame_equal(expected, df)
 
-    def test_loc_reindexing_of_empty_index(self):
+    @pytest.mark.parametrize("dtype", ["str", object])
+    def test_loc_reindexing_of_empty_index(self, dtype):
         # GH 57735
-        df = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
+        df = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"], dtype=dtype)
         df.loc[Series([False] * 4, index=df.index, name=0), 0] = df[0]
-        expected = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
+        expected = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"], dtype=dtype)
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
