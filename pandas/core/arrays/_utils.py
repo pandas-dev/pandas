@@ -7,7 +7,10 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import lib
+from pandas._libs.missing import NA
 from pandas.errors import LossySetitemError
 
 from pandas.core.dtypes.cast import np_can_hold_element
@@ -22,7 +25,10 @@ if TYPE_CHECKING:
 
 
 def to_numpy_dtype_inference(
-    arr: ExtensionArray, dtype: npt.DTypeLike | None, na_value, hasna: bool
+    arr: ExtensionArray,
+    dtype: npt.DTypeLike | None,
+    na_value,
+    hasna: bool,
 ) -> tuple[np.dtype | None, Any]:
     result_dtype: np.dtype | None
     inferred_numeric_dtype = False
@@ -37,7 +43,11 @@ def to_numpy_dtype_inference(
                 else:
                     result_dtype = arr.dtype.numpy_dtype  # type: ignore[attr-defined]
                 if na_value is lib.no_default:
-                    na_value = np.nan
+                    if not is_nan_na():
+                        na_value = NA
+                        dtype = np.dtype(object)
+                    else:
+                        na_value = np.nan
         else:
             result_dtype = arr.dtype.numpy_dtype  # type: ignore[attr-defined]
     elif dtype is not None:
