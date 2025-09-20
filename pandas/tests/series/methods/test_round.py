@@ -73,12 +73,16 @@ class TestSeriesRound:
         result.iloc[0] = False
         tm.assert_series_equal(ser, expected)
 
-    def test_round_dtype_object(self):
+    def test_round_numeric_dtype_object(self):
         # GH#61206, GH#62174
         ser = Series([0.232], dtype="object")
         expected = Series([0.2])
-        tm.assert_series_equal(ser.round(1), expected)
-        ser2 = Series(["bar"], dtype="object")
+        result = ser.round(1)
+        tm.assert_series_equal(result, expected)
+
+    def test_round_non_numeric_dtype_object(self):
+        # GH#62174
+        ser = Series(["bar"], dtype="object")
         msg = "Expected numeric entries for dtype object."
         with pytest.raises(TypeError, match=msg):
-            ser2.round()
+            ser.round()

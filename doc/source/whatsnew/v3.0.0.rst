@@ -210,7 +210,7 @@ Other enhancements
 - :meth:`Series.map` can now accept kwargs to pass on to func (:issue:`59814`)
 - :meth:`Series.map` now accepts an ``engine`` parameter to allow execution with a third-party execution engine (:issue:`61125`)
 - :meth:`Series.rank` and :meth:`DataFrame.rank` with numpy-nullable dtypes preserve ``NA`` values and return ``UInt64`` dtype where appropriate instead of casting ``NA`` to ``NaN`` with ``float64`` dtype (:issue:`62043`)
-- :meth:`Series.round` now operates pointwise on columns of object dtype (:issue:`62174`)
+- :meth:`Series.round` and :meth:`DataFrame.round` now operate pointwise on columns of object dtype (:issue:`62174`)
 - :meth:`Series.str.get_dummies` now accepts a  ``dtype`` parameter to specify the dtype of the resulting DataFrame (:issue:`47872`)
 - :meth:`pandas.concat` will raise a ``ValueError`` when ``ignore_index=True`` and ``keys`` is not ``None`` (:issue:`59274`)
 - :py:class:`frozenset` elements in pandas objects are now natively printed (:issue:`60690`)

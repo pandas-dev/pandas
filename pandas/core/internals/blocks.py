@@ -262,7 +262,7 @@ class Block(PandasObject, libinternals.Block):
 
     @final
     def __repr__(self) -> str:
-        # don't want to print out all of the items here
+        # don't want to      out all of the items here
         name = type(self).__name__
         if self.ndim == 1:
             result = f"{name}: {len(self)} dtype: {self.dtype}"
@@ -346,7 +346,6 @@ class Block(PandasObject, libinternals.Block):
         one
         """
         result = func(self.values, **kwargs)
-
         result = maybe_coerce_values(result)
         return self._split_op_result(result)
 
@@ -1515,8 +1514,12 @@ class Block(PandasObject, libinternals.Block):
         """
         if self.dtype == _dtype_obj:
             round_func = functools.partial(round, ndigits=decimals)
+            mapper = functools.partial(algos.map_array, mapper=round_func)
             try:
-                values = algos.map_array(self.values, round_func)
+                if self.values.ndim == 1:
+                    values = algos.map_array(self.values, round_func)
+                else:
+                    values = np.apply_along_axis(mapper, 0, self.values)
             except TypeError as err:
                 raise TypeError("Expected numeric entries for dtype object.") from err
 
