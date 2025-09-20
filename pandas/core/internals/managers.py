@@ -581,7 +581,7 @@ class BaseBlockManager(PandasObject):
                     if isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
                         # numpy cannot handle a 2d indexer in combo with a slice
                         row_indexer = np.squeeze(row_indexer, axis=1)
-                    if len(row_indexer) == 0:
+                    if isinstance(row_indexer, np.ndarray) and len(row_indexer) == 0:
                         # numpy does not like empty indexer combined with slice
                         # and we are setting nothing anyway
                         return self
