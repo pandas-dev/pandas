@@ -4446,7 +4446,7 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 # object dtype; non-comparable objects
                 pass
-        elif not self.is_unique or not other.is_unique:
+        if not self.is_unique or not other.is_unique:
             return self._join_non_unique(other, how=how, sort=sort)
 
         return self._join_via_get_indexer(other, how, sort)
