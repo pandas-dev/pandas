@@ -440,3 +440,18 @@ class TestDataFrameInterpolate:
         result = df.interpolate(limit=2)
         expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype="float64[pyarrow]")
         tm.assert_frame_equal(result, expected)
+
+    def test_interpolate_time_nullable_int_float(self):
+        # GH#40252 regression test
+        idx = date_range("1970-01-02", periods=3, freq="D")
+
+        # Nullable Int64
+        df_int = DataFrame({"a": [1, None, 2]}, index=idx, dtype="Int64")
+        result_int = df_int.interpolate(method="time")
+        expected = DataFrame({"a": [1.0, 1.5, 2.0]}, index=idx, dtype="Float64")
+        tm.assert_frame_equal(result_int, expected)
+
+        # Nullable Float64
+        df_float = df_int.astype("Float64")
+        result_float = df_float.interpolate(method="time")
+        tm.assert_frame_equal(result_float, expected)
