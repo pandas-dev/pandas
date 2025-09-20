@@ -79,3 +79,10 @@ class TestSeriesRound:
         msg = "Expected numeric dtype, got object instead."
         with pytest.raises(TypeError, match=msg):
             ser.round()
+
+    def test_round_with_pd_na(self):
+        # GH61712
+        s = Series([0.5, pd.NA], dtype="object")
+        result = s.round(0)
+        expected = Series([0.0, pd.NA], dtype="Float64")
+        tm.assert_series_equal(result, expected)
