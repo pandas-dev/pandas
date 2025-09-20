@@ -524,7 +524,10 @@ def json_normalize(
             # TODO: handle record value which are lists, at least error
             #       reasonably
             data = nested_to_record(data, sep=sep, max_level=max_level)
-        return DataFrame(data, index=index)
+        result = DataFrame(data, index=index)
+        if record_prefix is not None:
+            result = result.rename(columns=lambda x: f"{record_prefix}{x}")
+        return result
     elif not isinstance(record_path, list):
         record_path = [record_path]
 
