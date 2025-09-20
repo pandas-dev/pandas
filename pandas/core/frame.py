@@ -10629,6 +10629,13 @@ class DataFrame(NDFrame, OpsMixin):
               If you are just applying a NumPy reduction function this will
               achieve much better performance.
 
+        .. warning::
+
+            When ``raw=True``, the output dtype is inferred from the 
+            **first returned value**. If that value is not ``None``but
+            later calls return ``Nonw``, a ``TypeError`` may be raised
+            because Numpy infers a non-nullable dtype.
+
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
             These only act when ``axis=1`` (columns):
 
