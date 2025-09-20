@@ -381,3 +381,24 @@ def test_chunksize_second_block_shorter(all_parsers):
 
     for i, result in enumerate(result_chunks):
         tm.assert_frame_equal(result, expected_frames[i])
+
+
+def test_chunksize_skip_bad_line_with_bad_line_first_in_the_chunk(all_parsers):
+    parser = all_parsers
+    data = "a,b\n1,2\n3\n4,5,extra\n6,7"
+
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), chunksize=2, on_bad_lines="skip")
+        return
+
+    result_chunks = parser.read_csv(StringIO(data), chunksize=2, on_bad_lines="skip")
+
+    expected_frames = [
+        DataFrame({"a": [1, 3], "b": [2, np.nan]}),
+        DataFrame({"a": [6], "b": [7]}, index=[2]),
+    ]
+
+    for i, result in enumerate(result_chunks):
+        tm.assert_frame_equal(result, expected_frames[i])
