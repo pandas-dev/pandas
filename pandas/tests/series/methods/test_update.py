@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.compat import WARNING_CHECK_DISABLED
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -34,7 +35,10 @@ class TestUpdate:
                 df["c"].update(Series(["foo"], index=[0]))
             expected = df_orig
         else:
-            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            with tm.assert_produces_warning(
+                FutureWarning if not WARNING_CHECK_DISABLED else None,
+                match="inplace method",
+            ):
                 df["c"].update(Series(["foo"], index=[0]))
             expected = DataFrame(
                 [[1, np.nan, "foo"], [3, 2.0, np.nan]], columns=["a", "b", "c"]

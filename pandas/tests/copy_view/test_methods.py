@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.compat import HAS_PYARROW
+from pandas.compat import (
+    HAS_PYARROW,
+    WARNING_CHECK_DISABLED,
+)
 from pandas.errors import SettingWithCopyWarning
 
 import pandas as pd
@@ -1585,7 +1588,10 @@ def test_chained_where_mask(using_copy_on_write, func):
             getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
         tm.assert_frame_equal(df, df_orig)
     else:
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(
+            FutureWarning if not WARNING_CHECK_DISABLED else None,
+            match="inplace method",
+        ):
             getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
 
         with tm.assert_produces_warning(None):
@@ -1864,7 +1870,10 @@ def test_update_chained_assignment(using_copy_on_write):
             df[["a"]].update(ser2.to_frame())
         tm.assert_frame_equal(df, df_orig)
     else:
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(
+            FutureWarning if not WARNING_CHECK_DISABLED else None,
+            match="inplace method",
+        ):
             df["a"].update(ser2)
 
         with tm.assert_produces_warning(None):

@@ -21,6 +21,7 @@ from pandas._config import (
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.compat import PYPY
+from pandas.compat._constants import WARNING_CHECK_DISABLED
 from pandas.errors import (
     AbstractMethodError,
     ChainedAssignmentError,
@@ -881,12 +882,12 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
+        if not PYPY and not WARNING_CHECK_DISABLED and using_copy_on_write():
             if sys.getrefcount(self.obj) <= 2:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        elif not PYPY and not using_copy_on_write():
+        elif not PYPY and not WARNING_CHECK_DISABLED and not using_copy_on_write():
             ctr = sys.getrefcount(self.obj)
             ref_count = 2
             if not warn_copy_on_write() and _check_cacher(self.obj):
@@ -2575,12 +2576,12 @@ class _AtIndexer(_ScalarAccessIndexer):
         return super().__getitem__(key)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
+        if not PYPY and not WARNING_CHECK_DISABLED and using_copy_on_write():
             if sys.getrefcount(self.obj) <= 2:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        elif not PYPY and not using_copy_on_write():
+        elif not PYPY and not WARNING_CHECK_DISABLED and not using_copy_on_write():
             ctr = sys.getrefcount(self.obj)
             ref_count = 2
             if not warn_copy_on_write() and _check_cacher(self.obj):
@@ -2616,12 +2617,12 @@ class _iAtIndexer(_ScalarAccessIndexer):
         return key
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
+        if not PYPY and not WARNING_CHECK_DISABLED and using_copy_on_write():
             if sys.getrefcount(self.obj) <= 2:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        elif not PYPY and not using_copy_on_write():
+        elif not PYPY and not WARNING_CHECK_DISABLED and not using_copy_on_write():
             ctr = sys.getrefcount(self.obj)
             ref_count = 2
             if not warn_copy_on_write() and _check_cacher(self.obj):

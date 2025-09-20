@@ -54,7 +54,10 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
-from pandas.compat._constants import REF_COUNT
+from pandas.compat._constants import (
+    REF_COUNT,
+    WARNING_CHECK_DISABLED,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -4274,12 +4277,12 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
+        if not PYPY and not WARNING_CHECK_DISABLED and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        elif not PYPY and not using_copy_on_write():
+        elif not PYPY and not WARNING_CHECK_DISABLED and not using_copy_on_write():
             if sys.getrefcount(self) <= 3 and (
                 warn_copy_on_write()
                 or (
@@ -8983,14 +8986,19 @@ class DataFrame(NDFrame, OpsMixin):
         2  3    6.0
         """
 
-        if not PYPY and using_copy_on_write():
+        if not PYPY and not WARNING_CHECK_DISABLED and using_copy_on_write():
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
                     stacklevel=2,
                 )
-        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
+        elif (
+            not PYPY
+            and not WARNING_CHECK_DISABLED
+            and not using_copy_on_write()
+            and self._is_view_after_cow_rules()
+        ):
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_warning_method_msg,
