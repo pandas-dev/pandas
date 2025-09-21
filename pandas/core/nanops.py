@@ -1261,7 +1261,8 @@ def nanskew(
         return np.nan
 
     with np.errstate(invalid="ignore", divide="ignore"):
-        mean = values.sum(axis, dtype=np.float64) / count
+        total = values.sum(axis, dtype=np.float64)
+        mean = total / count
     if axis is not None:
         mean = np.expand_dims(mean, axis)
 
@@ -1277,8 +1278,9 @@ def nanskew(
     #
     # #18044 in _libs/windows.pyx calc_skew follow this behavior
     # to fix the fperr to treat m2 <1e-14 as zero
-    m2 = _zero_out_fperr(m2)
-    m3 = _zero_out_fperr(m3)
+    constant_tolerance = (np.finfo(m2.dtype).eps * total) ** 2
+    m2 = _zero_out_fperr(m2, constant_tolerance)
+    m3 = _zero_out_fperr(m3, constant_tolerance)
 
     with np.errstate(invalid="ignore", divide="ignore"):
         result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2**1.5)
@@ -1349,7 +1351,8 @@ def nankurt(
         return np.nan
 
     with np.errstate(invalid="ignore", divide="ignore"):
-        mean = values.sum(axis, dtype=np.float64) / count
+        total = values.sum(axis, dtype=np.float64)
+        mean = total / count
     if axis is not None:
         mean = np.expand_dims(mean, axis)
 
@@ -1370,8 +1373,12 @@ def nankurt(
     #
     # #18044 in _libs/windows.pyx calc_kurt follow this behavior
     # to fix the fperr to treat denom <1e-14 as zero
-    numerator = _zero_out_fperr(numerator)
-    denominator = _zero_out_fperr(denominator)
+    # #57972 arbitrary <1e-14 tolerance leads to problematic behaviour on low variance.
+    # We adapted the tolerance to use one similar to scipy:
+    # https://github.com/scipy/scipy/blob/04d6d9c460b1fed83f2919ecec3d743cfa2e8317/scipy/stats/_stats_py.py#L1429
+    constant_tolerance = (np.finfo(m2.dtype).eps * total) ** 2
+    numerator = _zero_out_fperr(numerator, constant_tolerance)
+    denominator = _zero_out_fperr(denominator, constant_tolerance)
 
     if not isinstance(denominator, np.ndarray):
         # if ``denom`` is a scalar, check these corner cases first before
@@ -1587,12 +1594,12 @@ def check_below_min_count(
     return False
 
 
-def _zero_out_fperr(arg):
+def _zero_out_fperr(arg, tol):
     # #18044 reference this behavior to fix rolling skew/kurt issue
     if isinstance(arg, np.ndarray):
-        return np.where(np.abs(arg) < 1e-14, 0, arg)
+        return np.where(np.abs(arg) < tol, 0, arg)
     else:
-        return arg.dtype.type(0) if np.abs(arg) < 1e-14 else arg
+        return arg.dtype.type(0) if np.abs(arg) < tol else arg
 
 
 @disallow("M8", "m8")

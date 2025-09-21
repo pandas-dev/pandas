@@ -1072,7 +1072,7 @@ class TestNankurtFixedValues:
         # xref GH 11974
         data = val * np.ones(300)
         kurt = nanops.nankurt(data)
-        assert kurt == 0.0
+        tm.assert_equal(kurt, 0.0)
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -1101,6 +1101,14 @@ class TestNankurtFixedValues:
         samples = np.hstack([samples, np.nan])
         kurt = nanops.nankurt(samples, skipna=True)
         tm.assert_almost_equal(kurt, actual_kurt)
+
+    def test_low_variance(self):
+        # GH#57972
+        data_list = [-2.05191341e-05, -4.10391103e-05] + ([0.0] * 27)
+        data = np.array(data_list)
+        kurt = nanops.nankurt(data)
+        expected = 18.087646853025614  # scipy.stats.kurtosis(data, bias=False)
+        tm.assert_almost_equal(kurt, expected)
 
     @property
     def prng(self):
