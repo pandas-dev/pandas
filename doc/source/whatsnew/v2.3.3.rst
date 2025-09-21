@@ -18,6 +18,16 @@ Most changes in this release are related to :class:`StringDtype` which will
 become the default string dtype in pandas 3.0. See
 :ref:`whatsnew_230.upcoming_changes` for more details.
 
+.. _whatsnew_233.string_fixes.improvements:
+
+Improvements
+^^^^^^^^^^^^
+- Update :meth:`DataFrame.select_dtypes` to keep selecting ``str`` columns when
+  specifying ``include=["object"]`` for backwards compatibility. In a future
+  release, this will be deprecated and code for pandas 3+ should be updated to
+  do ``include=["str"]`` (:issue:`61916`)
+
+
 .. _whatsnew_233.string_fixes.bugs:
 
 Bug fixes
