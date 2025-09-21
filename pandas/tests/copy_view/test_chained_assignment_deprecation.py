@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
+from pandas.compat import (
+    PY311,
+    WARNING_CHECK_DISABLED,
+)
 from pandas.errors import (
     ChainedAssignmentError,
     SettingWithCopyWarning,
@@ -150,6 +153,9 @@ def test_series_setitem(indexer, using_copy_on_write, warn_copy_on_write):
 
     # using custom check instead of tm.assert_produces_warning because that doesn't
     # fail if multiple warnings are raised
+    if WARNING_CHECK_DISABLED:
+        return
+
     with pytest.warns() as record:
         df["a"][indexer] = 0
     assert len(record) == 1
