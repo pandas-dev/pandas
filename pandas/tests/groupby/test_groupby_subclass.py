@@ -97,6 +97,27 @@ def test_groupby_preserves_metadata():
     result = custom_series.groupby(custom_df["c"]).agg(func2)
     tm.assert_series_equal(result, expected)
 
+    # GH#62134 - Test that apply() preserves metadata when returning DataFrames/Series
+    def sum_func(group):
+        assert isinstance(group, tm.SubclassedDataFrame)
+        assert hasattr(group, "testattr")
+        assert group.testattr == "hello"
+        return group.sum()
+
+    result = custom_df.groupby("c").apply(sum_func)
+    assert hasattr(result, "testattr"), "DataFrame apply() should preserve metadata"
+    assert result.testattr == "hello"
+
+    def sum_series_func(group):
+        assert isinstance(group, tm.SubclassedSeries)
+        assert hasattr(group, "testattr")
+        assert group.testattr == "hello"
+        return group.sum()
+
+    result = custom_series.groupby(custom_df["c"]).apply(sum_series_func)
+    assert hasattr(result, "testattr"), "Series apply() should preserve metadata"
+    assert result.testattr == "hello"
+
 
 @pytest.mark.parametrize("obj", [DataFrame, tm.SubclassedDataFrame])
 def test_groupby_resample_preserves_subclass(obj):
