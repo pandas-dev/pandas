@@ -298,3 +298,20 @@ def test_datetime_subclass(klass):
 
     expected = np.array(["2000-01-01T00:00:00.000000"], dtype="M8[us]")
     tm.assert_numpy_array_equal(result, expected)
+
+
+import pandas as pd
+from pandas import Timestamp
+import pandas._testing as tm
+
+
+def test_to_datetime_format_long_string_gh54958():
+    """
+    Test that to_datetime with a specific format doesn't fail on strings
+    that are longer than the format implies.
+    GH#54958
+    """
+    ser = pd.Series(["2023010100"])
+    expected = pd.Series([Timestamp("2023-01-01")])
+    result = pd.to_datetime(ser, format="%Y%m%d")
+    tm.assert_series_equal(result, expected)
