@@ -41,7 +41,7 @@ VERSIONS = {
     "pyarrow": "13.0.0",
     "pyiceberg": "0.8.1",
     "pyreadstat": "1.2.8",
-    "pytest": "7.3.2",
+    "pytest": "8.3.4",
     "python-calamine": "0.3.0",
     "pytz": "2024.2",
     "pyxlsb": "1.0.10",

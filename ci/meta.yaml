@@ -61,8 +61,8 @@ test:
     - python -c "import pandas; pandas.test(extra_args={{ extra_args }})"  # [python_impl == "cpython"]
   requires:
     - pip
-    - pytest >=7.3.2
-    - pytest-xdist >=3.4.0
+    - pytest >=8.3.4
+    - pytest-xdist >=3.6.1
     - pytest-cov
     - hypothesis >=6.116.0
 
