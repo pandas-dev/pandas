@@ -184,8 +184,8 @@ jobs:
           python -c `'import pandas as pd; pd.test(extra_args=[`\"--no-strict-data-files`\", `\"-m not clipboard and not single_cpu and not slow and not network and not db`\"])`';
           "@
           # add rc to the end of the image name if the Python version is unreleased
-          docker pull python:${{ matrix.python[1] == '3.13' && '3.13-rc' || format('{0}-windowsservercore', matrix.python[1]) }}
-          docker run --env PANDAS_CI='1' -v ${PWD}:C:\pandas python:${{ matrix.python[1] == '3.13' && '3.13-rc' || format('{0}-windowsservercore', matrix.python[1]) }} powershell -Command $TST_CMD
+          docker pull python:${{ matrix.python[1] == '3.14' && '3.14-rc' || format('{0}-windowsservercore', matrix.python[1]) }}
+          docker run --env PANDAS_CI='1' -v ${PWD}:C:\pandas python:${{ matrix.python[1] == '3.14' && '3.14-rc' || format('{0}-windowsservercore', matrix.python[1]) }} powershell -Command $TST_CMD
 
       - uses: actions/upload-artifact@v4
         with:
