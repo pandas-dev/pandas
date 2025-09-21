@@ -18,6 +18,16 @@ Most changes in this release are related to :class:`StringDtype` which will
 become the default string dtype in pandas 3.0. See
 :ref:`whatsnew_230.upcoming_changes` for more details.
 
+.. _whatsnew_233.string_fixes.improvements:
+
+Improvements
+^^^^^^^^^^^^
+- Accessing the underlying NumPy array of a DataFrame or Series will return a read-only
+  array if the array shares data with the original DataFrame or Series (:ref:`copy_on_write_read_only_na`).
+  This logic is expanded to accessing the underlying pandas ExtensionArray
+  through ``.array`` (or ``.values`` depending on the dtype) as well (:issue:`61925`).
+
+
 .. _whatsnew_233.string_fixes.bugs:
 
 Bug fixes
