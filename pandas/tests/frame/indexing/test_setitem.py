@@ -1402,6 +1402,40 @@ class TestDataFrameSetitemCopyViewSemantics:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        "indexer, value",
+        [
+            (([0, 2], slice(None)), [[2, 2, 2, 2], [2, 2, 2, 2]]),
+            ((slice(None), slice(None)), 2),
+            ((0, [1, 3]), [2, 2]),
+            (([0], 1), [2]),
+            (
+                (np.array([False, True, False]), np.array([False, True, False, True])),
+                [2, 2],
+            ),
+        ],
+    )
+    def test_setitem_2dblock_with_ref(self, indexer, value):
+        # https://github.com/pandas-dev/pandas/issues/60309
+        arr = np.arange(12).reshape(3, 4)
+
+        df_parent = DataFrame(arr.copy(), columns=list("ABCD"))
+        # the test is specifically for the case where the df is backed by a single
+        # block (taking the non-split path)
+        assert df_parent._mgr.is_single_block
+        df_orig = df_parent.copy()
+        df = df_parent[:]
+
+        df.iloc[indexer] = value
+
+        # Check that original DataFrame is unchanged
+        tm.assert_frame_equal(df_parent, df_orig)
+
+        # Check that df is modified correctly
+        arr[indexer] = value
+        expected = DataFrame(arr, columns=list("ABCD"))
+        tm.assert_frame_equal(df, expected)
+
 
 def test_full_setter_loc_incompatible_dtype():
     # https://github.com/pandas-dev/pandas/issues/55791
