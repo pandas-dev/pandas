@@ -485,3 +485,27 @@ class TestSelectDtypes:
         result = df.select_dtypes(include=["number"])
         result.iloc[0, 0] = 0
         tm.assert_frame_equal(df, df_orig)
+
+    def test_select_dtype_object_and_str(self, using_infer_string):
+        # https://github.com/pandas-dev/pandas/issues/61916
+        df = DataFrame(
+            {
+                "a": ["a", "b", "c"],
+                "b": [1, 2, 3],
+                "c": pd.array(["a", "b", "c"], dtype="string"),
+            }
+        )
+
+        # with "object" -> only select the object or default str dtype column
+        result = df.select_dtypes(include=["object"])
+        expected = df[["a"]]
+        tm.assert_frame_equal(result, expected)
+
+        # with "string" -> select both the default 'str' and the nullable 'string'
+        result = df.select_dtypes(include=["string"])
+        if using_infer_string:
+            expected = df[["a", "c"]]
+        else:
+            expected = df[["c"]]
+        expected = df[["a", "c"]]
+        tm.assert_frame_equal(result, expected)

@@ -144,6 +144,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     sanitize_array,
@@ -5087,7 +5088,12 @@ class DataFrame(NDFrame, OpsMixin):
                     and getattr(dtype, "_is_numeric", False)
                     and not is_bool_dtype(dtype)
                 )
-                or (dtype.type is str and np.object_ in dtypes_set)
+                # backwards compat for the default `str` dtype being selected by object
+                or (
+                    isinstance(dtype, StringDtype)
+                    and dtype.na_value is np.nan
+                    and np.object_ in dtypes_set
+                )
             )
 
         def predicate(arr: ArrayLike) -> bool:
