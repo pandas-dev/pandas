@@ -1590,15 +1590,16 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         therefore only called once per unique category, and the result reused for
         all occurrences:
 
-        >>> cat = pd.Categorical(["a", "a", "b"])  # doctest: +SKIP
-        >>> calls = []  # doctest: +SKIP
-        >>> def f(x):  # doctest: +SKIP
+        >>> cat = pd.Categorical(["a", "a", "b"])
+        >>> calls = []
+        >>> def f(x):
         ...     calls.append(x)
         ...     return x.upper()
-        >>> cat.map(f)
+        >>> result = cat.map(f)
+        >>> result
         ['A', 'A', 'B']
         Categories (2, str): ['A', 'B']
-        >>> calls  # doctest: +SKIP
+        >>> calls
         ['a', 'b']
         """
         assert callable(mapper) or is_dict_like(mapper)
