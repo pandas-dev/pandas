@@ -5080,10 +5080,14 @@ class DataFrame(NDFrame, OpsMixin):
         def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
             # GH 46870: BooleanDtype._is_numeric == True but should be excluded
             dtype = dtype if not isinstance(dtype, ArrowDtype) else dtype.numpy_dtype
-            return issubclass(dtype.type, tuple(dtypes_set)) or (
-                np.number in dtypes_set
-                and getattr(dtype, "_is_numeric", False)
-                and not is_bool_dtype(dtype)
+            return (
+                issubclass(dtype.type, tuple(dtypes_set))
+                or (
+                    np.number in dtypes_set
+                    and getattr(dtype, "_is_numeric", False)
+                    and not is_bool_dtype(dtype)
+                )
+                or (dtype.type is str and np.object_ in dtypes_set)
             )
 
         def predicate(arr: ArrayLike) -> bool:

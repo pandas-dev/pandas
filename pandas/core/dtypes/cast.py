@@ -966,7 +966,9 @@ def invalidate_string_dtypes(dtype_set: set[DtypeObj]) -> None:
         np.dtype("<U").type,  # type: ignore[arg-type]
     }
     if non_string_dtypes != dtype_set:
-        raise TypeError("string dtypes are not allowed, use 'object' instead")
+        raise TypeError(
+            "numpy string dtypes are not allowed, use 'str' or 'object' instead"
+        )
 
 
 def coerce_indexer_dtype(indexer, categories) -> np.ndarray:
