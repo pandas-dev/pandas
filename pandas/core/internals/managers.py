@@ -575,7 +575,7 @@ class BaseBlockManager(PandasObject):
 
                     indexer = list(indexer)
                     # first block equals values we are setting to -> set to all columns
-                    if isinstance(indexer[1], int):
+                    if lib.is_integer(indexer[1]):
                         col_indexer = 0
                     elif len(blk_loc) > 1:
                         col_indexer = slice(None)  # type: ignore[assignment]

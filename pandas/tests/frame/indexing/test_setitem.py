@@ -1409,6 +1409,9 @@ class TestDataFrameSetitemCopyViewSemantics:
             ((slice(None), slice(None)), 2),
             ((0, [1, 3]), [2, 2]),
             (([0], 1), [2]),
+            (([0], np.int64(1)), [2]),
+            ((slice(None), np.int64(1)), [2, 2, 2]),
+            ((slice(None, 2), np.int64(1)), [2, 2]),
             (
                 (np.array([False, True, False]), np.array([False, True, False, True])),
                 [2, 2],
