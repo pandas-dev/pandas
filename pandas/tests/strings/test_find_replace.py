@@ -1091,6 +1091,9 @@ def test_fullmatch_compiled_regex(any_string_dtype):
         ["abc\\$", False, None, [False, True, False, None]],
         ["Abc$", True, None, [False, False, False, None]],
         ["Abc\\$", True, None, [False, False, False, None]],
+        # https://github.com/pandas-dev/pandas/issues/61072
+        ["(abc)|(abx)", True, None, [True, False, False, None]],
+        ["((abc)|(abx))", True, None, [True, False, False, None]],
     ],
 )
 def test_str_fullmatch_extra_cases(any_string_dtype, pat, case, na, exp):
