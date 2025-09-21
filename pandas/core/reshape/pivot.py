@@ -504,7 +504,7 @@ def _add_margins(
         margin_dummy[cols] = margin_dummy[cols].apply(
             maybe_downcast_to_dtype, args=(dtype,)
         )
-    result = result._append_internal(margin_dummy)
+    result = concat([result, margin_dummy])
     result.index.names = row_names
 
     return result

@@ -423,6 +423,12 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     def test_EA_types(self, engine, data, request):
         super().test_EA_types(engine, data, request)
 
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
+        if isinstance(data[-1], tuple):
+            mark = pytest.mark.xfail(reason="Unpacks tuple")
+            request.applymarker(mark)
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
 
 class Test2DCompat(base.NDArrayBacked2DTests):
     pass
