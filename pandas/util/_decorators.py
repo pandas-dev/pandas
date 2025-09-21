@@ -177,6 +177,8 @@ def deprecate_kwarg(
     def _deprecate_kwarg(func: F) -> F:
         @wraps(func)
         def wrapper(*args, **kwargs) -> Callable[..., Any]:
+            __tracebackhide__ = True
+
             old_arg_value = kwargs.pop(old_arg_name, None)
 
             if old_arg_value is not None:
