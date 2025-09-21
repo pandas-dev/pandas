@@ -2100,6 +2100,7 @@ class Index(IndexOpsMixin, PandasObject):
                 raise IndexError(
                     f"Too many levels: Index has only 1 level, not {level + 1}"
                 )
+            return
         mismatch_error_msg = (
             f"Requested level ({level}) does not match index name ({self.name})"
         )
