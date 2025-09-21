@@ -578,9 +578,9 @@ class BaseBlockManager(PandasObject):
                     if isinstance(indexer[1], int):
                         col_indexer = 0
                     elif len(blk_loc) > 1:
-                        col_indexer = slice(None)
+                        col_indexer = slice(None)  # type: ignore[assignment]
                     else:
-                        col_indexer = np.arange(len(blk_loc))
+                        col_indexer = np.arange(len(blk_loc))  # type: ignore[assignment]
                     indexer[1] = col_indexer
 
                     row_indexer = indexer[0]
