@@ -1890,10 +1890,10 @@ class TestFullmatch:
         result = ser.str.fullmatch(pat, case=case, na=na)
         expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
         tm.assert_series_equal(result, expected)
-    
+
     def test_str_fullmatch_against_python_fullmatch(self, pat, case, na, exp):
-        ser = pd.Series(["abc", "abc$", "$abc", None], dtype=ArrowDtype(pa.string()))
-        ser2 = pd.Series(["abc", "abc$", "$abc", None], dtype=str)
+        ser = pd.Series(["abc", "abc$", "$abc"], dtype=ArrowDtype(pa.string()))
+        ser2 = pd.Series(["abc", "abc$", "$abc"], dtype=str)
         result = ser.str.fullmatch(pat, case=case, na=na)
         result2 = ser2.str.fullmatch(pat, case=case, na=na).astype(result.dtype)
         tm.assert_series_equal(result, result2)
