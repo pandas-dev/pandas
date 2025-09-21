@@ -1366,22 +1366,18 @@ def nankurt(
     m2 = adjusted2.sum(axis, dtype=np.float64)
     m4 = adjusted4.sum(axis, dtype=np.float64)
 
+    # #57972: tolerance to consider the central moment equals to zero.
+    # We adapted the tolerance from scipy:
+    # https://github.com/scipy/scipy/blob/04d6d9c460b1fed83f2919ecec3d743cfa2e8317/scipy/stats/_stats_py.py#L1429
+    constant_tolerance2 = (np.finfo(m2.dtype).eps * total) ** 2  # match order of m2
+    constant_tolerance4 = constant_tolerance2**2  # match order of m4
+    m2 = _zero_out_fperr(m2, constant_tolerance2)
+    m4 = _zero_out_fperr(m4, constant_tolerance4)
+
     with np.errstate(invalid="ignore", divide="ignore"):
         adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
         numerator = count * (count + 1) * (count - 1) * m4
         denominator = (count - 2) * (count - 3) * m2**2
-
-    # floating point error
-    #
-    # #18044 in _libs/windows.pyx calc_kurt follow this behavior
-    # to fix the fperr to treat denom <1e-14 as zero
-    # #57972 arbitrary <1e-14 tolerance leads to problematic behaviour on low variance.
-    # We adapted the tolerance to use one similar to scipy:
-    # https://github.com/scipy/scipy/blob/04d6d9c460b1fed83f2919ecec3d743cfa2e8317/scipy/stats/_stats_py.py#L1429
-    constant_tolerance2 = (np.finfo(m2.dtype).eps * total) ** 2  # match order of m2
-    constant_tolerance4 = constant_tolerance2**2  # match order of m4
-    numerator = _zero_out_fperr(numerator, constant_tolerance2)
-    denominator = _zero_out_fperr(denominator, constant_tolerance4)
 
     if not isinstance(denominator, np.ndarray):
         # if ``denom`` is a scalar, check these corner cases first before
