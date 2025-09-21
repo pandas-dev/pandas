@@ -4450,6 +4450,11 @@ class DataFrame(NDFrame, OpsMixin):
                 loc, (slice, Series, np.ndarray, Index)
             ):
                 cols_droplevel = maybe_droplevels(cols, key)
+                if (
+                    not isinstance(cols_droplevel, MultiIndex)
+                    and not cols_droplevel.any()
+                ):
+                    return
                 if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
                     value = value.reindex(cols_droplevel, axis=1)
 
