@@ -485,7 +485,6 @@ markers = [
   "db: tests requiring a database (mysql or postgres)",
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
-  "skip_ubsan: Tests known to fail UBSAN check",
   # TODO: someone should investigate this ...
   # these tests only fail in the wheel builder and don't fail in regular
   # ARM CI
