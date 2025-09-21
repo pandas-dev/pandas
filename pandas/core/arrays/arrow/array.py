@@ -730,7 +730,10 @@ class ArrowExtensionArray(
 
         value = self._pa_array[item]
         if isinstance(value, pa.ChunkedArray):
-            return self._from_pyarrow_array(value)
+            result = self._from_pyarrow_array(value)
+            if self._getitem_returns_view(item):
+                result._readonly = self._readonly
+            return result
         else:
             pa_type = self._pa_array.type
             scalar = value.as_py()

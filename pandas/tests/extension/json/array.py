@@ -105,10 +105,15 @@ class JSONArray(ExtensionArray):
             return self.data[item]
         elif isinstance(item, slice) and item == slice(None):
             # Make sure we get a view
-            return type(self)(self.data)
+            result = type(self)(self.data)
+            result._readonly = self._readonly
+            return result
         elif isinstance(item, slice):
             # slice
-            return type(self)(self.data[item])
+            result = type(self)(self.data[item])
+            if self._getitem_returns_view(item):
+                result._readonly = self._readonly
+            return result
         elif not is_list_like(item):
             # e.g. "foo" or 2.5
             # exception message copied from numpy

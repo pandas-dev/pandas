@@ -177,7 +177,10 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         else:
             # array, slice.
             item = pd.api.indexers.check_array_indexer(self, item)
-            return type(self)(self._data[item])
+            result = type(self)(self._data[item])
+            if self._getitem_returns_view(item):
+                result._readonly = self._readonly
+            return result
 
     def take(self, indexer, allow_fill=False, fill_value=None):
         from pandas.api.extensions import take

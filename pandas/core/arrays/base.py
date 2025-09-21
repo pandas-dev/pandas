@@ -433,6 +433,22 @@ class ExtensionArray:
         """
         raise AbstractMethodError(self)
 
+    def _getitem_returns_view(self, key) -> bool:
+        if not isinstance(key, tuple):
+            key = (key,)
+
+        # filter out Ellipsis and np.newaxis
+        key = tuple(k for k in key if k is not Ellipsis and k is not np.newaxis)
+        if not key:
+            return True
+        # single integer gives view if selecting subset of 2D array
+        if self.ndim == 2 and lib.is_integer(key[0]):
+            return True
+        # slices always give views
+        if all(isinstance(k, slice) for k in key):
+            return True
+        return False
+
     def __setitem__(self, key, value) -> None:
         """
         Set one or more values inplace.

@@ -724,7 +724,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # "Union[Period, Timestamp, Timedelta, NaTType, DatetimeArray, TimedeltaArray,
         # ndarray[Any, Any]]"; expected "Union[Union[DatetimeArray, TimedeltaArray],
         # ndarray[Any, Any]]"
-        return self._simple_new(left, right, dtype=self.dtype)  # type: ignore[arg-type]
+        result = self._simple_new(left, right, dtype=self.dtype)
+        if self._getitem_returns_view(key):
+            result._readonly = self._readonly
+        return result  # type: ignore[arg-type]
 
     def __setitem__(self, key, value) -> None:
         if self._readonly:

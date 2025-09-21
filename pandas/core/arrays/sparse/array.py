@@ -1008,7 +1008,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         elif isinstance(key, slice):
             if key == slice(None):
                 # to ensure arr[:] (used by view()) does not make a copy
-                return type(self)._simple_new(self.sp_values, self.sp_index, self.dtype)
+                result = type(self)._simple_new(
+                    self.sp_values, self.sp_index, self.dtype
+                )
+                result._readonly = self._readonly
+                return result
             # Avoid densifying when handling contiguous slices
             if key.step is None or key.step == 1:
                 start = 0 if key.start is None else key.start

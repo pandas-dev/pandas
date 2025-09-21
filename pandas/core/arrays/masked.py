@@ -200,7 +200,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return self.dtype.na_value
             return self._data[item]
 
-        return self._simple_new(self._data[item], newmask)
+        result = self._simple_new(self._data[item], newmask)
+        if self._getitem_returns_view(item):
+            result._readonly = self._readonly
+        return result
 
     def _pad_or_backfill(
         self,

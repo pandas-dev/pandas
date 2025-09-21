@@ -284,7 +284,10 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             result = self._ndarray[key]
             if self.ndim == 1:
                 return self._box_func(result)
-            return self._from_backing_data(result)
+            result = self._from_backing_data(result)
+            if self._getitem_returns_view(key):
+                result._readonly = self._readonly
+            return result
 
         # error: Incompatible types in assignment (expression has type "ExtensionArray",
         # variable has type "Union[int, slice, ndarray]")
@@ -295,6 +298,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             return self._box_func(result)
 
         result = self._from_backing_data(result)
+        if self._getitem_returns_view(key):
+            result._readonly = self._readonly
         return result
 
     def _pad_or_backfill(
