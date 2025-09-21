@@ -106,6 +106,8 @@ jobs:
         exclude:
         - buildplat: [windows-2022, win_amd64]
           python: ["cp313t", "3.13"]
+        - buildplat: [windows-2022, win_amd64]
+          python: ["cp314t", "3.14"]
 
     env:
       IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
