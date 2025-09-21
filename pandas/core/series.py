@@ -4380,8 +4380,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         provides a method for default values), then this default is used
         rather than ``NaN``.
 
-        
-
         Examples
         --------
         >>> s = pd.Series(["cat", "dog", np.nan, "rabbit"])
