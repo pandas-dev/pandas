@@ -302,7 +302,6 @@ def test_datetime_subclass(klass):
 
 import pandas as pd
 from pandas import Timestamp
-import pandas._testing as tm
 
 
 def test_to_datetime_format_long_string_gh54958():
