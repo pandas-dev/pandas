@@ -3,8 +3,6 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import is_platform_windows
 
 import pandas as pd
@@ -266,8 +264,6 @@ def test_apply(test_frame):
         return x.resample("2s").apply(lambda y: y.sum())
 
     result = g.apply(f_1)
-    # y.sum() results in int64 instead of int32 on 32-bit architectures
-    expected = expected.astype("int64")
     tm.assert_frame_equal(result, expected)
 
 
@@ -297,7 +293,9 @@ def test_apply_columns_multilevel():
     # GH 16231
     cols = pd.MultiIndex.from_tuples([("A", "a", "", "one"), ("B", "b", "i", "two")])
     ind = date_range(start="2017-01-01", freq="15Min", periods=8)
-    df = DataFrame(np.array([0] * 16).reshape(8, 2), index=ind, columns=cols)
+    df = DataFrame(
+        np.array([0] * 16, dtype=np.int64).reshape(8, 2), index=ind, columns=cols
+    )
     agg_dict = {col: (np.sum if col[3] == "one" else np.mean) for col in df.columns}
     result = df.resample("h").apply(lambda x: agg_dict[x.name](x))
     expected = DataFrame(
@@ -462,7 +460,6 @@ def test_empty(keys):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @pytest.mark.parametrize("consolidate", [True, False])
 def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
     # https://github.com/pandas-dev/pandas/issues/39329
@@ -491,6 +488,26 @@ def test_resample_groupby_agg_object_dtype_all_nan(consolidate):
         },
         index=idx,
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("min_count", [0, 1])
+def test_groupby_resample_empty_sum_string(
+    string_dtype_no_object, test_frame, min_count
+):
+    # https://github.com/pandas-dev/pandas/issues/60229
+    dtype = string_dtype_no_object
+    test_frame = test_frame.assign(B=pd.array([pd.NA] * len(test_frame), dtype=dtype))
+    gbrs = test_frame.groupby("A").resample("40s")
+    result = gbrs.sum(min_count=min_count)
+
+    index = pd.MultiIndex(
+        levels=[[1, 2, 3], [pd.to_datetime("2000-01-01", unit="ns")]],
+        codes=[[0, 1, 2], [0, 0, 0]],
+        names=["A", None],
+    )
+    value = "" if min_count == 0 else pd.NA
+    expected = DataFrame({"B": value}, index=index, dtype=dtype)
     tm.assert_frame_equal(result, expected)
 
 

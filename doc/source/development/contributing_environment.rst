@@ -133,7 +133,7 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
    pyenv virtualenv <version> <name-to-give-it>
 
    # For instance:
-   pyenv virtualenv 3.10 pandas-dev
+   pyenv virtualenv 3.11 pandas-dev
 
    # Activate the virtualenv
    pyenv activate pandas-dev
@@ -251,7 +251,7 @@ This option allows you to configure where meson stores your built C extensions, 
 Sometimes, it might be useful to compile pandas with debugging symbols, when debugging C extensions.
 Appending ``-Csetup-args="-Ddebug=true"`` will do the trick.
 
-With pip, it is possible to chain together multiple config settings (for example specifying both a build directory
+With pip, it is possible to chain together multiple config settings. For example, specifying both a build directory
 and building with debug symbols would look like
 ``-Cbuilddir="your builddir here" -Csetup-args="-Dbuildtype=debug"``.
 

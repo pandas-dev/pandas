@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -96,6 +98,7 @@ class TestRolling:
             "count",
             "kurt",
             "skew",
+            "nunique",
         ],
     )
     def test_rolling(self, f, roll_frame):
@@ -638,7 +641,7 @@ class TestRolling:
         )
         msg = "'d' is deprecated and will be removed in a future version."
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = (
                 df.groupby("group")
                 .rolling("3d", on="date", closed="left")["column1"]
@@ -1034,7 +1037,19 @@ class TestExpanding:
         return DataFrame({"A": [1] * 20 + [2] * 12 + [3] * 8, "B": np.arange(40)})
 
     @pytest.mark.parametrize(
-        "f", ["sum", "mean", "min", "max", "first", "last", "count", "kurt", "skew"]
+        "f",
+        [
+            "sum",
+            "mean",
+            "min",
+            "max",
+            "first",
+            "last",
+            "count",
+            "kurt",
+            "skew",
+            "nunique",
+        ],
     )
     def test_expanding(self, f, frame):
         g = frame.groupby("A", group_keys=False)

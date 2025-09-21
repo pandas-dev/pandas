@@ -5,7 +5,7 @@ requires = [
     "meson-python>=0.13.1",
     "meson>=1.2.1,<2",
     "wheel",
-    "Cython~=3.0.5",  # Note: sync with setup.py, environment.yml and asv.conf.json
+    "Cython<4.0.0a0",  # Note: sync with setup.py, environment.yml and asv.conf.json
     # Force numpy higher than 2.0rc1, so that built wheels are compatible
     # with both numpy 1 and 2
     "numpy>=2.0.0rc1",
@@ -25,12 +25,11 @@ authors = [
   { name = 'The Pandas Development Team', email='pandas-dev@python.org' },
 ]
 license = {file = 'LICENSE'}
-requires-python = '>=3.10'
+requires-python = '>=3.11'
 dependencies = [
-  "numpy>=1.23.5; python_version<'3.12'",
-  "numpy>=1.26.0; python_version>='3.12'",
+  "numpy>=1.26.0",
   "python-dateutil>=2.8.2",
-  "tzdata>=2022.7"
+  "tzdata>=2023.3"
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
@@ -42,7 +41,6 @@ classifiers = [
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
@@ -58,68 +56,66 @@ repository = 'https://github.com/pandas-dev/pandas'
 matplotlib = "pandas:plotting._matplotlib"
 
 [project.optional-dependencies]
-test = ['hypothesis>=6.84.0', 'pytest>=7.3.2', 'pytest-xdist>=3.4.0']
-pyarrow = ['pyarrow>=10.0.1']
-performance = ['bottleneck>=1.3.6', 'numba>=0.56.4', 'numexpr>=2.8.4']
-computation = ['scipy>=1.10.0', 'xarray>=2022.12.0']
-fss = ['fsspec>=2022.11.0']
-aws = ['s3fs>=2022.11.0']
-gcp = ['gcsfs>=2022.11.0']
-excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.0', 'python-calamine>=0.1.7', 'pyxlsb>=1.0.10', 'xlrd>=2.0.1', 'xlsxwriter>=3.0.5']
-parquet = ['pyarrow>=10.0.1']
-feather = ['pyarrow>=10.0.1']
-hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
-        #'blosc>=1.20.1',
-        'tables>=3.8.0']
-spss = ['pyreadstat>=1.2.0']
-postgresql = ['SQLAlchemy>=2.0.0', 'psycopg2>=2.9.6', 'adbc-driver-postgresql>=0.10.0']
-mysql = ['SQLAlchemy>=2.0.0', 'pymysql>=1.0.2']
-sql-other = ['SQLAlchemy>=2.0.0', 'adbc-driver-postgresql>=0.10.0', 'adbc-driver-sqlite>=0.8.0']
-html = ['beautifulsoup4>=4.11.2', 'html5lib>=1.1', 'lxml>=4.9.2']
-xml = ['lxml>=4.9.2']
-plot = ['matplotlib>=3.6.3']
-output-formatting = ['jinja2>=3.1.2', 'tabulate>=0.9.0']
-clipboard = ['PyQt5>=5.15.9', 'qtpy>=2.3.0']
-compression = ['zstandard>=0.19.0']
-timezone = ['pytz>=2023.4']
-all = ['adbc-driver-postgresql>=0.10.0',
-       'adbc-driver-sqlite>=0.8.0',
-       'beautifulsoup4>=4.11.2',
-       # blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
-       #'blosc>=1.21.3',
-       'bottleneck>=1.3.6',
-       'fastparquet>=2023.10.0',
-       'fsspec>=2022.11.0',
-       'gcsfs>=2022.11.0',
+test = ['hypothesis>=6.116.0', 'pytest>=7.3.2', 'pytest-xdist>=3.4.0']
+pyarrow = ['pyarrow>=13.0.0']
+performance = ['bottleneck>=1.4.2', 'numba>=0.60.0', 'numexpr>=2.10.2']
+computation = ['scipy>=1.14.1', 'xarray>=2024.10.0']
+fss = ['fsspec>=2024.10.0']
+aws = ['s3fs>=2024.10.0']
+gcp = ['gcsfs>=2024.10.0']
+excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.5', 'python-calamine>=0.3.0', 'pyxlsb>=1.0.10', 'xlrd>=2.0.1', 'xlsxwriter>=3.2.0']
+parquet = ['pyarrow>=13.0.0']
+feather = ['pyarrow>=13.0.0']
+iceberg = ['pyiceberg>=0.8.1']
+hdf5 = ['tables>=3.10.1']
+spss = ['pyreadstat>=1.2.8']
+postgresql = ['SQLAlchemy>=2.0.36', 'psycopg2>=2.9.10', 'adbc-driver-postgresql>=1.2.0']
+mysql = ['SQLAlchemy>=2.0.36', 'pymysql>=1.1.1']
+sql-other = ['SQLAlchemy>=2.0.36', 'adbc-driver-postgresql>=1.2.0', 'adbc-driver-sqlite>=1.2.0']
+html = ['beautifulsoup4>=4.12.3', 'html5lib>=1.1', 'lxml>=5.3.0']
+xml = ['lxml>=5.3.0']
+plot = ['matplotlib>=3.9.3']
+output-formatting = ['jinja2>=3.1.5', 'tabulate>=0.9.0']
+clipboard = ['PyQt5>=5.15.9', 'qtpy>=2.4.2']
+compression = ['zstandard>=0.23.0']
+timezone = ['pytz>=2024.2']
+all = ['adbc-driver-postgresql>=1.2.0',
+       'adbc-driver-sqlite>=1.2.0',
+       'beautifulsoup4>=4.12.3',
+       'bottleneck>=1.4.2',
+       'fastparquet>=2024.11.0',
+       'fsspec>=2024.10.0',
+       'gcsfs>=2024.10.0',
        'html5lib>=1.1',
-       'hypothesis>=6.84.0',
-       'jinja2>=3.1.2',
-       'lxml>=4.9.2',
-       'matplotlib>=3.6.3',
-       'numba>=0.56.4',
-       'numexpr>=2.8.4',
+       'hypothesis>=6.116.0',
+       'jinja2>=3.1.5',
+       'lxml>=5.3.0',
+       'matplotlib>=3.9.3',
+       'numba>=0.60.0',
+       'numexpr>=2.10.2',
        'odfpy>=1.4.1',
-       'openpyxl>=3.1.0',
-       'psycopg2>=2.9.6',
-       'pyarrow>=10.0.1',
-       'pymysql>=1.0.2',
+       'openpyxl>=3.1.5',
+       'psycopg2>=2.9.10',
+       'pyarrow>=13.0.0',
+       'pyiceberg>=0.8.1',
+       'pymysql>=1.1.1',
        'PyQt5>=5.15.9',
-       'pyreadstat>=1.2.0',
+       'pyreadstat>=1.2.8',
        'pytest>=7.3.2',
        'pytest-xdist>=3.4.0',
-       'python-calamine>=0.1.7',
-       'pytz>=2023.4',
+       'python-calamine>=0.3.0',
+       'pytz>=2024.2',
        'pyxlsb>=1.0.10',
-       'qtpy>=2.3.0',
-       'scipy>=1.10.0',
-       's3fs>=2022.11.0',
-       'SQLAlchemy>=2.0.0',
-       'tables>=3.8.0',
+       'qtpy>=2.4.2',
+       'scipy>=1.14.1',
+       's3fs>=2024.10.0',
+       'SQLAlchemy>=2.0.36',
+       'tables>=3.10.1',
        'tabulate>=0.9.0',
-       'xarray>=2022.12.0',
+       'xarray>=2024.10.0',
        'xlrd>=2.0.1',
-       'xlsxwriter>=3.0.5',
-       'zstandard>=0.19.0']
+       'xlsxwriter>=3.2.0',
+       'zstandard>=0.23.0']
 
 # TODO: Remove after setuptools support is dropped.
 [tool.setuptools]
@@ -147,21 +143,21 @@ parentdir_prefix = "pandas-"
 setup = ['--vsenv'] # For Windows
 
 [tool.cibuildwheel]
-skip = "cp36-* cp37-* cp38-* cp39-* pp* *_i686 *_ppc64le *_s390x"
-build-verbosity = "3"
+skip = ["*_i686", "*_ppc64le", "*_s390x"]
+build-verbosity = 3
 environment = {LDFLAGS="-Wl,--strip-all"}
-test-requires = "hypothesis>=6.84.0 pytest>=7.3.2 pytest-xdist>=3.4.0"
+test-extras = "test"
 test-command = """
   PANDAS_CI='1' python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "-n 2", "--no-strict-data-files"]); \
   pd.test(extra_args=["-m not clipboard and single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
   """
-free-threaded-support = true
+enable = ["cpython-freethreading"]
 before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
 
 [tool.cibuildwheel.windows]
-before-build = "pip install delvewheel && bash {package}/scripts/cibw_before_build_windows.sh"
-before-test = "bash {package}/scripts/cibw_before_test_windows.sh"
+environment = {}
+before-build = "pip install delvewheel"
 test-command = """
   set PANDAS_CI='1' && \
   python -c "import pandas as pd; \
@@ -190,9 +186,11 @@ environment = {CFLAGS="-g0"}
 
 [[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
-test-requires = "pytest>=7.3.2 hypothesis>=6.84.0"
+test-requires = "pytest>=7.3.2 hypothesis>=6.116.0"
 # Pyodide repairs wheels on its own, using auditwheel-emscripten
 repair-wheel-command = ""
+# https://github.com/pyodide/pyodide/issues/5805
+build-verbosity = 1
 test-command = """
   PANDAS_CI='1' python -c 'import pandas as pd; \
   pd.test(extra_args=["-m not clipboard and not single_cpu and not slow and not network and not db", "--no-strict-data-files"]);' \
@@ -200,7 +198,7 @@ test-command = """
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py311"
 fix = true
 
 [tool.ruff.lint]
@@ -234,8 +232,8 @@ select = [
   "TID",
   # implicit string concatenation
   "ISC",
-  # type-checking imports
-  "TCH",
+  # flake8-type-checking
+  "TC",
   # comprehensions
   "C4",
   # pygrep-hooks
@@ -278,8 +276,6 @@ ignore = [
   "B015",
   # Function definition does not bind loop variable
   "B023",
-  # Only works with python >=3.10
-  "B905",
   # Too many arguments to function call
   "PLR0913",
   # Too many returns
@@ -320,6 +316,8 @@ ignore = [
   "ISC001",
   # if-stmt-min-max
   "PLR1730",
+  # nan-comparison
+  "PLW0177",
 
   ### TODO: Enable gradually
   # Useless statement
@@ -330,7 +328,7 @@ ignore = [
   "PLR0124",
   # collection-literal-concatenation
   "RUF005",
-  # pairwise-over-zipped (>=PY310 only)
+  # pairwise-over-zipped
   "RUF007",
   # mutable-class-default
   "RUF012",
@@ -390,6 +388,10 @@ ignore = [
   "PLW0108",
   # global-statement
   "PLW0603",
+  # runtime-cast-value
+  "TC006",
+  # zip-without-explicit-strict
+  "B905",
 ]
 
 exclude = [
@@ -429,7 +431,7 @@ exclude = [
 "pandas/tests/*" = ["B028", "FLY"]
 "scripts/*" = ["B028"]
 # Keep this one enabled
-"pandas/_typing.py" = ["TCH"]
+"pandas/_typing.py" = ["TC"]
 
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
@@ -454,6 +456,10 @@ filterwarnings = [
   "error:::pandas",
   "error::ResourceWarning",
   "error::pytest.PytestUnraisableExceptionWarning",
+  "error::pytest.PytestWarning",
+  # e.g. Module already imported so cannot be rewritten; _hypothesis_globals
+  "ignore::pytest.PytestAssertRewriteWarning",
+  "ignore::pytest.PytestCacheWarning",
   # TODO(PY311-minimum): Specify EncodingWarning
   # Ignore 3rd party EncodingWarning but raise on pandas'
   "ignore:.*encoding.* argument not specified",
@@ -528,7 +534,7 @@ enable_error_code = "ignore-without-code"
 # Miscellaneous strictness flags
 allow_untyped_globals = false
 allow_redefinition = false
-local_partial_types = false
+local_partial_types = true
 implicit_reexport = true
 strict_equality = true
 # Configuring error messages

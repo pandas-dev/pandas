@@ -303,13 +303,13 @@ class CSSToExcelConverter:
         #       'slantDashDot'
         #       'thick'
         #       'thin'
-        if width is None and style is None and color is None:
-            # Return None will remove "border" from style dictionary
-            return None
-
         if width is None and style is None:
-            # Return "none" will keep "border" in style dictionary
-            return "none"
+            if color is None:
+                # Return None will remove "border" from style dictionary
+                return None
+            else:
+                # Return "none" will keep "border" in style dictionary
+                return "none"
 
         if style in ("none", "hidden"):
             return "none"
@@ -410,11 +410,6 @@ class CSSToExcelConverter:
             return decoration.split()
         else:
             return ()
-
-    def _get_underline(self, decoration: Sequence[str]) -> str | None:
-        if "underline" in decoration:
-            return "single"
-        return None
 
     def _get_shadow(self, props: Mapping[str, str]) -> bool | None:
         if "text-shadow" in props:

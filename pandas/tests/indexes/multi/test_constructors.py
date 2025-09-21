@@ -410,6 +410,19 @@ def test_from_tuples_with_tuple_label():
     tm.assert_frame_equal(expected, result)
 
 
+@pytest.mark.parametrize(
+    "keys, expected",
+    [
+        ((("l1",), ("l1", "l2")), (("l1", np.nan), ("l1", "l2"))),
+        ((("l1", "l2"), ("l1",)), (("l1", "l2"), ("l1", np.nan))),
+    ],
+)
+def test_from_tuples_with_various_tuple_lengths(keys, expected):
+    # GH 60695
+    idx = MultiIndex.from_tuples(keys)
+    assert tuple(idx) == expected
+
+
 # ----------------------------------------------------------------------------
 # from_product
 # ----------------------------------------------------------------------------
@@ -652,14 +665,14 @@ def test_from_frame_missing_values_multiIndex():
     df = pd.DataFrame(
         {
             "a": Series([1, 2, None], dtype="Int64"),
-            "b": pd.Float64Dtype().__from_arrow__(pa.array([0.2, np.nan, None])),
+            "b": pd.Float64Dtype().__from_arrow__(pa.array([0.2, None, None])),
         }
     )
     multi_indexed = MultiIndex.from_frame(df)
     expected = MultiIndex.from_arrays(
         [
             Series([1, 2, None]).astype("Int64"),
-            pd.Float64Dtype().__from_arrow__(pa.array([0.2, np.nan, None])),
+            pd.Float64Dtype().__from_arrow__(pa.array([0.2, None, None])),
         ],
         names=["a", "b"],
     )

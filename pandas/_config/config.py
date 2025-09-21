@@ -73,6 +73,7 @@ if TYPE_CHECKING:
 
 class DeprecatedOption(NamedTuple):
     key: str
+    category: type[Warning]
     msg: str | None
     rkey: str | None
     removal_ver: str | None
@@ -199,9 +200,9 @@ def set_option(*args) -> None:
 
     Parameters
     ----------
-    *args : str | object
-        Arguments provided in pairs, which will be interpreted as (pattern, value)
-        pairs.
+    *args : str | object | dict
+        Arguments provided in pairs, which will be interpreted as (pattern, value),
+        or as a single dictionary containing multiple option-value pairs.
         pattern: str
         Regexp which should match a single option
         value: object
@@ -239,6 +240,8 @@ def set_option(*args) -> None:
 
     Examples
     --------
+    Option-Value Pair Input:
+
     >>> pd.set_option("display.max_columns", 4)
     >>> df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
     >>> df
@@ -247,8 +250,23 @@ def set_option(*args) -> None:
     1  6  7  ...  9  10
     [2 rows x 5 columns]
     >>> pd.reset_option("display.max_columns")
+
+    Dictionary Input:
+
+    >>> pd.set_option({"display.max_columns": 4, "display.precision": 1})
+    >>> df = pd.DataFrame([[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]])
+    >>> df
+    0  1  ...  3   4
+    0  1  2  ...  4   5
+    1  6  7  ...  9  10
+    [2 rows x 5 columns]
+    >>> pd.reset_option("display.max_columns")
+    >>> pd.reset_option("display.precision")
     """
-    # must at least 1 arg deal with constraints later
+    # Handle dictionary input
+    if len(args) == 1 and isinstance(args[0], dict):
+        args = tuple(kv for item in args[0].items() for kv in item)
+
     nargs = len(args)
     if not nargs or nargs % 2 != 0:
         raise ValueError("Must provide an even number of non-keyword arguments")
@@ -440,9 +458,10 @@ def option_context(*args) -> Generator[None]:
 
     Parameters
     ----------
-    *args : str | object
+    *args : str | object | dict
         An even amount of arguments provided in pairs which will be
-        interpreted as (pattern, value) pairs.
+        interpreted as (pattern, value) pairs. Alternatively, a single
+        dictionary of {pattern: value} may be provided.
 
     Returns
     -------
@@ -471,7 +490,12 @@ def option_context(*args) -> Generator[None]:
     >>> from pandas import option_context
     >>> with option_context("display.max_rows", 10, "display.max_columns", 5):
     ...     pass
+    >>> with option_context({"display.max_rows": 10, "display.max_columns": 5}):
+    ...     pass
     """
+    if len(args) == 1 and isinstance(args[0], dict):
+        args = tuple(kv for item in args[0].items() for kv in item)
+
     if len(args) % 2 != 0 or len(args) < 2:
         raise ValueError(
             "Provide an even amount of arguments as "
@@ -566,6 +590,7 @@ def register_option(
 
 def deprecate_option(
     key: str,
+    category: type[Warning],
     msg: str | None = None,
     rkey: str | None = None,
     removal_ver: str | None = None,
@@ -585,6 +610,8 @@ def deprecate_option(
     key : str
         Name of the option to be deprecated.
         must be a fully-qualified option name (e.g "x.y.z.rkey").
+    category : Warning
+        Warning class for the deprecation.
     msg : str, optional
         Warning message to output when the key is referenced.
         if no message is given a default message will be emitted.
@@ -608,7 +635,7 @@ def deprecate_option(
     if key in _deprecated_options:
         raise OptionError(f"Option '{key}' has already been defined as deprecated.")
 
-    _deprecated_options[key] = DeprecatedOption(key, msg, rkey, removal_ver)
+    _deprecated_options[key] = DeprecatedOption(key, category, msg, rkey, removal_ver)
 
 
 #
@@ -670,8 +697,8 @@ def _get_registered_option(key: str):
 
 def _translate_key(key: str) -> str:
     """
-    if key id deprecated and a replacement key defined, will return the
-    replacement key, otherwise returns `key` as - is
+    if `key` is deprecated and a replacement key defined, will return the
+    replacement key, otherwise returns `key` as-is
     """
     d = _get_deprecated_option(key)
     if d:
@@ -693,7 +720,7 @@ def _warn_if_deprecated(key: str) -> bool:
         if d.msg:
             warnings.warn(
                 d.msg,
-                FutureWarning,
+                d.category,
                 stacklevel=find_stack_level(),
             )
         else:
@@ -705,7 +732,11 @@ def _warn_if_deprecated(key: str) -> bool:
             else:
                 msg += ", please refrain from using it."
 
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                msg,
+                d.category,
+                stacklevel=find_stack_level(),
+            )
         return True
     return False
 

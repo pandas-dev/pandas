@@ -4,7 +4,9 @@ import copy
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Concatenate,
     Literal,
+    Self,
     cast,
     final,
     no_type_check,
@@ -96,13 +98,11 @@ if TYPE_CHECKING:
         Any,
         AnyArrayLike,
         Axis,
-        Concatenate,
         FreqIndexT,
         Frequency,
         IndexLabel,
         InterpolateOptions,
         P,
-        Self,
         T,
         TimedeltaConvertibleTypes,
         TimeGrouperOrigin,
@@ -507,27 +507,18 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         Potentially wrap any results.
         """
-        # GH 47705
-        obj = self.obj
-        if (
-            isinstance(result, ABCDataFrame)
-            and len(result) == 0
-            and not isinstance(result.index, PeriodIndex)
-        ):
-            result = result.set_index(
-                _asfreq_compat(obj.index[:0], freq=self.freq), append=True
-            )
-
         if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
             # When index is all NaT, result is empty but index is not
+            obj = self.obj
             result.index = _asfreq_compat(obj.index[:0], freq=self.freq)
             result.name = getattr(obj, "name", None)
 
         if self._timegrouper._arrow_dtype is not None:
             result.index = result.index.astype(self._timegrouper._arrow_dtype)
+            result.index.name = self.obj.index.name
 
         return result
 
@@ -907,17 +898,17 @@ class Resampler(BaseGroupBy, PandasObject):
         to non-aligned timestamps, as in the following example:
 
         >>> series.resample("400ms").interpolate("linear")
-        2023-03-01 07:00:00.000    1.0
-        2023-03-01 07:00:00.400    0.2
-        2023-03-01 07:00:00.800   -0.6
-        2023-03-01 07:00:01.200   -0.4
-        2023-03-01 07:00:01.600    0.8
-        2023-03-01 07:00:02.000    2.0
-        2023-03-01 07:00:02.400    1.6
-        2023-03-01 07:00:02.800    1.2
-        2023-03-01 07:00:03.200    1.4
-        2023-03-01 07:00:03.600    2.2
-        2023-03-01 07:00:04.000    3.0
+        2023-03-01 07:00:00.000    1.000000
+        2023-03-01 07:00:00.400    0.333333
+        2023-03-01 07:00:00.800   -0.333333
+        2023-03-01 07:00:01.200    0.000000
+        2023-03-01 07:00:01.600    1.000000
+        2023-03-01 07:00:02.000    2.000000
+        2023-03-01 07:00:02.400    1.666667
+        2023-03-01 07:00:02.800    1.333333
+        2023-03-01 07:00:03.200    1.666667
+        2023-03-01 07:00:03.600    2.333333
+        2023-03-01 07:00:04.000    3.000000
         Freq: 400ms, dtype: float64
 
         Note that the series correctly decreases between two anchors
@@ -1756,6 +1747,17 @@ class _GroupByMixin(PandasObject, SelectionMixin):
             return x.apply(f, *args, **kwargs)
 
         result = self._groupby.apply(func)
+
+        # GH 47705
+        if (
+            isinstance(result, ABCDataFrame)
+            and len(result) == 0
+            and not isinstance(result.index, PeriodIndex)
+        ):
+            result = result.set_index(
+                _asfreq_compat(self.obj.index[:0], freq=self.freq), append=True
+            )
+
         return self._wrap_result(result)
 
     _upsample = _apply
@@ -1943,10 +1945,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
+        # TODO: Enforce in 3.0 (#55968)
         warnings.warn(
             "Resampling a groupby with a PeriodIndex is deprecated. "
             "Cast to DatetimeIndex before resampling instead.",
-            FutureWarning,
+            FutureWarning,  # pdlint: ignore[warning_class]
             stacklevel=find_stack_level(),
         )
         return PeriodIndexResamplerGroupby
@@ -2157,8 +2160,10 @@ class TimeGrouper(Grouper):
         fill_method=None,
         limit: int | None = None,
         convention: Literal["start", "end", "e", "s"] | None = None,
-        origin: Literal["epoch", "start", "start_day", "end", "end_day"]
-        | TimestampConvertibleTypes = "start_day",
+        origin: (
+            Literal["epoch", "start", "start_day", "end", "end_day"]
+            | TimestampConvertibleTypes
+        ) = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool = False,
         **kwargs,
@@ -2172,17 +2177,30 @@ class TimeGrouper(Grouper):
         if convention not in {None, "start", "end", "e", "s"}:
             raise ValueError(f"Unsupported value {convention} for `convention`")
 
-        if (
-            (key is None and obj is not None and isinstance(obj.index, PeriodIndex))  # type: ignore[attr-defined]
-            or (
-                key is not None
-                and obj is not None
-                and getattr(obj[key], "dtype", None) == "period"  # type: ignore[index]
-            )
+        if (key is None and obj is not None and isinstance(obj.index, PeriodIndex)) or (  # type: ignore[attr-defined]
+            key is not None
+            and obj is not None
+            and getattr(obj[key], "dtype", None) == "period"  # type: ignore[index]
         ):
             freq = to_offset(freq, is_period=True)
         else:
             freq = to_offset(freq)
+
+        if not isinstance(freq, Tick):
+            if offset is not None:
+                warnings.warn(
+                    "The 'offset' keyword does not take effect when resampling "
+                    "with a 'freq' that is not Tick-like (h, m, s, ms, us, ns)",
+                    RuntimeWarning,
+                    stacklevel=find_stack_level(),
+                )
+            if origin != "start_day":
+                warnings.warn(
+                    "The 'origin' keyword does not take effect when resampling "
+                    "with a 'freq' that is not Tick-like (h, m, s, ms, us, ns)",
+                    RuntimeWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         end_types = {"ME", "YE", "QE", "BME", "BYE", "BQE", "W"}
         rule = freq.rule_code
@@ -2275,11 +2293,12 @@ class TimeGrouper(Grouper):
             )
         elif isinstance(ax, PeriodIndex):
             if isinstance(ax, PeriodIndex):
+                # TODO: Enforce in 3.0 (#53481)
                 # GH#53481
                 warnings.warn(
                     "Resampling with a PeriodIndex is deprecated. "
                     "Cast index to DatetimeIndex before resampling instead.",
-                    FutureWarning,
+                    FutureWarning,  # pdlint: ignore[warning_class]
                     stacklevel=find_stack_level(),
                 )
             return PeriodIndexResampler(
@@ -2303,8 +2322,22 @@ class TimeGrouper(Grouper):
         )
 
     def _get_grouper(
-        self, obj: NDFrameT, validate: bool = True
+        self, obj: NDFrameT, validate: bool = True, observed: bool = True
     ) -> tuple[BinGrouper, NDFrameT]:
+        """
+        Parameters
+        ----------
+        obj : Series or DataFrame
+            Object being grouped.
+        validate : bool, default True
+            Unused. Only for compatibility with ``Grouper._get_grouper``.
+        observed : bool, default True
+            Unused. Only for compatibility with ``Grouper._get_grouper``.
+
+        Returns
+        -------
+        A tuple of grouper, obj (possibly sorted)
+        """
         # create the resampler and return our binner
         r = self._get_resampler(obj)
         return r._grouper, cast(NDFrameT, r.obj)
@@ -2419,7 +2452,7 @@ class TimeGrouper(Grouper):
                 f"an instance of {type(ax).__name__}"
             )
 
-        if not isinstance(self.freq, Tick):
+        if not isinstance(self.freq, (Tick, Day)):
             # GH#51896
             raise ValueError(
                 "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
@@ -2639,21 +2672,15 @@ def _get_timestamp_range_edges(
             # resampling on the same kind of indexes on different timezones
             origin = Timestamp("1970-01-01", tz=index_tz)
 
-        if isinstance(freq, Day):
-            # _adjust_dates_anchored assumes 'D' means 24h, but first/last
-            # might contain a DST transition (23h, 24h, or 25h).
-            # So "pretend" the dates are naive when adjusting the endpoints
-            first = first.tz_localize(None)
-            last = last.tz_localize(None)
-            if isinstance(origin, Timestamp):
-                origin = origin.tz_localize(None)
-
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, offset=offset, unit=unit
+            first,
+            last,
+            freq,
+            closed=closed,
+            origin=origin,
+            offset=offset,
+            unit=unit,
         )
-        if isinstance(freq, Day):
-            first = first.tz_localize(index_tz)
-            last = last.tz_localize(index_tz, nonexistent="shift_forward")
     else:
         first = first.normalize()
         last = last.normalize()

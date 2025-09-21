@@ -168,7 +168,10 @@ def _preparse(
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), "f must be callable"
-    return tokenize.untokenize(f(x) for x in tokenize_string(source))  # pyright: ignore[reportArgumentType]
+    return tokenize.untokenize(
+        f(x)
+        for x in tokenize_string(source)  # pyright: ignore[reportArgumentType]
+    )
 
 
 def _is_type(t):
@@ -644,7 +647,11 @@ class BaseExprVisitor(ast.NodeVisitor):
         ctx = node.ctx
         if isinstance(ctx, ast.Load):
             # resolve the value
-            resolved = self.visit(value).value
+            visited_value = self.visit(value)
+            if hasattr(visited_value, "value"):
+                resolved = visited_value.value
+            else:
+                resolved = visited_value(self.env)
             try:
                 v = getattr(resolved, attr)
                 name = self.env.add_tmp(v)
@@ -676,7 +683,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         if res is None:
             # error: "expr" has no attribute "id"
             raise ValueError(
-                f"Invalid function call {node.func.id}"  # type: ignore[attr-defined]
+                f"Invalid function call {node.func.id}"  # type: ignore[union-attr]
             )
         if hasattr(res, "value"):
             res = res.value
@@ -696,9 +703,10 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
-                    # error: "expr" has no attribute "id"
+                    # error: Item "Attribute" of "Attribute | Name" has no
+                    # attribute "id"
                     raise ValueError(
-                        f"keyword error in function call '{node.func.id}'"  # type: ignore[attr-defined]
+                        f"keyword error in function call '{node.func.id}'"  # type: ignore[union-attr]
                     )
 
                 if key.arg:

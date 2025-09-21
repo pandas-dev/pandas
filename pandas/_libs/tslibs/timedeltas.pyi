@@ -2,8 +2,8 @@ from datetime import timedelta
 from typing import (
     ClassVar,
     Literal,
+    Self,
     TypeAlias,
-    TypeVar,
     overload,
 )
 
@@ -15,7 +15,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import (
     Frequency,
-    Self,
     npt,
 )
 
@@ -60,7 +59,6 @@ UnitChoices: TypeAlias = Literal[
     "nanos",
     "nanosecond",
 ]
-_S = TypeVar("_S", bound=timedelta)
 
 def get_unit_for_round(freq, creso: int) -> int: ...
 def disallow_ambiguous_unit(unit: str | None) -> None: ...
@@ -95,11 +93,11 @@ class Timedelta(timedelta):
     _value: int  # np.int64
     # error: "__new__" must return a class instance (got "Union[Timestamp, NaTType]")
     def __new__(  # type: ignore[misc]
-        cls: type[_S],
+        cls: type[Self],
         value=...,
         unit: str | None = ...,
         **kwargs: float | np.integer | np.floating,
-    ) -> _S | NaTType: ...
+    ) -> Self | NaTType: ...
     @classmethod
     def _from_value_and_reso(cls, value: np.int64, reso: int) -> Timedelta: ...
     @property

@@ -533,9 +533,11 @@ def _ensure_key_mapped_multiindex(
         sort_levels = range(index.nlevels)
 
     mapped = [
-        ensure_key_mapped(index._get_level_values(level), key)
-        if level in sort_levels
-        else index._get_level_values(level)
+        (
+            ensure_key_mapped(index._get_level_values(level), key)
+            if level in sort_levels
+            else index._get_level_values(level)
+        )
         for level in range(index.nlevels)
     ]
 

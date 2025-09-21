@@ -78,6 +78,9 @@ from pandas._libs.tslibs.np_datetime import (
 )
 
 from pandas._libs.tslibs.offsets cimport is_tick_object
+
+from pandas._libs.tslibs.offsets import Day
+
 from pandas._libs.tslibs.util cimport (
     is_array,
     is_float_object,
@@ -721,11 +724,14 @@ cpdef inline str parse_timedelta_unit(str unit):
     elif unit == "M":
         return unit
     elif unit in c_DEPR_UNITS:
+        from pandas.errors import Pandas4Warning
+
+        # https://github.com/pandas-dev/pandas/pull/59240
         warnings.warn(
             f"\'{unit}\' is deprecated and will be removed in a "
             f"future version. Please use \'{c_DEPR_UNITS.get(unit)}\' "
             f"instead of \'{unit}\'.",
-            FutureWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
         unit = c_DEPR_UNITS[unit]
@@ -998,8 +1004,9 @@ class MinMaxReso:
     and Timedelta class.  On an instance, these depend on the object's _reso.
     On the class, we default to the values we would get with nanosecond _reso.
     """
-    def __init__(self, name):
+    def __init__(self, name, docstring):
         self._name = name
+        self.__doc__ = docstring
 
     def __get__(self, obj, type=None):
         if self._name == "min":
@@ -1012,9 +1019,13 @@ class MinMaxReso:
 
         if obj is None:
             # i.e. this is on the class, default to nanos
-            return Timedelta(val)
+            result = Timedelta(val)
         else:
-            return Timedelta._from_value_and_reso(val, obj._creso)
+            result = Timedelta._from_value_and_reso(val, obj._creso)
+
+        result.__doc__ = self.__doc__
+
+        return result
 
     def __set__(self, obj, value):
         raise AttributeError(f"{self._name} is not settable.")
@@ -1033,9 +1044,75 @@ cdef class _Timedelta(timedelta):
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
-    min = MinMaxReso("min")
-    max = MinMaxReso("max")
-    resolution = MinMaxReso("resolution")
+
+    _docstring_min = """
+    Returns the minimum bound possible for Timedelta.
+
+    This property provides access to the smallest possible value that
+    can be represented by a Timedelta object.
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timedelta.max: Returns the maximum bound possible for Timedelta.
+    Timedelta.resolution: Returns the smallest possible difference between
+        non-equal Timedelta objects.
+
+    Examples
+    --------
+    >>> pd.Timedelta.min
+    -106752 days +00:12:43.145224193
+    """
+
+    _docstring_max = """
+    Returns the maximum bound possible for Timedelta.
+
+    This property provides access to the largest possible value that
+    can be represented by a Timedelta object.
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timedelta.min: Returns the minimum bound possible for Timedelta.
+    Timedelta.resolution: Returns the smallest possible difference between
+        non-equal Timedelta objects.
+
+    Examples
+    --------
+    >>> pd.Timedelta.max
+    106751 days 23:47:16.854775807
+    """
+
+    _docstring_reso = """
+    Returns the smallest possible difference between non-equal Timedelta objects.
+
+    The resolution value is determined by the underlying representation of time
+    units and is equivalent to Timedelta(nanoseconds=1).
+
+    Returns
+    -------
+    Timedelta
+
+    See Also
+    --------
+    Timedelta.max: Returns the maximum bound possible for Timedelta.
+    Timedelta.min: Returns the minimum bound possible for Timedelta.
+
+    Examples
+    --------
+    >>> pd.Timedelta.resolution
+    0 days 00:00:00.000000001
+    """
+
+    min = MinMaxReso("min", _docstring_min)
+    max = MinMaxReso("max", _docstring_max)
+    resolution = MinMaxReso("resolution", _docstring_reso)
 
     @property
     def value(self):
@@ -1935,6 +2012,20 @@ class Timedelta(_Timedelta):
                            "milliseconds", "microseconds", "nanoseconds"}
 
     def __new__(cls, object value=_no_input, unit=None, **kwargs):
+        unsupported_kwargs = set(kwargs)
+        unsupported_kwargs.difference_update(cls._req_any_kwargs_new)
+        if unsupported_kwargs or (
+            value is _no_input and
+            not cls._req_any_kwargs_new.intersection(kwargs)
+        ):
+            raise ValueError(
+                # GH#53801
+                "cannot construct a Timedelta from the passed arguments, "
+                "allowed keywords are "
+                "[weeks, days, hours, minutes, seconds, "
+                "milliseconds, microseconds, nanoseconds]"
+            )
+
         if value is _no_input:
             if not len(kwargs):
                 raise ValueError("cannot construct a Timedelta without a "
@@ -1942,16 +2033,6 @@ class Timedelta(_Timedelta):
                                  "(days,seconds....)")
 
             kwargs = {key: _to_py_int_float(kwargs[key]) for key in kwargs}
-
-            unsupported_kwargs = set(kwargs)
-            unsupported_kwargs.difference_update(cls._req_any_kwargs_new)
-            if unsupported_kwargs or not cls._req_any_kwargs_new.intersection(kwargs):
-                raise ValueError(
-                    "cannot construct a Timedelta from the passed arguments, "
-                    "allowed keywords are "
-                    "[weeks, days, hours, minutes, seconds, "
-                    "milliseconds, microseconds, nanoseconds]"
-                )
 
             # GH43764, convert any input to nanoseconds first and then
             # create the timedelta. This ensures that any potential
@@ -2501,5 +2582,9 @@ cpdef int64_t get_unit_for_round(freq, NPY_DATETIMEUNIT creso) except? -1:
     from pandas._libs.tslibs.offsets import to_offset
 
     freq = to_offset(freq)
-    freq.nanos  # raises on non-fixed freq
+    if isinstance(freq, Day):
+        # In the "round" context, Day unambiguously means 24h, not calendar-day
+        freq = Timedelta(days=freq.n)
+    else:
+        freq.nanos  # raises on non-fixed freq
     return delta_to_nanoseconds(freq, creso)

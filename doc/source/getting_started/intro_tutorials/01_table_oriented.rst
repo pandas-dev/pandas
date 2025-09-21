@@ -65,7 +65,7 @@ the values in each list as columns of the ``DataFrame``.
 A :class:`DataFrame` is a 2-dimensional data structure that can store data of
 different types (including characters, integers, floating point values,
 categorical data and more) in columns. It is similar to a spreadsheet, a
-SQL table or the ``data.frame`` in R.
+SQL table or the ``data.frame`` in `R <https://www.r-project.org/>`__.
 
 -  The table has 3 columns, each of them with a column label. The column
    labels are respectively ``Name``, ``Age`` and ``Sex``.

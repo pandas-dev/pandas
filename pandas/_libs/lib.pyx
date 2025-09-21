@@ -2,6 +2,7 @@ from collections import abc
 from decimal import Decimal
 from enum import Enum
 from sys import getsizeof
+from types import GenericAlias
 from typing import (
     Literal,
     _GenericAlias,
@@ -502,7 +503,7 @@ def has_only_ints_or_nan(const floating[:] arr) -> bool:
     return True
 
 
-def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, int max_len):
+def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, intp_t max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
         intp_t k, vstart, vlast, v
@@ -777,7 +778,10 @@ cpdef ndarray[object] ensure_string_array(
             return out
         arr = arr.to_numpy(dtype=object)
     elif not util.is_array(arr):
-        arr = np.array(arr, dtype="object")
+        # GH#61155: Guarantee a 1-d result when array is a list of lists
+        input_arr = arr
+        arr = np.empty(len(arr), dtype="object")
+        arr[:] = input_arr
 
     result = np.asarray(arr, dtype="object")
 
@@ -1295,7 +1299,7 @@ cdef bint c_is_list_like(object obj, bint allow_sets) except -1:
         getattr(obj, "__iter__", None) is not None and not isinstance(obj, type)
         # we do not count strings/unicode/bytes as list-like
         # exclude Generic types that have __iter__
-        and not isinstance(obj, (str, bytes, _GenericAlias))
+        and not isinstance(obj, (str, bytes, _GenericAlias, GenericAlias))
         # exclude zero-dimensional duck-arrays, effectively scalars
         and not (hasattr(obj, "ndim") and obj.ndim == 0)
         # exclude sets if allow_sets is False
@@ -1518,7 +1522,7 @@ cdef object _try_infer_map(object dtype):
 
 def infer_dtype(value: object, skipna: bool = True) -> str:
     """
-    Return a string label of the type of a scalar or list-like of values.
+    Return a string label of the type of the elements in a list-like input.
 
     This method inspects the elements of the provided input and determines
     classification of its data type. It is particularly useful for
@@ -1527,7 +1531,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
     Parameters
     ----------
-    value : scalar, list, ndarray, or pandas type
+    value : list, ndarray, or pandas type
         The input data to infer the dtype.
     skipna : bool, default True
         Ignore NaN values when inferring the type.
@@ -1748,7 +1752,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             return "complex"
 
     elif util.is_float_object(val):
-        if is_float_array(values):
+        if is_float_array(values, skipna=skipna):
             return "floating"
         elif is_integer_float_array(values, skipna=skipna):
             if is_integer_na_array(values, skipna=skipna):
@@ -1950,9 +1954,11 @@ cdef class FloatValidator(Validator):
 
 
 # Note: only python-exposed for tests
-cpdef bint is_float_array(ndarray values):
+cpdef bint is_float_array(ndarray values, bint skipna=True):
     cdef:
-        FloatValidator validator = FloatValidator(values.size, values.dtype)
+        FloatValidator validator = FloatValidator(values.size,
+                                                  values.dtype,
+                                                  skipna=skipna)
     return validator.validate(values)
 
 
@@ -1968,9 +1974,11 @@ cdef class ComplexValidator(Validator):
         return cnp.PyDataType_ISCOMPLEX(self.dtype)
 
 
-cdef bint is_complex_array(ndarray values):
+cdef bint is_complex_array(ndarray values, bint skipna=True):
     cdef:
-        ComplexValidator validator = ComplexValidator(values.size, values.dtype)
+        ComplexValidator validator = ComplexValidator(values.size,
+                                                      values.dtype,
+                                                      skipna=skipna)
     return validator.validate(values)
 
 

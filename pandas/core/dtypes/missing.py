@@ -158,9 +158,9 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
-         0     1    2
-    0  ant   bee  cat
-    1  dog  None  fly
+         0    1    2
+    0  ant  bee  cat
+    1  dog  NaN  fly
     >>> pd.isna(df)
            0      1      2
     0  False  False  False
@@ -373,9 +373,9 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
-         0     1    2
-    0  ant   bee  cat
-    1  dog  None  fly
+         0    1    2
+    0  ant  bee  cat
+    1  dog  NaN  fly
     >>> pd.notna(df)
           0      1     2
     0  True   True  True
@@ -428,9 +428,9 @@ def array_equivalent(
     Examples
     --------
     >>> array_equivalent(np.array([1, 2, np.nan]), np.array([1, 2, np.nan]))
-    True
+    np.True_
     >>> array_equivalent(np.array([1, np.nan, 2]), np.array([1, 2, np.nan]))
-    False
+    np.False_
     """
     left, right = np.asarray(left), np.asarray(right)
 
@@ -626,7 +626,7 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     >>> na_value_for_dtype(np.dtype("bool"))
     False
     >>> na_value_for_dtype(np.dtype("datetime64[ns]"))
-    numpy.datetime64('NaT')
+    np.datetime64('NaT')
     """
 
     if isinstance(dtype, ExtensionDtype):

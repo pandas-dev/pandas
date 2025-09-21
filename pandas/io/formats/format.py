@@ -67,7 +67,6 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.api import (
@@ -115,7 +114,7 @@ common_docstring: Final = """
         columns : array-like, optional, default None
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
-            %(col_space)s.
+            %(col_space)s
         header : %(header_type)s, optional
             %(header)s.
         index : bool, optional, default True
@@ -455,7 +454,7 @@ class DataFrameFormatter:
         self.na_rep = na_rep
         self.formatters = self._initialize_formatters(formatters)
         self.justify = self._initialize_justify(justify)
-        self.float_format = float_format
+        self.float_format = self._validate_float_format(float_format)
         self.sparsify = self._initialize_sparsify(sparsify)
         self.show_index_names = index_names
         self.decimal = decimal
@@ -566,7 +565,7 @@ class DataFrameFormatter:
             result = {}
         elif isinstance(col_space, (int, str)):
             result = {"": col_space}
-            result.update({column: col_space for column in self.frame.columns})
+            result.update(dict.fromkeys(self.frame.columns, col_space))
         elif isinstance(col_space, Mapping):
             for column in col_space.keys():
                 if column not in self.frame.columns and column != "":
@@ -849,6 +848,29 @@ class DataFrameFormatter:
         else:
             names.append("" if columns.name is None else columns.name)
         return names
+
+    def _validate_float_format(
+        self, fmt: FloatFormatType | None
+    ) -> FloatFormatType | None:
+        """
+        Validates and processes the float_format argument.
+        Converts new-style format strings to callables.
+        """
+        if fmt is None or callable(fmt):
+            return fmt
+
+        if isinstance(fmt, str):
+            if "%" in fmt:
+                # Keeps old-style format strings as they are (C code handles them)
+                return fmt
+            else:
+                try:
+                    _ = fmt.format(1.0)  # Test with an arbitrary float
+                    return fmt.format
+                except (ValueError, KeyError, IndexError) as e:
+                    raise ValueError(f"Invalid new-style format string {fmt!r}") from e
+
+        raise ValueError("float_format must be a string or callable")
 
 
 class DataFrameRenderer:
@@ -1218,8 +1240,6 @@ class _GenericArrayFormatter:
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
-            elif isinstance(x, StringDtype):
-                return repr(x)
             else:
                 # object dtype
                 return str(formatter(x))
@@ -1565,6 +1585,9 @@ def format_percentiles(
     >>> format_percentiles([0, 0.5, 0.02001, 0.5, 0.666666, 0.9999])
     ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
     """
+    if len(percentiles) == 0:
+        return []
+
     percentiles = np.asarray(percentiles)
 
     # It checks for np.nan as well

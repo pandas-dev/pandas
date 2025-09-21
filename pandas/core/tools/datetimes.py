@@ -6,6 +6,7 @@ from functools import partial
 from itertools import islice
 from typing import (
     TYPE_CHECKING,
+    TypeAlias,
     TypedDict,
     Union,
     cast,
@@ -20,6 +21,7 @@ from pandas._libs import (
     tslib,
 )
 from pandas._libs.tslibs import (
+    NaT,
     OutOfBoundsDatetime,
     Timedelta,
     Timestamp,
@@ -39,6 +41,7 @@ from pandas._typing import (
     ArrayLike,
     DateTimeErrorChoices,
 )
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -93,13 +96,12 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-ArrayConvertible = Union[list, tuple, AnyArrayLike]
-Scalar = Union[float, str]
-DatetimeScalar = Union[Scalar, date, np.datetime64]
+ArrayConvertible: TypeAlias = list | tuple | AnyArrayLike
+Scalar: TypeAlias = float | str
+DatetimeScalar: TypeAlias = Scalar | date | np.datetime64
 
-DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
-
-DatetimeDictArg = Union[list[Scalar], tuple[Scalar, ...], AnyArrayLike]
+DatetimeScalarOrArrayConvertible: TypeAlias = DatetimeScalar | ArrayConvertible
+DatetimeDictArg: TypeAlias = list[Scalar] | tuple[Scalar, ...] | AnyArrayLike
 
 
 class YearMonthDayDict(TypedDict, total=True):
@@ -528,7 +530,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
                 utc=utc,
                 errors=errors,
                 unit_for_numerics=unit,
-                creso=NpyDatetimeUnit.NPY_FR_ns.value,
+                creso=cast(int, NpyDatetimeUnit.NPY_FR_ns.value),
             )
 
     result = DatetimeIndex(arr, name=name)
@@ -665,6 +667,7 @@ def to_datetime(
 ) -> DatetimeIndex: ...
 
 
+@set_module("pandas")
 def to_datetime(
     arg: DatetimeScalarOrArrayConvertible | DictConvertible,
     errors: DateTimeErrorChoices = "raise",
@@ -676,7 +679,7 @@ def to_datetime(
     unit: str | None = None,
     origin: str = "unix",
     cache: bool = True,
-) -> DatetimeIndex | Series | DatetimeScalar | NaTType | None:
+) -> DatetimeIndex | Series | DatetimeScalar | NaTType:
     """
     Convert argument to datetime.
 
@@ -989,7 +992,7 @@ def to_datetime(
     if exact is not lib.no_default and format in {"mixed", "ISO8601"}:
         raise ValueError("Cannot use 'exact' when 'format' is 'mixed' or 'ISO8601'")
     if arg is None:
-        return None
+        return NaT
 
     if origin != "unix":
         arg = _adjust_to_origin(arg, origin, unit)

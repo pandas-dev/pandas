@@ -281,6 +281,66 @@ def test_contains_nan(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_contains_compiled_regex(any_string_dtype):
+    # GH#61942
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+
+    ser = Series(["foo", "bar", "Baz"], dtype=any_string_dtype)
+
+    pat = re.compile("ba.")
+    result = ser.str.contains(pat)
+    expected = Series([False, True, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # TODO this currently works for pyarrow-backed dtypes but raises for python
+    if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
+        result = ser.str.contains(pat, case=False)
+        expected = Series([False, True, True], dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
+    else:
+        with pytest.raises(
+            ValueError, match="cannot process flags argument with a compiled pattern"
+        ):
+            ser.str.contains(pat, case=False)
+
+    pat = re.compile("ba.", flags=re.IGNORECASE)
+    result = ser.str.contains(pat)
+    expected = Series([False, True, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # TODO should this be supported?
+    with pytest.raises(
+        ValueError, match="cannot process flags argument with a compiled pattern"
+    ):
+        ser.str.contains(pat, flags=re.IGNORECASE)
+
+
+def test_contains_compiled_regex_flags(any_string_dtype):
+    # ensure other (than ignorecase) flags are respected
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+
+    ser = Series(["foobar", "foo\nbar", "Baz"], dtype=any_string_dtype)
+
+    pat = re.compile("^ba")
+    result = ser.str.contains(pat)
+    expected = Series([False, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    pat = re.compile("^ba", flags=re.MULTILINE)
+    result = ser.str.contains(pat)
+    expected = Series([False, True, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    pat = re.compile("^ba", flags=re.MULTILINE | re.IGNORECASE)
+    result = ser.str.contains(pat)
+    expected = Series([False, True, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.startswith
 # --------------------------------------------------------------------------------------
@@ -530,6 +590,68 @@ def test_replace_callable_raises(any_string_dtype, repl):
     )
     with pytest.raises(TypeError, match=msg):
         values.str.replace("a", repl, regex=True)
+
+
+@pytest.mark.parametrize(
+    "repl, expected_list",
+    [
+        (
+            r"\g<three> \g<two> \g<one>",
+            ["Three Two One", "Baz Bar Foo"],
+        ),
+        (
+            r"\g<3> \g<2> \g<1>",
+            ["Three Two One", "Baz Bar Foo"],
+        ),
+        (
+            r"\g<2>0",
+            ["Two0", "Bar0"],
+        ),
+        (
+            r"\g<2>0 \1",
+            ["Two0 One", "Bar0 Foo"],
+        ),
+    ],
+    ids=[
+        "named_groups_full_swap",
+        "numbered_groups_full_swap",
+        "single_group_with_literal",
+        "mixed_group_reference_with_literal",
+    ],
+)
+@pytest.mark.parametrize("use_compile", [True, False])
+def test_replace_named_groups_regex_swap(
+    any_string_dtype, use_compile, repl, expected_list
+):
+    # GH#57636
+    ser = Series(["One Two Three", "Foo Bar Baz"], dtype=any_string_dtype)
+    pattern = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
+    if use_compile:
+        pattern = re.compile(pattern)
+    result = ser.str.replace(pattern, repl, regex=True)
+    expected = Series(expected_list, dtype=any_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "repl",
+    [
+        r"\g<20>",
+        r"\20",
+    ],
+)
+@pytest.mark.parametrize("use_compile", [True, False])
+def test_replace_named_groups_regex_swap_expected_fail(
+    any_string_dtype, repl, use_compile
+):
+    # GH#57636
+    pattern = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
+    if use_compile:
+        pattern = re.compile(pattern)
+    ser = Series(["One Two Three", "Foo Bar Baz"], dtype=any_string_dtype)
+
+    with pytest.raises(re.error, match="invalid group reference"):
+        ser.str.replace(pattern, repl, regex=True)
 
 
 def test_replace_callable_named_groups(any_string_dtype):
@@ -818,6 +940,39 @@ def test_match_case_kwarg(any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
+def test_match_compiled_regex(any_string_dtype):
+    # GH#61952
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+
+    values = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
+
+    result = values.str.match(re.compile("ab"))
+    expected = Series([True, False, True, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # TODO this currently works for pyarrow-backed dtypes but raises for python
+    if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
+        result = values.str.match(re.compile("ab"), case=False)
+        expected = Series([True, True, True, True], dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
+    else:
+        with pytest.raises(
+            ValueError, match="cannot process flags argument with a compiled pattern"
+        ):
+            values.str.match(re.compile("ab"), case=False)
+
+    result = values.str.match(re.compile("ab", flags=re.IGNORECASE))
+    expected = Series([True, True, True, True], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    with pytest.raises(
+        ValueError, match="cannot process flags argument with a compiled pattern"
+    ):
+        values.str.match(re.compile("ab"), flags=re.IGNORECASE)
+
+
 # --------------------------------------------------------------------------------------
 # str.fullmatch
 # --------------------------------------------------------------------------------------
@@ -885,6 +1040,39 @@ def test_fullmatch_case_kwarg(any_string_dtype):
 
     result = ser.str.fullmatch("ab", flags=re.IGNORECASE)
     tm.assert_series_equal(result, expected)
+
+
+def test_fullmatch_compiled_regex(any_string_dtype):
+    # GH#61952
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+
+    values = Series(["ab", "AB", "abc", "ABC"], dtype=any_string_dtype)
+
+    result = values.str.fullmatch(re.compile("ab"))
+    expected = Series([True, False, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    # TODO this currently works for pyarrow-backed dtypes but raises for python
+    if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
+        result = values.str.fullmatch(re.compile("ab"), case=False)
+        expected = Series([True, True, False, False], dtype=expected_dtype)
+        tm.assert_series_equal(result, expected)
+    else:
+        with pytest.raises(
+            ValueError, match="cannot process flags argument with a compiled pattern"
+        ):
+            values.str.fullmatch(re.compile("ab"), case=False)
+
+    result = values.str.fullmatch(re.compile("ab", flags=re.IGNORECASE))
+    expected = Series([True, True, False, False], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    with pytest.raises(
+        ValueError, match="cannot process flags argument with a compiled pattern"
+    ):
+        values.str.fullmatch(re.compile("ab"), flags=re.IGNORECASE)
 
 
 # --------------------------------------------------------------------------------------
@@ -996,32 +1184,35 @@ def test_find_nan(any_string_dtype):
     ser = Series(
         ["ABCDEFG", np.nan, "DEFGHIJEF", np.nan, "XXXX"], dtype=any_string_dtype
     )
-    expected_dtype = (
-        np.float64 if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
-    )
+    if is_object_or_nan_string_dtype(any_string_dtype):
+        expected_dtype = np.float64
+        item = np.nan
+    else:
+        expected_dtype = "Int64"
+        item = pd.NA
 
     result = ser.str.find("EF")
-    expected = Series([4, np.nan, 1, np.nan, -1], dtype=expected_dtype)
+    expected = Series([4, item, 1, item, -1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.str.rfind("EF")
-    expected = Series([4, np.nan, 7, np.nan, -1], dtype=expected_dtype)
+    expected = Series([4, item, 7, item, -1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.str.find("EF", 3)
-    expected = Series([4, np.nan, 7, np.nan, -1], dtype=expected_dtype)
+    expected = Series([4, item, 7, item, -1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.str.rfind("EF", 3)
-    expected = Series([4, np.nan, 7, np.nan, -1], dtype=expected_dtype)
+    expected = Series([4, item, 7, item, -1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.str.find("EF", 3, 6)
-    expected = Series([4, np.nan, -1, np.nan, -1], dtype=expected_dtype)
+    expected = Series([4, item, -1, item, -1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.str.rfind("EF", 3, 6)
-    expected = Series([4, np.nan, -1, np.nan, -1], dtype=expected_dtype)
+    expected = Series([4, item, -1, item, -1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 

@@ -7,6 +7,7 @@ from datetime import (
 )
 from typing import (
     TYPE_CHECKING,
+    Self,
     TypeVar,
     cast,
     overload,
@@ -75,6 +76,7 @@ from pandas.tseries.offsets import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Generator,
         Iterator,
     )
@@ -84,7 +86,6 @@ if TYPE_CHECKING:
         DateTimeErrorChoices,
         DtypeObj,
         IntervalClosedType,
-        Self,
         TimeAmbiguous,
         TimeNonexistent,
         npt,
@@ -169,9 +170,7 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
     return property(f)
 
 
-# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
-# incompatible with definition in base class "ExtensionArray"
-class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
+class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 
@@ -226,9 +225,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     _typ = "datetimearray"
     _internal_fill_value = np.datetime64("NaT", "ns")
     _recognized_scalars = (datetime, np.datetime64)
-    _is_recognized_dtype = lambda x: lib.is_np_dtype(x, "M") or isinstance(
-        x, DatetimeTZDtype
-    )
+    _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: lib.is_np_dtype(
+        x, "M"
+    ) or isinstance(x, DatetimeTZDtype)
     _infer_matches = ("datetime", "datetime64", "date")
 
     @property
@@ -292,14 +291,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     _dtype: np.dtype[np.datetime64] | DatetimeTZDtype
     _freq: BaseOffset | None = None
-
-    @classmethod
-    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
-        if lib.infer_dtype(scalars, skipna=True) not in ["datetime", "datetime64"]:
-            # TODO: require any NAs be valid-for-DTA
-            # TODO: if dtype is passed, check for tzawareness compat?
-            raise ValueError
-        return cls._from_sequence(scalars, dtype=dtype)
 
     @classmethod
     def _validate_dtype(cls, values, dtype):
@@ -474,7 +465,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                 if end is not None:
                     end = end.tz_localize(None)
 
-            if isinstance(freq, Tick):
+            if isinstance(freq, (Tick, Day)):
                 i8values = generate_regular_range(start, end, periods, freq, unit=unit)
             else:
                 xdr = _generate_range(
@@ -542,7 +533,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             raise ValueError("'value' should be a Timestamp.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.datetime64(value._value, self.unit)
+            return np.datetime64(value._value, self.unit)  # type: ignore[call-overload]
         else:
             return value.as_unit(self.unit, round_ok=False).asm8
 
@@ -813,10 +804,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         try:
             res_values = offset._apply_array(values._ndarray)
             if res_values.dtype.kind == "i":
-                # error: Argument 1 to "view" of "ndarray" has incompatible type
-                # "dtype[datetime64] | DatetimeTZDtype"; expected
-                # "dtype[Any] | type[Any] | _SupportsDType[dtype[Any]]"
-                res_values = res_values.view(values.dtype)  # type: ignore[arg-type]
+                res_values = res_values.view(values.dtype)
         except NotImplementedError:
             if get_option("performance_warnings"):
                 warnings.warn(
@@ -931,7 +919,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         # No conversion since timestamps are all UTC to begin with
         dtype = tz_to_dtype(tz, unit=self.unit)
-        return self._simple_new(self._ndarray, dtype=dtype, freq=self.freq)
+        new_freq = None
+        if isinstance(self.freq, Tick):
+            new_freq = self.freq
+        return self._simple_new(self._ndarray, dtype=dtype, freq=new_freq)
 
     @dtl.ravel_compat
     def tz_localize(
@@ -1311,14 +1302,14 @@ default 'raise'
         0     January
         1    February
         2       March
-        dtype: object
+        dtype: str
 
         >>> idx = pd.date_range(start="2018-01", freq="ME", periods=3)
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
                       dtype='datetime64[ns]', freq='ME')
         >>> idx.month_name()
-        Index(['January', 'February', 'March'], dtype='object')
+        Index(['January', 'February', 'March'], dtype='str')
 
         Using the ``locale`` parameter you can set a different locale language,
         for example: ``idx.month_name(locale='pt_BR.utf8')`` will return month
@@ -1329,7 +1320,7 @@ default 'raise'
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
                       dtype='datetime64[ns]', freq='ME')
         >>> idx.month_name(locale="pt_BR.utf8")  # doctest: +SKIP
-        Index(['Janeiro', 'Fevereiro', 'Março'], dtype='object')
+        Index(['Janeiro', 'Fevereiro', 'Março'], dtype='str')
         """
         values = self._local_timestamps()
 
@@ -1379,14 +1370,14 @@ default 'raise'
         0       Monday
         1      Tuesday
         2    Wednesday
-        dtype: object
+        dtype: str
 
         >>> idx = pd.date_range(start="2018-01-01", freq="D", periods=3)
         >>> idx
         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
                       dtype='datetime64[ns]', freq='D')
         >>> idx.day_name()
-        Index(['Monday', 'Tuesday', 'Wednesday'], dtype='object')
+        Index(['Monday', 'Tuesday', 'Wednesday'], dtype='str')
 
         Using the ``locale`` parameter you can set a different locale language,
         for example: ``idx.day_name(locale='pt_BR.utf8')`` will return day
@@ -1397,7 +1388,7 @@ default 'raise'
         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
                       dtype='datetime64[ns]', freq='D')
         >>> idx.day_name(locale="pt_BR.utf8")  # doctest: +SKIP
-        Index(['Segunda', 'Terça', 'Quarta'], dtype='object')
+        Index(['Segunda', 'Terça', 'Quarta'], dtype='str')
         """
         values = self._local_timestamps()
 
@@ -2254,9 +2245,26 @@ default 'raise'
 
     def to_julian_date(self) -> npt.NDArray[np.float64]:
         """
-        Convert Datetime Array to float64 ndarray of Julian Dates.
-        0 Julian date is noon January 1, 4713 BC.
+        Convert TimeStamp to a Julian Date.
+
+        This method returns the number of days as a float since noon January 1, 4713 BC.
+
         https://en.wikipedia.org/wiki/Julian_day
+
+        Returns
+        -------
+        ndarray or Index
+            Float values that represent each date in Julian Calendar.
+
+        See Also
+        --------
+        Timestamp.to_julian_date : Equivalent method on ``Timestamp`` objects.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(["2028-08-12 00:54", "2028-08-12 02:06"])
+        >>> idx.to_julian_date()
+        Index([2461995.5375, 2461995.5875], dtype='float64')
         """
 
         # http://mysite.verizon.net/aesir_research/date/jdalg2.htm

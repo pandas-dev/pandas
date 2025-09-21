@@ -471,6 +471,10 @@ class NAType(C_NAType):
             return False
         elif other is True or other is C_NA:
             return NA
+        elif util.is_bool_object(other):
+            if not other:
+                return False
+            return NA
         return NotImplemented
 
     __rand__ = __and__
@@ -480,12 +484,16 @@ class NAType(C_NAType):
             return True
         elif other is False or other is C_NA:
             return NA
+        elif util.is_bool_object(other):
+            if not other:
+                return NA
+            return True
         return NotImplemented
 
     __ror__ = __or__
 
     def __xor__(self, other):
-        if other is False or other is True or other is C_NA:
+        if util.is_bool_object(other) or other is C_NA:
             return NA
         return NotImplemented
 

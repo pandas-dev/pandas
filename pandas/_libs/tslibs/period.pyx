@@ -113,6 +113,7 @@ from pandas._libs.tslibs.offsets cimport (
 from pandas._libs.tslibs.offsets import (
     INVALID_FREQ_ERR_MSG,
     BDay,
+    Day,
 )
 from pandas.util._decorators import set_module
 
@@ -1625,7 +1626,11 @@ DIFFERENT_FREQ = ("Input has different freq={other_freq} "
                   "from {cls}(freq={own_freq})")
 
 
-class IncompatibleFrequency(ValueError):
+class IncompatibleFrequency(TypeError):
+    """
+    Raised when trying to compare or operate between Periods with different
+    frequencies.
+    """
     pass
 
 
@@ -1752,9 +1757,6 @@ cdef class _Period(PeriodMixin):
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
         self.ordinal = ordinal
         self.freq = freq
-        # Note: this is more performant than PeriodDtype.from_date_offset(freq)
-        #  because from_date_offset cannot be made a cdef method (until cython
-        #  supported cdef classmethods)
         self._dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
 
     @classmethod
@@ -1824,6 +1826,10 @@ cdef class _Period(PeriodMixin):
             # i.e. np.timedelta64("nat")
             return NaT
 
+        if isinstance(other, Day):
+            # Periods are timezone-naive, so we treat Day as Tick-like
+            other = np.timedelta64(other.n, "D")
+
         try:
             inc = delta_to_nanoseconds(other, reso=self._dtype._creso, round_ok=False)
         except ValueError as err:
@@ -1845,7 +1851,7 @@ cdef class _Period(PeriodMixin):
 
     @cython.overflowcheck(True)
     def __add__(self, other):
-        if is_any_td_scalar(other):
+        if is_any_td_scalar(other) or isinstance(other, Day):
             return self._add_timedeltalike_scalar(other)
         elif is_offset_object(other):
             return self._add_offset(other)
@@ -1913,7 +1919,7 @@ cdef class _Period(PeriodMixin):
 
         Parameters
         ----------
-        freq : str, BaseOffset
+        freq : str, DateOffset
             The target frequency to convert the Period object to.
             If a string is provided,
             it must be a valid :ref:`period alias <timeseries.period_aliases>`.
@@ -2599,7 +2605,7 @@ cdef class _Period(PeriodMixin):
 
         Parameters
         ----------
-        freq : str, BaseOffset
+        freq : str, DateOffset
             Frequency to use for the returned period.
 
         See Also
@@ -3012,6 +3018,7 @@ class Period(_Period):
             # GH#53446
             import warnings
 
+            # TODO: Enforce in 3.0 (#53511)
             from pandas.util._exceptions import find_stack_level
             warnings.warn(
                 "Period with BDay freq is deprecated and will be removed "

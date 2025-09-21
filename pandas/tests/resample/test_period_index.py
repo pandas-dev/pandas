@@ -560,9 +560,10 @@ class TestPeriodIndex:
         )
         s = Series([1, 2], index=idx)
 
+        # GH#61985 changed this to behave like "B" rather than "24h"
         result = s.resample("D", closed="right", label="right").mean()
-        ex_index = date_range("2001-09-21", periods=1, freq="D", tz="Australia/Sydney")
-        expected = Series([1.5], index=ex_index)
+        ex_index = date_range("2001-09-20", periods=2, freq="D", tz="Australia/Sydney")
+        expected = Series([np.nan, 1.5], index=ex_index)
 
         tm.assert_series_equal(result, expected)
 
@@ -920,10 +921,10 @@ class TestPeriodIndex:
         ser = Series(np.arange(len(pi)), index=pi)
         msg = "Resampling with a PeriodIndex is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs = ser.resample("M", offset="3h")
+            rs = ser.resample("M")
         result = rs.mean()
         result = result.to_timestamp("M")
-        expected = ser.to_timestamp().resample("ME", offset="3h").mean()
+        expected = ser.to_timestamp().resample("ME").mean()
         # TODO: is non-tick the relevant characteristic? (GH 33815)
         expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)

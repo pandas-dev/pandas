@@ -16,7 +16,10 @@ from pandas._libs import (
 )
 from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -392,7 +395,9 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, exp)
 
     def test_constructor_categorical(self):
-        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"])
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"])
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 
@@ -536,7 +541,7 @@ class TestSeriesConstructors:
         tm.assert_numpy_array_equal(s.__array__(), exp_s2)
 
     def test_unordered_compare_equal(self):
-        left = Series(["a", "b", "c"], dtype=CategoricalDtype(["a", "b"]))
+        left = Series(["a", "b", None], dtype=CategoricalDtype(["a", "b"]))
         right = Series(Categorical(["a", "b", np.nan], categories=["a", "b"]))
         tm.assert_series_equal(left, right)
 
@@ -632,7 +637,7 @@ class TestSeriesConstructors:
 
     def test_series_ctor_plus_datetimeindex(self):
         rng = date_range("20090415", "20090519", freq="B")
-        data = {k: 1 for k in rng}
+        data = dict.fromkeys(rng, 1)
 
         result = Series(data, index=rng)
         assert result.index.is_(rng)
@@ -1441,10 +1446,17 @@ class TestSeriesConstructors:
         s = Series(data)
         assert tuple(s) == data
 
-    def test_constructor_dict_of_tuples(self):
-        data = {(1, 2): 3, (None, 5): 6}
+    @pytest.mark.parametrize(
+        "data, expected_values, expected_index",
+        [
+            ({(1, 2): 3, (None, 5): 6}, [3, 6], [(1, 2), (None, 5)]),
+            ({(1,): 3, (4, 5): 6}, [3, 6], [(1, None), (4, 5)]),
+        ],
+    )
+    def test_constructor_dict_of_tuples(self, data, expected_values, expected_index):
+        # GH 60695
         result = Series(data).sort_values()
-        expected = Series([3, 6], index=MultiIndex.from_tuples([(1, 2), (None, 5)]))
+        expected = Series(expected_values, index=MultiIndex.from_tuples(expected_index))
         tm.assert_series_equal(result, expected)
 
     # https://github.com/pandas-dev/pandas/issues/22698
@@ -1860,23 +1872,30 @@ class TestSeriesConstructors:
         series = Series(A(data))
         tm.assert_series_equal(series, expected)
 
-    def test_constructor_dict_multiindex(self):
-        d = {("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}
-        _d = sorted(d.items())
-        result = Series(d)
-        expected = Series(
-            [x[1] for x in _d], index=MultiIndex.from_tuples([x[0] for x in _d])
-        )
-        tm.assert_series_equal(result, expected)
+    @pytest.mark.parametrize(
+        "data, expected_index_multi",
+        [
+            ({("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}, True),
+            ({("a",): 0.0, ("a", "b"): 1.0}, True),
+            ({"z": 111.0, ("a", "a"): 0.0, ("b", "a"): 1.0, ("b", "c"): 2.0}, False),
+        ],
+    )
+    def test_constructor_dict_multiindex(self, data, expected_index_multi):
+        # GH#60695
+        result = Series(data)
 
-        d["z"] = 111.0
-        _d.insert(0, ("z", d["z"]))
-        result = Series(d)
-        expected = Series(
-            [x[1] for x in _d], index=Index([x[0] for x in _d], tupleize_cols=False)
-        )
-        result = result.reindex(index=expected.index)
-        tm.assert_series_equal(result, expected)
+        if expected_index_multi:
+            expected = Series(
+                list(data.values()),
+                index=MultiIndex.from_tuples(list(data.keys())),
+            )
+            tm.assert_series_equal(result, expected)
+        else:
+            expected = Series(
+                list(data.values()),
+                index=Index(list(data.keys())),
+            )
+            tm.assert_series_equal(result, expected)
 
     def test_constructor_dict_multiindex_reindex_flat(self):
         # construction involves reindexing with a MultiIndex corner case
@@ -2052,7 +2071,7 @@ class TestSeriesConstructors:
     def test_series_constructor_overflow_uint_with_nan(self):
         # GH#38798
         max_val = np.iinfo(np.uint64).max - 1
-        result = Series([max_val, np.nan], dtype="UInt64")
+        result = Series([max_val, pd.NA], dtype="UInt64")
         expected = Series(
             IntegerArray(
                 np.array([max_val, 1], dtype="uint64"),
@@ -2063,7 +2082,7 @@ class TestSeriesConstructors:
 
     def test_series_constructor_ea_all_na(self):
         # GH#38798
-        result = Series([np.nan, np.nan], dtype="UInt64")
+        result = Series([pd.NA, pd.NA], dtype="UInt64")
         expected = Series(
             IntegerArray(
                 np.array([1, 1], dtype="uint64"),
@@ -2123,7 +2142,9 @@ class TestSeriesConstructors:
         # but after PDEP-14 (string dtype), it was decided to keep dtype="string"
         # returning the NA string dtype, so expected is changed from
         # "string[pyarrow_numpy]" to "string[python]"
-        expected = Series(["a", "b"], dtype="string[python]")
+        expected = Series(
+            ["a", "b"], dtype="string[pyarrow]" if HAS_PYARROW else "string[python]"
+        )
         with pd.option_context("future.infer_string", True):
             result = Series(["a", "b"], dtype="string")
         tm.assert_series_equal(result, expected)

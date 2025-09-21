@@ -11,6 +11,7 @@ from typing import (
     Any,
     Literal,
     NoReturn,
+    Self,
     cast,
     final,
 )
@@ -49,6 +50,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     SparseDtype,
@@ -99,7 +101,6 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeObj,
         QuantileInterpolation,
-        Self,
         Shape,
         npt,
     )
@@ -1138,7 +1139,24 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
-                result[rl] = blk.iget((i, loc))
+                item = blk.iget((i, loc))
+                if (
+                    result.dtype.kind in "iub"
+                    and lib.is_float(item)
+                    and isna(item)
+                    and isinstance(blk.dtype, CategoricalDtype)
+                ):
+                    # GH#58954 caused bc interleaved_dtype is wrong for Categorical
+                    # TODO(GH#38240) this will be unnecessary
+                    # Note that doing this in a try/except would work for the
+                    #  integer case, but not for bool, which will cast the NaN
+                    #  entry to True.
+                    if result.dtype.kind == "b":
+                        new_dtype = object
+                    else:
+                        new_dtype = np.float64
+                    result = result.astype(new_dtype)
+                result[rl] = item
 
         if isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
@@ -1298,7 +1316,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     # Defer setting the new values to enable consolidation
                     self._iset_split_block(blkno_l, blk_locs, refs=refs)
 
-        if len(removed_blknos):
+        if removed_blknos:
             # Remove blocks & update blknos accordingly
             is_deleted = np.zeros(self.nblocks, dtype=np.bool_)
             is_deleted[removed_blknos] = True
@@ -1800,6 +1818,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 arr = np.asarray(blk.values, dtype=dtype)
             else:
                 arr = np.array(blk.values, dtype=dtype, copy=copy)
+            if passed_nan and blk.dtype.kind in "mM":
+                arr[isna(blk.values)] = na_value
 
             if not copy:
                 arr = arr.view()
@@ -1865,6 +1885,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 arr = blk.get_values(dtype)
             result[rl.indexer] = arr
+            if na_value is not lib.no_default and blk.dtype.kind in "mM":
+                result[rl.indexer][isna(arr)] = na_value
             itemmask[rl.indexer] = 1
 
         if not itemmask.all():
@@ -1894,10 +1916,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = True
 
     def _consolidate_inplace(self) -> None:
-        # In general, _consolidate_inplace should only be called via
-        #  DataFrame._consolidate_inplace, otherwise we will fail to invalidate
-        #  the DataFrame's _item_cache. The exception is for newly-created
-        #  BlockManager objects not yet attached to a DataFrame.
         if not self.is_consolidated():
             self.blocks = _consolidate(self.blocks)
             self._is_consolidated = True

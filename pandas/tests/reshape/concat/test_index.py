@@ -190,17 +190,6 @@ class TestIndexConcat:
         tm.assert_frame_equal(result.iloc[:10], df)
         tm.assert_frame_equal(result.iloc[10:], df)
 
-        # append
-        result = df.iloc[0:8, :]._append(df.iloc[8:])
-        tm.assert_frame_equal(result, df)
-
-        result = df.iloc[0:8, :]._append(df.iloc[8:9])._append(df.iloc[9:10])
-        tm.assert_frame_equal(result, df)
-
-        expected = concat([df, df], axis=0)
-        result = df._append(df)
-        tm.assert_frame_equal(result, expected)
-
 
 class TestMultiIndexConcat:
     def test_concat_multiindex_with_keys(self, multiindex_dataframe_random_data):
