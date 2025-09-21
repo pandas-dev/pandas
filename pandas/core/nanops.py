@@ -1278,7 +1278,7 @@ def nanskew(
     #
     # #18044 in _libs/windows.pyx calc_skew follow this behavior
     # to fix the fperr to treat m2 <1e-14 as zero
-    constant_tolerance = np.finfo(m2.dtype).eps * total
+    constant_tolerance = np.finfo(m2.dtype).eps * np.abs(total)
     constant_tolerance2 = constant_tolerance**2  # match order of m2
     constant_tolerance3 = constant_tolerance2 * constant_tolerance  # match order of m3
     m2 = _zero_out_fperr(m2, constant_tolerance2)
