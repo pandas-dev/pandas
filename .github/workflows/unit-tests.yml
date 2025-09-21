@@ -406,5 +406,3 @@ jobs:
 
       - name: Run Tests
         uses: ./.github/actions/run-tests
-        # TEMP allow this to fail until we fixed all test failures (related to chained assignment warnings)
-        continue-on-error: true

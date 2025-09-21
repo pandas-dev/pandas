@@ -5,6 +5,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import WARNING_CHECK_DISABLED
 from pandas.errors import IndexingError
 
 from pandas import (
@@ -301,7 +302,10 @@ def test_underlying_data_conversion(using_copy_on_write):
             df["val"].update(s)
         expected = df_original
     else:
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(
+            FutureWarning if not WARNING_CHECK_DISABLED else None,
+            match="inplace method",
+        ):
             df["val"].update(s)
         expected = DataFrame(
             {"a": [1, 2, 3], "b": [1, 2, 3], "c": [1, 2, 3], "val": [0, 1, 0]}

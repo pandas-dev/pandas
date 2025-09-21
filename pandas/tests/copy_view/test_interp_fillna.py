@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import WARNING_CHECK_DISABLED
+
 from pandas import (
     NA,
     ArrowDtype,
@@ -404,7 +406,10 @@ def test_fillna_chained_assignment(using_copy_on_write):
             with option_context("mode.chained_assignment", None):
                 df[df.a > 5].fillna(100, inplace=True)
 
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(
+            FutureWarning if not WARNING_CHECK_DISABLED else None,
+            match="inplace method",
+        ):
             df["a"].fillna(100, inplace=True)
 
 
@@ -421,7 +426,10 @@ def test_interpolate_chained_assignment(using_copy_on_write, func):
             getattr(df[["a"]], func)(inplace=True)
         tm.assert_frame_equal(df, df_orig)
     else:
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(
+            FutureWarning if not WARNING_CHECK_DISABLED else None,
+            match="inplace method",
+        ):
             getattr(df["a"], func)(inplace=True)
 
         with tm.assert_produces_warning(None):
