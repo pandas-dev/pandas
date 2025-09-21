@@ -22,6 +22,7 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_integer,
 )
+from pandas.core.dtypes.missing import isna
 
 BoolishT = TypeVar("BoolishT", bool, int)
 BoolishNoneT = TypeVar("BoolishNoneT", bool, int, None)
@@ -267,6 +268,37 @@ def validate_bool_kwarg(
             f"type {type(value).__name__}."
         )
     return value
+
+
+def validate_na_arg(
+    value, name: str, allow_no_default: bool = False, allow_bool: bool = False
+):
+    """
+    Validate na arguments.
+
+    Parameters
+    ----------
+    value : object
+        Value to validate.
+    name : str
+        Name of the argument, used to raise an informative error message.
+    allow_no_default : bool, default False
+        Whether to allow ``value`` to be ``lib.no_default``.
+    allow_bool : bool, default False
+        Whether to allow ``value`` to be an instance of bool.
+
+    Raises
+    ______
+    ValueError
+        When ``value`` is determined to be invalid.
+    """
+    if allow_no_default and value is lib.no_default:
+        return
+    if allow_bool and isinstance(value, bool):
+        return
+    if isna(value):
+        return
+    raise ValueError(f"{name} must be a valid NA value; got {value}")
 
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
