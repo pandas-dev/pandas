@@ -1870,6 +1870,8 @@ def test_str_match(pat, case, na, exp):
 
 @pytest.mark.parametrize(
     "pat, case, na, exp",
+    # Note: keep cases in sync with
+    # pandas/tests/strings/test_find_replace.py::test_str_fullmatch_extra_cases
     [
         ["abc", False, None, [True, False, False, None]],
         ["Abc", True, None, [False, False, False, None]],
@@ -1884,19 +1886,11 @@ def test_str_match(pat, case, na, exp):
         ["Abc\\$", True, None, [False, False, False, None]],
     ],
 )
-class TestFullmatch:
-    def test_str_fullmatch(self, pat, case, na, exp):
-        ser = pd.Series(["abc", "abc$", "$abc", None], dtype=ArrowDtype(pa.string()))
-        result = ser.str.fullmatch(pat, case=case, na=na)
-        expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
-        tm.assert_series_equal(result, expected)
-
-    def test_str_fullmatch_against_python_fullmatch(self, pat, case, na, exp):
-        ser = pd.Series(["abc", "abc$", "$abc"], dtype=ArrowDtype(pa.string()))
-        ser2 = pd.Series(["abc", "abc$", "$abc"], dtype=str)
-        result = ser.str.fullmatch(pat, case=case, na=na)
-        result2 = ser2.str.fullmatch(pat, case=case, na=na).astype(result.dtype)
-        tm.assert_series_equal(result, result2)
+def test_str_fullmatch(pat, case, na, exp):
+    ser = pd.Series(["abc", "abc$", "$abc", None], dtype=ArrowDtype(pa.string()))
+    result = ser.str.fullmatch(pat, case=case, na=na)
+    expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
