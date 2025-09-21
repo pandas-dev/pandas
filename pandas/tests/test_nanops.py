@@ -1051,6 +1051,13 @@ class TestNanskewFixedValues:
         skew = nanops.nanskew(samples, skipna=True)
         tm.assert_almost_equal(skew, actual_skew)
 
+    def test_low_variance(self):
+        data_list = [-2.05191341e-06, -4.10391103e-07] + ([0.0] * 27)
+        data = np.array(data_list)
+        kurt = nanops.nanskew(data)
+        expected = -5.092092799675377  # scipy.stats.skew(data, bias=False)
+        tm.assert_almost_equal(kurt, expected)
+
     @property
     def prng(self):
         return np.random.default_rng(2)
