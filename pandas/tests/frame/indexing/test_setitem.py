@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import SettingWithCopyWarning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.base import _registry as ea_registry
@@ -1400,7 +1401,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         )
         tm.assert_frame_equal(df, expected)
 
-    def test_iloc_setitem_view_2dblock(self):
+    def test_iloc_setitem_view_2dblock(self, using_copy_on_write, warn_copy_on_write):
         # https://github.com/pandas-dev/pandas/issues/60309
         df_parent = DataFrame(
             {
@@ -1414,10 +1415,19 @@ class TestDataFrameSetitemCopyViewSemantics:
         df = df_parent[["B", "C"]]
 
         # Perform the iloc operation
-        df.iloc[[1, 3], :] = [[2, 2], [2, 2]]
+        if using_copy_on_write:
+            df.iloc[[1, 3], :] = [[2, 2], [2, 2]]
 
-        # Check that original DataFrame is unchanged
-        tm.assert_frame_equal(df_parent, df_orig)
+            # Check that original DataFrame is unchanged
+            tm.assert_frame_equal(df_parent, df_orig)
+        elif warn_copy_on_write:
+            # TODO(COW): should this warn?
+            # with tm.assert_cow_warning(warn_copy_on_write):
+            df.iloc[[1, 3], :] = [[2, 2], [2, 2]]
+        else:
+            with pd.option_context("chained_assignment", "warn"):
+                with tm.assert_produces_warning(SettingWithCopyWarning):
+                    df.iloc[[1, 3], :] = [[2, 2], [2, 2]]
 
         # Check that df is modified correctly
         expected = DataFrame({"B": [2, 2, 2, 2], "C": [3, 2, 1, 2]}, index=df.index)
@@ -1425,8 +1435,14 @@ class TestDataFrameSetitemCopyViewSemantics:
 
         # with setting to subset of columns
         df = df_parent[["B", "C", "D"]]
-        df.iloc[[1, 3], 0:3:2] = [[2, 2], [2, 2]]
-        tm.assert_frame_equal(df_parent, df_orig)
+        if using_copy_on_write or warn_copy_on_write:
+            df.iloc[[1, 3], 0:3:2] = [[2, 2], [2, 2]]
+            tm.assert_frame_equal(df_parent, df_orig)
+        else:
+            with pd.option_context("chained_assignment", "warn"):
+                with tm.assert_produces_warning(SettingWithCopyWarning):
+                    df.iloc[[1, 3], 0:3:2] = [[2, 2], [2, 2]]
+
         expected = DataFrame(
             {"B": [2, 2, 2, 2], "C": [3, 6, 1, 7], "D": [8, 2, 10, 2]}, index=df.index
         )
@@ -1448,7 +1464,9 @@ class TestDataFrameSetitemCopyViewSemantics:
             ),
         ],
     )
-    def test_setitem_2dblock_with_ref(self, indexer, value):
+    def test_setitem_2dblock_with_ref(
+        self, indexer, value, using_copy_on_write, warn_copy_on_write
+    ):
         # https://github.com/pandas-dev/pandas/issues/60309
         arr = np.arange(12).reshape(3, 4)
 
@@ -1459,10 +1477,12 @@ class TestDataFrameSetitemCopyViewSemantics:
         df_orig = df_parent.copy()
         df = df_parent[:]
 
-        df.iloc[indexer] = value
+        with tm.assert_cow_warning(warn_copy_on_write):
+            df.iloc[indexer] = value
 
         # Check that original DataFrame is unchanged
-        tm.assert_frame_equal(df_parent, df_orig)
+        if using_copy_on_write:
+            tm.assert_frame_equal(df_parent, df_orig)
 
         # Check that df is modified correctly
         arr[indexer] = value

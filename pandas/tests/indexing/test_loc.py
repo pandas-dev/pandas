@@ -755,6 +755,7 @@ class TestLocBaseIndependent:
 
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_loc_setitem_frame_with_reindex(self, has_ref):
         # GH#6254 setting issue
@@ -791,6 +792,7 @@ class TestLocBaseIndependent:
         expected = DataFrame({"A": [3.0, 2.0, 1.0], "B": "string"}, index=[1, 2, 3])
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_loc_setitem_empty_frame(self, has_ref):
         # GH#6252 setting with an empty frame
@@ -819,6 +821,7 @@ class TestLocBaseIndependent:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_loc_setitem_frame(self, has_ref):
         df = DataFrame(

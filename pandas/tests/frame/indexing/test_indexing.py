@@ -1500,6 +1500,7 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("col", [{}, {"name": "a"}])
     def test_loc_setitem_reordering_with_all_true_indexer(self, col, has_ref):

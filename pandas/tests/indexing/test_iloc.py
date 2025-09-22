@@ -104,6 +104,7 @@ class TestiLocBaseIndependent:
         expected = DataFrame({0: Series(cat.astype(object), dtype=object), 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("box", [array, Series])
     def test_iloc_setitem_ea_inplace(
@@ -432,6 +433,7 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df.iloc[10:, :2], df2)
         tm.assert_frame_equal(df.iloc[10:, 2:], df1)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_iloc_setitem(self, warn_copy_on_write, has_ref):
         df = DataFrame(
@@ -457,6 +459,7 @@ class TestiLocBaseIndependent:
         expected = Series([0, 1, 0], index=[4, 5, 6])
         tm.assert_series_equal(s, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_iloc_setitem_axis_argument(self, has_ref):
         # GH45032
@@ -478,6 +481,7 @@ class TestiLocBaseIndependent:
         df.iloc(axis=1)[2] = 5
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_iloc_setitem_list(self, has_ref):
         # setitem with an iloc list
@@ -686,6 +690,7 @@ class TestiLocBaseIndependent:
         expected = DataFrame(arr[1:5, 2:4], index=index[1:5], columns=columns[2:4])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_iloc_setitem_series(self, has_ref):
         df = DataFrame(
@@ -723,6 +728,7 @@ class TestiLocBaseIndependent:
         expected = Series([0, 1, 2, 3, 4, 5])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_iloc_setitem_list_of_lists(self, has_ref):
         # GH 7551
@@ -745,6 +751,7 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"A": ["a", "b", "x", "y", "e"], "B": [5, 6, 11, 13, 9]})
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("indexer", [[0], slice(None, 1, None), np.array([0])])
     @pytest.mark.parametrize("value", [["Z"], np.array(["Z"])])
@@ -1062,6 +1069,7 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("indexer", [[1], slice(1, 2)])
     def test_iloc_setitem_pure_position_based(self, indexer, has_ref):
@@ -1074,6 +1082,7 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"a": [1, 2, 3], "b": [11, 12, 13], "c": [7, 8, 9]})
         tm.assert_frame_equal(df2, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_iloc_setitem_dictionary_value(self, has_ref):
         # GH#37728
@@ -1302,6 +1311,7 @@ class TestILocErrors:
             ):
                 obj.iloc[3.0] = 0
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_iloc_getitem_setitem_fancy_exceptions(self, float_frame, has_ref):
         with pytest.raises(IndexingError, match="Too many indexers"):
