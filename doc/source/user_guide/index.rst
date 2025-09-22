@@ -90,3 +90,5 @@ Guides
     migration-3-strings
     gotchas
     cookbook
+    howto_performance_diagnosis
+
