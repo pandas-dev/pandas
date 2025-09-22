@@ -155,14 +155,15 @@ class TestDataFrameUpdate:
         with pytest.raises(TypeError, match="Invalid value"):
             df.update({"c": Series(["foo"], index=[0])})
 
-    def test_update_modify_view(self, using_infer_string):
+    @pytest.mark.parametrize("dtype", ["str", object])
+    def test_update_modify_view(self, dtype):
         # GH#47188
-        df = DataFrame({"A": ["1", np.nan], "B": ["100", np.nan]})
-        df2 = DataFrame({"A": ["a", "x"], "B": ["100", "200"]})
+        df = DataFrame({"A": ["1", np.nan], "B": ["100", np.nan]}, dtype=dtype)
+        df2 = DataFrame({"A": ["a", "x"], "B": ["100", "200"]}, dtype=dtype)
         df2_orig = df2.copy()
         result_view = df2[:]
         df2.update(df)
-        expected = DataFrame({"A": ["1", "x"], "B": ["100", "200"]})
+        expected = DataFrame({"A": ["1", "x"], "B": ["100", "200"]}, dtype=dtype)
         tm.assert_frame_equal(df2, expected)
         tm.assert_frame_equal(result_view, df2_orig)
 
