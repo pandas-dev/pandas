@@ -360,3 +360,17 @@ class TestMaskedArrays(base.ExtensionTests):
             )
         )
         tm.assert_series_equal(result, expected)
+
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
+
+@pytest.mark.parametrize(
+    "arr", [pd.array([True, False]), pd.array([1, 2]), pd.array([1.0, 2.0])]
+)
+def test_cast_pointwise_result_all_na_respects_original_dtype(arr):
+    # GH#62344
+    values = [pd.NA, pd.NA]
+    result = arr._cast_pointwise_result(values)
+    assert result.dtype == arr.dtype
+    assert all(x is pd.NA for x in result)
