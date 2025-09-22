@@ -1051,12 +1051,22 @@ class TestNanskewFixedValues:
         skew = nanops.nanskew(samples, skipna=True)
         tm.assert_almost_equal(skew, actual_skew)
 
-    def test_low_variance(self):
-        data_list = [-2.05191341e-06, -4.10391103e-07] + ([0.0] * 27)
-        data = np.array(data_list)
-        kurt = nanops.nanskew(data)
-        expected = -5.092092799675377  # scipy.stats.skew(data, bias=False)
-        tm.assert_almost_equal(kurt, expected)
+    @pytest.mark.parametrize(
+        "initial_data, nobs",
+        [
+            ([-2.05191341e-05, -4.10391103e-05], 27),
+            ([-2.05191341e-10, -4.10391103e-10], 27),
+            ([-2.05191341e-05, -4.10391103e-05], 10_000),
+            ([-2.05191341e-10, -4.10391103e-10], 10_000),
+        ],
+    )
+    def test_low_variance(self, initial_data, nobs):
+        st = pytest.importorskip("scipy.stats")
+        data = np.zeros((nobs,), dtype=np.float64)
+        data[: len(initial_data)] = initial_data
+        skew = nanops.nanskew(data)
+        expected = st.skew(data, bias=False)
+        tm.assert_almost_equal(skew, expected)
 
     @property
     def prng(self):
@@ -1109,12 +1119,22 @@ class TestNankurtFixedValues:
         kurt = nanops.nankurt(samples, skipna=True)
         tm.assert_almost_equal(kurt, actual_kurt)
 
-    def test_low_variance(self):
+    @pytest.mark.parametrize(
+        "initial_data, nobs",
+        [
+            ([-2.05191341e-05, -4.10391103e-05], 27),
+            ([-2.05191341e-10, -4.10391103e-10], 27),
+            ([-2.05191341e-05, -4.10391103e-05], 10_000),
+            ([-2.05191341e-10, -4.10391103e-10], 10_000),
+        ],
+    )
+    def test_low_variance(self, initial_data, nobs):
         # GH#57972
-        data_list = [-2.05191341e-05, -4.10391103e-05] + ([0.0] * 27)
-        data = np.array(data_list)
+        st = pytest.importorskip("scipy.stats")
+        data = np.zeros((nobs,), dtype=np.float64)
+        data[: len(initial_data)] = initial_data
         kurt = nanops.nankurt(data)
-        expected = 18.087646853025614  # scipy.stats.kurtosis(data, bias=False)
+        expected = st.kurtosis(data, bias=False)
         tm.assert_almost_equal(kurt, expected)
 
     @property
