@@ -1326,7 +1326,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return self._simple_new(sp_values, self.sp_index, dtype)
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None) -> Self:
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None = None,
+        preserve_dtype: bool = True,
+    ) -> Self:
         """
         Map categories using an input mapping or function.
 
@@ -1337,6 +1342,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NA values, without passing them to the
             mapping correspondence.
+        preserve_dtype : bool, default True
+            Please safely ignore this parameter.
 
         Returns
         -------

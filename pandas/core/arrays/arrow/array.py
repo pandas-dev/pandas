@@ -1612,9 +1612,12 @@ class ArrowExtensionArray(
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
 
-    def map(self, mapper,
-            na_action: Literal["ignore"] | None = None,
-            preserve_dtype: bool = False):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None = None,
+        preserve_dtype: bool = False,
+    ):
         if is_numeric_dtype(self.dtype):
             result = map_array(self.to_numpy(), mapper, na_action=na_action)
             if preserve_dtype:

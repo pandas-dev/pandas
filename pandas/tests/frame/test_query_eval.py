@@ -160,21 +160,13 @@ class TestDataFrameEval:
             df.query("")
 
     def test_query_duplicate_column_name(self, engine, parser):
-        df = DataFrame(
-            {
-                "A": range(3),
-                "B": range(3),
-                "C": range(3)
-            }
-        ).rename(columns={"B": "A"})
-
-        res = df.query('C == 1', engine=engine, parser=parser)
-
-        expect = DataFrame(
-            [[1, 1, 1]],
-            columns=["A", "A", "C"],
-            index=[1]
+        df = DataFrame({"A": range(3), "B": range(3), "C": range(3)}).rename(
+            columns={"B": "A"}
         )
+
+        res = df.query("C == 1", engine=engine, parser=parser)
+
+        expect = DataFrame([[1, 1, 1]], columns=["A", "A", "C"], index=[1])
 
         tm.assert_frame_equal(res, expect)
 
@@ -1140,9 +1132,7 @@ class TestDataFrameQueryStrings:
             [">=", operator.ge],
         ],
     )
-    def test_query_lex_compare_strings(
-        self, parser, engine, op, func
-    ):
+    def test_query_lex_compare_strings(self, parser, engine, op, func):
         a = Series(np.random.default_rng(2).choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})
@@ -1411,7 +1401,7 @@ class TestDataFrameQueryBacktickQuoting:
     def test_expr_with_column_name_with_backtick(self):
         # GH 59285
         df = DataFrame({"a`b": (1, 2, 3), "ab": (4, 5, 6)})
-        result = df.query("`a``b` < 2")  # noqa
+        result = df.query("`a``b` < 2")
         # Note: Formatting checks may wrongly consider the above ``inline code``.
         expected = df[df["a`b"] < 2]
         tm.assert_frame_equal(result, expected)
