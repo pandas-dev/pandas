@@ -8,7 +8,7 @@ including other versions of pandas.
 
 {{ header }}
 
-.. _whatsnew_220.py13_compat:
+.. _whatsnew_220.py14_compat:
 
 Pandas 2.3.3 is now compatible with Python 3.14
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
