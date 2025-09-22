@@ -3080,7 +3080,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         self._validate_sort_keyword(sort)
         self._assert_can_do_setop(other)
-        other, _result_name = self._convert_can_do_setop(other)
+        other, result_name = self._convert_can_do_setop(other)
 
         if self.dtype != other.dtype:
             if (
@@ -6090,7 +6090,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = self.get_indexer_for(keyarr)
             keyarr = self.reindex(keyarr)[0]
         else:
-            keyarr, indexer, _new_indexer = self._reindex_non_unique(keyarr)
+            keyarr, indexer, new_indexer = self._reindex_non_unique(keyarr)
 
         self._raise_if_missing(keyarr, indexer, axis_name)
 
