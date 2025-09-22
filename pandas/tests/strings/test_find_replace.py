@@ -973,6 +973,27 @@ def test_match_compiled_regex(any_string_dtype):
         values.str.match(re.compile("ab"), flags=re.IGNORECASE)
 
 
+@pytest.mark.parametrize(
+    "pat, case, exp",
+    [
+        ["ab", False, [True]],
+        ["Ab", True, [False]],
+        ["bc", True, [False]],
+        ["a[a-z]{1}", False, [True]],
+        ["A[a-z]{1}", True, [False]],
+    ],
+)
+def test_str_match_extra_cases(any_string_dtype, pat, case, exp):
+    ser = Series(["abc"], dtype=any_string_dtype)
+    result = ser.str.match(pat, case=case)
+
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    expected = Series(exp, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.fullmatch
 # --------------------------------------------------------------------------------------
@@ -1108,7 +1129,6 @@ def test_str_fullmatch_extra_cases(any_string_dtype, pat, case, na, exp):
         expected_dtype = (
             "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
         )
-        expected = Series([True, False, np.nan, False], dtype=expected_dtype)
     expected = Series(exp, dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
