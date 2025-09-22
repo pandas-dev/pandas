@@ -1274,13 +1274,11 @@ def nanskew(
     m2 = adjusted2.sum(axis, dtype=np.float64)
     m3 = adjusted3.sum(axis, dtype=np.float64)
 
-    # floating point error
-    #
-    # #18044 in _libs/windows.pyx calc_skew follow this behavior
-    # to fix the fperr to treat m2 <1e-14 as zero
-    constant_tolerance = np.finfo(m2.dtype).eps * np.abs(total)
-    constant_tolerance2 = constant_tolerance**2  # match order of m2
-    constant_tolerance3 = constant_tolerance2 * constant_tolerance  # match order of m3
+    # floating point error. See comment in [nankurt]
+    max_abs = np.abs(values).max(axis)
+    eps = np.finfo(m2.dtype).eps
+    constant_tolerance2 = ((eps * max_abs) ** 2) * count
+    constant_tolerance3 = ((eps * max_abs) ** 3) * count
     m2 = _zero_out_fperr(m2, constant_tolerance2)
     m3 = _zero_out_fperr(m3, constant_tolerance3)
 
@@ -1366,11 +1364,28 @@ def nankurt(
     m2 = adjusted2.sum(axis, dtype=np.float64)
     m4 = adjusted4.sum(axis, dtype=np.float64)
 
-    # #57972: tolerance to consider the central moment equals to zero.
-    # We adapted the tolerance from scipy:
-    # https://github.com/scipy/scipy/blob/04d6d9c460b1fed83f2919ecec3d743cfa2e8317/scipy/stats/_stats_py.py#L1429
-    constant_tolerance2 = (np.finfo(m2.dtype).eps * total) ** 2  # match order of m2
-    constant_tolerance4 = constant_tolerance2**2  # match order of m4
+    # Several floating point errors may occur during the summation due to rounding.
+    # We need to estimate an upper bound to the error to consider the data constant.
+    # Lets call:
+    # x: true value in data
+    # y: floating point representation
+    # e: relative approximation error
+    # n: number of observations in array
+    #
+    # We have that:
+    # |x - y|/|x| <= e (See https://en.wikipedia.org/wiki/Machine_epsilon)
+    # (|x - y|/|x|)² <= e²
+    # Σ (|x - y|/|x|)² <= ne²
+    #
+    # Lets say that the fperr upper bound for m2 is constrained by the summation.
+    # |m2 - y|/|m2| <= ne²
+    # |m2 - y| <= n|m2|e²
+    #
+    # We will use max (x²) to estimate |m2|
+    max_abs = np.abs(values).max(axis)
+    eps = np.finfo(m2.dtype).eps
+    constant_tolerance2 = ((eps * max_abs) ** 2) * count
+    constant_tolerance4 = ((eps * max_abs) ** 4) * count
     m2 = _zero_out_fperr(m2, constant_tolerance2)
     m4 = _zero_out_fperr(m4, constant_tolerance4)
 
