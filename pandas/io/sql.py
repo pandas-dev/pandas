@@ -94,6 +94,15 @@ if TYPE_CHECKING:
 # -- Helper functions
 
 
+def _sa_text_if_string(stmt):
+    """Wrap plain SQL strings in sqlalchemy.text()."""
+    try:
+        import sqlalchemy as sa
+    except Exception:
+        return stmt
+    return sa.text(stmt) if isinstance(stmt, str) else stmt
+
+
 def _process_parse_dates_argument(parse_dates):
     """Process parse_dates argument for read_sql functions"""
     # handle non-list entries for parse_dates gracefully
@@ -1848,7 +1857,9 @@ class SQLDatabase(PandasSQL):
         read_sql_table : Read SQL database table into a DataFrame.
         read_sql
 
+
         """
+        sql = _sa_text_if_string(sql)
         result = self.execute(sql, params)
         columns = result.keys()
 
