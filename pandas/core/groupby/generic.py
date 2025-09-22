@@ -621,7 +621,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if not self.as_index and not_indexed_same:
                 result = self._insert_inaxis_grouper(result)
                 result.index = default_index(len(result))
-            return result
+            return result.__finalize__(self.obj, method="groupby")
         else:
             # GH #6265 #24880
             result = self.obj._constructor(
@@ -630,7 +630,7 @@ class SeriesGroupBy(GroupBy[Series]):
             if not self.as_index:
                 result = self._insert_inaxis_grouper(result)
                 result.index = default_index(len(result))
-            return result
+            return result.__finalize__(self.obj, method="groupby")
 
     __examples_series_doc = dedent(
         """
@@ -2169,7 +2169,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
 
-        return result
+        return result.__finalize__(self.obj, method="groupby")
 
     def _cython_transform(
         self,
