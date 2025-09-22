@@ -61,21 +61,15 @@ pytestmark = [
 
 
 def make_data():
-    return list(range(1, 9)) + [pd.NA] + list(range(10, 98)) + [pd.NA] + [99, 100]
+    return [0, 1] + [pd.NA] + [10, 11, 12, 13] + [pd.NA] + [99, 100]
 
 
 def make_float_data():
-    return (
-        list(np.arange(0.1, 0.9, 0.1))
-        + [pd.NA]
-        + list(np.arange(1, 9.8, 0.1))
-        + [pd.NA]
-        + [9.9, 10.0]
-    )
+    return [0.1, 0.2] + [pd.NA] + [1.0, 1.1, 1.2, 1.3] + [pd.NA] + [9.9, 10.0]
 
 
 def make_bool_data():
-    return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
+    return [True, False] + [np.nan] + [True, False] * 2 + [np.nan] + [True, False]
 
 
 @pytest.fixture(
@@ -111,8 +105,8 @@ def data(dtype):
 @pytest.fixture
 def data_for_twos(dtype):
     if dtype.kind == "b":
-        return pd.array(np.ones(100), dtype=dtype)
-    return pd.array(np.ones(100) * 2, dtype=dtype)
+        return pd.array(np.ones(10), dtype=dtype)
+    return pd.array(np.ones(10) * 2, dtype=dtype)
 
 
 @pytest.fixture

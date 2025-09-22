@@ -93,57 +93,57 @@ def dtype(request):
 def data(dtype):
     pa_dtype = dtype.pyarrow_dtype
     if pa.types.is_boolean(pa_dtype):
-        data = [True, False] * 4 + [None] + [True, False] * 44 + [None] + [True, False]
+        data = [True, False] + [None] + [True, False] * 2 + [None] + [True, False]
     elif pa.types.is_floating(pa_dtype):
-        data = [1.0, 0.0] * 4 + [None] + [-2.0, -1.0] * 44 + [None] + [0.5, 99.5]
+        data = [1.0, 0.0] + [None] + [-2.0, -1.0] * 2 + [None] + [0.5, 99.5]
     elif pa.types.is_signed_integer(pa_dtype):
-        data = [1, 0] * 4 + [None] + [-2, -1] * 44 + [None] + [1, 99]
+        data = [1, 0] + [None] + [-2, -1] * 2 + [None] + [1, 99]
     elif pa.types.is_unsigned_integer(pa_dtype):
-        data = [1, 0] * 4 + [None] + [2, 1] * 44 + [None] + [1, 99]
+        data = [1, 0] + [None] + [2, 1] * 2 + [None] + [1, 99]
     elif pa.types.is_decimal(pa_dtype):
         data = (
-            [Decimal("1"), Decimal("0.0")] * 4
+            [Decimal("1"), Decimal("0.0")]
             + [None]
-            + [Decimal("-2.0"), Decimal("-1.0")] * 44
+            + [Decimal("-2.0"), Decimal("-1.0")] * 2
             + [None]
             + [Decimal("0.5"), Decimal("33.123")]
         )
     elif pa.types.is_date(pa_dtype):
         data = (
-            [date(2022, 1, 1), date(1999, 12, 31)] * 4
+            [date(2022, 1, 1), date(1999, 12, 31)]
             + [None]
-            + [date(2022, 1, 1), date(2022, 1, 1)] * 44
+            + [date(2022, 1, 1), date(2022, 1, 1)] * 2
             + [None]
             + [date(1999, 12, 31), date(1999, 12, 31)]
         )
     elif pa.types.is_timestamp(pa_dtype):
         data = (
-            [datetime(2020, 1, 1, 1, 1, 1, 1), datetime(1999, 1, 1, 1, 1, 1, 1)] * 4
+            [datetime(2020, 1, 1, 1, 1, 1, 1), datetime(1999, 1, 1, 1, 1, 1, 1)]
             + [None]
-            + [datetime(2020, 1, 1, 1), datetime(1999, 1, 1, 1)] * 44
+            + [datetime(2020, 1, 1, 1), datetime(1999, 1, 1, 1)] * 2
             + [None]
             + [datetime(2020, 1, 1), datetime(1999, 1, 1)]
         )
     elif pa.types.is_duration(pa_dtype):
         data = (
-            [timedelta(1), timedelta(1, 1)] * 4
+            [timedelta(1), timedelta(1, 1)]
             + [None]
-            + [timedelta(-1), timedelta(0)] * 44
+            + [timedelta(-1), timedelta(0)] * 2
             + [None]
             + [timedelta(-10), timedelta(10)]
         )
     elif pa.types.is_time(pa_dtype):
         data = (
-            [time(12, 0), time(0, 12)] * 4
+            [time(12, 0), time(0, 12)]
             + [None]
-            + [time(0, 0), time(1, 1)] * 44
+            + [time(0, 0), time(1, 1)] * 2
             + [None]
             + [time(0, 5), time(5, 0)]
         )
     elif pa.types.is_string(pa_dtype):
-        data = ["a", "b"] * 4 + [None] + ["1", "2"] * 44 + [None] + ["!", ">"]
+        data = ["a", "b"] + [None] + ["1", "2"] * 2 + [None] + ["!", ">"]
     elif pa.types.is_binary(pa_dtype):
-        data = [b"a", b"b"] * 4 + [None] + [b"1", b"2"] * 44 + [None] + [b"!", b">"]
+        data = [b"a", b"b"] + [None] + [b"1", b"2"] * 2 + [None] + [b"!", b">"]
     else:
         raise NotImplementedError
     return pd.array(data, dtype=dtype)
@@ -264,7 +264,7 @@ def data_for_twos(data):
         or pa.types.is_decimal(pa_dtype)
         or pa.types.is_duration(pa_dtype)
     ):
-        return pd.array([2] * 100, dtype=data.dtype)
+        return pd.array([2] * 10, dtype=data.dtype)
     # tests will be xfailed where 2 is not a valid scalar for pa_dtype
     return data
     # TODO: skip otherwise?

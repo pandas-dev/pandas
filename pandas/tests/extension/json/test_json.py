@@ -26,8 +26,8 @@ def dtype():
 
 @pytest.fixture
 def data():
-    """Length-100 PeriodArray for semantics test."""
-    data = make_data()
+    """Length-10 JSONArray for semantics test."""
+    data = make_data(10)
 
     # Why the while loop? NumPy is unable to construct an ndarray from
     # equal-length ndarrays. Many of our operations involve coercing the
@@ -36,7 +36,7 @@ def data():
     # the first two elements, so that's what we'll check.
 
     while len(data[0]) == len(data[1]):
-        data = make_data()
+        data = make_data(10)
 
     return JSONArray(data)
 

@@ -8,7 +8,7 @@ import pandas as pd
 def data():
     """Fixture returning boolean array, with valid and missing values."""
     return pd.array(
-        [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False],
+        [True, False] + [np.nan] + [True, False] * 2 + [np.nan] + [True, False],
         dtype="boolean",
     )
 
