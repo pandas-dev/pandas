@@ -1275,7 +1275,7 @@ def nanskew(
     m3 = adjusted3.sum(axis, dtype=np.float64)
 
     # floating point error. See comment in [nankurt]
-    max_abs = np.abs(values).max(axis)
+    max_abs = np.abs(values).max(axis, initial=0.0)
     eps = np.finfo(m2.dtype).eps
     constant_tolerance2 = ((eps * max_abs) ** 2) * count
     constant_tolerance3 = ((eps * max_abs) ** 3) * count
@@ -1382,7 +1382,7 @@ def nankurt(
     # |m2 - y| <= n|m2|e²
     #
     # We will use max (x²) to estimate |m2|
-    max_abs = np.abs(values).max(axis)
+    max_abs = np.abs(values).max(axis, initial=0.0)
     eps = np.finfo(m2.dtype).eps
     constant_tolerance2 = ((eps * max_abs) ** 2) * count
     constant_tolerance4 = ((eps * max_abs) ** 4) * count
