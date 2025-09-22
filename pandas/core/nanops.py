@@ -1261,8 +1261,7 @@ def nanskew(
         return np.nan
 
     with np.errstate(invalid="ignore", divide="ignore"):
-        total = values.sum(axis, dtype=np.float64)
-        mean = total / count
+        mean = values.sum(axis, dtype=np.float64) / count
     if axis is not None:
         mean = np.expand_dims(mean, axis)
 
@@ -1351,8 +1350,7 @@ def nankurt(
         return np.nan
 
     with np.errstate(invalid="ignore", divide="ignore"):
-        total = values.sum(axis, dtype=np.float64)
-        mean = total / count
+        mean = values.sum(axis, dtype=np.float64) / count
     if axis is not None:
         mean = np.expand_dims(mean, axis)
 
