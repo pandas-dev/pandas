@@ -976,15 +976,18 @@ def test_match_compiled_regex(any_string_dtype):
 @pytest.mark.parametrize(
     "pat, case, exp",
     [
-        ["ab", False, [True]],
-        ["Ab", True, [False]],
-        ["bc", True, [False]],
-        ["a[a-z]{1}", False, [True]],
-        ["A[a-z]{1}", True, [False]],
+        ["ab", False, [True, False]],
+        ["Ab", True, [False, False]],
+        ["bc", True, [False, False]],
+        ["a[a-z]{1}", False, [True, False]],
+        ["A[a-z]{1}", True, [False, False]],
+        # https://github.com/pandas-dev/pandas/issues/61072
+        ["(bc)|(ab)", True, [True, False]],
+        ["((bc)|(ab))", True, [True, False]],
     ],
 )
 def test_str_match_extra_cases(any_string_dtype, pat, case, exp):
-    ser = Series(["abc"], dtype=any_string_dtype)
+    ser = Series(["abc", "Xab"], dtype=any_string_dtype)
     result = ser.str.match(pat, case=case)
 
     expected_dtype = (
