@@ -195,6 +195,18 @@ This is actually compatible with pandas 2.x as well, since in pandas < 3,
    of also stringifying missing values in pandas 2.x. See the section
    :ref:`string_migration_guide-astype_str` for more details.
 
+For selecting string columns with :meth:`~DataFrame.select_dtypes` in a pandas
+2.x and 3.x compatible way, it is not possible to use ``"str"``. While this
+works for pandas 3.x, it raises an error in pandas 2.x.
+As an alternative, you can select both ``object`` (for pandas 2.x) and
+``"string"`` (for pandas 3.x; which will also select the default ``str`` dtype
+and does not error on pandas 2.x):
+
+.. code-block:: python
+
+   # can use ``include=["str"]`` for pandas >= 3
+   >>> df.select_dtypes(include=["object", "string"])
+
 
 The missing value sentinel is now always NaN
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
