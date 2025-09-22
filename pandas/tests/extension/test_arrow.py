@@ -1067,6 +1067,15 @@ class TestArrowArray(base.ExtensionTests):
         expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
         tm.assert_series_equal(result, expected)
 
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_date(pa_dtype):
+            mark = pytest.mark.xfail(
+                reason="GH#62343 incorrectly casts to timestamp[ms][pyarrow]"
+            )
+            request.applymarker(mark)
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
 
 class TestLogicalOps:
     """Various Series and DataFrame logical ops methods."""
@@ -1861,23 +1870,28 @@ def test_str_match(pat, case, na, exp):
 
 @pytest.mark.parametrize(
     "pat, case, na, exp",
+    # Note: keep cases in sync with
+    # pandas/tests/strings/test_find_replace.py::test_str_fullmatch_extra_cases
     [
-        ["abc", False, None, [True, True, False, None]],
+        ["abc", False, None, [True, False, False, None]],
         ["Abc", True, None, [False, False, False, None]],
         ["bc", True, None, [False, False, False, None]],
-        ["ab", False, None, [True, True, False, None]],
-        ["a[a-z]{2}", False, None, [True, True, False, None]],
+        ["ab", False, None, [False, False, False, None]],
+        ["a[a-z]{2}", False, None, [True, False, False, None]],
         ["A[a-z]{1}", True, None, [False, False, False, None]],
         # GH Issue: #56652
         ["abc$", False, None, [True, False, False, None]],
         ["abc\\$", False, None, [False, True, False, None]],
         ["Abc$", True, None, [False, False, False, None]],
         ["Abc\\$", True, None, [False, False, False, None]],
+        # https://github.com/pandas-dev/pandas/issues/61072
+        ["(abc)|(abx)", True, None, [True, False, False, None]],
+        ["((abc)|(abx))", True, None, [True, False, False, None]],
     ],
 )
 def test_str_fullmatch(pat, case, na, exp):
     ser = pd.Series(["abc", "abc$", "$abc", None], dtype=ArrowDtype(pa.string()))
-    result = ser.str.match(pat, case=case, na=na)
+    result = ser.str.fullmatch(pat, case=case, na=na)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
     tm.assert_series_equal(result, expected)
 

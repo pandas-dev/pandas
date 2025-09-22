@@ -167,10 +167,20 @@ class ArrowStringArrayMixin:
         flags: int = 0,
         regex: bool = True,
     ) -> Self:
-        if isinstance(pat, re.Pattern) or callable(repl) or not case or flags:
+        if (
+            isinstance(pat, re.Pattern)
+            or callable(repl)
+            or not case
+            or flags
+            or (
+                isinstance(repl, str)
+                and (r"\g<" in repl or re.search(r"\\\d", repl) is not None)
+            )
+        ):
             raise NotImplementedError(
                 "replace is not supported with a re.Pattern, callable repl, "
-                "case=False, or flags!=0"
+                "case=False, flags!=0, or when the replacement string contains "
+                "named group references (\\g<...>, \\d+)"
             )
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
@@ -316,8 +326,12 @@ class ArrowStringArrayMixin:
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
-        if not pat.endswith("$") or pat.endswith("\\$"):
-            pat = f"{pat}$"
+        if (not pat.endswith("$") or pat.endswith("\\$")) and not pat.startswith("^"):
+            pat = f"^({pat})$"
+        elif not pat.endswith("$") or pat.endswith("\\$"):
+            pat = f"^({pat[1:]})$"
+        elif not pat.startswith("^"):
+            pat = f"^({pat[0:-1]})$"
         return self._str_match(pat, case, flags, na)
 
     def _str_find(self, sub: str, start: int = 0, end: int | None = None):

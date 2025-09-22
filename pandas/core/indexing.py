@@ -16,6 +16,10 @@ import numpy as np
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
 from pandas.compat import PYPY
+from pandas.compat._constants import (
+    REF_COUNT,
+    WARNING_CHECK_DISABLED,
+)
 from pandas.errors import (
     AbstractMethodError,
     ChainedAssignmentError,
@@ -24,7 +28,10 @@ from pandas.errors import (
     LossySetitemError,
 )
 from pandas.errors.cow import _chained_assignment_msg
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -97,6 +104,7 @@ _one_ellipsis_message = "indexer may only contain one '...' entry"
 
 
 # the public IndexSlicerMaker
+@set_module("pandas")
 class _IndexSlice:
     """
     Create an object to more easily perform multi-index slicing.
@@ -913,8 +921,8 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if sys.getrefcount(self.obj) <= 2:
+        if not PYPY and not WARNING_CHECK_DISABLED:
+            if sys.getrefcount(self.obj) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -1809,21 +1817,10 @@ class _iLocIndexer(_LocationIndexer):
 
     # -------------------------------------------------------------------
 
-    def _setitem_with_indexer(self, indexer, value, name: str = "iloc") -> None:
+    def _decide_split_path(self, indexer, value) -> bool:
         """
-        _setitem_with_indexer is for setting values on a Series/DataFrame
-        using positional indexers.
-
-        If the relevant keys are not present, the Series/DataFrame may be
-        expanded.
-
-        This method is currently broken when dealing with non-unique Indexes,
-        since it goes from positional indexers back to labels when calling
-        BlockManager methods, see GH#12991, GH#22046, GH#15686.
+        Decide whether we will take a block-by-block path.
         """
-        info_axis = self.obj._info_axis_number
-
-        # maybe partial set
         take_split_path = not self.obj._mgr.is_single_block
 
         if not take_split_path and isinstance(value, ABCDataFrame):
@@ -1851,77 +1848,88 @@ class _iLocIndexer(_LocationIndexer):
                     take_split_path = True
                     break
 
+        return take_split_path
+
+    def _setitem_new_column(self, indexer, key, value, name: str) -> None:
+        """
+        _setitem_with_indexer cases that can go through DataFrame.__setitem__.
+        """
+        # add the new item, and set the value
+        # must have all defined axes if we have a scalar
+        # or a list-like on the non-info axes if we have a
+        # list-like
+        if not len(self.obj):
+            if not is_list_like_indexer(value):
+                raise ValueError(
+                    "cannot set a frame with no defined index and a scalar"
+                )
+            self.obj[key] = value
+            return
+
+        # add a new item with the dtype setup
+        if com.is_null_slice(indexer[0]):
+            # We are setting an entire column
+            self.obj[key] = value
+            return
+        elif is_array_like(value):
+            # GH#42099
+            arr = extract_array(value, extract_numpy=True)
+            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
+            empty_value = algos.take_nd(arr, taker)
+            if not isinstance(value, ABCSeries):
+                # if not Series (in which case we need to align),
+                #  we can short-circuit
+                if isinstance(arr, np.ndarray) and arr.ndim == 1 and len(arr) == 1:
+                    # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
+                    arr = arr[0, ...]
+                empty_value[indexer[0]] = arr
+                self.obj[key] = empty_value
+                return
+
+            self.obj[key] = empty_value
+        elif not is_list_like(value):
+            self.obj[key] = construct_1d_array_from_inferred_fill_value(
+                value, len(self.obj)
+            )
+        else:
+            # FIXME: GH#42099#issuecomment-864326014
+            self.obj[key] = infer_fill_value(value)
+
+        new_indexer = convert_from_missing_indexer_tuple(indexer, self.obj.axes)
+        self._setitem_with_indexer(new_indexer, value, name)
+
+        return
+
+    def _setitem_with_indexer(self, indexer, value, name: str = "iloc") -> None:
+        """
+        _setitem_with_indexer is for setting values on a Series/DataFrame
+        using positional indexers.
+
+        If the relevant keys are not present, the Series/DataFrame may be
+        expanded.
+        """
+        info_axis = self.obj._info_axis_number
+        take_split_path = self._decide_split_path(indexer, value)
+
         if isinstance(indexer, tuple):
             nindexer = []
             for i, idx in enumerate(indexer):
-                if isinstance(idx, dict):
+                idx, missing = convert_missing_indexer(idx)
+                if missing:
                     # reindex the axis to the new value
                     # and set inplace
-                    key, _ = convert_missing_indexer(idx)
+                    key = idx
 
                     # if this is the items axes, then take the main missing
                     # path first
-                    # this correctly sets the dtype and avoids cache issues
+                    # this correctly sets the dtype
                     # essentially this separates out the block that is needed
                     # to possibly be modified
                     if self.ndim > 1 and i == info_axis:
-                        # add the new item, and set the value
-                        # must have all defined axes if we have a scalar
-                        # or a list-like on the non-info axes if we have a
-                        # list-like
-                        if not len(self.obj):
-                            if not is_list_like_indexer(value):
-                                raise ValueError(
-                                    "cannot set a frame with no "
-                                    "defined index and a scalar"
-                                )
-                            self.obj[key] = value
-                            return
-
-                        # add a new item with the dtype setup
-                        if com.is_null_slice(indexer[0]):
-                            # We are setting an entire column
-                            self.obj[key] = value
-                            return
-                        elif is_array_like(value):
-                            # GH#42099
-                            arr = extract_array(value, extract_numpy=True)
-                            taker = -1 * np.ones(len(self.obj), dtype=np.intp)
-                            empty_value = algos.take_nd(arr, taker)
-                            if not isinstance(value, ABCSeries):
-                                # if not Series (in which case we need to align),
-                                #  we can short-circuit
-                                if (
-                                    isinstance(arr, np.ndarray)
-                                    and arr.ndim == 1
-                                    and len(arr) == 1
-                                ):
-                                    # NumPy 1.25 deprecation: https://github.com/numpy/numpy/pull/10615
-                                    arr = arr[0, ...]
-                                empty_value[indexer[0]] = arr
-                                self.obj[key] = empty_value
-                                return
-
-                            self.obj[key] = empty_value
-                        elif not is_list_like(value):
-                            self.obj[key] = construct_1d_array_from_inferred_fill_value(
-                                value, len(self.obj)
-                            )
-                        else:
-                            # FIXME: GH#42099#issuecomment-864326014
-                            self.obj[key] = infer_fill_value(value)
-
-                        new_indexer = convert_from_missing_indexer_tuple(
-                            indexer, self.obj.axes
-                        )
-                        self._setitem_with_indexer(new_indexer, value, name)
-
+                        self._setitem_new_column(indexer, key, value, name=name)
                         return
 
                     # reindex the axis
-                    # make sure to clear the cache because we are
-                    # just replacing the block manager here
-                    # so the object is the same
                     index = self.obj._get_axis(i)
                     labels = index.insert(len(index), key)
 
@@ -2581,8 +2589,8 @@ class _AtIndexer(_ScalarAccessIndexer):
         return super().__getitem__(key)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if sys.getrefcount(self.obj) <= 2:
+        if not PYPY and not WARNING_CHECK_DISABLED:
+            if sys.getrefcount(self.obj) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -2612,8 +2620,8 @@ class _iAtIndexer(_ScalarAccessIndexer):
         return key
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if sys.getrefcount(self.obj) <= 2:
+        if not PYPY and not WARNING_CHECK_DISABLED:
+            if sys.getrefcount(self.obj) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -2718,7 +2726,7 @@ def convert_missing_indexer(indexer):
     return indexer, False
 
 
-def convert_from_missing_indexer_tuple(indexer, axes):
+def convert_from_missing_indexer_tuple(indexer: tuple, axes: list[Index]) -> tuple:
     """
     Create a filtered indexer that doesn't have any missing indexers.
     """

@@ -440,10 +440,10 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             rows.append(row)
             data.append(sp_arr.sp_values.astype(dtype, copy=False))
 
-        cols = np.concatenate(cols)
-        rows = np.concatenate(rows)
-        data = np.concatenate(data)
-        return coo_matrix((data, (rows, cols)), shape=self._parent.shape)
+        cols_arr = np.concatenate(cols)
+        rows_arr = np.concatenate(rows)
+        data_arr = np.concatenate(data)
+        return coo_matrix((data_arr, (rows_arr, cols_arr)), shape=self._parent.shape)
 
     @property
     def density(self) -> float:
