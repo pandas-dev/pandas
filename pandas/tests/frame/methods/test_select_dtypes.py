@@ -507,5 +507,4 @@ class TestSelectDtypes:
             expected = df[["a", "c"]]
         else:
             expected = df[["c"]]
-        expected = df[["a", "c"]]
         tm.assert_frame_equal(result, expected)
