@@ -33,6 +33,7 @@ def frame_random_data_integer_multi_index():
 
 
 class TestMultiIndexLoc:
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_loc_setitem_frame_with_multiindex(
         self, multiindex_dataframe_random_data, has_ref
