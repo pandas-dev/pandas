@@ -136,13 +136,13 @@ class BaseSetitemTests:
 
     def test_setitem_iloc_scalar_single(self, data):
         df = pd.DataFrame({"B": data})
-        df.iloc[10, 0] = data[1]
-        assert df.loc[10, "B"] == data[1]
+        df.iloc[9, 0] = data[1]
+        assert df.loc[9, "B"] == data[1]
 
     def test_setitem_iloc_scalar_multiple_homogoneous(self, data):
         df = pd.DataFrame({"A": data, "B": data})
-        df.iloc[10, 1] = data[1]
-        assert df.loc[10, "B"] == data[1]
+        df.iloc[9, 1] = data[1]
+        assert df.loc[9, "B"] == data[1]
 
     @pytest.mark.parametrize(
         "mask",
@@ -281,9 +281,9 @@ class BaseSetitemTests:
         else:  # __setitem__
             target = ser
 
-        target[mask] = data[10]
-        assert ser[0] == data[10]
-        assert ser[1] == data[10]
+        target[mask] = data[9]
+        assert ser[0] == data[9]
+        assert ser[1] == data[9]
 
     def test_setitem_expand_columns(self, data):
         df = pd.DataFrame({"A": data})

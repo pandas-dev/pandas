@@ -57,9 +57,17 @@ class BaseCastingTests:
     )
     def test_astype_string(self, data, nullable_string_dtype):
         # GH-33465, GH#45326 as of 2.0 we decode bytes instead of calling str(obj)
+        def as_str(x):
+            if isinstance(x, bytes):
+                return x.decode()
+            elif x is data.dtype.na_value:
+                return x
+            else:
+                return str(x)
+
         result = pd.Series(data[:5]).astype(nullable_string_dtype)
         expected = pd.Series(
-            [str(x) if not isinstance(x, bytes) else x.decode() for x in data[:5]],
+            [as_str(x) for x in data[:5]],
             dtype=nullable_string_dtype,
         )
         tm.assert_series_equal(result, expected)

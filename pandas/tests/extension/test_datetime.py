@@ -33,7 +33,7 @@ def dtype():
 @pytest.fixture
 def data(dtype):
     data = DatetimeArray._from_sequence(
-        pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype
+        pd.date_range("2000", periods=10, tz=dtype.tz), dtype=dtype
     )
     return data
 

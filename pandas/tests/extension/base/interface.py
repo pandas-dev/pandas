@@ -19,10 +19,10 @@ class BaseInterfaceTests:
     # ------------------------------------------------------------------------
 
     def test_len(self, data):
-        assert len(data) == 100
+        assert len(data) == 10
 
     def test_size(self, data):
-        assert data.size == 100
+        assert data.size == 10
 
     def test_ndim(self, data):
         assert data.ndim == 1
