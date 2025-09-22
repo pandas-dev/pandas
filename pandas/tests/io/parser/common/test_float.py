@@ -46,7 +46,7 @@ def test_scientific_no_exponent(all_parsers_all_precisions):
     [
         -617,
         -100000,
-        pytest.param(-99999999999999999, marks=pytest.mark.skip_ubsan),
+        -99999999999999999,
     ],
 )
 def test_very_negative_exponent(all_parsers_all_precisions, neg_exp):
@@ -59,7 +59,6 @@ def test_very_negative_exponent(all_parsers_all_precisions, neg_exp):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.skip_ubsan
 @xfail_pyarrow  # AssertionError: Attributes of DataFrame.iloc[:, 0] are different
 @pytest.mark.parametrize("exp", [999999999999999999, -999999999999999999])
 def test_too_many_exponent_digits(all_parsers_all_precisions, exp, request):

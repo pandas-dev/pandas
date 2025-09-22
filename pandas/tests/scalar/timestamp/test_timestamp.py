@@ -240,6 +240,7 @@ class TestTimestampProperties:
         dow = ts.weekday()
         assert dow == expected
 
+    @pytest.mark.slow
     @given(
         ts=st.datetimes(),
         sign=st.sampled_from(["-", ""]),
