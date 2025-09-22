@@ -104,12 +104,18 @@ class TestiLocBaseIndependent:
         expected = DataFrame({0: Series(cat.astype(object), dtype=object), 1: range(3)})
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("box", [array, Series])
-    def test_iloc_setitem_ea_inplace(self, frame_or_series, box, using_copy_on_write):
+    def test_iloc_setitem_ea_inplace(
+        self, frame_or_series, box, has_ref, using_copy_on_write
+    ):
         # GH#38952 Case with not setting a full column
         #  IntegerArray without NAs
         arr = array([1, 2, 3, 4])
         obj = frame_or_series(arr.to_numpy("i8"))
+        if has_ref:
+            view = obj[:]  # noqa: F841
 
         if frame_or_series is Series:
             values = obj.values
@@ -125,14 +131,15 @@ class TestiLocBaseIndependent:
         tm.assert_equal(obj, expected)
 
         # Check that we are actually in-place
-        if frame_or_series is Series:
-            if using_copy_on_write:
-                assert obj.values is not values
-                assert np.shares_memory(obj.values, values)
+        if not has_ref:
+            if frame_or_series is Series:
+                if using_copy_on_write:
+                    assert obj.values is not values
+                    assert np.shares_memory(obj.values, values)
+                else:
+                    assert obj.values is values
             else:
-                assert obj.values is values
-        else:
-            assert np.shares_memory(obj[0].values, values)
+                assert np.shares_memory(obj[0].values, values)
 
     def test_is_scalar_access(self):
         # GH#32085 index with duplicates doesn't matter for _is_scalar_access
@@ -426,12 +433,16 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(df.iloc[10:, :2], df2)
         tm.assert_frame_equal(df.iloc[10:, 2:], df1)
 
-    def test_iloc_setitem(self, warn_copy_on_write):
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_iloc_setitem(self, warn_copy_on_write, has_ref):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)),
             index=np.arange(0, 8, 2),
             columns=np.arange(0, 12, 3),
         )
+        if has_ref:
+            view = df[:]  # noqa: F841
 
         df.iloc[1, 1] = 1
         result = df.iloc[1, 1]
@@ -448,10 +459,14 @@ class TestiLocBaseIndependent:
         expected = Series([0, 1, 0], index=[4, 5, 6])
         tm.assert_series_equal(s, expected)
 
-    def test_iloc_setitem_axis_argument(self):
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_iloc_setitem_axis_argument(self, has_ref):
         # GH45032
         df = DataFrame([[6, "c", 10], [7, "d", 11], [8, "e", 12]])
         df[1] = df[1].astype(object)
+        if has_ref:
+            view = df[:]
         expected = DataFrame([[6, "c", 10], [7, "d", 11], [5, 5, 5]])
         expected[1] = expected[1].astype(object)
         df.iloc(axis=0)[2] = 5
@@ -459,16 +474,22 @@ class TestiLocBaseIndependent:
 
         df = DataFrame([[6, "c", 10], [7, "d", 11], [8, "e", 12]])
         df[1] = df[1].astype(object)
+        if has_ref:
+            view = df[:]  # noqa: F841
         expected = DataFrame([[6, "c", 5], [7, "d", 5], [8, "e", 5]])
         expected[1] = expected[1].astype(object)
         df.iloc(axis=1)[2] = 5
         tm.assert_frame_equal(df, expected)
 
-    def test_iloc_setitem_list(self):
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_iloc_setitem_list(self, has_ref):
         # setitem with an iloc list
         df = DataFrame(
             np.arange(9).reshape((3, 3)), index=["A", "B", "C"], columns=["A", "B", "C"]
         )
+        if has_ref:
+            view = df[:]  # noqa: F841
         df.iloc[[0, 1], [1, 2]]
         df.iloc[[0, 1], [1, 2]] += 100
 
@@ -669,12 +690,16 @@ class TestiLocBaseIndependent:
         expected = DataFrame(arr[1:5, 2:4], index=index[1:5], columns=columns[2:4])
         tm.assert_frame_equal(result, expected)
 
-    def test_iloc_setitem_series(self):
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_iloc_setitem_series(self, has_ref):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             index=list("abcdefghij"),
             columns=list("ABCD"),
         )
+        if has_ref:
+            view = df[:]  # noqa: F841
 
         df.iloc[1, 1] = 1
         result = df.iloc[1, 1]
@@ -703,12 +728,16 @@ class TestiLocBaseIndependent:
         expected = Series([0, 1, 2, 3, 4, 5])
         tm.assert_series_equal(result, expected)
 
-    def test_iloc_setitem_list_of_lists(self):
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_iloc_setitem_list_of_lists(self, has_ref):
         # GH 7551
         # list-of-list is set incorrectly in mixed vs. single dtyped frames
         df = DataFrame(
             {"A": np.arange(5, dtype="int64"), "B": np.arange(5, 10, dtype="int64")}
         )
+        if has_ref:
+            view = df[:]
         df.iloc[2:4] = [[10, 11], [12, 13]]
         expected = DataFrame({"A": [0, 1, 10, 12, 4], "B": [5, 6, 11, 13, 9]})
         tm.assert_frame_equal(df, expected)
@@ -716,19 +745,25 @@ class TestiLocBaseIndependent:
         df = DataFrame(
             {"A": ["a", "b", "c", "d", "e"], "B": np.arange(5, 10, dtype="int64")}
         )
+        if has_ref:
+            view = df[:]  # noqa: F841
         df.iloc[2:4] = [["x", 11], ["y", 13]]
         expected = DataFrame({"A": ["a", "b", "x", "y", "e"], "B": [5, 6, 11, 13, 9]})
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("indexer", [[0], slice(None, 1, None), np.array([0])])
     @pytest.mark.parametrize("value", [["Z"], np.array(["Z"])])
-    def test_iloc_setitem_with_scalar_index(self, indexer, value):
+    def test_iloc_setitem_with_scalar_index(self, has_ref, indexer, value):
         # GH #19474
         # assigning like "df.iloc[0, [0]] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
         # Set object type to avoid upcast when setting "Z"
         df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"]).astype({"A": object})
+        if has_ref:
+            view = df[:]  # noqa: F841
         df.iloc[0, indexer] = value
         result = df.iloc[0, 0]
 
@@ -1034,18 +1069,26 @@ class TestiLocBaseIndependent:
         expected = DataFrame({"flag": ["x", "y", "z"], "value": [2, 3, 4]})
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("indexer", [[1], slice(1, 2)])
-    def test_iloc_setitem_pure_position_based(self, indexer):
+    def test_iloc_setitem_pure_position_based(self, indexer, has_ref):
         # GH#22046
         df1 = DataFrame({"a2": [11, 12, 13], "b2": [14, 15, 16]})
         df2 = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+        if has_ref:
+            view = df2[:]  # noqa: F841
         df2.iloc[:, indexer] = df1.iloc[:, [0]]
         expected = DataFrame({"a": [1, 2, 3], "b": [11, 12, 13], "c": [7, 8, 9]})
         tm.assert_frame_equal(df2, expected)
 
-    def test_iloc_setitem_dictionary_value(self):
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_iloc_setitem_dictionary_value(self, has_ref):
         # GH#37728
         df = DataFrame({"x": [1, 2], "y": [2, 2]})
+        if has_ref:
+            view = df[:]
         rhs = {"x": 9, "y": 99}
         df.iloc[1] = rhs
         expected = DataFrame({"x": [1, 9], "y": [2, 99]})
@@ -1053,6 +1096,8 @@ class TestiLocBaseIndependent:
 
         # GH#38335 same thing, mixed dtypes
         df = DataFrame({"x": [1, 2], "y": [2.0, 2.0]})
+        if has_ref:
+            view = df[:]  # noqa: F841
         df.iloc[1] = rhs
         expected = DataFrame({"x": [1, 9], "y": [2.0, 99.0]})
         tm.assert_frame_equal(df, expected)
@@ -1266,10 +1311,14 @@ class TestILocErrors:
             ):
                 obj.iloc[3.0] = 0
 
-    def test_iloc_getitem_setitem_fancy_exceptions(self, float_frame):
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_iloc_getitem_setitem_fancy_exceptions(self, float_frame, has_ref):
         with pytest.raises(IndexingError, match="Too many indexers"):
             float_frame.iloc[:, :, :]
 
+        if has_ref:
+            view = float_frame[:]  # noqa: F841
         with pytest.raises(IndexError, match="too many indices for array"):
             # GH#32257 we let numpy do validation, get their exception
             float_frame.iloc[:, :, :] = 1

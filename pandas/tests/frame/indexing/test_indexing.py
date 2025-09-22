@@ -1500,13 +1500,18 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("col", [{}, {"name": "a"}])
-    def test_loc_setitem_reordering_with_all_true_indexer(self, col):
+    def test_loc_setitem_reordering_with_all_true_indexer(self, col, has_ref):
         # GH#48701
         n = 17
         df = DataFrame({**col, "x": range(n), "y": range(n)})
+        value = df[["x", "y"]].copy()
         expected = df.copy()
-        df.loc[n * [True], ["x", "y"]] = df[["x", "y"]]
+        if has_ref:
+            view = df[:]  # noqa: F841
+        df.loc[n * [True], ["x", "y"]] = value
         tm.assert_frame_equal(df, expected)
 
     def test_loc_rhs_empty_warning(self):
