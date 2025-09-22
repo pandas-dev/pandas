@@ -317,7 +317,7 @@ class ArrowStringArrayMixin:
         na: Scalar | lib.NoDefault = lib.no_default,
     ):
         if not pat.startswith("^"):
-            pat = f"^{pat}"
+            pat = f"^({pat})"
         return self._str_contains(pat, case, flags, na, regex=True)
 
     def _str_fullmatch(
