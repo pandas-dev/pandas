@@ -3247,7 +3247,6 @@ class TestFromScalar:
         assert item.asm8.dtype == exp_dtype
         assert dtype == exp_dtype
 
-    @pytest.mark.skip_ubsan
     def test_out_of_s_bounds_datetime64(self, constructor):
         scalar = np.datetime64(np.iinfo(np.int64).max, "D")
         result = constructor(scalar)
@@ -3283,7 +3282,6 @@ class TestFromScalar:
         assert item.asm8.dtype == exp_dtype
         assert dtype == exp_dtype
 
-    @pytest.mark.skip_ubsan
     @pytest.mark.parametrize("cls", [np.datetime64, np.timedelta64])
     def test_out_of_s_bounds_timedelta64(self, constructor, cls):
         scalar = cls(np.iinfo(np.int64).max, "D")
