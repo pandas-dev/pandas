@@ -467,3 +467,10 @@ class BaseGetitemTests:
 
         with pytest.raises(ValueError, match=msg):
             s.item()
+
+    def test_getitem_propagates_readonly_property(self, data):
+        # ensure read-only propagates if getitem returns view
+        data._readonly = True
+
+        result = data[:]
+        assert result._readonly

@@ -1248,8 +1248,8 @@ def test_invalid_nat_setitem_array(arr, non_casting_nats):
 @pytest.mark.parametrize(
     "arr",
     [
-        pd.date_range("2000", periods=4).array,
-        pd.timedelta_range("2000", periods=4).array,
+        pd.date_range("2000", periods=4)._values,
+        pd.timedelta_range("2000", periods=4)._values,
     ],
 )
 def test_to_numpy_extra(arr):
@@ -1270,6 +1270,28 @@ def test_to_numpy_extra(arr):
 
     result = arr.to_numpy(na_value=arr[1].to_numpy(copy=False))
     assert result[0] == result[1]
+
+    tm.assert_equal(arr, original)
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pd.date_range("2000", periods=4)._values,
+        pd.timedelta_range("2000", periods=4)._values,
+    ],
+)
+def test_to_numpy_extra_readonly(arr):
+    arr[0] = NaT
+    original = arr.copy()
+    arr._readonly = True
+
+    result = arr.to_numpy(dtype=object)
+    assert result.flags.writeable
+
+    # numpy does not do zero-copy conversion from M8 to i8
+    result = arr.to_numpy(dtype="int64")
+    assert result.flags.writeable
 
     tm.assert_equal(arr, original)
 

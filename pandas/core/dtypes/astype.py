@@ -24,8 +24,12 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
     NumpyEADtype,
+    PeriodDtype,
 )
 
 if TYPE_CHECKING:
@@ -282,6 +286,16 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         dtype = getattr(dtype, "numpy_dtype", dtype)
         new_dtype = getattr(new_dtype, "numpy_dtype", new_dtype)
         return getattr(dtype, "unit", None) == getattr(new_dtype, "unit", None)
+
+    elif new_dtype == object and isinstance(
+        dtype, (DatetimeTZDtype, PeriodDtype, IntervalDtype)
+    ):
+        return False
+
+    elif isinstance(dtype, CategoricalDtype) and not isinstance(
+        new_dtype, CategoricalDtype
+    ):
+        return False
 
     numpy_dtype = getattr(dtype, "numpy_dtype", None)
     new_numpy_dtype = getattr(new_dtype, "numpy_dtype", None)
