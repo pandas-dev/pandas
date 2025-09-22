@@ -1363,6 +1363,10 @@ def nankurt(
     m4 = adjusted4.sum(axis, dtype=np.float64)
 
     # Several floating point errors may occur during the summation due to rounding.
+    # This computation is similar to the one in Scipy
+    # https://github.com/scipy/scipy/blob/04d6d9c460b1fed83f2919ecec3d743cfa2e8317/scipy/stats/_stats_py.py#L1429
+    # With a few modifications, like using the maximum value instead of the averages
+    # and some adaptations because they use the average and we use the sum for `m2`.
     # We need to estimate an upper bound to the error to consider the data constant.
     # Lets call:
     # x: true value in data
