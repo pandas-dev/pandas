@@ -239,7 +239,7 @@ jobs:
 
     steps:
       - name: Download all artefacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: dist          # everything lands in ./dist/**
 
