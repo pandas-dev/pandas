@@ -44,6 +44,7 @@ classifiers = [
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
     'Topic :: Scientific/Engineering'
 ]
 
@@ -56,7 +57,7 @@ repository = 'https://github.com/pandas-dev/pandas'
 matplotlib = "pandas:plotting._matplotlib"
 
 [project.optional-dependencies]
-test = ['hypothesis>=6.116.0', 'pytest>=7.3.2', 'pytest-xdist>=3.4.0']
+test = ['hypothesis>=6.116.0', 'pytest>=8.3.4', 'pytest-xdist>=3.6.1']
 pyarrow = ['pyarrow>=13.0.0']
 performance = ['bottleneck>=1.4.2', 'numba>=0.60.0', 'numexpr>=2.10.2']
 computation = ['scipy>=1.14.1', 'xarray>=2024.10.0']
@@ -101,8 +102,8 @@ all = ['adbc-driver-postgresql>=1.2.0',
        'pymysql>=1.1.1',
        'PyQt5>=5.15.9',
        'pyreadstat>=1.2.8',
-       'pytest>=7.3.2',
-       'pytest-xdist>=3.4.0',
+       'pytest>=8.3.4',
+       'pytest-xdist>=3.6.1',
        'python-calamine>=0.3.0',
        'pytz>=2024.2',
        'pyxlsb>=1.0.10',
@@ -186,7 +187,7 @@ environment = {CFLAGS="-g0"}
 
 [[tool.cibuildwheel.overrides]]
 select = "*pyodide*"
-test-requires = "pytest>=7.3.2 hypothesis>=6.116.0"
+test-requires = "pytest>=8.3.4 hypothesis>=6.116.0"
 # Pyodide repairs wheels on its own, using auditwheel-emscripten
 repair-wheel-command = ""
 # https://github.com/pyodide/pyodide/issues/5805
@@ -442,7 +443,7 @@ docstring-code-format = true
 
 [tool.pytest.ini_options]
 # sync minversion with pyproject.toml & install.rst
-minversion = "7.3.2"
+minversion = "8.3.4"
 addopts = "--strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
 empty_parameter_set_mark = "fail_at_collect"
 xfail_strict = true
@@ -485,7 +486,6 @@ markers = [
   "db: tests requiring a database (mysql or postgres)",
   "clipboard: mark a pd.read_clipboard test",
   "arm_slow: mark a test as slow for arm64 architecture",
-  "skip_ubsan: Tests known to fail UBSAN check",
   # TODO: someone should investigate this ...
   # these tests only fail in the wheel builder and don't fail in regular
   # ARM CI
