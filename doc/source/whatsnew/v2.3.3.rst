@@ -27,6 +27,16 @@ Bug fixes
   with a compiled regex and custom flags (:issue:`62240`)
 - Fix :meth:`Series.str.fullmatch` not matching patterns with groups correctly for the Arrow-backed string dtype (:issue:`61072`)
 
+
+Improvements and fixes for Copy-on-Write
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Bug fixes
+^^^^^^^^^
+
+- The :meth:`DataFrame.iloc` now works correctly with ``copy_on_write`` option when assigning values after subsetting the columns of a homogeneous DataFrame (:issue:`60309`)
+
+
 .. ---------------------------------------------------------------------------
 .. _whatsnew_233.contributors:
 
