@@ -17,7 +17,7 @@ def dtype(request):
 def data(dtype):
     """Fixture returning 'data' array according to parametrized float 'dtype'"""
     return pd.array(
-        [0.1, 0.2] + [pd.NA] + [1.0, 1.1, 1.2, 1.3] + [pd.NA] + [9.9, 10.0],
+        [0.1, 0.2, 0.3, 0.4] + [pd.NA] + [1.0, 1.1] + [pd.NA] + [9.9, 10.0],
         dtype=dtype,
     )
 

@@ -190,9 +190,8 @@ class TestJSONArray(base.ExtensionTests):
             )
 
     def test_value_counts(self, all_data, dropna, request):
-        if len(all_data) == 100 or dropna:
-            mark = pytest.mark.xfail(reason="unhashable")
-            request.applymarker(mark)
+        if len(all_data) == 10 or dropna:
+            request.applymarker(unhashable)
         super().test_value_counts(all_data, dropna)
 
     @unhashable

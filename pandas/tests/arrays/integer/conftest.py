@@ -39,7 +39,7 @@ def data(dtype):
     Used to test dtype conversion with and without missing values.
     """
     return pd.array(
-        [0, 1] + [pd.NA] + [10, 11, 12, 13] + [pd.NA] + [99, 100],
+        [0, 1, 2, 3] + [pd.NA] + [10, 11] + [pd.NA] + [99, 100],
         dtype=dtype,
     )
 
