@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     Index,
@@ -49,7 +50,7 @@ class TestTimedeltaConstructorUnitKeyword:
         msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
 
         expected = Timedelta(1, unit=unit)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = Timedelta(1, unit=unit_depr)
         tm.assert_equal(result, expected)
 
@@ -253,7 +254,13 @@ def test_from_tick_reso():
     assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_s.value
 
     tick = offsets.Day()
-    assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_s.value
+    msg = (
+        "Value must be Timedelta, string, integer, float, timedelta "
+        "or convertible, not Day"
+    )
+    with pytest.raises(ValueError, match=msg):
+        # GH#41943 Day is no longer a Tick
+        Timedelta(tick)
 
 
 def test_construction():

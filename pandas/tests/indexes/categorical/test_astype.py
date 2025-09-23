@@ -3,6 +3,8 @@ from datetime import date
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Categorical,
     CategoricalDtype,
@@ -63,8 +65,11 @@ class TestAstype:
 
         # non-standard categories
         dtype = CategoricalDtype(index.unique().tolist()[:-1], dtype_ordered)
-        result = index.astype(dtype)
-        expected = CategoricalIndex(index.tolist(), name=name, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = index.astype(dtype)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = CategoricalIndex(index.tolist(), name=name, dtype=dtype)
         tm.assert_index_equal(result, expected)
 
         if dtype_ordered is False:

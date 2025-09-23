@@ -20,6 +20,7 @@ from typing import (
     Any,
     Final,
     Literal,
+    Self,
     TypeAlias,
     cast,
     overload,
@@ -113,7 +114,10 @@ if TYPE_CHECKING:
         Iterator,
         Sequence,
     )
-    from types import TracebackType
+    from types import (
+        ModuleType,
+        TracebackType,
+    )
 
     from tables import (
         Col,
@@ -127,8 +131,6 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeArg,
         FilePath,
-        Self,
-        Shape,
         npt,
     )
 
@@ -228,7 +230,7 @@ with config.config_prefix("io.hdf"):
     )
 
 # oh the troubles to reduce import time
-_table_mod = None
+_table_mod: ModuleType | None = None
 _table_file_open_policy_is_strict = False
 
 
@@ -3384,7 +3386,7 @@ class BlockManagerFixed(GenericFixed):
     nblocks: int
 
     @property
-    def shape(self) -> Shape | None:
+    def shape(self) -> list[int] | None:
         try:
             ndim = self.ndim
 

@@ -642,7 +642,7 @@ class TestPivotTable:
         )
 
         df = df.set_index("ts").reset_index()
-        mins = df.ts.map(lambda x: x.replace(hour=0, minute=0, second=0, microsecond=0))
+        mins = df.ts.map(lambda x: x.replace(hour=0, minute=0, second=0))
 
         result = pivot_table(
             df.set_index("ts").reset_index(),
@@ -2135,7 +2135,7 @@ class TestPivotTable:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.slow
-    def test_pivot_number_of_levels_larger_than_int32(
+    def test_pivot_number_of_levels_larger_than_int32_warns(
         self, performance_warning, monkeypatch
     ):
         # GH 20601
@@ -2145,6 +2145,9 @@ class TestPivotTable:
                 # __init__ will raise the warning
                 super().__init__(*args, **kwargs)
                 raise Exception("Don't compute final result.")
+
+            def _make_selectors(self) -> None:
+                pass
 
         with monkeypatch.context() as m:
             m.setattr(reshape_lib, "_Unstacker", MockUnstacker)

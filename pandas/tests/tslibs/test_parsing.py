@@ -388,6 +388,7 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
     return msg, result
 
 
+@pytest.mark.slow
 @given(DATETIME_NO_TZ)
 @pytest.mark.parametrize("delimiter", list(" -./"))
 @pytest.mark.parametrize("dayfirst", [True, False])
@@ -402,7 +403,8 @@ def test_hypothesis_delimited_date(
         request.applymarker(
             pytest.mark.xfail(
                 reason="parse_datetime_string cannot reliably tell whether "
-                "e.g. %m.%Y is a float or a date"
+                "e.g. %m.%Y is a float or a date",
+                strict=False,
             )
         )
     date_string = test_datetime.strftime(date_format.replace(" ", delimiter))

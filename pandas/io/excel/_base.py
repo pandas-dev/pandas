@@ -18,6 +18,7 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Self,
     TypeVar,
     Union,
     cast,
@@ -82,7 +83,6 @@ if TYPE_CHECKING:
         HashableT,
         IntStrT,
         ReadBuffer,
-        Self,
         SequenceNotStr,
         StorageOptions,
         WriteExcelBuffer,
@@ -1180,9 +1180,6 @@ class ExcelWriter(Generic[_WorkbookT]):
             cls = get_writer(engine)  # type: ignore[assignment]
 
         return object.__new__(cls)
-
-    # declare external properties you can count on
-    _path = None
 
     @property
     def supported_extensions(self) -> tuple[str, ...]:
