@@ -508,6 +508,10 @@ ValueError: columns overlap but no suffix specified:
 1   foo      8
 2   bar      7
 3   bar      8
+
+Notes
+    -----
+    Please reference the :ref:`User Guide <merging.merge>` for more information.
 """
 
 
