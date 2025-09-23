@@ -254,15 +254,20 @@ class TestMultiIndexBasic:
         # GH 61841
         cols = MultiIndex.from_tuples([("A", "B")])
         df1 = DataFrame([[i] for i in range(3)], columns=cols)
-        df2 = DataFrame([[i] for i in range(3)], columns=cols)
-        df3 = DataFrame([[i] for i in range(3)], columns=cols)
+        df2 = df1.copy()
+        df3 = df1.copy()
         s1 = df1["A"].rolling(2).mean()
-        s2 = df2["A"].rolling(2).mean()
-        s3 = df3["A"].rolling(2).mean()
-        df1["C"] = s1
-        df1["C"] = s1
-        df1["C"] = s1
+        s2 = s1.copy()
+        s3 = s1.copy()
+
         df2["C"] = s2
         df3[("C", "")] = s3
+        tm.assert_frame_equal(df2, df3)
+
+        df1["C"] = s1
+        tm.assert_frame_equal(df1, df2)
+        tm.assert_frame_equal(df1, df3)
+
+        df1["C"] = s1
         tm.assert_frame_equal(df1, df2)
         tm.assert_frame_equal(df1, df3)
