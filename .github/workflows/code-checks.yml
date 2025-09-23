@@ -132,15 +132,22 @@ jobs:
         asv run --quick --dry-run --durations=30 --python=same --show-stderr
 
   build_docker_dev_environment:
-    name: Build Docker Dev Environment
-    runs-on: ubuntu-24.04
+    name: Build Docker Dev Environment (${{ matrix.arch }})
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            platform: ubuntu-24.04
+          - arch: arm64
+            platform: ubuntu-24.04-arm
     defaults:
       run:
         shell: bash -el {0}
 
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-build_docker_dev_environment
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-build_docker_dev_environment-${{ matrix.arch }}
       cancel-in-progress: true
 
     steps:
@@ -153,10 +160,10 @@ jobs:
           fetch-depth: 0
 
       - name: Build image
-        run: docker build --pull --no-cache --tag pandas-dev-env .
+        run: docker build --pull --no-cache --tag pandas-dev-env-${{ matrix.arch }} .
 
       - name: Show environment
-        run: docker run --rm pandas-dev-env python -c "import pandas as pd; print(pd.show_versions())"
+        run: docker run --rm pandas-dev-env-${{ matrix.arch }} python -c "import pandas as pd; print(pd.show_versions())"
 
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt
