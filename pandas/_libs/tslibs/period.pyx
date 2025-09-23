@@ -1746,7 +1746,9 @@ cdef class _Period(PeriodMixin):
     cdef readonly:
         int64_t ordinal
         PeriodDtypeBase _dtype
-        BaseOffset freq
+    
+    cdef:
+        BaseOffset _freq
 
     # higher than np.ndarray, np.matrix, np.timedelta64
     __array_priority__ = 100
@@ -1756,8 +1758,39 @@ cdef class _Period(PeriodMixin):
 
     def __cinit__(self, int64_t ordinal, BaseOffset freq):
         self.ordinal = ordinal
-        self.freq = freq
+        self._freq = freq
         self._dtype = PeriodDtypeBase(freq._period_dtype_code, freq.n)
+
+    @property
+    def freq(self) -> BaseOffset:
+        """
+        Get the frequency object of the Period.
+
+        The frequency represents the span of the period. This can be any valid
+        pandas frequency string (e.g., 'D' for daily, 'M' for monthly) or a
+        DateOffset object.
+
+        Returns
+        -------
+        BaseOffset
+            The frequency object of the Period.
+
+        See Also
+        --------
+        Period.freqstr : Return a string representation of the frequency.
+        Period.asfreq : Convert Period to desired frequency.
+
+        Examples
+        --------
+        >>> period = pd.Period('2020-01', freq='M')
+        >>> period.freq
+        <MonthEnd>
+        
+        >>> period = pd.Period('2020-01-01', freq='D')
+        >>> period.freq
+        <Day>
+        """
+        return self._freq
 
     @classmethod
     def _maybe_convert_freq(cls, object freq) -> BaseOffset:
@@ -2660,11 +2693,11 @@ cdef class _Period(PeriodMixin):
         return value
 
     def __setstate__(self, state):
-        self.freq = state[1]
+        self._freq = state[1]
         self.ordinal = state[2]
 
     def __reduce__(self):
-        object_state = None, self.freq, self.ordinal
+        object_state = None, self._freq, self.ordinal
         return (Period, object_state)
 
     def strftime(self, fmt: str | None) -> str:
