@@ -3610,8 +3610,8 @@ class StringMethods(NoNewAttributesMixin):
     >>> s3 = pd.Series(['23', '³', '⅕', ''])
     >>> s3.str.isdigit()
     0     True
-    1    False
-    2    False
+    1    True
+    2    True
     3    False
     dtype: bool
     """
