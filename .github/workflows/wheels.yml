@@ -13,6 +13,8 @@
 name: Wheel builder
 
 on:
+  release:
+    types: [published]
   schedule:
   # 3:27 UTC every day
   - cron: "27 3 * * *"
@@ -53,7 +55,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -101,7 +103,7 @@ jobs:
         - [macos-14, macosx_arm64]
         - [windows-2022, win_amd64]
         - [windows-11-arm, win_arm64]
-        python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"]]
+        python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"]]
         include:
         # Build Pyodide wheels and upload them to Anaconda.org
         # NOTE: this job is similar to the one in unit-tests.yml except for the fact
@@ -216,3 +218,41 @@ jobs:
           source ci/upload_wheels.sh
           set_upload_vars
           upload_wheels
+
+  publish:
+    if: >
+      github.repository == 'pandas-dev/pandas' &&
+      github.event_name == 'release' &&
+      startsWith(github.ref, 'refs/tags/v')
+
+    needs:
+      - build_sdist
+      - build_wheels
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: pypi
+    permissions:
+      id-token: write         # OIDC for Trusted Publishing
+      contents: read
+
+    steps:
+      - name: Download all artefacts
+        uses: actions/download-artifact@v5
+        with:
+          path: dist          # everything lands in ./dist/**
+
+      - name: Collect files
+        run: |
+          mkdir -p upload
+          # skip any wheel that contains 'pyodide'
+          find dist -name '*pyodide*.whl' -prune -o \
+                    -name '*.whl'   -exec mv {} upload/ \;
+          find dist -name '*.tar.gz' -exec mv {} upload/ \;
+
+      - name: Publish to **PyPI** (Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: upload
+          skip-existing: true
