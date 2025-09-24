@@ -2178,3 +2178,14 @@ def test_resample_A_raises(freq):
     s = Series(range(10), index=date_range("20130101", freq="D", periods=10))
     with pytest.raises(ValueError, match=msg):
         s.resample(freq).mean()
+
+
+def test_resample_closed_right_boundary_exclusion():
+    # https://github.com/pandas-dev/pandas/issues/62154
+    idx = date_range("2023-01-01 00:00:00", "2023-01-01 01:00:00", freq="30min")
+    s = Series([1, 2, 3], index=idx)
+    expected = Series(
+        [2], index=date_range("2023-01-01 00:00:00", periods=1, freq="1h")
+    )
+    result = s.resample("1h", closed="right", label="left").sum()
+    tm.assert_series_equal(result, expected)
