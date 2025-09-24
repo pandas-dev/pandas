@@ -2132,12 +2132,12 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Convert structured or record ndarray to DataFrame.
 
-        Creates a DataFrame object from a structured ndarray, or sequence of
+        Creates a DataFrame object from a structured ndarray, or iterable of
         tuples or dicts.
 
         Parameters
         ----------
-        data : structured ndarray, sequence of tuples or dicts
+        data : structured ndarray, iterable of tuples or dicts
             Structured input data.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
