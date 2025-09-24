@@ -6,7 +6,6 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
-    cast,
 )
 import warnings
 
@@ -271,13 +270,7 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
-        freq: str | BaseOffset | None = data.index.freq
-
-        if freq is None:
-            # We only get here for DatetimeIndex
-            data.index = cast("DatetimeIndex", data.index)
-            freq = data.index.inferred_freq
-            freq = to_offset(freq)
+        freq = _get_index_freq(data.index)
 
         if freq is None:
             freq = _get_ax_freq(ax)
