@@ -7,8 +7,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under21p0
-from pandas.errors import Pandas4Warning
+from pandas.compat import (
+    Pandas4Warning,
+    pa_version_under21p0,
+)
 
 from pandas import (
     NA,

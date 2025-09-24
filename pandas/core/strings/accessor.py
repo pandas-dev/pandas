@@ -3610,10 +3610,19 @@ class StringMethods(NoNewAttributesMixin):
     >>> s3 = pd.Series(['23', '³', '⅕', ''])
     >>> s3.str.isdigit()
     0     True
-    1    False
-    2    False
+    1     True
+    2     True
     3    False
     dtype: bool
+
+    Notes
+    -----
+    The exact behavior of this method, i.e. which unicode characters are
+    considered as digits, depends on the backend used for string operations,
+    and there can be small differences.
+    For example, Python considers the ³ superscript character as a digit, but
+    not the ⅕ fraction character, while PyArrow considers both as digits. For
+    simple (ascii) decimal numbers, the behaviour is consistent.
     """
 
     _shared_docs["isspace"] = """
