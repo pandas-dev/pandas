@@ -224,13 +224,20 @@ class TimeFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportAttributeAcc
 
 class PeriodConverter(mdates.DateConverter):
     @staticmethod
-    def convert(values, units, axis):
+    def convert(values, unit, axis: Axis):
+        # Reached via e.g. `ax.set_xlim`
+
+        # In tests as of 2025-09-24, unit is always None except for 3 tests
+        #  that directly call this with unit="";
+        #  axis is always specifically a matplotlib.axis.XAxis
+
         if not hasattr(axis, "freq"):
             raise TypeError("Axis must have `freq` set to convert to Periods")
-        return PeriodConverter.convert_from_freq(values, axis.freq)
+        freq = to_offset(axis.freq, is_period=True)
+        return PeriodConverter.convert_from_freq(values, freq)
 
     @staticmethod
-    def convert_from_freq(values, freq):
+    def convert_from_freq(values, freq: BaseOffset):
         if is_nested_list_like(values):
             values = [PeriodConverter._convert_1d(v, freq) for v in values]
         else:
@@ -238,7 +245,7 @@ class PeriodConverter(mdates.DateConverter):
         return values
 
     @staticmethod
-    def _convert_1d(values, freq):
+    def _convert_1d(values, freq: BaseOffset):
         valid_types = (str, datetime, Period, pydt.date, np.datetime64)
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -266,7 +273,7 @@ class PeriodConverter(mdates.DateConverter):
         return values
 
 
-def _get_datevalue(date, freq):
+def _get_datevalue(date, freq: BaseOffset):
     if isinstance(date, Period):
         return date.asfreq(freq).ordinal
     elif isinstance(date, (str, datetime, pydt.date, np.datetime64)):
@@ -281,7 +288,13 @@ def _get_datevalue(date, freq):
 # Datetime Conversion
 class DatetimeConverter(mdates.DateConverter):
     @staticmethod
-    def convert(values, unit, axis):
+    def convert(values, unit, axis: Axis):
+        # Reached via e.g. `ax.set_xlim`
+
+        # In tests as of 2025-09-24, unit is always None except for 3 tests
+        #  that directly call this with unit="";
+        #  axis is always specifically a matplotlib.axis.XAxis
+
         # values might be a 1-d array, or a list-like of arrays.
         if is_nested_list_like(values):
             values = [DatetimeConverter._convert_1d(v, unit, axis) for v in values]
