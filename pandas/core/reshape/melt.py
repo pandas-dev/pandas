@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from pandas.util._decorators import set_module
+
 from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
@@ -39,6 +41,7 @@ def ensure_list_vars(arg_vars, variable: str, columns) -> list:
         return []
 
 
+@set_module("pandas")
 def melt(
     frame: DataFrame,
     id_vars=None,
@@ -275,6 +278,7 @@ def melt(
     return result
 
 
+@set_module("pandas")
 def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
@@ -361,6 +365,7 @@ def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
     return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
+@set_module("pandas")
 def wide_to_long(
     df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"
 ) -> DataFrame:
