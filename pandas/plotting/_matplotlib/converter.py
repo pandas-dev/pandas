@@ -233,7 +233,7 @@ class PeriodConverter(mdates.DateConverter):
 
         if not hasattr(axis, "freq"):
             raise TypeError("Axis must have `freq` set to convert to Periods")
-        freq = to_offset(axis.freq, is_period=True)
+        freq = to_offset(axis.freq, is_period=True)  # pyright: ignore[reportAttributeAccessIssue]
         return PeriodConverter.convert_from_freq(values, freq)
 
     @staticmethod
@@ -277,7 +277,7 @@ def _get_datevalue(date, freq: BaseOffset):
     if isinstance(date, Period):
         return date.asfreq(freq).ordinal
     elif isinstance(date, (str, datetime, pydt.date, np.datetime64)):
-        return Period(date, freq).ordinal
+        return Period(date, freq).ordinal  # pyright: ignore[reportAttributeAccessIssue]
     elif is_integer(date) or is_float(date):
         return date
     elif date is None:
