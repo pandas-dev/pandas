@@ -308,7 +308,13 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
             if isinstance(data.index, ABCDatetimeIndex):
                 data = data.tz_localize(None).to_period(freq=freq_str)
             elif isinstance(data.index, ABCPeriodIndex):
-                data.index = data.index.asfreq(freq=freq_str, how="start")
+                # This will convert e.g. freq="60min" to freq="min", but will
+                #  retain type(freq). It is not clear to @jbrockmendel why
+                #  this is necessary as of 2025-09-24, but 18 tests fail
+                #  without it.
+                new_freq = to_offset(freq_str, is_period=True)
+                assert type(new_freq) is type(data.index.freq)
+                data.index = data.index.asfreq(freq=new_freq, how="start")
     return data
 
 
