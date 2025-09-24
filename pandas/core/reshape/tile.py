@@ -17,6 +17,7 @@ from pandas._libs import (
     Timestamp,
     lib,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -51,6 +52,7 @@ if TYPE_CHECKING:
     )
 
 
+@set_module("pandas")
 def cut(
     x,
     bins,
@@ -287,6 +289,7 @@ def cut(
     return _postprocess_for_cut(fac, bins, retbins, original)
 
 
+@set_module("pandas")
 def qcut(
     x,
     q,
