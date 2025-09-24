@@ -21,6 +21,8 @@ from pandas._libs.tslibs.dtypes import (
     OFFSET_TO_PERIOD_FREQSTR,
     FreqGroup,
 )
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -77,6 +79,13 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
         series = series.to_period(freq=freq)
 
     if ax_freq is not None and freq != ax_freq:
+        warnings.warn(
+            "Plotting with mixed-frequency series is deprecated and "
+            "will raise in a future version. Align series frequencies "
+            "before plotting instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy()
             # error: "Index" has no attribute "asfreq"

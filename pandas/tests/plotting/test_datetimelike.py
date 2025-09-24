@@ -15,6 +15,7 @@ from pandas._libs.tslibs import (
     BaseOffset,
     to_offset,
 )
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -627,7 +628,10 @@ class TestTSPlot:
 
         idxh = date_range(low.index[0], low.index[-1], freq="12h")
         s = Series(np.random.default_rng(2).standard_normal(len(idxh)), idxh)
-        s.plot(secondary_y=True)
+
+        msg = "Plotting with mixed-frequency series is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            s.plot(secondary_y=True)
         lines = ax.get_lines()
         assert len(lines) == 1
         assert len(ax.right_ax.get_lines()) == 1
@@ -820,7 +824,9 @@ class TestTSPlot:
         low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         _, ax = mpl.pyplot.subplots()
         high.plot(ax=ax)
-        low.plot(ax=ax)
+        msg = "Plotting with mixed-frequency series is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            low.plot(ax=ax)
         for line in ax.get_lines():
             assert PeriodIndex(data=line.get_xdata()).freq == "D"
 
@@ -833,7 +839,9 @@ class TestTSPlot:
 
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot(ax=ax)
-        ts2.plot(style="r", ax=ax)
+        msg = "Plotting with mixed-frequency series is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            ts2.plot(style="r", ax=ax)
 
         assert ax.lines[0].get_xdata()[0] == ax.lines[1].get_xdata()[0]
 
@@ -844,7 +852,9 @@ class TestTSPlot:
         low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         _, ax = mpl.pyplot.subplots()
         low.plot(legend=True, ax=ax)
-        high.plot(legend=True, ax=ax)
+        msg = "Plotting with mixed-frequency series is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            high.plot(legend=True, ax=ax)
         for line in ax.get_lines():
             assert PeriodIndex(data=line.get_xdata()).freq == "D"
         leg = ax.get_legend()
@@ -858,7 +868,9 @@ class TestTSPlot:
         low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         _, ax = mpl.pyplot.subplots()
         low.plot(ax=ax)
-        high.plot(ax=ax)
+        msg = "Plotting with mixed-frequency series is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            high.plot(ax=ax)
         for line in ax.get_lines():
             assert PeriodIndex(data=line.get_xdata()).freq == "min"
 
@@ -951,7 +963,9 @@ class TestTSPlot:
         low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         _, ax = mpl.pyplot.subplots()
         high.plot(ax=ax)
-        low.plot(ax=ax)
+        msg = "Plotting with mixed-frequency series is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            low.plot(ax=ax)
         for line in ax.get_lines():
             assert PeriodIndex(data=line.get_xdata()).freq == idxh.freq
 
@@ -962,7 +976,9 @@ class TestTSPlot:
         low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         _, ax = mpl.pyplot.subplots()
         low.plot(ax=ax)
-        high.plot(ax=ax)
+        msg = "Plotting with mixed-frequency series is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            high.plot(ax=ax)
 
         expected_h = idxh.to_period().asi8.astype(np.float64)
         expected_l = np.array(
@@ -994,7 +1010,9 @@ class TestTSPlot:
 
         _, ax = mpl.pyplot.subplots()
         low.plot(kind=kind1, stacked=True, ax=ax)
-        high.plot(kind=kind2, stacked=True, ax=ax)
+        msg = "Plotting with mixed-frequency series is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            high.plot(kind=kind2, stacked=True, ax=ax)
 
         # check low dataframe result
         expected_x = np.array(
@@ -1049,7 +1067,9 @@ class TestTSPlot:
         )
         _, ax = mpl.pyplot.subplots()
         high.plot(kind=kind1, stacked=True, ax=ax)
-        low.plot(kind=kind2, stacked=True, ax=ax)
+        msg = "Plotting with mixed-frequency series is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            low.plot(kind=kind2, stacked=True, ax=ax)
 
         # check high dataframe result
         expected_x = idxh.to_period().asi8.astype(np.float64)
@@ -1096,7 +1116,9 @@ class TestTSPlot:
         # high to low
         _, ax = mpl.pyplot.subplots()
         high.plot(ax=ax)
-        low.plot(ax=ax)
+        msg = "Plotting with mixed-frequency series is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            low.plot(ax=ax)
         assert len(ax.get_lines()) == 2
         for line in ax.get_lines():
             assert PeriodIndex(data=line.get_xdata()).freq == "ms"
@@ -1110,7 +1132,9 @@ class TestTSPlot:
         # low to high
         _, ax = mpl.pyplot.subplots()
         low.plot(ax=ax)
-        high.plot(ax=ax)
+        msg = "Plotting with mixed-frequency series is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            high.plot(ax=ax)
         assert len(ax.get_lines()) == 2
         for line in ax.get_lines():
             assert PeriodIndex(data=line.get_xdata()).freq == "ms"
@@ -1247,7 +1271,9 @@ class TestTSPlot:
         low = Series(np.random.default_rng(2).standard_normal(len(idxl)), idxl)
         _, ax = mpl.pyplot.subplots()
         low.plot(ax=ax)
-        ax = high.plot(secondary_y=True, ax=ax)
+        msg = "Plotting with mixed-frequency series is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            ax = high.plot(secondary_y=True, ax=ax)
         for line in ax.get_lines():
             assert PeriodIndex(line.get_xdata()).freq == "D"
         assert hasattr(ax, "left_ax")
@@ -1482,7 +1508,11 @@ class TestTSPlot:
         _, ax = mpl.pyplot.subplots()
         ts.plot(ax=ax)
         left_before, right_before = ax.get_xlim()
-        ts.resample("D").mean().plot(secondary_y=True, ax=ax)
+
+        rs = ts.resample("D").mean()
+        msg = "Plotting with mixed-frequency series is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            rs.plot(secondary_y=True, ax=ax)
         left_after, right_after = ax.get_xlim()
 
         # a downsample should not have changed either limit
