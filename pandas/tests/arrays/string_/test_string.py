@@ -269,15 +269,25 @@ def test_add_frame(dtype):
 
     assert arr.__add__(df) is NotImplemented
 
-    # TODO
-    # pyarrow returns a different dtype despite the values being the same
-    # could be addressed this PR if needed
     result = arr + df
     expected = pd.DataFrame([["ax", np.nan, np.nan, np.nan]]).astype(dtype)
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
     result = df + arr
     expected = pd.DataFrame([["xa", np.nan, np.nan, np.nan]]).astype(dtype)
+    tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+def test_add_frame_mixed_type(dtype):
+    arr = pd.array(["a", "bc", 3, np.nan], dtype=dtype)
+    df = pd.DataFrame([[1, 2, 3.3, 4]])
+
+    result = arr + df
+    expected = pd.DataFrame([["a1", "bc2", "33.3", np.nan]]).astype(dtype)
+    tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    result = df + arr
+    expected = pd.DataFrame([["1a", "2bc", "3.33", np.nan]]).astype(dtype)
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
 

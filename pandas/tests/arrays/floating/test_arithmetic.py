@@ -144,6 +144,7 @@ def test_error_invalid_values(data, all_arithmetic_operators):
             "not implemented",
             "not supported for dtype",
             "Can only string multiply by an integer",
+            "can't multiply sequence by non-int of type 'str'",
         ]
     )
     with pytest.raises(TypeError, match=msg):

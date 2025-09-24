@@ -45,6 +45,7 @@ from pandas.core.dtypes.base import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
@@ -1110,10 +1111,24 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
             result[mask] = self.dtype.na_value
-            result[valid] = op(self._ndarray[valid], other)
-            if isinstance(other, Path):
-                # GH#61940
-                return result
+            try:
+                result[valid] = op(self._ndarray[valid], other)
+                if isinstance(other, Path):
+                    # GH#61940
+                    return result
+            except TypeError:
+                if is_array_like(other):
+                    if is_float_dtype(other.dtype):
+                        # Shorten whole numbers to be ints to match pyarrow behavior
+                        other = [
+                            str(int(x)) if x.is_integer() else str(x) for x in other
+                        ]
+                    else:
+                        other = other.astype(str)
+                    result[valid] = op(self._ndarray[valid], other)
+                else:
+                    raise
+
             return self._from_backing_data(result)
         else:
             # logical
