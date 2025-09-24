@@ -3578,3 +3578,53 @@ def test_timestamp_dtype_matches_to_datetime():
     expected = pd.Series([ts], dtype=dtype1).convert_dtypes(dtype_backend="pyarrow")
 
     tm.assert_series_equal(result, expected)
+
+
+def test_timestamp_vs_dt64_comparison():
+    # GH#60937
+    left = pd.Series(["2016-01-01"], dtype="timestamp[ns][pyarrow]")
+    right = left.astype("datetime64[ns]")
+
+    result = left == right
+    expected = pd.Series([True], dtype="bool[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+    result = right == left
+    tm.assert_series_equal(result, expected)
+
+
+# TODO: reuse assert_invalid_comparison?
+def test_date_vs_timestamp_scalar_comparison():
+    # GH#62157 match non-pyarrow behavior
+    ser = pd.Series(["2016-01-01"], dtype="date32[pyarrow]")
+    ser2 = ser.astype("timestamp[ns][pyarrow]")
+
+    ts = ser2[0]
+    dt = ser[0]
+
+    # date dtype don't match a Timestamp object
+    assert not (ser == ts).any()
+    assert not (ts == ser).any()
+
+    # timestamp dtype doesn't match date object
+    assert not (ser2 == dt).any()
+    assert not (dt == ser2).any()
+
+
+# TODO: reuse assert_invalid_comparison?
+def test_date_vs_timestamp_array_comparison():
+    # GH#62157 match non-pyarrow behavior
+    # GH#
+    ser = pd.Series(["2016-01-01"], dtype="date32[pyarrow]")
+    ser2 = ser.astype("timestamp[ns][pyarrow]")
+    ser3 = ser.astype("datetime64[ns]")
+
+    assert not (ser == ser2).any()
+    assert not (ser2 == ser).any()
+    assert (ser != ser2).all()
+    assert (ser2 != ser).all()
+
+    assert not (ser == ser3).any()
+    assert not (ser3 == ser).any()
+    assert (ser != ser3).all()
+    assert (ser3 != ser).all()
