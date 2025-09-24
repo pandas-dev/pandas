@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from datetime import (
+    date,
+    datetime,
+)
 import functools
 import operator
 from pathlib import Path
@@ -827,6 +831,8 @@ class ArrowExtensionArray(
 
     def _cmp_method(self, other, op) -> ArrowExtensionArray:
         pc_func = ARROW_CMP_FUNCS[op.__name__]
+        ltype = self._pa_array.type
+
         if isinstance(other, (ExtensionArray, np.ndarray, list)):
             try:
                 boxed = self._box_pa(other)
@@ -835,25 +841,41 @@ class ArrowExtensionArray(
                 res_values = [op(x, y) for x, y in zip(self, other)]
                 result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
-                try:
-                    result = pc_func(self._pa_array, boxed)
-                except pa.ArrowNotImplementedError:
+                rtype = boxed.type
+                if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
+                    pa.types.is_timestamp(rtype) and pa.types.is_date(ltype)
+                ):
+                    # GH#62157 match non-pyarrow behavior
                     result = ops.invalid_comparison(self, other, op)
                     result = pa.array(result, type=pa.bool_())
+                else:
+                    try:
+                        result = pc_func(self._pa_array, boxed)
+                    except pa.ArrowNotImplementedError:
+                        result = ops.invalid_comparison(self, other, op)
+                        result = pa.array(result, type=pa.bool_())
+
         elif is_scalar(other):
-            try:
-                result = pc_func(self._pa_array, self._box_pa(other))
-            except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
-                mask = isna(self) | isna(other)
-                valid = ~mask
-                result = np.zeros(len(self), dtype="bool")
-                np_array = np.array(self)
-                try:
-                    result[valid] = op(np_array[valid], other)
-                except TypeError:
-                    result = ops.invalid_comparison(self, other, op)
+            if (isinstance(other, datetime) and pa.types.is_date(ltype)) or (
+                type(other) is date and pa.types.is_timestamp(ltype)
+            ):
+                # GH#62157 match non-pyarrow behavior
+                result = ops.invalid_comparison(self, other, op)
                 result = pa.array(result, type=pa.bool_())
-                result = pc.if_else(valid, result, None)
+            else:
+                try:
+                    result = pc_func(self._pa_array, self._box_pa(other))
+                except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
+                    mask = isna(self) | isna(other)
+                    valid = ~mask
+                    result = np.zeros(len(self), dtype="bool")
+                    np_array = np.array(self)
+                    try:
+                        result[valid] = op(np_array[valid], other)
+                    except TypeError:
+                        result = ops.invalid_comparison(self, other, op)
+                    result = pa.array(result, type=pa.bool_())
+                    result = pc.if_else(valid, result, None)
         else:
             raise NotImplementedError(
                 f"{op.__name__} not implemented for {type(other)}"
