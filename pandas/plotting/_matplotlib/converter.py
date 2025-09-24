@@ -239,7 +239,7 @@ class PeriodConverter(mdates.DateConverter):
 
     @staticmethod
     def _convert_1d(values, freq):
-        valid_types = (str, datetime, Period, pydt.date, pydt.time, np.datetime64)
+        valid_types = (str, datetime, Period, pydt.date, np.datetime64)
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore", "Period with BDay freq is deprecated", category=FutureWarning
@@ -261,7 +261,7 @@ class PeriodConverter(mdates.DateConverter):
                 # https://github.com/pandas-dev/pandas/issues/24304
                 # convert ndarray[period] -> PeriodIndex
                 return PeriodIndex(values, freq=freq).asi8
-            elif isinstance(values, (list, tuple, np.ndarray, Index)):
+            elif isinstance(values, (list, tuple, np.ndarray)):
                 return [_get_datevalue(x, freq) for x in values]
         return values
 
@@ -269,13 +269,9 @@ class PeriodConverter(mdates.DateConverter):
 def _get_datevalue(date, freq):
     if isinstance(date, Period):
         return date.asfreq(freq).ordinal
-    elif isinstance(date, (str, datetime, pydt.date, pydt.time, np.datetime64)):
+    elif isinstance(date, (str, datetime, pydt.date, np.datetime64)):
         return Period(date, freq).ordinal
-    elif (
-        is_integer(date)
-        or is_float(date)
-        or (isinstance(date, (np.ndarray, Index)) and (date.size == 1))
-    ):
+    elif is_integer(date) or is_float(date):
         return date
     elif date is None:
         return None
