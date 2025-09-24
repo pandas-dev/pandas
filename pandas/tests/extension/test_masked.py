@@ -61,21 +61,15 @@ pytestmark = [
 
 
 def make_data():
-    return list(range(1, 9)) + [pd.NA] + list(range(10, 98)) + [pd.NA] + [99, 100]
+    return [1, 2, 3, 4] + [pd.NA] + [10, 11] + [pd.NA] + [99, 100]
 
 
 def make_float_data():
-    return (
-        list(np.arange(0.1, 0.9, 0.1))
-        + [pd.NA]
-        + list(np.arange(1, 9.8, 0.1))
-        + [pd.NA]
-        + [9.9, 10.0]
-    )
+    return [0.1, 0.2, 0.3, 0.4] + [pd.NA] + [1.0, 1.1] + [pd.NA] + [9.9, 10.0]
 
 
 def make_bool_data():
-    return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
+    return [True, False] * 2 + [np.nan] + [True, False] + [np.nan] + [True, False]
 
 
 @pytest.fixture(
@@ -111,8 +105,8 @@ def data(dtype):
 @pytest.fixture
 def data_for_twos(dtype):
     if dtype.kind == "b":
-        return pd.array(np.ones(100), dtype=dtype)
-    return pd.array(np.ones(100) * 2, dtype=dtype)
+        return pd.array(np.ones(10), dtype=dtype)
+    return pd.array(np.ones(10) * 2, dtype=dtype)
 
 
 @pytest.fixture
@@ -168,6 +162,8 @@ def data_for_grouping(dtype):
 
 
 class TestMaskedArrays(base.ExtensionTests):
+    _combine_le_expected_dtype = "boolean"
+
     @pytest.fixture(autouse=True)
     def skip_if_doesnt_support_2d(self, dtype, request):
         # Override the fixture so that we run these tests.
@@ -215,42 +211,14 @@ class TestMaskedArrays(base.ExtensionTests):
         sdtype = tm.get_dtype(obj)
         expected = pointwise_result
 
-        if op_name in ("eq", "ne", "le", "ge", "lt", "gt"):
-            return expected.astype("boolean")
-
-        if sdtype.kind in "iu":
-            if op_name in ("__rtruediv__", "__truediv__", "__div__"):
-                filled = expected.fillna(np.nan)
-                expected = filled.astype("Float64")
-            else:
-                # combine method result in 'biggest' (int64) dtype
-                expected = expected.astype(sdtype)
-        elif sdtype.kind == "b":
+        if sdtype.kind == "b":
             if op_name in (
-                "__floordiv__",
-                "__rfloordiv__",
-                "__pow__",
-                "__rpow__",
                 "__mod__",
                 "__rmod__",
             ):
                 # combine keeps boolean type
                 expected = expected.astype("Int8")
 
-            elif op_name in ("__truediv__", "__rtruediv__"):
-                # combine with bools does not generate the correct result
-                #  (numpy behaviour for div is to regard the bools as numeric)
-                op = self.get_op_from_name(op_name)
-                expected = self._combine(obj.astype(float), other, op)
-                expected = expected.astype("Float64")
-
-            if op_name == "__rpow__":
-                # for rpow, combine does not propagate NaN
-                result = getattr(obj, op_name)(other)
-                expected[result.isna()] = np.nan
-        else:
-            # combine method result in 'biggest' (float64) dtype
-            expected = expected.astype(sdtype)
         return expected
 
     def test_divmod_series_array(self, data, data_for_twos, request):
@@ -262,16 +230,6 @@ class TestMaskedArrays(base.ExtensionTests):
             )
             request.applymarker(mark)
         super().test_divmod_series_array(data, data_for_twos)
-
-    def test_combine_le(self, data_repeated):
-        # TODO: patching self is a bad pattern here
-        orig_data1, orig_data2 = data_repeated(2)
-        if orig_data1.dtype.kind == "b":
-            self._combine_le_expected_dtype = "boolean"
-        else:
-            # TODO: can we make this boolean?
-            self._combine_le_expected_dtype = object
-        super().test_combine_le(data_repeated)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         if op_name in ["any", "all"] and ser.dtype.kind != "b":
@@ -396,3 +354,17 @@ class TestMaskedArrays(base.ExtensionTests):
             )
         )
         tm.assert_series_equal(result, expected)
+
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
+
+@pytest.mark.parametrize(
+    "arr", [pd.array([True, False]), pd.array([1, 2]), pd.array([1.0, 2.0])]
+)
+def test_cast_pointwise_result_all_na_respects_original_dtype(arr):
+    # GH#62344
+    values = [pd.NA, pd.NA]
+    result = arr._cast_pointwise_result(values)
+    assert result.dtype == arr.dtype
+    assert all(x is pd.NA for x in result)

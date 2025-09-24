@@ -10,6 +10,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -50,6 +51,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
+@set_module("pandas")
 def pivot_table(
     data: DataFrame,
     values=None,
@@ -450,7 +452,9 @@ def _add_margins(
     if not values and isinstance(table, ABCSeries):
         # If there are no values and the table is a series, then there is only
         # one column in the data. Compute grand margin and return it.
-        return table._append(table._constructor({key: grand_margin[margins_name]}))
+        return table._append_internal(
+            table._constructor({key: grand_margin[margins_name]})
+        )
 
     elif values:
         marginal_result_set = _generate_marginal_results(
@@ -502,7 +506,7 @@ def _add_margins(
         margin_dummy[cols] = margin_dummy[cols].apply(
             maybe_downcast_to_dtype, args=(dtype,)
         )
-    result = result._append(margin_dummy)
+    result = concat([result, margin_dummy])
     result.index.names = row_names
 
     return result
@@ -697,6 +701,7 @@ def _convert_by(by):
     return by
 
 
+@set_module("pandas")
 def pivot(
     data: DataFrame,
     *,
@@ -915,6 +920,7 @@ def pivot(
     return result
 
 
+@set_module("pandas")
 def crosstab(
     index,
     columns,
@@ -1185,7 +1191,7 @@ def _normalize(
 
         elif normalize == "index":
             index_margin = index_margin / index_margin.sum()
-            table = table._append(index_margin, ignore_index=True)
+            table = table._append_internal(index_margin, ignore_index=True)
             table = table.fillna(0)
             table.index = table_index
 
@@ -1194,7 +1200,7 @@ def _normalize(
             index_margin = index_margin / index_margin.sum()
             index_margin.loc[margins_name] = 1
             table = concat([table, column_margin], axis=1)
-            table = table._append(index_margin, ignore_index=True)
+            table = table._append_internal(index_margin, ignore_index=True)
 
             table = table.fillna(0)
             table.index = table_index

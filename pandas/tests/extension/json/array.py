@@ -90,6 +90,13 @@ class JSONArray(ExtensionArray):
     def _from_factorized(cls, values, original):
         return cls([UserDict(x) for x in values if x != ()])
 
+    def _cast_pointwise_result(self, values):
+        result = super()._cast_pointwise_result(values)
+        try:
+            return type(self)._from_sequence(result, dtype=self.dtype)
+        except (ValueError, TypeError):
+            return result
+
     def __getitem__(self, item):
         if isinstance(item, tuple):
             item = unpack_tuple_and_ellipses(item)
@@ -248,7 +255,7 @@ class JSONArray(ExtensionArray):
         return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
 
 
-def make_data():
+def make_data(n: int):
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
     rng = np.random.default_rng(2)
     return [
@@ -258,5 +265,5 @@ def make_data():
                 for _ in range(rng.integers(0, 10))
             ]
         )
-        for _ in range(100)
+        for _ in range(n)
     ]

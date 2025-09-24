@@ -45,7 +45,12 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import TypeAlias
+
     from pandas import Index
+
+    _CubicBC: TypeAlias = Literal["not-a-knot", "clamped", "natural", "periodic"]
 
 
 def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):
@@ -544,7 +549,7 @@ def _interpolate_scipy_wrapper(
     new_x = np.asarray(new_x)
 
     # ignores some kwargs that could be passed along.
-    alt_methods = {
+    alt_methods: dict[str, Callable[..., np.ndarray]] = {
         "barycentric": interpolate.barycentric_interpolate,
         "krogh": interpolate.krogh_interpolate,
         "from_derivatives": _from_derivatives,
@@ -562,6 +567,7 @@ def _interpolate_scipy_wrapper(
         "cubic",
         "polynomial",
     ]
+    terp: Callable[..., np.ndarray] | None
     if method in interp1d_methods:
         if method == "polynomial":
             kind = order
@@ -652,7 +658,7 @@ def _akima_interpolate(
     xi: np.ndarray,
     yi: np.ndarray,
     x: np.ndarray,
-    der: int | list[int] | None = 0,
+    der: int = 0,
     axis: AxisInt = 0,
 ):
     """
@@ -673,10 +679,8 @@ def _akima_interpolate(
     x : np.ndarray
         Of length M.
     der : int, optional
-        How many derivatives to extract; None for all potentially
-        nonzero derivatives (that is a number equal to the number
-        of points), or a list of derivatives to extract. This number
-        includes the function value as 0th derivative.
+        How many derivatives to extract. This number includes the function
+        value as 0th derivative.
     axis : int, optional
         Axis in the yi array corresponding to the x-coordinate values.
 
@@ -702,9 +706,9 @@ def _cubicspline_interpolate(
     yi: np.ndarray,
     x: np.ndarray,
     axis: AxisInt = 0,
-    bc_type: str | tuple[Any, Any] = "not-a-knot",
-    extrapolate=None,
-):
+    bc_type: _CubicBC | tuple[Any, Any] = "not-a-knot",
+    extrapolate: Literal["periodic"] | bool | None = None,
+) -> np.ndarray:
     """
     Convenience function for cubic spline data interpolator.
 

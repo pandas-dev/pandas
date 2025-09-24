@@ -1494,7 +1494,7 @@ def test_idxmin_idxmax_transform_args(how, skipna, numeric_only):
         expected = gb.transform(how, skipna=skipna, numeric_only=numeric_only)
         tm.assert_frame_equal(result, expected)
     else:
-        msg = f"DataFrameGroupBy.{how} with skipna=False encountered an NA value"
+        msg = f"{how} with skipna=False encountered an NA value"
         with pytest.raises(ValueError, match=msg):
             gb.transform(how, skipna, numeric_only)
 

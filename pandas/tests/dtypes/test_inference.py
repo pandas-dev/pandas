@@ -35,6 +35,7 @@ from pandas._libs import (
     ops as libops,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.cast import find_result_type
@@ -1676,7 +1677,7 @@ class TestTypeInference:
         result = lib.infer_dtype(Series(arr), skipna=True)
         assert result == "categorical"
 
-        arr = Categorical(list("abc"), categories=["cegfab"], ordered=True)
+        arr = Categorical([None, None, None], categories=["cegfab"], ordered=True)
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "categorical"
 
@@ -1858,7 +1859,7 @@ class TestNumberScalar:
         assert is_datetime64_any_dtype(ts)
         assert is_datetime64_any_dtype(tsa)
 
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert not is_datetime64tz_dtype("datetime64")
             assert not is_datetime64tz_dtype("datetime64[ns]")
             assert not is_datetime64tz_dtype(ts)
