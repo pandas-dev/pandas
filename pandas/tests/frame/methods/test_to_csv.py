@@ -415,7 +415,7 @@ class TestDataFrameToCSV:
 
     @pytest.mark.slow
     @pytest.mark.parametrize("nrows", [10, 98, 99, 100, 101, 102])
-    def test_to_csv_dup_cols(self, nrows):
+    def test_to_csv_dup_cols(self, nrows, temp_file):
         df = DataFrame(
             np.ones((nrows, 3)),
             index=Index([f"i-{i}" for i in range(nrows)], name="a"),
