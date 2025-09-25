@@ -10503,6 +10503,13 @@ class DataFrame(NDFrame, OpsMixin):
         from pandas.core.apply import frame_apply
 
         axis = self._get_axis_number(axis)
+        if self.empty and callable(func):
+            if axis == 1:
+                return Series([None] * len(self.index), index=self.index, dtype=object)
+            else:
+                return Series(
+                    [None] * len(self.columns), index=self.columns, dtype=object
+                )
 
         op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
         result = op.agg()
