@@ -151,6 +151,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return cls(values, mask)
 
     def _cast_pointwise_result(self, values) -> ArrayLike:
+        if isna(values).all():
+            return type(self)._from_sequence(values, dtype=self.dtype)
         values = np.asarray(values, dtype=object)
         result = lib.maybe_convert_objects(values, convert_to_nullable_dtype=True)
         lkind = self.dtype.kind
