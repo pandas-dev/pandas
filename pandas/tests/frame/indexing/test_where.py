@@ -698,22 +698,30 @@ class TestDataFrameIndexingWhere:
         tm.assert_equal(result, expected)
 
     def test_where_ea_other(self):
-        # GH#38729/GH#38742
+        # GH#38729/GH#38742, GH#62038
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         arr = pd.array([7, pd.NA, 9])
         ser = Series(arr)
         mask = np.ones(df.shape, dtype=bool)
         mask[1, :] = False
 
-        # TODO: ideally we would get Int64 instead of object
-        result = df.where(mask, ser, axis=0)
-        expected = DataFrame({"A": [1, np.nan, 3], "B": [4, np.nan, 6]})
-        tm.assert_frame_equal(result, expected)
+        result1 = df.where(mask, ser, axis=0)
+        expected1 = DataFrame({"A": [1, pd.NA, 3], "B": [4, pd.NA, 6]}, dtype="Int64")
+        tm.assert_frame_equal(result1, expected1)
 
         ser2 = Series(arr[:2], index=["A", "B"])
-        expected = DataFrame({"A": [1, 7, 3], "B": [4, np.nan, 6]})
-        result = df.where(mask, ser2, axis=1)
-        tm.assert_frame_equal(result, expected)
+        expected2 = DataFrame({"A": [1, 7, 3], "B": [4, pd.NA, 6]})
+        expected2["B"] = expected2["B"].astype("Int64")
+        result2 = df.where(mask, ser2, axis=1)
+        tm.assert_frame_equal(result2, expected2)
+
+        result3 = df.copy()
+        result3.mask(mask, ser, axis=0, inplace=True)
+        tm.assert_frame_equal(result3, expected1)
+
+        result4 = df.copy()
+        result4.mask(mask, ser2, axis=1, inplace=True)
+        tm.assert_frame_equal(result4, expected2)
 
     def test_where_interval_noop(self):
         # GH#44181
@@ -942,6 +950,7 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
             obj.mask(mask, null)
 
 
+@pytest.mark.slow
 @given(data=OPTIONAL_ONE_OF_ALL)
 def test_where_inplace_casting(data):
     # GH 22051

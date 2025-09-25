@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -202,7 +204,7 @@ class TestCatAccessor:
                 warn_cls.append(UserWarning)
             elif func == "to_pytimedelta":
                 # GH 57463
-                warn_cls.append(FutureWarning)
+                warn_cls.append(Pandas4Warning)
             if warn_cls:
                 warn_cls = tuple(warn_cls)
             else:

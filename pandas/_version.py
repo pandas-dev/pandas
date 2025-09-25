@@ -581,7 +581,7 @@ def render_git_describe(pieces):
 def render_git_describe_long(pieces):
     """TAG-DISTANCE-gHEX[-dirty].
 
-    Like 'git describe --tags --dirty --always -long'.
+    Like 'git describe --tags --dirty --always --long'.
     The distance/hash is unconditional.
 
     Exceptions:
@@ -640,7 +640,7 @@ def render(pieces, style):
     }
 
 
-def get_versions():
+def get_versions() -> dict:
     """Get version information or return default if unable to do so."""
     # I am in _version.py, which lives at ROOT/VERSIONFILE_SOURCE. If we have
     # __file__, we can work backwards from there to the root. Some

@@ -15,6 +15,7 @@ import warnings
 import numpy as np
 
 from pandas._libs.internals import BlockPlacement
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
@@ -102,7 +103,7 @@ def make_block(
         "make_block is deprecated and will be removed in a future version. "
         "Use pd.api.internals.create_dataframe_from_blocks or "
         "(recommended) higher-level public APIs instead.",
-        DeprecationWarning,
+        Pandas4Warning,
         stacklevel=2,
     )
 
@@ -136,7 +137,7 @@ def make_block(
     if not isinstance(placement, BlockPlacement):
         placement = BlockPlacement(placement)
 
-    ndim = maybe_infer_ndim(values, placement, ndim)
+    ndim = _maybe_infer_ndim(values, placement, ndim)
     if isinstance(values.dtype, (PeriodDtype, DatetimeTZDtype)):
         # GH#41168 ensure we can pass 1D dt64tz values
         # More generally, any EA dtype that isn't is_1d_only_ea_dtype
@@ -148,7 +149,7 @@ def make_block(
     return klass(values, ndim=ndim, placement=placement)
 
 
-def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:
+def _maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:
     """
     If `ndim` is not provided, infer it from placement and values.
     """
@@ -162,3 +163,15 @@ def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int
         else:
             ndim = values.ndim
     return ndim
+
+
+def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:
+    """
+    If `ndim` is not provided, infer it from placement and values.
+    """
+    warnings.warn(
+        "maybe_infer_ndim is deprecated and will be removed in a future version.",
+        Pandas4Warning,
+        stacklevel=2,
+    )
+    return _maybe_infer_ndim(values, placement, ndim)

@@ -585,6 +585,8 @@ _BOOL_OP_NOT_ALLOWED = {
     roperator.rfloordiv,
     operator.pow,
     roperator.rpow,
+    divmod,
+    roperator.rdivmod,
 }
 
 

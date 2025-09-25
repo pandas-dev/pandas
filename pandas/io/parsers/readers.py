@@ -19,7 +19,10 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Self,
     TypedDict,
+    Unpack,
+    cast,
     overload,
 )
 import warnings
@@ -89,9 +92,7 @@ if TYPE_CHECKING:
         HashableT,
         IndexLabel,
         ReadCsvBuffer,
-        Self,
         StorageOptions,
-        Unpack,
         UsecolsArgType,
     )
 
@@ -141,6 +142,7 @@ if TYPE_CHECKING:
         float_precision: Literal["high", "legacy", "round_trip"] | None
         storage_options: StorageOptions | None
         dtype_backend: DtypeBackend | lib.NoDefault
+
 else:
     _read_shared = dict
 
@@ -796,10 +798,9 @@ def read_csv(
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values: Hashable
-    | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    na_values: (
+        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+    ) = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     skip_blank_lines: bool = True,
@@ -932,10 +933,9 @@ def read_table(
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values: Hashable
-    | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
-    | None = None,
+    na_values: (
+        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+    ) = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     skip_blank_lines: bool = True,
@@ -1819,7 +1819,7 @@ def _refine_defaults_read(
     return kwds
 
 
-def _extract_dialect(kwds: dict[str, Any]) -> csv.Dialect | None:
+def _extract_dialect(kwds: dict[str, str | csv.Dialect]) -> csv.Dialect | None:
     """
     Extract concrete csv dialect instance.
 
@@ -1831,12 +1831,16 @@ def _extract_dialect(kwds: dict[str, Any]) -> csv.Dialect | None:
         return None
 
     dialect = kwds["dialect"]
-    if dialect in csv.list_dialects():
-        dialect = csv.get_dialect(dialect)
+    if isinstance(dialect, str) and dialect in csv.list_dialects():
+        # get_dialect is typed to return a `_csv.Dialect` for some reason in typeshed
+        tdialect = cast(csv.Dialect, csv.get_dialect(dialect))
+        _validate_dialect(tdialect)
 
-    _validate_dialect(dialect)
+    else:
+        _validate_dialect(dialect)
+        tdialect = cast(csv.Dialect, dialect)
 
-    return dialect
+    return tdialect
 
 
 MANDATORY_DIALECT_ATTRS = (
@@ -1849,7 +1853,7 @@ MANDATORY_DIALECT_ATTRS = (
 )
 
 
-def _validate_dialect(dialect: csv.Dialect) -> None:
+def _validate_dialect(dialect: csv.Dialect | str) -> None:
     """
     Validate csv dialect instance.
 

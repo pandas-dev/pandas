@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.2
+    rev: v0.12.11
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -32,7 +32,7 @@ repos:
         exclude: ^pandas/tests
         args: [--select, "ANN001,ANN2", --fix-only, --exit-non-zero-on-fix]
     -   id: ruff-format
-        exclude: ^scripts|^pandas/tests/frame/test_query_eval.py
+        exclude: ^pandas/tests/frame/test_query_eval.py
 -   repo: https://github.com/jendrikseipp/vulture
     rev: v2.14
     hooks:
@@ -45,14 +45,13 @@ repos:
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
-        additional_dependencies: [tomli]
 -   repo: https://github.com/MarcoGorelli/cython-lint
     rev: v0.16.7
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
     -   id: check-case-conflict
     -   id: check-toml
@@ -65,8 +64,6 @@ repos:
         args: [--fix=auto]
         exclude: ^pandas/tests/io/parser/data/utf16_ex.txt$
     -   id: fix-byte-order-marker
-    -   id: fix-encoding-pragma
-        args: [--remove]
     -   id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
 -   repo: https://github.com/PyCQA/isort
@@ -77,7 +74,7 @@ repos:
     rev: v3.20.0
     hooks:
     -   id: pyupgrade
-        args: [--py310-plus]
+        args: [--py311-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
@@ -95,19 +92,19 @@ repos:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v20.1.7
+    rev: v21.1.0
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: [-i]
       types_or: [c, c++]
 -   repo: https://github.com/trim21/pre-commit-mirror-meson
-    rev: v1.8.2
+    rev: v1.9.0
     hooks:
     - id: meson-fmt
       args: ['--inplace']
 -   repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
+    rev: v0.11.0.1
     hooks:
     -   id: shellcheck
         args: ["--severity=warning"]
@@ -122,7 +119,7 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.383
+        - pyright@1.1.404
     -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
@@ -235,7 +232,7 @@ repos:
         entry: python scripts/generate_pip_deps_from_conda.py
         files: ^(environment.yml|requirements-dev.txt)$
         pass_filenames: false
-        additional_dependencies: [tomli, pyyaml]
+        additional_dependencies: [pyyaml]
     -   id: title-capitalization
         name: Validate correct capitalization among titles in documentation
         entry: python scripts/validate_rst_title_capitalization.py
@@ -267,6 +264,11 @@ repos:
         language: python
         entry: python scripts/validate_unwanted_patterns.py --validation-type="nodefault_used_not_only_for_typing"
         types: [python]
+    -   id: unwanted-patterns-doesnt-use-pandas-warnings
+        name: Check that warning classes for deprecations use pandas' warning classes
+        language: python
+        entry: python scripts/validate_unwanted_patterns.py --validation-type="doesnt_use_pandas_warnings"
+        types: [ python ]
     -   id: no-return-exception
         name: Use raise instead of return for exceptions
         language: pygrep
@@ -290,7 +292,7 @@ repos:
         entry: python -m scripts.validate_min_versions_in_sync
         language: python
         files: ^(ci/deps/actions-.*-minimum_versions\.yaml|pandas/compat/_optional\.py)$
-        additional_dependencies: [tomli, pyyaml]
+        additional_dependencies: [pyyaml]
         pass_filenames: false
     -   id: validate-errors-locations
         name: Validate errors locations

@@ -10,6 +10,8 @@ import operator
 import textwrap
 from typing import (
     TYPE_CHECKING,
+    Concatenate,
+    Self,
     overload,
 )
 
@@ -66,7 +68,6 @@ if TYPE_CHECKING:
         Any,
         Axis,
         AxisInt,
-        Concatenate,
         ExcelWriterMergeCells,
         FilePath,
         IndexLabel,
@@ -75,7 +76,6 @@ if TYPE_CHECKING:
         P,
         QuantileInterpolation,
         Scalar,
-        Self,
         StorageOptions,
         T,
         WriteBuffer,
@@ -3786,7 +3786,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         MyStyler : subclass of Styler
-            Has the correct ``env``,``template_html``, ``template_html_table`` and
+            Has the correct ``env``, ``template_html``, ``template_html_table`` and
             ``template_html_style`` class attributes set.
 
         See Also

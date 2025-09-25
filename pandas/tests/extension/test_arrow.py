@@ -35,17 +35,17 @@ import pytest
 from pandas._libs import lib
 from pandas._libs.tslibs import timezones
 from pandas.compat import (
-    PY311,
     PY312,
     is_ci_environment,
     is_platform_windows,
-    pa_version_under13p0,
     pa_version_under14p0,
     pa_version_under19p0,
     pa_version_under20p0,
     pa_version_under21p0,
 )
+from pandas.errors import Pandas4Warning
 
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     CategoricalDtypeType,
@@ -93,57 +93,57 @@ def dtype(request):
 def data(dtype):
     pa_dtype = dtype.pyarrow_dtype
     if pa.types.is_boolean(pa_dtype):
-        data = [True, False] * 4 + [None] + [True, False] * 44 + [None] + [True, False]
+        data = [True, False] * 2 + [None] + [True, False] + [None] + [True, False]
     elif pa.types.is_floating(pa_dtype):
-        data = [1.0, 0.0] * 4 + [None] + [-2.0, -1.0] * 44 + [None] + [0.5, 99.5]
+        data = [1.0, 0.0] * 2 + [None] + [-2.0, -1.0] + [None] + [0.5, 99.5]
     elif pa.types.is_signed_integer(pa_dtype):
-        data = [1, 0] * 4 + [None] + [-2, -1] * 44 + [None] + [1, 99]
+        data = [1, 0] * 2 + [None] + [-2, -1] + [None] + [1, 99]
     elif pa.types.is_unsigned_integer(pa_dtype):
-        data = [1, 0] * 4 + [None] + [2, 1] * 44 + [None] + [1, 99]
+        data = [1, 0] * 2 + [None] + [2, 1] + [None] + [1, 99]
     elif pa.types.is_decimal(pa_dtype):
         data = (
-            [Decimal("1"), Decimal("0.0")] * 4
+            [Decimal("1"), Decimal("0.0")] * 2
             + [None]
-            + [Decimal("-2.0"), Decimal("-1.0")] * 44
+            + [Decimal("-2.0"), Decimal("-1.0")]
             + [None]
             + [Decimal("0.5"), Decimal("33.123")]
         )
     elif pa.types.is_date(pa_dtype):
         data = (
-            [date(2022, 1, 1), date(1999, 12, 31)] * 4
+            [date(2022, 1, 1), date(1999, 12, 31)] * 2
             + [None]
-            + [date(2022, 1, 1), date(2022, 1, 1)] * 44
+            + [date(2022, 1, 1), date(2022, 1, 1)]
             + [None]
             + [date(1999, 12, 31), date(1999, 12, 31)]
         )
     elif pa.types.is_timestamp(pa_dtype):
         data = (
-            [datetime(2020, 1, 1, 1, 1, 1, 1), datetime(1999, 1, 1, 1, 1, 1, 1)] * 4
+            [datetime(2020, 1, 1, 1, 1, 1, 1), datetime(1999, 1, 1, 1, 1, 1, 1)] * 2
             + [None]
-            + [datetime(2020, 1, 1, 1), datetime(1999, 1, 1, 1)] * 44
+            + [datetime(2020, 1, 1, 1), datetime(1999, 1, 1, 1)]
             + [None]
             + [datetime(2020, 1, 1), datetime(1999, 1, 1)]
         )
     elif pa.types.is_duration(pa_dtype):
         data = (
-            [timedelta(1), timedelta(1, 1)] * 4
+            [timedelta(1), timedelta(1, 1)] * 2
             + [None]
-            + [timedelta(-1), timedelta(0)] * 44
+            + [timedelta(-1), timedelta(0)]
             + [None]
             + [timedelta(-10), timedelta(10)]
         )
     elif pa.types.is_time(pa_dtype):
         data = (
-            [time(12, 0), time(0, 12)] * 4
+            [time(12, 0), time(0, 12)] * 2
             + [None]
-            + [time(0, 0), time(1, 1)] * 44
+            + [time(0, 0), time(1, 1)]
             + [None]
             + [time(0, 5), time(5, 0)]
         )
     elif pa.types.is_string(pa_dtype):
-        data = ["a", "b"] * 4 + [None] + ["1", "2"] * 44 + [None] + ["!", ">"]
+        data = ["a", "b"] * 2 + [None] + ["1", "2"] + [None] + ["!", ">"]
     elif pa.types.is_binary(pa_dtype):
-        data = [b"a", b"b"] * 4 + [None] + [b"1", b"2"] * 44 + [None] + [b"!", b">"]
+        data = [b"a", b"b"] * 2 + [None] + [b"1", b"2"] + [None] + [b"!", b">"]
     else:
         raise NotImplementedError
     return pd.array(data, dtype=dtype)
@@ -264,13 +264,33 @@ def data_for_twos(data):
         or pa.types.is_decimal(pa_dtype)
         or pa.types.is_duration(pa_dtype)
     ):
-        return pd.array([2] * 100, dtype=data.dtype)
+        return pd.array([2] * 10, dtype=data.dtype)
     # tests will be xfailed where 2 is not a valid scalar for pa_dtype
     return data
     # TODO: skip otherwise?
 
 
 class TestArrowArray(base.ExtensionTests):
+    def _construct_for_combine_add(self, left, right):
+        dtype = left.dtype
+
+        # in a couple cases, addition is not dtype-preserving
+        if dtype == "bool[pyarrow]":
+            dtype = pandas_dtype("int64[pyarrow]")
+        elif dtype == "int8[pyarrow]" and isinstance(right, type(left)):
+            dtype = pandas_dtype("int64[pyarrow]")
+
+        if isinstance(right, type(left)):
+            return left._from_sequence(
+                [a + b for (a, b) in zip(list(left), list(right))],
+                dtype=dtype,
+            )
+        else:
+            return left._from_sequence(
+                [a + right for a in list(left)],
+                dtype=dtype,
+            )
+
     def test_compare_scalar(self, data, comparison_op):
         ser = pd.Series(data)
         self._compare_other(ser, data, comparison_op, data[0])
@@ -344,13 +364,7 @@ class TestArrowArray(base.ExtensionTests):
 
     def test_from_sequence_of_strings_pa_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_time64(pa_dtype) and pa_dtype.equals("time64[ns]") and not PY311:
-            request.applymarker(
-                pytest.mark.xfail(
-                    reason="Nanosecond time parsing not supported.",
-                )
-            )
-        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None:
             _require_timezone_database(request)
 
         pa_array = data._pa_array.cast(pa.string())
@@ -417,20 +431,7 @@ class TestArrowArray(base.ExtensionTests):
                 data, all_numeric_accumulations, skipna
             )
 
-        if pa_version_under13p0 and all_numeric_accumulations != "cumsum":
-            # xfailing takes a long time to run because pytest
-            # renders the exception messages even when not showing them
-            opt = request.config.option
-            if opt.markexpr and "not slow" in opt.markexpr:
-                pytest.skip(
-                    f"{all_numeric_accumulations} not implemented for pyarrow < 9"
-                )
-            mark = pytest.mark.xfail(
-                reason=f"{all_numeric_accumulations} not implemented for pyarrow < 9"
-            )
-            request.applymarker(mark)
-
-        elif all_numeric_accumulations == "cumsum" and (
+        if all_numeric_accumulations == "cumsum" and (
             pa.types.is_boolean(pa_type) or pa.types.is_decimal(pa_type)
         ):
             request.applymarker(
@@ -792,6 +793,8 @@ class TestArrowArray(base.ExtensionTests):
 
         return tm.get_op_from_name(op_name)
 
+    # TODO: use EA._cast_pointwise_result, same with other test files that
+    #  override this
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         # BaseOpsUtil._combine can upcast expected dtype
         # (because it generates expected on python scalars)
@@ -801,16 +804,28 @@ class TestArrowArray(base.ExtensionTests):
         if op_name in ["eq", "ne", "lt", "le", "gt", "ge"]:
             return pointwise_result.astype("boolean[pyarrow]")
 
+        original_dtype = tm.get_dtype(expected)
+
         was_frame = False
         if isinstance(expected, pd.DataFrame):
             was_frame = True
             expected_data = expected.iloc[:, 0]
-            original_dtype = obj.iloc[:, 0].dtype
         else:
             expected_data = expected
-            original_dtype = obj.dtype
 
-        orig_pa_type = original_dtype.pyarrow_dtype
+        # the pointwise method will have retained our original dtype, while
+        #  the op(ser, other) version will have cast to 64bit
+        if type(other) is int and op_name not in ["__floordiv__"]:
+            if original_dtype.kind == "f":
+                return expected.astype("float64[pyarrow]")
+            else:
+                return expected.astype("int64[pyarrow]")
+        elif type(other) is float:
+            return expected.astype("float64[pyarrow]")
+
+        # error: Item "ExtensionDtype" of "dtype[Any] | ExtensionDtype" has
+        #  no attribute "pyarrow_dtype"
+        orig_pa_type = original_dtype.pyarrow_dtype  # type: ignore[union-attr]
         if not was_frame and isinstance(other, pd.Series):
             # i.e. test_arith_series_with_array
             if not (
@@ -840,29 +855,7 @@ class TestArrowArray(base.ExtensionTests):
 
         pa_expected = pa.array(expected_data._values)
 
-        if pa.types.is_duration(pa_expected.type):
-            if pa.types.is_date(orig_pa_type):
-                if pa.types.is_date64(orig_pa_type):
-                    # TODO: why is this different vs date32?
-                    unit = "ms"
-                else:
-                    unit = "s"
-            else:
-                # pyarrow sees sequence of datetime/timedelta objects and defaults
-                #  to "us" but the non-pointwise op retains unit
-                # timestamp or duration
-                unit = orig_pa_type.unit
-                if type(other) in [datetime, timedelta] and unit in ["s", "ms"]:
-                    # pydatetime/pytimedelta objects have microsecond reso, so we
-                    #  take the higher reso of the original and microsecond. Note
-                    #  this matches what we would do with DatetimeArray/TimedeltaArray
-                    unit = "us"
-
-            pa_expected = pa_expected.cast(f"duration[{unit}]")
-
-        elif pa.types.is_decimal(pa_expected.type) and pa.types.is_decimal(
-            orig_pa_type
-        ):
+        if pa.types.is_decimal(pa_expected.type) and pa.types.is_decimal(orig_pa_type):
             # decimal precision can resize in the result type depending on data
             # just compare the float values
             alt = getattr(obj, op_name)(other)
@@ -1073,6 +1066,15 @@ class TestArrowArray(base.ExtensionTests):
             exp = [True, True, None]
         expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
         tm.assert_series_equal(result, expected)
+
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
+        pa_dtype = data.dtype.pyarrow_dtype
+        if pa.types.is_date(pa_dtype):
+            mark = pytest.mark.xfail(
+                reason="GH#62343 incorrectly casts to timestamp[ms][pyarrow]"
+            )
+            request.applymarker(mark)
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
 
 
 class TestLogicalOps:
@@ -1868,23 +1870,28 @@ def test_str_match(pat, case, na, exp):
 
 @pytest.mark.parametrize(
     "pat, case, na, exp",
+    # Note: keep cases in sync with
+    # pandas/tests/strings/test_find_replace.py::test_str_fullmatch_extra_cases
     [
-        ["abc", False, None, [True, True, False, None]],
+        ["abc", False, None, [True, False, False, None]],
         ["Abc", True, None, [False, False, False, None]],
         ["bc", True, None, [False, False, False, None]],
-        ["ab", False, None, [True, True, False, None]],
-        ["a[a-z]{2}", False, None, [True, True, False, None]],
+        ["ab", False, None, [False, False, False, None]],
+        ["a[a-z]{2}", False, None, [True, False, False, None]],
         ["A[a-z]{1}", True, None, [False, False, False, None]],
         # GH Issue: #56652
         ["abc$", False, None, [True, False, False, None]],
         ["abc\\$", False, None, [False, True, False, None]],
         ["Abc$", True, None, [False, False, False, None]],
         ["Abc\\$", True, None, [False, False, False, None]],
+        # https://github.com/pandas-dev/pandas/issues/61072
+        ["(abc)|(abx)", True, None, [True, False, False, None]],
+        ["((abc)|(abx))", True, None, [True, False, False, None]],
     ],
 )
 def test_str_fullmatch(pat, case, na, exp):
     ser = pd.Series(["abc", "abc$", "$abc", None], dtype=ArrowDtype(pa.string()))
-    result = ser.str.match(pat, case=case, na=na)
+    result = ser.str.fullmatch(pat, case=case, na=na)
     expected = pd.Series(exp, dtype=ArrowDtype(pa.bool_()))
     tm.assert_series_equal(result, expected)
 
@@ -1936,9 +1943,6 @@ def test_str_find_large_start():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    pa_version_under13p0, reason="https://github.com/apache/arrow/issues/36311"
-)
 @pytest.mark.parametrize("start", [-15, -3, 0, 1, 15, None])
 @pytest.mark.parametrize("end", [-15, -1, 0, 3, 15, None])
 @pytest.mark.parametrize("sub", ["", "az", "abce", "a", "caa"])
@@ -2686,8 +2690,9 @@ def test_dt_tz_localize_unsupported_tz_options():
         ser.dt.tz_localize("UTC", nonexistent="NaT")
 
 
-@pytest.mark.xfail(reason="Converts to UTC before localizing GH#61780")
-def test_dt_tz_localize_none():
+def test_dt_tz_localize_none(request):
+    _require_timezone_database(request)
+
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
         dtype=ArrowDtype(pa.timestamp("ns", tz="US/Pacific")),
@@ -2840,14 +2845,14 @@ def test_dt_to_pytimedelta():
     ser = pd.Series(data, dtype=ArrowDtype(pa.duration("ns")))
 
     msg = "The behavior of ArrowTemporalProperties.to_pytimedelta is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = ser.dt.to_pytimedelta()
     expected = np.array(data, dtype=object)
     tm.assert_numpy_array_equal(result, expected)
     assert all(type(res) is timedelta for res in result)
 
     msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
         expected = ser.astype("timedelta64[ns]").dt.to_pytimedelta()
     tm.assert_numpy_array_equal(result, expected)
 
@@ -2868,7 +2873,7 @@ def test_dt_components():
     )
     result = ser.dt.components
     expected = pd.DataFrame(
-        [[1, 0, 0, 2, 0, 3, 4], [None, None, None, None, None, None, None]],
+        [[1, 0, 0, 2, 0, 3, 4], [pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA]],
         columns=[
             "days",
             "hours",
@@ -2893,7 +2898,10 @@ def test_dt_components_large_values():
     )
     result = ser.dt.components
     expected = pd.DataFrame(
-        [[365, 23, 59, 59, 999, 0, 0], [None, None, None, None, None, None, None]],
+        [
+            [365, 23, 59, 59, 999, 0, 0],
+            [pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA, pd.NA],
+        ],
         columns=[
             "days",
             "hours",
@@ -3322,9 +3330,9 @@ def test_factorize_chunked_dictionary():
     )
     ser = pd.Series(ArrowExtensionArray(pa_array))
     res_indices, res_uniques = ser.factorize()
-    exp_indicies = np.array([0, 1], dtype=np.intp)
+    exp_indices = np.array([0, 1], dtype=np.intp)
     exp_uniques = pd.Index(ArrowExtensionArray(pa_array.combine_chunks()))
-    tm.assert_numpy_array_equal(res_indices, exp_indicies)
+    tm.assert_numpy_array_equal(res_indices, exp_indices)
     tm.assert_index_equal(res_uniques, exp_uniques)
 
 
@@ -3461,9 +3469,6 @@ def test_string_to_datetime_parsing_cast():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(
-    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
-)
 def test_interpolate_not_numeric(data):
     if not data.dtype._is_numeric:
         ser = pd.Series(data)
@@ -3472,9 +3477,6 @@ def test_interpolate_not_numeric(data):
             pd.Series(data).interpolate()
 
 
-@pytest.mark.skipif(
-    pa_version_under13p0, reason="pairwise_diff_checked not implemented in pyarrow"
-)
 @pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
 def test_interpolate_linear(dtype):
     ser = pd.Series([None, 1, 2, None, 4, None], dtype=dtype)
@@ -3576,3 +3578,53 @@ def test_timestamp_dtype_matches_to_datetime():
     expected = pd.Series([ts], dtype=dtype1).convert_dtypes(dtype_backend="pyarrow")
 
     tm.assert_series_equal(result, expected)
+
+
+def test_timestamp_vs_dt64_comparison():
+    # GH#60937
+    left = pd.Series(["2016-01-01"], dtype="timestamp[ns][pyarrow]")
+    right = left.astype("datetime64[ns]")
+
+    result = left == right
+    expected = pd.Series([True], dtype="bool[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+    result = right == left
+    tm.assert_series_equal(result, expected)
+
+
+# TODO: reuse assert_invalid_comparison?
+def test_date_vs_timestamp_scalar_comparison():
+    # GH#62157 match non-pyarrow behavior
+    ser = pd.Series(["2016-01-01"], dtype="date32[pyarrow]")
+    ser2 = ser.astype("timestamp[ns][pyarrow]")
+
+    ts = ser2[0]
+    dt = ser[0]
+
+    # date dtype don't match a Timestamp object
+    assert not (ser == ts).any()
+    assert not (ts == ser).any()
+
+    # timestamp dtype doesn't match date object
+    assert not (ser2 == dt).any()
+    assert not (dt == ser2).any()
+
+
+# TODO: reuse assert_invalid_comparison?
+def test_date_vs_timestamp_array_comparison():
+    # GH#62157 match non-pyarrow behavior
+    # GH#
+    ser = pd.Series(["2016-01-01"], dtype="date32[pyarrow]")
+    ser2 = ser.astype("timestamp[ns][pyarrow]")
+    ser3 = ser.astype("datetime64[ns]")
+
+    assert not (ser == ser2).any()
+    assert not (ser2 == ser).any()
+    assert (ser != ser2).all()
+    assert (ser2 != ser).all()
+
+    assert not (ser == ser3).any()
+    assert not (ser3 == ser).any()
+    assert (ser != ser3).all()
+    assert (ser3 != ser).all()

@@ -16,12 +16,13 @@ from datetime import (
     tzinfo,
 )
 from os import PathLike
-import sys
 from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    ParamSpec,
     Protocol,
+    SupportsIndex,
     TypeAlias,
     TypeVar,
     Union,
@@ -85,28 +86,8 @@ if TYPE_CHECKING:
     # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
     NumpySorter: TypeAlias = npt._ArrayLikeInt_co | None  # type: ignore[name-defined]
 
-    from typing import (
-        ParamSpec,
-        SupportsIndex,
-    )
-    from typing import Concatenate  # pyright: ignore[reportUnusedImport]
-    from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
 
-    P = ParamSpec("P")
-
-    if sys.version_info >= (3, 11):
-        from typing import Self  # pyright: ignore[reportUnusedImport]
-        from typing import Unpack  # pyright: ignore[reportUnusedImport]
-    else:
-        from typing_extensions import Self  # pyright: ignore[reportUnusedImport]
-        from typing_extensions import Unpack  # pyright: ignore[reportUnusedImport]
-
-else:
-    ParamSpec: Any = None
-    Self: Any = None
-    TypeGuard: Any = None
-    Concatenate: Any = None
-    Unpack: Any = None
+P = ParamSpec("P")
 
 HashableT = TypeVar("HashableT", bound=Hashable)
 HashableT2 = TypeVar("HashableT2", bound=Hashable)
@@ -152,8 +133,27 @@ ListLike: TypeAlias = AnyArrayLike | SequenceNotStr | range
 
 PythonScalar: TypeAlias = str | float | bool
 DatetimeLikeScalar: TypeAlias = Union["Period", "Timestamp", "Timedelta"]
-PandasScalar: TypeAlias = Union["Period", "Timestamp", "Timedelta", "Interval"]
-Scalar: TypeAlias = PythonScalar | PandasScalar | np.datetime64 | np.timedelta64 | date
+
+# aligned with pandas-stubs - typical scalars found in Series.  Explicitly leaves
+# out object
+_IndexIterScalar: TypeAlias = Union[
+    str,
+    bytes,
+    date,
+    datetime,
+    timedelta,
+    np.datetime64,
+    np.timedelta64,
+    bool,
+    int,
+    float,
+    "Timestamp",
+    "Timedelta",
+]
+Scalar: TypeAlias = Union[
+    _IndexIterScalar, "Interval", complex, np.integer, np.floating, np.complexfloating
+]
+
 IntStrT = TypeVar("IntStrT", bound=int | str)
 
 # timestamp and timedelta convertible types
@@ -330,6 +330,9 @@ StorageOptions: TypeAlias = dict[str, Any] | None
 CompressionDict: TypeAlias = dict[str, Any]
 CompressionOptions: TypeAlias = (
     Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"] | CompressionDict | None
+)
+ParquetCompressionOptions: TypeAlias = (
+    Literal["snappy", "gzip", "brotli", "lz4", "zstd"] | None
 )
 
 # types in DataFrameFormatter
