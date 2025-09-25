@@ -51,7 +51,7 @@ class Timestamp(datetime):
         *,
         nanosecond: int | None = ...,
         tz: _TimeZones = ...,
-        unit: str | int | None = ...,
+        input_unit: str | None = ...,
         fold: int | None = ...,
     ) -> Self | NaTType: ...
     @classmethod
