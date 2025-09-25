@@ -26,11 +26,13 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.offsets import prefix_mapping
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     cache_readonly,
     doc,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import (
@@ -645,6 +647,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # Pandas supports slicing with dates, treated as datetimes at midnight.
             # https://github.com/pandas-dev/pandas/issues/31501
             label = Timestamp(label).to_pydatetime()
+            warnings.warn(
+                # GH#35830 deprecate last remaining inconsistent date treatment
+                "Slicing with a datetime.date object is deprecated. "
+                "Explicitly cast to Timestamp instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         label = super()._maybe_cast_slice_bound(label, side)
         self._data._assert_tzawareness_compat(label)

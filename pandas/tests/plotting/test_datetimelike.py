@@ -166,12 +166,13 @@ class TestTSPlot:
         _check_plot_works(ser.plot, ax=ax)
 
     def test_get_datevalue(self):
-        assert conv.get_datevalue(None, "D") is None
-        assert conv.get_datevalue(1987, "Y") == 1987
+        assert conv._get_datevalue(None, "D") is None
+        assert conv._get_datevalue(1987, "Y") == 1987
         assert (
-            conv.get_datevalue(Period(1987, "Y"), "M") == Period("1987-12", "M").ordinal
+            conv._get_datevalue(Period(1987, "Y"), "M")
+            == Period("1987-12", "M").ordinal
         )
-        assert conv.get_datevalue("1/1/1987", "D") == Period("1987-1-1", "D").ordinal
+        assert conv._get_datevalue("1/1/1987", "D") == Period("1987-1-1", "D").ordinal
 
     @pytest.mark.parametrize(
         "freq, expected_string",

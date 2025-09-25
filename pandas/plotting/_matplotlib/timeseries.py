@@ -6,11 +6,8 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
-    cast,
 )
 import warnings
-
-import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -274,13 +271,7 @@ def _get_index_freq(index: Index) -> BaseOffset | None:
     freq = getattr(index, "freq", None)
     if freq is None:
         freq = getattr(index, "inferred_freq", None)
-        if freq == "B":
-            # error: "Index" has no attribute "dayofweek"
-            weekdays = np.unique(index.dayofweek)  # type: ignore[attr-defined]
-            if (5 in weekdays) or (6 in weekdays):
-                freq = None
-
-    freq = to_offset(freq)
+        freq = to_offset(freq)
     return freq
 
 
@@ -288,13 +279,7 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
-        freq: str | BaseOffset | None = data.index.freq
-
-        if freq is None:
-            # We only get here for DatetimeIndex
-            data.index = cast("DatetimeIndex", data.index)
-            freq = data.index.inferred_freq
-            freq = to_offset(freq)
+        freq = _get_index_freq(data.index)
 
         if freq is None:
             freq = _get_ax_freq(ax)
@@ -330,7 +315,7 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
 # Patch methods for subplot.
 
 
-def _format_coord(freq, t, y) -> str:
+def _format_coord(freq: BaseOffset, t, y) -> str:
     time_period = Period(ordinal=int(t), freq=freq)
     return f"t = {time_period}  y = {y:8f}"
 
