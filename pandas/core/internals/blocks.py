@@ -803,7 +803,7 @@ class Block(PandasObject, libinternals.Block):
         # Exclude anything that we know we won't contain
         pairs = [
             (x, y)
-            for x, y in zip(src_list, dest_list, strict=True)
+            for x, y in zip(src_list, dest_list, strict=False)
             if (self._can_hold_element(x) or (self.dtype == "string" and is_re(x)))
         ]
         if not pairs:
