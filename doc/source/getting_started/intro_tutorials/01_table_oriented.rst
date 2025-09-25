@@ -28,12 +28,6 @@ documentation.
 
 Pandas representation of Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. note::
-
-   Each DataFrame has an *index*, which uniquely identifies each row.
-   By default, it appears as the leftmost label in the table.
-   For more about the index, see :ref:`user_guide/indexing`.
-
 
 .. image:: ../../_static/schemas/01_table_dataframe.svg
    :align: center
