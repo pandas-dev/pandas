@@ -991,7 +991,7 @@ class BaseBlockManager(PandasObject):
                     elif only_slice:
                         # GH#33597 slice instead of take, so we get
                         #  views instead of copies
-                        for i, ml in zip(taker, mgr_locs, strict=False):
+                        for i, ml in zip(taker, mgr_locs, strict=True):
                             slc = slice(i, i + 1)
                             bp = BlockPlacement(ml)
                             nb = blk.getitem_block_columns(slc, new_mgr_locs=bp)
