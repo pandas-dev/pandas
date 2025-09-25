@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from datetime import (
+    date,
+    datetime,
+)
 import functools
 import operator
 from pathlib import Path
@@ -26,8 +30,7 @@ from pandas._libs.tslibs import (
 )
 from pandas.compat import (
     HAS_PYARROW,
-    pa_version_under12p1,
-    pa_version_under13p0,
+    PYARROW_MIN_VERSION,
 )
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import doc
@@ -293,8 +296,11 @@ class ArrowExtensionArray(
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
-        if pa_version_under12p1:
-            msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
+        if not HAS_PYARROW:
+            msg = (
+                f"pyarrow>={PYARROW_MIN_VERSION} is required for PyArrow "
+                "backed ArrowExtensionArray."
+            )
             raise ImportError(msg)
         if isinstance(values, pa.Array):
             self._pa_array = pa.chunked_array([values])
@@ -825,28 +831,46 @@ class ArrowExtensionArray(
 
     def _cmp_method(self, other, op) -> ArrowExtensionArray:
         pc_func = ARROW_CMP_FUNCS[op.__name__]
+        ltype = self._pa_array.type
+
         if isinstance(other, (ExtensionArray, np.ndarray, list)):
-            try:
-                result = pc_func(self._pa_array, self._box_pa(other))
-            except pa.ArrowNotImplementedError:
-                # TODO: could this be wrong if other is object dtype?
-                #  in which case we need to operate pointwise?
+            boxed = self._box_pa(other)
+            rtype = boxed.type
+            if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
+                pa.types.is_timestamp(rtype) and pa.types.is_date(ltype)
+            ):
+                # GH#62157 match non-pyarrow behavior
                 result = ops.invalid_comparison(self, other, op)
                 result = pa.array(result, type=pa.bool_())
-        elif is_scalar(other):
-            try:
-                result = pc_func(self._pa_array, self._box_pa(other))
-            except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
-                mask = isna(self) | isna(other)
-                valid = ~mask
-                result = np.zeros(len(self), dtype="bool")
-                np_array = np.array(self)
+            else:
                 try:
-                    result[valid] = op(np_array[valid], other)
-                except TypeError:
+                    result = pc_func(self._pa_array, boxed)
+                except pa.ArrowNotImplementedError:
+                    # TODO: could this be wrong if other is object dtype?
+                    #  in which case we need to operate pointwise?
                     result = ops.invalid_comparison(self, other, op)
+                    result = pa.array(result, type=pa.bool_())
+        elif is_scalar(other):
+            if (isinstance(other, datetime) and pa.types.is_date(ltype)) or (
+                type(other) is date and pa.types.is_timestamp(ltype)
+            ):
+                # GH#62157 match non-pyarrow behavior
+                result = ops.invalid_comparison(self, other, op)
                 result = pa.array(result, type=pa.bool_())
-                result = pc.if_else(valid, result, None)
+            else:
+                try:
+                    result = pc_func(self._pa_array, self._box_pa(other))
+                except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
+                    mask = isna(self) | isna(other)
+                    valid = ~mask
+                    result = np.zeros(len(self), dtype="bool")
+                    np_array = np.array(self)
+                    try:
+                        result[valid] = op(np_array[valid], other)
+                    except TypeError:
+                        result = ops.invalid_comparison(self, other, op)
+                    result = pa.array(result, type=pa.bool_())
+                    result = pc.if_else(valid, result, None)
         else:
             raise NotImplementedError(
                 f"{op.__name__} not implemented for {type(other)}"
@@ -1614,6 +1638,10 @@ class ArrowExtensionArray(
         if is_numeric_dtype(self.dtype):
             return map_array(self.to_numpy(), mapper, na_action=na_action)
         else:
+            # For "mM" cases, the super() method passes `self` without the
+            #  to_numpy call, which inside map_array casts to ndarray[object].
+            #  Without the to_numpy() call, NA is preserved instead of changed
+            #  to None.
             return super().map(mapper, na_action)
 
     @doc(ExtensionArray.duplicated)
@@ -1858,8 +1886,6 @@ class ArrowExtensionArray(
 
         data_to_reduce = self._pa_array
 
-        cast_kwargs = {} if pa_version_under13p0 else {"safe": False}
-
         if name in ["any", "all"] and (
             pa.types.is_integer(pa_type)
             or pa.types.is_floating(pa_type)
@@ -1964,15 +1990,14 @@ class ArrowExtensionArray(
         if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
             result = result.cast(pa_type)
         if name in ["median", "mean"] and pa.types.is_temporal(pa_type):
-            if not pa_version_under13p0:
-                nbits = pa_type.bit_width
-                if nbits == 32:
-                    result = result.cast(pa.int32(), **cast_kwargs)
-                else:
-                    result = result.cast(pa.int64(), **cast_kwargs)
+            nbits = pa_type.bit_width
+            if nbits == 32:
+                result = result.cast(pa.int32(), safe=False)
+            else:
+                result = result.cast(pa.int64(), safe=False)
             result = result.cast(pa_type)
         if name in ["std", "sem"] and pa.types.is_temporal(pa_type):
-            result = result.cast(pa.int64(), **cast_kwargs)
+            result = result.cast(pa.int64(), safe=False)
             if pa.types.is_duration(pa_type):
                 result = result.cast(pa_type)
             elif pa.types.is_time(pa_type):
@@ -2343,8 +2368,7 @@ class ArrowExtensionArray(
             raise TypeError(f"Cannot interpolate with {self.dtype} dtype")
 
         if (
-            not pa_version_under13p0
-            and method == "linear"
+            method == "linear"
             and limit_area is None
             and limit is None
             and limit_direction == "forward"

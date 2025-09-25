@@ -61,21 +61,15 @@ pytestmark = [
 
 
 def make_data():
-    return list(range(1, 9)) + [pd.NA] + list(range(10, 98)) + [pd.NA] + [99, 100]
+    return [1, 2, 3, 4] + [pd.NA] + [10, 11] + [pd.NA] + [99, 100]
 
 
 def make_float_data():
-    return (
-        list(np.arange(0.1, 0.9, 0.1))
-        + [pd.NA]
-        + list(np.arange(1, 9.8, 0.1))
-        + [pd.NA]
-        + [9.9, 10.0]
-    )
+    return [0.1, 0.2, 0.3, 0.4] + [pd.NA] + [1.0, 1.1] + [pd.NA] + [9.9, 10.0]
 
 
 def make_bool_data():
-    return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
+    return [True, False] * 2 + [np.nan] + [True, False] + [np.nan] + [True, False]
 
 
 @pytest.fixture(
@@ -111,8 +105,8 @@ def data(dtype):
 @pytest.fixture
 def data_for_twos(dtype):
     if dtype.kind == "b":
-        return pd.array(np.ones(100), dtype=dtype)
-    return pd.array(np.ones(100) * 2, dtype=dtype)
+        return pd.array(np.ones(10), dtype=dtype)
+    return pd.array(np.ones(10) * 2, dtype=dtype)
 
 
 @pytest.fixture
@@ -360,3 +354,17 @@ class TestMaskedArrays(base.ExtensionTests):
             )
         )
         tm.assert_series_equal(result, expected)
+
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
+
+@pytest.mark.parametrize(
+    "arr", [pd.array([True, False]), pd.array([1, 2]), pd.array([1.0, 2.0])]
+)
+def test_cast_pointwise_result_all_na_respects_original_dtype(arr):
+    # GH#62344
+    values = [pd.NA, pd.NA]
+    result = arr._cast_pointwise_result(values)
+    assert result.dtype == arr.dtype
+    assert all(x is pd.NA for x in result)

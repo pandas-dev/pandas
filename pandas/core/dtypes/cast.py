@@ -599,7 +599,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             dtype = np.dtype(np.object_)
 
         elif issubclass(dtype.type, np.integer):
-            if not np_can_cast_scalar(fill_value, dtype):  # type: ignore[arg-type]
+            if not np_can_cast_scalar(fill_value, dtype):
                 # upcast to prevent overflow
                 mst = np.min_scalar_type(fill_value)
                 dtype = np.promote_types(dtype, mst)
@@ -865,7 +865,9 @@ def invalidate_string_dtypes(dtype_set: set[DtypeObj]) -> None:
         np.dtype("<U").type,  # type: ignore[arg-type]
     }
     if non_string_dtypes != dtype_set:
-        raise TypeError("string dtypes are not allowed, use 'object' instead")
+        raise TypeError(
+            "numpy string dtypes are not allowed, use 'str' or 'object' instead"
+        )
 
 
 def coerce_indexer_dtype(indexer, categories) -> np.ndarray:
@@ -1727,6 +1729,17 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
         if tipo is not None:
             # TODO: itemsize check?
+
+            if isinstance(tipo, CategoricalDtype):
+                # GH#56376
+                if tipo.categories.dtype.kind not in "iuf":
+                    # Anything other than float/integer we cannot hold
+                    raise LossySetitemError
+                casted = np.asarray(element, dtype=dtype)
+                if np.array_equal(casted, element, equal_nan=True):
+                    return casted
+                raise LossySetitemError
+
             if tipo.kind not in "iuf":
                 # Anything other than float/integer we cannot hold
                 raise LossySetitemError

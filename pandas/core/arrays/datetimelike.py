@@ -508,7 +508,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             return np.asarray(self, dtype=dtype)
 
-    @overload
+    @overload  # type: ignore[override]
     def view(self) -> Self: ...
 
     @overload
@@ -971,6 +971,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         try:
             other = self._validate_comparison_value(other)
         except InvalidComparison:
+            if hasattr(other, "dtype") and isinstance(other.dtype, ArrowDtype):
+                return NotImplemented
             return invalid_comparison(self, other, op)
 
         dtype = getattr(other, "dtype", None)
@@ -1084,6 +1086,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         ):
             # e.g. TestTimedelta64ArithmeticUnsorted::test_timedelta
             # Day is unambiguously 24h
+            return self.freq
+        elif (
+            lib.is_np_dtype(self.dtype, "M")
+            and isinstance(other, Timestamp)
+            and isinstance(self.freq, Day)
+        ):
             return self.freq
 
         return None
