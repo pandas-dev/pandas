@@ -10501,13 +10501,23 @@ class DataFrame(NDFrame, OpsMixin):
     )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
         from pandas.core.apply import frame_apply
-
+        from pandas import Series
         axis = self._get_axis_number(axis)
+        # Special case: empty DataFrame + single function
+        if self.empty and callable(func):
+            if axis == 1:  # row-wise
+                return Series([], index=self.index, dtype=object)
+            else:  # column-wise
+                # Column-wise on empty DataFrame -> empty Series
+                return Series([], dtype=object)
 
+        # Normal behavior
         op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
         result = op.agg()
         result = reconstruct_and_relabel_result(result, func, **kwargs)
         return result
+
+
 
     agg = aggregate
 
