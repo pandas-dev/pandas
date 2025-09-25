@@ -2117,7 +2117,9 @@ class ExtensionBlock(EABackedBlock):
                 BlockPlacement(place),
                 ndim=2,
             )
-            for i, (indices, place) in enumerate(zip(new_values, new_placement, strict=True))
+            for i, (indices, place) in enumerate(
+                zip(new_values, new_placement, strict=True)
+            )
         ]
         return blocks, mask
 
