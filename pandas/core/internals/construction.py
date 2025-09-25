@@ -302,7 +302,7 @@ def ndarray_to_mgr(
             for x in obj_columns
         ]
         # don't convert (and copy) the objects if no type inference occurs
-        if any(x is not y for x, y in zip(obj_columns, maybe_datetime)):
+        if any(x is not y for x, y in zip(obj_columns, maybe_datetime, strict=True)):
             block_values = [
                 new_block_2d(ensure_block_shape(dval, 2), placement=BlockPlacement(n))
                 for n, dval in enumerate(maybe_datetime)
