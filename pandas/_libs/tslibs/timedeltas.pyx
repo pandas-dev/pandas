@@ -2012,7 +2012,7 @@ class Timedelta(_Timedelta):
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
                            "milliseconds", "microseconds", "nanoseconds"}
 
-    def __new__(cls, object value=_no_input, unit=None, *, input_unit=None, **kwargs):
+    def __new__(cls, object value=_no_input, input_unit=None, *, unit=None, **kwargs):
         if unit is not None:
             if input_unit is not None:
                 raise ValueError("Specify only 'input_unit', not 'unit'")

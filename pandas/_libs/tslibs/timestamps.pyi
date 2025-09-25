@@ -53,6 +53,7 @@ class Timestamp(datetime):
         tz: _TimeZones = ...,
         input_unit: str | None = ...,
         fold: int | None = ...,
+        unit: str | None = ...,
     ) -> Self | NaTType: ...
     @classmethod
     def _from_value_and_reso(

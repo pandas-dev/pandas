@@ -96,6 +96,8 @@ class Timedelta(timedelta):
         cls: type[Self],
         value=...,
         input_unit: str | None = ...,
+        *,
+        unit: str | None = ...,
         **kwargs: float | np.integer | np.floating,
     ) -> Self | NaTType: ...
     @classmethod
