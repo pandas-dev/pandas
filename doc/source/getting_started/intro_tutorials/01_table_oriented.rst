@@ -26,8 +26,14 @@ documentation.
         </li>
     </ul>
 
-pandas data table representation
+Pandas representation of Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. note::
+
+   Each DataFrame has an *index*, which uniquely identifies each row.
+   By default, it appears as the leftmost label in the table.
+   For more about the index, see :ref:`user_guide/indexing`.
+
 
 .. image:: ../../_static/schemas/01_table_dataframe.svg
    :align: center
@@ -55,7 +61,13 @@ I want to store passenger data of the Titanic. For a number of passengers, I kno
     df
 
 To manually store data in a table, create a ``DataFrame``. When using a Python dictionary of lists, the dictionary keys will be used as column headers and
-the values in each list as columns of the ``DataFrame``.
+the values in each list as columns of the ``DataFrame``. 
+.. note::
+
+   Each DataFrame has an *index*, which uniquely identifies each row.
+   By default, it appears as the leftmost label in the table.
+   For more about the index, see :ref:`user_guide/indexing`.
+
 
 .. raw:: html
 
@@ -70,7 +82,7 @@ SQL table or the ``data.frame`` in `R <https://www.r-project.org/>`__.
 -  The table has 3 columns, each of them with a column label. The column
    labels are respectively ``Name``, ``Age`` and ``Sex``.
 -  The column ``Name`` consists of textual data with each value a
-   string, the column ``Age`` are numbers and the column ``Sex`` is
+   string, the column ``Age`` contains numbers and the column ``Sex`` contains
    textual data.
 
 In spreadsheet software, the table representation of our data would look
@@ -220,3 +232,7 @@ A more extended explanation of ``DataFrame`` and ``Series`` is provided in the :
 .. raw:: html
 
     </div>
+    .. tip::
+
+   You can select rows by index using ``df.loc[index]`` or ``df.iloc[position]``.
+
