@@ -385,7 +385,7 @@ class BaseBlockManager(PandasObject):
         self_axes, other_axes = self.axes, other.axes
         if len(self_axes) != len(other_axes):
             return False
-        if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
+        if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes, strict=True)):
             return False
 
         return self._equal_values(other)
@@ -989,7 +989,7 @@ class BaseBlockManager(PandasObject):
                     elif only_slice:
                         # GH#33597 slice instead of take, so we get
                         #  views instead of copies
-                        for i, ml in zip(taker, mgr_locs):
+                        for i, ml in zip(taker, mgr_locs, strict=True):
                             slc = slice(i, i + 1)
                             bp = BlockPlacement(ml)
                             nb = blk.getitem_block_columns(slc, new_mgr_locs=bp)
@@ -2411,12 +2411,12 @@ def _tuples_to_blocks_no_consolidate(tuples, refs) -> list[Block]:
         new_block_2d(
             ensure_block_shape(arr, ndim=2), placement=BlockPlacement(i), refs=ref
         )
-        for ((i, arr), ref) in zip(tuples, refs)
+        for ((i, arr), ref) in zip(tuples, refs, strict=True)
     ]
 
 
 def _stack_arrays(tuples, dtype: np.dtype):
-    placement, arrays = zip(*tuples)
+    placement, arrays = zip(*tuples, strict=True)
 
     first = arrays[0]
     shape = (len(arrays),) + first.shape
