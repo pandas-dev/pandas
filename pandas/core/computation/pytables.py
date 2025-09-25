@@ -228,7 +228,7 @@ class BinOp(ops.BinOp):
             if isinstance(conv_val, str):
                 conv_val = Timedelta(conv_val)
             else:
-                conv_val = Timedelta(conv_val, unit="s")
+                conv_val = Timedelta(conv_val, input_unit="s")
             conv_val = conv_val.as_unit("ns")._value
             return TermValue(int(conv_val), conv_val, kind)
         elif meta == "category":

@@ -443,7 +443,7 @@ def test_first_last_tz_multi_column(method, ts, alpha, unit):
         pd.array([True, False], dtype="boolean"),
         pd.array([1, 2], dtype="Int64"),
         pd.to_datetime(["2020-01-01", "2020-02-01"]),
-        pd.to_timedelta([1, 2], unit="D"),
+        pd.to_timedelta([1, 2], input_unit="D"),
     ],
 )
 @pytest.mark.parametrize("function", ["first", "last", "min", "max"])

@@ -53,7 +53,7 @@ def test_resample_with_timedeltas():
     expected.index = timedelta_range("0 days", freq="30min", periods=50)
 
     df = DataFrame(
-        {"A": np.arange(1480)}, index=pd.to_timedelta(np.arange(1480), unit="min")
+        {"A": np.arange(1480)}, index=pd.to_timedelta(np.arange(1480), input_unit="min")
     )
     result = df.resample("30min").sum()
 
@@ -97,7 +97,9 @@ def test_resample_offset_with_timedeltaindex():
 
 def test_resample_categorical_data_with_timedeltaindex():
     # GH #12169
-    df = DataFrame({"Group_obj": "A"}, index=pd.to_timedelta(list(range(20)), unit="s"))
+    df = DataFrame(
+        {"Group_obj": "A"}, index=pd.to_timedelta(list(range(20)), input_unit="s")
+    )
     df["Group"] = df["Group_obj"].astype("category")
     result = df.resample("10s").agg(lambda x: (x.value_counts().index[0]))
     exp_tdi = pd.TimedeltaIndex(np.array([0, 10], dtype="m8[s]"), freq="10s").as_unit(
@@ -180,7 +182,7 @@ def test_resample_quantile_timedelta(unit):
     # GH: 29485
     dtype = np.dtype(f"m8[{unit}]")
     df = DataFrame(
-        {"value": pd.to_timedelta(np.arange(4), unit="s").astype(dtype)},
+        {"value": pd.to_timedelta(np.arange(4), input_unit="s").astype(dtype)},
         index=pd.date_range("20200101", periods=4, tz="UTC"),
     )
     result = df.resample("2D").quantile(0.99)

@@ -1132,7 +1132,7 @@ cdef class _Timedelta(timedelta):
 
         Examples
         --------
-        >>> pd.Timedelta(1, "us").value
+        >>> pd.Timedelta(1, input_unit="us").value
         1000
         """
         try:
@@ -1174,7 +1174,7 @@ cdef class _Timedelta(timedelta):
 
         Examples
         --------
-        >>> td = pd.Timedelta(1, "d")
+        >>> td = pd.Timedelta(1, input_unit="d")
         >>> td.days
         1
 
@@ -1216,7 +1216,7 @@ cdef class _Timedelta(timedelta):
 
         **Using integer input**
 
-        >>> td = pd.Timedelta(42, unit='s')
+        >>> td = pd.Timedelta(42, input_unit='s')
         >>> td.seconds
         42
         """
@@ -1256,7 +1256,7 @@ cdef class _Timedelta(timedelta):
 
         **Using integer input**
 
-        >>> td = pd.Timedelta(42, unit='us')
+        >>> td = pd.Timedelta(42, input_unit='us')
         >>> td.microseconds
         42
         """
@@ -1308,7 +1308,8 @@ cdef class _Timedelta(timedelta):
 
         Examples
         --------
-        >>> td = pd.Timedelta(42, unit='us')
+        >>> td = pd.Timedelta(42, input_unit='us')
+        >>> ts.unit
         'ns'
         """
         return npy_unit_to_abbrev(self._creso)
@@ -1652,7 +1653,7 @@ cdef class _Timedelta(timedelta):
         >>> td.asm8
         numpy.timedelta64(3005000,'ns')
 
-        >>> td = pd.Timedelta(42, unit='ns')
+        >>> td = pd.Timedelta(42, input_unit='ns')
         >>> td.asm8
         numpy.timedelta64(42,'ns')
         """
@@ -1696,7 +1697,7 @@ cdef class _Timedelta(timedelta):
         >>> td.resolution_string
         's'
 
-        >>> td = pd.Timedelta(36, unit='us')
+        >>> td = pd.Timedelta(36, input_unit='us')
         >>> td.resolution_string
         'us'
         """
@@ -1743,7 +1744,7 @@ cdef class _Timedelta(timedelta):
 
         **Using integer input**
 
-        >>> td = pd.Timedelta(42, unit='ns')
+        >>> td = pd.Timedelta(42, input_unit='ns')
         >>> td.nanoseconds
         42
         """
@@ -1995,7 +1996,7 @@ class Timedelta(_Timedelta):
     --------
     Here we initialize Timedelta object with both value and unit
 
-    >>> td = pd.Timedelta(1, "D")
+    >>> td = pd.Timedelta(1, input_unit="D")
     >>> td
     Timedelta('1 days 00:00:00')
 
@@ -2011,7 +2012,18 @@ class Timedelta(_Timedelta):
     _req_any_kwargs_new = {"weeks", "days", "hours", "minutes", "seconds",
                            "milliseconds", "microseconds", "nanoseconds"}
 
-    def __new__(cls, object value=_no_input, unit=None, **kwargs):
+    def __new__(cls, object value=_no_input, unit=None, *, input_unit=None, **kwargs):
+        if unit is not None:
+            if input_unit is not None:
+                raise ValueError("Specify only 'input_unit', not 'unit'")
+            from pandas.errors import Pandas4Warning
+            warnings.warn(
+                "The 'unit' keyword is deprecated. Use 'input_unit' instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            input_unit = unit
+
         unsupported_kwargs = set(kwargs)
         unsupported_kwargs.difference_update(cls._req_any_kwargs_new)
         if unsupported_kwargs or (
@@ -2066,12 +2078,12 @@ class Timedelta(_Timedelta):
                 )
                 raise OutOfBoundsTimedelta(msg) from err
 
-        disallow_ambiguous_unit(unit)
+        disallow_ambiguous_unit(input_unit)
 
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed
         if isinstance(value, _Timedelta):
-            # 'unit' is benign in this case, but e.g. days or seconds
+            # 'input_unit' is benign in this case, but e.g. days or seconds
             #  doesn't make sense here.
             if len(kwargs):
                 # GH#48898
@@ -2082,8 +2094,10 @@ class Timedelta(_Timedelta):
                 )
             return value
         elif isinstance(value, str):
-            if unit is not None:
-                raise ValueError("unit must not be specified if the value is a str")
+            if input_unit is not None:
+                raise ValueError(
+                    "input_unit must not be specified if the value is a str"
+                )
             if (len(value) > 0 and value[0] == "P") or (
                 len(value) > 1 and value[:2] == "-P"
             ):
@@ -2140,8 +2154,8 @@ class Timedelta(_Timedelta):
 
         elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
-            unit = parse_timedelta_unit(unit)
-            value = convert_to_timedelta64(value, unit)
+            input_unit = parse_timedelta_unit(input_unit)
+            value = convert_to_timedelta64(value, input_unit)
         elif checknull_with_nat_and_na(value):
             return NaT
         else:

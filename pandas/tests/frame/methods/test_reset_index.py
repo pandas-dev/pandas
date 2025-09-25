@@ -600,8 +600,12 @@ class TestResetIndex:
                 {"a": [pd.NaT, Timestamp("2020-01-01")], "b": [1, 2], "x": [11, 12]},
             ),
             (
-                [(pd.NaT, 1), (pd.Timedelta(123, "D"), 2)],
-                {"a": [pd.NaT, pd.Timedelta(123, "D")], "b": [1, 2], "x": [11, 12]},
+                [(pd.NaT, 1), (pd.Timedelta(123, input_unit="D"), 2)],
+                {
+                    "a": [pd.NaT, pd.Timedelta(123, input_unit="D")],
+                    "b": [1, 2],
+                    "x": [11, 12],
+                },
             ),
         ],
     )

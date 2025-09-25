@@ -2430,8 +2430,10 @@ class TimeGrouper(Grouper):
                 edges_dti = binner.tz_localize(None)
                 edges_dti = (
                     edges_dti
-                    + Timedelta(days=1, unit=edges_dti.unit).as_unit(edges_dti.unit)
-                    - Timedelta(1, unit=edges_dti.unit).as_unit(edges_dti.unit)
+                    + Timedelta(days=1, input_unit=edges_dti.unit).as_unit(
+                        edges_dti.unit
+                    )
+                    - Timedelta(1, input_unit=edges_dti.unit).as_unit(edges_dti.unit)
                 )
                 bin_edges = edges_dti.tz_localize(binner.tz).asi8
             else:
@@ -2844,8 +2846,8 @@ def _adjust_dates_anchored(
             lresult_int = last._value + (freq_value - loffset)
         else:
             lresult_int = last._value + freq_value
-    fresult = Timestamp(fresult_int, unit=unit)
-    lresult = Timestamp(lresult_int, unit=unit)
+    fresult = Timestamp(fresult_int, input_unit=unit)
+    lresult = Timestamp(lresult_int, input_unit=unit)
     if first_tzinfo is not None:
         fresult = fresult.tz_localize("UTC").tz_convert(first_tzinfo)
     if last_tzinfo is not None:

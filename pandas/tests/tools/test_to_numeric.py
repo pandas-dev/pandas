@@ -387,7 +387,7 @@ def test_timedelta(transform_assert_equal):
 @pytest.mark.parametrize(
     "scalar",
     [
-        pd.Timedelta(1, "D"),
+        pd.Timedelta(1, input_unit="D"),
         pd.Timestamp("2017-01-01T12"),
         pd.Timestamp("2017-01-01T12", tz="US/Pacific"),
     ],

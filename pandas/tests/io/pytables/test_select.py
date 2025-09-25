@@ -999,7 +999,12 @@ def test_query_compare_column_type(setup_path):
 
         for op in ["<", ">", "=="]:
             # non strings to string column always fail
-            for v in [2.1, True, Timestamp("2014-01-01"), pd.Timedelta(1, "s")]:
+            for v in [
+                2.1,
+                True,
+                Timestamp("2014-01-01"),
+                pd.Timedelta(1, input_unit="s"),
+            ]:
                 query = f"date {op} v"
                 msg = f"Cannot compare {v} of type {type(v)} to string column"
                 with pytest.raises(TypeError, match=msg):

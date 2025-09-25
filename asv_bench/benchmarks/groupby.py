@@ -1130,7 +1130,7 @@ class Resample:
         index = MultiIndex.from_product(
             [
                 np.arange(num_groups),
-                to_timedelta(np.arange(num_timedeltas), unit="s"),
+                to_timedelta(np.arange(num_timedeltas), input_unit="s"),
             ],
             names=["groups", "timedeltas"],
         )
