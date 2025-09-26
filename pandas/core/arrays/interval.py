@@ -734,10 +734,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         self._left[key] = value_left
         self._right[key] = value_right
 
-    def _supports_scalar_op(self, other, op_name):
+    def _supports_scalar_op(self, other, op_name: str) -> bool:
         return True
 
-    def _supports_array_op(self, other, op_name):
+    def _supports_array_op(self, other: ArrayLike, op_name: str) -> bool:
         return True
 
     def _cmp_method(self, other, op):

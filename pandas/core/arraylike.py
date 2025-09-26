@@ -36,7 +36,7 @@ REDUCTION_ALIASES = {
 
 
 class OpsMixin:
-    def _supports_scalar_op(self, other, op_name: str):
+    def _supports_scalar_op(self, other, op_name: str) -> bool:
         """
         Return False to have unpack_zerodim_and_defer raise a TypeError with
         standardized exception message.
@@ -53,7 +53,7 @@ class OpsMixin:
         """
         return True
 
-    def _supports_array_op(self, other: ArrayLike, op_name: str):
+    def _supports_array_op(self, other: ArrayLike, op_name: str) -> bool:
         """
         Return False to have unpack_zerodim_and_defer raise a TypeError with
         standardized exception message.
