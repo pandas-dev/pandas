@@ -66,7 +66,10 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import arraylike
+from pandas.core import (
+    arraylike,
+    ops,
+)
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -1806,11 +1809,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         else:
             other = np.asarray(other)
+            if len(self) != len(other):
+                msg = ops.get_shape_exception_message(self, other)
+                raise ValueError(msg)
             with np.errstate(all="ignore"):
-                if len(self) != len(other):
-                    raise AssertionError(
-                        f"length mismatch: {len(self)} vs. {len(other)}"
-                    )
                 if not isinstance(other, SparseArray):
                     dtype = getattr(other, "dtype", None)
                     other = SparseArray(other, fill_value=self.fill_value, dtype=dtype)
@@ -1827,9 +1829,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if isinstance(other, SparseArray):
             if len(self) != len(other):
-                raise ValueError(
-                    f"operands have mismatched length {len(self)} and {len(other)}"
-                )
+                msg = ops.get_shape_exception_message(self, other)
+                raise ValueError(msg)
 
             op_name = op.__name__.strip("_")
             return _sparse_array_op(self, other, op, op_name)

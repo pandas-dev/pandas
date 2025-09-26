@@ -56,6 +56,7 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
     nanops,
+    ops,
     roperator,
 )
 from pandas.core.array_algos import datetimelike_accumulations
@@ -465,9 +466,8 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     def _add_offset(self, other):
         assert not isinstance(other, (Tick, Day))
-        raise TypeError(
-            f"cannot add the type {type(other).__name__} to a {type(self).__name__}"
-        )
+        msg = ops.get_op_exception_message(self, other)
+        raise TypeError(msg)
 
     @unpack_zerodim_and_defer("__mul__")
     def __mul__(self, other) -> Self:
@@ -482,7 +482,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             if result.dtype.kind != "m":
                 # numpy >= 2.1 may not raise a TypeError
                 # and seems to dispatch to others.__rmul__?
-                raise TypeError(f"Cannot multiply with {type(other).__name__}")
+                msg = ops.get_op_exception_message(self, other)
+                raise TypeError(msg)
             freq = None
             if self.freq is not None and not isna(other):
                 freq = self.freq * other
@@ -504,7 +505,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         if len(other) != len(self) and not lib.is_np_dtype(other.dtype, "m"):
             # Exclude timedelta64 here so we correctly raise TypeError
             #  for that instead of ValueError
-            raise ValueError("Cannot multiply with unequal lengths")
+            msg = ops.get_shape_exception_message(self, other)
+            raise ValueError(msg)
 
         if is_object_dtype(other.dtype):
             # this multiplication will succeed only if all elements of other
@@ -520,7 +522,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         if result.dtype.kind != "m":
             # numpy >= 2.1 may not raise a TypeError
             # and seems to dispatch to others.__rmul__?
-            raise TypeError(f"Cannot multiply with {type(other).__name__}")
+            msg = ops.get_op_exception_message(self, other)
+            raise TypeError(msg)
         return type(self)._simple_new(result, dtype=result.dtype)
 
     __rmul__ = __mul__
@@ -578,7 +581,8 @@ class TimedeltaArray(dtl.TimelikeOps):
             other = np.array(other)
 
         if len(other) != len(self):
-            raise ValueError("Cannot divide vectors with unequal lengths")
+            msg = ops.get_shape_exception_message(self, other)
+            raise ValueError(msg)
         return other
 
     def _vector_divlike_op(self, other, op) -> np.ndarray | Self:
