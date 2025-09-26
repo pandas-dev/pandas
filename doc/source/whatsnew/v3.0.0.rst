@@ -220,11 +220,13 @@ Other enhancements
 - Implemented :meth:`Series.str.isascii` and :meth:`Series.str.isascii` (:issue:`59091`)
 - Improve the resulting dtypes in :meth:`DataFrame.where` and :meth:`DataFrame.mask` with :class:`ExtensionDtype` ``other`` (:issue:`62038`)
 - Improved deprecation message for offset aliases (:issue:`60820`)
+- Many type aliases are now exposed in the new submodule :py:mod:`pandas.api.typing.aliases` (:issue:`55231`)
 - Multiplying two :class:`DateOffset` objects will now raise a ``TypeError`` instead of a ``RecursionError`` (:issue:`59442`)
 - Restore support for reading Stata 104-format and enable reading 103-format dta files (:issue:`58554`)
 - Support passing a :class:`Iterable[Hashable]` input to :meth:`DataFrame.drop_duplicates` (:issue:`59237`)
 - Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
+- Switched wheel upload to **PyPI Trusted Publishing** (OIDC) for release-tag pushes in ``wheels.yml``. (:issue:`61718`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -463,6 +465,55 @@ small behavior differences as collateral:
 - Adding or subtracting a :class:`Day` with a :class:`Timedelta` is no longer supported.
 - Adding or subtracting a :class:`Day` offset to a timezone-aware :class:`Timestamp` or datetime-like may lead to an ambiguous or non-existent time, which will raise.
 
+.. _whatsnew_300.api_breaking.nan_vs_na:
+
+Changed treatment of NaN values in pyarrow and numpy-nullable floating dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, when dealing with a nullable dtype (e.g. ``Float64Dtype`` or ``int64[pyarrow]``), ``NaN`` was treated as interchangeable with :class:`NA` in some circumstances but not others. This was done to make adoption easier, but caused some confusion (:issue:`32265`). In 3.0, an option ``"mode.nan_is_na"`` (default ``True``) controls whether to treat ``NaN`` as equivalent to :class:`NA`.
+
+With ``pd.set_option("mode.nan_is_na", True)`` (again, this is the default), ``NaN`` can be passed to constructors, ``__setitem__``, ``__contains__`` and be treated the same as :class:`NA`. The only change users will see is that arithmetic and ``np.ufunc`` operations that previously introduced ``NaN`` entries produce :class:`NA` entries instead:
+
+*Old behavior:*
+
+.. code-block:: ipython
+
+    In [2]: ser = pd.Series([0, None], dtype=pd.Float64Dtype())
+    In [3]: ser / 0
+    Out[3]:
+    0     NaN
+    1    <NA>
+    dtype: Float64
+
+*New behavior:*
+
+.. ipython:: python
+
+    ser = pd.Series([0, None], dtype=pd.Float64Dtype())
+    ser / 0
+
+By contrast, with ``pd.set_option("mode.nan_is_na", False)``, ``NaN`` is always considered distinct and specifically as a floating-point value, so cannot be used with integer dtypes:
+
+*Old behavior:*
+
+.. code-block:: ipython
+
+    In [2]: ser = pd.Series([1, np.nan], dtype=pd.Float64Dtype())
+    In [3]: ser[1]
+    Out[3]: <NA>
+
+*New behavior:*
+
+.. ipython:: python
+
+    pd.set_option("mode.nan_is_na", False)
+    ser = pd.Series([1, np.nan], dtype=pd.Float64Dtype())
+    ser[1]
+
+If we had passed ``pd.Int64Dtype()`` or ``"int64[pyarrow]"`` for the dtype in the latter example, this would raise, as a float ``NaN`` cannot be held by an integer dtype.
+
+With ``"mode.nan_is_na"`` set to ``False``, ``ser.to_numpy()`` (and ``frame.values`` and ``np.asarray(obj)``) will convert to ``object`` dtype if :class:`NA` entries are present, where before they would coerce to ``NaN``.  To retain a float numpy dtype, explicitly pass ``na_value=np.nan`` to :meth:`Series.to_numpy`.
+
 .. _whatsnew_300.api_breaking.deps:
 
 Increased minimum version for Python
@@ -603,6 +654,7 @@ Other API changes
   an empty ``RangeIndex`` or empty ``Index`` with object dtype when determining
   the dtype of the resulting Index (:issue:`60797`)
 - :class:`IncompatibleFrequency` now subclasses ``TypeError`` instead of ``ValueError``. As a result, joins with mismatched frequencies now cast to object like other non-comparable joins, and arithmetic with indexes with mismatched frequencies align (:issue:`55782`)
+- :meth:`CategoricalIndex.append` no longer attempts to cast different-dtype indexes to the caller's dtype (:issue:`41626`)
 - :meth:`ExtensionDtype.construct_array_type` is now a regular method instead of a ``classmethod`` (:issue:`58663`)
 - Comparison operations between :class:`Index` and :class:`Series` now consistently return :class:`Series` regardless of which object is on the left or right (:issue:`36759`)
 - Numpy functions like ``np.isinf`` that return a bool dtype when called on a :class:`Index` object now return a bool-dtype :class:`Index` instead of ``np.ndarray`` (:issue:`52676`)
@@ -649,6 +701,7 @@ Other Deprecations
 - Deprecated ``pd.core.internals.api.maybe_infer_ndim`` (:issue:`40226`)
 - Deprecated allowing constructing or casting to :class:`Categorical` with non-NA values that are not present in specified ``dtype.categories`` (:issue:`40996`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.all`, :meth:`DataFrame.min`, :meth:`DataFrame.max`, :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`DataFrame.mean`, :meth:`DataFrame.median`, :meth:`DataFrame.sem`, :meth:`DataFrame.var`, :meth:`DataFrame.std`, :meth:`DataFrame.skew`, :meth:`DataFrame.kurt`, :meth:`Series.all`,  :meth:`Series.min`, :meth:`Series.max`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`Series.mean`, :meth:`Series.median`, :meth:`Series.sem`, :meth:`Series.var`, :meth:`Series.std`, :meth:`Series.skew`, and :meth:`Series.kurt`. (:issue:`57087`)
+- Deprecated allowing non-keyword arguments in :meth:`DataFrame.groupby` and :meth:`Series.groupby` except ``by`` and ``level``. (:issue:`62102`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_markdown` except ``buf``. (:issue:`57280`)
 - Deprecated allowing non-keyword arguments in :meth:`Series.to_string` except ``buf``. (:issue:`57280`)
 - Deprecated behavior of :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupBy.groups`, in a future version ``groups`` by one element list will return tuple instead of scalar. (:issue:`58858`)
@@ -662,6 +715,7 @@ Other Deprecations
 - Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)
 - Deprecated allowing ``fill_value`` that cannot be held in the original dtype (excepting NA values for integer and bool dtypes) in :meth:`Series.unstack` and :meth:`DataFrame.unstack` (:issue:`12189`, :issue:`53868`)
 - Deprecated allowing ``fill_value`` that cannot be held in the original dtype (excepting NA values for integer and bool dtypes) in :meth:`Series.shift` and :meth:`DataFrame.shift` (:issue:`53802`)
+- Deprecated slicing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` using a ``datetime.date`` object, explicitly cast to :class:`Timestamp` instead (:issue:`35830`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.prior_deprecations:
@@ -910,6 +964,8 @@ Datetimelike
 - Bug in :meth:`to_datetime` reports incorrect index in case of any failure scenario. (:issue:`58298`)
 - Bug in :meth:`to_datetime` with ``format="ISO8601"`` and ``utc=True`` where naive timestamps incorrectly inherited timezone offset from previous timestamps in a series. (:issue:`61389`)
 - Bug in :meth:`to_datetime` wrongly converts when ``arg`` is a ``np.datetime64`` object with unit of ``ps``. (:issue:`60341`)
+- Bug in comparison between objects with ``np.datetime64`` dtype and ``timestamp[pyarrow]`` dtypes incorrectly raising ``TypeError`` (:issue:`60937`)
+- Bug in comparison between objects with pyarrow date dtype and ``timestamp[pyarrow]`` or ``np.datetime64`` dtype failing to consider these as non-comparable (:issue:`62157`)
 - Bug in constructing arrays with :class:`ArrowDtype` with ``timestamp`` type incorrectly allowing ``Decimal("NaN")`` (:issue:`61773`)
 - Bug in constructing arrays with a timezone-aware :class:`ArrowDtype` from timezone-naive datetime objects incorrectly treating those as UTC times instead of wall times like :class:`DatetimeTZDtype` (:issue:`61775`)
 - Bug in setting scalar values with mismatched resolution into arrays with non-nanosecond ``datetime64``, ``timedelta64`` or :class:`DatetimeTZDtype` incorrectly truncating those scalars (:issue:`56410`)
@@ -973,8 +1029,8 @@ Indexing
 - Bug in reindexing of :class:`DataFrame` with :class:`PeriodDtype` columns in case of consolidated block (:issue:`60980`, :issue:`60273`)
 - Bug in :meth:`DataFrame.loc.__getitem__` and :meth:`DataFrame.iloc.__getitem__` with a :class:`CategoricalDtype` column with integer categories raising when trying to index a row containing a ``NaN`` entry (:issue:`58954`)
 - Bug in :meth:`Index.__getitem__` incorrectly raising with a 0-dim ``np.ndarray`` key (:issue:`55601`)
+- Bug in adding new rows with :meth:`DataFrame.loc.__setitem__` or :class:`Series.loc.__setitem__` which failed to retain dtype on the object's index in some cases (:issue:`41626`)
 - Bug in indexing on a :class:`DatetimeIndex` with a ``timestamp[pyarrow]`` dtype or on a :class:`TimedeltaIndex` with a ``duration[pyarrow]`` dtype (:issue:`62277`)
--
 
 Missing
 ^^^^^^^
@@ -992,6 +1048,7 @@ MultiIndex
 - Bug in :class:`DataFrame` arithmetic operations in case of unaligned MultiIndex columns (:issue:`60498`)
 - Bug in :class:`DataFrame` arithmetic operations with :class:`Series` in case of unaligned MultiIndex (:issue:`61009`)
 - Bug in :meth:`MultiIndex.from_tuples` causing wrong output with input of type tuples having NaN values (:issue:`60695`, :issue:`60988`)
+- Bug in :meth:`DataFrame.__setitem__` where column alignment logic would reindex the assigned value with an empty index, incorrectly setting all values to ``NaN``.(:issue:`61841`)
 - Bug in :meth:`DataFrame.reindex` and :meth:`Series.reindex` where reindexing :class:`Index` to a :class:`MultiIndex` would incorrectly set all values to ``NaN``.(:issue:`60923`)
 
 I/O
@@ -1064,6 +1121,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.agg` that raises ``AttributeError`` when there is dictionary input and duplicated columns, instead of returning a DataFrame with the aggregation of all duplicate columns. (:issue:`55041`)
 - Bug in :meth:`DataFrameGroupBy.agg` where applying a user-defined function to an empty DataFrame returned a Series instead of an empty DataFrame. (:issue:`61503`)
 - Bug in :meth:`DataFrameGroupBy.apply` and :meth:`SeriesGroupBy.apply` for empty data frame with ``group_keys=False`` still creating output index using group keys. (:issue:`60471`)
+- Bug in :meth:`DataFrameGroupBy.apply` and :meth:`SeriesGroupBy.apply` not preserving ``_metadata`` attributes from subclassed DataFrames and Series (:issue:`62134`)
 - Bug in :meth:`DataFrameGroupBy.apply` that was returning a completely empty DataFrame when all return values of ``func`` were ``None`` instead of returning an empty DataFrame with the original columns and dtypes. (:issue:`57775`)
 - Bug in :meth:`DataFrameGroupBy.apply` with ``as_index=False`` that was returning :class:`MultiIndex` instead of returning :class:`Index`. (:issue:`58291`)
 - Bug in :meth:`DataFrameGroupBy.cumsum` and :meth:`DataFrameGroupBy.cumprod` where ``numeric_only`` parameter was passed indirectly through kwargs instead of passing directly. (:issue:`58811`)
@@ -1082,6 +1140,7 @@ Reshaping
 - Bug in :meth:`DataFrame.join` when a :class:`DataFrame` with a :class:`MultiIndex` would raise an ``AssertionError`` when :attr:`MultiIndex.names` contained ``None``. (:issue:`58721`)
 - Bug in :meth:`DataFrame.merge` where merging on a column containing only ``NaN`` values resulted in an out-of-bounds array access (:issue:`59421`)
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when ``sort=False`` (:issue:`54987`, :issue:`55516`)
+- Bug in :meth:`DataFrame.unstack` raising an error with indexes containing ``NaN`` with ``sort=False`` (:issue:`61221`)
 - Bug in :meth:`DataFrame.merge` when merging two :class:`DataFrame` on ``intc`` or ``uintc`` types on Windows (:issue:`60091`, :issue:`58713`)
 - Bug in :meth:`DataFrame.pivot_table` incorrectly subaggregating results when called without an ``index`` argument (:issue:`58722`)
 - Bug in :meth:`DataFrame.pivot_table` incorrectly ignoring the ``values`` argument when also supplied to the ``index`` or ``columns`` parameters (:issue:`57876`, :issue:`61292`)
@@ -1092,7 +1151,7 @@ Reshaping
 - Bug in :func:`melt` where calling with duplicate column names in ``id_vars`` raised a misleading ``AttributeError`` (:issue:`61475`)
 - Bug in :meth:`DataFrame.merge` where user-provided suffixes could result in duplicate column names if the resulting names matched existing columns. Now raises a :class:`MergeError` in such cases. (:issue:`61402`)
 - Bug in :meth:`DataFrame.merge` with :class:`CategoricalDtype` columns incorrectly raising ``RecursionError`` (:issue:`56376`)
--
+- Bug in :meth:`DataFrame.merge` with a ``float32`` index incorrectly casting the index to ``float64`` (:issue:`41626`)
 
 Sparse
 ^^^^^^
@@ -1143,6 +1202,7 @@ Other
 - Bug in :meth:`Series.diff` allowing non-integer values for the ``periods`` argument. (:issue:`56607`)
 - Bug in :meth:`Series.dt` methods in :class:`ArrowDtype` that were returning incorrect values. (:issue:`57355`)
 - Bug in :meth:`Series.isin` raising ``TypeError`` when series is large (>10**6) and ``values`` contains NA (:issue:`60678`)
+- Bug in :meth:`Series.kurt` and :meth:`Series.skew` resulting in zero for low variance arrays (:issue:`57972`)
 - Bug in :meth:`Series.map` with a ``timestamp[pyarrow]`` dtype or ``duration[pyarrow]`` dtype incorrectly returning all-``NaN`` entries (:issue:`61231`)
 - Bug in :meth:`Series.mode` where an exception was raised when taking the mode with nullable types with no null values in the series. (:issue:`58926`)
 - Bug in :meth:`Series.rank` that doesn't preserve missing values for nullable integers when ``na_option='keep'``. (:issue:`56976`)
@@ -1157,6 +1217,7 @@ Other
 - Bug in printing a :class:`DataFrame` with a :class:`DataFrame` stored in :attr:`DataFrame.attrs` raised a ``ValueError`` (:issue:`60455`)
 - Bug in printing a :class:`Series` with a :class:`DataFrame` stored in :attr:`Series.attrs` raised a ``ValueError`` (:issue:`60568`)
 - Deprecated the keyword ``check_datetimelike_compat`` in :meth:`testing.assert_frame_equal` and :meth:`testing.assert_series_equal` (:issue:`55638`)
+- Fixed bug in the :meth:`Series.rank` with object dtype and extremely small float values (:issue:`62036`)
 - Fixed bug where the :class:`DataFrame` constructor misclassified array-like objects with a ``.name`` attribute as :class:`Series` or :class:`Index` (:issue:`61443`)
 - Fixed regression in :meth:`DataFrame.from_records` not initializing subclasses properly (:issue:`57008`)
 -

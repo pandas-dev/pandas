@@ -1188,7 +1188,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if isinstance(result, Series) and name is not None:
             result.name = name
 
-        return result
+        return result.__finalize__(self.obj, method="groupby")
 
     @final
     def _set_result_index_ordered(

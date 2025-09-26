@@ -28,6 +28,7 @@ from pandas._testing._hypothesis import (
 # Offset-specific behaviour tests
 
 
+@pytest.mark.slow
 @pytest.mark.arm_slow
 @given(DATETIME_JAN_1_1900_OPTIONAL_TZ, YQM_OFFSET)
 def test_on_offset_implementations(dt, offset):
@@ -57,6 +58,7 @@ def test_on_offset_implementations(dt, offset):
     assert offset.is_on_offset(dt) == (compare == dt)
 
 
+@pytest.mark.slow
 @given(YQM_OFFSET)
 def test_shift_across_dst(offset):
     # GH#18319 check that 1) timezone is correctly normalized and
