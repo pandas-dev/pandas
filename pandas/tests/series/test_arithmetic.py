@@ -164,7 +164,7 @@ class TestSeriesFlexArithmetic:
                 pd.Timestamp("2025-08-21"),
                 pd.Timestamp("2025-08-22"),
             ],
-            dtype=np.dtype("datetime64[ns]")
+            dtype=np.dtype("datetime64[ns]"),
         )
         right = left._values  # DatetimeArray
 
@@ -174,7 +174,10 @@ class TestSeriesFlexArithmetic:
         tm.assert_series_equal(result, expected)
 
     def test_extarray_rhs_timedelta_sub_with_fill_value(self):
-        left = Series([Timedelta(days=1), Timedelta(days=2), Timedelta(days=3)], dtype=np.dtype("timedelta64[ns]"))
+        left = Series(
+            [Timedelta(days=1), Timedelta(days=2), Timedelta(days=3)],
+            dtype=np.dtype("timedelta64[ns]"),
+        )
         right = left._values  # TimedeltaArray
 
         result = left.sub(right, fill_value=left.iloc[0])
