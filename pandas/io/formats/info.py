@@ -913,7 +913,7 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
             [
                 _put_str("-" * header_colwidth, gross_colwidth)
                 for header_colwidth, gross_colwidth in zip(
-                    self.header_column_widths, self.gross_column_widths
+                    self.header_column_widths, self.gross_column_widths, strict=True
                 )
             ]
         )

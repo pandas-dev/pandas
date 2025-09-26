@@ -1341,7 +1341,7 @@ class PythonParser(ParserBase):
             )
         if self.columns and self.dtype:
             assert self._col_indices is not None
-            for i, col in zip(self._col_indices, self.columns):
+            for i, col in zip(self._col_indices, self.columns, strict=True):
                 if not isinstance(self.dtype, dict) and not is_numeric_dtype(
                     self.dtype
                 ):
@@ -1458,7 +1458,7 @@ class FixedWidthReader(abc.Iterator):
         shifted = np.roll(mask, 1)
         shifted[0] = 0
         edges = np.where((mask ^ shifted) == 1)[0]
-        edge_pairs = list(zip(edges[::2], edges[1::2]))
+        edge_pairs = list(zip(edges[::2], edges[1::2], strict=True))
         return edge_pairs
 
     def __next__(self) -> list[str]:

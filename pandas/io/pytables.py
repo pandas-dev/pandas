@@ -1074,7 +1074,7 @@ class HDFStore:
 
         # validate rows
         nrows = None
-        for t, k in itertools.chain([(s, selector)], zip(tbls, keys)):
+        for t, k in itertools.chain([(s, selector)], zip(tbls, keys, strict=True)):
             if t is None:
                 raise KeyError(f"Invalid table [{k}]")
             if not t.is_table:
@@ -2207,7 +2207,9 @@ class IndexCol:
         return ",".join(
             [
                 f"{key}->{value}"
-                for key, value in zip(["name", "cname", "axis", "pos", "kind"], temp)
+                for key, value in zip(
+                    ["name", "cname", "axis", "pos", "kind"], temp, strict=True
+                )
             ]
         )
 
@@ -2532,7 +2534,9 @@ class DataCol(IndexCol):
         return ",".join(
             [
                 f"{key}->{value}"
-                for key, value in zip(["name", "cname", "dtype", "kind", "shape"], temp)
+                for key, value in zip(
+                    ["name", "cname", "dtype", "kind", "shape"], temp, strict=True
+                )
             ]
         )
 
@@ -3125,7 +3129,7 @@ class GenericFixed(Fixed):
         setattr(self.attrs, f"{key}_nlevels", index.nlevels)
 
         for i, (lev, level_codes, name) in enumerate(
-            zip(index.levels, index.codes, index.names)
+            zip(index.levels, index.codes, index.names, strict=True)
         ):
             # write the level
             if isinstance(lev.dtype, ExtensionDtype):
@@ -4160,7 +4164,7 @@ class Table(Fixed):
 
         # add my values
         vaxes = []
-        for i, (blk, b_items) in enumerate(zip(blocks, blk_items)):
+        for i, (blk, b_items) in enumerate(zip(blocks, blk_items, strict=True)):
             # shape of the data column are the indexable axes
             klass = DataCol
             name = None
@@ -4301,7 +4305,7 @@ class Table(Fixed):
         if table_exists:
             by_items = {
                 tuple(b_items.tolist()): (b, b_items)
-                for b, b_items in zip(blocks, blk_items)
+                for b, b_items in zip(blocks, blk_items, strict=True)
             }
             new_blocks: list[Block] = []
             new_blk_items = []

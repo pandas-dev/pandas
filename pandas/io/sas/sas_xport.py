@@ -359,7 +359,7 @@ class XportReader(SASReader):
             fieldbytes = fieldbytes.ljust(140)
 
             fieldstruct = struct.unpack(">hhhh8s40s8shhh2s8shhl52s", fieldbytes)
-            field = dict(zip(_fieldkeys, fieldstruct))
+            field = dict(zip(_fieldkeys, fieldstruct, strict=True))
             del field["_"]
             field["ntype"] = types[field["ntype"]]
             fl = field["field_length"]
