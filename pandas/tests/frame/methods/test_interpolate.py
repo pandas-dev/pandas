@@ -366,7 +366,7 @@ class TestDataFrameInterpolate:
     @pytest.mark.parametrize("axis_name, axis_number", [("index", 0), ("columns", 1)])
     def test_interp_string_axis(self, axis_name, axis_number):
         # https://github.com/pandas-dev/pandas/issues/25190
-        x = np.linspace(0, 100, 1000)
+        x = np.linspace(0, 100, 3)
         y = np.sin(x)
         df = DataFrame(
             data=np.tile(y, (10, 1)), index=np.arange(10), columns=x
