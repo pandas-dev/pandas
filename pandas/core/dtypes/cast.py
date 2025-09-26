@@ -18,7 +18,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import using_string_dtype
+from pandas._config import (
+    is_nan_na,
+    using_string_dtype,
+)
 
 from pandas._libs import (
     Interval,
@@ -954,7 +957,10 @@ def convert_dtypes(
             elif input_array.dtype.kind in "fcb":
                 # TODO: de-dup with maybe_cast_to_integer_array?
                 arr = input_array[notna(input_array)]
-                if (arr.astype(int) == arr).all():
+                if len(arr) < len(input_array) and not is_nan_na():
+                    # In the presence of NaNs, we cannot convert to IntegerDtype
+                    pass
+                elif (arr.astype(int) == arr).all():
                     inferred_dtype = target_int_dtype
                 else:
                     inferred_dtype = input_array.dtype
@@ -978,7 +984,10 @@ def convert_dtypes(
                 if convert_integer:
                     # TODO: de-dup with maybe_cast_to_integer_array?
                     arr = input_array[notna(input_array)]
-                    if (arr.astype(int) == arr).all():
+                    if len(arr) < len(input_array) and not is_nan_na():
+                        # In the presence of NaNs, we can't convert to IntegerDtype
+                        inferred_dtype = inferred_float_dtype
+                    elif (arr.astype(int) == arr).all():
                         inferred_dtype = pandas_dtype_func("Int64")
                     else:
                         inferred_dtype = inferred_float_dtype

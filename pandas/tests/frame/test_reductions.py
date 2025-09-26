@@ -2121,7 +2121,9 @@ def test_fails_on_non_numeric(kernel):
     ],
 )
 @pytest.mark.parametrize("min_count", [0, 2])
-def test_numeric_ea_axis_1(method, skipna, min_count, any_numeric_ea_dtype):
+def test_numeric_ea_axis_1(
+    method, skipna, min_count, any_numeric_ea_dtype, using_nan_is_na
+):
     # GH 54341
     df = DataFrame(
         {
@@ -2168,7 +2170,13 @@ def test_numeric_ea_axis_1(method, skipna, min_count, any_numeric_ea_dtype):
     result = getattr(df, method)(axis=1, **kwargs)
     expected = getattr(expected_df, method)(axis=1, **kwargs)
     if method not in ("idxmax", "idxmin"):
-        expected = expected.astype(expected_dtype)
+        if using_nan_is_na:
+            expected = expected.astype(expected_dtype)
+        else:
+            mask = np.isnan(expected)
+            expected[mask] = 0
+            expected = expected.astype(expected_dtype)
+            expected[mask] = pd.NA
     tm.assert_series_equal(result, expected)
 
 

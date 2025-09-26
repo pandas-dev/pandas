@@ -427,6 +427,15 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory([True, False, "warn"]),
     )
 
+    cf.register_option(
+        "nan_is_na",
+        os.environ.get("PANDAS_NAN_IS_NA", "1") == "1",
+        "Whether to treat NaN entries as interchangeable with pd.NA in "
+        "numpy-nullable and pyarrow float dtypes. See discussion in "
+        "https://github.com/pandas-dev/pandas/issues/32265",
+        validator=is_one_of_factory([True, False]),
+    )
+
 
 # user warnings
 chained_assignment = """

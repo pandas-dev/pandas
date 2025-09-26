@@ -255,7 +255,9 @@ def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
 
 def test_groupby_quantile_NA_float(any_float_dtype):
     # GH#42849
-    df = DataFrame({"x": [1, 1], "y": [0.2, np.nan]}, dtype=any_float_dtype)
+    dtype = pd.Series([], dtype=any_float_dtype).dtype
+    item = np.nan if isinstance(dtype, np.dtype) else pd.NA
+    df = DataFrame({"x": [1, 1], "y": [0.2, item]}, dtype=any_float_dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     exp_index = Index([1.0], dtype=any_float_dtype, name="x")
 
@@ -353,7 +355,7 @@ def test_groupby_quantile_allNA_column(dtype):
     df = DataFrame({"x": [1, 1], "y": [pd.NA] * 2}, dtype=dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     expected = pd.Series(
-        [np.nan], dtype=dtype, index=Index([1.0], dtype=dtype), name="y"
+        [pd.NA], dtype=dtype, index=Index([1.0], dtype=dtype), name="y"
     )
     expected.index.name = "x"
     tm.assert_series_equal(expected, result)

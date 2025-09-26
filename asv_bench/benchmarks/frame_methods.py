@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 
 from pandas import (
+    NA,
     DataFrame,
     Index,
     MultiIndex,
@@ -445,6 +446,8 @@ class Fillna:
             values[::2] = np.nan
             if dtype == "Int64":
                 values = values.round()
+                values = values.astype(object)
+                values[::2] = NA
             self.df = DataFrame(values, dtype=dtype)
         self.fill_values = self.df.iloc[self.df.first_valid_index()].to_dict()
 
