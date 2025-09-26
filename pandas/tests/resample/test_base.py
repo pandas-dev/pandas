@@ -473,6 +473,7 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
     warn = None
     if isinstance(index, PeriodIndex):
         # GH#53511
+        # TODO: Need to find an alternative before this deprecation can be enforced
         index = PeriodIndex([], freq="B", name=index.name)
         warn = FutureWarning
     msg = "Resampling with a PeriodIndex is deprecated"

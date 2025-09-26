@@ -9136,7 +9136,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         from pandas.core.resample import get_resampler
 
         if convention is not lib.no_default:
-            # TODO: Enforce in 3.0 (#55968)
+            # TODO: Plan to fix resampling with PeriodIndex instead (#55968)
+            # see https://github.com/pandas-dev/pandas/pull/62270#issuecomment-3262411892
             warnings.warn(
                 f"The 'convention' keyword in {type(self).__name__}.resample is "
                 "deprecated and will be removed in a future version. "
