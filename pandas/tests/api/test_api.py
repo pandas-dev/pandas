@@ -96,6 +96,7 @@ class TestPDApi(Base):
         "Float32Dtype",
         "Float64Dtype",
         "NamedAgg",
+        "Scalar",
     ]
 
     # these are already deprecated; awaiting removal

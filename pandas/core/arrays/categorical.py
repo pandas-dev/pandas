@@ -126,6 +126,15 @@ def _cat_compare_op(op):
 
     @unpack_zerodim_and_defer(opname)
     def func(self, other):
+        if is_list_like(other) and not isinstance(other, (np.ndarray, ExtensionArray)):
+            warnings.warn(
+                "Comparison of Categorical to list-like objects intended "
+                "to be treated as scalars is deprecated. Wrap the scalar in "
+                "pd.Scalar(item) before comparing instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         hashable = is_hashable(other)
         if is_list_like(other) and len(other) != len(self) and not hashable:
             # in hashable case we may have a tuple that is itself a category
@@ -158,7 +167,10 @@ def _cat_compare_op(op):
                 ret[mask] = fill_value
             return ret
 
-        if hashable:
+        if hashable or isinstance(other, lib.Scalar):
+            if isinstance(other, lib.Scalar):
+                other = other.item
+
             if other in self.categories:
                 i = self._unbox_scalar(other)
                 ret = op(self._codes, i)

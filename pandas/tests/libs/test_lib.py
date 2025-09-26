@@ -14,6 +14,15 @@ from pandas import Index
 import pandas._testing as tm
 
 
+class TestScalar:
+    def test_scalar_immutable(self):
+        scalar = lib.Scalar("foo")
+
+        msg = "attribute 'item' of 'pandas._libs.lib.Scalar' objects is not writable"
+        with pytest.raises(AttributeError, match=msg):
+            scalar.item = 2
+
+
 class TestMisc:
     def test_max_len_string_array(self):
         arr = a = np.array(["foo", "b", np.nan], dtype="object")

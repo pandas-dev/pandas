@@ -34,6 +34,9 @@ class _NoDefault(Enum):
 no_default: Final = _NoDefault.no_default
 NoDefault: TypeAlias = Literal[_NoDefault.no_default]
 
+class Scalar:
+    item: object
+
 i8max: int
 u8max: int
 

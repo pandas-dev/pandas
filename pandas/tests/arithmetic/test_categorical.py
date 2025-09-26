@@ -1,7 +1,10 @@
 import numpy as np
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Categorical,
+    Scalar,
     Series,
 )
 import pandas._testing as tm
@@ -18,8 +21,14 @@ class TestCategoricalComparisons:
         # GH 18050
         ser = Series([(0, 0), (0, 1), (0, 0), (1, 0), (1, 1)])
         expected = Series([True, False, True, False, False])
+
         result = ser == (0, 0)
         tm.assert_series_equal(result, expected)
 
-        result = ser.astype("category") == (0, 0)
+        msg = "Comparison of Categorical to list-like objects"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.astype("category") == (0, 0)
+        tm.assert_series_equal(result, expected)
+
+        result = ser.astype("category") == Scalar((0, 0))
         tm.assert_series_equal(result, expected)
