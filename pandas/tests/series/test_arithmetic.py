@@ -155,6 +155,41 @@ class TestSeriesFlexArithmetic:
         # should accept axis=0 or axis='rows'
         op(a, b, axis=0)
 
+    def test_extarray_rhs_datetime_sub_with_fill_value(self):
+        # Ensure ExtensionArray (DatetimeArray) RHS is handled via array-like path
+        # and does not hit scalar isna branch.
+        left = Series(
+            [
+                pd.Timestamp("2025-08-20"),
+                pd.Timestamp("2025-08-21"),
+                pd.Timestamp("2025-08-22"),
+            ],
+            dtype=np.dtype("datetime64[ns]")
+        )
+        right = left._values  # DatetimeArray
+
+        result = left.sub(right, fill_value=left.iloc[0])
+        # result dtype may vary (e.g., seconds vs ns), build expected from result dtype
+        expected = Series(np.zeros(3, dtype=np.dtype("timedelta64[ns]")))
+        tm.assert_series_equal(result, expected)
+
+    def test_extarray_rhs_timedelta_sub_with_fill_value(self):
+        left = Series([Timedelta(days=1), Timedelta(days=2), Timedelta(days=3)], dtype=np.dtype("timedelta64[ns]"))
+        right = left._values  # TimedeltaArray
+
+        result = left.sub(right, fill_value=left.iloc[0])
+        expected = Series(np.zeros(3, dtype=np.dtype("timedelta64[ns]")))
+        tm.assert_series_equal(result, expected)
+
+    def test_extarray_rhs_period_eq_with_fill_value(self):
+        # Use equality to validate ExtensionArray RHS path for PeriodArray
+        left = Series(pd.period_range("2020Q1", periods=3, freq="Q"))
+        right = left._values  # PeriodArray
+
+        result = left.eq(right, fill_value=left.iloc[0])
+        expected = Series([True, True, True])
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesArithmetic:
     # Some of these may end up in tests/arithmetic, but are not yet sorted
@@ -402,6 +437,15 @@ class TestSeriesFlexComparison:
         right = Series([2, 2, 2], index=list("bcd"))
         result = getattr(left, op)(right)
         expected = Series(values, index=list("abcd"))
+        tm.assert_series_equal(result, expected)
+
+    def test_extarray_rhs_categorical_eq_with_fill_value(self):
+        # Categorical RHS should be treated as array-like, not as scalar
+        left = Series(Categorical(["a", "b", "a"]))
+        right = left._values  # Categorical
+
+        result = left.eq(right, fill_value=left.iloc[0])
+        expected = Series([True, True, True])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
