@@ -947,6 +947,13 @@ class ArrowExtensionArray(
             or pa.types.is_binary(pa_type)
         ):
             if op in [operator.add, roperator.radd]:
+                # pyarrow gets upset if you try to join a NullArray
+                if (
+                    pa.types.is_integer(other.type)
+                    or pa.types.is_floating(other.type)
+                    or pa.types.is_null(other.type)
+                ):
+                    other = other.cast(pa_type)
                 sep = pa.scalar("", type=pa_type)
                 try:
                     if op is operator.add:

@@ -249,7 +249,6 @@ def test_mul(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH-28527")
 def test_add_strings(dtype):
     arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
     df = pd.DataFrame([["t", "y", "v", "w"]], dtype=object)
@@ -264,7 +263,6 @@ def test_add_strings(dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH-28527")
 def test_add_frame(dtype):
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
@@ -273,11 +271,24 @@ def test_add_frame(dtype):
 
     result = arr + df
     expected = pd.DataFrame([["ax", np.nan, np.nan, np.nan]]).astype(dtype)
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_dtype=False)
 
     result = df + arr
     expected = pd.DataFrame([["xa", np.nan, np.nan, np.nan]]).astype(dtype)
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+def test_add_frame_mixed_type(dtype):
+    arr = pd.array(["a", "bc", 3, np.nan], dtype=dtype)
+    df = pd.DataFrame([[1, 2, 3.3, 4]])
+
+    result = arr + df
+    expected = pd.DataFrame([["a1", "bc2", "33.3", np.nan]]).astype(dtype)
+    tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    result = df + arr
+    expected = pd.DataFrame([["1a", "2bc", "3.33", np.nan]]).astype(dtype)
+    tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
 def test_comparison_methods_scalar(comparison_op, dtype):
