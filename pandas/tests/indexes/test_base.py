@@ -1012,6 +1012,78 @@ class TestIndex:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
 
+    def test_join_both_unique(self, join_type):
+        idx1 = Index([1, 2, 3], name="index1")
+        idx2 = Index([4, 5, 6], name="index2")
+        result = idx1.join(idx2, how=join_type)
+
+        if join_type == "outer":
+            expected = Index([1, 2, 3, 4, 5, 6], name=None)
+        elif join_type == "inner":
+            expected = Index([], name=None)
+        elif join_type == "left":
+            expected = Index([1, 2, 3], name=None)
+        elif join_type == "right":
+            expected = Index([4, 5, 6], name=None)
+
+        tm.assert_index_equal(result, expected)
+
+    def test_join_one_unique(self, join_type):
+        idx1 = Index([1, 2, 3], name="index1")
+        idx2 = Index([3, 3, 4], name="index2")
+        result = idx1.join(idx2, how=join_type)
+
+        if join_type == "outer":
+            expected = Index([1, 2, 3, 3, 4], name=None)
+        elif join_type == "inner":
+            expected = Index([3], name=None)
+        elif join_type == "left":
+            expected = Index([1, 2, 3], name=None)
+        elif join_type == "right":
+            expected = Index([3, 3, 4], name=None)
+
+        tm.assert_index_equal(result, expected)
+
+    def test_join_neither_unique(self, join_type):
+        idx1 = Index([1, 1, 2], name="index1")
+        idx2 = Index([2, 2, 3], name="index2")
+        result = idx1.join(idx2, how=join_type)
+
+        if join_type == "outer":
+            expected = Index([1, 1, 2, 2, 2, 3], name=None)
+        elif join_type == "inner":
+            expected = Index([2, 2], name=None)
+        elif join_type == "left":
+            expected = Index([1, 1, 2], name=None)
+        elif join_type == "right":
+            expected = Index([2, 2, 3], name=None)
+
+        tm.assert_index_equal(result, expected)
+
+    def test_join_empty_indexes(self, join_type):
+        idx1 = Index([], name="index1")
+        idx2 = Index([], name="index2")
+        result = idx1.join(idx2, how=join_type)
+
+        expected = Index([], name=None)
+        tm.assert_index_equal(result, expected)
+
+    def test_join_mixed_types(self, join_type):
+        idx1 = Index([1, "a", 3], name="index1")
+        idx2 = Index(["b", 2, "a"], name="index2")
+        result = idx1.join(idx2, how=join_type)
+
+        if join_type == "outer":
+            expected = Index([1, 2, 3, "a", "b"], name=None)
+        elif join_type == "inner":
+            expected = Index(["a"], name=None)
+        elif join_type == "left":
+            expected = Index([1, "a", 3], name=None)
+        elif join_type == "right":
+            expected = Index(["b", 2, "a"], name=None)
+
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize("method", ["strip", "rstrip", "lstrip"])
     def test_str_attribute(self, method):
         # GH9068
