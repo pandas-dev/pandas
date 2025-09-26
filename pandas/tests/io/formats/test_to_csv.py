@@ -549,16 +549,12 @@ z
         # see gh-15008
         compression = compression_only
 
-        # We'll complete file extension subsequently.
-        filename = "test."
-        filename += compression_to_extension[compression]
-
         df = DataFrame({"A": [1]})
 
         to_compression = "infer" if to_infer else compression
         read_compression = "infer" if read_infer else compression
 
-        path = str(temp_file)
+        path = str(temp_file) + "." + compression_to_extension[compression]
         df.to_csv(path, compression=to_compression)
         result = pd.read_csv(path, index_col=0, compression=read_compression)
         tm.assert_frame_equal(result, df)
@@ -567,14 +563,12 @@ z
         # GH 26023
         method = compression_only
         df = DataFrame({"ABC": [1]})
-        filename = "to_csv_compress_as_dict."
         extension = {
             "gzip": "gz",
             "zstd": "zst",
         }.get(method, method)
-        filename += extension
 
-        path = str(temp_file)
+        path = str(temp_file) + "." + extension
         df.to_csv(path, compression={"method": method})
         read_df = pd.read_csv(path, index_col=0)
         tm.assert_frame_equal(read_df, df)
@@ -595,7 +589,7 @@ z
         # GH 26023
         df = DataFrame({"ABC": [1]})
 
-        path = str(temp_file)
+        path = str(temp_file) + ".zip"
         df.to_csv(
             path, compression={"method": compression, "archive_name": archive_name}
         )
