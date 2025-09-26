@@ -33,7 +33,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -374,7 +377,11 @@ def dict_to_mgr(
 
     if columns is not None:
         columns = ensure_index(columns)
-        arrays = [np.nan] * len(columns)
+        if dtype is not None and not isinstance(dtype, np.dtype):
+            # e.g. test_dataframe_from_dict_of_series
+            arrays = [dtype.na_value] * len(columns)
+        else:
+            arrays = [np.nan] * len(columns)
         midxs = set()
         data_keys = ensure_index(data.keys())  # type: ignore[arg-type]
         data_values = list(data.values())
@@ -963,10 +970,13 @@ def convert_object_array(
 
     def convert(arr):
         if dtype != np.dtype("O"):
+            # e.g. if dtype is UInt32 then we want to cast Nones to NA instead of
+            #  NaN in maybe_convert_objects.
+            to_nullable = dtype_backend != "numpy" or isinstance(dtype, BaseMaskedDtype)
             arr = lib.maybe_convert_objects(
                 arr,
                 try_float=coerce_float,
-                convert_to_nullable_dtype=dtype_backend != "numpy",
+                convert_to_nullable_dtype=to_nullable,
             )
             # Notes on cases that get here 2023-02-15
             # 1) we DO get here when arr is all Timestamps and dtype=None

@@ -182,6 +182,7 @@ class TestSeriesConvertDtypes:
         expected_other,
         params,
         using_infer_string,
+        using_nan_is_na,
     ):
         if (
             hasattr(data, "dtype")
@@ -224,6 +225,16 @@ class TestSeriesConvertDtypes:
             # If convert_string=False and infer_objects=True, we end up with the
             # default string dtype instead of preserving object for string data
             expected_dtype = pd.StringDtype(na_value=np.nan)
+        if (
+            not using_nan_is_na
+            and expected_dtype == "Int64"
+            and isinstance(data[1], float)
+            and np.isnan(data[1])
+        ):
+            if params_dict["convert_floating"]:
+                expected_dtype = "Float64"
+            else:
+                expected_dtype = "float64"
 
         expected = pd.Series(data, dtype=expected_dtype)
         tm.assert_series_equal(result, expected)
