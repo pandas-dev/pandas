@@ -4,26 +4,25 @@ Unit tests for private methods in pandas.core.nanops_numba module.
 This module tests only the private methods (prefixed with underscore).
 """
 
+from numba.typed import List as NumbaList
 import numpy as np
 import pytest
-from numba.typed import List as NumbaList
 
+import pandas._testing as tm
 from pandas.core.nanops_numba import (
     MIN_INT,
     NumbaReductionOps,
     _cast_to_timelike,
     _chunk_arr_into_arr_list,
     _get_initial_value,
+    _nanvar_std_sem,
     _nb_reduce_arr_list_in_parallel,
     _nb_reduce_single_arr,
-    _nanvar_std_sem,
     _nullify_below_mincount,
     _reduce_chunked_results,
     _reduce_empty_array,
     nb_reduce,
 )
-
-import pandas._testing as tm
 
 
 class TestGetInitialValue:
@@ -255,7 +254,7 @@ class TestNbReduceArrListInParallel:
         # Create corresponding mask list
         mask_list = NumbaList()
         mask_list.append(np.array([False, True, False]))  # Mask middle element
-        mask_list.append(np.array([True, False, False]))   # Mask first element
+        mask_list.append(np.array([True, False, False]))  # Mask first element
 
         target = np.zeros(len(arr_list), dtype=np.float64)
         result, counts = _nb_reduce_arr_list_in_parallel(
@@ -280,13 +279,18 @@ class TestReduceChunkedResults:
         return_dtype = np.dtype("float64")
 
         result, count = _reduce_chunked_results(
-            "sum", chunk_results, counts, final_length, return_dtype,
-            skipna=True, find_initial_value=True
+            "sum",
+            chunk_results,
+            counts,
+            final_length,
+            return_dtype,
+            skipna=True,
+            find_initial_value=True,
         )
 
         # Should reduce the chunk_results array itself
         expected_result = np.array([6.0])  # 1 + 2 + 3
-        expected_count = np.array([6])     # 2 + 2 + 2
+        expected_count = np.array([6])  # 2 + 2 + 2
 
         tm.assert_numpy_array_equal(result, expected_result)
         tm.assert_numpy_array_equal(count, expected_count)
@@ -299,8 +303,13 @@ class TestReduceChunkedResults:
         return_dtype = np.dtype("float64")
 
         result, count = _reduce_chunked_results(
-            "sum", chunk_results, counts, final_length, return_dtype,
-            skipna=True, find_initial_value=True
+            "sum",
+            chunk_results,
+            counts,
+            final_length,
+            return_dtype,
+            skipna=True,
+            find_initial_value=True,
         )
 
         # Should return results as-is (no further reduction needed)
@@ -371,7 +380,7 @@ class TestNanvarStdSem:
         assert np.isfinite(result)
 
     def test_complex_array(self):
-        arr = np.array([1+2j, 3+4j])
+        arr = np.array([1 + 2j, 3 + 4j])
         result = _nanvar_std_sem(arr)
         # Should handle complex numbers by processing real and imag parts
         assert np.isfinite(result)
@@ -490,8 +499,11 @@ class TestNbReduceMultithreading:
     ):
         """Test sum with NaN values and skipna=True on large array (multi-threaded)."""
         result, count = nb_reduce(
-            "sum", large_2d_array_with_nans, axis=None,
-            skipna=True, multi_threading=True
+            "sum",
+            large_2d_array_with_nans,
+            axis=None,
+            skipna=True,
+            multi_threading=True,
         )
 
         # Compare with numpy nansum
@@ -503,8 +515,9 @@ class TestNbReduceMultithreading:
 
     def test_nb_reduce_with_nans_axis_0_multithreaded(self, large_2d_array_with_nans):
         """Test sum with NaN values along axis 0 (multi-threaded)."""
-        result, count = nb_reduce("sum", large_2d_array_with_nans, axis=0,
-                                  skipna=True, multi_threading=True)
+        result, count = nb_reduce(
+            "sum", large_2d_array_with_nans, axis=0, skipna=True, multi_threading=True
+        )
 
         # Compare with numpy nansum
         expected = np.nansum(large_2d_array_with_nans, axis=0)
@@ -515,8 +528,9 @@ class TestNbReduceMultithreading:
 
     def test_nb_reduce_with_nans_axis_1_multithreaded(self, large_2d_array_with_nans):
         """Test sum with NaN values along axis 1 (multi-threaded)."""
-        result, count = nb_reduce("sum", large_2d_array_with_nans, axis=1,
-                                  skipna=True, multi_threading=True)
+        result, count = nb_reduce(
+            "sum", large_2d_array_with_nans, axis=1, skipna=True, multi_threading=True
+        )
 
         # Compare with numpy nansum
         expected = np.nansum(large_2d_array_with_nans, axis=1)
@@ -528,12 +542,14 @@ class TestNbReduceMultithreading:
     def test_nb_reduce_single_thread_vs_multithread_consistency(self, large_2d_array):
         """Test that single-threaded and multi-threaded results are identical."""
         # Single-threaded result
-        result_st, count_st = nb_reduce("sum", large_2d_array, axis=0,
-                                        multi_threading=False)
+        result_st, count_st = nb_reduce(
+            "sum", large_2d_array, axis=0, multi_threading=False
+        )
 
         # Multi-threaded result
-        result_mt, count_mt = nb_reduce("sum", large_2d_array, axis=0,
-                                        multi_threading=True)
+        result_mt, count_mt = nb_reduce(
+            "sum", large_2d_array, axis=0, multi_threading=True
+        )
 
         # Results should be identical
         tm.assert_numpy_array_equal(result_st, result_mt)
@@ -568,9 +584,14 @@ class TestNbReduceMultithreading:
         """Test min_count parameter with large array (multi-threaded)."""
         min_count = 100  # Require at least 100 non-NaN values per column
 
-        result, count = nb_reduce("sum", large_2d_array_with_nans, axis=0,
-                                  skipna=True, min_count=min_count,
-                                  multi_threading=True)
+        result, count = nb_reduce(
+            "sum",
+            large_2d_array_with_nans,
+            axis=0,
+            skipna=True,
+            min_count=min_count,
+            multi_threading=True,
+        )
 
         # Check that columns with insufficient data are NaN
         valid_columns = count >= min_count
@@ -582,8 +603,9 @@ class TestNbReduceMultithreading:
 
     def test_nb_reduce_mean_axis_none_multithreaded(self, large_2d_array):
         """Test mean reduction with axis=None on large array (multi-threaded)."""
-        result, count = nb_reduce("mean", large_2d_array, axis=None,
-                                  multi_threading=True)
+        result, count = nb_reduce(
+            "mean", large_2d_array, axis=None, multi_threading=True
+        )
 
         # Compare with numpy result
         expected = np.mean(large_2d_array)
@@ -594,8 +616,7 @@ class TestNbReduceMultithreading:
 
     def test_nb_reduce_mean_axis_0_multithreaded(self, large_2d_array):
         """Test mean reduction along axis 0 on large array (multi-threaded)."""
-        result, count = nb_reduce("mean", large_2d_array, axis=0,
-                                  multi_threading=True)
+        result, count = nb_reduce("mean", large_2d_array, axis=0, multi_threading=True)
 
         # Compare with numpy result
         expected = np.mean(large_2d_array, axis=0)
@@ -606,8 +627,7 @@ class TestNbReduceMultithreading:
 
     def test_nb_reduce_mean_axis_1_multithreaded(self, large_2d_array):
         """Test mean reduction along axis 1 on large array (multi-threaded)."""
-        result, count = nb_reduce("mean", large_2d_array, axis=1,
-                                  multi_threading=True)
+        result, count = nb_reduce("mean", large_2d_array, axis=1, multi_threading=True)
 
         # Compare with numpy result
         expected = np.mean(large_2d_array, axis=1)
@@ -618,11 +638,12 @@ class TestNbReduceMultithreading:
 
     def test_nb_reduce_sum_square_axis_none_multithreaded(self, large_2d_array):
         """Test sum_square reduction with axis=None on large array."""
-        result, count = nb_reduce("sum_square", large_2d_array, axis=None,
-                                  multi_threading=True)
+        result, count = nb_reduce(
+            "sum_square", large_2d_array, axis=None, multi_threading=True
+        )
 
         # Compare with numpy result (sum of squares)
-        expected = np.sum(large_2d_array ** 2)
+        expected = np.sum(large_2d_array**2)
         expected_count = large_2d_array.size
 
         tm.assert_almost_equal(result, expected, rtol=1e-10)
@@ -630,11 +651,12 @@ class TestNbReduceMultithreading:
 
     def test_nb_reduce_sum_square_axis_0_multithreaded(self, large_2d_array):
         """Test sum_square reduction along axis 0 on large array."""
-        result, count = nb_reduce("sum_square", large_2d_array, axis=0,
-                                  multi_threading=True)
+        result, count = nb_reduce(
+            "sum_square", large_2d_array, axis=0, multi_threading=True
+        )
 
         # Compare with numpy result (sum of squares along axis 0)
-        expected = np.sum(large_2d_array ** 2, axis=0)
+        expected = np.sum(large_2d_array**2, axis=0)
         expected_count = np.full(large_2d_array.shape[1], large_2d_array.shape[0])
 
         tm.assert_numpy_array_equal(result, expected)
@@ -642,11 +664,12 @@ class TestNbReduceMultithreading:
 
     def test_nb_reduce_sum_square_axis_1_multithreaded(self, large_2d_array):
         """Test sum_square reduction along axis 1 on large array."""
-        result, count = nb_reduce("sum_square", large_2d_array, axis=1,
-                                  multi_threading=True)
+        result, count = nb_reduce(
+            "sum_square", large_2d_array, axis=1, multi_threading=True
+        )
 
         # Compare with numpy result (sum of squares along axis 1)
-        expected = np.sum(large_2d_array ** 2, axis=1)
+        expected = np.sum(large_2d_array**2, axis=1)
         expected_count = np.full(large_2d_array.shape[0], large_2d_array.shape[1])
 
         np.testing.assert_array_almost_equal(result, expected)
@@ -687,8 +710,9 @@ class TestNbReduceTimedelta64:
 
     def test_nb_reduce_timedelta64_sum_axis_none(self, timedelta64_2d_array):
         """Test sum reduction on timedelta64 array with axis=None."""
-        result, count = nb_reduce("sum", timedelta64_2d_array, axis=None,
-                                  multi_threading=True)
+        result, count = nb_reduce(
+            "sum", timedelta64_2d_array, axis=None, multi_threading=True
+        )
 
         # Compare with numpy result
         expected = np.sum(timedelta64_2d_array)
@@ -699,26 +723,30 @@ class TestNbReduceTimedelta64:
 
     def test_nb_reduce_timedelta64_sum_axis_0(self, timedelta64_2d_array):
         """Test sum reduction on timedelta64 array along axis 0."""
-        result, count = nb_reduce("sum", timedelta64_2d_array, axis=0,
-                                  multi_threading=True)
+        result, count = nb_reduce(
+            "sum", timedelta64_2d_array, axis=0, multi_threading=True
+        )
 
         # Compare with numpy result
         expected = np.sum(timedelta64_2d_array, axis=0)
-        expected_count = np.full(timedelta64_2d_array.shape[1],
-                               timedelta64_2d_array.shape[0])
+        expected_count = np.full(
+            timedelta64_2d_array.shape[1], timedelta64_2d_array.shape[0]
+        )
 
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(count, expected_count)
 
     def test_nb_reduce_timedelta64_sum_axis_1(self, timedelta64_2d_array):
         """Test sum reduction on timedelta64 array along axis 1."""
-        result, count = nb_reduce("sum", timedelta64_2d_array, axis=1,
-                                  multi_threading=True)
+        result, count = nb_reduce(
+            "sum", timedelta64_2d_array, axis=1, multi_threading=True
+        )
 
         # Compare with numpy result
         expected = np.sum(timedelta64_2d_array, axis=1)
-        expected_count = np.full(timedelta64_2d_array.shape[0],
-                               timedelta64_2d_array.shape[1])
+        expected_count = np.full(
+            timedelta64_2d_array.shape[0], timedelta64_2d_array.shape[1]
+        )
 
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(count, expected_count)
@@ -726,15 +754,17 @@ class TestNbReduceTimedelta64:
     def test_nb_reduce_timedelta64_min_max(self, timedelta64_2d_array):
         """Test min/max reduction on timedelta64 array."""
         # Test min
-        result_min, count_min = nb_reduce("min", timedelta64_2d_array, axis=None,
-                                         multi_threading=True)
+        result_min, count_min = nb_reduce(
+            "min", timedelta64_2d_array, axis=None, multi_threading=True
+        )
         expected_min = np.min(timedelta64_2d_array)
         assert result_min == expected_min
         assert count_min == timedelta64_2d_array.size
 
         # Test max
-        result_max, count_max = nb_reduce("max", timedelta64_2d_array, axis=None,
-                                         multi_threading=True)
+        result_max, count_max = nb_reduce(
+            "max", timedelta64_2d_array, axis=None, multi_threading=True
+        )
         expected_max = np.max(timedelta64_2d_array)
         assert result_max == expected_max
         assert count_max == timedelta64_2d_array.size
@@ -743,8 +773,13 @@ class TestNbReduceTimedelta64:
         self, timedelta64_2d_array_with_nat
     ):
         """Test reduction on timedelta64 array with NaT values, skipna=True."""
-        result, count = nb_reduce("sum", timedelta64_2d_array_with_nat, axis=None,
-                                  skipna=True, multi_threading=True)
+        result, count = nb_reduce(
+            "sum",
+            timedelta64_2d_array_with_nat,
+            axis=None,
+            skipna=True,
+            multi_threading=True,
+        )
 
         # Compare with numpy result
         # For timedelta64 with NaT, we need to use nansum equivalent
@@ -759,21 +794,28 @@ class TestNbReduceTimedelta64:
         self, timedelta64_2d_array_with_nat
     ):
         """Test reduction on timedelta64 array with NaT values, skipna=False."""
-        result, count = nb_reduce("sum", timedelta64_2d_array_with_nat, axis=None,
-                                  skipna=False, multi_threading=True)
+        result, count = nb_reduce(
+            "sum",
+            timedelta64_2d_array_with_nat,
+            axis=None,
+            skipna=False,
+            multi_threading=True,
+        )
 
         # When skipna=False and there are NaT values, result should be NaT
         assert np.isnat(result)
 
     def test_nb_reduce_timedelta64_mean_axis_0(self, timedelta64_2d_array):
         """Test mean reduction on timedelta64 array along axis 0."""
-        result, count = nb_reduce("mean", timedelta64_2d_array, axis=0,
-                                  multi_threading=True)
+        result, count = nb_reduce(
+            "mean", timedelta64_2d_array, axis=0, multi_threading=True
+        )
 
         # Compare with numpy result
         expected = np.mean(timedelta64_2d_array, axis=0)
-        expected_count = np.full(timedelta64_2d_array.shape[1],
-                               timedelta64_2d_array.shape[0])
+        expected_count = np.full(
+            timedelta64_2d_array.shape[1], timedelta64_2d_array.shape[0]
+        )
 
         tm.assert_numpy_array_equal(result, expected)
         tm.assert_numpy_array_equal(count, expected_count)
