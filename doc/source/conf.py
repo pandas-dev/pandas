@@ -69,6 +69,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.todo",
     "nbsphinx",
+    "show_edit_this_page",
 ]
 
 exclude_patterns = [
@@ -270,6 +271,8 @@ html_theme_options = {
             "icon": "fa-brands fa-mastodon",
         },
     ],
+    "secondary_sidebar_items": ["page-toc", "sourcelink", "edit-this-page"],
+    "use_edit_page_button": True,
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -393,6 +396,16 @@ header = f"""\
 html_context = {
     "redirects": dict(moved_api_pages),
     "header": header,
+    "github_user": "pandas-dev",
+    "github_repo": "pandas",
+    "github_version": "main",
+    "doc_path": "doc/source",
+    "exclude_edit_this_page_pagename": [
+        "index"
+    ],  # specific pages, e.g., index, development/index
+    "exclude_edit_this_page_directory": [
+        "api"
+    ],  # all files in a directory, e.g., development, reference
 }
 
 # If false, no module index is generated.
