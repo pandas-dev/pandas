@@ -312,7 +312,7 @@ class TestSeriesConvertDtypes:
         # GH 60237
         pytest.importorskip("pyarrow")
         ser = pd.Series(
-            pd.to_datetime(range(5), utc=True, unit="h"),
+            pd.to_datetime(range(5), utc=True, input_unit="h"),
             dtype="timestamp[ns, tz=UTC][pyarrow]",
         )
         result = ser.convert_dtypes(dtype_backend="pyarrow")

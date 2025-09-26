@@ -118,22 +118,22 @@ class ToDatetimeFromIntsFloats:
     # speed of int64, uint64 and float64 paths should be comparable
 
     def time_nanosec_int64(self):
-        to_datetime(self.ts_nanosec, unit="ns")
+        to_datetime(self.ts_nanosec, input_unit="ns")
 
     def time_nanosec_uint64(self):
-        to_datetime(self.ts_nanosec_uint, unit="ns")
+        to_datetime(self.ts_nanosec_uint, input_unit="ns")
 
     def time_nanosec_float64(self):
-        to_datetime(self.ts_nanosec_float, unit="ns")
+        to_datetime(self.ts_nanosec_float, input_unit="ns")
 
     def time_sec_uint64(self):
-        to_datetime(self.ts_sec_uint, unit="s")
+        to_datetime(self.ts_sec_uint, input_unit="s")
 
     def time_sec_int64(self):
-        to_datetime(self.ts_sec, unit="s")
+        to_datetime(self.ts_sec, input_unit="s")
 
     def time_sec_float64(self):
-        to_datetime(self.ts_sec_float, unit="s")
+        to_datetime(self.ts_sec_float, input_unit="s")
 
 
 class ToDatetimeYYYYMMDD:
@@ -250,10 +250,10 @@ class ToDatetimeCache:
         self.dup_string_with_tz = ["2000-02-11 15:00:00-0800"] * N
 
     def time_unique_seconds_and_unit(self, cache):
-        to_datetime(self.unique_numeric_seconds, unit="s", cache=cache)
+        to_datetime(self.unique_numeric_seconds, input_unit="s", cache=cache)
 
     def time_dup_seconds_and_unit(self, cache):
-        to_datetime(self.dup_numeric_seconds, unit="s", cache=cache)
+        to_datetime(self.dup_numeric_seconds, input_unit="s", cache=cache)
 
     def time_dup_string_dates(self, cache):
         to_datetime(self.dup_string_dates, cache=cache)
@@ -275,7 +275,7 @@ class ToTimedelta:
             self.str_seconds.append(f"00:00:{i:02d}")
 
     def time_convert_int(self):
-        to_timedelta(self.ints, unit="s")
+        to_timedelta(self.ints, input_unit="s")
 
     def time_convert_string_days(self):
         to_timedelta(self.str_days)

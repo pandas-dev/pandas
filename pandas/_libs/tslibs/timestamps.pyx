@@ -1842,18 +1842,18 @@ class Timestamp(_Timestamp):
 
     This converts a float representing a Unix epoch in units of seconds
 
-    >>> pd.Timestamp(1513393355.5, unit='s')
+    >>> pd.Timestamp(1513393355.5, input_unit='s')
     Timestamp('2017-12-16 03:02:35.500000')
 
     This converts an int representing a Unix-epoch in units of weeks
 
-    >>> pd.Timestamp(1535, unit='W')
+    >>> pd.Timestamp(1535, input_unit='W')
     Timestamp('1999-06-03 00:00:00')
 
     This converts an int representing a Unix-epoch in units of seconds
     and for a particular timezone
 
-    >>> pd.Timestamp(1513393355, unit='s', tz='US/Pacific')
+    >>> pd.Timestamp(1513393355, input_unit='s', tz='US/Pacific')
     Timestamp('2017-12-15 19:02:35-0800', tz='US/Pacific')
 
     Using the other two forms that mimic the API for ``datetime.datetime``:
@@ -2586,6 +2586,7 @@ class Timestamp(_Timestamp):
         tz=_no_input,
         unit=None,
         fold=None,
+        input_unit=None,
     ):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
@@ -2611,6 +2612,17 @@ class Timestamp(_Timestamp):
         cdef:
             _TSObject ts
             tzinfo_type tzobj
+
+        if unit is not None:
+            if input_unit is not None:
+                raise ValueError("Specify only 'input_unit', not 'unit'")
+            from pandas.errors import Pandas4Warning
+            warnings.warn(
+                "The 'unit' keyword is deprecated. Use 'input_unit' instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            input_unit = unit
 
         _date_attributes = [year, month, day, hour, minute, second,
                             microsecond, nanosecond]
@@ -2659,7 +2671,7 @@ class Timestamp(_Timestamp):
         # checking verbosely, because cython doesn't optimize
         # list comprehensions (as of cython 0.29.x)
         if (isinstance(ts_input, _Timestamp) and
-                tz is None and unit is None and year is None and
+                tz is None and input_unit is None and year is None and
                 month is None and day is None and hour is None and
                 minute is None and second is None and
                 microsecond is None and nanosecond is None and
@@ -2701,7 +2713,7 @@ class Timestamp(_Timestamp):
             # microsecond[, tzinfo]]]]])
             ts_input = datetime(ts_input, year, month, day or 0,
                                 hour or 0, minute or 0, second or 0, fold=fold or 0)
-            unit = None
+            input_unit = None
 
         if getattr(ts_input, "tzinfo", None) is not None and tz is not None:
             raise ValueError("Cannot pass a datetime or Timestamp with tzinfo with "
@@ -2714,7 +2726,7 @@ class Timestamp(_Timestamp):
         elif not (999 >= nanosecond >= 0):
             raise ValueError("nanosecond must be in 0..999")
 
-        ts = convert_to_tsobject(ts_input, tzobj, unit, 0, 0, nanosecond)
+        ts = convert_to_tsobject(ts_input, tzobj, input_unit, 0, 0, nanosecond)
 
         if ts.value == NPY_NAT:
             return NaT
@@ -3078,7 +3090,7 @@ timedelta}, default 'raise'
 
         Examples
         --------
-        >>> ts = pd.Timestamp(1584226800, unit='s', tz='Europe/Stockholm')
+        >>> ts = pd.Timestamp(1584226800, input_unit='s', tz='Europe/Stockholm')
         >>> ts.tz
         zoneinfo.ZoneInfo(key='Europe/Stockholm')
         """

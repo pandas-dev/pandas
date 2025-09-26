@@ -150,7 +150,7 @@ class TestAstype:
         # see GH#9757
         a = Series(date_range("2010-01-04", periods=5))
         b = Series(date_range("3/6/2012 00:00", periods=5, tz="US/Eastern"))
-        c = Series([Timedelta(x, unit="D") for x in range(5)])
+        c = Series([Timedelta(x, input_unit="D") for x in range(5)])
         d = Series(range(5))
         e = Series([0.0, 0.2, 0.4, 0.6, 0.8])
 
@@ -432,9 +432,9 @@ class TestAstype:
         assert (result.dtypes == object).all()
 
         if dtype.startswith("M8"):
-            assert result.iloc[0, 0] == Timestamp(1, unit=unit)
+            assert result.iloc[0, 0] == Timestamp(1, input_unit=unit)
         else:
-            assert result.iloc[0, 0] == Timedelta(1, unit=unit)
+            assert result.iloc[0, 0] == Timedelta(1, input_unit=unit)
 
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "h", "m", "D"])

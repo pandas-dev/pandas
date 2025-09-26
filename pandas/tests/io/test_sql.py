@@ -2985,7 +2985,9 @@ def test_date_parsing(conn, request):
     df = sql.read_sql_table("types", conn, parse_dates={"IntDateCol": "s"})
     assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
-    df = sql.read_sql_table("types", conn, parse_dates={"IntDateCol": {"unit": "s"}})
+    df = sql.read_sql_table(
+        "types", conn, parse_dates={"IntDateCol": {"input_unit": "s"}}
+    )
     assert issubclass(df.IntDateCol.dtype.type, np.datetime64)
 
 

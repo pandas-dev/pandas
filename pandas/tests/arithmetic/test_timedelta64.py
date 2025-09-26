@@ -696,16 +696,16 @@ class TestAddSubNaTMasking:
         # preliminary test scalar analogue of vectorized tests below
         # TODO: Make raised error message more informative and test
         with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
-            pd.to_timedelta(106580, "D") + Timestamp("2000")
+            pd.to_timedelta(106580, input_unit="D") + Timestamp("2000")
         with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
-            Timestamp("2000") + pd.to_timedelta(106580, "D")
+            Timestamp("2000") + pd.to_timedelta(106580, input_unit="D")
 
         _NaT = NaT._value + 1
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
-            pd.to_timedelta([106580], "D") + Timestamp("2000")
+            pd.to_timedelta([106580], input_unit="D") + Timestamp("2000")
         with pytest.raises(OverflowError, match=msg):
-            Timestamp("2000") + pd.to_timedelta([106580], "D")
+            Timestamp("2000") + pd.to_timedelta([106580], input_unit="D")
         with pytest.raises(OverflowError, match=msg):
             pd.to_timedelta([_NaT]) - Timedelta("1 days")
         with pytest.raises(OverflowError, match=msg):
