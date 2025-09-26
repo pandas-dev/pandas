@@ -981,7 +981,7 @@ def nanstd(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
     >>> nanops.nanstd(s.values)
-    1.0
+    np.float64(1.0)
     """
     if values.dtype == "M8[ns]":
         values = values.view("m8[ns]")
@@ -1028,7 +1028,7 @@ def nanvar(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
     >>> nanops.nanvar(s.values)
-    1.0
+    np.float64(1.0)
     """
     dtype = values.dtype
     mask = _maybe_get_mask(values, skipna, mask)
