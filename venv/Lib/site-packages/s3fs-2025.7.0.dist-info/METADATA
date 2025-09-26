@@ -1,0 +1,43 @@
+Metadata-Version: 2.4
+Name: s3fs
+Version: 2025.7.0
+Summary: Convenient Filesystem interface over S3
+Home-page: http://github.com/fsspec/s3fs/
+Maintainer: Martin Durant
+Maintainer-email: mdurant@continuum.io
+License: BSD
+Keywords: s3,boto
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: >= 3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE.txt
+Requires-Dist: aiobotocore<3.0.0,>=2.5.4
+Requires-Dist: fsspec==2025.7.0
+Requires-Dist: aiohttp!=4.0.0a0,!=4.0.0a1
+Provides-Extra: awscli
+Requires-Dist: aiobotocore[awscli]<3.0.0,>=2.5.4; extra == "awscli"
+Provides-Extra: boto3
+Requires-Dist: aiobotocore[boto3]<3.0.0,>=2.5.4; extra == "boto3"
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: license-file
+Dynamic: maintainer
+Dynamic: maintainer-email
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+README.md

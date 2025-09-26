@@ -1,0 +1,15 @@
+/*! Bundled license information:
+
+coincident/esm/index.js:
+  (*! (c) Andrea Giammarchi - ISC *)
+*/
+
+/*! Bundled license information:
+
+comlink/dist/esm/comlink.mjs:
+  (**
+   * @license
+   * Copyright 2019 Google LLC
+   * SPDX-License-Identifier: Apache-2.0
+   *)
+*/

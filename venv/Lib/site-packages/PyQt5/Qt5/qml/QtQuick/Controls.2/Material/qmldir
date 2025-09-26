@@ -1,0 +1,4 @@
+module QtQuick.Controls.Material
+plugin qtquickcontrols2materialstyleplugin
+classname QtQuickControls2MaterialStylePlugin
+depends QtQuick.Controls 2.5
