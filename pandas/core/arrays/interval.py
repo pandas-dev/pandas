@@ -91,6 +91,7 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import (
+    get_shape_exception_message,
     invalid_comparison,
     unpack_zerodim_and_defer,
 )
@@ -733,11 +734,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         self._left[key] = value_left
         self._right[key] = value_right
 
+    def _supports_scalar_op(self, other, op_name):
+        return True
+
+    def _supports_array_op(self, other, op_name):
+        return True
+
     def _cmp_method(self, other, op):
         # ensure pandas array for list-like and eliminate non-interval scalars
         if is_list_like(other):
             if len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
+                msg = get_shape_exception_message(self, other)
+                raise ValueError(msg)
             other = pd_array(other)
         elif not isinstance(other, Interval):
             # non-interval scalar -> no matches

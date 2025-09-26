@@ -55,6 +55,10 @@ from pandas.core import roperator
 from pandas.core.computation import expressions
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.ops import missing
+from pandas.core.ops.common import (
+    get_op_exception_message,
+    get_shape_exception_message,
+)
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
 
@@ -122,7 +126,8 @@ def comp_method_OBJECT_ARRAY(op, x, y):
             y = y._values
 
         if x.shape != y.shape:
-            raise ValueError("Shapes must match", x.shape, y.shape)
+            msg = get_shape_exception_message(x, y)
+            raise ValueError(msg)
         result = libops.vec_compare(x.ravel(), y.ravel(), op)
     else:
         result = libops.scalar_compare(x.ravel(), y, op)
@@ -149,7 +154,8 @@ def _masked_arith_op(x: np.ndarray, y, op) -> np.ndarray:
         result = np.empty(x.size, dtype=dtype)
 
         if len(x) != len(y):
-            raise ValueError(x.shape, y.shape)
+            msg = get_shape_exception_message(x, y)
+            raise ValueError(msg)
         ymask = notna(y)
 
         # NB: ravel() is only safe since y is ndarray; for e.g. PeriodIndex
@@ -163,9 +169,8 @@ def _masked_arith_op(x: np.ndarray, y, op) -> np.ndarray:
 
     else:
         if not is_scalar(y):
-            raise TypeError(
-                f"Cannot broadcast np.ndarray with operand of type {type(y)}"
-            )
+            msg = get_op_exception_message(op.__name__, x, y)
+            raise TypeError(msg)
 
         # mask is only meaningful for x
         result = np.empty(x.size, dtype=x.dtype)
@@ -317,9 +322,8 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         #  We are not catching all listlikes here (e.g. frozenset, tuple)
         #  The ambiguous case is object-dtype.  See GH#27803
         if len(lvalues) != len(rvalues):
-            raise ValueError(
-                "Lengths must match to compare", lvalues.shape, rvalues.shape
-            )
+            msg = get_shape_exception_message(lvalues, rvalues)
+            raise ValueError(msg)
 
     if should_extension_dispatch(lvalues, rvalues) or (
         (isinstance(rvalues, (Timedelta, BaseOffset, Timestamp)) or right is NaT)
@@ -380,11 +384,8 @@ def na_logical_op(x: np.ndarray, y, op):
                 OverflowError,
                 NotImplementedError,
             ) as err:
-                typ = type(y).__name__
-                raise TypeError(
-                    f"Cannot perform '{op.__name__}' with a dtyped [{x.dtype}] array "
-                    f"and scalar of type [{typ}]"
-                ) from err
+                msg = get_op_exception_message(op.__name__, x, y)
+                raise TypeError(msg) from err
 
     return result.reshape(x.shape)
 
@@ -597,7 +598,5 @@ def _bool_arith_check(op, a: np.ndarray, b) -> None:
     """
     if op in _BOOL_OP_NOT_ALLOWED:
         if a.dtype.kind == "b" and (is_bool_dtype(b) or lib.is_bool(b)):
-            op_name = op.__name__.strip("_").lstrip("r")
-            raise NotImplementedError(
-                f"operator '{op_name}' not implemented for bool dtypes"
-            )
+            msg = get_op_exception_message(op.__name__, a, b)
+            raise TypeError(msg)

@@ -7151,11 +7151,6 @@ class Index(IndexOpsMixin, PandasObject):
                     arr[self.isna()] = True
                 return arr
 
-        if isinstance(other, (np.ndarray, Index, ABCSeries, ExtensionArray)) and len(
-            self
-        ) != len(other):
-            raise ValueError("Lengths must match to compare")
-
         if not isinstance(other, ABCMultiIndex):
             other = extract_array(other, extract_numpy=True)
         else:

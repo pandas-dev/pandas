@@ -731,6 +731,43 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             mask = self._mask | mask
         return mask
 
+    def _supports_scalar_op(self, other, op_name: str) -> bool:
+        if self.dtype.kind == "b":
+            if op_name.strip("_") in {"or", "ror", "and", "rand", "xor", "rxor"}:
+                if other is not libmissing.NA and not lib.is_bool(other):
+                    return False
+
+            if other is libmissing.NA and op_name.strip("_") in {
+                "floordiv",
+                "rfloordiv",
+                "pow",
+                "rpow",
+                "truediv",
+                "rtruediv",
+            }:
+                # GH#41165 Try to match non-masked Series behavior
+                #  This is still imperfect GH#46043
+                return False
+
+        return True
+
+    def _supports_array_op(self, other, op_name: str) -> bool:
+        if self.dtype.kind == "b":
+            if op_name.strip("_") in {
+                "floordiv",
+                "rfloordiv",
+                "pow",
+                "rpow",
+                "truediv",
+                "rtruediv",
+                "sub",
+                "rsub",
+            }:
+                # GH#41165 Try to match non-masked Series behavior
+                #  This is still imperfect GH#46043
+                return False
+        return True
+
     def _arith_method(self, other, op):
         op_name = op.__name__
         omask = None
@@ -770,19 +807,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if other is libmissing.NA:
             result = np.ones_like(self._data)
             if self.dtype.kind == "b":
-                if op_name in {
-                    "floordiv",
-                    "rfloordiv",
-                    "pow",
-                    "rpow",
-                    "truediv",
-                    "rtruediv",
-                }:
-                    # GH#41165 Try to match non-masked Series behavior
-                    #  This is still imperfect GH#46043
-                    raise NotImplementedError(
-                        f"operator '{op_name}' not implemented for bool dtypes"
-                    )
                 if op_name in {"mod", "rmod"}:
                     dtype = "int8"
                 else:
@@ -843,7 +867,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if other.ndim > 1:
                 raise NotImplementedError("can only perform ops with 1-d structures")
             if len(self) != len(other):
-                raise ValueError("Lengths must match to compare")
+                msg = ops.get_shape_exception_message(self, other)
+                raise ValueError(msg)
 
         if other is libmissing.NA:
             # numpy does not handle pd.NA well as "other" scalar (it returns

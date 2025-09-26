@@ -8,7 +8,10 @@ Methods that can be shared by many array-like classes or subclasses:
 from __future__ import annotations
 
 import operator
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 import numpy as np
 
@@ -21,6 +24,9 @@ from pandas.core import roperator
 from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
+if TYPE_CHECKING:
+    from pandas._typing import ArrayLike
+
 REDUCTION_ALIASES = {
     "maximum": "max",
     "minimum": "min",
@@ -30,6 +36,41 @@ REDUCTION_ALIASES = {
 
 
 class OpsMixin:
+    def _supports_scalar_op(self, other, op_name: str):
+        """
+        Return False to have unpack_zerodim_and_defer raise a TypeError with
+        standardized exception message.
+
+        Parameters
+        ----------
+        other : scalar
+            The type(other).__name__ will be used for the exception message.
+        op_name : str
+
+        Returns
+        -------
+        bool
+        """
+        return True
+
+    def _supports_array_op(self, other: ArrayLike, op_name: str):
+        """
+        Return False to have unpack_zerodim_and_defer raise a TypeError with
+        standardized exception message.
+
+        Parameters
+        ----------
+        other : np.ndarray or ExtensionArray
+            The other.dtype will be used for the exception message.
+        op_name : str
+
+        Returns
+        -------
+        bool
+
+        """
+        return True
+
     # -------------------------------------------------------------
     # Comparisons
 
@@ -220,7 +261,7 @@ class OpsMixin:
     def __floordiv__(self, other):
         return self._arith_method(other, operator.floordiv)
 
-    @unpack_zerodim_and_defer("__rfloordiv")
+    @unpack_zerodim_and_defer("__rfloordiv__")
     def __rfloordiv__(self, other):
         return self._arith_method(other, roperator.rfloordiv)
 

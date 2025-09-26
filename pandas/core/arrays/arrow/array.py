@@ -877,16 +877,6 @@ class ArrowExtensionArray(
             )
         return ArrowExtensionArray(result)
 
-    def _op_method_error_message(self, other, op) -> str:
-        if hasattr(other, "dtype"):
-            other_type = f"dtype '{other.dtype}'"
-        else:
-            other_type = f"object of type {type(other)}"
-        return (
-            f"operation '{op.__name__}' not supported for "
-            f"dtype '{self.dtype}' with {other_type}"
-        )
-
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
         pa_type = self._pa_array.type
         other_original = other
@@ -905,9 +895,10 @@ class ArrowExtensionArray(
                     elif op is roperator.radd:
                         result = pc.binary_join_element_wise(other, self._pa_array, sep)
                 except pa.ArrowNotImplementedError as err:
-                    raise TypeError(
-                        self._op_method_error_message(other_original, op)
-                    ) from err
+                    msg = ops.get_op_exception_message(
+                        op.__name__, self, other_original
+                    )
+                    raise TypeError(msg) from err
                 return self._from_pyarrow_array(result)
             elif op in [operator.mul, roperator.rmul]:
                 binary = self._pa_array
@@ -940,13 +931,15 @@ class ArrowExtensionArray(
         pc_func = arrow_funcs[op.__name__]
         if pc_func is NotImplemented:
             if pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type):
-                raise TypeError(self._op_method_error_message(other_original, op))
+                msg = ops.get_op_exception_message(op.__name__, self, other_original)
+                raise TypeError(msg)
             raise NotImplementedError(f"{op.__name__} not implemented.")
 
         try:
             result = pc_func(self._pa_array, other)
         except pa.ArrowNotImplementedError as err:
-            raise TypeError(self._op_method_error_message(other_original, op)) from err
+            msg = ops.get_op_exception_message(op.__name__, self, other_original)
+            raise TypeError(msg) from err
         return self._from_pyarrow_array(result)
 
     def _logical_method(self, other, op) -> Self:

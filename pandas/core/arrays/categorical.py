@@ -1612,6 +1612,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     __le__ = _cat_compare_op(operator.le)
     __ge__ = _cat_compare_op(operator.ge)
 
+    def _supports_scalar_op(self, other, op_name: str):
+        return True
+
+    def _supports_array_op(self, other, op_name: str):
+        return True
+
     # -------------------------------------------------------------
     # Validators; ideally these can be de-duplicated
 
