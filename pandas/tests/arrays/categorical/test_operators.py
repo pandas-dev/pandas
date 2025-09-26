@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -202,11 +204,21 @@ class TestCategoricalOps:
         expected = np.array([True, False, False, False], dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = cat == (0, 1)
+        msg = "Comparison of Categorical to list-like objects"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = cat == (0, 1)
         expected = np.array([False, True, False, True], dtype=bool)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = cat != (0, 1)
+        result = cat == pd.Scalar((0, 1))
+        tm.assert_numpy_array_equal(result, expected)
+
+        msg = "Comparison of Categorical to list-like objects"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = cat != (0, 1)
+        tm.assert_numpy_array_equal(result, ~expected)
+
+        result = cat != pd.Scalar((0, 1))
         tm.assert_numpy_array_equal(result, ~expected)
 
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")

@@ -212,15 +212,18 @@ def is_scalar(val: object) -> bool:
     """
 
     # Start with C-optimized checks
-    if (cnp.PyArray_IsAnyScalar(val)
-            # PyArray_IsAnyScalar is always False for bytearrays on Py3
-            or PyDate_Check(val)
-            or PyDelta_Check(val)
-            or PyTime_Check(val)
-            # We differ from numpy, which claims that None is not scalar;
-            # see np.isscalar
-            or val is C_NA
-            or val is None):
+    if (
+        cnp.PyArray_IsAnyScalar(val)
+        # PyArray_IsAnyScalar is always False for bytearrays on Py3
+        or PyDate_Check(val)
+        or PyDelta_Check(val)
+        or PyTime_Check(val)
+        # We differ from numpy, which claims that None is not scalar;
+        # see np.isscalar
+        or val is C_NA
+        or val is None
+        or type(val) is Scalar
+    ):
         return True
 
     # Next use C-optimized checks to exclude common non-scalars before falling
@@ -3297,3 +3300,15 @@ def is_np_dtype(object dtype, str kinds=None) -> bool:
     if kinds is None:
         return True
     return dtype.kind in kinds
+
+
+cdef class Scalar:
+    """
+    Class for wrapping list-like objects to indicate they should be treated
+    as scalars for e.g. arithmetic operations.
+    """
+    cdef:
+        readonly object item
+
+    def __cinit__(self, obj):
+        self.item = obj

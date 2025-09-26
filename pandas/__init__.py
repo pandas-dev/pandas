@@ -134,6 +134,7 @@ from pandas.core.reshape.api import (
 from pandas import api, arrays, errors, io, plotting, tseries
 from pandas import testing
 from pandas.util._print_versions import show_versions
+from pandas._libs.lib import Scalar
 
 from pandas.io.api import (
     # excel
@@ -268,6 +269,7 @@ __all__ = [
     "PeriodDtype",
     "PeriodIndex",
     "RangeIndex",
+    "Scalar",
     "Series",
     "SparseDtype",
     "StringDtype",

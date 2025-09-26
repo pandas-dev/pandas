@@ -260,6 +260,14 @@ def test_is_list_like_native_container_types():
     assert not inference.is_list_like(tuple[str])
 
 
+def test_scalar_list_not_listlike():
+    item = lib.Scalar([0, 1])
+    assert not inference.is_list_like(item)
+
+    tup = lib.Scalar((0, 1))
+    assert not inference.is_list_like(tup)
+
+
 def test_is_sequence():
     is_seq = inference.is_sequence
     assert is_seq((1, 2))
@@ -1892,6 +1900,10 @@ class TestNumberScalar:
 
 
 class TestIsScalar:
+    def test_is_scalar_scalar_class(self):
+        assert is_scalar(lib.Scalar([0, 1]))
+        assert is_scalar(lib.Scalar((0, 1)))
+
     def test_is_scalar_builtin_scalars(self):
         assert is_scalar(None)
         assert is_scalar(True)
