@@ -7,12 +7,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 import warnings
+from inspect import signature
 
 import numpy as np
 
 from pandas._libs import missing as libmissing
 
-from pandas.core.nanops import check_below_min_count
+from pandas.core.nanops import check_below_min_count, _USE_NUMBA, nanops_numba
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -51,6 +52,14 @@ def _reductions(
         ``min_count`` non-NA values are present the result will be NA.
     axis : int, optional, default None
     """
+    if _USE_NUMBA:
+        nanop = getattr(nanops_numba, f"nan{func.__name__}", None)
+        if nanop is not None:
+            kwargs = dict(mask=mask, skipna=skipna, axis=axis)
+            if "min_count" in signature(nanop).parameters:
+                kwargs["min_count"] = min_count
+            return nanop(values, **kwargs)
+
     if not skipna:
         if mask.any() or check_below_min_count(values.shape, None, min_count):
             return libmissing.NA
