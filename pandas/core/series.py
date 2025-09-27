@@ -1963,7 +1963,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         )
     )
-    @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
+
     @deprecate_nonkeyword_arguments(
         Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
     )
@@ -1977,6 +1977,173 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         observed: bool = True,
         dropna: bool = True,
     ) -> SeriesGroupBy:
+        
+        """
+        Group Series using a mapper or by a Series of columns.
+
+        A groupby operation involves some combination of splitting the
+        object, applying a function, and combining the results. This can be
+        used to group large amounts of data and compute operations on these
+        groups.
+
+        Parameters
+        ----------
+        by : mapping, function, label, pd.Grouper or list of such
+            Used to determine the groups for the groupby.
+            If ``by`` is a function, it's called on each value of the object's
+            index. If a dict or Series is passed, the Series or dict VALUES
+            will be used to determine the groups (the Series' values are first
+            aligned; see ``.align()`` method). If a list or ndarray of length
+            equal to the selected axis is passed (see the `groupby user guide
+            <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
+            the values are used as-is to determine the groups. A label or list
+            of labels may be passed to group by the columns in ``self``.
+            Notice that a tuple is interpreted as a (single) key.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            Split along rows (0) or columns (1). For `Series` this parameter
+            is unused and defaults to 0.
+        level : int, level name, or sequence of such, default None
+            If the axis is a MultiIndex (hierarchical), group by a particular
+            level or levels. Do not specify both ``by`` and ``level``.
+        as_index : bool, default True
+            For aggregated output, return object with group labels as the
+            index. Only relevant for DataFrame input. as_index=False is
+            effectively "SQL-style" grouped output.
+        sort : bool, default True
+            Sort group keys. Get better performance by turning this off.
+            Note this does not influence the order of observations within each
+            group. Groupby preserves the order of rows within each group.
+
+            .. versionchanged:: 2.0.0
+
+                Specifying ``sort=False`` with an ordered categorical grouper will no
+                longer sort the values.
+
+        group_keys : bool, default True
+            When calling apply and the ``by`` argument produces a like-indexed
+            (i.e. :ref:`a transform <groupby.transform>`) result, add group keys to
+            index to identify pieces. By default group keys are not included
+            when the result's index (and column) labels match the inputs, and
+            are included otherwise.
+
+            .. versionchanged:: 1.5.0
+
+            Warns that ``group_keys`` will no longer be ignored when the
+            result from ``apply`` is a like-indexed Series or DataFrame.
+            Specify ``group_keys`` explicitly to include the group keys or
+            not.
+
+            .. versionchanged:: 2.0.0
+
+            ``group_keys`` now defaults to ``True``.
+
+        observed : bool, default False
+            This only applies if any of the groupers are Categoricals.
+            If True: only show observed values for categorical groupers.
+            If False: show all values for categorical groupers.
+        dropna : bool, default True
+            If True, and if group keys contain NA values, NA values together
+            with row/column will be dropped.
+            If False, NA values will also be treated as the key in groups.
+
+            .. versionadded:: 1.1.0
+
+        Returns
+        -------
+        SeriesGroupBy
+            Returns a groupby object that contains information about the groups.
+
+        See Also
+        --------
+        resample : Convenience method for frequency conversion and resampling
+            of time series.
+
+        Notes
+        -----
+        See the `user guide
+        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
+        detailed usage and examples, including splitting an object into groups,
+        iterating through groups, selecting a group, aggregation, and more.
+
+        Examples
+        --------
+        >>> ser = pd.Series([390., 350., 30., 20.],
+        ...                 index=['Falcon', 'Falcon', 'Parrot', 'Parrot'], name="Max Speed")
+        >>> ser
+        Falcon    390.0
+        Falcon    350.0
+        Parrot     30.0
+        Parrot     20.0
+        Name: Max Speed, dtype: float64
+        >>> ser.groupby(["a", "b", "a", "b"]).mean()
+        a    210.0
+        b    185.0
+        Name: Max Speed, dtype: float64
+        >>> ser.groupby(level=0).mean()
+        Falcon    370.0
+        Parrot     25.0
+        Name: Max Speed, dtype: float64
+        >>> ser.groupby(ser > 100).mean()
+        Max Speed
+        False     25.0
+        True     370.0
+        Name: Max Speed, dtype: float64
+
+        **Grouping by Indexes**
+
+        We can groupby different levels of a hierarchical index
+        using the `level` parameter:
+
+        >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
+        ...           ['Captive', 'Wild', 'Captive', 'Wild']]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
+        >>> ser = pd.Series([390., 350., 30., 20.], index=index, name="Max Speed")
+        >>> ser
+        Animal  Type
+        Falcon  Captive    390.0
+                Wild       350.0
+        Parrot  Captive     30.0
+                Wild        20.0
+        Name: Max Speed, dtype: float64
+        >>> ser.groupby(level=0).mean()
+        Animal
+        Falcon    370.0
+        Parrot     25.0
+        Name: Max Speed, dtype: float64
+        >>> ser.groupby(level="Type").mean()
+        Type
+        Captive    210.0
+        Wild       185.0
+        Name: Max Speed, dtype: float64
+
+        We can also choose to include `NA` in group keys or not by defining
+        `dropna` parameter, the default setting is `True`.
+
+        >>> ser = pd.Series([1, 2, 3, 3], index=["a", 'a', 'b', np.nan])
+        >>> ser.groupby(level=0).sum()
+        a    3
+        b    3
+        dtype: int64
+
+        >>> ser.groupby(level=0, dropna=False).sum()
+        a    3
+        b    3
+        NaN  3
+        dtype: int64
+
+        >>> arrays = ['Falcon', 'Falcon', 'Parrot', 'Parrot']
+        >>> ser = pd.Series([390., 350., 30., 20.], index=arrays, name="Max Speed")
+        >>> ser.groupby(["a", "b", "a", np.nan]).mean()
+        a    210.0
+        b    350.0
+        Name: Max Speed, dtype: float64
+
+        >>> ser.groupby(["a", "b", "a", np.nan], dropna=False).mean()
+        a    210.0
+        b    350.0
+        NaN   20.0
+        Name: Max Speed, dtype: float64"""
+
         from pandas.core.groupby.generic import SeriesGroupBy
 
         if level is None and by is None:
