@@ -323,7 +323,7 @@ def _grouped_plot(
         naxes=naxes, figsize=figsize, sharex=sharex, sharey=sharey, ax=ax, layout=layout
     )
 
-    for ax, (key, group) in zip(flatten_axes(axes), grouped):
+    for ax, (key, group) in zip(flatten_axes(axes), grouped, strict=True):
         if numeric_only and isinstance(group, ABCDataFrame):
             group = group._get_numeric_data()
         plotf(group, ax, **kwargs)
@@ -557,7 +557,7 @@ def hist_frame(
     )
     can_set_label = "label" not in kwds
 
-    for ax, col in zip(flatten_axes(axes), data.columns):
+    for ax, col in zip(flatten_axes(axes), data.columns, strict=True):
         if legend and can_set_label:
             kwds["label"] = col
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
