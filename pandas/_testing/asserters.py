@@ -38,7 +38,6 @@ from pandas.core.dtypes.missing import array_equivalent
 import pandas as pd
 from pandas import (
     Categorical,
-    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -326,15 +325,16 @@ def assert_index_equal(
     # skip exact index checking when `check_categorical` is False
     elif check_exact and check_categorical:
         if not left.equals(right):
+            # _values compare can raise TypeError for non-comparable categoricals (GH#61935)
             try:
                 mismatch = left._values != right._values
             except TypeError:
-                if isinstance(left, CategoricalIndex) and isinstance(
-                    right, CategoricalIndex
-                ):
-                    mismatch = left.codes != right.codes
-                else:
-                    mismatch = left.values != right.values
+                raise_assert_detail(
+                    obj,
+                    "types are not comparable (non-matching categorical categories)",
+                    left,
+                    right,
+                )
 
             if not isinstance(mismatch, np.ndarray):
                 mismatch = cast("ExtensionArray", mismatch).fillna(True)
