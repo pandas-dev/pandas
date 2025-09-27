@@ -389,6 +389,15 @@ class TestAstype:
         with pytest.raises(ValueError, match=msg):
             ser.astype(any_int_numpy_dtype)
 
+    @pytest.mark.parametrize("dtype", tm.DATETIME64_DTYPES + tm.TIMEDELTA64_DTYPES)
+    def test_int_cast_raises_with_datetime(self, dtype):
+        # GH 59711
+        ser = Series([np.nan], dtype=dtype)
+
+        msg = r"Cannot convert non-finite values \(NA or inf\) to integer"
+        with pytest.raises(ValueError, match=msg):
+            ser.astype(int)
+
     def test_astype_cast_object_int_fail(self, any_int_numpy_dtype):
         arr = Series(["car", "house", "tree", "1"])
         msg = r"invalid literal for int\(\) with base 10: 'car'"

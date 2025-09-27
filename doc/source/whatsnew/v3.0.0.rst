@@ -964,6 +964,7 @@ Datetimelike
 - Bug in :meth:`to_datetime` reports incorrect index in case of any failure scenario. (:issue:`58298`)
 - Bug in :meth:`to_datetime` with ``format="ISO8601"`` and ``utc=True`` where naive timestamps incorrectly inherited timezone offset from previous timestamps in a series. (:issue:`61389`)
 - Bug in :meth:`to_datetime` wrongly converts when ``arg`` is a ``np.datetime64`` object with unit of ``ps``. (:issue:`60341`)
+- Bug in Datetime-like arrays converting ``NaT`` to -(2**63) when casting to integer. Now it raises ``IntCastingNaNError`` (:issue:`59711`)
 - Bug in comparison between objects with ``np.datetime64`` dtype and ``timestamp[pyarrow]`` dtypes incorrectly raising ``TypeError`` (:issue:`60937`)
 - Bug in comparison between objects with pyarrow date dtype and ``timestamp[pyarrow]`` or ``np.datetime64`` dtype failing to consider these as non-comparable (:issue:`62157`)
 - Bug in constructing arrays with :class:`ArrowDtype` with ``timestamp`` type incorrectly allowing ``Decimal("NaN")`` (:issue:`61773`)
