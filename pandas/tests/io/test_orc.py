@@ -231,7 +231,7 @@ def test_orc_reader_snappy_compressed(dirpath):
     tm.assert_equal(expected, got)
 
 
-def test_orc_roundtrip_file(dirpath):
+def test_orc_roundtrip_file(dirpath, temp_file):
     # GH44554
     # PyArrow gained ORC write support with the current argument order
     pytest.importorskip("pyarrow")
@@ -249,11 +249,11 @@ def test_orc_roundtrip_file(dirpath):
     }
     expected = pd.DataFrame.from_dict(data)
 
-    with tm.ensure_clean() as path:
-        expected.to_orc(path)
-        got = read_orc(path)
+    path = str(temp_file)
+    expected.to_orc(path)
+    got = read_orc(path)
 
-        tm.assert_equal(expected, got)
+    tm.assert_equal(expected, got)
 
 
 def test_orc_roundtrip_bytesio():
@@ -383,12 +383,12 @@ def test_orc_dtype_backend_numpy_nullable():
     tm.assert_frame_equal(result, expected)
 
 
-def test_orc_uri_path():
+def test_orc_uri_path(temp_file):
     expected = pd.DataFrame({"int": list(range(1, 4))})
-    with tm.ensure_clean("tmp.orc") as path:
-        expected.to_orc(path)
-        uri = pathlib.Path(path).as_uri()
-        result = read_orc(uri)
+    path = str(temp_file)
+    expected.to_orc(path)
+    uri = pathlib.Path(path).as_uri()
+    result = read_orc(uri)
     tm.assert_frame_equal(result, expected)
 
 
@@ -410,16 +410,16 @@ def test_to_orc_non_default_index(index):
         df.to_orc()
 
 
-def test_invalid_dtype_backend():
+def test_invalid_dtype_backend(temp_file):
     msg = (
         "dtype_backend numpy is invalid, only 'numpy_nullable' and "
         "'pyarrow' are allowed."
     )
     df = pd.DataFrame({"int": list(range(1, 4))})
-    with tm.ensure_clean("tmp.orc") as path:
-        df.to_orc(path)
-        with pytest.raises(ValueError, match=msg):
-            read_orc(path, dtype_backend="numpy")
+    path = str(temp_file)
+    df.to_orc(path)
+    with pytest.raises(ValueError, match=msg):
+        read_orc(path, dtype_backend="numpy")
 
 
 def test_string_inference(tmp_path):
