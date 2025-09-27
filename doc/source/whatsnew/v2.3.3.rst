@@ -57,6 +57,14 @@ Bug fixes
 
 - The :meth:`DataFrame.iloc` now works correctly with ``copy_on_write`` option when assigning values after subsetting the columns of a homogeneous DataFrame (:issue:`60309`)
 
+Other changes
+~~~~~~~~~~~~~
+
+- The deprecation of using :meth:`Series.resample` and :meth:`DataFrame.resample`
+  with a :class:`PeriodIndex` (and the 'convention' keyword) has been undone.
+  Resampling with a :class:`PeriodIndex` is supported again, but a subset of
+  methods that return incorrect results will raise an error in pandas 3.0 (:issue:`57033`)
+
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_233.contributors:
