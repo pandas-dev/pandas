@@ -151,7 +151,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
             td64_values = arr.view(dtype)
             return TimedeltaArray._simple_new(td64_values, dtype=dtype)
-        return arr.view(dtype=dtype)
+        return arr.view(dtype=dtype)  # type: ignore[arg-type]
 
     def take(
         self,

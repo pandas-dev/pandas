@@ -3306,13 +3306,13 @@ class GenericFixed(Fixed):
             self._handle.create_array(
                 self.group,
                 key,
-                value.asi8,
+                value.asi8,  # type: ignore[attr-defined]
             )
 
             node = getattr(self.group, key)
             # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
             # attribute "tz"
-            node._v_attrs.tz = _get_tz(value.tz)
+            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[attr-defined]
             node._v_attrs.value_type = f"datetime64[{value.dtype.unit}]"
         elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
