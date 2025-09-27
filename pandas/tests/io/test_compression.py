@@ -63,7 +63,7 @@ def test_compression_size_fh(obj, method, compression_only, temp_file):
         getattr(obj, method)(handles.handle)
         assert not handles.handle.closed
     compressed_size = os.path.getsize(path)
-    
+
     # Create a new temporary file for uncompressed comparison
     path2 = temp_file.parent / f"{temp_file.stem}_uncompressed{temp_file.suffix}"
     path2.touch()
@@ -83,7 +83,12 @@ def test_compression_size_fh(obj, method, compression_only, temp_file):
     ],
 )
 def test_dataframe_compression_defaults_to_infer(
-    write_method, write_kwargs, read_method, compression_only, compression_to_extension, temp_file
+    write_method,
+    write_kwargs,
+    read_method,
+    compression_only,
+    compression_to_extension,
+    temp_file,
 ):
     # GH22004
     input = pd.DataFrame([[1.0, 0, -4], [3.4, 5, 2]], columns=["X", "Y", "Z"])
