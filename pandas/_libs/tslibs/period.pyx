@@ -1746,7 +1746,7 @@ cdef class _Period(PeriodMixin):
     cdef readonly:
         int64_t ordinal
         PeriodDtypeBase _dtype
-    
+
     cdef:
         BaseOffset _freq
 
@@ -1785,7 +1785,7 @@ cdef class _Period(PeriodMixin):
         >>> period = pd.Period('2020-01', freq='M')
         >>> period.freq
         <MonthEnd>
-        
+
         >>> period = pd.Period('2020-01-01', freq='D')
         >>> period.freq
         <Day>
