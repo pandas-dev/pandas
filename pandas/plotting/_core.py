@@ -976,7 +976,9 @@ class PlotAccessor(PandasObject):
             )
             raise TypeError(msg)
 
-        pos_args = {name: value for (name, _), value in zip(arg_def, args, strict=True)}
+        pos_args = {
+            name: value for (name, _), value in zip(arg_def, args, strict=False)
+        }
         if backend_name == "pandas.plotting._matplotlib":
             kwargs = dict(arg_def, **pos_args, **kwargs)
         else:
