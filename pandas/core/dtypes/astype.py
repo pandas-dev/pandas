@@ -27,6 +27,7 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     NumpyEADtype,
 )
+from pandas.core.dtypes.missing import isna
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -138,10 +139,7 @@ def _astype_float_to_int_nansafe(
     """
     astype with a check preventing converting NaN to an meaningless integer value.
     """
-    if not np.isfinite(values).all():
-        raise IntCastingNaNError(
-            "Cannot convert non-finite values (NA or inf) to integer"
-        )
+    check_to_int_nansafe(values)
     if dtype.kind == "u":
         # GH#45151
         if not (values >= 0).all():
@@ -149,6 +147,34 @@ def _astype_float_to_int_nansafe(
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=RuntimeWarning)
         return values.astype(dtype, copy=copy)
+
+
+def check_to_int_nansafe(values: np.ndarray, infinite_check: bool = True):
+    """
+    Validate that values can be safely converted to integer type.
+
+    Parameters
+    ----------
+    values : np.ndarray
+        Array of values to check for conversion to integer.
+    infinite_check : bool
+        If True, check for both infinite and missing values.
+        If False, check only for missing values.
+        This distinction exists
+        because ``np.isfinite`` isn't compatible with ``np.ufunc``.
+
+    Raises
+    ------
+    IntCastingNaNError
+        If any non-finite value is detected.
+    """
+    error_msg = "Cannot convert non-finite values (NA or inf) to integer"
+    if infinite_check:
+        if not np.isfinite(values).all():
+            raise IntCastingNaNError(error_msg)
+    else:
+        if isna(values).any():
+            raise IntCastingNaNError(error_msg)
 
 
 def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> ArrayLike:
