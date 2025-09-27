@@ -325,7 +325,8 @@ def assert_index_equal(
     # skip exact index checking when `check_categorical` is False
     elif check_exact and check_categorical:
         if not left.equals(right):
-            # _values compare can raise TypeError for non-comparable categoricals (GH#61935)
+            # _values compare can raise TypeError (non-comparable
+            # categoricals (GH#61935)
             try:
                 mismatch = left._values != right._values
             except TypeError:
