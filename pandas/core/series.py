@@ -1977,7 +1977,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         observed: bool = True,
         dropna: bool = True,
     ) -> SeriesGroupBy:
-        
         """
         Group Series using a mapper or by a Series of columns.
 
