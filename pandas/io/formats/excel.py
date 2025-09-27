@@ -633,7 +633,7 @@ class ExcelFormatter:
             )
 
         for lnum, (spans, levels, level_codes) in enumerate(
-            zip(level_lengths, columns.levels, columns.codes)
+            zip(level_lengths, columns.levels, columns.codes, strict=True)
         ):
             values = levels.take(level_codes)
             for i, span_val in spans.items():
@@ -792,7 +792,10 @@ class ExcelFormatter:
                 level_lengths = get_level_lengths(level_strs)
 
                 for spans, levels, level_codes in zip(
-                    level_lengths, self.df.index.levels, self.df.index.codes
+                    level_lengths,
+                    self.df.index.levels,
+                    self.df.index.codes,
+                    strict=True,
                 ):
                     values = levels.take(
                         level_codes,
@@ -824,7 +827,7 @@ class ExcelFormatter:
 
             else:
                 # Format hierarchical rows with non-merged values.
-                for indexcolvals in zip(*self.df.index):
+                for indexcolvals in zip(*self.df.index, strict=True):
                     for idx, indexcolval in enumerate(indexcolvals):
                         # GH#60099
                         if isinstance(indexcolval, Period):

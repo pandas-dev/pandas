@@ -57,7 +57,7 @@ def _side_expander(prop_fmt: str) -> Callable:
                 stacklevel=find_stack_level(),
             )
             return
-        for key, idx in zip(self.SIDES, mapping):
+        for key, idx in zip(self.SIDES, mapping, strict=True):
             yield prop_fmt.format(key), tokens[idx]
 
     return expand
