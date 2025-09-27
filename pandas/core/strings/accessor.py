@@ -3340,7 +3340,7 @@ class StringMethods(NoNewAttributesMixin):
     >>> s3.str.isdigit()
     0     True
     1     True
-    2     True
+    2    False
     3    False
     dtype: bool
 
