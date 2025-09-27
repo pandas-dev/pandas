@@ -165,26 +165,26 @@ def flatten(data: dict) -> list[tuple[str, Any]]:
 )
 @pytest.mark.parametrize("writer", [pd.to_pickle, python_pickler])
 @pytest.mark.parametrize("typ, expected", flatten(create_pickle_data()))
-def test_round_trip_current(typ, expected, pickle_writer, writer):
-    with tm.ensure_clean() as path:
-        # test writing with each pickler
-        pickle_writer(expected, path)
+def test_round_trip_current(typ, expected, pickle_writer, writer, temp_file):
+    path = temp_file
+    # test writing with each pickler
+    pickle_writer(expected, path)
 
-        # test reading with each unpickler
-        result = pd.read_pickle(path)
-        compare_element(result, expected, typ)
+    # test reading with each unpickler
+    result = pd.read_pickle(path)
+    compare_element(result, expected, typ)
 
-        result = python_unpickler(path)
-        compare_element(result, expected, typ)
+    result = python_unpickler(path)
+    compare_element(result, expected, typ)
 
-        # and the same for file objects (GH 35679)
-        with open(path, mode="wb") as handle:
-            writer(expected, path)
-            handle.seek(0)  # shouldn't close file handle
-        with open(path, mode="rb") as handle:
-            result = pd.read_pickle(handle)
-            handle.seek(0)  # shouldn't close file handle
-        compare_element(result, expected, typ)
+    # and the same for file objects (GH 35679)
+    with open(path, mode="wb") as handle:
+        writer(expected, path)
+        handle.seek(0)  # shouldn't close file handle
+    with open(path, mode="rb") as handle:
+        result = pd.read_pickle(handle)
+        handle.seek(0)  # shouldn't close file handle
+    compare_element(result, expected, typ)
 
 
 def test_pickle_path_pathlib():
@@ -242,112 +242,100 @@ class TestCompression:
                 with f:
                     f.write(fh.read())
 
-    def test_write_explicit(self, compression, get_random_path):
-        base = get_random_path
-        path1 = base + ".compressed"
-        path2 = base + ".raw"
-
-        with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
-            df = DataFrame(
-                1.1 * np.arange(120).reshape((30, 4)),
-                columns=Index(list("ABCD"), dtype=object),
-                index=Index([f"i-{i}" for i in range(30)], dtype=object),
-            )
-
-            # write to compressed file
-            df.to_pickle(p1, compression=compression)
-
-            # decompress
-            with tm.decompress_file(p1, compression=compression) as f:
-                with open(p2, "wb") as fh:
-                    fh.write(f.read())
-
-            # read decompressed file
-            df2 = pd.read_pickle(p2, compression=None)
-
-            tm.assert_frame_equal(df, df2)
-
-    @pytest.mark.parametrize("compression", ["", "None", "bad", "7z"])
-    def test_write_explicit_bad(self, compression, get_random_path):
+    def test_write_explicit(self, compression, get_random_path, temp_file):
+        p1 = temp_file.parent / f"{temp_file.stem}.compressed"
+        p2 = temp_file.parent / f"{temp_file.stem}.raw"
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD"), dtype=object),
             index=Index([f"i-{i}" for i in range(30)], dtype=object),
         )
-        with tm.ensure_clean(get_random_path) as path:
-            with pytest.raises(ValueError, match="Unrecognized compression type"):
-                df.to_pickle(path, compression=compression)
 
-    def test_write_infer(self, compression_ext, get_random_path):
-        base = get_random_path
-        path1 = base + compression_ext
-        path2 = base + ".raw"
+        # write to compressed file
+        df.to_pickle(p1, compression=compression)
+
+        # decompress
+        with tm.decompress_file(p1, compression=compression) as f:
+            with open(p2, "wb") as fh:
+                fh.write(f.read())
+
+        # read decompressed file
+        df2 = pd.read_pickle(p2, compression=None)
+
+        tm.assert_frame_equal(df, df2)
+
+    @pytest.mark.parametrize("compression", ["", "None", "bad", "7z"])
+    def test_write_explicit_bad(self, compression, get_random_path, temp_file):
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
+        path = temp_file
+        with pytest.raises(ValueError, match="Unrecognized compression type"):
+            df.to_pickle(path, compression=compression)
+
+    def test_write_infer(self, compression_ext, get_random_path, temp_file):
+        p1 = temp_file.parent / f"{temp_file.stem}{compression_ext}"
+        p2 = temp_file.parent / f"{temp_file.stem}.raw"
         compression = self._extension_to_compression.get(compression_ext.lower())
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
 
-        with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
-            df = DataFrame(
-                1.1 * np.arange(120).reshape((30, 4)),
-                columns=Index(list("ABCD"), dtype=object),
-                index=Index([f"i-{i}" for i in range(30)], dtype=object),
-            )
+        # write to compressed file by inferred compression method
+        df.to_pickle(p1)
 
-            # write to compressed file by inferred compression method
-            df.to_pickle(p1)
+        # decompress
+        with tm.decompress_file(p1, compression=compression) as f:
+            with open(p2, "wb") as fh:
+                fh.write(f.read())
 
-            # decompress
-            with tm.decompress_file(p1, compression=compression) as f:
-                with open(p2, "wb") as fh:
-                    fh.write(f.read())
+        # read decompressed file
+        df2 = pd.read_pickle(p2, compression=None)
 
-            # read decompressed file
-            df2 = pd.read_pickle(p2, compression=None)
+        tm.assert_frame_equal(df, df2)
 
-            tm.assert_frame_equal(df, df2)
+    def test_read_explicit(self, compression, get_random_path, temp_file):
+        p1 = temp_file.parent / f"{temp_file.stem}.raw"
+        p2 = temp_file.parent / f"{temp_file.stem}.compressed"
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
 
-    def test_read_explicit(self, compression, get_random_path):
-        base = get_random_path
-        path1 = base + ".raw"
-        path2 = base + ".compressed"
+        # write to uncompressed file
+        df.to_pickle(p1, compression=None)
 
-        with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
-            df = DataFrame(
-                1.1 * np.arange(120).reshape((30, 4)),
-                columns=Index(list("ABCD"), dtype=object),
-                index=Index([f"i-{i}" for i in range(30)], dtype=object),
-            )
+        # compress
+        self.compress_file(p1, p2, compression=compression)
 
-            # write to uncompressed file
-            df.to_pickle(p1, compression=None)
+        # read compressed file
+        df2 = pd.read_pickle(p2, compression=compression)
+        tm.assert_frame_equal(df, df2)
 
-            # compress
-            self.compress_file(p1, p2, compression=compression)
-
-            # read compressed file
-            df2 = pd.read_pickle(p2, compression=compression)
-            tm.assert_frame_equal(df, df2)
-
-    def test_read_infer(self, compression_ext, get_random_path):
-        base = get_random_path
-        path1 = base + ".raw"
-        path2 = base + compression_ext
+    def test_read_infer(self, compression_ext, get_random_path, temp_file):
+        p1 = temp_file.parent / f"{temp_file.stem}.raw"
+        p2 = temp_file.parent / f"{temp_file.stem}{compression_ext}"
         compression = self._extension_to_compression.get(compression_ext.lower())
+        df = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
 
-        with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
-            df = DataFrame(
-                1.1 * np.arange(120).reshape((30, 4)),
-                columns=Index(list("ABCD"), dtype=object),
-                index=Index([f"i-{i}" for i in range(30)], dtype=object),
-            )
+        # write to uncompressed file
+        df.to_pickle(p1, compression=None)
 
-            # write to uncompressed file
-            df.to_pickle(p1, compression=None)
+        # compress
+        self.compress_file(p1, p2, compression=compression)
 
-            # compress
-            self.compress_file(p1, p2, compression=compression)
-
-            # read compressed file by inferred compression method
-            df2 = pd.read_pickle(p2)
-            tm.assert_frame_equal(df, df2)
+        # read compressed file by inferred compression method
+        df2 = pd.read_pickle(p2)
+        tm.assert_frame_equal(df, df2)
 
 
 # ---------------------
@@ -357,44 +345,44 @@ class TestCompression:
 
 class TestProtocol:
     @pytest.mark.parametrize("protocol", [-1, 0, 1, 2])
-    def test_read(self, protocol, get_random_path):
-        with tm.ensure_clean(get_random_path) as path:
-            df = DataFrame(
-                1.1 * np.arange(120).reshape((30, 4)),
-                columns=Index(list("ABCD"), dtype=object),
-                index=Index([f"i-{i}" for i in range(30)], dtype=object),
-            )
-            df.to_pickle(path, protocol=protocol)
-            df2 = pd.read_pickle(path)
-            tm.assert_frame_equal(df, df2)
-
-
-def test_pickle_buffer_roundtrip():
-    with tm.ensure_clean() as path:
+    def test_read(self, protocol, get_random_path, temp_file):
+        path = temp_file
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD"), dtype=object),
             index=Index([f"i-{i}" for i in range(30)], dtype=object),
         )
-        with open(path, "wb") as fh:
-            df.to_pickle(fh)
-        with open(path, "rb") as fh:
-            result = pd.read_pickle(fh)
-        tm.assert_frame_equal(df, result)
+        df.to_pickle(path, protocol=protocol)
+        df2 = pd.read_pickle(path)
+        tm.assert_frame_equal(df, df2)
 
 
-def test_pickle_fsspec_roundtrip():
+def test_pickle_buffer_roundtrip(temp_file):
+    path = temp_file
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
+    with open(path, "wb") as fh:
+        df.to_pickle(fh)
+    with open(path, "rb") as fh:
+        result = pd.read_pickle(fh)
+    tm.assert_frame_equal(df, result)
+
+
+def test_pickle_fsspec_roundtrip(temp_file):
     pytest.importorskip("fsspec")
-    with tm.ensure_clean():
-        mockurl = "memory://mockfile"
-        df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
-        )
-        df.to_pickle(mockurl)
-        result = pd.read_pickle(mockurl)
-        tm.assert_frame_equal(df, result)
+    # Using temp_file for context, but fsspec uses memory URL
+    mockurl = "memory://mockfile"
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
+    df.to_pickle(mockurl)
+    result = pd.read_pickle(mockurl)
+    tm.assert_frame_equal(df, result)
 
 
 class MyTz(datetime.tzinfo):
@@ -411,7 +399,7 @@ def test_read_pickle_with_subclass():
     assert isinstance(result[1], MyTz)
 
 
-def test_pickle_binary_object_compression(compression):
+def test_pickle_binary_object_compression(compression, temp_file):
     """
     Read/write from binary file-objects w/wo compression.
 
@@ -424,9 +412,9 @@ def test_pickle_binary_object_compression(compression):
     )
 
     # reference for compression
-    with tm.ensure_clean() as path:
-        df.to_pickle(path, compression=compression)
-        reference = Path(path).read_bytes()
+    path = temp_file
+    df.to_pickle(path, compression=compression)
+    reference = path.read_bytes()
 
     # write
     buffer = io.BytesIO()
