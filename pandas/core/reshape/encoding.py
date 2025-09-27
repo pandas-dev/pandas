@@ -359,7 +359,7 @@ def _get_dummies_1d(
 
         if drop_first:
             # remove first GH12042
-            dummy_mat = dummy_mat[:, 1:]  # type: ignore[assignment]
+            dummy_mat = dummy_mat[:, 1:]
             dummy_cols = dummy_cols[1:]
         return DataFrame(dummy_mat, index=index, columns=dummy_cols, dtype=_dtype)
 

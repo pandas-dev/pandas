@@ -804,7 +804,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         try:
             res_values = offset._apply_array(values._ndarray)
             if res_values.dtype.kind == "i":
-                res_values = res_values.view(values.dtype)
+                res_values = res_values.view(values.dtype)  # type: ignore[arg-type]
         except NotImplementedError:
             if get_option("performance_warnings"):
                 warnings.warn(

@@ -653,7 +653,7 @@ def _mask_datetimelike_result(
         axis_mask = mask.any(axis=axis)
         # error: Unsupported target for indexed assignment ("Union[ndarray[Any, Any],
         # datetime64, timedelta64]")
-        result[axis_mask] = iNaT  # type: ignore[index]
+        result[axis_mask] = iNaT
     else:
         if mask.any():
             return np.int64(iNaT).view(orig_values.dtype)
