@@ -215,14 +215,15 @@ def _reconstruct_data(
         #  that values.dtype == dtype
         cls = dtype.construct_array_type()
 
-        # error: Incompatible types in assignment (expression has type
-        # "ExtensionArray", variable has type "ndarray[Any, Any]")
-        values = cls._from_sequence(values, dtype=dtype)  # type: ignore[assignment]
+        # error: Incompatible return value type
+        # (got "ExtensionArray",
+        # expected "ndarray[tuple[Any, ...], dtype[Any]]")
+        return cls._from_sequence(values, dtype=dtype)  # type: ignore[return-value]
 
-    else:
-        values = values.astype(dtype, copy=False)  # type: ignore[assignment]
-
-    return values
+    # error: Incompatible return value type
+    # (got "ndarray[tuple[Any, ...], dtype[Any]]",
+    # expected "ExtensionArray")
+    return values.astype(dtype, copy=False)  # type: ignore[return-value]
 
 
 def _ensure_arraylike(values, func_name: str) -> ArrayLike:
