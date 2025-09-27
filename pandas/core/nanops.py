@@ -651,8 +651,6 @@ def _mask_datetimelike_result(
         # we need to apply the mask
         result = result.astype("i8").view(orig_values.dtype)
         axis_mask = mask.any(axis=axis)
-        # error: Unsupported target for indexed assignment ("Union[ndarray[Any, Any],
-        # datetime64, timedelta64]")
         result[axis_mask] = iNaT
     else:
         if mask.any():

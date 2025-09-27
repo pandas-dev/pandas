@@ -151,6 +151,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
             td64_values = arr.view(dtype)
             return TimedeltaArray._simple_new(td64_values, dtype=dtype)
+        # error: Argument "dtype" to "view" of "ndarray" has incompatible type
+        # "ExtensionDtype | dtype[Any]"; expected "dtype[Any] | _HasDType[dtype[Any]]"
         return arr.view(dtype=dtype)  # type: ignore[arg-type]
 
     def take(
