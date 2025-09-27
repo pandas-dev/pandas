@@ -1098,8 +1098,8 @@ def crosstab(
     from pandas import DataFrame
 
     data = {
-        **dict(zip(unique_rownames, index)),
-        **dict(zip(unique_colnames, columns)),
+        **dict(zip(unique_rownames, index, strict=True)),
+        **dict(zip(unique_colnames, columns, strict=True)),
     }
     df = DataFrame(data, index=common_idx)
 
