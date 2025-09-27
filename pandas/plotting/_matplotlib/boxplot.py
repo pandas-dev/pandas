@@ -321,7 +321,7 @@ def _grouped_plot_by_column(
 
     ax_values = []
 
-    for ax, col in zip(flatten_axes(axes), columns, strict=True):
+    for ax, col in zip(flatten_axes(axes), columns, strict=False):
         gp_col = grouped[col]
         keys, values = zip(*gp_col, strict=True)
         re_plotf = plotf(keys, values, ax, xlabel=xlabel, ylabel=ylabel, **kwargs)
@@ -530,7 +530,7 @@ def boxplot_frame_groupby(
             layout=layout,
         )
         data = {}
-        for (key, group), ax in zip(grouped, flatten_axes(axes), strict=True):
+        for (key, group), ax in zip(grouped, flatten_axes(axes), strict=False):
             d = group.boxplot(
                 ax=ax, column=column, fontsize=fontsize, rot=rot, grid=grid, **kwds
             )

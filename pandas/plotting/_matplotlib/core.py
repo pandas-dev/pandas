@@ -817,7 +817,7 @@ class MPLPlot(ABC):
                             f"number of columns = {self.nseries}"
                         )
 
-                    for ax, title in zip(self.axes, self.title, strict=True):
+                    for ax, title in zip(self.axes, self.title, strict=False):
                         ax.set_title(title)
                 else:
                     fig.suptitle(self.title)

@@ -266,7 +266,7 @@ def andrews_curves(
     color_values = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
-    colors = dict(zip(classes, color_values, strict=True))
+    colors = dict(zip(classes, color_values, strict=False))
     if ax is None:
         ax = plt.gca()
         ax.set_xlim(-np.pi, np.pi)

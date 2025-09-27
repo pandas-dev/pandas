@@ -964,7 +964,7 @@ class PlotAccessor(PandasObject):
             keyword_args = ", ".join(
                 [
                     f"{name}={value!r}"
-                    for (name, _), value in zip(arg_def, args, strict=True)
+                    for (name, _), value in zip(arg_def, args, strict=False)
                 ]
             )
             msg = (
