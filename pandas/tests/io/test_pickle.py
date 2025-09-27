@@ -243,7 +243,6 @@ class TestCompression:
                     f.write(fh.read())
 
     def test_write_explicit(self, compression, get_random_path, temp_file):
-        base = get_random_path
         p1 = temp_file.parent / f"{temp_file.stem}.compressed"
         p2 = temp_file.parent / f"{temp_file.stem}.raw"
         df = DataFrame(
@@ -277,7 +276,6 @@ class TestCompression:
             df.to_pickle(path, compression=compression)
 
     def test_write_infer(self, compression_ext, get_random_path, temp_file):
-        base = get_random_path
         p1 = temp_file.parent / f"{temp_file.stem}{compression_ext}"
         p2 = temp_file.parent / f"{temp_file.stem}.raw"
         compression = self._extension_to_compression.get(compression_ext.lower())
@@ -301,7 +299,6 @@ class TestCompression:
         tm.assert_frame_equal(df, df2)
 
     def test_read_explicit(self, compression, get_random_path, temp_file):
-        base = get_random_path
         p1 = temp_file.parent / f"{temp_file.stem}.raw"
         p2 = temp_file.parent / f"{temp_file.stem}.compressed"
         df = DataFrame(
@@ -321,7 +318,6 @@ class TestCompression:
         tm.assert_frame_equal(df, df2)
 
     def test_read_infer(self, compression_ext, get_random_path, temp_file):
-        base = get_random_path
         p1 = temp_file.parent / f"{temp_file.stem}.raw"
         p2 = temp_file.parent / f"{temp_file.stem}{compression_ext}"
         compression = self._extension_to_compression.get(compression_ext.lower())

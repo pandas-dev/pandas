@@ -287,9 +287,7 @@ def test_index_false_rename_row_root(xml_books, parser, temp_file):
     df_file = read_xml(xml_books, parser=parser)
 
     path = temp_file.parent / "test.xml"
-    df_file.to_xml(
-        path, index=False, root_name="books", row_name="book", parser=parser
-    )
+    df_file.to_xml(path, index=False, root_name="books", row_name="book", parser=parser)
     with open(path, "rb") as f:
         output = f.read().decode("utf-8").strip()
 
@@ -1303,9 +1301,9 @@ def test_compression_output(parser, compression_only, geom_df, temp_file):
     with get_handle(
         path,
         "r",
-            compression=compression_only,
-        ) as handle_obj:
-            output = handle_obj.handle.read()
+        compression=compression_only,
+    ) as handle_obj:
+        output = handle_obj.handle.read()
 
     output = equalize_decl(output)
 
@@ -1323,8 +1321,8 @@ def test_filename_and_suffix_comp(
         path,
         "r",
         compression=compression_only,
-        ) as handle_obj:
-            output = handle_obj.handle.read()
+    ) as handle_obj:
+        output = handle_obj.handle.read()
 
     output = equalize_decl(output)
 
