@@ -796,7 +796,7 @@ class DataFrameFormatter:
                     else x
                 ]
                 for i, (x, dtype) in enumerate(
-                    zip(fmt_columns, self.frame.dtypes, strict=True)
+                    zip(fmt_columns, self.frame.dtypes, strict=False)
                 )
             ]
         return str_columns
