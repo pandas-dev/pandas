@@ -15,6 +15,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import (
     NaT,
     algos,
@@ -37,7 +39,11 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -85,6 +91,29 @@ def mask_missing(arr: ArrayLike, value) -> npt.NDArray[np.bool_]:
     np.ndarray[bool]
     """
     dtype, value = infer_dtype_from(value)
+
+    if (
+        isinstance(arr.dtype, (BaseMaskedDtype, ArrowDtype))
+        and lib.is_float(value)
+        and np.isnan(value)
+        and not is_nan_na()
+    ):
+        # TODO: this should be done in an EA method?
+        if arr.dtype.kind == "f":
+            # GH#55127
+            if isinstance(arr.dtype, BaseMaskedDtype):
+                mask = np.isnan(arr._data) & ~arr.isna()
+                return mask
+            else:
+                import pyarrow.compute as pc
+
+                mask = pc.is_nan(arr._pa_array).fill_null(False).to_numpy()
+                return mask
+
+        elif arr.dtype.kind in "iu":
+            # GH#51237
+            mask = np.zeros(arr.shape, dtype=bool)
+            return mask
 
     if isna(value):
         return isna(arr)
