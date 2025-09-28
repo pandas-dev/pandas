@@ -1886,7 +1886,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             mask.fill(False)
             mask[indices.astype(int)] = True
             # mask fails to broadcast when passed to where; broadcast manually.
-            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T  # type: ignore[assignment]
+            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
             filtered = self._selected_obj.where(mask)  # Fill with NaNs.
         return filtered
 
