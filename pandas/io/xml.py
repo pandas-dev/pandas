@@ -245,7 +245,7 @@ class _XMLFrameParser:
                     **({el.tag: el.text} if el.text and not el.text.isspace() else {}),
                     **{
                         nm: ch.text if ch.text else None
-                        for nm, ch in zip(self.names, el.findall("*"), strict=True)
+                        for nm, ch in zip(self.names, el.findall("*"), strict=False)
                     },
                 }
                 for el in elems
