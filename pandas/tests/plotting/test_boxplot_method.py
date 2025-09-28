@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas import (
+    Categorical,
     DataFrame,
     MultiIndex,
     Series,
@@ -408,6 +409,14 @@ class TestDataFramePlots:
             )
             assert target_label == pprint_thing(["group"])
 
+    @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
+    def test_boxplot_group_xlabel_ylabel(self, vert):
+        df = DataFrame({'value': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                   'label': ['c', 'c', 'c', 'c', 'b', 'b', 'b', 'b', 'a', 'a']})
+        df.label = Categorical(df.label, categories=['c', 'b', 'a'], ordered=True)
+        ax = df.boxplot(by="label")
+        xticklabels = ax.get_xticklabels()
+        assert [x.get_text() for x in xticklabels] == ['c', 'b', 'a']
 
 class TestDataFrameGroupByPlots:
     def test_boxplot_legacy1(self, hist_df):
