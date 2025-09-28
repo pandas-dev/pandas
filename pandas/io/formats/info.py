@@ -869,7 +869,7 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
         return [
             max(*widths)
             for widths in zip(
-                self.header_column_widths, body_column_widths, strict=True
+                self.header_column_widths, body_column_widths, strict=False
             )
         ]
 
