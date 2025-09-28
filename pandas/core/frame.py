@@ -9572,7 +9572,8 @@ class DataFrame(NDFrame, OpsMixin):
         b   12.3  123.0
         NaN 12.3   33.0
 
-        When using ``.apply()``, use ``group_keys`` to include or exclude the group keys.
+        When using ``.apply()``, use ``group_keys`` to include or exclude the 
+        group keys.
         The ``group_keys`` argument defaults to ``True`` (include).
 
         >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',

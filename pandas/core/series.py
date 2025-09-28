@@ -2067,7 +2067,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Examples
         --------
         >>> ser = pd.Series([390., 350., 30., 20.],
-        ...                 index=['Falcon', 'Falcon', 'Parrot', 'Parrot'], name="Max Speed")
+        ...                 index=['Falcon', 'Falcon', 'Parrot', 'Parrot'], 
+                            name="Max Speed")
         >>> ser
         Falcon    390.0
         Falcon    350.0
