@@ -353,13 +353,10 @@ def _refine_percentiles(
     if percentiles is None:
         return np.array([0.25, 0.5, 0.75])
 
-    # explicit conversion of `percentiles` to list
-    percentiles = list(percentiles)
+    percentiles = np.asarray(percentiles)
 
     # get them all to be in [0, 1]
     validate_percentile(percentiles)
-
-    percentiles = np.asarray(percentiles)
 
     # sort and check for duplicates
     unique_pcts = np.unique(percentiles)
