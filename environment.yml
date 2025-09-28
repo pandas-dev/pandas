@@ -23,7 +23,9 @@ dependencies:
 
   # required dependencies
   - python-dateutil
-  - numpy<3
+  # TEMP pin to avoid typing failures
+  # - numpy<3
+  - numpy=2.2.6
 
   # optional dependencies
   - adbc-driver-postgresql>=1.2.0

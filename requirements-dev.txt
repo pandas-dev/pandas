@@ -14,7 +14,7 @@ pytest-localserver
 PyQt5>=5.15.9
 coverage
 python-dateutil
-numpy<3
+numpy==2.2.6
 adbc-driver-postgresql>=1.2.0
 adbc-driver-sqlite>=1.2.0
 beautifulsoup4>=4.12.3
