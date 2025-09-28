@@ -109,6 +109,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
     ensure_object,
     ensure_platform_int,
@@ -7120,17 +7121,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             result = self if inplace else self.copy(deep=False)
             if axis == 1:
                 # Check that all columns in result have the same dtype
-                # otherwise don't bother with ffill and losing accurate dtypes
-                dtypes = [result[col].dtype for col in result.columns]
-                if len(set(dtypes)) > 1:
+                # otherwise don't bother with fillna and losing accurate dtypes
+                unique_dtypes = algos.unique(self._mgr.get_dtypes())
+                if len(unique_dtypes) > 1:
                     raise ValueError(
                         "All columns must have the same dtype, but got dtypes: "
-                        f"{dict(zip(result.columns, dtypes))}"
+                        f"{list(unique_dtypes)}"
                     )
-                if (value_dtype := np.asarray(value).dtype) != dtypes[0]:
+                # Use the first column, which we have already validated has the
+                # same dtypes as the other columns.
+                if not can_hold_element(result.iloc[:, 0], value):
+                    frame_dtype = unique_dtypes.item()
                     raise ValueError(
-                        "Dtype mismatch for value "
-                        f"(value.dtype={value_dtype} vs {dtypes[0]})"
+                        f"{value} not a suitable type to fill into {frame_dtype}"
                     )
                 result = result.T.fillna(value=value).T
             else:

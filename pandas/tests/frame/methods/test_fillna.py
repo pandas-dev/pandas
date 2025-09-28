@@ -500,7 +500,7 @@ class TestFillNA:
                 "c": [np.nan, 1, 2, 3, 4],
             }
         )
-        with pytest.raises(ValueError, match="Dtype mismatch for value"):
+        with pytest.raises(ValueError, match=".* not a suitable type to fill into .*"):
             df.fillna(Series({"a": "abc", "b": "def", "c": "hij"}), axis=1)
 
     def test_fillna_dataframe(self):
