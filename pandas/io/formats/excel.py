@@ -795,7 +795,7 @@ class ExcelFormatter:
                     level_lengths,
                     self.df.index.levels,
                     self.df.index.codes,
-                    strict=True,
+                    strict=False,
                 ):
                     values = levels.take(
                         level_codes,
