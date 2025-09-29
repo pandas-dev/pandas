@@ -69,12 +69,6 @@ Other bug fixes
 - Fixed regression in :meth:`DataFrame.from_records` not initializing subclasses properly (:issue:`57008`)
 - The :meth:`DataFrame.iloc` now works correctly with ``copy_on_write`` option when assigning values after subsetting the columns of a homogeneous DataFrame (:issue:`60309`)
 
-Other Bug fixes
-~~~~~~~~~~~~~~~~
-
-- Fixed regression in :meth:`DataFrame.from_records` not initializing subclasses properly (:issue:`57008`)
-
-
 .. ---------------------------------------------------------------------------
 .. _whatsnew_233.contributors:
 
