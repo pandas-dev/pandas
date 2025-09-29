@@ -65,9 +65,9 @@ def dtype(string_dtype_arguments):
 
 @pytest.fixture
 def data(dtype, chunked):
-    strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
+    strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=10)
     while strings[0] == strings[1]:
-        strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
+        strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=10)
 
     arr = dtype.construct_array_type()._from_sequence(strings, dtype=dtype)
     return maybe_split_array(arr, chunked)
@@ -257,6 +257,14 @@ class TestStringArray(base.ExtensionTests):
             request.applymarker(mark)
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(
+        self, data, request, using_infer_string
+    ):
+        if not using_infer_string and data.dtype.storage == "python":
+            mark = pytest.mark.xfail(reason="Casts to object")
+            request.applymarker(mark)
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
 
 class Test2DCompat(base.Dim2CompatTests):
     @pytest.fixture(autouse=True)
@@ -280,3 +288,19 @@ def test_searchsorted_with_na_raises(data_for_sorting, as_series):
     )
     with pytest.raises(ValueError, match=msg):
         arr.searchsorted(b)
+
+
+def test_mixed_object_comparison(dtype):
+    # GH#60228
+    ser = pd.Series(["a", "b"], dtype=dtype)
+
+    mixed = pd.Series([1, "b"], dtype=object)
+
+    result = ser == mixed
+    expected = pd.Series([False, True], dtype=bool)
+    if dtype.storage == "python" and dtype.na_value is pd.NA:
+        expected = expected.astype("boolean")
+    elif dtype.storage == "pyarrow" and dtype.na_value is pd.NA:
+        expected = expected.astype("bool[pyarrow]")
+
+    tm.assert_series_equal(result, expected)

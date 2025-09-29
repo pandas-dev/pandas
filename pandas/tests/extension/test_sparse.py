@@ -24,12 +24,12 @@ from pandas.arrays import SparseArray
 from pandas.tests.extension import base
 
 
-def make_data(fill_value):
+def make_data(fill_value, n: int):
     rng = np.random.default_rng(2)
     if np.isnan(fill_value):
-        data = rng.uniform(size=100)
+        data = rng.uniform(size=n)
     else:
-        data = rng.integers(1, 100, size=100, dtype=int)
+        data = rng.integers(1, 100, size=n, dtype=int)
         if data[0] == data[1]:
             data[0] += 1
 
@@ -44,14 +44,14 @@ def dtype():
 
 @pytest.fixture(params=[0, np.nan])
 def data(request):
-    """Length-100 PeriodArray for semantics test."""
-    res = SparseArray(make_data(request.param), fill_value=request.param)
+    """Length-10 SparseArray for semantics test."""
+    res = SparseArray(make_data(request.param, 10), fill_value=request.param)
     return res
 
 
 @pytest.fixture
 def data_for_twos():
-    return SparseArray(np.ones(100) * 2)
+    return SparseArray(np.ones(10) * 2)
 
 
 @pytest.fixture(params=[0, np.nan])
@@ -66,7 +66,7 @@ def data_repeated(request):
 
     def gen(count):
         for _ in range(count):
-            yield SparseArray(make_data(request.param), fill_value=request.param)
+            yield SparseArray(make_data(request.param, 10), fill_value=request.param)
 
     return gen
 

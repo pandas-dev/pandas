@@ -1742,9 +1742,7 @@ class TestDateRangeNonTickFreq:
         tm.assert_index_equal(rng, exp)
 
     def test_date_range_tzaware_endpoints_accept_ambiguous(self):
-        # With tz-aware endpoints and a calendar offset (MS),
-        # date_range should accept `ambiguous=True` and produce
-        # the same result as passing tz explicitly with naive endpoints.
+        # https://github.com/pandas-dev/pandas/issues/52908
         start = Timestamp("1916-08-01", tz="Europe/Oslo")
         end = Timestamp("1916-12-01", tz="Europe/Oslo")
         res = date_range(start, end, freq="MS", ambiguous=True)
