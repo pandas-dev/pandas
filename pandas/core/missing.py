@@ -102,12 +102,14 @@ def mask_missing(arr: ArrayLike, value) -> npt.NDArray[np.bool_]:
         if arr.dtype.kind == "f":
             # GH#55127
             if isinstance(arr.dtype, BaseMaskedDtype):
-                mask = np.isnan(arr._data) & ~arr.isna()
+                # error: "ExtensionArray" has no attribute "_data"  [attr-defined]
+                mask = np.isnan(arr._data) & ~arr.isna()  # type: ignore[attr-defined,operator]
                 return mask
             else:
+                # error: "ExtensionArray" has no attribute "_pa_array"  [attr-defined]
                 import pyarrow.compute as pc
 
-                mask = pc.is_nan(arr._pa_array).fill_null(False).to_numpy()
+                mask = pc.is_nan(arr._pa_array).fill_null(False).to_numpy()  # type: ignore[attr-defined]
                 return mask
 
         elif arr.dtype.kind in "iu":
