@@ -890,7 +890,17 @@ class ArrowExtensionArray(
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
         pa_type = self._pa_array.type
         other_original = other
-        other = self._box_pa(other)
+        try:
+            other = self._box_pa(other)
+        except pa.lib.ArrowTypeError:
+            # was expecting time dtype but received non-temporal dtype (time offset)
+            from pandas.core.tools.timedeltas import to_timedelta
+
+            other = self._box_pa(to_timedelta(other))
+        except ValueError as err:
+            raise TypeError(
+                "Incompatible type when converting to PyArrow dtype for operation."
+            ) from err
 
         if (
             pa.types.is_string(pa_type)
@@ -903,19 +913,31 @@ class ArrowExtensionArray(
                     pa.types.is_integer(other.type)
                     or pa.types.is_floating(other.type)
                     or pa.types.is_null(other.type)
+                    or pa.types.is_string(other.type)
+                    or pa.types.is_large_string(other.type)
+                    or pa.types.is_binary(other.type)
                 ):
                     other = other.cast(pa_type)
-                sep = pa.scalar("", type=pa_type)
-                try:
-                    if op is operator.add:
-                        result = pc.binary_join_element_wise(self._pa_array, other, sep)
-                    elif op is roperator.radd:
-                        result = pc.binary_join_element_wise(other, self._pa_array, sep)
-                except pa.ArrowNotImplementedError as err:
+                    sep = pa.scalar("", type=pa_type)
+                    try:
+                        if op is operator.add:
+                            result = pc.binary_join_element_wise(
+                                self._pa_array, other, sep
+                            )
+                        elif op is roperator.radd:
+                            result = pc.binary_join_element_wise(
+                                other, self._pa_array, sep
+                            )
+                    except pa.ArrowNotImplementedError as err:
+                        raise TypeError(
+                            self._op_method_error_message(other_original, op)
+                        ) from err
+                    return self._from_pyarrow_array(result)
+                else:
                     raise TypeError(
-                        self._op_method_error_message(other_original, op)
-                    ) from err
-                return self._from_pyarrow_array(result)
+                        "Can only add string arrays to dtypes "
+                        "null, int, float, str, and binary."
+                    )
             elif op in [operator.mul, roperator.rmul]:
                 binary = self._pa_array
                 integral = other

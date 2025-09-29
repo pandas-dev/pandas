@@ -4,6 +4,7 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 """
 
 import operator
+from re import escape
 
 import numpy as np
 import pytest
@@ -249,6 +250,32 @@ def test_mul(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_add_series(dtype):
+    arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
+    df = pd.Series(["t", "y", "v", "w"], dtype=object)
+
+    result = arr + df
+    expected = pd.Series(["at", "by", "cv", "dw"]).astype(dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = df + arr
+    expected = pd.Series(["ta", "yb", "vc", "wd"]).astype(dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_add_series_float(dtype):
+    arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
+    df = pd.Series([1, 2.0, 3.5, 4])
+
+    result = arr + df
+    expected = pd.Series(["a1", "b2", "c3.5", "d4"]).astype(dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = df + arr
+    expected = pd.Series(["1a", "2b", "3.5c", "4d"]).astype(dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_add_strings(dtype):
     arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
     df = pd.DataFrame([["t", "y", "v", "w"]], dtype=object)
@@ -278,17 +305,56 @@ def test_add_frame(dtype):
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
 
-def test_add_frame_mixed_type(dtype):
-    arr = pd.array(["a", "bc", 3, np.nan], dtype=dtype)
-    df = pd.DataFrame([[1, 2, 3.3, 4]])
+def test_add_frame_int(dtype):
+    arr = pd.array(["a", "b", "c", np.nan], dtype=dtype)
+    df = pd.DataFrame([[1, np.nan, 3, np.nan]])
 
     result = arr + df
-    expected = pd.DataFrame([["a1", "bc2", "33.3", np.nan]]).astype(dtype)
+    expected = pd.DataFrame([["a1", np.nan, "c3", np.nan]]).astype(dtype)
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
     result = df + arr
-    expected = pd.DataFrame([["1a", "2bc", "3.33", np.nan]]).astype(dtype)
+    expected = pd.DataFrame([["1a", np.nan, "3c", np.nan]]).astype(dtype)
     tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        pd.Timedelta(hours=31),
+        pd.Timestamp("2021-01-01"),
+        np.datetime64("NaT", "ns"),
+        pd.NaT,
+        True,
+        pd.Period("2025-09"),
+        pd.Categorical(["test"]),
+        pd.offsets.Minute(3),
+        pd.Interval(1, 2, closed="right"),
+    ],
+)
+def test_add_frame_invalid(dtype, invalid):
+    arr = pd.array(["a", np.nan], dtype=dtype)
+    df = pd.DataFrame([[invalid, invalid]])
+
+    if dtype.storage == "pyarrow":
+        if invalid == pd.Categorical(["test"]):
+            msg = (
+                "Incompatible type found when converting "
+                "to PyArrow dtype for operation."
+            )
+        else:
+            msg = (
+                "Can only add string arrays to dtypes "
+                "null, int, float, str, and binary."
+            )
+        with pytest.raises(TypeError, match=msg):
+            arr + df
+    else:
+        msg = escape(
+            "Only supports op(add) between StringArray and dtypes int, float, and str."
+        )
+        with pytest.raises(TypeError, match=msg):
+            arr + df
 
 
 def test_comparison_methods_scalar(comparison_op, dtype):
