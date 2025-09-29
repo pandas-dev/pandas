@@ -643,7 +643,7 @@ class TestDataFrameReplace:
 
     def test_replace_nullable_int_with_string_doesnt_cast(self):
         # GH#25438 don't cast df['a'] to float64
-        df = DataFrame({"a": [1, 2, 3, np.nan], "b": ["some", "strings", "here", "he"]})
+        df = DataFrame({"a": [1, 2, 3, pd.NA], "b": ["some", "strings", "here", "he"]})
         df["a"] = df["a"].astype("Int64")
 
         res = df.replace("", np.nan)
@@ -681,7 +681,7 @@ class TestDataFrameReplace:
 
     def test_replace_NA_with_None(self):
         # gh-45601
-        df = DataFrame({"value": [42, None]}).astype({"value": "Int64"})
+        df = DataFrame({"value": [42, pd.NA]}, dtype="Int64")
         result = df.replace({pd.NA: None})
         expected = DataFrame({"value": [42, None]}, dtype=object)
         tm.assert_frame_equal(result, expected)
