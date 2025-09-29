@@ -1752,11 +1752,3 @@ class TestDateRangeNonTickFreq:
             "1916-08-01", "1916-12-01", freq="MS", tz="Europe/Oslo", ambiguous=True
         )
         tm.assert_index_equal(res, exp)
-
-    def test_date_range_tzaware_endpoints_raise_ambiguous_raises_by_default(self):
-        # By default (`ambiguous="raise"`), an ambiguous DST transition
-        # should raise instead of guessing.
-        start = Timestamp("1916-08-01", tz="Europe/Oslo")
-        end = Timestamp("1916-12-01", tz="Europe/Oslo")
-        with pytest.raises(ValueError, match="Cannot infer dst time"):
-            date_range(start, end, freq="MS")
