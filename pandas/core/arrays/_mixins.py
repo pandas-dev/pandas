@@ -173,7 +173,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             fill_value=fill_value,
             axis=axis,
         )
-        return self._from_backing_data(new_data)
+
+        return type(self)._simple_new(new_data, new_data.dtype)
 
     # ------------------------------------------------------------------------
 

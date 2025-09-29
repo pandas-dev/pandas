@@ -325,6 +325,15 @@ def test_factorize_unsigned():
     tm.assert_extension_array_equal(res_unique, NumpyExtensionArray(exp_unique))
 
 
+@pytest.mark.parametrize("dtype", [np.uint32, np.uint64, np.int32, np.int64])
+def test_take_assigns_correct_dtype(dtype):
+    array = NumpyExtensionArray(np.array([1, 2, 3], dtype=dtype))
+
+    result = array.take([-1], allow_fill=True)
+
+    assert result.dtype == np.float64
+
+
 # ----------------------------------------------------------------------------
 # Output formatting
 
