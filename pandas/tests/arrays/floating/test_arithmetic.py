@@ -154,10 +154,14 @@ def test_error_invalid_values(data, all_arithmetic_operators):
 
     # invalid array-likes
     str_ser = pd.Series("foo", index=s.index)
-    if all_arithmetic_operators in [
-        "__add__",
-        "__radd__",
-    ]:
+    if (
+        all_arithmetic_operators
+        in [
+            "__add__",
+            "__radd__",
+        ]
+        and pd.options.future.infer_string
+    ):
         res = ops(str_ser)
         if all_arithmetic_operators == "__radd__":
             data_expected = []
