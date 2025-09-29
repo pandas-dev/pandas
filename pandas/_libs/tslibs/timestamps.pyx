@@ -1804,7 +1804,7 @@ class Timestamp(_Timestamp):
         Value of nanosecond.
     tz : str, zoneinfo.ZoneInfo, pytz.timezone, dateutil.tz.tzfile or None
         Time zone for time which Timestamp will have.
-    unit : str
+    input_unit : str
         Unit used for conversion if ts_input is of type int or float. The
         valid values are 'W', 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.

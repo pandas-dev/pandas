@@ -1946,7 +1946,7 @@ class Timedelta(_Timedelta):
     ----------
     value : Timedelta, timedelta, np.timedelta64, str, int or float
         Input value.
-    unit : str, default 'ns'
+    input_unit : str, default 'ns'
         If input is an integer, denote the unit of the input.
         If input is a float, denote the unit of the integer parts.
         The decimal parts with resolution lower than 1 nanosecond are ignored.
