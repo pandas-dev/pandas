@@ -657,7 +657,7 @@ class ArrowExtensionArray(
             ):
                 arr_value = np.asarray(value, dtype=object)
                 # similar to isna(value) but exclude NaN, NaT, nat-like, nan-like
-                mask = is_pdna_or_none(arr_value)  # type: ignore[assignment]
+                mask = is_pdna_or_none(arr_value)
 
             try:
                 pa_array = pa.array(value, type=pa_type, mask=mask)
@@ -883,22 +883,27 @@ class ArrowExtensionArray(
         ltype = self._pa_array.type
 
         if isinstance(other, (ExtensionArray, np.ndarray, list)):
-            boxed = self._box_pa(other)
-            rtype = boxed.type
-            if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
-                pa.types.is_timestamp(rtype) and pa.types.is_date(ltype)
-            ):
-                # GH#62157 match non-pyarrow behavior
-                result = ops.invalid_comparison(self, other, op)
-                result = pa.array(result, type=pa.bool_())
+            try:
+                boxed = self._box_pa(other)
+            except pa.lib.ArrowInvalid:
+                # e.g. GH#60228 [1, "b"] we have to operate pointwise
+                res_values = [op(x, y) for x, y in zip(self, other)]
+                result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
-                try:
-                    result = pc_func(self._pa_array, boxed)
-                except pa.ArrowNotImplementedError:
-                    # TODO: could this be wrong if other is object dtype?
-                    #  in which case we need to operate pointwise?
+                rtype = boxed.type
+                if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
+                    pa.types.is_timestamp(rtype) and pa.types.is_date(ltype)
+                ):
+                    # GH#62157 match non-pyarrow behavior
                     result = ops.invalid_comparison(self, other, op)
                     result = pa.array(result, type=pa.bool_())
+                else:
+                    try:
+                        result = pc_func(self._pa_array, boxed)
+                    except pa.ArrowNotImplementedError:
+                        result = ops.invalid_comparison(self, other, op)
+                        result = pa.array(result, type=pa.bool_())
+
         elif is_scalar(other):
             if (isinstance(other, datetime) and pa.types.is_date(ltype)) or (
                 type(other) is date and pa.types.is_timestamp(ltype)
@@ -2738,7 +2743,7 @@ class ArrowExtensionArray(
             dummies_dtype = np.bool_
         dummies = np.zeros(n_rows * n_cols, dtype=dummies_dtype)
         dummies[indices] = True
-        dummies = dummies.reshape((n_rows, n_cols))  # type: ignore[assignment]
+        dummies = dummies.reshape((n_rows, n_cols))
         result = self._from_pyarrow_array(pa.array(list(dummies)))
         return result, uniques_sorted.to_pylist()
 

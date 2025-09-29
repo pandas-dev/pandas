@@ -191,7 +191,7 @@ def radviz(
 
     ax.add_patch(mpl.patches.Circle((0.0, 0.0), radius=1.0, facecolor="none"))
 
-    for xy, name in zip(s, df.columns):
+    for xy, name in zip(s, df.columns, strict=True):
         ax.add_patch(mpl.patches.Circle(xy, radius=0.025, facecolor="gray"))
 
         if xy[0] < 0.0 and xy[1] < 0.0:
@@ -266,7 +266,7 @@ def andrews_curves(
     color_values = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
-    colors = dict(zip(classes, color_values))
+    colors = dict(zip(classes, color_values, strict=False))
     if ax is None:
         ax = plt.gca()
         ax.set_xlim(-np.pi, np.pi)
@@ -399,7 +399,7 @@ def parallel_coordinates(
     if sort_labels:
         classes = sorted(classes)
         color_values = sorted(color_values)
-    colors = dict(zip(classes, color_values))
+    colors = dict(zip(classes, color_values, strict=True))
 
     for i in range(n):
         y = df.iloc[i].values
