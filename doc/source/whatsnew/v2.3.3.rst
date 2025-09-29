@@ -1,6 +1,6 @@
 .. _whatsnew_233:
 
-What's new in 2.3.3 (September XX, 2025)
+What's new in 2.3.3 (September 29, 2025)
 ----------------------------------------
 
 These are the changes in pandas 2.3.3. See :ref:`release` for a full changelog
@@ -8,7 +8,7 @@ including other versions of pandas.
 
 {{ header }}
 
-.. _whatsnew_220.py14_compat:
+.. _whatsnew_233.py14_compat:
 
 Pandas 2.3.3 is now compatible with Python 3.14
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,3 +71,5 @@ Other changes
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v2.3.1..v2.3.2|HEAD
