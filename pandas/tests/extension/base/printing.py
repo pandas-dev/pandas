@@ -13,7 +13,7 @@ class BasePrintingTests:
         if size == "small":
             data = data[:5]
         else:
-            data = type(data)._concat_same_type([data] * 5)
+            data = type(data)._concat_same_type([data] * 20)
 
         result = repr(data)
         assert type(data).__name__ in result

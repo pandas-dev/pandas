@@ -15,8 +15,10 @@ from pandas.io.formats.style import Styler
 @pytest.fixture(params=[(None, "float64"), (NA, "Int64")])
 def df(request):
     # GH 45804
+    dtype = request.param[1]
+    item = np.nan if dtype == "float64" else NA
     return DataFrame(
-        {"A": [0, np.nan, 10], "B": [1, request.param[0], 2]}, dtype=request.param[1]
+        {"A": [0, item, 10], "B": [1, request.param[0], 2]}, dtype=request.param[1]
     )
 
 
