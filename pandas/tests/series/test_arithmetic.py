@@ -767,10 +767,21 @@ class TestTimeSeriesArithmetic:
 
         result = ts + ts2
         result2 = ts2 + ts
-        expected = ts + ts[5:]
-        expected.index = expected.index._with_freq(None)
-        tm.assert_series_equal(result, expected)
-        tm.assert_series_equal(result2, expected)
+
+        date_labels = [x.date() for x in rng[5:]]
+        expected_index = Index(list(rng) + date_labels, dtype=object)
+
+        # Length and index checks
+        assert len(result) == 35
+        tm.assert_index_equal(result.index, expected_index)
+        tm.assert_index_equal(result2.index, expected_index)
+        assert result.index.dtype == object
+
+        # All NaN because there are no matching labels now
+        assert result.isna().all()
+        assert result2.isna().all()
+
+        tm.assert_series_equal(result, result2)
 
 
 class TestNamePreservation:

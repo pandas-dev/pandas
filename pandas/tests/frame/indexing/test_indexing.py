@@ -1882,15 +1882,20 @@ def test_add_new_column_infer_string():
 
 def test_datetime_indexer_consistency_pyarrow_date32():
     # GH#62158
+    pytest.importorskip("pyarrow", minversion="13.0.0")
     ser = Series(["2016-01-01"], dtype="date32[pyarrow]")
     ser3 = ser.astype("datetime64[ns]")
     dti = Index(ser3)
-    # All should be consistent
-    assert dti.get_loc(ser[0]) == 0
-    tm.assert_numpy_array_equal(dti.get_indexer(ser.values), np.array([0]))
-    tm.assert_numpy_array_equal(
-        dti.get_indexer(ser.values.astype(object)), np.array([0])
-    )
+
+    with pytest.raises(KeyError):
+        dti.get_loc(ser[0])
+
+    # get_indexer returns -1 for both Arrow array and object-cast
+    result = dti.get_indexer(ser.values)
+    tm.assert_numpy_array_equal(result, np.array([-1], dtype=np.intp))
+
+    result_obj = dti.get_indexer(ser.values.astype(object))
+    tm.assert_numpy_array_equal(result_obj, np.array([-1], dtype=np.intp))
 
 
 class TestSetitemValidation:
