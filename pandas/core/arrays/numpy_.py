@@ -5,6 +5,7 @@ from typing import (
     Any,
     Literal,
     Self,
+    cast,
 )
 
 import numpy as np
@@ -48,6 +49,7 @@ if TYPE_CHECKING:
     )
 
     from pandas import Index
+    from pandas.arrays import StringArray
 
 
 class NumpyExtensionArray(
@@ -234,8 +236,9 @@ class NumpyExtensionArray(
             # e.g. test_np_max_nested_tuples
             return result
         else:
-            if self.dtype.type is str:
+            if self.dtype.type is str:  # type: ignore[comparison-overlap]
                 # StringDtype
+                self = cast("StringArray", self)
                 try:
                     # specify dtype to preserve storage/na_value
                     return type(self)(result, dtype=self.dtype)
