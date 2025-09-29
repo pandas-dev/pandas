@@ -75,4 +75,4 @@ Other bug fixes
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v2.3.1..v2.3.2|HEAD
+.. contributors:: v2.3.2..v2.3.3|HEAD
