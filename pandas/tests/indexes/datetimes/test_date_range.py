@@ -1752,3 +1752,19 @@ class TestDateRangeNonTickFreq:
             "1916-08-01", "1916-12-01", freq="MS", tz="Europe/Oslo", ambiguous=True
         )
         tm.assert_index_equal(res, exp)
+
+    def test_date_range_tzaware_endpoints_accept_nonexistent(self):
+        # Europe/London spring-forward: 2015-03-29 01:30 does not exist.
+        start = Timestamp("2015-03-28 01:30", tz="Europe/London")
+        end = Timestamp("2015-03-30 01:30", tz="Europe/London")
+
+        result = date_range(start, end, freq="D", nonexistent="shift_forward")
+        expected = [
+            Timestamp("2015-03-28 01:30:00+00:00"),
+            Timestamp(
+                "2015-03-29 02:00:00+01:00"
+            ),  # shifted forward over next valid wall time
+            Timestamp("2015-03-30 01:30:00+01:00"),
+        ]
+
+        assert list(result) == expected
