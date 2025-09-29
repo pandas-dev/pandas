@@ -117,7 +117,7 @@ def to_timedelta(
             Strings with units 'M', 'Y' and 'y' do not represent
             unambiguous timedelta values and will raise an exception.
 
-    unit : str, optional
+    input_unit : str, optional
         Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
 
         Possible values:

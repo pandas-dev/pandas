@@ -772,7 +772,7 @@ def to_datetime(
           string.
 
         Cannot be used alongside ``format='ISO8601'`` or ``format='mixed'``.
-    unit : str, default 'ns'
+    input_unit : str, default 'ns'
         The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
         integer or float number. This will be based off the origin.
         Example, with ``unit='ms'`` and ``origin='unix'``, this would calculate
