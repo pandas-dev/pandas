@@ -10,6 +10,7 @@ from pandas.compat import pa_version_under16p0
 from pandas.errors import IndexingError
 
 from pandas import (
+    NA,
     Categorical,
     CategoricalDtype,
     DataFrame,
@@ -1519,8 +1520,10 @@ class TestILocSeries:
     def test_iloc_nullable_int64_size_1_nan(self):
         # GH 31861
         result = DataFrame({"a": ["test"], "b": [np.nan]})
+
+        ser = Series([NA], name="b", dtype="Int64")
         with pytest.raises(TypeError, match="Invalid value"):
-            result.loc[:, "b"] = result.loc[:, "b"].astype("Int64")
+            result.loc[:, "b"] = ser
 
     def test_iloc_arrow_extension_array(self):
         # GH#61311
