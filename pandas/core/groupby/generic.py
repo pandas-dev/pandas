@@ -536,7 +536,7 @@ class SeriesGroupBy(GroupBy[Series]):
         else:
             # list of functions / function names
             columns = (com.get_callable_name(f) or f for f in arg)
-            arg = zip(columns, arg)
+            arg = zip(columns, arg, strict=True)
 
         results: dict[base.OutputKey, DataFrame | Series] = {}
         with com.temp_setattr(self, "as_index", True):
