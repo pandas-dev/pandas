@@ -312,7 +312,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         key = check_array_indexer(self, key)
 
         if is_scalar(value):
-            if is_valid_na_for_dtype(value, self.dtype):
+            if is_valid_na_for_dtype(value, self.dtype) and not (
+                lib.is_float(value) and not is_nan_na()
+            ):
                 self._mask[key] = True
             else:
                 value = self._validate_setitem_value(value)

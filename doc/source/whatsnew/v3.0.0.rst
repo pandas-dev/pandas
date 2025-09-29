@@ -1219,10 +1219,11 @@ Other
 - Bug in printing a :class:`DataFrame` with a :class:`DataFrame` stored in :attr:`DataFrame.attrs` raised a ``ValueError`` (:issue:`60455`)
 - Bug in printing a :class:`Series` with a :class:`DataFrame` stored in :attr:`Series.attrs` raised a ``ValueError`` (:issue:`60568`)
 - Deprecated the keyword ``check_datetimelike_compat`` in :meth:`testing.assert_frame_equal` and :meth:`testing.assert_series_equal` (:issue:`55638`)
+- Fixed bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when trying to replace :class:`NA` values in a :class:`Float64Dtype` object with ``np.nan``; this now works with ``pd.set_option("mode.nan_is_na", False)`` and is irrelevant otherwise (:issue:`55127`)
+- Fixed bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when trying to replace :class:`np.nan` values in a :class:`Int64Dtype` object with :class:`NA`; this is now a no-op with ``pd.set_option("mode.nan_is_na", False)`` and is irrelevant otherwise (:issue:`51237`)
 - Fixed bug in the :meth:`Series.rank` with object dtype and extremely small float values (:issue:`62036`)
 - Fixed bug where the :class:`DataFrame` constructor misclassified array-like objects with a ``.name`` attribute as :class:`Series` or :class:`Index` (:issue:`61443`)
 - Fixed regression in :meth:`DataFrame.from_records` not initializing subclasses properly (:issue:`57008`)
--
 
 .. ***DO NOT USE THIS SECTION***
 
