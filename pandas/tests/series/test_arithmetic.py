@@ -769,7 +769,7 @@ class TestTimeSeriesArithmetic:
         result2 = ts2 + ts
 
         date_labels = [x.date() for x in rng[5:]]
-        expected_index = Index(list(rng) + date_labels, dtype=object)
+        expected_index = Index(date_labels + list(rng), dtype=object)
 
         # Length and index checks
         assert len(result) == 35
