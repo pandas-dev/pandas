@@ -28,7 +28,7 @@ dependencies:
   # optional dependencies
   - adbc-driver-postgresql>=1.2.0
   - adbc-driver-sqlite>=1.2.0
-  - beautifulsoup4>=4.12.3
+   - beautifulsoup4==4.13.5
   - bottleneck>=1.4.2
   - fastparquet>=2024.11.0
   - fsspec>=2024.10.0

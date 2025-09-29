@@ -87,3 +87,4 @@ pygments
 jupyterlite-core
 jupyterlite-pyodide-kernel
 tzdata>=2023.3
+beautifulsoup4==4.13.5
