@@ -124,6 +124,7 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 include = ["pandas", "pandas.*"]
+exclude = ["pandas.tests", "pandas.tests.*"]
 namespaces = false
 
 [tool.setuptools.exclude-package-data]
