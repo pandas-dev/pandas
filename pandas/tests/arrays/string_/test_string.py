@@ -338,10 +338,7 @@ def test_add_frame_invalid(dtype, invalid):
 
     if dtype.storage == "pyarrow":
         if invalid == pd.Categorical(["test"]):
-            msg = (
-                "Incompatible type found when converting "
-                "to PyArrow dtype for operation."
-            )
+            msg = "Incompatible type when converting to PyArrow dtype for operation."
         else:
             msg = (
                 "Can only add string arrays to dtypes "
