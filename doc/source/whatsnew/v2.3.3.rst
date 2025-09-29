@@ -48,6 +48,7 @@ Bug fixes
   with a compiled regex and custom flags (:issue:`62240`)
 - Fix :meth:`Series.str.match` and :meth:`Series.str.fullmatch` not matching patterns with groups correctly for the Arrow-backed string dtype (:issue:`61072`)
 - Fix comparing a :class:`StringDtype` Series with mixed objects raising an error (:issue:`60228`)
+- Fix error being raised when using a numpy ufunc with a Python-backed string array (:issue:`40800`)
 
 Improvements and fixes for Copy-on-Write
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
