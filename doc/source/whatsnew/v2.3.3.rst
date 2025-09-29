@@ -51,6 +51,8 @@ Bug fixes
 - Fix bug in :meth:`~DataFrame.groupby` with ``sum()`` and unobserved categories resulting in ``0`` instead of the empty string ``""`` (:issue:`61909`)
 - Fix :meth:`Series.str.isdigit` to correctly recognize unicode superscript
   characters as digits for :class:`StringDtype` backed by PyArrow (:issue:`61466`)
+- Fix comparing a :class:`StringDtype` Series with mixed objects raising an error (:issue:`60228`)
+- Fix error being raised when using a numpy ufunc with a Python-backed string array (:issue:`40800`)
 
 Other changes
 ~~~~~~~~~~~~~

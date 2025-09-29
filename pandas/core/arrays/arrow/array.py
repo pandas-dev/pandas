@@ -883,22 +883,27 @@ class ArrowExtensionArray(
         ltype = self._pa_array.type
 
         if isinstance(other, (ExtensionArray, np.ndarray, list)):
-            boxed = self._box_pa(other)
-            rtype = boxed.type
-            if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
-                pa.types.is_timestamp(rtype) and pa.types.is_date(ltype)
-            ):
-                # GH#62157 match non-pyarrow behavior
-                result = ops.invalid_comparison(self, other, op)
-                result = pa.array(result, type=pa.bool_())
+            try:
+                boxed = self._box_pa(other)
+            except pa.lib.ArrowInvalid:
+                # e.g. GH#60228 [1, "b"] we have to operate pointwise
+                res_values = [op(x, y) for x, y in zip(self, other)]
+                result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
-                try:
-                    result = pc_func(self._pa_array, boxed)
-                except pa.ArrowNotImplementedError:
-                    # TODO: could this be wrong if other is object dtype?
-                    #  in which case we need to operate pointwise?
+                rtype = boxed.type
+                if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
+                    pa.types.is_timestamp(rtype) and pa.types.is_date(ltype)
+                ):
+                    # GH#62157 match non-pyarrow behavior
                     result = ops.invalid_comparison(self, other, op)
                     result = pa.array(result, type=pa.bool_())
+                else:
+                    try:
+                        result = pc_func(self._pa_array, boxed)
+                    except pa.ArrowNotImplementedError:
+                        result = ops.invalid_comparison(self, other, op)
+                        result = pa.array(result, type=pa.bool_())
+
         elif is_scalar(other):
             if (isinstance(other, datetime) and pa.types.is_date(ltype)) or (
                 type(other) is date and pa.types.is_timestamp(ltype)
