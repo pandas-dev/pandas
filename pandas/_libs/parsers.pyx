@@ -8,6 +8,8 @@ from csv import (
 )
 import warnings
 
+from pandas._config import is_nan_na
+
 from pandas.util._exceptions import find_stack_level
 
 from pandas import (
@@ -1469,7 +1471,7 @@ def _maybe_upcast(
         if isinstance(arr, IntegerArray) and arr.isna().all():
             # use null instead of int64 in pyarrow
             arr = arr.to_numpy(na_value=None)
-        arr = ArrowExtensionArray(pa.array(arr, from_pandas=True))
+        arr = ArrowExtensionArray(pa.array(arr, from_pandas=is_nan_na()))
 
     return arr
 
