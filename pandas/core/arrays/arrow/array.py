@@ -2537,7 +2537,13 @@ class ArrowExtensionArray(
                 pa_type = value.type
             elif isinstance(value, pa.Scalar):
                 pa_type = value.type
-                value = value.as_py()
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "The 'unit' keyword is deprecated",
+                        Pandas4Warning,
+                    )
+                    value = value.as_py()
             else:
                 pa_type = None
             return np.array(value, dtype=object), pa_type
