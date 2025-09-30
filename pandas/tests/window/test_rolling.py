@@ -4,6 +4,9 @@ from datetime import (
 )
 
 import numpy as np
+from numpy.lib.stride_tricks import sliding_window_view
+
+
 import pytest
 
 from pandas.compat import (
@@ -1081,30 +1084,47 @@ def test_rolling_sem(frame_or_series):
     expected = Series([np.nan] + [0.7071067811865476] * 2)
     tm.assert_series_equal(result, expected)
 
-
-@pytest.mark.xfail(
-    is_platform_arm() or is_platform_power() or is_platform_riscv64(),
-    reason="GH 38921",
-)
 @pytest.mark.parametrize(
-    ("func", "third_value", "values"),
-    [
-        ("var", 1, [5e33, 0, 0.5, 0.5, 2, 0]),
-        ("std", 1, [7.071068e16, 0, 0.7071068, 0.7071068, 1.414214, 0]),
-        ("var", 2, [5e33, 0.5, 0, 0.5, 2, 0]),
-        ("std", 2, [7.071068e16, 0.7071068, 0, 0.7071068, 1.414214, 0]),
-    ],
+  ("func", "values", "window", "ddof", "exp_value"),
+  [
+    ("var", [2.72993945, 1.58444294, 4.14371708, 4.92961687, 2.7138744 ,3.48168586, 0.69505519, 1.87511994, 4.20167276, 0.04797675], 3, 1, "numpy_compute"),
+    ("std", [2.72993945, 1.58444294, 4.14371708, 4.92961687, 2.7138744 ,3.48168586, 0.69505519, 1.87511994, 4.20167276, 0.04797675], 3, 1, "numpy_compute"),
+    ("var", [2.72993945, 1.58444294, 4.14371708, 4.92961687, 2.7138744 ,3.48168586, 0.69505519, 1.87511994, 4.20167276, 0.04797675], 2, 1, "numpy_compute"),
+    ("std", [2.72993945, 1.58444294, 4.14371708, 4.92961687, 2.7138744 ,3.48168586, 0.69505519, 1.87511994, 4.20167276, 0.04797675], 2, 1, "numpy_compute"),
+    ("var", [99999999999999999, 1, 1, 2, 3, 1, 1], 2, 1, 0),
+    ("std", [99999999999999999, 1, 1, 2, 3, 1, 1], 2, 1, 0),
+    ("var", [99999999999999999, 1, 2, 2, 3, 1, 1], 2, 1, 0),
+    ("var", [99999999999999999, 1, 2, 2, 3, 1, 1], 2, 1, 0),
+    ("var", [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], 5, 0, "numpy_compute"),
+  ],
 )
-def test_rolling_var_numerical_issues(func, third_value, values):
-    # GH: 37051
-    ds = Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
-    result = getattr(ds.rolling(2), func)()
-    expected = Series([np.nan] + values)
-    tm.assert_series_equal(result, expected)
+def test_rolling_var_correctness(func, values, window, ddof, exp_value):
+    # This tests subsume the previous tests under test_rolling_var_numerical_issues
+    # GH: 37051, 42064, 54333
+    ts = Series(values)
+    result = getattr(ts.rolling(window=window, center=True), func)(ddof=ddof)
+    if result.last_valid_index():
+        result = result[result.first_valid_index() : result.last_valid_index()+1].reset_index(drop=True)
+    expected = Series(getattr(sliding_window_view(values, window_shape=window), func)(axis=-1, ddof=ddof)) #.var(axis=-1, ddof=ddof))
+    tm.assert_series_equal(result, expected, atol=1e-55)
     # GH 42064
-    # new `roll_var` will output 0.0 correctly
-    tm.assert_series_equal(result == 0, expected == 0)
+    if exp_value == 0:
+       # new `roll_var` will output 0.0 correctly
+        tm.assert_series_equal(result==0, expected==0)
 
+def test_rolling_var_numerical_stability():
+    # GH 52407
+    A = [0.00000000e+00, 0.00000000e+00, 3.16188252e-18, 2.95781651e-16,
+    2.23153542e-51, 0.00000000e+00, 0.00000000e+00, 5.39943432e-48,
+    1.38206260e-73, 0.00000000e+00]
+    ts = Series(A)
+
+    result = ts.rolling(window=3, center=True).var(ddof=1)
+    result = result[result.first_valid_index() : result.last_valid_index()+1].reset_index(drop=True)
+    
+    # numpy implementation
+    expected = Series(sliding_window_view(A, window_shape=3).var(axis=-1, ddof=1))
+    tm.assert_series_equal(result, expected, atol=1e-55)
 
 def test_timeoffset_as_window_parameter_for_corr(unit):
     # GH: 28266
