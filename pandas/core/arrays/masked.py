@@ -163,6 +163,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 result._data, dtype=self.dtype.numpy_dtype
             )
             result = type(result)(new_data, result._mask)
+        elif lkind == "f" and rkind == "i":
+            result = cast(BaseMaskedArray, result)
+            new_data = maybe_downcast_to_dtype(
+                result._data, dtype=self.dtype.numpy_dtype
+            )
+            result = type(self)(new_data, result._mask)
         return result
 
     @classmethod

@@ -3,7 +3,6 @@ from datetime import (
     date,
     datetime,
 )
-from decimal import Decimal
 
 import numpy as np
 import pytest
@@ -515,10 +514,6 @@ class TestSetitemWithExpansion:
     )
     def test_append_timedelta_does_not_cast(self, td, using_infer_string, request):
         # GH#22717 inserting a Timedelta should _not_ cast to int64
-        if using_infer_string and not isinstance(td, Timedelta):
-            # TODO: GH#56010
-            request.applymarker(pytest.mark.xfail(reason="inferred as string"))
-
         expected = Series(["x", td], index=[0, "td"], dtype=object)
 
         ser = Series(["x"])
@@ -592,12 +587,8 @@ class TestSetitemWithExpansion:
         # GH#48665
         ser = Series(["a", "b"])
         ser[3] = nulls_fixture
-        dtype = (
-            "str"
-            if using_infer_string and not isinstance(nulls_fixture, Decimal)
-            else object
-        )
-        expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3], dtype=dtype)
+
+        expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3], dtype="str")
         tm.assert_series_equal(ser, expected)
         if using_infer_string:
             ser[3] is np.nan

@@ -37,6 +37,7 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
@@ -383,7 +384,8 @@ class ExtensionArray:
         Cast the result of a pointwise operation (e.g. Series.map) to an
         array, preserve dtype_backend if possible.
         """
-        values = np.asarray(values, dtype=object)
+        if not (isinstance(values, np.ndarray) and values.dtype == object):
+            values = construct_1d_object_array_from_listlike(values)
         return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # ------------------------------------------------------------------------

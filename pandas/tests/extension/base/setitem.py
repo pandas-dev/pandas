@@ -472,3 +472,16 @@ class BaseSetitemTests:
         df.loc[[0, 1], :] = df.loc[[1, 0], :].values
         assert (df.loc[0, :] == original[1]).all()
         assert (df.loc[1, :] == original[0]).all()
+
+    def test_loc_setitem_with_expansion_retains_ea_dtype(self, data):
+        # GH#32346
+        data = data.dropna().unique()
+        ser = pd.Series(data[:-1])
+        ser.loc[len(ser)] = data[-1]
+        expected = pd.Series(data)
+        tm.assert_series_equal(ser, expected)
+
+        df = pd.DataFrame({"A": data[:-1]})
+        df.loc[len(df)] = [data[-1]]
+        expected = expected.to_frame("A")
+        tm.assert_frame_equal(df, expected)

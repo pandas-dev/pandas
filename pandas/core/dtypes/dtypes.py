@@ -1598,6 +1598,16 @@ class NumpyEADtype(ExtensionDtype):
         """
         return self._dtype.itemsize
 
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        from pandas.core.dtypes.cast import find_common_type
+
+        dtypes = [x.numpy_dtype if isinstance(x, NumpyEADtype) else x for x in dtypes]
+        if not all(isinstance(x, np.dtype) for x in dtypes):
+            return None
+
+        common_dtype = find_common_type(dtypes)
+        return NumpyEADtype(common_dtype)
+
 
 class BaseMaskedDtype(ExtensionDtype):
     """
