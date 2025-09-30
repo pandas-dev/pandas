@@ -1081,10 +1081,9 @@ cdef class TextReader:
                         np.dtype("object"), i, start, end, 0,
                         0, na_hashset, na_fset)
                 except OverflowError:
-                    col_res, na_count = self._convert_with_dtype(
-                        np.dtype("object"), i, start, end, na_filter,
-                        0, na_hashset, na_fset)
-
+                    # Try other dtypes that can accommodate large numbers.
+                    # (e.g. float and string)
+                    pass
                 if col_res is not None:
                     break
 
