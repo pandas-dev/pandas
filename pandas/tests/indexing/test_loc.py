@@ -2149,7 +2149,7 @@ class TestLocSetitemWithExpansion:
             assert exp_index[-1][0] == key
         else:
             assert exp_index[-1] == key
-        exp_data = np.arange(N + 1)
+        exp_data = np.arange(N + 1).astype(np.int64)
         expected = DataFrame(exp_data, index=exp_index)
 
         # Add new row, but no new columns
