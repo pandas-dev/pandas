@@ -3,10 +3,12 @@ from datetime import (
     date,
     datetime,
 )
+from decimal import Decimal
 
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import IndexingError
 
@@ -588,7 +590,14 @@ class TestSetitemWithExpansion:
         ser = Series(["a", "b"])
         ser[3] = nulls_fixture
 
-        expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3], dtype="str")
+        dtype = (
+            "str"
+            if using_infer_string
+            and not (isinstance(nulls_fixture, Decimal) and not HAS_PYARROW)
+            else object
+        )
+
+        expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3], dtype=dtype)
         tm.assert_series_equal(ser, expected)
         if using_infer_string:
             ser[3] is np.nan
