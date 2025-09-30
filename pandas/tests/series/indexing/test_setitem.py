@@ -599,7 +599,7 @@ class TestSetitemWithExpansion:
 
         expected = Series(["a", "b", nulls_fixture], index=[0, 1, 3], dtype=dtype)
         tm.assert_series_equal(ser, expected)
-        if using_infer_string:
+        if dtype == "str":
             ser[3] is np.nan
         else:
             assert ser[3] is nulls_fixture
