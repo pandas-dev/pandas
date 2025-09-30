@@ -2851,7 +2851,10 @@ def infer_and_maybe_downcast(orig: ExtensionArray, new_arr) -> ArrayLike:
 
     dtype = orig.dtype
     if isinstance(dtype, NumpyEADtype):
-        dtype = dtype.numpy_dtype
+        # error: Incompatible types in assignment (expression has
+        # type "dtype[Any]", variable has type "ExtensionDtype")
+        # [assignment]
+        dtype = dtype.numpy_dtype  # type: ignore[assignment]
 
     if is_np_dtype(new_arr.dtype, "f") and is_np_dtype(dtype, "iu"):
         new_arr = maybe_downcast_to_dtype(new_arr, dtype)
