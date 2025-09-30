@@ -144,7 +144,7 @@ class ObjectStringArrayMixin:
         na=lib.no_default,
         regex: bool = True,
     ):
-        validate_na_arg(na, name="na", allow_no_default=True, allow_bool=True)
+        validate_na_arg(na, name="na")
         if regex:
             if not case:
                 flags |= re.IGNORECASE
@@ -161,12 +161,12 @@ class ObjectStringArrayMixin:
         return self._str_map(f, na, dtype=np.dtype("bool"))
 
     def _str_startswith(self, pat, na=lib.no_default):
-        validate_na_arg(na, name="na", allow_no_default=True, allow_bool=True)
+        validate_na_arg(na, name="na")
         f = lambda x: x.startswith(pat)
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_endswith(self, pat, na=lib.no_default):
-        validate_na_arg(na, name="na", allow_no_default=True, allow_bool=True)
+        validate_na_arg(na, name="na")
         f = lambda x: x.endswith(pat)
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 

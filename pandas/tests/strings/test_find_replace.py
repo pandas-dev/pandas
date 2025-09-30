@@ -176,7 +176,7 @@ def test_contains_na_kwarg_for_nullable_string_dtype(
     values = Series(["a", "b", "c", "a", np.nan], dtype=nullable_string_dtype)
 
     if na in [0, 3] and na is not False:
-        msg = f"na must be a valid NA value; got {na}"
+        msg = f"na must be an NA value, True, or False; got {na}"
         with pytest.raises(ValueError, match=msg):
             values.str.contains("a", na=na, regex=regex)
     else:
@@ -252,7 +252,7 @@ def test_contains_nan(any_string_dtype):
     expected = Series([True, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
-    msg = "na must be a valid NA value; got foo"
+    msg = "na must be an NA value, True, or False; got foo"
     with pytest.raises(ValueError, match=msg):
         s.str.contains("foo", na="foo")
 
@@ -339,7 +339,7 @@ def test_startswith_endswith_validate_na(any_string_dtype):
         ["om", np.nan, "foo_nom", "nom", "bar_foo", np.nan, "foo"],
         dtype=any_string_dtype,
     )
-    msg = "na must be a valid NA value; got baz"
+    msg = "na must be an NA value, True, or False; got baz"
     with pytest.raises(ValueError, match=msg):
         ser.str.startswith("kapow", na="baz")
     with pytest.raises(ValueError, match=msg):

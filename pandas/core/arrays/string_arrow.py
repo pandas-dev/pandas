@@ -241,7 +241,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return super().insert(loc, item)
 
     def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
-        validate_na_arg(na, name="na", allow_no_default=True, allow_bool=True)
+        validate_na_arg(na, name="na")
         if self.dtype.na_value is np.nan:
             if na is lib.no_default or isna(na):
                 # NaN propagates as False
