@@ -1606,7 +1606,8 @@ class NumpyEADtype(ExtensionDtype):
             return None
 
         common_dtype = find_common_type(dtypes)
-        return NumpyEADtype(common_dtype)
+        # error: Argument 1 to "NumpyEADtype" has incompatible type
+        return NumpyEADtype(common_dtype)  # type: ignore[arg-type]
 
 
 class BaseMaskedDtype(ExtensionDtype):
