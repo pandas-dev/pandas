@@ -2223,8 +2223,8 @@ class TestLocSetitemWithExpansion:
 
         expected = DataFrame(
             {
-                "Outstanding": [70, 66, 136],
-                "Not Outstanding": [150, 81, 231],
+                "Outstanding": np.array([70, 66, 136]),
+                "Not Outstanding": np.array([150, 81, 231]),
                 "Total": [220, 147, np.nan],
             },
             index=["Bank", "Credit Union", "Total"],
