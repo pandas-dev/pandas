@@ -288,6 +288,7 @@ class TestTimestampRound:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp.max.round("s")
 
+    @pytest.mark.slow
     @given(val=st.integers(iNaT + 1, lib.i8max))
     @pytest.mark.parametrize(
         "method", [Timestamp.round, Timestamp.floor, Timestamp.ceil]

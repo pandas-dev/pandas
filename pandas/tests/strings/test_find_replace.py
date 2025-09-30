@@ -958,6 +958,30 @@ def test_match_compiled_regex(any_string_dtype):
         values.str.match(re.compile("ab"), flags=re.IGNORECASE)
 
 
+@pytest.mark.parametrize(
+    "pat, case, exp",
+    [
+        ["ab", False, [True, False]],
+        ["Ab", True, [False, False]],
+        ["bc", True, [False, False]],
+        ["a[a-z]{1}", False, [True, False]],
+        ["A[a-z]{1}", True, [False, False]],
+        # https://github.com/pandas-dev/pandas/issues/61072
+        ["(bc)|(ab)", True, [True, False]],
+        ["((bc)|(ab))", True, [True, False]],
+    ],
+)
+def test_str_match_extra_cases(any_string_dtype, pat, case, exp):
+    ser = Series(["abc", "Xab"], dtype=any_string_dtype)
+    result = ser.str.match(pat, case=case)
+
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    expected = Series(exp, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.fullmatch
 # --------------------------------------------------------------------------------------
@@ -1058,6 +1082,43 @@ def test_fullmatch_compiled_regex(any_string_dtype):
         ValueError, match="cannot process flags argument with a compiled pattern"
     ):
         values.str.fullmatch(re.compile("ab"), flags=re.IGNORECASE)
+
+
+@pytest.mark.parametrize(
+    "pat, case, na, exp",
+    # Note: keep cases in sync with
+    # pandas/tests/extension/test_arrow.py::test_str_fullmatch
+    [
+        ["abc", False, None, [True, False, False, None]],
+        ["Abc", True, None, [False, False, False, None]],
+        ["bc", True, None, [False, False, False, None]],
+        ["ab", False, None, [False, False, False, None]],
+        ["a[a-z]{2}", False, None, [True, False, False, None]],
+        ["A[a-z]{1}", True, None, [False, False, False, None]],
+        # GH Issue: #56652
+        ["abc$", False, None, [True, False, False, None]],
+        ["abc\\$", False, None, [False, True, False, None]],
+        ["Abc$", True, None, [False, False, False, None]],
+        ["Abc\\$", True, None, [False, False, False, None]],
+        # https://github.com/pandas-dev/pandas/issues/61072
+        ["(abc)|(abx)", True, None, [True, False, False, None]],
+        ["((abc)|(abx))", True, None, [True, False, False, None]],
+    ],
+)
+def test_str_fullmatch_extra_cases(any_string_dtype, pat, case, na, exp):
+    ser = Series(["abc", "abc$", "$abc", None], dtype=any_string_dtype)
+    result = ser.str.fullmatch(pat, case=case, na=na)
+
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        exp[-1] = False
+        expected_dtype = bool
+    else:
+        expected_dtype = (
+            "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+        )
+    expected = Series(exp, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
 
 
 # --------------------------------------------------------------------------------------
