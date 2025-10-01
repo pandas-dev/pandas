@@ -4,6 +4,7 @@ from datetime import (
     date,
     datetime,
 )
+from decimal import Decimal
 import functools
 import operator
 from pathlib import Path
@@ -481,6 +482,31 @@ class ArrowExtensionArray(
             except pa.lib.ArrowInvalid:
                 # e.g. test_combine_add if we can't cast
                 pass
+        elif pa.types.is_null(arr.type):
+            # ``pa.array`` will produce null-dtype arrays when every value is a
+            # Decimal NaN. Try to preserve decimal storage by rebuilding the array
+            # with an explicit decimal type derived from the input values.
+            decimals = [val for val in values if isinstance(val, Decimal)]
+            if decimals and all(
+                isinstance(val, Decimal) or isna(val) for val in values
+            ):
+                decimal_type: pa.DataType | None = None
+                for dec in decimals:
+                    if getattr(dec, "is_nan", None) and dec.is_nan():
+                        continue
+                    try:
+                        decimal_type = pa.scalar(dec).type
+                        break
+                    except pa.ArrowInvalid:
+                        continue
+                if decimal_type is None:
+                    # All decimals were NaN -> fall back to a wide decimal so we
+                    # can retain the decimal dtype even though values stay null.
+                    decimal_type = pa.decimal128(38, 18)
+                try:
+                    arr = pa.array(values, type=decimal_type, from_pandas=True)
+                except (pa.ArrowInvalid, pa.ArrowTypeError):
+                    pass
 
         if isinstance(self.dtype, StringDtype):
             if pa.types.is_string(arr.type) or pa.types.is_large_string(arr.type):
