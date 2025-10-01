@@ -5276,6 +5276,18 @@ def _get_offset(name: str) -> BaseOffset:
     return _offset_map[name]
 
 
+deprec_to_valid_alias = {
+    "H": "h",
+    "BH": "bh",
+    "CBH": "cbh",
+    "T": "min",
+    "S": "s",
+    "L": "ms",
+    "U": "us",
+    "N": "ns",
+}
+
+
 cpdef to_offset(freq, bint is_period=False):
     """
     Return DateOffset object from string or datetime.timedelta object.
@@ -5389,6 +5401,8 @@ cpdef to_offset(freq, bint is_period=False):
                         # If n==0, then stride_sign is already incorporated
                         #  into the offset
                         offset *= stride_sign
+                elif name in deprec_to_valid_alias:
+                    raise ValueError(f"Did you mean '{deprec_to_valid_alias[name]}'?")
                 else:
                     stride = int(stride)
                     offset = _get_offset(name)
