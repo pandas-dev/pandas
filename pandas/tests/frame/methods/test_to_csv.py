@@ -261,15 +261,13 @@ class TestDataFrameToCSV:
                 kwargs["index_col"] = list(range(rnlvl))
             kwargs["header"] = list(range(cnlvl))
 
-            path = str(temp_file)
-            df.to_csv(path, encoding="utf8", chunksize=chunksize)
-            recons = self.read_csv(path, **kwargs)
+            df.to_csv(temp_file, encoding="utf8", chunksize=chunksize)
+            recons = self.read_csv(temp_file, **kwargs)
         else:
             kwargs["header"] = 0
 
-            path = str(temp_file)
-            df.to_csv(path, encoding="utf8", chunksize=chunksize)
-            recons = self.read_csv(path, **kwargs)
+            df.to_csv(temp_file, encoding="utf8", chunksize=chunksize)
+            recons = self.read_csv(temp_file, **kwargs)
 
         def _to_uni(x):
             if not isinstance(x, str):
@@ -624,8 +622,8 @@ class TestDataFrameToCSV:
                 [[f"i-{i}" for i in range(5)] for _ in range(2)], names=list("ab")
             ),
         )
-        df.to_csv(path)
-        result = read_csv(path, header=[0, 1, 2, 3], index_col=[0, 1])
+        df.to_csv(temp_file)
+        result = read_csv(temp_file, header=[0, 1, 2, 3], index_col=[0, 1])
         tm.assert_frame_equal(df, result)
 
         # column is mi
@@ -635,8 +633,8 @@ class TestDataFrameToCSV:
                 [[f"i-{i}" for i in range(3)] for _ in range(4)], names=list("abcd")
             ),
         )
-        df.to_csv(path)
-        result = read_csv(path, header=[0, 1, 2, 3], index_col=0)
+        df.to_csv(temp_file)
+        result = read_csv(temp_file, header=[0, 1, 2, 3], index_col=0)
         tm.assert_frame_equal(df, result)
 
         # dup column names?
@@ -649,52 +647,52 @@ class TestDataFrameToCSV:
                 [[f"i-{i}" for i in range(5)] for _ in range(3)], names=list("abc")
             ),
         )
-        df.to_csv(path)
-        result = read_csv(path, header=[0, 1, 2, 3], index_col=[0, 1, 2])
+        df.to_csv(temp_file)
+        result = read_csv(temp_file, header=[0, 1, 2, 3], index_col=[0, 1, 2])
         tm.assert_frame_equal(df, result)
 
         # writing with no index
         df = _make_frame()
-        df.to_csv(path, index=False)
-        result = read_csv(path, header=[0, 1])
+        df.to_csv(temp_file, index=False)
+        result = read_csv(temp_file, header=[0, 1])
         tm.assert_frame_equal(df, result)
 
         # we lose the names here
         df = _make_frame(True)
-        df.to_csv(path, index=False)
-        result = read_csv(path, header=[0, 1])
+        df.to_csv(temp_file, index=False)
+        result = read_csv(temp_file, header=[0, 1])
         assert com.all_none(*result.columns.names)
         result.columns.names = df.columns.names
         tm.assert_frame_equal(df, result)
 
         # whatsnew example
         df = _make_frame()
-        df.to_csv(path)
-        result = read_csv(path, header=[0, 1], index_col=[0])
+        df.to_csv(temp_file)
+        result = read_csv(temp_file, header=[0, 1], index_col=[0])
         tm.assert_frame_equal(df, result)
 
         df = _make_frame(True)
-        df.to_csv(path)
-        result = read_csv(path, header=[0, 1], index_col=[0])
+        df.to_csv(temp_file)
+        result = read_csv(temp_file, header=[0, 1], index_col=[0])
         tm.assert_frame_equal(df, result)
 
         # invalid options
         df = _make_frame(True)
-        df.to_csv(path)
+        df.to_csv(temp_file)
 
         for i in [6, 7]:
             msg = f"len of {i}, but only 5 lines in file"
             with pytest.raises(ParserError, match=msg):
-                read_csv(path, header=list(range(i)), index_col=0)
+                read_csv(temp_file, header=list(range(i)), index_col=0)
 
         # write with cols
         msg = "cannot specify cols with a MultiIndex"
         with pytest.raises(TypeError, match=msg):
-            df.to_csv(path, columns=["foo", "bar"])
+            df.to_csv(temp_file, columns=["foo", "bar"])
 
         # empty
-        tsframe[:0].to_csv(path)
-        recons = self.read_csv(path)
+        tsframe[:0].to_csv(temp_file)
+        recons = self.read_csv(temp_file)
 
         exp = tsframe[:0]
         exp.index = []
@@ -812,8 +810,8 @@ class TestDataFrameToCSV:
 
         df.columns = [0, 1, 2] * 5
 
-        df.to_csv(path)
-        result = read_csv(path, index_col=0)
+        df.to_csv(temp_file)
+        result = read_csv(temp_file, index_col=0)
 
         # date cols
         for i in ["0.4", "1.4", "2.4"]:
@@ -1201,9 +1199,8 @@ class TestDataFrameToCSV:
         idx._data._freq = None  # otherwise there is trouble on unpickle
         df = DataFrame({"values": 1, "idx": idx}, index=idx)
 
-        path = str(temp_file)
-        df.to_csv(path, index=True)
-        result = read_csv(path, index_col=0)
+        df.to_csv(temp_file, index=True)
+        result = read_csv(temp_file, index_col=0)
         result.index = (
             to_datetime(result.index, utc=True).tz_convert("Europe/Paris").as_unit("ns")
         )
