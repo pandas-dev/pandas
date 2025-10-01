@@ -224,7 +224,7 @@ def check_round_trip(
             )
 
     if path is None:
-        path = str(temp_file)
+        path = temp_file
         compare(repeat)
     else:
         compare(repeat)
@@ -342,27 +342,25 @@ def test_cross_engine_pa_fp(df_cross_compat, pa, fp, temp_file):
     # cross-compat with differing reading/writing engines
 
     df = df_cross_compat
-    path = str(temp_file)
-    df.to_parquet(path, engine=pa, compression=None)
+    df.to_parquet(temp_file, engine=pa, compression=None)
 
-    result = read_parquet(path, engine=fp)
+    result = read_parquet(temp_file, engine=fp)
     tm.assert_frame_equal(result, df)
 
-    result = read_parquet(path, engine=fp, columns=["a", "d"])
+    result = read_parquet(temp_file, engine=fp, columns=["a", "d"])
     tm.assert_frame_equal(result, df[["a", "d"]])
 
 
 def test_cross_engine_fp_pa(df_cross_compat, pa, fp, temp_file):
     # cross-compat with differing reading/writing engines
     df = df_cross_compat
-    path = str(temp_file)
 
-    df.to_parquet(path, engine=fp, compression=None)
+    df.to_parquet(temp_file, engine=fp, compression=None)
 
-    result = read_parquet(path, engine=pa)
+    result = read_parquet(temp_file, engine=pa)
     tm.assert_frame_equal(result, df)
 
-    result = read_parquet(path, engine=pa, columns=["a", "d"])
+    result = read_parquet(temp_file, engine=pa, columns=["a", "d"])
     tm.assert_frame_equal(result, df[["a", "d"]])
 
 
@@ -388,8 +386,7 @@ class TestBasic(Base):
             np.array([1, 2, 3]),
         ]:
             msg = "to_parquet only supports IO with DataFrames"
-            path = str(temp_file)
-            self.check_error_on_write(obj, engine, ValueError, msg, path)
+            self.check_error_on_write(obj, engine, ValueError, msg, temp_file)
 
     def test_columns_dtypes(self, engine, temp_file):
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
@@ -535,10 +532,9 @@ class TestBasic(Base):
             np.random.default_rng(2).standard_normal((4, 3)), columns=mi_columns
         )
 
-        path = str(temp_file)
         if engine == "fastparquet":
             self.check_error_on_write(
-                df, engine, TypeError, "Column name must be a string", path
+                df, engine, TypeError, "Column name must be a string", temp_file
             )
         elif engine == "pyarrow":
             check_round_trip(df, temp_file, engine)
@@ -555,9 +551,8 @@ class TestBasic(Base):
             np.random.default_rng(2).standard_normal((8, 8)), columns=arrays
         )
         df.columns.names = ["Level1", "Level2"]
-        path = str(temp_file)
         if engine == "fastparquet":
-            self.check_error_on_write(df, engine, ValueError, "Column name", path)
+            self.check_error_on_write(df, engine, ValueError, "Column name", temp_file)
         elif engine == "pyarrow":
             check_round_trip(df, temp_file, engine)
 
@@ -601,10 +596,9 @@ class TestBasic(Base):
             np.random.default_rng(2).standard_normal((8, 4)), columns=arrays
         )
         df.columns.name = "NonStringCol"
-        path = str(temp_file)
         if engine == "fastparquet":
             self.check_error_on_write(
-                df, engine, TypeError, "Column name must be a string", path
+                df, engine, TypeError, "Column name must be a string", temp_file
             )
         else:
             check_round_trip(df, temp_file, engine)
@@ -633,11 +627,10 @@ class TestBasic(Base):
                 "g": pyarrow.array([1.0, 2.0, 3.0, None], "float64"),
             }
         )
-        path = str(temp_file)
         # write manually with pyarrow to write integers
-        pq.write_table(table, path)
-        result1 = read_parquet(path, engine=engine)
-        result2 = read_parquet(path, engine=engine, dtype_backend="numpy_nullable")
+        pq.write_table(table, temp_file)
+        result1 = read_parquet(temp_file, engine=engine)
+        result2 = read_parquet(temp_file, engine=engine, dtype_backend="numpy_nullable")
 
         assert result1["a"].dtype == np.dtype("float64")
         expected = pd.DataFrame(
@@ -756,9 +749,8 @@ class TestParquetPyArrow(Base):
     def test_duplicate_columns(self, pa, temp_file):
         # not currently able to handle duplicate columns
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
-        path = str(temp_file)
         self.check_error_on_write(
-            df, pa, ValueError, "Duplicate column names found", path
+            df, pa, ValueError, "Duplicate column names found", temp_file
         )
 
     def test_timedelta(self, pa, temp_file):
@@ -770,17 +762,17 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({"a": ["a", 1, 2.0]})
         # pyarrow 0.11 raises ArrowTypeError
         # older pyarrows raise ArrowInvalid
-        path = str(temp_file)
-        self.check_external_error_on_write(df, pa, pyarrow.ArrowException, path)
+        self.check_external_error_on_write(df, pa, pyarrow.ArrowException, temp_file)
 
     def test_unsupported_float16(self, pa, temp_file):
         # #44847, #44914
         # Not able to write float 16 column using pyarrow.
         data = np.arange(2, 10, dtype=np.float16)
         df = pd.DataFrame(data=data, columns=["fp16"])
-        path = str(temp_file)
         if pa_version_under15p0:
-            self.check_external_error_on_write(df, pa, pyarrow.ArrowException, path)
+            self.check_external_error_on_write(
+                df, pa, pyarrow.ArrowException, temp_file
+            )
         else:
             check_round_trip(df, temp_file, pa)
 
@@ -800,8 +792,7 @@ class TestParquetPyArrow(Base):
         data = np.arange(2, 10, dtype=np.float16)
         df = pd.DataFrame(data=data, columns=["fp16"])
 
-        path_str = str(temp_file)
-        path = path_type(path_str)
+        path = path_type(temp_file)
         with tm.external_error_raised(pyarrow.ArrowException):
             df.to_parquet(path=path, engine=pa)
         assert not os.path.isfile(path)
@@ -1046,9 +1037,8 @@ class TestParquetPyArrow(Base):
         # https://github.com/pandas-dev/pandas/issues/26551
         pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": list(range(3))})
-        path = str(temp_file)
-        df.to_parquet(path, engine=pa)
-        result = read_parquet(path, pa, filters=[("a", "==", 0)])
+        df.to_parquet(temp_file, engine=pa)
+        result = read_parquet(temp_file, pa, filters=[("a", "==", 0)])
         assert len(result) == 1
 
     @pytest.mark.filterwarnings("ignore:make_block is deprecated:DeprecationWarning")
@@ -1251,29 +1241,27 @@ class TestParquetFastParquet(Base):
 
         err = TypeError
         msg = "Column name must be a string"
-        path = str(temp_file)
 
         # numeric
         df.columns = [0, 1]
-        self.check_error_on_write(df, fp, err, msg, path)
+        self.check_error_on_write(df, fp, err, msg, temp_file)
 
         # bytes
         df.columns = [b"foo", b"bar"]
-        self.check_error_on_write(df, fp, err, msg, path)
+        self.check_error_on_write(df, fp, err, msg, temp_file)
 
         # python object
         df.columns = [
             datetime.datetime(2011, 1, 1, 0, 0),
             datetime.datetime(2011, 1, 1, 1, 1),
         ]
-        self.check_error_on_write(df, fp, err, msg, path)
+        self.check_error_on_write(df, fp, err, msg, temp_file)
 
     def test_duplicate_columns(self, fp, temp_file):
         # not currently able to handle duplicate columns
         df = pd.DataFrame(np.arange(12).reshape(4, 3), columns=list("aaa")).copy()
         msg = "Cannot create parquet dataset with duplicate column names"
-        path = str(temp_file)
-        self.check_error_on_write(df, fp, ValueError, msg, path)
+        self.check_error_on_write(df, fp, ValueError, msg, temp_file)
 
     def test_bool_with_none(self, fp, request, temp_file):
         df = pd.DataFrame({"a": [True, None, False]})
@@ -1286,13 +1274,12 @@ class TestParquetFastParquet(Base):
         # period
         df = pd.DataFrame({"a": pd.period_range("2013", freq="M", periods=3)})
         # error from fastparquet -> don't check exact error message
-        path = str(temp_file)
-        self.check_error_on_write(df, fp, ValueError, None, path)
+        self.check_error_on_write(df, fp, ValueError, None, temp_file)
 
         # mixed
         df = pd.DataFrame({"a": ["a", 1, 2.0]})
         msg = "Can't infer object conversion type"
-        self.check_error_on_write(df, fp, ValueError, msg, path)
+        self.check_error_on_write(df, fp, ValueError, msg, temp_file)
 
     def test_categorical(self, fp, temp_file):
         df = pd.DataFrame({"a": pd.Categorical(list("abc"))})
@@ -1301,9 +1288,8 @@ class TestParquetFastParquet(Base):
     def test_filter_row_groups(self, fp, temp_file):
         d = {"a": list(range(3))}
         df = pd.DataFrame(d)
-        path = str(temp_file)
-        df.to_parquet(path, engine=fp, compression=None, row_group_offsets=1)
-        result = read_parquet(path, fp, filters=[("a", "==", 0)])
+        df.to_parquet(temp_file, engine=fp, compression=None, row_group_offsets=1)
+        result = read_parquet(temp_file, fp, filters=[("a", "==", 0)])
         assert len(result) == 1
 
     @pytest.mark.single_cpu
@@ -1403,73 +1389,68 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, temp_file, fp, expected=expected)
 
     def test_close_file_handle_on_read_error(self, temp_file):
-        path = str(temp_file)
-        pathlib.Path(path).write_bytes(b"breakit")
+        pathlib.Path(temp_file).write_bytes(b"breakit")
         with tm.external_error_raised(Exception):  # Not important which exception
-            read_parquet(path, engine="fastparquet")
+            read_parquet(temp_file, engine="fastparquet")
         # The next line raises an error on Windows if the file is still open
-        pathlib.Path(path).unlink(missing_ok=False)
+        pathlib.Path(temp_file).unlink(missing_ok=False)
 
     def test_bytes_file_name(self, engine, temp_file):
         # GH#48944
         df = pd.DataFrame(data={"A": [0, 1], "B": [1, 0]})
-        path = str(temp_file)
-        with open(path.encode(), "wb") as f:
+        with open(temp_file, "wb") as f:
             df.to_parquet(f)
 
-        result = read_parquet(path, engine=engine)
+        result = read_parquet(temp_file, engine=engine)
         tm.assert_frame_equal(result, df)
 
     def test_filesystem_notimplemented(self, temp_file):
         pytest.importorskip("fastparquet")
         df = pd.DataFrame(data={"A": [0, 1], "B": [1, 0]})
-        path = str(temp_file)
         with pytest.raises(NotImplementedError, match="filesystem is not implemented"):
-            df.to_parquet(path, engine="fastparquet", filesystem="foo")
+            df.to_parquet(temp_file, engine="fastparquet", filesystem="foo")
 
-        pathlib.Path(path).write_bytes(b"foo")
+        pathlib.Path(temp_file).write_bytes(b"foo")
         with pytest.raises(NotImplementedError, match="filesystem is not implemented"):
-            read_parquet(path, engine="fastparquet", filesystem="foo")
+            read_parquet(temp_file, engine="fastparquet", filesystem="foo")
 
     def test_invalid_filesystem(self, temp_file):
         pytest.importorskip("pyarrow")
         df = pd.DataFrame(data={"A": [0, 1], "B": [1, 0]})
-        path = str(temp_file)
 
         with pytest.raises(
             ValueError, match="filesystem must be a pyarrow or fsspec FileSystem"
         ):
-            df.to_parquet(path, engine="pyarrow", filesystem="foo")
+            df.to_parquet(temp_file, engine="pyarrow", filesystem="foo")
 
-        pathlib.Path(path).write_bytes(b"foo")
+        pathlib.Path(temp_file).write_bytes(b"foo")
         with pytest.raises(
             ValueError, match="filesystem must be a pyarrow or fsspec FileSystem"
         ):
-            read_parquet(path, engine="pyarrow", filesystem="foo")
+            read_parquet(temp_file, engine="pyarrow", filesystem="foo")
 
     def test_unsupported_pa_filesystem_storage_options(self, temp_file):
         pa_fs = pytest.importorskip("pyarrow.fs")
         df = pd.DataFrame(data={"A": [0, 1], "B": [1, 0]})
-        path = str(temp_file)
 
         with pytest.raises(
             NotImplementedError,
             match="storage_options not supported with a pyarrow FileSystem.",
         ):
             df.to_parquet(
-                path,
+                temp_file,
                 engine="pyarrow",
                 filesystem=pa_fs.LocalFileSystem(),
                 storage_options={"foo": "bar"},
             )
 
-        pathlib.Path(path).write_bytes(b"foo")
+        pathlib.Path(temp_file).write_bytes(b"foo")
         with pytest.raises(
             NotImplementedError,
             match="storage_options not supported with a pyarrow FileSystem.",
         ):
             read_parquet(
-                path,
+                temp_file,
                 engine="pyarrow",
                 filesystem=pa_fs.LocalFileSystem(),
                 storage_options={"foo": "bar"},
@@ -1481,7 +1462,6 @@ class TestParquetFastParquet(Base):
             "'pyarrow' are allowed."
         )
         df = pd.DataFrame({"int": list(range(1, 4))})
-        path = str(temp_file)
-        df.to_parquet(path)
+        df.to_parquet(temp_file)
         with pytest.raises(ValueError, match=msg):
-            read_parquet(path, dtype_backend="numpy")
+            read_parquet(temp_file, dtype_backend="numpy")
