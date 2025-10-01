@@ -1156,7 +1156,7 @@ def test_rolling_sem(frame_or_series):
 def test_rolling_var_correctness(func, values, window, ddof, expected_values):
     # GH: 37051, 42064, 54518, 52407, 47721
     ts = Series(values)
-    result = getattr(ts.rolling(window=window, center=True), func)(ddof=ddof)
+    result = getattr(ts.rolling(window=window), func)(ddof=ddof)
     if result.last_valid_index():
         result = result[
             result.first_valid_index() : result.last_valid_index() + 1
