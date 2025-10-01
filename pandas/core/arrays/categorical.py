@@ -3149,7 +3149,5 @@ def factorize_from_iterables(iterables) -> tuple[list[np.ndarray], list[Index]]:
         # For consistency, it should return two empty lists.
         return [], []
 
-  codes, categories = zip(
-    *(factorize_from_iterable(it) for it in iterables), strict=True
-)
-return list(codes), list(categories)
+    codes, categories = zip(*(factorize_from_iterable(it) for it in iterables))
+    return list(codes), list(categories)
