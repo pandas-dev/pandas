@@ -567,9 +567,8 @@ z
         compression = {"some_option": True}
         msg = "must have key 'method'"
 
-        path = str(temp_file)
         with pytest.raises(ValueError, match=msg):
-            df.to_csv(path, compression=compression)
+            df.to_csv(temp_file, compression=compression)
 
     @pytest.mark.parametrize("compression", ["zip", "infer"])
     @pytest.mark.parametrize("archive_name", ["test_to_csv.csv", "test_to_csv.zip"])
@@ -692,8 +691,7 @@ z
         assert buffer.getvalue().startswith(content)
 
         # example from GH 13068
-        path = str(temp_file)
-        with open(path, "w+b") as handle:
+        with open(temp_file, "w+b") as handle:
             DataFrame().to_csv(handle, mode=mode, encoding="utf-8-sig")
 
             handle.seek(0)
