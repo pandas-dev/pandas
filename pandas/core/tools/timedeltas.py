@@ -140,6 +140,10 @@ def to_timedelta(
     errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaT.
+    unit : str or None, default None
+        Use input_unit instead.
+
+        .. deprecated:: 3.0.0
 
     Returns
     -------

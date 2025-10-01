@@ -796,6 +796,10 @@ def to_datetime(
         is only used when there are at least 50 values. The presence of
         out-of-bounds values will render the cache unusable and may slow down
         parsing.
+    unit : str or None, default None
+        Use input_unit instead.
+
+        .. deprecated:: 3.0.0
 
     Returns
     -------

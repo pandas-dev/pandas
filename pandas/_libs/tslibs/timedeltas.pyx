@@ -1309,7 +1309,7 @@ cdef class _Timedelta(timedelta):
         Examples
         --------
         >>> td = pd.Timedelta(42, input_unit='us')
-        >>> ts.unit
+        >>> td.unit
         'ns'
         """
         return npy_unit_to_abbrev(self._creso)
@@ -1966,6 +1966,10 @@ class Timedelta(_Timedelta):
 
             Allowing the values `w`, `d`, `MIN`, `MS`, `US` and `NS` to denote units
             are deprecated in favour of the values `W`, `D`, `min`, `ms`, `us` and `ns`.
+    unit : str or None, default None
+        Use input_unit instead.
+
+        .. deprecated:: 3.0.0
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,
