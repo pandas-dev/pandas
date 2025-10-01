@@ -937,6 +937,36 @@ def value_counts_internal(
     if normalize:
         result = result / counts.sum()
 
+    # freq patching for DatetimeIndex, TimedeltaIndex
+    try:
+        from pandas import (
+            DatetimeIndex,
+            TimedeltaIndex,
+        )
+
+        if (
+            bins is None
+            and not sort
+            and isinstance(values, (DatetimeIndex, TimedeltaIndex))
+            and values.freq is not None
+            and isinstance(result.index, (DatetimeIndex, TimedeltaIndex))
+            and len(result.index) == len(values)
+            and result.index.equals(values)
+        ):
+            base_freq = values.freq
+            # Rebuild the index with the original freq; name preserved.
+            if isinstance(result.index, DatetimeIndex):
+                result.index = DatetimeIndex(
+                    result.index._data, freq=base_freq, name=result.index.name
+                )
+            else:  # TimedeltaIndex
+                result.index = TimedeltaIndex(
+                    result.index._data, freq=base_freq, name=result.index.name
+                )
+    except Exception:
+        # If freq patching fails, does not affect value_counts
+        pass
+
     return result
 
 
