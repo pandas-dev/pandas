@@ -30,25 +30,22 @@ def df_short():
 
 class TestToLatex:
     def test_to_latex_to_file(self, float_frame, temp_file):
-        path = str(temp_file)
-        float_frame.to_latex(path)
-        with open(path, encoding="utf-8") as f:
+        float_frame.to_latex(temp_file)
+        with open(temp_file, encoding="utf-8") as f:
             assert float_frame.to_latex() == f.read()
 
     def test_to_latex_to_file_utf8_with_encoding(self, temp_file):
         # test with utf-8 and encoding option (GH 7061)
         df = DataFrame([["au\xdfgangen"]])
-        path = str(temp_file)
-        df.to_latex(path, encoding="utf-8")
-        with open(path, encoding="utf-8") as f:
+        df.to_latex(temp_file, encoding="utf-8")
+        with open(temp_file, encoding="utf-8") as f:
             assert df.to_latex() == f.read()
 
     def test_to_latex_to_file_utf8_without_encoding(self, temp_file):
         # test with utf-8 without encoding option
         df = DataFrame([["au\xdfgangen"]])
-        path = str(temp_file)
-        df.to_latex(path)
-        with open(path, encoding="utf-8") as f:
+        df.to_latex(temp_file)
+        with open(temp_file, encoding="utf-8") as f:
             assert df.to_latex() == f.read()
 
     def test_to_latex_tabular_with_index(self):

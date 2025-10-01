@@ -4,7 +4,6 @@ import datetime
 from decimal import Decimal
 from io import BytesIO
 import os
-import pathlib
 
 import numpy as np
 import pytest
@@ -249,9 +248,8 @@ def test_orc_roundtrip_file(dirpath, temp_file):
     }
     expected = pd.DataFrame.from_dict(data)
 
-    path = str(temp_file)
-    expected.to_orc(path)
-    got = read_orc(path)
+    expected.to_orc(temp_file)
+    got = read_orc(temp_file)
 
     tm.assert_equal(expected, got)
 
@@ -385,9 +383,8 @@ def test_orc_dtype_backend_numpy_nullable():
 
 def test_orc_uri_path(temp_file):
     expected = pd.DataFrame({"int": list(range(1, 4))})
-    path = str(temp_file)
-    expected.to_orc(path)
-    uri = pathlib.Path(path).as_uri()
+    expected.to_orc(temp_file)
+    uri = temp_file.as_uri()
     result = read_orc(uri)
     tm.assert_frame_equal(result, expected)
 
@@ -416,10 +413,9 @@ def test_invalid_dtype_backend(temp_file):
         "'pyarrow' are allowed."
     )
     df = pd.DataFrame({"int": list(range(1, 4))})
-    path = str(temp_file)
-    df.to_orc(path)
+    df.to_orc(temp_file)
     with pytest.raises(ValueError, match=msg):
-        read_orc(path, dtype_backend="numpy")
+        read_orc(temp_file, dtype_backend="numpy")
 
 
 def test_string_inference(tmp_path):

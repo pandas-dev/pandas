@@ -31,16 +31,14 @@ class TestFeather:
         # on writing
 
         with pytest.raises(exc, match=err_msg):
-            path = str(temp_file)
-            to_feather(df, path)
+            to_feather(df, temp_file)
 
     def check_external_error_on_write(self, df, temp_file):
         # check that we are raising the exception
         # on writing
 
         with tm.external_error_raised(Exception):
-            path = str(temp_file)
-            to_feather(df, path)
+            to_feather(df, temp_file)
 
     def check_round_trip(
         self, df, temp_file, expected=None, write_kwargs=None, **read_kwargs
@@ -50,10 +48,9 @@ class TestFeather:
         if expected is None:
             expected = df.copy()
 
-        path = str(temp_file)
-        to_feather(df, path, **write_kwargs)
+        to_feather(df, temp_file, **write_kwargs)
 
-        result = read_feather(path, **read_kwargs)
+        result = read_feather(temp_file, **read_kwargs)
 
         tm.assert_frame_equal(result, expected)
 
@@ -186,10 +183,9 @@ class TestFeather:
             }
         )
 
-        path = str(temp_file)
-        to_feather(df, path)
+        to_feather(df, temp_file)
         with pd.option_context("mode.string_storage", string_storage):
-            result = read_feather(path, dtype_backend=dtype_backend)
+            result = read_feather(temp_file, dtype_backend=dtype_backend)
 
         if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
@@ -239,10 +235,9 @@ class TestFeather:
             "'pyarrow' are allowed."
         )
         df = pd.DataFrame({"int": list(range(1, 4))})
-        path = str(temp_file)
-        df.to_feather(path)
+        df.to_feather(temp_file)
         with pytest.raises(ValueError, match=msg):
-            read_feather(path, dtype_backend="numpy")
+            read_feather(temp_file, dtype_backend="numpy")
 
     def test_string_inference(self, tmp_path, using_infer_string):
         # GH#54431

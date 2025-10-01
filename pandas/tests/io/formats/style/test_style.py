@@ -1599,5 +1599,4 @@ def test_no_empty_apply(mi_styler):
 @pytest.mark.parametrize("format", ["html", "latex", "string"])
 def test_output_buffer(mi_styler, format, temp_file):
     # gh 47053
-    f = str(temp_file)
-    getattr(mi_styler, f"to_{format}")(f)
+    getattr(mi_styler, f"to_{format}")(temp_file)
