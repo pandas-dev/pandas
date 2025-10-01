@@ -146,17 +146,12 @@ class ArrowParserWrapper(ParserBase):
                 column_types = {}
                 for col, col_dtype in self.dtype.items():
                     source_dtype = pandas_dtype(col_dtype)
-
-                    try:
-                        target_dtype = to_pyarrow_type(source_dtype.type)
-                        if target_dtype:
-                            column_types[col] = target_dtype
-
-                    except TypeError:
+                    target_dtype = to_pyarrow_type(source_dtype.type)
+                    if target_dtype:
+                        column_types[col] = target_dtype
                         # TODO: Unsupported dtypes silently ignored - may cause
                         # unexpected behavior when pyarrow applies default inference
                         # instead of user's dtype
-                        pass
 
                 if column_types:
                     self.convert_options["column_types"] = column_types
