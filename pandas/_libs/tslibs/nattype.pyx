@@ -372,6 +372,8 @@ class NaTType(_NaT):
     1         NaT
     """
 
+    __module__ = "pandas"
+
     def __new__(cls):
         cdef _NaT base
 
