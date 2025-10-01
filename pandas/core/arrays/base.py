@@ -2848,7 +2848,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                 return res
 
             if op.__name__ in {"divmod", "rdivmod"}:
-                a, b = zip(*res)
+                a, b = zip(*res,strict=True)
                 return _maybe_convert(a), _maybe_convert(b)
 
             return _maybe_convert(res)
