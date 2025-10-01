@@ -263,11 +263,10 @@ def parser(request):
     return request.param
 
 
-def read_xml_iterparse(data, **kwargs):
-    with tm.ensure_clean() as path:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(data)
-        return read_xml(path, **kwargs)
+def read_xml_iterparse(data, temp_file, **kwargs):
+    with open(temp_file, "w", encoding="utf-8") as f:
+        f.write(data)
+    return read_xml(temp_file, **kwargs)
 
 
 def read_xml_iterparse_comp(comp_path, compression_only, **kwargs):
