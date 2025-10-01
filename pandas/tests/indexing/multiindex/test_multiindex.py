@@ -271,3 +271,12 @@ class TestMultiIndexBasic:
         df1["C"] = s1
         tm.assert_frame_equal(df1, df2)
         tm.assert_frame_equal(df1, df3)
+
+        # GH 62518
+        meta = DataFrame(
+            columns=MultiIndex.from_arrays(
+                [["a", "a", "z", "z"], pd.Categorical([1, 2, 1, 2])],
+            ),
+            dtype=object,
+        )
+        meta["z"] = meta["z"].astype("int64")

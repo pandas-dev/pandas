@@ -4454,8 +4454,12 @@ class DataFrame(NDFrame, OpsMixin):
                 cols_droplevel = maybe_droplevels(cols, key)
                 if (
                     not isinstance(cols_droplevel, MultiIndex)
+                    and cols_droplevel.dtype.type is str
                     and not cols_droplevel.any()
                 ):
+                    # if cols_droplevel contains only empty strings,
+                    # value.reindex(cols_droplevel, axis=1) would be full of NaNs
+                    # see GH#62518 and GH#61841
                     return
                 if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
                     value = value.reindex(cols_droplevel, axis=1)
