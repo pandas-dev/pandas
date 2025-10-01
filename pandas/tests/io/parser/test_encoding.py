@@ -9,7 +9,6 @@ from io import (
 )
 import os
 import tempfile
-import uuid
 
 import numpy as np
 import pytest
@@ -51,7 +50,7 @@ def test_read_csv_unicode(all_parsers):
 @skip_pyarrow
 @pytest.mark.parametrize("sep", [",", "\t"])
 @pytest.mark.parametrize("encoding", ["utf-16", "utf-16le", "utf-16be"])
-def test_utf16_bom_skiprows(all_parsers, sep, encoding):
+def test_utf16_bom_skiprows(all_parsers, sep, encoding, temp_file):
     # see gh-2298
     parser = all_parsers
     data = """skip this
@@ -59,20 +58,18 @@ skip this too
 A,B,C
 1,2,3
 4,5,6""".replace(",", sep)
-    path = f"__{uuid.uuid4()}__.csv"
     kwargs = {"sep": sep, "skiprows": 2}
     utf8 = "utf-8"
 
-    with tm.ensure_clean(path) as path:
-        bytes_data = data.encode(encoding)
+    bytes_data = data.encode(encoding)
 
-        with open(path, "wb") as f:
-            f.write(bytes_data)
+    with open(temp_file, "wb") as f:
+        f.write(bytes_data)
 
-        with TextIOWrapper(BytesIO(data.encode(utf8)), encoding=utf8) as bytes_buffer:
-            result = parser.read_csv(path, encoding=encoding, **kwargs)
-            expected = parser.read_csv(bytes_buffer, encoding=utf8, **kwargs)
-        tm.assert_frame_equal(result, expected)
+    with TextIOWrapper(BytesIO(data.encode(utf8)), encoding=utf8) as bytes_buffer:
+        result = parser.read_csv(temp_file, encoding=encoding, **kwargs)
+        expected = parser.read_csv(bytes_buffer, encoding=utf8, **kwargs)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_utf16_example(all_parsers, csv_dir_path):
@@ -240,7 +237,7 @@ def test_parse_encoded_special_characters(encoding):
 
 
 @pytest.mark.parametrize("encoding", ["utf-8", None, "utf-16", "cp1255", "latin-1"])
-def test_encoding_memory_map(all_parsers, encoding):
+def test_encoding_memory_map(all_parsers, encoding, temp_file):
     # GH40986
     parser = all_parsers
     expected = DataFrame(
@@ -250,20 +247,19 @@ def test_encoding_memory_map(all_parsers, encoding):
             "weapon": ["sai", "bo staff", "nunchunk", "katana"],
         }
     )
-    with tm.ensure_clean() as file:
-        expected.to_csv(file, index=False, encoding=encoding)
+    expected.to_csv(temp_file, index=False, encoding=encoding)
 
-        if parser.engine == "pyarrow":
-            msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
-            with pytest.raises(ValueError, match=msg):
-                parser.read_csv(file, encoding=encoding, memory_map=True)
-            return
+    if parser.engine == "pyarrow":
+        msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(temp_file, encoding=encoding, memory_map=True)
+        return
 
-        df = parser.read_csv(file, encoding=encoding, memory_map=True)
+    df = parser.read_csv(temp_file, encoding=encoding, memory_map=True)
     tm.assert_frame_equal(df, expected)
 
 
-def test_chunk_splits_multibyte_char(all_parsers):
+def test_chunk_splits_multibyte_char(all_parsers, temp_file):
     """
     Chunk splits a multibyte character with memory_map=True
 
@@ -276,20 +272,19 @@ def test_chunk_splits_multibyte_char(all_parsers):
     # Put two-bytes utf-8 encoded character "ą" at the end of chunk
     # utf-8 encoding of "ą" is b'\xc4\x85'
     df.iloc[2047] = "a" * 127 + "ą"
-    with tm.ensure_clean("bug-gh43540.csv") as fname:
-        df.to_csv(fname, index=False, header=False, encoding="utf-8")
+    df.to_csv(temp_file, index=False, header=False, encoding="utf-8")
 
-        if parser.engine == "pyarrow":
-            msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
-            with pytest.raises(ValueError, match=msg):
-                parser.read_csv(fname, header=None, memory_map=True)
-            return
+    if parser.engine == "pyarrow":
+        msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(temp_file, header=None, memory_map=True)
+        return
 
-        dfr = parser.read_csv(fname, header=None, memory_map=True)
+    dfr = parser.read_csv(temp_file, header=None, memory_map=True)
     tm.assert_frame_equal(dfr, df)
 
 
-def test_readcsv_memmap_utf8(all_parsers):
+def test_readcsv_memmap_utf8(all_parsers, temp_file):
     """
     GH 43787
 
@@ -310,16 +305,15 @@ def test_readcsv_memmap_utf8(all_parsers):
         lines.append(line)
     parser = all_parsers
     df = DataFrame(lines)
-    with tm.ensure_clean("utf8test.csv") as fname:
-        df.to_csv(fname, index=False, header=False, encoding="utf-8")
+    df.to_csv(temp_file, index=False, header=False, encoding="utf-8")
 
-        if parser.engine == "pyarrow":
-            msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
-            with pytest.raises(ValueError, match=msg):
-                parser.read_csv(fname, header=None, memory_map=True, encoding="utf-8")
-            return
+    if parser.engine == "pyarrow":
+        msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(temp_file, header=None, memory_map=True, encoding="utf-8")
+        return
 
-        dfr = parser.read_csv(fname, header=None, memory_map=True, encoding="utf-8")
+    dfr = parser.read_csv(temp_file, header=None, memory_map=True, encoding="utf-8")
     tm.assert_frame_equal(df, dfr)
 
 
