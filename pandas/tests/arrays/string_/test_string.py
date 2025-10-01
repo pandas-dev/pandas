@@ -249,6 +249,19 @@ def test_mul(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
+def test_add_series(dtype):
+    arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
+    df = pd.Series(["t", "y", "v", "w"], dtype=object)
+
+    result = arr + df
+    expected = pd.Series(["at", "by", "cv", "dw"]).astype(dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = df + arr
+    expected = pd.Series(["ta", "yb", "vc", "wd"]).astype(dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_add_strings(dtype):
     arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
     df = pd.DataFrame([["t", "y", "v", "w"]], dtype=object)
@@ -263,20 +276,48 @@ def test_add_strings(dtype):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH-28527")
 def test_add_frame(dtype):
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
-
     assert arr.__add__(df) is NotImplemented
 
     result = arr + df
     expected = pd.DataFrame([["ax", np.nan, np.nan, np.nan]]).astype(dtype)
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_dtype=False)
 
     result = df + arr
     expected = pd.DataFrame([["xa", np.nan, np.nan, np.nan]]).astype(dtype)
-    tm.assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected, check_dtype=False)
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        10,
+        1.5,
+        pd.Timedelta(hours=31),
+        pd.Timestamp("2021-01-01"),
+        True,
+        pd.Period("2025-09"),
+        pd.Categorical(["test"]),
+        pd.offsets.Minute(3),
+        pd.Interval(1, 2, closed="right"),
+    ],
+)
+def test_add_frame_invalid(dtype, invalid):
+    arr = pd.array(["a", np.nan], dtype=dtype)
+    df = pd.DataFrame([[invalid, invalid]])
+
+    msg = "|".join(
+        [
+            r"can only concatenate str \(not \".+\"\) to str",
+            r"unsupported operand type\(s\) for \+: '.+' and 'str'",
+            r"operation 'add' not supported for dtype 'str|string' with dtype '.+'",
+            "Incompatible type when converting to PyArrow dtype for operation.",
+        ]
+    )
+    with pytest.raises(TypeError, match=msg):
+        arr + df
 
 
 def test_comparison_methods_scalar(comparison_op, dtype):

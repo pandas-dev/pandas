@@ -197,6 +197,26 @@ def test_error_invalid_values(data, all_arithmetic_operators):
         #  assert_almost_equal stricter, but the expected with pd.NA seems
         #  more-correct than np.nan here.
         tm.assert_series_equal(res, expected)
+    elif (
+        all_arithmetic_operators
+        in [
+            "__add__",
+            "__radd__",
+        ]
+        and pd.options.future.infer_string
+    ):
+        res = ops(str_ser)
+        if all_arithmetic_operators == "__radd__":
+            expected = pd.Series(
+                [np.nan if pd.isna(x) == 1 else "foo" + str(x) for x in data],
+                index=s.index,
+            )
+        else:
+            expected = pd.Series(
+                [np.nan if pd.isna(x) == 1 else str(x) + "foo" for x in data],
+                index=s.index,
+            )
+        tm.assert_series_equal(res, expected)
     else:
         with tm.external_error_raised(TypeError):
             ops(str_ser)
