@@ -14,7 +14,7 @@ from typing import (
 import warnings
 
 import numpy as np
-
+from pandas import compat
 from pandas._libs import (
     algos as libalgos,
     lib,
