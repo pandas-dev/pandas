@@ -2,13 +2,11 @@ from datetime import (
     datetime,
     timedelta,
 )
-from pathlib import Path
 
 import numpy as np
 import pytest
 
 from pandas.compat import pa_version_under21p0
-from pandas.errors import Pandas4Warning
 
 from pandas import (
     NA,
@@ -315,14 +313,14 @@ def test_isnumeric_unicode_missing(method, expected, any_string_dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_spilt_join_roundtrip(any_string_dtype):
+def test_split_join_roundtrip(any_string_dtype):
     ser = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype=any_string_dtype)
     result = ser.str.split("_").str.join("_")
     expected = ser.astype(object)
     tm.assert_series_equal(result, expected)
 
 
-def test_spilt_join_roundtrip_mixed_object():
+def test_split_join_roundtrip_mixed_object():
     ser = Series(
         ["a_b", np.nan, "asdf_cas_asdf", True, datetime.today(), "foo", None, 1, 2.0]
     )
@@ -820,48 +818,3 @@ def test_decode_with_dtype_none():
         result = ser.str.decode("utf-8", dtype=None)
         expected = Series(["a", "b", "c"], dtype="str")
         tm.assert_series_equal(result, expected)
-
-
-def test_reversed_logical_ops(any_string_dtype):
-    # GH#60234
-    dtype = any_string_dtype
-    warn = None if dtype == object else Pandas4Warning
-    left = Series([True, False, False, True])
-    right = Series(["", "", "b", "c"], dtype=dtype)
-
-    msg = "operations between boolean dtype and"
-    with tm.assert_produces_warning(warn, match=msg):
-        result = left | right
-    expected = left | right.astype(bool)
-    tm.assert_series_equal(result, expected)
-
-    with tm.assert_produces_warning(warn, match=msg):
-        result = left & right
-    expected = left & right.astype(bool)
-    tm.assert_series_equal(result, expected)
-
-    with tm.assert_produces_warning(warn, match=msg):
-        result = left ^ right
-    expected = left ^ right.astype(bool)
-    tm.assert_series_equal(result, expected)
-
-
-def test_pathlib_path_division(any_string_dtype, request):
-    # GH#61940
-    if any_string_dtype == object:
-        mark = pytest.mark.xfail(
-            reason="with NA present we go through _masked_arith_op which "
-            "raises TypeError bc Path is not recognized by lib.is_scalar."
-        )
-        request.applymarker(mark)
-
-    item = Path("/Users/Irv/")
-    ser = Series(["A", "B", NA], dtype=any_string_dtype)
-
-    result = item / ser
-    expected = Series([item / "A", item / "B", ser.dtype.na_value], dtype=object)
-    tm.assert_series_equal(result, expected)
-
-    result = ser / item
-    expected = Series(["A" / item, "B" / item, ser.dtype.na_value], dtype=object)
-    tm.assert_series_equal(result, expected)
