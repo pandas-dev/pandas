@@ -1753,16 +1753,15 @@ class TestDateRangeNonTickFreq:
 
     def test_date_range_tzaware_endpoints_accept_nonexistent(self):
         # Europe/London spring-forward: 2015-03-29 01:30 does not exist.
-        start = Timestamp("2015-03-28 01:30", tz="Europe/London")
-        end = Timestamp("2015-03-30 01:30", tz="Europe/London")
+        tz = "Europe/London"
+        start = Timestamp("2015-03-28 01:30", tz=tz)
+        end = Timestamp("2015-03-30 01:30", tz=tz)
 
         result = date_range(start, end, freq="D", nonexistent="shift_forward")
-        expected = [
-            Timestamp("2015-03-28 01:30:00+00:00"),
-            Timestamp(
-                "2015-03-29 02:00:00+01:00"
-            ),  # shifted forward over next valid wall time
-            Timestamp("2015-03-30 01:30:00+01:00"),
-        ]
 
-        assert list(result) == expected
+        # Build expected by generating naive daily times, then tz_localize so
+        # the nonexistent handling is applied during localization.
+        expected = date_range(
+            "2015-03-28 01:30", "2015-03-30 01:30", freq="D"
+        ).tz_localize(tz, nonexistent="shift_forward")
+        tm.assert_index_equal(result, expected)
