@@ -4123,7 +4123,7 @@ class MultiIndex(Index):
 
         new_levels = []
         new_codes = []
-        for k, level, level_codes in zip(item, self.levels, self.codes):
+        for k, level, level_codes in zip(item, self.levels, self.codes, strict=True):
             if k not in level:
                 # have to insert into level
                 # must insert at end otherwise you have to recompute all the
@@ -4219,7 +4219,7 @@ def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
 
 
 def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
-    pivoted = list(zip(*label_list))
+    pivoted = list(zip(*label_list, strict=True))
     k = len(label_list)
 
     result = pivoted[: start + 1]
@@ -4228,7 +4228,7 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
     for cur in pivoted[start + 1 :]:
         sparse_cur = []
 
-        for i, (p, t) in enumerate(zip(prev, cur)):
+        for i, (p, t) in enumerate(zip(prev, cur, strict=True)):
             if i == k - 1:
                 sparse_cur.append(t)
                 result.append(sparse_cur)  # type: ignore[arg-type]
@@ -4243,7 +4243,7 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
 
         prev = cur
 
-    return list(zip(*result))
+    return list(zip(*result, strict=True))
 
 
 def _get_na_rep(dtype: DtypeObj) -> str:
