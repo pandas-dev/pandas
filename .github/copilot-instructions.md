@@ -1,4 +1,4 @@
-# Pandas Copilot Instructions
+# pandas Copilot Instructions
 
 ## Project Overview
 `pandas` is an open source, BSD-licensed library providing high-performance, easy-to-use data structures and data analysis tools for the Python programming language.
@@ -13,7 +13,7 @@ pandas strongly encourages the use of PEP 484 style type hints. New development 
 
 Type imports should follow the from `typing import ...` convention. Your code may be automatically re-written to use some modern constructs (e.g. using the built-in `list` instead of `typing.List`) by the pre-commit checks.
 
-In some cases in the code base classes may define class variables that shadow builtins. This causes an issue as described in Mypy 1775. The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
+In some cases in the code base classes may define class variables that shadow builtins. This causes an issue as described in [Mypy 1775](https://github.com/python/mypy/issues/1775#issuecomment-310969854). The defensive solution here is to create an unambiguous alias of the builtin and use that without your annotation. For example, if you come across a definition like
 
 ```
 class SomeClass1:
@@ -43,7 +43,7 @@ def cannot_infer_bad(obj: Union[str, int, float]):
         obj = cast(str, obj)  # Mypy complains without this!
         return obj.upper()
 ```
-The limitation here is that while a human can reasonably understand that `is_number` would catch the `int` and `float` types mypy cannot make that same inference just yet (see mypy  #5206. While the above works, the use of `cast` is strongly discouraged. Where applicable a refactor of the code to appease static analysis is preferable.)
+The limitation here is that while a human can reasonably understand that `is_number` would catch the `int` and `float` types mypy cannot make that same inference just yet (see [mypy #5206](https://github.com/python/mypy/issues/5206). While the above works, the use of `cast` is **strongly discouraged**. Where applicable a refactor of the code to appease static analysis is preferable.)
 
 ```
 def cannot_infer_good(obj: Union[str, int, float]):
