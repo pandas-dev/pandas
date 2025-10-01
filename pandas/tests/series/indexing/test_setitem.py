@@ -601,8 +601,10 @@ class TestSetitemWithExpansion:
         tm.assert_series_equal(ser, expected)
         if dtype == "str":
             ser[3] is np.nan
-        else:
+        elif using_infer_string:
             assert ser[3] is nulls_fixture
+        else:
+            assert type(ser[3]) is type(nulls_fixture)
 
 
 def test_setitem_scalar_into_readonly_backing_data():
