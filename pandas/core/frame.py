@@ -107,6 +107,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_sequence,
+    is_string_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -4454,7 +4455,7 @@ class DataFrame(NDFrame, OpsMixin):
                 cols_droplevel = maybe_droplevels(cols, key)
                 if (
                     not isinstance(cols_droplevel, MultiIndex)
-                    and cols_droplevel.dtype.type is str
+                    and is_string_dtype(cols_droplevel.dtype)
                     and not cols_droplevel.any()
                 ):
                     # if cols_droplevel contains only empty strings,
