@@ -1166,8 +1166,8 @@ ExtensionArray
 ^^^^^^^^^^^^^^
 - Bug in :class:`Categorical` when constructing with an :class:`Index` with :class:`ArrowDtype` (:issue:`60563`)
 - Bug in :meth:`.arrays.ArrowExtensionArray.__setitem__` which caused wrong behavior when using an integer array with repeated values as a key (:issue:`58530`)
-- Bug in :meth:`ArrowExtensionArray.factorize` where NA values were dropped when input was dictionary-encoded even when dropna was set to False(:issue:`60567`)
 - Bug in :meth:`.arrays.ArrowExtensionArray._cast_pointwise_result` causing ``Decimal("NaN")`` inputs to downcast results to ``null[pyarrow]`` instead of preserving decimal dtype (:issue:`62522`)
+- Bug in :meth:`ArrowExtensionArray.factorize` where NA values were dropped when input was dictionary-encoded even when dropna was set to False(:issue:`60567`)
 - Bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
 - Bug in comparison between object with :class:`ArrowDtype` and incompatible-dtyped (e.g. string vs bool) incorrectly raising instead of returning all-``False`` (for ``==``) or all-``True`` (for ``!=``) (:issue:`59505`)
 - Bug in constructing pandas data structures when passing into ``dtype`` a string of the type followed by ``[pyarrow]`` while PyArrow is not installed would raise ``NameError`` rather than ``ImportError`` (:issue:`57928`)
