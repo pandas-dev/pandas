@@ -953,3 +953,125 @@ def test_rmod_consistent_large_series():
     expected = Series([1] * 10001)
 
     tm.assert_series_equal(result, expected)
+
+
+class TestSeriesSafeDivide:
+    """Test cases for Series.safe_divide method."""
+
+    def test_safe_divide_basic(self):
+        """Test basic safe division functionality."""
+        s = Series([1, 2, 3])
+        other = Series([2, 1, 3])
+        
+        result = s.safe_divide(other)
+        expected = Series([0.5, 2.0, 1.0])
+        
+        tm.assert_series_equal(result, expected)
+
+    def test_safe_divide_with_zero_division_warn(self):
+        """Test safe division with zero division warning."""
+        s = Series([1, 2, 3])
+        other = Series([2, 0, 3])
+        
+        with pytest.warns(RuntimeWarning, match="Division by zero encountered"):
+            result = s.safe_divide(other)
+        
+        expected = Series([0.5, np.inf, 1.0])
+        tm.assert_series_equal(result, expected)
+
+    def test_safe_divide_with_zero_division_raise(self):
+        """Test safe division with zero division raising exception."""
+        s = Series([1, 2, 3])
+        other = Series([2, 0, 3])
+        
+        with pytest.raises(ZeroDivisionError, match="Division by zero encountered"):
+            s.safe_divide(other, zero_division='raise')
+
+    def test_safe_divide_with_zero_division_ignore(self):
+        """Test safe division with zero division ignored."""
+        s = Series([1, 2, 3])
+        other = Series([2, 0, 3])
+        
+        result = s.safe_divide(other, zero_division='ignore')
+        expected = Series([0.5, np.inf, 1.0])
+        tm.assert_series_equal(result, expected)
+
+    def test_safe_divide_with_scalar(self):
+        """Test safe division with scalar values."""
+        s = Series([1, 2, 3])
+        
+        result = s.safe_divide(2)
+        expected = Series([0.5, 1.0, 1.5])
+        tm.assert_series_equal(result, expected)
+
+    def test_safe_divide_with_scalar_zero(self):
+        """Test safe division with scalar zero."""
+        s = Series([1, 2, 3])
+        
+        with pytest.warns(RuntimeWarning, match="Division by zero encountered"):
+            result = s.safe_divide(0)
+        
+        expected = Series([np.inf, np.inf, np.inf])
+        tm.assert_series_equal(result, expected)
+
+    def test_safe_divide_with_nan_values(self):
+        """Test safe division with NaN values."""
+        s = Series([1, np.nan, 3])
+        other = Series([2, 2, 0])
+        
+        with pytest.warns(RuntimeWarning, match="Division by zero encountered"):
+            result = s.safe_divide(other)
+        
+        expected = Series([0.5, np.nan, np.inf])
+        tm.assert_series_equal(result, expected)
+
+    def test_safe_divide_invalid_zero_division(self):
+        """Test safe division with invalid zero_division parameter."""
+        s = Series([1, 2, 3])
+        
+        with pytest.raises(ValueError, match="zero_division must be one of"):
+            s.safe_divide(2, zero_division='invalid')
+
+    def test_safe_divide_preserves_index(self):
+        """Test that safe_divide preserves index."""
+        s = Series([1, 2], index=['x', 'y'])
+        other = Series([2, 1], index=['x', 'y'])
+        
+        result = s.safe_divide(other)
+        
+        tm.assert_index_equal(result.index, s.index)
+
+    def test_safe_divide_with_fill_value(self):
+        """Test safe division with fill_value parameter."""
+        s = Series([1, np.nan, 3])
+        other = Series([2, 2, 2])
+        
+        result = s.safe_divide(other, fill_value=1)
+        expected = Series([0.5, 0.5, 1.5])
+        tm.assert_series_equal(result, expected)
+
+    def test_safe_divide_empty_series(self):
+        """Test safe division with empty Series."""
+        s = Series([], dtype=float)
+        other = Series([], dtype=float)
+        
+        result = s.safe_divide(other)
+        tm.assert_series_equal(result, s)
+
+    def test_safe_divide_single_element(self):
+        """Test safe division with single element Series."""
+        s = Series([1])
+        other = Series([2])
+        
+        result = s.safe_divide(other)
+        expected = Series([0.5])
+        tm.assert_series_equal(result, expected)
+
+    def test_safe_divide_mixed_dtypes(self):
+        """Test safe division with mixed data types."""
+        s = Series([1, 2], dtype=int)
+        other = Series([2.0, 1.0], dtype=float)
+        
+        result = s.safe_divide(other)
+        expected = Series([0.5, 2.0], dtype=float)
+        tm.assert_series_equal(result, expected)

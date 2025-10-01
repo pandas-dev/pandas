@@ -8707,6 +8707,126 @@ class DataFrame(NDFrame, OpsMixin):
             other, roperator.rpow, level=level, fill_value=fill_value, axis=axis
         )
 
+    def safe_divide(
+        self, 
+        other, 
+        axis: Axis = "columns", 
+        level=None, 
+        fill_value=None,
+        zero_division="warn"
+    ) -> DataFrame:
+        """
+        Perform safe division that handles division by zero gracefully.
+        
+        This method performs division while handling division by zero cases
+        without raising exceptions. It's particularly useful for data analysis
+        where division by zero is a common occurrence.
+        
+        Parameters
+        ----------
+        other : scalar, sequence, Series, or DataFrame
+            Object to divide with.
+        axis : {0 or 'index', 1 or 'columns'}, default 'columns'
+            Whether to compare by the index (0 or 'index') or columns (1 or 'columns').
+        level : int or label, default None
+            Broadcast across a level, matching Index values on the passed MultiIndex level.
+        fill_value : float or None, default None
+            Value to use for missing values. If specified, this value will be used
+            to fill missing values before performing the operation.
+        zero_division : {'warn', 'raise', 'ignore'}, default 'warn'
+            How to handle division by zero:
+            - 'warn': Issue a warning and return inf for division by zero
+            - 'raise': Raise an exception for division by zero
+            - 'ignore': Return inf for division by zero without warning
+            
+        Returns
+        -------
+        DataFrame
+            Result of the safe division operation.
+            
+        See Also
+        --------
+        DataFrame.truediv : Standard division operation.
+        DataFrame.div : Alias for truediv.
+        
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 0], 'B': [4, 5, 6]})
+        >>> other = pd.DataFrame({'A': [2, 0, 4], 'B': [1, 2, 3]})
+        >>> df.safe_divide(other)
+        A    B
+        0  0.5  4.0
+        1  inf  2.5
+        2  0.0  2.0
+        
+        >>> df.safe_divide(other, zero_division='ignore')
+        A    B
+        0  0.5  4.0
+        1  inf  2.5
+        2  0.0  2.0
+        
+        >>> df.safe_divide(2)
+        A    B
+        0  0.5  2.0
+        1  1.0  2.5
+        2  0.0  3.0
+        """
+        import warnings
+        
+        # Handle zero_division parameter
+        if zero_division not in ['warn', 'raise', 'ignore']:
+            raise ValueError("zero_division must be one of 'warn', 'raise', or 'ignore'")
+        
+        # Perform the division with error handling
+        with np.errstate(divide='ignore', invalid='ignore'):
+            result = self._flex_arith_method(
+                other, operator.truediv, level=level, fill_value=fill_value, axis=axis
+            )
+        
+        # Handle division by zero cases
+        if zero_division == 'raise':
+            # Check for division by zero and raise if found
+            if isinstance(other, (DataFrame, Series)):
+                # For DataFrame/Series operations, check if any denominator is zero
+                if isinstance(other, DataFrame):
+                    zero_mask = (other == 0) & (self != 0)
+                else:  # Series
+                    zero_mask = (other == 0) & (self != 0)
+                
+                if zero_mask.any().any():
+                    raise ZeroDivisionError("Division by zero encountered")
+            else:
+                # For scalar operations
+                if other == 0 and (self != 0).any().any():
+                    raise ZeroDivisionError("Division by zero encountered")
+        
+        elif zero_division == 'warn':
+            # Check for division by zero and warn if found
+            if isinstance(other, (DataFrame, Series)):
+                if isinstance(other, DataFrame):
+                    zero_mask = (other == 0) & (self != 0)
+                else:  # Series
+                    zero_mask = (other == 0) & (self != 0)
+                
+                if zero_mask.any().any():
+                    warnings.warn(
+                        "Division by zero encountered. Results will contain inf values.",
+                        RuntimeWarning,
+                        stacklevel=2
+                    )
+            else:
+                if other == 0 and (self != 0).any().any():
+                    warnings.warn(
+                        "Division by zero encountered. Results will contain inf values.",
+                        RuntimeWarning,
+                        stacklevel=2
+                    )
+        
+        # For 'ignore' case, we don't need to do anything special
+        # The result already contains inf values where appropriate
+        
+        return result
+
     # ----------------------------------------------------------------------
     # Combination-Related
 

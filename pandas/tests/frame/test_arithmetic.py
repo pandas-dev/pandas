@@ -2192,3 +2192,146 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
     expected.columns = expected.columns.astype(string_dtype_no_object)
 
     tm.assert_frame_equal(result, expected)
+
+
+class TestDataFrameSafeDivide:
+    """Test cases for DataFrame.safe_divide method."""
+
+    def test_safe_divide_basic(self):
+        """Test basic safe division functionality."""
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        other = DataFrame({'A': [2, 1, 3], 'B': [2, 2, 2]})
+        
+        result = df.safe_divide(other)
+        expected = DataFrame({'A': [0.5, 2.0, 1.0], 'B': [2.0, 2.5, 3.0]})
+        
+        tm.assert_frame_equal(result, expected)
+
+    def test_safe_divide_with_zero_division_warn(self):
+        """Test safe division with zero division warning."""
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        other = DataFrame({'A': [2, 0, 3], 'B': [2, 2, 2]})
+        
+        with pytest.warns(RuntimeWarning, match="Division by zero encountered"):
+            result = df.safe_divide(other)
+        
+        expected = DataFrame({'A': [0.5, np.inf, 1.0], 'B': [2.0, 2.5, 3.0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_safe_divide_with_zero_division_raise(self):
+        """Test safe division with zero division raising exception."""
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        other = DataFrame({'A': [2, 0, 3], 'B': [2, 2, 2]})
+        
+        with pytest.raises(ZeroDivisionError, match="Division by zero encountered"):
+            df.safe_divide(other, zero_division='raise')
+
+    def test_safe_divide_with_zero_division_ignore(self):
+        """Test safe division with zero division ignored."""
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        other = DataFrame({'A': [2, 0, 3], 'B': [2, 2, 2]})
+        
+        result = df.safe_divide(other, zero_division='ignore')
+        expected = DataFrame({'A': [0.5, np.inf, 1.0], 'B': [2.0, 2.5, 3.0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_safe_divide_with_scalar(self):
+        """Test safe division with scalar values."""
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        
+        result = df.safe_divide(2)
+        expected = DataFrame({'A': [0.5, 1.0, 1.5], 'B': [2.0, 2.5, 3.0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_safe_divide_with_scalar_zero(self):
+        """Test safe division with scalar zero."""
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        
+        with pytest.warns(RuntimeWarning, match="Division by zero encountered"):
+            result = df.safe_divide(0)
+        
+        expected = DataFrame({'A': [np.inf, np.inf, np.inf], 'B': [np.inf, np.inf, np.inf]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_safe_divide_with_series(self):
+        """Test safe division with Series."""
+        df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+        other = Series([2, 1, 0], index=['A', 'B', 'A'])
+        
+        with pytest.warns(RuntimeWarning, match="Division by zero encountered"):
+            result = df.safe_divide(other, axis=0)
+        
+        # The result should have inf where division by zero occurred
+        assert np.isinf(result.loc[0, 'A']).all() or np.isinf(result.loc[2, 'A']).all()
+
+    def test_safe_divide_with_nan_values(self):
+        """Test safe division with NaN values."""
+        df = DataFrame({'A': [1, np.nan, 3], 'B': [4, 5, 6]})
+        other = DataFrame({'A': [2, 2, 0], 'B': [2, 2, 2]})
+        
+        with pytest.warns(RuntimeWarning, match="Division by zero encountered"):
+            result = df.safe_divide(other)
+        
+        expected = DataFrame({'A': [0.5, np.nan, np.inf], 'B': [2.0, 2.5, 3.0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_safe_divide_invalid_zero_division(self):
+        """Test safe division with invalid zero_division parameter."""
+        df = DataFrame({'A': [1, 2, 3]})
+        
+        with pytest.raises(ValueError, match="zero_division must be one of"):
+            df.safe_divide(2, zero_division='invalid')
+
+    def test_safe_divide_preserves_index_and_columns(self):
+        """Test that safe_divide preserves index and column names."""
+        df = DataFrame({'A': [1, 2], 'B': [3, 4]}, index=['x', 'y'])
+        other = DataFrame({'A': [2, 1], 'B': [2, 2]}, index=['x', 'y'])
+        
+        result = df.safe_divide(other)
+        
+        tm.assert_index_equal(result.index, df.index)
+        tm.assert_index_equal(result.columns, df.columns)
+
+    def test_safe_divide_with_fill_value(self):
+        """Test safe division with fill_value parameter."""
+        df = DataFrame({'A': [1, np.nan, 3], 'B': [4, 5, 6]})
+        other = DataFrame({'A': [2, 2, 2], 'B': [2, 2, 2]})
+        
+        result = df.safe_divide(other, fill_value=1)
+        expected = DataFrame({'A': [0.5, 0.5, 1.5], 'B': [2.0, 2.5, 3.0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_safe_divide_axis_parameter(self):
+        """Test safe division with different axis parameter."""
+        df = DataFrame({'A': [1, 2], 'B': [3, 4]})
+        other = Series([2, 1], index=['A', 'B'])
+        
+        result = df.safe_divide(other, axis=1)
+        expected = DataFrame({'A': [0.5, 1.0], 'B': [3.0, 4.0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_safe_divide_empty_dataframe(self):
+        """Test safe division with empty DataFrame."""
+        df = DataFrame()
+        other = DataFrame()
+        
+        result = df.safe_divide(other)
+        tm.assert_frame_equal(result, df)
+
+    def test_safe_divide_single_element(self):
+        """Test safe division with single element DataFrame."""
+        df = DataFrame({'A': [1]})
+        other = DataFrame({'A': [2]})
+        
+        result = df.safe_divide(other)
+        expected = DataFrame({'A': [0.5]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_safe_divide_mixed_dtypes(self):
+        """Test safe division with mixed data types."""
+        df = DataFrame({'A': [1, 2], 'B': [3.0, 4.0]})
+        other = DataFrame({'A': [2, 1], 'B': [2.0, 2.0]})
+        
+        result = df.safe_divide(other)
+        expected = DataFrame({'A': [0.5, 2.0], 'B': [1.5, 2.0]})
+        tm.assert_frame_equal(result, expected)

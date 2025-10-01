@@ -6598,6 +6598,117 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             other, roperator.rpow, level=level, fill_value=fill_value, axis=axis
         )
 
+    def safe_divide(
+        self, 
+        other, 
+        level=None, 
+        fill_value=None,
+        axis: Axis = 0,
+        zero_division="warn"
+    ) -> Series:
+        """
+        Perform safe division that handles division by zero gracefully.
+        
+        This method performs division while handling division by zero cases
+        without raising exceptions. It's particularly useful for data analysis
+        where division by zero is a common occurrence.
+        
+        Parameters
+        ----------
+        other : scalar, sequence, Series, or DataFrame
+            Object to divide with.
+        level : int or label, default None
+            Broadcast across a level, matching Index values on the passed MultiIndex level.
+        fill_value : float or None, default None
+            Value to use for missing values. If specified, this value will be used
+            to fill missing values before performing the operation.
+        axis : {0 or 'index'}, default 0
+            Unused. Parameter needed for compatibility with DataFrame.
+        zero_division : {'warn', 'raise', 'ignore'}, default 'warn'
+            How to handle division by zero:
+            - 'warn': Issue a warning and return inf for division by zero
+            - 'raise': Raise an exception for division by zero
+            - 'ignore': Return inf for division by zero without warning
+            
+        Returns
+        -------
+        Series
+            Result of the safe division operation.
+            
+        See Also
+        --------
+        Series.truediv : Standard division operation.
+        Series.div : Alias for truediv.
+        
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 0])
+        >>> other = pd.Series([2, 0, 4])
+        >>> s.safe_divide(other)
+        0    0.5
+        1    inf
+        2    0.0
+        dtype: float64
+        
+        >>> s.safe_divide(other, zero_division='ignore')
+        0    0.5
+        1    inf
+        2    0.0
+        dtype: float64
+        
+        >>> s.safe_divide(2)
+        0    0.5
+        1    1.0
+        2    0.0
+        dtype: float64
+        """
+        import warnings
+        
+        # Handle zero_division parameter
+        if zero_division not in ['warn', 'raise', 'ignore']:
+            raise ValueError("zero_division must be one of 'warn', 'raise', or 'ignore'")
+        
+        # Perform the division with error handling
+        with np.errstate(divide='ignore', invalid='ignore'):
+            result = self._flex_method(
+                other, operator.truediv, level=level, fill_value=fill_value, axis=axis
+            )
+        
+        # Handle division by zero cases
+        if zero_division == 'raise':
+            # Check for division by zero and raise if found
+            if isinstance(other, Series):
+                zero_mask = (other == 0) & (self != 0)
+                if zero_mask.any():
+                    raise ZeroDivisionError("Division by zero encountered")
+            else:
+                # For scalar operations
+                if other == 0 and (self != 0).any():
+                    raise ZeroDivisionError("Division by zero encountered")
+        
+        elif zero_division == 'warn':
+            # Check for division by zero and warn if found
+            if isinstance(other, Series):
+                zero_mask = (other == 0) & (self != 0)
+                if zero_mask.any():
+                    warnings.warn(
+                        "Division by zero encountered. Results will contain inf values.",
+                        RuntimeWarning,
+                        stacklevel=2
+                    )
+            else:
+                if other == 0 and (self != 0).any():
+                    warnings.warn(
+                        "Division by zero encountered. Results will contain inf values.",
+                        RuntimeWarning,
+                        stacklevel=2
+                    )
+        
+        # For 'ignore' case, we don't need to do anything special
+        # The result already contains inf values where appropriate
+        
+        return result
+
     @Appender(ops.make_flex_doc("divmod", "series"))
     def divmod(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
