@@ -82,19 +82,17 @@ def test_too_many_exponent_digits(all_parsers_all_precisions, exp, request):
 @pytest.mark.parametrize(
     "value, expected_value",
     [
+        ("18446744073709551616.0", float(1 << 64)),
         ("18446744073709551616.5", (1 << 64) + 0.5),
-        ("18446744073709551616", float(1 << 64)),
+        ("36893488147419103232.3", (1 << 65) + 0.3),
     ],
-    ids=["2pow64_plus_half", "2pow64"],
+    ids=["2pow64_float", "2pow64_plus_half", "2pow65_plus_third"],
 )
-def test_small_int_big_number(
+def test_small_int_followed_by_float(
     all_parsers_all_precisions, value, expected_value, request
 ):
     # GH#51295
     parser, precision = all_parsers_all_precisions
-    if parser.engine == "python" and value == "18446744073709551616":
-        mark = pytest.mark.xfail(reason="Still need to work on Python parser")
-        request.applymarker(mark)
     data = f"""data
     42
     {value}"""
