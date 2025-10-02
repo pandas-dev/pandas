@@ -1069,6 +1069,10 @@ cdef class TextReader:
         else:
             col_res = None
             for dt in self.dtype_cast_order:
+                if (dt.kind in "iu" and
+                        self._column_has_float(i, start, end, na_filter, na_hashset)):
+                    continue
+
                 try:
                     col_res, na_count = self._convert_with_dtype(
                         dt, i, start, end, na_filter, 0, na_hashset, na_fset)
@@ -1081,9 +1085,9 @@ cdef class TextReader:
                         np.dtype("object"), i, start, end, 0,
                         0, na_hashset, na_fset)
                 except OverflowError:
-                    # Try other dtypes that can accommodate large numbers.
-                    # (e.g. float and string)
-                    pass
+                    col_res, na_count = self._convert_with_dtype(
+                        np.dtype("object"), i, start, end, na_filter,
+                        0, na_hashset, na_fset)
                 if col_res is not None:
                     break
 
@@ -1341,6 +1345,39 @@ cdef class TextReader:
             else:
                 return None
 
+    cdef bint _column_has_float(self, int64_t col,
+                                int64_t start, int64_t end,
+                                bint na_filter, kh_str_starts_t *na_hashset):
+        """Check if the column contains any float number."""
+        cdef:
+            Py_ssize_t i, lines = end - start
+            coliter_t it
+            const char *word = NULL
+            const char *ch
+            bint found_float = False
+
+        coliter_setup(&it, self.parser, col, start)
+
+        for i in range(lines):
+            COLITER_NEXT(it, word)
+
+            if na_filter and kh_get_str_starts_item(na_hashset, word):
+                continue
+
+            ch = word
+            while ch[0] != b"\0":
+                token_indicates_float = (ch[0] == self.parser.decimal
+                                         or ch[0] == b"e"
+                                         or ch[0] == b"E")
+                if token_indicates_float:
+                    found_float = True
+                    break
+                ch += 1
+
+            if found_float:
+                break
+
+        return found_float
 
 # Factor out code common to TextReader.__dealloc__ and TextReader.close
 # It cannot be a class method, since calling self.close() in __dealloc__
