@@ -1105,6 +1105,37 @@ def assert_series_equal(
             index_values=left.index,
             obj=str(obj),
         )
+    elif not check_dtype:
+        # When dtype checks are off, treat all missing sentinels as equal.
+        left_na = np.asarray(left.isna())
+        right_na = np.asarray(right.isna())
+        assert_numpy_array_equal(
+            left_na, right_na, obj=f"{obj} NA mask", index_values=left.index
+        )
+
+        left_valid = left[~left_na].to_numpy(dtype=object)
+        right_valid = right[~right_na].to_numpy(dtype=object)
+
+        _testing.assert_almost_equal(
+            left_valid,
+            right_valid,
+            check_dtype=False,
+            rtol=rtol,
+            atol=atol,
+            obj=str(obj),
+            index_values=left.index,
+        )
+        return
+    else:
+        _testing.assert_almost_equal(
+            left._values,
+            right._values,
+            rtol=rtol,
+            atol=atol,
+            check_dtype=bool(check_dtype),
+            obj=str(obj),
+            index_values=left.index,
+        )
     else:
         _testing.assert_almost_equal(
             left._values,
