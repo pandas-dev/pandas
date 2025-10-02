@@ -632,8 +632,6 @@ exclude = [
 "pandas/tests/window/test_cython_aggregations.py" = ["B905"]
 "pandas/tests/window/test_expanding.py" = ["B905"]
 "pandas/tests/window/test_rolling.py" = ["B905"]
-"pandas/util/_doctools.py" = ["B905"]
-"pandas/util/_validators.py" = ["B905"]
 "scripts/validate_unwanted_patterns.py" = ["B905"]
 
 [tool.ruff.lint.flake8-pytest-style]
