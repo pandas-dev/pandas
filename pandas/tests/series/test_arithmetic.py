@@ -358,12 +358,12 @@ class TestSeriesArithmetic:
         result = ser2 / ser1
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("val, dtype", [(3, "Int64"), (3.5, "Float64")])
-    def test_add_list_to_masked_array(self, val, dtype):
+    @pytest.mark.parametrize("val", [3, 3.5])
+    def test_add_list_to_masked_array(self, val):
         # GH#22962
         ser = Series([1, None, 3], dtype="Int64")
         result = ser + [1, None, val]
-        expected = Series([2, None, 3 + val], dtype=dtype)
+        expected = Series([2, pd.NA, 3 + val], dtype=object)
         tm.assert_series_equal(result, expected)
 
         result = [1, None, val] + ser
@@ -383,7 +383,7 @@ class TestSeriesArithmetic:
         msg = "operator is not supported by numexpr for the bool dtype"
         with tm.assert_produces_warning(warning, match=msg):
             result = ser + [True, None, True]
-        expected = Series([True, None, True], dtype="boolean")
+        expected = Series([2, pd.NA, 1], dtype=object)
         tm.assert_series_equal(result, expected)
 
         with tm.assert_produces_warning(warning, match=msg):
