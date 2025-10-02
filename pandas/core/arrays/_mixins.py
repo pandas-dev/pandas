@@ -40,6 +40,7 @@ from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
+    NumpyEADtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
@@ -173,8 +174,14 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             fill_value=fill_value,
             axis=axis,
         )
-
-        return type(self)._simple_new(new_data, new_data.dtype)
+        if self.dtype in [
+            NumpyEADtype(np.uint32),
+            NumpyEADtype(np.uint64),
+            NumpyEADtype(np.int32),
+            NumpyEADtype(np.int64),
+        ]:
+            return type(self)(new_data)
+        return self._from_backing_data(new_data)
 
     # ------------------------------------------------------------------------
 

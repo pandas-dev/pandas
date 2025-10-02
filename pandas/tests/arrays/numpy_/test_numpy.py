@@ -331,7 +331,7 @@ def test_take_assigns_correct_dtype(dtype):
 
     result = array.take([-1], allow_fill=True)
 
-    assert result.dtype == np.float64
+    assert result.dtype == NumpyEADtype(np.float64)
 
 
 # ----------------------------------------------------------------------------
