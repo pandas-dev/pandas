@@ -5371,6 +5371,11 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4], strict=False)
             for n, (sep, stride, name) in enumerate(tups):
+                if name in deprec_to_valid_alias:
+                    raise ValueError(INVALID_FREQ_ERR_MSG.format(
+                        f"{name}. Did you mean {deprec_to_valid_alias[name]}?")
+                    )
+
                 name = _warn_about_deprecated_aliases(name, is_period)
                 _validate_to_offset_alias(name, is_period)
                 if is_period:
@@ -5401,8 +5406,6 @@ cpdef to_offset(freq, bint is_period=False):
                         # If n==0, then stride_sign is already incorporated
                         #  into the offset
                         offset *= stride_sign
-                elif name in deprec_to_valid_alias:
-                    raise ValueError(f"Did you mean '{deprec_to_valid_alias[name]}'?")
                 else:
                     stride = int(stride)
                     offset = _get_offset(name)
