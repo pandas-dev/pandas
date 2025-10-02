@@ -87,9 +87,9 @@ def test_too_many_exponent_digits(all_parsers_all_precisions, exp, request):
         ("3.2e1", 32.0),
         ("3.2e80", 3.2e80),
         ("3.2e-80", 3.2e-80),
-        ("18446744073709551616.0", float(1 << 64)),
-        ("18446744073709551616.5", (1 << 64) + 0.5),
-        ("36893488147419103232.3", (1 << 65) + 0.3),
+        ("18446744073709551616.0", float(1 << 64)),  # loses precision
+        ("18446744073709551616.5", float(1 << 64)),  # loses precision
+        ("36893488147419103232.3", float(1 << 65)),  # loses precision
     ],
 )
 def test_small_int_followed_by_float(
