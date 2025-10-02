@@ -1354,7 +1354,6 @@ cdef class TextReader:
             Py_ssize_t i, lines = end - start
             coliter_t it
             const char *word = NULL
-            const char *ch
 
         coliter_setup(&it, self.parser, col, start)
 
@@ -1364,14 +1363,8 @@ cdef class TextReader:
             if na_filter and kh_get_str_starts_item(na_hashset, word):
                 continue
 
-            ch = word
-            while ch[0] != b"\0":
-                token_indicates_float = (ch[0] == self.parser.decimal
-                                         or ch[0] == b"e"
-                                         or ch[0] == b"E")
-                if token_indicates_float:
-                    return True
-                ch += 1
+            if self.parser.decimal in word or b"e" in word or b"E" in word:
+                return True
 
         return False
 
