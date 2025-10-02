@@ -1355,7 +1355,6 @@ cdef class TextReader:
             coliter_t it
             const char *word = NULL
             const char *ch
-            bint found_float = False
 
         coliter_setup(&it, self.parser, col, start)
 
@@ -1371,14 +1370,10 @@ cdef class TextReader:
                                          or ch[0] == b"e"
                                          or ch[0] == b"E")
                 if token_indicates_float:
-                    found_float = True
-                    break
+                    return True
                 ch += 1
 
-            if found_float:
-                break
-
-        return found_float
+        return False
 
 # Factor out code common to TextReader.__dealloc__ and TextReader.close
 # It cannot be a class method, since calling self.close() in __dealloc__
