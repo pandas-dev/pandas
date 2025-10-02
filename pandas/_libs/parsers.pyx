@@ -1088,6 +1088,7 @@ cdef class TextReader:
                     col_res, na_count = self._convert_with_dtype(
                         np.dtype("object"), i, start, end, na_filter,
                         0, na_hashset, na_fset)
+
                 if col_res is not None:
                     break
 
