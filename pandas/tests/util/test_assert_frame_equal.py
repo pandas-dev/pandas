@@ -5,6 +5,7 @@ from pandas.errors import Pandas4Warning
 import pandas as pd
 from pandas import DataFrame
 import pandas._testing as tm
+from pandas.testing import assert_frame_equal
 
 
 @pytest.fixture(params=[True, False])
@@ -399,6 +400,7 @@ def test_assert_frame_equal_set_mismatch():
         tm.assert_frame_equal(df1, df2)
 
 
+
 def test_datetimelike_compat_deprecated():
     # GH#55638
     df = DataFrame({"a": [1]})
@@ -413,3 +415,10 @@ def test_datetimelike_compat_deprecated():
         tm.assert_series_equal(df["a"], df["a"], check_datetimelike_compat=True)
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         tm.assert_series_equal(df["a"], df["a"], check_datetimelike_compat=False)
+
+
+def test_assert_frame_equal_na_object_vs_int32_check_dtype_false():
+    
+    df1 = pd.DataFrame({"x": pd.Series([pd.NA], dtype="Int32")})
+    df2 = pd.DataFrame({"x": pd.Series([pd.NA], dtype="object")})
+    assert_frame_equal(df1, df2, check_dtype=False)
