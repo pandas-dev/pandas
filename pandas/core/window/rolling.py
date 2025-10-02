@@ -351,7 +351,7 @@ class BaseWindow(SelectionMixin):
         )
         self._check_window_bounds(start, end, len(obj))
 
-        for s, e in zip(start, end):
+        for s, e in zip(start, end, strict=True):
             result = obj.iloc[slice(s, e)]
             yield result
 
@@ -802,7 +802,7 @@ class BaseWindowGroupby(BaseWindow):
             groupby_codes = []
             groupby_levels = []
             # e.g. [[1, 2], [4, 5]] as [[1, 4], [2, 5]]
-            for gb_level_pair in map(list, zip(*gb_pairs)):
+            for gb_level_pair in map(list, zip(*gb_pairs, strict=True)):
                 labels = np.repeat(np.array(gb_level_pair), old_result_len)
                 codes, levels = factorize(labels)
                 groupby_codes.append(codes)
