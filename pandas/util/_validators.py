@@ -122,7 +122,7 @@ def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
     # We do this so that we can provide a more informative
     # error message about the parameters that we are not
     # supporting in the pandas implementation of 'fname'
-    kwargs = dict(zip(compat_args, args))
+    kwargs = dict(zip(compat_args, args, strict=False))
     _check_for_default_values(fname, kwargs, compat_args)
 
 
@@ -212,7 +212,7 @@ def validate_args_and_kwargs(
 
     # Check there is no overlap with the positional and keyword
     # arguments, similar to what is done in actual Python functions
-    args_dict = dict(zip(compat_args, args))
+    args_dict = dict(zip(compat_args, args, strict=False))
 
     for key in args_dict:
         if key in kwargs:

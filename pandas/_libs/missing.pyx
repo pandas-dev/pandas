@@ -72,7 +72,7 @@ cpdef bint check_na_tuples_nonequal(object left, object right):
     if len(left) != len(right):
         return False
 
-    for left_element, right_element in zip(left, right):
+    for left_element, right_element in zip(left, right, strict=True):
         if left_element is C_NA and right_element is not C_NA:
             return True
         elif right_element is C_NA and left_element is not C_NA:
