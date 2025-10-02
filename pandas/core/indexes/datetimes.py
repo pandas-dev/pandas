@@ -26,14 +26,19 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.offsets import prefix_mapping
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     cache_readonly,
     doc,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_scalar
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
@@ -384,6 +389,16 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Can we compare values of the given dtype to our own?
         """
+        if isinstance(dtype, ArrowDtype):
+            # GH#62277
+            if dtype.kind != "M":
+                return False
+
+            pa_dtype = dtype.pyarrow_dtype
+            if (pa_dtype.tz is None) ^ (self.tz is None):
+                return False
+            return True
+
         if self.tz is not None:
             # If we have tz, we can compare to tzaware
             return isinstance(dtype, DatetimeTZDtype)
@@ -632,6 +647,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # Pandas supports slicing with dates, treated as datetimes at midnight.
             # https://github.com/pandas-dev/pandas/issues/31501
             label = Timestamp(label).to_pydatetime()
+            warnings.warn(
+                # GH#35830 deprecate last remaining inconsistent date treatment
+                "Slicing with a datetime.date object is deprecated. "
+                "Explicitly cast to Timestamp instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         label = super()._maybe_cast_slice_bound(label, side)
         self._data._assert_tzawareness_compat(label)
@@ -893,9 +915,11 @@ def date_range(
     Notes
     -----
     Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
-    exactly three must be specified. If ``freq`` is omitted, the resulting
-    ``DatetimeIndex`` will have ``periods`` linearly spaced elements between
-    ``start`` and ``end`` (closed on both sides).
+    a maximum of three can be specified at once. Of the three parameters
+    ``start``, ``end``, and ``periods``, at least two must be specified.
+    If ``freq`` is omitted, the resulting ``DatetimeIndex`` will have
+    ``periods`` linearly spaced elements between ``start`` and ``end``
+    (closed on both sides).
 
     To learn more about the frequency strings, please see
     :ref:`this link<timeseries.offset_aliases>`.

@@ -59,7 +59,7 @@ class TestConvertDtypes:
         tm.assert_index_equal(result.columns, df.columns)
         assert result.columns.name == "cols"
 
-    def test_pyarrow_dtype_backend(self):
+    def test_pyarrow_dtype_backend(self, using_nan_is_na):
         pa = pytest.importorskip("pyarrow")
         df = pd.DataFrame(
             {
@@ -73,6 +73,8 @@ class TestConvertDtypes:
             }
         )
         result = df.convert_dtypes(dtype_backend="pyarrow")
+
+        item = None if using_nan_is_na else np.nan
         expected = pd.DataFrame(
             {
                 "a": pd.arrays.ArrowExtensionArray(
@@ -80,7 +82,7 @@ class TestConvertDtypes:
                 ),
                 "b": pd.arrays.ArrowExtensionArray(pa.array(["x", "y", None])),
                 "c": pd.arrays.ArrowExtensionArray(pa.array([True, False, None])),
-                "d": pd.arrays.ArrowExtensionArray(pa.array([None, 100.5, 200.0])),
+                "d": pd.arrays.ArrowExtensionArray(pa.array([item, 100.5, 200.0])),
                 "e": pd.arrays.ArrowExtensionArray(
                     pa.array(
                         [
@@ -199,7 +201,7 @@ class TestConvertDtypes:
             {
                 "a": [1, 2, 3],
                 "b": [4, 5, 6],
-                "c": pd.Series(["a"] * 3, dtype="string[python]"),
+                "c": pd.Series(["a"] * 3, dtype="string"),
             }
         )
         tm.assert_frame_equal(result, expected)
@@ -209,7 +211,7 @@ class TestConvertDtypes:
         # GH#56581
         df = pd.DataFrame([["a", datetime.time(18, 12)]], columns=["a", "b"])
         result = df.convert_dtypes()
-        expected = df.astype({"a": "string[python]"})
+        expected = df.astype({"a": "string"})
         tm.assert_frame_equal(result, expected)
 
     def test_convert_dtype_pyarrow_timezone_preserve(self):

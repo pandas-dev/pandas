@@ -38,17 +38,18 @@ def numpy_dtype(data):
 def test_round(data, numpy_dtype):
     # No arguments
     result = data.round()
-    expected = pd.array(
-        np.round(data.to_numpy(dtype=numpy_dtype, na_value=None)), dtype=data.dtype
-    )
+    np_result = np.round(data.to_numpy(dtype=numpy_dtype, na_value=None))
+    exp_np = np_result.astype(object)
+    exp_np[data.isna()] = pd.NA
+    expected = pd.array(exp_np, dtype=data.dtype)
     tm.assert_extension_array_equal(result, expected)
 
     # Decimals argument
     result = data.round(decimals=2)
-    expected = pd.array(
-        np.round(data.to_numpy(dtype=numpy_dtype, na_value=None), decimals=2),
-        dtype=data.dtype,
-    )
+    np_result = np.round(data.to_numpy(dtype=numpy_dtype, na_value=None), decimals=2)
+    exp_np = np_result.astype(object)
+    exp_np[data.isna()] = pd.NA
+    expected = pd.array(exp_np, dtype=data.dtype)
     tm.assert_extension_array_equal(result, expected)
 
 

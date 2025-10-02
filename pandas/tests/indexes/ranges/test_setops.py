@@ -459,6 +459,7 @@ def assert_range_or_not_is_rangelike(index):
         assert not (diff == diff[0]).all()
 
 
+@pytest.mark.slow
 @given(
     st.integers(-20, 20),
     st.integers(-20, 20),

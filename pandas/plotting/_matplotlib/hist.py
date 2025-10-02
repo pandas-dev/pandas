@@ -260,7 +260,7 @@ class KdePlot(HistPlot):
 
     @classmethod
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
-    def _plot(  #  type: ignore[override]
+    def _plot(  # type: ignore[override]
         cls,
         ax: Axes,
         y: np.ndarray,
@@ -277,6 +277,8 @@ class KdePlot(HistPlot):
         y = remove_na_arraylike(y)
         gkde = gaussian_kde(y, bw_method=bw_method, weights=weights)
 
+        # gaussian_kde.evaluate(None) raises TypeError, so pyright requires this check
+        assert ind is not None
         y = gkde.evaluate(ind)
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
         return lines
@@ -321,7 +323,7 @@ def _grouped_plot(
         naxes=naxes, figsize=figsize, sharex=sharex, sharey=sharey, ax=ax, layout=layout
     )
 
-    for ax, (key, group) in zip(flatten_axes(axes), grouped):
+    for ax, (key, group) in zip(flatten_axes(axes), grouped, strict=False):
         if numeric_only and isinstance(group, ABCDataFrame):
             group = group._get_numeric_data()
         plotf(group, ax, **kwargs)
@@ -555,7 +557,7 @@ def hist_frame(
     )
     can_set_label = "label" not in kwds
 
-    for ax, col in zip(flatten_axes(axes), data.columns):
+    for ax, col in zip(flatten_axes(axes), data.columns, strict=False):
         if legend and can_set_label:
             kwds["label"] = col
         ax.hist(data[col].dropna().values, bins=bins, **kwds)

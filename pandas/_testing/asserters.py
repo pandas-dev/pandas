@@ -7,6 +7,7 @@ from typing import (
     NoReturn,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -15,6 +16,8 @@ from pandas._libs.missing import is_matching_na
 from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
 from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
+from pandas.errors import Pandas4Warning
+from pandas.util._decorators import deprecate_kwarg
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -581,19 +584,13 @@ def raise_assert_detail(
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif isinstance(left, (CategoricalDtype, NumpyEADtype)):
+    elif isinstance(left, (CategoricalDtype, StringDtype, NumpyEADtype)):
         left = repr(left)
-    elif isinstance(left, StringDtype):
-        # TODO(infer_string) this special case could be avoided if we have
-        # a more informative repr https://github.com/pandas-dev/pandas/issues/59342
-        left = f"StringDtype(storage={left.storage}, na_value={left.na_value})"
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif isinstance(right, (CategoricalDtype, NumpyEADtype)):
+    elif isinstance(right, (CategoricalDtype, StringDtype, NumpyEADtype)):
         right = repr(right)
-    elif isinstance(right, StringDtype):
-        right = f"StringDtype(storage={right.storage}, na_value={right.na_value})"
 
     msg += f"""
 [left]:  {left}
@@ -843,6 +840,7 @@ def assert_extension_array_equal(
 
 
 # This could be refactored to use the NDFrame.equals method
+@deprecate_kwarg(Pandas4Warning, "check_datetimelike_compat", new_arg_name=None)
 def assert_series_equal(
     left,
     right,
@@ -897,6 +895,9 @@ def assert_series_equal(
 
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
+
+        .. deprecated:: 3.0
+
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     check_category_order : bool, default True
@@ -1132,6 +1133,7 @@ def assert_series_equal(
 
 
 # This could be refactored to use the NDFrame.equals method
+@deprecate_kwarg(Pandas4Warning, "check_datetimelike_compat", new_arg_name=None)
 def assert_frame_equal(
     left,
     right,
@@ -1194,6 +1196,9 @@ def assert_frame_equal(
             ``check_exact``, ``rtol`` and ``atol`` are specified.
     check_datetimelike_compat : bool, default False
         Compare datetime-like which is comparable ignoring dtype.
+
+        .. deprecated:: 3.0
+
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     check_like : bool, default False
@@ -1320,22 +1325,28 @@ def assert_frame_equal(
             # use check_index=False, because we do not want to run
             # assert_index_equal for each column,
             # as we already checked it for the whole dataframe before.
-            assert_series_equal(
-                lcol,
-                rcol,
-                check_dtype=check_dtype,
-                check_index_type=check_index_type,
-                check_exact=check_exact,
-                check_names=check_names,
-                check_datetimelike_compat=check_datetimelike_compat,
-                check_categorical=check_categorical,
-                check_freq=check_freq,
-                obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
-                rtol=rtol,
-                atol=atol,
-                check_index=False,
-                check_flags=False,
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="the 'check_datetimelike_compat' keyword",
+                    category=Pandas4Warning,
+                )
+                assert_series_equal(
+                    lcol,
+                    rcol,
+                    check_dtype=check_dtype,
+                    check_index_type=check_index_type,
+                    check_exact=check_exact,
+                    check_names=check_names,
+                    check_datetimelike_compat=check_datetimelike_compat,
+                    check_categorical=check_categorical,
+                    check_freq=check_freq,
+                    obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
+                    rtol=rtol,
+                    atol=atol,
+                    check_index=False,
+                    check_flags=False,
+                )
 
 
 def assert_equal(left, right, **kwargs) -> None:
