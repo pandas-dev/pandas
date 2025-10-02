@@ -328,9 +328,11 @@ class ParserBase:
 
         if self.index_names is not None:
             names: Iterable = self.index_names
+            zip_strict = True
         else:
             names = itertools.cycle([None])
-        for i, (arr, name) in enumerate(zip(index, names, strict=False)):
+            zip_strict = False
+        for i, (arr, name) in enumerate(zip(index, names, strict=zip_strict)):
             if self._should_parse_dates(i):
                 arr = date_converter(
                     arr,

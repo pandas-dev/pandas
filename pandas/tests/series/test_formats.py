@@ -280,6 +280,37 @@ class TestSeriesRepr:
         expected = "True    1\nNone    2\nNaN     3\nNaT     4\ndtype: int64"
         assert result == expected
 
+    def test_2d_extension_type(self):
+        # GH#33770
+
+        # Define a stub extension type with just enough code to run Series.__repr__()
+        class DtypeStub(pd.api.extensions.ExtensionDtype):
+            @property
+            def type(self):
+                return np.ndarray
+
+            @property
+            def name(self):
+                return "DtypeStub"
+
+        class ExtTypeStub(pd.api.extensions.ExtensionArray):
+            def __len__(self) -> int:
+                return 2
+
+            def __getitem__(self, ix):
+                return [ix == 1, ix == 0]
+
+            @property
+            def dtype(self):
+                return DtypeStub()
+
+        series = Series(ExtTypeStub(), copy=False)
+        res = repr(series)  # This line crashed before GH#33770 was fixed.
+        expected = "\n".join(
+            ["0    [False True]", "1    [True False]", "dtype: DtypeStub"]
+        )
+        assert res == expected
+
 
 class TestCategoricalRepr:
     def test_categorical_repr_unicode(self):
