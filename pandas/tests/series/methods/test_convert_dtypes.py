@@ -246,7 +246,7 @@ class TestSeriesConvertDtypes:
             with pytest.raises(TypeError, match="Invalid value"):
                 result[result.notna()] = np.nan
         else:
-            result[result.notna()] = np.nan
+            result[result.notna()] = pd.NA
 
         # Make sure original not changed
         tm.assert_series_equal(series, copy)
