@@ -6567,7 +6567,11 @@ class DataFrame(NDFrame, OpsMixin):
             names = self.index._get_default_index_names(names, default)
 
             if isinstance(self.index, MultiIndex):
-                to_insert = zip(reversed(self.index.levels), reversed(self.index.codes), strict=True)
+                to_insert = zip(
+                    reversed(self.index.levels),
+                    reversed(self.index.codes),
+                    strict=True,
+                )
             else:
                 to_insert = ((self.index, None),)
 
@@ -7342,7 +7346,10 @@ class DataFrame(NDFrame, OpsMixin):
                 f" != length of by ({len(by)})"
             )
         if len(by) > 1:
-            keys = (self._get_label_or_level_values(x, axis=axis) for x in by)
+            keys_data = [
+                Series(k, name=name)
+                for (k, name) in zip(keys, by, strict=True)
+            ]
 
             # need to rewrap columns in Series to apply key function
             if key is not None:
