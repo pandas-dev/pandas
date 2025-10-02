@@ -81,8 +81,6 @@ from pandas.errors import (
     PerformanceWarning,
 )
 from pandas.util._decorators import (
-    Appender,
-    Substitution,
     cache_readonly,
 )
 from pandas.util._exceptions import find_stack_level
@@ -1766,10 +1764,6 @@ class DatelikeOps(DatetimeLikeArrayMixin):
     Common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex.
     """
 
-    @Substitution(
-        URL="https://docs.python.org/3/library/datetime.html"
-        "#strftime-and-strptime-behavior"
-    )
     def strftime(self, date_format: str) -> npt.NDArray[np.object_]:
         """
         Convert to Index using specified date_format.
@@ -1777,7 +1771,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         Return an Index of formatted strings specified by date_format, which
         supports the same string format as the python standard library. Details
         of the string format can be found in `python string format
-        doc <%(URL)s>`__.
+        doc <https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior>`__.
 
         Formats supported by the C `strftime` API but not by the python string format
         doc (such as `"%%R"`, `"%%r"`) are not officially supported and should be
@@ -1820,156 +1814,6 @@ class DatelikeOps(DatetimeLikeArrayMixin):
 
             return pd_array(result, dtype=StringDtype(na_value=np.nan))  # type: ignore[return-value]
         return result.astype(object, copy=False)
-
-
-_round_doc = """
-    Perform {op} operation on the data to the specified `freq`.
-
-    Parameters
-    ----------
-    freq : str or Offset
-        The frequency level to {op} the index to. Must be a fixed
-        frequency like 's' (second) not 'ME' (month end). See
-        :ref:`frequency aliases <timeseries.offset_aliases>` for
-        a list of possible `freq` values.
-    ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
-        Only relevant for DatetimeIndex:
-
-        - 'infer' will attempt to infer fall dst-transition hours based on
-          order
-        - bool-ndarray where True signifies a DST time, False designates
-          a non-DST time (note that this flag is only applicable for
-          ambiguous times)
-        - 'NaT' will return NaT where there are ambiguous times
-        - 'raise' will raise a ValueError if there are ambiguous
-          times.
-
-    nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta, default 'raise'
-        A nonexistent time does not exist in a particular timezone
-        where clocks moved forward due to DST.
-
-        - 'shift_forward' will shift the nonexistent time forward to the
-          closest existing time
-        - 'shift_backward' will shift the nonexistent time backward to the
-          closest existing time
-        - 'NaT' will return NaT where there are nonexistent times
-        - timedelta objects will shift nonexistent times by the timedelta
-        - 'raise' will raise a ValueError if there are
-          nonexistent times.
-
-    Returns
-    -------
-    DatetimeIndex, TimedeltaIndex, or Series
-        Index of the same type for a DatetimeIndex or TimedeltaIndex,
-        or a Series with the same index for a Series.
-
-    Raises
-    ------
-    ValueError if the `freq` cannot be converted.
-
-    See Also
-    --------
-    DatetimeIndex.floor : Perform floor operation on the data to the specified `freq`.
-    DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
-
-    Notes
-    -----
-    If the timestamps have a timezone, {op}ing will take place relative to the
-    local ("wall") time and re-localized to the same timezone. When {op}ing
-    near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
-    control the re-localization behavior.
-
-    Examples
-    --------
-    **DatetimeIndex**
-
-    >>> rng = pd.date_range('1/1/2018 11:59:00', periods=3, freq='min')
-    >>> rng
-    DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
-                   '2018-01-01 12:01:00'],
-                  dtype='datetime64[ns]', freq='min')
-    """
-
-_round_example = """>>> rng.round('h')
-    DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
-                   '2018-01-01 12:00:00'],
-                  dtype='datetime64[ns]', freq=None)
-
-    **Series**
-
-    >>> pd.Series(rng).dt.round("h")
-    0   2018-01-01 12:00:00
-    1   2018-01-01 12:00:00
-    2   2018-01-01 12:00:00
-    dtype: datetime64[ns]
-
-    When rounding near a daylight savings time transition, use ``ambiguous`` or
-    ``nonexistent`` to control how the timestamp should be re-localized.
-
-    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
-
-    >>> rng_tz.floor("2h", ambiguous=False)
-    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
-
-    >>> rng_tz.floor("2h", ambiguous=True)
-    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
-    """
-
-_floor_example = """>>> rng.floor('h')
-    DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
-                   '2018-01-01 12:00:00'],
-                  dtype='datetime64[ns]', freq=None)
-
-    **Series**
-
-    >>> pd.Series(rng).dt.floor("h")
-    0   2018-01-01 11:00:00
-    1   2018-01-01 12:00:00
-    2   2018-01-01 12:00:00
-    dtype: datetime64[ns]
-
-    When rounding near a daylight savings time transition, use ``ambiguous`` or
-    ``nonexistent`` to control how the timestamp should be re-localized.
-
-    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
-
-    >>> rng_tz.floor("2h", ambiguous=False)
-    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                 dtype='datetime64[s, Europe/Amsterdam]', freq=None)
-
-    >>> rng_tz.floor("2h", ambiguous=True)
-    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
-    """
-
-_ceil_example = """>>> rng.ceil('h')
-    DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
-                   '2018-01-01 13:00:00'],
-                  dtype='datetime64[ns]', freq=None)
-
-    **Series**
-
-    >>> pd.Series(rng).dt.ceil("h")
-    0   2018-01-01 12:00:00
-    1   2018-01-01 12:00:00
-    2   2018-01-01 13:00:00
-    dtype: datetime64[ns]
-
-    When rounding near a daylight savings time transition, use ``ambiguous`` or
-    ``nonexistent`` to control how the timestamp should be re-localized.
-
-    >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
-
-    >>> rng_tz.ceil("h", ambiguous=False)
-    DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
-
-    >>> rng_tz.ceil("h", ambiguous=True)
-    DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
-    """
 
 
 class TimelikeOps(DatetimeLikeArrayMixin):
@@ -2250,31 +2094,310 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         result = result.view(self._ndarray.dtype)
         return self._simple_new(result, dtype=self.dtype)
 
-    @Appender((_round_doc + _round_example).format(op="round"))
     def round(
         self,
         freq,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
+        """
+        Perform round operation on the data to the specified `freq`.
+
+        Parameters
+        ----------
+        freq : str or Offset
+            The frequency level to round the index to. Must be a fixed
+            frequency like 's' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
+        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            Only relevant for DatetimeIndex:
+
+            - 'infer' will attempt to infer fall dst-transition hours based on
+            order
+            - bool-ndarray where True signifies a DST time, False designates
+            a non-DST time (note that this flag is only applicable for
+            ambiguous times)
+            - 'NaT' will return NaT where there are ambiguous times
+            - 'raise' will raise a ValueError if there are ambiguous
+            times.
+
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta,
+            default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift_forward' will shift the nonexistent time forward to the
+            closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+            closest existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
+            - 'raise' will raise a ValueError if there are
+            nonexistent times.
+
+        Returns
+        -------
+        DatetimeIndex, TimedeltaIndex, or Series
+            Index of the same type for a DatetimeIndex or TimedeltaIndex,
+            or a Series with the same index for a Series.
+
+        Raises
+        ------
+        ValueError if the `freq` cannot be converted.
+
+        See Also
+        --------
+        DatetimeIndex.floor : Perform floor operation on the data to the
+            specified `freq`.
+        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
+
+        Notes
+        -----
+        If the timestamps have a timezone, rounding will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When rounding
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
+        Examples
+        --------
+        **DatetimeIndex**
+
+        >>> rng = pd.date_range("1/1/2018 11:59:00", periods=3, freq="min")
+        >>> rng
+        DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
+                    '2018-01-01 12:01:00'],
+                    dtype='datetime64[ns]', freq='min')
+        >>> rng.round("h")
+        DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
+                    '2018-01-01 12:00:00'],
+                    dtype='datetime64[ns]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.round("h")
+        0   2018-01-01 12:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 12:00:00
+        dtype: datetime64[ns]
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
+
+        >>> rng_tz.floor("2h", ambiguous=False)
+        DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                    dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+
+        >>> rng_tz.floor("2h", ambiguous=True)
+        DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                    dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+        """
         return self._round(freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent)
 
-    @Appender((_round_doc + _floor_example).format(op="floor"))
     def floor(
         self,
         freq,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
+        """
+        Perform floor operation on the data to the specified `freq`.
+
+        Parameters
+        ----------
+        freq : str or Offset
+            The frequency level to floor the index to. Must be a fixed
+            frequency like 's' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
+        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            Only relevant for DatetimeIndex:
+
+            - 'infer' will attempt to infer fall dst-transition hours based on
+            order
+            - bool-ndarray where True signifies a DST time, False designates
+            a non-DST time (note that this flag is only applicable for
+            ambiguous times)
+            - 'NaT' will return NaT where there are ambiguous times
+            - 'raise' will raise a ValueError if there are ambiguous
+            times.
+
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta,
+            default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift_forward' will shift the nonexistent time forward to the
+            closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+            closest existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
+            - 'raise' will raise a ValueError if there are
+            nonexistent times.
+
+        Returns
+        -------
+        DatetimeIndex, TimedeltaIndex, or Series
+            Index of the same type for a DatetimeIndex or TimedeltaIndex,
+            or a Series with the same index for a Series.
+
+        Raises
+        ------
+        ValueError if the `freq` cannot be converted.
+
+        See Also
+        --------
+        DatetimeIndex.floor : Perform floor operation on the data to the
+            specified `freq`.
+        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
+
+        Notes
+        -----
+        If the timestamps have a timezone, flooring will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When flooring
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
+        Examples
+        --------
+        **DatetimeIndex**
+
+        >>> rng = pd.date_range("1/1/2018 11:59:00", periods=3, freq="min")
+        >>> rng
+        DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
+                    '2018-01-01 12:01:00'],
+                    dtype='datetime64[ns]', freq='min')
+        >>> rng.floor("h")
+        DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
+                    '2018-01-01 12:00:00'],
+                    dtype='datetime64[ns]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.floor("h")
+        0   2018-01-01 11:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 12:00:00
+        dtype: datetime64[ns]
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
+
+        >>> rng_tz.floor("2h", ambiguous=False)
+        DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                    dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+
+        >>> rng_tz.floor("2h", ambiguous=True)
+        DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                    dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+        """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
-    @Appender((_round_doc + _ceil_example).format(op="ceil"))
     def ceil(
         self,
         freq,
         ambiguous: TimeAmbiguous = "raise",
         nonexistent: TimeNonexistent = "raise",
     ) -> Self:
+        """
+        Perform ceil operation on the data to the specified `freq`.
+
+        Parameters
+        ----------
+        freq : str or Offset
+            The frequency level to ceil the index to. Must be a fixed
+            frequency like 's' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
+        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            Only relevant for DatetimeIndex:
+
+            - 'infer' will attempt to infer fall dst-transition hours based on
+            order
+            - bool-ndarray where True signifies a DST time, False designates
+            a non-DST time (note that this flag is only applicable for
+            ambiguous times)
+            - 'NaT' will return NaT where there are ambiguous times
+            - 'raise' will raise a ValueError if there are ambiguous
+            times.
+
+        nonexistent : 'shift_forward', 'shift_backward', 'NaT', timedelta,
+            default 'raise'
+            A nonexistent time does not exist in a particular timezone
+            where clocks moved forward due to DST.
+
+            - 'shift_forward' will shift the nonexistent time forward to the
+            closest existing time
+            - 'shift_backward' will shift the nonexistent time backward to the
+            closest existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - timedelta objects will shift nonexistent times by the timedelta
+            - 'raise' will raise a ValueError if there are
+            nonexistent times.
+
+        Returns
+        -------
+        DatetimeIndex, TimedeltaIndex, or Series
+            Index of the same type for a DatetimeIndex or TimedeltaIndex,
+            or a Series with the same index for a Series.
+
+        Raises
+        ------
+        ValueError if the `freq` cannot be converted.
+
+        See Also
+        --------
+        DatetimeIndex.floor : Perform floor operation on the data to the
+            specified `freq`.
+        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
+
+        Notes
+        -----
+        If the timestamps have a timezone, ceiling will take place relative to the
+        local ("wall") time and re-localized to the same timezone. When ceiling
+        near daylight savings time, use ``nonexistent`` and ``ambiguous`` to
+        control the re-localization behavior.
+
+        Examples
+        --------
+        **DatetimeIndex**
+
+        >>> rng = pd.date_range("1/1/2018 11:59:00", periods=3, freq="min")
+        >>> rng
+        DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
+                    '2018-01-01 12:01:00'],
+                    dtype='datetime64[ns]', freq='min')
+        >>> rng.ceil("h")
+        DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
+                    '2018-01-01 13:00:00'],
+                    dtype='datetime64[ns]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.ceil("h")
+        0   2018-01-01 12:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 13:00:00
+        dtype: datetime64[ns]
+
+        When rounding near a daylight savings time transition, use ``ambiguous`` or
+        ``nonexistent`` to control how the timestamp should be re-localized.
+
+        >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
+
+        >>> rng_tz.ceil("h", ambiguous=False)
+        DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                    dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+
+        >>> rng_tz.ceil("h", ambiguous=True)
+        DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                    dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+        """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
     # --------------------------------------------------------------
