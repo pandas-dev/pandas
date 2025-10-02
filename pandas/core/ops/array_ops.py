@@ -261,6 +261,10 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     #  and `maybe_prepare_scalar_for_op` has already been called on `right`
     # We need to special-case datetime64/timedelta64 dtypes (e.g. because numpy
     # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
+    if isinstance(right, list):
+        # GH#62423
+        right = np.array(right)
+    right = ensure_wrapped_if_datetimelike(right)
 
     if (
         should_extension_dispatch(left, right)
@@ -311,6 +315,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # We don't catch tuple here bc we may be comparing e.g. MultiIndex
         #  to a tuple that represents a single entry, see test_compare_tuple_strs
         rvalues = np.asarray(rvalues)
+        rvalues = ensure_wrapped_if_datetimelike(rvalues)
 
     if isinstance(rvalues, (np.ndarray, ABCExtensionArray)):
         # TODO: make this treatment consistent across ops and classes.
