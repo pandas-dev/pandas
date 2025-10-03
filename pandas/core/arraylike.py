@@ -142,14 +142,6 @@ class OpsMixin:
         elk       2.0   501.5
         moose     3.1   801.5
 
-        Keys of a dictionary are aligned to the DataFrame, based on column names;
-        each value in the dictionary is added to the corresponding column.
-
-        >>> df[["height", "weight"]] + {"height": 0.5, "weight": 1.5}
-               height  weight
-        elk       2.0   501.5
-        moose     3.1   801.5
-
         When `other` is a :class:`Series`, the index of `other` is aligned with the
         columns of the DataFrame.
 
