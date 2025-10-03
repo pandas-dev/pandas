@@ -1031,7 +1031,6 @@ The affected cases are:
 *Previous behavior*:
 
 .. code-block:: ipython
-   :okwarning:
 
    In [5]: df == arr[[0], :]
        ...: # comparison previously broadcast where arithmetic would raise
@@ -1077,6 +1076,7 @@ The affected cases are:
    df + arr[[0], :]
 
 .. ipython:: python
+   :okwarning:
 
    # Comparison operations and arithmetic operations both broadcast.
    df == (1, 2)
