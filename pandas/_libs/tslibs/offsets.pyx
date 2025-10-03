@@ -5203,9 +5203,9 @@ deprec_to_valid_alias = {
 def raise_invalid_freq(freq: str, extra_message: str | None = None) -> None:
     msg = f"Invalid frequency: {freq}."
     if extra_message is not None:
-        msg += " " + extra_message
+        msg += f" {extra_message}"
     if freq in deprec_to_valid_alias:
-        msg += " " + "Did you mean {deprec_to_valid_alias[name]}?"
+        msg += f" Did you mean {deprec_to_valid_alias[freq]}?"
     raise ValueError(msg)
 
 
