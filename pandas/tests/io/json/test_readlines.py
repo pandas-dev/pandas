@@ -195,7 +195,7 @@ def test_readjson_each_chunk(request, lines_json_df, engine):
     assert chunks[1].shape == (1, 2)
 
 
-def test_readjson_chunks_from_file(request, engine):
+def test_readjson_chunks_from_file(request, engine, temp_file):
     if engine == "pyarrow":
         # GH 48893
         reason = (
@@ -204,41 +204,39 @@ def test_readjson_chunks_from_file(request, engine):
         )
         request.applymarker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
-    with tm.ensure_clean("test.json") as path:
-        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        df.to_json(path, lines=True, orient="records")
-        with read_json(path, lines=True, chunksize=1, engine=engine) as reader:
-            chunked = pd.concat(reader)
-        unchunked = read_json(path, lines=True, engine=engine)
-        tm.assert_frame_equal(unchunked, chunked)
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    df.to_json(temp_file, lines=True, orient="records")
+    with read_json(temp_file, lines=True, chunksize=1, engine=engine) as reader:
+        chunked = pd.concat(reader)
+    unchunked = read_json(temp_file, lines=True, engine=engine)
+    tm.assert_frame_equal(unchunked, chunked)
 
 
 @pytest.mark.parametrize("chunksize", [None, 1])
-def test_readjson_chunks_closes(chunksize):
-    with tm.ensure_clean("test.json") as path:
-        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        df.to_json(path, lines=True, orient="records")
-        reader = JsonReader(
-            path,
-            orient=None,
-            typ="frame",
-            dtype=True,
-            convert_axes=True,
-            convert_dates=True,
-            keep_default_dates=True,
-            precise_float=False,
-            date_unit=None,
-            encoding=None,
-            lines=True,
-            chunksize=chunksize,
-            compression=None,
-            nrows=None,
-        )
-        with reader:
-            reader.read()
-        assert reader.handles.handle.closed, (
-            f"didn't close stream with chunksize = {chunksize}"
-        )
+def test_readjson_chunks_closes(chunksize, temp_file):
+    df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+    df.to_json(temp_file, lines=True, orient="records")
+    reader = JsonReader(
+        temp_file,
+        orient=None,
+        typ="frame",
+        dtype=True,
+        convert_axes=True,
+        convert_dates=True,
+        keep_default_dates=True,
+        precise_float=False,
+        date_unit=None,
+        encoding=None,
+        lines=True,
+        chunksize=chunksize,
+        compression=None,
+        nrows=None,
+    )
+    with reader:
+        reader.read()
+    assert reader.handles.handle.closed, (
+        f"didn't close stream with chunksize = {chunksize}"
+    )
 
 
 @pytest.mark.parametrize("chunksize", [0, -1, 2.2, "foo"])
@@ -278,7 +276,7 @@ def test_readjson_chunks_multiple_empty_lines(chunksize):
     tm.assert_frame_equal(orig, test, obj=f"chunksize: {chunksize}")
 
 
-def test_readjson_unicode(request, monkeypatch, engine):
+def test_readjson_unicode(request, monkeypatch, engine, temp_file):
     if engine == "pyarrow":
         # GH 48893
         reason = (
@@ -287,14 +285,13 @@ def test_readjson_unicode(request, monkeypatch, engine):
         )
         request.applymarker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
-    with tm.ensure_clean("test.json") as path:
-        monkeypatch.setattr("locale.getpreferredencoding", lambda do_setlocale: "cp949")
-        with open(path, "w", encoding="utf-8") as f:
-            f.write('{"£©µÀÆÖÞßéöÿ":["АБВГДабвгд가"]}')
+    monkeypatch.setattr("locale.getpreferredencoding", lambda do_setlocale: "cp949")
+    with open(temp_file, "w", encoding="utf-8") as f:
+        f.write('{"£©µÀÆÖÞßéöÿ":["АБВГДабвгд가"]}')
 
-        result = read_json(path, engine=engine)
-        expected = DataFrame({"£©µÀÆÖÞßéöÿ": ["АБВГДабвгд가"]})
-        tm.assert_frame_equal(result, expected)
+    result = read_json(temp_file, engine=engine)
+    expected = DataFrame({"£©µÀÆÖÞßéöÿ": ["АБВГДабвгд가"]})
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("nrows", [1, 2])
@@ -441,7 +438,7 @@ def test_to_json_append_mode(mode_):
         df.to_json(mode=mode_, lines=False, orient="records")
 
 
-def test_to_json_append_output_consistent_columns():
+def test_to_json_append_output_consistent_columns(temp_file):
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing same columns, new rows
@@ -449,17 +446,16 @@ def test_to_json_append_output_consistent_columns():
     df2 = DataFrame({"col1": [3, 4], "col2": ["c", "d"]})
 
     expected = DataFrame({"col1": [1, 2, 3, 4], "col2": ["a", "b", "c", "d"]})
-    with tm.ensure_clean("test.json") as path:
-        # Save dataframes to the same file
-        df1.to_json(path, lines=True, orient="records")
-        df2.to_json(path, mode="a", lines=True, orient="records")
+    # Save dataframes to the same file
+    df1.to_json(temp_file, lines=True, orient="records")
+    df2.to_json(temp_file, mode="a", lines=True, orient="records")
 
-        # Read path file
-        result = read_json(path, lines=True)
-        tm.assert_frame_equal(result, expected)
+    # Read path file
+    result = read_json(temp_file, lines=True)
+    tm.assert_frame_equal(result, expected)
 
 
-def test_to_json_append_output_inconsistent_columns():
+def test_to_json_append_output_inconsistent_columns(temp_file):
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing one new column, one old column, new rows
@@ -473,17 +469,16 @@ def test_to_json_append_output_inconsistent_columns():
             "col3": [np.nan, np.nan, "!", "#"],
         }
     )
-    with tm.ensure_clean("test.json") as path:
-        # Save dataframes to the same file
-        df1.to_json(path, mode="a", lines=True, orient="records")
-        df3.to_json(path, mode="a", lines=True, orient="records")
+    # Save dataframes to the same file
+    df1.to_json(temp_file, mode="a", lines=True, orient="records")
+    df3.to_json(temp_file, mode="a", lines=True, orient="records")
 
-        # Read path file
-        result = read_json(path, lines=True)
-        tm.assert_frame_equal(result, expected)
+    # Read path file
+    result = read_json(temp_file, lines=True)
+    tm.assert_frame_equal(result, expected)
 
 
-def test_to_json_append_output_different_columns():
+def test_to_json_append_output_different_columns(temp_file):
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing same, differing and new columns
@@ -500,19 +495,18 @@ def test_to_json_append_output_different_columns():
             "col4": [None, None, None, None, None, None, True, False],
         }
     ).astype({"col4": "float"})
-    with tm.ensure_clean("test.json") as path:
-        # Save dataframes to the same file
-        df1.to_json(path, mode="a", lines=True, orient="records")
-        df2.to_json(path, mode="a", lines=True, orient="records")
-        df3.to_json(path, mode="a", lines=True, orient="records")
-        df4.to_json(path, mode="a", lines=True, orient="records")
+    # Save dataframes to the same file
+    df1.to_json(temp_file, mode="a", lines=True, orient="records")
+    df2.to_json(temp_file, mode="a", lines=True, orient="records")
+    df3.to_json(temp_file, mode="a", lines=True, orient="records")
+    df4.to_json(temp_file, mode="a", lines=True, orient="records")
 
-        # Read path file
-        result = read_json(path, lines=True)
-        tm.assert_frame_equal(result, expected)
+    # Read path file
+    result = read_json(temp_file, lines=True)
+    tm.assert_frame_equal(result, expected)
 
 
-def test_to_json_append_output_different_columns_reordered():
+def test_to_json_append_output_different_columns_reordered(temp_file):
     # GH 35849
     # Testing that resulting output reads in as expected.
     # Testing specific result column order.
@@ -530,13 +524,12 @@ def test_to_json_append_output_different_columns_reordered():
             "col1": [None, None, None, None, 3, 4, 1, 2],
         }
     ).astype({"col4": "float"})
-    with tm.ensure_clean("test.json") as path:
-        # Save dataframes to the same file
-        df4.to_json(path, mode="a", lines=True, orient="records")
-        df3.to_json(path, mode="a", lines=True, orient="records")
-        df2.to_json(path, mode="a", lines=True, orient="records")
-        df1.to_json(path, mode="a", lines=True, orient="records")
+    # Save dataframes to the same file
+    df4.to_json(temp_file, mode="a", lines=True, orient="records")
+    df3.to_json(temp_file, mode="a", lines=True, orient="records")
+    df2.to_json(temp_file, mode="a", lines=True, orient="records")
+    df1.to_json(temp_file, mode="a", lines=True, orient="records")
 
-        # Read path file
-        result = read_json(path, lines=True)
-        tm.assert_frame_equal(result, expected)
+    # Read path file
+    result = read_json(temp_file, lines=True)
+    tm.assert_frame_equal(result, expected)
