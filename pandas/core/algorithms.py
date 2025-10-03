@@ -49,7 +49,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_complex_dtype,
     is_dict_like,
-    is_dtype_equal,
     is_extension_array_dtype,
     is_float,
     is_float_dtype,
@@ -57,7 +56,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_signed_integer_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
@@ -518,16 +516,6 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         orig_values = list(values)
         values = _ensure_arraylike(orig_values, func_name="isin-targets")
-
-        if (
-            len(values) > 0
-            and values.dtype.kind in "iufcb"
-            and not is_signed_integer_dtype(comps)
-            and not is_dtype_equal(values, comps)
-        ):
-            # GH#46485 Use object to avoid upcast to float64 later
-            # TODO: Share with _find_common_type_compat
-            values = construct_1d_object_array_from_listlike(orig_values)
 
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
