@@ -12,7 +12,6 @@ import numpy as np
 
 from pandas._libs import (
     lib,
-    missing as libmissing,
 )
 from pandas.util._decorators import set_module
 
@@ -385,14 +384,9 @@ class BooleanArray(BaseMaskedArray):
         elif isinstance(other, np.bool_):
             other = other.item()
 
-        if other_is_scalar and other is not libmissing.NA and not lib.is_bool(other):
-            raise TypeError(
-                "'other' should be pandas.NA or a bool. "
-                f"Got {type(other).__name__} instead."
-            )
-
         if not other_is_scalar and len(self) != len(other):
-            raise ValueError("Lengths must match")
+            msg = ops.get_shape_exception_message(self, other)
+            raise ValueError(msg)
 
         if op.__name__ in {"or_", "ror_"}:
             result, mask = ops.kleene_or(self._data, other, self._mask, mask)

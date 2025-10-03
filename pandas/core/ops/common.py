@@ -5,12 +5,18 @@ Boilerplate functions used in defining binary operations.
 from __future__ import annotations
 
 from functools import wraps
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
+
+import numpy as np
 
 from pandas._libs.lib import item_from_zerodim
 from pandas._libs.missing import is_matching_na
 
 from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
     ABCIndex,
     ABCSeries,
 )
@@ -18,7 +24,40 @@ from pandas.core.dtypes.generic import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from pandas._typing import F
+    from pandas._typing import (
+        ArrayLike,
+        F,
+    )
+
+
+def get_shape_exception_message(left: ArrayLike, right: ArrayLike) -> str:
+    """
+    Find the standardized exception message to give for operations between
+    arrays of mismatched length or shape.
+    """
+    if left.ndim == right.ndim == 1:
+        return "Lengths must match"
+    else:
+        return "Shapes must match"
+
+
+def get_op_exception_message(op_name: str, left: ArrayLike, right: Any) -> str:
+    """
+    Find the standardized exception message to give for op(left, right).
+    """
+    if isinstance(right, (np.ndarray, ABCExtensionArray)):
+        msg = (
+            f"Cannot perform operation '{op_name}' between object "
+            f"with dtype '{left.dtype}' and "
+            f"dtype '{right.dtype}'"
+        )
+    else:
+        msg = (
+            f"Cannot perform operation '{op_name}' between object "
+            f"with dtype '{left.dtype}' and "
+            f"type '{type(right).__name__}'"
+        )
+    return msg
 
 
 def unpack_zerodim_and_defer(name: str) -> Callable[[F], F]:
@@ -66,6 +105,20 @@ def _unpack_zerodim_and_defer(method: F, name: str) -> F:
                 return NotImplemented
 
         other = item_from_zerodim(other)
+
+        if isinstance(self, ABCExtensionArray):
+            if isinstance(other, (np.ndarray, ABCExtensionArray)):
+                if not self._supports_array_op(other, name):
+                    msg = get_op_exception_message(name, self, other)
+                    raise TypeError(msg)
+
+                if other.shape != self.shape:
+                    msg = get_shape_exception_message(self, other)
+                    raise ValueError(msg)
+            else:
+                if not self._supports_scalar_op(other, name):
+                    msg = get_op_exception_message(name, self, other)
+                    raise TypeError(msg)
 
         return method(self, other)
 

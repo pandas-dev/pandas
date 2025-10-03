@@ -72,6 +72,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas.core import ops
 from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
@@ -1070,9 +1071,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         if not self.dtype._is_tick_like():
             # We cannot add timedelta-like to non-tick PeriodArray
-            raise TypeError(
-                f"Cannot add or subtract timedelta64[ns] dtype from {self.dtype}"
-            )
+            msg = ops.get_op_exception_message("__add__", self, other)
+            raise TypeError(msg)
 
         dtype = np.dtype(f"m8[{self.dtype._td64_unit}]")
 
