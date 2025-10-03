@@ -24,8 +24,12 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import doc
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -743,6 +747,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         op_name = op.__name__
         omask = None
 
+        if is_list_like(other) and not isinstance(
+            other, (list, np.ndarray, ExtensionArray)
+        ):
+            warnings.warn(
+                f"Operation with {type(other).__name__} are deprecated. "
+                "In a future version these will be treated as scalar-like. "
+                "To retain the old behavior, explicitly wrap in a Series "
+                "instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         if (
             not hasattr(other, "dtype")
             and is_list_like(other)
@@ -847,6 +863,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             other, mask = other._data, other._mask
 
         elif is_list_like(other):
+            if not isinstance(other, (list, np.ndarray, ExtensionArray)):
+                warnings.warn(
+                    f"Operation with {type(other).__name__} are deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             other = np.asarray(other)
             if other.ndim > 1:
                 raise NotImplementedError("can only perform ops with 1-d structures")
