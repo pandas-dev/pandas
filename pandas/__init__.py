@@ -350,3 +350,8 @@ __all__ = [
     "unique",
     "wide_to_long",
 ]
+
+from .core.accessor import accessor_entry_point_loader
+
+accessor_entry_point_loader()
+del accessor_entry_point_loader
