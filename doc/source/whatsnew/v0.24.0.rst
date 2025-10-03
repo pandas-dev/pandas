@@ -1031,6 +1031,7 @@ The affected cases are:
 *Previous behavior*:
 
 .. code-block:: ipython
+   :okwarning:
 
    In [5]: df == arr[[0], :]
        ...: # comparison previously broadcast where arithmetic would raise
