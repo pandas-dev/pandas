@@ -1134,3 +1134,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return res_arr
 
     _arith_method = _cmp_method
+
+    def _str_zfill(self, width: int) -> Self:
+        return self._str_map(lambda x: x.zfill(width))
