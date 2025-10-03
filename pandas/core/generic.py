@@ -6115,7 +6115,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # impact if attrs are not used; i.e. attrs is an empty dict.
                 # One could make the deepcopy unconditionally, but a deepcopy
                 # of an empty dict is 50x more expensive than the empty check.
-                self.attrs = deepcopy(other.attrs)
+                # We provide the new dataset via the deepcopy memo to properly
+                # supply eventual attribute copy routines requiring information
+                # from its destination.
+                self.attrs = deepcopy(other.attrs, memo={id(self): self})
             self.flags.allows_duplicate_labels = (
                 self.flags.allows_duplicate_labels
                 and other.flags.allows_duplicate_labels
@@ -6133,7 +6136,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 attrs = objs[0].attrs
                 have_same_attrs = all(obj.attrs == attrs for obj in objs[1:])
                 if have_same_attrs:
-                    self.attrs = deepcopy(attrs)
+                    self.attrs = deepcopy(attrs, memo={id(self): self})
 
             allows_duplicate_labels = all(x.flags.allows_duplicate_labels for x in objs)
             self.flags.allows_duplicate_labels = allows_duplicate_labels
