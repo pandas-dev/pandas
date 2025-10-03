@@ -98,7 +98,6 @@ def test_26395(indexer_al):
         indexer_al(df)["C", "D"] = "hello"
 
 
-@pytest.mark.xfail(reason="unwanted upcast")
 def test_15231():
     df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
     df.loc[2] = Series({"a": 5, "b": 6})
