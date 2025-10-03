@@ -10,7 +10,7 @@ from hypothesis import given
 import numpy as np
 import pytest
 
-from pandas._config import set_option
+from pandas import option_context
 
 from pandas._libs.tslibs import (
     parsing,
@@ -428,34 +428,35 @@ def test_hypothesis_delimited_date(
 @pytest.mark.parametrize("input", ["21-01-01", "01-01-21"])
 @pytest.mark.parametrize("dayfirst", [True, False])
 def test_parse_datetime_string_with_reso_dayfirst(dayfirst, input):
-    set_option("display.date_dayfirst", dayfirst)
-    except_out_dateutil, result = _helper_hypothesis_delimited_date(
-        parsing.parse_datetime_string_with_reso, input
-    )
-    except_in_dateutil, expected = _helper_hypothesis_delimited_date(
-        du_parse,
-        input,
-        default=datetime(1, 1, 1),
-        dayfirst=dayfirst,
-        yearfirst=False,
-    )
-    assert except_out_dateutil == except_in_dateutil
-    assert result[0] == expected
+    with option_context("display.date_dayfirst", dayfirst):
+        except_out_dateutil, result = _helper_hypothesis_delimited_date(
+            parsing.parse_datetime_string_with_reso, input
+        )
+    
+        except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+            du_parse,
+            input,
+            default=datetime(1, 1, 1),
+            dayfirst=dayfirst,
+            yearfirst=False,
+        )
+        assert except_out_dateutil == except_in_dateutil
+        assert result[0] == expected
 
 
 @pytest.mark.parametrize("input", ["21-01-01", "01-01-21"])
 @pytest.mark.parametrize("yearfirst", [True, False])
 def test_parse_datetime_string_with_reso_yearfirst(yearfirst, input):
-    set_option("display.date_yearfirst", yearfirst)
-    except_out_dateutil, result = _helper_hypothesis_delimited_date(
-        parsing.parse_datetime_string_with_reso, input
-    )
-    except_in_dateutil, expected = _helper_hypothesis_delimited_date(
-        du_parse,
-        input,
-        default=datetime(1, 1, 1),
-        dayfirst=False,
-        yearfirst=yearfirst,
-    )
-    assert except_out_dateutil == except_in_dateutil
-    assert result[0] == expected
+    with option_context("display.date_yearfirst", yearfirst):
+        except_out_dateutil, result = _helper_hypothesis_delimited_date(
+            parsing.parse_datetime_string_with_reso, input
+        )
+        except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+            du_parse,
+            input,
+            default=datetime(1, 1, 1),
+            dayfirst=False,
+            yearfirst=yearfirst,
+        )
+        assert except_out_dateutil == except_in_dateutil
+        assert result[0] == expected
