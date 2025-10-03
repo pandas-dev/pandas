@@ -371,6 +371,7 @@ class NAType(C_NAType):
     >>> True | pd.NA
     True
     """
+    __module__ = "pandas"
 
     _instance = None
 
