@@ -153,44 +153,51 @@ def test_eq_objects():
         SECOND = auto()
 
     left = pd.Series([Thing.FIRST, Thing.SECOND])
-
-    result_scalar = left.eq(Thing.FIRST)
-    expected_scalar = left == Thing.FIRST
-    tm.assert_series_equal(result_scalar, expected_scalar)
-
     py_l = [Thing.FIRST, Thing.SECOND]
-    result_py_l = left.eq(py_l)
-    expected_py_l = left == py_l
-    tm.assert_series_equal(result_py_l, expected_py_l)
 
-    np_a = np.asarray(py_l)
-    result_np_a = left.eq(np_a)
-    expected_np_a = left == np_a
-    tm.assert_series_equal(result_np_a, expected_np_a)
+    result = left.eq(Thing.FIRST)
+    expected = pd.Series([True, False])
+    tm.assert_series_equal(result, expected)
 
-    pd_s = pd.Series(py_l)
-    result_pd_s = left.eq(pd_s)
-    expected_pd_s = left == pd_s
-    tm.assert_series_equal(result_pd_s, expected_pd_s)
+    result = left.eq(py_l)
+    expected = pd.Series([True, True])
+    tm.assert_series_equal(result, expected)
 
-    left_non_scalar = pd.Series([[1, 2], [3, 4]])
-    result_non_scalar = left_non_scalar.eq([1, 2])
-    expected_would_be = pd.Series([True, False])
+    result = left.eq(np.asarray(py_l))
+    expected = pd.Series([True, True])
+    tm.assert_series_equal(result, expected)
+
+    result = left.eq(pd.Series(py_l))
+    expected = pd.Series([True, True])
+    tm.assert_series_equal(result, expected)
+
+    result = pd.Series([[1, 2], [3, 4]]).eq([1, 2])
+    expected = pd.Series([True, False])
     with pytest.raises(AssertionError):
-        tm.assert_series_equal(result_non_scalar, expected_would_be)
+        tm.assert_series_equal(result, expected)
+    expected = pd.Series([False, False])
+    tm.assert_series_equal(result, expected)
 
 
 def test_eq_with_index():
     # GH#62191 Test eq with non-trivial indices
     left = pd.Series([1, 2], index=[1, 0])
-
     py_l = [1, 2]
-    tm.assert_series_equal(left.eq(py_l), left == py_l)
 
-    np_a = np.asarray(py_l)
-    tm.assert_series_equal(left.eq(np_a), left == np_a)
+    # assuming Python list has the same index as the Series
+    result = left.eq(py_l)
+    expected = pd.Series([True, True], index=[1, 0])
+    tm.assert_series_equal(result, expected)
 
-    pd_s = pd.Series(py_l)
-    tm.assert_series_equal(left.eq(pd_s), pd.Series([False, False]))
+    # assuming np.ndarray has the same index as the Series
+    result = left.eq(np.asarray(py_l))
+    expected = pd.Series([True, True], index=[1, 0])
+    tm.assert_series_equal(result, expected)
 
-    tm.assert_series_equal(left.eq(pd.Series([2, 1])), pd.Series([True, True]))
+    result = left.eq(pd.Series(py_l))
+    expected = pd.Series([False, False])
+    tm.assert_series_equal(result, expected)
+
+    result = left.eq(pd.Series([2, 1]))
+    expected = pd.Series([True, True])
+    tm.assert_series_equal(result, expected)
