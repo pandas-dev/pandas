@@ -982,7 +982,8 @@ Timezones
 ^^^^^^^^^
 - Bug in :meth:`DatetimeIndex.union`, :meth:`DatetimeIndex.intersection`, and :meth:`DatetimeIndex.symmetric_difference` changing timezone to UTC when merging two DatetimeIndex objects with the same timezone but different units (:issue:`60080`)
 - Bug in :meth:`Series.dt.tz_localize` with a timezone-aware :class:`ArrowDtype` incorrectly converting to UTC when ``tz=None`` (:issue:`61780`)
--
+- Fixed bug in :func:`date_range` where tz-aware endpoints with calendar offsets (e.g. ``"MS"``) failed on DST fall-back. These now respect ``ambiguous``/ ``nonexistent``. (:issue:`52908`)
+
 
 Numeric
 ^^^^^^^
