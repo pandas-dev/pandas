@@ -1346,7 +1346,7 @@ cdef class TextReader:
             else:
                 return None
 
-    cdef bint _column_has_float(self, int64_t col,
+    cdef bint _column_has_float(self, Py_ssize_t col,
                                 int64_t start, int64_t end,
                                 bint na_filter, kh_str_starts_t *na_hashset):
         """Check if the column contains any float number."""
