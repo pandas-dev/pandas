@@ -15,8 +15,9 @@ default_stages: [
 ci:
     autofix_prs: false
     autoupdate_schedule: monthly
-    # manual stage hooks
-    skip: [pylint, pyright, mypy]
+    # manual stage hooks and
+    # skip unwanted-patterns because it is causing timeout in pre-commit.ci.
+    skip: [pylint, pyright, mypy, unwanted-patterns-nodefault-used-not-only-for-typing]
 repos:
 -   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
     # black compiled with mypyc
