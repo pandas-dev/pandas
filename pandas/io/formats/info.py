@@ -869,13 +869,13 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
         return [
             max(*widths)
             for widths in zip(
-                self.header_column_widths, body_column_widths, strict=True
+                self.header_column_widths, body_column_widths
             )
         ]
 
     def _get_body_column_widths(self) -> Sequence[int]:
         """Get widths of table content columns."""
-        strcols: Sequence[Sequence[str]] = list(zip(*self.strrows, strict=True))
+        strcols: Sequence[Sequence[str]] = list(zip(*self.strrows))
         return [max(len(x) for x in col) for col in strcols]
 
     def _gen_rows(self) -> Iterator[Sequence[str]]:
@@ -902,7 +902,7 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
             [
                 _put_str(header, col_width)
                 for header, col_width in zip(
-                    self.headers, self.gross_column_widths, strict=True
+                    self.headers, self.gross_column_widths
                 )
             ]
         )
@@ -925,7 +925,7 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
                 [
                     _put_str(col, gross_colwidth)
                     for col, gross_colwidth in zip(
-                        row, self.gross_column_widths, strict=True
+                        row, self.gross_column_widths
                     )
                 ]
             )
@@ -985,8 +985,7 @@ class _DataFrameTableBuilderVerbose(_DataFrameTableBuilder, _TableBuilderVerbose
         yield from zip(
             self._gen_line_numbers(),
             self._gen_columns(),
-            self._gen_dtypes(),
-            strict=True,
+            self._gen_dtypes(),            
         )
 
     def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
@@ -995,8 +994,7 @@ class _DataFrameTableBuilderVerbose(_DataFrameTableBuilder, _TableBuilderVerbose
             self._gen_line_numbers(),
             self._gen_columns(),
             self._gen_non_null_counts(),
-            self._gen_dtypes(),
-            strict=True,
+            self._gen_dtypes(),            
         )
 
     def _gen_line_numbers(self) -> Iterator[str]:
@@ -1100,7 +1098,7 @@ class _SeriesTableBuilderVerbose(_SeriesTableBuilder, _TableBuilderVerboseMixin)
 
     def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
         """Iterator with string representation of body data with counts."""
-        yield from zip(self._gen_non_null_counts(), self._gen_dtypes(), strict=True)
+        yield from zip(self._gen_non_null_counts(), self._gen_dtypes())
 
 
 def _get_dataframe_dtype_counts(df: DataFrame) -> Mapping[str, int]:
