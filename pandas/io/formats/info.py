@@ -979,7 +979,7 @@ class _DataFrameTableBuilderVerbose(_DataFrameTableBuilder, _TableBuilderVerbose
         yield from zip(
             self._gen_line_numbers(),
             self._gen_columns(),
-            self._gen_dtypes(), 
+            self._gen_dtypes(),
         )
 
     def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
@@ -988,7 +988,7 @@ class _DataFrameTableBuilderVerbose(_DataFrameTableBuilder, _TableBuilderVerbose
             self._gen_line_numbers(),
             self._gen_columns(),
             self._gen_non_null_counts(),
-            self._gen_dtypes()
+            self._gen_dtypes(),
         )
 
     def _gen_line_numbers(self) -> Iterator[str]:
