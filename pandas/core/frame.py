@@ -8430,7 +8430,7 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
         elif is_list_like(right) and not isinstance(right, (Series, DataFrame)):
-            if not isinstance(right, (np.ndarray, ExtensionArray, Index, list)):
+            if not isinstance(right, (np.ndarray, ExtensionArray, Index, list, dict)):
                 warnings.warn(
                     f"Operation with {type(right).__name__} are deprecated. "
                     "In a future version these will be treated as scalar-like. "
