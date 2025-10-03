@@ -45,6 +45,7 @@ from pandas.core.dtypes.base import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
@@ -1116,10 +1117,28 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
             result[mask] = self.dtype.na_value
+            if op.__name__ in ["add", "radd"]:
+                if isinstance(other, str) or is_string_dtype(other):
+                    pass
+                elif is_float_dtype(other) or is_integer_dtype(other):
+                    if is_float_dtype(other):
+                        # Shorten whole number floats to match pyarrow behavior
+                        other = [
+                            str(int(x)) if x.is_integer() else str(x) for x in other
+                        ]
+                    else:
+                        other = other.astype(str)
+                else:
+                    raise TypeError(
+                        f"Only supports op({op.__name__}) between StringArray and "
+                        "dtypes int, float, and str."
+                    )
+
             result[valid] = op(self._ndarray[valid], other)
             if isinstance(other, Path):
                 # GH#61940
                 return result
+
             return self._from_backing_data(result)
         else:
             # logical
