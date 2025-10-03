@@ -271,3 +271,24 @@ class TestMultiIndexBasic:
         df1["C"] = s1
         tm.assert_frame_equal(df1, df2)
         tm.assert_frame_equal(df1, df3)
+
+    def test_multiindex_assign_alignment_with_non_string_dtype(self):
+        # GH 62518
+        columns = MultiIndex.from_arrays(
+            [["a", "a", "z", "z"], pd.Categorical([1, 2, 1, 2])]
+        )
+
+        meta = DataFrame(columns=columns, dtype=object)
+        meta["z"] = meta["z"].astype("int64")
+
+        result = DataFrame(
+            data={
+                ("a", 1): Series([], dtype=object),
+                ("a", 2): Series([], dtype=object),
+                ("z", 1): Series([], dtype="int64"),
+                ("z", 2): Series([], dtype="int64"),
+            },
+            columns=columns,
+        )
+
+        tm.assert_frame_equal(meta, result)
