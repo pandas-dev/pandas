@@ -241,8 +241,14 @@ else:
     switcher_version = ".".join(version.split(".")[:2])
 
 html_theme_options = {
-    "external_links": [],
-    "footer_start": ["pandas_footer", "sphinx-version"],
+    "external_links": [
+        {
+            "url": "https://github.com/pandas-dev/pandas",
+            "name": "GitHub",
+        },
+    ],
+    "footer_start": ["copyright"],
+    "footer_end": ["sphinx-version", "theme-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
     "analytics": {
         "plausible_analytics_domain": "pandas.pydata.org",
