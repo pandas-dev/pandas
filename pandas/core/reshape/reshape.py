@@ -696,7 +696,9 @@ def stack(
             levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
         )
     else:
-        levels, (ilab, clab) = zip(*map(stack_factorize, (frame.index, frame.columns)))
+        levels, (ilab, clab) = zip(
+            *map(stack_factorize, (frame.index, frame.columns)), strict=True
+        )
         codes = ilab.repeat(K), np.tile(clab, N).ravel()
         new_index = MultiIndex(
             levels=levels,
@@ -778,13 +780,13 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
 
     levs = (
         [lev[c] if c >= 0 else None for c in codes]
-        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1])
+        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1], strict=True)
     )
 
     # Remove duplicate tuples in the MultiIndex.
-    tuples = zip(*levs)
+    tuples = zip(*levs, strict=True)
     unique_tuples = (key for key, _ in itertools.groupby(tuples))
-    new_levs = zip(*unique_tuples)
+    new_levs = zip(*unique_tuples, strict=True)
 
     # The dtype of each level must be explicitly set to avoid inferring the wrong type.
     # See GH-36991.
@@ -792,7 +794,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
         [
             # Not all indices can accept None values.
             Index(new_lev, dtype=lev.dtype) if None not in new_lev else new_lev
-            for new_lev, lev in zip(new_levs, columns.levels)
+            for new_lev, lev in zip(new_levs, columns.levels, strict=True)
         ],
         names=columns.names[:-1],
     )

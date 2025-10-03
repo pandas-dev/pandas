@@ -209,7 +209,9 @@ def get_dummies(
             # columns to prepend to result.
             with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
 
-        for col, pre, sep in zip(data_to_encode.items(), prefix, prefix_sep):
+        for col, pre, sep in zip(
+            data_to_encode.items(), prefix, prefix_sep, strict=False
+        ):
             # col is (column_name, column), use just column data here
             dummy = _get_dummies_1d(
                 col[1],
@@ -323,7 +325,7 @@ def _get_dummies_1d(
         codes = codes[mask]
         n_idx = np.arange(N)[mask]
 
-        for ndx, code in zip(n_idx, codes):
+        for ndx, code in zip(n_idx, codes, strict=True):
             sp_indices[code].append(ndx)
 
         if drop_first:
@@ -331,7 +333,7 @@ def _get_dummies_1d(
             # GH12042
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
-        for col, ixs in zip(dummy_cols, sp_indices):
+        for col, ixs in zip(dummy_cols, sp_indices, strict=True):
             sarr = SparseArray(
                 np.ones(len(ixs), dtype=dtype),
                 sparse_index=IntIndex(N, ixs),
@@ -535,7 +537,11 @@ def from_dummies(
                 raise ValueError(len_msg)
         elif isinstance(default_category, Hashable):
             default_category = dict(
-                zip(variables_slice, [default_category] * len(variables_slice))
+                zip(
+                    variables_slice,
+                    [default_category] * len(variables_slice),
+                    strict=True,
+                )
             )
         else:
             raise TypeError(
