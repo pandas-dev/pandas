@@ -1013,7 +1013,11 @@ def nanvar(
     # observations.
     #
     # See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-    avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
+    if values.dtype.kind == "c":
+        # For complex numbers, preserve the dtype to avoid discarding imaginary part
+        avg = _ensure_numeric(values.sum(axis=axis, dtype=values.dtype)) / count
+    else:
+        avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
     if axis is not None:
         avg = np.expand_dims(avg, axis)
     if values.dtype.kind == "c":
