@@ -209,7 +209,9 @@ either match on the *index* or *columns* via the **axis** keyword:
    df.sub(column, axis="index")
    df.sub(column, axis=0)
 
-Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
+.. ipython:: python
+
+    df.add(np.array([1, 2, 3]), axis=0) 
 
 .. ipython:: python
 
