@@ -2217,7 +2217,7 @@ cdef class BusinessHour(BusinessMixin):
         # Use python string formatting to be faster than strftime
         hours = ",".join(
             f"{st.hour:02d}:{st.minute:02d}-{en.hour:02d}:{en.minute:02d}"
-            for st, en in zip(self.start, self.end)
+            for st, en in zip(self.start, self.end, strict=True)
         )
         attrs = [f"{self._prefix}={hours}"]
         out += ": " + ", ".join(attrs)
@@ -2414,7 +2414,7 @@ cdef class BusinessHour(BusinessMixin):
         # get total business hours by sec in one business day
         businesshours = sum(
             self._get_business_hours_by_sec(st, en)
-            for st, en in zip(self.start, self.end)
+            for st, en in zip(self.start, self.end, strict=True)
         )
 
         bd, r = divmod(abs(n * 60), businesshours // 60)
@@ -5357,7 +5357,7 @@ cpdef to_offset(freq, bint is_period=False):
                 # the last element must be blank
                 raise ValueError("last element must be blank")
 
-            tups = zip(split[0::4], split[1::4], split[2::4])
+            tups = zip(split[0::4], split[1::4], split[2::4], strict=False)
             for n, (sep, stride, name) in enumerate(tups):
                 name = _warn_about_deprecated_aliases(name, is_period)
                 _validate_to_offset_alias(name, is_period)
