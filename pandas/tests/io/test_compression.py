@@ -5,7 +5,6 @@ import subprocess
 import sys
 import tarfile
 import textwrap
-import time
 import zipfile
 
 import numpy as np
@@ -193,7 +192,6 @@ def test_gzip_reproducibility_file_name(temp_file):
     # test for filename
     path = temp_file
     df.to_csv(path, compression=compression_options)
-    time.sleep(0.1)
     output = path.read_bytes()
     df.to_csv(path, compression=compression_options)
     assert output == path.read_bytes()
@@ -216,7 +214,6 @@ def test_gzip_reproducibility_file_object():
     buffer = io.BytesIO()
     df.to_csv(buffer, compression=compression_options, mode="wb")
     output = buffer.getvalue()
-    time.sleep(0.1)
     buffer = io.BytesIO()
     df.to_csv(buffer, compression=compression_options, mode="wb")
     assert output == buffer.getvalue()
