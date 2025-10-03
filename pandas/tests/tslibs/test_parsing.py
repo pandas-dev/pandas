@@ -391,6 +391,7 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
     return msg, result
 
 
+@pytest.mark.slow
 @given(DATETIME_NO_TZ)
 @pytest.mark.parametrize("delimiter", list(" -./"))
 @pytest.mark.parametrize("dayfirst", [True, False])
