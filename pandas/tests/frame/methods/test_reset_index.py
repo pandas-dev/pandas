@@ -113,7 +113,7 @@ class TestResetIndex:
         stacked.index.names = names
         deleveled = stacked.reset_index()
         for i, (lev, level_codes) in enumerate(
-            zip(stacked.index.levels, stacked.index.codes)
+            zip(stacked.index.levels, stacked.index.codes, strict=True)
         ):
             values = lev.take(level_codes)
             name = names[i]

@@ -239,7 +239,7 @@ class TestDatetimeIndex:
         def _check_rng(rng):
             converted = rng.to_pydatetime()
             assert isinstance(converted, np.ndarray)
-            for x, stamp in zip(converted, rng):
+            for x, stamp in zip(converted, rng, strict=True):
                 assert isinstance(x, datetime)
                 assert x == stamp.to_pydatetime()
                 assert x.tzinfo == stamp.tzinfo
@@ -258,7 +258,7 @@ class TestDatetimeIndex:
         def _check_rng(rng):
             converted = rng.to_pydatetime()
             assert isinstance(converted, np.ndarray)
-            for x, stamp in zip(converted, rng):
+            for x, stamp in zip(converted, rng, strict=True):
                 assert isinstance(x, datetime)
                 assert x == stamp.to_pydatetime()
                 assert x.tzinfo == stamp.tzinfo
@@ -275,7 +275,7 @@ class TestDatetimeIndex:
         def _check_rng(rng):
             converted = rng.to_pydatetime()
             assert isinstance(converted, np.ndarray)
-            for x, stamp in zip(converted, rng):
+            for x, stamp in zip(converted, rng, strict=True):
                 assert isinstance(x, datetime)
                 assert x == stamp.to_pydatetime()
                 assert x.tzinfo == stamp.tzinfo

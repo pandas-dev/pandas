@@ -864,7 +864,7 @@ class TestDataFrameReshape:
         assert udf.notna().values.sum() == len(df)
         mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
         rows, cols = udf["jolie"].notna().values.nonzero()
-        for i, j in zip(rows, cols):
+        for i, j in zip(rows, cols, strict=True):
             left = sorted(udf["jolie"].iloc[i, j].split("."))
             right = mk_list(udf["jolie"].index[i]) + mk_list(udf["jolie"].columns[j])
             right = sorted(map(cast, right))
@@ -928,7 +928,7 @@ class TestDataFrameReshape:
         assert udf.notna().values.sum() == 2 * len(df)
         mk_list = lambda a: list(a) if isinstance(a, tuple) else [a]
         rows, cols = udf[col].notna().values.nonzero()
-        for i, j in zip(rows, cols):
+        for i, j in zip(rows, cols, strict=True):
             left = sorted(udf[col].iloc[i, j].split("."))
             right = mk_list(udf[col].index[i]) + mk_list(udf[col].columns[j])
             right = sorted(map(cast, right))
@@ -946,7 +946,7 @@ class TestDataFrameReshape:
             [3, 0, 1, 2, np.nan, np.nan, np.nan, np.nan],
             [np.nan, np.nan, np.nan, np.nan, 4, 5, 6, 7],
         ]
-        vals = list(map(list, zip(*vals)))
+        vals = list(map(list, zip(*vals, strict=True)))
         idx = Index([np.nan, 0, 1, 2, 4, 5, 6, 7], name="B")
         cols = MultiIndex(
             levels=[["C"], ["a", "b"]], codes=[[0, 0], [0, 1]], names=[None, "A"]
@@ -1416,7 +1416,7 @@ def test_unstack_sort_false_nan(levels2, expected_columns):
     result = df.unstack(level="level2", sort=False)
     expected_data = [[0, 4], [1, 5], [2, 6], [3, 7]]
     expected = DataFrame(
-        dict(zip(expected_columns, expected_data)),
+        dict(zip(expected_columns, expected_data, strict=True)),
         index=Index(["b", "a"], name="level1"),
         columns=MultiIndex.from_tuples(expected_columns, names=[None, "level2"]),
     )

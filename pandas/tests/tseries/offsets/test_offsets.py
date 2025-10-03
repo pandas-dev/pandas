@@ -665,6 +665,7 @@ class TestDateOffset:
                 "2008-01-02 00:00:00.001000000",
                 "2008-01-02 00:00:00.000001000",
             ],
+            strict=True,
         ),
     )
     def test_add(self, arithmatic_offset_type, expected, dt):
@@ -686,6 +687,7 @@ class TestDateOffset:
                 "2008-01-01 23:59:59.999000000",
                 "2008-01-01 23:59:59.999999000",
             ],
+            strict=True,
         ),
     )
     def test_sub(self, arithmatic_offset_type, expected, dt):
@@ -709,6 +711,7 @@ class TestDateOffset:
                 "2008-01-02 00:00:00.008000000",
                 "2008-01-02 00:00:00.000009000",
             ],
+            strict=True,
         ),
     )
     def test_mul_add(self, arithmatic_offset_type, n, expected, dt):
@@ -733,6 +736,7 @@ class TestDateOffset:
                 "2008-01-01 23:59:59.992000000",
                 "2008-01-01 23:59:59.999991000",
             ],
+            strict=True,
         ),
     )
     def test_mul_sub(self, arithmatic_offset_type, n, expected, dt):

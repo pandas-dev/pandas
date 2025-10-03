@@ -326,7 +326,7 @@ def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, 
     gb = df.groupby("groups", dropna=dropna)
     result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
 
-    mi_tuples = tuple(zip(data["groups"], selected_data["values"]))
+    mi_tuples = tuple(zip(data["groups"], selected_data["values"], strict=True))
     mi = pd.MultiIndex.from_tuples(mi_tuples, names=["groups", None])
     # Since right now, by default MI will drop NA from levels when we create MI
     # via `from_*`, so we need to add NA for level manually afterwards.
@@ -379,7 +379,9 @@ def test_groupby_nan_included():
         "g2": np.array([3], dtype=dtype),
         np.nan: np.array([1, 4], dtype=dtype),
     }
-    for result_values, expected_values in zip(result.values(), expected.values()):
+    for result_values, expected_values in zip(
+        result.values(), expected.values(), strict=True
+    ):
         tm.assert_numpy_array_equal(result_values, expected_values)
     assert np.isnan(list(result.keys())[2])
     assert list(result.keys())[0:2] == ["g1", "g2"]
@@ -618,7 +620,9 @@ def test_categorical_transformers(transformation_func, observed, sort, as_index)
     expected = getattr(gb_dropna, transformation_func)(*args)
 
     for iloc, value in zip(
-        df[df["x"].isnull()].index.tolist(), null_group_result.values.ravel()
+        df[df["x"].isnull()].index.tolist(),
+        null_group_result.values.ravel(),
+        strict=True,
     ):
         if expected.ndim == 1:
             expected.iloc[iloc] = value

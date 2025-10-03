@@ -1193,7 +1193,7 @@ class TestOperations:
         expec3 = df.a + df.b + df.c[df.b < 0]
         exprs = expr1, expr2, expr3
         expecs = expec1, expec2, expec3
-        for e, expec in zip(exprs, expecs):
+        for e, expec in zip(exprs, expecs, strict=True):
             tm.assert_series_equal(expec, self.eval(e, local_dict={"df": df}))
 
     def test_assignment_fails(self):

@@ -1017,7 +1017,7 @@ def test_query_compare_column_type(setup_path):
                     store.select("test", where=query)
 
             for v, col in zip(
-                ["1", "1.1", "2014-01-01"], ["int", "float", "real_date"]
+                ["1", "1.1", "2014-01-01"], ["int", "float", "real_date"], strict=True
             ):
                 query = f"{col} {op} v"
                 result = store.select("test", where=query)
@@ -1050,6 +1050,7 @@ def test_select_large_integer(tmp_path):
         zip(
             ["a", "b", "c", "d"],
             [-9223372036854775801, -9223372036854775802, -9223372036854775803, 123],
+            strict=True,
         ),
         columns=["x", "y"],
     )
