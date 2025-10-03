@@ -10,8 +10,6 @@ from hypothesis import given
 import numpy as np
 import pytest
 
-from pandas import option_context
-
 from pandas._libs.tslibs import (
     parsing,
     strptime,
@@ -27,7 +25,10 @@ import pandas.util._test_decorators as td
 # Usually we wouldn't want this import in this test file (which is targeted at
 #  tslibs.parsing), but it is convenient to test the Timestamp constructor at
 #  the same time as the other parsing functions.
-from pandas import Timestamp
+from pandas import (
+    Timestamp,
+    option_context,
+)
 import pandas._testing as tm
 from pandas._testing._hypothesis import DATETIME_NO_TZ
 
@@ -432,7 +433,7 @@ def test_parse_datetime_string_with_reso_dayfirst(dayfirst, input):
         except_out_dateutil, result = _helper_hypothesis_delimited_date(
             parsing.parse_datetime_string_with_reso, input
         )
-    
+
         except_in_dateutil, expected = _helper_hypothesis_delimited_date(
             du_parse,
             input,
