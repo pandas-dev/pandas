@@ -11,6 +11,7 @@ import pytest
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -800,7 +801,13 @@ class TestNamePreservation:
             if is_logical:
                 # Series doesn't have these as flex methods
                 return
-            result = getattr(left, name)(right)
+
+            warn = None
+            tuple_msg = "with a tuple is deprecated"
+            if box is tuple:
+                warn = Pandas4Warning
+            with tm.assert_produces_warning(warn, match=tuple_msg):
+                result = getattr(left, name)(right)
         else:
             if is_logical and box in [list, tuple]:
                 with pytest.raises(TypeError, match=msg):

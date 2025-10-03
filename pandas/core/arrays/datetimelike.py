@@ -78,6 +78,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     InvalidComparison,
+    Pandas4Warning,
     PerformanceWarning,
 )
 from pandas.util._decorators import (
@@ -967,6 +968,17 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if self.ndim > 1 and getattr(other, "shape", None) == self.shape:
             # TODO: handle 2D-like listlikes
             return op(self.ravel(), other.ravel()).reshape(self.shape)
+
+        if is_list_like(other):
+            if not isinstance(other, (list, np.ndarray, ExtensionArray)):
+                warnings.warn(
+                    f"Operation with {type(other).__name__} are deprecated. "
+                    "In a future version these will be treated as scalar-like. "
+                    "To retain the old behavior, explicitly wrap in a Series "
+                    "instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
 
         try:
             other = self._validate_comparison_value(other)
