@@ -225,7 +225,7 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(df.loc[4, "c"], exp)
 
         # invalid assignments
-        msg = "Must have equal len keys and value when setting with an iterable"
+        msg = "Length mismatch when setting Dataframe with an iterable"
         with pytest.raises(ValueError, match=msg):
             df.loc[4, "c"] = [0, 1, 2, 3]
 
