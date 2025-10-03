@@ -29,8 +29,19 @@ documentation.
 pandas data table representation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. image:: ../../_static/schemas/01_table_dataframe.svg
+.. figure:: /_static/data_table_rep.svg
+   :alt: DataFrame with column labels and row index
+   :width: 85%
    :align: center
+
+   A :class:`pandas.DataFrame` is a 2D table. Columns are identified by their
+   **labels** (shown across the top), and rows are identified by the **index**
+   (shown on the left).
+
+.. note::
+
+   The **index** labels rows and enables reliable alignment, selection and joins
+   across objects. See :ref:`indexing` for a deeper introduction.
 
 .. raw:: html
 

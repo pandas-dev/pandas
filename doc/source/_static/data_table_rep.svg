@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="740" height="360" font-family="Inter, Arial, sans-serif" font-size="14">
+  <defs>
+    <style>
+      .hdr { fill:#f2f5f7; }
+      .idx { fill:#f7f2f2; }
+      .cell { fill:#ffffff; }
+      .stroke { stroke:#2e3a46; stroke-width:1; }
+      .label { fill:#2e3a46; font-weight:600; }
+      .muted { fill:#5c6b77; font-size:13px; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="20" y="28" class="label" font-size="18">DataFrame: columns (top) and index (left)</text>
+
+  <!-- Column headers -->
+  <rect x="140" y="60" width="160" height="36" class="hdr stroke"/>
+  <rect x="300" y="60" width="160" height="36" class="hdr stroke"/>
+  <rect x="460" y="60" width="160" height="36" class="hdr stroke"/>
+  <text x="220" y="83" text-anchor="middle" class="label">col A</text>
+  <text x="380" y="83" text-anchor="middle" class="label">col B</text>
+  <text x="540" y="83" text-anchor="middle" class="label">col C</text>
+
+  <!-- Index header cell (blank) -->
+  <rect x="60" y="60" width="80" height="36" class="hdr stroke"/>
+  <text x="100" y="83" text-anchor="middle" class="muted">index</text>
+
+  <!-- Index labels -->
+  <rect x="60" y="96" width="80" height="48" class="idx stroke"/>
+  <rect x="60" y="144" width="80" height="48" class="idx stroke"/>
+  <rect x="60" y="192" width="80" height="48" class="idx stroke"/>
+  <text x="100" y="125" text-anchor="middle" class="label">0</text>
+  <text x="100" y="173" text-anchor="middle" class="label">1</text>
+  <text x="100" y="221" text-anchor="middle" class="label">2</text>
+
+  <!-- Data cells row 0 -->
+  <rect x="140" y="96" width="160" height="48" class="cell stroke"/>
+  <rect x="300" y="96" width="160" height="48" class="cell stroke"/>
+  <rect x="460" y="96" width="160" height="48" class="cell stroke"/>
+  <text x="220" y="125" text-anchor="middle" class="muted">A0</text>
+  <text x="380" y="125" text-anchor="middle" class="muted">B0</text>
+  <text x="540" y="125" text-anchor="middle" class="muted">C0</text>
+
+  <!-- Data cells row 1 -->
+  <rect x="140" y="144" width="160" height="48" class="cell stroke"/>
+  <rect x="300" y="144" width="160" height="48" class="cell stroke"/>
+  <rect x="460" y="144" width="160" height="48" class="cell stroke"/>
+  <text x="220" y="173" text-anchor="middle" class="muted">A1</text>
+  <text x="380" y="173" text-anchor="middle" class="muted">B1</text>
+  <text x="540" y="173" text-anchor="middle" class="muted">C1</text>
+
+  <!-- Data cells row 2 -->
+  <rect x="140" y="192" width="160" height="48" class="cell stroke"/>
+  <rect x="300" y="192" width="160" height="48" class="cell stroke"/>
+  <rect x="460" y="192" width="160" height="48" class="cell stroke"/>
+  <text x="220" y="221" text-anchor="middle" class="muted">A2</text>
+  <text x="380" y="221" text-anchor="middle" class="muted">B2</text>
+  <text x="540" y="221" text-anchor="middle" class="muted">C2</text>
+
+  <!-- Legends -->
+  <rect x="60" y="270" width="20" height="20" class="hdr stroke"/><text x="88" y="285" class="muted">header (labels)</text>
+  <rect x="200" y="270" width="20" height="20" class="idx stroke"/><text x="228" y="285" class="muted">index</text>
+  <rect x="320" y="270" width="20" height="20" class="cell stroke"/><text x="348" y="285" class="muted">data</text>
+</svg>
