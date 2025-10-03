@@ -1,0 +1,67 @@
+# Copyright (c) Jupyter Development Team.
+# Distributed under the terms of the Modified BSD License.
+
+[build-system]
+requires = [
+    "hatchling",
+    "jupyterlab~=4.0",
+]
+build-backend = "hatchling.build"
+
+[project]
+name = "test-no-hyphens"
+license = "BSD-3-Clause"
+version = "3.0.2"
+
+[tool.hatch.build.targets.wheel.shared-data]
+"test_no_hyphens/labextension/package.json" = "share/jupyter/labextensions/test_no_hyphens/package.json"
+"test_no_hyphens/labextension/static" = "share/jupyter/labextensions/test_no_hyphens/static"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    ".github",
+]
+
+[tool.hatch.build.hooks.jupyter-builder]
+dependencies = [
+    "hatch-jupyter-builder>=0.9.1",
+]
+build-function = "hatch_jupyter_builder.npm_builder"
+ensured-targets = [
+    "test_no_hyphens/labextension/package.json",
+]
+
+[tool.hatch.build.hooks.jupyter-builder.editable-build-kwargs]
+build_dir = "test_no_hyphens/labextension"
+build_cmd = "build:labextension"
+npm = [
+    "jlpm",
+]
+
+[tool.hatch.build.hooks.jupyter-builder.build-kwargs]
+build_cmd = "build:labextension"
+npm = [
+    "jlpm",
+]
+
+[tool.tbump]
+field = [
+    { name = "channel", default = "" },
+    { name = "release", default = "" },
+]
+
+[tool.tbump.version]
+current = "3.0.2"
+regex = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)((?P<channel>a|b|rc|.dev)(?P<release>\\d+))?"
+
+[tool.tbump.git]
+message_template = "Bump to {new_version}"
+tag_template = "v{new_version}"
+
+[[tool.tbump.file]]
+src = "pyproject.toml"
+version_template = "version = \"{major}.{minor}.{patch}{channel}{release}\""
+
+[[tool.tbump.file]]
+src = "package.json"
+version_template = "\"version\": \"{major}.{minor}.{patch}{channel}{release}\""

@@ -1,0 +1,36 @@
+Metadata-Version: 2.4
+Name: pyreadstat
+Version: 1.3.0
+Summary: Reads and Writes SAS, SPSS and Stata files into/from pandas data frames.
+Home-page: https://github.com/Roche/pyreadstat
+Download-URL: https://github.com/Roche/pyreadstat/dist
+Author: Otto Fajardo
+Author-email: pleasecontactviagithub@notvalid.com
+License: Apache License Version 2.0
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Cython
+Classifier: Programming Language :: C
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering
+Classifier: Environment :: Console
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pandas>=1.2.0
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: download-url
+Dynamic: home-page
+Dynamic: license
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: summary
+
+ A Python package to read and write SAS
+(sas7bdat, sas7bcat, xport/xpt), SPSS (sav, zsav, por) and Stata (dta) files into/from pandas data frames. It is a wrapper
+around the C library readstat.<br>
+Please visit out project home page for more information:<br>
+https://github.com/Roche/pyreadstat

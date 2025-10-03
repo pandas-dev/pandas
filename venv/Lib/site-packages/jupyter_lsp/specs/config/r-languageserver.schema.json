@@ -1,0 +1,46 @@
+{
+  "title": "R Language Server confiuguration",
+  "type": "object",
+  "properties": {
+    "r.lsp.debug": {
+      "type": "boolean",
+      "default": true,
+      "description": "Increase verbosity for debug purpose."
+    },
+    "r.lsp.log_file": {
+      "type": ["string", "null"],
+      "default": null,
+      "description": "File to log debug messages, fallback to stderr if empty."
+    },
+    "r.lsp.diagnostics": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable file diagnostics via lintr."
+    },
+    "r.lsp.rich_documentation": {
+      "type": "boolean",
+      "default": true,
+      "description": "Rich documentation with enhanced markdown features."
+    },
+    "r.lsp.snippet_support": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable snippets in auto completion."
+    },
+    "r.lsp.max_completions": {
+      "type": "number",
+      "default": 200,
+      "description": "Maximum number of completion items."
+    },
+    "r.lsp.lint_cache": {
+      "type": "boolean",
+      "default": false,
+      "description": "Toggle caching of lint results."
+    },
+    "r.lsp.link_file_size_limit": {
+      "type": "number",
+      "default": 16384,
+      "description": "Maximum file size (in bytes) that supports document links."
+    }
+  }
+}
