@@ -1357,14 +1357,33 @@ cdef class TextReader:
 
         coliter_setup(&it, self.parser, col, start)
 
+        ignored_chars = b" +-"
+        digits = b"0123456789"
+        float_indicating_chars = {self.parser.decimal, b"e", b"E"}
+
         for i in range(lines):
             COLITER_NEXT(it, word)
 
             if na_filter and kh_get_str_starts_item(na_hashset, word):
                 continue
 
-            if self.parser.decimal in word or b"e" in word or b"E" in word:
-                return True
+            found_first_digit = False
+            for c in word:
+                if not found_first_digit and c in ignored_chars:
+                    continue
+                elif not found_first_digit and c not in digits:
+                    # word isn't numeric
+                    return False
+                elif not found_first_digit:
+                    found_first_digit = True
+                elif c in float_indicating_chars:
+                    # preceding chars indicates numeric and
+                    # current char indicates float
+                    return True
+                elif c not in digits:
+                    # previous characters indicates numeric
+                    # current character shows otherwise
+                    return False
 
         return False
 
