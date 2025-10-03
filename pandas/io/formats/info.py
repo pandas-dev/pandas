@@ -908,7 +908,9 @@ class _TableBuilderVerboseMixin(_TableBuilderAbstract):
         separator_line = self.SPACING.join(
             [
                 _put_str("-" * header_colwidth, gross_colwidth)
-                for header_colwidth, gross_colwidth in zip(self.header_column_widths, self.gross_column_widths)
+                for header_colwidth, gross_colwidth in zip(
+                    self.header_column_widths, self.gross_column_widths
+                )
             ]
         )
         self._lines.append(separator_line)
@@ -977,7 +979,7 @@ class _DataFrameTableBuilderVerbose(_DataFrameTableBuilder, _TableBuilderVerbose
         yield from zip(
             self._gen_line_numbers(),
             self._gen_columns(),
-            self._gen_dtypes(),       
+            self._gen_dtypes(), 
         )
 
     def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
@@ -986,7 +988,7 @@ class _DataFrameTableBuilderVerbose(_DataFrameTableBuilder, _TableBuilderVerbose
             self._gen_line_numbers(),
             self._gen_columns(),
             self._gen_non_null_counts(),
-            self._gen_dtypes(),    
+            self._gen_dtypes(),
         )
 
     def _gen_line_numbers(self) -> Iterator[str]:
@@ -1092,7 +1094,7 @@ class _SeriesTableBuilderVerbose(_SeriesTableBuilder, _TableBuilderVerboseMixin)
         """Iterator with string representation of body data with counts."""
         yield from zip(
             self._gen_non_null_counts(),
-            self._gen_dtypes()
+            self._gen_dtypes(),
         )
 
 
