@@ -107,6 +107,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_sequence,
+    is_string_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -2132,12 +2133,12 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Convert structured or record ndarray to DataFrame.
 
-        Creates a DataFrame object from a structured ndarray, or sequence of
+        Creates a DataFrame object from a structured ndarray, or iterable of
         tuples or dicts.
 
         Parameters
         ----------
-        data : structured ndarray, sequence of tuples or dicts
+        data : structured ndarray, iterable of tuples or dicts
             Structured input data.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
@@ -4452,6 +4453,15 @@ class DataFrame(NDFrame, OpsMixin):
                 loc, (slice, Series, np.ndarray, Index)
             ):
                 cols_droplevel = maybe_droplevels(cols, key)
+                if (
+                    not isinstance(cols_droplevel, MultiIndex)
+                    and is_string_dtype(cols_droplevel.dtype)
+                    and not cols_droplevel.any()
+                ):
+                    # if cols_droplevel contains only empty strings,
+                    # value.reindex(cols_droplevel, axis=1) would be full of NaNs
+                    # see GH#62518 and GH#61841
+                    return
                 if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
                     value = value.reindex(cols_droplevel, axis=1)
 
