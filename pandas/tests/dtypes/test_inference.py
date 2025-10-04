@@ -187,10 +187,10 @@ ll_params = [
     (np.nan, False, "NaN"),
     (None, False, "None"),
 ]
-objs, expected, ids = zip(*ll_params)
+objs, expected, ids = zip(*ll_params, strict=True)
 
 
-@pytest.fixture(params=zip(objs, expected), ids=ids)
+@pytest.fixture(params=zip(objs, expected, strict=True), ids=ids)
 def maybe_list_like(request):
     return request.param
 

@@ -950,7 +950,7 @@ def test_ffill_bfill_non_unique_multilevel(func, expected_status):
     result = getattr(df.groupby("symbol")["status"], func)()
 
     index = MultiIndex.from_tuples(
-        tuples=list(zip(*[date, symbol])), names=["date", "symbol"]
+        tuples=list(zip(*[date, symbol], strict=True)), names=["date", "symbol"]
     )
     expected = Series(expected_status, index=index, name="status")
 

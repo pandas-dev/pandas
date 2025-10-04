@@ -484,7 +484,9 @@ class TestSeriesDatetimeValues:
             "Saturday",
             "Sunday",
         ]
-        for day, name, eng_name in zip(range(4, 11), expected_days, english_days):
+        for day, name, eng_name in zip(
+            range(4, 11), expected_days, english_days, strict=True
+        ):
             name = name.capitalize()
             assert ser.dt.day_name(locale=time_locale)[day] == name
             assert ser.dt.day_name(locale=None)[day] == eng_name
@@ -501,7 +503,7 @@ class TestSeriesDatetimeValues:
 
         tm.assert_series_equal(result, expected)
 
-        for s_date, expected in zip(ser, expected_months):
+        for s_date, expected in zip(ser, expected_months, strict=True):
             result = s_date.month_name(locale=time_locale)
             expected = expected.capitalize()
 

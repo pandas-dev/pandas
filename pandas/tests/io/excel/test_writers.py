@@ -161,7 +161,7 @@ class TestRoundTrip:
         sheets = ["AAA", "BBB", "CCC"]
 
         dfs = [tdf(s) for s in sheets]
-        dfs = dict(zip(sheets, dfs))
+        dfs = dict(zip(sheets, dfs, strict=True))
 
         with ExcelWriter(tmp_excel) as ew:
             for sheetname, df in dfs.items():

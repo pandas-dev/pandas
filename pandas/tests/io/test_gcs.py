@@ -138,7 +138,7 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
             zipfile.ZipFile(BytesIO(result)) as exp,
             zipfile.ZipFile(BytesIO(expected)) as res,
         ):
-            for res_info, exp_info in zip(res.infolist(), exp.infolist()):
+            for res_info, exp_info in zip(res.infolist(), exp.infolist(), strict=True):
                 assert res_info.CRC == exp_info.CRC
     elif compression == "tar":
         with (
@@ -146,7 +146,7 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
             tarfile.open(fileobj=BytesIO(expected)) as tar_res,
         ):
             for tar_res_info, tar_exp_info in zip(
-                tar_res.getmembers(), tar_exp.getmembers()
+                tar_res.getmembers(), tar_exp.getmembers(), strict=True
             ):
                 actual_file = tar_res.extractfile(tar_res_info)
                 expected_file = tar_exp.extractfile(tar_exp_info)

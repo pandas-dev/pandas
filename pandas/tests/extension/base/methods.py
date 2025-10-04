@@ -350,7 +350,10 @@ class BaseMethodsTests:
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
             pd.array(
-                [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
+                [
+                    a <= b
+                    for (a, b) in zip(list(orig_data1), list(orig_data2), strict=True)
+                ],
                 dtype=self._combine_le_expected_dtype,
             )
         )
@@ -369,7 +372,7 @@ class BaseMethodsTests:
     def _construct_for_combine_add(self, left, right):
         if isinstance(right, type(left)):
             return left._from_sequence(
-                [a + b for (a, b) in zip(list(left), list(right))],
+                [a + b for (a, b) in zip(list(left), list(right), strict=True)],
                 dtype=left.dtype,
             )
         else:

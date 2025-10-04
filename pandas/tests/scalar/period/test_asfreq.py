@@ -780,7 +780,7 @@ class TestFreqConversion:
 
         # ordinal will not change
         expected = Period("2007", freq="25h")
-        for freq, how in zip(["1D1h", "1h1D"], ["E", "S"]):
+        for freq, how in zip(["1D1h", "1h1D"], ["E", "S"], strict=True):
             result = p.asfreq(freq, how=how)
             assert result == expected
             assert result.ordinal == expected.ordinal

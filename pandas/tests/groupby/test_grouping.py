@@ -300,7 +300,7 @@ class TestGrouping:
     def test_grouper_returning_tuples(self, func):
         # GH 22257 , both with dict and with callable
         df = DataFrame({"X": ["A", "B", "A", "B"], "Y": [1, 4, 3, 2]})
-        mapping = dict(zip(range(4), [("C", 5), ("D", 6)] * 2))
+        mapping = dict(zip(range(4), [("C", 5), ("D", 6)] * 2, strict=True))
 
         if func:
             gb = df.groupby(by=lambda idx: mapping[idx], sort=False)

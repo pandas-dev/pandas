@@ -206,7 +206,7 @@ def test_frame_mixed_depth_get():
         ["", "wx", "wy", "", "", ""],
     ]
 
-    tuples = sorted(zip(*arrays))
+    tuples = sorted(zip(*arrays, strict=True))
     index = MultiIndex.from_tuples(tuples)
     df = DataFrame(np.random.default_rng(2).standard_normal((4, 6)), columns=index)
 

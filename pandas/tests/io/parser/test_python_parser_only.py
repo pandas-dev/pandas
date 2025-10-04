@@ -398,7 +398,7 @@ good{sep}bye
         {"0": "foo", "1": "bar"},
         {"0": "good", "1": "bye"},
     ]
-    for i, (result, expected) in enumerate(zip(result_iter, expecteds)):
+    for i, (result, expected) in enumerate(zip(result_iter, expecteds, strict=True)):
         expected = DataFrame(expected, index=range(i, i + 1))
         tm.assert_frame_equal(result, expected)
 

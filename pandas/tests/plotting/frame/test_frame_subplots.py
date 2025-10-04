@@ -42,7 +42,7 @@ class TestDataFramePlotsSubplots:
         _check_axes_shape(axes, axes_num=3, layout=(3, 1))
         assert axes.shape == (3,)
 
-        for ax, column in zip(axes, df.columns):
+        for ax, column in zip(axes, df.columns, strict=True):
             _check_legend_labels(ax, labels=[pprint_thing(column)])
 
         for ax in axes[:-2]:

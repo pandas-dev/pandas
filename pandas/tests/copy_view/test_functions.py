@@ -305,5 +305,5 @@ def test_join_multiple_dataframes_on_key():
     assert not np.shares_memory(get_array(result, "c"), get_array(dfs_list[1], "c"))
 
     tm.assert_frame_equal(df1, df1_orig)
-    for df, df_orig in zip(dfs_list, dfs_list_orig):
+    for df, df_orig in zip(dfs_list, dfs_list_orig, strict=True):
         tm.assert_frame_equal(df, df_orig)

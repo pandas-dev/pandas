@@ -150,7 +150,7 @@ class TestToIterable:
         vals = [Timestamp("2011-01-01"), Timestamp("2011-01-02")]
         ser = Series(vals).dt.as_unit(unit)
         assert ser.dtype == f"datetime64[{unit}]"
-        for res, exp in zip(ser, vals):
+        for res, exp in zip(ser, vals, strict=True):
             assert isinstance(res, Timestamp)
             assert res.tz is None
             assert res == exp
@@ -164,7 +164,7 @@ class TestToIterable:
         ser = Series(vals).dt.as_unit(unit)
 
         assert ser.dtype == f"datetime64[{unit}, US/Eastern]"
-        for res, exp in zip(ser, vals):
+        for res, exp in zip(ser, vals, strict=True):
             assert isinstance(res, Timestamp)
             assert res.tz == exp.tz
             assert res == exp
@@ -175,7 +175,7 @@ class TestToIterable:
         vals = [Timedelta("1 days"), Timedelta("2 days")]
         ser = Series(vals).dt.as_unit(unit)
         assert ser.dtype == f"timedelta64[{unit}]"
-        for res, exp in zip(ser, vals):
+        for res, exp in zip(ser, vals, strict=True):
             assert isinstance(res, Timedelta)
             assert res == exp
             assert res.unit == unit
@@ -185,7 +185,7 @@ class TestToIterable:
         vals = [pd.Period("2011-01-01", freq="M"), pd.Period("2011-01-02", freq="M")]
         s = Series(vals)
         assert s.dtype == "Period[M]"
-        for res, exp in zip(s, vals):
+        for res, exp in zip(s, vals, strict=True):
             assert isinstance(res, pd.Period)
             assert res.freq == "ME"
             assert res == exp
