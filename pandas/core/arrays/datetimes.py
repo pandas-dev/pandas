@@ -817,14 +817,27 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             result = type(self)._from_sequence(res_values, dtype=self.dtype)
 
         else:
-            units = ["ns", "us", "ms", "s", "m", "h", "D"]
+            units = [
+                "ns",
+                "us",
+                "ms",
+                "s",
+            ]
             res_unit = self.unit
-            if hasattr(offset, "offset"):
-                offset_unit = Timedelta(offset.offset).unit
-                idx_self = units.index(self.unit)
-                idx_offset = units.index(offset_unit)
-                res_unit = units[min(idx_self, idx_offset)]
+            # Only try to adjust unit if both units are recognized
+            try:
+                if hasattr(offset, "offset"):
+                    offset_td = Timedelta(offset.offset)
+                    offset_unit = offset_td.unit
+                    if self.unit in units and offset_unit in units:
+                        idx_self = units.index(self.unit)
+                        idx_offset = units.index(offset_unit)
+                        res_unit = units[min(idx_self, idx_offset)]
+            except Exception:
+                res_unit = self.unit
             dtype = tz_to_dtype(self.tz, unit=res_unit)
+            if res_values.dtype != f"datetime64[{res_unit}]":
+                res_values = res_values.astype(f"datetime64[{res_unit}]")
             result = type(self)._simple_new(res_values, dtype=dtype)
 
             if offset.normalize:

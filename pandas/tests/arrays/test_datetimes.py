@@ -860,4 +860,4 @@ def test_dt64_non_nano_offset_no_rounding():
             pd.Timestamp("2016-01-04 00:00:00.001"),
         ]
     )
-    assert all(result == expected)
+    tm.assert_index_equal(result, expected)
