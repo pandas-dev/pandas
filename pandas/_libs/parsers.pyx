@@ -1359,7 +1359,7 @@ cdef class TextReader:
 
         ignored_chars = b" +-"
         digits = b"0123456789"
-        float_indicating_chars = {self.parser.decimal, b"e", b"E"}
+        float_indicating_chars = b"eE"
 
         for i in range(lines):
             COLITER_NEXT(it, word)
@@ -1370,7 +1370,9 @@ cdef class TextReader:
             found_first_digit = False
             j = 0
             while word[j] != b"\0":
-                if not found_first_digit and word[j] in ignored_chars:
+                if word[j] == self.parser.decimal:
+                    return True
+                elif not found_first_digit and word[j] in ignored_chars:
                     # no-op
                     pass
                 elif not found_first_digit and word[j] not in digits:
