@@ -10,6 +10,7 @@ from pandas import (
     NaT,
     Series,
     date_range,
+    NA,
 )
 import pandas._testing as tm
 
@@ -440,3 +441,41 @@ class TestDataFrameInterpolate:
         result = df.interpolate(limit=2)
         expected = DataFrame({"a": [1, 1.5, 2.0, None, 3]}, dtype="float64[pyarrow]")
         tm.assert_frame_equal(result, expected)
+
+    def test_interpolate_time_with_nullable_int64(self, frame_or_series):
+    # GH#40252 regression: method="time" should work with nullable Int64
+        idx = date_range("2024-01-01", periods=3, freq="D")
+        ser = Series([1, NA, 3], dtype="Int64", index=idx)
+
+        res = frame_or_series(ser).interpolate(method="time")
+
+        expected_ser = Series([1.0, 2.0, 3.0], dtype="Float64", index=idx)
+        expected = frame_or_series(expected_ser)
+        tm.assert_equal(res, expected)
+
+    def test_interpolate_time_with_nullable_float64(self, frame_or_series):
+        # GH#40252 regression: method="time" with nullable Float64
+        idx = date_range("2024-02-01", periods=3, freq="D")
+        ser = Series([1.5, NA, 3.5], dtype="Float64", index=idx)
+
+        res = frame_or_series(ser).interpolate(method="time")
+
+        expected_ser = Series([1.5, 2.5, 3.5], dtype="Float64", index=idx)
+        expected = frame_or_series(expected_ser)
+        tm.assert_equal(res, expected)
+
+    def test_interpolate_time_with_nullable_int64_unsorted_index(self, frame_or_series):
+        # Ensure correctness when the DatetimeIndex is unsorted
+        idx_sorted = date_range("2024-03-01", periods=3, freq="D")      # 1st, 2nd, 3rd
+        idx_unsorted = idx_sorted[[2, 0, 1]]                            # 3rd, 1st, 2nd
+
+        # values aligned with idx_unsorted: 3, 1, NA  (dtype EA Int64)
+        ser_unsorted = Series([3, 1, NA], dtype="Int64", index=idx_unsorted)
+
+        res = frame_or_series(ser_unsorted).interpolate(method="time")
+
+        # Expected: equivalent to sorting by time, interpolating, then restoring order
+        expected_sorted = Series([1.0, 2.0, 3.0], dtype="Float64", index=idx_sorted)
+        expected_ser = expected_sorted.reindex(idx_unsorted)
+        expected = frame_or_series(expected_ser)
+        tm.assert_equal(res, expected)
