@@ -7,7 +7,6 @@ from io import (
 import json
 import os
 import sys
-import time
 import uuid
 
 import numpy as np
@@ -2016,14 +2015,10 @@ class TestPandasContainer:
         mock_bucket_name = s3_bucket_public.name
         target_file = f"{uuid.uuid4()}.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
-        df.to_json(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
-        timeout = 5
-        while True:
-            if target_file in (obj.key for obj in s3_bucket_public.objects.all()):
-                break
-            time.sleep(0.1)
-            timeout -= 0.1
-            assert timeout > 0, "Timed out waiting for file to appear on moto"
+        uri = f"s3://{mock_bucket_name}/{target_file}"
+        df.to_json(uri, storage_options=s3so)
+        result = read_json(uri, storage_options=s3so)
+        tm.assert_frame_equal(result, df)
 
     def test_json_pandas_nulls(self, nulls_fixture):
         # GH 31615
