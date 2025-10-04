@@ -141,7 +141,3 @@ doc/source/savefig/
 # Pyodide/WASM related files #
 ##############################
 /.pyodide-xbuildenv-*
-
-venv*/
-.venv*/
-*.log
