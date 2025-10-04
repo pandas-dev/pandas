@@ -1682,7 +1682,9 @@ class TestDataFrameReductions:
         df = DataFrame(
             {
                 "a": Series([0, 0]),
-                "t": Series([to_timedelta(0, "s"), to_timedelta(1, "ms")]),
+                "t": Series(
+                    [to_timedelta(0, input_unit="s"), to_timedelta(1, input_unit="ms")]
+                ),
             }
         )
 

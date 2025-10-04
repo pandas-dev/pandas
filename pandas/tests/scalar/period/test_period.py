@@ -665,12 +665,12 @@ class TestPeriodMethods:
     def test_to_timestamp_mult(self):
         p = Period("2011-01", freq="M")
         assert p.to_timestamp(how="S") == Timestamp("2011-01-01")
-        expected = Timestamp("2011-02-01") - Timedelta(1, "ns")
+        expected = Timestamp("2011-02-01") - Timedelta(1, input_unit="ns")
         assert p.to_timestamp(how="E") == expected
 
         p = Period("2011-01", freq="3M")
         assert p.to_timestamp(how="S") == Timestamp("2011-01-01")
-        expected = Timestamp("2011-04-01") - Timedelta(1, "ns")
+        expected = Timestamp("2011-04-01") - Timedelta(1, input_unit="ns")
         assert p.to_timestamp(how="E") == expected
 
     @pytest.mark.filterwarnings(
@@ -712,19 +712,19 @@ class TestPeriodMethods:
         p = Period("1985", freq="Y")
 
         result = p.to_timestamp("h", how="end")
-        expected = Timestamp(1986, 1, 1) - Timedelta(1, "ns")
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, input_unit="ns")
         assert result == expected
         result = p.to_timestamp("3h", how="end")
         assert result == expected
 
         result = p.to_timestamp("min", how="end")
-        expected = Timestamp(1986, 1, 1) - Timedelta(1, "ns")
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, input_unit="ns")
         assert result == expected
         result = p.to_timestamp("2min", how="end")
         assert result == expected
 
         result = p.to_timestamp(how="end")
-        expected = Timestamp(1986, 1, 1) - Timedelta(1, "ns")
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, input_unit="ns")
         assert result == expected
 
         expected = datetime(1985, 1, 1)
@@ -913,7 +913,7 @@ class TestPeriodProperties:
         period = TestPeriodProperties._period_constructor(bound, -offset)
         expected = period.to_timestamp().round(freq="s")
         assert getattr(period, period_property).round(freq="s") == expected
-        expected = (bound - offset * Timedelta(1, unit="s")).floor("s")
+        expected = (bound - offset * Timedelta(1, input_unit="s")).floor("s")
         assert getattr(period, period_property).floor("s") == expected
 
     def test_start_time(self):

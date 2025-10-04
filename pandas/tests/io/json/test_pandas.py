@@ -1002,7 +1002,10 @@ class TestPandasContainer:
             (DataFrame({"A": [True, False, False]}), None),
             (
                 DataFrame(
-                    {"A": ["a", "b", "c"], "B": pd.to_timedelta(np.arange(3), unit="D")}
+                    {
+                        "A": ["a", "b", "c"],
+                        "B": pd.to_timedelta(np.arange(3), input_unit="D"),
+                    }
                 ),
                 Pandas4Warning,
             ),
@@ -1129,7 +1132,7 @@ class TestPandasContainer:
         assert result[field].dtype == dtype
 
     def test_timedelta(self):
-        converter = lambda x: pd.to_timedelta(x, unit="ms")
+        converter = lambda x: pd.to_timedelta(x, input_unit="ms")
 
         ser = Series([timedelta(23), timedelta(seconds=5)])
         assert ser.dtype == "timedelta64[ns]"
@@ -1170,7 +1173,7 @@ class TestPandasContainer:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             data = StringIO(frame.to_json(date_unit="ns"))
         result = read_json(data)
-        result["a"] = pd.to_timedelta(result.a, unit="ns")
+        result["a"] = pd.to_timedelta(result.a, input_unit="ns")
         result["c"] = pd.to_datetime(result.c)
         tm.assert_frame_equal(frame, result)
 

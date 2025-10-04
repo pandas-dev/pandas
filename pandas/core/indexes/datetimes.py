@@ -1031,6 +1031,7 @@ def date_range(
                    '2817-01-01', '2917-01-01'],
                   dtype='datetime64[s]', freq='100YS-JAN')
     """
+    # assert not kwargs, kwargs
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
 

@@ -289,7 +289,7 @@ def test_xarray_coerce_unit():
     xr = pytest.importorskip("xarray")
 
     arr = xr.DataArray([1, 2, 3])
-    result = pd.to_datetime(arr, unit="ns")
+    result = pd.to_datetime(arr, input_unit="ns")
     expected = DatetimeIndex(
         [
             "1970-01-01 00:00:00.000000001",

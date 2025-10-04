@@ -511,7 +511,11 @@ class TestCategoricalIndex:
             # pandas scalars
             [Interval(1, 4), Interval(4, 6), Interval(6, 9)],
             [Timestamp(2019, 1, 1), Timestamp(2019, 2, 1), Timestamp(2019, 3, 1)],
-            [Timedelta(1, "D"), Timedelta(2, "D"), Timedelta(3, "D")],
+            [
+                Timedelta(1, input_unit="D"),
+                Timedelta(2, input_unit="D"),
+                Timedelta(3, input_unit="D"),
+            ],
             # pandas Integer arrays
             *(pd.array([1, 2, 3], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES),
             # other pandas arrays

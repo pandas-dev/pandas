@@ -123,7 +123,7 @@ def _handle_date_column(
         ):
             format = "s"
         if format in ["D", "d", "h", "m", "s", "ms", "us", "ns"]:
-            return to_datetime(col, errors="coerce", unit=format, utc=utc)
+            return to_datetime(col, errors="coerce", input_unit=format, utc=utc)
         elif isinstance(col.dtype, DatetimeTZDtype):
             # coerce to UTC timezone
             # GH11216

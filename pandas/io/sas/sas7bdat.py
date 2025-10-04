@@ -280,11 +280,11 @@ class SAS7BDATReader(SASReader):
         x = self._read_float(
             const.date_created_offset + align1, const.date_created_length
         )
-        self.date_created = epoch + pd.to_timedelta(x, unit="s")
+        self.date_created = epoch + pd.to_timedelta(x, input_unit="s")
         x = self._read_float(
             const.date_modified_offset + align1, const.date_modified_length
         )
-        self.date_modified = epoch + pd.to_timedelta(x, unit="s")
+        self.date_modified = epoch + pd.to_timedelta(x, input_unit="s")
 
         self.header_length = self._read_uint(
             const.header_size_offset + align1, const.header_size_length

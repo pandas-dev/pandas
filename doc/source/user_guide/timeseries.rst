@@ -353,8 +353,8 @@ as timezone-naive timestamps and then localize to the appropriate timezone:
 
    .. ipython:: python
 
-      pd.to_datetime([1490195805.433, 1490195805.433502912], unit="s")
-      pd.to_datetime(1490195805433502912, unit="ns")
+      pd.to_datetime([1490195805.433, 1490195805.433502912], input_unit="s")
+      pd.to_datetime(1490195805433502912, input_unit="ns")
 
 .. seealso::
 
@@ -389,14 +389,14 @@ of a ``DatetimeIndex``. For example, to use 1960-01-01 as the starting date:
 
 .. ipython:: python
 
-   pd.to_datetime([1, 2, 3], unit="D", origin=pd.Timestamp("1960-01-01"))
+   pd.to_datetime([1, 2, 3], input_unit="D", origin=pd.Timestamp("1960-01-01"))
 
 The default is set at ``origin='unix'``, which defaults to ``1970-01-01 00:00:00``.
 Commonly called 'unix epoch' or POSIX time.
 
 .. ipython:: python
 
-   pd.to_datetime([1, 2, 3], unit="D")
+   pd.to_datetime([1, 2, 3], input_unit="D")
 
 .. _timeseries.daterange:
 
@@ -2633,7 +2633,7 @@ Transform nonexistent times to ``NaT`` or shift the times.
     dti
     dti.tz_localize("Europe/Warsaw", nonexistent="shift_forward")
     dti.tz_localize("Europe/Warsaw", nonexistent="shift_backward")
-    dti.tz_localize("Europe/Warsaw", nonexistent=pd.Timedelta(1, unit="h"))
+    dti.tz_localize("Europe/Warsaw", nonexistent=pd.Timedelta(1, input_unit="h"))
     dti.tz_localize("Europe/Warsaw", nonexistent="NaT")
 
 

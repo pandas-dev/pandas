@@ -29,7 +29,7 @@ from pandas import (
         (np.datetime64("2005-02-25"), Timestamp),
         (Timestamp("2005-02-25"), Timestamp),
         (np.timedelta64(1, "D"), Timedelta),
-        (Timedelta(1, "D"), Timedelta),
+        (Timedelta(1, input_unit="D"), Timedelta),
         (Interval(0, 1), Interval),
         (Period("4Q2005"), Period),
     ],
