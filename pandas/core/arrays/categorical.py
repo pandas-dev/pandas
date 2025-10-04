@@ -1514,6 +1514,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         self,
         mapper,
         na_action: Literal["ignore"] | None = None,
+        preserve_dtype: bool = True,
     ):
         """
         Map categories using an input mapping or function.
@@ -1534,6 +1535,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         na_action : {None, 'ignore'}, default None
             If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
+
+        preserve_dtype : bool, default True
+            Please safely ignore this parameter.
 
         Returns
         -------

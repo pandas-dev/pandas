@@ -742,7 +742,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     #  pandas assumes they're there.
 
     @ravel_compat
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None = None,
+        preserve_type: bool = True,
+    ):
+        """Safely ignore the `preserve_type` parameter"""
         from pandas import Index
 
         result = map_array(self, mapper, na_action=na_action)
