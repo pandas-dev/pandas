@@ -1813,8 +1813,6 @@ class DatetimeIndexResampler(Resampler):
 
     def _get_binner_for_time(self):
         # this is how we are actually creating the bins
-        if isinstance(self.ax, PeriodIndex):
-            return self._timegrouper._get_time_period_bins(self.ax)
         return self._timegrouper._get_time_bins(self.ax)
 
     def _downsample(self, how, **kwargs):
@@ -1837,17 +1835,6 @@ class DatetimeIndexResampler(Resampler):
             obj.index = obj.index._with_freq(self.freq)
             assert obj.index.freq == self.freq, (obj.index.freq, self.freq)
             return obj
-
-        # do we have a regular frequency
-
-        # error: Item "None" of "Optional[Any]" has no attribute "binlabels"
-        if (
-            (ax.freq is not None or ax.inferred_freq is not None)
-            and len(self._grouper.binlabels) > len(ax)
-            and how is None
-        ):
-            # let's do an asfreq
-            return self.asfreq()
 
         # we are downsampling
         # we want to call the actual grouper method here
@@ -1945,17 +1932,9 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
-        warnings.warn(
-            "Resampling a groupby with a PeriodIndex is deprecated. "
-            "Cast to DatetimeIndex before resampling instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
         return PeriodIndexResamplerGroupby
 
     def _get_binner_for_time(self):
-        if isinstance(self.ax, DatetimeIndex):
-            return super()._get_binner_for_time()
         return self._timegrouper._get_period_bins(self.ax)
 
     def _convert_obj(self, obj: NDFrameT) -> NDFrameT:
@@ -1970,10 +1949,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             )
             raise NotImplementedError(msg)
 
-        # convert to timestamp
-        if isinstance(obj, DatetimeIndex):
-            obj = obj.to_timestamp(how=self.convention)
-
         return obj
 
     def _downsample(self, how, **kwargs):
@@ -1985,10 +1960,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         how : string / cython mapped function
         **kwargs : kw args passed to how function
         """
-        # we may need to actually resample as if we are timestamps
-        if isinstance(self.ax, DatetimeIndex):
-            return super()._downsample(how, **kwargs)
-
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):
@@ -2022,10 +1993,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         fill_value : scalar, default None
             Value to use for missing values.
         """
-        # we may need to actually resample as if we are timestamps
-        if isinstance(self.ax, DatetimeIndex):
-            return super()._upsample(method, limit=limit, fill_value=fill_value)
-
         ax = self.ax
         obj = self.obj
         new_index = self.binner
@@ -2291,14 +2258,6 @@ class TimeGrouper(Grouper):
                 gpr_index=ax,
             )
         elif isinstance(ax, PeriodIndex):
-            if isinstance(ax, PeriodIndex):
-                # GH#53481
-                warnings.warn(
-                    "Resampling with a PeriodIndex is deprecated. "
-                    "Cast index to DatetimeIndex before resampling instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
             return PeriodIndexResampler(
                 obj,
                 timegrouper=self,

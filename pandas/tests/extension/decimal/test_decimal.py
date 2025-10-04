@@ -5,6 +5,8 @@ import decimal
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.extension import base
@@ -23,12 +25,12 @@ def dtype():
 
 @pytest.fixture
 def data():
-    return DecimalArray(make_data())
+    return DecimalArray(make_data(10))
 
 
 @pytest.fixture
 def data_for_twos():
-    return DecimalArray([decimal.Decimal(2) for _ in range(100)])
+    return DecimalArray([decimal.Decimal(2) for _ in range(10)])
 
 
 @pytest.fixture
@@ -134,7 +136,7 @@ class TestDecimalArray(base.ExtensionTests):
     def test_fillna_frame(self, data_missing):
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            Pandas4Warning, match=msg, check_stacklevel=False
         ):
             super().test_fillna_frame(data_missing)
 
@@ -168,26 +170,6 @@ class TestDecimalArray(base.ExtensionTests):
             DeprecationWarning, match=msg, check_stacklevel=False
         ):
             super().test_fillna_limit_series(data_missing)
-
-    @pytest.mark.parametrize("dropna", [True, False])
-    def test_value_counts(self, all_data, dropna):
-        all_data = all_data[:10]
-        if dropna:
-            other = np.array(all_data[~all_data.isna()])
-        else:
-            other = all_data
-
-        vcs = pd.Series(all_data).value_counts(dropna=dropna)
-        vcs_ex = pd.Series(other).value_counts(dropna=dropna)
-
-        with decimal.localcontext() as ctx:
-            # avoid raising when comparing Decimal("NAN") < Decimal(2)
-            ctx.traps[decimal.InvalidOperation] = False
-
-            result = vcs.sort_index()
-            expected = vcs_ex.sort_index()
-
-        tm.assert_series_equal(result, expected)
 
     def test_series_repr(self, data):
         # Overriding this base test to explicitly test that
@@ -358,7 +340,7 @@ def test_groupby_agg():
     # Ensure that the result of agg is inferred to be decimal dtype
     # https://github.com/pandas-dev/pandas/issues/29141
 
-    data = make_data()[:5]
+    data = make_data(5)
     df = pd.DataFrame(
         {"id1": [0, 0, 0, 1, 1], "id2": [0, 1, 0, 1, 1], "decimals": DecimalArray(data)}
     )
@@ -395,7 +377,7 @@ def test_groupby_agg_ea_method(monkeypatch):
 
     monkeypatch.setattr(DecimalArray, "my_sum", DecimalArray__my_sum, raising=False)
 
-    data = make_data()[:5]
+    data = make_data(5)
     df = pd.DataFrame({"id": [0, 0, 0, 1, 1], "decimals": DecimalArray(data)})
     expected = pd.Series(to_decimal([data[0] + data[1] + data[2], data[3] + data[4]]))
 
@@ -417,7 +399,7 @@ def test_indexing_no_materialize(monkeypatch):
 
     monkeypatch.setattr(DecimalArray, "__array__", DecimalArray__array__, raising=False)
 
-    data = make_data()
+    data = make_data(10)
     s = pd.Series(DecimalArray(data))
     df = pd.DataFrame({"a": s, "b": range(len(s))})
 

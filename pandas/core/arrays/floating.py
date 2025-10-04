@@ -1,8 +1,14 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+)
 
 import numpy as np
+
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.base import register_extension_dtype
 from pandas.core.dtypes.common import is_float_dtype
@@ -11,6 +17,9 @@ from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class FloatingDtype(NumericDtype):
@@ -26,7 +35,7 @@ class FloatingDtype(NumericDtype):
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = np.nan
     _default_np_dtype = np.dtype(np.float64)
-    _checker = is_float_dtype
+    _checker: Callable[[Any], bool] = is_float_dtype
 
     def construct_array_type(self) -> type[FloatingArray]:
         """
@@ -161,6 +170,7 @@ Float64Dtype()
 
 
 @register_extension_dtype
+@set_module("pandas")
 class Float32Dtype(FloatingDtype):
     type = np.float32
     name: ClassVar[str] = "Float32"
@@ -168,6 +178,7 @@ class Float32Dtype(FloatingDtype):
 
 
 @register_extension_dtype
+@set_module("pandas")
 class Float64Dtype(FloatingDtype):
     type = np.float64
     name: ClassVar[str] = "Float64"

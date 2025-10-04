@@ -186,9 +186,10 @@ def test_masked_kleene_logic(all_boolean_reductions, skipna, data):
 )
 def test_masked_mixed_types(dtype1, dtype2, exp_col1, exp_col2):
     # GH#37506
-    data = [1.0, np.nan]
+    data1 = [1.0, np.nan] if dtype1.startswith("f") else [1.0, pd.NA]
+    data2 = [1.0, np.nan] if dtype2.startswith("f") else [1.0, pd.NA]
     df = DataFrame(
-        {"col1": pd.array(data, dtype=dtype1), "col2": pd.array(data, dtype=dtype2)}
+        {"col1": pd.array(data1, dtype=dtype1), "col2": pd.array(data2, dtype=dtype2)}
     )
     result = df.groupby([1, 1]).agg("all", skipna=False)
 
@@ -291,7 +292,7 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
     gb = df.groupby("a")
 
     if not skipna:
-        msg = f"DataFrameGroupBy.{how} with skipna=False"
+        msg = f"{how} with skipna=False"
         with pytest.raises(ValueError, match=msg):
             getattr(gb, how)(skipna=skipna)
         return
@@ -379,8 +380,10 @@ def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
     df = DataFrame(
         {
             "a": [2, 1, 1, 2, 3, 3],
-            "b": [na_value, 3.0, na_value, 4.0, np.nan, np.nan],
-            "c": [na_value, 3.0, na_value, 4.0, np.nan, np.nan],
+            # TODO: test that has mixed na_value and NaN either working for
+            #  float or raising for int?
+            "b": [na_value, 3.0, na_value, 4.0, na_value, na_value],
+            "c": [na_value, 3.0, na_value, 4.0, na_value, na_value],
         },
         dtype=any_real_nullable_dtype,
     )

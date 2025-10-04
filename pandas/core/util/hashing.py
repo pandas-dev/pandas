@@ -324,8 +324,8 @@ def _hash_ndarray(
             )
 
             codes, categories = factorize(vals, sort=False)
-            dtype = CategoricalDtype(categories=Index(categories), ordered=False)
-            cat = Categorical._simple_new(codes, dtype)
+            tdtype = CategoricalDtype(categories=Index(categories), ordered=False)
+            cat = Categorical._simple_new(codes, tdtype)
             return cat._hash_pandas_object(
                 encoding=encoding, hash_key=hash_key, categorize=False
             )
@@ -344,4 +344,7 @@ def _hash_ndarray(
     vals ^= vals >> 27
     vals *= np.uint64(0x94D049BB133111EB)
     vals ^= vals >> 31
-    return vals
+    # error: Incompatible return value type (got "Any | ndarray[tuple[int, ...],
+    # dtype[signedinteger[Any]]]", expected "ndarray[tuple[int, ...],
+    # dtype[unsignedinteger[_64Bit]]]")
+    return vals  # type: ignore[return-value]

@@ -87,7 +87,11 @@ def make_looper(func, result_dtype, is_grouped_kernel, nopython, nogil, parallel
     else:
 
         @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
-        def column_looper(
+        # error: Incompatible redefinition (redefinition with type
+        # "Callable[[ndarray[Any, Any], ndarray[Any, Any], ndarray[Any, Any],
+        # int, VarArg(Any)], Any]", original type "Callable[[ndarray[Any, Any],
+        # ndarray[Any, Any], int, int, VarArg(Any)], Any]")
+        def column_looper(  # type: ignore[misc]
             values: np.ndarray,
             start: np.ndarray,
             end: np.ndarray,

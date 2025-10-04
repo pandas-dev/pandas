@@ -14,6 +14,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import register_extension_dtype
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
 
 
 @register_extension_dtype
+@set_module("pandas")
 class BooleanDtype(BaseMaskedDtype):
     """
     Extension dtype for boolean data.
@@ -368,7 +370,7 @@ class BooleanArray(BaseMaskedArray):
             assert dtype == "boolean"
         return coerce_to_array(value, copy=copy)
 
-    def _logical_method(self, other, op):  # type: ignore[override]
+    def _logical_method(self, other, op):
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
         other_is_scalar = lib.is_scalar(other)
         mask = None

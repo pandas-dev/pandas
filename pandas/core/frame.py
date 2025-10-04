@@ -50,7 +50,10 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
-from pandas.compat._constants import REF_COUNT
+from pandas.compat._constants import (
+    REF_COUNT,
+    WARNING_CHECK_DISABLED,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -71,7 +74,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import (
     find_stack_level,
-    rewrite_warning,
 )
 from pandas.util._validators import (
     validate_ascending,
@@ -105,6 +107,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_sequence,
+    is_string_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -142,6 +145,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     sanitize_array,
@@ -238,6 +242,7 @@ if TYPE_CHECKING:
         MutableMappingT,
         NaPosition,
         NsmallestNlargestKeep,
+        ParquetCompressionOptions,
         PythonFuncType,
         QuantileInterpolation,
         ReadBuffer,
@@ -727,7 +732,7 @@ class DataFrame(NDFrame, OpsMixin):
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
 
@@ -2128,12 +2133,12 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Convert structured or record ndarray to DataFrame.
 
-        Creates a DataFrame object from a structured ndarray, or sequence of
+        Creates a DataFrame object from a structured ndarray, or iterable of
         tuples or dicts.
 
         Parameters
         ----------
-        data : structured ndarray, sequence of tuples or dicts
+        data : structured ndarray, iterable of tuples or dicts
             Structured input data.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
@@ -2860,7 +2865,7 @@ class DataFrame(NDFrame, OpsMixin):
         path: None = ...,
         *,
         engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
-        compression: str | None = ...,
+        compression: ParquetCompressionOptions = ...,
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
@@ -2873,7 +2878,7 @@ class DataFrame(NDFrame, OpsMixin):
         path: FilePath | WriteBuffer[bytes],
         *,
         engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
-        compression: str | None = ...,
+        compression: ParquetCompressionOptions = ...,
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
@@ -2886,7 +2891,7 @@ class DataFrame(NDFrame, OpsMixin):
         path: FilePath | WriteBuffer[bytes] | None = None,
         *,
         engine: Literal["auto", "pyarrow", "fastparquet"] = "auto",
-        compression: str | None = "snappy",
+        compression: ParquetCompressionOptions = "snappy",
         index: bool | None = None,
         partition_cols: list[str] | None = None,
         storage_options: StorageOptions | None = None,
@@ -4297,8 +4302,8 @@ class DataFrame(NDFrame, OpsMixin):
         z  3  50
         # Values for 'a' and 'b' are completely ignored!
         """
-        if not PYPY:
-            if sys.getrefcount(self) <= 3:
+        if not PYPY and not WARNING_CHECK_DISABLED:
+            if sys.getrefcount(self) <= REF_COUNT + 1:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -4448,6 +4453,15 @@ class DataFrame(NDFrame, OpsMixin):
                 loc, (slice, Series, np.ndarray, Index)
             ):
                 cols_droplevel = maybe_droplevels(cols, key)
+                if (
+                    not isinstance(cols_droplevel, MultiIndex)
+                    and is_string_dtype(cols_droplevel.dtype)
+                    and not cols_droplevel.any()
+                ):
+                    # if cols_droplevel contains only empty strings,
+                    # value.reindex(cols_droplevel, axis=1) would be full of NaNs
+                    # see GH#62518 and GH#61841
+                    return
                 if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
                     value = value.reindex(cols_droplevel, axis=1)
 
@@ -5147,10 +5161,19 @@ class DataFrame(NDFrame, OpsMixin):
         def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
             # GH 46870: BooleanDtype._is_numeric == True but should be excluded
             dtype = dtype if not isinstance(dtype, ArrowDtype) else dtype.numpy_dtype
-            return issubclass(dtype.type, tuple(dtypes_set)) or (
-                np.number in dtypes_set
-                and getattr(dtype, "_is_numeric", False)
-                and not is_bool_dtype(dtype)
+            return (
+                issubclass(dtype.type, tuple(dtypes_set))
+                or (
+                    np.number in dtypes_set
+                    and getattr(dtype, "_is_numeric", False)
+                    and not is_bool_dtype(dtype)
+                )
+                # backwards compat for the default `str` dtype being selected by object
+                or (
+                    isinstance(dtype, StringDtype)
+                    and dtype.na_value is np.nan
+                    and np.object_ in dtypes_set
+                )
             )
 
         def predicate(arr: ArrayLike) -> bool:
@@ -9212,7 +9235,7 @@ class DataFrame(NDFrame, OpsMixin):
         1  2  500.0
         2  3    6.0
         """
-        if not PYPY:
+        if not PYPY and not WARNING_CHECK_DISABLED:
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
@@ -9375,6 +9398,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
+    )
     def groupby(
         self,
         by=None,
@@ -9894,7 +9920,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "removed in a future version of pandas. See the What's New notes "
                 "for pandas 2.1.0 for details. Do not specify the future_stack "
                 "argument to adopt the new implementation and silence this warning.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
@@ -10891,54 +10917,41 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _append_internal(
         self,
-        other,
+        other: Series,
         ignore_index: bool = False,
-        verify_integrity: bool = False,
-        sort: bool = False,
     ) -> DataFrame:
-        if isinstance(other, (Series, dict)):
-            if isinstance(other, dict):
-                if not ignore_index:
-                    raise TypeError("Can only append a dict if ignore_index=True")
-                other = Series(other)
-            if other.name is None and not ignore_index:
-                raise TypeError(
-                    "Can only append a Series if ignore_index=True "
-                    "or if the Series has a name"
-                )
+        assert isinstance(other, Series), type(other)
 
-            index = Index(
-                [other.name],
-                name=(
-                    self.index.names
-                    if isinstance(self.index, MultiIndex)
-                    else self.index.name
-                ),
+        if other.name is None and not ignore_index:
+            raise TypeError(
+                "Can only append a Series if ignore_index=True "
+                "or if the Series has a name"
             )
-            row_df = other.to_frame().T
-            # infer_objects is needed for
-            #  test_append_empty_frame_to_series_with_dateutil_tz
-            other = row_df.infer_objects().rename_axis(index.names)
-        elif isinstance(other, list):
-            if not other:
-                pass
-            elif not isinstance(other[0], DataFrame):
-                other = DataFrame(other)
-                if self.index.name is not None and not ignore_index:
-                    other.index.name = self.index.name
+
+        index = Index(
+            [other.name],
+            name=(
+                self.index.names
+                if isinstance(self.index, MultiIndex)
+                else self.index.name
+            ),
+        )
+
+        row_df = other.to_frame().T
+        if isinstance(self.index.dtype, ExtensionDtype):
+            # GH#41626 retain e.g. CategoricalDtype if reached via
+            #  df.loc[key] = item
+            row_df.index = self.index.array._cast_pointwise_result(row_df.index._values)
+
+        # infer_objects is needed for
+        #  test_append_empty_frame_to_series_with_dateutil_tz
+        row_df = row_df.infer_objects().rename_axis(index.names)
 
         from pandas.core.reshape.concat import concat
 
-        if isinstance(other, (list, tuple)):
-            to_concat = [self, *other]
-        else:
-            to_concat = [self, other]
-
         result = concat(
-            to_concat,
+            [self, row_df],
             ignore_index=ignore_index,
-            verify_integrity=verify_integrity,
-            sort=sort,
         )
         return result.__finalize__(self, method="append")
 
@@ -11926,25 +11939,13 @@ class DataFrame(NDFrame, OpsMixin):
                     row_index = np.tile(np.arange(nrows), ncols)
                     col_index = np.repeat(np.arange(ncols), nrows)
                     ser = Series(arr, index=col_index, copy=False)
-                    # GroupBy will raise a warning with SeriesGroupBy as the object,
-                    # likely confusing users
-                    with rewrite_warning(
-                        target_message=(
-                            f"The behavior of SeriesGroupBy.{name} with all-NA values"
-                        ),
-                        target_category=FutureWarning,
-                        new_message=(
-                            f"The behavior of {type(self).__name__}.{name} with all-NA "
-                            "values, or any-NA and skipna=False, is deprecated. In "
-                            "a future version this will raise ValueError"
-                        ),
-                    ):
-                        result = ser.groupby(row_index).agg(name, **kwds)
+                    if name == "all":
+                        # Behavior here appears incorrect; preserving
+                        # for backwards compatibility for now.
+                        # See https://github.com/pandas-dev/pandas/issues/57171
+                        skipna = True
+                    result = ser.groupby(row_index).agg(name, **kwds, skipna=skipna)
                     result.index = df.index
-                    if not skipna and name not in ("any", "all"):
-                        mask = df.isna().to_numpy(dtype=np.bool_).any(axis=1)
-                        other = -1 if name in ("idxmax", "idxmin") else lib.no_default
-                        result = result.mask(mask, other)
                     return result
 
             df = df.T
@@ -13258,13 +13259,11 @@ class DataFrame(NDFrame, OpsMixin):
         # indices will always be np.ndarray since axis is not N
 
         if (indices == -1).any():
-            warnings.warn(
-                f"The behavior of {type(self).__name__}.idxmin with all-NA "
-                "values, or any-NA and skipna=False, is deprecated. In a future "
-                "version this will raise ValueError",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            if skipna:
+                msg = "Encountered all NA values"
+            else:
+                msg = "Encountered an NA values with skipna=False"
+            raise ValueError(msg)
 
         index = data._get_axis(axis)
         result = algorithms.take(
@@ -13365,13 +13364,11 @@ class DataFrame(NDFrame, OpsMixin):
         # indices will always be 1d array since axis is not None
 
         if (indices == -1).any():
-            warnings.warn(
-                f"The behavior of {type(self).__name__}.idxmax with all-NA "
-                "values, or any-NA and skipna=False, is deprecated. In a future "
-                "version this will raise ValueError",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            if skipna:
+                msg = "Encountered all NA values"
+            else:
+                msg = "Encountered an NA values with skipna=False"
+            raise ValueError(msg)
 
         index = data._get_axis(axis)
         result = algorithms.take(

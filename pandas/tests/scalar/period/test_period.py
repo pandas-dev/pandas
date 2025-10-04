@@ -16,6 +16,8 @@ from pandas._libs.tslibs.ccalendar import (
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.parsing import DateParseError
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
+from pandas.compat import PY314
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     NaT,
@@ -109,7 +111,7 @@ class TestPeriodConstruction:
 
         i1 = Period("1982", freq="min")
         msg = "'MIN' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             i2 = Period("1982", freq="MIN")
         assert i1 == i2
 
@@ -118,7 +120,7 @@ class TestPeriodConstruction:
         assert i1 == i2
 
         msg = "'d' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             i3 = Period(year=2005, month=3, day=1, freq="d")
         assert i1 == i3
 
@@ -169,7 +171,9 @@ class TestPeriodConstruction:
 
     def test_construction_bday(self):
         # Biz day construction, roll forward if non-weekday
-        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="'b' is deprecated", raise_on_extra_warnings=False
+        ):
             i1 = Period("3/10/12", freq="B")
             i2 = Period("3/10/12", freq="D")
             assert i1 == i2.asfreq("B")
@@ -344,7 +348,10 @@ class TestPeriodConstruction:
         msg = '^Given date string "-2000" not likely a datetime$'
         with pytest.raises(ValueError, match=msg):
             Period("-2000", "Y")
-        msg = "day is out of range for month"
+        if PY314:
+            msg = "day 0 must be in range 1..31 for month 1 in year 1: 0"
+        else:
+            msg = "day is out of range for month"
         with pytest.raises(DateParseError, match=msg):
             Period("0", "Y")
         msg = "Unknown datetime string format, unable to parse"
@@ -628,7 +635,9 @@ class TestPeriodConstruction:
             f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
         )
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=msg, raise_on_extra_warnings=False
+        ):
             result = Period("2016-03-01 09:00", freq=freq_depr)
 
         expected = Period("2016-03-01 09:00", freq=freq)

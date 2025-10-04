@@ -88,9 +88,7 @@ def ravel_compat(meth: F) -> F:
     return cast(F, method)
 
 
-# error: Definition of "delete/ravel/T/repeat/copy" in base class "NDArrayBacked"
-# is incompatible with definition in base class "ExtensionArray"
-class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignore[misc]
+class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     """
     ExtensionArray that is backed by a single NumPy ndarray.
     """
@@ -114,6 +112,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
         raise AbstractMethodError(self)
 
     # ------------------------------------------------------------------------
+
+    @overload
+    def view(self) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
 
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
         # We handle datetime64, datetime64tz, timedelta64, and period
@@ -147,7 +151,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):  # type: ignor
 
             td64_values = arr.view(dtype)
             return TimedeltaArray._simple_new(td64_values, dtype=dtype)
-        return arr.view(dtype=dtype)
+        # error: Argument "dtype" to "view" of "ndarray" has incompatible type
+        # "ExtensionDtype | dtype[Any]"; expected "dtype[Any] | _HasDType[dtype[Any]]"
+        return arr.view(dtype=dtype)  # type: ignore[arg-type]
 
     def take(
         self,

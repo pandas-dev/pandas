@@ -3,6 +3,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -304,6 +305,9 @@ class TestAstype:
         ],
         ids=repr,
     )
+    @pytest.mark.filterwarnings(
+        "ignore:Constructing a Categorical with a dtype and values"
+    )
     def test_astype_categorical(self, dtype):
         # GH#18099
         d = {"A": list("abbc"), "B": list("bccd"), "C": list("cdde")}
@@ -365,11 +369,21 @@ class TestAstype:
         tm.assert_frame_equal(df.astype("int64").astype(dtype), expected1)
 
     @pytest.mark.parametrize("dtype", ["category", "Int64"])
-    def test_astype_extension_dtypes_duplicate_col(self, dtype):
+    def test_astype_extension_dtypes_duplicate_col(self, dtype, using_nan_is_na):
         # GH#24704
         a1 = Series([0, np.nan, 4], name="a")
         a2 = Series([np.nan, 3, 5], name="a")
         df = concat([a1, a2], axis=1)
+
+        if dtype == "Int64" and not using_nan_is_na:
+            msg = "Cannot cast NaN value to Integer dtype"
+            with pytest.raises(ValueError, match=msg):
+                df.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                a1.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                a2.astype(dtype)
+            return
 
         result = df.astype(dtype)
         expected = concat([a1.astype(dtype), a2.astype(dtype)], axis=1)
@@ -718,7 +732,7 @@ class TestAstype:
     def test_astype_tz_conversion(self):
         # GH 35973, GH#58998
         msg = "'d' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             val = {
                 "tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")
             }

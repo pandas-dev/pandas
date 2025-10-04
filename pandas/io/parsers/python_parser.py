@@ -21,6 +21,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import Scalar
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -77,7 +78,6 @@ if TYPE_CHECKING:
         ArrayLike,
         DtypeObj,
         ReadCsvBuffer,
-        Scalar,
         T,
     )
 
@@ -165,7 +165,7 @@ class PythonParser(ParserBase):
             _,
         ) = self._extract_multi_indexer_columns(
             columns,
-            self.index_names,  # type: ignore[has-type]
+            self.index_names,
         )
 
         # get popped off for index
@@ -288,7 +288,7 @@ class PythonParser(ParserBase):
                 self.orig_names,
                 is_potential_multi_index(
                     self.orig_names,
-                    self.index_col,  # type: ignore[has-type]
+                    self.index_col,
                 ),
             )
             index, columns, col_dict = self._get_empty_meta(
@@ -325,14 +325,13 @@ class PythonParser(ParserBase):
             self.orig_names,
             is_potential_multi_index(
                 self.orig_names,
-                self.index_col,  # type: ignore[has-type]
+                self.index_col,
             ),
         )
 
         offset = 0
         if self._implicit_index:
-            # error: Cannot determine type of 'index_col'
-            offset = len(self.index_col)  # type: ignore[has-type]
+            offset = len(self.index_col)
 
         len_alldata = len(alldata)
         self._check_data_length(names, alldata)
@@ -667,8 +666,7 @@ class PythonParser(ParserBase):
                     # line for the rest of the parsing code
                     if hr == header[-1]:
                         lc = len(this_columns)
-                        # error: Cannot determine type of 'index_col'
-                        sic = self.index_col  # type: ignore[has-type]
+                        sic = self.index_col
                         ic = len(sic) if sic is not None else 0
                         unnamed_count = len(this_unnamed_cols)
 
@@ -956,7 +954,9 @@ class PythonParser(ParserBase):
         """
         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
             raise ParserError(msg)
-        if self.on_bad_lines == self.BadLineHandleMethod.WARN:
+        if self.on_bad_lines == self.BadLineHandleMethod.WARN or callable(
+            self.on_bad_lines
+        ):
             warnings.warn(
                 f"Skipping line {row_num}: {msg}\n",
                 ParserWarning,
@@ -1131,8 +1131,7 @@ class PythonParser(ParserBase):
         if line is not None:
             # leave it 0, #2442
             # Case 1
-            # error: Cannot determine type of 'index_col'
-            index_col = self.index_col  # type: ignore[has-type]
+            index_col = self.index_col
             if index_col is not False:
                 implicit_first_cols = len(line) - self.num_original_columns
 
@@ -1182,13 +1181,7 @@ class PythonParser(ParserBase):
         # Check that there are no rows with too many
         # elements in their row (rows with too few
         # elements are padded with NaN).
-        # error: Non-overlapping identity check (left operand type: "List[int]",
-        # right operand type: "Literal[False]")
-        if (
-            max_len > col_len
-            and self.index_col is not False  # type: ignore[comparison-overlap]
-            and self.usecols is None
-        ):
+        if max_len > col_len and self.index_col is not False and self.usecols is None:
             footers = self.skipfooter if self.skipfooter else 0
             bad_lines = []
 
@@ -1198,29 +1191,35 @@ class PythonParser(ParserBase):
 
             for i, _content in iter_content:
                 actual_len = len(_content)
-
                 if actual_len > col_len:
                     if callable(self.on_bad_lines):
                         new_l = self.on_bad_lines(_content)
                         if new_l is not None:
-                            content.append(new_l)  # pyright: ignore[reportArgumentType]
+                            new_l = cast(list[Scalar], new_l)
+                            if len(new_l) > col_len:
+                                row_num = self.pos - (content_len - i + footers)
+                                bad_lines.append((row_num, len(new_l), "callable"))
+                                new_l = new_l[:col_len]
+                            content.append(new_l)
+
                     elif self.on_bad_lines in (
                         self.BadLineHandleMethod.ERROR,
                         self.BadLineHandleMethod.WARN,
                     ):
                         row_num = self.pos - (content_len - i + footers)
-                        bad_lines.append((row_num, actual_len))
-
+                        bad_lines.append((row_num, actual_len, "normal"))
                         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
                             break
                 else:
                     content.append(_content)
 
-            for row_num, actual_len in bad_lines:
+            for row_num, actual_len, source in bad_lines:
                 msg = (
                     f"Expected {col_len} fields in line {row_num + 1}, saw {actual_len}"
                 )
-                if (
+                if source == "callable":
+                    msg += " from bad_lines callable"
+                elif (
                     self.delimiter
                     and len(self.delimiter) > 1
                     and self.quoting != csv.QUOTE_NONE
@@ -1468,11 +1467,9 @@ class FixedWidthReader(abc.Iterator):
         shifted[0] = 0
         edges = np.where((mask ^ shifted) == 1)[0]
         edge_pairs = list(zip(edges[::2], edges[1::2]))
-        return edge_pairs  # type: ignore[return-value]
+        return edge_pairs
 
     def __next__(self) -> list[str]:
-        # Argument 1 to "next" has incompatible type "Union[IO[str],
-        # ReadCsvBuffer[str]]"; expected "SupportsNext[str]"
         if self.buffer is not None:
             try:
                 line = next(self.buffer)

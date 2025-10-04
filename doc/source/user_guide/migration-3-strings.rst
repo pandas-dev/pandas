@@ -195,6 +195,18 @@ This is actually compatible with pandas 2.x as well, since in pandas < 3,
    of also stringifying missing values in pandas 2.x. See the section
    :ref:`string_migration_guide-astype_str` for more details.
 
+For selecting string columns with :meth:`~DataFrame.select_dtypes` in a pandas
+2.x and 3.x compatible way, it is not possible to use ``"str"``. While this
+works for pandas 3.x, it raises an error in pandas 2.x.
+As an alternative, you can select both ``object`` (for pandas 2.x) and
+``"string"`` (for pandas 3.x; which will also select the default ``str`` dtype
+and does not error on pandas 2.x):
+
+.. code-block:: python
+
+   # can use ``include=["str"]`` for pandas >= 3
+   >>> df.select_dtypes(include=["object", "string"])
+
 
 The missing value sentinel is now always NaN
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -314,6 +326,37 @@ When you have byte data that you want to convert to strings using ``decode()``,
 the :meth:`~pandas.Series.str.decode` method now has a ``dtype`` parameter to be
 able to specify object dtype instead of the default of string dtype for this use
 case.
+
+:meth:`Series.values` now returns an :class:`~pandas.api.extensions.ExtensionArray`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With object dtype, using ``.values`` on a Series will return the underlying NumPy array.
+
+.. code-block:: python
+
+   >>> ser = pd.Series(["a", "b", np.nan], dtype="object")
+   >>> type(ser.values)
+   <class 'numpy.ndarray'>
+
+However with the new string dtype, the underlying ExtensionArray is returned instead.
+
+.. code-block:: python
+
+   >>> ser = pd.Series(["a", "b", pd.NA], dtype="str")
+   >>> ser.values
+   <ArrowStringArray>
+   ['a', 'b', nan]
+   Length: 3, dtype: str
+
+If your code requires a NumPy array, you should use :meth:`Series.to_numpy`.
+
+.. code-block:: python
+
+   >>> ser = pd.Series(["a", "b", pd.NA], dtype="str")
+   >>> ser.to_numpy()
+   ['a' 'b' nan]
+
+In general, you should always prefer :meth:`Series.to_numpy` to get a NumPy array or :meth:`Series.array` to get an ExtensionArray over using :meth:`Series.values`.
 
 Notable bug fixes
 ~~~~~~~~~~~~~~~~~
