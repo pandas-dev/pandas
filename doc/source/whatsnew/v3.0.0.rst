@@ -1226,6 +1226,7 @@ Other
 - Fixed bug in the :meth:`Series.rank` with object dtype and extremely small float values (:issue:`62036`)
 - Fixed bug where the :class:`DataFrame` constructor misclassified array-like objects with a ``.name`` attribute as :class:`Series` or :class:`Index` (:issue:`61443`)
 - Fixed regression in :meth:`DataFrame.from_records` not initializing subclasses properly (:issue:`57008`)
+- Fixed regression in :meth:`Series.pow` on Series with all-NA ``float64[pyarrow]`` values; this now returns Series with :class:`NA` values (:issue:`62520`)
 
 .. ***DO NOT USE THIS SECTION***
 
