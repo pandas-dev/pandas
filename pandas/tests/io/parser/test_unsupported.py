@@ -176,7 +176,7 @@ def test_close_file_handle_on_invalid_usecols(all_parsers, temp_file):
         # Raises pyarrow.lib.ArrowKeyError
         pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
 
-    fname = temp_file.parent / "test.csv"
+    fname = temp_file
     Path(fname).write_text("col1,col2\na,b\n1,2", encoding="utf-8")
     with tm.assert_produces_warning(False):
         with pytest.raises(error, match="col3"):

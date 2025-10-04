@@ -97,7 +97,7 @@ def test_nat_parse(all_parsers, temp_file):
     )
     df.iloc[3:6, :] = np.nan
 
-    path = temp_file.parent / "__nat_parse_.csv"
+    path = temp_file
     df.to_csv(path)
 
     result = parser.read_csv(path, index_col=0, parse_dates=["B"])
