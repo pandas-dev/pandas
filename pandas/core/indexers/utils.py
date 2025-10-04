@@ -492,7 +492,7 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     >>> pd.api.indexers.check_array_indexer(arr, 1)
     1
     >>> pd.api.indexers.check_array_indexer(arr, slice(0, 1, 1))
-    slice(0, 1, None)
+    slice(0, 1, 1)
 
     Similarly for integer indexers, an integer ndarray is returned when it is
     a valid indexer, otherwise an error is  (for integer indexers, a matching
