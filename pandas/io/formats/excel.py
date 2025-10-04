@@ -2,7 +2,7 @@
 Utilities for conversion to writer-agnostic Excel representation.
 """
 
-from _future_ import annotations
+from __future__ import annotations
 
 from collections.abc import (
     Callable,
@@ -11,7 +11,6 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
-import pandas as pd
 import functools
 import itertools
 import re
@@ -64,10 +63,10 @@ if TYPE_CHECKING:
 
 
 class ExcelCell:
-    _fields_ = ("row", "col", "val", "style", "mergestart", "mergeend")
-    _slots_ = _fields_
+    __fields__ = ("row", "col", "val", "style", "mergestart", "mergeend")
+    __slots__ = __fields__
 
-    def _init_(
+    def __init__(
         self,
         row: int,
         col: int,
@@ -85,7 +84,7 @@ class ExcelCell:
 
 
 class CssExcelCell(ExcelCell):
-    def _init_(
+    def __init__(
         self,
         row: int,
         col: int,
@@ -106,7 +105,7 @@ class CssExcelCell(ExcelCell):
             unique_declarations = frozenset(declaration_dict.items())
             style = css_converter(unique_declarations)
 
-        super()._init_(row=row, col=col, val=val, style=style, **kwargs)
+        super().__init__(row=row, col=col, val=val, style=style, **kwargs)
 
 
 class CSSToExcelConverter:
@@ -117,14 +116,14 @@ class CSSToExcelConverter:
     focusing on font styling, backgrounds, borders and alignment.
 
     Operates by first computing CSS styles in a fairly generic
-    way (see :meth:⁠ compute_css ⁠) then determining Excel style
-    properties from CSS properties (see :meth:⁠ build_xlstyle ⁠).
+    way (see :meth: `compute_css`) then determining Excel style
+    properties from CSS properties (see :meth: `build_xlstyle`).
 
     Parameters
     ----------
     inherited : str, optional
         CSS declarations understood to be the containing scope for the
-        CSS processed by :meth:⁠ __call__ ⁠.
+        CSS processed by :meth:`__call__`.
     """
 
     NAMED_COLORS = CSS4_COLORS
@@ -184,25 +183,25 @@ class CSSToExcelConverter:
         ]
     }
 
-    # NB: Most of the methods here could be classmethods, as only _init_
-    #     and _call_ make use of instance attributes.  We leave them as
+    # NB: Most of the methods here could be classmethods, as only __init__
+    #     and __call__ make use of instance attributes.  We leave them as
     #     instancemethods so that users can easily experiment with extensions
     #     without monkey-patching.
     inherited: dict[str, str] | None
 
-    def _init_(self, inherited: str | None = None) -> None:
+    def __init__(self, inherited: str | None = None) -> None:
         if inherited is not None:
             self.inherited = self.compute_css(inherited)
         else:
             self.inherited = None
-        # We should avoid cache on the _call_ method.
-        # Otherwise once the method _call_ has been called
+        # We should avoid cache on the __call__ method.
+        # Otherwise once the method __call__ has been called
         # garbage collection no longer deletes the instance.
         self._call_cached = functools.cache(self._call_uncached)
 
     compute_css = CSSResolver()
 
-    def _call_(
+    def __call__(
         self, declarations: str | frozenset[tuple[str, str]]
     ) -> dict[str, dict[str, str]]:
         """
@@ -518,19 +517,19 @@ class ExcelFormatter:
         output row names (index)
     index_label : str or sequence, default None
         Column label for index column(s) if desired. If None is given, and
-        ⁠ header ⁠ and ⁠ index ⁠ are True, then the index names are used. A
+        `header` and `index` are True, then the index names are used. A
         sequence should be given if the DataFrame uses MultiIndex.
     merge_cells : bool or 'columns', default False
         Format MultiIndex column headers and Hierarchical Rows as merged cells
         if True. Merge MultiIndex column headers only if 'columns'.
         .. versionchanged:: 3.0.0
             Added the 'columns' option.
-    inf_rep : str, default ⁠ 'inf' ⁠
+    inf_rep : str, default `'inf'`
         representation for np.inf values (which aren't representable in Excel)
-        A ⁠ '-' ⁠ sign will be added in front of -inf.
+        A `'-'` sign will be added in front of -inf.
     style_converter : callable, optional
         This translates Styler styles (CSS) into ExcelWriter styles.
-        Defaults to `⁠ CSSToExcelConverter() ⁠`.
+        Defaults to ``CSSToExcelConverter()``.
         It should have signature css_declarations string -> excel style.
         This is only called for body cells.
     """
@@ -538,7 +537,7 @@ class ExcelFormatter:
     max_rows = 2**20
     max_cols = 2**14
 
-    def _init_(
+    def __init__(
         self,
         df,
         na_rep: str = "",
@@ -928,8 +927,8 @@ class ExcelFormatter:
             is to be frozen
         engine : string, default None
             write engine to use if writer is a path - you can also set this
-            via the options `⁠ io.excel.xlsx.writer ⁠`,
-            or `⁠ io.excel.xlsm.writer ⁠`.
+            via the options ``io.excel.xlsx.writer``,
+            or ``io.excel.xlsm.writer``.
 
         {storage_options}
 
