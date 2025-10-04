@@ -135,12 +135,12 @@ class JSONArray(ExtensionArray):
 
             if isinstance(key, np.ndarray) and key.dtype == "bool":
                 # masking
-                for i, (k, v) in enumerate(zip(key, value, strict=True)):
+                for i, (k, v) in enumerate(zip(key, value, strict=False)):
                     if k:
                         assert isinstance(v, self.dtype.type)
                         self.data[i] = v
             else:
-                for k, v in zip(key, value, strict=True):
+                for k, v in zip(key, value, strict=False):
                     assert isinstance(v, self.dtype.type)
                     self.data[k] = v
 

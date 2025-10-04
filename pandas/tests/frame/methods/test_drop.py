@@ -144,7 +144,7 @@ class TestDataFrameDrop:
 
         # non-unique - wheee!
         nu_df = DataFrame(
-            list(zip(range(3), range(-3, 1), list("abc"), strict=True)),
+            list(zip(range(3), range(-3, 1), list("abc"), strict=False)),
             columns=["a", "a", "b"],
         )
         tm.assert_frame_equal(nu_df.drop("a", axis=1), nu_df[["b"]])

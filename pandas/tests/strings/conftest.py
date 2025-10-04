@@ -94,7 +94,7 @@ _any_string_method = [
         ],
         [()] * 100,
         [{}] * 100,
-        strict=True,
+        strict=False,
     )
 )
 ids, _, _ = zip(*_any_string_method, strict=True)  # use method name as fixture-id
