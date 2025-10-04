@@ -376,7 +376,7 @@ def is_named_tuple(obj: object) -> bool:
     return isinstance(obj, abc.Sequence) and hasattr(obj, "_fields")
 
 
-def is_hashable(obj: object) -> TypeGuard[Hashable]:
+def is_hashable(obj: object, allow_slice: bool | None = None) -> TypeGuard[Hashable]:
     """
     Return True if hash(obj) will succeed, False otherwise.
 
@@ -390,13 +390,18 @@ def is_hashable(obj: object) -> TypeGuard[Hashable]:
     ----------
     obj : object
         The object to check for hashability. Any Python object can be passed here.
+    allow_slice : bool or None
+        If True, return True if the object is hashable (including slices).
+        If False, return True if the object is hashable and not a slice.
+        If None, return True if the object is hashable without checking
+        for slice type.
 
     Returns
     -------
     bool
         True if object can be hashed (i.e., does not raise TypeError when
-        passed to hash()), and False otherwise (e.g., if object is mutable
-        like a list or dictionary).
+        passed to hash()) and allow_slice is True or None, and False otherwise
+        (e.g., if object is mutable like a list or dictionary).
 
     See Also
     --------
@@ -422,11 +427,21 @@ def is_hashable(obj: object) -> TypeGuard[Hashable]:
     # Reconsider this decision once this numpy bug is fixed:
     # https://github.com/numpy/numpy/issues/5562
 
+    def _contains_slice(x: object) -> bool:
+        # Check if object is a slice or a tuple containing a slice
+        if isinstance(x, tuple):
+            return any(isinstance(v, slice) for v in x)
+        elif isinstance(x, slice):
+            return True
+        return False
+
     try:
         hash(obj)
     except TypeError:
         return False
     else:
+        if allow_slice is False and _contains_slice(obj):
+            return False
         return True
 
 
