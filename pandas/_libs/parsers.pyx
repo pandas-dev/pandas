@@ -1351,7 +1351,7 @@ cdef class TextReader:
                                 bint na_filter, kh_str_starts_t *na_hashset):
         """Check if the column contains any float number."""
         cdef:
-            Py_ssize_t i, lines = end - start
+            Py_ssize_t i, j, lines = end - start
             coliter_t it
             const char *word = NULL
 
@@ -1368,22 +1368,32 @@ cdef class TextReader:
                 continue
 
             found_first_digit = False
-            for c in word:
-                if not found_first_digit and c in ignored_chars:
-                    continue
-                elif not found_first_digit and c not in digits:
+            j = 0
+            while word[j] != b"\0":
+                if not found_first_digit and word[j] in ignored_chars:
+                    # no-op
+                    pass
+                elif not found_first_digit and word[j] not in digits:
                     # word isn't numeric
                     return False
-                elif not found_first_digit:
+                elif not found_first_digit and word[j] in digits:
                     found_first_digit = True
-                elif c in float_indicating_chars:
+                elif word[j] in float_indicating_chars:
                     # preceding chars indicates numeric and
                     # current char indicates float
                     return True
-                elif c not in digits:
+                elif word[j] not in digits:
                     # previous characters indicates numeric
                     # current character shows otherwise
                     return False
+                elif word[j] in digits:
+                    # no-op
+                    pass
+                else:
+                    raise AssertionError(
+                            f"Unhandled case {word[j]=} {found_first_digit=}"
+                            )
+                j += 1
 
         return False
 
