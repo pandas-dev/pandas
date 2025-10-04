@@ -1051,7 +1051,7 @@ class ArrowExtensionArray(
         result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
         if is_nan_na() and result.dtype.kind == "f":
             parr = result._pa_array
-            mask = pc.is_nan(parr).to_numpy()
+            mask = pc.is_nan(parr).fill_null(False).to_numpy()
             arr = pc.replace_with_mask(parr, mask, pa.scalar(None, type=parr.type))
             result = type(self)(arr)
         return result
