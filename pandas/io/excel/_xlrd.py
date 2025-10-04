@@ -134,7 +134,9 @@ class XlrdReader(BaseExcelReader["Book"]):
         return [
             [
                 _parse_cell(value, typ)
-                for value, typ in zip(sheet.row_values(i), sheet.row_types(i))
+                for value, typ in zip(
+                    sheet.row_values(i), sheet.row_types(i), strict=True
+                )
             ]
             for i in range(nrows)
         ]

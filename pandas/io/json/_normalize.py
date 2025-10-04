@@ -550,7 +550,7 @@ def json_normalize(
             data = [data]
         if len(path) > 1:
             for obj in data:
-                for val, key in zip(_meta, meta_keys):
+                for val, key in zip(_meta, meta_keys, strict=True):
                     if level + 1 == len(val):
                         seen_meta[key] = _pull_field(obj, val[-1])
 
@@ -567,7 +567,7 @@ def json_normalize(
 
                 # For repeating the metadata later
                 lengths.append(len(recs))
-                for val, key in zip(_meta, meta_keys):
+                for val, key in zip(_meta, meta_keys, strict=True):
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:
