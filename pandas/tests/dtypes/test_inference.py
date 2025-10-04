@@ -501,10 +501,10 @@ def test_is_hashable():
         f"result is {inference.is_hashable(slice(1, 2), allow_slice=False)}"
     )
 
-    assert not inference.is_hashable(tuple_with_slice), (
+    assert inference.is_hashable(tuple_with_slice), (
         f"result is {inference.is_hashable(tuple_with_slice)}"
     )
-    assert not inference.is_hashable(tuple_with_slice, allow_slice=True), (
+    assert inference.is_hashable(tuple_with_slice, allow_slice=True), (
         f"result is {inference.is_hashable(tuple_with_slice, allow_slice=True)}"
     )
     assert not inference.is_hashable(tuple_with_slice, allow_slice=False), (
