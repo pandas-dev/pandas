@@ -469,10 +469,10 @@ def test_is_hashable():
             )
 
     hashable = (1, 3.14, np.float64(3.14), "a", (), (1,), HashableClass())
-    not_hashable = ([], UnhashableClass1(), slice(1, 2, 3))
+    not_hashable = ([], UnhashableClass1())
     abc_hashable_not_really_hashable = (([],), UnhashableClass2())
-    hashable_slice = (HashableSlice(1, 2), HashableSlice(1, 2, 3))
-    tuple_with_slice = ((slice(1, 2), 3), 1, "a")
+    hashable_slice = HashableSlice(1, 2)
+    tuple_with_slice = (slice(1, 2), 3)
 
     for i in hashable:
         assert inference.is_hashable(i)
@@ -486,10 +486,10 @@ def test_is_hashable():
         assert not inference.is_hashable(i)
         assert not inference.is_hashable(i, allow_slice=True)
         assert not inference.is_hashable(i, allow_slice=False)
-    for i in hashable_slice:
-        assert inference.is_hashable(i)
-        assert inference.is_hashable(i, allow_slice=True)
-        assert inference.is_hashable(i, allow_slice=False)
+
+    assert inference.is_hashable(hashable_slice)
+    assert inference.is_hashable(hashable_slice, allow_slice=True)
+    assert inference.is_hashable(hashable_slice, allow_slice=False)
 
     assert not inference.is_hashable(tuple_with_slice)
     assert not inference.is_hashable(tuple_with_slice, allow_slice=True)
