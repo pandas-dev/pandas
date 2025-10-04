@@ -2,7 +2,7 @@
 Utilities for conversion to writer-agnostic Excel representation.
 """
 
-from __future__ import annotations
+from _future_ import annotations
 
 from collections.abc import (
     Callable,
@@ -11,6 +11,7 @@ from collections.abc import (
     Mapping,
     Sequence,
 )
+import pandas as pd
 import functools
 import itertools
 import re
@@ -63,10 +64,10 @@ if TYPE_CHECKING:
 
 
 class ExcelCell:
-    __fields__ = ("row", "col", "val", "style", "mergestart", "mergeend")
-    __slots__ = __fields__
+    _fields_ = ("row", "col", "val", "style", "mergestart", "mergeend")
+    _slots_ = _fields_
 
-    def __init__(
+    def _init_(
         self,
         row: int,
         col: int,
@@ -84,7 +85,7 @@ class ExcelCell:
 
 
 class CssExcelCell(ExcelCell):
-    def __init__(
+    def _init_(
         self,
         row: int,
         col: int,
@@ -105,7 +106,7 @@ class CssExcelCell(ExcelCell):
             unique_declarations = frozenset(declaration_dict.items())
             style = css_converter(unique_declarations)
 
-        super().__init__(row=row, col=col, val=val, style=style, **kwargs)
+        super()._init_(row=row, col=col, val=val, style=style, **kwargs)
 
 
 class CSSToExcelConverter:
@@ -116,14 +117,14 @@ class CSSToExcelConverter:
     focusing on font styling, backgrounds, borders and alignment.
 
     Operates by first computing CSS styles in a fairly generic
-    way (see :meth:`compute_css`) then determining Excel style
-    properties from CSS properties (see :meth:`build_xlstyle`).
+    way (see :meth:⁠ compute_css ⁠) then determining Excel style
+    properties from CSS properties (see :meth:⁠ build_xlstyle ⁠).
 
     Parameters
     ----------
     inherited : str, optional
         CSS declarations understood to be the containing scope for the
-        CSS processed by :meth:`__call__`.
+        CSS processed by :meth:⁠ __call__ ⁠.
     """
 
     NAMED_COLORS = CSS4_COLORS
@@ -183,25 +184,25 @@ class CSSToExcelConverter:
         ]
     }
 
-    # NB: Most of the methods here could be classmethods, as only __init__
-    #     and __call__ make use of instance attributes.  We leave them as
+    # NB: Most of the methods here could be classmethods, as only _init_
+    #     and _call_ make use of instance attributes.  We leave them as
     #     instancemethods so that users can easily experiment with extensions
     #     without monkey-patching.
     inherited: dict[str, str] | None
 
-    def __init__(self, inherited: str | None = None) -> None:
+    def _init_(self, inherited: str | None = None) -> None:
         if inherited is not None:
             self.inherited = self.compute_css(inherited)
         else:
             self.inherited = None
-        # We should avoid cache on the __call__ method.
-        # Otherwise once the method __call__ has been called
+        # We should avoid cache on the _call_ method.
+        # Otherwise once the method _call_ has been called
         # garbage collection no longer deletes the instance.
         self._call_cached = functools.cache(self._call_uncached)
 
     compute_css = CSSResolver()
 
-    def __call__(
+    def _call_(
         self, declarations: str | frozenset[tuple[str, str]]
     ) -> dict[str, dict[str, str]]:
         """
@@ -517,19 +518,19 @@ class ExcelFormatter:
         output row names (index)
     index_label : str or sequence, default None
         Column label for index column(s) if desired. If None is given, and
-        `header` and `index` are True, then the index names are used. A
+        ⁠ header ⁠ and ⁠ index ⁠ are True, then the index names are used. A
         sequence should be given if the DataFrame uses MultiIndex.
     merge_cells : bool or 'columns', default False
         Format MultiIndex column headers and Hierarchical Rows as merged cells
         if True. Merge MultiIndex column headers only if 'columns'.
         .. versionchanged:: 3.0.0
             Added the 'columns' option.
-    inf_rep : str, default `'inf'`
+    inf_rep : str, default ⁠ 'inf' ⁠
         representation for np.inf values (which aren't representable in Excel)
-        A `'-'` sign will be added in front of -inf.
+        A ⁠ '-' ⁠ sign will be added in front of -inf.
     style_converter : callable, optional
         This translates Styler styles (CSS) into ExcelWriter styles.
-        Defaults to ``CSSToExcelConverter()``.
+        Defaults to `⁠ CSSToExcelConverter() ⁠`.
         It should have signature css_declarations string -> excel style.
         This is only called for body cells.
     """
@@ -537,7 +538,7 @@ class ExcelFormatter:
     max_rows = 2**20
     max_cols = 2**14
 
-    def __init__(
+    def _init_(
         self,
         df,
         na_rep: str = "",
@@ -594,7 +595,11 @@ class ExcelFormatter:
             elif missing.isneginf_scalar(val):
                 val = f"-{self.inf_rep}"
             elif self.float_format is not None:
-                val = float(self.float_format % val)
+                val = self.float_format % val
+            else:
+                # respecter l'affichage par défaut de pandas (console)
+                val = repr(val)
+
         if getattr(val, "tzinfo", None) is not None:
             raise ValueError(
                 "Excel does not support datetimes with "
@@ -616,7 +621,20 @@ class ExcelFormatter:
 
         columns = self.columns
         merge_columns = self.merge_cells in {True, "columns"}
-        level_strs = columns._format_multi(sparsify=merge_columns, include_names=False)
+
+        # Replace NaN column header values with a non-breaking space so
+        # Excel output matches console display (see user's _fix_headers).
+        NBSP = "\u00A0"
+        if isinstance(columns, MultiIndex):
+            fixed_levels = []
+            for lvl in range(columns.nlevels):
+                vals = columns.get_level_values(lvl)
+                fixed_levels.append([NBSP if pd.isna(v) else str(v) for v in vals])
+            fixed_columns = MultiIndex.from_arrays(fixed_levels, names=columns.names)
+        else:
+            fixed_columns = Index([NBSP if pd.isna(v) else str(v) for v in columns], name=columns.name)
+
+        level_strs = fixed_columns._format_multi(sparsify=merge_columns, include_names=False)
         level_lengths = get_level_lengths(level_strs)
         coloffset = 0
         lnum = 0
@@ -625,17 +643,24 @@ class ExcelFormatter:
             coloffset = self.df.index.nlevels - 1
 
         for lnum, name in enumerate(columns.names):
+            val = NBSP if pd.isna(name) else str(name)
             yield ExcelCell(
                 row=lnum,
                 col=coloffset,
-                val=name,
+                val=val,
                 style=None,
             )
 
-        for lnum, (spans, levels, level_codes) in enumerate(
-            zip(level_lengths, columns.levels, columns.codes)
+
+
+        # Iterate the fixed_columns levels/codes so values already have
+        # NaNs replaced by NBSP (and are strings).
+        for lnum, (spans, level, codes) in enumerate(
+            zip(level_lengths, fixed_columns.levels, fixed_columns.codes)
         ):
-            values = levels.take(level_codes)
+            # level.take(codes) on fixed_columns.levels yields string values
+            values = level.take(codes).to_numpy()
+
             for i, span_val in spans.items():
                 mergestart, mergeend = None, None
                 if merge_columns and span_val > 1:
@@ -652,6 +677,7 @@ class ExcelFormatter:
                     mergestart=mergestart,
                     mergeend=mergeend,
                 )
+
         self.rowcounter = lnum
 
     def _format_header_regular(self) -> Iterable[ExcelCell]:
@@ -672,6 +698,12 @@ class ExcelFormatter:
                         f"but got {len(self.header)} aliases"
                     )
                 colnames = self.header
+
+            # Normalize NaN column labels to a non-breaking space so Excel
+            # header output matches console display (same behavior as
+            # applied to MultiIndex headers in _format_header_mi).
+            NBSP = "\u00A0"
+            colnames = [NBSP if pd.isna(v) else str(v) for v in colnames]
 
             for colindex, colname in enumerate(colnames):
                 yield CssExcelCell(
@@ -896,8 +928,8 @@ class ExcelFormatter:
             is to be frozen
         engine : string, default None
             write engine to use if writer is a path - you can also set this
-            via the options ``io.excel.xlsx.writer``,
-            or ``io.excel.xlsm.writer``.
+            via the options `⁠ io.excel.xlsx.writer ⁠`,
+            or `⁠ io.excel.xlsm.writer ⁠`.
 
         {storage_options}
 
