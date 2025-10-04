@@ -2092,10 +2092,28 @@ class Index(IndexOpsMixin, PandasObject):
         if isna(level) and isna(self.name):
             return
 
-        elif isna(level) or isna(self.name):
+        elif isna(level) and not isna(self.name):
             raise KeyError(
                 f"Requested level ({level}) does not match index name ({self.name})"
             )
+
+        elif not isna(level) and isna(self.name):
+            # level is not NA, but self.name is NA
+            # This is valid for integer levels (0, -1) accessing unnamed index
+            if lib.is_integer(level):
+                if level < 0 and level != -1:
+                    raise IndexError(
+                        f"Too many levels: Index has only 1 level, not {level + 1}"
+                    )
+                elif level > 0:
+                    raise IndexError(
+                        f"Too many levels: Index has only 1 level, not {level + 1}"
+                    )
+                return
+            else:
+                raise KeyError(
+                    f"Requested level ({level}) does not match index name ({self.name})"
+                )
 
         elif lib.is_integer(level):
             if isinstance(self.name, int) and level == self.name:
