@@ -451,7 +451,7 @@ def test_is_hashable():
     class UnhashableClass2:
         def __hash__(self):
             raise TypeError("Not hashable")
-            
+
     class HashableSlice:
         def __init__(self, start, stop, step=None):
             self.slice = slice(start, stop, step)
@@ -463,8 +463,10 @@ def test_is_hashable():
             return hash((self.slice.start, self.slice.stop, self.slice.step))
 
         def __repr__(self):
-            return f"HashableSlice({self.slice.start}, {self.slice.stop}, {self.slice.step})"
-
+            return (
+                f"HashableSlice({self.slice.start}, {self.slice.stop}, "
+                f"{self.slice.step})"
+            )
 
     hashable = (1, 3.14, np.float64(3.14), "a", (), (1,), HashableClass())
     not_hashable = ([], UnhashableClass1(), slice(1, 2, 3))
@@ -486,9 +488,9 @@ def test_is_hashable():
         assert not inference.is_hashable(i, allow_slice=False)
     for i in hashable_slice:
         assert inference.is_hashable(i)
-        assert inference.is_hashable(i, allow_slice=True)       
+        assert inference.is_hashable(i, allow_slice=True)
         assert inference.is_hashable(i, allow_slice=False)
-    
+
     assert not inference.is_hashable(tuple_with_slice)
     assert not inference.is_hashable(tuple_with_slice, allow_slice=True)
     assert not inference.is_hashable(tuple_with_slice, allow_slice=False)
