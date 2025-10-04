@@ -197,7 +197,7 @@ def _nanquantile(
         assert mask.shape == values.shape
         result = [
             _nanquantile_1d(val, m, qs, na_value, interpolation=interpolation)
-            for (val, m) in zip(list(values), list(mask))
+            for (val, m) in zip(list(values), list(mask), strict=True)
         ]
         if values.dtype.kind == "f":
             # preserve itemsize
