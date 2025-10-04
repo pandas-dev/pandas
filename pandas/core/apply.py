@@ -564,7 +564,7 @@ class Apply(metaclass=abc.ABCMeta):
                 indices = selected_obj.columns.get_indexer_for([key])
                 labels = selected_obj.columns.take(indices)
                 label_to_indices = defaultdict(list)
-                for index, label in zip(indices, labels):
+                for index, label in zip(indices, labels, strict=True):
                     label_to_indices[label].append(index)
 
                 key_data = [
@@ -618,7 +618,9 @@ class Apply(metaclass=abc.ABCMeta):
         if all(is_ndframe):
             results = [result for result in result_data if not result.empty]
             keys_to_use: Iterable[Hashable]
-            keys_to_use = [k for k, v in zip(result_index, result_data) if not v.empty]
+            keys_to_use = [
+                k for k, v in zip(result_index, result_data, strict=True) if not v.empty
+            ]
             # Have to check, if at least one DataFrame is not empty.
             if keys_to_use == []:
                 keys_to_use = result_index
@@ -1359,7 +1361,7 @@ class FrameColumnApply(FrameApply):
                 yield obj._ixs(i, axis=0)
 
         else:
-            for arr, name in zip(values, self.index):
+            for arr, name in zip(values, self.index, strict=True):
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
                 mgr.set_values(arr)
@@ -1913,7 +1915,7 @@ def relabel_result(
     from pandas.core.indexes.base import Index
 
     reordered_indexes = [
-        pair[0] for pair in sorted(zip(columns, order), key=lambda t: t[1])
+        pair[0] for pair in sorted(zip(columns, order, strict=True), key=lambda t: t[1])
     ]
     reordered_result_in_dict: dict[Hashable, Series] = {}
     idx = 0
