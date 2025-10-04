@@ -772,11 +772,10 @@ def to_datetime(
           string.
 
         Cannot be used alongside ``format='ISO8601'`` or ``format='mixed'``.
-    input_unit : str, default 'ns'
-        The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
-        integer or float number. This will be based off the origin.
-        Example, with ``unit='ms'`` and ``origin='unix'``, this would calculate
-        the number of milliseconds to the unix epoch start.
+    unit : str or None, default None
+        Use input_unit instead.
+
+        .. deprecated:: 3.0.0
     origin : scalar, default 'unix'
         Define the reference date. The numeric values would be parsed as number
         of units (defined by `unit`) since this reference date.
@@ -796,10 +795,11 @@ def to_datetime(
         is only used when there are at least 50 values. The presence of
         out-of-bounds values will render the cache unusable and may slow down
         parsing.
-    unit : str or None, default None
-        Use input_unit instead.
-
-        .. deprecated:: 3.0.0
+    input_unit : str, default 'ns'
+        The unit of the arg (D,s,ms,us,ns) denote the unit, which is an
+        integer or float number. This will be based off the origin.
+        Example, with ``unit='ms'`` and ``origin='unix'``, this would calculate
+        the number of milliseconds to the unix epoch start.
 
     Returns
     -------

@@ -117,6 +117,14 @@ def to_timedelta(
             Strings with units 'M', 'Y' and 'y' do not represent
             unambiguous timedelta values and will raise an exception.
 
+    unit : str or None, default None
+        Use input_unit instead.
+
+        .. deprecated:: 3.0.0
+
+    errors : {'raise', 'coerce'}, default 'raise'
+        - If 'raise', then invalid parsing will raise an exception.
+        - If 'coerce', then invalid parsing will be set as NaT.
     input_unit : str, optional
         Denotes the unit of the arg for numeric `arg`. Defaults to ``"ns"``.
 
@@ -136,14 +144,6 @@ def to_timedelta(
         .. deprecated:: 2.2.0
             Units 'H'and 'S' are deprecated and will be removed
             in a future version. Please use 'h' and 's'.
-
-    errors : {'raise', 'coerce'}, default 'raise'
-        - If 'raise', then invalid parsing will raise an exception.
-        - If 'coerce', then invalid parsing will be set as NaT.
-    unit : str or None, default None
-        Use input_unit instead.
-
-        .. deprecated:: 3.0.0
 
     Returns
     -------
