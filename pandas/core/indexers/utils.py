@@ -435,9 +435,9 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     array : array-like
         The array that is being indexed (only used for the length).
     indexer : array-like, list-like, int, slice, or other indexer
-        The indexer used for indexing. Array-like and list-like inputs that 
-        are not yet a numpy array or an ExtensionArray are converted to one. 
-        Non-array indexers (int, slice, Ellipsis, tuples, etc.) are passed 
+        The indexer used for indexing. Array-like and list-like inputs that
+        are not yet a numpy array or an ExtensionArray are converted to one.
+        Non-array indexers (int, slice, Ellipsis, tuples, etc.) are passed
         through as is.
 
     Returns
