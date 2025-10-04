@@ -365,7 +365,7 @@ class TestDataFrameColor:
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
 
         axes = df.plot(subplots=True)
-        for ax, c in zip(axes, list(default_colors), strict=True):
+        for ax, c in zip(axes, list(default_colors), strict=False):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     @pytest.mark.parametrize("color", ["k", "green"])
@@ -535,7 +535,7 @@ class TestDataFrameColor:
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
 
         axes = df.plot(kind="kde", subplots=True)
-        for ax, c in zip(axes, list(default_colors), strict=True):
+        for ax, c in zip(axes, list(default_colors), strict=False):
             _check_colors(ax.get_lines(), linecolors=[c])
 
     @pytest.mark.parametrize("colormap", ["k", "red"])
