@@ -394,7 +394,7 @@ def is_hashable(obj: object, allow_slice: bool | None = None) -> TypeGuard[Hasha
         If True: return True if the object is hashable (including slices).
         If False: return True if the object is hashable and not a slice.
         If None: return True if the object is hashable. without checking
-                 for slice type.
+            for slice type.
 
     Returns
     -------
