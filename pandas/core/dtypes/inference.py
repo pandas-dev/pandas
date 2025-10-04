@@ -390,11 +390,11 @@ def is_hashable(obj: object, allow_slice: bool | None = None) -> TypeGuard[Hasha
     ----------
     obj : object
         The object to check for hashability. Any Python object can be passed here.
-    allow_slice: bool or None
-        If True: return True if the object is hashable (including slices).
-        If False: return True if the object is hashable and not a slice.
-        If None: return True if the object is hashable. without checking
-            for slice type.
+    allow_slice : bool or None
+        If True, return True if the object is hashable (including slices).
+        If False, return True if the object is hashable and not a slice.
+        If None, return True if the object is hashable without checking
+        for slice type.
 
     Returns
     -------
