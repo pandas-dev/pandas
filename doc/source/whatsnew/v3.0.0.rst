@@ -14,6 +14,11 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+Documentation improvements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- :class:`pandas.io.parsers.TextFileReader` class and its methods are now fully documented in the API reference, making it easier to discover how to work with chunked reading of CSV files (:issue:`62574`)
+
 .. _whatsnew_300.enhancements.string_dtype:
 
 Dedicated string data type by default

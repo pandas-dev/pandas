@@ -1145,9 +1145,71 @@ def read_fwf(
 
 class TextFileReader(abc.Iterator):
     """
+    Iterator for reading chunks of text files.
 
-    Passed dialect overrides any of the related parser options
+    This class is returned by :func:`read_csv` and :func:`read_table` when the
+    ``iterator`` or ``chunksize`` parameter is specified. It enables iteration
+    over large files by reading data in manageable chunks, which is useful for
+    processing files that are too large to fit in memory.
 
+    .. versionadded:: 0.11.0
+
+    Parameters
+    ----------
+    f : str, path object, or file-like object
+        File path, file-like object, or buffer to read.
+    engine : {'c', 'python', 'pyarrow'}, optional
+        Parser engine to use. The C engine is faster while the Python engine
+        is more feature-complete. PyArrow engine is experimental and may not
+        support all features.
+    **kwds : keyword arguments
+        Additional keyword arguments passed to the parser. See :func:`read_csv`
+        for the full list of available options.
+
+    Attributes
+    ----------
+    chunksize : int, optional
+        Number of rows per chunk. Specified when creating the reader.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into DataFrame.
+    read_table : Read general delimited file into DataFrame.
+    read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+    DataFrame.to_csv : Write DataFrame to a comma-separated values (csv) file.
+
+    Notes
+    -----
+    When using this class, remember to close the reader when done to free
+    resources, or use it as a context manager to ensure proper cleanup.
+
+    Passed dialect overrides any of the related parser options.
+
+    Examples
+    --------
+    Iterating over chunks with ``chunksize``:
+
+    >>> reader = pd.read_csv("data.csv", chunksize=1000)  # doctest: +SKIP
+    >>> for chunk in reader:  # doctest: +SKIP
+    ...     print(f"Processing {len(chunk)} rows")  # doctest: +SKIP
+    ...     # Process each chunk  # doctest: +SKIP
+
+    Using with ``iterator=True`` and getting specific chunks:
+
+    >>> reader = pd.read_csv("data.csv", iterator=True)  # doctest: +SKIP
+    >>> chunk1 = reader.get_chunk(1000)  # doctest: +SKIP
+    >>> chunk2 = reader.get_chunk(500)  # doctest: +SKIP
+
+    Using the context manager for automatic cleanup:
+
+    >>> with pd.read_csv("data.csv", chunksize=1000) as reader:  # doctest: +SKIP
+    ...     for chunk in reader:  # doctest: +SKIP
+    ...         process(chunk)  # doctest: +SKIP
+
+    Reading the entire file after creating an iterator:
+
+    >>> reader = pd.read_csv("data.csv", iterator=True)  # doctest: +SKIP
+    >>> df = reader.read()  # doctest: +SKIP
     """
 
     def __init__(
@@ -1198,6 +1260,24 @@ class TextFileReader(abc.Iterator):
         self._engine = self._make_engine(f, self.engine)
 
     def close(self) -> None:
+        """
+        Close the file handles and release resources.
+
+        This method should be called when you are done reading from the file
+        to properly close file handles and free resources. Alternatively,
+        use the TextFileReader as a context manager to ensure automatic cleanup.
+
+        See Also
+        --------
+        TextFileReader.__enter__ : Enter the runtime context (context manager).
+        TextFileReader.__exit__ : Exit the runtime context (context manager).
+
+        Examples
+        --------
+        >>> reader = pd.read_csv("data.csv", iterator=True)  # doctest: +SKIP
+        >>> chunk = reader.get_chunk(100)  # doctest: +SKIP
+        >>> reader.close()  # doctest: +SKIP
+        """
         if self.handles is not None:
             self.handles.close()
         self._engine.close()
@@ -1482,6 +1562,35 @@ class TextFileReader(abc.Iterator):
         raise AbstractMethodError(self)
 
     def read(self, nrows: int | None = None) -> DataFrame:
+        """
+        Read rows from the file and return as a DataFrame.
+
+        Parameters
+        ----------
+        nrows : int, optional
+            Number of rows to read. If None, reads all remaining rows or
+            the number specified by chunksize.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame containing the read rows.
+
+        Raises
+        ------
+        StopIteration
+            When there are no more rows to read.
+
+        See Also
+        --------
+        TextFileReader.get_chunk : Read a specific number of rows.
+        read_csv : Read a CSV file into a DataFrame.
+
+        Examples
+        --------
+        >>> reader = pd.read_csv("data.csv", iterator=True)  # doctest: +SKIP
+        >>> df = reader.read(1000)  # doctest: +SKIP
+        """
         if self.engine == "pyarrow":
             try:
                 # error: "ParserBase" has no attribute "read"
@@ -1553,6 +1662,36 @@ class TextFileReader(abc.Iterator):
         return df
 
     def get_chunk(self, size: int | None = None) -> DataFrame:
+        """
+        Read a specific number of rows from the file.
+
+        Parameters
+        ----------
+        size : int, optional
+            Number of rows to read. If None, uses the chunksize specified
+            when creating the TextFileReader.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame containing the requested number of rows.
+
+        Raises
+        ------
+        StopIteration
+            When there are no more rows to read or nrows limit is reached.
+
+        See Also
+        --------
+        TextFileReader.read : Read rows from the file.
+        read_csv : Read a CSV file into a DataFrame.
+
+        Examples
+        --------
+        >>> reader = pd.read_csv("data.csv", iterator=True)  # doctest: +SKIP
+        >>> chunk1 = reader.get_chunk(100)  # doctest: +SKIP
+        >>> chunk2 = reader.get_chunk(50)  # doctest: +SKIP
+        """
         if size is None:
             size = self.chunksize
         if self.nrows is not None:
