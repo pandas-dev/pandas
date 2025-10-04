@@ -451,17 +451,47 @@ def test_is_hashable():
     class UnhashableClass2:
         def __hash__(self):
             raise TypeError("Not hashable")
+            
+    class HashableSlice:
+        def __init__(self, start, stop, step=None):
+            self.slice = slice(start, stop, step)
+
+        def __eq__(self, other):
+            return isinstance(other, HashableSlice) and self.slice == other.slice
+
+        def __hash__(self):
+            return hash((self.slice.start, self.slice.stop, self.slice.step))
+
+        def __repr__(self):
+            return f"HashableSlice({self.slice.start}, {self.slice.stop}, {self.slice.step})"
+
 
     hashable = (1, 3.14, np.float64(3.14), "a", (), (1,), HashableClass())
-    not_hashable = ([], UnhashableClass1())
+    not_hashable = ([], UnhashableClass1(), slice(1, 2, 3))
     abc_hashable_not_really_hashable = (([],), UnhashableClass2())
+    hashable_slice = (HashableSlice(1, 2), HashableSlice(1, 2, 3))
+    tuple_with_slice = ((slice(1, 2), 3), 1, "a")
 
     for i in hashable:
         assert inference.is_hashable(i)
+        assert inference.is_hashable(i, allow_slice=True)
+        assert inference.is_hashable(i, allow_slice=False)
     for i in not_hashable:
         assert not inference.is_hashable(i)
+        assert not inference.is_hashable(i, allow_slice=True)
+        assert not inference.is_hashable(i, allow_slice=False)
     for i in abc_hashable_not_really_hashable:
         assert not inference.is_hashable(i)
+        assert not inference.is_hashable(i, allow_slice=True)
+        assert not inference.is_hashable(i, allow_slice=False)
+    for i in hashable_slice:
+        assert inference.is_hashable(i)
+        assert inference.is_hashable(i, allow_slice=True)       
+        assert inference.is_hashable(i, allow_slice=False)
+    
+    assert not inference.is_hashable(tuple_with_slice)
+    assert not inference.is_hashable(tuple_with_slice, allow_slice=True)
+    assert not inference.is_hashable(tuple_with_slice, allow_slice=False)
 
     # numpy.array is no longer collections.abc.Hashable as of
     # https://github.com/numpy/numpy/pull/5326, just test
