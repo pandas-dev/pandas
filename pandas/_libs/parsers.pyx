@@ -1082,8 +1082,13 @@ cdef class TextReader:
                         np.dtype("object"), i, start, end, 0,
                         0, na_hashset, na_fset)
                 except OverflowError:
-                    col_res, na_count = _try_pylong(self.parser, i, start,
-                                                    end, na_filter, na_hashset)
+                    try:
+                        col_res, na_count = _try_pylong(self.parser, i, start,
+                                                        end, na_filter, na_hashset)
+                    except ValueError:
+                        col_res, na_count = self._convert_with_dtype(
+                            np.dtype("object"), i, start, end, 0,
+                            0, na_hashset, na_fset)
 
                 if col_res is not None:
                     break
