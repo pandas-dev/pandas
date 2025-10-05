@@ -146,7 +146,7 @@ class TestResetIndex:
             ["bar", "bar", "baz", "baz", "qux", "qux", "foo", "foo"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        tuples = zip(*arrays)
+        tuples = zip(*arrays, strict=True)
         index = MultiIndex.from_tuples(tuples)
         data = np.random.default_rng(2).standard_normal(8)
         ser = Series(data, index=index)
