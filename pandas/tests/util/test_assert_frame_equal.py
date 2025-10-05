@@ -413,3 +413,12 @@ def test_datetimelike_compat_deprecated():
         tm.assert_series_equal(df["a"], df["a"], check_datetimelike_compat=True)
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         tm.assert_series_equal(df["a"], df["a"], check_datetimelike_compat=False)
+
+
+def test_assert_frame_equal_nested_df_na():
+    # GH#43022
+    inner = DataFrame({"a": [1, float("nan")]})
+    df1 = DataFrame({"df": [inner]})
+    df2 = DataFrame({"df": [inner]})
+
+    tm.assert_frame_equal(df1, df2)
