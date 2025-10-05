@@ -1410,19 +1410,19 @@ class PlotAccessor(PandasObject):
             The color for each of the DataFrame's columns. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
-                for instance 'red' or '#a98d19'.
+              for instance 'red' or '#a98d19'.
 
             - A sequence of color strings referred to by name, RGB or RGBA
-                code, which will be used for each column recursively. For
-                instance ['green','yellow'] each column's line will be filled in
-                green or yellow, alternatively. If there is only a single column to
-                be plotted, then only the first color from the color list will be
-                used.
+              code, which will be used for each column recursively. For
+              instance ['green','yellow'] each column's line will be filled in
+              green or yellow, alternatively. If there is only a single column to
+              be plotted, then only the first color from the color list will be
+              used.
 
             - A dict of the form {column name : color}, so that each column will be
-                colored accordingly. For example, if your columns are called `a` and
-                `b`, then passing {'a': 'green', 'b': 'red'} will color lines for
-                column `a` in green and lines for column `b` in red.
+              colored accordingly. For example, if your columns are called `a` and
+              `b`, then passing {'a': 'green', 'b': 'red'} will color lines for
+              column `a` in green and lines for column `b` in red.
 
         **kwargs
             Additional keyword arguments are documented in
@@ -1463,23 +1463,23 @@ class PlotAccessor(PandasObject):
                     >>> lines = df.plot.line()
 
                 .. plot::
-                :context: close-figs
+                    :context: close-figs
 
-                An example with subplots, so an array of axes is returned.
+                    An example with subplots, so an array of axes is returned.
 
-                >>> axes = df.plot.line(subplots=True)
-                >>> type(axes)
-                <class 'numpy.ndarray'>
+                    >>> axes = df.plot.line(subplots=True)
+                    >>> type(axes)
+                    <class 'numpy.ndarray'>
 
                 .. plot::
-                :context: close-figs
+                    :context: close-figs
 
-                Let's repeat the same example, but specifying colors for
-                each column (in this case, for each animal).
+                    Let's repeat the same example, but specifying colors for
+                    each column (in this case, for each animal).
 
-                >>> axes = df.plot.line(
-                ...     subplots=True, color={"pig": "pink", "horse": "#742802"}
-                ... )
+                    >>> axes = df.plot.line(
+                    ...     subplots=True, color={"pig": "pink", "horse": "#742802"}
+                    ... )
 
                 .. plot::
                     :context: close-figs
@@ -1521,19 +1521,19 @@ class PlotAccessor(PandasObject):
             The color for each of the DataFrame's columns. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
-                for instance 'red' or '#a98d19'.
+              for instance 'red' or '#a98d19'.
 
             - A sequence of color strings referred to by name, RGB or RGBA
-                code, which will be used for each column recursively. For
-                instance ['green','yellow'] each column's bar will be filled in
-                green or yellow, alternatively. If there is only a single column to
-                be plotted, then only the first color from the color list will be
-                used.
+              code, which will be used for each column recursively. For
+              instance ['green','yellow'] each column's bar will be filled in
+              green or yellow, alternatively. If there is only a single column to
+              be plotted, then only the first color from the color list will be
+              used.
 
             - A dict of the form {column name : color}, so that each column will be
-                colored accordingly. For example, if your columns are called `a` and
-                `b`, then passing {'a': 'green', 'b': 'red'} will color bars for
-                column `a` in green and bars for column `b` in red.
+              colored accordingly. For example, if your columns are called `a` and
+              `b`, then passing {'a': 'green', 'b': 'red'} will color bars for
+              column `a` in green and bars for column `b` in red.
 
         **kwargs
             Additional keyword arguments are documented in
@@ -1660,19 +1660,19 @@ class PlotAccessor(PandasObject):
             The color for each of the DataFrame's columns. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
-                for instance 'red' or '#a98d19'.
+              for instance 'red' or '#a98d19'.
 
             - A sequence of color strings referred to by name, RGB or RGBA
-                code, which will be used for each column recursively. For
-                instance ['green','yellow'] each column's bar will be filled in
-                green or yellow, alternatively. If there is only a single column to
-                be plotted, then only the first color from the color list will be
-                used.
+              code, which will be used for each column recursively. For
+              instance ['green','yellow'] each column's bar will be filled in
+              green or yellow, alternatively. If there is only a single column to
+              be plotted, then only the first color from the color list will be
+              used.
 
             - A dict of the form {column name : color}, so that each column will be
-                colored accordingly. For example, if your columns are called `a` and
-                `b`, then passing {'a': 'green', 'b': 'red'} will color bars for
-                column `a` in green and bars for column `b` in red.
+              colored accordingly. For example, if your columns are called `a` and
+              `b`, then passing {'a': 'green', 'b': 'red'} will color bars for
+              column `a` in green and bars for column `b` in red.
 
         **kwargs
             Additional keyword arguments are documented in
