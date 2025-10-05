@@ -1008,8 +1008,8 @@ Conversion
 
 Strings
 ^^^^^^^
+- Bug in :meth:`Series.str.zfill` raising ``AttributeError`` for :class:`ArrowDtype` (:issue:`61485`)
 - Bug in :meth:`Series.value_counts` would not respect ``sort=False`` for series having ``string`` dtype (:issue:`55224`)
--
 
 Interval
 ^^^^^^^^
