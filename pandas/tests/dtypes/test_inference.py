@@ -34,6 +34,7 @@ from pandas._libs import (
     missing as libmissing,
     ops as libops,
 )
+from pandas.compat import PY312
 from pandas.compat.numpy import np_version_gt2
 from pandas.errors import Pandas4Warning
 
@@ -472,7 +473,8 @@ def test_is_hashable():
     not_hashable = ([], UnhashableClass1())
     abc_hashable_not_really_hashable = (([],), UnhashableClass2())
     hashable_slice = HashableSlice(1, 2)
-    tuple_with_slice = (slice(1, 2), 3)
+    tuple_with_slice_1 = (slice(1, 2), 3)
+    tuple_with_slice_2 = ((1, slice(1, 2)), "a")
 
     for i in hashable:
         assert inference.is_hashable(i)
@@ -491,25 +493,30 @@ def test_is_hashable():
     assert inference.is_hashable(hashable_slice, allow_slice=True)
     assert inference.is_hashable(hashable_slice, allow_slice=False)
 
-    assert inference.is_hashable(slice(1, 2)), (
-        f"result is {inference.is_hashable(slice(1, 2))}"
-    )
-    assert inference.is_hashable(slice(1, 2), allow_slice=True), (
-        f"result is {inference.is_hashable(slice(1, 2), allow_slice=True)}"
-    )
-    assert not inference.is_hashable(slice(1, 2), allow_slice=False), (
-        f"result is {inference.is_hashable(slice(1, 2), allow_slice=False)}"
-    )
+    if PY312:
+        assert inference.is_hashable(slice(1, 2))
+        assert inference.is_hashable(slice(1, 2), allow_slice=True)
+        assert not inference.is_hashable(slice(1, 2), allow_slice=False)
 
-    assert inference.is_hashable(tuple_with_slice), (
-        f"result is {inference.is_hashable(tuple_with_slice)}"
-    )
-    assert inference.is_hashable(tuple_with_slice, allow_slice=True), (
-        f"result is {inference.is_hashable(tuple_with_slice, allow_slice=True)}"
-    )
-    assert not inference.is_hashable(tuple_with_slice, allow_slice=False), (
-        f"result is {inference.is_hashable(tuple_with_slice, allow_slice=False)}"
-    )
+        assert inference.is_hashable(tuple_with_slice_1)
+        assert inference.is_hashable(tuple_with_slice_1, allow_slice=True)
+        assert not inference.is_hashable(tuple_with_slice_1, allow_slice=False)
+
+        assert inference.is_hashable(tuple_with_slice_2)
+        assert inference.is_hashable(tuple_with_slice_2, allow_slice=True)
+        assert not inference.is_hashable(tuple_with_slice_2, allow_slice=False)
+    else:
+        assert not inference.is_hashable(slice(1, 2))
+        assert not inference.is_hashable(slice(1, 2), allow_slice=True)
+        assert not inference.is_hashable(slice(1, 2), allow_slice=False)
+
+        assert not inference.is_hashable(tuple_with_slice_1)
+        assert not inference.is_hashable(tuple_with_slice_1, allow_slice=True)
+        assert not inference.is_hashable(tuple_with_slice_1, allow_slice=False)
+
+        assert not inference.is_hashable(tuple_with_slice_2)
+        assert not inference.is_hashable(tuple_with_slice_2, allow_slice=True)
+        assert not inference.is_hashable(tuple_with_slice_2, allow_slice=False)
 
     # numpy.array is no longer collections.abc.Hashable as of
     # https://github.com/numpy/numpy/pull/5326, just test
