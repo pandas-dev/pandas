@@ -36,13 +36,13 @@ and `good first issue
 <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22+no%3Aassignee>`_
 are typically good for newer contributors.
 
-Once you've found an interesting issue, it's a good idea to assign the issue to yourself,
-so nobody else duplicates the work on it. On the Github issue, a comment with the exact
-text ``take`` to automatically assign you the issue
-(this will take seconds and may require refreshing the page to see it).
+Once you've found an interesting issue, leave a comment with your idea of
+how you plan to approach it, and start working on it. If somebody else has
+already said they'd be working on the issue in the past 2-3 weeks, please let
+them finish their work, otherwise consider it stalled and take it over.
 
 If for whatever reason you are not able to continue working with the issue, please
-unassign it, so other people know it's available again. You can check the list of
+leave a comment on an issue, so other people know it's available again. You can check the list of
 assigned issues, since people may not be working in them anymore. If you want to work on one
 that is assigned, feel free to kindly ask the current assignee if you can take it
 (please allow at least a week of inactivity before considering work in the issue discontinued).
