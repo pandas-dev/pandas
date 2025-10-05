@@ -695,7 +695,6 @@ def boxplot_frame(
     **kwargs,
 ):
     """
-
     Make a box plot from DataFrame columns.
 
     Make a box-and-whisker plot from DataFrame columns, optionally grouped
@@ -1501,7 +1500,6 @@ class PlotAccessor(PandasObject):
                     populations.
 
                     >>> lines = df.plot.line(x='pig', y='horse')
-
         """
         if color is not None:
             kwargs["color"] = color
@@ -1632,7 +1630,6 @@ class PlotAccessor(PandasObject):
                     :context: close-figs
 
                     >>> ax = df.plot.bar(x='lifespan', rot=0)
-
         """
         if color is not None:
             kwargs["color"] = color
