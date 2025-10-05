@@ -8,6 +8,7 @@ import pytest
 
 from pandas.compat import pa_version_under16p0
 from pandas.errors import IndexingError
+import pandas.util._test_decorators as td
 
 from pandas import (
     NA,
@@ -1535,3 +1536,15 @@ class TestILocSeries:
         expected = df.iloc[:, df["c"]]
         result = df_arrow.iloc[:, df_arrow["c"]]
         tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    @td.skip_if_no("pyarrow")
+    def test_setitem_pyarrow_int_series(self):
+        # GH#62462
+        ser = Series([1, 2, 3], dtype="int64[pyarrow]")
+        idx = Index([0, 1])
+        vals = Series([7, 8], dtype="int64[pyarrow]")
+
+        ser.iloc[idx] = vals
+
+        expected = Series([7, 8, 3], dtype="int64[pyarrow]")
+        tm.assert_series_equal(ser, expected)
