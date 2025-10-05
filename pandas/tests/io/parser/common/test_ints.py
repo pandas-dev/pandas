@@ -216,6 +216,19 @@ def test_outside_int64_uint64_range(all_parsers, val, request):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # CSV parse error: Empty CSV file or block
+@pytest.mark.parametrize(
+    "val", [np.iinfo(np.uint64).max + 1, np.iinfo(np.int64).min - 1]
+)
+def test_outside_int64_uint64_range_follow_str(all_parsers, val, request):
+    parser = all_parsers
+
+    result = parser.read_csv(StringIO(f"{val}\nabc"), header=None)
+
+    expected = DataFrame([str(val), "abc"])
+    tm.assert_frame_equal(result, expected)
+
+
 @xfail_pyarrow  # gets float64 dtype instead of object
 @pytest.mark.parametrize("exp_data", [[str(-1), str(2**63)], [str(2**63), str(-1)]])
 def test_numeric_range_too_wide(all_parsers, exp_data):
