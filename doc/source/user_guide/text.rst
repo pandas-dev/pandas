@@ -35,14 +35,21 @@ for many reasons:
 3. When reading code, the contents of an ``object`` dtype array is less clear
    than ``'string'``.
 
-Currently, the performance of ``object`` dtype arrays of strings and
-:class:`arrays.StringArray` are about the same. We expect future enhancements
+When using :class:`StringDtype` with PyArrow as the storage (see below),
+users will see large performance improvements in memory as well as time
+for certain operations when compared to ``object`` dtype arrays. When
+not using PyArrow as the storage, the performance of :class:`StringDtype`
+is about the same as that of ``object``. We expect future enhancements
 to significantly increase the performance and lower the memory overhead of
-:class:`~arrays.StringArray`.
+:class:`StringDtype` in this case.
 
 .. versionchanged:: 3.0
 
-   The default when pandas infers the dtype of a collection of strings is to use ``dtype='str'``.
+   The default when pandas infers the dtype of a collection of
+   strings is to use ``dtype='str'``. This will use ``np.nan``
+   as it's NA value and be backed by a PyArrow string array when
+   PyArrow is installed, or backed by NumPy ``object`` array
+   when PyArrow is not installed.
 
 .. ipython:: python
 
@@ -51,15 +58,17 @@ to significantly increase the performance and lower the memory overhead of
 Specifying :class:`StringDtype` explicitly
 ==========================================
 
-When it is desired to explicitly specify the dtype, we generally recommend using the alias ``dtype="str"``.
+When it is desired to explicitly specify the dtype, we generally recommend
+using the alias ``dtype="str"`` if you desire to have ``np.nan`` as the NA
+value or the alias ``dtype="string"`` if you desire to have ``pd.NA`` as
+the NA value.
 
 .. ipython:: python
 
-   pd.Series(["a", "b", "c"], dtype="str")
+   pd.Series(["a", "b", None], dtype="str")
+   pd.Series(["a", "b", None], dtype="string")
 
-However there are four distinct :class:`StringDtype` variants that may be utilized.
-You can also use :class:`StringDtype`/``"str"``/``"string"`` as the dtype
-on non-string data and it will be converted to strings:
+Specifying either alias will also convert non-string data to strings:
 
 .. ipython:: python
 
@@ -73,9 +82,11 @@ or convert from existing pandas data:
 
    s1 = pd.Series([1, 2, pd.NA], dtype="Int64")
    s1
-   s2 = s1.astype("str")
+   s2 = s1.astype("string")
    s2
    type(s2[0])
+
+However there are four distinct :class:`StringDtype` variants that may be utilized.
 
 Python storage with ``np.nan`` values
 -------------------------------------
@@ -184,15 +195,16 @@ Behavior differences
       s.str.isdigit()
       s.str.match("a")
 
-2. Some string methods, like :meth:`Series.str.decode` because the underlying
-   array can only contain strings, not bytes.
+2. Some string methods, like :meth:`Series.str.decode`, are not
+   available because the underlying array can only contain
+   strings, not bytes.
 3. Comparison operations will return a NumPy array with dtype bool. Missing
-   values will always compare as unequal just as :attr:`numpy.nan` does.
+   values will always compare as unequal just as :attr:`np.nan` does.
 
 ``StringDtype`` with ``pd.NA`` NA values
 ----------------------------------------
 
-1. For ``StringDtype``, :ref:`string accessor methods<api.series.str>`
+1. :ref:`String accessor methods<api.series.str>`
    that return **integer** output will always return a nullable integer dtype,
    rather than either int or float dtype (depending on the presence of NA values).
    Methods returning **boolean** output will return a nullable boolean dtype.
