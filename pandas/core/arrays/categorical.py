@@ -457,7 +457,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 # Check for pandas Series/ Index with object dtye
                 preserve_object_dtpe = False
                 if isinstance(values, (ABCSeries, ABCIndex)):
-                    if getattr(values.dtype, "name", None) == "object":
+                    if values.dtype == "object":
                         preserve_object_dtpe = True
                 if not isinstance(values, ABCIndex):
                     # in particular RangeIndex xref test_index_equal_range_categories
@@ -475,7 +475,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                             "by passing in a categories argument."
                         ) from err
 
-                # If we should prserve object dtype, force categories to object dtype
+                # If we should preserve object dtype, force categories to object dtype
                 if preserve_object_dtpe:
                     # Only preserve object dtype if not all elements are strings
                     if not all(isinstance(x, str) for x in categories):
