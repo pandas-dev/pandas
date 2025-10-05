@@ -3097,3 +3097,28 @@ def test_merge_categorical_key_recursion():
         right.astype("float64"), on="key", how="outer"
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_pyarrow_datetime_duplicates():
+    # GH#61926
+    # Regression test for merge failing on pyarrow datetime columns with duplicates
+    pytest.importorskip("pyarrow")
+
+    # Create datetime index
+    t = pd.date_range("2025-07-06", periods=3, freq="h")
+
+    # Left dataframe: one row per timestamp
+    df1 = DataFrame({"time": t, "val1": [1, 2, 3]})
+    df1 = df1.convert_dtypes(dtype_backend="pyarrow")
+
+    # Right dataframe: two rows per timestamp (duplicates)
+    df2 = DataFrame({"time": t.repeat(2), "val2": [10, 20, 30, 40, 50, 60]})
+    df2 = df2.convert_dtypes(dtype_backend="pyarrow")
+
+    # This should work without raising ValueError
+    result = merge(df1, df2, on="time", how="left")
+
+    # Should return 6 rows (df1's 3 timestamps × 2 matches each from df2)
+    assert len(result) == 6
+    assert result["val1"].tolist() == [1, 1, 2, 2, 3, 3]
+    assert result["val2"].tolist() == [10, 20, 30, 40, 50, 60]
