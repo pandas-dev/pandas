@@ -453,7 +453,6 @@ exclude = [
 "pandas/core/computation/align.py" = ["B905"]
 "pandas/core/computation/expr.py" = ["B905"]
 "pandas/core/computation/ops.py" = ["B905"]
-"pandas/core/dtypes/missing.py" = ["B905"]
 "pandas/core/groupby/generic.py" = ["B905"]
 "pandas/core/groupby/groupby.py" = ["B905"]
 "pandas/core/groupby/grouper.py" = ["B905"]
