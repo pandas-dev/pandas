@@ -569,6 +569,7 @@ class ArrowExtensionArray(
         -------
         pa.Array or pa.ChunkedArray
         """
+        value = extract_array(value, extract_numpy=True)
         if isinstance(value, cls):
             pa_array = value._pa_array
         elif isinstance(value, (pa.Array, pa.ChunkedArray)):
