@@ -29,6 +29,7 @@ from cpython.exc cimport (
     PyErr_Fetch,
     PyErr_Occurred,
 )
+from cpython.long cimport PyLong_FromString
 from cpython.object cimport PyObject
 from cpython.ref cimport (
     Py_INCREF,
@@ -1081,9 +1082,13 @@ cdef class TextReader:
                         np.dtype("object"), i, start, end, 0,
                         0, na_hashset, na_fset)
                 except OverflowError:
-                    col_res, na_count = self._convert_with_dtype(
-                        np.dtype("object"), i, start, end, na_filter,
-                        0, na_hashset, na_fset)
+                    try:
+                        col_res, na_count = _try_pylong(self.parser, i, start,
+                                                        end, na_filter, na_hashset)
+                    except ValueError:
+                        col_res, na_count = self._convert_with_dtype(
+                            np.dtype("object"), i, start, end, 0,
+                            0, na_hashset, na_fset)
 
                 if col_res is not None:
                     break
@@ -1872,6 +1877,36 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
                 return error
 
     return 0
+
+cdef _try_pylong(parser_t *parser, Py_ssize_t col,
+                 int64_t line_start, int64_t line_end,
+                 bint na_filter, kh_str_starts_t *na_hashset):
+    cdef:
+        int na_count = 0
+        Py_ssize_t lines
+        coliter_t it
+        const char *word = NULL
+        ndarray[object] result
+        object NA = na_values[np.object_]
+
+    lines = line_end - line_start
+    result = np.empty(lines, dtype=object)
+    coliter_setup(&it, parser, col, line_start)
+
+    for i in range(lines):
+        COLITER_NEXT(it, word)
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            # in the hash table
+            na_count += 1
+            result[i] = NA
+            continue
+
+        py_int = PyLong_FromString(word, NULL, 10)
+        if py_int is None:
+            raise ValueError("Invalid integer ", word)
+        result[i] = py_int
+
+    return result, na_count
 
 
 # -> tuple[ndarray[bool], int]
