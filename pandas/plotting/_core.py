@@ -542,10 +542,10 @@ def boxplot(
 
         * 'axes' returns the matplotlib axes the boxplot is drawn on.
         * 'dict' returns a dictionary whose values are the matplotlib
-        Lines of the boxplot.
+          lines of the boxplot.
         * 'both' returns a namedtuple with the axes and dict.
         * when grouping with ``by``, a Series mapping columns to
-        ``return_type`` is returned.
+          ``return_type`` is returned.
 
         If ``return_type`` is `None`, a NumPy array
         of axes with the same shape as ``layout`` is returned.
@@ -728,10 +728,10 @@ def boxplot_frame(
 
         * 'axes' returns the matplotlib axes the boxplot is drawn on.
         * 'dict' returns a dictionary whose values are the matplotlib
-        Lines of the boxplot.
+          lines of the boxplot.
         * 'both' returns a namedtuple with the axes and dict.
         * when grouping with ``by``, a Series mapping columns to
-        ``return_type`` is returned.
+          ``return_type`` is returned.
 
         If ``return_type`` is `None`, a NumPy array
         of axes with the same shape as ``layout`` is returned.
