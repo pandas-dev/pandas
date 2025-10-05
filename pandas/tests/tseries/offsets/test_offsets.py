@@ -1157,6 +1157,11 @@ def test_offset_multiplication(
     tm.assert_series_equal(resultarray, expectedarray)
 
 
+def test_offset_deprecated_error():
+    with pytest.raises(ValueError, match="Did you mean h"):
+        date_range("2012-01-01", periods=3, freq="H")
+
+
 def test_dateoffset_operations_on_dataframes(performance_warning):
     # GH 47953
     df = DataFrame({"T": [Timestamp("2019-04-30")], "D": [DateOffset(months=1)]})
