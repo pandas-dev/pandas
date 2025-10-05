@@ -10,6 +10,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     TypeAlias,
     Union,
     cast,
@@ -29,6 +30,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     IncompatibleFrequency,
     NaT,
     NaTType,
@@ -44,6 +46,7 @@ from pandas._libs.tslibs import (
     ints_to_pydatetime,
     ints_to_pytimedelta,
     periods_per_day,
+    timezones,
     to_offset,
 )
 from pandas._libs.tslibs.fields import (
@@ -65,7 +68,6 @@ from pandas._typing import (
     PositionalIndexer2D,
     PositionalIndexerTuple,
     ScalarIndexer,
-    Self,
     SequenceIndexer,
     TakeIndexer,
     TimeAmbiguous,
@@ -195,11 +197,7 @@ def _period_dispatch(meth: F) -> F:
     return cast(F, new_meth)
 
 
-# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
-# incompatible with definition in base class "ExtensionArray"
-class DatetimeLikeArrayMixin(  # type: ignore[misc]
-    OpsMixin, NDArrayBackedExtensionArray
-):
+class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -510,7 +508,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         else:
             return np.asarray(self, dtype=dtype)
 
-    @overload
+    @overload  # type: ignore[override]
     def view(self) -> Self: ...
 
     @overload
@@ -973,6 +971,8 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         try:
             other = self._validate_comparison_value(other)
         except InvalidComparison:
+            if hasattr(other, "dtype") and isinstance(other.dtype, ArrowDtype):
+                return NotImplemented
             return invalid_comparison(self, other, op)
 
         dtype = getattr(other, "dtype", None)
@@ -1068,6 +1068,32 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         elif isinstance(self.freq, Tick):
             # In these cases
             return self.freq
+        elif self.dtype.kind == "m" and isinstance(other, Timedelta):
+            return self.freq
+        elif (
+            self.dtype.kind == "m"
+            and isinstance(other, Timestamp)
+            and (other.tz is None or timezones.is_utc(other.tz))
+        ):
+            # e.g. test_td64arr_add_sub_datetimelike_scalar tdarr + timestamp
+            #  gives a DatetimeArray. As long as the timestamp has no timezone
+            #  or UTC, the result can retain a Day freq.
+            return self.freq
+        elif (
+            lib.is_np_dtype(self.dtype, "M")
+            and isinstance(self.freq, Day)
+            and isinstance(other, Timedelta)
+        ):
+            # e.g. TestTimedelta64ArithmeticUnsorted::test_timedelta
+            # Day is unambiguously 24h
+            return self.freq
+        elif (
+            lib.is_np_dtype(self.dtype, "M")
+            and isinstance(other, Timestamp)
+            and isinstance(self.freq, Day)
+        ):
+            return self.freq
+
         return None
 
     @final
@@ -1358,6 +1384,10 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             result: np.ndarray | DatetimeLikeArrayMixin = self._add_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
             result = self._add_timedeltalike_scalar(other)
+        elif isinstance(other, Day) and lib.is_np_dtype(self.dtype, "Mm"):
+            # We treat this as Tick-like
+            td = Timedelta(days=other.n).as_unit("s")
+            result = self._add_timedeltalike_scalar(td)
         elif isinstance(other, BaseOffset):
             # specifically _not_ a Tick
             result = self._add_offset(other)
@@ -1418,6 +1448,10 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             result: np.ndarray | DatetimeLikeArrayMixin = self._sub_nat()
         elif isinstance(other, (Tick, timedelta, np.timedelta64)):
             result = self._add_timedeltalike_scalar(-other)
+        elif isinstance(other, Day) and lib.is_np_dtype(self.dtype, "Mm"):
+            # We treat this as Tick-like
+            td = Timedelta(days=other.n).as_unit("s")
+            result = self._add_timedeltalike_scalar(-td)
         elif isinstance(other, BaseOffset):
             # specifically _not_ a Tick
             result = self._add_offset(-other)
@@ -1982,7 +2016,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if value is not None:
             value = to_offset(value)
             self._validate_frequency(self, value)
-            if self.dtype.kind == "m" and not isinstance(value, Tick):
+            if self.dtype.kind == "m" and not isinstance(value, (Tick, Day)):
                 raise TypeError("TimedeltaArray/Index freq must be a Tick")
 
             if self.ndim > 1:
@@ -2279,7 +2313,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             pass
         elif len(self) == 0 and isinstance(freq, BaseOffset):
             # Always valid.  In the TimedeltaArray case, we require a Tick offset
-            if self.dtype.kind == "m" and not isinstance(freq, Tick):
+            if self.dtype.kind == "m" and not isinstance(freq, (Tick, Day)):
                 raise TypeError("TimedeltaArray/Index freq must be a Tick")
         else:
             # As an internal method, we can ensure this assertion always holds

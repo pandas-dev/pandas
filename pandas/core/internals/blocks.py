@@ -6,11 +6,11 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     final,
 )
 import warnings
-import weakref
 
 import numpy as np
 
@@ -24,22 +24,10 @@ from pandas._libs.internals import (
     BlockValuesRefs,
 )
 from pandas._libs.missing import NA
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeBackend,
-    DtypeObj,
-    FillnaOptions,
-    IgnoreRaise,
-    InterpolateOptions,
-    QuantileInterpolation,
-    Self,
-    Shape,
-    npt,
-)
 from pandas.errors import (
     AbstractMethodError,
     OutOfBoundsDatetime,
+    Pandas4Warning,
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -125,6 +113,19 @@ if TYPE_CHECKING:
         Generator,
         Iterable,
         Sequence,
+    )
+
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        DtypeBackend,
+        DtypeObj,
+        FillnaOptions,
+        IgnoreRaise,
+        InterpolateOptions,
+        QuantileInterpolation,
+        Shape,
+        npt,
     )
 
     from pandas.core.api import Index
@@ -563,7 +564,7 @@ class Block(PandasObject, libinternals.Block):
                 rbs.append(blk.copy(deep=False))
                 continue
 
-            for dtype, b in zip(dtypes, sub_blks):
+            for dtype, b in zip(dtypes, sub_blks, strict=True):
                 rbs.append(b.astype(dtype=dtype, squeeze=b.ndim != 1))
         return rbs
 
@@ -802,7 +803,7 @@ class Block(PandasObject, libinternals.Block):
         # Exclude anything that we know we won't contain
         pairs = [
             (x, y)
-            for x, y in zip(src_list, dest_list)
+            for x, y in zip(src_list, dest_list, strict=True)
             if (self._can_hold_element(x) or (self.dtype == "string" and is_re(x)))
         ]
         if not pairs:
@@ -816,12 +817,7 @@ class Block(PandasObject, libinternals.Block):
             na_mask = ~isna(values)
             masks: Iterable[npt.NDArray[np.bool_]] = (
                 extract_bool_array(
-                    cast(
-                        ArrayLike,
-                        compare_or_regex_search(
-                            values, s[0], regex=regex, mask=na_mask
-                        ),
-                    )
+                    compare_or_regex_search(values, s[0], regex=regex, mask=na_mask),
                 )
                 for s in pairs
             )
@@ -837,7 +833,7 @@ class Block(PandasObject, libinternals.Block):
         # references when we check again later
         rb = [self]
 
-        for i, ((src, dest), mask) in enumerate(zip(pairs, masks)):
+        for i, ((src, dest), mask) in enumerate(zip(pairs, masks, strict=True)):
             new_rb: list[Block] = []
 
             # GH-39338: _replace_coerce can split a block into
@@ -863,14 +859,22 @@ class Block(PandasObject, libinternals.Block):
                 )
 
                 if i != src_len:
-                    # This is ugly, but we have to get rid of intermediate refs
-                    # that did not go out of scope yet, otherwise we will trigger
-                    # many unnecessary copies
+                    # This is ugly, but we have to get rid of intermediate refs. We
+                    # can simply clear the referenced_blocks if we already copied,
+                    # otherwise we have to remove ourselves
+                    self_blk_ids = {
+                        id(b()): i for i, b in enumerate(self.refs.referenced_blocks)
+                    }
                     for b in result:
-                        ref = weakref.ref(b)
-                        b.refs.referenced_blocks.pop(
-                            b.refs.referenced_blocks.index(ref)
-                        )
+                        if b.refs is self.refs:
+                            # We are still sharing memory with self
+                            if id(b) in self_blk_ids:
+                                # Remove ourselves from the refs; we are temporary
+                                self.refs.referenced_blocks.pop(self_blk_ids[id(b)])
+                        else:
+                            # We have already copied, so we can clear the refs to avoid
+                            # future copies
+                            b.refs.referenced_blocks.clear()
                 new_rb.extend(result)
             rb = new_rb
         return rb
@@ -1445,6 +1449,18 @@ class Block(PandasObject, libinternals.Block):
                 fill_value,
             )
         except LossySetitemError:
+            if self.dtype.kind not in "iub" or not is_valid_na_for_dtype(
+                fill_value, self.dtype
+            ):
+                # GH#53802
+                warnings.warn(
+                    "shifting with a fill value that cannot be held by "
+                    "original dtype is deprecated and will raise in a future "
+                    "version. Explicitly cast to the desired dtype before "
+                    "shifting instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             nb = self.coerce_to_target_dtype(fill_value, raise_on_upcast=False)
             return nb.shift(periods, fill_value=fill_value)
 
@@ -1892,7 +1908,7 @@ class ExtensionBlock(EABackedBlock):
                     "need to implement this keyword or an exception will be "
                     "raised. In the interim, the keyword is ignored by "
                     f"{type(self.values).__name__}.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
 
@@ -2098,10 +2114,12 @@ class ExtensionBlock(EABackedBlock):
                 self.values.take(
                     indices, allow_fill=needs_masking[i], fill_value=fill_value
                 ),
-                BlockPlacement(place),  # type: ignore[arg-type]
+                BlockPlacement(place),
                 ndim=2,
             )
-            for i, (indices, place) in enumerate(zip(new_values, new_placement))
+            for i, (indices, place) in enumerate(
+                zip(new_values, new_placement, strict=True)
+            )
         ]
         return blocks, mask
 

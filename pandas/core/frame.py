@@ -31,6 +31,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -49,12 +50,16 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
-from pandas.compat._constants import REF_COUNT
+from pandas.compat._constants import (
+    REF_COUNT,
+    WARNING_CHECK_DISABLED,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
+    Pandas4Warning,
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
@@ -69,7 +74,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import (
     find_stack_level,
-    rewrite_warning,
 )
 from pandas.util._validators import (
     validate_ascending,
@@ -103,6 +107,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_sequence,
+    is_string_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -140,6 +145,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     sanitize_array,
@@ -236,13 +242,13 @@ if TYPE_CHECKING:
         MutableMappingT,
         NaPosition,
         NsmallestNlargestKeep,
+        ParquetCompressionOptions,
         PythonFuncType,
         QuantileInterpolation,
         ReadBuffer,
         ReindexMethod,
         Renamer,
         Scalar,
-        Self,
         SequenceNotStr,
         SortKind,
         StorageOptions,
@@ -726,7 +732,7 @@ class DataFrame(NDFrame, OpsMixin):
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
 
@@ -1518,7 +1524,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         columns = self.columns
         klass = self._constructor_sliced
-        for k, v in zip(self.index, self.values):
+        for k, v in zip(self.index, self.values, strict=True):
             s = klass(v, index=columns, name=k).__finalize__(self)
             if self._mgr.is_single_block:
                 s._mgr.add_references(self._mgr)
@@ -1601,10 +1607,10 @@ class DataFrame(NDFrame, OpsMixin):
             itertuple = collections.namedtuple(  # type: ignore[misc]
                 name, fields, rename=True
             )
-            return map(itertuple._make, zip(*arrays))
+            return map(itertuple._make, zip(*arrays, strict=True))
 
         # fallback to regular tuples
-        return zip(*arrays)
+        return zip(*arrays, strict=True)
 
     def __len__(self) -> int:
         """
@@ -2127,12 +2133,12 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Convert structured or record ndarray to DataFrame.
 
-        Creates a DataFrame object from a structured ndarray, or sequence of
+        Creates a DataFrame object from a structured ndarray, or iterable of
         tuples or dicts.
 
         Parameters
         ----------
-        data : structured ndarray, sequence of tuples or dicts
+        data : structured ndarray, iterable of tuples or dicts
             Structured input data.
         index : str, list of fields, array-like
             Field of array to use as the index, alternately a specific set of
@@ -2234,7 +2240,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_iterator(data):
             if nrows == 0:
-                return cls()
+                return cls(index=index, columns=columns)
 
             try:
                 first_row = next(data)
@@ -2859,7 +2865,7 @@ class DataFrame(NDFrame, OpsMixin):
         path: None = ...,
         *,
         engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
-        compression: str | None = ...,
+        compression: ParquetCompressionOptions = ...,
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
@@ -2872,7 +2878,7 @@ class DataFrame(NDFrame, OpsMixin):
         path: FilePath | WriteBuffer[bytes],
         *,
         engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
-        compression: str | None = ...,
+        compression: ParquetCompressionOptions = ...,
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
@@ -2885,7 +2891,7 @@ class DataFrame(NDFrame, OpsMixin):
         path: FilePath | WriteBuffer[bytes] | None = None,
         *,
         engine: Literal["auto", "pyarrow", "fastparquet"] = "auto",
-        compression: str | None = "snappy",
+        compression: ParquetCompressionOptions = "snappy",
         index: bool | None = None,
         partition_cols: list[str] | None = None,
         storage_options: StorageOptions | None = None,
@@ -3720,7 +3726,7 @@ class DataFrame(NDFrame, OpsMixin):
             index_memory_usage = self._constructor_sliced(
                 self.index.memory_usage(deep=deep), index=["Index"]
             )
-            result = index_memory_usage._append(result)
+            result = index_memory_usage._append_internal(result)
         return result
 
     def transpose(
@@ -4213,8 +4219,91 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if sys.getrefcount(self) <= 3:
+        """
+        Set item(s) in DataFrame by key.
+
+        This method allows you to set the values of one or more columns in the
+        DataFrame using a key. If the key does not exist, a new
+        column will be created.
+
+        Parameters
+        ----------
+        key : The object(s) in the index which are to be assigned to
+            Column label(s) to set. Can be a single column name, list of column names,
+            or tuple for MultiIndex columns.
+        value : scalar, array-like, Series, or DataFrame
+            Value(s) to set for the specified key(s).
+
+        Returns
+        -------
+        None
+            This method does not return a value.
+
+        See Also
+        --------
+        DataFrame.loc : Access and set values by label-based indexing.
+        DataFrame.iloc : Access and set values by position-based indexing.
+        DataFrame.assign : Assign new columns to a DataFrame.
+
+        Notes
+        -----
+        When assigning a Series to a DataFrame column, pandas aligns the Series
+        by index labels, not by position. This means:
+
+        * Values from the Series are matched to DataFrame rows by index label
+        * If a Series index label doesn't exist in the DataFrame index, it's ignored
+        * If a DataFrame index label doesn't exist in the Series index, NaN is assigned
+        * The order of values in the Series doesn't matter; only the index labels matter
+
+        Examples
+        --------
+        Basic column assignment:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]})
+        >>> df["B"] = [4, 5, 6]  # Assigns by position
+        >>> df
+            A  B
+        0  1  4
+        1  2  5
+        2  3  6
+
+        Series assignment with index alignment:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=[0, 1, 2])
+        >>> s = pd.Series([10, 20], index=[1, 3])  # Note: index 3 doesn't exist in df
+        >>> df["B"] = s  # Assigns by index label, not position
+        >>> df
+            A   B
+        0  1 NaN
+        1  2  10
+        2  3 NaN
+
+        Series assignment with partial index match:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3, 4]}, index=["a", "b", "c", "d"])
+        >>> s = pd.Series([100, 200], index=["b", "d"])
+        >>> df["B"] = s
+        >>> df
+            A    B
+        a  1  NaN
+        b  2  100
+        c  3  NaN
+        d  4  200
+
+        Series index labels NOT in DataFrame, ignored:
+
+        >>> df = pd.DataFrame({"A": [1, 2, 3]}, index=["x", "y", "z"])
+        >>> s = pd.Series([10, 20, 30, 40, 50], index=["x", "y", "a", "b", "z"])
+        >>> df["B"] = s
+        >>> df
+           A   B
+        x  1  10
+        y  2  20
+        z  3  50
+        # Values for 'a' and 'b' are completely ignored!
+        """
+        if not PYPY and not WARNING_CHECK_DISABLED:
+            if sys.getrefcount(self) <= REF_COUNT + 1:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -4270,7 +4359,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             if isinstance(value, DataFrame):
                 check_key_length(self.columns, key, value)
-                for k1, k2 in zip(key, value.columns):
+                for k1, k2 in zip(key, value.columns, strict=False):
                     self[k1] = value[k2]
 
             elif not is_list_like(value):
@@ -4364,10 +4453,19 @@ class DataFrame(NDFrame, OpsMixin):
                 loc, (slice, Series, np.ndarray, Index)
             ):
                 cols_droplevel = maybe_droplevels(cols, key)
+                if (
+                    not isinstance(cols_droplevel, MultiIndex)
+                    and is_string_dtype(cols_droplevel.dtype)
+                    and not cols_droplevel.any()
+                ):
+                    # if cols_droplevel contains only empty strings,
+                    # value.reindex(cols_droplevel, axis=1) would be full of NaNs
+                    # see GH#62518 and GH#61841
+                    return
                 if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
                     value = value.reindex(cols_droplevel, axis=1)
 
-                for col, col_droplevel in zip(cols, cols_droplevel):
+                for col, col_droplevel in zip(cols, cols_droplevel, strict=True):
                     self[col] = value[col_droplevel]
                 return
 
@@ -5063,10 +5161,19 @@ class DataFrame(NDFrame, OpsMixin):
         def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
             # GH 46870: BooleanDtype._is_numeric == True but should be excluded
             dtype = dtype if not isinstance(dtype, ArrowDtype) else dtype.numpy_dtype
-            return issubclass(dtype.type, tuple(dtypes_set)) or (
-                np.number in dtypes_set
-                and getattr(dtype, "_is_numeric", False)
-                and not is_bool_dtype(dtype)
+            return (
+                issubclass(dtype.type, tuple(dtypes_set))
+                or (
+                    np.number in dtypes_set
+                    and getattr(dtype, "_is_numeric", False)
+                    and not is_bool_dtype(dtype)
+                )
+                # backwards compat for the default `str` dtype being selected by object
+                or (
+                    isinstance(dtype, StringDtype)
+                    and dtype.na_value is np.nan
+                    and np.object_ in dtypes_set
+                )
             )
 
         def predicate(arr: ArrayLike) -> bool:
@@ -5216,6 +5323,13 @@ class DataFrame(NDFrame, OpsMixin):
         referencing an existing Series or sequence:
 
         >>> df.assign(temp_f=df["temp_c"] * 9 / 5 + 32)
+                  temp_c  temp_f
+        Portland    17.0    62.6
+        Berkeley    25.0    77.0
+
+        or by using :meth:`pandas.col`:
+
+        >>> df.assign(temp_f=pd.col("temp_c") * 9 / 5 + 32)
                   temp_c  temp_f
         Portland    17.0    62.6
         Berkeley    25.0    77.0
@@ -6453,7 +6567,11 @@ class DataFrame(NDFrame, OpsMixin):
             names = self.index._get_default_index_names(names, default)
 
             if isinstance(self.index, MultiIndex):
-                to_insert = zip(reversed(self.index.levels), reversed(self.index.codes))
+                to_insert = zip(
+                    reversed(self.index.levels),
+                    reversed(self.index.codes),
+                    strict=True,
+                )
             else:
                 to_insert = ((self.index, None),)
 
@@ -6979,7 +7097,7 @@ class DataFrame(NDFrame, OpsMixin):
             result.name = None
         else:
             vals = (col.values for name, col in self.items() if name in subset)
-            labels, shape = map(list, zip(*map(f, vals)))
+            labels, shape = map(list, zip(*map(f, vals), strict=True))
 
             ids = get_group_index(labels, tuple(shape), sort=False, xnull=False)
             result = self._constructor_sliced(duplicated(ids, keep), index=self.index)
@@ -7173,35 +7291,43 @@ class DataFrame(NDFrame, OpsMixin):
         `natural sorting <https://en.wikipedia.org/wiki/Natural_sort_order>`__.
         This can be done using
         ``natsort`` `package <https://github.com/SethMMorton/natsort>`__,
-        which provides sorted indices according
-        to their natural order, as shown below:
+        which provides a function to generate a key
+        to sort data in their natural order:
 
         >>> df = pd.DataFrame(
         ...     {
-        ...         "time": ["0hr", "128hr", "72hr", "48hr", "96hr"],
-        ...         "value": [10, 20, 30, 40, 50],
+        ...         "hours": ["0hr", "128hr", "0hr", "64hr", "64hr", "128hr"],
+        ...         "mins": [
+        ...             "10mins",
+        ...             "40mins",
+        ...             "40mins",
+        ...             "40mins",
+        ...             "10mins",
+        ...             "10mins",
+        ...         ],
+        ...         "value": [10, 20, 30, 40, 50, 60],
         ...     }
         ... )
         >>> df
-            time  value
-        0    0hr     10
-        1  128hr     20
-        2   72hr     30
-        3   48hr     40
-        4   96hr     50
-        >>> from natsort import index_natsorted
-        >>> index_natsorted(df["time"])
-        [0, 3, 2, 4, 1]
+           hours    mins  value
+        0    0hr  10mins     10
+        1  128hr  40mins     20
+        2    0hr  40mins     30
+        3   64hr  40mins     40
+        4   64hr  10mins     50
+        5  128hr  10mins     60
+        >>> from natsort import natsort_keygen
         >>> df.sort_values(
-        ...     by="time",
-        ...     key=lambda x: np.argsort(index_natsorted(x)),
+        ...     by=["hours", "mins"],
+        ...     key=natsort_keygen(),
         ... )
-            time  value
-        0    0hr     10
-        3   48hr     40
-        2   72hr     30
-        4   96hr     50
-        1  128hr     20
+           hours    mins  value
+        0    0hr  10mins     10
+        2    0hr  40mins     30
+        4   64hr  10mins     50
+        3   64hr  40mins     40
+        5  128hr  10mins     60
+        1  128hr  40mins     20
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         axis = self._get_axis_number(axis)
@@ -7224,7 +7350,9 @@ class DataFrame(NDFrame, OpsMixin):
 
             # need to rewrap columns in Series to apply key function
             if key is not None:
-                keys_data = [Series(k, name=name) for (k, name) in zip(keys, by)]
+                keys_data = [
+                    Series(k, name=name) for (k, name) in zip(keys, by, strict=True)
+                ]
             else:
                 # error: Argument 1 to "list" has incompatible type
                 # "Generator[ExtensionArray | ndarray[Any, Any], None, None]";
@@ -8086,7 +8214,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             arrays = [
                 array_op(_left, _right)
-                for _left, _right in zip(self._iter_column_arrays(), right)
+                for _left, _right in zip(self._iter_column_arrays(), right, strict=True)
             ]
 
         elif isinstance(right, Series):
@@ -9113,7 +9241,7 @@ class DataFrame(NDFrame, OpsMixin):
         1  2  500.0
         2  3    6.0
         """
-        if not PYPY:
+        if not PYPY and not WARNING_CHECK_DISABLED:
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
@@ -9276,6 +9404,9 @@ class DataFrame(NDFrame, OpsMixin):
         )
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
+    )
     def groupby(
         self,
         by=None,
@@ -9795,7 +9926,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "removed in a future version of pandas. See the What's New notes "
                 "for pandas 2.1.0 for details. Do not specify the future_stack "
                 "argument to adopt the new implementation and silence this warning.",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
 
@@ -10790,56 +10921,43 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
-    def _append(
+    def _append_internal(
         self,
-        other,
+        other: Series,
         ignore_index: bool = False,
-        verify_integrity: bool = False,
-        sort: bool = False,
     ) -> DataFrame:
-        if isinstance(other, (Series, dict)):
-            if isinstance(other, dict):
-                if not ignore_index:
-                    raise TypeError("Can only append a dict if ignore_index=True")
-                other = Series(other)
-            if other.name is None and not ignore_index:
-                raise TypeError(
-                    "Can only append a Series if ignore_index=True "
-                    "or if the Series has a name"
-                )
+        assert isinstance(other, Series), type(other)
 
-            index = Index(
-                [other.name],
-                name=(
-                    self.index.names
-                    if isinstance(self.index, MultiIndex)
-                    else self.index.name
-                ),
+        if other.name is None and not ignore_index:
+            raise TypeError(
+                "Can only append a Series if ignore_index=True "
+                "or if the Series has a name"
             )
-            row_df = other.to_frame().T
-            # infer_objects is needed for
-            #  test_append_empty_frame_to_series_with_dateutil_tz
-            other = row_df.infer_objects().rename_axis(index.names)
-        elif isinstance(other, list):
-            if not other:
-                pass
-            elif not isinstance(other[0], DataFrame):
-                other = DataFrame(other)
-                if self.index.name is not None and not ignore_index:
-                    other.index.name = self.index.name
+
+        index = Index(
+            [other.name],
+            name=(
+                self.index.names
+                if isinstance(self.index, MultiIndex)
+                else self.index.name
+            ),
+        )
+
+        row_df = other.to_frame().T
+        if isinstance(self.index.dtype, ExtensionDtype):
+            # GH#41626 retain e.g. CategoricalDtype if reached via
+            #  df.loc[key] = item
+            row_df.index = self.index.array._cast_pointwise_result(row_df.index._values)
+
+        # infer_objects is needed for
+        #  test_append_empty_frame_to_series_with_dateutil_tz
+        row_df = row_df.infer_objects().rename_axis(index.names)
 
         from pandas.core.reshape.concat import concat
 
-        if isinstance(other, (list, tuple)):
-            to_concat = [self, *other]
-        else:
-            to_concat = [self, other]
-
         result = concat(
-            to_concat,
+            [self, row_df],
             ignore_index=ignore_index,
-            verify_integrity=verify_integrity,
-            sort=sort,
         )
         return result.__finalize__(self, method="append")
 
@@ -11633,7 +11751,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return nanops.nancorr(x[0], x[1], method=method)
 
             correl = self._constructor_sliced(
-                map(c, zip(left.values.T, right.values.T)),
+                map(c, zip(left.values.T, right.values.T, strict=True)),
                 index=left.columns,
                 copy=False,
             )
@@ -11653,7 +11771,7 @@ class DataFrame(NDFrame, OpsMixin):
             idx_diff = result_index.difference(correl.index)
 
             if len(idx_diff) > 0:
-                correl = correl._append(
+                correl = correl._append_internal(
                     Series([np.nan] * len(idx_diff), index=idx_diff)
                 )
 
@@ -11827,25 +11945,13 @@ class DataFrame(NDFrame, OpsMixin):
                     row_index = np.tile(np.arange(nrows), ncols)
                     col_index = np.repeat(np.arange(ncols), nrows)
                     ser = Series(arr, index=col_index, copy=False)
-                    # GroupBy will raise a warning with SeriesGroupBy as the object,
-                    # likely confusing users
-                    with rewrite_warning(
-                        target_message=(
-                            f"The behavior of SeriesGroupBy.{name} with all-NA values"
-                        ),
-                        target_category=FutureWarning,
-                        new_message=(
-                            f"The behavior of {type(self).__name__}.{name} with all-NA "
-                            "values, or any-NA and skipna=False, is deprecated. In "
-                            "a future version this will raise ValueError"
-                        ),
-                    ):
-                        result = ser.groupby(row_index).agg(name, **kwds)
+                    if name == "all":
+                        # Behavior here appears incorrect; preserving
+                        # for backwards compatibility for now.
+                        # See https://github.com/pandas-dev/pandas/issues/57171
+                        skipna = True
+                    result = ser.groupby(row_index).agg(name, **kwds, skipna=skipna)
                     result.index = df.index
-                    if not skipna and name not in ("any", "all"):
-                        mask = df.isna().to_numpy(dtype=np.bool_).any(axis=1)
-                        other = -1 if name in ("idxmax", "idxmin") else lib.no_default
-                        result = result.mask(mask, other)
                     return result
 
             df = df.T
@@ -11970,7 +12076,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | bool: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="all")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="all")
     @doc(make_doc("all", ndim=1))
     def all(
         self,
@@ -12017,7 +12123,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="min")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="min")
     @doc(make_doc("min", ndim=2))
     def min(
         self,
@@ -12064,7 +12170,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="max")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="max")
     @doc(make_doc("max", ndim=2))
     def max(
         self,
@@ -12080,7 +12186,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="max")
         return result
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="sum")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="sum")
     def sum(
         self,
         axis: Axis | None = 0,
@@ -12181,7 +12287,7 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="sum")
         return result
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="prod")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="prod")
     def prod(
         self,
         axis: Axis | None = 0,
@@ -12299,7 +12405,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="mean")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="mean")
     @doc(make_doc("mean", ndim=2))
     def mean(
         self,
@@ -12346,7 +12452,9 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="median")
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self"], name="median"
+    )
     @doc(make_doc("median", ndim=2))
     def median(
         self,
@@ -12396,7 +12504,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="sem")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="sem")
     def sem(
         self,
         axis: Axis | None = 0,
@@ -12516,7 +12624,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="var")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="var")
     def var(
         self,
         axis: Axis | None = 0,
@@ -12635,7 +12743,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="std")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="std")
     def std(
         self,
         axis: Axis | None = 0,
@@ -12758,7 +12866,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="skew")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="skew")
     def skew(
         self,
         axis: Axis | None = 0,
@@ -12878,7 +12986,7 @@ class DataFrame(NDFrame, OpsMixin):
         **kwargs,
     ) -> Series | Any: ...
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="kurt")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="kurt")
     def kurt(
         self,
         axis: Axis | None = 0,
@@ -13157,13 +13265,11 @@ class DataFrame(NDFrame, OpsMixin):
         # indices will always be np.ndarray since axis is not N
 
         if (indices == -1).any():
-            warnings.warn(
-                f"The behavior of {type(self).__name__}.idxmin with all-NA "
-                "values, or any-NA and skipna=False, is deprecated. In a future "
-                "version this will raise ValueError",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            if skipna:
+                msg = "Encountered all NA values"
+            else:
+                msg = "Encountered an NA values with skipna=False"
+            raise ValueError(msg)
 
         index = data._get_axis(axis)
         result = algorithms.take(
@@ -13264,13 +13370,11 @@ class DataFrame(NDFrame, OpsMixin):
         # indices will always be 1d array since axis is not None
 
         if (indices == -1).any():
-            warnings.warn(
-                f"The behavior of {type(self).__name__}.idxmax with all-NA "
-                "values, or any-NA and skipna=False, is deprecated. In a future "
-                "version this will raise ValueError",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+            if skipna:
+                msg = "Encountered all NA values"
+            else:
+                msg = "Encountered an NA values with skipna=False"
+            raise ValueError(msg)
 
         index = data._get_axis(axis)
         result = algorithms.take(

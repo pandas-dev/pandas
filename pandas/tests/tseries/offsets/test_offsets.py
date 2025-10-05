@@ -47,6 +47,7 @@ from pandas.tseries.offsets import (
     CustomBusinessMonthBegin,
     CustomBusinessMonthEnd,
     DateOffset,
+    Day,
     Easter,
     FY5253Quarter,
     LastWeekOfMonth,
@@ -244,7 +245,7 @@ class TestCommon:
             assert offset.rule_code == code
 
     def _check_offsetfunc_works(self, offset, funcname, dt, expected, normalize=False):
-        if normalize and issubclass(offset, Tick):
+        if normalize and issubclass(offset, (Tick, Day)):
             # normalize=True disallowed for Tick subclasses GH#21427
             return
 
@@ -464,7 +465,7 @@ class TestCommon:
         assert offset_s.is_on_offset(dt)
 
         # when normalize=True, is_on_offset checks time is 00:00:00
-        if issubclass(offset_types, Tick):
+        if issubclass(offset_types, (Tick, Day)):
             # normalize=True disallowed for Tick subclasses GH#21427
             return
         offset_n = _create_offset(offset_types, normalize=True)
@@ -496,7 +497,7 @@ class TestCommon:
         assert result == expected_localize
 
         # normalize=True, disallowed for Tick subclasses GH#21427
-        if issubclass(offset_types, Tick):
+        if issubclass(offset_types, (Tick, Day)):
             return
         offset_s = _create_offset(offset_types, normalize=True)
         expected = Timestamp(expected.date())
@@ -1154,6 +1155,11 @@ def test_offset_multiplication(
     assert resultscalar == expectedscalar
 
     tm.assert_series_equal(resultarray, expectedarray)
+
+
+def test_offset_deprecated_error():
+    with pytest.raises(ValueError, match="Did you mean h"):
+        date_range("2012-01-01", periods=3, freq="H")
 
 
 def test_dateoffset_operations_on_dataframes(performance_warning):

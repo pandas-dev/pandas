@@ -20,7 +20,7 @@ def test_floating_array_constructor():
     mask = np.array([False, False, False, True], dtype="bool")
 
     result = FloatingArray(values, mask)
-    expected = pd.array([1, 2, 3, np.nan], dtype="Float64")
+    expected = pd.array([1, 2, 3, pd.NA], dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
     tm.assert_numpy_array_equal(result._data, values)
     tm.assert_numpy_array_equal(result._mask, mask)
@@ -85,9 +85,12 @@ def test_to_array():
         ([np.nan], [pd.NA]),
     ],
 )
-def test_to_array_none_is_nan(a, b):
+def test_to_array_none_is_nan(a, b, using_nan_is_na):
     result = pd.array(a, dtype="Float64")
     expected = pd.array(b, dtype="Float64")
+    if not using_nan_is_na and a[-1] is np.nan:
+        assert np.isnan(result[-1])
+        expected._mask[-1] = False
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -189,13 +192,17 @@ def test_to_array_bool(bool_values, values, target_dtype, expected_dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_series_from_float(data):
+def test_series_from_float(data, using_nan_is_na):
     # construct from our dtype & string dtype
     dtype = data.dtype
 
     # from float
     expected = pd.Series(data)
-    result = pd.Series(data.to_numpy(na_value=np.nan, dtype="float"), dtype=str(dtype))
+    np_res = data.to_numpy(na_value=np.nan, dtype="float")
+    if not using_nan_is_na:
+        np_res = np_res.astype(object)
+        np_res[data.isna()] = pd.NA
+    result = pd.Series(np_res, dtype=str(dtype))
     tm.assert_series_equal(result, expected)
 
     # from list

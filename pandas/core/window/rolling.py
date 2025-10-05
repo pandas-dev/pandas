@@ -13,7 +13,9 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
+    Concatenate,
     Literal,
+    Self,
     final,
     overload,
 )
@@ -109,11 +111,9 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
-        Concatenate,
         NDFrameT,
         QuantileInterpolation,
         P,
-        Self,
         T,
         WindowingRankType,
         npt,
@@ -351,7 +351,7 @@ class BaseWindow(SelectionMixin):
         )
         self._check_window_bounds(start, end, len(obj))
 
-        for s, e in zip(start, end):
+        for s, e in zip(start, end, strict=True):
             result = obj.iloc[slice(s, e)]
             yield result
 
@@ -665,7 +665,7 @@ class BaseWindow(SelectionMixin):
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if isinstance(result, ABCDataFrame) and relabeling:
             result = result.iloc[:, order]
-            result.columns = columns  # type: ignore[union-attr]
+            result.columns = columns
         if result is None:
             return self.apply(func, raw=False, args=args, kwargs=kwargs)
         return result
@@ -802,7 +802,7 @@ class BaseWindowGroupby(BaseWindow):
             groupby_codes = []
             groupby_levels = []
             # e.g. [[1, 2], [4, 5]] as [[1, 4], [2, 5]]
-            for gb_level_pair in map(list, zip(*gb_pairs)):
+            for gb_level_pair in map(list, zip(*gb_pairs, strict=True)):
                 labels = np.repeat(np.array(gb_level_pair), old_result_len)
                 codes, levels = factorize(labels)
                 groupby_codes.append(codes)

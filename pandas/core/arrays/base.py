@@ -15,10 +15,10 @@ from typing import (
     Any,
     ClassVar,
     Literal,
+    Self,
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -30,17 +30,13 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
-    Appender,
-    Substitution,
     cache_readonly,
 )
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.cast import maybe_cast_pointwise_result
 from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
@@ -88,14 +84,12 @@ if TYPE_CHECKING:
         AstypeArg,
         AxisInt,
         Dtype,
-        DtypeObj,
         FillnaOptions,
         InterpolateOptions,
         NumpySorter,
         NumpyValueArrayLike,
         PositionalIndexer,
         ScalarIndexer,
-        Self,
         SequenceIndexer,
         Shape,
         SortKind,
@@ -103,7 +97,10 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import Index
+    from pandas import (
+        Index,
+        Series,
+    )
 
 _extension_array_shared_docs: dict[str, str] = {}
 
@@ -312,38 +309,6 @@ class ExtensionArray:
         raise AbstractMethodError(cls)
 
     @classmethod
-    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
-        """
-        Strict analogue to _from_sequence, allowing only sequences of scalars
-        that should be specifically inferred to the given dtype.
-
-        Parameters
-        ----------
-        scalars : sequence
-        dtype : ExtensionDtype
-
-        Raises
-        ------
-        TypeError or ValueError
-
-        Notes
-        -----
-        This is called in a try/except block when casting the result of a
-        pointwise operation.
-        """
-        try:
-            return cls._from_sequence(scalars, dtype=dtype, copy=False)
-        except (ValueError, TypeError):
-            raise
-        except Exception:
-            warnings.warn(
-                "_from_scalars should only raise ValueError or TypeError. "
-                "Consider overriding _from_scalars where appropriate.",
-                stacklevel=find_stack_level(),
-            )
-            raise
-
-    @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
@@ -371,9 +336,6 @@ class ExtensionArray:
             from a sequence of scalars.
         api.extensions.ExtensionArray._from_factorized : Reconstruct an ExtensionArray
             after factorization.
-        api.extensions.ExtensionArray._from_scalars : Strict analogue to _from_sequence,
-            allowing only sequences of scalars that should be specifically inferred to
-            the given dtype.
 
         Examples
         --------
@@ -415,6 +377,14 @@ class ExtensionArray:
         Length: 2, dtype: interval[int64, right]
         """
         raise AbstractMethodError(cls)
+
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        """
+        Cast the result of a pointwise operation (e.g. Series.map) to an
+        array, preserve dtype_backend if possible.
+        """
+        values = np.asarray(values, dtype=object)
+        return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # ------------------------------------------------------------------------
     # Must be a Sequence
@@ -1688,21 +1658,79 @@ class ExtensionArray:
         >>> cat = pd.Categorical(['a', 'b', 'c'])
         >>> cat
         ['a', 'b', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> cat.repeat(2)
         ['a', 'a', 'b', 'b', 'c', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> cat.repeat([1, 2, 3])
         ['a', 'b', 'b', 'c', 'c', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         """
 
-    @Substitution(klass="ExtensionArray")
-    @Appender(_extension_array_shared_docs["repeat"])
     def repeat(self, repeats: int | Sequence[int], axis: AxisInt | None = None) -> Self:
+        """
+        Repeat elements of an ExtensionArray.
+
+        Returns a new ExtensionArray where each element of the current ExtensionArray
+        is repeated consecutively a given number of times.
+
+        Parameters
+        ----------
+        repeats : int or array of ints
+            The number of repetitions for each element. This should be a
+            non-negative integer. Repeating 0 times will return an empty
+            ExtensionArray.
+        axis : None
+            Must be ``None``. Has no effect but is accepted for compatibility
+            with numpy.
+
+        Returns
+        -------
+        ExtensionArray
+            Newly created ExtensionArray with repeated elements.
+
+        See Also
+        --------
+        Series.repeat : Equivalent function for Series.
+        Index.repeat : Equivalent function for Index.
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
+        ExtensionArray.take : Take arbitrary positions.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(["a", "b", "c"])
+        >>> cat
+        ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
+        >>> cat.repeat(2)
+        ['a', 'a', 'b', 'b', 'c', 'c']
+        Categories (3, str): ['a', 'b', 'c']
+        >>> cat.repeat([1, 2, 3])
+        ['a', 'b', 'b', 'c', 'c', 'c']
+        Categories (3, str): ['a', 'b', 'c']
+        """
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
+
+    def value_counts(self, dropna: bool = True) -> Series:
+        """
+        Return a Series containing counts of unique values.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't include counts of NA values.
+
+        Returns
+        -------
+        Series
+        """
+        from pandas.core.algorithms import value_counts_internal as value_counts
+
+        result = value_counts(self.to_numpy(copy=False), sort=False, dropna=dropna)
+        result.index = result.index.astype(self.dtype)
+        return result
 
     # ------------------------------------------------------------------------
     # Indexing methods
@@ -1834,6 +1862,12 @@ class ExtensionArray:
         Length: 3, dtype: Int64
         """
         raise AbstractMethodError(self)
+
+    @overload
+    def view(self) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
 
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
         """
@@ -2842,7 +2876,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    res = maybe_cast_pointwise_result(arr, self.dtype, same_dtype=False)
+                    res = self._cast_pointwise_result(arr)
                     if not isinstance(res, type(self)):
                         # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)

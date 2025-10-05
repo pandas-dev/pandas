@@ -11,6 +11,7 @@ from typing import (
     ClassVar,
     Literal,
     NoReturn,
+    Self,
     cast,
     final,
     overload,
@@ -21,6 +22,7 @@ import numpy as np
 
 from pandas._config import (
     get_option,
+    is_nan_na,
     using_string_dtype,
 )
 
@@ -59,7 +61,6 @@ from pandas._typing import (
     Level,
     NaPosition,
     ReindexMethod,
-    Self,
     Shape,
     SliceType,
     npt,
@@ -90,7 +91,6 @@ from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
     find_result_type,
     infer_dtype_from,
-    maybe_cast_pointwise_result,
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
@@ -161,6 +161,7 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.string_ import (
     StringArray,
     StringDtype,
@@ -471,7 +472,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     str = Accessor("str", StringMethods)
 
-    _references = None
+    _references: BlockValuesRefs | None = None
 
     # --------------------------------------------------------------------
     # Constructors
@@ -641,7 +642,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     @classmethod
     def _simple_new(
-        cls, values: ArrayLike, name: Hashable | None = None, refs=None
+        cls,
+        values: ArrayLike,
+        name: Hashable | None = None,
+        refs: BlockValuesRefs | None = None,
     ) -> Self:
         """
         We require that we have a dtype compat for the values. If we are passed
@@ -3305,7 +3309,7 @@ class Index(IndexOpsMixin, PandasObject):
                     res = algos.unique1d(res_indexer)
                 else:
                     result = self.take(indexer)
-                    res = result.drop_duplicates()
+                    res = result.drop_duplicates()  # type: ignore[assignment]
                 return ensure_wrapped_if_datetimelike(res)
 
         res_values = self._intersection_via_get_indexer(other, sort=sort)
@@ -5043,9 +5047,13 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self._values, BaseMaskedArray):
             # This is only used if our array is monotonic, so no NAs present
             return self._values._data
-        elif isinstance(self._values, ArrowExtensionArray):
+        elif (
+            isinstance(self._values, ArrowExtensionArray)
+            and self.dtype.kind not in "mM"
+        ):
             # This is only used if our array is monotonic, so no missing values
             # present
+            # "mM" cases will go through _get_engine_target and cast to i8
             return self._values.to_numpy()
 
         # TODO: exclude ABCRangeIndex case here as it copies
@@ -5220,6 +5228,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         getitem = self._data.__getitem__
 
+        key = lib.item_from_zerodim(key)
         if is_integer(key) or is_float(key):
             # GH#44051 exclude bool, which would return a 2d ndarray
             key = com.cast_scalar_indexer(key)
@@ -5386,6 +5395,12 @@ class Index(IndexOpsMixin, PandasObject):
 
             # See also: Block.coerce_to_target_dtype
             dtype = self._find_common_type_compat(value)
+            if dtype == self.dtype:
+                # GH#56376 avoid RecursionError
+                raise AssertionError(
+                    "Something has gone wrong. Please report a bug at "
+                    "github.com/pandas-dev/pandas"
+                ) from err
             return self.astype(dtype).putmask(mask, value)
 
         values = self._values.copy()
@@ -6083,7 +6098,8 @@ class Index(IndexOpsMixin, PandasObject):
                 # "Index" has no attribute "freq"
                 and key.freq is None  # type: ignore[attr-defined]
             ):
-                keyarr = keyarr._with_freq(None)
+                # error: "Index" has no attribute "_with_freq"; maybe "_with_infer"?
+                keyarr = keyarr._with_freq(None)  # type: ignore[attr-defined]
 
         return keyarr, indexer
 
@@ -6398,17 +6414,20 @@ class Index(IndexOpsMixin, PandasObject):
         if not new_values.size:
             # empty
             dtype = self.dtype
-
-        # e.g. if we are floating and new_values is all ints, then we
-        #  don't want to cast back to floating.  But if we are UInt64
-        #  and new_values is all ints, we want to try.
-        same_dtype = lib.infer_dtype(new_values, skipna=False) == self.inferred_type
-        if same_dtype:
-            new_values = maybe_cast_pointwise_result(
-                new_values, self.dtype, same_dtype=same_dtype
-            )
-
-        return Index._with_infer(new_values, dtype=dtype, copy=False, name=self.name)
+        elif isinstance(new_values, Categorical):
+            # cast_pointwise_result is unnecessary
+            dtype = new_values.dtype
+        else:
+            if isinstance(self, MultiIndex):
+                arr = self[:0].to_flat_index().array
+            else:
+                arr = self[:0].array
+            # e.g. if we are floating and new_values is all ints, then we
+            #  don't want to cast back to floating.  But if we are UInt64
+            #  and new_values is all ints, we want to try.
+            new_values = arr._cast_pointwise_result(new_values)
+            dtype = new_values.dtype
+        return Index(new_values, dtype=dtype, copy=False, name=self.name)
 
     # TODO: De-duplicate with map, xref GH#32349
     @final
@@ -6421,9 +6440,11 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if isinstance(self, ABCMultiIndex):
             values = [
-                self.get_level_values(i).map(func)
-                if i == level or level is None
-                else self.get_level_values(i)
+                (
+                    self.get_level_values(i).map(func)
+                    if i == level or level is None
+                    else self.get_level_values(i)
+                )
                 for i in range(self.nlevels)
             ]
             return type(self).from_arrays(values)
@@ -6575,6 +6596,14 @@ class Index(IndexOpsMixin, PandasObject):
         If we have a float key and are not a floating index, then try to cast
         to an int if equivalent.
         """
+        if (
+            is_float(key)
+            and np.isnan(key)
+            and isinstance(self.dtype, FloatingDtype)
+            and is_nan_na()
+        ):
+            # TODO: better place to do this?
+            key = self.dtype.na_value
         return key
 
     def _maybe_cast_listlike_indexer(self, target) -> Index:

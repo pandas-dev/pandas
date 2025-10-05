@@ -68,6 +68,11 @@ def expected_dtype(dtype, method, pct=False):
             exp_dtype = "double[pyarrow]"
         else:
             exp_dtype = "uint64[pyarrow]"
+    elif dtype in ["Float64", "Int64"]:
+        if method == "average" or pct:
+            exp_dtype = "Float64"
+        else:
+            exp_dtype = "UInt64"
 
     return exp_dtype
 
@@ -254,11 +259,10 @@ class TestSeriesRank:
 
     def test_rank_nullable_integer(self):
         # GH 56976
-        exp = Series([np.nan, 2, np.nan, 3, 3, 2, 3, 1])
-        exp = exp.astype("Int64")
+        exp = Series([None, 2, None, 3, 3, 2, 3, 1], dtype="Int64")
         result = exp.rank(na_option="keep")
 
-        expected = Series([np.nan, 2.5, np.nan, 5.0, 5.0, 2.5, 5.0, 1.0])
+        expected = Series([None, 2.5, None, 5.0, 5.0, 2.5, 5.0, 1.0], dtype="Float64")
 
         tm.assert_series_equal(result, expected)
 
@@ -269,14 +273,38 @@ class TestSeriesRank:
         with pytest.raises(ValueError, match=msg):
             s.rank("average")
 
-    def test_rank_tie_methods(self, ser, results, dtype, using_infer_string):
+    def test_rank_tie_methods(
+        self, ser, results, dtype, using_infer_string, using_nan_is_na
+    ):
         method, exp = results
-        if dtype == "int64" or (not using_infer_string and dtype == "str"):
+        if (
+            dtype == "int64"
+            or (
+                # TODO: these can work but need to update ser construction.
+                dtype in ["int64[pyarrow]", "uint64[pyarrow]", "Int64"]
+                and not using_nan_is_na
+            )
+            or (not using_infer_string and dtype == "str")
+        ):
             pytest.skip("int64/str does not support NaN")
 
         ser = ser if dtype is None else ser.astype(dtype)
+        if dtype in ["float64[pyarrow]", "Float64"] and not using_nan_is_na:
+            # TODO: use ser.replace(np.nan, NA) once that works
+            ser[np.isnan(ser.to_numpy(dtype=np.float64, na_value=np.nan))] = NA
+            mask = np.isnan(exp)
+            exp = exp.astype(object)
+            exp[mask] = NA
+
         result = ser.rank(method=method)
-        tm.assert_series_equal(result, Series(exp, dtype=expected_dtype(dtype, method)))
+
+        if dtype == "string[pyarrow]" and not using_nan_is_na:
+            mask = np.isnan(exp)
+            exp = exp.astype(object)
+            exp[mask] = NA
+
+        expected = Series(exp, dtype=expected_dtype(dtype, method))
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("na_option", ["top", "bottom", "keep"])
     @pytest.mark.parametrize(
@@ -295,7 +323,15 @@ class TestSeriesRank:
         ],
     )
     def test_rank_tie_methods_on_infs_nans(
-        self, rank_method, na_option, ascending, dtype, na_value, pos_inf, neg_inf
+        self,
+        rank_method,
+        na_option,
+        ascending,
+        dtype,
+        na_value,
+        pos_inf,
+        neg_inf,
+        using_nan_is_na,
     ):
         pytest.importorskip("scipy")
         if dtype == "float64[pyarrow]":
@@ -303,6 +339,12 @@ class TestSeriesRank:
                 exp_dtype = "float64[pyarrow]"
             else:
                 exp_dtype = "uint64[pyarrow]"
+        elif dtype == "Float64":
+            # GH#62043
+            if rank_method == "average":
+                exp_dtype = "Float64"
+            else:
+                exp_dtype = "UInt64"
         else:
             exp_dtype = "float64"
 
@@ -321,6 +363,8 @@ class TestSeriesRank:
             order = [ranks[1], ranks[0], ranks[2]]
         elif na_option == "bottom":
             order = [ranks[0], ranks[2], ranks[1]]
+        elif dtype in ("float64[pyarrow]", "Float64") and not using_nan_is_na:
+            order = [ranks[0], [NA] * chunk, ranks[1]]
         else:
             order = [ranks[0], [np.nan] * chunk, ranks[1]]
         expected = order if ascending else order[::-1]
@@ -328,7 +372,8 @@ class TestSeriesRank:
         result = iseries.rank(
             method=rank_method, na_option=na_option, ascending=ascending
         )
-        tm.assert_series_equal(result, Series(expected, dtype=exp_dtype))
+        exp_ser = Series(expected, dtype=exp_dtype)
+        tm.assert_series_equal(result, exp_ser)
 
     def test_rank_desc_mix_nans_infs(self):
         # GH 19538
@@ -384,10 +429,16 @@ class TestSeriesRank:
         expected = Series(exp).astype(expected_dtype(dtype, "dense"))
         tm.assert_series_equal(result, expected)
 
-    def test_rank_descending(self, ser, results, dtype, using_infer_string):
+    def test_rank_descending(
+        self, ser, results, dtype, using_infer_string, using_nan_is_na
+    ):
         method, _ = results
-        if dtype == "int64" or (not using_infer_string and dtype == "str"):
-            s = ser.dropna()
+        if (
+            dtype == "int64"
+            or (dtype in ["int64[pyarrow]", "Int64", "Float64"] and not using_nan_is_na)
+            or (not using_infer_string and dtype == "str")
+        ):
+            s = ser.dropna().astype(dtype)
         else:
             s = ser.astype(dtype)
 
@@ -396,6 +447,8 @@ class TestSeriesRank:
             expected = (s.astype("float64").max() - s.astype("float64")).rank()
         else:
             expected = (s.max() - s).rank()
+        if dtype == "string[pyarrow]" and not using_nan_is_na:
+            expected = expected.replace(np.nan, NA)
         tm.assert_series_equal(res, expected.astype(expected_dtype(dtype, "average")))
 
         if dtype.startswith("str"):
@@ -405,6 +458,8 @@ class TestSeriesRank:
         else:
             expected = (s.max() - s).rank(method=method)
         res2 = s.rank(method=method, ascending=False)
+        if dtype == "string[pyarrow]" and not using_nan_is_na:
+            expected = expected.replace(np.nan, NA)
         tm.assert_series_equal(res2, expected.astype(expected_dtype(dtype, method)))
 
     def test_rank_int(self, ser, results):
@@ -440,7 +495,7 @@ class TestSeriesRank:
             dtype="Float64",
         )
         result = ser.rank(method="min")
-        expected = Series([4, 1, 3, np.nan, 2])
+        expected = Series([4, 1, 3, NA, 2], dtype="UInt64")
         tm.assert_series_equal(result, expected)
 
 

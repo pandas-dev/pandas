@@ -1242,9 +1242,9 @@ class StringMethods(NoNewAttributesMixin):
             Flags to pass through to the re module, e.g. re.IGNORECASE.
         na : scalar, optional
             Fill value for missing values. The default depends on dtype of the
-            array. For object-dtype, ``numpy.nan`` is used. For the nullable
-            ``StringDtype``, ``pandas.NA`` is used. For the ``"str"`` dtype,
-            ``False`` is used.
+            array. For the ``"str"`` dtype, ``False`` is used. For object
+            dtype, ``numpy.nan`` is used. For the nullable ``StringDtype``,
+            ``pandas.NA`` is used.
         regex : bool, default True
             If True, assumes the pat is a regular expression.
 
@@ -1288,18 +1288,6 @@ class StringMethods(NoNewAttributesMixin):
         >>> s1.str.contains("oG", case=True, regex=True)
         0    False
         1    False
-        2    False
-        3    False
-        4    False
-        dtype: bool
-
-        Specifying `na` to be `False` instead of `NaN` replaces NaN values
-        with `False`. If Series or Index does not contain NaN values
-        the resultant dtype will be `bool`, otherwise, an `object` dtype.
-
-        >>> s1.str.contains("og", na=False, regex=True)
-        0    False
-        1     True
         2    False
         3    False
         4    False
@@ -1373,17 +1361,17 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        pat : str
-            Character sequence.
+        pat : str or compiled regex
+            Character sequence or regular expression.
         case : bool, default True
             If True, case sensitive.
         flags : int, default 0 (no flags)
             Regex module flags, e.g. re.IGNORECASE.
         na : scalar, optional
             Fill value for missing values. The default depends on dtype of the
-            array. For object-dtype, ``numpy.nan`` is used. For the nullable
-            ``StringDtype``, ``pandas.NA`` is used. For the ``"str"`` dtype,
-            ``False`` is used.
+            array. For the ``"str"`` dtype, ``False`` is used. For object
+            dtype, ``numpy.nan`` is used. For the nullable ``StringDtype``,
+            ``pandas.NA`` is used.
 
         Returns
         -------
@@ -1431,9 +1419,9 @@ class StringMethods(NoNewAttributesMixin):
             Regex module flags, e.g. re.IGNORECASE.
         na : scalar, optional
             Fill value for missing values. The default depends on dtype of the
-            array. For object-dtype, ``numpy.nan`` is used. For the nullable
-            ``StringDtype``, ``pandas.NA`` is used. For the ``"str"`` dtype,
-            ``False`` is used.
+            array. For the ``"str"`` dtype, ``False`` is used. For object
+            dtype, ``numpy.nan`` is used. For the nullable ``StringDtype``,
+            ``pandas.NA`` is used.
 
         Returns
         -------
@@ -2671,9 +2659,9 @@ class StringMethods(NoNewAttributesMixin):
             accepted.
         na : scalar, optional
             Object shown if element tested is not a string. The default depends
-            on dtype of the array. For object-dtype, ``numpy.nan`` is used.
-            For the nullable ``StringDtype``, ``pandas.NA`` is used.
-            For the ``"str"`` dtype, ``False`` is used.
+            on dtype of the array. For the ``"str"`` dtype, ``False`` is used.
+            For object dtype, ``numpy.nan`` is used. For the nullable
+            ``StringDtype``, ``pandas.NA`` is used.
 
         Returns
         -------
@@ -2710,15 +2698,6 @@ class StringMethods(NoNewAttributesMixin):
         2    False
         3    False
         dtype: bool
-
-        Specifying `na` to be `False` instead of `NaN`.
-
-        >>> s.str.startswith("b", na=False)
-        0     True
-        1    False
-        2    False
-        3    False
-        dtype: bool
         """
         if not isinstance(pat, (str, tuple)):
             msg = f"expected a string or tuple, not {type(pat).__name__}"
@@ -2742,9 +2721,9 @@ class StringMethods(NoNewAttributesMixin):
             accepted.
         na : scalar, optional
             Object shown if element tested is not a string. The default depends
-            on dtype of the array. For object-dtype, ``numpy.nan`` is used.
-            For the nullable ``StringDtype``, ``pandas.NA`` is used.
-            For the ``"str"`` dtype, ``False`` is used.
+            on dtype of the array. For the ``"str"`` dtype, ``False`` is used.
+            For object dtype, ``numpy.nan`` is used. For the nullable
+            ``StringDtype``, ``pandas.NA`` is used.
 
         Returns
         -------
@@ -2779,15 +2758,6 @@ class StringMethods(NoNewAttributesMixin):
         0     True
         1    False
         2     True
-        3    False
-        dtype: bool
-
-        Specifying `na` to be `False` instead of `NaN`.
-
-        >>> s.str.endswith("t", na=False)
-        0     True
-        1    False
-        2    False
         3    False
         dtype: bool
         """
@@ -3632,16 +3602,26 @@ class StringMethods(NoNewAttributesMixin):
     Series.str.isupper : Check whether all characters are uppercase.
     Series.str.istitle : Check whether all characters are titlecase.
 
-    Examples
-    --------
+    Notes
+    -----
     Similar to ``str.isdecimal`` but also includes special digits, like
     superscripted and subscripted digits in unicode.
+
+    The exact behavior of this method, i.e. which unicode characters are
+    considered as digits, depends on the backend used for string operations,
+    and there can be small differences.
+    For example, Python considers the ³ superscript character as a digit, but
+    not the ⅕ fraction character, while PyArrow considers both as digits. For
+    simple (ascii) decimal numbers, the behaviour is consistent.
+
+    Examples
+    --------
 
     >>> s3 = pd.Series(['23', '³', '⅕', ''])
     >>> s3.str.isdigit()
     0     True
-    1    False
-    2    False
+    1     True
+    2     True
     3    False
     dtype: bool
     """

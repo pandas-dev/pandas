@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
 
 def holds_integer(column: Index) -> bool:
-    return column.inferred_type in {"integer", "mixed-integer"}
+    return column.dtype.kind in "iu"
 
 
 def hist_series(
@@ -962,7 +962,10 @@ class PlotAccessor(PandasObject):
         if args and isinstance(data, ABCSeries):
             positional_args = str(args)[1:-1]
             keyword_args = ", ".join(
-                [f"{name}={value!r}" for (name, _), value in zip(arg_def, args)]
+                [
+                    f"{name}={value!r}"
+                    for (name, _), value in zip(arg_def, args, strict=False)
+                ]
             )
             msg = (
                 "`Series.plot()` should not be called with positional "
@@ -973,7 +976,9 @@ class PlotAccessor(PandasObject):
             )
             raise TypeError(msg)
 
-        pos_args = {name: value for (name, _), value in zip(arg_def, args)}
+        pos_args = {
+            name: value for (name, _), value in zip(arg_def, args, strict=False)
+        }
         if backend_name == "pandas.plotting._matplotlib":
             kwargs = dict(arg_def, **pos_args, **kwargs)
         else:

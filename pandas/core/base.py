@@ -10,6 +10,7 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Self,
     cast,
     final,
     overload,
@@ -23,7 +24,6 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     NDFrameT,
-    Self,
     Shape,
     npt,
 )
@@ -90,7 +90,7 @@ _shared_docs: dict[str, str] = {}
 
 class PandasObject(DirNamesMixin):
     """
-    Baseclass for various pandas objects.
+    Base class for various pandas objects.
     """
 
     # results from calls to methods decorated with cache_readonly get added to _cache
@@ -567,7 +567,7 @@ class IndexOpsMixin(OpsMixin):
         >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
         >>> ser.array
         ['a', 'b', 'a']
-        Categories (2, str): [a, b]
+        Categories (2, str): ['a', 'b']
         """
         raise AbstractMethodError(self)
 
@@ -1102,7 +1102,7 @@ class IndexOpsMixin(OpsMixin):
             # i.e. ExtensionArray
             result = values.unique()
         else:
-            result = algorithms.unique1d(values)
+            result = algorithms.unique1d(values)  # type: ignore[assignment]
         return result
 
     @final
@@ -1298,7 +1298,11 @@ class IndexOpsMixin(OpsMixin):
 
         if isinstance(self, ABCMultiIndex):
             # preserve MultiIndex
-            uniques = self._constructor(uniques)
+            if len(self) == 0:
+                # GH#57517
+                uniques = self[:0]
+            else:
+                uniques = self._constructor(uniques)
         else:
             from pandas import Index
 
@@ -1386,7 +1390,7 @@ class IndexOpsMixin(OpsMixin):
         ... )
         >>> ser
         ['apple', 'bread', 'bread', 'cheese', 'milk']
-        Categories (4, str): [apple < bread < cheese < milk]
+        Categories (4, str): ['apple' < 'bread' < 'cheese' < 'milk']
 
         >>> ser.searchsorted('bread')
         np.int64(1)

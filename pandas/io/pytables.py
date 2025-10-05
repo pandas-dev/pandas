@@ -20,6 +20,7 @@ from typing import (
     Any,
     Final,
     Literal,
+    Self,
     TypeAlias,
     cast,
     overload,
@@ -113,7 +114,10 @@ if TYPE_CHECKING:
         Iterator,
         Sequence,
     )
-    from types import TracebackType
+    from types import (
+        ModuleType,
+        TracebackType,
+    )
 
     from tables import (
         Col,
@@ -127,8 +131,6 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeArg,
         FilePath,
-        Self,
-        Shape,
         npt,
     )
 
@@ -228,7 +230,7 @@ with config.config_prefix("io.hdf"):
     )
 
 # oh the troubles to reduce import time
-_table_mod = None
+_table_mod: ModuleType | None = None
 _table_file_open_policy_is_strict = False
 
 
@@ -1072,7 +1074,7 @@ class HDFStore:
 
         # validate rows
         nrows = None
-        for t, k in itertools.chain([(s, selector)], zip(tbls, keys)):
+        for t, k in itertools.chain([(s, selector)], zip(tbls, keys, strict=True)):
             if t is None:
                 raise KeyError(f"Invalid table [{k}]")
             if not t.is_table:
@@ -2205,7 +2207,9 @@ class IndexCol:
         return ",".join(
             [
                 f"{key}->{value}"
-                for key, value in zip(["name", "cname", "axis", "pos", "kind"], temp)
+                for key, value in zip(
+                    ["name", "cname", "axis", "pos", "kind"], temp, strict=True
+                )
             ]
         )
 
@@ -2530,7 +2534,9 @@ class DataCol(IndexCol):
         return ",".join(
             [
                 f"{key}->{value}"
-                for key, value in zip(["name", "cname", "dtype", "kind", "shape"], temp)
+                for key, value in zip(
+                    ["name", "cname", "dtype", "kind", "shape"], temp, strict=True
+                )
             ]
         )
 
@@ -3123,7 +3129,7 @@ class GenericFixed(Fixed):
         setattr(self.attrs, f"{key}_nlevels", index.nlevels)
 
         for i, (lev, level_codes, name) in enumerate(
-            zip(index.levels, index.codes, index.names)
+            zip(index.levels, index.codes, index.names, strict=True)
         ):
             # write the level
             if isinstance(lev.dtype, ExtensionDtype):
@@ -3299,18 +3305,16 @@ class GenericFixed(Fixed):
             # store as UTC
             # with a zone
 
-            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-            # attribute "asi8"
+            # error: "ExtensionArray" has no attribute "asi8"
             self._handle.create_array(
                 self.group,
                 key,
-                value.asi8,  # type: ignore[union-attr]
+                value.asi8,  # type: ignore[attr-defined]
             )
 
             node = getattr(self.group, key)
-            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-            # attribute "tz"
-            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
+            # error: "ExtensionArray" has no attribute "tz"
+            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[attr-defined]
             node._v_attrs.value_type = f"datetime64[{value.dtype.unit}]"
         elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
@@ -3384,7 +3388,7 @@ class BlockManagerFixed(GenericFixed):
     nblocks: int
 
     @property
-    def shape(self) -> Shape | None:
+    def shape(self) -> list[int] | None:
         try:
             ndim = self.ndim
 
@@ -4158,7 +4162,7 @@ class Table(Fixed):
 
         # add my values
         vaxes = []
-        for i, (blk, b_items) in enumerate(zip(blocks, blk_items)):
+        for i, (blk, b_items) in enumerate(zip(blocks, blk_items, strict=True)):
             # shape of the data column are the indexable axes
             klass = DataCol
             name = None
@@ -4299,7 +4303,7 @@ class Table(Fixed):
         if table_exists:
             by_items = {
                 tuple(b_items.tolist()): (b, b_items)
-                for b, b_items in zip(blocks, blk_items)
+                for b, b_items in zip(blocks, blk_items, strict=True)
             }
             new_blocks: list[Block] = []
             new_blk_items = []
@@ -5193,8 +5197,7 @@ def _maybe_convert_for_string_atom(
     columns: list[str],
 ):
     if isinstance(bvalues.dtype, StringDtype):
-        # "ndarray[Any, Any]" has no attribute "to_numpy"
-        bvalues = bvalues.to_numpy()  # type: ignore[union-attr]
+        bvalues = bvalues.to_numpy()
     if bvalues.dtype != object:
         return bvalues
 

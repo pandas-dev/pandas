@@ -35,7 +35,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
-    maybe_cast_pointwise_result,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -626,7 +625,7 @@ class BaseGrouper:
         splitter = self._get_splitter(data)
         # TODO: Would be more efficient to skip unobserved for transforms
         keys = self.result_index
-        yield from zip(keys, splitter)
+        yield from zip(keys, splitter, strict=True)
 
     @final
     def _get_splitter(self, data: NDFrame) -> DataSplitter:
@@ -719,7 +718,7 @@ class BaseGrouper:
             return self.groupings[0].groups
         result_index, ids = self.result_index_and_ids
         values = result_index._values
-        categories = Categorical(ids, categories=range(len(result_index)))
+        categories = Categorical.from_codes(ids, categories=range(len(result_index)))
         result = {
             # mypy is not aware that group has to be an integer
             values[group]: self.axis.take(axis_ilocs)  # type: ignore[call-overload]
@@ -767,7 +766,7 @@ class BaseGrouper:
         ]
         sorts = [ping._sort for ping in self.groupings]
         # When passed a categorical grouping, keep all categories
-        for k, (ping, level) in enumerate(zip(self.groupings, levels)):
+        for k, (ping, level) in enumerate(zip(self.groupings, levels, strict=True)):
             if ping._passed_categorical:
                 levels[k] = level.set_categories(ping._orig_cats)
 
@@ -963,22 +962,8 @@ class BaseGrouper:
         -------
         np.ndarray or ExtensionArray
         """
-
-        if not isinstance(obj._values, np.ndarray):
-            # we can preserve a little bit more aggressively with EA dtype
-            #  because maybe_cast_pointwise_result will do a try/except
-            #  with _from_sequence.  NB we are assuming here that _from_sequence
-            #  is sufficiently strict that it casts appropriately.
-            preserve_dtype = True
-
         result = self._aggregate_series_pure_python(obj, func)
-
-        npvalues = lib.maybe_convert_objects(result, try_float=False)
-        if preserve_dtype:
-            out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
-        else:
-            out = npvalues
-        return out
+        return obj.array._cast_pointwise_result(result)
 
     @final
     def _aggregate_series_pure_python(
@@ -1012,7 +997,7 @@ class BaseGrouper:
         result_values = []
 
         # This calls DataSplitter.__iter__
-        zipped = zip(group_keys, splitter)
+        zipped = zip(group_keys, splitter, strict=True)
 
         for key, group in zipped:
             # Pinning name is needed for
@@ -1110,7 +1095,7 @@ class BinGrouper(BaseGrouper):
         # GH 3881
         result = {
             key: value
-            for key, value in zip(self.binlabels, self.bins)
+            for key, value in zip(self.binlabels, self.bins, strict=True)
             if key is not NaT
         }
         return result
@@ -1141,7 +1126,7 @@ class BinGrouper(BaseGrouper):
         slicer = lambda start, edge: data.iloc[start:edge]
 
         start: np.int64 | int = 0
-        for edge, label in zip(self.bins, self.binlabels):
+        for edge, label in zip(self.bins, self.binlabels, strict=True):
             if label is not NaT:
                 yield label, slicer(start, edge)
             start = edge
@@ -1154,7 +1139,7 @@ class BinGrouper(BaseGrouper):
         indices = collections.defaultdict(list)
 
         i: np.int64 | int = 0
-        for label, bin in zip(self.binlabels, self.bins):
+        for label, bin in zip(self.binlabels, self.bins, strict=True):
             if i < bin:
                 if label is not NaT:
                     indices[label] = list(range(i, bin))
@@ -1244,7 +1229,7 @@ class DataSplitter(Generic[NDFrameT]):
 
         starts, ends = lib.generate_slices(self._slabels, self.ngroups)
         sdata = self._sorted_data
-        for start, end in zip(starts, ends):
+        for start, end in zip(starts, ends, strict=True):
             yield self._chop(sdata, slice(start, end))
 
     @cache_readonly

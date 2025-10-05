@@ -58,9 +58,7 @@ if [[ -z "$CHECK" || "$CHECK" == "doctests" ]]; then
 
     MSG='Python and Cython Doctests' ; echo "$MSG"
     python -c 'import pandas as pd; pd.test(run_doctests=True)'
-    # TEMP don't let doctests fail the build until all string dtype changes are fixed
-    # RET=$(($RET + $?)) ; echo "$MSG" "DONE"
-    echo "$MSG" "DONE"
+    RET=$(($RET + $?)) ; echo "$MSG" "DONE"
 
 fi
 
@@ -75,6 +73,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
         -i "pandas.errors.IncompatibleFrequency SA01,SS06,EX01" \
+        -i "pandas.api.extensions.ExtensionArray.value_counts EX01,RT03,SA01" \
         -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
         -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.resample.Resampler.quantile PR01,PR07" \
@@ -165,6 +164,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.DateOffset.is_on_offset GL08" \
         -i "pandas.tseries.offsets.DateOffset.n GL08" \
         -i "pandas.tseries.offsets.DateOffset.normalize GL08" \
+        -i "pandas.tseries.offsets.Day.freqstr SA01" \
         -i "pandas.tseries.offsets.Day.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Day.n GL08" \
         -i "pandas.tseries.offsets.Day.normalize GL08" \

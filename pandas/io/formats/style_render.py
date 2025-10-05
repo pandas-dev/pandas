@@ -6,6 +6,7 @@ from collections.abc import (
     Sequence,
 )
 from functools import partial
+import pathlib
 import re
 from typing import (
     TYPE_CHECKING,
@@ -70,7 +71,9 @@ class StylerRenderer:
     Base class to process rendering a Styler with a specified jinja2 template.
     """
 
-    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    this_dir = pathlib.Path(__file__).parent.resolve()
+    template_dir = this_dir / "templates"
+    loader = jinja2.FileSystemLoader(template_dir)
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     template_html = env.get_template("html.tpl")
     template_html_table = env.get_template("html_table.tpl")
@@ -426,7 +429,7 @@ class StylerRenderer:
         clabels = self.data.columns.tolist()
         if self.data.columns.nlevels == 1:
             clabels = [[x] for x in clabels]
-        clabels = list(zip(*clabels))
+        clabels = list(zip(*clabels, strict=True))
 
         head = []
         # 1) column headers
@@ -911,7 +914,7 @@ class StylerRenderer:
             return row_indices
 
         body = []
-        for r, row in zip(concatenated_visible_rows(self), d["body"]):
+        for r, row in zip(concatenated_visible_rows(self), d["body"], strict=True):
             # note: cannot enumerate d["body"] because rows were dropped if hidden
             # during _translate_body so must zip to acquire the true r-index associated
             # with the ctx obj which contains the cell styles.

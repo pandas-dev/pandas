@@ -222,7 +222,7 @@ class _XMLFrameParser:
                         ),
                         **{
                             nm: ch.text if ch.text else None
-                            for nm, ch in zip(self.names, el.findall("*"))
+                            for nm, ch in zip(self.names, el.findall("*"), strict=True)
                         },
                     }
                     for el in elems
@@ -245,7 +245,7 @@ class _XMLFrameParser:
                     **({el.tag: el.text} if el.text and not el.text.isspace() else {}),
                     **{
                         nm: ch.text if ch.text else None
-                        for nm, ch in zip(self.names, el.findall("*"))
+                        for nm, ch in zip(self.names, el.findall("*"), strict=False)
                     },
                 }
                 for el in elems
@@ -269,7 +269,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [dict(zip(self.names, d.values())) for d in dicts]
+            dicts = [dict(zip(self.names, d.values(), strict=True)) for d in dicts]
 
         return dicts
 
@@ -339,7 +339,9 @@ class _XMLFrameParser:
 
             if row is not None:
                 if self.names and iterparse_repeats:
-                    for col, nm in zip(self.iterparse[row_node], self.names):
+                    for col, nm in zip(
+                        self.iterparse[row_node], self.names, strict=True
+                    ):
                         if curr_elem == col:
                             elem_val = elem.text if elem.text else None
                             if elem_val not in row.values() and nm not in row:
@@ -374,7 +376,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [dict(zip(self.names, d.values())) for d in dicts]
+            dicts = [dict(zip(self.names, d.values(), strict=True)) for d in dicts]
 
         return dicts
 
@@ -666,7 +668,7 @@ class _LxmlFrameParser(_XMLFrameParser):
 
 
 def get_data_from_filepath(
-    filepath_or_buffer: FilePath | bytes | ReadBuffer[bytes] | ReadBuffer[str],
+    filepath_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
     encoding: str | None,
     compression: CompressionOptions,
     storage_options: StorageOptions,
@@ -678,9 +680,9 @@ def get_data_from_filepath(
         1. filepath (string-like)
         2. file-like object (e.g. open file object, StringIO)
     """
-    filepath_or_buffer = stringify_path(filepath_or_buffer)  # type: ignore[arg-type]
-    with get_handle(  # pyright: ignore[reportCallIssue]
-        filepath_or_buffer,  # pyright: ignore[reportArgumentType]
+    filepath_or_buffer = stringify_path(filepath_or_buffer)
+    with get_handle(
+        filepath_or_buffer,
         "r",
         encoding=encoding,
         compression=compression,
@@ -693,7 +695,9 @@ def get_data_from_filepath(
         )
 
 
-def preprocess_data(data) -> io.StringIO | io.BytesIO:
+def preprocess_data(
+    data: str | bytes | io.StringIO | io.BytesIO,
+) -> io.StringIO | io.BytesIO:
     """
     Convert extracted raw data.
 
@@ -711,7 +715,7 @@ def preprocess_data(data) -> io.StringIO | io.BytesIO:
     return data
 
 
-def _data_to_frame(data, **kwargs) -> DataFrame:
+def _data_to_frame(data: list[dict[str, str | None]], **kwargs) -> DataFrame:
     """
     Convert parsed data to Data Frame.
 

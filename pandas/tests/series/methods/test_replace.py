@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
@@ -646,7 +648,7 @@ class TestSeriesReplace:
         labs = pd.Series([1, 1, 1, 0, 0, 2, 2, 2], dtype=any_int_numpy_dtype)
 
         maps = pd.Series([0, 2, 1], dtype=any_int_numpy_dtype)
-        map_dict = dict(zip(maps.values, maps.index))
+        map_dict = dict(zip(maps.values, maps.index, strict=True))
 
         result = labs.replace(map_dict)
         expected = labs.replace({0: 0, 2: 1, 1: 2})
@@ -715,3 +717,12 @@ class TestSeriesReplace:
         result = df.replace({r"^#": "$"}, regex=True)
         expected = pd.Series([pd.NA, pd.NA])
         tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_replace_from_index():
+    # https://github.com/pandas-dev/pandas/issues/61622
+    idx = pd.Index(["a", "b", "c"], dtype="string[pyarrow]")
+    expected = pd.Series(["d", "b", "c"], dtype="string[pyarrow]")
+    result = pd.Series(idx).replace({"z": "b", "a": "d"})
+    tm.assert_series_equal(result, expected)

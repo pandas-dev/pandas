@@ -15,6 +15,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
 )
 import warnings
@@ -39,8 +40,8 @@ from pandas._typing import (
     IgnoreRaise,
     IndexLabel,
     IndexT,
+    NaPosition,
     Scalar,
-    Self,
     Shape,
     npt,
 )
@@ -1798,8 +1799,7 @@ class MultiIndex(Index):
         filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
         return lev._shallow_copy(filled, name=name)
 
-    # error: Signature of "get_level_values" incompatible with supertype "Index"
-    def get_level_values(self, level) -> Index:  # type: ignore[override]
+    def get_level_values(self, level) -> Index:
         """
         Return vector of label values for requested level.
 
@@ -2235,6 +2235,7 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
 
     def __getitem__(self, key):
+        key = lib.item_from_zerodim(key)
         if is_scalar(key):
             key = com.cast_scalar_indexer(key)
 
@@ -2398,8 +2399,54 @@ class MultiIndex(Index):
             return Index(new_tuples)
 
     def argsort(
-        self, *args, na_position: str = "last", **kwargs
+        self, *args, na_position: NaPosition = "last", **kwargs
     ) -> npt.NDArray[np.intp]:
+        """
+        Return the integer indices that would sort the index.
+
+        Parameters
+        ----------
+        *args
+            Passed to `numpy.ndarray.argsort`.
+        na_position : {'first' or 'last'}, default 'last'
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
+        **kwargs
+            Passed to `numpy.ndarray.argsort`.
+
+        Returns
+        -------
+        np.ndarray[np.intp]
+            Integer indices that would sort the index if used as
+            an indexer.
+
+        See Also
+        --------
+        numpy.argsort : Similar method for NumPy arrays.
+        Index.argsort : Similar method for Index.
+
+        Examples
+        --------
+        >>> midx = pd.MultiIndex.from_arrays([[3, 2], ["e", "c"]])
+        >>> midx
+        MultiIndex([(3, 'e'), (2, 'c')])
+
+        >>> order = midx.argsort()
+        >>> order
+        array([1, 0])
+
+        >>> midx[order]
+        MultiIndex([(2, 'c'),
+                    (3, 'e')],
+                  )
+
+        >>> midx = pd.MultiIndex.from_arrays([[2, 2], [np.nan, 0]])
+        >>> midx.argsort(na_position="first")
+        array([0, 1])
+
+        >>> midx.argsort()
+        array([1, 0])
+        """
         target = self._sort_levels_monotonic(raise_if_incomparable=True)
         keys = [lev.codes for lev in target._get_codes_for_sorting()]
         return lexsort_indexer(keys, na_position=na_position, codes_given=True)
@@ -2675,7 +2722,7 @@ class MultiIndex(Index):
         )
 
     def _recode_for_new_levels(
-        self, new_levels, copy: bool = True
+        self, new_levels, *, copy: bool
     ) -> Generator[np.ndarray]:
         if len(new_levels) > self.nlevels:
             raise AssertionError(
@@ -3936,8 +3983,7 @@ class MultiIndex(Index):
         """
         names = self._maybe_match_names(other)
         if self.names != names:
-            # error: Cannot determine type of "rename"
-            return self.rename(names)  # type: ignore[has-type]
+            return self.rename(names)
         return self
 
     def _maybe_match_names(self, other):

@@ -176,25 +176,19 @@ def pytest_collection_modifyitems(items, config) -> None:
                 ignore_doctest_warning(item, path, message)
 
 
-hypothesis_health_checks = [
-    hypothesis.HealthCheck.too_slow,
-    hypothesis.HealthCheck.differing_executors,
-]
-
-# Hypothesis
+# Similar to "ci" config in
+# https://hypothesis.readthedocs.io/en/latest/reference/api.html#built-in-profiles
 hypothesis.settings.register_profile(
-    "ci",
-    # Hypothesis timing checks are tuned for scalars by default, so we bump
-    # them from 200ms to 500ms per test case as the global default.  If this
-    # is too short for a specific test, (a) try to make it faster, and (b)
-    # if it really is slow add `@settings(deadline=...)` with a working value,
-    # or `deadline=None` to entirely disable timeouts for that test.
-    # 2022-02-09: Changed deadline from 500 -> None. Deadline leads to
-    # non-actionable, flaky CI failures (# GH 24641, 44969, 45118, 44969)
+    "pandas_ci",
+    database=None,
     deadline=None,
-    suppress_health_check=tuple(hypothesis_health_checks),
+    max_examples=15,
+    suppress_health_check=(
+        hypothesis.HealthCheck.too_slow,
+        hypothesis.HealthCheck.differing_executors,
+    ),
 )
-hypothesis.settings.load_profile("ci")
+hypothesis.settings.load_profile("pandas_ci")
 
 # Registering these strategies makes them globally available via st.from_type,
 # which is use for offsets in tests/tseries/offsets/test_offsets_properties.py
@@ -2122,3 +2116,10 @@ def temp_file(tmp_path):
 def monkeysession():
     with pytest.MonkeyPatch.context() as mp:
         yield mp
+
+
+@pytest.fixture(params=[True, False])
+def using_nan_is_na(request):
+    opt = request.param
+    with pd.option_context("mode.nan_is_na", opt):
+        yield opt

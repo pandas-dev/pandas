@@ -4,7 +4,9 @@ import copy
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
+    Concatenate,
     Literal,
+    Self,
     cast,
     final,
     no_type_check,
@@ -96,13 +98,11 @@ if TYPE_CHECKING:
         Any,
         AnyArrayLike,
         Axis,
-        Concatenate,
         FreqIndexT,
         Frequency,
         IndexLabel,
         InterpolateOptions,
         P,
-        Self,
         T,
         TimedeltaConvertibleTypes,
         TimeGrouperOrigin,
@@ -1813,8 +1813,6 @@ class DatetimeIndexResampler(Resampler):
 
     def _get_binner_for_time(self):
         # this is how we are actually creating the bins
-        if isinstance(self.ax, PeriodIndex):
-            return self._timegrouper._get_time_period_bins(self.ax)
         return self._timegrouper._get_time_bins(self.ax)
 
     def _downsample(self, how, **kwargs):
@@ -1837,17 +1835,6 @@ class DatetimeIndexResampler(Resampler):
             obj.index = obj.index._with_freq(self.freq)
             assert obj.index.freq == self.freq, (obj.index.freq, self.freq)
             return obj
-
-        # do we have a regular frequency
-
-        # error: Item "None" of "Optional[Any]" has no attribute "binlabels"
-        if (
-            (ax.freq is not None or ax.inferred_freq is not None)
-            and len(self._grouper.binlabels) > len(ax)
-            and how is None
-        ):
-            # let's do an asfreq
-            return self.asfreq()
 
         # we are downsampling
         # we want to call the actual grouper method here
@@ -1945,17 +1932,9 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
-        warnings.warn(
-            "Resampling a groupby with a PeriodIndex is deprecated. "
-            "Cast to DatetimeIndex before resampling instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
         return PeriodIndexResamplerGroupby
 
     def _get_binner_for_time(self):
-        if isinstance(self.ax, DatetimeIndex):
-            return super()._get_binner_for_time()
         return self._timegrouper._get_period_bins(self.ax)
 
     def _convert_obj(self, obj: NDFrameT) -> NDFrameT:
@@ -1970,10 +1949,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             )
             raise NotImplementedError(msg)
 
-        # convert to timestamp
-        if isinstance(obj, DatetimeIndex):
-            obj = obj.to_timestamp(how=self.convention)
-
         return obj
 
     def _downsample(self, how, **kwargs):
@@ -1985,10 +1960,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         how : string / cython mapped function
         **kwargs : kw args passed to how function
         """
-        # we may need to actually resample as if we are timestamps
-        if isinstance(self.ax, DatetimeIndex):
-            return super()._downsample(how, **kwargs)
-
         ax = self.ax
 
         if is_subperiod(ax.freq, self.freq):
@@ -2022,10 +1993,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         fill_value : scalar, default None
             Value to use for missing values.
         """
-        # we may need to actually resample as if we are timestamps
-        if isinstance(self.ax, DatetimeIndex):
-            return super()._upsample(method, limit=limit, fill_value=fill_value)
-
         ax = self.ax
         obj = self.obj
         new_index = self.binner
@@ -2159,8 +2126,10 @@ class TimeGrouper(Grouper):
         fill_method=None,
         limit: int | None = None,
         convention: Literal["start", "end", "e", "s"] | None = None,
-        origin: Literal["epoch", "start", "start_day", "end", "end_day"]
-        | TimestampConvertibleTypes = "start_day",
+        origin: (
+            Literal["epoch", "start", "start_day", "end", "end_day"]
+            | TimestampConvertibleTypes
+        ) = "start_day",
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool = False,
         **kwargs,
@@ -2174,17 +2143,30 @@ class TimeGrouper(Grouper):
         if convention not in {None, "start", "end", "e", "s"}:
             raise ValueError(f"Unsupported value {convention} for `convention`")
 
-        if (
-            (key is None and obj is not None and isinstance(obj.index, PeriodIndex))  # type: ignore[attr-defined]
-            or (
-                key is not None
-                and obj is not None
-                and getattr(obj[key], "dtype", None) == "period"  # type: ignore[index]
-            )
+        if (key is None and obj is not None and isinstance(obj.index, PeriodIndex)) or (  # type: ignore[attr-defined]
+            key is not None
+            and obj is not None
+            and getattr(obj[key], "dtype", None) == "period"  # type: ignore[index]
         ):
             freq = to_offset(freq, is_period=True)
         else:
             freq = to_offset(freq)
+
+        if not isinstance(freq, Tick):
+            if offset is not None:
+                warnings.warn(
+                    "The 'offset' keyword does not take effect when resampling "
+                    "with a 'freq' that is not Tick-like (h, m, s, ms, us, ns)",
+                    RuntimeWarning,
+                    stacklevel=find_stack_level(),
+                )
+            if origin != "start_day":
+                warnings.warn(
+                    "The 'origin' keyword does not take effect when resampling "
+                    "with a 'freq' that is not Tick-like (h, m, s, ms, us, ns)",
+                    RuntimeWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         end_types = {"ME", "YE", "QE", "BME", "BYE", "BQE", "W"}
         rule = freq.rule_code
@@ -2276,14 +2258,6 @@ class TimeGrouper(Grouper):
                 gpr_index=ax,
             )
         elif isinstance(ax, PeriodIndex):
-            if isinstance(ax, PeriodIndex):
-                # GH#53481
-                warnings.warn(
-                    "Resampling with a PeriodIndex is deprecated. "
-                    "Cast index to DatetimeIndex before resampling instead.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
             return PeriodIndexResampler(
                 obj,
                 timegrouper=self,
@@ -2305,8 +2279,22 @@ class TimeGrouper(Grouper):
         )
 
     def _get_grouper(
-        self, obj: NDFrameT, validate: bool = True
+        self, obj: NDFrameT, validate: bool = True, observed: bool = True
     ) -> tuple[BinGrouper, NDFrameT]:
+        """
+        Parameters
+        ----------
+        obj : Series or DataFrame
+            Object being grouped.
+        validate : bool, default True
+            Unused. Only for compatibility with ``Grouper._get_grouper``.
+        observed : bool, default True
+            Unused. Only for compatibility with ``Grouper._get_grouper``.
+
+        Returns
+        -------
+        A tuple of grouper, obj (possibly sorted)
+        """
         # create the resampler and return our binner
         r = self._get_resampler(obj)
         return r._grouper, cast(NDFrameT, r.obj)
@@ -2421,7 +2409,7 @@ class TimeGrouper(Grouper):
                 f"an instance of {type(ax).__name__}"
             )
 
-        if not isinstance(self.freq, Tick):
+        if not isinstance(self.freq, (Tick, Day)):
             # GH#51896
             raise ValueError(
                 "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
@@ -2641,21 +2629,15 @@ def _get_timestamp_range_edges(
             # resampling on the same kind of indexes on different timezones
             origin = Timestamp("1970-01-01", tz=index_tz)
 
-        if isinstance(freq, Day):
-            # _adjust_dates_anchored assumes 'D' means 24h, but first/last
-            # might contain a DST transition (23h, 24h, or 25h).
-            # So "pretend" the dates are naive when adjusting the endpoints
-            first = first.tz_localize(None)
-            last = last.tz_localize(None)
-            if isinstance(origin, Timestamp):
-                origin = origin.tz_localize(None)
-
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, offset=offset, unit=unit
+            first,
+            last,
+            freq,
+            closed=closed,
+            origin=origin,
+            offset=offset,
+            unit=unit,
         )
-        if isinstance(freq, Day):
-            first = first.tz_localize(index_tz)
-            last = last.tz_localize(index_tz, nonexistent="shift_forward")
     else:
         first = first.normalize()
         last = last.normalize()
