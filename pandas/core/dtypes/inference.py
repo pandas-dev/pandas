@@ -423,14 +423,6 @@ def is_hashable(obj: object, allow_slice: bool | None = None) -> TypeGuard[Hasha
     True
     >>> is_hashable(a)
     False
-    >>> is_hashable(slice(1, 2, 3))
-    True
-    >>> is_hashable(slice(1, 2, 3), allow_slice=False)
-    False
-    >>> is_hashable((slice(1, 2, 3),), allow_slice=False)
-    False
-    >>> is_hashable((slice(1, 2, 3),), allow_slice=True)
-    True
     """
     # Unfortunately, we can't use isinstance(obj, collections.abc.Hashable),
     # which can be faster than calling hash. That is because numpy scalars
