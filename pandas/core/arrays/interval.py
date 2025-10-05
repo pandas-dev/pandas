@@ -179,6 +179,7 @@ for more.
 class IntervalArray(IntervalMixin, ExtensionArray):
     """
     Pandas array for interval data that are closed on the same side.
+
     Parameters
     ----------
     data : array-like (1-dimensional)
@@ -193,6 +194,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Copy the input data.
     verify_integrity : bool, default True
         Verify that the IntervalArray is valid.
+
     Attributes
     ----------
     left
@@ -202,6 +204,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     length
     is_empty
     is_non_overlapping_monotonic
+
     Methods
     -------
     from_arrays
@@ -211,6 +214,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     overlaps
     set_closed
     to_tuples
+
     See Also
     --------
     Index : The base pandas Index type.
@@ -218,11 +222,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     interval_range : Function to create a fixed frequency IntervalIndex.
     cut : Bin values into discrete Intervals.
     qcut : Bin values into equal-sized Intervals based on rank or sample quantiles.
+
     Notes
     -----
     See the `user guide
     <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`__
     for more.
+
     Examples
     --------
     A new ``IntervalArray`` can be constructed directly from an array-like of
@@ -231,6 +237,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     <IntervalArray>
     [(0, 1], (1, 5]]
     Length: 2, dtype: interval[int64, right]
+
     It may also be constructed using one of the constructor
     methods: :meth:`IntervalArray.from_arrays`,
     :meth:`IntervalArray.from_breaks`, and :meth:`IntervalArray.from_tuples`.
@@ -1979,13 +1986,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> cat = pd.Categorical(["a", "b", "c"])
         >>> cat
         ['a', 'b', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> cat.repeat(2)
         ['a', 'a', 'b', 'b', 'c', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> cat.repeat([1, 2, 3])
         ['a', 'b', 'b', 'c', 'c', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         """
         nv.validate_repeat((), {"axis": axis})
         left_repeat = self.left.repeat(repeats)
