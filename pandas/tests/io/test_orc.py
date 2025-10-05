@@ -51,7 +51,7 @@ def test_orc_reader_empty(dirpath, using_infer_string):
         "str" if using_infer_string else "object",
     ]
     expected = pd.DataFrame(index=pd.RangeIndex(0))
-    for colname, dtype in zip(columns, dtypes):
+    for colname, dtype in zip(columns, dtypes, strict=True):
         expected[colname] = pd.Series(dtype=dtype)
     expected.columns = expected.columns.astype("str")
 
