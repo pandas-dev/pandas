@@ -25,7 +25,10 @@ import pandas.util._test_decorators as td
 # Usually we wouldn't want this import in this test file (which is targeted at
 #  tslibs.parsing), but it is convenient to test the Timestamp constructor at
 #  the same time as the other parsing functions.
-from pandas import Timestamp
+from pandas import (
+    Timestamp,
+    option_context,
+)
 import pandas._testing as tm
 from pandas._testing._hypothesis import DATETIME_NO_TZ
 
@@ -422,3 +425,40 @@ def test_hypothesis_delimited_date(
 
     assert except_out_dateutil == except_in_dateutil
     assert result == expected
+
+
+@pytest.mark.parametrize("input", ["21-01-01", "01-01-21"])
+@pytest.mark.parametrize("dayfirst", [True, False])
+def test_parse_datetime_string_with_reso_dayfirst(dayfirst, input):
+    with option_context("display.date_dayfirst", dayfirst):
+        except_out_dateutil, result = _helper_hypothesis_delimited_date(
+            parsing.parse_datetime_string_with_reso, input
+        )
+
+        except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+            du_parse,
+            input,
+            default=datetime(1, 1, 1),
+            dayfirst=dayfirst,
+            yearfirst=False,
+        )
+        assert except_out_dateutil == except_in_dateutil
+        assert result[0] == expected
+
+
+@pytest.mark.parametrize("input", ["21-01-01", "01-01-21"])
+@pytest.mark.parametrize("yearfirst", [True, False])
+def test_parse_datetime_string_with_reso_yearfirst(yearfirst, input):
+    with option_context("display.date_yearfirst", yearfirst):
+        except_out_dateutil, result = _helper_hypothesis_delimited_date(
+            parsing.parse_datetime_string_with_reso, input
+        )
+        except_in_dateutil, expected = _helper_hypothesis_delimited_date(
+            du_parse,
+            input,
+            default=datetime(1, 1, 1),
+            dayfirst=False,
+            yearfirst=yearfirst,
+        )
+        assert except_out_dateutil == except_in_dateutil
+        assert result[0] == expected
