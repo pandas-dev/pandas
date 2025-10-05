@@ -3118,7 +3118,7 @@ def test_merge_pyarrow_datetime_duplicates():
     # This should work without raising ValueError
     result = merge(df1, df2, on="time", how="left")
 
-    # Should return 6 rows (df1's 3 timestamps × 2 matches each from df2)
+    # Should return 6 rows (df1's 3 timestamps x 2 matches each from df2)
     assert len(result) == 6
     assert result["val1"].tolist() == [1, 1, 2, 2, 3, 3]
     assert result["val2"].tolist() == [10, 20, 30, 40, 50, 60]
