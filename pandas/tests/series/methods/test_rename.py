@@ -21,7 +21,7 @@ class TestRename:
         assert renamed.index[0] == renamer(ts.index[0])
 
         # dict
-        rename_dict = dict(zip(ts.index, renamed.index))
+        rename_dict = dict(zip(ts.index, renamed.index, strict=True))
         renamed2 = ts.rename(rename_dict)
         tm.assert_series_equal(renamed, renamed2)
 
