@@ -7,7 +7,6 @@ from io import (
 import json
 import os
 import sys
-import time
 import uuid
 
 import numpy as np
@@ -806,11 +805,10 @@ class TestPandasContainer:
         result = read_json(StringIO(df.to_json()))
         tm.assert_frame_equal(result, df)
 
-    def test_path(self, float_frame, int_frame, datetime_frame):
-        with tm.ensure_clean("test.json") as path:
-            for df in [float_frame, int_frame, datetime_frame]:
-                df.to_json(path)
-                read_json(path)
+    def test_path(self, float_frame, int_frame, datetime_frame, temp_file):
+        for df in [float_frame, int_frame, datetime_frame]:
+            df.to_json(temp_file)
+            read_json(temp_file)
 
     def test_axis_dates(self, datetime_series, datetime_frame):
         # frame
@@ -1423,14 +1421,13 @@ class TestPandasContainer:
         expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_read_local_jsonl(self):
+    def test_read_local_jsonl(self, temp_file):
         # GH17200
-        with tm.ensure_clean("tmp_items.json") as path:
-            with open(path, "w", encoding="utf-8") as infile:
-                infile.write('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n')
-            result = read_json(path, lines=True)
-            expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
-            tm.assert_frame_equal(result, expected)
+        with open(temp_file, "w", encoding="utf-8") as infile:
+            infile.write('{"a": 1, "b": 2}\n{"b":2, "a" :1}\n')
+        result = read_json(temp_file, lines=True)
+        expected = DataFrame([[1, 2], [1, 2]], columns=["a", "b"])
+        tm.assert_frame_equal(result, expected)
 
     def test_read_jsonl_unicode_chars(self):
         # GH15132: non-ascii unicode characters
@@ -1526,17 +1523,16 @@ class TestPandasContainer:
         ],
     )
     @pytest.mark.parametrize("dtype", ["category", object])
-    def test_latin_encoding(self, dtype, val):
+    def test_latin_encoding(self, dtype, val, temp_file):
         # GH 13774
         ser = Series(
             [x.decode("latin-1") if isinstance(x, bytes) else x for x in val],
             dtype=dtype,
         )
         encoding = "latin-1"
-        with tm.ensure_clean("test.json") as path:
-            ser.to_json(path, encoding=encoding)
-            retr = read_json(StringIO(path), encoding=encoding)
-            tm.assert_series_equal(ser, retr, check_categorical=False)
+        ser.to_json(temp_file, encoding=encoding)
+        retr = read_json(StringIO(temp_file), encoding=encoding)
+        tm.assert_series_equal(ser, retr, check_categorical=False)
 
     def test_data_frame_size_after_to_json(self):
         # GH15344
@@ -2019,14 +2015,10 @@ class TestPandasContainer:
         mock_bucket_name = s3_bucket_public.name
         target_file = f"{uuid.uuid4()}.json"
         df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
-        df.to_json(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
-        timeout = 5
-        while True:
-            if target_file in (obj.key for obj in s3_bucket_public.objects.all()):
-                break
-            time.sleep(0.1)
-            timeout -= 0.1
-            assert timeout > 0, "Timed out waiting for file to appear on moto"
+        uri = f"s3://{mock_bucket_name}/{target_file}"
+        df.to_json(uri, storage_options=s3so)
+        result = read_json(uri, storage_options=s3so)
+        tm.assert_frame_equal(result, df)
 
     def test_json_pandas_nulls(self, nulls_fixture):
         # GH 31615

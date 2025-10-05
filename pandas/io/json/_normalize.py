@@ -524,7 +524,10 @@ def json_normalize(
             # TODO: handle record value which are lists, at least error
             #       reasonably
             data = nested_to_record(data, sep=sep, max_level=max_level)
-        return DataFrame(data, index=index)
+        result = DataFrame(data, index=index)
+        if record_prefix is not None:
+            result = result.rename(columns=lambda x: f"{record_prefix}{x}")
+        return result
     elif not isinstance(record_path, list):
         record_path = [record_path]
 
@@ -547,7 +550,7 @@ def json_normalize(
             data = [data]
         if len(path) > 1:
             for obj in data:
-                for val, key in zip(_meta, meta_keys):
+                for val, key in zip(_meta, meta_keys, strict=True):
                     if level + 1 == len(val):
                         seen_meta[key] = _pull_field(obj, val[-1])
 
@@ -564,7 +567,7 @@ def json_normalize(
 
                 # For repeating the metadata later
                 lengths.append(len(recs))
-                for val, key in zip(_meta, meta_keys):
+                for val, key in zip(_meta, meta_keys, strict=True):
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:
