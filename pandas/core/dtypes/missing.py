@@ -524,7 +524,6 @@ def _array_equivalent_object(
         elif isinstance(left_value, float) and np.isnan(left_value):
             if not isinstance(right_value, float) or not np.isnan(right_value):
                 return False
-
         else:
             with warnings.catch_warnings():
                 # suppress numpy's "elementwise comparison failed"
