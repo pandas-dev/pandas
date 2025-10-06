@@ -1473,7 +1473,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
 
     def items(self) -> Iterable[tuple[Hashable, Series]]:
-        """
+        r"""
         Iterate over (column name, Series) pairs.
 
         Iterates over the DataFrame columns, returning a tuple with
