@@ -1139,12 +1139,6 @@ class _MergeOperation:
 
         result = self._reindex_and_concat(join_index, left_indexer, right_indexer)
 
-        # Is this call to __finalize__ really necessary?
-        result = result.__finalize__(
-            types.SimpleNamespace(input_objs=[self.left, self.right]),
-            method=self._merge_type,
-        )
-
         if self.indicator:
             result = self._indicator_post_merge(result)
 
@@ -1152,8 +1146,6 @@ class _MergeOperation:
 
         self._maybe_restore_index_levels(result)
 
-        # __finalize is responsible for copying the metadata from the inputs to merge
-        # to the result.
         return result.__finalize__(
             types.SimpleNamespace(input_objs=[self.left, self.right]), method="merge"
         )
@@ -1175,8 +1167,7 @@ class _MergeOperation:
         self, left: DataFrame, right: DataFrame
     ) -> tuple[DataFrame, DataFrame]:
         """
-        Add one indicator column to each of the left and right inputs to a
-        merge operation.
+        Add one indicator column to each of the left and right inputs.
 
         These columns are used to produce another column in the output of the
         merge, indicating for each row of the output whether it was produced

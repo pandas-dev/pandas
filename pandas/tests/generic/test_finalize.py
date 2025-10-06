@@ -691,30 +691,24 @@ def test_finalize_frame_series_name():
         "cross",
     ],
 )
-def test_merge_sets_duplication_allowance_flag(
+def test_merge_correctly_sets_duplication_allowance_flag(
     how: MergeHow,
     allow_on_left: bool,
     allow_on_right: bool,
 ):
     """Check that DataFrame.merge correctly sets the allow_duplicate_labels flag
     on its result.
-
-    The flag on the result should be set to true if and only if both arguments
-    to merge have their flags set to True.
     """
-    # Arrange
     left = pd.DataFrame({"test": [1]}).set_flags(allows_duplicate_labels=allow_on_left)
     right = pd.DataFrame({"test": [1]}).set_flags(
         allows_duplicate_labels=allow_on_right,
     )
 
-    # Act
     if not how == "cross":
         result = left.merge(right, how=how, on="test")
     else:
         result = left.merge(right, how=how)
 
-    # Assert
     expected_duplication_allowance = allow_on_left and allow_on_right
     assert result.flags.allows_duplicate_labels == expected_duplication_allowance
 
@@ -723,64 +717,44 @@ def test_merge_sets_duplication_allowance_flag(
     ["allow_on_left", "allow_on_right"],
     [(False, False), (False, True), (True, False), (True, True)],
 )
-def test_merge_asof_sets_duplication_allowance_flag(
+def test_merge_asof_correctly_sets_duplication_allowance_flag(
     allow_on_left: bool,
     allow_on_right: bool,
 ):
-    """Check that pandas.merge_asof correctly sets the allow_duplicate_labels flag
-    on its result.
-
-    The flag on the result should be set to true if and only if both arguments
-    to merge_asof have their flags set to True.
-    """
-    # Arrange
     left = pd.DataFrame({"test": [1]}).set_flags(allows_duplicate_labels=allow_on_left)
     right = pd.DataFrame({"test": [1]}).set_flags(
         allows_duplicate_labels=allow_on_right,
     )
 
-    # Act
     result = pd.merge_asof(left, right)
 
-    # Assert
     expected_duplication_allowance = allow_on_left and allow_on_right
     assert result.flags.allows_duplicate_labels == expected_duplication_allowance
 
 
 def test_merge_propagates_metadata_from_equal_input_metadata():
-    """Check that pandas.merge sets the metadata of its result to a deep copy of
-    the metadata from its left input, if the metadata from both inputs are equal.
-    """
-    # Arrange
     metadata = {"a": 2}
     left = pd.DataFrame({"test": [1]})
     left.attrs = metadata
     right = pd.DataFrame({"test": [1]})
     right.attrs = metadata.copy()
 
-    # Act
     result = left.merge(right, how="inner", on="test")
 
-    # Assert
     assert result.attrs == metadata
+    # Verify that merge deep-copies the attr dictionary.
     left.attrs = {"b": 3}
     assert result.attrs == metadata
 
 
 def test_merge_does_not_propagate_metadata_from_unequal_input_metadata():
-    """Check that the metadata for the result of pandas.merge is empty if the
-    metadata for both inputs to pandas.merge are not equal.
-    """
-    # Arrange
     left = pd.DataFrame({"test": [1]})
     left.attrs = {"a": 2}
     right = pd.DataFrame({"test": [1]})
     right.attrs = {"b": 3}
 
-    # Act
     result = left.merge(right, how="inner", on="test")
 
-    # Assert
     assert result.attrs == {}
 
 
@@ -804,19 +778,6 @@ def test_merge_does_not_propagate_metadata_if_one_input_has_no_metadata(
     right: pd.DataFrame,
     expected: dict,
 ):
-    """Check that if the metadata for one input to pandas.merge is empty, the result
-    of merge has the same metadata as the other input.
-
-    (empty)         (A)      (A)         (empty)    (empty)       (empty)
-       |             |        |             |          |             |
-        --> merge <--          --> merge <--            --> merge <--
-              |                      |                        |
-           (empty)                (empty)                  (empty)
-    """
-    # Arrange
-
-    # Act
     result = left.merge(right, how="inner", on="test")
 
-    # Assert
     assert result.attrs == expected
