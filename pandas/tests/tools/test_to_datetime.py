@@ -3793,8 +3793,7 @@ def test_to_datetime_wrapped_datetime64_ps():
 
 
 def test_to_datetime_lxml_elementunicoderesult_with_format(cache):
-    pytest.importorskip("lxml")
-    from lxml import etree  # pyright: ignore[reportMissingImports]
+    etree = pytest.importorskip("lxml.etree")
 
     s = "2025-02-05 16:59:57"
     node = etree.XML(f"<date>{s}</date>")
