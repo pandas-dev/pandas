@@ -456,13 +456,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             end = _maybe_localize_point(end, freq, tz, ambiguous, nonexistent)
 
         if freq is not None:
-            # We break Day arithmetic (fixed 24 hour) here and opt for
-            # Day to mean calendar day (23/24/25 hour). Therefore, strip
-            # tz info from start and day to avoid DST arithmetic
-            if isinstance(freq, Day):
-                if start is not None:
+            # Offset handling:
+            # Ticks (fixed-duration like hours/minutes): keep tz; do absolute-time math.
+            # Other calendar offsets: drop tz; do naive wall time; localize once later
+            # so `ambiguous`/`nonexistent` are applied correctly.
+            if not isinstance(freq, Tick):
+                if start is not None and start.tz is not None:
                     start = start.tz_localize(None)
-                if end is not None:
+                if end is not None and end.tz is not None:
                     end = end.tz_localize(None)
 
             if isinstance(freq, (Tick, Day)):
@@ -804,7 +805,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         try:
             res_values = offset._apply_array(values._ndarray)
             if res_values.dtype.kind == "i":
-                res_values = res_values.view(values.dtype)
+                # error: Argument 1 to "view" of "ndarray" has
+                # incompatible type
+                # "dtype[datetime64[date | int | None]] | DatetimeTZDtype";
+                # expected "dtype[Any] | _HasDType[dtype[Any]]"  [arg-type]
+                res_values = res_values.view(values.dtype)  # type: ignore[arg-type]
         except NotImplementedError:
             if get_option("performance_warnings"):
                 warnings.warn(
