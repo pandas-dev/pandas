@@ -109,6 +109,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
     ensure_object,
     ensure_platform_int,
@@ -614,7 +615,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             clean_column_name(k): Series(
                 v, copy=False, index=self.index, name=k, dtype=dtype
             ).__finalize__(self)
-            for k, v, dtype in zip(self.columns, self._iter_column_arrays(), dtypes)
+            for k, v, dtype in zip(
+                self.columns,
+                self._iter_column_arrays(),
+                dtypes,
+                strict=True,
+            )
         }
 
     @final
@@ -7117,53 +7123,69 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             new_data = self._mgr.fillna(value=value, limit=limit, inplace=inplace)
 
         elif isinstance(value, (dict, ABCSeries)):
-            if axis == 1:
-                raise NotImplementedError(
-                    "Currently only can fill with dict/Series column by column"
-                )
             result = self if inplace else self.copy(deep=False)
-            for k, v in value.items():
-                if k not in result:
-                    continue
+            if axis == 1:
+                # Check that all columns in result have the same dtype
+                # otherwise don't bother with fillna and losing accurate dtypes
+                unique_dtypes = algos.unique(self._mgr.get_dtypes())
+                if len(unique_dtypes) > 1:
+                    raise ValueError(
+                        "All columns must have the same dtype, but got dtypes: "
+                        f"{list(unique_dtypes)}"
+                    )
+                # Use the first column, which we have already validated has the
+                # same dtypes as the other columns.
+                if not can_hold_element(result.iloc[:, 0], value):
+                    frame_dtype = unique_dtypes.item()
+                    raise ValueError(
+                        f"{value} not a suitable type to fill into {frame_dtype}"
+                    )
+                result = result.T.fillna(value=value).T
+            else:
+                for k, v in value.items():
+                    if k not in result:
+                        continue
 
-                res_k = result[k].fillna(v, limit=limit)
+                    res_k = result[k].fillna(v, limit=limit)
 
-                if not inplace:
-                    result[k] = res_k
-                else:
-                    # We can write into our existing column(s) iff dtype
-                    #  was preserved.
-                    if isinstance(res_k, ABCSeries):
-                        # i.e. 'k' only shows up once in self.columns
-                        if res_k.dtype == result[k].dtype:
-                            result.loc[:, k] = res_k
-                        else:
-                            # Different dtype -> no way to do inplace.
-                            result[k] = res_k
+                    if not inplace:
+                        result[k] = res_k
                     else:
-                        # see test_fillna_dict_inplace_nonunique_columns
-                        locs = result.columns.get_loc(k)
-                        if isinstance(locs, slice):
-                            locs = range(self.shape[1])[locs]
-                        elif isinstance(locs, np.ndarray) and locs.dtype.kind == "b":
-                            locs = locs.nonzero()[0]
-                        elif not (
-                            isinstance(locs, np.ndarray) and locs.dtype.kind == "i"
-                        ):
-                            # Should never be reached, but let's cover our bases
-                            raise NotImplementedError(
-                                "Unexpected get_loc result, please report a bug at "
-                                "https://github.com/pandas-dev/pandas"
-                            )
-
-                        for i, loc in enumerate(locs):
-                            res_loc = res_k.iloc[:, i]
-                            target = self.iloc[:, loc]
-
-                            if res_loc.dtype == target.dtype:
-                                result.iloc[:, loc] = res_loc
+                        # We can write into our existing column(s) iff dtype
+                        #  was preserved.
+                        if isinstance(res_k, ABCSeries):
+                            # i.e. 'k' only shows up once in self.columns
+                            if res_k.dtype == result[k].dtype:
+                                result.loc[:, k] = res_k
                             else:
-                                result.isetitem(loc, res_loc)
+                                # Different dtype -> no way to do inplace.
+                                result[k] = res_k
+                        else:
+                            # see test_fillna_dict_inplace_nonunique_columns
+                            locs = result.columns.get_loc(k)
+                            if isinstance(locs, slice):
+                                locs = range(self.shape[1])[locs]
+                            elif (
+                                isinstance(locs, np.ndarray) and locs.dtype.kind == "b"
+                            ):
+                                locs = locs.nonzero()[0]
+                            elif not (
+                                isinstance(locs, np.ndarray) and locs.dtype.kind == "i"
+                            ):
+                                # Should never be reached, but let's cover our bases
+                                raise NotImplementedError(
+                                    "Unexpected get_loc result, please report a bug at "
+                                    "https://github.com/pandas-dev/pandas"
+                                )
+
+                            for i, loc in enumerate(locs):
+                                res_loc = res_k.iloc[:, i]
+                                target = self.iloc[:, loc]
+
+                                if res_loc.dtype == target.dtype:
+                                    result.iloc[:, loc] = res_loc
+                                else:
+                                    result.isetitem(loc, res_loc)
             if inplace:
                 return self._update_inplace(result)
             else:
@@ -7546,7 +7568,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             items = list(to_replace.items())
             if items:
-                keys, values = zip(*items)
+                keys, values = zip(*items, strict=True)
             else:
                 keys, values = ([], [])  # type: ignore[assignment]
 
@@ -7565,7 +7587,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for k, v in items:
                     # error: Incompatible types in assignment (expression has type
                     # "list[Never]", variable has type "tuple[Any, ...]")
-                    keys, values = list(zip(*v.items())) or (  # type: ignore[assignment]
+                    keys, values = list(zip(*v.items(), strict=True)) or (  # type: ignore[assignment]
                         [],
                         [],
                     )

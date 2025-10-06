@@ -1585,6 +1585,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         >>> cat.map({"a": "first", "b": "second"}, na_action=None)
         Index(['first', 'second', nan], dtype='str')
+
+        The mapping function is applied to categories, not to each value. It is
+        therefore only called once per unique category, and the result reused for
+        all occurrences:
+
+        >>> cat = pd.Categorical(["a", "a", "b"])
+        >>> calls = []
+        >>> def f(x):
+        ...     calls.append(x)
+        ...     return x.upper()
+        >>> result = cat.map(f)
+        >>> result
+        ['A', 'A', 'B']
+        Categories (2, str): ['A', 'B']
+        >>> calls
+        ['a', 'b']
         """
         assert callable(mapper) or is_dict_like(mapper)
 

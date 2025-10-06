@@ -40,6 +40,7 @@ from pandas._typing import (
     IgnoreRaise,
     IndexLabel,
     IndexT,
+    NaPosition,
     Scalar,
     Shape,
     npt,
@@ -2398,8 +2399,54 @@ class MultiIndex(Index):
             return Index(new_tuples)
 
     def argsort(
-        self, *args, na_position: str = "last", **kwargs
+        self, *args, na_position: NaPosition = "last", **kwargs
     ) -> npt.NDArray[np.intp]:
+        """
+        Return the integer indices that would sort the index.
+
+        Parameters
+        ----------
+        *args
+            Passed to `numpy.ndarray.argsort`.
+        na_position : {'first' or 'last'}, default 'last'
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
+        **kwargs
+            Passed to `numpy.ndarray.argsort`.
+
+        Returns
+        -------
+        np.ndarray[np.intp]
+            Integer indices that would sort the index if used as
+            an indexer.
+
+        See Also
+        --------
+        numpy.argsort : Similar method for NumPy arrays.
+        Index.argsort : Similar method for Index.
+
+        Examples
+        --------
+        >>> midx = pd.MultiIndex.from_arrays([[3, 2], ["e", "c"]])
+        >>> midx
+        MultiIndex([(3, 'e'), (2, 'c')])
+
+        >>> order = midx.argsort()
+        >>> order
+        array([1, 0])
+
+        >>> midx[order]
+        MultiIndex([(2, 'c'),
+                    (3, 'e')],
+                  )
+
+        >>> midx = pd.MultiIndex.from_arrays([[2, 2], [np.nan, 0]])
+        >>> midx.argsort(na_position="first")
+        array([0, 1])
+
+        >>> midx.argsort()
+        array([1, 0])
+        """
         target = self._sort_levels_monotonic(raise_if_incomparable=True)
         keys = [lev.codes for lev in target._get_codes_for_sorting()]
         return lexsort_indexer(keys, na_position=na_position, codes_given=True)

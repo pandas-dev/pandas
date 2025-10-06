@@ -461,9 +461,47 @@ class TestFillNA:
         expected = df.fillna(df.max().to_dict())
         tm.assert_frame_equal(result, expected)
 
-        # disable this for now
-        with pytest.raises(NotImplementedError, match="column by column"):
-            df.fillna(df.max(axis=1), axis=1)
+    def test_fillna_dict_series_axis_1(self):
+        df = DataFrame(
+            {
+                "a": [np.nan, 1, 2, np.nan, np.nan],
+                "b": [1, 2, 3, np.nan, np.nan],
+                "c": [np.nan, 1, 2, 3, 4],
+            }
+        )
+        result = df.fillna(df.max(axis=1), axis=1)
+        df.fillna(df.max(axis=1), axis=1, inplace=True)
+        expected = DataFrame(
+            {
+                "a": [1.0, 1.0, 2.0, 3.0, 4.0],
+                "b": [1.0, 2.0, 3.0, 3.0, 4.0],
+                "c": [1.0, 1.0, 2.0, 3.0, 4.0],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(df, expected)
+
+    def test_fillna_dict_series_axis_1_mismatch_cols(self):
+        df = DataFrame(
+            {
+                "a": ["abc", "def", np.nan, "ghi", "jkl"],
+                "b": [1, 2, 3, np.nan, np.nan],
+                "c": [np.nan, 1, 2, 3, 4],
+            }
+        )
+        with pytest.raises(ValueError, match="All columns must have the same dtype"):
+            df.fillna(Series({"a": "abc", "b": "def", "c": "hij"}), axis=1)
+
+    def test_fillna_dict_series_axis_1_value_mismatch_with_cols(self):
+        df = DataFrame(
+            {
+                "a": [np.nan, 1, 2, np.nan, np.nan],
+                "b": [1, 2, 3, np.nan, np.nan],
+                "c": [np.nan, 1, 2, 3, 4],
+            }
+        )
+        with pytest.raises(ValueError, match=".* not a suitable type to fill into .*"):
+            df.fillna(Series({"a": "abc", "b": "def", "c": "hij"}), axis=1)
 
     def test_fillna_dataframe(self):
         # GH#8377
