@@ -8,11 +8,6 @@ from typing import (
 
 from pandas._config import get_option
 
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-)
-
 from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
@@ -276,222 +271,6 @@ def hist_frame(
     )
 
 
-_boxplot_doc = """
-Make a box plot from DataFrame columns.
-
-Make a box-and-whisker plot from DataFrame columns, optionally grouped
-by some other columns. A box plot is a method for graphically depicting
-groups of numerical data through their quartiles.
-The box extends from the Q1 to Q3 quartile values of the data,
-with a line at the median (Q2). The whiskers extend from the edges
-of box to show the range of the data. By default, they extend no more than
-`1.5 * IQR (IQR = Q3 - Q1)` from the edges of the box, ending at the farthest
-data point within that interval. Outliers are plotted as separate dots.
-
-For further details see
-Wikipedia's entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`_.
-
-Parameters
-----------
-%(data)s\
-column : str or list of str, optional
-    Column name or list of names, or vector.
-    Can be any valid input to :meth:`pandas.DataFrame.groupby`.
-by : str or array-like, optional
-    Column in the DataFrame to :meth:`pandas.DataFrame.groupby`.
-    One box-plot will be done per value of columns in `by`.
-ax : object of class matplotlib.axes.Axes, optional
-    The matplotlib axes to be used by boxplot.
-fontsize : float or str
-    Tick label font size in points or as a string (e.g., `large`).
-rot : float, default 0
-    The rotation angle of labels (in degrees)
-    with respect to the screen coordinate system.
-grid : bool, default True
-    Setting this to True will show the grid.
-figsize : A tuple (width, height) in inches
-    The size of the figure to create in matplotlib.
-layout : tuple (rows, columns), optional
-    For example, (3, 5) will display the subplots
-    using 3 rows and 5 columns, starting from the top-left.
-return_type : {'axes', 'dict', 'both'} or None, default 'axes'
-    The kind of object to return. The default is ``axes``.
-
-    * 'axes' returns the matplotlib axes the boxplot is drawn on.
-    * 'dict' returns a dictionary whose values are the matplotlib
-      Lines of the boxplot.
-    * 'both' returns a namedtuple with the axes and dict.
-    * when grouping with ``by``, a Series mapping columns to
-      ``return_type`` is returned.
-
-      If ``return_type`` is `None`, a NumPy array
-      of axes with the same shape as ``layout`` is returned.
-%(backend)s\
-
-**kwargs
-    All other plotting keyword arguments to be passed to
-    :func:`matplotlib.pyplot.boxplot`.
-
-Returns
--------
-result
-    See Notes.
-
-See Also
---------
-Series.plot.hist: Make a histogram.
-matplotlib.pyplot.boxplot : Matplotlib equivalent plot.
-
-Notes
------
-The return type depends on the `return_type` parameter:
-
-* 'axes' : object of class matplotlib.axes.Axes
-* 'dict' : dict of matplotlib.lines.Line2D objects
-* 'both' : a namedtuple with structure (ax, lines)
-
-For data grouped with ``by``, return a Series of the above or a numpy
-array:
-
-* :class:`~pandas.Series`
-* :class:`~numpy.array` (for ``return_type = None``)
-
-Use ``return_type='dict'`` when you want to tweak the appearance
-of the lines after plotting. In this case a dict containing the Lines
-making up the boxes, caps, fliers, medians, and whiskers is returned.
-
-Examples
---------
-
-Boxplots can be created for every column in the dataframe
-by ``df.boxplot()`` or indicating the columns to be used:
-
-.. plot::
-    :context: close-figs
-
-    >>> np.random.seed(1234)
-    >>> df = pd.DataFrame(np.random.randn(10, 4),
-    ...                   columns=['Col1', 'Col2', 'Col3', 'Col4'])
-    >>> boxplot = df.boxplot(column=['Col1', 'Col2', 'Col3'])  # doctest: +SKIP
-
-Boxplots of variables distributions grouped by the values of a third
-variable can be created using the option ``by``. For instance:
-
-.. plot::
-    :context: close-figs
-
-    >>> df = pd.DataFrame(np.random.randn(10, 2),
-    ...                   columns=['Col1', 'Col2'])
-    >>> df['X'] = pd.Series(['A', 'A', 'A', 'A', 'A',
-    ...                      'B', 'B', 'B', 'B', 'B'])
-    >>> boxplot = df.boxplot(by='X')
-
-A list of strings (i.e. ``['X', 'Y']``) can be passed to boxplot
-in order to group the data by combination of the variables in the x-axis:
-
-.. plot::
-    :context: close-figs
-
-    >>> df = pd.DataFrame(np.random.randn(10, 3),
-    ...                   columns=['Col1', 'Col2', 'Col3'])
-    >>> df['X'] = pd.Series(['A', 'A', 'A', 'A', 'A',
-    ...                      'B', 'B', 'B', 'B', 'B'])
-    >>> df['Y'] = pd.Series(['A', 'B', 'A', 'B', 'A',
-    ...                      'B', 'A', 'B', 'A', 'B'])
-    >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by=['X', 'Y'])
-
-The layout of boxplot can be adjusted giving a tuple to ``layout``:
-
-.. plot::
-    :context: close-figs
-
-    >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by='X',
-    ...                      layout=(2, 1))
-
-Additional formatting can be done to the boxplot, like suppressing the grid
-(``grid=False``), rotating the labels in the x-axis (i.e. ``rot=45``)
-or changing the fontsize (i.e. ``fontsize=15``):
-
-.. plot::
-    :context: close-figs
-
-    >>> boxplot = df.boxplot(grid=False, rot=45, fontsize=15)  # doctest: +SKIP
-
-The parameter ``return_type`` can be used to select the type of element
-returned by `boxplot`.  When ``return_type='axes'`` is selected,
-the matplotlib axes on which the boxplot is drawn are returned:
-
-    >>> boxplot = df.boxplot(column=['Col1', 'Col2'], return_type='axes')
-    >>> type(boxplot)
-    <class 'matplotlib.axes._axes.Axes'>
-
-When grouping with ``by``, a Series mapping columns to ``return_type``
-is returned:
-
-    >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by='X',
-    ...                      return_type='axes')
-    >>> type(boxplot)
-    <class 'pandas.Series'>
-
-If ``return_type`` is `None`, a NumPy array of axes with the same shape
-as ``layout`` is returned:
-
-    >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by='X',
-    ...                      return_type=None)
-    >>> type(boxplot)
-    <class 'numpy.ndarray'>
-"""
-
-_backend_doc = """\
-backend : str, default None
-    Backend to use instead of the backend specified in the option
-    ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
-    specify the ``plotting.backend`` for the whole session, set
-    ``pd.options.plotting.backend``.
-"""
-
-
-_bar_or_line_doc = """
-        Parameters
-        ----------
-        x : label or position, optional
-            Allows plotting of one column versus another. If not specified,
-            the index of the DataFrame is used.
-        y : label or position, optional
-            Allows plotting of one column versus another. If not specified,
-            all numerical columns are used.
-        color : str, array-like, or dict, optional
-            The color for each of the DataFrame's columns. Possible values are:
-
-            - A single color string referred to by name, RGB or RGBA code,
-                for instance 'red' or '#a98d19'.
-
-            - A sequence of color strings referred to by name, RGB or RGBA
-                code, which will be used for each column recursively. For
-                instance ['green','yellow'] each column's %(kind)s will be filled in
-                green or yellow, alternatively. If there is only a single column to
-                be plotted, then only the first color from the color list will be
-                used.
-
-            - A dict of the form {column name : color}, so that each column will be
-                colored accordingly. For example, if your columns are called `a` and
-                `b`, then passing {'a': 'green', 'b': 'red'} will color %(kind)ss for
-                column `a` in green and %(kind)ss for column `b` in red.
-
-        **kwargs
-            Additional keyword arguments are documented in
-            :meth:`DataFrame.plot`.
-
-        Returns
-        -------
-        matplotlib.axes.Axes or np.ndarray of them
-            An ndarray is returned with one :class:`matplotlib.axes.Axes`
-            per column when ``subplots=True``.
-"""
-
-
-@Substitution(data="data : DataFrame\n    The data to visualize.\n", backend="")
-@Appender(_boxplot_doc)
 def boxplot(
     data: DataFrame,
     column: str | list[str] | None = None,
@@ -505,6 +284,164 @@ def boxplot(
     return_type: str | None = None,
     **kwargs,
 ):
+    """
+    Make a box plot from DataFrame columns.
+
+    Make a box-and-whisker plot from DataFrame columns, optionally grouped
+    by some other columns. A box plot is a method for graphically depicting
+    groups of numerical data through their quartiles.
+    The box extends from the Q1 to Q3 quartile values of the data,
+    with a line at the median (Q2). The whiskers extend from the edges
+    of box to show the range of the data. By default, they extend no more than
+    `1.5 * IQR (IQR = Q3 - Q1)` from the edges of the box, ending at the farthest
+    data point within that interval. Outliers are plotted as separate dots.
+
+    For further details see
+    Wikipedia's entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`_.
+
+    Parameters
+    ----------
+    data : DataFrame
+        The data to visualize.
+    column : str or list of str, optional
+        Column name or list of names, or vector.
+        Can be any valid input to :meth:`pandas.DataFrame.groupby`.
+    by : str or array-like, optional
+        Column in the DataFrame to :meth:`pandas.DataFrame.groupby`.
+        One box-plot will be done per value of columns in `by`.
+    ax : object of class matplotlib.axes.Axes, optional
+        The matplotlib axes to be used by boxplot.
+    fontsize : float or str
+        Tick label font size in points or as a string (e.g., `large`).
+    rot : float, default 0
+        The rotation angle of labels (in degrees)
+        with respect to the screen coordinate system.
+    grid : bool, default True
+        Setting this to True will show the grid.
+    figsize : A tuple (width, height) in inches
+        The size of the figure to create in matplotlib.
+    layout : tuple (rows, columns), optional
+        For example, (3, 5) will display the subplots
+        using 3 rows and 5 columns, starting from the top-left.
+    return_type : {'axes', 'dict', 'both'} or None, default 'axes'
+        The kind of object to return. The default is ``axes``.
+
+        * 'axes' returns the matplotlib axes the boxplot is drawn on.
+        * 'dict' returns a dictionary whose values are the matplotlib
+          lines of the boxplot.
+        * 'both' returns a namedtuple with the axes and dict.
+        * when grouping with ``by``, a Series mapping columns to
+          ``return_type`` is returned.
+
+        If ``return_type`` is `None`, a NumPy array
+        of axes with the same shape as ``layout`` is returned.
+
+    **kwargs
+        All other plotting keyword arguments to be passed to
+        :func:`matplotlib.pyplot.boxplot`.
+
+    Returns
+    -------
+    result
+        See Notes.
+
+    See Also
+    --------
+    Series.plot.hist: Make a histogram.
+    matplotlib.pyplot.boxplot : Matplotlib equivalent plot.
+
+    Notes
+    -----
+    The return type depends on the `return_type` parameter:
+
+    * 'axes' : object of class matplotlib.axes.Axes
+    * 'dict' : dict of matplotlib.lines.Line2D objects
+    * 'both' : a namedtuple with structure (ax, lines)
+
+    For data grouped with ``by``, return a Series of the above or a numpy
+    array:
+
+    * :class:`~pandas.Series`
+    * :class:`~numpy.array` (for ``return_type = None``)
+
+    Use ``return_type='dict'`` when you want to tweak the appearance
+    of the lines after plotting. In this case a dict containing the Lines
+    making up the boxes, caps, fliers, medians, and whiskers is returned.
+
+    Examples
+    --------
+
+    Boxplots can be created for every column in the dataframe
+    by ``df.boxplot()`` or indicating the columns to be used:
+
+    .. plot::
+        :context: close-figs
+
+        >>> np.random.seed(1234)
+        >>> df = pd.DataFrame(
+        ...     np.random.randn(10, 4), columns=["Col1", "Col2", "Col3", "Col4"]
+        ... )
+        >>> boxplot = df.boxplot(column=["Col1", "Col2", "Col3"])  # doctest: +SKIP
+
+    Boxplots of variables distributions grouped by the values of a third
+    variable can be created using the option ``by``. For instance:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame(np.random.randn(10, 2), columns=["Col1", "Col2"])
+        >>> df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
+        >>> boxplot = df.boxplot(by="X")
+
+    A list of strings (i.e. ``['X', 'Y']``) can be passed to boxplot
+    in order to group the data by combination of the variables in the x-axis:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame(np.random.randn(10, 3), columns=["Col1", "Col2", "Col3"])
+        >>> df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
+        >>> df["Y"] = pd.Series(["A", "B", "A", "B", "A", "B", "A", "B", "A", "B"])
+        >>> boxplot = df.boxplot(column=["Col1", "Col2"], by=["X", "Y"])
+
+    The layout of boxplot can be adjusted giving a tuple to ``layout``:
+
+    .. plot::
+        :context: close-figs
+
+        >>> boxplot = df.boxplot(column=["Col1", "Col2"], by="X", layout=(2, 1))
+
+    Additional formatting can be done to the boxplot, like suppressing the grid
+    (``grid=False``), rotating the labels in the x-axis (i.e. ``rot=45``)
+    or changing the fontsize (i.e. ``fontsize=15``):
+
+    .. plot::
+        :context: close-figs
+
+        >>> boxplot = df.boxplot(grid=False, rot=45, fontsize=15)  # doctest: +SKIP
+
+    The parameter ``return_type`` can be used to select the type of element
+    returned by `boxplot`.  When ``return_type='axes'`` is selected,
+    the matplotlib axes on which the boxplot is drawn are returned:
+
+        >>> boxplot = df.boxplot(column=["Col1", "Col2"], return_type="axes")
+        >>> type(boxplot)
+        <class 'matplotlib.axes._axes.Axes'>
+
+    When grouping with ``by``, a Series mapping columns to ``return_type``
+    is returned:
+
+        >>> boxplot = df.boxplot(column=["Col1", "Col2"], by="X", return_type="axes")
+        >>> type(boxplot)
+        <class 'pandas.Series'>
+
+    If ``return_type`` is `None`, a NumPy array of axes with the same shape
+    as ``layout`` is returned:
+
+        >>> boxplot = df.boxplot(column=["Col1", "Col2"], by="X", return_type=None)
+        >>> type(boxplot)
+        <class 'numpy.ndarray'>
+    """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.boxplot(
         data,
@@ -521,8 +458,6 @@ def boxplot(
     )
 
 
-@Substitution(data="", backend=_backend_doc)
-@Appender(_boxplot_doc)
 def boxplot_frame(
     self: DataFrame,
     column=None,
@@ -537,6 +472,168 @@ def boxplot_frame(
     backend=None,
     **kwargs,
 ):
+    """
+    Make a box plot from DataFrame columns.
+
+    Make a box-and-whisker plot from DataFrame columns, optionally grouped
+    by some other columns. A box plot is a method for graphically depicting
+    groups of numerical data through their quartiles.
+    The box extends from the Q1 to Q3 quartile values of the data,
+    with a line at the median (Q2). The whiskers extend from the edges
+    of box to show the range of the data. By default, they extend no more than
+    `1.5 * IQR (IQR = Q3 - Q1)` from the edges of the box, ending at the farthest
+    data point within that interval. Outliers are plotted as separate dots.
+
+    For further details see
+    Wikipedia's entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`_.
+
+    Parameters
+    ----------
+    column : str or list of str, optional
+        Column name or list of names, or vector.
+        Can be any valid input to :meth:`pandas.DataFrame.groupby`.
+    by : str or array-like, optional
+        Column in the DataFrame to :meth:`pandas.DataFrame.groupby`.
+        One box-plot will be done per value of columns in `by`.
+    ax : object of class matplotlib.axes.Axes, optional
+        The matplotlib axes to be used by boxplot.
+    fontsize : float or str
+        Tick label font size in points or as a string (e.g., `large`).
+    rot : float, default 0
+        The rotation angle of labels (in degrees)
+        with respect to the screen coordinate system.
+    grid : bool, default True
+        Setting this to True will show the grid.
+    figsize : A tuple (width, height) in inches
+        The size of the figure to create in matplotlib.
+    layout : tuple (rows, columns), optional
+        For example, (3, 5) will display the subplots
+        using 3 rows and 5 columns, starting from the top-left.
+    return_type : {'axes', 'dict', 'both'} or None, default 'axes'
+        The kind of object to return. The default is ``axes``.
+
+        * 'axes' returns the matplotlib axes the boxplot is drawn on.
+        * 'dict' returns a dictionary whose values are the matplotlib
+          lines of the boxplot.
+        * 'both' returns a namedtuple with the axes and dict.
+        * when grouping with ``by``, a Series mapping columns to
+          ``return_type`` is returned.
+
+        If ``return_type`` is `None`, a NumPy array
+        of axes with the same shape as ``layout`` is returned.
+    backend : str, default None
+        Backend to use instead of the backend specified in the option
+        ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
+        specify the ``plotting.backend`` for the whole session, set
+        ``pd.options.plotting.backend``.
+
+    **kwargs
+        All other plotting keyword arguments to be passed to
+        :func:`matplotlib.pyplot.boxplot`.
+
+    Returns
+    -------
+    result
+        See Notes.
+
+    See Also
+    --------
+    Series.plot.hist: Make a histogram.
+    matplotlib.pyplot.boxplot : Matplotlib equivalent plot.
+
+    Notes
+    -----
+    The return type depends on the `return_type` parameter:
+
+    * 'axes' : object of class matplotlib.axes.Axes
+    * 'dict' : dict of matplotlib.lines.Line2D objects
+    * 'both' : a namedtuple with structure (ax, lines)
+
+    For data grouped with ``by``, return a Series of the above or a numpy
+    array:
+
+    * :class:`~pandas.Series`
+    * :class:`~numpy.array` (for ``return_type = None``)
+
+    Use ``return_type='dict'`` when you want to tweak the appearance
+    of the lines after plotting. In this case a dict containing the Lines
+    making up the boxes, caps, fliers, medians, and whiskers is returned.
+
+    Examples
+    --------
+
+    Boxplots can be created for every column in the dataframe
+    by ``df.boxplot()`` or indicating the columns to be used:
+
+    .. plot::
+        :context: close-figs
+
+        >>> np.random.seed(1234)
+        >>> df = pd.DataFrame(
+        ...     np.random.randn(10, 4), columns=["Col1", "Col2", "Col3", "Col4"]
+        ... )
+        >>> boxplot = df.boxplot(column=["Col1", "Col2", "Col3"])  # doctest: +SKIP
+
+    Boxplots of variables distributions grouped by the values of a third
+    variable can be created using the option ``by``. For instance:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame(np.random.randn(10, 2), columns=["Col1", "Col2"])
+        >>> df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
+        >>> boxplot = df.boxplot(by="X")
+
+    A list of strings (i.e. ``['X', 'Y']``) can be passed to boxplot
+    in order to group the data by combination of the variables in the x-axis:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame(np.random.randn(10, 3), columns=["Col1", "Col2", "Col3"])
+        >>> df["X"] = pd.Series(["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"])
+        >>> df["Y"] = pd.Series(["A", "B", "A", "B", "A", "B", "A", "B", "A", "B"])
+        >>> boxplot = df.boxplot(column=["Col1", "Col2"], by=["X", "Y"])
+
+    The layout of boxplot can be adjusted giving a tuple to ``layout``:
+
+    .. plot::
+        :context: close-figs
+
+        >>> boxplot = df.boxplot(column=["Col1", "Col2"], by="X", layout=(2, 1))
+
+    Additional formatting can be done to the boxplot, like suppressing the grid
+    (``grid=False``), rotating the labels in the x-axis (i.e. ``rot=45``)
+    or changing the fontsize (i.e. ``fontsize=15``):
+
+    .. plot::
+        :context: close-figs
+
+        >>> boxplot = df.boxplot(grid=False, rot=45, fontsize=15)  # doctest: +SKIP
+
+    The parameter ``return_type`` can be used to select the type of element
+    returned by `boxplot`.  When ``return_type='axes'`` is selected,
+    the matplotlib axes on which the boxplot is drawn are returned:
+
+        >>> boxplot = df.boxplot(column=["Col1", "Col2"], return_type="axes")
+        >>> type(boxplot)
+        <class 'matplotlib.axes._axes.Axes'>
+
+    When grouping with ``by``, a Series mapping columns to ``return_type``
+    is returned:
+
+        >>> boxplot = df.boxplot(column=["Col1", "Col2"], by="X", return_type="axes")
+        >>> type(boxplot)
+        <class 'pandas.Series'>
+
+    If ``return_type`` is `None`, a NumPy array of axes with the same shape
+    as ``layout`` is returned:
+
+        >>> boxplot = df.boxplot(column=["Col1", "Col2"], by="X", return_type=None)
+        >>> type(boxplot)
+        <class 'numpy.ndarray'>
+    """
+
     plot_backend = _get_plot_backend(backend)
     return plot_backend.boxplot_frame(
         self,
@@ -1074,8 +1171,55 @@ class PlotAccessor(PandasObject):
 
     __call__.__doc__ = __doc__
 
-    @Appender(
+    def line(
+        self,
+        x: Hashable | None = None,
+        y: Hashable | None = None,
+        color: str | Sequence[str] | dict | None = None,
+        **kwargs,
+    ) -> PlotAccessor:
         """
+        Plot Series or DataFrame as lines.
+
+        This function is useful to plot lines using DataFrame's values
+        as coordinates.
+
+        Parameters
+        ----------
+        x : label or position, optional
+            Allows plotting of one column versus another. If not specified,
+            the index of the DataFrame is used.
+        y : label or position, optional
+            Allows plotting of one column versus another. If not specified,
+            all numerical columns are used.
+        color : str, array-like, or dict, optional
+            The color for each of the DataFrame's columns. Possible values are:
+
+            - A single color string referred to by name, RGB or RGBA code,
+              for instance 'red' or '#a98d19'.
+
+            - A sequence of color strings referred to by name, RGB or RGBA
+              code, which will be used for each column recursively. For
+              instance ['green','yellow'] each column's line will be filled in
+              green or yellow, alternatively. If there is only a single column to
+              be plotted, then only the first color from the color list will be
+              used.
+
+            - A dict of the form {column name : color}, so that each column will be
+              colored accordingly. For example, if your columns are called `a` and
+              `b`, then passing {'a': 'green', 'b': 'red'} will color lines for
+              column `a` in green and lines for column `b` in red.
+
+        **kwargs
+            Additional keyword arguments are documented in
+            :meth:`DataFrame.plot`.
+
+        Returns
+        -------
+        matplotlib.axes.Axes or np.ndarray of them
+            An ndarray is returned with one :class:`matplotlib.axes.Axes`
+            per column when ``subplots=True``.
+
         See Also
         --------
         matplotlib.pyplot.plot : Plot y versus x as lines and/or markers.
@@ -1095,30 +1239,33 @@ class PlotAccessor(PandasObject):
             The following example shows the populations for some animals
             over the years.
 
-            >>> df = pd.DataFrame({
-            ...     'pig': [20, 18, 489, 675, 1776],
-            ...     'horse': [4, 25, 281, 600, 1900]
-            ... }, index=[1990, 1997, 2003, 2009, 2014])
+            >>> df = pd.DataFrame(
+            ...     {
+            ...         "pig": [20, 18, 489, 675, 1776],
+            ...         "horse": [4, 25, 281, 600, 1900],
+            ...     },
+            ...     index=[1990, 1997, 2003, 2009, 2014],
+            ... )
             >>> lines = df.plot.line()
 
         .. plot::
-           :context: close-figs
+            :context: close-figs
 
-           An example with subplots, so an array of axes is returned.
+            An example with subplots, so an array of axes is returned.
 
-           >>> axes = df.plot.line(subplots=True)
-           >>> type(axes)
-           <class 'numpy.ndarray'>
+            >>> axes = df.plot.line(subplots=True)
+            >>> type(axes)
+            <class 'numpy.ndarray'>
 
         .. plot::
-           :context: close-figs
+            :context: close-figs
 
-           Let's repeat the same example, but specifying colors for
-           each column (in this case, for each animal).
+            Let's repeat the same example, but specifying colors for
+            each column (in this case, for each animal).
 
-           >>> axes = df.plot.line(
-           ...     subplots=True, color={"pig": "pink", "horse": "#742802"}
-           ... )
+            >>> axes = df.plot.line(
+            ...     subplots=True, color={"pig": "pink", "horse": "#742802"}
+            ... )
 
         .. plot::
             :context: close-figs
@@ -1126,12 +1273,13 @@ class PlotAccessor(PandasObject):
             The following example shows the relationship between both
             populations.
 
-            >>> lines = df.plot.line(x='pig', y='horse')
+            >>> lines = df.plot.line(x="pig", y="horse")
         """
-    )
-    @Substitution(kind="line")
-    @Appender(_bar_or_line_doc)
-    def line(
+        if color is not None:
+            kwargs["color"] = color
+        return self(kind="line", x=x, y=y, **kwargs)
+
+    def bar(
         self,
         x: Hashable | None = None,
         y: Hashable | None = None,
@@ -1139,17 +1287,50 @@ class PlotAccessor(PandasObject):
         **kwargs,
     ) -> PlotAccessor:
         """
-        Plot Series or DataFrame as lines.
+        Vertical bar plot.
 
-        This function is useful to plot lines using DataFrame's values
-        as coordinates.
-        """
-        if color is not None:
-            kwargs["color"] = color
-        return self(kind="line", x=x, y=y, **kwargs)
+        A bar plot is a plot that presents categorical data with
+        rectangular bars with lengths proportional to the values that they
+        represent. A bar plot shows comparisons among discrete categories. One
+        axis of the plot shows the specific categories being compared, and the
+        other axis represents a measured value.
 
-    @Appender(
-        """
+        Parameters
+        ----------
+        x : label or position, optional
+            Allows plotting of one column versus another. If not specified,
+            the index of the DataFrame is used.
+        y : label or position, optional
+            Allows plotting of one column versus another. If not specified,
+            all numerical columns are used.
+        color : str, array-like, or dict, optional
+            The color for each of the DataFrame's columns. Possible values are:
+
+            - A single color string referred to by name, RGB or RGBA code,
+              for instance 'red' or '#a98d19'.
+
+            - A sequence of color strings referred to by name, RGB or RGBA
+              code, which will be used for each column recursively. For
+              instance ['green','yellow'] each column's bar will be filled in
+              green or yellow, alternatively. If there is only a single column to
+              be plotted, then only the first color from the color list will be
+              used.
+
+            - A dict of the form {column name : color}, so that each column will be
+              colored accordingly. For example, if your columns are called `a` and
+              `b`, then passing {'a': 'green', 'b': 'red'} will color bars for
+              column `a` in green and bars for column `b` in red.
+
+        **kwargs
+            Additional keyword arguments are documented in
+            :meth:`DataFrame.plot`.
+
+        Returns
+        -------
+        matplotlib.axes.Axes or np.ndarray of them
+            An ndarray is returned with one :class:`matplotlib.axes.Axes`
+            per column when ``subplots=True``.
+
         See Also
         --------
         DataFrame.plot.barh : Horizontal bar plot.
@@ -1163,8 +1344,8 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame({'lab': ['A', 'B', 'C'], 'val': [10, 30, 20]})
-            >>> ax = df.plot.bar(x='lab', y='val', rot=0)
+            >>> df = pd.DataFrame({"lab": ["A", "B", "C"], "val": [10, 30, 20]})
+            >>> ax = df.plot.bar(x="lab", y="val", rot=0)
 
         Plot a whole dataframe to a bar plot. Each column is assigned a
         distinct color, and each row is nested in a group along the
@@ -1175,10 +1356,16 @@ class PlotAccessor(PandasObject):
 
             >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
             >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
-            >>> index = ['snail', 'pig', 'elephant',
-            ...          'rabbit', 'giraffe', 'coyote', 'horse']
-            >>> df = pd.DataFrame({'speed': speed,
-            ...                    'lifespan': lifespan}, index=index)
+            >>> index = [
+            ...     "snail",
+            ...     "pig",
+            ...     "elephant",
+            ...     "rabbit",
+            ...     "giraffe",
+            ...     "coyote",
+            ...     "horse",
+            ... ]
+            >>> df = pd.DataFrame({"speed": speed, "lifespan": lifespan}, index=index)
             >>> ax = df.plot.bar(rot=0)
 
         Plot stacked bar charts for the DataFrame
@@ -1205,7 +1392,9 @@ class PlotAccessor(PandasObject):
             :context: close-figs
 
             >>> axes = df.plot.bar(
-            ...     rot=0, subplots=True, color={"speed": "red", "lifespan": "green"}
+            ...     rot=0,
+            ...     subplots=True,
+            ...     color={"speed": "red", "lifespan": "green"},
             ... )
             >>> axes[1].legend(loc=2)  # doctest: +SKIP
 
@@ -1214,19 +1403,20 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> ax = df.plot.bar(y='speed', rot=0)
+            >>> ax = df.plot.bar(y="speed", rot=0)
 
         Plot only selected categories for the DataFrame.
 
         .. plot::
             :context: close-figs
 
-            >>> ax = df.plot.bar(x='lifespan', rot=0)
-    """
-    )
-    @Substitution(kind="bar")
-    @Appender(_bar_or_line_doc)
-    def bar(
+            >>> ax = df.plot.bar(x="lifespan", rot=0)
+        """
+        if color is not None:
+            kwargs["color"] = color
+        return self(kind="bar", x=x, y=y, **kwargs)
+
+    def barh(
         self,
         x: Hashable | None = None,
         y: Hashable | None = None,
@@ -1234,20 +1424,50 @@ class PlotAccessor(PandasObject):
         **kwargs,
     ) -> PlotAccessor:
         """
-        Vertical bar plot.
+        Make a horizontal bar plot.
 
-        A bar plot is a plot that presents categorical data with
+        A horizontal bar plot is a plot that presents quantitative data with
         rectangular bars with lengths proportional to the values that they
         represent. A bar plot shows comparisons among discrete categories. One
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
-        """
-        if color is not None:
-            kwargs["color"] = color
-        return self(kind="bar", x=x, y=y, **kwargs)
 
-    @Appender(
-        """
+        Parameters
+        ----------
+        x : label or position, optional
+            Allows plotting of one column versus another. If not specified,
+            the index of the DataFrame is used.
+        y : label or position, optional
+            Allows plotting of one column versus another. If not specified,
+            all numerical columns are used.
+        color : str, array-like, or dict, optional
+            The color for each of the DataFrame's columns. Possible values are:
+
+            - A single color string referred to by name, RGB or RGBA code,
+              for instance 'red' or '#a98d19'.
+
+            - A sequence of color strings referred to by name, RGB or RGBA
+              code, which will be used for each column recursively. For
+              instance ['green','yellow'] each column's bar will be filled in
+              green or yellow, alternatively. If there is only a single column to
+              be plotted, then only the first color from the color list will be
+              used.
+
+            - A dict of the form {column name : color}, so that each column will be
+              colored accordingly. For example, if your columns are called `a` and
+              `b`, then passing {'a': 'green', 'b': 'red'} will color bars for
+              column `a` in green and bars for column `b` in red.
+
+        **kwargs
+            Additional keyword arguments are documented in
+            :meth:`DataFrame.plot`.
+
+        Returns
+        -------
+        matplotlib.axes.Axes or np.ndarray of them
+            An ndarray is returned with one :class:`matplotlib.axes.Axes`
+            per column when ``subplots=True``.
+
         See Also
         --------
         DataFrame.plot.bar : Vertical bar plot.
@@ -1261,8 +1481,8 @@ class PlotAccessor(PandasObject):
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame({'lab': ['A', 'B', 'C'], 'val': [10, 30, 20]})
-            >>> ax = df.plot.barh(x='lab', y='val')
+            >>> df = pd.DataFrame({"lab": ["A", "B", "C"], "val": [10, 30, 20]})
+            >>> ax = df.plot.barh(x="lab", y="val")
 
         Plot a whole DataFrame to a horizontal bar plot
 
@@ -1271,10 +1491,16 @@ class PlotAccessor(PandasObject):
 
             >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
             >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
-            >>> index = ['snail', 'pig', 'elephant',
-            ...          'rabbit', 'giraffe', 'coyote', 'horse']
-            >>> df = pd.DataFrame({'speed': speed,
-            ...                    'lifespan': lifespan}, index=index)
+            >>> index = [
+            ...     "snail",
+            ...     "pig",
+            ...     "elephant",
+            ...     "rabbit",
+            ...     "giraffe",
+            ...     "coyote",
+            ...     "horse",
+            ... ]
+            >>> df = pd.DataFrame({"speed": speed, "lifespan": lifespan}, index=index)
             >>> ax = df.plot.barh()
 
         Plot stacked barh charts for the DataFrame
@@ -1298,11 +1524,17 @@ class PlotAccessor(PandasObject):
 
             >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
             >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
-            >>> index = ['snail', 'pig', 'elephant',
-            ...          'rabbit', 'giraffe', 'coyote', 'horse']
-            >>> df = pd.DataFrame({'speed': speed,
-            ...                    'lifespan': lifespan}, index=index)
-            >>> ax = df.plot.barh(y='speed')
+            >>> index = [
+            ...     "snail",
+            ...     "pig",
+            ...     "elephant",
+            ...     "rabbit",
+            ...     "giraffe",
+            ...     "coyote",
+            ...     "horse",
+            ... ]
+            >>> df = pd.DataFrame({"speed": speed, "lifespan": lifespan}, index=index)
+            >>> ax = df.plot.barh(y="speed")
 
         Plot DataFrame versus the desired column
 
@@ -1311,30 +1543,17 @@ class PlotAccessor(PandasObject):
 
             >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
             >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
-            >>> index = ['snail', 'pig', 'elephant',
-            ...          'rabbit', 'giraffe', 'coyote', 'horse']
-            >>> df = pd.DataFrame({'speed': speed,
-            ...                    'lifespan': lifespan}, index=index)
-            >>> ax = df.plot.barh(x='lifespan')
-    """
-    )
-    @Substitution(kind="bar")
-    @Appender(_bar_or_line_doc)
-    def barh(
-        self,
-        x: Hashable | None = None,
-        y: Hashable | None = None,
-        color: str | Sequence[str] | dict | None = None,
-        **kwargs,
-    ) -> PlotAccessor:
-        """
-        Make a horizontal bar plot.
-
-        A horizontal bar plot is a plot that presents quantitative data with
-        rectangular bars with lengths proportional to the values that they
-        represent. A bar plot shows comparisons among discrete categories. One
-        axis of the plot shows the specific categories being compared, and the
-        other axis represents a measured value.
+            >>> index = [
+            ...     "snail",
+            ...     "pig",
+            ...     "elephant",
+            ...     "rabbit",
+            ...     "giraffe",
+            ...     "coyote",
+            ...     "horse",
+            ... ]
+            >>> df = pd.DataFrame({"speed": speed, "lifespan": lifespan}, index=index)
+            >>> ax = df.plot.barh(x="lifespan")
         """
         if color is not None:
             kwargs["color"] = color
