@@ -15,11 +15,11 @@ def dtype():
 
 @pytest.fixture
 def data():
-    """Length-100 ListArray for semantics test."""
-    data = make_data()
+    """Length-10 ListArray for semantics test."""
+    data = make_data(10)
 
     while len(data[0]) == len(data[1]):
-        data = make_data()
+        data = make_data(10)
 
     return ListArray(data)
 

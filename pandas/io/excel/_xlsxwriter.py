@@ -213,7 +213,7 @@ class XlsxWriter(ExcelWriter):
         )
 
         try:
-            self._book = Workbook(self._handles.handle, **engine_kwargs)
+            self._book = Workbook(self._handles.handle, **engine_kwargs)  # type: ignore[arg-type]
         except TypeError:
             self._handles.handle.close()
             raise

@@ -1912,8 +1912,8 @@ class StringMethods(NoNewAttributesMixin):
         if not is_integer(width):
             msg = f"width must be of integer type, not {type(width).__name__}"
             raise TypeError(msg)
-        f = lambda x: x.zfill(width)
-        result = self._data.array._str_map(f)
+
+        result = self._data.array._str_zfill(width)
         return self._wrap_result(result)
 
     def slice(self, start=None, stop=None, step=None):
@@ -3602,16 +3602,26 @@ class StringMethods(NoNewAttributesMixin):
     Series.str.isupper : Check whether all characters are uppercase.
     Series.str.istitle : Check whether all characters are titlecase.
 
-    Examples
-    --------
+    Notes
+    -----
     Similar to ``str.isdecimal`` but also includes special digits, like
     superscripted and subscripted digits in unicode.
+
+    The exact behavior of this method, i.e. which unicode characters are
+    considered as digits, depends on the backend used for string operations,
+    and there can be small differences.
+    For example, Python considers the ³ superscript character as a digit, but
+    not the ⅕ fraction character, while PyArrow considers both as digits. For
+    simple (ascii) decimal numbers, the behaviour is consistent.
+
+    Examples
+    --------
 
     >>> s3 = pd.Series(['23', '³', '⅕', ''])
     >>> s3.str.isdigit()
     0     True
-    1    False
-    2    False
+    1     True
+    2     True
     3    False
     dtype: bool
     """

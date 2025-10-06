@@ -838,7 +838,7 @@ cdef class BaseMultiIndexCodesEngine:
             raise KeyError(key)
         try:
             indices = [1 if checknull(v) else lev.get_loc(v) + multiindex_nulls_shift
-                       for lev, v in zip(self.levels, key)]
+                       for lev, v in zip(self.levels, key, strict=True)]
         except KeyError:
             raise KeyError(key)
 

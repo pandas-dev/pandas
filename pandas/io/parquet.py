@@ -21,7 +21,10 @@ from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas import (
@@ -43,6 +46,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeBackend,
         FilePath,
+        ParquetCompressionOptions,
         ReadBuffer,
         StorageOptions,
         WriteBuffer,
@@ -175,7 +179,7 @@ class PyArrowImpl(BaseImpl):
         self,
         df: DataFrame,
         path: FilePath | WriteBuffer[bytes],
-        compression: str | None = "snappy",
+        compression: ParquetCompressionOptions = "snappy",
         index: bool | None = None,
         storage_options: StorageOptions | None = None,
         partition_cols: list[str] | None = None,
@@ -411,7 +415,7 @@ def to_parquet(
     df: DataFrame,
     path: FilePath | WriteBuffer[bytes] | None = None,
     engine: str = "auto",
-    compression: str | None = "snappy",
+    compression: ParquetCompressionOptions = "snappy",
     index: bool | None = None,
     storage_options: StorageOptions | None = None,
     partition_cols: list[str] | None = None,
@@ -499,6 +503,7 @@ def to_parquet(
         return None
 
 
+@set_module("pandas")
 @doc(storage_options=_shared_docs["storage_options"])
 def read_parquet(
     path: FilePath | ReadBuffer[bytes],

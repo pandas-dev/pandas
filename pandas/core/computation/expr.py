@@ -383,11 +383,11 @@ class BaseExprVisitor(ast.NodeVisitor):
         "FloorDiv",
         "Mod",
     )
-    binary_op_nodes_map = dict(zip(binary_ops, binary_op_nodes))
+    binary_op_nodes_map = dict(zip(binary_ops, binary_op_nodes, strict=True))
 
     unary_ops = UNARY_OPS_SYMS
     unary_op_nodes = "UAdd", "USub", "Invert", "Not"
-    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
+    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes, strict=True))
 
     rewrite_map = {
         ast.Eq: ast.In,
@@ -731,7 +731,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         # recursive case: we have a chained comparison, a CMP b CMP c, etc.
         left = node.left
         values = []
-        for op, comp in zip(ops, comps):
+        for op, comp in zip(ops, comps, strict=True):
             new_node = self.visit(
                 ast.Compare(comparators=[comp], left=left, ops=[self.translate_In(op)])
             )
