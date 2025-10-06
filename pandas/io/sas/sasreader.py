@@ -15,7 +15,10 @@ from typing import (
     overload,
 )
 
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 
 from pandas.core.shared_docs import _shared_docs
 
@@ -83,6 +86,7 @@ def read_sas(
 ) -> DataFrame | SASReader: ...
 
 
+@set_module("pandas")
 @doc(decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer")
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
