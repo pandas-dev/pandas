@@ -2081,13 +2081,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 #  complex128 ndarray is much more performant.
                 left = self._combined
                 right = values._combined
-                # error: Argument 1 to "isin" has incompatible type
-                # "Union[ExtensionArray, ndarray[Any, Any],
-                # ndarray[Any, dtype[Any]]]"; expected
-                # "Union[_SupportsArray[dtype[Any]],
-                # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
-                # int, float, complex, str, bytes, _NestedSequence[
-                # Union[bool, int, float, complex, str, bytes]]]"
                 return np.isin(left, right).ravel()
 
             elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(
@@ -2140,8 +2133,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left=new_left, right=new_right)
 
     def unique(self) -> IntervalArray:
-        # No overload variant of "__getitem__" of "ExtensionArray" matches argument
-        # type "Tuple[slice, int]"
         nc = unique(self._combined)
         nc = nc[:, None]
         return self._from_combined(nc)
