@@ -1359,12 +1359,12 @@ cdef class TextReader:
             Py_ssize_t i, j, lines = end - start
             coliter_t it
             const char *word = NULL
+            const char *ignored_chars = " +-"
+            const char *digits = "0123456789"
+            const char *float_indicating_chars = "eE"
+            char null_byte = '\0'
 
         coliter_setup(&it, self.parser, col, start)
-
-        ignored_chars = b" +-"
-        digits = b"0123456789"
-        float_indicating_chars = b"eE"
 
         for i in range(lines):
             COLITER_NEXT(it, word)
@@ -1374,7 +1374,7 @@ cdef class TextReader:
 
             found_first_digit = False
             j = 0
-            while word[j] != b"\0":
+            while word[j] != null_byte:
                 if word[j] == self.parser.decimal:
                     return True
                 elif not found_first_digit and word[j] in ignored_chars:
