@@ -43,9 +43,7 @@ or a pull request in the past 2-3 weeks, you may take it over.
 
 If for whatever reason you are not able to continue working with the issue, please
 leave a comment on an issue, so other people know it's available again. You can check the list of
-assigned issues, since people may not be working in them anymore. If you want to work on one
-that is assigned, feel free to kindly ask the current assignee if you can take it
-(please allow at least a week of inactivity before considering work in the issue discontinued).
+assigned issues, since people may not be working in them anymore.
 
 We have several :ref:`contributor community <community>` communication channels, which you are
 welcome to join, and ask questions as you figure things out. Among them are regular meetings for
