@@ -3800,4 +3800,4 @@ def test_to_datetime_lxml_elementunicoderesult_with_format(cache):
     val = node.xpath("/date/node()")[0]  # _ElementUnicodeResult
 
     out = to_datetime(Series([val]), format="%Y-%m-%d %H:%M:%S", cache=cache)
-    tm.assert_equal(out.iloc[0], Timestamp(s))
+    assert out.iloc[0] == Timestamp(s)
