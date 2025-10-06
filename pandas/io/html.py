@@ -223,7 +223,7 @@ class _HtmlFrameParser:
         attrs: dict[str, str] | None,
         encoding: str,
         displayed_only: bool,
-        extract_links: Literal[None, "header", "footer", "body", "all"],
+        extract_links: Literal["header", "footer", "body", "all"] | None,
         storage_options: StorageOptions = None,
     ) -> None:
         self.io = io
@@ -1046,7 +1046,7 @@ def read_html(
     na_values: Iterable[object] | None = None,
     keep_default_na: bool = True,
     displayed_only: bool = True,
-    extract_links: Literal[None, "header", "footer", "body", "all"] = None,
+    extract_links: Literal["header", "footer", "body", "all"] | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     storage_options: StorageOptions = None,
 ) -> list[DataFrame]:
