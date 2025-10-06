@@ -24,7 +24,10 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -1024,6 +1027,7 @@ def _parse(
     return ret
 
 
+@set_module("pandas")
 @doc(storage_options=_shared_docs["storage_options"])
 def read_html(
     io: FilePath | ReadBuffer[str],
