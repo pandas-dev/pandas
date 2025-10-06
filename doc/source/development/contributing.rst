@@ -36,8 +36,8 @@ and `good first issue
 <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22+no%3Aassignee>`_
 are typically good for newer contributors.
 
-Once you've found an interesting issue, leave a comment with your idea of
-how you plan to approach it, and start working on it. If somebody else has
+Once you've found an interesting issue, leave a comment with your intention
+to start working on it. If somebody else has
 already said they'd be working on the issue in the past 2-3 weeks, please let
 them finish their work, otherwise consider it stalled and take it over.
 
