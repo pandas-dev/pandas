@@ -38,8 +38,8 @@ are typically good for newer contributors.
 
 Once you've found an interesting issue, leave a comment with your intention
 to start working on it. If somebody else has
-already said they'd be working on the issue in the past 2-3 weeks, please let
-them finish their work, otherwise consider it stalled and take it over.
+already commented on issue but they have shown a lack of activity in the issue
+or a pull request in the past 2-3 weeks, you may take it over.
 
 If for whatever reason you are not able to continue working with the issue, please
 leave a comment on an issue, so other people know it's available again. You can check the list of
