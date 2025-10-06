@@ -44,7 +44,6 @@ from pandas.errors import (
     ValueLabelTypeMismatch,
 )
 from pandas.util._decorators import (
-    Appender,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -1676,7 +1675,6 @@ the string values returned are correct."""
             size = self._chunksize
         return self.read(nrows=size)
 
-    @Appender(_read_method_doc)
     def read(
         self,
         nrows: int | None = None,
@@ -2165,7 +2163,6 @@ The repeated labels are:
         return self._value_label_dict
 
 
-@Appender(_read_stata_doc)
 def read_stata(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
     *,
