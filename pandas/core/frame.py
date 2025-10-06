@@ -107,6 +107,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_sequence,
+    is_string_dtype,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -1471,8 +1472,57 @@ class DataFrame(NDFrame, OpsMixin):
         Name: population, dtype: int64
         """
 
-    @Appender(_shared_docs["items"])
     def items(self) -> Iterable[tuple[Hashable, Series]]:
+        r"""
+        Iterate over (column name, Series) pairs.
+
+        Iterates over the DataFrame columns, returning a tuple with
+        the column name and the content as a Series.
+
+        Yields
+        ------
+        label : object
+            The column names for the DataFrame being iterated over.
+        content : Series
+            The column entries belonging to each label, as a Series.
+
+        See Also
+        --------
+        DataFrame.iterrows : Iterate over DataFrame rows as
+            (index, Series) pairs.
+        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
+            of the values.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "species": ["bear", "bear", "marsupial"],
+        ...         "population": [1864, 22000, 80000],
+        ...     },
+        ...     index=["panda", "polar", "koala"],
+        ... )
+        >>> df
+                species   population
+        panda   bear      1864
+        polar   bear      22000
+        koala   marsupial 80000
+        >>> for label, content in df.items():
+        ...     print(f"label: {label}")
+        ...     print(f"content: {content}", sep="\n")
+        label: species
+        content:
+        panda         bear
+        polar         bear
+        koala    marsupial
+        Name: species, dtype: object
+        label: population
+        content:
+        panda     1864
+        polar    22000
+        koala    80000
+        Name: population, dtype: int64
+        """
         for i, k in enumerate(self.columns):
             yield k, self._ixs(i, axis=1)
 
@@ -1523,7 +1573,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         columns = self.columns
         klass = self._constructor_sliced
-        for k, v in zip(self.index, self.values):
+        for k, v in zip(self.index, self.values, strict=True):
             s = klass(v, index=columns, name=k).__finalize__(self)
             if self._mgr.is_single_block:
                 s._mgr.add_references(self._mgr)
@@ -1606,10 +1656,10 @@ class DataFrame(NDFrame, OpsMixin):
             itertuple = collections.namedtuple(  # type: ignore[misc]
                 name, fields, rename=True
             )
-            return map(itertuple._make, zip(*arrays))
+            return map(itertuple._make, zip(*arrays, strict=True))
 
         # fallback to regular tuples
-        return zip(*arrays)
+        return zip(*arrays, strict=True)
 
     def __len__(self) -> int:
         """
@@ -4358,7 +4408,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             if isinstance(value, DataFrame):
                 check_key_length(self.columns, key, value)
-                for k1, k2 in zip(key, value.columns):
+                for k1, k2 in zip(key, value.columns, strict=False):
                     self[k1] = value[k2]
 
             elif not is_list_like(value):
@@ -4454,13 +4504,17 @@ class DataFrame(NDFrame, OpsMixin):
                 cols_droplevel = maybe_droplevels(cols, key)
                 if (
                     not isinstance(cols_droplevel, MultiIndex)
+                    and is_string_dtype(cols_droplevel.dtype)
                     and not cols_droplevel.any()
                 ):
+                    # if cols_droplevel contains only empty strings,
+                    # value.reindex(cols_droplevel, axis=1) would be full of NaNs
+                    # see GH#62518 and GH#61841
                     return
                 if len(cols_droplevel) and not cols_droplevel.equals(value.columns):
                     value = value.reindex(cols_droplevel, axis=1)
 
-                for col, col_droplevel in zip(cols, cols_droplevel):
+                for col, col_droplevel in zip(cols, cols_droplevel, strict=True):
                     self[col] = value[col_droplevel]
                 return
 
@@ -6562,7 +6616,11 @@ class DataFrame(NDFrame, OpsMixin):
             names = self.index._get_default_index_names(names, default)
 
             if isinstance(self.index, MultiIndex):
-                to_insert = zip(reversed(self.index.levels), reversed(self.index.codes))
+                to_insert = zip(
+                    reversed(self.index.levels),
+                    reversed(self.index.codes),
+                    strict=True,
+                )
             else:
                 to_insert = ((self.index, None),)
 
@@ -7088,7 +7146,7 @@ class DataFrame(NDFrame, OpsMixin):
             result.name = None
         else:
             vals = (col.values for name, col in self.items() if name in subset)
-            labels, shape = map(list, zip(*map(f, vals)))
+            labels, shape = map(list, zip(*map(f, vals), strict=True))
 
             ids = get_group_index(labels, tuple(shape), sort=False, xnull=False)
             result = self._constructor_sliced(duplicated(ids, keep), index=self.index)
@@ -7341,7 +7399,9 @@ class DataFrame(NDFrame, OpsMixin):
 
             # need to rewrap columns in Series to apply key function
             if key is not None:
-                keys_data = [Series(k, name=name) for (k, name) in zip(keys, by)]
+                keys_data = [
+                    Series(k, name=name) for (k, name) in zip(keys, by, strict=True)
+                ]
             else:
                 # error: Argument 1 to "list" has incompatible type
                 # "Generator[ExtensionArray | ndarray[Any, Any], None, None]";
@@ -8203,7 +8263,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             arrays = [
                 array_op(_left, _right)
-                for _left, _right in zip(self._iter_column_arrays(), right)
+                for _left, _right in zip(self._iter_column_arrays(), right, strict=True)
             ]
 
         elif isinstance(right, Series):
@@ -11740,7 +11800,7 @@ class DataFrame(NDFrame, OpsMixin):
                 return nanops.nancorr(x[0], x[1], method=method)
 
             correl = self._constructor_sliced(
-                map(c, zip(left.values.T, right.values.T)),
+                map(c, zip(left.values.T, right.values.T, strict=True)),
                 index=left.columns,
                 copy=False,
             )
