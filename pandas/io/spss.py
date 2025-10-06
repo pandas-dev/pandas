@@ -7,6 +7,7 @@ from typing import (
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.inference import is_list_like
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
+@set_module("pandas")
 def read_spss(
     path: str | Path,
     usecols: Sequence[str] | None = None,
