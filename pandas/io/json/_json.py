@@ -29,7 +29,10 @@ from pandas._libs.json import (
 from pandas._libs.tslibs import iNaT
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
@@ -496,6 +499,7 @@ def read_json(
 ) -> DataFrame: ...
 
 
+@set_module("pandas")
 @doc(
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "path_or_buf",

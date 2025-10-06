@@ -13,7 +13,10 @@ from pandas._config import using_string_dtype
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import Pandas4Warning
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.api import DataFrame
@@ -68,6 +71,7 @@ def to_feather(
         feather.write_feather(df, handles.handle, **kwargs)
 
 
+@set_module("pandas")
 @doc(storage_options=_shared_docs["storage_options"])
 def read_feather(
     path: FilePath | ReadBuffer[bytes],

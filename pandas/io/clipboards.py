@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import warnings
 
 from pandas._libs import lib
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from pandas._typing import DtypeBackend
 
 
+@set_module("pandas")
 def read_clipboard(
     sep: str = r"\s+",
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
