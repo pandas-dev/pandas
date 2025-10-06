@@ -175,8 +175,12 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             axis=axis,
         )
         if self.dtype in [
+            NumpyEADtype(np.uint8),
+            NumpyEADtype(np.uint16),
             NumpyEADtype(np.uint32),
             NumpyEADtype(np.uint64),
+            NumpyEADtype(np.int8),
+            NumpyEADtype(np.int16),
             NumpyEADtype(np.int32),
             NumpyEADtype(np.int64),
         ]:
