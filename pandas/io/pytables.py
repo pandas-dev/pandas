@@ -51,7 +51,10 @@ from pandas.errors import (
     PerformanceWarning,
     PossibleDataLossError,
 )
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -312,6 +315,7 @@ def to_hdf(
             f(store)
 
 
+@set_module("pandas")
 def read_hdf(
     path_or_buf: FilePath | HDFStore,
     key=None,
@@ -488,6 +492,7 @@ def _is_metadata_of(group: Node, parent_group: Node) -> bool:
     return False
 
 
+@set_module("pandas")
 class HDFStore:
     """
     Dict-like IO interface for storing pandas objects in PyTables.
