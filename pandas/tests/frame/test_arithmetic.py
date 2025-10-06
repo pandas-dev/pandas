@@ -708,7 +708,17 @@ class TestFrameFlexArithmetic:
         with pytest.raises(TypeError, match=msg):
             df.add(ser_len0, fill_value="E")
 
-        df_len0.sub(df["A"], axis=None, fill_value=3)
+        result = df_len0.sub(df, axis=None, fill_value=3)
+        expected = DataFrame([[2, 1], [0, -1]], columns=["A", "B"])
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+
+        result = df_len0.sub(df["A"], axis=0, fill_value=3)
+        expected = DataFrame([[2, 2], [0, 0]], columns=["A", "B"])
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+
+        result = df_len0.sub(df["A"], axis=1, fill_value=3)
+        expected = DataFrame([], columns=["A", "B", 0, 1])
+        tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_flex_add_scalar_fill_value(self):
         # GH#12723

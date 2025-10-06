@@ -153,41 +153,8 @@ def test_error_invalid_values(data, all_arithmetic_operators):
 
     # invalid array-likes
     str_ser = pd.Series("foo", index=s.index)
-    if (
-        all_arithmetic_operators
-        in [
-            "__add__",
-            "__radd__",
-        ]
-        and pd.options.future.infer_string
-    ):
-        res = ops(str_ser)
-        if all_arithmetic_operators == "__radd__":
-            data_expected = []
-            for i in data:
-                if pd.isna(i):
-                    data_expected.append(i)
-                elif i.is_integer():
-                    data_expected.append("foo" + str(int(i)))
-                else:
-                    data_expected.append("foo" + str(i))
-
-            expected = pd.Series(data_expected, index=s.index)
-        else:
-            data_expected = []
-            for i in data:
-                if pd.isna(i):
-                    data_expected.append(i)
-                elif i.is_integer():
-                    data_expected.append(str(int(i)) + "foo")
-                else:
-                    data_expected.append(str(i) + "foo")
-
-            expected = pd.Series(data_expected, index=s.index)
-        tm.assert_series_equal(res, expected)
-    else:
-        with pytest.raises(TypeError, match=msg):
-            ops(str_ser)
+    with pytest.raises(TypeError, match=msg):
+        ops(str_ser)
 
     msg = "|".join(
         [
