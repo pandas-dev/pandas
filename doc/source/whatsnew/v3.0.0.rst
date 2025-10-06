@@ -215,6 +215,7 @@ Other enhancements
 - :py:class:`frozenset` elements in pandas objects are now natively printed (:issue:`60690`)
 - Add ``"delete_rows"`` option to ``if_exists`` argument in :meth:`DataFrame.to_sql` deleting all records of the table before inserting data (:issue:`37210`).
 - Added half-year offset classes :class:`HalfYearBegin`, :class:`HalfYearEnd`, :class:`BHalfYearBegin` and :class:`BHalfYearEnd` (:issue:`60928`)
+- Added support for ``axis=1`` with ``dict`` or :class:`Series` arguments into :meth:`DataFrame.fillna` (:issue:`4514`)
 - Added support to read and write from and to Apache Iceberg tables with the new :func:`read_iceberg` and :meth:`DataFrame.to_iceberg` functions (:issue:`61383`)
 - Errors occurring during SQL I/O will now throw a generic :class:`.DatabaseError` instead of the raw Exception type from the underlying driver manager library (:issue:`60748`)
 - Implemented :meth:`Series.str.isascii` and :meth:`Series.str.isascii` (:issue:`59091`)
@@ -933,6 +934,7 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 - Bug in :func:`Series.apply` where ``nan`` was ignored for :class:`CategoricalDtype` (:issue:`59938`)
+- Bug in :func:`testing.assert_index_equal` raising ``TypeError`` instead of ``AssertionError`` for incomparable ``CategoricalIndex`` when ``check_categorical=True`` and ``exact=False`` (:issue:`61935`)
 - Bug in :meth:`Categorical.astype` where ``copy=False`` would still trigger a copy of the codes (:issue:`62000`)
 - Bug in :meth:`DataFrame.pivot` and :meth:`DataFrame.set_index` raising an ``ArrowNotImplementedError`` for columns with pyarrow dictionary dtype (:issue:`53051`)
 - Bug in :meth:`Series.convert_dtypes` with ``dtype_backend="pyarrow"`` where empty :class:`CategoricalDtype` :class:`Series` raised an error or got converted to ``null[pyarrow]`` (:issue:`59934`)
@@ -982,7 +984,8 @@ Timezones
 ^^^^^^^^^
 - Bug in :meth:`DatetimeIndex.union`, :meth:`DatetimeIndex.intersection`, and :meth:`DatetimeIndex.symmetric_difference` changing timezone to UTC when merging two DatetimeIndex objects with the same timezone but different units (:issue:`60080`)
 - Bug in :meth:`Series.dt.tz_localize` with a timezone-aware :class:`ArrowDtype` incorrectly converting to UTC when ``tz=None`` (:issue:`61780`)
--
+- Fixed bug in :func:`date_range` where tz-aware endpoints with calendar offsets (e.g. ``"MS"``) failed on DST fall-back. These now respect ``ambiguous``/ ``nonexistent``. (:issue:`52908`)
+
 
 Numeric
 ^^^^^^^
@@ -1006,8 +1009,8 @@ Conversion
 
 Strings
 ^^^^^^^
+- Bug in :meth:`Series.str.zfill` raising ``AttributeError`` for :class:`ArrowDtype` (:issue:`61485`)
 - Bug in :meth:`Series.value_counts` would not respect ``sort=False`` for series having ``string`` dtype (:issue:`55224`)
--
 
 Interval
 ^^^^^^^^
@@ -1077,6 +1080,7 @@ I/O
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``index_col`` is specified and ``na_values`` is a dict containing the key ``None``. (:issue:`57547`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``nrows`` and ``iterator`` are specified without specifying a ``chunksize``. (:issue:`59079`)
 - Bug in :meth:`read_csv` where the order of the ``na_values`` makes an inconsistency when ``na_values`` is a list non-string values. (:issue:`59303`)
+- Bug in :meth:`read_csv` with ``engine="c"`` reading big integers as strings. Now reads them as python integers. (:issue:`51295`)
 - Bug in :meth:`read_csv` with ``engine="pyarrow"`` and ``dtype="Int64"`` losing precision (:issue:`56136`)
 - Bug in :meth:`read_excel` raising ``ValueError`` when passing array of boolean values when ``dtype="boolean"``. (:issue:`58159`)
 - Bug in :meth:`read_html` where ``rowspan`` in header row causes incorrect conversion to ``DataFrame``. (:issue:`60210`)
@@ -1133,6 +1137,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.apply` for ``method="table"`` where column order was not being respected due to the columns getting sorted by default. (:issue:`59666`)
 - Bug in :meth:`Rolling.apply` where the applied function could be called on fewer than ``min_period`` periods if ``method="table"``. (:issue:`58868`)
 - Bug in :meth:`Series.resample` could raise when the date range ended shortly before a non-existent time. (:issue:`58380`)
+- Bug in :meth:`Series.rolling.var` and :meth:`Series.rolling.std` where the end of window was not indexed correctly. (:issue:`47721`, :issue:`52407`, :issue:`54518`, :issue:`55343`)
 
 Reshaping
 ^^^^^^^^^
