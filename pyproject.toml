@@ -391,6 +391,10 @@ ignore = [
   "PLW0603",
   # runtime-cast-value
   "TC006",
+  # unused-unpacked-variable
+  "RUF059",
+  # pytest-raises-ambiguous-pattern
+  "RUF043",
 ]
 
 exclude = [
