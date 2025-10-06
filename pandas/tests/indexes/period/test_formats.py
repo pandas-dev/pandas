@@ -83,7 +83,7 @@ class TestPeriodIndexRendering:
 
         for idx, expected in zip(
             [idx1, idx2, idx3, idx4, idx5, idx6, idx7, idx8, idx9, idx10],
-            [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9, exp10],
+            [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9, exp10], strict=True,
         ):
             result = getattr(idx, method)()
             assert result == expected
@@ -140,7 +140,7 @@ dtype: period[Q-DEC]"""
 
         for idx, expected in zip(
             [idx1, idx2, idx3, idx4, idx5, idx6, idx7, idx8, idx9],
-            [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9],
+            [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9], strict=True,
         ):
             result = repr(Series(idx))
             assert result == expected
@@ -187,7 +187,7 @@ Freq: Q-DEC"""
 
         for idx, expected in zip(
             [idx1, idx2, idx3, idx4, idx5, idx6, idx7, idx8, idx9],
-            [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9],
+            [exp1, exp2, exp3, exp4, exp5, exp6, exp7, exp8, exp9], strict=True,
         ):
             result = idx._summary()
             assert result == expected
