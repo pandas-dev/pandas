@@ -91,6 +91,8 @@ def hash_object_array(
             hash(val)
             data = <bytes>str(val).encode(encoding)
         else:
+            free(vecs)
+            free(lens)
             raise TypeError(
                 f"{val} of type {type(val)} is not a valid type for hashing, "
                 "must be string or null"
