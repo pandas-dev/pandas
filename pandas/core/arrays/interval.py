@@ -2081,7 +2081,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 #  complex128 ndarray is much more performant.
                 left = self._combined
                 right = values._combined
-                return np.isin(left, right).ravel()  # type: ignore[arg-type]
+                return np.isin(left, right).ravel()
 
             elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(
                 values.left.dtype
@@ -2133,9 +2133,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left=new_left, right=new_right)
 
     def unique(self) -> IntervalArray:
-        nc = unique(
-            self._combined  # type: ignore[call-overload]
-        )
+        nc = unique(self._combined)
+        # Ensure nc is a numpy array for _from_combined
+        if not isinstance(nc, np.ndarray):
+            nc = np.asarray(nc)
         nc = nc[:, None]
         return self._from_combined(nc)
 
