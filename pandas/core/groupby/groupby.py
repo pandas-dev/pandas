@@ -4325,7 +4325,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _nth(
         self,
         n: PositionalIndexer | tuple,
-        dropna: Literal["any", "all", None] = None,
+        dropna: Literal["any", "all"] | None = None,
     ) -> NDFrameT:
         if not dropna:
             mask = self._make_mask_from_positional_indexer(n)
