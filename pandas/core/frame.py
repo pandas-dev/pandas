@@ -1495,18 +1495,21 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'species': ['bear', 'bear', 'marsupial'],
-        ...                   'population': [1864, 22000, 80000]},
-        ...                   index=['panda', 'polar', 'koala'])
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "species": ["bear", "bear", "marsupial"],
+        ...         "population": [1864, 22000, 80000],
+        ...     },
+        ...     index=["panda", "polar", "koala"],
+        ... )
         >>> df
                 species   population
         panda   bear      1864
         polar   bear      22000
         koala   marsupial 80000
         >>> for label, content in df.items():
-        ...     print(f'label: {label}')
-        ...     print(f'content: {content}', sep='\n')
-        ...
+        ...     print(f"label: {label}")
+        ...     print(f"content: {content}", sep="\n")
         label: species
         content:
         panda         bear
