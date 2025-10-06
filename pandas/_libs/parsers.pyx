@@ -1362,7 +1362,7 @@ cdef class TextReader:
             const char *ignored_chars = " +-"
             const char *digits = "0123456789"
             const char *float_indicating_chars = "eE"
-            char null_byte = "\0"
+            char null_byte = 0
 
         coliter_setup(&it, self.parser, col, start)
 
