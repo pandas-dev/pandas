@@ -292,7 +292,7 @@ class TestFrameLegend:
         [
             ("line", ["a", "b"]),
             ("bar", ["a", "b"]),
-            ("scatter", ["b"]),  # scatter(x="a", y="b") usually labels the y series
+            ("scatter", ["b"]),
         ],
     )
     def test_across_kinds_legend_loc(self, kind, labels):
