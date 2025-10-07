@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from csv import QUOTE_NONNUMERIC
 from functools import partial
+import itertools
 import operator
 from shutil import get_terminal_size
 from typing import (
@@ -2429,7 +2430,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             ensure_platform_int(self.codes), categories.size
         )
         counts = ensure_int64(counts).cumsum()
-        _result = (r[start:end] for start, end in zip(counts, counts[1:], strict=False))
+        _result = (r[start:end] for start, end in itertools.pairwise(counts))
         return dict(zip(categories, _result, strict=True))
 
     # ------------------------------------------------------------------
