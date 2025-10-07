@@ -1,0 +1,34 @@
+[1/1] Generating write_version_file with a custom command
++ /Volumes/T7Shield/SWEN777/SWEN_777_Pandas/venv/bin/ninja
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-8.4.2, pluggy-1.6.0 -- /Volumes/T7Shield/SWEN777/SWEN_777_Pandas/venv/bin/python
+cachedir: .pytest_cache
+hypothesis profile 'pandas_ci' -> database=None, deadline=None, max_examples=15, suppress_health_check=(HealthCheck.too_slow, HealthCheck.differing_executors)
+PyQt5 5.15.11 -- Qt runtime 5.15.17 -- Qt compiled 5.15.14
+rootdir: /Volumes/T7Shield/SWEN777/SWEN_777_Pandas
+configfile: pyproject.toml
+plugins: anyio-4.11.0, hypothesis-6.140.3, cov-7.0.0, cython-0.3.1, localserver-0.9.0.post0, qt-4.5.0, xdist-3.8.0
+collecting ... collected 15 items
+
+pandas/tests/test_nanops_additional.py::test_nansum_empty_array_edge_cases PASSED
+pandas/tests/test_nanops_additional.py::test_nanmean_mask_edge_cases PASSED
+pandas/tests/test_nanops_additional.py::test_nanvar_ddof_boundary_conditions PASSED
+pandas/tests/test_nanops_additional.py::test_nanargmax_nanargmin_error_conditions PASSED
+pandas/tests/test_nanops_additional.py::test_nanskew_nankurt_insufficient_samples PASSED
+pandas/tests/test_series_constructors_additional.py::test_series_constructor_invalid_key_types PASSED
+pandas/tests/test_series_constructors_additional.py::test_series_constructor_empty_edge_cases PASSED
+pandas/tests/test_series_constructors_additional.py::test_series_constructor_mixed_dtype_edge_cases PASSED
+pandas/tests/test_series_constructors_additional.py::test_series_constructor_memory_intensive PASSED
+pandas/tests/test_series_constructors_additional.py::test_series_constructor_invalid_index_length PASSED
+pandas/tests/tseries/offsets/test_offsets.py::test_dateoffset_boundary_values PASSED
+pandas/tests/tseries/offsets/test_offsets.py::test_business_day_weekend_edge_cases PASSED
+pandas/tests/tseries/offsets/test_offsets.py::test_custom_business_hour_edge_cases PASSED
+pandas/tests/tseries/offsets/test_offsets.py::test_quarter_offset_leap_year PASSED
+pandas/tests/tseries/offsets/test_offsets.py::test_offset_frequency_string_edge_cases PASSED
+
+- generated xml file: /Volumes/T7Shield/SWEN777/SWEN_777_Pandas/test-data.xml --
+============================= slowest 30 durations =============================
+0.02s call     pandas/tests/test_series_constructors_additional.py::test_series_constructor_empty_edge_cases
+
+(29 durations < 0.005s hidden.  Use -vv to show these durations.)
+============================== 15 passed in 1.32s ==============================

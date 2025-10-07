@@ -48,6 +48,7 @@ from pandas.tseries.offsets import (
     CustomBusinessMonthEnd,
     DateOffset,
     Day,
+    QuarterEnd,
     Easter,
     FY5253Quarter,
     LastWeekOfMonth,
@@ -1228,3 +1229,80 @@ def test_is_yqm_start_end():
 def test_multiply_dateoffset_typeerror(left, right):
     with pytest.raises(TypeError, match="Cannot multiply"):
         left * right
+
+
+# Added test cases for datetime offset edge cases and boundary conditions
+
+def test_dateoffset_boundary_values():
+    """Test DateOffset with boundary timestamp values - boundary condition testing."""
+    # Test with maximum representable timestamp
+    max_ts = Timestamp.max
+    
+    # Adding small offset should raise OutOfBoundsDatetime
+    small_offset = DateOffset(nanoseconds=1)
+    from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+    with pytest.raises(OutOfBoundsDatetime):
+        max_ts + small_offset
+    
+    # Test with minimum timestamp - subtracting should return NaT
+    min_ts = Timestamp.min
+    result = min_ts - small_offset
+    assert result is NaT  # Should be NaT
+
+
+def test_business_day_weekend_edge_cases():
+    """Test BusinessDay offset over weekend boundaries - edge case coverage."""
+    # Friday to next business day should skip weekend
+    friday = Timestamp('2020-01-03')  # This is a Friday
+    bday = BDay(1)
+    next_bday = friday + bday
+    assert next_bday.weekday() == 0  # Should be Monday
+    
+    # Multiple business days over weekend
+    result = friday + BDay(3)
+    assert result == Timestamp('2020-01-08')  # Wednesday
+
+
+def test_custom_business_hour_edge_cases():
+    """Test CustomBusinessHour with edge case schedules - uncovered logic paths."""
+    # Business hour with unusual schedule
+    cbh = CustomBusinessHour(start="09:30", end="16:00")
+    
+    # Test at exact start time
+    start_time = Timestamp('2020-01-01 09:30:00')
+    result = start_time + cbh
+    assert result.hour == 10 and result.minute == 30
+    
+    # Test at exact end time (should roll to next business day)
+    end_time = Timestamp('2020-01-01 16:00:00')
+    result = end_time + cbh
+    assert result.day == 2 and result.hour == 10 and result.minute == 30
+
+
+def test_quarter_offset_leap_year():
+    """Test quarterly offsets during leap year - leap year edge cases."""
+    # Test quarterly offset in leap year
+    leap_year_date = Timestamp('2020-02-29')  # Leap year
+    q_offset = QuarterEnd()
+    
+    result = leap_year_date + q_offset
+    assert result.month == 3 and result.day == 31
+    
+    # Test multiple quarters
+    result_2q = leap_year_date + QuarterEnd(2)
+    assert result_2q.month == 6 and result_2q.day == 30
+
+
+def test_offset_frequency_string_edge_cases():
+    """Test offset creation from frequency strings - string parsing edge cases."""
+    # Test with standard frequency strings
+    offset1 = to_offset('2D')  # 2 days
+    assert isinstance(offset1, Day) and offset1.n == 2
+    
+    # Test with business day
+    offset2 = to_offset('1B')  # business day
+    assert isinstance(offset2, BDay)
+    
+    # Test invalid frequency string
+    with pytest.raises(ValueError):
+        to_offset('invalid_frequency')
