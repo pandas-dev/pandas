@@ -173,7 +173,7 @@ class MPLPlot(ABC):
         stacked: bool = False,
         label: Hashable | None = None,
         style=None,
-        legend_loc: str | tuple[float, float] ='best',
+        legend_loc: str | tuple[float, float] = "best",
         **kwds,
     ) -> None:
         # if users assign an empty list or tuple, raise `ValueError`
@@ -243,7 +243,6 @@ class MPLPlot(ABC):
         self.legend_handles: list[Artist] = []
         self.legend_labels: list[Hashable] = []
         self.legend_loc = legend_loc
-
 
         self.logx = type(self)._validate_log_kwd("logx", logx)
         self.logy = type(self)._validate_log_kwd("logy", logy)
