@@ -522,11 +522,18 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         if (
             len(values) > 0
             and values.dtype.kind in "iufcb"
-            and not is_signed_integer_dtype(comps)
-            and not is_dtype_equal(values, comps)
+            # If the dtypes differ and either side is unsigned integer,
+            # prefer object dtype to avoid unsafe upcast to float64 that
+            # can lose precision for large 64-bit integers.
+            and (not is_dtype_equal(values, comps))
+            and (
+                (not is_signed_integer_dtype(comps))
+                or (not is_signed_integer_dtype(values))
+            )
         ):
-            # GH#46485 Use object to avoid upcast to float64 later
-            # TODO: Share with _find_common_type_compat
+            # GH#46485: Use object to avoid upcast to float64 later
+            # Ensure symmetric behavior when mixing signed and unsigned
+            # integer dtypes.
             values = construct_1d_object_array_from_listlike(orig_values)
 
     elif isinstance(values, ABCMultiIndex):
