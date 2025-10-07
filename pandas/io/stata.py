@@ -2221,14 +2221,14 @@ def read_stata(
     iterator : bool, default False
         Return StataReader object.
     compression : str or dict, default 'infer'
-        For on-the-fly decompression of on-disk data. If 'infer' and 'filepath_or_buffer' is
-        path-like, then detect compression from the following extensions: '.gz',
-        '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
-        (otherwise no compression).
-        If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in.
-        Set to ``None`` for no decompression.
-        Can also be a dict with key ``'method'`` set
-        to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+        For on-the-fly decompression of on-disk data. If 'infer' and
+        'filepath_or_buffer' is path-like, then detect compression from the
+        following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar',
+        '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
+        If using 'zip' or 'tar', the ZIP file must contain only one
+        data file to be read in. Set to ``None`` for no decompression.
+        Can also be a dict with key ``'method'`` set to one of
+        {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
         other key-value pairs are forwarded to
         ``zipfile.ZipFile``, ``gzip.GzipFile``,
         ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or
@@ -2271,19 +2271,25 @@ def read_stata(
 
     Creating a dummy stata for this example
 
-    >>> df = pd.DataFrame({'animal': ['falcon', 'parrot', 'falcon', 'parrot'],
-    ...                   'speed': [350, 18, 361, 15]})  # doctest: +SKIP
-    >>> df.to_stata('animals.dta')  # doctest: +SKIP
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "animal": ["falcon", "parrot", "falcon", "parrot"],
+    ...         "speed": [350, 18, 361, 15],
+    ...     }
+    ... )  # doctest: +SKIP
+    >>> df.to_stata("animals.dta")  # doctest: +SKIP
 
     Read a Stata dta file:
 
-    >>> df = pd.read_stata('animals.dta')  # doctest: +SKIP
+    >>> df = pd.read_stata("animals.dta")  # doctest: +SKIP
 
     Read a Stata dta file in 10,000 line chunks:
 
-    >>> values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")  # doctest: +SKIP
+    >>> values = np.random.randint(
+    ...     0, 10, size=(20_000, 1), dtype="uint8"
+    ... )  # doctest: +SKIP
     >>> df = pd.DataFrame(values, columns=["i"])  # doctest: +SKIP
-    >>> df.to_stata('filename.dta')  # doctest: +SKIP
+    >>> df.to_stata("filename.dta")  # doctest: +SKIP
 
     >>> with pd.read_stata('filename.dta', chunksize=10000) as itr:  # doctest: +SKIP
     >>>     for chunk in itr:
