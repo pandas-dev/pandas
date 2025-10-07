@@ -750,8 +750,7 @@ def postgresql_psycopg2_conn_types(postgresql_psycopg2_engine_types):
 @pytest.fixture
 def sqlite_str(temp_file):
     pytest.importorskip("sqlalchemy")
-    name = str(temp_file)
-    return f"sqlite:///{name}"
+    return f"sqlite:///{temp_file}"
 
 
 @pytest.fixture
@@ -822,8 +821,7 @@ def sqlite_adbc_conn(temp_file):
     pytest.importorskip("adbc_driver_sqlite")
     from adbc_driver_sqlite import dbapi
 
-    name = str(temp_file)
-    uri = f"file:{name}"
+    uri = f"file:{temp_file}"
     with dbapi.connect(uri) as conn:
         yield conn
         for view in get_all_views(conn):
@@ -2585,11 +2583,10 @@ def test_sql_open_close(temp_file, test_frame3):
     # Test if the IO in the database still work if the connection closed
     # between the writing and reading (as in many real situations).
 
-    name = str(temp_file)
-    with contextlib.closing(sqlite3.connect(name)) as conn:
+    with contextlib.closing(sqlite3.connect(temp_file)) as conn:
         assert sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False) == 4
 
-    with contextlib.closing(sqlite3.connect(name)) as conn:
+    with contextlib.closing(sqlite3.connect(temp_file)) as conn:
         result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;", conn)
 
     tm.assert_frame_equal(test_frame3, result)

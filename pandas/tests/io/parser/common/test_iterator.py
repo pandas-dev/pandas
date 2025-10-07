@@ -146,11 +146,10 @@ def test_iteration_open_handle(temp_file, all_parsers):
     parser = all_parsers
     kwargs = {"header": None}
 
-    path = str(temp_file)
-    with open(path, "w", encoding="utf-8") as f:
+    with open(temp_file, "w", encoding="utf-8") as f:
         f.write("AAA\nBBB\nCCC\nDDD\nEEE\nFFF\nGGG")
 
-    with open(path, encoding="utf-8") as f:
+    with open(temp_file, encoding="utf-8") as f:
         for line in f:
             if "CCC" in line:
                 break

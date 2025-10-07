@@ -209,9 +209,8 @@ def test_no_multi_index_level_names_empty(temp_file, all_parsers):
         index=midx,
         columns=["x", "y", "z"],
     )
-    path = str(temp_file)
-    expected.to_csv(path)
-    result = parser.read_csv(path, index_col=[0, 1, 2])
+    expected.to_csv(temp_file)
+    result = parser.read_csv(temp_file, index_col=[0, 1, 2])
     tm.assert_frame_equal(result, expected)
 
 
@@ -252,11 +251,10 @@ def test_index_col_large_csv(temp_file, all_parsers, monkeypatch):
         }
     )
 
-    path = str(temp_file)
-    df.to_csv(path, index=False)
+    df.to_csv(temp_file, index=False)
     with monkeypatch.context() as m:
         m.setattr("pandas.core.algorithms._MINIMUM_COMP_ARR_LEN", ARR_LEN)
-        result = parser.read_csv(path, index_col=[0])
+        result = parser.read_csv(temp_file, index_col=[0])
 
     tm.assert_frame_equal(result, df.set_index("a"))
 

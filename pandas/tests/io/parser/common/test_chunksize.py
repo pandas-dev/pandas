@@ -302,20 +302,19 @@ def test_read_csv_memory_growth_chunksize(temp_file, all_parsers):
     # as we iteratively process all chunks.
     parser = all_parsers
 
-    path = str(temp_file)
-    with open(path, "w", encoding="utf-8") as f:
+    with open(temp_file, "w", encoding="utf-8") as f:
         for i in range(1000):
             f.write(str(i) + "\n")
 
     if parser.engine == "pyarrow":
         msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
-            with parser.read_csv(path, chunksize=20) as result:
+            with parser.read_csv(temp_file, chunksize=20) as result:
                 for _ in result:
                     pass
         return
 
-    with parser.read_csv(path, chunksize=20) as result:
+    with parser.read_csv(temp_file, chunksize=20) as result:
         for _ in result:
             pass
 

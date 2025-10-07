@@ -28,11 +28,9 @@ pytestmark = [pytest.mark.single_cpu]
 
 
 def test_conv_read_write(temp_file):
-    path = str(temp_file)
-
     def roundtrip(key, obj, **kwargs):
-        obj.to_hdf(path, key=key, **kwargs)
-        return read_hdf(path, key)
+        obj.to_hdf(temp_file, key=key, **kwargs)
+        return read_hdf(temp_file, key)
 
     o = Series(
         np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
@@ -51,8 +49,8 @@ def test_conv_read_write(temp_file):
 
     # table
     df = DataFrame({"A": range(5), "B": range(5)})
-    df.to_hdf(path, key="table", append=True)
-    result = read_hdf(path, "table", where=["index>2"])
+    df.to_hdf(temp_file, key="table", append=True)
+    result = read_hdf(temp_file, "table", where=["index>2"])
     tm.assert_frame_equal(df[df.index > 2], result)
 
 
