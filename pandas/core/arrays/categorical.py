@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from csv import QUOTE_NONNUMERIC
 from functools import partial
+import itertools
 import operator
 from shutil import get_terminal_size
 from typing import (
@@ -1585,6 +1586,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         >>> cat.map({"a": "first", "b": "second"}, na_action=None)
         Index(['first', 'second', nan], dtype='str')
+
+        The mapping function is applied to categories, not to each value. It is
+        therefore only called once per unique category, and the result reused for
+        all occurrences:
+
+        >>> cat = pd.Categorical(["a", "a", "b"])
+        >>> calls = []
+        >>> def f(x):
+        ...     calls.append(x)
+        ...     return x.upper()
+        >>> result = cat.map(f)
+        >>> result
+        ['A', 'A', 'B']
+        Categories (2, str): ['A', 'B']
+        >>> calls
+        ['a', 'b']
         """
         assert callable(mapper) or is_dict_like(mapper)
 
@@ -2413,8 +2430,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             ensure_platform_int(self.codes), categories.size
         )
         counts = ensure_int64(counts).cumsum()
-        _result = (r[start:end] for start, end in zip(counts, counts[1:]))
-        return dict(zip(categories, _result))
+        _result = (r[start:end] for start, end in itertools.pairwise(counts))
+        return dict(zip(categories, _result, strict=True))
 
     # ------------------------------------------------------------------
     # Reductions
@@ -3149,5 +3166,8 @@ def factorize_from_iterables(iterables) -> tuple[list[np.ndarray], list[Index]]:
         # For consistency, it should return two empty lists.
         return [], []
 
-    codes, categories = zip(*(factorize_from_iterable(it) for it in iterables))
+    codes, categories = zip(
+        *(factorize_from_iterable(it) for it in iterables),
+        strict=True,
+    )
     return list(codes), list(categories)
