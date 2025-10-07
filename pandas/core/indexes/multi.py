@@ -2731,11 +2731,11 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_tuples([('A', 1), ('B', 2)], names=['x', 'y'])
-        >>> idx.insert_level(0, 'grp')
+        >>> idx = pd.MultiIndex.from_tuples([("A", 1), ("B", 2)], names=["x", "y"])
+        >>> idx.insert_level(0, "grp")
         MultiIndex([('grp', 'A', 1), ('grp', 'B', 2)],
                    names=[None, 'x', 'y'])
-        >>> idx.insert_level(1, ['L1', 'L2'], name='z')
+        >>> idx.insert_level(1, ["L1", "L2"], name="z")
         MultiIndex([('A', 'L1', 1), ('B', 'L2', 2)],
                    names=['x', 'z', 'y'])
         """
@@ -2773,6 +2773,7 @@ class MultiIndex(Index):
         new_names.insert(position, name)
 
         from pandas import MultiIndex
+
         return MultiIndex.from_tuples(new_tuples, names=new_names)
 
     def _reorder_ilevels(self, order) -> MultiIndex:
@@ -4451,5 +4452,3 @@ def cartesian_product(X: list[np.ndarray]) -> list[np.ndarray]:
         )
         for i, x in enumerate(X)
     ]
-
-

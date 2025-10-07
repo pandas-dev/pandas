@@ -5,7 +5,6 @@ import pandas._testing as tm
 
 
 class TestMultiIndexInsertLevel:
-
     def setup_method(self):
         self.simple_idx = pd.MultiIndex.from_tuples(
             [("A", 1), ("B", 2), ("C", 3)], names=["level1", "level2"]
@@ -16,14 +15,14 @@ class TestMultiIndexInsertLevel:
         result = self.simple_idx.insert_level(0, "new_value")
         expected = pd.MultiIndex.from_tuples(
             [("new_value", "A", 1), ("new_value", "B", 2), ("new_value", "C", 3)],
-            names=[None, "level1", "level2"]
+            names=[None, "level1", "level2"],
         )
         tm.assert_index_equal(result, expected)
 
         result = self.simple_idx.insert_level(1, "middle")
         expected = pd.MultiIndex.from_tuples(
             [("A", "middle", 1), ("B", "middle", 2), ("C", "middle", 3)],
-            names=["level1", None, "level2"]
+            names=["level1", None, "level2"],
         )
         tm.assert_index_equal(result, expected)
 
@@ -32,7 +31,7 @@ class TestMultiIndexInsertLevel:
         result = self.simple_idx.insert_level(1, new_values)
         expected = pd.MultiIndex.from_tuples(
             [("A", "X", 1), ("B", "Y", 2), ("C", "Z", 3)],
-            names=["level1", None, "level2"]
+            names=["level1", None, "level2"],
         )
         tm.assert_index_equal(result, expected)
 
@@ -78,8 +77,7 @@ class TestMultiIndexInsertLevel:
 
         def test_debug_names():
             idx = pd.MultiIndex.from_tuples(
-                [("A", 1), ("B", 2), ("C", 3)],
-                names=["level1", "level2"]
+                [("A", 1), ("B", 2), ("C", 3)], names=["level1", "level2"]
             )
             print("Original names:", idx.names)
 
@@ -88,6 +86,6 @@ class TestMultiIndexInsertLevel:
 
             expected = pd.MultiIndex.from_tuples(
                 [("new_value", "A", 1), ("new_value", "B", 2), ("new_value", "C", 3)],
-                names=[None, "level1", "level2"]
+                names=[None, "level1", "level2"],
             )
             print("Expected names:", expected.names)
