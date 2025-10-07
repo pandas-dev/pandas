@@ -1691,11 +1691,11 @@ Consider this example:
 
    import pandas as pd
    import numpy as np
-   
+
    # Create a DataFrame with a problematic floating point value
    df = pd.DataFrame({'value': [0.1 + 0.2]})
    print(f"Original value: {df['value'].iloc[0]!r}")
-   
+
    # Save to CSV and read back
    df.to_csv('test_precision.csv', index=False)
    df_read = pd.read_csv('test_precision.csv')
@@ -1704,7 +1704,7 @@ Consider this example:
 
 .. ipython:: python
    :suppress:
-   
+
    import os
    if os.path.exists('test_precision.csv'):
        os.remove('test_precision.csv')
@@ -1724,21 +1724,21 @@ roundtrip operations.
    # Example with high precision number
    df = pd.DataFrame({'precision_test': [123456789.123456789]})
    print(f"Original: {df['precision_test'].iloc[0]}")
-   
+
    # Default behavior
    df.to_csv('default.csv', index=False)
    df_default = pd.read_csv('default.csv')
-   
+
    # With explicit precision control
    df.to_csv('formatted.csv', index=False, float_format='%.15g')
    df_formatted = pd.read_csv('formatted.csv')
-   
+
    print(f"Default read: {df_default['precision_test'].iloc[0]}")
    print(f"Formatted read: {df_formatted['precision_test'].iloc[0]}")
 
 .. ipython:: python
    :suppress:
-   
+
    for f in ['default.csv', 'formatted.csv']:
        if os.path.exists(f):
            os.remove(f)
@@ -1754,7 +1754,7 @@ Different format specifiers have different effects on precision and output forma
   - Best for: Numbers with known decimal precision requirements
 
 **General format (g)**:
-  - ``'%.6g'`` - 6 significant digits: ``1.23457e+08``  
+  - ``'%.6g'`` - 6 significant digits: ``1.23457e+08``
   - ``'%.15g'`` - 15 significant digits: ``123456789.123457``
   - Best for: Preserving significant digits, automatic scientific notation
 
@@ -1767,11 +1767,11 @@ Different format specifiers have different effects on precision and output forma
 
    # Demonstrate different format effects
    df = pd.DataFrame({'number': [123456789.123456789]})
-   
+
    formats = {'%.6f': '6 decimal places',
-              '%.10g': '10 significant digits', 
+              '%.10g': '10 significant digits',
               '%.6e': 'scientific notation'}
-   
+
    for fmt, description in formats.items():
        df.to_csv('temp.csv', index=False, float_format=fmt)
        with open('temp.csv', 'r') as f:
@@ -1780,7 +1780,7 @@ Different format specifiers have different effects on precision and output forma
 
 .. ipython:: python
    :suppress:
-   
+
    if os.path.exists('temp.csv'):
        os.remove('temp.csv')
 
@@ -1800,7 +1800,7 @@ Best Practices
 
 .. ipython:: python
    :suppress:
-   
+
    if os.path.exists('scientific.csv'):
        os.remove('scientific.csv')
 
@@ -1809,7 +1809,7 @@ Best Practices
 
 .. ipython:: python
 
-   # Financial data example  
+   # Financial data example
    financial_data = pd.DataFrame({
        'price': [19.99, 1234.56, 0.01]
    })
@@ -1817,7 +1817,7 @@ Best Practices
 
 .. ipython:: python
    :suppress:
-   
+
    if os.path.exists('financial.csv'):
        os.remove('financial.csv')
 
@@ -1831,10 +1831,10 @@ Best Practices
        df.to_csv('test.csv', index=False, float_format=float_format)
        df_read = pd.read_csv('test.csv')
        return df.equals(df_read)
-   
+
    # Test data
    test_df = pd.DataFrame({'values': [123.456789, 0.000123456, 1.23e15]})
-   
+
    # Test different precisions
    for fmt in ['%.6g', '%.10g', '%.15g']:
        success = test_roundtrip_precision(test_df, fmt)
@@ -1842,7 +1842,7 @@ Best Practices
 
 .. ipython:: python
    :suppress:
-   
+
    if os.path.exists('test.csv'):
        os.remove('test.csv')
 
@@ -1857,19 +1857,19 @@ Best Practices
        'float32_col': np.array([1.23], dtype=np.float32),
        'float64_col': np.array([1.23], dtype=np.float64)
    })
-   
+
    print("Original dtypes:")
    print(original_df.dtypes)
-   
+
    original_df.to_csv('dtypes.csv', index=False)
    read_df = pd.read_csv('dtypes.csv')
-   
+
    print("\nAfter CSV roundtrip:")
    print(read_df.dtypes)
 
 .. ipython:: python
    :suppress:
-   
+
    if os.path.exists('dtypes.csv'):
        os.remove('dtypes.csv')
 
