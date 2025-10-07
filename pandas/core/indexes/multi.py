@@ -4452,46 +4452,4 @@ def cartesian_product(X: list[np.ndarray]) -> list[np.ndarray]:
         for i, x in enumerate(X)
     ]
 
-    def insert_level(self, position: int, value, name=None):
-        """
-        Insert a new level at the specified position in the MultiIndex.
-        """
-        if not isinstance(position, int):
-            raise TypeError("position must be an integer")
-
-        if position < 0 or position > self.nlevels:
-            raise ValueError(f"position must be between 0 and {self.nlevels}")
-
-        from pandas.core.construction import extract_array
-        from pandas.core.indexes.base import ensure_index
-
-        if not hasattr(value, '__iter__') or isinstance(value, str):
-            value = [value] * len(self)
-        else:
-            value = list(value)
-            if len(value) != len(self):
-                raise ValueError("Length of values must match length of index")
-
-        tuples = list(self)
-
-        new_tuples = []
-        for i, tup in enumerate(tuples):
-            if isinstance(tup, tuple):
-                new_tuple = list(tup)
-                new_tuple.insert(position, value[i])
-                new_tuples.append(tuple(new_tuple))
-            else:
-                new_tuple = [tup]
-                new_tuple.insert(position, value[i])
-                new_tuples.append(tuple(new_tuple))
-
-        if self.names is not None:
-            new_names = list(self.names)
-        else:
-            new_names = [None] * self.nlevels
-
-        new_names.insert(position, name)
-
-        from pandas import MultiIndex
-        return MultiIndex.from_tuples(new_tuples, names=new_names)
 
