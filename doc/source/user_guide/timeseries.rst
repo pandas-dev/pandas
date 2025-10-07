@@ -307,25 +307,25 @@ Epoch timestamps
 ~~~~~~~~~~~~~~~~
 
 pandas supports converting integer or float epoch times to ``Timestamp`` and
-``DatetimeIndex``. The default unit is nanoseconds, since that is how ``Timestamp``
-objects are stored internally. However, epochs are often stored in another ``unit``
+``DatetimeIndex``. The default input_unit is nanoseconds, since that is how ``Timestamp``
+objects are stored internally. However, epochs are often stored in another ``input_unit``
 which can be specified. These are computed from the starting point specified by the
 ``origin`` parameter.
 
 .. ipython:: python
 
    pd.to_datetime(
-       [1349720105, 1349806505, 1349892905, 1349979305, 1350065705], unit="s"
+       [1349720105, 1349806505, 1349892905, 1349979305, 1350065705], input_unit="s"
    )
 
    pd.to_datetime(
        [1349720105100, 1349720105200, 1349720105300, 1349720105400, 1349720105500],
-       unit="ms",
+       input_unit="ms",
    )
 
 .. note::
 
-   The ``unit`` parameter does not use the same strings as the ``format`` parameter
+   The ``input_unit`` parameter does not use the same strings as the ``format`` parameter
    that was discussed :ref:`above<timeseries.converting.format>`. The
    available units are listed on the documentation for :func:`pandas.to_datetime`.
 
