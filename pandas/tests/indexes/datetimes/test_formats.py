@@ -264,7 +264,8 @@ class TestDatetimeIndexRendering:
         exp6 = """DatetimeIndex: 3 entries, 2011-01-01 09:00:00-05:00 to NaT"""
 
         for idx, expected in zip(
-            [idx1, idx2, idx3, idx4, idx5, idx6], [exp1, exp2, exp3, exp4, exp5, exp6], strict=True
+            [idx1, idx2, idx3, idx4, idx5, idx6], [exp1, exp2, exp3, exp4, exp5, exp6]
+            , strict=True
         ):
             result = idx._summary()
             assert result == expected

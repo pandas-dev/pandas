@@ -184,7 +184,8 @@ class TestDatetimeIndexOps:
             "Saturday",
             "Sunday",
         ]
-        for day, name, eng_name in zip(range(4, 11), expected_days, english_days, strict=True):
+        for day, name, eng_name in zip(range(4, 11), expected_days, english_days,
+                                       strict=True):
             name = name.capitalize()
             assert dti.day_name(locale=time_locale)[day] == name
             assert dti.day_name(locale=None)[day] == eng_name
