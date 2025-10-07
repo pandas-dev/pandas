@@ -461,7 +461,6 @@ exclude = [
 "pandas/core/reshape/merge.py" = ["B905"]
 "pandas/core/reshape/pivot.py" = ["B905"]
 "pandas/core/reshape/reshape.py" = ["B905"]
-"pandas/core/strings/accessor.py" = ["B905"]
 "pandas/core/window/rolling.py" = ["B905"]
 "pandas/_testing/asserters.py" = ["B905"]
 "pandas/_testing/_warnings.py" = ["B905"]
