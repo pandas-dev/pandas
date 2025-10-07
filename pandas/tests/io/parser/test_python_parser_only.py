@@ -158,7 +158,9 @@ also also skip this
 @pytest.mark.parametrize(
     "compression,klass", [("gzip", "GzipFile"), ("bz2", "BZ2File")]
 )
-def test_decompression_regex_sep(python_parser_only, csv1, compression, klass):
+def test_decompression_regex_sep(
+    temp_file, python_parser_only, csv1, compression, klass
+):
     # see gh-6607
     parser = python_parser_only
 
@@ -171,12 +173,11 @@ def test_decompression_regex_sep(python_parser_only, csv1, compression, klass):
     module = pytest.importorskip(compression)
     klass = getattr(module, klass)
 
-    with tm.ensure_clean() as path:
-        with klass(path, mode="wb") as tmp:
-            tmp.write(data)
+    with klass(temp_file, mode="wb") as tmp:
+        tmp.write(data)
 
-        result = parser.read_csv(path, sep="::", compression=compression)
-        tm.assert_frame_equal(result, expected)
+    result = parser.read_csv(temp_file, sep="::", compression=compression)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_read_csv_buglet_4x_multi_index(python_parser_only):
