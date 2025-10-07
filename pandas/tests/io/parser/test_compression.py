@@ -110,7 +110,7 @@ def test_compression(
             )
         )
 
-    path = tmp_path / filename
+    path = tmp_path / filename if filename else tmp_path / "test_file"
     tm.write_to_compressed(compress_type, path, data)
     compression = "infer" if filename else compress_type
 
