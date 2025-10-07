@@ -1671,6 +1671,208 @@ function takes a number of arguments. Only the first is required.
 * ``chunksize``: Number of rows to write at a time
 * ``date_format``: Format string for datetime objects
 
+.. _io.csv_precision:
+
+Floating Point Precision in CSV
+++++++++++++++++++++++++++++++++
+
+When working with floating point numbers in CSV files, it's important to understand
+that precision can be lost during the write/read roundtrip. This section explains
+why this happens and how to control precision using the ``float_format`` parameter.
+
+Understanding Precision Loss
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Floating point numbers are represented internally using binary format, which can
+lead to precision issues when converting to and from text representation in CSV files.
+Consider this example:
+
+.. ipython:: python
+
+   import pandas as pd
+   import numpy as np
+   
+   # Create a DataFrame with a problematic floating point value
+   df = pd.DataFrame({'value': [0.1 + 0.2]})
+   print(f"Original value: {df['value'].iloc[0]!r}")
+   
+   # Save to CSV and read back
+   df.to_csv('test_precision.csv', index=False)
+   df_read = pd.read_csv('test_precision.csv')
+   print(f"After CSV roundtrip: {df_read['value'].iloc[0]!r}")
+   print(f"Values are equal: {df['value'].iloc[0] == df_read['value'].iloc[0]}")
+
+.. ipython:: python
+   :suppress:
+   
+   import os
+   if os.path.exists('test_precision.csv'):
+       os.remove('test_precision.csv')
+
+In this case, the slight precision loss occurs because the decimal ``0.3`` cannot be
+exactly represented in binary floating point format.
+
+Using float_format for Precision Control
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``float_format`` parameter allows you to control how floating point numbers are
+formatted when written to CSV. This can help preserve precision and ensure reliable
+roundtrip operations.
+
+.. ipython:: python
+
+   # Example with high precision number
+   df = pd.DataFrame({'precision_test': [123456789.123456789]})
+   print(f"Original: {df['precision_test'].iloc[0]}")
+   
+   # Default behavior
+   df.to_csv('default.csv', index=False)
+   df_default = pd.read_csv('default.csv')
+   
+   # With explicit precision control
+   df.to_csv('formatted.csv', index=False, float_format='%.15g')
+   df_formatted = pd.read_csv('formatted.csv')
+   
+   print(f"Default read: {df_default['precision_test'].iloc[0]}")
+   print(f"Formatted read: {df_formatted['precision_test'].iloc[0]}")
+
+.. ipython:: python
+   :suppress:
+   
+   for f in ['default.csv', 'formatted.csv']:
+       if os.path.exists(f):
+           os.remove(f)
+
+Format Specifiers
+~~~~~~~~~~~~~~~~~
+
+Different format specifiers have different effects on precision and output format:
+
+**Fixed-point notation (f)**:
+  - ``'%.6f'`` - 6 decimal places: ``123456789.123457``
+  - ``'%.10f'`` - 10 decimal places: ``123456789.1234567910``
+  - Best for: Numbers with known decimal precision requirements
+
+**General format (g)**:
+  - ``'%.6g'`` - 6 significant digits: ``1.23457e+08``  
+  - ``'%.15g'`` - 15 significant digits: ``123456789.123457``
+  - Best for: Preserving significant digits, automatic scientific notation
+
+**Scientific notation (e)**:
+  - ``'%.6e'`` - Scientific with 6 decimal places: ``1.234568e+08``
+  - ``'%.10e'`` - Scientific with 10 decimal places: ``1.2345678912e+08``
+  - Best for: Very large or very small numbers
+
+.. ipython:: python
+
+   # Demonstrate different format effects
+   df = pd.DataFrame({'number': [123456789.123456789]})
+   
+   formats = {'%.6f': '6 decimal places',
+              '%.10g': '10 significant digits', 
+              '%.6e': 'scientific notation'}
+   
+   for fmt, description in formats.items():
+       df.to_csv('temp.csv', index=False, float_format=fmt)
+       with open('temp.csv', 'r') as f:
+           csv_content = f.read().strip().split('\n')[1]
+       print(f"{description:20}: {csv_content}")
+
+.. ipython:: python
+   :suppress:
+   
+   if os.path.exists('temp.csv'):
+       os.remove('temp.csv')
+
+Best Practices
+~~~~~~~~~~~~~~
+
+**For high-precision scientific data**:
+  Use ``float_format='%.17g'`` to preserve maximum precision:
+
+.. ipython:: python
+
+   # High precision example
+   scientific_data = pd.DataFrame({
+       'measurement': [1.23456789012345e-10, 9.87654321098765e15]
+   })
+   scientific_data.to_csv('scientific.csv', index=False, float_format='%.17g')
+
+.. ipython:: python
+   :suppress:
+   
+   if os.path.exists('scientific.csv'):
+       os.remove('scientific.csv')
+
+**For financial data**:
+  Use fixed decimal places like ``float_format='%.2f'``:
+
+.. ipython:: python
+
+   # Financial data example  
+   financial_data = pd.DataFrame({
+       'price': [19.99, 1234.56, 0.01]
+   })
+   financial_data.to_csv('financial.csv', index=False, float_format='%.2f')
+
+.. ipython:: python
+   :suppress:
+   
+   if os.path.exists('financial.csv'):
+       os.remove('financial.csv')
+
+**For ensuring exact roundtrip**:
+  Test your specific data to find the minimum precision needed:
+
+.. ipython:: python
+
+   def test_roundtrip_precision(df, float_format):
+       """Test if a float_format preserves data during CSV roundtrip."""
+       df.to_csv('test.csv', index=False, float_format=float_format)
+       df_read = pd.read_csv('test.csv')
+       return df.equals(df_read)
+   
+   # Test data
+   test_df = pd.DataFrame({'values': [123.456789, 0.000123456, 1.23e15]})
+   
+   # Test different precisions
+   for fmt in ['%.6g', '%.10g', '%.15g']:
+       success = test_roundtrip_precision(test_df, fmt)
+       print(f"Format {fmt}: {'✓' if success else '✗'} roundtrip success")
+
+.. ipython:: python
+   :suppress:
+   
+   if os.path.exists('test.csv'):
+       os.remove('test.csv')
+
+**dtype Preservation Note**:
+  Be aware that CSV format does not preserve NumPy dtypes. All numeric data
+  will be read back as ``float64`` or ``int64`` regardless of the original dtype:
+
+.. ipython:: python
+
+   # dtype preservation example
+   original_df = pd.DataFrame({
+       'float32_col': np.array([1.23], dtype=np.float32),
+       'float64_col': np.array([1.23], dtype=np.float64)
+   })
+   
+   print("Original dtypes:")
+   print(original_df.dtypes)
+   
+   original_df.to_csv('dtypes.csv', index=False)
+   read_df = pd.read_csv('dtypes.csv')
+   
+   print("\nAfter CSV roundtrip:")
+   print(read_df.dtypes)
+
+.. ipython:: python
+   :suppress:
+   
+   if os.path.exists('dtypes.csv'):
+       os.remove('dtypes.csv')
+
 Writing a formatted string
 ++++++++++++++++++++++++++
 
