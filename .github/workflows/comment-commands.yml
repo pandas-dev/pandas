@@ -9,15 +9,6 @@ permissions:
   pull-requests: write
 
 jobs:
-  issue_assign:
-    runs-on: ubuntu-24.04
-    if: (!github.event.issue.pull_request) && github.event.comment.body == 'take'
-    concurrency:
-      group: ${{ github.actor }}-issue-assign
-    steps:
-      - run: |
-          echo "Assigning issue ${{ github.event.issue.number }} to ${{ github.event.comment.user.login }}"
-          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"assignees": ["${{ github.event.comment.user.login }}"]}' https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/assignees
   preview_docs:
     runs-on: ubuntu-24.04
     if: github.event.issue.pull_request && github.event.comment.body == '/preview'
