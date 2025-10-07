@@ -2707,6 +2707,74 @@ class MultiIndex(Index):
         result = self._reorder_ilevels(order)
         return result
 
+    def insert_level(self, position: int, value, name=None) -> MultiIndex:
+        """
+        Insert a new level at the specified position and return a new MultiIndex.
+
+        Parameters
+        ----------
+        position : int
+            The integer position where the new level should be inserted.
+            Must be between 0 and ``self.nlevels`` (inclusive).
+        value : scalar or sequence
+            Values for the inserted level. If a scalar is provided, it is
+            broadcast to the length of the index. If a sequence is provided,
+            it must be the same length as the index.
+        name : Hashable, default None
+            Name of the inserted level. If not provided, the inserted level
+            name will be ``None``.
+
+        Returns
+        -------
+        MultiIndex
+            A new ``MultiIndex`` with the inserted level.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_tuples([('A', 1), ('B', 2)], names=['x', 'y'])
+        >>> idx.insert_level(0, 'grp')
+        MultiIndex([('grp', 'A', 1), ('grp', 'B', 2)],
+                   names=[None, 'x', 'y'])
+        >>> idx.insert_level(1, ['L1', 'L2'], name='z')
+        MultiIndex([('A', 'L1', 1), ('B', 'L2', 2)],
+                   names=['x', 'z', 'y'])
+        """
+        if not isinstance(position, int):
+            raise TypeError("position must be an integer")
+
+        if position < 0 or position > self.nlevels:
+            raise ValueError(f"position must be between 0 and {self.nlevels}")
+
+        if not hasattr(value, "__iter__") or isinstance(value, str):
+            value = [value] * len(self)
+        else:
+            value = list(value)
+            if len(value) != len(self):
+                raise ValueError("Length of values must match length of index")
+
+        tuples = list(self)
+
+        new_tuples = []
+        for i, tup in enumerate(tuples):
+            if isinstance(tup, tuple):
+                new_tuple = list(tup)
+                new_tuple.insert(position, value[i])
+                new_tuples.append(tuple(new_tuple))
+            else:
+                new_tuple = [tup]
+                new_tuple.insert(position, value[i])
+                new_tuples.append(tuple(new_tuple))
+
+        if self.names is not None:
+            new_names = list(self.names)
+        else:
+            new_names = [None] * self.nlevels
+
+        new_names.insert(position, name)
+
+        from pandas import MultiIndex
+        return MultiIndex.from_tuples(new_tuples, names=new_names)
+
     def _reorder_ilevels(self, order) -> MultiIndex:
         if len(order) != self.nlevels:
             raise AssertionError(

@@ -25,6 +25,7 @@ class TestMultiIndexInsertLevel:
         expected = pd.MultiIndex.from_tuples(
             [('A', 'middle', 1), ('B', 'middle', 2), ('C', 'middle', 3)],
             names=['level1', None, 'level2']
+        )
         tm.assert_index_equal(result, expected)
 
     def test_insert_level_with_different_values(self):
