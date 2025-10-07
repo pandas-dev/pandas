@@ -911,7 +911,6 @@ class MPLPlot(ABC):
                     title = self.legend_title
 
             if len(handles) > 0:
-                # ax.legend(handles, labels, loc="best", title=title)
                 ax.legend(handles, labels, loc=self.legend_loc, title=title)
 
         elif self.subplots and self.legend:
@@ -923,7 +922,6 @@ class MPLPlot(ABC):
                             "No artists with labels found to put in legend.",
                             UserWarning,
                         )
-                        # ax.legend(loc="best")
                         ax.legend(loc=self.legend_loc)
 
     @final
