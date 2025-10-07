@@ -282,16 +282,19 @@ class TestFrameLegend:
         _check_legend_labels(ax, labels=["a", "b (right)", "c"])
         ax = df2.plot(legend=False, ax=ax)
         _check_legend_labels(ax, labels=["a", "b (right)", "c"])
-        ax = df3.plot(kind="bar", legend=True, secondary_y="h", legend_loc="upper right", ax=ax)
+        ax = df3.plot(
+            kind="bar", legend=True, secondary_y="h", legend_loc="upper right", ax=ax
+        )
         _check_legend_labels(ax, labels=["a", "b (right)", "c", "g", "h (right)", "i"])
 
     @pytest.mark.parametrize(
-            "kind, labels",
-            [
-                ("line", ["a", "b"]),
-                ("bar",  ["a", "b"]),
-                ("scatter", ["b"]),  # scatter(x="a", y="b") usually labels the y series
-                ])
+        "kind, labels",
+        [
+            ("line", ["a", "b"]),
+            ("bar", ["a", "b"]),
+            ("scatter", ["b"]),  # scatter(x="a", y="b") usually labels the y series
+        ],
+    )
     def test_across_kinds_legend_loc(self, kind, labels):
         df = DataFrame({"a": [1, 2, 3], "b": [3, 2, 1]})
         if kind == "scatter":
@@ -302,14 +305,11 @@ class TestFrameLegend:
                 y="b",
                 label="b",
                 legend=True,
-                legend_loc="upper right"
+                legend_loc="upper right",
             )
         else:
             ax = _check_plot_works(
-                df.plot,
-                kind=kind,
-                legend=True,
-                legend_loc="upper right"
-                )
+                df.plot, kind=kind, legend=True, legend_loc="upper right"
+            )
         _check_legend_labels(ax, labels=labels)
         assert ax.get_legend() is not None
