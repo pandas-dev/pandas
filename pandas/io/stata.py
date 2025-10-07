@@ -45,6 +45,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -2163,6 +2164,7 @@ The repeated labels are:
         return self._value_label_dict
 
 
+@set_module("pandas")
 def read_stata(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
     *,

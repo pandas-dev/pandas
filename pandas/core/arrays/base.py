@@ -2869,7 +2869,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
             # If the operator is not defined for the underlying objects,
             # a TypeError should be raised
-            res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
+            res = [op(a, b) for (a, b) in zip(lvalues, rvalues, strict=True)]
 
             def _maybe_convert(arr):
                 if coerce_to_dtype:
@@ -2885,7 +2885,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                 return res
 
             if op.__name__ in {"divmod", "rdivmod"}:
-                a, b = zip(*res)
+                a, b = zip(*res, strict=True)
                 return _maybe_convert(a), _maybe_convert(b)
 
             return _maybe_convert(res)
