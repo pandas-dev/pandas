@@ -2084,6 +2084,9 @@ class Timedelta(_Timedelta):
 
         disallow_ambiguous_unit(input_unit)
 
+        cdef:
+            int64_t new_value
+
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed
         if isinstance(value, _Timedelta):
