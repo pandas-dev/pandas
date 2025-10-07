@@ -581,8 +581,7 @@ def test_datetime_property(attr):
 
 
 @pytest.mark.parametrize(
-    "attr",
-    ["days", "seconds", "microseconds", "nanoseconds", "components"],
+    "attr", ["days", "seconds", "microseconds", "nanoseconds", "components"],
 )
 def test_timedelta_property(attr):
     s = pd.Series(pd.timedelta_range("2000", periods=4))
@@ -626,8 +625,7 @@ def test_categorical_accessor(method):
 
 
 @pytest.mark.parametrize(
-    "obj",
-    [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})],
+    "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})],
 )
 @pytest.mark.parametrize(
     "method",
@@ -646,8 +644,7 @@ def test_groupby_finalize(obj, method):
 
 
 @pytest.mark.parametrize(
-    "obj",
-    [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})],
+    "obj", [pd.Series([0, 0]), pd.DataFrame({"A": [0, 1], "B": [1, 2]})],
 )
 @pytest.mark.parametrize(
     "method",
