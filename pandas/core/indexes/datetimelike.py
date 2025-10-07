@@ -317,15 +317,8 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         unbox = self._data._unbox
 
         if self.is_monotonic_increasing:
-            if len(self) and (
-                (t1 < self[0] and t2 < self[0]) or (t1 > self[-1] and t2 > self[-1])
-            ):
-                # we are out of range
-                raise KeyError
-
-            # TODO: does this depend on being monotonic _increasing_?
-
-            # a monotonic (sorted) series can be sliced
+            # a monotonic (sorted) series can be searched in ologn
+            # if date is not found, the empty slice will be returned
             left = vals.searchsorted(unbox(t1), side="left")
             right = vals.searchsorted(unbox(t2), side="right")
             return slice(left, right)
