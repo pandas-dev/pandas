@@ -870,3 +870,14 @@ def test_dtype_representation(using_infer_string):
         dtype=object,
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_insert_level_integration():
+    idx = pd.MultiIndex.from_tuples([('A', 1), ('B', 2)])
+
+    df = pd.DataFrame({'data': [10, 20]}, index=idx)
+    new_idx = idx.insert_level(0, 'group1')
+    df_new = df.set_index(new_idx)
+
+    assert df_new.index.nlevels == 3
+    assert len(df_new) == 2

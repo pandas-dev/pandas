@@ -299,6 +299,70 @@ class MultiIndex(Index):
     # --------------------------------------------------------------------
     # Constructors
 
+    def insert_level(self, position: int, value, name=None):
+        """
+        Insert a new level at the specified position in the MultiIndex.
+        """
+        # 参数验证
+        if not isinstance(position, int):
+            raise TypeError("position must be an integer")
+
+        if position < 0 or position > self.nlevels:
+            raise ValueError(f"position must be between 0 and {self.nlevels}")
+
+        # 处理value参数
+        from pandas.core.construction import extract_array
+        from pandas.core.indexes.base import ensure_index
+
+        if not hasattr(value, '__iter__') or isinstance(value, str):
+            value = [value] * len(self)
+        else:
+            value = list(value)
+            if len(value) != len(self):
+                raise ValueError("Length of values must match length of index")
+
+        # 简单实现：通过重建MultiIndex来插入level
+        tuples = list(self)
+
+        # 在每个tuple的指定位置插入新值
+        new_tuples = []
+        for i, tup in enumerate(tuples):
+            if isinstance(tup, tuple):
+                new_tuple = list(tup)
+                new_tuple.insert(position, value[i])
+                new_tuples.append(tuple(new_tuple))
+            else:
+                # 如果当前不是tuple（单层索引的情况）
+                new_tuple = [tup]
+                new_tuple.insert(position, value[i])
+                new_tuples.append(tuple(new_tuple))
+
+        # 修复：正确处理层级名称
+        # 新插入的层级使用传入的name参数，如果没有传入则为None
+        # 原有层级的名称保持不变
+
+        if self.names is not None:
+            new_names = list(self.names)
+        else:
+            new_names = [None] * self.nlevels
+
+        # 插入新层级的名称 - 使用传入的name参数
+        new_names.insert(position, name)  # 这里name可能是None，这正是测试期望的
+
+        # 创建新的MultiIndex，明确传递names参数
+        from pandas import MultiIndex
+        return MultiIndex.from_tuples(new_tuples, names=new_names)
+
+
+
+
+
+
+
+
+
+
+
     def __new__(
         cls,
         levels=None,
@@ -4383,3 +4447,5 @@ def cartesian_product(X: list[np.ndarray]) -> list[np.ndarray]:
         )
         for i, x in enumerate(X)
     ]
+
+
