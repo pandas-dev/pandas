@@ -10,8 +10,8 @@ from pandas import (
 from pandas.tests.plotting.common import (
     _check_legend_labels,
     _check_legend_marker,
-    _check_text_labels,
     _check_plot_works,
+    _check_text_labels,
 )
 
 mpl = pytest.importorskip("matplotlib")
