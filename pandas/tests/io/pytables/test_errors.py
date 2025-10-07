@@ -11,7 +11,6 @@ from pandas import (
     HDFStore,
     Index,
     MultiIndex,
-    _testing as tm,
     date_range,
     read_hdf,
 )
