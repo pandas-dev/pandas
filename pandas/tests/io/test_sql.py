@@ -751,7 +751,7 @@ def postgresql_psycopg2_conn_types(postgresql_psycopg2_engine_types):
 def sqlite_str(temp_file):
     pytest.importorskip("sqlalchemy")
     name = str(temp_file)
-    yield f"sqlite:///{name}"
+    return f"sqlite:///{name}"
 
 
 @pytest.fixture
