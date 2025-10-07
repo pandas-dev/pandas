@@ -333,7 +333,7 @@ class TestFromTuples(ConstructorTests):
         if len(breaks) == 0:
             return {"data": breaks}
 
-        tuples = list(zip(breaks[:-1], breaks[1:]))
+        tuples = list(zip(breaks[:-1], breaks[1:], strict=True))
         if isinstance(breaks, (list, tuple)):
             return {"data": tuples}
         elif isinstance(getattr(breaks, "dtype", None), CategoricalDtype):
@@ -386,7 +386,7 @@ class TestClassConstructors(ConstructorTests):
 
         ivs = [
             Interval(left, right, closed) if notna(left) else left
-            for left, right in zip(breaks[:-1], breaks[1:])
+            for left, right in zip(breaks[:-1], breaks[1:], strict=True)
         ]
 
         if isinstance(breaks, list):
