@@ -1,5 +1,8 @@
-"""An exhaustive list of pandas methods exercising NDFrame.__finalize__."""
+"""
+An exhaustive list of pandas methods exercising NDFrame.__finalize__.
+"""
 
+from copy import deepcopy
 import operator
 import re
 
@@ -363,7 +366,8 @@ def idfn(x):
     m = xpr.search(str(x))
     if m:
         return m.group(1)
-    return str(x)
+    else:
+        return str(x)
 
 
 @pytest.mark.parametrize("ndframe_method", _all_methods, ids=lambda x: idfn(x[-1]))
@@ -672,7 +676,7 @@ def test_finalize_frame_series_name():
 
 
 # ----------------------------------------------------------------------------
-# Tests for merge
+# Merge
 
 
 @pytest.mark.parametrize(
@@ -696,9 +700,6 @@ def test_merge_correctly_sets_duplication_allowance_flag(
     allow_on_left: bool,
     allow_on_right: bool,
 ):
-    """Check that DataFrame.merge correctly sets the allow_duplicate_labels flag
-    on its result.
-    """
     left = pd.DataFrame({"test": [1]}).set_flags(allows_duplicate_labels=allow_on_left)
     right = pd.DataFrame({"test": [1]}).set_flags(
         allows_duplicate_labels=allow_on_right,
@@ -733,18 +734,21 @@ def test_merge_asof_correctly_sets_duplication_allowance_flag(
 
 
 def test_merge_propagates_metadata_from_equal_input_metadata():
-    metadata = {"a": 2}
+    metadata = {"a": [1, 2]}
     left = pd.DataFrame({"test": [1]})
     left.attrs = metadata
     right = pd.DataFrame({"test": [1]})
-    right.attrs = metadata.copy()
+    right.attrs = deepcopy(metadata)
 
     result = left.merge(right, how="inner", on="test")
 
     assert result.attrs == metadata
+
     # Verify that merge deep-copies the attr dictionary.
-    left.attrs = {"b": 3}
-    assert result.attrs == metadata
+    assert result.attrs is not left.attrs
+    assert result.attrs is not right.attrs
+    assert result.attrs["a"] is not left.attrs["a"]
+    assert result.attrs["a"] is not right.attrs["a"]
 
 
 def test_merge_does_not_propagate_metadata_from_unequal_input_metadata():
@@ -758,26 +762,33 @@ def test_merge_does_not_propagate_metadata_from_unequal_input_metadata():
     assert result.attrs == {}
 
 
-no_metadata = pd.DataFrame({"test": [1]})
-
-has_metadata = pd.DataFrame({"test": [1]})
-has_metadata.attrs = {"a": 2}
-
-
 @pytest.mark.parametrize(
-    ["left", "right", "expected"],
+    ["left_has_metadata", "right_has_metadata", "expected"],
     [
-        (no_metadata, has_metadata, {}),
-        (has_metadata, no_metadata, {}),
-        (no_metadata, no_metadata, {}),
+        (False, True, {}),
+        (True, False, {}),
+        (False, False, {}),
     ],
     ids=["left-empty", "right-empty", "both-empty"],
 )
 def test_merge_does_not_propagate_metadata_if_one_input_has_no_metadata(
-    left: pd.DataFrame,
-    right: pd.DataFrame,
+    left_has_metadata: bool,
+    right_has_metadata: bool,
     expected: dict,
 ):
+    left = pd.DataFrame({"test": [1]})
+    right = pd.DataFrame({"test": [1]})
+
+    if left_has_metadata:
+        left.attrs = {"a": [1, 2]}
+    else:
+        left.attrs = {}
+
+    if right_has_metadata:
+        right.attrs = {"a": [1, 2]}
+    else:
+        right.attrs = {}
+
     result = left.merge(right, how="inner", on="test")
 
     assert result.attrs == expected
