@@ -579,35 +579,6 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             f = lambda a, b: np.isin(a, b).ravel()
 
     else:
-        # Fast-path for integer mixes: if both sides are integer-kind and
-        # have different dtypes, avoid upcasting to float64 (which loses
-        # precision for large 64-bit integers). When possible, perform the
-        # comparison in unsigned 64-bit space which preserves exact integer
-        # equality and uses the integer hashtable for performance.
-        if (
-            values.dtype.kind in "iu"
-            and comps_array.dtype.kind in "iu"
-            and not is_dtype_equal(values.dtype, comps_array.dtype)
-        ):
-            try:
-                # only proceed when both arrays are non-empty
-                if values.size > 0 and comps_array.size > 0:
-                    signed_negative = False
-                    if values.dtype.kind == "i":
-                        # using min is vectorized and fast
-                        signed_negative = values.min() < 0
-                    if comps_array.dtype.kind == "i":
-                        signed_negative = signed_negative or (comps_array.min() < 0)
-
-                    if not signed_negative:
-                        # safe to cast both to uint64 for exact comparison
-                        values_u = values.astype("uint64", copy=False)
-                        comps_u = comps_array.astype("uint64", copy=False)
-                        return htable.ismember(comps_u, values_u)
-            except Exception:
-                # fall back to generic behavior on any error
-                pass
-
         common = np_find_common_type(values.dtype, comps_array.dtype)
         values = values.astype(common, copy=False)
         comps_array = comps_array.astype(common, copy=False)
