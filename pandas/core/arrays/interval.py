@@ -75,6 +75,7 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
+from pandas.core import ops
 from pandas.core.algorithms import (
     isin,
     take,
@@ -845,7 +846,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def _cmp_method(self, other, op):
         # ensure pandas array for list-like and eliminate non-interval scalars
         if is_list_like(other):
-            if not isinstance(other, (list, np.ndarray, ExtensionArray)):
+            if not isinstance(
+                other, (list, np.ndarray, ExtensionArray)
+            ) and not ops.has_castable_attr(other):
                 warnings.warn(
                     f"Operation with {type(other).__name__} are deprecated. "
                     "In a future version these will be treated as scalar-like. "

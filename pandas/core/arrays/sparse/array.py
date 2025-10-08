@@ -69,7 +69,10 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.core import arraylike
+from pandas.core import (
+    arraylike,
+    ops,
+)
 import pandas.core.algorithms as algos
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
@@ -1808,7 +1811,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             return _wrap_result(op_name, result, self.sp_index, fill)
 
         else:
-            if not isinstance(other, (list, np.ndarray, ExtensionArray)):
+            if not isinstance(
+                other, (list, np.ndarray, ExtensionArray)
+            ) and not ops.has_castable_attr(other):
                 warnings.warn(
                     f"Operation with {type(other).__name__} are deprecated. "
                     "In a future version these will be treated as scalar-like. "
@@ -1830,8 +1835,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                 return _sparse_array_op(self, other, op, op_name)
 
     def _cmp_method(self, other, op) -> SparseArray:
-        if is_list_like(other) and not isinstance(
-            other, (list, np.ndarray, ExtensionArray)
+        if (
+            is_list_like(other)
+            and not isinstance(other, (list, np.ndarray, ExtensionArray))
+            and not ops.has_castable_attr(other)
         ):
             warnings.warn(
                 f"Operation with {type(other).__name__} are deprecated. "

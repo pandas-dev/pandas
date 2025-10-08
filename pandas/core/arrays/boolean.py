@@ -382,7 +382,9 @@ class BooleanArray(BaseMaskedArray):
         if isinstance(other, BooleanArray):
             other, mask = other._data, other._mask
         elif is_list_like(other):
-            if not isinstance(other, (list, ExtensionArray, np.ndarray)):
+            if not isinstance(
+                other, (list, ExtensionArray, np.ndarray)
+            ) and not ops.has_castable_attr(other):
                 warnings.warn(
                     f"Operation with {type(other).__name__} are deprecated. "
                     "In a future version these will be treated as scalar-like. "
