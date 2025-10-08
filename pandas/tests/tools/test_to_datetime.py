@@ -3790,3 +3790,14 @@ def test_to_datetime_wrapped_datetime64_ps():
         ["1970-01-01 00:00:01.901901901"], dtype="datetime64[ns]", freq=None
     )
     tm.assert_index_equal(result, expected)
+
+
+def test_to_datetime_lxml_elementunicoderesult_with_format(cache):
+    etree = pytest.importorskip("lxml.etree")
+
+    s = "2025-02-05 16:59:57"
+    node = etree.XML(f"<date>{s}</date>")
+    val = node.xpath("/date/node()")[0]  # _ElementUnicodeResult
+
+    out = to_datetime(Series([val]), format="%Y-%m-%d %H:%M:%S", cache=cache)
+    assert out.iloc[0] == Timestamp(s)
