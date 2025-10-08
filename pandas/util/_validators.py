@@ -269,6 +269,9 @@ def validate_bool_kwarg(
     return value
 
 
+# deprecate_numeric_only_none defined later in file
+
+
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
     """
     Validate the keyword arguments to 'fillna'.
@@ -339,6 +342,31 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     elif not all(0 <= qs <= 1 for qs in q_arr):
         raise ValueError(msg)
     return q_arr
+
+
+def deprecate_numeric_only_none(value: BoolishNoneT, arg_name: str) -> BoolishNoneT:
+    """
+    Deprecation helper for the "numeric_only" argument when value is None.
+
+    If ``value`` is ``None``, emit a PandasFutureWarning indicating that
+    passing ``None`` for ``numeric_only`` is deprecated and will be an error
+    in a future version. Return the input value unchanged.
+
+    This helper allows a warn-first / error-later migration strategy during
+    the 2.x release cycle: callers can call this to warn users for now, and
+    later releases should enforce strict bool-only semantics.
+    """
+    import warnings
+
+    from pandas import errors
+
+    if value is None:
+        msg = (
+            f'Passing None for "{arg_name}" is deprecated and will raise a '
+            "ValueError in a future version; please pass True or False."
+        )
+        warnings.warn(msg, errors.PandasFutureWarning, stacklevel=2)
+    return value
 
 
 @overload
