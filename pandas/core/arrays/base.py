@@ -2740,24 +2740,33 @@ class ExtensionOpsMixin:
 
     @classmethod
     def _add_arithmetic_ops(cls) -> None:
-        setattr(cls, "__add__", cls._create_arithmetic_method(operator.add))
-        setattr(cls, "__radd__", cls._create_arithmetic_method(roperator.radd))
-        setattr(cls, "__sub__", cls._create_arithmetic_method(operator.sub))
-        setattr(cls, "__rsub__", cls._create_arithmetic_method(roperator.rsub))
-        setattr(cls, "__mul__", cls._create_arithmetic_method(operator.mul))
-        setattr(cls, "__rmul__", cls._create_arithmetic_method(roperator.rmul))
-        setattr(cls, "__pow__", cls._create_arithmetic_method(operator.pow))
-        setattr(cls, "__rpow__", cls._create_arithmetic_method(roperator.rpow))
-        setattr(cls, "__mod__", cls._create_arithmetic_method(operator.mod))
-        setattr(cls, "__rmod__", cls._create_arithmetic_method(roperator.rmod))
-        setattr(cls, "__floordiv__", cls._create_arithmetic_method(operator.floordiv))
-        setattr(
-            cls, "__rfloordiv__", cls._create_arithmetic_method(roperator.rfloordiv)
-        )
-        setattr(cls, "__truediv__", cls._create_arithmetic_method(operator.truediv))
-        setattr(cls, "__rtruediv__", cls._create_arithmetic_method(roperator.rtruediv))
-        setattr(cls, "__divmod__", cls._create_arithmetic_method(divmod))
-        setattr(cls, "__rdivmod__", cls._create_arithmetic_method(roperator.rdivmod))
+        """
+        Add arithmetic operator overloads to the class.
+
+        Only operators not already defined on the class will be added,
+        allowing custom implementations to coexist with mixin fallbacks.
+        """
+        ops = [
+            ("__add__", operator.add),
+            ("__radd__", roperator.radd),
+            ("__sub__", operator.sub),
+            ("__rsub__", roperator.rsub),
+            ("__mul__", operator.mul),
+            ("__rmul__", roperator.rmul),
+            ("__pow__", operator.pow),
+            ("__rpow__", roperator.rpow),
+            ("__mod__", operator.mod),
+            ("__rmod__", roperator.rmod),
+            ("__floordiv__", operator.floordiv),
+            ("__rfloordiv__", roperator.rfloordiv),
+            ("__truediv__", operator.truediv),
+            ("__rtruediv__", roperator.rtruediv),
+            ("__divmod__", divmod),
+            ("__rdivmod__", roperator.rdivmod),
+        ]
+        for name, op in ops:
+            if not hasattr(cls, name):
+                setattr(cls, name, cls._create_arithmetic_method(op))
 
     @classmethod
     def _create_comparison_method(cls, op):
@@ -2765,12 +2774,23 @@ class ExtensionOpsMixin:
 
     @classmethod
     def _add_comparison_ops(cls) -> None:
-        setattr(cls, "__eq__", cls._create_comparison_method(operator.eq))
-        setattr(cls, "__ne__", cls._create_comparison_method(operator.ne))
-        setattr(cls, "__lt__", cls._create_comparison_method(operator.lt))
-        setattr(cls, "__gt__", cls._create_comparison_method(operator.gt))
-        setattr(cls, "__le__", cls._create_comparison_method(operator.le))
-        setattr(cls, "__ge__", cls._create_comparison_method(operator.ge))
+        """
+        Add comparison operator overloads to the class.
+
+        Only operators not already defined on the class will be added,
+        allowing custom implementations to coexist with mixin fallbacks.
+        """
+        ops = [
+            ("__eq__", operator.eq),
+            ("__ne__", operator.ne),
+            ("__lt__", operator.lt),
+            ("__gt__", operator.gt),
+            ("__le__", operator.le),
+            ("__ge__", operator.ge),
+        ]
+        for name, op in ops:
+            if not hasattr(cls, name):
+                setattr(cls, name, cls._create_comparison_method(op))
 
     @classmethod
     def _create_logical_method(cls, op):
@@ -2797,13 +2817,14 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     -----
     If you have defined a subclass MyExtensionArray(ExtensionArray), then
     use MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin) to
-    get the arithmetic operators.  After the definition of MyExtensionArray,
-    insert the lines
+    get the arithmetic and comparison operators. After the definition of
+    MyExtensionArray, insert the lines
 
     MyExtensionArray._add_arithmetic_ops()
     MyExtensionArray._add_comparison_ops()
 
-    to link the operators to your class.
+    to link the operators to your class, allowing you to define custom operator methods
+    for performance, with fallback to element-wise implementations for others.
 
     .. note::
 
