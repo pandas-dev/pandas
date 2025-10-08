@@ -576,6 +576,12 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         if (
             values.dtype.kind in "iu"
             and comps_array.dtype.kind in "iu"
+            # Only apply fast-path for 64-bit integer widths to avoid
+            # surprising behaviour on platforms or dtypes with different
+            # itemsize (see GH discussions). Narrowing to 8-byte ints
+            # keeps the fast-path safe and performant for the common case.
+            and values.dtype.itemsize == 8
+            and comps_array.dtype.itemsize == 8
             and not is_dtype_equal(values.dtype, comps_array.dtype)
         ):
             try:
