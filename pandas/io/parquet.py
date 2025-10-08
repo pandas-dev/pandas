@@ -21,7 +21,10 @@ from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas import (
@@ -500,6 +503,7 @@ def to_parquet(
         return None
 
 
+@set_module("pandas")
 @doc(storage_options=_shared_docs["storage_options"])
 def read_parquet(
     path: FilePath | ReadBuffer[bytes],

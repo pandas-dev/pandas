@@ -334,7 +334,7 @@ class StringMethods(NoNewAttributesMixin):
                 )
                 result = {
                     label: ArrowExtensionArray(pa.array(res))
-                    for label, res in zip(name, result.T)
+                    for label, res in zip(name, result.T, strict=True)
                 }
             elif is_object_dtype(result):
 
@@ -684,7 +684,8 @@ class StringMethods(NoNewAttributesMixin):
         elif na_rep is not None and union_mask.any():
             # fill NaNs with na_rep in case there are actually any NaNs
             all_cols = [
-                np.where(nm, na_rep, col) for nm, col in zip(na_masks, all_cols)
+                np.where(nm, na_rep, col)
+                for nm, col in zip(na_masks, all_cols, strict=True)
             ]
             result = cat_safe(all_cols, sep)
         else:

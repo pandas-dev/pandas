@@ -11,7 +11,6 @@ from pandas import (
     HDFStore,
     Index,
     MultiIndex,
-    _testing as tm,
     date_range,
     read_hdf,
 )
@@ -182,16 +181,16 @@ def test_append_with_diff_col_name_types_raises_value_error(setup_path):
                 store.append(name, d)
 
 
-def test_invalid_complib(setup_path):
+def test_invalid_complib(tmp_path, setup_path):
     df = DataFrame(
         np.random.default_rng(2).random((4, 5)),
         index=list("abcd"),
         columns=list("ABCDE"),
     )
-    with tm.ensure_clean(setup_path) as path:
-        msg = r"complib only supports \[.*\] compression."
-        with pytest.raises(ValueError, match=msg):
-            df.to_hdf(path, key="df", complib="foolib")
+    path = tmp_path / setup_path
+    msg = r"complib only supports \[.*\] compression."
+    with pytest.raises(ValueError, match=msg):
+        df.to_hdf(path, key="df", complib="foolib")
 
 
 @pytest.mark.parametrize(

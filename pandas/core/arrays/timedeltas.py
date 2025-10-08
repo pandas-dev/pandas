@@ -621,7 +621,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         if is_object_dtype(other.dtype):
             other = np.asarray(other)
             if self.ndim > 1:
-                res_cols = [left / right for left, right in zip(self, other)]
+                res_cols = [
+                    left / right for left, right in zip(self, other, strict=True)
+                ]
                 res_cols2 = [x.reshape(1, -1) for x in res_cols]
                 result = np.concatenate(res_cols2, axis=0)
             else:
@@ -670,7 +672,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         elif is_object_dtype(other.dtype):
             other = np.asarray(other)
             if self.ndim > 1:
-                res_cols = [left // right for left, right in zip(self, other)]
+                res_cols = [
+                    left // right for left, right in zip(self, other, strict=True)
+                ]
                 res_cols2 = [x.reshape(1, -1) for x in res_cols]
                 result = np.concatenate(res_cols2, axis=0)
             else:

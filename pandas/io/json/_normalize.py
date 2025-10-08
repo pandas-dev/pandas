@@ -17,6 +17,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas.util._decorators import set_module
 
 import pandas as pd
 from pandas import (
@@ -266,6 +267,7 @@ def _simple_json_normalize(
     return normalized_json_object
 
 
+@set_module("pandas")
 def json_normalize(
     data: dict | list[dict] | Series,
     record_path: str | list | None = None,

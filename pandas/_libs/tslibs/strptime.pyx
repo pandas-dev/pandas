@@ -405,6 +405,11 @@ def array_strptime(
                 if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
                     continue
+                elif type(val) is not str:
+                    # GH#60933: normalize string subclasses
+                    # (e.g. lxml.etree._ElementUnicodeResult). The downstream Cython
+                    # path expects an exact `str`, so ensure we pass a plain str
+                    val = str(val)
             elif checknull_with_nat_and_na(val):
                 iresult[i] = NPY_NAT
                 continue

@@ -3,10 +3,12 @@ from typing import (
 )
 
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import set_module
 
 from pandas import DataFrame
 
 
+@set_module("pandas")
 def read_iceberg(
     table_identifier: str,
     catalog_name: str | None = None,
