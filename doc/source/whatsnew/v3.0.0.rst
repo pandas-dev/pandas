@@ -1232,6 +1232,10 @@ Other
 - Fixed bug in the :meth:`Series.rank` with object dtype and extremely small float values (:issue:`62036`)
 - Fixed bug where the :class:`DataFrame` constructor misclassified array-like objects with a ``.name`` attribute as :class:`Series` or :class:`Index` (:issue:`61443`)
 - Fixed regression in :meth:`DataFrame.from_records` not initializing subclasses properly (:issue:`57008`)
+- Accessing the underlying NumPy array of a DataFrame or Series will return a read-only
+  array if the array shares data with the original DataFrame or Series (:ref:`copy_on_write_read_only_na`).
+  This logic is expanded to accessing the underlying pandas ExtensionArray
+  through ``.array`` (or ``.values`` depending on the dtype) as well (:issue:`61925`).
 
 .. ***DO NOT USE THIS SECTION***
 
