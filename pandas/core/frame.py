@@ -10632,9 +10632,7 @@ class DataFrame(NDFrame, OpsMixin):
          .. warning::
 
             When ``raw=True``, the result dtype is inferred from the **first**
-            returned value. If that value is not ``None`` but later calls return
-            ``None``, a ``TypeError`` may occur because NumPy infers a
-            non-nullable dtype.
+            returned value.
 
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
             These only act when ``axis=1`` (columns):
