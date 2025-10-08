@@ -1834,8 +1834,8 @@ int uint64_conflict(uint_state *self) {
   return self->seen_uint && (self->seen_sint || self->seen_null);
 }
 
-int64_t str_to_int64(const char *p_item, char decimal_separator,
-                     int64_t int_min, int64_t int_max, int *error, char tsep) {
+int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
+                     int *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1942,8 +1942,8 @@ int64_t str_to_int64(const char *p_item, char decimal_separator,
     }
 
     // check if is float
-    if (*p == decimal_separator || *p == 'e' || *p == 'E') {
-      *error = ERROR_IS_FLOAT;
+    if (*p != '\0') {
+      *error = ERROR_INVALID_CHARS;
     }
     return 0;
   }
@@ -1955,11 +1955,7 @@ int64_t str_to_int64(const char *p_item, char decimal_separator,
 
   // Did we use up all the characters?
   if (*p) {
-    if (*p == decimal_separator || *p == 'e' || *p == 'E') {
-      *error = ERROR_IS_FLOAT;
-    } else {
-      *error = ERROR_INVALID_CHARS;
-    }
+    *error = ERROR_INVALID_CHARS;
     return 0;
   }
 
@@ -1967,8 +1963,7 @@ int64_t str_to_int64(const char *p_item, char decimal_separator,
   return number;
 }
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item,
-                       char decimal_separator, int64_t int_max,
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
                        uint64_t uint_max, int *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
@@ -2039,8 +2034,8 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item,
     }
 
     // check if is float
-    if (*p == decimal_separator || *p == 'e' || *p == 'E') {
-      *error = ERROR_IS_FLOAT;
+    if (*p != '\0') {
+      *error = ERROR_INVALID_CHARS;
     }
     return 0;
   }
@@ -2052,11 +2047,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item,
 
   // Did we use up all the characters?
   if (*p) {
-    if (*p == decimal_separator || *p == 'e' || *p == 'E') {
-      *error = ERROR_IS_FLOAT;
-    } else {
-      *error = ERROR_INVALID_CHARS;
-    }
+    *error = ERROR_INVALID_CHARS;
     return 0;
   }
 
