@@ -40,6 +40,7 @@ from pandas.errors import (
     AbstractMethodError,
     DatabaseError,
 )
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
@@ -263,6 +264,7 @@ def read_sql_table(
 ) -> Iterator[DataFrame]: ...
 
 
+@set_module("pandas")
 def read_sql_table(
     table_name: str,
     con,
@@ -394,6 +396,7 @@ def read_sql_query(
 ) -> Iterator[DataFrame]: ...
 
 
+@set_module("pandas")
 def read_sql_query(
     sql,
     con,
@@ -532,6 +535,7 @@ def read_sql(
 ) -> Iterator[DataFrame]: ...
 
 
+@set_module("pandas")
 def read_sql(
     sql,
     con,
