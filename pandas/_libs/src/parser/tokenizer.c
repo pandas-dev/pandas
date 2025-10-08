@@ -1834,7 +1834,28 @@ int uint64_conflict(uint_state *self) {
   return self->seen_uint && (self->seen_sint || self->seen_null);
 }
 
-static inline void check_for_invalid_char(const char *p_item, int *error) {
+/**
+ * @brief Validates that a string contains only numeric digits and optional
+ * trailing whitespace.
+ *
+ * This function is used after an integer overflow,
+ * where is checks the rest of the string for a non-numeric character,
+ * while also ignoring trailing white-space.
+ *
+ * Pure integer overflows during CSV parsing are converted to PyLongObjects,
+ * while, if any invalid character is found, it skips integer
+ * parsing and tries other conversion methods.
+ *
+ * @param p_item Pointer to the string to validate for numeric format
+ * @param error Pointer to indicate error code.
+ *        Set to ERROR_INVALID_CHARS if an invalid character is found.
+ *
+ * @return Pointer to the position in the string where validation stopped.
+ *         - If valid: terminates at the null terminator.
+ *         - If invalid: points to the first invalid character encountered.
+ */
+static inline const char *check_for_invalid_char(const char *p_item,
+                                                 int *error) {
   while (*p_item != '\0' && isdigit_ascii(*p_item)) {
     p_item++;
   }
@@ -1847,6 +1868,8 @@ static inline void check_for_invalid_char(const char *p_item, int *error) {
   if (*p_item != '\0') {
     *error = ERROR_INVALID_CHARS;
   }
+
+  return p_item;
 }
 
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
