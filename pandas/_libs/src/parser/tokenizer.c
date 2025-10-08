@@ -1839,6 +1839,10 @@ static inline void check_for_invalid_char(const char *p_item, int *error) {
     p_item++;
   }
 
+  while (*p_item != '\0' && isspace_ascii(*p_item)) {
+    ++p_item;
+  }
+
   // check if reached the end of string after consuming all digits
   if (*p_item != '\0') {
     *error = ERROR_INVALID_CHARS;
