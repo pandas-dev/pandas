@@ -57,7 +57,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_signed_integer_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
@@ -518,23 +517,10 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
         orig_values = list(values)
         values = _ensure_arraylike(orig_values, func_name="isin-targets")
-
-        if (
-            len(values) > 0
-            and values.dtype.kind in "iufcb"
-            # If the dtypes differ and either side is unsigned integer,
-            # prefer object dtype to avoid unsafe upcast to float64 that
-            # can lose precision for large 64-bit integers.
-            and (not is_dtype_equal(values, comps))
-            and (
-                (not is_signed_integer_dtype(comps))
-                or (not is_signed_integer_dtype(values))
-            )
-        ):
-            # GH#46485: Use object to avoid upcast to float64 later
-            # Ensure symmetric behavior when mixing signed and unsigned
-            # integer dtypes.
-            values = construct_1d_object_array_from_listlike(orig_values)
+        # Keep values as a numeric ndarray where possible; we handle
+        # signed/unsigned integer mixes with a fast-path later (after
+        # comps_array extraction) to avoid object-dtype conversions that
+        # harm performance for large numeric arrays.
 
     elif isinstance(values, ABCMultiIndex):
         # Avoid raising in extract_array
@@ -586,6 +572,28 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
             f = lambda a, b: np.isin(a, b).ravel()
 
     else:
+        # Fast-path: handle integer-kind mixes without upcasting to float64.
+        if (
+            values.dtype.kind in "iu"
+            and comps_array.dtype.kind in "iu"
+            and not is_dtype_equal(values.dtype, comps_array.dtype)
+        ):
+            try:
+                if values.size > 0 and comps_array.size > 0:
+                    signed_negative = False
+                    if values.dtype.kind == "i":
+                        signed_negative = values.min() < 0
+                    if comps_array.dtype.kind == "i":
+                        signed_negative = signed_negative or (comps_array.min() < 0)
+
+                    if not signed_negative:
+                        values_u = values.astype("uint64", copy=False)
+                        comps_u = comps_array.astype("uint64", copy=False)
+                        return htable.ismember(comps_u, values_u)
+            except Exception:
+                # fall back to generic path on error
+                pass
+
         common = np_find_common_type(values.dtype, comps_array.dtype)
         values = values.astype(common, copy=False)
         comps_array = comps_array.astype(common, copy=False)
