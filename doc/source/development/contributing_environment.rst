@@ -211,6 +211,67 @@ for :ref:`building pandas with GitPod <contributing-gitpod>`.
 Step 3: build and install pandas
 --------------------------------
 
+Quick start (pip + meson, editable)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you just want the fastest route to a working development install using the
+Meson backend through pip (PEP 517), use the following. This performs an
+editable install and will automatically rebuild C/Cython components when
+you import pandas.
+
+.. code-block:: shell
+
+   # from the repo root, after creating/activating your env
+   # fetch tags so the version string can be computed
+   git fetch upstream --tags
+
+   # install in editable mode with meson backend
+   python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
+
+.. tip::
+   Set a build directory to speed up rebuilds by keeping artifacts in one place::
+
+      python -m pip install -ve . --no-build-isolation \
+          -Cbuilddir=".meson_build" -Csetup-args="-Dbuildtype=debug"
+
+   The ``-Dbuildtype=debug`` flag improves debugging of C extensions. Omit it
+   for optimized builds.
+
+Windows-specific notes
+^^^^^^^^^^^^^^^^^^^^^^
+
+* Ensure the "Build Tools for Visual Studio 2022" with the
+  "Desktop development with C++" workload is installed. If Meson cannot
+  find ``cl.exe``, add the optional component
+  ``MSVC v142 - VS 2019 C++ x64/x86 build tools`` from the installer.
+* Use an elevated "x64 Native Tools Command Prompt for VS 2022" or a standard
+  PowerShell where the build tools are on ``PATH``.
+* Long paths: enable them to avoid build errors when the source path is deep::
+
+     git config --global core.longpaths true
+
+* PowerShell execution policy can block virtualenv activation scripts. If needed::
+
+     Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+* To see Meson’s automatic rebuild output on import every time, either pass
+  ``-Ceditable-verbose=true`` in the install command (above) or set the env var::
+
+     set MESONPY_EDITABLE_VERBOSE=1   # PowerShell/cmd (for current session)
+
+Next steps
+^^^^^^^^^^
+
+* Verify the install::
+
+     python -c "import pandas, sys; print(pandas.__version__, sys.executable)"
+
+* Run a focused test subset before the full suite::
+
+     pytest pandas/tests/frame/test_constructors.py -q
+
+The sections below describe the supported build methods in more detail.
+
 There are currently two supported ways of building pandas, pip/meson and setuptools(setup.py).
 Historically, pandas has only supported using setuptools to build pandas. However, this method
 requires a lot of convoluted code in setup.py and also has many issues in compiling pandas in parallel
