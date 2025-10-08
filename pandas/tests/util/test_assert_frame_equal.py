@@ -417,7 +417,7 @@ def test_datetimelike_compat_deprecated():
 
 def test_assert_frame_equal_nested_df_na():
     # GH#43022
-    inner = DataFrame({"a": [1, float("nan")]})
+    inner = DataFrame({"a": [1, pd.NA]})
     df1 = DataFrame({"df": [inner]})
     df2 = DataFrame({"df": [inner]})
 
