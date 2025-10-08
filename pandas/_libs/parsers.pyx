@@ -1778,7 +1778,7 @@ cdef _try_uint64(parser_t *parser, int64_t col,
         elif raise_on_float and error == ERROR_IS_FLOAT:
             raise ValueError("Number is float")
         elif not raise_on_float or error != ERROR_IS_FLOAT:
-            return None, None
+            return None
 
     if uint64_conflict(&state):
         raise ValueError("Cannot convert to numerical dtype")
