@@ -1091,7 +1091,7 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         # Reverse tuple so that we are indexing along columns before rows
         # and avoid unintended dtype inference. # GH60600
-        for i, key in zip(range(len(tup) - 1, -1, -1), reversed(tup)):
+        for i, key in zip(range(len(tup) - 1, -1, -1), reversed(tup), strict=True):
             if is_label_like(key) or is_list_like(key):
                 # We don't need to check for tuples here because those are
                 #  caught by the _is_nested_tuple_indexer check above.
@@ -1357,7 +1357,7 @@ class _LocIndexer(_LocationIndexer):
         # GH 836
         d = {
             axis: self._get_listlike_indexer(key, axis)
-            for (key, axis) in zip(tup, self.obj._AXIS_ORDERS)
+            for (key, axis) in zip(tup, self.obj._AXIS_ORDERS, strict=True)
         }
         return self.obj._reindex_with_indexers(d, allow_dups=True)
 
@@ -1669,7 +1669,7 @@ class _iLocIndexer(_LocationIndexer):
         if not isinstance(indexer, tuple):
             indexer = _tuplify(self.ndim, indexer)
 
-        for ax, i in zip(self.obj.axes, indexer):
+        for ax, i in zip(self.obj.axes, indexer, strict=False):
             if isinstance(i, slice):
                 # should check the stop slice?
                 pass
@@ -1841,7 +1841,7 @@ class _iLocIndexer(_LocationIndexer):
         # (not null slices) then we must take the split path, xref
         # GH 10360, GH 27841
         if isinstance(indexer, tuple) and len(indexer) == len(self.obj.axes):
-            for i, ax in zip(indexer, self.obj.axes):
+            for i, ax in zip(indexer, self.obj.axes, strict=True):
                 if isinstance(ax, MultiIndex) and not (
                     is_integer(i) or com.is_null_slice(i)
                 ):
@@ -2036,7 +2036,7 @@ class _iLocIndexer(_LocationIndexer):
 
             elif len(ilocs) == len(value):
                 # We are setting multiple columns in a single row.
-                for loc, v in zip(ilocs, value):
+                for loc, v in zip(ilocs, value, strict=True):
                     self._setitem_single_column(loc, v, pi)
 
             elif len(ilocs) == 1 and com.is_null_slice(pi) and len(self.obj) == 0:

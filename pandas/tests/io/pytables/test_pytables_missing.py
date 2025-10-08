@@ -3,12 +3,11 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
-import pandas._testing as tm
 
 
 @td.skip_if_installed("tables")
-def test_pytables_raises():
+def test_pytables_raises(tmp_path):
     df = pd.DataFrame({"A": [1, 2]})
+    path = tmp_path / "foo.h5"
     with pytest.raises(ImportError, match="tables"):
-        with tm.ensure_clean("foo.h5") as path:
-            df.to_hdf(path, key="df")
+        df.to_hdf(path, key="df")
