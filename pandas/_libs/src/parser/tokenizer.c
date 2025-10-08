@@ -1834,6 +1834,17 @@ int uint64_conflict(uint_state *self) {
   return self->seen_uint && (self->seen_sint || self->seen_null);
 }
 
+static inline void check_for_invalid_char(const char *p_item, int *error) {
+  while (*p_item != '\0' && isdigit_ascii(*p_item)) {
+    p_item++;
+  }
+
+  // check if reached the end of string after consuming all digits
+  if (*p_item != '\0') {
+    *error = ERROR_INVALID_CHARS;
+  }
+}
+
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                      int *error, char tsep) {
   const char *p = p_item;
@@ -1879,7 +1890,8 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
           d = *++p;
         } else {
           *error = ERROR_OVERFLOW;
-          break;
+          check_for_invalid_char(p, error);
+          return 0;
         }
       }
     } else {
@@ -1890,7 +1902,8 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
           d = *++p;
         } else {
           *error = ERROR_OVERFLOW;
-          break;
+          check_for_invalid_char(p, error);
+          return 0;
         }
       }
     }
@@ -1917,7 +1930,8 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
         } else {
           *error = ERROR_OVERFLOW;
-          break;
+          check_for_invalid_char(p, error);
+          return 0;
         }
       }
     } else {
@@ -1929,23 +1943,11 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
         } else {
           *error = ERROR_OVERFLOW;
-          break;
+          check_for_invalid_char(p, error);
+          return 0;
         }
       }
     }
-  }
-
-  if (*error == ERROR_OVERFLOW) {
-    // advance digits
-    while (*p != '\0' && isdigit_ascii(*p)) {
-      p++;
-    }
-
-    // check if is float
-    if (*p != '\0') {
-      *error = ERROR_INVALID_CHARS;
-    }
-    return 0;
   }
 
   // Skip trailing spaces.
@@ -2010,7 +2012,8 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
 
       } else {
         *error = ERROR_OVERFLOW;
-        break;
+        check_for_invalid_char(p, error);
+        return 0;
       }
     }
   } else {
@@ -2022,22 +2025,10 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
 
       } else {
         *error = ERROR_OVERFLOW;
-        break;
+        check_for_invalid_char(p, error);
+        return 0;
       }
     }
-  }
-
-  if (*error == ERROR_OVERFLOW) {
-    // advance digits
-    while (*p != '\0' && isdigit_ascii(*p)) {
-      p++;
-    }
-
-    // check if is float
-    if (*p != '\0') {
-      *error = ERROR_INVALID_CHARS;
-    }
-    return 0;
   }
 
   // Skip trailing spaces.
