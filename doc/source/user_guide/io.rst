@@ -1827,10 +1827,12 @@ Best practices
 
 .. ipython:: python
 
+    from io import StringIO
+    
     def test_roundtrip_precision(df, float_format):
         """Test if a float_format preserves data during CSV roundtrip."""
-        df.to_csv('test.csv', index=False, float_format=float_format)
-        df_read = pd.read_csv('test.csv')
+        csv_string = df.to_csv(index=False, float_format=float_format)
+        df_read = pd.read_csv(StringIO(csv_string))
         return df.equals(df_read)
 
     # Test data
