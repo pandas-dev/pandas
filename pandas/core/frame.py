@@ -14110,13 +14110,13 @@ class DataFrame(NDFrame, OpsMixin):
             - If `values` is a dict, the keys must be column names,
             which must match.
             - If `values` is a DataFrame:
-                * When ``ignore_index=False`` (default), both the index
-                and column labels must match, and comparison is done
-                elementwise.
-                * When ``ignore_index=True``, only column labels must
-                match. Each element in the DataFrame is compared
-                against the set of values in the corresponding column
-                of ``values``, ignoring row index alignment.
+              * When ``ignore_index=False`` (default), both the index
+              and column labels must match, and comparison is done
+              elementwise.
+              * When ``ignore_index=True``, only column labels must
+              match. Each element in the DataFrame is compared
+              against the set of values in the corresponding column
+              of ``values``, ignoring row index alignment.
 
         ignore_index : bool, default False
             *Only valid when `values` is a DataFrame.*
@@ -14139,8 +14139,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-            ``__iter__`` is used (and not ``__contains__``) to iterate over values
-            when checking if it contains the elements in DataFrame.
+        ``__iter__`` is used (and not ``__contains__``) to iterate over values
+        when checking if it contains the elements in DataFrame.
 
         Examples
         --------
