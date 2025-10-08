@@ -1059,7 +1059,7 @@ cdef class TextReader:
         if col_dtype is not None:
             col_res, na_count = self._convert_with_dtype(
                 col_dtype, i, start, end, na_filter,
-                1, na_hashset, na_fset)
+                1, na_hashset, na_fset, False)
 
             # Fallback on the parse (e.g. we requested int dtype,
             # but its actually a float).
@@ -1077,7 +1077,7 @@ cdef class TextReader:
 
                 try:
                     col_res, na_count = self._convert_with_dtype(
-                        dt, i, start, end, na_filter, 0, na_hashset, na_fset)
+                        dt, i, start, end, na_filter, 0, na_hashset, na_fset, True)
                 except ValueError as e:
                     if str(e) == "Number is float":
                         maybe_int = False
@@ -1089,7 +1089,7 @@ cdef class TextReader:
                         # column AS IS with object dtype.
                         col_res, na_count = self._convert_with_dtype(
                             np.dtype("object"), i, start, end, 0,
-                            0, na_hashset, na_fset)
+                            0, na_hashset, na_fset, False)
                 except OverflowError:
                     try:
                         col_res, na_count = _try_pylong(self.parser, i, start,
@@ -1097,7 +1097,7 @@ cdef class TextReader:
                     except ValueError:
                         col_res, na_count = self._convert_with_dtype(
                             np.dtype("object"), i, start, end, 0,
-                            0, na_hashset, na_fset)
+                            0, na_hashset, na_fset, False)
 
                 if col_res is not None:
                     break
@@ -1145,7 +1145,7 @@ cdef class TextReader:
                              bint na_filter,
                              bint user_dtype,
                              kh_str_starts_t *na_hashset,
-                             set na_fset):
+                             set na_fset, bint raise_on_float):
         if isinstance(dtype, CategoricalDtype):
             # TODO: I suspect that _categorical_convert could be
             # optimized when dtype is an instance of CategoricalDtype
@@ -1186,14 +1186,14 @@ cdef class TextReader:
 
         elif dtype.kind in "iu":
             try:
-                result, na_count = _try_int64(self.parser, i, start,
-                                              end, na_filter, na_hashset)
+                result, na_count = _try_int64(self.parser, i, start, end,
+                                              na_filter, na_hashset, raise_on_float)
                 if user_dtype and na_count is not None:
                     if na_count > 0:
                         raise ValueError(f"Integer column has NA values in column {i}")
             except OverflowError:
                 result = _try_uint64(self.parser, i, start, end,
-                                     na_filter, na_hashset)
+                                     na_filter, na_hashset, raise_on_float)
                 na_count = 0
 
             if result is not None and dtype != "int64":
@@ -1752,7 +1752,8 @@ cdef int _try_double_nogil(parser_t *parser,
 
 cdef _try_uint64(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
-                 bint na_filter, kh_str_starts_t *na_hashset):
+                 bint na_filter, kh_str_starts_t *na_hashset,
+                 bint raise_on_float):
     cdef:
         int error
         Py_ssize_t lines
@@ -1774,9 +1775,10 @@ cdef _try_uint64(parser_t *parser, int64_t col,
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
-        elif error == ERROR_IS_FLOAT:
+        elif raise_on_float and error == ERROR_IS_FLOAT:
             raise ValueError("Number is float")
-        return None
+        elif not raise_on_float or error != ERROR_IS_FLOAT:
+            return None, None
 
     if uint64_conflict(&state):
         raise ValueError("Cannot convert to numerical dtype")
@@ -1826,7 +1828,7 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
 
 cdef _try_int64(parser_t *parser, int64_t col,
                 int64_t line_start, int64_t line_end,
-                bint na_filter, kh_str_starts_t *na_hashset):
+                bint na_filter, kh_str_starts_t *na_hashset, bint raise_on_float):
     cdef:
         int error, na_count = 0
         Py_ssize_t lines
@@ -1846,9 +1848,10 @@ cdef _try_int64(parser_t *parser, int64_t col,
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
-        elif error == ERROR_IS_FLOAT:
+        elif raise_on_float and error == ERROR_IS_FLOAT:
             raise ValueError("Number is float")
-        return None, None
+        elif not raise_on_float or error != ERROR_IS_FLOAT:
+            return None, None
 
     return result, na_count
 
