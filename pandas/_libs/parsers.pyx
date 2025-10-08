@@ -1070,21 +1070,18 @@ cdef class TextReader:
             return self._string_convert(i, start, end, na_filter, na_hashset)
         else:
             col_res = None
+            maybe_int = True
             for dt in self.dtype_cast_order:
+                if not maybe_int and dt.kind in "iu":
+                    continue
+
                 try:
                     col_res, na_count = self._convert_with_dtype(
                         dt, i, start, end, na_filter, 0, na_hashset, na_fset)
                 except ValueError as e:
                     if str(e) == "Number is float":
-                        try:
-                            col_res, na_count = self._convert_with_dtype(
-                                np.dtype("float64"), i, start, end, 0,
-                                0, na_hashset, na_fset)
-                        except ValueError:
-                            col_res, na_count = self._convert_with_dtype(
-                                np.dtype("object"), i, start, end, 0,
-                                0, na_hashset, na_fset)
-
+                        maybe_int = False
+                        continue
                     else:
                         # This error is raised from trying to convert to uint64,
                         # and we discover that we cannot convert to any numerical
