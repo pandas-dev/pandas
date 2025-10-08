@@ -888,7 +888,7 @@ class ArrowExtensionArray(
                 boxed = self._box_pa(other)
             except pa.lib.ArrowInvalid:
                 # e.g. GH#60228 [1, "b"] we have to operate pointwise
-                res_values = [op(x, y) for x, y in zip(self, other)]
+                res_values = [op(x, y) for x, y in zip(self, other, strict=True)]
                 result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
                 rtype = boxed.type
@@ -2713,7 +2713,7 @@ class ArrowExtensionArray(
         if expand:
             return {
                 col: self._from_pyarrow_array(pc.struct_field(result, [i]))
-                for col, i in zip(groups, range(result.type.num_fields))
+                for col, i in zip(groups, range(result.type.num_fields), strict=True)
             }
         else:
             return type(self)(pc.struct_field(result, [0]))
