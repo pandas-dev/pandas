@@ -229,7 +229,7 @@ jobs:
       - build_sdist
       - build_wheels
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     environment:
       name: pypi
@@ -243,6 +243,8 @@ jobs:
         with:
           path: dist          # everything lands in ./dist/**
 
+      # TODO: This step can be probably be achieved by actions/download-artifact@v5
+      # by specifying merge-multiple: true, and a glob pattern
       - name: Collect files
         run: |
           mkdir -p upload
