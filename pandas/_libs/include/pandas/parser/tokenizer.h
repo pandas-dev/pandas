@@ -17,6 +17,7 @@ See LICENSE for the license
 #define ERROR_NO_DIGITS 1
 #define ERROR_OVERFLOW 2
 #define ERROR_INVALID_CHARS 3
+#define ERROR_IS_FLOAT 4
 
 #include <stdint.h>
 
@@ -208,10 +209,11 @@ void uint_state_init(uint_state *self);
 
 int uint64_conflict(uint_state *self);
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
+uint64_t str_to_uint64(uint_state *state, const char *p_item,
+                       char decimal_separator, int64_t int_max,
                        uint64_t uint_max, int *error, char tsep);
-int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
-                     int *error, char tsep);
+int64_t str_to_int64(const char *p_item, char decimal_separator,
+                     int64_t int_min, int64_t int_max, int *error, char tsep);
 double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
                int skip_trailing, int *error, int *maybe_int);
 double precise_xstrtod(const char *p, char **q, char decimal, char sci,

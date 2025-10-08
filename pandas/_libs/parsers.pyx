@@ -149,7 +149,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         SKIP_LINE
         FINISHED
 
-    enum: ERROR_OVERFLOW
+    enum: ERROR_OVERFLOW, ERROR_IS_FLOAT
 
     ctypedef enum BadLineHandleMethod:
         ERROR,
@@ -281,10 +281,11 @@ cdef extern from "pandas/parser/pd_parser.h":
     int tokenize_all_rows(parser_t *self, const char *encoding_errors) nogil
     int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors) nogil
 
-    int64_t str_to_int64(char *p_item, int64_t int_min,
+    int64_t str_to_int64(char *p_item, char decimal_separator, int64_t int_min,
                          int64_t int_max, int *error, char tsep) nogil
-    uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
-                           uint64_t uint_max, int *error, char tsep) nogil
+    uint64_t str_to_uint64(uint_state *state, char *p_item, char decimal_separator,
+                           int64_t int_max, uint64_t uint_max,
+                           int *error, char tsep) nogil
 
     double xstrtod(const char *p, char **q, char decimal,
                    char sci, char tsep, int skip_trailing,
@@ -1070,21 +1071,28 @@ cdef class TextReader:
         else:
             col_res = None
             for dt in self.dtype_cast_order:
-                if (dt.kind in "iu" and
-                        self._column_has_float(i, start, end, na_filter, na_hashset)):
-                    continue
-
                 try:
                     col_res, na_count = self._convert_with_dtype(
                         dt, i, start, end, na_filter, 0, na_hashset, na_fset)
-                except ValueError:
-                    # This error is raised from trying to convert to uint64,
-                    # and we discover that we cannot convert to any numerical
-                    # dtype successfully. As a result, we leave the data
-                    # column AS IS with object dtype.
-                    col_res, na_count = self._convert_with_dtype(
-                        np.dtype("object"), i, start, end, 0,
-                        0, na_hashset, na_fset)
+                except ValueError as e:
+                    if str(e) == "Number is float":
+                        try:
+                            col_res, na_count = self._convert_with_dtype(
+                                np.dtype("float64"), i, start, end, 0,
+                                0, na_hashset, na_fset)
+                        except ValueError:
+                            col_res, na_count = self._convert_with_dtype(
+                                np.dtype("object"), i, start, end, 0,
+                                0, na_hashset, na_fset)
+
+                    else:
+                        # This error is raised from trying to convert to uint64,
+                        # and we discover that we cannot convert to any numerical
+                        # dtype successfully. As a result, we leave the data
+                        # column AS IS with object dtype.
+                        col_res, na_count = self._convert_with_dtype(
+                            np.dtype("object"), i, start, end, 0,
+                            0, na_hashset, na_fset)
                 except OverflowError:
                     try:
                         col_res, na_count = _try_pylong(self.parser, i, start,
@@ -1350,59 +1358,6 @@ cdef class TextReader:
                     return self.header[0][j]
             else:
                 return None
-
-    cdef bint _column_has_float(self, Py_ssize_t col,
-                                int64_t start, int64_t end,
-                                bint na_filter, kh_str_starts_t *na_hashset):
-        """Check if the column contains any float number."""
-        cdef:
-            Py_ssize_t i, j, lines = end - start
-            coliter_t it
-            const char *word = NULL
-            const char *ignored_chars = " +-"
-            const char *digits = "0123456789"
-            const char *float_indicating_chars = "eE"
-            char null_byte = 0
-
-        coliter_setup(&it, self.parser, col, start)
-
-        for i in range(lines):
-            COLITER_NEXT(it, word)
-
-            if na_filter and kh_get_str_starts_item(na_hashset, word):
-                continue
-
-            found_first_digit = False
-            j = 0
-            while word[j] != null_byte:
-                if word[j] == self.parser.decimal:
-                    return True
-                elif not found_first_digit and word[j] in ignored_chars:
-                    # no-op
-                    pass
-                elif not found_first_digit and word[j] not in digits:
-                    # word isn't numeric
-                    return False
-                elif not found_first_digit and word[j] in digits:
-                    found_first_digit = True
-                elif word[j] in float_indicating_chars:
-                    # preceding chars indicates numeric and
-                    # current char indicates float
-                    return True
-                elif word[j] not in digits:
-                    # previous characters indicates numeric
-                    # current character shows otherwise
-                    return False
-                elif word[j] in digits:
-                    # no-op
-                    pass
-                else:
-                    raise AssertionError(
-                            f"Unhandled case {word[j]=} {found_first_digit=}"
-                            )
-                j += 1
-
-        return False
 
 # Factor out code common to TextReader.__dealloc__ and TextReader.close
 # It cannot be a class method, since calling self.close() in __dealloc__
@@ -1822,6 +1777,8 @@ cdef _try_uint64(parser_t *parser, int64_t col,
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
+        elif error == ERROR_IS_FLOAT:
+            raise ValueError("Number is float")
         return None
 
     if uint64_conflict(&state):
@@ -1855,14 +1812,14 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                 data[i] = 0
                 continue
 
-            data[i] = str_to_uint64(state, word, INT64_MAX, UINT64_MAX,
+            data[i] = str_to_uint64(state, word, parser.decimal, INT64_MAX, UINT64_MAX,
                                     &error, parser.thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_uint64(state, word, INT64_MAX, UINT64_MAX,
+            data[i] = str_to_uint64(state, word, parser.decimal, INT64_MAX, UINT64_MAX,
                                     &error, parser.thousands)
             if error != 0:
                 return error
@@ -1892,6 +1849,8 @@ cdef _try_int64(parser_t *parser, int64_t col,
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
+        elif error == ERROR_IS_FLOAT:
+            raise ValueError("Number is float")
         return None, None
 
     return result, na_count
@@ -1920,14 +1879,14 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
                 data[i] = NA
                 continue
 
-            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
+            data[i] = str_to_int64(word, parser.decimal, INT64_MIN, INT64_MAX,
                                    &error, parser.thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
+            data[i] = str_to_int64(word, parser.decimal, INT64_MIN, INT64_MAX,
                                    &error, parser.thousands)
             if error != 0:
                 return error

@@ -1834,8 +1834,8 @@ int uint64_conflict(uint_state *self) {
   return self->seen_uint && (self->seen_sint || self->seen_null);
 }
 
-int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
-                     int *error, char tsep) {
+int64_t str_to_int64(const char *p_item, char decimal_separator,
+                     int64_t int_min, int64_t int_max, int *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1879,7 +1879,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
           d = *++p;
         } else {
           *error = ERROR_OVERFLOW;
-          return 0;
+          break;
         }
       }
     } else {
@@ -1890,7 +1890,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
           d = *++p;
         } else {
           *error = ERROR_OVERFLOW;
-          return 0;
+          break;
         }
       }
     }
@@ -1917,7 +1917,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
         } else {
           *error = ERROR_OVERFLOW;
-          return 0;
+          break;
         }
       }
     } else {
@@ -1929,10 +1929,23 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
         } else {
           *error = ERROR_OVERFLOW;
-          return 0;
+          break;
         }
       }
     }
+  }
+
+  if (*error == ERROR_OVERFLOW) {
+    // advance digits
+    while (*p != '\0' && isdigit_ascii(*p)) {
+      p++;
+    }
+
+    // check if is float
+    if (*p == decimal_separator || *p == 'e' || *p == 'E') {
+      *error = ERROR_IS_FLOAT;
+    }
+    return 0;
   }
 
   // Skip trailing spaces.
@@ -1942,7 +1955,11 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
   // Did we use up all the characters?
   if (*p) {
-    *error = ERROR_INVALID_CHARS;
+    if (*p == decimal_separator || *p == 'e' || *p == 'E') {
+      *error = ERROR_IS_FLOAT;
+    } else {
+      *error = ERROR_INVALID_CHARS;
+    }
     return 0;
   }
 
@@ -1950,7 +1967,8 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   return number;
 }
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
+uint64_t str_to_uint64(uint_state *state, const char *p_item,
+                       char decimal_separator, int64_t int_max,
                        uint64_t uint_max, int *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
@@ -1997,7 +2015,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
 
       } else {
         *error = ERROR_OVERFLOW;
-        return 0;
+        break;
       }
     }
   } else {
@@ -2009,9 +2027,22 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
 
       } else {
         *error = ERROR_OVERFLOW;
-        return 0;
+        break;
       }
     }
+  }
+
+  if (*error == ERROR_OVERFLOW) {
+    // advance digits
+    while (*p != '\0' && isdigit_ascii(*p)) {
+      p++;
+    }
+
+    // check if is float
+    if (*p == decimal_separator || *p == 'e' || *p == 'E') {
+      *error = ERROR_IS_FLOAT;
+    }
+    return 0;
   }
 
   // Skip trailing spaces.
@@ -2021,7 +2052,11 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
 
   // Did we use up all the characters?
   if (*p) {
-    *error = ERROR_INVALID_CHARS;
+    if (*p == decimal_separator || *p == 'e' || *p == 'E') {
+      *error = ERROR_IS_FLOAT;
+    } else {
+      *error = ERROR_INVALID_CHARS;
+    }
     return 0;
   }
 
