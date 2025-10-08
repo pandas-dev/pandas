@@ -1078,7 +1078,7 @@ cdef class TextReader:
                     col_res, na_count = self._convert_with_dtype(
                         dt, i, start, end, na_filter, 0, na_hashset, na_fset, True)
                 except ValueError as e:
-                    if str(e) == "Number is float":
+                    if str(e) == "Number is not int":
                         maybe_int = False
                         continue
                     else:
@@ -1775,7 +1775,7 @@ cdef _try_uint64(parser_t *parser, int64_t col,
             # Can't get the word variable
             raise OverflowError("Overflow")
         elif raise_on_float and error == ERROR_INVALID_CHARS:
-            raise ValueError("Number is float")
+            raise ValueError("Number is not int")
         elif not raise_on_float or error != ERROR_INVALID_CHARS:
             return None
 
@@ -1848,7 +1848,7 @@ cdef _try_int64(parser_t *parser, int64_t col,
             # Can't get the word variable
             raise OverflowError("Overflow")
         elif raise_on_float and error == ERROR_INVALID_CHARS:
-            raise ValueError("Number is float")
+            raise ValueError("Number is not int")
         elif not raise_on_float or error != ERROR_INVALID_CHARS:
             return None, None
 
