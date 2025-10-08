@@ -200,10 +200,10 @@ Other enhancements
 - :class:`Holiday` has gained the constructor argument and field ``exclude_dates`` to exclude specific datetimes from a custom holiday calendar (:issue:`54382`)
 - :class:`Rolling` and :class:`Expanding` now support ``nunique`` (:issue:`26958`)
 - :class:`Rolling` and :class:`Expanding` now support aggregations ``first`` and ``last`` (:issue:`33155`)
-- :class:`StringDtype` now supports addition to Series/DataFrame with strings (:issue:`61581`)
-
+- :class:`StringDtype` now supports addition while maintaining element typing (:issue:`61581`)
 - :func:`read_parquet` accepts ``to_pandas_kwargs`` which are forwarded to :meth:`pyarrow.Table.to_pandas` which enables passing additional keywords to customize the conversion to pandas, such as ``maps_as_pydicts`` to read the Parquet map data type as python dictionaries (:issue:`56842`)
 - :meth:`.DataFrameGroupBy.transform`, :meth:`.SeriesGroupBy.transform`, :meth:`.DataFrameGroupBy.agg`, :meth:`.SeriesGroupBy.agg`, :meth:`.SeriesGroupBy.apply`, :meth:`.DataFrameGroupBy.apply` now support ``kurt`` (:issue:`40139`)
+- :meth:`DataFrame.add` now supports string addition with null-likes (:issue:`61581`)
 - :meth:`DataFrame.apply` supports using third-party execution engines like the Bodo.ai JIT compiler (:issue:`60668`)
 - :meth:`DataFrame.iloc` and :meth:`Series.iloc` now support boolean masks in ``__getitem__`` for more consistent indexing behavior (:issue:`60994`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support Python's new-style format strings (e.g., ``"{:.6f}"``) for the ``float_format`` parameter, in addition to old-style ``%`` format strings and callables. This allows for more flexible and modern formatting of floating point numbers when exporting to CSV. (:issue:`49580`)
