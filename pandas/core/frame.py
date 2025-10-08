@@ -11926,6 +11926,18 @@ class DataFrame(NDFrame, OpsMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
 
+        # validate numeric_only is strictly a bool (disallow None, ints, etc.)
+        # Deprecate passing None to numeric_only: warn now, error in a future
+        # release. See GH#53098.
+        from pandas.util._validators import deprecate_numeric_only_none
+
+        deprecate_numeric_only_none(numeric_only, "numeric_only")
+        # During the 2.x cycle we warn if numeric_only is None but continue to
+        # accept None; later releases should set none_allowed=False to raise.
+        validate_bool_kwarg(
+            numeric_only, "numeric_only", none_allowed=True, int_allowed=False
+        )
+
         def func(values: np.ndarray):
             # We only use this in the case that operates on self.values
             return op(values, axis=axis, skipna=skipna, **kwds)

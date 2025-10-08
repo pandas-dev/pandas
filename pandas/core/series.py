@@ -6664,6 +6664,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if axis is not None:
             self._get_axis_number(axis)
 
+        # validate numeric_only is strictly a bool (disallow None, ints, etc.)
+        # Deprecate passing None to numeric_only: warn now, error in a future
+        # release. See GH#53098.
+        from pandas.util._validators import deprecate_numeric_only_none
+
+        deprecate_numeric_only_none(numeric_only, "numeric_only")
+        validate_bool_kwarg(
+            numeric_only, "numeric_only", none_allowed=True, int_allowed=False
+        )
+
         if isinstance(delegate, ExtensionArray):
             # dispatch to ExtensionArray interface
             return delegate._reduce(name, skipna=skipna, **kwds)
