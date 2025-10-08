@@ -1705,9 +1705,9 @@ Consider this example:
 .. ipython:: python
    :suppress:
 
-   import os
-   if os.path.exists('test_precision.csv'):
-       os.remove('test_precision.csv')
+    import os
+    if os.path.exists('test_precision.csv'):
+        os.remove('test_precision.csv')
 
 In this case, the slight precision loss occurs because the decimal ``0.3`` cannot be
 exactly represented in binary floating point format.
@@ -1739,9 +1739,9 @@ roundtrip operations.
 .. ipython:: python
    :suppress:
 
-   for f in ['default.csv', 'formatted.csv']:
-       if os.path.exists(f):
-           os.remove(f)
+    for f in ['default.csv', 'formatted.csv']:
+        if os.path.exists(f):
+            os.remove(f)
 
 Format specifiers
 ~~~~~~~~~~~~~~~~~
@@ -1765,24 +1765,24 @@ Different format specifiers have different effects on precision and output forma
 
 .. ipython:: python
 
-   # Demonstrate different format effects
-   df = pd.DataFrame({'number': [123456789.123456789]})
+    # Demonstrate different format effects
+    df = pd.DataFrame({'number': [123456789.123456789]})
 
-   formats = {'%.6f': '6 decimal places',
-              '%.10g': '10 significant digits',
-              '%.6e': 'scientific notation'}
+    formats = {'%.6f': '6 decimal places',
+               '%.10g': '10 significant digits', 
+               '%.6e': 'scientific notation'}
 
-   for fmt, description in formats.items():
-       df.to_csv('temp.csv', index=False, float_format=fmt)
-       with open('temp.csv', 'r') as f:
-           csv_content = f.read().strip().split('\n')[1]
-       print(f"{description:20}: {csv_content}")
+    for fmt, description in formats.items():
+        df.to_csv('temp.csv', index=False, float_format=fmt)
+        with open('temp.csv', 'r') as f:
+            csv_content = f.read().strip().split('\n')[1]
+        print(f"{description:20}: {csv_content}")
 
 .. ipython:: python
    :suppress:
 
-   if os.path.exists('temp.csv'):
-       os.remove('temp.csv')
+    if os.path.exists('temp.csv'):
+        os.remove('temp.csv')
 
 Best practices
 ~~~~~~~~~~~~~~
@@ -1792,59 +1792,59 @@ Best practices
 
 .. ipython:: python
 
-   # High precision example
-   scientific_data = pd.DataFrame({
-       'measurement': [1.23456789012345e-10, 9.87654321098765e15]
-   })
-   scientific_data.to_csv('scientific.csv', index=False, float_format='%.17g')
+    # High precision example
+    scientific_data = pd.DataFrame({
+        'measurement': [1.23456789012345e-10, 9.87654321098765e15]
+    })
+    scientific_data.to_csv('scientific.csv', index=False, float_format='%.17g')
 
 .. ipython:: python
    :suppress:
 
-   if os.path.exists('scientific.csv'):
-       os.remove('scientific.csv')
+    if os.path.exists('scientific.csv'):
+        os.remove('scientific.csv')
 
 **For financial data**:
   Use fixed decimal places like ``float_format='%.2f'``:
 
 .. ipython:: python
 
-   # Financial data example
-   financial_data = pd.DataFrame({
-       'price': [19.99, 1234.56, 0.01]
-   })
-   financial_data.to_csv('financial.csv', index=False, float_format='%.2f')
+    # Financial data example
+    financial_data = pd.DataFrame({
+        'price': [19.99, 1234.56, 0.01]
+    })
+    financial_data.to_csv('financial.csv', index=False, float_format='%.2f')
 
 .. ipython:: python
    :suppress:
 
-   if os.path.exists('financial.csv'):
-       os.remove('financial.csv')
+    if os.path.exists('financial.csv'):
+        os.remove('financial.csv')
 
 **For ensuring exact roundtrip**:
   Test your specific data to find the minimum precision needed:
 
 .. ipython:: python
 
-   def test_roundtrip_precision(df, float_format):
-       """Test if a float_format preserves data during CSV roundtrip."""
-       df.to_csv('test.csv', index=False, float_format=float_format)
-       df_read = pd.read_csv('test.csv')
-       return df.equals(df_read)
+    def test_roundtrip_precision(df, float_format):
+        """Test if a float_format preserves data during CSV roundtrip."""
+        df.to_csv('test.csv', index=False, float_format=float_format)
+        df_read = pd.read_csv('test.csv')
+        return df.equals(df_read)
 
-   # Test data
-   test_df = pd.DataFrame({'values': [123.456789, 0.000123456, 1.23e15]})
+    # Test data
+    test_df = pd.DataFrame({'values': [123.456789, 0.000123456, 1.23e15]})
 
-   # Test different precisions
-   for fmt in ['%.6g', '%.10g', '%.15g']:
-       success = test_roundtrip_precision(test_df, fmt)
-       print(f"Format {fmt}: {'✓' if success else '✗'} roundtrip success")
+    # Test different precisions
+    for fmt in ['%.6g', '%.10g', '%.15g']:
+        success = test_roundtrip_precision(test_df, fmt)
+        print(f"Format {fmt}: {'✓' if success else '✗'} roundtrip success")
 
 .. ipython:: python
    :suppress:
 
-   if os.path.exists('test.csv'):
-       os.remove('test.csv')
+    if os.path.exists('test.csv'):
+        os.remove('test.csv')
 
 **dtype Preservation Note**:
   Be aware that CSV format does not preserve NumPy dtypes. All numeric data
@@ -1852,26 +1852,26 @@ Best practices
 
 .. ipython:: python
 
-   # dtype preservation example
-   original_df = pd.DataFrame({
-       'float32_col': np.array([1.23], dtype=np.float32),
-       'float64_col': np.array([1.23], dtype=np.float64)
-   })
+    # dtype preservation example
+    original_df = pd.DataFrame({
+        'float32_col': np.array([1.23], dtype=np.float32),
+        'float64_col': np.array([1.23], dtype=np.float64)
+    })
 
-   print("Original dtypes:")
-   print(original_df.dtypes)
+    print("Original dtypes:")
+    print(original_df.dtypes)
 
-   original_df.to_csv('dtypes.csv', index=False)
-   read_df = pd.read_csv('dtypes.csv')
+    original_df.to_csv('dtypes.csv', index=False)
+    read_df = pd.read_csv('dtypes.csv')
 
-   print("\nAfter CSV roundtrip:")
-   print(read_df.dtypes)
+    print("\nAfter CSV roundtrip:")
+    print(read_df.dtypes)
 
 .. ipython:: python
    :suppress:
 
-   if os.path.exists('dtypes.csv'):
-       os.remove('dtypes.csv')
+    if os.path.exists('dtypes.csv'):
+        os.remove('dtypes.csv')
 
 Writing a formatted string
 ++++++++++++++++++++++++++
