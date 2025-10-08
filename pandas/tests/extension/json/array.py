@@ -262,7 +262,7 @@ class JSONArray(ExtensionArray):
         return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
 
 
-def make_data():
+def make_data(n: int):
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
     rng = np.random.default_rng(2)
     return [
@@ -272,5 +272,5 @@ def make_data():
                 for _ in range(rng.integers(0, 10))
             ]
         )
-        for _ in range(100)
+        for _ in range(n)
     ]

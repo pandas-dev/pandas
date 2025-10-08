@@ -1710,7 +1710,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Index : 1, Value : B
         Index : 2, Value : C
         """
-        return zip(iter(self.index), iter(self))
+        return zip(iter(self.index), iter(self), strict=True)
 
     # ----------------------------------------------------------------------
     # Misc public methods
@@ -4422,6 +4422,34 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2            NaN
         3  I am a rabbit
         dtype: object
+
+        For categorical data, the function is only applied to the categories:
+
+        >>> s = pd.Series(list("cabaa"))
+        >>> s.map(print)
+        c
+        a
+        b
+        a
+        a
+        0    None
+        1    None
+        2    None
+        3    None
+        4    None
+        dtype: object
+
+        >>> s_cat = s.astype("category")
+        >>> s_cat.map(print)  # function called once per unique category
+        a
+        b
+        c
+        0    None
+        1    None
+        2    None
+        3    None
+        4    None
+        dtype: object
         """
         if func is None:
             if "arg" in kwargs:
@@ -5508,12 +5536,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             for condition, replacement in caselist
         ]
         default = self.copy(deep=False)
-        conditions, replacements = zip(*caselist)
+        conditions, replacements = zip(*caselist, strict=True)
         common_dtypes = [infer_dtype_from(arg)[0] for arg in [*replacements, default]]
         if len(set(common_dtypes)) > 1:
             common_dtype = find_common_type(common_dtypes)
             updated_replacements = []
-            for condition, replacement in zip(conditions, replacements):
+            for condition, replacement in zip(conditions, replacements, strict=True):
                 if is_scalar(replacement):
                     replacement = construct_1d_arraylike_from_scalar(
                         value=replacement, length=len(condition), dtype=common_dtype
@@ -5528,7 +5556,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         counter = range(len(conditions) - 1, -1, -1)
         for position, condition, replacement in zip(
-            counter, reversed(conditions), reversed(replacements)
+            counter, reversed(conditions), reversed(replacements), strict=True
         ):
             try:
                 default = default.mask(

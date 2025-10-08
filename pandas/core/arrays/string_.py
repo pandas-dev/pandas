@@ -172,7 +172,7 @@ class StringDtype(StorageExtensionDtype):
             warnings.warn(
                 "The 'pyarrow_numpy' storage option name is deprecated and will be "
                 'removed in pandas 3.0. Use \'pd.StringDtype(storage="pyarrow", '
-                "na_value-np.nan)' to construct the same dtype.\nOr enable the "
+                "na_value=np.nan)' to construct the same dtype.\nOr enable the "
                 "'pd.options.future.infer_string = True' option globally and use "
                 'the "str" alias as a shorthand notation to specify a dtype '
                 '(instead of "string[pyarrow_numpy]").',
@@ -493,6 +493,12 @@ class BaseStringArray(ExtensionArray):
             if self.dtype.storage == "pyarrow":
                 import pyarrow as pa
 
+                # TODO: shouldn't this already be caught my passed mask?
+                #  it isn't in test_extract_expand_capture_groups_index
+                # mask = mask | np.array(
+                #    [x is libmissing.NA for x in result], dtype=bool
+                #    )
+
                 result = pa.array(
                     result, mask=mask, type=pa.large_string(), from_pandas=True
                 )
@@ -758,7 +764,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         result = super()._cast_pointwise_result(values)
         if isinstance(result.dtype, StringDtype):
             # Ensure we retain our same na_value/storage
-            result = result.astype(self.dtype)  # type: ignore[call-overload]
+            result = result.astype(self.dtype)
         return result
 
     @classmethod
@@ -778,7 +784,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
         values = self._ndarray.copy()
         values[self.isna()] = None
-        return pa.array(values, type=type, from_pandas=True)
+        return pa.array(values, type=type)
 
     def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:  # type: ignore[override]
         arr = self._ndarray
@@ -1131,3 +1137,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return res_arr
 
     _arith_method = _cmp_method
+
+    def _str_zfill(self, width: int) -> Self:
+        return self._str_map(lambda x: x.zfill(width))

@@ -6,7 +6,8 @@ on:
 
 jobs:
   cleanup:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    if: github.repository_owner == 'pandas-dev'
     steps:
       - name: Clean Cache
         run: |
