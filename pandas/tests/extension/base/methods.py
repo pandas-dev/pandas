@@ -39,7 +39,6 @@ class BaseMethodsTests:
 
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
-        all_data = all_data[:10]
         if dropna:
             other = all_data[~all_data.isna()]
         else:
@@ -52,7 +51,7 @@ class BaseMethodsTests:
 
     def test_value_counts_with_normalize(self, data):
         # GH 33172
-        data = data[:10].unique()
+        data = data.unique()
         values = np.array(data[~data.isna()])
         ser = pd.Series(data, dtype=data.dtype)
 

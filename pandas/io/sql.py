@@ -40,6 +40,7 @@ from pandas.errors import (
     AbstractMethodError,
     DatabaseError,
 )
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
@@ -272,6 +273,7 @@ def read_sql_table(
 ) -> Iterator[DataFrame]: ...
 
 
+@set_module("pandas")
 def read_sql_table(
     table_name: str,
     con,
@@ -403,6 +405,7 @@ def read_sql_query(
 ) -> Iterator[DataFrame]: ...
 
 
+@set_module("pandas")
 def read_sql_query(
     sql,
     con,
@@ -541,6 +544,7 @@ def read_sql(
 ) -> Iterator[DataFrame]: ...
 
 
+@set_module("pandas")
 def read_sql(
     sql,
     con,
@@ -1015,7 +1019,7 @@ class SQLTable(PandasObject):
         data_iter : generator of list
            Each item contains a list of values to be inserted
         """
-        data = [dict(zip(keys, row)) for row in data_iter]
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
         result = self.pd_sql.execute(self.table.insert(), data)
         return result.rowcount
 
@@ -1031,7 +1035,7 @@ class SQLTable(PandasObject):
 
         from sqlalchemy import insert
 
-        data = [dict(zip(keys, row)) for row in data_iter]
+        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
         stmt = insert(self.table).values(data)
         result = self.pd_sql.execute(stmt)
         return result.rowcount
@@ -1121,7 +1125,9 @@ class SQLTable(PandasObject):
                 if start_i >= end_i:
                     break
 
-                chunk_iter = zip(*(arr[start_i:end_i] for arr in data_list))
+                chunk_iter = zip(
+                    *(arr[start_i:end_i] for arr in data_list), strict=True
+                )
                 num_inserted = exec_insert(conn, keys, chunk_iter)
                 # GH 46891
                 if num_inserted is not None:
