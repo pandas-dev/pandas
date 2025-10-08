@@ -1692,17 +1692,17 @@ Consider this example:
    import pandas as pd
    import numpy as np
 
-   # Create a DataFrame with a problematic floating point value
-   df = pd.DataFrame({'value': [0.1 + 0.2]})
-   print(f"Original value: {df['value'].iloc[0]!r}")
+    # Create a DataFrame with a problematic floating point value
+    df = pd.DataFrame({'value': [0.1 + 0.2]})
+    original_value = df['value'].iloc[0]
+    print(f"Original value: {original_value!r}")
 
-   # Save to CSV and read back
-   df.to_csv('test_precision.csv', index=False)
-   df_read = pd.read_csv('test_precision.csv')
-   print(f"After CSV roundtrip: {df_read['value'].iloc[0]!r}")
-   print(f"Values are equal: {df['value'].iloc[0] == df_read['value'].iloc[0]}")
-
-.. ipython:: python
+    # Save to CSV and read back
+    df.to_csv('test_precision.csv', index=False)
+    df_read = pd.read_csv('test_precision.csv')
+    read_value = df_read['value'].iloc[0]
+    print(f"After CSV roundtrip: {read_value!r}")
+    print(f"Values are equal: {original_value == read_value}").. ipython:: python
    :suppress:
 
     import os
@@ -1721,22 +1721,23 @@ roundtrip operations.
 
 .. ipython:: python
 
-   # Example with high precision number
-   df = pd.DataFrame({'precision_test': [123456789.123456789]})
-   print(f"Original: {df['precision_test'].iloc[0]}")
+    # Example with high precision number
+    df = pd.DataFrame({'precision_test': [123456789.123456789]})
+    original_val = df['precision_test'].iloc[0]
+    print(f"Original: {original_val}")
 
-   # Default behavior
-   df.to_csv('default.csv', index=False)
-   df_default = pd.read_csv('default.csv')
+    # Default behavior
+    df.to_csv('default.csv', index=False)
+    df_default = pd.read_csv('default.csv')
 
-   # With explicit precision control
-   df.to_csv('formatted.csv', index=False, float_format='%.15g')
-   df_formatted = pd.read_csv('formatted.csv')
+    # With explicit precision control
+    df.to_csv('formatted.csv', index=False, float_format='%.15g')
+    df_formatted = pd.read_csv('formatted.csv')
 
-   print(f"Default read: {df_default['precision_test'].iloc[0]}")
-   print(f"Formatted read: {df_formatted['precision_test'].iloc[0]}")
-
-.. ipython:: python
+    default_val = df_default['precision_test'].iloc[0]
+    formatted_val = df_formatted['precision_test'].iloc[0]
+    print(f"Default read: {default_val}")
+    print(f"Formatted read: {formatted_val}").. ipython:: python
    :suppress:
 
     for f in ['default.csv', 'formatted.csv']:
@@ -1769,7 +1770,7 @@ Different format specifiers have different effects on precision and output forma
     df = pd.DataFrame({'number': [123456789.123456789]})
 
     formats = {'%.6f': '6 decimal places',
-               '%.10g': '10 significant digits', 
+               '%.10g': '10 significant digits',
                '%.6e': 'scientific notation'}
 
     for fmt, description in formats.items():
