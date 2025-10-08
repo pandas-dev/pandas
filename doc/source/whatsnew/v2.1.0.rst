@@ -518,6 +518,7 @@ Other Deprecations
 - Deprecated ``axis=1`` in :meth:`DataFrame.ewm`, :meth:`DataFrame.rolling`, :meth:`DataFrame.expanding`, transpose before calling the method instead (:issue:`51778`)
 - Deprecated ``axis=1`` in :meth:`DataFrame.groupby` and in :class:`Grouper` constructor, do ``frame.T.groupby(...)`` instead (:issue:`51203`)
 - Deprecated ``broadcast_axis`` keyword in :meth:`Series.align` and :meth:`DataFrame.align`, upcast before calling ``align`` with ``left = DataFrame({col: left for col in right.columns}, index=right.index)`` (:issue:`51856`)
+ - Deprecated passing ``numeric_only=None`` to reduction APIs (DataFrame/Series/GroupBy/Window). During the 2.x cycle pandas will emit a ``pandas.errors.PandasFutureWarning`` when ``numeric_only=None`` is used; in a future release this will raise a ``ValueError``. Please pass ``True`` or ``False`` explicitly (:issue:`53098`).
 - Deprecated ``downcast`` keyword in :meth:`Index.fillna` (:issue:`53956`)
 - Deprecated ``fill_method`` and ``limit`` keywords in :meth:`DataFrame.pct_change`, :meth:`Series.pct_change`, :meth:`.DataFrameGroupBy.pct_change`, and :meth:`.SeriesGroupBy.pct_change`, explicitly call e.g. :meth:`DataFrame.ffill` or :meth:`DataFrame.bfill` before calling ``pct_change`` instead (:issue:`53491`)
 - Deprecated ``method``, ``limit``, and ``fill_axis`` keywords in :meth:`DataFrame.align` and :meth:`Series.align`, explicitly call :meth:`DataFrame.fillna` or :meth:`Series.fillna` on the alignment results instead (:issue:`51856`)
