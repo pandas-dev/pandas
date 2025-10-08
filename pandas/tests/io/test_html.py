@@ -61,7 +61,7 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
         )
     )
     assert both_frames, msg
-    for frame_i, frame_j in zip(list1, list2):
+    for frame_i, frame_j in zip(list1, list2, strict=True):
         tm.assert_frame_equal(frame_i, frame_j, *args, **kwargs)
         assert not frame_i.empty, "frames are both empty"
 

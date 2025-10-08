@@ -65,7 +65,7 @@ class TestMultiIndexSorted:
             ["bar", "bar", "baz", "baz", "qux", "qux", "foo", "foo"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        tuples = zip(*arrays)
+        tuples = zip(*arrays, strict=True)
         index = MultiIndex.from_tuples(tuples)
         index = index.sort_values(  # sort by third letter
             key=lambda x: x.map(lambda entry: entry[2])
@@ -76,7 +76,7 @@ class TestMultiIndexSorted:
             ["foo", "foo", "bar", "bar", "qux", "qux", "baz", "baz"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        tuples = zip(*arrays)
+        tuples = zip(*arrays, strict=True)
         index = MultiIndex.from_tuples(tuples)
         expected = DataFrame(range(8), index=index)
 
@@ -117,7 +117,7 @@ class TestMultiIndexSorted:
         df = frame.T
         df["foo", "four"] = "foo"
 
-        arrays = [np.array(x) for x in zip(*df.columns.values)]
+        arrays = [np.array(x) for x in zip(*df.columns.values, strict=True)]
 
         result = df["foo"]
         result2 = df.loc[:, "foo"]
@@ -139,11 +139,11 @@ class TestMultiIndexSorted:
             ["bar", "bar", "baz", "baz", "qux", "qux", "foo", "foo"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        tuples = zip(*arrays)
+        tuples = zip(*arrays, strict=True)
         index = MultiIndex.from_tuples(tuples)
         s = Series(np.random.default_rng(2).standard_normal(8), index=index)
 
-        arrays = [np.array(x) for x in zip(*index.values)]
+        arrays = [np.array(x) for x in zip(*index.values, strict=True)]
 
         result = s["qux"]
         result2 = s.loc["qux"]

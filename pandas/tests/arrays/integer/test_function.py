@@ -104,7 +104,7 @@ def test_ufunc_binary_output(using_nan_is_na):
     assert isinstance(result, tuple)
     assert len(result) == 2
 
-    for x, y in zip(result, expected):
+    for x, y in zip(result, expected, strict=True):
         tm.assert_extension_array_equal(x, y)
 
 
