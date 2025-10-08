@@ -6110,8 +6110,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         other : the object from which to get the attributes that we are going
             to propagate. If ``other`` has an ``input_objs`` attribute, then
             this attribute must contain an iterable of objects, each with an
-            ``attrs`` attribute, in which case, each such ``attrs`` instance
-            must be a dictionary that is equal to all of the others.
+            ``attrs`` attribute.
         method : str, optional
             A passed method name providing context on where ``__finalize__``
             was called.
@@ -6120,6 +6119,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                The value passed as `method` are not currently considered
                stable across pandas releases.
+
+        Notes
+        -----
+        In case ``other`` has an ``input_objs`` attribute, this method only
+        propagates its metadata if each object in ``input_objs`` has the exact
+        same metadata as the others.
         """
         if isinstance(other, NDFrame):
             if other.attrs:
