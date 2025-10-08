@@ -1743,7 +1743,7 @@ roundtrip operations.
        if os.path.exists(f):
            os.remove(f)
 
-Format Specifiers
+Format specifiers
 ~~~~~~~~~~~~~~~~~
 
 Different format specifiers have different effects on precision and output format:
@@ -1784,7 +1784,7 @@ Different format specifiers have different effects on precision and output forma
    if os.path.exists('temp.csv'):
        os.remove('temp.csv')
 
-Best Practices
+Best practices
 ~~~~~~~~~~~~~~
 
 **For high-precision scientific data**:
