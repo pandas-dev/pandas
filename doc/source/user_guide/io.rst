@@ -1828,7 +1828,7 @@ Best practices
 .. ipython:: python
 
     from io import StringIO
-    
+
     def test_roundtrip_precision(df, float_format):
         """Test if a float_format preserves data during CSV roundtrip."""
         csv_string = df.to_csv(index=False, float_format=float_format)
@@ -1841,7 +1841,8 @@ Best practices
     # Test different precisions
     for fmt in ['%.6g', '%.10g', '%.15g']:
         success = test_roundtrip_precision(test_df, fmt)
-        print(f"Format {fmt}: {'✓' if success else '✗'} roundtrip success")
+        status = '✓' if success else '✗'
+        print("Format {}: {} roundtrip success".format(fmt, status))
 
 .. ipython:: python
    :suppress:
