@@ -6,12 +6,17 @@ pandas.Series.__invert__
 Elementwise invert (``~``) for :class:`pandas.Series`.
 
 **Signature**
-    ``Series.__invert__(self) -> Series``
+
+``Series.__invert__(self) -> Series``
 
 **Summary**
-    For boolean and nullable-boolean dtypes, ``~s`` toggles the mask
-    (``True`` ↔ ``False``) and propagates ``pd.NA``. For integer dtypes,
-    ``~`` performs bitwise invert as in Python.
+
+For boolean and nullable-boolean dtypes, ``~s`` toggles the mask
+(``True`` ↔ ``False``) and propagates ``pd.NA``. For integer dtypes,
+``~`` performs bitwise invert as in Python.
+
+.. seealso::
+   :ref:`indexing.boolean`
 
 **Examples**
 
@@ -43,6 +48,6 @@ Arrow-backed boolean (if pyarrow installed)::
     dtype: boolean[pyarrow]
 
 **Notes**
-* In Python’s stdlib, :func:`operator.__invert__` is bitwise invert on integers.
+
+- In Python’s stdlib, :func:`operator.__invert__` is bitwise invert on integers.
   In pandas, ``~`` on boolean arrays is elementwise invert.
-* See also :ref:`user_guide.boolean_indexing`.
