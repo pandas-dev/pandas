@@ -1070,6 +1070,10 @@ cdef class TextReader:
         else:
             col_res = None
             for dt in self.dtype_cast_order:
+                if (dt.kind in "iu" and
+                        self._column_has_float(i, start, end, na_filter, na_hashset)):
+                    continue
+
                 try:
                     col_res, na_count = self._convert_with_dtype(
                         dt, i, start, end, na_filter, 0, na_hashset, na_fset)
@@ -1347,6 +1351,58 @@ cdef class TextReader:
             else:
                 return None
 
+    cdef bint _column_has_float(self, Py_ssize_t col,
+                                int64_t start, int64_t end,
+                                bint na_filter, kh_str_starts_t *na_hashset):
+        """Check if the column contains any float number."""
+        cdef:
+            Py_ssize_t i, j, lines = end - start
+            coliter_t it
+            const char *word = NULL
+            const char *ignored_chars = " +-"
+            const char *digits = "0123456789"
+            const char *float_indicating_chars = "eE"
+            char null_byte = 0
+
+        coliter_setup(&it, self.parser, col, start)
+
+        for i in range(lines):
+            COLITER_NEXT(it, word)
+
+            if na_filter and kh_get_str_starts_item(na_hashset, word):
+                continue
+
+            found_first_digit = False
+            j = 0
+            while word[j] != null_byte:
+                if word[j] == self.parser.decimal:
+                    return True
+                elif not found_first_digit and word[j] in ignored_chars:
+                    # no-op
+                    pass
+                elif not found_first_digit and word[j] not in digits:
+                    # word isn't numeric
+                    return False
+                elif not found_first_digit and word[j] in digits:
+                    found_first_digit = True
+                elif word[j] in float_indicating_chars:
+                    # preceding chars indicates numeric and
+                    # current char indicates float
+                    return True
+                elif word[j] not in digits:
+                    # previous characters indicates numeric
+                    # current character shows otherwise
+                    return False
+                elif word[j] in digits:
+                    # no-op
+                    pass
+                else:
+                    raise AssertionError(
+                            f"Unhandled case {word[j]=} {found_first_digit=}"
+                            )
+                j += 1
+
+        return False
 
 # Factor out code common to TextReader.__dealloc__ and TextReader.close
 # It cannot be a class method, since calling self.close() in __dealloc__

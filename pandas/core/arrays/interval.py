@@ -1893,7 +1893,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> idx.to_tuples()
         Index([(0, 1), (1, 2)], dtype='object')
         """
-        tuples = com.asarray_tuplesafe(zip(self._left, self._right))
+        tuples = com.asarray_tuplesafe(zip(self._left, self._right, strict=True))
         if not na_tuple:
             # GH 18756
             tuples = np.where(~self.isna(), tuples, np.nan)
