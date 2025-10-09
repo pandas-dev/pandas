@@ -22,6 +22,7 @@ import numpy as np
 
 from pandas._config import (
     get_option,
+    is_nan_na,
     using_string_dtype,
 )
 
@@ -160,6 +161,7 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.string_ import (
     StringArray,
     StringDtype,
@@ -470,7 +472,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     str = Accessor("str", StringMethods)
 
-    _references = None
+    _references: BlockValuesRefs | None = None
 
     # --------------------------------------------------------------------
     # Constructors
@@ -640,7 +642,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     @classmethod
     def _simple_new(
-        cls, values: ArrayLike, name: Hashable | None = None, refs=None
+        cls,
+        values: ArrayLike,
+        name: Hashable | None = None,
+        refs: BlockValuesRefs | None = None,
     ) -> Self:
         """
         We require that we have a dtype compat for the values. If we are passed
@@ -3304,7 +3309,7 @@ class Index(IndexOpsMixin, PandasObject):
                     res = algos.unique1d(res_indexer)
                 else:
                     result = self.take(indexer)
-                    res = result.drop_duplicates()
+                    res = result.drop_duplicates()  # type: ignore[assignment]
                 return ensure_wrapped_if_datetimelike(res)
 
         res_values = self._intersection_via_get_indexer(other, sort=sort)
@@ -6591,6 +6596,14 @@ class Index(IndexOpsMixin, PandasObject):
         If we have a float key and are not a floating index, then try to cast
         to an int if equivalent.
         """
+        if (
+            is_float(key)
+            and np.isnan(key)
+            and isinstance(self.dtype, FloatingDtype)
+            and is_nan_na()
+        ):
+            # TODO: better place to do this?
+            key = self.dtype.na_value
         return key
 
     def _maybe_cast_listlike_indexer(self, target) -> Index:
