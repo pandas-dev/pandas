@@ -126,10 +126,6 @@ chunksize : int, default None
     Return StataReader object for iterations, returns chunks with
     given number of lines."""
 
-_iterator_params = """\
-iterator : bool, default False
-    Return StataReader object."""
-
 _reader_notes = """\
 Notes
 -----
@@ -137,80 +133,6 @@ Categorical variables read through an iterator may not have the same
 categories and dtype. This occurs when  a variable stored in a DTA
 file is associated to an incomplete set of value labels that only
 label a strict subset of the values."""
-
-_read_stata_doc = f"""
-Read Stata file into DataFrame.
-
-Parameters
-----------
-filepath_or_buffer : str, path object or file-like object
-    Any valid string path is acceptable. The string could be a URL. Valid
-    URL schemes include http, ftp, s3, and file. For file URLs, a host is
-    expected. A local file could be: ``file://localhost/path/to/table.dta``.
-
-    If you want to pass in a path object, pandas accepts any ``os.PathLike``.
-
-    By file-like object, we refer to objects with a ``read()`` method,
-    such as a file handle (e.g. via builtin ``open`` function)
-    or ``StringIO``.
-{_statafile_processing_params1}
-{_statafile_processing_params2}
-{_chunksize_params}
-{_iterator_params}
-{_shared_docs["decompression_options"] % "filepath_or_buffer"}
-{_shared_docs["storage_options"]}
-
-Returns
--------
-DataFrame, pandas.api.typing.StataReader
-    If iterator or chunksize, returns StataReader, else DataFrame.
-
-See Also
---------
-io.stata.StataReader : Low-level reader for Stata data files.
-DataFrame.to_stata: Export Stata data files.
-
-{_reader_notes}
-
-Examples
---------
-
-Creating a dummy stata for this example
-
->>> df = pd.DataFrame({{'animal': ['falcon', 'parrot', 'falcon', 'parrot'],
-...                   'speed': [350, 18, 361, 15]}})  # doctest: +SKIP
->>> df.to_stata('animals.dta')  # doctest: +SKIP
-
-Read a Stata dta file:
-
->>> df = pd.read_stata('animals.dta')  # doctest: +SKIP
-
-Read a Stata dta file in 10,000 line chunks:
-
->>> values = np.random.randint(0, 10, size=(20_000, 1), dtype="uint8")  # doctest: +SKIP
->>> df = pd.DataFrame(values, columns=["i"])  # doctest: +SKIP
->>> df.to_stata('filename.dta')  # doctest: +SKIP
-
->>> with pd.read_stata('filename.dta', chunksize=10000) as itr:  # doctest: +SKIP
->>>     for chunk in itr:
-...         # Operate on a single chunk, e.g., chunk.mean()
-...         pass  # doctest: +SKIP
-"""
-
-_read_method_doc = f"""\
-Reads observations from Stata file, converting them into a dataframe
-
-Parameters
-----------
-nrows : int
-    Number of lines to read from data file, if None read whole file.
-{_statafile_processing_params1}
-{_statafile_processing_params2}
-
-Returns
--------
-DataFrame
-"""
 
 _stata_reader_doc = f"""\
 Class for reading Stata dta files.
