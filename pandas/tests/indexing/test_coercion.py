@@ -816,7 +816,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
         Object we will pass to `Series.replace`
         """
         if how == "dict":
-            replacer = dict(zip(self.rep[from_key], self.rep[to_key]))
+            replacer = dict(zip(self.rep[from_key], self.rep[to_key], strict=True))
         elif how == "series":
             replacer = pd.Series(self.rep[to_key], index=self.rep[from_key])
         else:

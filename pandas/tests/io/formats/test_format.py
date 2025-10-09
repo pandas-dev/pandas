@@ -109,7 +109,7 @@ class TestDataFrameFormatting:
 
             adj = printing.get_adjustment()
 
-            for line, value in zip(r.split("\n"), df["B"]):
+            for line, value in zip(r.split("\n"), df["B"], strict=True):
                 if adj.len(value) + 1 > max_len:
                     assert "..." in line
                 else:
@@ -1742,7 +1742,7 @@ class TestSeriesFormatting:
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        tuples = list(zip(*arrays))
+        tuples = list(zip(*arrays, strict=True))
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
         s = Series(np.random.default_rng(2).standard_normal(8), index=index)
 

@@ -109,7 +109,7 @@ class TestDatetimeLike:
     @pytest.mark.parametrize(
         "mapper",
         [
-            lambda values, index: {i: e for e, i in zip(values, index)},
+            lambda values, index: {i: e for e, i in zip(values, index, strict=True)},
             lambda values, index: pd.Series(values, index, dtype=object),
         ],
     )

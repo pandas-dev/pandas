@@ -279,7 +279,7 @@ class TestSlicing:
             # Timestamp with the same resolution as index
             # Should be exact match for Series (return scalar)
             # and raise KeyError for Frame
-            for timestamp, expected in zip(index, values):
+            for timestamp, expected in zip(index, values, strict=True):
                 ts_string = timestamp.strftime(formats[rnum])
                 # make ts_string as precise as index
                 result = df["a"][ts_string]
@@ -319,7 +319,7 @@ class TestSlicing:
 
             # Not compatible with existing key
             # Should raise KeyError
-            for fmt, res in list(zip(formats, resolutions))[rnum + 1 :]:
+            for fmt, res in list(zip(formats, resolutions, strict=True))[rnum + 1 :]:
                 ts = index[1] + Timedelta("1 " + res)
                 ts_string = ts.strftime(fmt)
                 msg = rf"^'{ts_string}'$"

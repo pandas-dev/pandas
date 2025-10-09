@@ -1401,7 +1401,9 @@ class TestSeriesConstructors:
         values = [42544017.198965244, 1234565, 40512335.181958228, -1]
 
         def create_data(constructor):
-            return dict(zip((constructor(x) for x in dates_as_str), values))
+            return dict(
+                zip((constructor(x) for x in dates_as_str), values, strict=True)
+            )
 
         data_datetime64 = create_data(np.datetime64)
         data_datetime = create_data(lambda x: datetime.strptime(x, "%Y-%m-%d"))

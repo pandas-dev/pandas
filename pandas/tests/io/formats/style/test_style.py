@@ -550,7 +550,7 @@ class TestStyler:
         v = [("color", "white"), ("size", "10px")]
         expected = {(0, 0): v, (1, 0): v}
         assert result.keys() == expected.keys()
-        for v1, v2 in zip(result.values(), expected.values()):
+        for v1, v2 in zip(result.values(), expected.values(), strict=True):
             assert sorted(v1) == sorted(v2)
 
     def test_set_properties_subset(self):

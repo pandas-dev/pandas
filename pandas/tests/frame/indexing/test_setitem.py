@@ -663,7 +663,7 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_list_of_tuples(self, float_frame):
-        tuples = list(zip(float_frame["A"], float_frame["B"]))
+        tuples = list(zip(float_frame["A"], float_frame["B"], strict=True))
         float_frame["tuples"] = tuples
 
         result = float_frame["tuples"]

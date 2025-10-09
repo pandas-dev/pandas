@@ -1469,7 +1469,7 @@ class TestDuplicated:
 
         keys = np.empty(8, dtype=object)
         for i, t in enumerate(
-            zip([0, 0, np.nan, np.nan] * 2, [0, np.nan, 0, np.nan] * 2)
+            zip([0, 0, np.nan, np.nan] * 2, [0, np.nan, 0, np.nan] * 2, strict=True)
         ):
             keys[i] = t
 

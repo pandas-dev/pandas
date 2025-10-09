@@ -430,7 +430,7 @@ class TestPeriodIndex:
         year = Series([2001, 2002, 2003])
         quarter = year - 2000
         idx = PeriodIndex.from_fields(year=year, quarter=quarter)
-        strs = [f"{t[0]:d}Q{t[1]:d}" for t in zip(quarter, year)]
+        strs = [f"{t[0]:d}Q{t[1]:d}" for t in zip(quarter, year, strict=True)]
         lops = list(map(Period, strs))
         p = PeriodIndex(lops)
         tm.assert_index_equal(p, idx)

@@ -962,11 +962,11 @@ class TestPeriodIndexArithmetic:
         pi = period_range("2016-01-01", periods=10, freq="2D")
         arr = np.arange(10)
         result = pi + arr
-        expected = pd.Index([x + y for x, y in zip(pi, arr)])
+        expected = pd.Index([x + y for x, y in zip(pi, arr, strict=True)])
         tm.assert_index_equal(result, expected)
 
         result = pi - arr
-        expected = pd.Index([x - y for x, y in zip(pi, arr)])
+        expected = pd.Index([x - y for x, y in zip(pi, arr, strict=True)])
         tm.assert_index_equal(result, expected)
 
     def test_pi_sub_isub_offset(self):

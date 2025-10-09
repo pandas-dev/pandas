@@ -34,7 +34,10 @@ if TYPE_CHECKING:
 def make_data(n: int):
     left_array = np.random.default_rng(2).uniform(size=n).cumsum()
     right_array = left_array + np.random.default_rng(2).uniform(size=n)
-    return [Interval(left, right) for left, right in zip(left_array, right_array)]
+    return [
+        Interval(left, right)
+        for left, right in zip(left_array, right_array, strict=True)
+    ]
 
 
 @pytest.fixture

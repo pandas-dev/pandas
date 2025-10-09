@@ -324,7 +324,7 @@ class TestTSPlot:
         ret = ser.plot(ax=ax)
         assert ret is not None
 
-        for rs, xp in zip(ax.get_lines()[0].get_xdata(), ser.index):
+        for rs, xp in zip(ax.get_lines()[0].get_xdata(), ser.index, strict=True):
             assert rs == xp
 
     def test_business_freq(self):
@@ -1150,7 +1150,7 @@ class TestTSPlot:
         # verify tick labels
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for _tick, _label in zip(ticks, labels):
+        for _tick, _label in zip(ticks, labels, strict=True):
             m, s = divmod(int(_tick), 60)
             h, m = divmod(m, 60)
             rs = _label.get_text()
@@ -1178,7 +1178,7 @@ class TestTSPlot:
         # verify tick labels
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for _tick, _label in zip(ticks, labels):
+        for _tick, _label in zip(ticks, labels, strict=True):
             m, s = divmod(int(_tick), 60)
             h, m = divmod(m, 60)
             rs = _label.get_text()
@@ -1195,7 +1195,7 @@ class TestTSPlot:
         # check tick labels again
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for _tick, _label in zip(ticks, labels):
+        for _tick, _label in zip(ticks, labels, strict=True):
             m, s = divmod(int(_tick), 60)
             h, m = divmod(m, 60)
             rs = _label.get_text()
@@ -1223,7 +1223,7 @@ class TestTSPlot:
         # verify tick labels
         ticks = ax.get_xticks()
         labels = ax.get_xticklabels()
-        for _tick, _label in zip(ticks, labels):
+        for _tick, _label in zip(ticks, labels, strict=True):
             m, s = divmod(int(_tick), 60)
 
             us = round((_tick - int(_tick)) * 1e6)

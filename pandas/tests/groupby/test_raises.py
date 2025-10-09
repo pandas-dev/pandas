@@ -29,7 +29,7 @@ from pandas.tests.groupby import get_groupby_method_args
         lambda x: x % 2,
         [0, 0, 0, 1, 2, 2, 2, 3, 3],
         np.array([0, 0, 0, 1, 2, 2, 2, 3, 3]),
-        dict(zip(range(9), [0, 0, 0, 1, 2, 2, 2, 3, 3])),
+        dict(zip(range(9), [0, 0, 0, 1, 2, 2, 2, 3, 3], strict=True)),
         Series([1, 1, 1, 1, 1, 2, 2, 2, 2]),
         [Series([1, 1, 1, 1, 1, 2, 2, 2, 2]), Series([3, 3, 4, 4, 4, 4, 4, 3, 3])],
     ]
