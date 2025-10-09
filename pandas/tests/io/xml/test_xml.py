@@ -263,19 +263,17 @@ def parser(request):
     return request.param
 
 
-def read_xml_iterparse(data, **kwargs):
-    with tm.ensure_clean() as path:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(data)
-        return read_xml(path, **kwargs)
+def read_xml_iterparse(data, path, **kwargs):
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(data)
+    return read_xml(path, **kwargs)
 
 
-def read_xml_iterparse_comp(comp_path, compression_only, **kwargs):
+def read_xml_iterparse_comp(comp_path, compression_only, path, **kwargs):
     with get_handle(comp_path, "r", compression=compression_only) as handles:
-        with tm.ensure_clean() as path:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(handles.handle.read())
-            return read_xml(path, **kwargs)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(handles.handle.read())
+        return read_xml(path, **kwargs)
 
 
 # FILE / URL
@@ -524,7 +522,7 @@ def test_wrong_url(parser, httpserver):
 # CONTENT
 
 
-def test_whitespace(parser):
+def test_whitespace(parser, temp_file):
     xml = """
       <data>
         <row sides=" 4 ">
@@ -551,6 +549,7 @@ def test_whitespace(parser):
 
     df_iter = read_xml_iterparse(
         xml,
+        temp_file,
         parser=parser,
         iterparse={"row": ["sides", "shape", "degrees"]},
         dtype="string",
@@ -599,7 +598,7 @@ def test_bad_xpath_lxml(xml_books):
 # NAMESPACE
 
 
-def test_default_namespace(parser):
+def test_default_namespace(parser, temp_file):
     df_nmsp = read_xml(
         StringIO(xml_default_nmsp),
         xpath=".//ns:row",
@@ -609,6 +608,7 @@ def test_default_namespace(parser):
 
     df_iter = read_xml_iterparse(
         xml_default_nmsp,
+        temp_file,
         parser=parser,
         iterparse={"row": ["shape", "degrees", "sides"]},
     )
@@ -625,7 +625,7 @@ def test_default_namespace(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_prefix_namespace(parser):
+def test_prefix_namespace(parser, temp_file):
     df_nmsp = read_xml(
         StringIO(xml_prefix_nmsp),
         xpath=".//doc:row",
@@ -633,7 +633,10 @@ def test_prefix_namespace(parser):
         parser=parser,
     )
     df_iter = read_xml_iterparse(
-        xml_prefix_nmsp, parser=parser, iterparse={"row": ["shape", "degrees", "sides"]}
+        xml_prefix_nmsp,
+        temp_file,
+        parser=parser,
+        iterparse={"row": ["shape", "degrees", "sides"]},
     )
 
     df_expected = DataFrame(
@@ -820,7 +823,7 @@ def test_empty_elems_only(parser):
         read_xml(StringIO(xml), xpath="./row", elems_only=True, parser=parser)
 
 
-def test_attribute_centric_xml():
+def test_attribute_centric_xml(temp_file):
     pytest.importorskip("lxml")
     xml = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -845,9 +848,11 @@ def test_attribute_centric_xml():
     df_lxml = read_xml(StringIO(xml), xpath=".//station")
     df_etree = read_xml(StringIO(xml), xpath=".//station", parser="etree")
 
-    df_iter_lx = read_xml_iterparse(xml, iterparse={"station": ["Name", "coords"]})
+    df_iter_lx = read_xml_iterparse(
+        xml, temp_file, iterparse={"station": ["Name", "coords"]}
+    )
     df_iter_et = read_xml_iterparse(
-        xml, parser="etree", iterparse={"station": ["Name", "coords"]}
+        xml, temp_file, parser="etree", iterparse={"station": ["Name", "coords"]}
     )
 
     tm.assert_frame_equal(df_lxml, df_etree)
@@ -882,7 +887,7 @@ def test_names_option_output(xml_books, parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_repeat_names(parser):
+def test_repeat_names(parser, temp_file):
     xml = """\
 <shapes>
   <shape type="2D">
@@ -903,6 +908,7 @@ def test_repeat_names(parser):
 
     df_iter = read_xml_iterparse(
         xml,
+        temp_file,
         parser=parser,
         iterparse={"shape": ["type", "name", "type"]},
         names=["type_dim", "shape", "type_edge"],
@@ -920,7 +926,7 @@ def test_repeat_names(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_repeat_values_new_names(parser):
+def test_repeat_values_new_names(parser, temp_file):
     xml = """\
 <shapes>
   <shape>
@@ -946,6 +952,7 @@ def test_repeat_values_new_names(parser):
 
     df_iter = read_xml_iterparse(
         xml,
+        temp_file,
         parser=parser,
         iterparse={"shape": ["name", "family"]},
         names=["name", "group"],
@@ -962,7 +969,7 @@ def test_repeat_values_new_names(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_repeat_elements(parser):
+def test_repeat_elements(parser, temp_file):
     xml = """\
 <shapes>
   <shape>
@@ -993,6 +1000,7 @@ def test_repeat_elements(parser):
 
     df_iter = read_xml_iterparse(
         xml,
+        temp_file,
         parser=parser,
         iterparse={"shape": ["value", "value", "value", "value"]},
         names=["name", "family", "degrees", "sides"],
@@ -1514,7 +1522,7 @@ def test_bad_xml(parser):
             )
 
 
-def test_comment(parser):
+def test_comment(parser, temp_file):
     xml = """\
 <!-- comment before root -->
 <shapes>
@@ -1535,7 +1543,7 @@ def test_comment(parser):
     df_xpath = read_xml(StringIO(xml), xpath=".//shape", parser=parser)
 
     df_iter = read_xml_iterparse(
-        xml, parser=parser, iterparse={"shape": ["name", "type"]}
+        xml, temp_file, parser=parser, iterparse={"shape": ["name", "type"]}
     )
 
     df_expected = DataFrame(
@@ -1549,7 +1557,7 @@ def test_comment(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_dtd(parser):
+def test_dtd(parser, temp_file):
     xml = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE non-profits [
@@ -1571,7 +1579,7 @@ def test_dtd(parser):
     df_xpath = read_xml(StringIO(xml), xpath=".//shape", parser=parser)
 
     df_iter = read_xml_iterparse(
-        xml, parser=parser, iterparse={"shape": ["name", "type"]}
+        xml, temp_file, parser=parser, iterparse={"shape": ["name", "type"]}
     )
 
     df_expected = DataFrame(
@@ -1585,7 +1593,7 @@ def test_dtd(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-def test_processing_instruction(parser):
+def test_processing_instruction(parser, temp_file):
     xml = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="style.xsl"?>
@@ -1607,7 +1615,7 @@ def test_processing_instruction(parser):
     df_xpath = read_xml(StringIO(xml), xpath=".//shape", parser=parser)
 
     df_iter = read_xml_iterparse(
-        xml, parser=parser, iterparse={"shape": ["name", "type"]}
+        xml, temp_file, parser=parser, iterparse={"shape": ["name", "type"]}
     )
 
     df_expected = DataFrame(
@@ -1913,7 +1921,7 @@ def test_online_stylesheet():
 # COMPRESSION
 
 
-def test_compression_read(parser, compression_only):
+def test_compression_read(parser, compression_only, temp_file):
     with tm.ensure_clean() as comp_path:
         geom_df.to_xml(
             comp_path, index=False, parser=parser, compression=compression_only
@@ -1924,6 +1932,7 @@ def test_compression_read(parser, compression_only):
         df_iter = read_xml_iterparse_comp(
             comp_path,
             compression_only,
+            temp_file,
             parser=parser,
             iterparse={"row": ["shape", "degrees", "sides"]},
             compression=compression_only,
