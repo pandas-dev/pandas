@@ -37,9 +37,10 @@ typedef struct {
   int (*parser_trim_buffers)(parser_t *);
   int (*tokenize_all_rows)(parser_t *, const char *);
   int (*tokenize_nrows)(parser_t *, size_t, const char *);
-  int64_t (*str_to_int64)(const char *, int64_t, int64_t, int *, char);
+  int64_t (*str_to_int64)(const char *, int64_t, int64_t, TokenizerError *,
+                          char);
   uint64_t (*str_to_uint64)(uint_state *, const char *, int64_t, uint64_t,
-                            int *, char);
+                            TokenizerError *, char);
   double (*xstrtod)(const char *, char **, char, char, char, int, int *, int *);
   double (*precise_xstrtod)(const char *, char **, char, char, char, int, int *,
                             int *);

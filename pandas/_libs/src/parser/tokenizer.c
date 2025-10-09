@@ -1849,7 +1849,7 @@ int uint64_conflict(uint_state *self) {
  * @return Integer 0 if the remainder of the string contains only digits,
  *         otherwise returns the error code for [ERROR_INVALID_CHARS].
  */
-static inline int check_for_invalid_char(const char *p_item) {
+static inline TokenizerError check_for_invalid_char(const char *p_item) {
   while (*p_item != '\0' && isdigit_ascii(*p_item)) {
     p_item++;
   }
@@ -1859,11 +1859,11 @@ static inline int check_for_invalid_char(const char *p_item) {
     return ERROR_INVALID_CHARS;
   }
 
-  return 0;
+  return TOKENIZER_OK;
 }
 
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
-                     int *error, char tsep) {
+                     TokenizerError *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1990,12 +1990,12 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     return 0;
   }
 
-  *error = 0;
+  *error = TOKENIZER_OK;
   return number;
 }
 
 uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
-                       uint64_t uint_max, int *error, char tsep) {
+                       uint64_t uint_max, TokenizerError *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -2005,7 +2005,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   // Handle sign.
   if (*p == '-') {
     state->seen_sint = 1;
-    *error = 0;
+    *error = TOKENIZER_OK;
     return 0;
   } else if (*p == '+') {
     p++;
@@ -2081,6 +2081,6 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     state->seen_uint = 1;
   }
 
-  *error = 0;
+  *error = TOKENIZER_OK;
   return number;
 }
