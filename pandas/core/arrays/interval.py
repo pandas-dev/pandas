@@ -533,6 +533,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         copy: bool = False,
         dtype: Dtype | None = None,
     ) -> Self:
+        left = _maybe_convert_platform_interval(left)
+        right = _maybe_convert_platform_interval(right)
+
         # Check for mismatched signed/unsigned integer dtypes
         left_dtype = getattr(left, "dtype", None)
         right_dtype = getattr(right, "dtype", None)
@@ -547,8 +550,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 f"Left and right arrays must have matching signedness. "
                 f"Got {left_dtype} and {right_dtype}."
             )
-        left = _maybe_convert_platform_interval(left)
-        right = _maybe_convert_platform_interval(right)
 
         left, right, dtype = cls._ensure_simple_new_inputs(
             left,
