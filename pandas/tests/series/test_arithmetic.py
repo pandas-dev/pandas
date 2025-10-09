@@ -757,19 +757,22 @@ class TestTimeSeriesArithmetic:
         expected = Series(exp_dti)
         tm.assert_series_equal(result, expected)
 
-    def test_align_date_objects_with_datetimeindex_coerced(self):
+    def test_align_date_objects_with_datetimeindex(self):
         # GH#62158: datetime.date objects no longer auto-align with Timestamps
         rng = date_range("1/1/2000", periods=20)
         ts = Series(np.random.default_rng(2).standard_normal(20), index=rng)
 
         ts_slice = ts[5:]
         ts2 = ts_slice.copy()
-        ts2.index = pd.to_datetime([x.date() for x in ts2.index])
+        ts2.index = [x.date() for x in ts2.index]
 
         result = ts + ts2
-        expected = ts + ts[5:]
-        expected.index = expected.index._with_freq(None)
+        result2 = ts2 + ts
+        expected = Series(dtype=float, index=result.index)
+        expected2 = Series(dtype=float, index=result2.index)
+
         tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result2, expected2)
 
 
 class TestNamePreservation:

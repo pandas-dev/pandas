@@ -272,15 +272,46 @@ def test_categorical_coerces_numeric(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_categorical_coerces_datetime(all_parsers):
+    parser = all_parsers
+    dti = pd.DatetimeIndex(["2017-01-01", "2018-01-01", "2019-01-01"], freq=None)
+
+    dtype = {"b": CategoricalDtype(dti)}
+
+    data = "b\n2017-01-01\n2018-01-01\n2019-01-01"
+    expected = DataFrame({"b": Categorical(dtype["b"].categories)})
+
+    if parser.engine == "pyarrow":
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=msg, check_stacklevel=False
+        ):
+            result = parser.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_series_equal(
+            result["b"].isna(), pd.Series([True, True, True], name="b")
+        )
+    else:
+        result = parser.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+
 def test_categorical_coerces_timestamp(all_parsers):
     parser = all_parsers
-    dtype = {"b": CategoricalDtype([Timestamp("2014-01-01 12:00:00")])}
+    dtype = {"b": CategoricalDtype([Timestamp("2014")])}
 
-    data = "b\n2014-01-01 12:00:00\n2014-01-01 12:00:00"
-    expected = DataFrame({"b": Categorical([Timestamp("2014-01-01 12:00:00")] * 2)})
+    data = "b\n2014-01-01\n2014-01-01"
+    expected = DataFrame({"b": Categorical([Timestamp("2014")] * 2)})
 
-    result = parser.read_csv(StringIO(data), dtype=dtype)
-    tm.assert_frame_equal(result, expected)
+    if parser.engine == "pyarrow":
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=msg, check_stacklevel=False
+        ):
+            result = parser.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_series_equal(result["b"].isna(), pd.Series([True, True], name="b"))
+    else:
+        result = parser.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_categorical_coerces_timedelta(all_parsers):
