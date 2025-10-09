@@ -1409,8 +1409,7 @@ class TestExcelWriter:
     def test_true_and_false_value_options(self, tmp_excel):
         # see gh-13347
         df = DataFrame([["foo", "bar"]], columns=["col1", "col2"], dtype=object)
-        with option_context("future.no_silent_downcasting", True):
-            expected = df.replace({"foo": True, "bar": False}).astype("bool")
+        expected = df.replace({"foo": True, "bar": False}).astype("bool")
 
         df.to_excel(tmp_excel)
         read_frame = pd.read_excel(

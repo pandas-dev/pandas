@@ -906,3 +906,8 @@ with cf.config_prefix("future"):
         "(at which point this option will be deprecated).",
         validator=is_one_of_factory([True, False]),
     )
+
+from pandas.errors import Pandas4Warning
+
+# GH#59502
+cf.deprecate_option("future.no_silent_downcasting", Pandas4Warning)
