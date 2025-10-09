@@ -832,6 +832,28 @@ class TestDatetimeArray:
         with pytest.raises(ValueError, match=msg):
             pd.date_range("1/1/2000", periods=4, freq=freq)
 
+    def test_date_range_normalize_nonexistent_ambiguous_dst(self):
+        # GH#62602: Ensure normalize works with nonexistent/ambiguous times (DST)
+        tz = "Africa/Cairo"
+        start = pd.Timestamp("2024-04-26 01:00:00", tz=tz)
+        end = pd.Timestamp("2024-04-27 00:00:00", tz=tz)
+
+        result = pd.date_range(
+            start=start,
+            end=end,
+            freq="D",
+            tz=tz,
+            nonexistent="shift_forward",
+            ambiguous=True,
+            normalize=True,
+        )
+
+        expected = pd.to_datetime(
+            ["2024-04-26 01:00:00", "2024-04-27 00:00:00"], unit="ns"
+        ).tz_localize(tz)
+
+        tm.assert_index_equal(result, expected)
+
 
 def test_factorize_sort_without_freq():
     dta = DatetimeArray._from_sequence([0, 2, 1], dtype="M8[ns]")
