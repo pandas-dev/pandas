@@ -209,11 +209,14 @@ class TestSeriesConvertDtypes:
             "convert_boolean",
             "convert_floating",
         ]
-        params_dict = dict(zip(param_names, params))
+        params_dict = dict(zip(param_names, params, strict=True))
 
         expected_dtype = expected_default
         for spec, dtype in expected_other.items():
-            if all(params_dict[key] is val for key, val in zip(spec[::2], spec[1::2])):
+            if all(
+                params_dict[key] is val
+                for key, val in zip(spec[::2], spec[1::2], strict=False)
+            ):
                 expected_dtype = dtype
         if (
             using_infer_string
@@ -246,7 +249,7 @@ class TestSeriesConvertDtypes:
             with pytest.raises(TypeError, match="Invalid value"):
                 result[result.notna()] = np.nan
         else:
-            result[result.notna()] = np.nan
+            result[result.notna()] = pd.NA
 
         # Make sure original not changed
         tm.assert_series_equal(series, copy)

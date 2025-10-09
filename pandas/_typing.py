@@ -83,8 +83,7 @@ if TYPE_CHECKING:
 
     # numpy compatible types
     NumpyValueArrayLike: TypeAlias = ScalarLike_co | npt.ArrayLike
-    # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
-    NumpySorter: TypeAlias = npt._ArrayLikeInt_co | None  # type: ignore[name-defined]
+    NumpySorter: TypeAlias = npt._ArrayLikeInt_co | None
 
 
 P = ParamSpec("P")

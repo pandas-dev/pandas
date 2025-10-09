@@ -569,6 +569,7 @@ class ArrowExtensionArray(
         -------
         pa.Array or pa.ChunkedArray
         """
+        value = extract_array(value, extract_numpy=True)
         if isinstance(value, cls):
             pa_array = value._pa_array
         elif isinstance(value, (pa.Array, pa.ChunkedArray)):
@@ -657,7 +658,7 @@ class ArrowExtensionArray(
             ):
                 arr_value = np.asarray(value, dtype=object)
                 # similar to isna(value) but exclude NaN, NaT, nat-like, nan-like
-                mask = is_pdna_or_none(arr_value)  # type: ignore[assignment]
+                mask = is_pdna_or_none(arr_value)
 
             try:
                 pa_array = pa.array(value, type=pa_type, mask=mask)
@@ -883,22 +884,27 @@ class ArrowExtensionArray(
         ltype = self._pa_array.type
 
         if isinstance(other, (ExtensionArray, np.ndarray, list)):
-            boxed = self._box_pa(other)
-            rtype = boxed.type
-            if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
-                pa.types.is_timestamp(rtype) and pa.types.is_date(ltype)
-            ):
-                # GH#62157 match non-pyarrow behavior
-                result = ops.invalid_comparison(self, other, op)
-                result = pa.array(result, type=pa.bool_())
+            try:
+                boxed = self._box_pa(other)
+            except pa.lib.ArrowInvalid:
+                # e.g. GH#60228 [1, "b"] we have to operate pointwise
+                res_values = [op(x, y) for x, y in zip(self, other, strict=True)]
+                result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
-                try:
-                    result = pc_func(self._pa_array, boxed)
-                except pa.ArrowNotImplementedError:
-                    # TODO: could this be wrong if other is object dtype?
-                    #  in which case we need to operate pointwise?
+                rtype = boxed.type
+                if (pa.types.is_timestamp(ltype) and pa.types.is_date(rtype)) or (
+                    pa.types.is_timestamp(rtype) and pa.types.is_date(ltype)
+                ):
+                    # GH#62157 match non-pyarrow behavior
                     result = ops.invalid_comparison(self, other, op)
                     result = pa.array(result, type=pa.bool_())
+                else:
+                    try:
+                        result = pc_func(self._pa_array, boxed)
+                    except pa.ArrowNotImplementedError:
+                        result = ops.invalid_comparison(self, other, op)
+                        result = pa.array(result, type=pa.bool_())
+
         elif is_scalar(other):
             if (isinstance(other, datetime) and pa.types.is_date(ltype)) or (
                 type(other) is date and pa.types.is_timestamp(ltype)
@@ -1046,7 +1052,7 @@ class ArrowExtensionArray(
         result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
         if is_nan_na() and result.dtype.kind == "f":
             parr = result._pa_array
-            mask = pc.is_nan(parr).to_numpy()
+            mask = pc.is_nan(parr).fill_null(False).to_numpy()
             arr = pc.replace_with_mask(parr, mask, pa.scalar(None, type=parr.type))
             result = type(self)(arr)
         return result
@@ -2707,7 +2713,7 @@ class ArrowExtensionArray(
         if expand:
             return {
                 col: self._from_pyarrow_array(pc.struct_field(result, [i]))
-                for col, i in zip(groups, range(result.type.num_fields))
+                for col, i in zip(groups, range(result.type.num_fields), strict=True)
             }
         else:
             return type(self)(pc.struct_field(result, [0]))
@@ -2738,7 +2744,7 @@ class ArrowExtensionArray(
             dummies_dtype = np.bool_
         dummies = np.zeros(n_rows * n_cols, dtype=dummies_dtype)
         dummies[indices] = True
-        dummies = dummies.reshape((n_rows, n_cols))  # type: ignore[assignment]
+        dummies = dummies.reshape((n_rows, n_cols))
         result = self._from_pyarrow_array(pa.array(list(dummies)))
         return result, uniques_sorted.to_pylist()
 
@@ -2801,6 +2807,13 @@ class ArrowExtensionArray(
         predicate = lambda val: "\n".join(tw.wrap(val))
         result = self._apply_elementwise(predicate)
         return self._from_pyarrow_array(pa.chunked_array(result))
+
+    def _str_zfill(self, width: int) -> Self:
+        # TODO: Replace with pc.utf8_zfill when supported by arrow
+        # Arrow ENH - https://github.com/apache/arrow/issues/46683
+        predicate = lambda val: val.zfill(width)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     @property
     def _dt_days(self) -> Self:

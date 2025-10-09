@@ -172,7 +172,7 @@ class StringDtype(StorageExtensionDtype):
             warnings.warn(
                 "The 'pyarrow_numpy' storage option name is deprecated and will be "
                 'removed in pandas 3.0. Use \'pd.StringDtype(storage="pyarrow", '
-                "na_value-np.nan)' to construct the same dtype.\nOr enable the "
+                "na_value=np.nan)' to construct the same dtype.\nOr enable the "
                 "'pd.options.future.infer_string = True' option globally and use "
                 'the "str" alias as a shorthand notation to specify a dtype '
                 '(instead of "string[pyarrow_numpy]").',
@@ -764,7 +764,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         result = super()._cast_pointwise_result(values)
         if isinstance(result.dtype, StringDtype):
             # Ensure we retain our same na_value/storage
-            result = result.astype(self.dtype)  # type: ignore[call-overload]
+            result = result.astype(self.dtype)
         return result
 
     @classmethod
@@ -1134,3 +1134,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return res_arr
 
     _arith_method = _cmp_method
+
+    def _str_zfill(self, width: int) -> Self:
+        return self._str_map(lambda x: x.zfill(width))

@@ -1932,13 +1932,6 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
     @property
     def _resampler_for_grouping(self):
-        # TODO: Enforce in 3.0 (#55968)
-        warnings.warn(
-            "Resampling a groupby with a PeriodIndex is deprecated. "
-            "Cast to DatetimeIndex before resampling instead.",
-            FutureWarning,  # pdlint: ignore[warning_class]
-            stacklevel=find_stack_level(),
-        )
         return PeriodIndexResamplerGroupby
 
     def _get_binner_for_time(self):
@@ -2265,15 +2258,6 @@ class TimeGrouper(Grouper):
                 gpr_index=ax,
             )
         elif isinstance(ax, PeriodIndex):
-            if isinstance(ax, PeriodIndex):
-                # TODO: Enforce in 3.0 (#53481)
-                # GH#53481
-                warnings.warn(
-                    "Resampling with a PeriodIndex is deprecated. "
-                    "Cast index to DatetimeIndex before resampling instead.",
-                    FutureWarning,  # pdlint: ignore[warning_class]
-                    stacklevel=find_stack_level(),
-                )
             return PeriodIndexResampler(
                 obj,
                 timegrouper=self,

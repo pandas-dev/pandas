@@ -46,6 +46,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -1771,7 +1772,7 @@ the string values returned are correct."""
             data = self._do_select_columns(data, columns)
 
         # Decode strings
-        for col, typ in zip(data, self._typlist):
+        for col, typ in zip(data, self._typlist, strict=True):
             if isinstance(typ, int):
                 data[col] = data[col].apply(self._decode)
 
@@ -1941,7 +1942,7 @@ the string values returned are correct."""
         if not value_label_dict:
             return data
         cat_converted_data = []
-        for col, label in zip(data, lbllist):
+        for col, label in zip(data, lbllist, strict=True):
             if label in value_label_dict:
                 # Explicit call with ordered=True
                 vl = value_label_dict[label]
@@ -2087,7 +2088,7 @@ The repeated labels are:
         1       1    3    4
         """
         self._ensure_open()
-        return dict(zip(self._varlist, self._variable_labels))
+        return dict(zip(self._varlist, self._variable_labels, strict=True))
 
     def value_labels(self) -> dict[str, dict[int, str]]:
         """
@@ -2133,6 +2134,7 @@ The repeated labels are:
         return self._value_label_dict
 
 
+@set_module("pandas")
 @Appender(_read_stata_doc)
 def read_stata(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
@@ -2490,7 +2492,7 @@ class StataWriter(StataParser):
 
         get_base_missing_value = StataMissingValue.get_base_missing_value
         data_formatted = []
-        for col, col_is_cat in zip(data, is_cat):
+        for col, col_is_cat in zip(data, is_cat, strict=True):
             if col_is_cat:
                 svl = StataValueLabel(data[col], encoding=self._encoding)
                 self._value_labels.append(svl)
@@ -2619,7 +2621,7 @@ class StataWriter(StataParser):
 
         # Check date conversion, and fix key if needed
         if self._convert_dates:
-            for c, o in zip(columns, original_columns):
+            for c, o in zip(columns, original_columns, strict=True):
                 if c != o:
                     self._convert_dates[c] = self._convert_dates[o]
                     del self._convert_dates[o]
