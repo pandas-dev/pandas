@@ -1835,41 +1835,31 @@ int uint64_conflict(uint_state *self) {
 }
 
 /**
- * @brief Validates that a string contains only numeric digits and optional
- * trailing whitespace.
+ * @brief Validates that a string contains only numeric digits.
  *
  * This function is used after an integer overflow,
- * where is checks the rest of the string for a non-numeric character,
- * while also ignoring trailing white-space.
+ * where is checks the rest of the string for a non-numeric character.
  *
  * Pure integer overflows during CSV parsing are converted to PyLongObjects,
  * while, if any invalid character is found, it skips integer
  * parsing and tries other conversion methods.
  *
  * @param p_item Pointer to the string to validate for numeric format
- * @param error Pointer to indicate error code.
- *        Set to ERROR_INVALID_CHARS if an invalid character is found.
  *
- * @return Pointer to the position in the string where validation stopped.
- *         - If valid: terminates at the null terminator.
- *         - If invalid: points to the first invalid character encountered.
+ * @return Integer 0 if the remainder of the string contains only digits,
+ *         otherwise returns the error code for [ERROR_INVALID_CHARS].
  */
-static inline const char *check_for_invalid_char(const char *p_item,
-                                                 int *error) {
+static inline int check_for_invalid_char(const char *p_item) {
   while (*p_item != '\0' && isdigit_ascii(*p_item)) {
     p_item++;
   }
 
-  while (*p_item != '\0' && isspace_ascii(*p_item)) {
-    ++p_item;
-  }
-
   // check if reached the end of string after consuming all digits
   if (*p_item != '\0') {
-    *error = ERROR_INVALID_CHARS;
+    return ERROR_INVALID_CHARS;
   }
 
-  return p_item;
+  return 0;
 }
 
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
@@ -1917,7 +1907,10 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
           d = *++p;
         } else {
           *error = ERROR_OVERFLOW;
-          check_for_invalid_char(p, error);
+          int status = check_for_invalid_char(p);
+          if (status != 0) {
+            *error = status;
+          }
           return 0;
         }
       }
@@ -1929,7 +1922,10 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
           d = *++p;
         } else {
           *error = ERROR_OVERFLOW;
-          check_for_invalid_char(p, error);
+          int status = check_for_invalid_char(p);
+          if (status != 0) {
+            *error = status;
+          }
           return 0;
         }
       }
@@ -1957,7 +1953,10 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
         } else {
           *error = ERROR_OVERFLOW;
-          check_for_invalid_char(p, error);
+          int status = check_for_invalid_char(p);
+          if (status != 0) {
+            *error = status;
+          }
           return 0;
         }
       }
@@ -1970,7 +1969,10 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
         } else {
           *error = ERROR_OVERFLOW;
-          check_for_invalid_char(p, error);
+          int status = check_for_invalid_char(p);
+          if (status != 0) {
+            *error = status;
+          }
           return 0;
         }
       }
@@ -2039,7 +2041,10 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
 
       } else {
         *error = ERROR_OVERFLOW;
-        check_for_invalid_char(p, error);
+        int status = check_for_invalid_char(p);
+        if (status != 0) {
+          *error = status;
+        }
         return 0;
       }
     }
@@ -2052,7 +2057,10 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
 
       } else {
         *error = ERROR_OVERFLOW;
-        check_for_invalid_char(p, error);
+        int status = check_for_invalid_char(p);
+        if (status != 0) {
+          *error = status;
+        }
         return 0;
       }
     }
