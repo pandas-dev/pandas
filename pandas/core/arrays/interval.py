@@ -2134,11 +2134,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     def unique(self) -> IntervalArray:
         nc = unique(self._combined)
-        # Ensure nc is a numpy array for _from_combined
-        if not isinstance(nc, np.ndarray):
-            nc = np.asarray(nc)
-        nc = nc[:, None]
-        return self._from_combined(nc)
+        return self._from_combined(np.asarray(nc)[:, None])
 
 
 def _maybe_convert_platform_interval(values) -> ArrayLike:
