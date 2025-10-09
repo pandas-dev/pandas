@@ -16,7 +16,7 @@ For boolean and nullable-boolean dtypes, ``~s`` toggles the mask
 ``~`` performs bitwise invert as in Python.
 
 .. seealso::
-   :ref:`indexing.boolean`
+   :ref:`Boolean indexing <indexing.boolean>`
 
 **Examples**
 
