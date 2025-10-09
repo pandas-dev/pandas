@@ -174,6 +174,22 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             fill_value=fill_value,
             axis=axis,
         )
+        # One of the base classes to this class: ExtensionArray, provides
+        # the dtype property, but abstractly, so it leaves the implementation
+        # of dtype storage up to its derived classes. Some of these derived
+        # classes don't provide a setter method for their dtype property, so
+        # I can't set the dtype here and expect it to work for all classes that
+        # inherit this take method.
+
+        # How can I produce an extension array of the same type as self,
+        # having a floating-point dtype if self has an integer dtype or otherwise
+        # the same dtype as self?
+
+        # Constructing a new object of the same type as self doesn't always
+        # work since the constructors of some derived classes of this class
+        # don't accept a dtype parameter, which I need to pass to set the
+        # result's dtype to a floating-point type.
+
         if self.dtype in [
             NumpyEADtype(np.uint8),
             NumpyEADtype(np.uint16),
