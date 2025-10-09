@@ -107,6 +107,14 @@ Binary operator functions
    Series.product
    Series.dot
 
+Unary operator functions
+------------------------
+.. toctree::
+   :maxdepth: 1
+
+   api/pandas.Series.__invert__
+
+
 Function application, GroupBy & window
 --------------------------------------
 .. autosummary::
