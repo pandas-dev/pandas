@@ -1906,10 +1906,11 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
           number = number * 10 - (d - '0');
           d = *++p;
         } else {
-          *error = ERROR_OVERFLOW;
-          int status = check_for_invalid_char(p);
-          if (status != 0) {
+          TokenizerError status;
+          if ((status = check_for_invalid_char(p)) > ERROR_OVERFLOW) {
             *error = status;
+          } else {
+            *error = ERROR_OVERFLOW;
           }
           return 0;
         }
@@ -1921,10 +1922,11 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
           number = number * 10 - (d - '0');
           d = *++p;
         } else {
-          *error = ERROR_OVERFLOW;
-          int status = check_for_invalid_char(p);
-          if (status != 0) {
+          TokenizerError status;
+          if ((status = check_for_invalid_char(p)) > ERROR_OVERFLOW) {
             *error = status;
+          } else {
+            *error = ERROR_OVERFLOW;
           }
           return 0;
         }
@@ -1952,10 +1954,11 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
           d = *++p;
 
         } else {
-          *error = ERROR_OVERFLOW;
-          int status = check_for_invalid_char(p);
-          if (status != 0) {
+          TokenizerError status;
+          if ((status = check_for_invalid_char(p)) > ERROR_OVERFLOW) {
             *error = status;
+          } else {
+            *error = ERROR_OVERFLOW;
           }
           return 0;
         }
@@ -1968,10 +1971,11 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
           d = *++p;
 
         } else {
-          *error = ERROR_OVERFLOW;
-          int status = check_for_invalid_char(p);
-          if (status != 0) {
+          TokenizerError status;
+          if ((status = check_for_invalid_char(p)) > ERROR_OVERFLOW) {
             *error = status;
+          } else {
+            *error = ERROR_OVERFLOW;
           }
           return 0;
         }
@@ -2040,10 +2044,11 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
         d = *++p;
 
       } else {
-        *error = ERROR_OVERFLOW;
-        int status = check_for_invalid_char(p);
-        if (status != 0) {
+        TokenizerError status;
+        if ((status = check_for_invalid_char(p)) > ERROR_OVERFLOW) {
           *error = status;
+        } else {
+          *error = ERROR_OVERFLOW;
         }
         return 0;
       }
@@ -2056,10 +2061,11 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
         d = *++p;
 
       } else {
-        *error = ERROR_OVERFLOW;
-        int status = check_for_invalid_char(p);
-        if (status != 0) {
+        TokenizerError status;
+        if ((status = check_for_invalid_char(p)) > ERROR_OVERFLOW) {
           *error = status;
+        } else {
+          *error = ERROR_OVERFLOW;
         }
         return 0;
       }
