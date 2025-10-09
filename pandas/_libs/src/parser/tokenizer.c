@@ -1846,8 +1846,8 @@ int uint64_conflict(uint_state *self) {
  *
  * @param p_item Pointer to the string to validate for numeric format
  *
- * @return Integer 0 if the remainder of the string contains only digits,
- *         otherwise returns the error code for [ERROR_INVALID_CHARS].
+ * @return TOKENIZER_OK if the remainder of the string contains only digits,
+ *         otherwise returns ERROR_INVALID_CHARS.
  */
 static inline TokenizerError check_for_invalid_char(const char *p_item) {
   while (*p_item != '\0' && isdigit_ascii(*p_item)) {
