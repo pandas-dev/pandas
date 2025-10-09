@@ -439,6 +439,10 @@ class ArrowExtensionArray(
             #  or test_agg_lambda_complex128_dtype_conversion for complex values
             return super()._cast_pointwise_result(values)
 
+        if pa.types.is_null(arr.type):
+            if lib.infer_dtype(values) == "decimal":
+                # GH#62522; the specific decimal precision here is arbitrary
+                arr = arr.cast(pa.decimal32(1))
         if pa.types.is_duration(arr.type):
             # workaround for https://github.com/apache/arrow/issues/40620
             result = ArrowExtensionArray._from_sequence(values)
