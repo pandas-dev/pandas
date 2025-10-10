@@ -237,7 +237,7 @@ class ParserBase:
         def extract(r):
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
-        columns = list(zip(*(extract(r) for r in header)))
+        columns = list(zip(*(extract(r) for r in header), strict=False))
         # Clean the columns by removing placeholders.
         columns = self._clean_column_levels(columns)
 
