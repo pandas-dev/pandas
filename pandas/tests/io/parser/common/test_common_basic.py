@@ -119,6 +119,17 @@ c,4,5
     tm.assert_frame_equal(result, expected)
 
 
+def test_read_csv_single_line(all_parsers):
+    # GH62635
+    parser = all_parsers
+    table = parser.read_csv(
+        StringIO("1,2,3\n"),
+        names=["col1", "col2", "col3"],
+    )
+    expected = DataFrame({"col1": [1], "col2": [2], "col3": [3]})
+    tm.assert_frame_equal(table, expected)
+
+
 def test_read_csv_low_memory_no_rows_with_index(all_parsers):
     # see gh-21141
     parser = all_parsers
