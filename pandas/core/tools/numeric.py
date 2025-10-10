@@ -227,8 +227,6 @@ def to_numeric(
     new_mask: np.ndarray | None = None
     if is_numeric_dtype(values_dtype):
         pass
-    elif lib.is_np_dtype(values_dtype, "mM"):
-        values = values.view(np.int64)
     else:
         values = ensure_object(values)
         coerce_numeric = errors != "raise"

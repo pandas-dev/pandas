@@ -1,4 +1,6 @@
+from datetime import datetime
 import decimal
+from functools import partial
 
 import numpy as np
 from numpy import iinfo
@@ -900,6 +902,54 @@ def test_to_numeric_dtype_backend_error(dtype_backend):
         dtype = "Float64"
     expected = Series([pd.NA, pd.NA, pd.NA], dtype=dtype)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "input_value, expected, pd_type",
+    [
+        (datetime(2021, 8, 22), 1629590400000000, "scalar"),
+        (datetime(2025, 2, 21), 1740096000000000, "scalar"),
+        (pd.NaT, np.nan, "scalar"),
+        ([datetime(2021, 8, 22)], [1629590400000000], "series"),
+        ([datetime(2025, 2, 21)], [1740096000000000], "series"),
+        ([pd.NaT], [np.nan], "series"),
+        ([datetime(2021, 8, 22), pd.NaT], [float(1629590400000000), np.nan], "series"),
+        ([pd.NaT, datetime(2021, 8, 22)], [np.nan, float(1629590400000000)], "series"),
+        (
+            ["apple", 1, datetime(2021, 8, 22)],
+            [np.nan, float(1.0), float(1629590400000000)],
+            "series_coerce",
+        ),
+        ([pd.NaT], [np.nan], "series_partial"),
+        ([datetime(2025, 2, 21)], [1740096000000000], "series_partial"),
+        (
+            [pd.NaT, datetime(2025, 2, 21)],
+            [np.nan, float(1740096000000000)],
+            "series_partial",
+        ),
+    ],
+)
+def test_to_numeric_datetime(input_value, expected, pd_type):
+    """Test converting a scalar datetime to numeric."""
+    if pd_type == "scalar":
+        val = to_numeric(input_value)
+        # special handling because  Nan!=Nan
+        if pd.isna(expected):
+            assert pd.isna(val)
+        else:
+            assert val == expected
+
+    elif pd_type == "series":
+        val = to_numeric(Series(input_value))
+        tm.assert_series_equal(val, Series(expected))
+
+    elif pd_type == "series_coerce":
+        val = to_numeric(Series(input_value), errors="coerce")
+        tm.assert_series_equal(val, Series(expected))
+
+    elif pd_type == "series_partial":
+        val = Series(input_value).apply(partial(to_numeric))
+        tm.assert_series_equal(val, Series(expected))
 
 
 def test_invalid_dtype_backend():

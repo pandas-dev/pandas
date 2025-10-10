@@ -2449,6 +2449,16 @@ def maybe_convert_numeric(
         elif is_decimal(val):
             floats[i] = complexes[i] = val
             seen.float_ = True
+        elif PyDateTime_Check(val) or cnp.is_datetime64_object(val):
+            seen.datetime_ = True
+            if val in na_values or checknull(val):
+                seen.saw_null()
+                mask[i] = 1
+                floats[i] = NaN
+            else:
+                ints[i] = np.datetime64(val).astype(int)
+                # because of pd.NaT, we may need to return in floats
+                floats[i] = float(ints[i])
         else:
             try:
                 floatify(val, &fval, &maybe_int)
@@ -2517,7 +2527,7 @@ def maybe_convert_numeric(
         if seen.null_ and convert_to_masked_nullable:
             return (floats, mask.view(np.bool_))
         return (floats, None)
-    elif seen.int_:
+    elif seen.int_ or seen.datetime_:
         if seen.null_ and convert_to_masked_nullable:
             if seen.uint_:
                 return (uints, mask.view(np.bool_))
