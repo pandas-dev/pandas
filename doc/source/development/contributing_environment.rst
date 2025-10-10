@@ -214,61 +214,20 @@ Step 3: build and install pandas
 Quick start (pip + meson, editable)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you just want the fastest route to a working development install using the
-Meson backend through pip (PEP 517), use the following. This performs an
-editable install and will automatically rebuild C/Cython components when
-you import pandas.
+Fastest route to a working development install using pip+Meson (PEP 517). This
+performs an editable install that auto-rebuilds C/Cython components on import:
 
 .. code-block:: shell
 
    # from the repo root, after creating/activating your env
-   # fetch tags so the version string can be computed
    git fetch upstream --tags
+   python -m pip install -ve . --no-build-isolation
 
-   # install in editable mode with meson backend
-   python -m pip install -ve . --no-build-isolation -Ceditable-verbose=true
-
-.. tip::
-   Set a build directory to speed up rebuilds by keeping artifacts in one place::
-
-      python -m pip install -ve . --no-build-isolation \
-          -Cbuilddir=".meson_build" -Csetup-args="-Dbuildtype=debug"
-
-   The ``-Dbuildtype=debug`` flag improves debugging of C extensions. Omit it
-   for optimized builds.
-
-Windows-specific notes
-^^^^^^^^^^^^^^^^^^^^^^
-
-* Ensure the "Build Tools for Visual Studio 2022" with the
-  "Desktop development with C++" workload is installed. If Meson cannot
-  find ``cl.exe``, add the optional component
-  ``MSVC v142 - VS 2019 C++ x64/x86 build tools`` from the installer.
-* Use an elevated "x64 Native Tools Command Prompt for VS 2022" or a standard
-  PowerShell where the build tools are on ``PATH``.
-* Long paths: enable them to avoid build errors when the source path is deep::
-
-     git config --global core.longpaths true
-
-* PowerShell execution policy can block virtualenv activation scripts. If needed::
-
-     Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-
-* To see Meson’s automatic rebuild output on import every time, either pass
-  ``-Ceditable-verbose=true`` in the install command (above) or set the env var::
-
-     set MESONPY_EDITABLE_VERBOSE=1   # PowerShell/cmd (for current session)
-
-Next steps
-^^^^^^^^^^
-
-* Verify the install::
-
-     python -c "import pandas, sys; print(pandas.__version__, sys.executable)"
-
-* Run a focused test subset before the full suite::
-
-     pytest pandas/tests/frame/test_constructors.py -q
+For Windows compiler setup, Meson build options (e.g. build directory, debug),
+how to verify the build, and how to see Meson’s editable rebuild output, see the
+sections below: "Build options", "Checking the build", and "Keeping up to date
+with the latest build". Windows toolchain requirements are covered in "Step 1:
+install a C compiler" above.
 
 The sections below describe the supported build methods in more detail.
 
