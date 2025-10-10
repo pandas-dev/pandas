@@ -901,11 +901,8 @@ with cf.config_prefix("future"):
     cf.register_option(
         "no_silent_downcasting",
         False,
-        "Whether to opt-in to the future behavior which will *not* silently "
-        "downcast results from Series and DataFrame `where`, `mask`, and `clip` "
-        "methods. "
-        "Silent downcasting will be removed in pandas 3.0 "
-        "(at which point this option will be deprecated).",
+        "This option is deprecated and will be removed in a future version. "
+        "It has no effect.",
         validator=is_one_of_factory([True, False]),
     )
 
