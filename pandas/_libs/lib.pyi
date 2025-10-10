@@ -124,6 +124,7 @@ def maybe_convert_numeric(
     na_values: set,
     convert_empty: bool = ...,
     coerce_numeric: bool = ...,
+    convert_datetime: bool = ...,
     convert_to_masked_nullable: Literal[False] = ...,
 ) -> tuple[np.ndarray, None]: ...
 @overload

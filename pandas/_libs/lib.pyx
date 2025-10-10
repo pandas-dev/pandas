@@ -2300,6 +2300,7 @@ def maybe_convert_numeric(
     set na_values,
     bint convert_empty=True,
     bint coerce_numeric=False,
+    bint convert_datetime=True,
     bint convert_to_masked_nullable=False,
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """
@@ -2449,6 +2450,18 @@ def maybe_convert_numeric(
         elif is_decimal(val):
             floats[i] = complexes[i] = val
             seen.float_ = True
+        elif convert_datetime and (PyDate_Check(val) or cnp.is_datetime64_object(val)):
+            # convert_datetime flag avoids conversion for base_readers
+            # PyDate_Check also includes PyDatetime_Check
+            seen.datetime_ = True
+            if val in na_values or checknull(val):
+                seen.saw_null()
+                mask[i] = 1
+                floats[i] = NaN
+            else:
+                ints[i] = np.datetime64(val).astype(np.int64)
+                # because of pd.NaT, we may need to return in floats #GH 42380
+                floats[i] = <float64_t>ints[i]
         else:
             try:
                 floatify(val, &fval, &maybe_int)
@@ -2517,7 +2530,7 @@ def maybe_convert_numeric(
         if seen.null_ and convert_to_masked_nullable:
             return (floats, mask.view(np.bool_))
         return (floats, None)
-    elif seen.int_:
+    elif seen.int_ or seen.datetime_:
         if seen.null_ and convert_to_masked_nullable:
             if seen.uint_:
                 return (uints, mask.view(np.bool_))
