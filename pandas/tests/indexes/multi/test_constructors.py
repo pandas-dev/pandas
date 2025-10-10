@@ -155,7 +155,7 @@ def test_copy_in_constructor():
 def test_from_arrays(idx):
     arrays = [
         np.asarray(lev).take(level_codes)
-        for lev, level_codes in zip(idx.levels, idx.codes)
+        for lev, level_codes in zip(idx.levels, idx.codes, strict=True)
     ]
 
     # list of arrays as input
@@ -172,7 +172,7 @@ def test_from_arrays_iterator(idx):
     # GH 18434
     arrays = [
         np.asarray(lev).take(level_codes)
-        for lev, level_codes in zip(idx.levels, idx.codes)
+        for lev, level_codes in zip(idx.levels, idx.codes, strict=True)
     ]
 
     # iterator as input
@@ -188,7 +188,7 @@ def test_from_arrays_iterator(idx):
 def test_from_arrays_tuples(idx):
     arrays = tuple(
         tuple(np.asarray(lev).take(level_codes))
-        for lev, level_codes in zip(idx.levels, idx.codes)
+        for lev, level_codes in zip(idx.levels, idx.codes, strict=True)
     )
 
     # tuple of tuples as input
@@ -368,7 +368,7 @@ def test_from_tuples_iterator():
         levels=[[1, 3], [2, 4]], codes=[[0, 1], [0, 1]], names=["a", "b"]
     )
 
-    result = MultiIndex.from_tuples(zip([1, 3], [2, 4]), names=["a", "b"])
+    result = MultiIndex.from_tuples(zip([1, 3], [2, 4], strict=True), names=["a", "b"])
     tm.assert_index_equal(result, expected)
 
     # input non-iterables
