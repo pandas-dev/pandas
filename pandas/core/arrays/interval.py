@@ -537,12 +537,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right = _maybe_convert_platform_interval(right)
 
         # Check for mismatched signed/unsigned integer dtypes
-        left_dtype = getattr(left, "dtype", None)
-        right_dtype = getattr(right, "dtype", None)
+        left_dtype = left.dtype
+        right_dtype = right.dtype
         if (
-            left_dtype is not None
-            and right_dtype is not None
-            and left_dtype.kind in "iu"
+            left_dtype.kind in "iu"
             and right_dtype.kind in "iu"
             and left_dtype.kind != right_dtype.kind
         ):
