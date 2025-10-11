@@ -7,6 +7,9 @@ GroupBy
 =======
 .. currentmodule:: pandas.core.groupby
 
+.. note::
+   For more information on using GroupBy, see the :ref:`Group by: split-apply-combine <groupby>` section of the User Guide.
+
 :class:`pandas.api.typing.DataFrameGroupBy` and :class:`pandas.api.typing.SeriesGroupBy`
 instances are returned by groupby calls :func:`pandas.DataFrame.groupby` and
 :func:`pandas.Series.groupby` respectively.

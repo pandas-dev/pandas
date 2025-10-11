@@ -7,6 +7,9 @@ Input/output
 ============
 .. currentmodule:: pandas
 
+.. note::
+   For more information on input/output operations, see the :ref:`IO Tools <io>` section of the User Guide.
+
 Pickling
 ~~~~~~~~
 .. autosummary::
