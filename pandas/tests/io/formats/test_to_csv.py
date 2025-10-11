@@ -148,7 +148,9 @@ $1$,$2$
 """
 
         with raises_if_pyarrow:
-            df.to_csv(temp_file, quoting=1, doublequote=False, escapechar="\\", engine=engine)
+            df.to_csv(
+                temp_file, quoting=1, doublequote=False, escapechar="\\", engine=engine
+            )
             with open(temp_file, encoding="utf-8") as f:
                 assert f.read() == expected
 
@@ -160,7 +162,9 @@ $1$,$2$
 """
 
         with raises_if_pyarrow:
-            df.to_csv(temp_file, quoting=3, escapechar="\\", engine=engine)  # QUOTE_NONE
+            df.to_csv(
+                temp_file, quoting=3, escapechar="\\", engine=engine
+            )  # QUOTE_NONE
             with open(temp_file, encoding="utf-8") as f:
                 assert f.read() == expected
 
@@ -819,9 +823,9 @@ z
         # GH 22610
         raises_if_pyarrow = check_raises_if_pyarrow("errors", engine)
         data = ["\ud800foo"]
-        ser = pd.Series(data, index=Index(data, dtype=object), dtype=object)
-
-        ser.to_csv(temp_file, errors=errors, engine=engine)
+        with raises_if_pyarrow:
+            ser = pd.Series(data, index=Index(data, dtype=object), dtype=object)
+            ser.to_csv(temp_file, errors=errors, engine=engine)
         # No use in reading back the data as it is not the same anymore
         # due to the error handling
 
@@ -883,7 +887,9 @@ z
         # example from GH 13068
         with open(temp_file, "w+b") as handle:
             with raises_if_pyarrow:
-                DataFrame().to_csv(handle, mode=mode, encoding="utf-8-sig", engine=engine)
+                DataFrame().to_csv(
+                    handle, mode=mode, encoding="utf-8-sig", engine=engine
+                )
 
                 handle.seek(0)
                 assert handle.read().startswith(b'\xef\xbb\xbf""')
