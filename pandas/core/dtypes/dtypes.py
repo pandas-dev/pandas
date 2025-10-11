@@ -2308,8 +2308,34 @@ class ArrowDtype(StorageExtensionDtype):
 
     @cache_readonly
     def itemsize(self) -> int:
-        """Return the number of bytes in this dtype"""
-        return self.numpy_dtype.itemsize
+        """
+        Return the number of bytes in this dtype.
+
+        For Arrow-backed dtypes:
+        - Returns the fixed-width bit size divided by 8 for standard fixed-width types.
+        - For boolean types, returns the NumPy itemsize.
+        - Falls back to the NumPy dtype itemsize for variable-width or unsupported types.
+
+        Examples
+        --------
+        >>> import pyarrow as pa
+        >>> import pandas as pd
+        >>> dtype = pd.ArrowDtype(pa.int32())
+        >>> dtype.itemsize
+        4
+
+        >>> dtype = pd.ArrowDtype(pa.bool_())
+        >>> dtype.itemsize  # falls back to numpy dtype
+        1
+        """
+        # Use pyarrow itemsize for fixed-width data types
+        # e.g. int32 -> 32 bits // 8 = 4 bytes
+        try:
+            if pa.types.is_boolean(self.pyarrow_dtype):
+                return self.numpy_dtype.itemsize
+            return self.pyarrow_dtype.bit_width // 8
+        except (ValueError, AttributeError):
+            return self.numpy_dtype.itemsize
 
     def construct_array_type(self) -> type_t[ArrowExtensionArray]:
         """
