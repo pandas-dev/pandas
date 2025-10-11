@@ -149,7 +149,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         SKIP_LINE
         FINISHED
 
-    enum: ERROR_OVERFLOW
+    enum: ERROR_OVERFLOW, ERROR_NO_MEMORY
 
     ctypedef enum BadLineHandleMethod:
         ERROR,
@@ -1822,6 +1822,8 @@ cdef _try_uint64(parser_t *parser, int64_t col,
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
+        if error == ERROR_NO_MEMORY:
+            raise MemoryError()
         return None
 
     if uint64_conflict(&state):
@@ -1892,6 +1894,8 @@ cdef _try_int64(parser_t *parser, int64_t col,
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
+        if error == ERROR_NO_MEMORY:
+            raise MemoryError()
         return None, None
 
     return result, na_count

@@ -23,6 +23,7 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <float.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include "pandas/portable.h"
 #include "pandas/vendored/klib/khash.h" // for kh_int64_t, kh_destroy_int64
@@ -1834,201 +1835,178 @@ int uint64_conflict(uint_state *self) {
   return self->seen_uint && (self->seen_sint || self->seen_null);
 }
 
+/**
+ * @brief Check if the character in the pointer indicates a number.
+ * It expects that you consumed all leading whitespace.
+ *
+ * @param p_item Pointer to verify
+ * @return Non-zero integer indicating that has a digit 0 otherwise.
+ */
+static inline int has_digit_int(const char *str) {
+  if (!str || *str == '\0') {
+    return 0;
+  }
+
+  switch (*str) {
+  case '0':
+  case '1':
+  case '2':
+  case '3':
+  case '4':
+  case '5':
+  case '6':
+  case '7':
+  case '8':
+  case '9':
+    return 1;
+  case '+':
+  case '-':
+    return isdigit_ascii(str[1]);
+  default:
+    return 0;
+  }
+}
+
+static inline int has_only_spaces(const char *str) {
+  while (*str != '\0' && isspace_ascii(*str)) {
+    str++;
+  }
+  return *str == '\0';
+}
+
+/* Copy a string without `char_to_remove`.
+ * The returned memory should be free-d with a call to `free`.
+ */
+static char *copy_string_without_char(const char *str, char char_to_remove) {
+  size_t chars_to_copy = 0;
+  for (const char *src = str; *src != '\0'; src++) {
+    if (*src != char_to_remove) {
+      chars_to_copy++;
+    }
+  }
+
+  char *start = malloc((chars_to_copy + 1) * sizeof(char));
+  if (!start) {
+    return NULL;
+  }
+
+  char *dst = start;
+  for (const char *src = str; *src != '\0'; src++) {
+    if (*src != char_to_remove) {
+      *dst++ = *src;
+    }
+  }
+  *dst = '\0';
+
+  return start;
+}
+
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                      int *error, char tsep) {
-  const char *p = p_item;
-  // Skip leading spaces.
-  while (isspace_ascii(*p)) {
-    ++p;
-  }
-
-  // Handle sign.
-  const bool isneg = *p == '-' ? true : false;
-  // Handle sign.
-  if (isneg || (*p == '+')) {
-    p++;
-  }
-
-  // Check that there is a first digit.
-  if (!isdigit_ascii(*p)) {
-    // Error...
+  if (!p_item || *p_item == '\0') {
     *error = ERROR_NO_DIGITS;
     return 0;
   }
 
-  int64_t number = 0;
-  if (isneg) {
-    // If number is greater than pre_min, at least one more digit
-    // can be processed without overflowing.
-    int dig_pre_min = -(int_min % 10);
-    int64_t pre_min = int_min / 10;
-
-    // Process the digits.
-    char d = *p;
-    if (tsep != '\0') {
-      while (1) {
-        if (d == tsep) {
-          d = *++p;
-          continue;
-        } else if (!isdigit_ascii(d)) {
-          break;
-        }
-        if ((number > pre_min) ||
-            ((number == pre_min) && (d - '0' <= dig_pre_min))) {
-          number = number * 10 - (d - '0');
-          d = *++p;
-        } else {
-          *error = ERROR_OVERFLOW;
-          return 0;
-        }
-      }
-    } else {
-      while (isdigit_ascii(d)) {
-        if ((number > pre_min) ||
-            ((number == pre_min) && (d - '0' <= dig_pre_min))) {
-          number = number * 10 - (d - '0');
-          d = *++p;
-        } else {
-          *error = ERROR_OVERFLOW;
-          return 0;
-        }
-      }
-    }
-  } else {
-    // If number is less than pre_max, at least one more digit
-    // can be processed without overflowing.
-    int64_t pre_max = int_max / 10;
-    int dig_pre_max = int_max % 10;
-
-    // Process the digits.
-    char d = *p;
-    if (tsep != '\0') {
-      while (1) {
-        if (d == tsep) {
-          d = *++p;
-          continue;
-        } else if (!isdigit_ascii(d)) {
-          break;
-        }
-        if ((number < pre_max) ||
-            ((number == pre_max) && (d - '0' <= dig_pre_max))) {
-          number = number * 10 + (d - '0');
-          d = *++p;
-
-        } else {
-          *error = ERROR_OVERFLOW;
-          return 0;
-        }
-      }
-    } else {
-      while (isdigit_ascii(d)) {
-        if ((number < pre_max) ||
-            ((number == pre_max) && (d - '0' <= dig_pre_max))) {
-          number = number * 10 + (d - '0');
-          d = *++p;
-
-        } else {
-          *error = ERROR_OVERFLOW;
-          return 0;
-        }
-      }
-    }
+  while (isspace_ascii(*p_item)) {
+    ++p_item;
   }
 
-  // Skip trailing spaces.
-  while (isspace_ascii(*p)) {
-    ++p;
-  }
-
-  // Did we use up all the characters?
-  if (*p) {
-    *error = ERROR_INVALID_CHARS;
+  if (!has_digit_int(p_item)) {
+    *error = ERROR_NO_DIGITS;
     return 0;
   }
 
-  *error = 0;
-  return number;
+  char *processed_str = NULL;
+
+  if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
+    processed_str = copy_string_without_char(p_item, tsep);
+    if (!processed_str) {
+      *error = ERROR_NO_MEMORY;
+      return 0;
+    }
+    p_item = processed_str;
+  }
+
+  char *endptr = NULL;
+  errno = 0;
+  int64_t result = strtoll(p_item, &endptr, 10);
+
+  if (!has_only_spaces(endptr)) {
+    // Check first for invalid characters because we may
+    // want to skip integer parsing if we find one.
+    *error = ERROR_INVALID_CHARS;
+    result = 0;
+  } else if (errno == ERANGE || result > int_max || result < int_min) {
+    *error = ERROR_OVERFLOW;
+    result = 0;
+  } else {
+    *error = 0;
+  }
+
+  // free processed_str that
+  // was either allocated due to the presence of tsep
+  // or is NULL
+  free(processed_str);
+
+  return result;
 }
 
 uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
                        uint64_t uint_max, int *error, char tsep) {
-  const char *p = p_item;
-  // Skip leading spaces.
-  while (isspace_ascii(*p)) {
-    ++p;
-  }
-
-  // Handle sign.
-  if (*p == '-') {
-    state->seen_sint = 1;
-    *error = 0;
-    return 0;
-  } else if (*p == '+') {
-    p++;
-  }
-
-  // Check that there is a first digit.
-  if (!isdigit_ascii(*p)) {
-    // Error...
+  if (!p_item || *p_item == '\0') {
     *error = ERROR_NO_DIGITS;
     return 0;
   }
 
-  // If number is less than pre_max, at least one more digit
-  // can be processed without overflowing.
-  //
-  // Process the digits.
-  uint64_t number = 0;
-  const uint64_t pre_max = uint_max / 10;
-  const uint64_t dig_pre_max = uint_max % 10;
-  char d = *p;
-  if (tsep != '\0') {
-    while (1) {
-      if (d == tsep) {
-        d = *++p;
-        continue;
-      } else if (!isdigit_ascii(d)) {
-        break;
-      }
-      if ((number < pre_max) ||
-          ((number == pre_max) && ((uint64_t)(d - '0') <= dig_pre_max))) {
-        number = number * 10 + (d - '0');
-        d = *++p;
-
-      } else {
-        *error = ERROR_OVERFLOW;
-        return 0;
-      }
-    }
-  } else {
-    while (isdigit_ascii(d)) {
-      if ((number < pre_max) ||
-          ((number == pre_max) && ((uint64_t)(d - '0') <= dig_pre_max))) {
-        number = number * 10 + (d - '0');
-        d = *++p;
-
-      } else {
-        *error = ERROR_OVERFLOW;
-        return 0;
-      }
-    }
+  while (isspace_ascii(*p_item)) {
+    ++p_item;
   }
 
-  // Skip trailing spaces.
-  while (isspace_ascii(*p)) {
-    ++p;
+  if (*p_item == '-') {
+    state->seen_sint = 1;
+    *error = 0;
+    return 0;
+  } else if (*p_item == '+') {
+    p_item++;
   }
 
-  // Did we use up all the characters?
-  if (*p) {
-    *error = ERROR_INVALID_CHARS;
+  // Check that there is a first digit.
+  if (!isdigit_ascii(*p_item)) {
+    *error = ERROR_NO_DIGITS;
     return 0;
   }
 
-  if (number > (uint64_t)int_max) {
+  char *processed_str = NULL;
+
+  if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
+    processed_str = copy_string_without_char(p_item, tsep);
+    if (!processed_str) {
+      *error = ERROR_NO_MEMORY;
+      return 0;
+    }
+    p_item = processed_str;
+  }
+
+  errno = 0;
+  char *endptr = NULL;
+  uint64_t result = strtoull(p_item, &endptr, 10);
+
+  if (!has_only_spaces(endptr)) {
+    *error = ERROR_INVALID_CHARS;
+    result = 0;
+  } else if (errno == ERANGE || result > uint_max) {
+    *error = ERROR_OVERFLOW;
+    result = 0;
+  } else {
+    *error = 0;
+  }
+
+  if (result > (uint64_t)int_max) {
     state->seen_uint = 1;
   }
 
-  *error = 0;
-  return number;
+  free(processed_str);
+
+  return result;
 }
