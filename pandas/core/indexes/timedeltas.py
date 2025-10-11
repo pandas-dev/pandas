@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -194,6 +195,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         """
         Can we compare values of the given dtype to our own?
         """
+        if isinstance(dtype, ArrowDtype):
+            return dtype.kind == "m"
         return lib.is_np_dtype(dtype, "m")  # aka self._data._is_recognized_dtype
 
     # -------------------------------------------------------------------
@@ -284,9 +287,11 @@ def timedelta_range(
     Notes
     -----
     Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
-    exactly three must be specified. If ``freq`` is omitted, the resulting
-    ``TimedeltaIndex`` will have ``periods`` linearly spaced elements between
-    ``start`` and ``end`` (closed on both sides).
+    a maximum of three can be specified at once. Of the three parameters
+    ``start``, ``end``, and ``periods``, at least two must be specified.
+    If ``freq`` is omitted, the resulting ``DatetimeIndex`` will have
+    ``periods`` linearly spaced elements between ``start`` and ``end``
+    (closed on both sides).
 
     To learn more about the frequency strings, please see
     :ref:`this link<timeseries.offset_aliases>`.

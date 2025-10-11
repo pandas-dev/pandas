@@ -125,12 +125,12 @@ class ListArray(ExtensionArray):
         return cls(data)
 
 
-def make_data():
+def make_data(n: int):
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
     rng = np.random.default_rng(2)
-    data = np.empty(100, dtype=object)
+    data = np.empty(n, dtype=object)
     data[:] = [
         [rng.choice(list(string.ascii_letters)) for _ in range(rng.integers(0, 10))]
-        for _ in range(100)
+        for _ in range(n)
     ]
     return data

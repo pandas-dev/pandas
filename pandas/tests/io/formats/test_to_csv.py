@@ -55,7 +55,7 @@ xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 class TestToCSV:
     @xfail_pyarrow
-    def test_to_csv_with_single_column(self, engine):
+    def test_to_csv_with_single_column(self, temp_file, engine):
         # see gh-18676, https://bugs.python.org/issue32255
         #
         # Python's CSV library adds an extraneous '""'
@@ -68,31 +68,28 @@ class TestToCSV:
 ""
 1.0
 """
-        with tm.ensure_clean("test.csv") as path:
-            df1.to_csv(path, header=None, index=None, engine=engine)
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected1
+        df1.to_csv(temp_file, header=None, index=None, engine=engine)
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected1
 
         df2 = DataFrame([1, None])
         expected2 = """\
 1.0
 ""
 """
-        with tm.ensure_clean("test.csv") as path:
-            df2.to_csv(path, header=None, index=None, engine=engine)
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected2
+        df2.to_csv(temp_file, header=None, index=None, engine=engine)
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected2
 
-    def test_to_csv_default_encoding(self, engine):
+    def test_to_csv_default_encoding(self, temp_file, engine):
         # GH17097
         df = DataFrame({"col": ["AAAAA", "ÄÄÄÄÄ", "ßßßßß", "聞聞聞聞聞"]})
 
-        with tm.ensure_clean("test.csv") as path:
-            # the default to_csv encoding is utf-8.
-            df.to_csv(path, engine=engine)
-            tm.assert_frame_equal(pd.read_csv(path, index_col=0), df)
+        # the default to_csv encoding is utf-8.
+        df.to_csv(temp_file, engine=engine)
+        tm.assert_frame_equal(pd.read_csv(temp_file, index_col=0), df)
 
-    def test_to_csv_quotechar(self, engine):
+    def test_to_csv_quotechar(self, temp_file, engine):
         df = DataFrame({"col": [1, 2]})
         expected = """\
 "","col"
@@ -100,10 +97,9 @@ class TestToCSV:
 "1","2"
 """
 
-        with tm.ensure_clean("test.csv") as path:
-            df.to_csv(path, quoting=1, engine=engine)  # 1=QUOTE_ALL
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected
+        df.to_csv(temp_file, quoting=1, engine=engine)  # 1=QUOTE_ALL
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected
 
         expected = """\
 $$,$col$
@@ -111,25 +107,23 @@ $0$,$1$
 $1$,$2$
 """
 
-        with tm.ensure_clean("test.csv") as path:
-            if engine == "pyarrow":
-                raises_if_pyarrow = pytest.raises(
-                    ValueError,
-                    match='The pyarrow engine only supports " as a quotechar.',
-                )
-            else:
-                raises_if_pyarrow = contextlib.nullcontext()
-            with raises_if_pyarrow:
-                df.to_csv(path, quoting=1, quotechar="$", engine=engine)
-            if engine != "pyarrow":
-                with open(path, encoding="utf-8") as f:
-                    assert f.read() == expected
+        if engine == "pyarrow":
+            raises_if_pyarrow = pytest.raises(
+                ValueError,
+                match='The pyarrow engine only supports " as a quotechar.',
+            )
+        else:
+            raises_if_pyarrow = contextlib.nullcontext()
+        with raises_if_pyarrow:
+            df.to_csv(temp_file, quoting=1, quotechar="$", engine=engine)
+        if engine != "pyarrow":
+            with open(temp_file, encoding="utf-8") as f:
+                assert f.read() == expected
 
-        with tm.ensure_clean("test.csv") as path:
-            with pytest.raises(TypeError, match="quotechar"):
-                df.to_csv(path, quoting=1, quotechar=None, engine=engine)
+        with pytest.raises(TypeError, match="quotechar"):
+            df.to_csv(temp_file, quoting=1, quotechar=None, engine=engine)
 
-    def test_to_csv_doublequote(self):
+    def test_to_csv_doublequote(self, temp_file):
         df = DataFrame({"col": ['a"a', '"bb"']})
         expected = '''\
 "","col"
@@ -137,16 +131,14 @@ $1$,$2$
 "1","""bb"""
 '''
 
-        with tm.ensure_clean("test.csv") as path:
-            df.to_csv(path, quoting=1, doublequote=True, engine=engine)  # QUOTE_ALL
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected
+        df.to_csv(temp_file, quoting=1, doublequote=True, engine=engine)  # QUOTE_ALL
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected
 
-        with tm.ensure_clean("test.csv") as path:
-            with pytest.raises(Error, match="escapechar"):
-                df.to_csv(path, doublequote=False, engine=engine)  # no escapechar set
+        with pytest.raises(Error, match="escapechar"):
+            df.to_csv(temp_file, doublequote=False, engine=engine)  # no escapechar set
 
-    def test_to_csv_escapechar(self, engine):
+    def test_to_csv_escapechar(self, temp_file, engine):
         raises_if_pyarrow = check_raises_if_pyarrow("escapechar", engine)
         df = DataFrame({"col": ['a"a', '"bb"']})
         expected = """\
@@ -156,12 +148,9 @@ $1$,$2$
 """
 
         with raises_if_pyarrow:
-            with tm.ensure_clean("test.csv") as path:  # QUOTE_ALL
-                df.to_csv(
-                    path, quoting=1, doublequote=False, escapechar="\\", engine=engine
-                )
-                with open(path, encoding="utf-8") as f:
-                    assert f.read() == expected
+            df.to_csv(temp_file, quoting=1, doublequote=False, escapechar="\\", engine=engine)
+            with open(temp_file, encoding="utf-8") as f:
+                assert f.read() == expected
 
         df = DataFrame({"col": ["a,a", ",bb,"]})
         expected = """\
@@ -171,10 +160,9 @@ $1$,$2$
 """
 
         with raises_if_pyarrow:
-            with tm.ensure_clean("test.csv") as path:
-                df.to_csv(path, quoting=3, escapechar="\\", engine=engine)  # QUOTE_NONE
-                with open(path, encoding="utf-8") as f:
-                    assert f.read() == expected
+            df.to_csv(temp_file, quoting=3, escapechar="\\", engine=engine)  # QUOTE_NONE
+            with open(temp_file, encoding="utf-8") as f:
+                assert f.read() == expected
 
     @xfail_pyarrow
     def test_csv_to_string(self, engine):
@@ -516,7 +504,7 @@ $1$,$2$
         result = obj.to_csv(lineterminator="\n", header=True, engine=engine)
         assert result == expected
 
-    def test_to_csv_string_array_ascii(self, engine):
+    def test_to_csv_string_array_ascii(self, temp_file, engine):
         # GH 10813
         raises_if_pyarrow = check_raises_if_pyarrow("encoding", engine)
         str_array = [{"names": ["foo", "bar"]}, {"names": ["baz", "qux"]}]
@@ -526,14 +514,13 @@ $1$,$2$
 0,"['foo', 'bar']"
 1,"['baz', 'qux']"
 """
-        with tm.ensure_clean("str_test.csv") as path:
-            with raises_if_pyarrow:
-                df.to_csv(path, encoding="ascii", engine=engine)
-                with open(path, encoding="utf-8") as f:
-                    assert f.read() == expected_ascii
+        with raises_if_pyarrow:
+            df.to_csv(temp_file, encoding="ascii", engine=engine)
+            with open(temp_file, encoding="utf-8") as f:
+                assert f.read() == expected_ascii
 
     @xfail_pyarrow
-    def test_to_csv_string_array_utf8(self, engine):
+    def test_to_csv_string_array_utf8(self, temp_file, engine):
         # GH 10813
         str_array = [{"names": ["foo", "bar"]}, {"names": ["baz", "qux"]}]
         df = DataFrame(str_array)
@@ -542,88 +529,86 @@ $1$,$2$
 0,"['foo', 'bar']"
 1,"['baz', 'qux']"
 """
-        with tm.ensure_clean("unicode_test.csv") as path:
-            df.to_csv(path, encoding="utf-8", engine=engine)
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected_utf8
+        df.to_csv(temp_file, encoding="utf-8", engine=engine)
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected_utf8
 
     @xfail_pyarrow
-    def test_to_csv_string_with_lf(self, engine):
+    def test_to_csv_string_with_lf(self, temp_file, engine):
         # GH 20353
         raises_if_pyarrow = check_raises_if_pyarrow("lineterminator", engine)
         data = {"int": [1, 2, 3], "str_lf": ["abc", "d\nef", "g\nh\n\ni"]}
         df = DataFrame(data)
-        with tm.ensure_clean("lf_test.csv") as path:
-            # case 1: The default line terminator(=os.linesep)(PR 21406)
-            os_linesep = os.linesep.encode("utf-8")
-            expected_noarg = (
-                b"int,str_lf"
-                + os_linesep
-                + b"1,abc"
-                + os_linesep
-                + b'2,"d\nef"'
-                + os_linesep
-                + b'3,"g\nh\n\ni"'
-                + os_linesep
-            )
-            df.to_csv(path, index=False, engine=engine)
-            with open(path, "rb") as f:
-                assert f.read() == expected_noarg
-        with tm.ensure_clean("lf_test.csv") as path:
-            # case 2: LF as line terminator
-            expected_lf = b'int,str_lf\n1,abc\n2,"d\nef"\n3,"g\nh\n\ni"\n'
-            with raises_if_pyarrow:
-                df.to_csv(path, lineterminator="\n", index=False, engine=engine)
-                with open(path, "rb") as f:
-                    assert f.read() == expected_lf
-        with tm.ensure_clean("lf_test.csv") as path:
-            # case 3: CRLF as line terminator
-            # 'lineterminator' should not change inner element
-            expected_crlf = b'int,str_lf\r\n1,abc\r\n2,"d\nef"\r\n3,"g\nh\n\ni"\r\n'
-            with raises_if_pyarrow:
-                df.to_csv(path, lineterminator="\r\n", index=False, engine=engine)
-                with open(path, "rb") as f:
-                    assert f.read() == expected_crlf
+
+        # case 1: The default line terminator(=os.linesep)(PR 21406)
+        os_linesep = os.linesep.encode("utf-8")
+        expected_noarg = (
+            b"int,str_lf"
+            + os_linesep
+            + b"1,abc"
+            + os_linesep
+            + b'2,"d\nef"'
+            + os_linesep
+            + b'3,"g\nh\n\ni"'
+            + os_linesep
+        )
+        df.to_csv(temp_file, index=False, engine=engine)
+        with open(temp_file, "rb") as f:
+            assert f.read() == expected_noarg
+
+        # case 2: LF as line terminator
+        expected_lf = b'int,str_lf\n1,abc\n2,"d\nef"\n3,"g\nh\n\ni"\n'
+        with raises_if_pyarrow:
+            df.to_csv(temp_file, lineterminator="\n", index=False, engine=engine)
+            with open(temp_file, "rb") as f:
+                assert f.read() == expected_lf
+
+        # case 3: CRLF as line terminator
+        # 'lineterminator' should not change inner element
+        expected_crlf = b'int,str_lf\r\n1,abc\r\n2,"d\nef"\r\n3,"g\nh\n\ni"\r\n'
+        with raises_if_pyarrow:
+            df.to_csv(temp_file, lineterminator="\r\n", index=False, engine=engine)
+            with open(temp_file, "rb") as f:
+                assert f.read() == expected_crlf
 
     @xfail_pyarrow
-    def test_to_csv_string_with_crlf(self, engine):
+    def test_to_csv_string_with_crlf(self, temp_file, engine):
         # GH 20353
         raises_if_pyarrow = check_raises_if_pyarrow("lineterminator", engine)
         data = {"int": [1, 2, 3], "str_crlf": ["abc", "d\r\nef", "g\r\nh\r\n\r\ni"]}
         df = DataFrame(data)
-        with tm.ensure_clean("crlf_test.csv") as path:
-            # case 1: The default line terminator(=os.linesep)(PR 21406)
-            os_linesep = os.linesep.encode("utf-8")
-            expected_noarg = (
-                b"int,str_crlf"
-                + os_linesep
-                + b"1,abc"
-                + os_linesep
-                + b'2,"d\r\nef"'
-                + os_linesep
-                + b'3,"g\r\nh\r\n\r\ni"'
-                + os_linesep
-            )
-            df.to_csv(path, index=False, engine=engine)
-            with open(path, "rb") as f:
-                assert f.read() == expected_noarg
-        with tm.ensure_clean("crlf_test.csv") as path:
-            # case 2: LF as line terminator
-            expected_lf = b'int,str_crlf\n1,abc\n2,"d\r\nef"\n3,"g\r\nh\r\n\r\ni"\n'
-            with raises_if_pyarrow:
-                df.to_csv(path, lineterminator="\n", index=False, engine=engine)
-                with open(path, "rb") as f:
-                    assert f.read() == expected_lf
-        with tm.ensure_clean("crlf_test.csv") as path:
-            # case 3: CRLF as line terminator
-            # 'lineterminator' should not change inner element
-            expected_crlf = (
-                b'int,str_crlf\r\n1,abc\r\n2,"d\r\nef"\r\n3,"g\r\nh\r\n\r\ni"\r\n'
-            )
-            with raises_if_pyarrow:
-                df.to_csv(path, lineterminator="\r\n", index=False, engine=engine)
-                with open(path, "rb") as f:
-                    assert f.read() == expected_crlf
+        # case 1: The default line terminator(=os.linesep)(PR 21406)
+        os_linesep = os.linesep.encode("utf-8")
+        expected_noarg = (
+            b"int,str_crlf"
+            + os_linesep
+            + b"1,abc"
+            + os_linesep
+            + b'2,"d\r\nef"'
+            + os_linesep
+            + b'3,"g\r\nh\r\n\r\ni"'
+            + os_linesep
+        )
+        df.to_csv(temp_file, index=False, engine=engine)
+        with open(temp_file, "rb") as f:
+            assert f.read() == expected_noarg
+
+        # case 2: LF as line terminator
+        expected_lf = b'int,str_crlf\n1,abc\n2,"d\r\nef"\n3,"g\r\nh\r\n\r\ni"\n'
+        with raises_if_pyarrow:
+            df.to_csv(temp_file, lineterminator="\n", index=False, engine=engine)
+            with open(temp_file, "rb") as f:
+                assert f.read() == expected_lf
+
+        # case 3: CRLF as line terminator
+        # 'lineterminator' should not change inner element
+        expected_crlf = (
+            b'int,str_crlf\r\n1,abc\r\n2,"d\r\nef"\r\n3,"g\r\nh\r\n\r\ni"\r\n'
+        )
+        with raises_if_pyarrow:
+            df.to_csv(temp_file, lineterminator="\r\n", index=False, engine=engine)
+            with open(temp_file, "rb") as f:
+                assert f.read() == expected_crlf
 
     @xfail_pyarrow
     def test_to_csv_stdout_file(self, capsys, engine):
@@ -647,7 +632,7 @@ $1$,$2$
             "(https://docs.python.org/3/library/csv.html#csv.writer)"
         ),
     )
-    def test_to_csv_write_to_open_file(self, engine):
+    def test_to_csv_write_to_open_file(self, temp_file, engine):
         # GH 21696
         df = DataFrame({"a": ["x", "y", "z"]})
         expected = """\
@@ -656,107 +641,107 @@ x
 y
 z
 """
-        with tm.ensure_clean("test.txt") as path:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write("manual header\n")
-                if engine == "pyarrow":
-                    raise_if_pyarrow = pytest.raises(
-                        ValueError,
-                        match="The pyarrow engine can only open files in abinary mode.",
-                    )
-                else:
-                    raise_if_pyarrow = contextlib.nullcontext()
-                with raise_if_pyarrow:
-                    df.to_csv(f, header=None, index=None, engine=engine)
-            with open(path, encoding="utf-8") as f:
-                assert f.read() == expected
+        with open(temp_file, "w", encoding="utf-8") as f:
+            f.write("manual header\n")
+            if engine == "pyarrow":
+                raise_if_pyarrow = pytest.raises(
+                    ValueError,
+                    match="The pyarrow engine can only open files in abinary mode.",
+                )
+            else:
+                raise_if_pyarrow = contextlib.nullcontext()
+            with raise_if_pyarrow:
+                df.to_csv(f, header=None, index=None, engine=engine)
+        with open(temp_file, encoding="utf-8") as f:
+            assert f.read() == expected
 
     @xfail_pyarrow
-    def test_to_csv_write_to_open_file_with_newline_py3(self, engine):
+    def test_to_csv_write_to_open_file_with_newline_py3(self, temp_file, engine):
         # see gh-21696
         # see gh-20353
         df = DataFrame({"a": ["x", "y", "z"]})
         expected_rows = ["x", "y", "z"]
         expected = "manual header\n" + tm.convert_rows_list_to_csv_str(expected_rows)
-        with tm.ensure_clean("test.txt") as path:
-            # TODO: Open in bytes mode for pyarrow
-            with open(path, "w", newline="", encoding="utf-8") as f:
-                f.write("manual header\n")
-                if engine == "pyarrow":
-                    raise_if_pyarrow = pytest.raises(
-                        ValueError,
-                        match="The pyarrow engine can only open file in abinary mode.",
-                    )
-                else:
-                    raise_if_pyarrow = contextlib.nullcontext()
-                with raise_if_pyarrow:
-                    df.to_csv(f, header=None, index=None, engine=engine)
 
-            with open(path, "rb") as f:
-                assert f.read() == bytes(expected, "utf-8")
+        # TODO: Open in bytes mode for pyarrow
+        with open(temp_file, "w", newline="", encoding="utf-8") as f:
+            f.write("manual header\n")
+            if engine == "pyarrow":
+                raise_if_pyarrow = pytest.raises(
+                    ValueError,
+                    match="The pyarrow engine can only open file in abinary mode.",
+                )
+            else:
+                raise_if_pyarrow = contextlib.nullcontext()
+            with raise_if_pyarrow:
+                df.to_csv(f, header=None, index=None, engine=engine)
+
+        with open(temp_file, "rb") as f:
+            assert f.read() == bytes(expected, "utf-8")
 
     @pytest.mark.parametrize("to_infer", [True, False])
     @pytest.mark.parametrize("read_infer", [True, False])
     def test_to_csv_compression(
-        self, compression_only, read_infer, to_infer, compression_to_extension, engine
+        self,
+        compression_only,
+        read_infer,
+        to_infer,
+        compression_to_extension,
+        temp_file,
+        engine,
     ):
         # see gh-15008
         compression = compression_only
-
-        # We'll complete file extension subsequently.
-        filename = "test."
-        filename += compression_to_extension[compression]
 
         df = DataFrame({"A": [1]})
 
         to_compression = "infer" if to_infer else compression
         read_compression = "infer" if read_infer else compression
 
-        with tm.ensure_clean(filename) as path:
-            df.to_csv(path, compression=to_compression, engine=engine)
-            result = pd.read_csv(path, index_col=0, compression=read_compression)
-            tm.assert_frame_equal(result, df)
+        path_ext = str(temp_file) + "." + compression_to_extension[compression]
+        df.to_csv(path_ext, compression=to_compression, engine=engine)
+        result = pd.read_csv(path_ext, index_col=0, compression=read_compression)
+        tm.assert_frame_equal(result, df)
 
-    def test_to_csv_compression_dict(self, compression_only, engine):
+    def test_to_csv_compression_dict(self, compression_only, temp_file, engine):
         # GH 26023
         method = compression_only
         df = DataFrame({"ABC": [1]})
-        filename = "to_csv_compress_as_dict."
         extension = {
             "gzip": "gz",
             "zstd": "zst",
         }.get(method, method)
-        filename += extension
-        with tm.ensure_clean(filename) as path:
-            df.to_csv(path, compression={"method": method}, engine=engine)
-            read_df = pd.read_csv(path, index_col=0)
-            tm.assert_frame_equal(read_df, df)
 
-    def test_to_csv_compression_dict_no_method_raises(self, engine):
+        path = str(temp_file) + "." + extension
+        df.to_csv(path, compression={"method": method}, engine=engine)
+        read_df = pd.read_csv(path, index_col=0)
+        tm.assert_frame_equal(read_df, df)
+
+    def test_to_csv_compression_dict_no_method_raises(self, temp_file, engine):
         # GH 26023
         df = DataFrame({"ABC": [1]})
         compression = {"some_option": True}
         msg = "must have key 'method'"
 
-        with tm.ensure_clean("out.zip") as path:
-            with pytest.raises(ValueError, match=msg):
-                df.to_csv(path, compression=compression, engine=engine)
+        with pytest.raises(ValueError, match=msg):
+            df.to_csv(temp_file, compression=compression, engine=engine)
 
     @pytest.mark.parametrize("compression", ["zip", "infer"])
     @pytest.mark.parametrize("archive_name", ["test_to_csv.csv", "test_to_csv.zip"])
-    def test_to_csv_zip_arguments(self, compression, archive_name, engine):
+    def test_to_csv_zip_arguments(self, compression, archive_name, temp_file, engine):
         # GH 26023
         df = DataFrame({"ABC": [1]})
-        with tm.ensure_clean("to_csv_archive_name.zip") as path:
-            df.to_csv(
-                path,
-                compression={"method": compression, "archive_name": archive_name},
-                engine=engine,
-            )
-            with ZipFile(path) as zp:
-                assert len(zp.filelist) == 1
-                archived_file = zp.filelist[0].filename
-                assert archived_file == archive_name
+
+        path = str(temp_file) + ".zip"
+        df.to_csv(
+            path,
+            compression={"method": compression, "archive_name": archive_name},
+            engine=engine,
+        )
+        with ZipFile(path) as zp:
+            assert len(zp.filelist) == 1
+            archived_file = zp.filelist[0].filename
+            assert archived_file == archive_name
 
     @pytest.mark.parametrize(
         "filename,expected_arcname",
@@ -830,19 +815,18 @@ z
             assert result == expected
 
     @pytest.mark.parametrize("errors", ["surrogatepass", "ignore", "replace"])
-    def test_to_csv_errors(self, errors, engine):
+    def test_to_csv_errors(self, errors, temp_file, engine):
         # GH 22610
         raises_if_pyarrow = check_raises_if_pyarrow("errors", engine)
         data = ["\ud800foo"]
-        with raises_if_pyarrow:
-            ser = pd.Series(data, index=Index(data, dtype=object), dtype=object)
-            with tm.ensure_clean("test.csv") as path:
-                ser.to_csv(path, errors=errors, engine=engine)
+        ser = pd.Series(data, index=Index(data, dtype=object), dtype=object)
+
+        ser.to_csv(temp_file, errors=errors, engine=engine)
         # No use in reading back the data as it is not the same anymore
         # due to the error handling
 
     @pytest.mark.parametrize("mode", ["wb", "w"])
-    def test_to_csv_binary_handle(self, mode, engine):
+    def test_to_csv_binary_handle(self, mode, temp_file, engine):
         """
         Binary file objects should work (if 'mode' contains a 'b') or even without
         it in most cases.
@@ -854,22 +838,22 @@ z
             columns=Index(list("ABCD")),
             index=Index([f"i-{i}" for i in range(30)]),
         )
-        with tm.ensure_clean() as path:
-            with open(path, mode="w+b") as handle:
-                if engine == "pyarrow" and mode == "w":
-                    raises_if_pyarrow = pytest.raises(
-                        ValueError,
-                        match="The pyarrow engine can only open files in binary mode.",
-                    )
-                else:
-                    raises_if_pyarrow = contextlib.nullcontext()
-                with raises_if_pyarrow:
-                    df.to_csv(handle, mode=mode, engine=engine)
-            if not engine == "pyarrow" and mode == "w":
-                tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
+
+        with open(temp_file, mode="w+b") as handle:
+            if engine == "pyarrow" and mode == "w":
+                raises_if_pyarrow = pytest.raises(
+                    ValueError,
+                    match="The pyarrow engine can only open files in binary mode.",
+                )
+            else:
+                raises_if_pyarrow = contextlib.nullcontext()
+            with raises_if_pyarrow:
+                df.to_csv(handle, mode=mode, engine=engine)
+        if not engine == "pyarrow" and mode == "w":
+            tm.assert_frame_equal(df, pd.read_csv(temp_file, index_col=0))
 
     @pytest.mark.parametrize("mode", ["wb", "w"])
-    def test_to_csv_encoding_binary_handle(self, mode, engine, request):
+    def test_to_csv_encoding_binary_handle(self, mode, temp_file, engine, request):
         """
         Binary file objects should honor a specified encoding.
 
@@ -897,29 +881,25 @@ z
             assert buffer.getvalue().startswith(content)
 
         # example from GH 13068
-        with tm.ensure_clean() as path:
-            with open(path, "w+b") as handle:
-                with raises_if_pyarrow:
-                    DataFrame().to_csv(
-                        handle, mode=mode, encoding="utf-8-sig", engine=engine
-                    )
+        with open(temp_file, "w+b") as handle:
+            with raises_if_pyarrow:
+                DataFrame().to_csv(handle, mode=mode, encoding="utf-8-sig", engine=engine)
 
-                    handle.seek(0)
-                    assert handle.read().startswith(b'\xef\xbb\xbf""')
+                handle.seek(0)
+                assert handle.read().startswith(b'\xef\xbb\xbf""')
 
 
-def test_to_csv_iterative_compression_name(compression, engine):
+def test_to_csv_iterative_compression_name(compression, temp_file, engine):
     # GH 38714
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
         index=Index([f"i-{i}" for i in range(30)]),
     )
-    with tm.ensure_clean() as path:
-        df.to_csv(path, compression=compression, chunksize=1, engine=engine)
-        tm.assert_frame_equal(
-            pd.read_csv(path, compression=compression, index_col=0), df
-        )
+    df.to_csv(temp_file, compression=compression, chunksize=1, engine=engine)
+    tm.assert_frame_equal(
+        pd.read_csv(temp_file, compression=compression, index_col=0), df
+    )
 
 
 def test_to_csv_iterative_compression_buffer(compression, engine):

@@ -11,10 +11,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas.compat import HAS_PYARROW
-from pandas.compat.pyarrow import (
-    pa_version_under12p1,
-    pa_version_under19p0,
-)
+from pandas.compat.pyarrow import pa_version_under19p0
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_dtype_equal
@@ -528,7 +525,8 @@ def test_astype_float(dtype, any_float_dtype):
     # Don't compare arrays (37974)
     ser = pd.Series(["1.1", pd.NA, "3.3"], dtype=dtype)
     result = ser.astype(any_float_dtype)
-    expected = pd.Series([1.1, np.nan, 3.3], dtype=any_float_dtype)
+    item = np.nan if isinstance(result.dtype, np.dtype) else pd.NA
+    expected = pd.Series([1.1, item, 3.3], dtype=any_float_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -601,8 +599,6 @@ def test_arrow_array(dtype):
     data = pd.array(["a", "b", "c"], dtype=dtype)
     arr = pa.array(data)
     expected = pa.array(list(data), type=pa.large_string(), from_pandas=True)
-    if dtype.storage == "pyarrow" and pa_version_under12p1:
-        expected = pa.chunked_array(expected)
     if dtype.storage == "python":
         expected = pc.cast(expected, pa.string())
     assert arr.equals(expected)
@@ -844,3 +840,30 @@ def test_string_array_view_type_error():
     arr = pd.array(["a", "b", "c"], dtype="string")
     with pytest.raises(TypeError, match="Cannot change data-type for string array."):
         arr.view("i8")
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.array])
+def test_numpy_array_ufunc(dtype, box):
+    arr = box(["a", "bb", "ccc"], dtype=dtype)
+
+    # custom ufunc that works with string (object) input -> returning numeric
+    str_len_ufunc = np.frompyfunc(lambda x: len(x), 1, 1)
+    result = str_len_ufunc(arr)
+    expected_cls = pd.Series if box is pd.Series else np.array
+    # TODO we should infer int64 dtype here?
+    expected = expected_cls([1, 2, 3], dtype=object)
+    tm.assert_equal(result, expected)
+
+    # custom ufunc returning strings
+    str_multiply_ufunc = np.frompyfunc(lambda x: x * 2, 1, 1)
+    result = str_multiply_ufunc(arr)
+    expected = box(["aa", "bbbb", "cccccc"], dtype=dtype)
+    if dtype.storage == "pyarrow":
+        # TODO ArrowStringArray should also preserve the class / dtype
+        if box is pd.array:
+            expected = np.array(["aa", "bbbb", "cccccc"], dtype=object)
+        else:
+            # not specifying the dtype because the exact dtype is not yet preserved
+            expected = pd.Series(["aa", "bbbb", "cccccc"])
+
+    tm.assert_equal(result, expected)
