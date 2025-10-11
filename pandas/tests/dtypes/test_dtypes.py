@@ -1259,3 +1259,93 @@ def test_categorical_nan_no_dtype_conversion():
     expected = pd.DataFrame({"a": Categorical([1], [1]), "b": [1]})
     df.loc[0, "a"] = np.array([1])
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.fixture
+def pa():
+    return pytest.importorskip("pyarrow")
+
+
+@pytest.mark.parametrize(
+    "type_name, expected_size",
+    [
+        # Integer types
+        ("int8", 1),
+        ("int16", 2),
+        ("int32", 4),
+        ("int64", 8),
+        ("uint8", 1),
+        ("uint16", 2),
+        ("uint32", 4),
+        ("uint64", 8),
+        # Floating point types
+        ("float16", 2),
+        ("float32", 4),
+        ("float64", 8),
+        # Boolean
+        ("bool_", 1),
+        # Date and timestamp types
+        ("date32", 4),
+        ("date64", 8),
+        ("timestamp", 8),
+        # Time types
+        ("time32", 4),
+        ("time64", 8),
+        # Decimal types
+        ("decimal128", 16),
+        ("decimal256", 32),
+    ],
+)  # type: ignore[misc]
+def test_arrow_dtype_itemsize_fixed_width(pa, type_name, expected_size):
+    # GH 57948
+
+    parametric_type_map = {
+        "timestamp": pa.timestamp("ns"),
+        "time32": pa.time32("s"),
+        "time64": pa.time64("ns"),
+        "decimal128": pa.decimal128(38, 10),
+        "decimal256": pa.decimal256(76, 10),
+    }
+
+    if type_name in parametric_type_map:
+        arrow_type = parametric_type_map.get(type_name)
+    else:
+        arrow_type = getattr(pa, type_name)()
+    dtype = pd.ArrowDtype(arrow_type)
+
+    if type_name == "bool_":
+        expected_size = dtype.numpy_dtype.itemsize
+
+    assert dtype.itemsize == expected_size, (
+        f"{type_name} expected {expected_size}, got {dtype.itemsize} "
+        f"(bit_width={getattr(dtype.pyarrow_dtype, 'bit_width', 'N/A')})"
+    )
+
+
+@pytest.mark.parametrize("type_name", ["string", "binary", "large_string"])
+def test_arrow_dtype_itemsize_variable_width(pa, type_name):
+    # GH 57948
+
+    arrow_type = getattr(pa, type_name)()
+    dtype = pd.ArrowDtype(arrow_type)
+
+    assert dtype.itemsize == dtype.numpy_dtype.itemsize
+
+
+def test_arrow_dtype_error_fallback(pa, monkeypatch):
+    # GH 57948
+
+    dtype = pd.ArrowDtype(pa.int32())
+
+    class ErrorType:
+        id = None
+
+        @property
+        def bit_width(self):
+            raise ValueError("Simulated Error")
+
+        def to_pandas_dtype(self):
+            return Series([0]).dtype
+
+    monkeypatch.setattr(dtype, "pyarrow_dtype", ErrorType())
+    assert dtype.itemsize == dtype.numpy_dtype.itemsize
