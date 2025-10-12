@@ -2196,7 +2196,7 @@ class Rolling(RollingAndExpandingMixin):
             function.
             * ``True`` : the passed function will receive ndarray
             objects instead.
-            
+
             If you are just applying a NumPy reduction function this will
             achieve much better performance.
 
@@ -2212,7 +2212,7 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
             ``False``.
-            
+
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
             applied to both the ``func`` and the ``apply`` rolling aggregation.
@@ -2493,7 +2493,7 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
             ``False``.
-            
+
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
@@ -2565,7 +2565,7 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
             ``False``.
-            
+
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
@@ -2637,7 +2637,7 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
             ``False``.
-            
+
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
@@ -2716,7 +2716,7 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
             ``False``.
-            
+
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
@@ -2793,7 +2793,7 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
             ``False``.
-            
+
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
@@ -2873,7 +2873,7 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
             ``False``.
-            
+
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
