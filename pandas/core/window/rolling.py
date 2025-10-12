@@ -9,7 +9,6 @@ import copy
 from datetime import timedelta
 from functools import partial
 import inspect
-from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -30,11 +29,6 @@ from pandas._libs.tslibs import (
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    doc,
-)
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -81,19 +75,6 @@ from pandas.core.util.numba_ import (
 from pandas.core.window.common import (
     flex_binary_moment,
     zsqrt,
-)
-from pandas.core.window.doc import (
-    _shared_docs,
-    create_section_header,
-    kwargs_numeric_only,
-    kwargs_scipy,
-    numba_notes,
-    template_header,
-    template_pipe,
-    template_returns,
-    template_see_also,
-    window_agg_numba_parameters,
-    window_apply_parameters,
 )
 from pandas.core.window.numba_ import (
     generate_manual_numpy_nan_agg_with_axis,
@@ -1348,7 +1329,7 @@ class Window(BaseWindow):
         To get an instance of :class:`~pandas.core.window.rolling.Window` we need
         to pass the parameter `win_type`.
 
-        >>> type(ser.rolling(2, win_type='gaussian'))
+        >>> type(ser.rolling(2, win_type="gaussian"))
         <class 'pandas.core.window.rolling.Window'>
 
         In order to use the `SciPy` Gaussian window we need to provide the parameters
@@ -1356,7 +1337,7 @@ class Window(BaseWindow):
         We pass the second parameter `std` as a parameter of the following method
         (`sum` in this case):
 
-        >>> ser.rolling(2, win_type='gaussian').sum(std=3)
+        >>> ser.rolling(2, win_type="gaussian").sum(std=3)
         0         NaN
         1    0.986207
         2    5.917243
@@ -1408,14 +1389,14 @@ class Window(BaseWindow):
         To get an instance of :class:`~pandas.core.window.rolling.Window` we need
         to pass the parameter `win_type`.
 
-        >>> type(ser.rolling(2, win_type='gaussian'))
+        >>> type(ser.rolling(2, win_type="gaussian"))
         <class 'pandas.core.window.rolling.Window'>
 
         In order to use the `SciPy` Gaussian window we need to provide the parameters
         `M` and `std`. The parameter `M` corresponds to 2 in our example.
         We pass the second parameter `std` as a parameter of the following method:
 
-        >>> ser.rolling(2, win_type='gaussian').mean(std=3)
+        >>> ser.rolling(2, win_type="gaussian").mean(std=3)
         0    NaN
         1    0.5
         2    3.0
@@ -1470,14 +1451,14 @@ class Window(BaseWindow):
         To get an instance of :class:`~pandas.core.window.rolling.Window` we need
         to pass the parameter `win_type`.
 
-        >>> type(ser.rolling(2, win_type='gaussian'))
+        >>> type(ser.rolling(2, win_type="gaussian"))
         <class 'pandas.core.window.rolling.Window'>
 
         In order to use the `SciPy` Gaussian window we need to provide the parameters
         `M` and `std`. The parameter `M` corresponds to 2 in our example.
         We pass the second parameter `std` as a parameter of the following method:
 
-        >>> ser.rolling(2, win_type='gaussian').var(std=3)
+        >>> ser.rolling(2, win_type="gaussian").var(std=3)
         0     NaN
         1     0.5
         2     8.0
@@ -1525,14 +1506,14 @@ class Window(BaseWindow):
         To get an instance of :class:`~pandas.core.window.rolling.Window` we need
         to pass the parameter `win_type`.
 
-        >>> type(ser.rolling(2, win_type='gaussian'))
+        >>> type(ser.rolling(2, win_type="gaussian"))
         <class 'pandas.core.window.rolling.Window'>
 
         In order to use the `SciPy` Gaussian window we need to provide the parameters
         `M` and `std`. The parameter `M` corresponds to 2 in our example.
         We pass the second parameter `std` as a parameter of the following method:
 
-        >>> ser.rolling(2, win_type='gaussian').std(std=3)
+        >>> ser.rolling(2, win_type="gaussian").std(std=3)
         0         NaN
         1    0.707107
         2    2.828427
@@ -2304,17 +2285,16 @@ class Rolling(RollingAndExpandingMixin):
 
         >>> h = lambda x, arg2, arg3: x + 1 - arg2 * arg3
         >>> g = lambda x, arg1: x * 5 / arg1
-        >>> f = lambda x: x ** 4
+        >>> f = lambda x: x**4
         >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
         index=pd.date_range('2012-08-02', periods=4))
-        >>> h(g(f(df.rolling('2D')), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
+        >>> h(g(f(df.rolling("2D")), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
 
         You can write
 
-        >>> (df.rolling('2D')
-        ...    .pipe(f)
-        ...    .pipe(g, arg1=1)
-        ...    .pipe(h, arg2=2, arg3=3))  # doctest: +SKIP
+        >>> (
+        ...     df.rolling("2D").pipe(f).pipe(g, arg1=1).pipe(h, arg2=2, arg3=3)
+        ... )  # doctest: +SKIP
 
         which is much more readable.
 
@@ -2350,8 +2330,9 @@ class Rolling(RollingAndExpandingMixin):
         Examples
         --------
 
-            >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
-            ...                   index=pd.date_range('2012-08-02', periods=4))
+            >>> df = pd.DataFrame(
+            ...     {"A": [1, 2, 3, 4]}, index=pd.date_range("2012-08-02", periods=4)
+            ... )
             >>> df
                         A
             2012-08-02  1
@@ -2363,7 +2344,7 @@ class Rolling(RollingAndExpandingMixin):
             2-day window's maximum and minimum
             value in one pass, you can do
 
-            >>> df.rolling('2D').pipe(lambda x: x.max() - x.min())
+            >>> df.rolling("2D").pipe(lambda x: x.max() - x.min())
                         A
             2012-08-02  0.0
             2012-08-03  1.0
@@ -2452,7 +2433,7 @@ class Rolling(RollingAndExpandingMixin):
 
         For DataFrame, each sum is computed column-wise.
 
-        >>> df = pd.DataFrame({"A": s, "B": s ** 2})
+        >>> df = pd.DataFrame({"A": s, "B": s**2})
         >>> df
         A   B
         0  1   1
@@ -3180,14 +3161,14 @@ class Rolling(RollingAndExpandingMixin):
         Examples
         --------
         >>> s = pd.Series([1, 2, 3, 4])
-        >>> s.rolling(2).quantile(.4, interpolation='lower')
+        >>> s.rolling(2).quantile(0.4, interpolation="lower")
         0    NaN
         1    1.0
         2    2.0
         3    3.0
         dtype: float64
 
-        >>> s.rolling(2).quantile(.4, interpolation='midpoint')
+        >>> s.rolling(2).quantile(0.4, interpolation="midpoint")
         0    NaN
         1    1.5
         2    2.5
@@ -3478,18 +3459,16 @@ class Rolling(RollingAndExpandingMixin):
         The below example shows a similar rolling calculation on a
         DataFrame using the pairwise option.
 
-        >>> matrix = np.array([[51., 35.],
-        ...                    [49., 30.],
-        ...                    [47., 32.],
-        ...                    [46., 31.],
-        ...                    [50., 36.]])
+        >>> matrix = np.array(
+        ...     [[51.0, 35.0], [49.0, 30.0], [47.0, 32.0], [46.0, 31.0], [50.0, 36.0]]
+        ... )
         >>> np.corrcoef(matrix[:-1, 0], matrix[:-1, 1])
         array([[1.       , 0.6263001],
             [0.6263001, 1.       ]])
         >>> np.corrcoef(matrix[1:, 0], matrix[1:, 1])
         array([[1.        , 0.55536811],
             [0.55536811, 1.        ]])
-        >>> df = pd.DataFrame(matrix, columns=['X', 'Y'])
+        >>> df = pd.DataFrame(matrix, columns=["X", "Y"])
         >>> df
             X     Y
         0  51.0  35.0
