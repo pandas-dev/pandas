@@ -922,6 +922,15 @@ class ExcelFormatter:
         formatted_cells = self.get_formatted_cells()
         if isinstance(writer, ExcelWriter):
             need_save = False
+            # Propagate engine_kwargs to an existing writer instance if provided
+            if engine_kwargs:
+                try:
+                    current = getattr(writer, "_engine_kwargs", {}) or {}
+                    merged = {**current, **engine_kwargs}
+                    setattr(writer, "_engine_kwargs", merged)
+                except Exception:
+                    # Best-effort propagation; ignore if engine does not support it
+                    pass
         else:
             writer = ExcelWriter(
                 writer,

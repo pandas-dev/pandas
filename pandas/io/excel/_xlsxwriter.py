@@ -212,6 +212,8 @@ class XlsxWriter(ExcelWriter):
             engine_kwargs=engine_kwargs,
         )
 
+        self._engine_kwargs = engine_kwargs
+
         try:
             self._book = Workbook(self._handles.handle, **engine_kwargs)  # type: ignore[arg-type]
         except TypeError:
@@ -258,6 +260,14 @@ class XlsxWriter(ExcelWriter):
         if validate_freeze_panes(freeze_panes):
             wks.freeze_panes(*(freeze_panes))
 
+        min_row = None
+        min_col = None
+        max_row = None
+        max_col = None
+
+        header_bold = bool(self._engine_kwargs.get("header_bold", False)) if hasattr(self, "_engine_kwargs") else False
+        bold_format = self.book.add_format({"bold": True}) if header_bold else None
+
         for cell in cells:
             val, fmt = self._value_with_fmt(cell.val)
 
@@ -271,14 +281,35 @@ class XlsxWriter(ExcelWriter):
                 style = self.book.add_format(_XlsxStyler.convert(cell.style, fmt))
                 style_dict[stylekey] = style
 
+            crow = startrow + cell.row
+            ccol = startcol + cell.col
+            if min_row is None or crow < min_row:
+                min_row = crow
+            if min_col is None or ccol < min_col:
+                min_col = ccol
+            if max_row is None or crow > max_row:
+                max_row = crow
+            if max_col is None or ccol > max_col:
+                max_col = ccol
+
             if cell.mergestart is not None and cell.mergeend is not None:
                 wks.merge_range(
-                    startrow + cell.row,
-                    startcol + cell.col,
+                    crow,
+                    ccol,
                     startrow + cell.mergestart,
                     startcol + cell.mergeend,
                     val,
                     style,
                 )
             else:
-                wks.write(startrow + cell.row, startcol + cell.col, val, style)
+                if bold_format is not None and (startrow == crow):
+                    wks.write(crow, ccol, val, bold_format)
+                else:
+                    wks.write(crow, ccol, val, style)
+
+        if hasattr(self, "_engine_kwargs") and bool(self._engine_kwargs.get("autofilter_header", False)):
+            if min_row is not None and min_col is not None and max_row is not None and max_col is not None:
+                try:
+                    wks.autofilter(min_row, min_col, max_row, max_col)
+                except Exception:
+                    pass

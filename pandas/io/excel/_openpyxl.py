@@ -67,6 +67,9 @@ class OpenpyxlWriter(ExcelWriter):
             engine_kwargs=engine_kwargs,
         )
 
+        # Persist engine kwargs for later feature toggles (e.g., autofilter/header bold)
+        self._engine_kwargs = engine_kwargs
+
         # ExcelWriter replaced "a" by "r+" to allow us to first read the excel file from
         # the file and later write to it
         if "r+" in self._mode:  # Load from existing workbook
@@ -486,6 +489,15 @@ class OpenpyxlWriter(ExcelWriter):
                 row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
             )
 
+        # Track bounds for autofilter application
+        min_row = None
+        min_col = None
+        max_row = None
+        max_col = None
+
+        # Prepare header bold setting
+        header_bold = bool(self._engine_kwargs.get("header_bold", False)) if hasattr(self, "_engine_kwargs") else False
+
         for cell in cells:
             xcell = wks.cell(
                 row=startrow + cell.row + 1, column=startcol + cell.col + 1
@@ -505,6 +517,26 @@ class OpenpyxlWriter(ExcelWriter):
             if style_kwargs:
                 for k, v in style_kwargs.items():
                     setattr(xcell, k, v)
+
+            # Update bounds
+            crow = startrow + cell.row + 1
+            ccol = startcol + cell.col + 1
+            if min_row is None or crow < min_row:
+                min_row = crow
+            if min_col is None or ccol < min_col:
+                min_col = ccol
+            if max_row is None or crow > max_row:
+                max_row = crow
+            if max_col is None or ccol > max_col:
+                max_col = ccol
+
+            # Apply bold to first header row cells if requested
+            if header_bold and (cell.row == 0):
+                try:
+                    from openpyxl.styles import Font
+                    xcell.font = Font(bold=True)
+                except Exception:
+                    pass
 
             if cell.mergestart is not None and cell.mergeend is not None:
                 wks.merge_cells(
@@ -531,6 +563,17 @@ class OpenpyxlWriter(ExcelWriter):
                             xcell = wks.cell(column=col, row=row)
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
+
+        # Apply autofilter over the used range if requested
+        if hasattr(self, "_engine_kwargs") and bool(self._engine_kwargs.get("autofilter_header", False)):
+            if min_row is not None and min_col is not None and max_row is not None and max_col is not None:
+                try:
+                    from openpyxl.utils import get_column_letter
+                    start_ref = f"{get_column_letter(min_col)}{min_row}"
+                    end_ref = f"{get_column_letter(max_col)}{max_row}"
+                    wks.auto_filter.ref = f"{start_ref}:{end_ref}"
+                except Exception:
+                    pass
 
 
 class OpenpyxlReader(BaseExcelReader["Workbook"]):
