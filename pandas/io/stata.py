@@ -44,7 +44,6 @@ from pandas.errors import (
     ValueLabelTypeMismatch,
 )
 from pandas.util._decorators import (
-    doc,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -2377,10 +2376,6 @@ def _dtype_to_default_stata_fmt(
         raise NotImplementedError(f"Data type {dtype} not supported.")
 
 
-@doc(
-    storage_options=_shared_docs["storage_options"],
-    compression_options=_shared_docs["compression_options"] % "fname",
-)
 class StataWriter(StataParser):
     """
     A class for writing Stata binary dta files
