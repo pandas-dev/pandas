@@ -1753,7 +1753,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                     self._simple_new(
                         sp_value, self.sp_index, SparseDtype(sp_value.dtype, fv)
                     )
-                    for sp_value, fv in zip(sp_values, fill_value)
+                    for sp_value, fv in zip(sp_values, fill_value, strict=True)
                 )
                 return arrays
             elif method == "reduce":

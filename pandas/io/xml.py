@@ -17,7 +17,10 @@ from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -222,7 +225,7 @@ class _XMLFrameParser:
                         ),
                         **{
                             nm: ch.text if ch.text else None
-                            for nm, ch in zip(self.names, el.findall("*"))
+                            for nm, ch in zip(self.names, el.findall("*"), strict=True)
                         },
                     }
                     for el in elems
@@ -245,7 +248,7 @@ class _XMLFrameParser:
                     **({el.tag: el.text} if el.text and not el.text.isspace() else {}),
                     **{
                         nm: ch.text if ch.text else None
-                        for nm, ch in zip(self.names, el.findall("*"))
+                        for nm, ch in zip(self.names, el.findall("*"), strict=False)
                     },
                 }
                 for el in elems
@@ -269,7 +272,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [dict(zip(self.names, d.values())) for d in dicts]
+            dicts = [dict(zip(self.names, d.values(), strict=True)) for d in dicts]
 
         return dicts
 
@@ -339,7 +342,9 @@ class _XMLFrameParser:
 
             if row is not None:
                 if self.names and iterparse_repeats:
-                    for col, nm in zip(self.iterparse[row_node], self.names):
+                    for col, nm in zip(
+                        self.iterparse[row_node], self.names, strict=True
+                    ):
                         if curr_elem == col:
                             elem_val = elem.text if elem.text else None
                             if elem_val not in row.values() and nm not in row:
@@ -374,7 +379,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [dict(zip(self.names, d.values())) for d in dicts]
+            dicts = [dict(zip(self.names, d.values(), strict=True)) for d in dicts]
 
         return dicts
 
@@ -827,6 +832,7 @@ def _parse(
     )
 
 
+@set_module("pandas")
 @doc(
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",

@@ -5188,6 +5188,27 @@ INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 _offset_map = {}
 
 
+deprec_to_valid_alias = {
+    "H": "h",
+    "BH": "bh",
+    "CBH": "cbh",
+    "T": "min",
+    "S": "s",
+    "L": "ms",
+    "U": "us",
+    "N": "ns",
+}
+
+
+def raise_invalid_freq(freq: str, extra_message: str | None = None) -> None:
+    msg = f"Invalid frequency: {freq}."
+    if extra_message is not None:
+        msg += f" {extra_message}"
+    if freq in deprec_to_valid_alias:
+        msg += f" Did you mean {deprec_to_valid_alias[freq]}?"
+    raise ValueError(msg)
+
+
 def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
     if name in _lite_rule_alias:
         return name
@@ -5236,7 +5257,7 @@ def _validate_to_offset_alias(alias: str, is_period: bool) -> None:
         if (alias.upper() != alias and
                 alias.lower() not in {"s", "ms", "us", "ns"} and
                 alias.upper().split("-")[0].endswith(("S", "E"))):
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(alias))
+            raise ValueError(raise_invalid_freq(freq=alias))
     if (
         is_period and
         alias in c_OFFSET_TO_PERIOD_FREQSTR and
@@ -5267,8 +5288,9 @@ def _get_offset(name: str) -> BaseOffset:
             offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError) as err:
             # bad prefix or suffix
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(
-                f"{name}, failed to parse with error message: {repr(err)}")
+            raise_invalid_freq(
+                freq=name,
+                extra_message=f"Failed to parse with error message: {repr(err)}."
             )
         # cache
         _offset_map[name] = offset
@@ -5399,9 +5421,10 @@ cpdef to_offset(freq, bint is_period=False):
                 else:
                     result = result + offset
         except (ValueError, TypeError) as err:
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(
-                f"{freq}, failed to parse with error message: {repr(err)}")
-            ) from err
+            raise_invalid_freq(
+                freq=freq,
+                extra_message=f"Failed to parse with error message: {repr(err)}"
+            )
 
         # TODO(3.0?) once deprecation of "d" is enforced, the check for it here
         #  can be removed
@@ -5417,7 +5440,7 @@ cpdef to_offset(freq, bint is_period=False):
         result = None
 
     if result is None:
-        raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
+        raise_invalid_freq(freq=freq)
 
     try:
         has_period_dtype_code = hasattr(result, "_period_dtype_code")
