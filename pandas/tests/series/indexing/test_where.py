@@ -443,3 +443,26 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     res = pd.DataFrame(lvals).where(mask[:, None], pd.DataFrame(rvals))
 
     tm.assert_frame_equal(res, pd.DataFrame(dr))
+
+
+@pytest.mark.parametrize(
+    "original,conditional,expected",
+    [
+        (
+            [[0.0, 0.5, 0.0], [0.1, 0.0, 0.2], [0.2, 0.0, 0.0]],
+            [True, True, False],
+            [[0.0, 0.5, 0.0], [0.1, 0.0, 0.2], [np.nan, np.nan, np.nan]],
+        ),
+        (
+            [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]],
+            [True, False, True],
+            [[1.0, 2.0, 3.0], [np.nan, np.nan, np.nan], [7.0, 8.0, 9.0]],
+        ),
+    ],
+)
+def test_where_axis1(original, conditional, expected):
+    # GH 58190, 58144
+    A = pd.DataFrame(original)
+    res = A.where(Series(conditional), axis=1)
+    expected = pd.DataFrame(expected)
+    tm.assert_frame_equal(res, expected)
