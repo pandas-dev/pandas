@@ -3527,6 +3527,7 @@ class Rolling(RollingAndExpandingMixin):
 
 Rolling.__doc__ = Window.__doc__
 
+
 class RollingGroupby(BaseWindowGroupby, Rolling):
     """
     Provide a rolling groupby implementation.
