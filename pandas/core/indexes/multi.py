@@ -2772,7 +2772,6 @@ class MultiIndex(Index):
 
         new_names.insert(position, name)
 
-        from pandas import MultiIndex
 
         return MultiIndex.from_tuples(new_tuples, names=new_names)
 
