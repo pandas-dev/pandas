@@ -260,26 +260,26 @@ class Expanding(RollingAndExpandingMixin):
 
         raw : bool, default False
             * ``False`` : passes each row or column as a Series to the
-            function.
-            * ``True`` : the passed function will receive ndarray
-            objects instead.
+              function.
+            * ``True`` : the passed function will receive ndarray objects instead.
+
             If you are just applying a NumPy reduction function this will
             achieve much better performance.
 
         engine : str, default None
             * ``'cython'`` : Runs rolling apply through C-extensions from cython.
             * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
-            Only available when ``raw`` is set to ``True``.
+              Only available when ``raw`` is set to ``True``.
             * ``None`` : Defaults to ``'cython'`` or globally setting
-            ``compute.use_numba``
+              ``compute.use_numba``
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
-            applied to both the ``func`` and the ``apply`` rolling aggregation.
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+              applied to both the ``func`` and the ``apply`` rolling aggregation.
 
         args : tuple, default None
             Positional arguments to be passed into func.
@@ -354,8 +354,7 @@ class Expanding(RollingAndExpandingMixin):
         >>> g = lambda x, arg1: x * 5 / arg1
         >>> f = lambda x: x**4
         >>> df = pd.DataFrame(
-        ...     {"A": [1, 2, 3, 4]},
-                index=pd.date_range("2012-08-02", periods=4)
+        ...     {"A": [1, 2, 3, 4]}, index=pd.date_range("2012-08-02", periods=4)
         ... )
         >>> h(g(f(df.rolling("2D")), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
 
@@ -448,9 +447,9 @@ class Expanding(RollingAndExpandingMixin):
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
             .. versionadded:: 1.3.0
 
@@ -514,9 +513,9 @@ class Expanding(RollingAndExpandingMixin):
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
             .. versionadded:: 1.3.0
 
@@ -580,9 +579,9 @@ class Expanding(RollingAndExpandingMixin):
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
             .. versionadded:: 1.3.0
 
@@ -646,9 +645,9 @@ class Expanding(RollingAndExpandingMixin):
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
             .. versionadded:: 1.3.0
 
@@ -712,9 +711,9 @@ class Expanding(RollingAndExpandingMixin):
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
             .. versionadded:: 1.3.0
 
@@ -783,9 +782,9 @@ class Expanding(RollingAndExpandingMixin):
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
             .. versionadded:: 1.4.0
 
@@ -862,9 +861,9 @@ class Expanding(RollingAndExpandingMixin):
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
             .. versionadded:: 1.4.0
 
