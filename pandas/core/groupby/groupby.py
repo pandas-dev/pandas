@@ -437,6 +437,7 @@ class GroupByPlot(PandasObject):
         color = kwargs.get("color", None)
         if colormap is not None and color is None:
             from pandas.plotting._matplotlib.style import get_standard_colors
+
             group_keys = list(self._groupby.groups.keys())
             colors = get_standard_colors(
                 num_colors=len(group_keys),
@@ -445,15 +446,19 @@ class GroupByPlot(PandasObject):
             )
             kwargs = dict(kwargs)
             kwargs.pop("colormap", None)
+
             def f(group, color, label):
                 return group.plot(*args, color=color, label=label, **kwargs)
+
             results = []
             for i, (name, group) in enumerate(self._groupby):
                 results.append(f(group, colors[i], name))
             return results
         else:
+
             def f(self):
                 return self.plot(*args, **kwargs)
+
             f.__name__ = "plot"
             return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
