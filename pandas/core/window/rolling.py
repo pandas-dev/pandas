@@ -2196,6 +2196,7 @@ class Rolling(RollingAndExpandingMixin):
             function.
             * ``True`` : the passed function will receive ndarray
             objects instead.
+            
             If you are just applying a NumPy reduction function this will
             achieve much better performance.
 
@@ -2210,7 +2211,9 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+            ``False``.
+            
+            The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
             applied to both the ``func`` and the ``apply`` rolling aggregation.
 
@@ -2489,7 +2492,9 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+            ``False``.
+            
+            The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
             .. versionadded:: 1.3.0
@@ -2559,7 +2564,9 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+            ``False``.
+            
+            The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
             .. versionadded:: 1.3.0
@@ -2629,7 +2636,9 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+            ``False``.
+            
+            The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
             .. versionadded:: 1.3.0
@@ -2706,7 +2715,9 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+            ``False``.
+            
+            The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
             .. versionadded:: 1.3.0
@@ -2763,6 +2774,7 @@ class Rolling(RollingAndExpandingMixin):
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
@@ -2780,7 +2792,9 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+            ``False``.
+            
+            The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
             .. versionadded:: 1.4.0
@@ -2840,6 +2854,7 @@ class Rolling(RollingAndExpandingMixin):
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
@@ -2857,7 +2872,9 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+            ``False``.
+            
+            The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``
 
             .. versionadded:: 1.4.0
@@ -2954,6 +2971,7 @@ class Rolling(RollingAndExpandingMixin):
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
@@ -3131,6 +3149,7 @@ class Rolling(RollingAndExpandingMixin):
 
             .. deprecated:: 2.1.0
                 This was renamed from 'quantile' to 'q' in version 2.1.0.
+
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
@@ -3141,6 +3160,7 @@ class Rolling(RollingAndExpandingMixin):
                 * higher: `j`.
                 * nearest: `i` or `j` whichever is nearest.
                 * midpoint: (`i` + `j`) / 2.
+
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
@@ -3204,9 +3224,11 @@ class Rolling(RollingAndExpandingMixin):
 
         ascending : bool, default True
             Whether or not the elements should be ranked in ascending order.
+
         pct : bool, default False
             Whether or not to display the returned rankings in percentile
             form.
+
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
@@ -3322,6 +3344,7 @@ class Rolling(RollingAndExpandingMixin):
         other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
+
         pairwise : bool, default None
             If False then only matching columns between self and other will be
             used and the output will be a DataFrame.
@@ -3329,9 +3352,11 @@ class Rolling(RollingAndExpandingMixin):
             output will be a MultiIndexed DataFrame in the case of DataFrame
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
+
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
@@ -3382,6 +3407,7 @@ class Rolling(RollingAndExpandingMixin):
         other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
+
         pairwise : bool, default None
             If False then only matching columns between self and other will be
             used and the output will be a DataFrame.
@@ -3389,9 +3415,11 @@ class Rolling(RollingAndExpandingMixin):
             output will be a MultiIndexed DataFrame in the case of DataFrame
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
+
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
+
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
