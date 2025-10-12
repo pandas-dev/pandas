@@ -223,3 +223,41 @@ class TestDataFrameRound:
         result = df.round()
         tm.assert_frame_equal(df, result)
         assert df is not result
+
+    def test_round_object_columns(self):
+        # GH#62174
+        df = DataFrame(
+            {
+                "a": Series([1.1111, 2.2222, 3.3333], dtype="object"),
+                "b": Series([4.4444, 5.5555, 6.6666]),
+                "c": Series([7.7777, 8.8888, 9.9999], dtype="object"),
+            }
+        )
+        result = df.round(2)
+        expected = DataFrame(
+            {
+                "a": Series([1.11, 2.22, 3.33]),
+                "b": Series([4.44, 5.56, 6.67]),
+                "c": Series([7.78, 8.89, 10.0]),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_round_object_columns_with_dict(self):
+        # GH#62174
+        df = DataFrame(
+            {
+                "a": Series([1.1111, 2.2222, 3.3333], dtype="object"),
+                "b": Series([4.4444, 5.5555, 6.6666]),
+                "c": Series([7.7777, 8.8888, 9.9999], dtype="object"),
+            }
+        )
+        result = df.round({"a": 1, "b": 2, "c": 3})
+        expected = DataFrame(
+            {
+                "a": Series([1.1, 2.2, 3.3]),
+                "b": Series([4.44, 5.56, 6.67]),
+                "c": Series([7.778, 8.889, 10.0]),
+            }
+        )
+        tm.assert_frame_equal(result, expected)

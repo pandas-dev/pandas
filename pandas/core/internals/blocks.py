@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import inspect
 import re
 from typing import (
@@ -345,7 +346,6 @@ class Block(PandasObject, libinternals.Block):
         one
         """
         result = func(self.values, **kwargs)
-
         result = maybe_coerce_values(result)
         return self._split_op_result(result)
 
@@ -1503,9 +1503,8 @@ class Block(PandasObject, libinternals.Block):
     def round(self, decimals: int) -> Self:
         """
         Rounds the values.
-        If the block is not of an integer or float dtype, nothing happens.
-        This is consistent with DataFrame.round behavior.
-        (Note: Series.round would raise)
+        If the block is of object dtype, it will operate pointwise and possibly raise.
+        Otherwise, if the block is not of an integer or float dtype, nothing happens.
 
         Parameters
         ----------
@@ -1513,6 +1512,24 @@ class Block(PandasObject, libinternals.Block):
             Number of decimal places to round to.
             Caller is responsible for validating this
         """
+        if self.dtype == _dtype_obj:
+            round_func = functools.partial(round, ndigits=decimals)
+            try:
+                if self.values.ndim == 1:
+                    values = algos.map_array(self.values, round_func)
+                else:
+                    values = algos.map_array(self.values.ravel(), round_func).reshape(
+                        self.values.shape
+                    )
+            except TypeError as err:
+                raise TypeError("Expected numeric entries for dtype object.") from err
+
+            refs = None
+            if values is self.values:
+                refs = self.refs
+
+            return self.make_block_same_class(values, refs=refs)
+
         if not self.is_numeric or self.is_bool:
             return self.copy(deep=False)
         # TODO: round only defined on BaseMaskedArray
