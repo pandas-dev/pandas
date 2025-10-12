@@ -9347,7 +9347,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Data reshaping
     @deprecate_nonkeyword_arguments(
-            Pandas4Warning, allowed_ards=["self", "by", "level"], name="groupby"
+            Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
     )
     def groupby(
         self,
