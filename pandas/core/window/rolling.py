@@ -2289,8 +2289,9 @@ class Rolling(RollingAndExpandingMixin):
         >>> h = lambda x, arg2, arg3: x + 1 - arg2 * arg3
         >>> g = lambda x, arg1: x * 5 / arg1
         >>> f = lambda x: x**4
-        >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
-        ...    index=pd.date_range('2012-08-02', periods=4))
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 2, 3, 4]}, index=pd.date_range("2012-08-02", periods=4)
+        ... )
         >>> h(g(f(df.rolling("2D")), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
 
         You can write
