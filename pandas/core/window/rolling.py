@@ -1242,7 +1242,8 @@ class Window(BaseWindow):
         ----------
         func : function, str, list or dict
             Function to use for aggregating the data. If a function, must either
-            work when passed a Series/DataFrame or when passed to Series/DataFrame.apply.
+            work when passed a Series/DataFrame or
+            when passed to Series/DataFrame.apply.
 
             Accepted combinations are:
 
@@ -2069,7 +2070,8 @@ class Rolling(RollingAndExpandingMixin):
         ----------
         func : function, str, list or dict
             Function to use for aggregating the data. If a function, must either
-            work when passed a Series/Dataframe or when passed to Series/Dataframe.apply.
+            work when passed a Series/Dataframe or
+            when passed to Series/Dataframe.apply.
 
             Accepted combinations are:
 
@@ -2220,7 +2222,8 @@ class Rolling(RollingAndExpandingMixin):
             * ``'cython'`` : Runs rolling apply through C-extensions from cython.
             * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
             Only available when ``raw`` is set to ``True``.
-            * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+            * ``None`` : Defaults to ``'cython'`` or
+            globally setting ``compute.use_numba``
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -2294,14 +2297,16 @@ class Rolling(RollingAndExpandingMixin):
         Apply a ``func`` with arguments to this Rolling object and return its result.
 
         Use `.pipe` when you want to improve readability by chaining together
-        functions that expect Series, DataFrames, GroupBy, Rolling, Expanding or Resampler
+        functions that expect
+        Series, DataFrames, GroupBy, Rolling, Expanding or Resampler
         objects.
         Instead of writing
 
         >>> h = lambda x, arg2, arg3: x + 1 - arg2 * arg3
         >>> g = lambda x, arg1: x * 5 / arg1
         >>> f = lambda x: x ** 4
-        >>> df = pd.DataFrame({'A': [1, 2, 3, 4]}, index=pd.date_range('2012-08-02', periods=4))
+        >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
+        index=pd.date_range('2012-08-02', periods=4))
         >>> h(g(f(df.rolling('2D')), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
 
         You can write
@@ -2354,7 +2359,8 @@ class Rolling(RollingAndExpandingMixin):
             2012-08-04  3
             2012-08-05  4
 
-            To get the difference between each rolling 2-day window's maximum and minimum
+            To get the difference between each rolling
+            2-day window's maximum and minimum
             value in one pass, you can do
 
             >>> df.rolling('2D').pipe(lambda x: x.max() - x.min())
@@ -2385,7 +2391,8 @@ class Rolling(RollingAndExpandingMixin):
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
-            * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+            * ``None`` : Defaults to ``'cython'`` or
+            globally setting ``compute.use_numba``
 
             .. versionadded:: 1.3.0
 
@@ -2412,7 +2419,9 @@ class Rolling(RollingAndExpandingMixin):
 
         Notes
         -----
-        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for extended documentation and performance considerations for the Numba engine.
+        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba`
+        for extended documentation and performance considerations
+        for the Numba engine.
 
         Examples
         --------
@@ -2490,7 +2499,8 @@ class Rolling(RollingAndExpandingMixin):
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
-            * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+            * ``None`` : Defaults to ``'cython'`` or
+            globally setting ``compute.use_numba``
 
             .. versionadded:: 1.3.0
 
@@ -2520,7 +2530,9 @@ class Rolling(RollingAndExpandingMixin):
 
         Notes
         -----
-        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for extended documentation and performance considerations for the Numba engine.
+        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba`
+        for extended documentation and performance considerations
+        for the Numba engine.
 
         Examples
         --------
@@ -2557,7 +2569,8 @@ class Rolling(RollingAndExpandingMixin):
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
-            * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+            * ``None`` : Defaults to ``'cython'`` or
+            globally setting ``compute.use_numba``
 
             .. versionadded:: 1.3.0
 
@@ -2584,7 +2597,9 @@ class Rolling(RollingAndExpandingMixin):
 
         Notes
         -----
-        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for extended documentation and performance considerations for the Numba engine.
+        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba`
+        for extended documentation and performance considerations
+        for the Numba engine.
 
         Examples
         --------
@@ -2624,7 +2639,8 @@ class Rolling(RollingAndExpandingMixin):
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
-            * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+            * ``None`` : Defaults to ``'cython'`` or
+            globally setting ``compute.use_numba``
 
             .. versionadded:: 1.3.0
 
@@ -2651,7 +2667,9 @@ class Rolling(RollingAndExpandingMixin):
 
         Notes
         -----
-        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for extended documentation and performance considerations for the Numba engine.
+        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba`
+        for extended documentation and performance considerations
+        for the Numba engine.
 
         Examples
         --------
@@ -2698,7 +2716,8 @@ class Rolling(RollingAndExpandingMixin):
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
-            * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+            * ``None`` : Defaults to ``'cython'`` or
+            globally setting ``compute.use_numba``
 
             .. versionadded:: 1.3.0
 
@@ -2725,7 +2744,9 @@ class Rolling(RollingAndExpandingMixin):
 
         Notes
         -----
-        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for extended documentation and performance considerations for the Numba engine.
+        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba`
+        for extended documentation and performance considerations
+        for the Numba engine.
 
         Examples
         --------
@@ -2769,7 +2790,8 @@ class Rolling(RollingAndExpandingMixin):
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
-            * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+            * ``None`` : Defaults to ``'cython'`` or
+            globally setting ``compute.use_numba``
 
             .. versionadded:: 1.4.0
 
@@ -2845,7 +2867,8 @@ class Rolling(RollingAndExpandingMixin):
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
-            * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+            * ``None`` : Defaults to ``'cython'`` or
+            globally setting ``compute.use_numba``
 
             .. versionadded:: 1.4.0
 
@@ -3187,7 +3210,7 @@ class Rolling(RollingAndExpandingMixin):
         """
         Calculate the rolling rank.
 
-        .. versionadded:: 1.4.0 
+        .. versionadded:: 1.4.0
 
         Parameters
         ----------
@@ -3264,7 +3287,7 @@ class Rolling(RollingAndExpandingMixin):
         """
         Calculate the rolling nunique.
 
-        .. versionadded:: 3.0.0 
+        .. versionadded:: 3.0.0
 
         Parameters
         ----------
