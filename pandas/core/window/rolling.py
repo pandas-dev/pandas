@@ -2193,9 +2193,9 @@ class Rolling(RollingAndExpandingMixin):
 
         raw : bool, default False
             * ``False`` : passes each row or column as a Series to the
-            function.
+              function.
             * ``True`` : the passed function will receive ndarray
-            objects instead.
+              objects instead.
 
             If you are just applying a NumPy reduction function this will
             achieve much better performance.
@@ -2203,14 +2203,14 @@ class Rolling(RollingAndExpandingMixin):
         engine : str, default None
             * ``'cython'`` : Runs rolling apply through C-extensions from cython.
             * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
-            Only available when ``raw`` is set to ``True``.
+              Only available when ``raw`` is set to ``True``.
             * ``None`` : Defaults to ``'cython'`` or
-            globally setting ``compute.use_numba``.
+              globally setting ``compute.use_numba``.
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
             ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
@@ -2376,16 +2376,16 @@ class Rolling(RollingAndExpandingMixin):
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or
-            globally setting ``compute.use_numba``
+              globally setting ``compute.use_numba``
 
             .. versionadded:: 1.3.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``.
 
             .. versionadded:: 1.3.0
 
@@ -2484,15 +2484,15 @@ class Rolling(RollingAndExpandingMixin):
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or
-            globally setting ``compute.use_numba``
+              globally setting ``compute.use_numba``
 
             .. versionadded:: 1.3.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``.
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``.
@@ -2556,15 +2556,15 @@ class Rolling(RollingAndExpandingMixin):
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or
-            globally setting ``compute.use_numba``
+              globally setting ``compute.use_numba``
 
             .. versionadded:: 1.3.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``.
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``.
@@ -2628,15 +2628,15 @@ class Rolling(RollingAndExpandingMixin):
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or
-            globally setting ``compute.use_numba``
+              globally setting ``compute.use_numba``
 
             .. versionadded:: 1.3.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``.
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``.
@@ -2707,15 +2707,15 @@ class Rolling(RollingAndExpandingMixin):
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or
-            globally setting ``compute.use_numba``
+              globally setting ``compute.use_numba``
 
             .. versionadded:: 1.3.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``.
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``.
@@ -2784,15 +2784,15 @@ class Rolling(RollingAndExpandingMixin):
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or
-            globally setting ``compute.use_numba``
+              globally setting ``compute.use_numba``
 
             .. versionadded:: 1.4.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``.
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``.
@@ -2864,15 +2864,15 @@ class Rolling(RollingAndExpandingMixin):
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or
-            globally setting ``compute.use_numba``
+              globally setting ``compute.use_numba``
 
             .. versionadded:: 1.4.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
-            and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``.
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}``.
@@ -3526,7 +3526,6 @@ class Rolling(RollingAndExpandingMixin):
 
 
 Rolling.__doc__ = Window.__doc__
-
 
 class RollingGroupby(BaseWindowGroupby, Rolling):
     """
