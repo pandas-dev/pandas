@@ -2211,7 +2211,7 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
-            ``False``.
+              ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
@@ -3155,7 +3155,7 @@ class Rolling(RollingAndExpandingMixin):
             when the desired quantile lies between two data points `i` and `j`:
 
                 * linear: `i + (j - i) * fraction`, where `fraction` is the
-                fractional part of the index surrounded by `i` and `j`.
+                  fractional part of the index surrounded by `i` and `j`.
                 * lower: `i`.
                 * higher: `j`.
                 * nearest: `i` or `j` whichever is nearest.
