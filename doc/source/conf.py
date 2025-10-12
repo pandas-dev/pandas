@@ -666,6 +666,130 @@ def linkcode_resolve(domain, info) -> str | None:
         except AttributeError:
             return None
 
+    # -- Custom logic for inherited properties --
+    # The @inherit_names decorator creates property wrappers at runtime that
+    # delegate to the underlying Array class. These wrappers confuse Sphinx's
+    # introspection, causing all inherited properties to link to extension.py
+    # instead of their actual implementations. We detect this pattern and
+    # redirect to the true source location.
+    try:
+        if (
+            isinstance(obj, property)
+            and hasattr(obj, "fget")
+            and hasattr(obj.fget, "__qualname__")
+            and "_inherit_from_data.<locals>.fget" in obj.fget.__qualname__
+        ):
+            class_name, prop_name = fullname.rsplit(".", 1)
+            array_class_name = class_name.replace("Index", "Array")
+
+            # Dynamically import the corresponding Array class
+            ArrayClass = None
+            if "Datetime" in array_class_name:
+                from pandas.core.arrays.datetimes import DatetimeArray
+
+                ArrayClass = DatetimeArray
+            elif "Timedelta" in array_class_name:
+                from pandas.core.arrays.timedeltas import TimedeltaArray
+
+                ArrayClass = TimedeltaArray
+            elif "Period" in array_class_name:
+                from pandas.core.arrays.period import PeriodArray
+
+                ArrayClass = PeriodArray
+
+            if ArrayClass and hasattr(ArrayClass, prop_name):
+                fn = inspect.getsourcefile(ArrayClass)
+                if not fn:
+                    raise RuntimeError("Could not get source file for ArrayClass.")
+
+                with open(fn, encoding="utf-8") as f:
+                    lines = f.read().splitlines()
+
+                start_line, end_line = None, None
+
+                # Strategy 1:
+                # Look for direct definition (prop_name = _field_accessor(...))
+                p_accessor = re.compile(
+                    rf"^\s*{re.escape(prop_name)}\s*=\s*_field_accessor\("
+                )
+                for i, line in enumerate(lines):
+                    if p_accessor.match(line):
+                        start_line = i
+                        paren_count = line.count("(") - line.count(")")
+                        for j in range(i + 1, len(lines)):
+                            paren_count += lines[j].count("(") - lines[j].count(")")
+                            if paren_count <= 0:
+                                end_line = j
+                                break
+                        break
+
+                # Strategy 2:
+                # Look for @property definition
+                if start_line is None:
+                    p_decorator = re.compile(r"^\s*@property")
+                    p_def = re.compile(rf"^\s*def\s+{re.escape(prop_name)}\s*\(")
+                    for i, line in enumerate(lines):
+                        if (
+                            p_decorator.match(line)
+                            and (i + 1 < len(lines))
+                            and p_def.match(lines[i + 1])
+                        ):
+                            start_line = i
+                            base_indent = len(lines[i + 1]) - len(lines[i + 1].lstrip())
+                            for j in range(i + 2, len(lines)):
+                                line_strip = lines[j].strip()
+                                if line_strip:
+                                    current_indent = len(lines[j]) - len(
+                                        lines[j].lstrip()
+                                    )
+                                    if current_indent <= base_indent and (
+                                        line_strip.startswith(("def ", "class ", "@"))
+                                    ):
+                                        end_line = j - 1
+                                        break
+                            else:
+                                end_line = len(lines) - 1
+                            break
+
+                # Strategy 3:
+                # Look for alias (prop_name = canonical_name)
+                if start_line is None:
+                    alias_pattern = re.compile(
+                        rf"^\s*{re.escape(prop_name)}\s*=\s*(\w+)\s*$"
+                    )
+                    for i, line in enumerate(lines):
+                        match = alias_pattern.match(line)
+                        if match:
+                            canonical_name = match.group(1)
+                            # Search for canonical definition
+                            p_canonical = re.compile(
+                                rf"^\s*{re.escape(canonical_name)}\s*=\s*_field_accessor\("
+                            )
+                            for j, line2 in enumerate(lines):
+                                if p_canonical.match(line2):
+                                    start_line = j
+                                    paren_count = line2.count("(") - line2.count(")")
+                                    for k in range(j + 1, len(lines)):
+                                        paren_count += lines[k].count("(") - lines[
+                                            k
+                                        ].count(")")
+                                        if paren_count <= 0:
+                                            end_line = k
+                                            break
+                                    break
+                            break
+
+                if start_line is not None and end_line is not None:
+                    linespec = f"#L{start_line + 1}-L{end_line + 1}"
+                    rel_fn = os.path.relpath(fn, start=os.path.dirname(pandas.__file__))
+                    if "+" in pandas.__version__:
+                        return f"https://github.com/pandas-dev/pandas/blob/main/pandas/{rel_fn}{linespec}"
+                    else:
+                        return f"https://github.com/pandas-dev/pandas/blob/v{pandas.__version__}/pandas/{rel_fn}{linespec}"
+    except Exception:
+        # If custom logic fails, fall through to the default implementation
+        pass
+
     try:
         fn = inspect.getsourcefile(inspect.unwrap(obj))
     except TypeError:
