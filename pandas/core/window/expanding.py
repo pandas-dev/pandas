@@ -10,18 +10,10 @@ from typing import (
     overload,
 )
 
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-)
-
 from pandas.core.indexers.objects import (
     BaseIndexer,
     ExpandingIndexer,
     GroupbyIndexer,
-)
-from pandas.core.window.doc import (
-    template_pipe,
 )
 from pandas.core.window.rolling import (
     BaseWindowGroupby,
@@ -343,35 +335,90 @@ class Expanding(RollingAndExpandingMixin):
     ) -> T: ...
 
     @final
-    @Substitution(
-        klass="Expanding",
-        examples="""
-    >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
-    ...                   index=pd.date_range('2012-08-02', periods=4))
-    >>> df
-                A
-    2012-08-02  1
-    2012-08-03  2
-    2012-08-04  3
-    2012-08-05  4
-
-    To get the difference between each expanding window's maximum and minimum
-    value in one pass, you can do
-
-    >>> df.expanding().pipe(lambda x: x.max() - x.min())
-                  A
-    2012-08-02  0.0
-    2012-08-03  1.0
-    2012-08-04  2.0
-    2012-08-05  3.0""",
-    )
-    @Appender(template_pipe)
     def pipe(
         self,
         func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
         *args: Any,
         **kwargs: Any,
     ) -> T:
+        """
+        Apply a ``func`` with arguments to this Expanding object and return its result.
+
+        Use `.pipe` when you want to improve readability by chaining together
+        functions that expect Series, DataFrames, GroupBy, Rolling, Expanding or
+        Resampler
+        objects.
+        Instead of writing
+
+        >>> h = lambda x, arg2, arg3: x + 1 - arg2 * arg3
+        >>> g = lambda x, arg1: x * 5 / arg1
+        >>> f = lambda x: x**4
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 2, 3, 4]},
+                index=pd.date_range("2012-08-02", periods=4)
+        ... )
+        >>> h(g(f(df.rolling("2D")), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
+
+        You can write
+
+        >>> (
+        ...     df.rolling("2D").pipe(f).pipe(g, arg1=1).pipe(h, arg2=2, arg3=3)
+        ... )  # doctest: +SKIP
+
+        which is much more readable.
+
+        Parameters
+        ----------
+        func : callable or tuple of (callable, str)
+            Function to apply to this Expanding object or, alternatively,
+            a `(callable, data_keyword)` tuple where `data_keyword` is a
+            string indicating the keyword of `callable` that expects the
+            Expanding object.
+        *args : iterable, optional
+            Positional arguments passed into `func`.
+        **kwargs : dict, optional
+                A dictionary of keyword arguments passed into `func`.
+
+        Returns
+        -------
+        Expanding
+            The original object with the function `func` applied.
+
+        See Also
+        --------
+        Series.pipe : Apply a function with arguments to a series.
+        DataFrame.pipe: Apply a function with arguments to a dataframe.
+        apply : Apply function to each group instead of to the
+            full Expanding object.
+
+        Notes
+        -----
+        See more `here
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
+
+        Examples
+        --------
+
+            >>> df = pd.DataFrame(
+            ...     {"A": [1, 2, 3, 4]}, index=pd.date_range("2012-08-02", periods=4)
+            ... )
+            >>> df
+                        A
+            2012-08-02  1
+            2012-08-03  2
+            2012-08-04  3
+            2012-08-05  4
+
+            To get the difference between each expanding window's maximum and minimum
+            value in one pass, you can do
+
+            >>> df.expanding().pipe(lambda x: x.max() - x.min())
+                        A
+            2012-08-02  0.0
+            2012-08-03  1.0
+            2012-08-04  2.0
+            2012-08-05  3.0
+        """
         return super().pipe(func, *args, **kwargs)
 
     def sum(
