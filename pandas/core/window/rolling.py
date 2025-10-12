@@ -2205,7 +2205,7 @@ class Rolling(RollingAndExpandingMixin):
             * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
             Only available when ``raw`` is set to ``True``.
             * ``None`` : Defaults to ``'cython'`` or
-            globally setting ``compute.use_numba``
+            globally setting ``compute.use_numba``.
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -2290,7 +2290,7 @@ class Rolling(RollingAndExpandingMixin):
         >>> g = lambda x, arg1: x * 5 / arg1
         >>> f = lambda x: x**4
         >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
-        index=pd.date_range('2012-08-02', periods=4))
+            index=pd.date_range('2012-08-02', periods=4))
         >>> h(g(f(df.rolling("2D")), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
 
         You can write
@@ -2328,31 +2328,31 @@ class Rolling(RollingAndExpandingMixin):
         Notes
         -----
         See more `here
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`__.
 
         Examples
         --------
 
-            >>> df = pd.DataFrame(
-            ...     {"A": [1, 2, 3, 4]}, index=pd.date_range("2012-08-02", periods=4)
-            ... )
-            >>> df
-                        A
-            2012-08-02  1
-            2012-08-03  2
-            2012-08-04  3
-            2012-08-05  4
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 2, 3, 4]}, index=pd.date_range("2012-08-02", periods=4)
+        ... )
+        >>> df
+                    A
+        2012-08-02  1
+        2012-08-03  2
+        2012-08-04  3
+        2012-08-05  4
 
-            To get the difference between each rolling
-            2-day window's maximum and minimum
-            value in one pass, you can do
+        To get the difference between each rolling
+        2-day window's maximum and minimum
+        value in one pass, you can do
 
-            >>> df.rolling("2D").pipe(lambda x: x.max() - x.min())
-                        A
-            2012-08-02  0.0
-            2012-08-03  1.0
-            2012-08-04  1.0
-            2012-08-05  1.0
+        >>> df.rolling("2D").pipe(lambda x: x.max() - x.min())
+                    A
+        2012-08-02  0.0
+        2012-08-03  1.0
+        2012-08-04  1.0
+        2012-08-05  1.0
         """
         return super().pipe(func, *args, **kwargs)
 
@@ -2385,7 +2385,7 @@ class Rolling(RollingAndExpandingMixin):
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
             and ``parallel`` dictionary keys. The values must either be ``True`` or
             ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
 
             .. versionadded:: 1.3.0
 
@@ -2495,7 +2495,7 @@ class Rolling(RollingAndExpandingMixin):
             ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
 
             .. versionadded:: 1.3.0
 
@@ -2567,7 +2567,7 @@ class Rolling(RollingAndExpandingMixin):
             ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
 
             .. versionadded:: 1.3.0
 
@@ -2639,7 +2639,7 @@ class Rolling(RollingAndExpandingMixin):
             ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
 
             .. versionadded:: 1.3.0
 
@@ -2718,7 +2718,7 @@ class Rolling(RollingAndExpandingMixin):
             ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
 
             .. versionadded:: 1.3.0
 
@@ -2795,7 +2795,7 @@ class Rolling(RollingAndExpandingMixin):
             ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
 
             .. versionadded:: 1.4.0
 
@@ -2875,7 +2875,7 @@ class Rolling(RollingAndExpandingMixin):
             ``False``.
 
             The default ``engine_kwargs`` for the ``'numba'`` engine is
-            ``{'nopython': True, 'nogil': False, 'parallel': False}``
+            ``{'nopython': True, 'nogil': False, 'parallel': False}``.
 
             .. versionadded:: 1.4.0
 
