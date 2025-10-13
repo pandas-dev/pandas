@@ -413,3 +413,34 @@ def test_datetimelike_compat_deprecated():
         tm.assert_series_equal(df["a"], df["a"], check_datetimelike_compat=True)
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         tm.assert_series_equal(df["a"], df["a"], check_datetimelike_compat=False)
+
+
+def test_assert_frame_equal_na_object_vs_int32_check_dtype_false():
+    #GH# 61473
+    df1 = pd.DataFrame({"a": pd.Series([pd.NA], dtype="Int32")})
+    df2 = pd.DataFrame({"a": pd.Series([pd.NA], dtype="object")})
+    tm.assert_frame_equal(df1, df2, check_dtype=False)
+
+
+def test_assert_frame_equal_object_vs_int32_check_dtype_false():
+    #GH# 61473
+    df1 = pd.DataFrame({"a": pd.Series([pd.NA,0], dtype="Int32")})
+    df2 = pd.DataFrame({"a": pd.Series([pd.NA,0], dtype="object")})
+    tm.assert_frame_equal(df1, df2, check_dtype=False)
+
+
+def test_assert_frame_not_equal_object_vs_int32_check_dtype_false():
+    #GH# 61473
+    df1 = pd.DataFrame({"a": pd.Series([pd.NA,0], dtype="Int32")})
+    df2 = pd.DataFrame({"a": pd.Series([pd.NA,1], dtype="object")})
+    msg = (
+        r"""DataFrame\.iloc\[:, 0\] \(column name="a"\) are different
+
+DataFrame\.iloc\[:, 0\] \(column name="a"\) values are different \(50\.0 %\)
+\[index\]: \[0, 1\]
+\[left\]:  \[<NA>, 0\]
+\[right\]: \[<NA>, 1\]"""
+)
+    with pytest.raises(AssertionError, match=msg):
+        tm.assert_frame_equal(df1, df2, check_dtype=False)
+
