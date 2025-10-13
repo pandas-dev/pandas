@@ -189,13 +189,13 @@ class Expanding(RollingAndExpandingMixin):
         --------
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
         >>> df
-        A  B  C
+           A  B  C
         0  1  4  7
         1  2  5  8
         2  3  6  9
 
         >>> df.ewm(alpha=0.5).mean()
-                A         B         C
+                  A         B         C
         0  1.000000  4.000000  7.000000
         1  1.666667  4.666667  7.666667
         2  2.428571  5.428571  8.428571
@@ -398,25 +398,25 @@ class Expanding(RollingAndExpandingMixin):
         Examples
         --------
 
-            >>> df = pd.DataFrame(
-            ...     {"A": [1, 2, 3, 4]}, index=pd.date_range("2012-08-02", periods=4)
-            ... )
-            >>> df
-                        A
-            2012-08-02  1
-            2012-08-03  2
-            2012-08-04  3
-            2012-08-05  4
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 2, 3, 4]}, index=pd.date_range("2012-08-02", periods=4)
+        ... )
+        >>> df
+                    A
+        2012-08-02  1
+        2012-08-03  2
+        2012-08-04  3
+        2012-08-05  4
 
-            To get the difference between each expanding window's maximum and minimum
-            value in one pass, you can do
+        To get the difference between each expanding window's maximum and minimum
+        value in one pass, you can do
 
-            >>> df.expanding().pipe(lambda x: x.max() - x.min())
-                        A
-            2012-08-02  0.0
-            2012-08-03  1.0
-            2012-08-04  2.0
-            2012-08-05  3.0
+        >>> df.expanding().pipe(lambda x: x.max() - x.min())
+                      A
+        2012-08-02  0.0
+        2012-08-03  1.0
+        2012-08-04  2.0
+        2012-08-05  3.0
         """
         return super().pipe(func, *args, **kwargs)
 
