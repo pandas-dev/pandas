@@ -263,6 +263,19 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 dtype=dtype,
             )
 
+            # Check for mismatched signed/unsigned integer dtypes after casting
+            left_dtype = left.dtype
+            right_dtype = right.dtype
+            if (
+                left_dtype.kind in "iu"
+                and right_dtype.kind in "iu"
+                and left_dtype.kind != right_dtype.kind
+            ):
+                raise TypeError(
+                    f"Left and right arrays must have matching signedness. "
+                    f"Got {left_dtype} and {right_dtype}."
+                )
+
         if verify_integrity:
             cls._validate(left, right, dtype=dtype)
 
@@ -535,19 +548,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     ) -> Self:
         left = _maybe_convert_platform_interval(left)
         right = _maybe_convert_platform_interval(right)
-
-        # Check for mismatched signed/unsigned integer dtypes
-        left_dtype = left.dtype
-        right_dtype = right.dtype
-        if (
-            left_dtype.kind in "iu"
-            and right_dtype.kind in "iu"
-            and left_dtype.kind != right_dtype.kind
-        ):
-            raise TypeError(
-                f"Left and right arrays must have matching signedness. "
-                f"Got {left_dtype} and {right_dtype}."
-            )
 
         left, right, dtype = cls._ensure_simple_new_inputs(
             left,
