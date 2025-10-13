@@ -21,6 +21,7 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 
 #include <ctype.h>
 #include <float.h>
+#include <limits.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -1876,39 +1877,51 @@ static inline bool has_only_spaces(const char *str) {
   return *str == '\0';
 }
 
-/* Copy a string without `char_to_remove` into `output`,
- * it assumes that output is filled with `\0`,
- * so it won't null terminate the result.
- */
-static void copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
-                                     const char *str, char char_to_remove) {
-  char *dst = output;
-  const char *src = str;
-  // last character is reserved for null terminator.
-  const char *end = output + PROCESSED_WORD_CAPACITY - 1;
+static inline int power_int(int base, int exponent) {
+  // https://en.wikipedia.org/wiki/Exponentiation_by_squaring
+  int result = 1;
 
-  while (*src != '\0' && dst < end) {
-    const char *next = src;
-    // find EOS or char_to_remove
-    while (*next != '\0' && *next != char_to_remove) {
-      next++;
+  while (exponent > 1) {
+    if (exponent % 2 == 1) {
+      result *= base;
+      exponent--;
     }
-
-    size_t len = next - src;
-    if (dst + len > end) {
-      // Can't write here, str is too big
-      errno = ERANGE;
-      return;
-    }
-
-    // copy block
-    memcpy(dst, src, len);
-
-    // go to next available location to write
-    dst += len;
-    // Move past char to remove
-    src = *next == char_to_remove ? next + 1 : next;
+    result *= result;
+    exponent /= 2;
   }
+
+  return result * base;
+}
+
+static inline int64_t add_int_check_overflow(int64_t lhs, int64_t rhs,
+                                             int64_t mul_lhs) {
+  // rhs will always be positive, because this function
+  // only executes after the first parse, hence the sign will always go to lhs.
+  // if lhs > 0:
+  // Will overflow if (mul_lhs * lhs) + rhs > INT_MAX
+  // iff lhs > (INT_MAX - rhs) / mul_lhs
+  // if lhs < 0:
+  // Will underflow if (mul_lhs * lhs) - rhs < INT_MIN
+  // iff lhs < (INT_MIN + rhs) / mul_lhs
+  if (lhs >= 0) {
+    if (lhs > (INT_MAX - rhs) / mul_lhs) {
+      errno = ERANGE;
+    }
+  } else {
+    if (lhs < (INT_MIN + rhs) / mul_lhs) {
+      errno = ERANGE;
+    }
+    rhs = -rhs;
+  }
+  return lhs * mul_lhs + rhs;
+}
+
+static inline uint64_t add_uint_check_overflow(uint64_t lhs, uint64_t rhs,
+                                               uint64_t mul_lhs) {
+  if (lhs > (UINT_MAX - rhs) / mul_lhs) {
+    errno = ERANGE;
+  }
+  return lhs * mul_lhs + rhs;
 }
 
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
@@ -1928,20 +1941,22 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   }
 
   errno = 0;
-  if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
-    char buffer[PROCESSED_WORD_CAPACITY];
-    memset(buffer, '\0', sizeof(buffer));
-    copy_string_without_char(buffer, p_item, tsep);
-    p_item = buffer;
-  }
-
-  if (errno == ERANGE) {
-    *error = ERROR_OVERFLOW;
-    return 0;
-  }
-
   char *endptr = NULL;
   int64_t result = strtoll(p_item, &endptr, 10);
+
+  while (errno == 0 && tsep != '\0' && *endptr == tsep) {
+    // Skip multiple consecutive tsep
+    while (*endptr == tsep) {
+      endptr++;
+    }
+
+    char *new_end = NULL;
+    int64_t next_part = strtoll(endptr, &new_end, 10);
+    int digits = new_end - endptr;
+    int mul_result = power_int(10, digits);
+    result = add_int_check_overflow(result, next_part, mul_result);
+    endptr = new_end;
+  }
 
   if (!has_only_spaces(endptr)) {
     // Check first for invalid characters because we may
@@ -1984,20 +1999,22 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   }
 
   errno = 0;
-  if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
-    char buffer[PROCESSED_WORD_CAPACITY];
-    memset(buffer, '\0', sizeof(buffer));
-    copy_string_without_char(buffer, p_item, tsep);
-    p_item = buffer;
-  }
-
-  if (errno == ERANGE) {
-    *error = ERROR_OVERFLOW;
-    return 0;
-  }
-
   char *endptr = NULL;
   uint64_t result = strtoull(p_item, &endptr, 10);
+
+  while (errno == 0 && tsep != '\0' && *endptr == tsep) {
+    // Skip multiple consecutive tsep
+    while (*endptr == tsep) {
+      endptr++;
+    }
+
+    char *new_end = NULL;
+    uint64_t next_part = strtoull(endptr, &new_end, 10);
+    int digits = new_end - endptr;
+    int mul_result = power_int(10, digits);
+    result = add_uint_check_overflow(result, next_part, mul_result);
+    endptr = new_end;
+  }
 
   if (!has_only_spaces(endptr)) {
     *error = ERROR_INVALID_CHARS;
