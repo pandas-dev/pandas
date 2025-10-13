@@ -884,6 +884,7 @@ def assert_series_equal(
         Whether to check the Series dtype is identical.
     check_dtype : bool, if False
         Whether to check the series is equal or not if dtype is
+        False.
     check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
