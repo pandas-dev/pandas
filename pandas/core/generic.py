@@ -5520,7 +5520,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             self
         )
 
-    def filter(
+    @final
+    def select(
         self,
         items=None,
         like: str | None = None,
@@ -5530,9 +5531,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Subset the DataFrame or Series according to the specified index labels.
 
-        For DataFrame, filter rows or columns depending on ``axis`` argument.
-        Note that this routine does not filter based on content.
-        The filter is applied to the labels of the index.
+        For DataFrame, select rows or columns depending on ``axis`` argument.
+        Note that this routine does not select based on content.
+        The select is applied to the labels of the index.
 
         Parameters
         ----------
@@ -5551,7 +5552,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns
         -------
         Same type as caller
-            The filtered subset of the DataFrame or Series.
+            The selected subset of the DataFrame or Series.
 
         See Also
         --------
@@ -5579,22 +5580,54 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         rabbit    4    5      6
 
         >>> # select columns by name
-        >>> df.filter(items=["one", "three"])
+        >>> df.select(items=["one", "three"])
                  one  three
         mouse     1      3
         rabbit    4      6
 
         >>> # select columns by regular expression
-        >>> df.filter(regex="e$", axis=1)
+        >>> df.select(regex="e$", axis=1)
                  one  three
         mouse     1      3
         rabbit    4      6
 
         >>> # select rows containing 'bbi'
-        >>> df.filter(like="bbi", axis=0)
+        >>> df.select(like="bbi", axis=0)
                  one  two  three
         rabbit    4    5      6
         """
+
+        return self._filter(items=items, like=like, regex=regex, axis=axis)
+
+    @final
+    def filter(
+        self,
+        items=None,
+        like: str | None = None,
+        regex: str | None = None,
+        axis: Axis | None = None,
+    ) -> Self:
+        """
+        Use obj.select instead.
+
+        .. deprecated:: 3.0.0
+        """
+        warnings.warn(
+            f"{type(self).__name__}.filter is deprecated and will be removed "
+            "in a future version. Use obj.select instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return self._filter(items=items, like=like, regex=regex, axis=axis)
+
+    @final
+    def _filter(
+        self,
+        items=None,
+        like: str | None = None,
+        regex: str | None = None,
+        axis: Axis | None = None,
+    ) -> Self:
         nkw = common.count_not_none(items, like, regex)
         if nkw > 1:
             raise TypeError(
