@@ -2097,7 +2097,7 @@ class MultiIndex(Index):
         new_levels = []
         new_codes = []
 
-        for lev, level_codes in zip(self.levels, self.codes, strict=False):
+        for lev, level_codes in zip(self.levels, self.codes, strict=True):
             if not lev.is_monotonic_increasing:
                 try:
                     # indexer to reorder the levels
@@ -2176,7 +2176,7 @@ class MultiIndex(Index):
         new_codes = []
 
         changed = False
-        for lev, level_codes in zip(self.levels, self.codes, strict=False):
+        for lev, level_codes in zip(self.levels, self.codes, strict=True):
             # Since few levels are typically unused, bincount() is more
             # efficient than unique() - however it only accepts positive values
             # (and drops order):
@@ -2243,7 +2243,7 @@ class MultiIndex(Index):
             key = com.cast_scalar_indexer(key)
 
             retval = []
-            for lev, level_codes in zip(self.levels, self.codes, strict=False):
+            for lev, level_codes in zip(self.levels, self.codes, strict=True):
                 if level_codes[key] == -1:
                     retval.append(np.nan)
                 else:
