@@ -539,13 +539,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # Check for mismatched signed/unsigned integer dtypes
         left_dtype = left.dtype
         right_dtype = right.dtype
-        if (
-            left_dtype.kind in "iu"
-            and right_dtype.kind in "iu"
-            and left_dtype.kind != right_dtype.kind
-        ):
+        if left_dtype != right_dtype:
             raise TypeError(
-                f"Left and right arrays must have matching signedness. "
+                f"Left and right arrays must have matching dtypes. "
                 f"Got {left_dtype} and {right_dtype}."
             )
 
