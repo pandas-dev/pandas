@@ -882,6 +882,9 @@ def assert_series_equal(
         Second Series to compare.
     check_dtype : bool, default True
         Whether to check the Series dtype is identical.
+    check_dtype : bool, if False
+        Whether to check the series is equal or not if dtype is
+        False. (#GH #61473)
     check_index_type : bool or {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
@@ -1025,6 +1028,21 @@ def assert_series_equal(
             pass
         else:
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
+
+    if not check_dtype:
+        # checks only when check_dtype is False
+        lv, rv = left._values, right._values
+        lv = np.asarray(lv, dtype=object)
+        rv = np.asarray(rv, dtype=object)
+        assert_numpy_array_equal(
+            lv,
+            rv,
+            check_dtype=check_dtype,
+            obj=str(obj),
+            index_values=left.index,
+        )
+        check_exact = False
+
     if check_exact:
         left_values = left._values
         right_values = right._values
