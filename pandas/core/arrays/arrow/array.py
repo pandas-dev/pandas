@@ -890,14 +890,7 @@ class ArrowExtensionArray(
     def _evaluate_op_method(self, other, op, arrow_funcs) -> Self:
         pa_type = self._pa_array.type
         other_original = other
-        try:
-            other = self._box_pa(other)
-        except (ValueError, pa.lib.ArrowTypeError) as err:
-            # Categorical and Interval dtype raises errors in self._box_pa
-            # Could be fixed in the future if needed
-            raise TypeError(
-                "Incompatible type when converting to PyArrow dtype for operation."
-            ) from err
+        other = self._box_pa(other)
 
         if (
             pa.types.is_string(pa_type)
@@ -906,13 +899,6 @@ class ArrowExtensionArray(
         ):
             if op in [operator.add, roperator.radd]:
                 sep = pa.scalar("", type=pa_type)
-                if (
-                    pa.types.is_string(other.type)
-                    or pa.types.is_large_string(other.type)
-                    or pa.types.is_binary(other.type)
-                    or isna(other).all()
-                ):
-                    other = other.cast(pa_type)
                 try:
                     if op is operator.add:
                         result = pc.binary_join_element_wise(self._pa_array, other, sep)
