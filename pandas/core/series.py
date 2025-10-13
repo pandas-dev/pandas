@@ -53,6 +53,7 @@ from pandas.errors.cow import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_kwarg,
     deprecate_nonkeyword_arguments,
     doc,
     set_module,
@@ -5064,6 +5065,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         errors: IgnoreRaise = ...,
     ) -> Series | None: ...
 
+    @deprecate_kwarg(Pandas4Warning, "columns", new_arg_name=None)  # GH#39509
     def drop(
         self,
         labels: IndexLabel | ListLike = None,
@@ -5092,7 +5094,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Redundant for application on Series, but 'index' can be used instead
             of 'labels'.
         columns : single label or list-like
-            No change is made to the Series; use 'index' or 'labels' instead.
+            Not supported; use 'index' or 'labels' instead.
+
+            .. deprecated: 3.0.0
         level : int or level name, optional
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
