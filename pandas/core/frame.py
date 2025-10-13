@@ -9347,7 +9347,7 @@ class DataFrame(NDFrame, OpsMixin):
     # ----------------------------------------------------------------------
     # Data reshaping
     @deprecate_nonkeyword_arguments(
-            Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
+        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
     )
     def groupby(
         self,
@@ -9396,8 +9396,10 @@ class DataFrame(NDFrame, OpsMixin):
             Sort group keys. Get better performance by turning this off.
             Note this does not influence the order of observations within each
             group. Groupby preserves the order of rows within each group. If False,
-            the groups will appear in the same order as they did in the original DataFrame.
-            This argument has no effect on filtrations (see the `filtrations in the user guide
+            the groups will appear in the same order as they did in the original
+            DataFrame.
+            This argument has no effect on filtrations (see the `filtrations
+            in the user guide
             <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
             such as ``head()``, ``tail()``, ``nth()`` and in transformations
             (see the `transformations in the user guide
@@ -9465,16 +9467,19 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
-        ...                               'Parrot', 'Parrot'],
-        ...                    'Max Speed': [380., 370., 24., 26.]})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Animal": ["Falcon", "Falcon", "Parrot", "Parrot"],
+        ...         "Max Speed": [380.0, 370.0, 24.0, 26.0],
+        ...     }
+        ... )
         >>> df
            Animal  Max Speed
         0  Falcon      380.0
         1  Falcon      370.0
         2  Parrot       24.0
         3  Parrot       26.0
-        >>> df.groupby(['Animal']).mean()
+        >>> df.groupby(["Animal"]).mean()
                 Max Speed
         Animal
         Falcon      375.0
@@ -9485,11 +9490,12 @@ class DataFrame(NDFrame, OpsMixin):
         We can groupby different levels of a hierarchical index
         using the `level` parameter:
 
-        >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
-        ...           ['Captive', 'Wild', 'Captive', 'Wild']]
-        >>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
-        >>> df = pd.DataFrame({'Max Speed': [390., 350., 30., 20.]},
-        ...                   index=index)
+        >>> arrays = [
+        ...     ["Falcon", "Falcon", "Parrot", "Parrot"],
+        ...     ["Captive", "Wild", "Captive", "Wild"],
+        ... ]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=("Animal", "Type"))
+        >>> df = pd.DataFrame({"Max Speed": [390.0, 350.0, 30.0, 20.0]}, index=index)
         >>> df
                         Max Speed
         Animal Type
@@ -9527,7 +9533,7 @@ class DataFrame(NDFrame, OpsMixin):
         2.0 2   5
         NaN 1   4
 
-        >>> arr = [["a", 12, 12], [None, 12.3, 33.], ["b", 12.3, 123], ["a", 1, 1]]
+        >>> arr = [["a", 12, 12], [None, 12.3, 33.0], ["b", 12.3, 123], ["a", 1, 1]]
         >>> df = pd.DataFrame(arr, columns=["a", "b", "c"])
 
         >>> df.groupby(by="a").sum()
@@ -9546,10 +9552,13 @@ class DataFrame(NDFrame, OpsMixin):
         When using ``.apply()``, use ``group_keys`` to include or exclude the
         group keys. The ``group_keys`` argument defaults to ``True`` (include).
 
-        >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
-        ...                               'Parrot', 'Parrot'],
-        ...                    'Max Speed': [380., 370., 24., 26.]})
-        >>> df.groupby("Animal", group_keys=True)[['Max Speed']].apply(lambda x: x)
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Animal": ["Falcon", "Falcon", "Parrot", "Parrot"],
+        ...         "Max Speed": [380.0, 370.0, 24.0, 26.0],
+        ...     }
+        ... )
+        >>> df.groupby("Animal", group_keys=True)[["Max Speed"]].apply(lambda x: x)
                   Max Speed
         Animal
         Falcon 0      380.0
@@ -9557,7 +9566,7 @@ class DataFrame(NDFrame, OpsMixin):
         Parrot 2       24.0
                3       26.0
 
-        >>> df.groupby("Animal", group_keys=False)[['Max Speed']].apply(lambda x: x)
+        >>> df.groupby("Animal", group_keys=False)[["Max Speed"]].apply(lambda x: x)
            Max Speed
         0      380.0
         1      370.0
@@ -9579,8 +9588,6 @@ class DataFrame(NDFrame, OpsMixin):
             observed=observed,
             dropna=dropna,
         )
-
-        
 
     _shared_docs["pivot"] = """
         Return reshaped DataFrame organized by given index / column values.
