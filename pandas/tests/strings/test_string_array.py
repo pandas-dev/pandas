@@ -110,3 +110,19 @@ def test_string_array_extract(nullable_string_dtype):
 
     result = result.astype(object)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values, width, expected",
+    [
+        (["a", "ab", "abc", None], 4, ["000a", "00ab", "0abc", None]),
+        (["1", "-1", "+1", None], 4, ["0001", "-001", "+001", None]),
+        (["1234", "-1234"], 3, ["1234", "-1234"]),
+    ],
+)
+def test_string_array_zfill(nullable_string_dtype, values, width, expected):
+    # GH #61485
+    s = Series(values, dtype=nullable_string_dtype)
+    result = s.str.zfill(width)
+    expected = Series(expected, dtype=nullable_string_dtype)
+    tm.assert_series_equal(result, expected)
