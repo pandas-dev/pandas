@@ -116,8 +116,8 @@ class CSSToExcelConverter:
     focusing on font styling, backgrounds, borders and alignment.
 
     Operates by first computing CSS styles in a fairly generic
-    way (see :meth:`compute_css`) then determining Excel style
-    properties from CSS properties (see :meth:`build_xlstyle`).
+    way (see :meth: `compute_css`) then determining Excel style
+    properties from CSS properties (see :meth: `build_xlstyle`).
 
     Parameters
     ----------
@@ -587,14 +587,15 @@ class ExcelFormatter:
 
     def _format_value(self, val):
         if is_scalar(val) and missing.isna(val):
-            val = self.na_rep
+            return self.na_rep
         elif is_float(val):
             if missing.isposinf_scalar(val):
-                val = self.inf_rep
+                return self.inf_rep
             elif missing.isneginf_scalar(val):
-                val = f"-{self.inf_rep}"
+                return f"-{self.inf_rep}"
             elif self.float_format is not None:
-                val = float(self.float_format % val)
+                return float(self.float_format % val)
+
         if getattr(val, "tzinfo", None) is not None:
             raise ValueError(
                 "Excel does not support datetimes with "
@@ -616,7 +617,17 @@ class ExcelFormatter:
 
         columns = self.columns
         merge_columns = self.merge_cells in {True, "columns"}
-        level_strs = columns._format_multi(sparsify=merge_columns, include_names=False)
+        NBSP = "\u00a0"
+
+        fixed_levels = []
+        for lvl in range(columns.nlevels):
+            vals = columns.get_level_values(lvl)
+            fixed_levels.append(vals.fillna(NBSP))
+        fixed_columns = MultiIndex.from_arrays(fixed_levels, names=columns.names)
+
+        level_strs = fixed_columns._format_multi(
+            sparsify=merge_columns, include_names=False
+        )
         level_lengths = get_level_lengths(level_strs)
         coloffset = 0
         lnum = 0
@@ -624,7 +635,7 @@ class ExcelFormatter:
         if self.index and isinstance(self.df.index, MultiIndex):
             coloffset = self.df.index.nlevels - 1
 
-        for lnum, name in enumerate(columns.names):
+        for lnum, name in enumerate(fixed_columns.names):
             yield ExcelCell(
                 row=lnum,
                 col=coloffset,
@@ -633,7 +644,7 @@ class ExcelFormatter:
             )
 
         for lnum, (spans, levels, level_codes) in enumerate(
-            zip(level_lengths, columns.levels, columns.codes, strict=True)
+            zip(level_lengths, fixed_columns.levels, fixed_columns.codes, strict=True)
         ):
             values = levels.take(level_codes)
             for i, span_val in spans.items():
@@ -657,7 +668,6 @@ class ExcelFormatter:
     def _format_header_regular(self) -> Iterable[ExcelCell]:
         if self._has_aliases or self.header:
             coloffset = 0
-
             if self.index:
                 coloffset = 1
                 if isinstance(self.df.index, MultiIndex):
@@ -673,7 +683,10 @@ class ExcelFormatter:
                     )
                 colnames = self.header
 
-            for colindex, colname in enumerate(colnames):
+            NBSP = "\u00a0"
+            output_colnames = colnames.fillna(NBSP)
+
+            for colindex, colname in enumerate(output_colnames):
                 yield CssExcelCell(
                     row=self.rowcounter,
                     col=colindex + coloffset,
@@ -687,7 +700,6 @@ class ExcelFormatter:
 
     def _format_header(self) -> Iterable[ExcelCell]:
         gen: Iterable[ExcelCell]
-
         if isinstance(self.columns, MultiIndex):
             gen = self._format_header_mi()
         else:
@@ -695,7 +707,7 @@ class ExcelFormatter:
 
         gen2: Iterable[ExcelCell] = ()
 
-        if self.df.index.names:
+        if self.df.index.names and self.header is not False:
             row = [x if x is not None else "" for x in self.df.index.names] + [
                 ""
             ] * len(self.columns)
@@ -762,12 +774,11 @@ class ExcelFormatter:
     def _format_hierarchical_rows(self) -> Iterable[ExcelCell]:
         if self._has_aliases or self.header:
             self.rowcounter += 1
-
         gcolidx = 0
 
         if self.index:
-            index_labels = self.df.index.names
             # check for aliases
+            index_labels = self.df.index.names
             if self.index_label and isinstance(
                 self.index_label, (list, tuple, np.ndarray, Index)
             ):
@@ -802,10 +813,8 @@ class ExcelFormatter:
                         allow_fill=levels._can_hold_na,
                         fill_value=levels._na_value,
                     )
-                    # GH#60099
-                    if isinstance(values[0], Period):
+                    if values.size > 0 and isinstance(values[0], Period):
                         values = values.to_timestamp()
-
                     for i, span_val in spans.items():
                         mergestart, mergeend = None, None
                         if span_val > 1:
@@ -901,9 +910,7 @@ class ExcelFormatter:
             write engine to use if writer is a path - you can also set this
             via the options ``io.excel.xlsx.writer``,
             or ``io.excel.xlsm.writer``.
-
         {storage_options}
-
         engine_kwargs: dict, optional
             Arbitrary keyword arguments passed to excel engine.
         """
