@@ -1076,11 +1076,11 @@ class Window(BaseWindow):
 
     >>> df.rolling(2, win_type="gaussian").sum(std=3)
               B
-    0       NaN
-    1  0.986207
-    2  2.958621
-    3       NaN
-    4       NaN
+    0        NaN
+    1   0.986207
+    2   2.958621
+    3        NaN
+    4        NaN
 
     **on**
 
@@ -2447,7 +2447,7 @@ class Rolling(RollingAndExpandingMixin):
         4  5  25
 
         >>> df.rolling(3).sum()
-            A     B
+             A     B
         0   NaN   NaN
         1   NaN   NaN
         2   6.0  14.0
@@ -3499,7 +3499,7 @@ class Rolling(RollingAndExpandingMixin):
             [0.55536811, 1.        ]])
         >>> df = pd.DataFrame(matrix, columns=["X", "Y"])
         >>> df
-            X     Y
+              X     Y
         0  51.0  35.0
         1  49.0  30.0
         2  47.0  32.0
@@ -3507,16 +3507,16 @@ class Rolling(RollingAndExpandingMixin):
         4  50.0  36.0
         >>> df.rolling(4).corr(pairwise=True)
                     X         Y
-        0 X       NaN       NaN
-        Y       NaN       NaN
-        1 X       NaN       NaN
-        Y       NaN       NaN
-        2 X       NaN       NaN
-        Y       NaN       NaN
-        3 X  1.000000  0.626300
-        Y  0.626300  1.000000
-        4 X  1.000000  0.555368
-        Y  0.555368  1.000000
+        0 X        NaN       NaN
+          Y        NaN       NaN
+        1 X        NaN       NaN
+          Y        NaN       NaN
+        2 X        NaN       NaN
+          Y        NaN       NaN
+        3 X   1.000000  0.626300
+          Y   0.626300  1.000000
+        4 X   1.000000  0.555368
+          Y   0.555368  1.000000
         """
         return super().corr(
             other=other,
