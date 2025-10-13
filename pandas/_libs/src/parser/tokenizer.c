@@ -1879,15 +1879,16 @@ static inline bool has_only_spaces(const char *str) {
 /* Copy a string without `char_to_remove` into `output`,
  * while ensuring it's null terminated.
  */
-static void copy_string_without_char(char *output, const char *str,
-                                     char char_to_remove, size_t output_size) {
+static void copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
+                                     const char *str, char char_to_remove) {
   size_t i = 0;
-  for (const char *src = str; *src != '\0' && i < output_size; src++) {
+  for (const char *src = str; *src != '\0' && i < PROCESSED_WORD_CAPACITY;
+       src++) {
     if (*src != char_to_remove) {
       output[i++] = *src;
     }
   }
-  if (i < output_size) {
+  if (i < PROCESSED_WORD_CAPACITY) {
     output[i] = '\0';
   } else {
     // str is too big, probably would overflow
@@ -1914,7 +1915,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   errno = 0;
   if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
     char buffer[PROCESSED_WORD_CAPACITY];
-    copy_string_without_char(buffer, p_item, tsep, PROCESSED_WORD_CAPACITY);
+    copy_string_without_char(buffer, p_item, tsep);
     p_item = buffer;
   }
 
@@ -1969,7 +1970,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   errno = 0;
   if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
     char buffer[PROCESSED_WORD_CAPACITY];
-    copy_string_without_char(buffer, p_item, tsep, PROCESSED_WORD_CAPACITY);
+    copy_string_without_char(buffer, p_item, tsep);
     p_item = buffer;
   }
 
