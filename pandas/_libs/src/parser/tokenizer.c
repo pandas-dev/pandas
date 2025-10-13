@@ -28,6 +28,8 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include "pandas/portable.h"
 #include "pandas/vendored/klib/khash.h" // for kh_int64_t, kh_destroy_int64
 
+static const int PROCESSED_WORD_CAPACITY = 128;
+
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i,
                    int64_t start) {
   // column i, starting at 0
@@ -1874,31 +1876,23 @@ static inline int has_only_spaces(const char *str) {
   return *str == '\0';
 }
 
-/* Copy a string without `char_to_remove`.
- * The returned memory should be free-d with a call to `free`.
+/* Copy a string without `char_to_remove` into `output`,
+ * while ensuring it's null terminated.
  */
-static char *copy_string_without_char(const char *str, char char_to_remove) {
-  size_t chars_to_copy = 0;
-  for (const char *src = str; *src != '\0'; src++) {
+static void copy_string_without_char(char *output, const char *str,
+                                     char char_to_remove, size_t output_size) {
+  size_t i = 0;
+  for (const char *src = str; *src != '\0' && i < output_size; src++) {
     if (*src != char_to_remove) {
-      chars_to_copy++;
+      output[i++] = *src;
     }
   }
-
-  char *start = malloc((chars_to_copy + 1) * sizeof(char));
-  if (!start) {
-    return NULL;
+  if (i < output_size) {
+    output[i] = '\0';
+  } else {
+    // str is too big, probably would overflow
+    errno = ERANGE;
   }
-
-  char *dst = start;
-  for (const char *src = str; *src != '\0'; src++) {
-    if (*src != char_to_remove) {
-      *dst++ = *src;
-    }
-  }
-  *dst = '\0';
-
-  return start;
 }
 
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
@@ -1917,19 +1911,19 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     return 0;
   }
 
-  char *processed_str = NULL;
-
+  errno = 0;
   if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
-    processed_str = copy_string_without_char(p_item, tsep);
-    if (!processed_str) {
-      *error = ERROR_NO_MEMORY;
-      return 0;
-    }
-    p_item = processed_str;
+    char buffer[PROCESSED_WORD_CAPACITY];
+    copy_string_without_char(buffer, p_item, tsep, PROCESSED_WORD_CAPACITY);
+    p_item = buffer;
+  }
+
+  if (errno == ERANGE) {
+    *error = ERROR_OVERFLOW;
+    return 0;
   }
 
   char *endptr = NULL;
-  errno = 0;
   int64_t result = strtoll(p_item, &endptr, 10);
 
   if (!has_only_spaces(endptr)) {
@@ -1943,11 +1937,6 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   } else {
     *error = 0;
   }
-
-  // free processed_str that
-  // was either allocated due to the presence of tsep
-  // or is NULL
-  free(processed_str);
 
   return result;
 }
@@ -1977,18 +1966,18 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     return 0;
   }
 
-  char *processed_str = NULL;
-
+  errno = 0;
   if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
-    processed_str = copy_string_without_char(p_item, tsep);
-    if (!processed_str) {
-      *error = ERROR_NO_MEMORY;
-      return 0;
-    }
-    p_item = processed_str;
+    char buffer[PROCESSED_WORD_CAPACITY];
+    copy_string_without_char(buffer, p_item, tsep, PROCESSED_WORD_CAPACITY);
+    p_item = buffer;
   }
 
-  errno = 0;
+  if (errno == ERANGE) {
+    *error = ERROR_OVERFLOW;
+    return 0;
+  }
+
   char *endptr = NULL;
   uint64_t result = strtoull(p_item, &endptr, 10);
 
@@ -2005,8 +1994,6 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   if (result > (uint64_t)int_max) {
     state->seen_uint = 1;
   }
-
-  free(processed_str);
 
   return result;
 }
