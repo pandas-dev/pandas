@@ -29,8 +29,6 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include "pandas/portable.h"
 #include "pandas/vendored/klib/khash.h" // for kh_int64_t, kh_destroy_int64
 
-#define PROCESSED_WORD_CAPACITY 256
-
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i,
                    int64_t start) {
   // column i, starting at 0
@@ -1877,7 +1875,7 @@ static inline bool has_only_spaces(const char *str) {
   return *str == '\0';
 }
 
-static inline int power_int(int base, int exponent) {
+static int power_int(int base, int exponent) {
   // https://en.wikipedia.org/wiki/Exponentiation_by_squaring
   int result = 1;
 
@@ -1953,7 +1951,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     char *new_end = NULL;
     int64_t next_part = strtoll(endptr, &new_end, 10);
     int digits = new_end - endptr;
-    int mul_result = power_int(10, digits);
+    int64_t mul_result = power_int(10, digits);
     result = add_int_check_overflow(result, next_part, mul_result);
     endptr = new_end;
   }
@@ -2011,7 +2009,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     char *new_end = NULL;
     uint64_t next_part = strtoull(endptr, &new_end, 10);
     int digits = new_end - endptr;
-    int mul_result = power_int(10, digits);
+    uint64_t mul_result = power_int(10, digits);
     result = add_uint_check_overflow(result, next_part, mul_result);
     endptr = new_end;
   }
