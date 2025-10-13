@@ -29,7 +29,6 @@ from typing import (
     Literal,
     Self,
     TypeAlias,
-    TypeVar,
     Union,
     cast,
     final,
@@ -969,10 +968,6 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         return result
 
 
-# To track operations that expand dimensions, like ohlc
-OutputFrameOrSeries = TypeVar("OutputFrameOrSeries", bound=NDFrame)
-
-
 class GroupBy(BaseGroupBy[NDFrameT]):
     """
     Class for grouping and aggregating relational data.
@@ -1194,9 +1189,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result.__finalize__(self.obj, method="groupby")
 
     @final
-    def _set_result_index_ordered(
-        self, result: OutputFrameOrSeries
-    ) -> OutputFrameOrSeries:
+    def _set_result_index_ordered(self, result: NDFrameT) -> NDFrameT:
         # set the result index on the passed values object and
         # return the new object, xref 8046
 
