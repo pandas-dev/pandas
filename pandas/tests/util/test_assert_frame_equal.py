@@ -417,22 +417,22 @@ def test_datetimelike_compat_deprecated():
 
 def test_assert_frame_equal_na_object_vs_int32_check_dtype_false():
     #GH# 61473
-    df1 = pd.DataFrame({"a": pd.Series([pd.NA], dtype="Int32")})
-    df2 = pd.DataFrame({"a": pd.Series([pd.NA], dtype="object")})
+    df1 = DataFrame({"a": pd.Series([pd.NA], dtype="Int32")})
+    df2 = DataFrame({"a": pd.Series([pd.NA], dtype="object")})
     tm.assert_frame_equal(df1, df2, check_dtype=False)
 
 
 def test_assert_frame_equal_object_vs_int32_check_dtype_false():
     #GH# 61473
-    df1 = pd.DataFrame({"a": pd.Series([pd.NA,0], dtype="Int32")})
-    df2 = pd.DataFrame({"a": pd.Series([pd.NA,0], dtype="object")})
+    df1 = DataFrame({"a": pd.Series([pd.NA,0], dtype="Int32")})
+    df2 = DataFrame({"a": pd.Series([pd.NA,0], dtype="object")})
     tm.assert_frame_equal(df1, df2, check_dtype=False)
 
 
 def test_assert_frame_not_equal_object_vs_int32_check_dtype_false():
     #GH# 61473
-    df1 = pd.DataFrame({"a": pd.Series([pd.NA,0], dtype="Int32")})
-    df2 = pd.DataFrame({"a": pd.Series([pd.NA,1], dtype="object")})
+    df1 = DataFrame({"a": pd.Series([pd.NA,0], dtype="Int32")})
+    df2 = DataFrame({"a": pd.Series([pd.NA,1], dtype="object")})
     msg = (
         r"""DataFrame\.iloc\[:, 0\] \(column name="a"\) are different
 
