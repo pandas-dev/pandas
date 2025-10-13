@@ -12698,9 +12698,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
               [:math:`x_0, x_1, ..., x_t`] would be:
 
             .. math::
-                y_t = \\frac{x_t + (1 - \\alpha)x_{t-1} + (1 - \\alpha)^2 x_{t-2} +
-                ... + (1 - \\alpha)^t x_0}{1 + (1 - \\alpha) + (1 - \\alpha)^2 +
-                ... + (1 - \\alpha)^t}
+                y_t = \\frac{x_t + (1 - \\alpha)x_{t-1} + (1 - \\alpha)^2 x_{t-2} + ... +
+                (1 - \\alpha)^t x_0}{1 + (1 - \\alpha) + (1 - \\alpha)^2 + ... +
+                (1 - \\alpha)^t}
 
             - When ``adjust=False``, the exponentially weighted function is calculated
               recursively:
