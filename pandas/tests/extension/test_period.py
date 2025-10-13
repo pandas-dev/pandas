@@ -43,7 +43,7 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    return PeriodArray(np.arange(1970, 2070), dtype=dtype)
+    return PeriodArray(np.arange(1970, 1980), dtype=dtype)
 
 
 @pytest.fixture

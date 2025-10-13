@@ -41,6 +41,7 @@ from pandas._typing import (
     ArrayLike,
     DateTimeErrorChoices,
 )
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -666,6 +667,7 @@ def to_datetime(
 ) -> DatetimeIndex: ...
 
 
+@set_module("pandas")
 def to_datetime(
     arg: DatetimeScalarOrArrayConvertible | DictConvertible,
     errors: DateTimeErrorChoices = "raise",

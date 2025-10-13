@@ -19,6 +19,8 @@ from typing import (
 
 import numpy as np
 
+from pandas._config import option_context
+
 from pandas._libs import lib
 from pandas._libs.json import (
     ujson_dumps,
@@ -27,7 +29,10 @@ from pandas._libs.json import (
 from pandas._libs.tslibs import iNaT
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
@@ -494,6 +499,7 @@ def read_json(
 ) -> DataFrame: ...
 
 
+@set_module("pandas")
 @doc(
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "path_or_buf",
@@ -994,9 +1000,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         else:
             obj = self._get_object_parser(self.data)
         if self.dtype_backend is not lib.no_default:
-            return obj.convert_dtypes(
-                infer_objects=False, dtype_backend=self.dtype_backend
-            )
+            with option_context("mode.nan_is_na", True):
+                return obj.convert_dtypes(
+                    infer_objects=False, dtype_backend=self.dtype_backend
+                )
         else:
             return obj
 
@@ -1071,9 +1078,10 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             raise ex
 
         if self.dtype_backend is not lib.no_default:
-            return obj.convert_dtypes(
-                infer_objects=False, dtype_backend=self.dtype_backend
-            )
+            with option_context("mode.nan_is_na", True):
+                return obj.convert_dtypes(
+                    infer_objects=False, dtype_backend=self.dtype_backend
+                )
         else:
             return obj
 

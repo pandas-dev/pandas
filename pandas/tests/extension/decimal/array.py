@@ -25,7 +25,6 @@ from pandas.api.types import (
     is_scalar,
 )
 from pandas.core import arraylike
-from pandas.core.algorithms import value_counts_internal as value_counts
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     ExtensionArray,
@@ -291,9 +290,6 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
         return np.asarray(res, dtype=bool)
 
-    def value_counts(self, dropna: bool = True):
-        return value_counts(self.to_numpy(), dropna=dropna)
-
     # We override fillna here to simulate a 3rd party EA that has done so. This
     #  lets us test a 3rd-party EA that has not yet updated to include a "copy"
     #  keyword in its fillna method.
@@ -305,8 +301,8 @@ def to_decimal(values, context=None):
     return DecimalArray([decimal.Decimal(x) for x in values], context=context)
 
 
-def make_data():
-    return [decimal.Decimal(val) for val in np.random.default_rng(2).random(100)]
+def make_data(n: int):
+    return [decimal.Decimal(val) for val in np.random.default_rng(2).random(n)]
 
 
 DecimalArray._add_arithmetic_ops()

@@ -13,6 +13,7 @@ from pandas.api import (
     types as api_types,
     typing as api_typing,
 )
+from pandas.api.typing import aliases as api_aliases
 
 
 class Base:
@@ -277,6 +278,7 @@ class TestApi(Base):
         "TimedeltaIndexResamplerGroupby",
         "TimeGrouper",
         "Window",
+        "aliases",
     ]
     allowed_api_types = [
         "is_any_real_numeric_dtype",
@@ -344,6 +346,73 @@ class TestApi(Base):
         "ExtensionScalarOpsMixin",
     ]
     allowed_api_executors = ["BaseExecutionEngine"]
+    allowed_api_aliases = [
+        "AggFuncType",
+        "AlignJoin",
+        "AnyAll",
+        "AnyArrayLike",
+        "ArrayLike",
+        "AstypeArg",
+        "Axes",
+        "Axis",
+        "CSVEngine",
+        "ColspaceArgType",
+        "CompressionOptions",
+        "CorrelationMethod",
+        "DropKeep",
+        "Dtype",
+        "DtypeArg",
+        "DtypeBackend",
+        "DtypeObj",
+        "ExcelWriterIfSheetExists",
+        "ExcelWriterMergeCells",
+        "FilePath",
+        "FillnaOptions",
+        "FloatFormatType",
+        "FormattersType",
+        "FromDictOrient",
+        "HTMLFlavors",
+        "IgnoreRaise",
+        "IndexLabel",
+        "InterpolateOptions",
+        "JSONEngine",
+        "JSONSerializable",
+        "JoinHow",
+        "JoinValidate",
+        "MergeHow",
+        "MergeValidate",
+        "NaPosition",
+        "NsmallestNlargestKeep",
+        "OpenFileErrors",
+        "Ordered",
+        "ParquetCompressionOptions",
+        "QuantileInterpolation",
+        "ReadBuffer",
+        "ReadCsvBuffer",
+        "ReadPickleBuffer",
+        "ReindexMethod",
+        "Scalar",
+        "SequenceNotStr",
+        "SliceType",
+        "SortKind",
+        "StorageOptions",
+        "Suffixes",
+        "TakeIndexer",
+        "TimeAmbiguous",
+        "TimeGrouperOrigin",
+        "TimeNonexistent",
+        "TimeUnit",
+        "TimedeltaConvertibleTypes",
+        "TimestampConvertibleTypes",
+        "ToStataByteorder",
+        "ToTimestampHow",
+        "UpdateJoin",
+        "UsecolsArgType",
+        "WindowingRankType",
+        "WriteBuffer",
+        "WriteExcelBuffer",
+        "XMLParsers",
+    ]
 
     def test_api(self):
         self.check(api, self.allowed_api_dirs)
@@ -365,6 +434,9 @@ class TestApi(Base):
 
     def test_api_executors(self):
         self.check(api_executors, self.allowed_api_executors)
+
+    def test_api_typing_aliases(self):
+        self.check(api_aliases, self.allowed_api_aliases)
 
 
 class TestErrors(Base):
@@ -412,11 +484,23 @@ class TestTesting(Base):
 def test_set_module():
     assert pd.DataFrame.__module__ == "pandas"
     assert pd.CategoricalDtype.__module__ == "pandas"
+    assert pd.DatetimeTZDtype.__module__ == "pandas"
     assert pd.PeriodDtype.__module__ == "pandas"
     assert pd.IntervalDtype.__module__ == "pandas"
     assert pd.SparseDtype.__module__ == "pandas"
     assert pd.ArrowDtype.__module__ == "pandas"
     assert pd.StringDtype.__module__ == "pandas"
+    assert pd.BooleanDtype.__module__ == "pandas"
+    assert pd.Int8Dtype.__module__ == "pandas"
+    assert pd.Int16Dtype.__module__ == "pandas"
+    assert pd.Int32Dtype.__module__ == "pandas"
+    assert pd.Int64Dtype.__module__ == "pandas"
+    assert pd.UInt8Dtype.__module__ == "pandas"
+    assert pd.UInt16Dtype.__module__ == "pandas"
+    assert pd.UInt32Dtype.__module__ == "pandas"
+    assert pd.UInt64Dtype.__module__ == "pandas"
+    assert pd.Float32Dtype.__module__ == "pandas"
+    assert pd.Float64Dtype.__module__ == "pandas"
     assert pd.Index.__module__ == "pandas"
     assert pd.CategoricalIndex.__module__ == "pandas"
     assert pd.DatetimeIndex.__module__ == "pandas"
@@ -441,6 +525,41 @@ def test_set_module():
     assert pd.date_range.__module__ == "pandas"
     assert pd.bdate_range.__module__ == "pandas"
     assert pd.timedelta_range.__module__ == "pandas"
+    assert pd.to_datetime.__module__ == "pandas"
+    assert pd.to_timedelta.__module__ == "pandas"
+    assert pd.to_numeric.__module__ == "pandas"
     assert pd.NamedAgg.__module__ == "pandas"
+    assert pd.IndexSlice.__module__ == "pandas"
+    assert pd.lreshape.__module__ == "pandas"
+    assert pd.melt.__module__ == "pandas"
+    assert pd.wide_to_long.__module__ == "pandas"
+    assert pd.crosstab.__module__ == "pandas"
+    assert pd.pivot_table.__module__ == "pandas"
+    assert pd.pivot.__module__ == "pandas"
+    assert pd.cut.__module__ == "pandas"
+    assert pd.qcut.__module__ == "pandas"
+    assert pd.read_clipboard.__module__ == "pandas"
+    assert pd.ExcelFile.__module__ == "pandas"
+    assert pd.ExcelWriter.__module__ == "pandas"
+    assert pd.read_excel.__module__ == "pandas"
+    assert pd.read_feather.__module__ == "pandas"
+    assert pd.set_eng_float_format.__module__ == "pandas"
+    assert pd.read_html.__module__ == "pandas"
+    assert pd.read_iceberg.__module__ == "pandas"
+    assert pd.read_json.__module__ == "pandas"
+    assert pd.json_normalize.__module__ == "pandas"
+    assert pd.read_orc.__module__ == "pandas"
+    assert pd.read_parquet.__module__ == "pandas"
+    assert pd.read_pickle.__module__ == "pandas"
+    assert pd.to_pickle.__module__ == "pandas"
+    assert pd.HDFStore.__module__ == "pandas"
+    assert pd.read_hdf.__module__ == "pandas"
+    assert pd.read_sas.__module__ == "pandas"
+    assert pd.read_spss.__module__ == "pandas"
+    assert pd.read_sql.__module__ == "pandas"
+    assert pd.read_sql_query.__module__ == "pandas"
+    assert pd.read_sql_table.__module__ == "pandas"
+    assert pd.read_stata.__module__ == "pandas"
+    assert pd.read_xml.__module__ == "pandas"
     assert api.typing.SeriesGroupBy.__module__ == "pandas.api.typing"
     assert api.typing.DataFrameGroupBy.__module__ == "pandas.api.typing"

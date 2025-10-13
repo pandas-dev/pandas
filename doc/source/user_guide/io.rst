@@ -499,11 +499,14 @@ When using ``dtype=CategoricalDtype``, "unexpected" values outside of
 ``dtype.categories`` are treated as missing values.
 
 .. ipython:: python
+   :okwarning:
 
    dtype = CategoricalDtype(["a", "b", "d"])  # No 'c'
    pd.read_csv(StringIO(data), dtype={"col1": dtype}).col1
 
-This matches the behavior of :meth:`Categorical.set_categories`.
+This matches the behavior of :meth:`Categorical.set_categories`. This behavior is
+deprecated. In a future version, the presence of non-NA values that are not
+among the specified categories will raise.
 
 .. note::
 
@@ -5526,7 +5529,6 @@ ORC format, :func:`~pandas.read_orc` and :func:`~pandas.DataFrame.to_orc`. This 
 .. warning::
 
    * It is *highly recommended* to install pyarrow using conda due to some issues occurred by pyarrow.
-   * :func:`~pandas.DataFrame.to_orc` requires pyarrow>=7.0.0.
    * :func:`~pandas.read_orc` and :func:`~pandas.DataFrame.to_orc` are not supported on Windows yet, you can find valid environments on :ref:`install optional dependencies <install.warn_orc>`.
    * For supported dtypes please refer to `supported ORC features in Arrow <https://arrow.apache.org/docs/cpp/orc.html#data-types>`__.
    * Currently timezones in datetime columns are not preserved when a dataframe is converted into ORC files.
