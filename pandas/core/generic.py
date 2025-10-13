@@ -2227,7 +2227,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. versionadded:: 1.2.0
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.
-        
+
         See Also
         --------
         to_csv : Write DataFrame to a comma-separated values (csv) file.
@@ -2398,19 +2398,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             throw ValueError if incorrect 'orient' since others are not
             list-like.
         compression : str or dict, default 'infer'
-            For on-the-fly compression of the output data. If 'infer' and 'path_or_buf' is
-            path-like, then detect compression from the following extensions: '.gz',
+            For on-the-fly compression of the output data. If 'infer' and 'path_or_buf'
+            is path-like, then detect compression from the following extensions: '.gz',
             '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
             (otherwise no compression).
             Set to ``None`` for no compression.
             Can also be a dict with key ``'method'`` set
-            to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
-            other key-value pairs are forwarded to
+            to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``,
+            ``'tar'``} and other key-value pairs are forwarded to
             ``zipfile.ZipFile``, ``gzip.GzipFile``,
             ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
             ``tarfile.TarFile``, respectively.
-            As an example, the following could be passed for faster compression and to create
-            a reproducible gzip archive:
+            As an example, the following could be passed for faster compression and
+            to create a reproducible gzip archive:
             ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
             .. versionchanged:: 1.4.0 Zstandard support.
@@ -3081,13 +3081,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             (otherwise no compression).
             Set to ``None`` for no compression.
             Can also be a dict with key ``'method'`` set
-            to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
-            other key-value pairs are forwarded to
+            to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``,
+            ``'tar'``} and other key-value pairs are forwarded to
             ``zipfile.ZipFile``, ``gzip.GzipFile``,
             ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
             ``tarfile.TarFile``, respectively.
-            As an example, the following could be passed for faster compression and to create
-            a reproducible gzip archive:
+            As an example, the following could be passed for faster compression and
+            to create a reproducible gzip archive:
             ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
         protocol : int
             Int which indicates which protocol should be used by the pickler,
@@ -3853,19 +3853,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             defaults to 'utf-8'. `encoding` is not supported if `path_or_buf`
             is a non-binary file object.
         compression : str or dict, default 'infer'
-            For on-the-fly compression of the output data. If 'infer' and 'path_or_buf' is
-            path-like, then detect compression from the following extensions: '.gz',
+            For on-the-fly compression of the output data. If 'infer' and 'path_or_buf'
+            is path-like, then detect compression from the following extensions: '.gz',
             '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
             (otherwise no compression).
             Set to ``None`` for no compression.
             Can also be a dict with key ``'method'`` set
-            to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
-            other key-value pairs are forwarded to
+            to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``,
+            ``'tar'``} and other key-value pairs are forwarded to
             ``zipfile.ZipFile``, ``gzip.GzipFile``,
             ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
             ``tarfile.TarFile``, respectively.
-            As an example, the following could be passed for faster compression and to create
-            a reproducible gzip archive:
+            As an example, the following could be passed for faster compression and
+            to create a reproducible gzip archive:
             ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
                May be a dict with key 'method' as compression mode
@@ -9039,8 +9039,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Returns the original data conformed to a new index with the specified
         frequency.
 
-        If the index of this Series/DataFrame is a :class:`~pandas.PeriodIndex`, the new index
-        is the result of transforming the original index with
+        If the index of this Series/DataFrame is a :class:`~pandas.PeriodIndex`, the
+        new index is the result of transforming the original index with
         :meth:`PeriodIndex.asfreq <pandas.PeriodIndex.asfreq>` (so the original index
         will map one-to-one to the new index).
 
@@ -9981,7 +9981,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * inner: use intersection of keys from both frames,
               preserve the order of the left keys.
 
-        axis : {0 or 'index', 1 or 'columns'} for Series, {0 or 'index', 1 or 'columns'} for DataFrame, default None
+        axis : {0 or 'index', 1 or 'columns'} for Series, 
+               {0 or 'index', 1 or 'columns'} for DataFrame, default None
             Align on index (0), columns (1), or both (None).
         level : int or level name, default None
             Broadcast across a level, matching Index values on the
@@ -12332,7 +12333,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Minimum number of observations in window required to have a value;
             otherwise, result is ``np.nan``.
 
-            For a window that is specified by an offset, ``min_periods`` will default to 1.
+            For a window that is specified by an offset, ``min_periods`` will default
+            to 1.
 
             For a window that is specified by an integer, ``min_periods`` will default
             to the size of the window.
@@ -12477,8 +12479,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         **min_periods**
 
-        Rolling sum with a window length of 2 observations, but only needs a minimum of 1
-        observation to calculate a value.
+        Rolling sum with a window length of 2 observations, but only needs a minimum
+        of 1 observation to calculate a value.
 
         >>> df.rolling(2, min_periods=1).sum()
              B
@@ -12566,8 +12568,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Provide expanding window calculations.
 
-        An expanding window yields the value of an aggregation statistic with all the data
-        available up to that point in time.
+        An expanding window yields the value of an aggregation statistic with all the
+        data available up to that point in time.
 
         Parameters
         ----------
@@ -12649,9 +12651,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Provide exponentially weighted (EW) calculations.
 
         Exactly one of ``com``, ``span``, ``halflife``, or ``alpha`` must be
-        provided if ``times`` is not provided. If ``times`` is provided and ``adjust=True``,
-        ``halflife`` and one of ``com``, ``span`` or ``alpha`` may be provided.
-        If ``times`` is provided and ``adjust=False``, ``halflife`` must be the only
+        provided if ``times`` is not provided. If ``times`` is provided and
+        ``adjust=True``, ``halflife`` and one of ``com``, ``span`` or ``alpha`` may be
+        provided. If ``times`` is provided and ``adjust=False``, ``halflife`` must be
+        the only
         provided decay-specification parameter.
 
         Parameters
@@ -12689,13 +12692,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Divide by decaying adjustment factor in beginning periods to account
             for imbalance in relative weightings (viewing EWMA as a moving average).
 
-            - When ``adjust=True`` (default), the EW function is calculated using weights
-              :math:`w_i = (1 - \alpha)^i`. For example, the EW moving average of the series
+            - When ``adjust=True`` (default), the EW function is calculated using
+              weights :math:`w_i = (1 - \alpha)^i`. For example, the EW moving average
+              of the series
               [:math:`x_0, x_1, ..., x_t`] would be:
 
             .. math::
-                y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... + (1 -
-                \alpha)^t x_0}{1 + (1 - \alpha) + (1 - \alpha)^2 + ... + (1 - \alpha)^t}
+                y_t = \frac{x_t + (1 - \alpha)x_{t-1} + (1 - \alpha)^2 x_{t-2} + ... +
+                (1 - \alpha)^t x_0}{1 + (1 - \alpha) + (1 - \alpha)^2 + ... + (1 - \alpha)^t}
 
             - When ``adjust=False``, the exponentially weighted function is calculated
               recursively:
@@ -12708,7 +12712,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ignore_na : bool, default False
             Ignore missing values when calculating weights.
 
-            - When ``ignore_na=False`` (default), weights are based on absolute positions.
+            - When ``ignore_na=False`` (default), weights are based on absolute
+              positions.
               For example, the weights of :math:`x_0` and :math:`x_2` used in calculating
               the final weighted average of [:math:`x_0`, None, :math:`x_2`] are
               :math:`(1-\alpha)^2` and :math:`1` if ``adjust=True``, and
