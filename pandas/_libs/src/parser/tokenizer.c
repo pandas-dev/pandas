@@ -1877,22 +1877,37 @@ static inline bool has_only_spaces(const char *str) {
 }
 
 /* Copy a string without `char_to_remove` into `output`,
- * while ensuring it's null terminated.
+ * it assumes that output is filled with `\0`,
+ * so it won't null terminate the result.
  */
 static void copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
                                      const char *str, char char_to_remove) {
-  size_t i = 0;
-  for (const char *src = str; *src != '\0' && i < PROCESSED_WORD_CAPACITY;
-       src++) {
-    if (*src != char_to_remove) {
-      output[i++] = *src;
+  char *dst = output;
+  const char *src = str;
+  // last character is reserved for null terminator.
+  const char *end = output + PROCESSED_WORD_CAPACITY - 1;
+
+  while (*src != '\0' && dst < end) {
+    const char *next = src;
+    // find EOS or char_to_remove
+    while (*next != '\0' && *next != char_to_remove) {
+      next++;
     }
-  }
-  if (i < PROCESSED_WORD_CAPACITY) {
-    output[i] = '\0';
-  } else {
-    // str is too big, probably would overflow
-    errno = ERANGE;
+
+    size_t len = next - src;
+    if (dst + len > end) {
+      // Can't write here, str is too big
+      errno = ERANGE;
+      return;
+    }
+
+    // copy block
+    memcpy(dst, src, len);
+
+    // go to next available location to write
+    dst += len;
+    // Move past char to remove
+    src = *next == char_to_remove ? next + 1 : next;
   }
 }
 
@@ -1915,6 +1930,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   errno = 0;
   if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
     char buffer[PROCESSED_WORD_CAPACITY];
+    memset(buffer, '\0', sizeof(buffer));
     copy_string_without_char(buffer, p_item, tsep);
     p_item = buffer;
   }
@@ -1970,6 +1986,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   errno = 0;
   if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
     char buffer[PROCESSED_WORD_CAPACITY];
+    memset(buffer, '\0', sizeof(buffer));
     copy_string_without_char(buffer, p_item, tsep);
     p_item = buffer;
   }
