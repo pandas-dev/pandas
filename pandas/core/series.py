@@ -953,7 +953,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if is_iterator(key):
             key = list(key)
 
-        if is_hashable(key) and not isinstance(key, slice):
+        if is_hashable(key, allow_slice=False):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
                 # For labels that don't resolve as scalars like tuples and frozensets

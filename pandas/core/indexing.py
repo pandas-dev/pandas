@@ -793,8 +793,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if (
             isinstance(ax, MultiIndex)
             and self.name != "iloc"
-            and is_hashable(key)
-            and not isinstance(key, slice)
+            and is_hashable(key, allow_slice=False)
         ):
             with suppress(KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
@@ -1147,8 +1146,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 # This should never be reached, but let's be explicit about it
                 raise ValueError("Too many indices")  # pragma: no cover
             if all(
-                (is_hashable(x) and not _contains_slice(x)) or com.is_null_slice(x)
-                for x in tup
+                is_hashable(x, allow_slice=False) or com.is_null_slice(x) for x in tup
             ):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
@@ -1511,12 +1509,8 @@ class _LocIndexer(_LocationIndexer):
 
         # Slices are not valid keys passed in by the user,
         # even though they are hashable in Python 3.12
-        contains_slice = False
-        if isinstance(key, tuple):
-            contains_slice = any(isinstance(v, slice) for v in key)
-
         if is_scalar(key) or (
-            isinstance(labels, MultiIndex) and is_hashable(key) and not contains_slice
+            isinstance(labels, MultiIndex) and is_hashable(key, allow_slice=False)
         ):
             # Otherwise get_loc will raise InvalidIndexError
 
