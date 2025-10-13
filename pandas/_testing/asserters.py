@@ -1029,7 +1029,7 @@ def assert_series_equal(
         else:
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
 
-    if not check_dtype:
+    if not check_dtype and (left.dtype != right.dtype):
         # checks only when check_dtype is False
         lv, rv = left._values, right._values
         lv = np.asarray(lv, dtype=object)
