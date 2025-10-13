@@ -10629,7 +10629,7 @@ class DataFrame(NDFrame, OpsMixin):
               If you are just applying a NumPy reduction function this will
               achieve much better performance.
 
-         .. warning::
+         .. note::
 
             When ``raw=True``, the result dtype is inferred from the **first**
             returned value.
