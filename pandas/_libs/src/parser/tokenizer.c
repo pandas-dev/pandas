@@ -1844,9 +1844,9 @@ int uint64_conflict(uint_state *self) {
  * @param p_item Pointer to verify
  * @return Non-zero integer indicating that has a digit 0 otherwise.
  */
-static inline int has_digit_int(const char *str) {
+static inline bool has_digit_int(const char *str) {
   if (!str || *str == '\0') {
-    return 0;
+    return false;
   }
 
   switch (*str) {
@@ -1860,16 +1860,16 @@ static inline int has_digit_int(const char *str) {
   case '7':
   case '8':
   case '9':
-    return 1;
+    return true;
   case '+':
   case '-':
     return isdigit_ascii(str[1]);
   default:
-    return 0;
+    return false;
   }
 }
 
-static inline int has_only_spaces(const char *str) {
+static inline bool has_only_spaces(const char *str) {
   while (*str != '\0' && isspace_ascii(*str)) {
     str++;
   }
