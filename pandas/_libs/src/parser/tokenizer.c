@@ -2003,7 +2003,8 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     int status = copy_string_without_char(buffer, p_item, strlen(p_item), tsep);
 
     if (status != 0) {
-      *error = status;
+      // Word is too big, probably will cause an overflow
+      *error = ERROR_OVERFLOW;
       return 0;
     }
     p_item = buffer;
