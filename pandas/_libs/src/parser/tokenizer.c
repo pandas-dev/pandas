@@ -1863,7 +1863,7 @@ static inline bool has_digit_int(const char *str) {
     return true;
   case '+':
   case '-':
-    return isdigit_ascii(str[1]);
+    return str[1] != '\0' && isdigit_ascii(str[1]);
   default:
     return false;
   }
