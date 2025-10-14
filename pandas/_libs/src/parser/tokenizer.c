@@ -1925,7 +1925,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
       endptr++;
     }
 
-    char *new_end = NULL;
+    char *new_end;
     int64_t next_part = strtoll(endptr, &new_end, 10);
     if (is_negative) {
       next_part = -next_part;
@@ -1996,7 +1996,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
       endptr++;
     }
 
-    char *new_end = NULL;
+    char *new_end;
     uint64_t next_part = strtoull(endptr, &new_end, 10);
     ptrdiff_t digits = new_end - endptr;
     uint64_t mul_result = power_int(10, (int)digits);
