@@ -1881,42 +1881,41 @@ static inline bool has_only_spaces(const char *str) {
 static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
                                     const char *str, size_t str_len,
                                     char char_to_remove) {
-  // last character is reserved for null terminator.
-  size_t max_str_size = PROCESSED_WORD_CAPACITY - 1;
-  if (str_len > max_str_size) {
-    // str_len is too big.
-    // Check if it's possible to write after removing all `char_to_remove`.
-    size_t count_char_to_remove = 0;
-    for (const char *src = str; *src != '\0'; src++) {
-      if (*src == char_to_remove) {
-        count_char_to_remove++;
-      }
-    }
+  const char *left = str;
+  const char *right;
+  const char *end_ptr = str + str_len;
+  size_t bytes_read = 0;
 
-    if (str_len - count_char_to_remove > max_str_size) {
+  while ((right = memchr(left, char_to_remove, end_ptr - left)) != NULL) {
+    size_t nbytes = right - left;
+
+    // check if we have enough space, including the null terminator.
+    if (nbytes + bytes_read >= PROCESSED_WORD_CAPACITY) {
       return ERROR_WORD2BIG;
+    }
+    // copy block
+    memcpy(&output[bytes_read], left, nbytes);
+    bytes_read += nbytes;
+    left = right + 1;
+
+    // Exit after processing the entire string
+    if (left >= end_ptr) {
+      break;
     }
   }
 
-  char *dst = output;
-  const char *left = str;
-
-  // sliding window
-  for (const char *right = str; *left != '\0'; right++) {
-    if (*right == '\0' || *right == char_to_remove) {
-      size_t len = right - left;
-
-      // copy block
-      memcpy(dst, left, len);
-
-      // go to next available location to write
-      dst += len;
-      left = *right == '\0' ? right : right + 1;
+  // copy final chunk that doesn't contain char_to_remove
+  if (end_ptr > left) {
+    size_t nbytes = nbytes = end_ptr - left;
+    if (nbytes + bytes_read >= PROCESSED_WORD_CAPACITY) {
+      return ERROR_WORD2BIG;
     }
+    memcpy(&output[bytes_read], left, nbytes);
+    bytes_read += nbytes;
   }
 
   // null terminate
-  *dst = '\0';
+  output[bytes_read] = '\0';
   return 0;
 }
 
