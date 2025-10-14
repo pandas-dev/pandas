@@ -1886,7 +1886,7 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
   const char *end_ptr = str + str_len;
   size_t bytes_read = 0;
 
-  while ((right = memchr(left, char_to_remove, end_ptr - left)) != NULL) {
+  while ((right = memchr(left, char_to_remove, str_len - bytes_read)) != NULL) {
     size_t nbytes = right - left;
 
     // check if we have enough space, including the null terminator.
