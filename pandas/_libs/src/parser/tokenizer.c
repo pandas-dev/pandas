@@ -1906,7 +1906,7 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
 
   // copy final chunk that doesn't contain char_to_remove
   if (end_ptr > left) {
-    size_t nbytes = nbytes = end_ptr - left;
+    size_t nbytes = end_ptr - left;
     if (nbytes + bytes_read >= PROCESSED_WORD_CAPACITY) {
       return -1;
     }
