@@ -7627,8 +7627,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     # Operate column-wise
                     if self.ndim == 1:
                         raise ValueError(
-                            "Series.replace cannot use dict-like to_replace "
-                            "and non-None value"
+                            "Series.replace cannot specify both a dict-like "
+                            "'to_replace' and a 'value'"
                         )
                     mapping = {
                         col: (to_rep, value) for col, to_rep in to_replace.items()
