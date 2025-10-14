@@ -1609,7 +1609,7 @@ class TestTypeInference:
         # GH#46945
 
         class TimestampsInterval(Interval):
-            def __init__(self, left: str, right: str, closed: str = "both") -> None:
+            def __init__(self, left: str, right: str, closed="both") -> None:
                 super().__init__(Timestamp(left), Timestamp(right), closed)
 
             @property
