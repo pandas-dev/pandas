@@ -28,11 +28,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import NDFrameT
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    doc,
-)
+
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.dtypes import (
@@ -53,12 +49,12 @@ from pandas.core.base import (
 )
 from pandas.core.generic import (
     NDFrame,
-    _shared_docs,
+   
 )
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
     GroupBy,
-    _pipe_template,
+    
     get_groupby,
 )
 from pandas.core.groupby.grouper import Grouper
@@ -263,33 +259,70 @@ class Resampler(BaseGroupBy, PandasObject):
     ) -> T: ...
 
     @final
-    @Substitution(
-        klass="Resampler",
-        examples="""
-    >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
-    ...                   index=pd.date_range('2012-08-02', periods=4))
-    >>> df
-                A
-    2012-08-02  1
-    2012-08-03  2
-    2012-08-04  3
-    2012-08-05  4
-
-    To get the difference between each 2-day period's maximum and minimum
-    value in one pass, you can do
-
-    >>> df.resample('2D').pipe(lambda x: x.max() - x.min())
-                A
-    2012-08-02  1
-    2012-08-04  1""",
-    )
-    @Appender(_pipe_template)
     def pipe(
         self,
         func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
         *args: Any,
         **kwargs: Any,
     ) -> T:
+        """
+        Apply a function with arguments to this resampler object.
+
+        Parameters
+        ----------
+        func : callable or tuple of (callable, str)
+            Function to apply to this resampler object or, alternatively,
+            a (callable, data_key) tuple where data_key is a string
+            indicating the keyword of callable that expects the resampler
+            object.
+        *args : iterable, optional
+            Positional arguments passed into `func`.
+        **kwargs : dict, optional
+            A dictionary of keyword arguments passed into `func`.
+
+        Returns
+        -------
+        object
+            The return value of `func`.
+
+        See Also
+        --------
+        Resampler.apply : Apply a function to each group.
+        Resampler.aggregate : Aggregate using one or more operations.
+
+        Notes
+        -----
+        Use `.pipe` when you want to improve readability by chaining
+        together functions that expect resamplers. Instead of writing
+
+        >>> f(g(h(df.resample()), arg1=a), arg2=b, arg3=c)
+
+        You can write
+
+        >>> (df.resample()
+        ...    .pipe(h)
+        ...    .pipe(g, arg1=a)
+        ...    .pipe(f, arg2=b, arg3=c))
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
+        ...                   index=pd.date_range('2012-08-02', periods=4))
+        >>> df
+                    A
+        2012-08-02  1
+        2012-08-03  2
+        2012-08-04  3
+        2012-08-05  4
+
+        To get the difference between each 2-day period's maximum and minimum
+        value in one pass, you can do
+
+        >>> df.resample('2D').pipe(lambda x: x.max() - x.min())
+                    A
+        2012-08-02  1
+        2012-08-04  1
+        """
         return super().pipe(func, *args, **kwargs)
 
     _agg_see_also_doc = dedent(
@@ -349,14 +382,87 @@ class Resampler(BaseGroupBy, PandasObject):
     )
 
     @final
-    @doc(
-        _shared_docs["aggregate"],
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc,
-        klass="DataFrame",
-        axis="",
-    )
     def aggregate(self, func=None, *args, **kwargs):
+        """
+        Aggregate using one or more operations over the specified axis.
+
+        Parameters
+        ----------
+        func : function, str, list or dict
+            Function to use for aggregating the data. If a function, must either
+            work when passed a Series or when passed to Series.apply.
+
+            Accepted combinations are:
+
+            - function
+            - string function name
+            - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+            - dict of axis labels -> functions, function names or list of such.
+
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
+
+        Returns
+        -------
+        Series or DataFrame
+
+            The return can be:
+
+            * Series : when DataFrame.agg is called with a single function
+            * DataFrame : when DataFrame.agg is called with several functions
+
+            Return Series and DataFrame with the transformed values.
+
+        See Also
+        --------
+        DataFrame.groupby.aggregate : Aggregate using callable, string, dict,
+            or list of string/callables.
+        DataFrame.resample.transform : Transforms the Series on each group
+            based on the given function.
+        DataFrame.aggregate: Aggregate using one or more
+            operations over the specified axis.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4, 5],
+        ...               index=pd.date_range('20130101', periods=5, freq='s'))
+        >>> s
+        2013-01-01 00:00:00    1
+        2013-01-01 00:00:01    2
+        2013-01-01 00:00:02    3
+        2013-01-01 00:00:03    4
+        2013-01-01 00:00:04    5
+        Freq: s, dtype: int64
+
+        >>> r = s.resample('2s')
+
+        >>> r.agg("sum")
+        2013-01-01 00:00:00    3
+        2013-01-01 00:00:02    7
+        2013-01-01 00:00:04    5
+        Freq: 2s, dtype: int64
+
+        >>> r.agg(['sum', 'mean', 'max'])
+                            sum  mean  max
+        2013-01-01 00:00:00    3   1.5    2
+        2013-01-01 00:00:02    7   3.5    4
+        2013-01-01 00:00:04    5   5.0    5
+
+        >>> r.agg({'result': lambda x: x.mean() / x.std(),
+        ...        'total': "sum"})
+                            result  total
+        2013-01-01 00:00:00  2.121320      3
+        2013-01-01 00:00:02  4.949747      7
+        2013-01-01 00:00:04       NaN      5
+
+        >>> r.agg(average="mean", total="sum")
+                                average  total
+        2013-01-01 00:00:00      1.5      3
+        2013-01-01 00:00:02      3.5      7
+        2013-01-01 00:00:04      5.0      5
+        """
         result = ResamplerWindowApply(self, func, args=args, kwargs=kwargs).agg()
         if result is None:
             how = func
@@ -1236,25 +1342,113 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("max", numeric_only=numeric_only, min_count=min_count)
 
     @final
-    @doc(GroupBy.first)
     def first(
         self,
         numeric_only: bool = False,
         min_count: int = 0,
         skipna: bool = True,
     ):
+        """
+        Compute the first non-null entry of each column.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionchanged:: 2.0.0
+                numeric_only no longer accepts ``None``.
+
+        min_count : int, default 0
+            The required number of valid values to perform the operation.
+            If fewer than ``min_count`` non-NA values are present the result will be NA.
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        Returns
+        -------
+        Series or DataFrame
+            The first non-null values in each group.
+
+        See Also
+        --------
+        core.resample.Resampler.last : Compute the last non-null value of each column.
+        core.resample.Resampler.max : Compute max value of group.
+        core.resample.Resampler.min : Compute min value of group.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4],
+        ...               index=pd.date_range('2023-01-01', periods=4, freq='D'))
+        >>> s
+        2023-01-01    1
+        2023-01-02    2
+        2023-01-03    3
+        2023-01-04    4
+        Freq: D, dtype: int64
+
+        >>> s.resample('2D').first()
+        2023-01-01    1
+        2023-01-03    3
+        Freq: 2D, dtype: int64
+        """
         return self._downsample(
             "first", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )
 
     @final
-    @doc(GroupBy.last)
     def last(
         self,
         numeric_only: bool = False,
         min_count: int = 0,
         skipna: bool = True,
     ):
+        """
+        Compute the last non-null entry of each column.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionchanged:: 2.0.0
+                numeric_only no longer accepts ``None``.
+
+        min_count : int, default 0
+            The required number of valid values to perform the operation.
+            If fewer than ``min_count`` non-NA values are present the result will be NA.
+
+        skipna : bool, default True
+            Exclude NA/null values when computing the result.
+
+        Returns
+        -------
+        Series or DataFrame
+            The last non-null values in each group.
+
+        See Also
+        --------
+        core.resample.Resampler.first : Compute the first non-null value of each column.
+        core.resample.Resampler.max : Compute max value of group.
+        core.resample.Resampler.min : Compute min value of group.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4],
+        ...               index=pd.date_range('2023-01-01', periods=4, freq='D'))
+        >>> s
+        2023-01-01    1
+        2023-01-02    2
+        2023-01-03    3
+        2023-01-04    4
+        Freq: D, dtype: int64
+
+        >>> s.resample('2D').last()
+        2023-01-01    2
+        2023-01-03    4
+        Freq: 2D, dtype: int64
+        """
         return self._downsample(
             "last", numeric_only=numeric_only, min_count=min_count, skipna=skipna
         )
@@ -1544,8 +1738,39 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("sem", ddof=ddof, numeric_only=numeric_only)
 
     @final
-    @doc(GroupBy.ohlc)
     def ohlc(self):
+        """
+        Compute open, high, low and close values of a group, excluding missing values.
+
+        Returns
+        -------
+        DataFrame
+            The OHLC values for each group.
+
+        See Also
+        --------
+        core.resample.Resampler.first : Compute the first non-null value of each column.
+        core.resample.Resampler.last : Compute the last non-null value of each column.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4, 5, 6],
+        ...               index=pd.date_range('2023-01-01', periods=6, freq='D'))
+        >>> s
+        2023-01-01    1
+        2023-01-02    2
+        2023-01-03    3
+        2023-01-04    4
+        2023-01-05    5
+        2023-01-06    6
+        Freq: D, dtype: int64
+
+        >>> s.resample('2D').ohlc()
+                    open  high  low  close
+        2023-01-01     1     2    1      2
+        2023-01-03     3     4    3      4
+        2023-01-05     5     6    5      6
+        """
         ax = self.ax
         obj = self._obj_with_exclusions
         if len(ax) == 0:
@@ -1600,8 +1825,35 @@ class Resampler(BaseGroupBy, PandasObject):
         return self._downsample("nunique")
 
     @final
-    @doc(GroupBy.size)
     def size(self):
+        """
+        Compute group sizes.
+
+        Returns
+        -------
+        Series
+            Number of rows in each group.
+
+        See Also
+        --------
+        core.resample.Resampler.count : Compute count of group, excluding missing values.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4],
+        ...               index=pd.date_range('2023-01-01', periods=4, freq='D'))
+        >>> s
+        2023-01-01    1
+        2023-01-02    2
+        2023-01-03    3
+        2023-01-04    4
+        Freq: D, dtype: int64
+
+        >>> s.resample('2D').size()
+        2023-01-01    2
+        2023-01-03    2
+        Freq: 2D, dtype: int64
+        """
         result = self._downsample("size")
 
         # If the result is a non-empty DataFrame we stack to get a Series
@@ -1620,8 +1872,35 @@ class Resampler(BaseGroupBy, PandasObject):
         return result
 
     @final
-    @doc(GroupBy.count)
     def count(self):
+        """
+        Compute count of group, excluding missing values.
+
+        Returns
+        -------
+        Series or DataFrame
+            Count of values within each group.
+
+        See Also
+        --------
+        core.resample.Resampler.size : Compute group sizes.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, None, 4],
+        ...               index=pd.date_range('2023-01-01', periods=4, freq='D'))
+        >>> s
+        2023-01-01    1.0
+        2023-01-02    2.0
+        2023-01-03    NaN
+        2023-01-04    4.0
+        Freq: D, dtype: float64
+
+        >>> s.resample('2D').count()
+        2023-01-01    2
+        2023-01-03    1
+        Freq: 2D, dtype: int64
+        """
         result = self._downsample("count")
         if not len(self.ax):
             if self._selected_obj.ndim == 1:
