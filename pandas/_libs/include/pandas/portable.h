@@ -35,29 +35,3 @@ The full license is in the LICENSE file, distributed with this software.
   do {                                                                         \
   } while (0) /* fallthrough */
 #endif
-
-#if defined(_WIN32)
-#ifndef ENABLE_INTSAFE_SIGNED_FUNCTIONS
-#define ENABLE_INTSAFE_SIGNED_FUNCTIONS
-#endif
-#include <intsafe.h>
-#define checked_int64_add(a, b, res) LongLongAdd(a, b, res)
-#define checked_int64_sub(a, b, res) LongLongSub(a, b, res)
-#define checked_int64_mul(a, b, res) LongLongMult(a, b, res)
-#define checked_uint64_add(a, b, res) ULongLongAdd(a, b, res)
-#define checked_uint64_sub(a, b, res) ULongLongSub(a, b, res)
-#define checked_uint64_mul(a, b, res) ULongLongMult(a, b, res)
-#else
-#if (defined __has_builtin && __has_builtin(__builtin_add_overflow)) ||        \
-    __GNUC__ > 7
-#define checked_int64_add(a, b, res) __builtin_add_overflow(a, b, res)
-#define checked_int64_sub(a, b, res) __builtin_sub_overflow(a, b, res)
-#define checked_int64_mul(a, b, res) __builtin_mul_overflow(a, b, res)
-#define checked_uint64_add(a, b, res) __builtin_add_overflow(a, b, res)
-#define checked_uint64_sub(a, b, res) __builtin_sub_overflow(a, b, res)
-#define checked_uint64_mul(a, b, res) __builtin_mul_overflow(a, b, res)
-#else
-_Static_assert(0,
-               "Overflow checking not detected; please try a newer compiler");
-#endif
-#endif
