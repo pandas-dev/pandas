@@ -431,12 +431,9 @@ class BaseBlockManager(PandasObject):
                             kwargs[k] = obj.iloc[b.mgr_locs.indexer]._values
                         else:
                             kwargs[k] = obj.iloc[:, b.mgr_locs.indexer]._values
-                    elif isinstance(obj, lib._NoDefault):
-                        pass
-                    else:
+                    elif isinstance(obj, np.ndarray):
                         # otherwise we have an ndarray
                         kwargs[k] = obj[b.mgr_locs.indexer]
-
             if callable(f):
                 applied = b.apply(f, **kwargs)
             else:
@@ -464,12 +461,9 @@ class BaseBlockManager(PandasObject):
         )
 
     @final
-    def where(self, other, cond, align: bool) -> Self:
-        if align:
-            align_keys = ["other", "cond"]
-        else:
-            align_keys = ["cond"]
-            other = extract_array(other, extract_numpy=True)
+    def where(self, other, cond) -> Self:
+        align_keys = ["other", "cond"]
+        other = extract_array(other, extract_numpy=True)
 
         return self.apply(
             "where",
@@ -479,12 +473,9 @@ class BaseBlockManager(PandasObject):
         )
 
     @final
-    def putmask(self, mask, new, align: bool = True) -> Self:
-        if align:
-            align_keys = ["new", "mask"]
-        else:
-            align_keys = ["mask"]
-            new = extract_array(new, extract_numpy=True)
+    def putmask(self, mask, new) -> Self:
+        align_keys = ["new", "mask"]
+        new = extract_array(new, extract_numpy=True)
 
         return self.apply(
             "putmask",
