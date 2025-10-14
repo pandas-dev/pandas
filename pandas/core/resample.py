@@ -49,12 +49,10 @@ from pandas.core.base import (
 )
 from pandas.core.generic import (
     NDFrame,
-   
 )
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
     GroupBy,
-    
     get_groupby,
 )
 from pandas.core.groupby.grouper import Grouper
@@ -266,43 +264,55 @@ class Resampler(BaseGroupBy, PandasObject):
         **kwargs: Any,
     ) -> T:
         """
-        Apply a function with arguments to this resampler object.
+        Apply a ``func`` with arguments to this Resampler object and return its result.
+
+        Use `.pipe` when you want to improve readability by chaining together
+        functions that expect Series, DataFrames, GroupBy or Resampler objects.
+        Instead of writing
+
+        >>> h = lambda x, arg2, arg3: x + 1 - arg2 * arg3
+        >>> g = lambda x, arg1: x * 5 / arg1
+        >>> f = lambda x: x ** 4
+        >>> df = pd.DataFrame([["a", 4], ["b", 5]], columns=["group", "value"])
+        >>> h(g(f(df.groupby('group')), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
+
+        You can write
+
+        >>> (df.groupby('group')
+        ...    .pipe(f)
+        ...    .pipe(g, arg1=1)
+        ...    .pipe(h, arg2=2, arg3=3))  # doctest: +SKIP
+
+        which is much more readable.
 
         Parameters
         ----------
         func : callable or tuple of (callable, str)
-            Function to apply to this resampler object or, alternatively,
-            a (callable, data_key) tuple where data_key is a string
-            indicating the keyword of callable that expects the resampler
-            object.
+            Function to apply to this Resampler object or, alternatively,
+            a `(callable, data_keyword)` tuple where `data_keyword` is a
+            string indicating the keyword of `callable` that expects the
+            Resampler object.
         *args : iterable, optional
             Positional arguments passed into `func`.
         **kwargs : dict, optional
-            A dictionary of keyword arguments passed into `func`.
+                A dictionary of keyword arguments passed into `func`.
 
         Returns
         -------
-        object
-            The return value of `func`.
+        any
+            The result of applying ``func`` to the Resampler object.
 
         See Also
         --------
-        Resampler.apply : Apply a function to each group.
-        Resampler.aggregate : Aggregate using one or more operations.
+        Series.pipe : Apply a function with arguments to a series.
+        DataFrame.pipe: Apply a function with arguments to a dataframe.
+        apply : Apply function to each group instead of to the
+            full Resampler object.
 
         Notes
         -----
-        Use `.pipe` when you want to improve readability by chaining
-        together functions that expect resamplers. Instead of writing
-
-        >>> f(g(h(df.resample()), arg1=a), arg2=b, arg3=c)
-
-        You can write
-
-        >>> (df.resample()
-        ...    .pipe(h)
-        ...    .pipe(g, arg1=a)
-        ...    .pipe(f, arg2=b, arg3=c))
+        See more `here
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
 
         Examples
         --------
@@ -324,7 +334,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2012-08-04  1
         """
         return super().pipe(func, *args, **kwargs)
-
+    
     _agg_see_also_doc = dedent(
         """
     See Also
@@ -390,7 +400,7 @@ class Resampler(BaseGroupBy, PandasObject):
         ----------
         func : function, str, list or dict
             Function to use for aggregating the data. If a function, must either
-            work when passed a Series or when passed to Series.apply.
+            work when passed a DataFrame or when passed to DataFrame.apply.
 
             Accepted combinations are:
 
@@ -398,7 +408,6 @@ class Resampler(BaseGroupBy, PandasObject):
             - string function name
             - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
             - dict of axis labels -> functions, function names or list of such.
-
         *args
             Positional arguments to pass to `func`.
         **kwargs
@@ -406,14 +415,13 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Returns
         -------
-        Series or DataFrame
+        scalar, Series or DataFrame
 
             The return can be:
 
+            * scalar : when Series.agg is called with single function
             * Series : when DataFrame.agg is called with a single function
             * DataFrame : when DataFrame.agg is called with several functions
-
-            Return Series and DataFrame with the transformed values.
 
         See Also
         --------
@@ -423,6 +431,25 @@ class Resampler(BaseGroupBy, PandasObject):
             based on the given function.
         DataFrame.aggregate: Aggregate using one or more
             operations over the specified axis.
+
+        Notes
+        -----
+        The aggregation operations are always performed over an axis, either the
+        index (default) or the column axis. This behavior is different from
+        `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+        `var`), where the default is to compute the aggregation of the flattened
+        array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+        ``numpy.mean(arr_2d, axis=0)``.
+
+        `agg` is an alias for `aggregate`. Use the alias.
+
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+        for more details.
+
+        A passed user-defined-function will be passed a Series for evaluation.
+
+        If ``func`` defines an index relabeling, ``axis`` must be ``0`` or ``index``.
 
         Examples
         --------
@@ -1355,43 +1382,38 @@ class Resampler(BaseGroupBy, PandasObject):
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
-
-            .. versionchanged:: 2.0.0
-                numeric_only no longer accepts ``None``.
-
         min_count : int, default 0
-            The required number of valid values to perform the operation.
-            If fewer than ``min_count`` non-NA values are present the result will be NA.
-
+            The required number of valid values to perform the operation. If fewer
+            than ``min_count`` non-NA values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values when computing the result.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
 
         Returns
         -------
         Series or DataFrame
-            The first non-null values in each group.
+            First values within each group.
 
         See Also
         --------
-        core.resample.Resampler.last : Compute the last non-null value of each column.
-        core.resample.Resampler.max : Compute max value of group.
-        core.resample.Resampler.min : Compute min value of group.
+        core.resample.Resampler.last : Compute the last non-null value in each group.
+        core.resample.Resampler.mean : Compute mean of groups, excluding missing values.
 
         Examples
         --------
         >>> s = pd.Series([1, 2, 3, 4],
-        ...               index=pd.date_range('2023-01-01', periods=4, freq='D'))
+        ...               index=pd.DatetimeIndex(
+        ...                   ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...               ))
         >>> s
         2023-01-01    1
-        2023-01-02    2
-        2023-01-03    3
-        2023-01-04    4
-        Freq: D, dtype: int64
-
-        >>> s.resample('2D').first()
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> s.resample("MS").first()
         2023-01-01    1
-        2023-01-03    3
-        Freq: 2D, dtype: int64
+        2023-02-01    3
+        Freq: MS, dtype: int64
         """
         return self._downsample(
             "first", numeric_only=numeric_only, min_count=min_count, skipna=skipna
@@ -1411,43 +1433,38 @@ class Resampler(BaseGroupBy, PandasObject):
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
-
-            .. versionchanged:: 2.0.0
-                numeric_only no longer accepts ``None``.
-
         min_count : int, default 0
-            The required number of valid values to perform the operation.
-            If fewer than ``min_count`` non-NA values are present the result will be NA.
-
+            The required number of valid values to perform the operation. If fewer
+            than ``min_count`` non-NA values are present the result will be NA.
         skipna : bool, default True
-            Exclude NA/null values when computing the result.
+            Exclude NA/null values. If an entire group is NA, the result will be NA.
 
         Returns
         -------
         Series or DataFrame
-            The last non-null values in each group.
+            Last of values within each group.
 
         See Also
         --------
-        core.resample.Resampler.first : Compute the first non-null value of each column.
-        core.resample.Resampler.max : Compute max value of group.
-        core.resample.Resampler.min : Compute min value of group.
+        core.resample.Resampler.first : Compute the first non-null value in each group.
+        core.resample.Resampler.mean : Compute mean of groups, excluding missing values.
 
         Examples
         --------
         >>> s = pd.Series([1, 2, 3, 4],
-        ...               index=pd.date_range('2023-01-01', periods=4, freq='D'))
+        ...               index=pd.DatetimeIndex(
+        ...                   ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...               ))
         >>> s
         2023-01-01    1
-        2023-01-02    2
-        2023-01-03    3
-        2023-01-04    4
-        Freq: D, dtype: int64
-
-        >>> s.resample('2D').last()
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> s.resample("MS").last()
         2023-01-01    2
-        2023-01-03    4
-        Freq: 2D, dtype: int64
+        2023-02-01    4
+        Freq: MS, dtype: int64
         """
         return self._downsample(
             "last", numeric_only=numeric_only, min_count=min_count, skipna=skipna
@@ -1745,31 +1762,33 @@ class Resampler(BaseGroupBy, PandasObject):
         Returns
         -------
         DataFrame
-            The OHLC values for each group.
+            Open, high, low and close values within each group.
 
         See Also
         --------
-        core.resample.Resampler.first : Compute the first non-null value of each column.
-        core.resample.Resampler.last : Compute the last non-null value of each column.
+        DataFrame.agg : Aggregate using one or more operations over the specified axis.
+        DataFrame.resample : Resample time-series data.
+        DataFrame.groupby : Group DataFrame using a mapper or by a Series of columns.
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3, 4, 5, 6],
-        ...               index=pd.date_range('2023-01-01', periods=6, freq='D'))
-        >>> s
-        2023-01-01    1
-        2023-01-02    2
-        2023-01-03    3
-        2023-01-04    4
-        2023-01-05    5
-        2023-01-06    6
-        Freq: D, dtype: int64
-
-        >>> s.resample('2D').ohlc()
+        >>> ser = pd.Series(
+        ...     [1, 3, 2, 4, 3, 5],
+        ...     index=pd.DatetimeIndex(
+        ...         [
+        ...             "2023-01-01",
+        ...             "2023-01-10",
+        ...             "2023-01-15",
+        ...             "2023-02-01",
+        ...             "2023-02-10",
+        ...             "2023-02-15",
+        ...         ]
+        ...     ),
+        ... )
+        >>> ser.resample("MS").ohlc()
                     open  high  low  close
-        2023-01-01     1     2    1      2
-        2023-01-03     3     4    3      4
-        2023-01-05     5     6    5      6
+        2023-01-01     1     3    1      2
+        2023-02-01     4     5    3      5
         """
         ax = self.ax
         obj = self._obj_with_exclusions
@@ -1836,23 +1855,24 @@ class Resampler(BaseGroupBy, PandasObject):
 
         See Also
         --------
-        core.resample.Resampler.count : Compute count of group, excluding missing values.
+        Series.groupby : Apply a function groupby to a Series.
+        DataFrame.groupby : Apply a function groupby to each row or column of a DataFrame.
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3, 4],
-        ...               index=pd.date_range('2023-01-01', periods=4, freq='D'))
-        >>> s
+        >>> ser = pd.Series(
+        ...     [1, 2, 3],
+        ...     index=pd.DatetimeIndex(["2023-01-01", "2023-01-15", "2023-02-01"]),
+        ... )
+        >>> ser
         2023-01-01    1
-        2023-01-02    2
-        2023-01-03    3
-        2023-01-04    4
-        Freq: D, dtype: int64
-
-        >>> s.resample('2D').size()
+        2023-01-15    2
+        2023-02-01    3
+        dtype: int64
+        >>> ser.resample("MS").size()
         2023-01-01    2
-        2023-01-03    2
-        Freq: 2D, dtype: int64
+        2023-02-01    1
+        Freq: MS, dtype: int64
         """
         result = self._downsample("size")
 
@@ -1883,23 +1903,27 @@ class Resampler(BaseGroupBy, PandasObject):
 
         See Also
         --------
-        core.resample.Resampler.size : Compute group sizes.
+        Series.groupby : Apply a function groupby to a Series.
+        DataFrame.groupby : Apply a function groupby to each row or column of a DataFrame.
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, None, 4],
-        ...               index=pd.date_range('2023-01-01', periods=4, freq='D'))
-        >>> s
-        2023-01-01    1.0
-        2023-01-02    2.0
-        2023-01-03    NaN
-        2023-01-04    4.0
-        Freq: D, dtype: float64
-
-        >>> s.resample('2D').count()
+        >>> ser = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample("MS").count()
         2023-01-01    2
-        2023-01-03    1
-        Freq: 2D, dtype: int64
+        2023-02-01    2
+        Freq: MS, dtype: int64
         """
         result = self._downsample("count")
         if not len(self.ax):
