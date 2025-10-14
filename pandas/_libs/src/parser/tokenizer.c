@@ -1984,8 +1984,8 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   }
 
   errno = 0;
+  char buffer[PROCESSED_WORD_CAPACITY];
   if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
-    char buffer[PROCESSED_WORD_CAPACITY];
     memset(buffer, '\0', sizeof(buffer));
     copy_string_without_char(buffer, p_item, tsep);
     p_item = buffer;
