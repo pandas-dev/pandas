@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
+import pandas as pd
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
@@ -231,16 +232,17 @@ def _coerce_to_data_and_mask(
             values = np.ones(values.shape, dtype=dtype)
         else:
             idx = np.nanargmax(values)
-            if int(values[idx]) != original[idx]:
-                # We have ints that lost precision during the cast.
-                inferred_type = lib.infer_dtype(original, skipna=True)
-                if (
-                    inferred_type not in ["floating", "mixed-integer-float"]
-                    and not mask.any()
-                ):
-                    values = np.asarray(original, dtype=dtype)
-                else:
-                    values = np.asarray(original, dtype="object")
+            if not (pd.isna(values[idx]) or pd.isna(original[idx])):
+                if int(values[idx]) != original[idx]:
+                    # We have ints that lost precision during the cast.
+                    inferred_type = lib.infer_dtype(original, skipna=True)
+                    if (
+                        inferred_type not in ["floating", "mixed-integer-float"]
+                        and not mask.any()
+                    ):
+                        values = np.asarray(original, dtype=dtype)
+                    else:
+                        values = np.asarray(original, dtype="object")
 
     # we copy as need to coerce here
     if mask.any():
