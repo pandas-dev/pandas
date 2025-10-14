@@ -18,7 +18,6 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 */
 #include "pandas/parser/tokenizer.h"
 #include "pandas/portable.h"
-#include "pandas/vendored/numpy/datetime/np_datetime.h"
 
 #include <ctype.h>
 #include <float.h>

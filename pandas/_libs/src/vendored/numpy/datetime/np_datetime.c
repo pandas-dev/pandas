@@ -21,6 +21,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #endif // NPY_NO_DEPRECATED_API
 
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
+#include "pandas/portable.h"
 #define NO_IMPORT_ARRAY
 #define PY_ARRAY_UNIQUE_SYMBOL PANDAS_DATETIME_NUMPY
 #include <numpy/ndarrayobject.h>

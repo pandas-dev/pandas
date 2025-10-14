@@ -20,35 +20,6 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif // NPY_NO_DEPRECATED_API
 
-#if defined(_WIN32)
-#ifndef ENABLE_INTSAFE_SIGNED_FUNCTIONS
-#define ENABLE_INTSAFE_SIGNED_FUNCTIONS
-#endif
-#include <intsafe.h>
-#define checked_int64_add(a, b, res) LongLongAdd(a, b, res)
-#define checked_int64_sub(a, b, res) LongLongSub(a, b, res)
-#define checked_int64_mul(a, b, res) LongLongMult(a, b, res)
-#else
-#if defined __has_builtin
-#if __has_builtin(__builtin_add_overflow)
-#define checked_int64_add(a, b, res) __builtin_add_overflow(a, b, res)
-#define checked_int64_sub(a, b, res) __builtin_sub_overflow(a, b, res)
-#define checked_int64_mul(a, b, res) __builtin_mul_overflow(a, b, res)
-#else
-_Static_assert(0,
-               "Overflow checking not detected; please try a newer compiler");
-#endif
-// __has_builtin was added in gcc 10, but our muslinux_1_1 build environment
-// only has gcc-9.3, so fall back to __GNUC__ macro as long as we have that
-#elif __GNUC__ > 7
-#define checked_int64_add(a, b, res) __builtin_add_overflow(a, b, res)
-#define checked_int64_sub(a, b, res) __builtin_sub_overflow(a, b, res)
-#define checked_int64_mul(a, b, res) __builtin_mul_overflow(a, b, res)
-#else
-_Static_assert(0, "__has_builtin not detected; please try a newer compiler");
-#endif
-#endif
-
 #include <numpy/ndarraytypes.h>
 
 typedef struct {
