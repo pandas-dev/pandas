@@ -1891,7 +1891,7 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
 
     // check if we have enough space, including the null terminator.
     if (nbytes + bytes_read >= PROCESSED_WORD_CAPACITY) {
-      return ERROR_WORD2BIG;
+      return -1;
     }
     // copy block
     memcpy(&output[bytes_read], left, nbytes);
@@ -1908,7 +1908,7 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
   if (end_ptr > left) {
     size_t nbytes = nbytes = end_ptr - left;
     if (nbytes + bytes_read >= PROCESSED_WORD_CAPACITY) {
-      return ERROR_WORD2BIG;
+      return -1;
     }
     memcpy(&output[bytes_read], left, nbytes);
     bytes_read += nbytes;
@@ -1941,7 +1941,8 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     int status = copy_string_without_char(buffer, p_item, strlen(p_item), tsep);
 
     if (status != 0) {
-      *error = status;
+      // Word is too big, probably will cause an overflow
+      *error = ERROR_OVERFLOW;
       return 0;
     }
 
