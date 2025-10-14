@@ -24,6 +24,7 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <limits.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdckdint.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -1898,37 +1899,6 @@ static int power_int(int base, int exponent) {
   return result * base;
 }
 
-static inline int64_t add_int_check_overflow(int64_t lhs, int64_t rhs,
-                                             int64_t mul_lhs) {
-  // rhs will always be positive, because this function
-  // only executes after the first parse, hence the sign will always go to lhs.
-  // if lhs > 0:
-  // Will overflow if (mul_lhs * lhs) + rhs > INT_MAX
-  // iff lhs > (INT_MAX - rhs) / mul_lhs
-  // if lhs < 0:
-  // Will underflow if (mul_lhs * lhs) - rhs < INT_MIN
-  // iff lhs < (INT_MIN + rhs) / mul_lhs
-  if (lhs >= 0) {
-    if (lhs > (INT_MAX - rhs) / mul_lhs) {
-      errno = ERANGE;
-    }
-  } else {
-    if (lhs < (INT_MIN + rhs) / mul_lhs) {
-      errno = ERANGE;
-    }
-    rhs = -rhs;
-  }
-  return lhs * mul_lhs + rhs;
-}
-
-static inline uint64_t add_uint_check_overflow(uint64_t lhs, uint64_t rhs,
-                                               uint64_t mul_lhs) {
-  if (lhs > (UINT_MAX - rhs) / mul_lhs) {
-    errno = ERANGE;
-  }
-  return lhs * mul_lhs + rhs;
-}
-
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                      int *error, char tsep) {
   if (!p_item || *p_item == '\0') {
@@ -1948,6 +1918,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   errno = 0;
   char *endptr = NULL;
   int64_t result = strtoll(p_item, &endptr, 10);
+  bool is_negative = result < 0;
 
   while (errno == 0 && tsep != '\0' && *endptr == tsep) {
     // Skip multiple consecutive tsep
@@ -1957,9 +1928,22 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
     char *new_end = NULL;
     int64_t next_part = strtoll(endptr, &new_end, 10);
+    if (is_negative) {
+      next_part = -next_part;
+    }
+
     ptrdiff_t digits = new_end - endptr;
     int64_t mul_result = power_int(10, (int)digits);
-    result = add_int_check_overflow(result, next_part, mul_result);
+    // result * mul_result
+    if (ckd_mul(&result, result, mul_result)) {
+      // overflow
+      errno = ERANGE;
+    }
+    // result + next_part
+    if (ckd_add(&result, result, next_part)) {
+      // overflow
+      errno = ERANGE;
+    }
     endptr = new_end;
   }
 
@@ -2017,7 +2001,16 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     uint64_t next_part = strtoull(endptr, &new_end, 10);
     ptrdiff_t digits = new_end - endptr;
     uint64_t mul_result = power_int(10, (int)digits);
-    result = add_uint_check_overflow(result, next_part, mul_result);
+    // result * mul_result
+    if (ckd_mul(&result, result, mul_result)) {
+      // overflow
+      errno = ERANGE;
+    }
+    // result + next_part
+    if (ckd_add(&result, result, next_part)) {
+      // overflow
+      errno = ERANGE;
+    }
     endptr = new_end;
   }
 
