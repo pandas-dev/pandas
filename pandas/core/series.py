@@ -5096,7 +5096,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         columns : single label or list-like
             Not supported; use 'index' or 'labels' instead.
 
-            .. deprecated: 3.0.0
+            .. deprecated:: 3.0.0
         level : int or level name, optional
             For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
