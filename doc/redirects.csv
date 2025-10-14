@@ -358,7 +358,6 @@ generated/pandas.DataFrame.ewm,../reference/api/pandas.DataFrame.ewm
 generated/pandas.DataFrame.expanding,../reference/api/pandas.DataFrame.expanding
 generated/pandas.DataFrame.ffill,../reference/api/pandas.DataFrame.ffill
 generated/pandas.DataFrame.fillna,../reference/api/pandas.DataFrame.fillna
-generated/pandas.DataFrame.filter,../reference/api/pandas.DataFrame.filter
 generated/pandas.DataFrame.first,../reference/api/pandas.DataFrame.first
 generated/pandas.DataFrame.first_valid_index,../reference/api/pandas.DataFrame.first_valid_index
 generated/pandas.DataFrame.floordiv,../reference/api/pandas.DataFrame.floordiv
@@ -1023,7 +1022,6 @@ generated/pandas.Series.expanding,../reference/api/pandas.Series.expanding
 generated/pandas.Series.factorize,../reference/api/pandas.Series.factorize
 generated/pandas.Series.ffill,../reference/api/pandas.Series.ffill
 generated/pandas.Series.fillna,../reference/api/pandas.Series.fillna
-generated/pandas.Series.filter,../reference/api/pandas.Series.filter
 generated/pandas.Series.first,../reference/api/pandas.Series.first
 generated/pandas.Series.first_valid_index,../reference/api/pandas.Series.first_valid_index
 generated/pandas.Series.floordiv,../reference/api/pandas.Series.floordiv

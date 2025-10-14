@@ -261,13 +261,13 @@ calling multiple functions.
 
 When to use: Use :meth:`pipe` when you need to create a pipeline of operations and want to keep the code readable and maintainable.
 
-.. _udf.filter:
+.. _udf.select:
 
-:meth:`Series.filter` and :meth:`DataFrame.filter`
+:meth:`Series.select` and :meth:`DataFrame.select`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``filter`` method is used to select a subset of rows that match certain criteria.
-:meth:`Series.filter` and :meth:`DataFrame.filter` do not support user defined functions,
+The ``select`` method is used to select a subset of rows that match certain criteria.
+:meth:`Series.select` and :meth:`DataFrame.select` do not support user defined functions,
 but :meth:`SeriesGroupBy.filter` and :meth:`DataFrameGroupBy.filter` do. You can read more
 about ``filter`` in groupby operations in :ref:`groupby.filter`.
 

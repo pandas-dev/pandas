@@ -165,7 +165,7 @@ Mutating with User Defined Function (UDF) methods
 
 This section applies to pandas methods that take a UDF. In particular, the methods
 :meth:`DataFrame.apply`, :meth:`DataFrame.aggregate`, :meth:`DataFrame.transform`, and
-:meth:`DataFrame.filter`.
+:meth:`DataFrame.select`.
 
 It is a general rule in programming that one should not mutate a container
 while it is being iterated over. Mutation will invalidate the iterator,
