@@ -9921,12 +9921,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 other = self._constructor(
                     other, **self._construct_axes_dict(), copy=False
                 )
+        if axis is None:
+            axis = 0
+        if self.ndim == getattr(other, "ndim", 0):
+            align = True
+        else:
+            align = self._get_axis_number(axis) == 1
 
         if inplace:
             # we may have different type blocks come out of putmask, so
             # reconstruct the block manager
 
-            new_data = self._mgr.putmask(mask=cond, new=other)
+            new_data = self._mgr.putmask(mask=cond, new=other, align=align)
             result = self._constructor_from_mgr(new_data, axes=new_data.axes)
             return self._update_inplace(result)
 
@@ -9934,6 +9940,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             new_data = self._mgr.where(
                 other=other,
                 cond=cond,
+                align=align,
             )
             result = self._constructor_from_mgr(new_data, axes=new_data.axes)
             return result.__finalize__(self)
