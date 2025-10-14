@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-
 from typing import (
     TYPE_CHECKING,
     Concatenate,
@@ -28,7 +27,6 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import NDFrameT
 from pandas.errors import AbstractMethodError
-
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.dtypes import (
@@ -108,7 +106,6 @@ if TYPE_CHECKING:
         DataFrame,
         Series,
     )
-
     from pandas.core.generic import NDFrame
 
 _shared_docs_kwargs: dict[str, str] = {}
