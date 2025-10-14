@@ -9141,20 +9141,21 @@ class DataFrame(NDFrame, OpsMixin):
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
         """
-        from pandas.core.computation import expressions
+        from pandas.core.dtypes.common import (
+            is_extension_array_dtype,
+            is_integer_dtype,
+            is_unsigned_integer_dtype,
+        )
 
         def combiner(x: Series, y: Series):
-            mask = x.isna()._values
-
-            x_values = x._values
-            y_values = y._values
+            mask = x.isna()
 
             # If the column y in other DataFrame is not in first DataFrame,
-            # just return y_values.
+            # just return y.
             if y.name not in self.columns:
-                return y_values
+                return y
 
-            return expressions.where(mask, y_values, x_values)
+            return y.where(mask, x)
 
         if len(other) == 0:
             combined = self.reindex(
@@ -9162,6 +9163,34 @@ class DataFrame(NDFrame, OpsMixin):
             )
             combined = combined.astype(other.dtypes)
         else:
+            # GH #60128
+            # Promote large 64-bit integers to their nullable types.
+            # Without this, precision will be lost in a float64 rount-trip.
+            def _cast_large_numpy_ints_to_nullable(df: DataFrame) -> DataFrame:
+                BOUND = 2**53
+                cast_map: dict[str, str] = {}
+                for col, dt in df.dtypes.items():
+                    if is_integer_dtype(dt) and not is_extension_array_dtype(dt):
+                        ser = df[col]
+                        if ser.size == 0:
+                            continue
+                        if is_unsigned_integer_dtype(dt):
+                            if ser.max() >= BOUND:
+                                # promote large uint64 to nullable UInt64
+                                cast_map[col] = "UInt64"
+                        else:
+                            if ser.max() >= BOUND or ser.min() <= -BOUND:
+                                # promote large int64 to nullable Int64
+                                cast_map[col] = "Int64"
+                return df.astype(cast_map) if cast_map else df
+
+            # Only cast frames whose index expand to the union (i.e., get <NA> on align)
+            union_index = self.index.union(other.index)
+            if not self.index.equals(union_index):
+                self = _cast_large_numpy_ints_to_nullable(self)
+            if not other.index.equals(union_index):
+                other = _cast_large_numpy_ints_to_nullable(other)
+
             combined = self.combine(other, combiner, overwrite=False)
 
         dtypes = {
