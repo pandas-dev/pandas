@@ -10631,8 +10631,8 @@ class DataFrame(NDFrame, OpsMixin):
 
          .. note::
 
-            When ``raw=True``, the result dtype is inferred from the **first**
-            returned value.
+                When ``raw=True``, the result dtype is inferred from the **first**
+                returned value.
 
         result_type : {'expand', 'reduce', 'broadcast', None}, default None
             These only act when ``axis=1`` (columns):
