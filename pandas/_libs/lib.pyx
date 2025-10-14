@@ -2255,7 +2255,8 @@ cpdef bint is_interval_array(ndarray values):
     for i in range(n):
         val = values[i]
 
-        if isinstance(val, Interval):
+        if type(val) is Interval:
+            # GH#46945 catch Interval exactly, excluding subclasses
             if closed is None:
                 closed = val.closed
                 numeric = (
