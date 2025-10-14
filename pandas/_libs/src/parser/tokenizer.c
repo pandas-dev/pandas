@@ -1898,14 +1898,6 @@ static int power_int(int base, int exponent) {
   return result * base;
 }
 
-static inline uint64_t add_uint_check_overflow(uint64_t lhs, uint64_t rhs,
-                                               uint64_t mul_lhs) {
-  if (lhs > (UINT_MAX - rhs) / mul_lhs) {
-    errno = ERANGE;
-  }
-  return lhs * mul_lhs + rhs;
-}
-
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                      int *error, char tsep) {
   if (!p_item || *p_item == '\0') {
@@ -2008,7 +2000,18 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     uint64_t next_part = strtoull(endptr, &new_end, 10);
     ptrdiff_t digits = new_end - endptr;
     uint64_t mul_result = power_int(10, (int)digits);
-    result = add_uint_check_overflow(result, next_part, mul_result);
+
+    // result * mul_result
+    if (checked_uint64_mul(result, mul_result, &result)) {
+      // overflow
+      errno = ERANGE;
+    }
+    // result + next_part
+    if (checked_uint64_add(result, next_part, &result)) {
+      // overflow
+      errno = ERANGE;
+    }
+
     endptr = new_end;
   }
 
