@@ -14106,17 +14106,19 @@ class DataFrame(NDFrame, OpsMixin):
         values : iterable, Series, DataFrame or dict
             The result will only be true at a location if all the
             labels match.
+
             - If `values` is a Series, the index labels must match.
             - If `values` is a dict, the keys must be column names,
-            which must match.
+              which must match.
             - If `values` is a DataFrame:
+
               * When ``ignore_index=False`` (default), both the index
-              and column labels must match, and comparison is done
-              elementwise.
+                and column labels must match, and comparison is done
+                elementwise.
               * When ``ignore_index=True``, only column labels must
-              match. Each element in the DataFrame is compared
-              against the set of values in the corresponding column
-              of ``values``, ignoring row index alignment.
+                match. Each element in the DataFrame is compared
+                against the set of values in the corresponding column
+                of ``values``, ignoring row index alignment.
 
         ignore_index : bool, default False
             *Only valid when `values` is a DataFrame.*
