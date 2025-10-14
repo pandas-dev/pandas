@@ -1926,6 +1926,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   errno = 0;
   char *endptr = NULL;
   int64_t result = strtoll(p_item, &endptr, 10);
+  bool is_negative = result < 0;
 
   while (errno == 0 && tsep != '\0' && *endptr == tsep) {
     // Skip multiple consecutive tsep
@@ -1935,6 +1936,10 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
     char *new_end = NULL;
     int64_t next_part = strtoll(endptr, &new_end, 10);
+    if (is_negative) {
+      next_part = -next_part;
+    }
+
     ptrdiff_t digits = new_end - endptr;
     int64_t mul_result = power_int(10, (int)digits);
     // result * mul_result
