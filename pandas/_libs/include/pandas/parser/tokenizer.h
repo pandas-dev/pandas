@@ -17,6 +17,7 @@ See LICENSE for the license
 #define ERROR_NO_DIGITS 1
 #define ERROR_OVERFLOW 2
 #define ERROR_INVALID_CHARS 3
+#define ERROR_WORD2BIG 4
 
 #include <stdint.h>
 

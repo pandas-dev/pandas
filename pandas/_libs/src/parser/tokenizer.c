@@ -1876,39 +1876,48 @@ static inline bool has_only_spaces(const char *str) {
   return *str == '\0';
 }
 
-/* Copy a string without `char_to_remove` into `output`,
- * it assumes that output is filled with `\0`,
- * so it won't null terminate the result.
+/* Copy a string without `char_to_remove` into `output`.
  */
-static void copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
-                                     const char *str, char char_to_remove) {
-  char *dst = output;
-  const char *src = str;
+static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
+                                    const char *str, size_t str_len,
+                                    char char_to_remove) {
   // last character is reserved for null terminator.
-  const char *end = output + PROCESSED_WORD_CAPACITY - 1;
-
-  while (*src != '\0' && dst < end) {
-    const char *next = src;
-    // find EOS or char_to_remove
-    while (*next != '\0' && *next != char_to_remove) {
-      next++;
+  size_t max_str_size = PROCESSED_WORD_CAPACITY - 1;
+  if (str_len > max_str_size) {
+    // str_len is too big.
+    // Check if it's possible to write after removing all `char_to_remove`.
+    size_t count_char_to_remove = 0;
+    for (const char *src = str; *src != '\0'; src++) {
+      if (*src == char_to_remove) {
+        count_char_to_remove++;
+      }
     }
 
-    size_t len = next - src;
-    if (dst + len > end) {
-      // Can't write here, str is too big
-      errno = ERANGE;
-      return;
+    if (str_len - count_char_to_remove > max_str_size) {
+      return ERROR_WORD2BIG;
     }
-
-    // copy block
-    memcpy(dst, src, len);
-
-    // go to next available location to write
-    dst += len;
-    // Move past char to remove
-    src = *next == char_to_remove ? next + 1 : next;
   }
+
+  char *dst = output;
+  const char *left = str;
+
+  // sliding window
+  for (const char *right = str; *left != '\0'; right++) {
+    if (*right == '\0' || *right == char_to_remove) {
+      size_t len = right - left;
+
+      // copy block
+      memcpy(dst, left, len);
+
+      // go to next available location to write
+      dst += len;
+      left = *right == '\0' ? right : right + 1;
+    }
+  }
+
+  // null terminate
+  *dst = '\0';
+  return 0;
 }
 
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
@@ -1930,8 +1939,13 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   errno = 0;
   char buffer[PROCESSED_WORD_CAPACITY];
   if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
-    memset(buffer, '\0', sizeof(buffer));
-    copy_string_without_char(buffer, p_item, tsep);
+    int status = copy_string_without_char(buffer, p_item, strlen(p_item), tsep);
+
+    if (status != 0) {
+      *error = status;
+      return 0;
+    }
+
     p_item = buffer;
   }
 
@@ -1986,14 +2000,13 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   errno = 0;
   char buffer[PROCESSED_WORD_CAPACITY];
   if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
-    memset(buffer, '\0', sizeof(buffer));
-    copy_string_without_char(buffer, p_item, tsep);
-    p_item = buffer;
-  }
+    int status = copy_string_without_char(buffer, p_item, strlen(p_item), tsep);
 
-  if (errno == ERANGE) {
-    *error = ERROR_OVERFLOW;
-    return 0;
+    if (status != 0) {
+      *error = status;
+      return 0;
+    }
+    p_item = buffer;
   }
 
   char *endptr = NULL;
