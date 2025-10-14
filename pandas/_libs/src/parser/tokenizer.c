@@ -1920,9 +1920,12 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   bool is_negative = result < 0;
 
   while (errno == 0 && tsep != '\0' && *endptr == tsep) {
-    // Skip multiple consecutive tsep
-    while (*endptr == tsep) {
-      endptr++;
+    // move after tsep
+    endptr++;
+    if (*endptr == '\0' || !isdigit_ascii(*endptr)) {
+      // stop parsing and let the remaining of the function
+      // assign an error code
+      break;
     }
 
     char *new_end;
@@ -1991,9 +1994,12 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   uint64_t result = strtoull(p_item, &endptr, 10);
 
   while (errno == 0 && tsep != '\0' && *endptr == tsep) {
-    // Skip multiple consecutive tsep
-    while (*endptr == tsep) {
-      endptr++;
+    // move after tsep
+    endptr++;
+    if (*endptr == '\0' || !isdigit_ascii(*endptr)) {
+      // stop parsing and let the remaining of the function
+      // assign an error code
+      break;
     }
 
     char *new_end;
