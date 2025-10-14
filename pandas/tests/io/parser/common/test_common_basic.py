@@ -72,13 +72,16 @@ def test_read_csv_local(all_parsers, csv1):
     tm.assert_frame_equal(result, expected)
 
 
-def test_1000_sep(all_parsers):
+@pytest.mark.parametrize(
+    "number_csv, expected_number", [("2,334", 2334), ("-2,334", -2334)]
+)
+def test_1000_sep(all_parsers, number_csv, expected_number):
     parser = all_parsers
-    data = """A|B|C
-1|2,334|5
+    data = f"""A|B|C
+1|{number_csv}|5
 10|13|10.
 """
-    expected = DataFrame({"A": [1, 10], "B": [2334, 13], "C": [5, 10.0]})
+    expected = DataFrame({"A": [1, 10], "B": [expected_number, 13], "C": [5, 10.0]})
 
     if parser.engine == "pyarrow":
         msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
