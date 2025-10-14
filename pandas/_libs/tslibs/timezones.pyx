@@ -252,7 +252,7 @@ cdef object _get_utc_trans_times_from_dateutil_tz(tzinfo tz):
     """
     new_trans = list(tz._trans_list)
     last_std_offset = 0
-    for i, (trans, tti) in enumerate(zip(tz._trans_list, tz._trans_idx)):
+    for i, (trans, tti) in enumerate(zip(tz._trans_list, tz._trans_idx, strict=True)):
         if not tti.isdst:
             last_std_offset = tti.offset
         new_trans[i] = trans - last_std_offset
