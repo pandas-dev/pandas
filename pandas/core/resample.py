@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import copy
-from textwrap import dedent
+
 from typing import (
     TYPE_CHECKING,
     Concatenate,
@@ -274,16 +274,15 @@ class Resampler(BaseGroupBy, PandasObject):
 
         >>> h = lambda x, arg2, arg3: x + 1 - arg2 * arg3
         >>> g = lambda x, arg1: x * 5 / arg1
-        >>> f = lambda x: x ** 4
+        >>> f = lambda x: x**4
         >>> df = pd.DataFrame([["a", 4], ["b", 5]], columns=["group", "value"])
-        >>> h(g(f(df.groupby('group')), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
+        >>> h(g(f(df.groupby("group")), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
 
         You can write
 
-        >>> (df.groupby('group')
-        ...    .pipe(f)
-        ...    .pipe(g, arg1=1)
-        ...    .pipe(h, arg2=2, arg3=3))  # doctest: +SKIP
+        >>> (
+        ...     df.groupby("group").pipe(f).pipe(g, arg1=1).pipe(h, arg2=2, arg3=3)
+        ... )  # doctest: +SKIP
 
         which is much more readable.
 
@@ -318,8 +317,9 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
-        ...                   index=pd.date_range('2012-08-02', periods=4))
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 2, 3, 4]}, index=pd.date_range("2012-08-02", periods=4)
+        ... )
         >>> df
                     A
         2012-08-02  1
@@ -330,68 +330,12 @@ class Resampler(BaseGroupBy, PandasObject):
         To get the difference between each 2-day period's maximum and minimum
         value in one pass, you can do
 
-        >>> df.resample('2D').pipe(lambda x: x.max() - x.min())
+        >>> df.resample("2D").pipe(lambda x: x.max() - x.min())
                     A
         2012-08-02  1
         2012-08-04  1
         """
         return super().pipe(func, *args, **kwargs)
-    
-    _agg_see_also_doc = dedent(
-        """
-    See Also
-    --------
-    DataFrame.groupby.aggregate : Aggregate using callable, string, dict,
-        or list of string/callables.
-    DataFrame.resample.transform : Transforms the Series on each group
-        based on the given function.
-    DataFrame.aggregate: Aggregate using one or more
-        operations over the specified axis.
-    """
-    )
-
-    _agg_examples_doc = dedent(
-        """
-    Examples
-    --------
-    >>> s = pd.Series([1, 2, 3, 4, 5],
-    ...               index=pd.date_range('20130101', periods=5, freq='s'))
-    >>> s
-    2013-01-01 00:00:00    1
-    2013-01-01 00:00:01    2
-    2013-01-01 00:00:02    3
-    2013-01-01 00:00:03    4
-    2013-01-01 00:00:04    5
-    Freq: s, dtype: int64
-
-    >>> r = s.resample('2s')
-
-    >>> r.agg("sum")
-    2013-01-01 00:00:00    3
-    2013-01-01 00:00:02    7
-    2013-01-01 00:00:04    5
-    Freq: 2s, dtype: int64
-
-    >>> r.agg(['sum', 'mean', 'max'])
-                         sum  mean  max
-    2013-01-01 00:00:00    3   1.5    2
-    2013-01-01 00:00:02    7   3.5    4
-    2013-01-01 00:00:04    5   5.0    5
-
-    >>> r.agg({'result': lambda x: x.mean() / x.std(),
-    ...        'total': "sum"})
-                           result  total
-    2013-01-01 00:00:00  2.121320      3
-    2013-01-01 00:00:02  4.949747      7
-    2013-01-01 00:00:04       NaN      5
-
-    >>> r.agg(average="mean", total="sum")
-                             average  total
-    2013-01-01 00:00:00      1.5      3
-    2013-01-01 00:00:02      3.5      7
-    2013-01-01 00:00:04      5.0      5
-    """
-    )
 
     @final
     def aggregate(self, func=None, *args, **kwargs):
@@ -455,8 +399,9 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3, 4, 5],
-        ...               index=pd.date_range('20130101', periods=5, freq='s'))
+        >>> s = pd.Series(
+        ...     [1, 2, 3, 4, 5], index=pd.date_range("20130101", periods=5, freq="s")
+        ... )
         >>> s
         2013-01-01 00:00:00    1
         2013-01-01 00:00:01    2
@@ -465,7 +410,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2013-01-01 00:00:04    5
         Freq: s, dtype: int64
 
-        >>> r = s.resample('2s')
+        >>> r = s.resample("2s")
 
         >>> r.agg("sum")
         2013-01-01 00:00:00    3
@@ -473,14 +418,13 @@ class Resampler(BaseGroupBy, PandasObject):
         2013-01-01 00:00:04    5
         Freq: 2s, dtype: int64
 
-        >>> r.agg(['sum', 'mean', 'max'])
+        >>> r.agg(["sum", "mean", "max"])
                             sum  mean  max
         2013-01-01 00:00:00    3   1.5    2
         2013-01-01 00:00:02    7   3.5    4
         2013-01-01 00:00:04    5   5.0    5
 
-        >>> r.agg({'result': lambda x: x.mean() / x.std(),
-        ...        'total': "sum"})
+        >>> r.agg({"result": lambda x: x.mean() / x.std(), "total": "sum"})
                             result  total
         2013-01-01 00:00:00  2.121320      3
         2013-01-01 00:00:02  4.949747      7
@@ -1402,10 +1346,12 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3, 4],
-        ...               index=pd.DatetimeIndex(
-        ...                   ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
-        ...               ))
+        >>> s = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> s
         2023-01-01    1
         2023-01-15    2
@@ -1453,10 +1399,12 @@ class Resampler(BaseGroupBy, PandasObject):
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3, 4],
-        ...               index=pd.DatetimeIndex(
-        ...                   ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
-        ...               ))
+        >>> s = pd.Series(
+        ...     [1, 2, 3, 4],
+        ...     index=pd.DatetimeIndex(
+        ...         ["2023-01-01", "2023-01-15", "2023-02-01", "2023-02-15"]
+        ...     ),
+        ... )
         >>> s
         2023-01-01    1
         2023-01-15    2
@@ -1859,7 +1807,7 @@ class Resampler(BaseGroupBy, PandasObject):
         --------
         Series.groupby : Apply a function groupby to a Series.
         DataFrame.groupby : Apply a function groupby to each row
-        or column of a DataFrame.
+            or column of a DataFrame.
 
         Examples
         --------
@@ -1908,7 +1856,7 @@ class Resampler(BaseGroupBy, PandasObject):
         --------
         Series.groupby : Apply a function groupby to a Series.
         DataFrame.groupby : Apply a function groupby to each row
-        or column of a DataFrame.
+            or column of a DataFrame.
 
         Examples
         --------
