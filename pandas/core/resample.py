@@ -109,6 +109,8 @@ if TYPE_CHECKING:
         Series,
     )
 
+    from pandas.core.generic import NDFrame
+
 _shared_docs_kwargs: dict[str, str] = {}
 
 
@@ -1856,7 +1858,8 @@ class Resampler(BaseGroupBy, PandasObject):
         See Also
         --------
         Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby to each row or column of a DataFrame.
+        DataFrame.groupby : Apply a function groupby to each row
+        or column of a DataFrame.
 
         Examples
         --------
@@ -1904,7 +1907,8 @@ class Resampler(BaseGroupBy, PandasObject):
         See Also
         --------
         Series.groupby : Apply a function groupby to a Series.
-        DataFrame.groupby : Apply a function groupby to each row or column of a DataFrame.
+        DataFrame.groupby : Apply a function groupby to each row
+        or column of a DataFrame.
 
         Examples
         --------
