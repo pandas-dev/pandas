@@ -10,7 +10,6 @@ from pandas import (
     MultiIndex,
     Series,
     _testing as tm,
-    option_context,
 )
 from pandas.core.strings.accessor import StringMethods
 
@@ -181,8 +180,7 @@ def test_api_per_method(
 
     if inferred_dtype in allowed_types:
         # xref GH 23555, GH 23556
-        with option_context("future.no_silent_downcasting", True):
-            method(*args, **kwargs)  # works!
+        method(*args, **kwargs)  # works!
     else:
         # GH 23011, GH 23163
         msg = (
