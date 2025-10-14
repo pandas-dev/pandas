@@ -73,7 +73,14 @@ def test_read_csv_local(all_parsers, csv1):
 
 
 @pytest.mark.parametrize(
-    "number_csv, expected_number", [("2,334", 2334), ("-2,334", -2334)]
+    "number_csv, expected_number",
+    [
+        ("2,334", 2334),
+        ("-2,334", -2334),
+        ("-2,334,", -2334),
+        ("2,,,,,,,,,,,,,,,5", 25),
+        ("2,,3,4,,,,,,,,,,,,5", 2345),
+    ],
 )
 def test_1000_sep(all_parsers, number_csv, expected_number):
     parser = all_parsers
