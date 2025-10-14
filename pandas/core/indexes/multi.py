@@ -2775,7 +2775,6 @@ class MultiIndex(Index):
 
         new_names.insert(position, name)
 
-
         return MultiIndex.from_tuples(new_tuples, names=new_names)
 
     def _reorder_ilevels(self, order) -> MultiIndex:
