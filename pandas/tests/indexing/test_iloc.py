@@ -1107,7 +1107,7 @@ class TestiLocBaseIndependent:
         expected = Series(
             [None, 6, 13, 15, 4, 9, 10], index=[6, 1, 5, 0, 3, 2, 4], dtype="Int64"
         )
-        tm.assert_series_equal(ser.sort_index(), expected.sort_index())
+        tm.assert_series_equal(ser.sort_index(), expected)
 
     @pytest.mark.parametrize("has_ref", [True, False])
     def test_iloc_setitem_dictionary_value(self, has_ref):
