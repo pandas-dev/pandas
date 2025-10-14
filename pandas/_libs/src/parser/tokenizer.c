@@ -1878,6 +1878,12 @@ static inline bool has_only_spaces(const char *str) {
 
 static int power_int(int base, int exponent) {
   // https://en.wikipedia.org/wiki/Exponentiation_by_squaring
+  if (exponent == 0) {
+    return 1;
+  } else if (exponent < 0) {
+    return 0;
+  }
+
   int result = 1;
 
   while (exponent > 1) {
