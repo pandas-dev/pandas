@@ -9155,30 +9155,23 @@ class DataFrame(NDFrame, OpsMixin):
             )
             combined = combined.astype(other.dtypes)
         else:
-            # GH#60128 Avoid precision loss from int64/uint64 -> float64 round-trip.
-            # Promote NumPy int64/uint64 to nullable Int64/UInt64 only when values
-            # exceed float64's exact range (|x| >= 2**53). This keeps alignment that
-            # introduces <NA> from forcing a lossy cast.
-            def _cast_large_numpy_ints_to_nullable(df: DataFrame) -> DataFrame:
-                BOUND = 2**53  # first non-exact integer for float64
+            # GH#60128 Avoid precision loss from int64/uint64 <-> float64 round-trip.
+            def _cast_64_bit_ints_to_nullable(df: DataFrame) -> DataFrame:
                 cast_map: dict[str, str] = {}
 
                 for col, dt in df.dtypes.items():
-                    ser = df[col]
                     if dt == np.dtype("uint64"):
-                        if ser.size and ser.max() >= BOUND:
-                            cast_map[col] = "UInt64"
+                        cast_map[col] = "UInt64"
                     elif dt == np.dtype("int64"):
-                        if ser.size and (ser.max() >= BOUND or ser.min() <= -BOUND):
-                            cast_map[col] = "Int64"
+                        cast_map[col] = "Int64"
 
                 return df.astype(cast_map) if cast_map else df
 
             # Only need to cast sides that gain rows on outer align (introduces <NA>).
             if len(other.index.difference(self.index, sort=False)):
-                self = _cast_large_numpy_ints_to_nullable(self)
+                self = _cast_64_bit_ints_to_nullable(self)
             if len(self.index.difference(other.index, sort=False)):
-                other = _cast_large_numpy_ints_to_nullable(other)
+                other = _cast_64_bit_ints_to_nullable(other)
 
             combined = self.combine(other, combiner, overwrite=False)
 
