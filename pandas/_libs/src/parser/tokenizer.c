@@ -1887,9 +1887,9 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
   const char *right;
   const char *end_ptr = str + str_len;
   size_t bytes_written = 0;
-  size_t remaining_bytes_to_read = str_len;
 
-  while (remaining_bytes_to_read > 0) {
+  while (left < end_ptr) {
+    size_t remaining_bytes_to_read = end_ptr - left;
     right = memchr(left, char_to_remove, remaining_bytes_to_read);
 
     // If it doesn't find the char to remove, just copy until EOS.
@@ -1905,7 +1905,6 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
 
     // Advance past the removed character if we found it.
     left = right ? right + 1 : end_ptr;
-    remaining_bytes_to_read -= right ? chunk_size + 1 : chunk_size;
   }
 
   // null terminate
