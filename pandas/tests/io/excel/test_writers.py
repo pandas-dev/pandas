@@ -1583,6 +1583,29 @@ class TestExcelWriterEngineTests:
         df.to_excel(filepath2, engine="dummy")
         DummyClass.assert_called_and_reset()
 
+    @td.skip_if_no("openpyxl")
+    def test_to_excel_multiindex_nan_in_columns(self, merge_cells):
+        # GH 62340
+        df = (
+            DataFrame({"a": list("ABBAAAB"), "b": [-1, 1, 1, -2, float("nan"), 3, -4]})
+            .assign(b_bin=lambda x: pd.cut(x.b, bins=[-float("inf"), 0, float("inf")]))
+            .groupby(["b_bin", "a"], as_index=False, observed=True, dropna=False)
+            .agg(b_sum=("b", "sum"), b_prod=("b", "prod"))
+            .pivot(index="a", columns="b_bin", values=["b_sum", "b_prod"])
+        )
+
+        with ExcelWriter("test.xlsx", engine="openpyxl") as writer:
+            df.to_excel(writer, sheet_name="Sheet1", merge_cells=merge_cells)
+
+        reader = ExcelFile("test.xlsx")
+        result = pd.read_excel(reader, index_col=0, header=[0, 1])
+
+        original_values = df.to_numpy()
+        result_values = result.to_numpy()
+        tm.assert_numpy_array_equal(original_values, result_values)
+
+        assert result.columns[1][1] != result.columns[2][1]
+
 
 @td.skip_if_no("xlrd")
 @td.skip_if_no("openpyxl")
