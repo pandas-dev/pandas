@@ -1847,10 +1847,6 @@ int uint64_conflict(uint_state *self) {
  * @return Non-zero integer indicating that has a digit 0 otherwise.
  */
 static inline bool has_digit_int(const char *str) {
-  if (!str || *str == '\0') {
-    return false;
-  }
-
   switch (*str) {
   case '0':
   case '1':
@@ -1914,11 +1910,6 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
 
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                      int *error, char tsep) {
-  if (!p_item || *p_item == '\0') {
-    *error = ERROR_NO_DIGITS;
-    return 0;
-  }
-
   while (isspace_ascii(*p_item)) {
     ++p_item;
   }
@@ -1970,11 +1961,6 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
 uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
                        uint64_t uint_max, int *error, char tsep) {
-  if (!p_item || *p_item == '\0') {
-    *error = ERROR_NO_DIGITS;
-    return 0;
-  }
-
   while (isspace_ascii(*p_item)) {
     ++p_item;
   }
