@@ -9174,7 +9174,7 @@ class DataFrame(NDFrame, OpsMixin):
 
                 return df.astype(cast_map) if cast_map else df
 
-            # Cast any side that will gain rows on outer align (introduces <NA>).
+            # Only need to cast sides that gain rows on outer align (introduces <NA>).
             if len(other.index.difference(self.index, sort=False)):
                 self = _cast_large_numpy_ints_to_nullable(self)
             if len(self.index.difference(other.index, sort=False)):
