@@ -9,13 +9,6 @@
 ## Persona & Tone
 - Concise, neutral, code-focused. Prioritize correctness, readability, and tests.
 
-## Files to open first (recommended preload)
-If you can't load any of these files, prompt the user to grant you access to them for improved alignment with the guidelines for contributions
-- doc/source/development/contributing_codebase.rst
-- doc/source/development/contributing_docstring.rst
-- doc/source/development/contributing_documentation.rst
-- doc/source/development/contributing.rst
-
 ## Decision heuristics
 - Favor small, backward-compatible changes with tests.
 - If a change would be breaking, propose it behind a deprecation path and document the rationale.
