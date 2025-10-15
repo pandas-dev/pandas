@@ -1196,55 +1196,55 @@ def read_csv(
 
     Examples
     --------
-    >>> pd.read_csv("data.csv")  # doctest: +SKIP
-       Name  Value
-    0   foo      1
-    1   bar      2
-    2  #baz      3
+    >>> pd.    >>> pd.read_csv("data.csv")  # doctest: +SKIP
+        Name  Value
+    0    foo      1
+    1    bar      2
+    2   #baz      3
 
     Index and header can be specified via the `index_col` and `header`
     arguments.
 
     >>> pd.read_csv("data.csv", header=None)  # doctest: +SKIP
-          0      1
-    0  Name  Value
-    1   foo      1
-    2   bar      2
-    3  #baz      3
+           0      1
+    0   Name  Value
+    1    foo      1
+    2    bar      2
+    3   #baz      3
 
     >>> pd.read_csv("data.csv", index_col="Value")  # doctest: +SKIP
-           Name
+            Name
     Value
-    1       foo
-    2       bar
-    3      #baz
+    1        foo
+    2        bar
+    3       #baz
 
     Column types are inferred but can be explicitly specified using the
-    dtype argument.
+    `dtype` argument.
 
     >>> pd.read_csv("data.csv", dtype={"Value": float})  # doctest: +SKIP
-       Name  Value
-    0   foo    1.0
-    1   bar    2.0
-    2  #baz    3.0
+        Name  Value
+    0    foo    1.0
+    1    bar    2.0
+    2   #baz    3.0
 
     True, False, and NA values, and thousands separators have defaults,
     but can be explicitly specified, too. Supply the values you would like
     as strings or lists of strings!
 
     >>> pd.read_csv("data.csv", na_values=["foo", "bar"])  # doctest: +SKIP
-       Name  Value
-    0   NaN      1
-    1   NaN      2
-    2  #baz      3
+        Name  Value
+    0    NaN      1
+    1    NaN      2
+    2   #baz      3
 
     Comment lines in the input file can be skipped using the `comment`
     argument.
 
     >>> pd.read_csv("data.csv", comment="#")  # doctest: +SKIP
-      Name  Value
-    0  foo      1
-    1  bar      2
+        Name  Value
+    0    foo      1
+    1    bar      2
 
     By default, columns with dates will be read as ``object`` rather than
     ``datetime``.
@@ -1252,9 +1252,9 @@ def read_csv(
     >>> df = pd.read_csv("tmp.csv")  # doctest: +SKIP
 
     >>> df  # doctest: +SKIP
-       col 1       col 2            col 3
-    0     10  10/04/2018  Sun 15 Jan 2023
-    1     20  15/04/2018  Fri 12 May 2023
+        col 1       col 2            col 3
+    0      10  10/04/2018  Sun 15 Jan 2023
+    1      20  15/04/2018  Fri 12 May 2023
 
     >>> df.dtypes  # doctest: +SKIP
     col 1     int64
