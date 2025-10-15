@@ -1839,13 +1839,6 @@ int uint64_conflict(uint_state *self) {
   return self->seen_uint && (self->seen_sint || self->seen_null);
 }
 
-static inline bool has_only_spaces(const char *str) {
-  while (*str != '\0' && isspace_ascii(*str)) {
-    str++;
-  }
-  return *str == '\0';
-}
-
 /* Copy a string without `char_to_remove` into `output`.
  */
 static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
@@ -1917,10 +1910,13 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   char *endptr;
   int64_t result = strtoll(p, &endptr, 10);
 
+  // Skip trailing spaces.
+  while (isspace_ascii(*endptr)) {
+    ++endptr;
+  }
+
   // Did we use up all the characters?
-  if (!has_only_spaces(endptr)) {
-    // Check first for invalid characters because we may
-    // want to skip integer parsing if we find one.
+  if (*endptr) {
     *error = ERROR_INVALID_CHARS;
     result = 0;
   } else if (errno == ERANGE || result > int_max || result < int_min) {
@@ -1974,8 +1970,13 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   char *endptr;
   uint64_t result = strtoull(p, &endptr, 10);
 
+  // Skip trailing spaces.
+  while (isspace_ascii(*endptr)) {
+    ++endptr;
+  }
+
   // Did we use up all the characters?
-  if (!has_only_spaces(endptr)) {
+  if (*endptr) {
     *error = ERROR_INVALID_CHARS;
     result = 0;
   } else if (errno == ERANGE || result > uint_max) {
