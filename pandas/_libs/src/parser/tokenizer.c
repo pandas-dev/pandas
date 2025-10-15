@@ -1938,7 +1938,6 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     return 0;
   }
 
-  errno = 0;
   char buffer[PROCESSED_WORD_CAPACITY];
   size_t str_len = strlen(p_item);
   if (tsep != '\0' && memchr(p_item, tsep, str_len) != NULL) {
@@ -1959,6 +1958,9 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   }
 
   char *endptr = NULL;
+  // strtoll sets errno if it finds an overflow.
+  // It's value is reset to don't pollute the verification below.
+  errno = 0;
   int64_t result = strtoll(p_item, &endptr, 10);
 
   if (!has_only_spaces(endptr)) {
@@ -2001,7 +2003,6 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     return 0;
   }
 
-  errno = 0;
   char buffer[PROCESSED_WORD_CAPACITY];
   size_t str_len = strlen(p_item);
   if (tsep != '\0' && memchr(p_item, tsep, str_len) != NULL) {
@@ -2016,6 +2017,9 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   }
 
   char *endptr = NULL;
+  // strtoull sets errno if it finds an overflow.
+  // It's value is reset to don't pollute the verification below.
+  errno = 0;
   uint64_t result = strtoull(p_item, &endptr, 10);
 
   if (!has_only_spaces(endptr)) {
