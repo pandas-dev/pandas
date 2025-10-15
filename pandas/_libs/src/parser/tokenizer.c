@@ -1839,34 +1839,6 @@ int uint64_conflict(uint_state *self) {
   return self->seen_uint && (self->seen_sint || self->seen_null);
 }
 
-/**
- * @brief Check if the character in the pointer indicates a number.
- * It expects that you consumed all leading whitespace.
- *
- * @param p_item Pointer to verify
- * @return Non-zero integer indicating that has a digit 0 otherwise.
- */
-static inline bool has_digit_int(const char *str) {
-  switch (*str) {
-  case '0':
-  case '1':
-  case '2':
-  case '3':
-  case '4':
-  case '5':
-  case '6':
-  case '7':
-  case '8':
-  case '9':
-    return true;
-  case '+':
-  case '-':
-    return str[1] != '\0' && isdigit_ascii(str[1]);
-  default:
-    return false;
-  }
-}
-
 static inline bool has_only_spaces(const char *str) {
   while (*str != '\0' && isspace_ascii(*str)) {
     str++;
@@ -1916,8 +1888,13 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     ++p;
   }
 
+  // Handle sign.
+  const bool has_sign = *p == '-' || *p == '+';
+  // Handle sign.
+  const char *digit_start = has_sign ? p + 1 : p;
+
   // Check that there is a first digit.
-  if (!has_digit_int(p)) {
+  if (!isdigit_ascii(*digit_start)) {
     // Error...
     *error = ERROR_NO_DIGITS;
     return 0;
