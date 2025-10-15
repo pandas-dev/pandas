@@ -1889,7 +1889,7 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
   size_t bytes_written = 0;
 
   while (left < end_ptr) {
-    right = memchr(left, char_to_remove, str_len - bytes_written);
+    right = memchr(left, char_to_remove, end_ptr - left);
 
     // If it doesn't find the char to remove, just copy until EOS.
     size_t chunk_size = right ? right - left : end_ptr - left;
