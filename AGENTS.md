@@ -32,3 +32,16 @@
 - Follow NumPy / numpydoc conventions used across the repo: short summary, extended summary, Parameters, Returns/Yields, See Also, Notes, Examples.
 - Ensure examples are deterministic, import numpy/pandas as documented, and pass doctest rules used by docs validation.
 - Preserve formatting rules: triple double-quotes, no blank line before/after docstring, parameter formatting ("name : type, default ..."), types and examples conventions.
+
+## Pull Requests (summary)
+- Pull request titles should be descriptive and include one of the following prefixes:
+    - ENH: Enhancement, new functionality
+    - BUG: Bug fix
+    - DOC: Additions/updates to documentation
+    - TST: Additions/updates to tests
+    - BLD: Updates to the build process/scripts
+    - PERF: Performance improvement
+    - TYP: Type annotations
+    - CLN: Code cleanup
+- Pull request descriptions should follow the template, and **succinctly** describe the change being made. Usually a few sentences is sufficient.
+- Pull requests which are resolving an existing Github Issue should include a link to the issue in the PR Description.
