@@ -14209,7 +14209,7 @@ class DataFrame(NDFrame, OpsMixin):
                 result = self.isin(values.to_dict("list"))
             else:
                 if not (values.columns.is_unique and values.index.is_unique):
-                    raise ValueError("cannot compute isin with a duplicate axis.")
+                    raise ValueError("cannot compute isin with a duplicate axis")
                 result = self.eq(values.reindex_like(self))
         else:
             if not is_list_like(values):
