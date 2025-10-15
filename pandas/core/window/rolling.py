@@ -29,11 +29,6 @@ from pandas._libs.tslibs import (
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    doc,
-)
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
