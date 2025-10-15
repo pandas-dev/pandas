@@ -1105,7 +1105,7 @@ class TestiLocBaseIndependent:
         ser.iloc[indices] = values
 
         expected = Series(
-            [None, 6, 13, 15, 4, 9, 10], index=[6, 1, 5, 0, 3, 2, 4], dtype="Int64"
+            [NA, 6, 13, 15, 4, 9, 10], index=[6, 1, 5, 0, 3, 2, 4], dtype="Int64"
         )
         tm.assert_series_equal(ser, expected)
 
