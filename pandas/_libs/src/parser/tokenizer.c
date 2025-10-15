@@ -1888,33 +1888,22 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
   const char *end_ptr = str + str_len;
   size_t bytes_written = 0;
 
-  while ((right = memchr(left, char_to_remove, str_len - bytes_written)) !=
-         NULL) {
-    size_t nbytes = right - left;
+  while (left < end_ptr) {
+    right = memchr(left, char_to_remove, str_len - bytes_written);
+
+    // If it doesn't find the char to remove, just copy until EOS.
+    size_t chunk_size = right ? right - left : end_ptr - left;
 
     // check if we have enough space, including the null terminator.
-    if (nbytes + bytes_written >= PROCESSED_WORD_CAPACITY) {
+    if (chunk_size + bytes_written >= PROCESSED_WORD_CAPACITY) {
       return -1;
     }
     // copy block
-    memcpy(&output[bytes_written], left, nbytes);
-    bytes_written += nbytes;
-    left = right + 1;
+    memcpy(&output[bytes_written], left, chunk_size);
+    bytes_written += chunk_size;
 
-    // Exit after processing the entire string
-    if (left >= end_ptr) {
-      break;
-    }
-  }
-
-  // copy final chunk that doesn't contain char_to_remove
-  if (end_ptr > left) {
-    size_t nbytes = end_ptr - left;
-    if (nbytes + bytes_written >= PROCESSED_WORD_CAPACITY) {
-      return -1;
-    }
-    memcpy(&output[bytes_written], left, nbytes);
-    bytes_written += nbytes;
+    // Advance past the removed character if we found it.
+    left = right ? right + 1 : end_ptr;
   }
 
   // null terminate
