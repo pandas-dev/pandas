@@ -258,6 +258,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         return self._from_backing_data(new_values)
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         key = check_array_indexer(self, key)
         value = self._validate_setitem_value(value)
         self._ndarray[key] = value
@@ -283,7 +286,10 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             result = self._ndarray[key]
             if self.ndim == 1:
                 return self._box_func(result)
-            return self._from_backing_data(result)
+            result = self._from_backing_data(result)
+            if self._getitem_returns_view(key):
+                result._readonly = self._readonly
+            return result
 
         # error: Incompatible types in assignment (expression has type "ExtensionArray",
         # variable has type "Union[int, slice, ndarray]")
@@ -294,6 +300,8 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             return self._box_func(result)
 
         result = self._from_backing_data(result)
+        if self._getitem_returns_view(key):
+            result._readonly = self._readonly
         return result
 
     def _pad_or_backfill(

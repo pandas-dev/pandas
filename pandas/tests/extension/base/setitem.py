@@ -472,3 +472,65 @@ class BaseSetitemTests:
         df.loc[[0, 1], :] = df.loc[[1, 0], :].values
         assert (df.loc[0, :] == original[1]).all()
         assert (df.loc[1, :] == original[0]).all()
+
+    def test_readonly_property(self, data):
+        assert data._readonly is False
+
+        data._readonly = True
+        assert data._readonly is True
+
+        data_orig = data.copy()
+        assert data_orig._readonly is False
+
+        with pytest.raises(ValueError, match="Cannot modify read-only array"):
+            data[0] = data[1]
+
+        with pytest.raises(ValueError, match="Cannot modify read-only array"):
+            data[0:3] = data[1]
+
+        with pytest.raises(ValueError, match="Cannot modify read-only array"):
+            data[np.array([True] * len(data))] = data[1]
+
+        tm.assert_extension_array_equal(data, data_orig)
+
+    def test_readonly_propagates_to_numpy_array(self, data):
+        data._readonly = True
+
+        # when we ask for a copy, the result should never be readonly
+        arr = np.array(data)
+        assert arr.flags.writeable
+
+        # when we don't ask for a copy -> if the conversion is zero-copy,
+        # the result should be readonly
+        arr1 = np.asarray(data)
+        arr2 = np.asarray(data)
+        if np.shares_memory(arr1, arr2):
+            assert not arr1.flags.writeable
+        else:
+            assert arr1.flags.writeable
+
+    def test_readonly_propagates_to_numpy_array_method(self, data):
+        data._readonly = True
+
+        # when we ask for a copy, the result should never be readonly
+        arr = data.to_numpy(copy=True)
+        assert arr.flags.writeable
+
+        # when we don't ask for a copy -> if the conversion is zero-copy,
+        # the result should be readonly
+        arr1 = data.to_numpy(copy=False)
+        arr2 = data.to_numpy(copy=False)
+        if np.shares_memory(arr1, arr2):
+            assert not arr1.flags.writeable
+        else:
+            assert arr1.flags.writeable
+
+        # non-NA fill value should always result in a copy
+        if data.isna().any():
+            arr = data.to_numpy(copy=False, na_value=data[0])
+            if isinstance(data.dtype, pd.ArrowDtype) and data.dtype.kind == "f":
+                # for float dtype, after the fillna, the conversion from pyarrow to
+                # numpy is zero-copy, and pyarrow will mark the array as readonly
+                assert not arr.flags.writeable
+            else:
+                assert arr.flags.writeable

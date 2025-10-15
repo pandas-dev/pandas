@@ -4976,6 +4976,8 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas.core.arrays.numpy_ import NumpyExtensionArray
 
             array = NumpyExtensionArray(array)
+        array = array.view()
+        array._readonly = True
         return array
 
     @property
