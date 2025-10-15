@@ -1937,8 +1937,9 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
   errno = 0;
   char buffer[PROCESSED_WORD_CAPACITY];
-  if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
-    int status = copy_string_without_char(buffer, p_item, strlen(p_item), tsep);
+  size_t str_len = strlen(p_item);
+  if (tsep != '\0' && memchr(p_item, tsep, str_len) != NULL) {
+    int status = copy_string_without_char(buffer, p_item, str_len, tsep);
 
     if (status != 0) {
       // Word is too big, probably will cause an overflow
@@ -1999,7 +2000,8 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
 
   errno = 0;
   char buffer[PROCESSED_WORD_CAPACITY];
-  if (tsep != '\0' && strchr(p_item, tsep) != NULL) {
+  size_t str_len = strlen(p_item);
+  if (tsep != '\0' && memchr(p_item, tsep, str_len) != NULL) {
     int status = copy_string_without_char(buffer, p_item, strlen(p_item), tsep);
 
     if (status != 0) {
