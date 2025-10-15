@@ -28,6 +28,8 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include "pandas/portable.h"
 #include "pandas/vendored/klib/khash.h" // for kh_int64_t, kh_destroy_int64
 
+// Arrow256 allows up to 76 decimal digits.
+// We rounded up to the next power of 2.
 #define PROCESSED_WORD_CAPACITY 128
 
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i,
