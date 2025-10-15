@@ -1933,11 +1933,6 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     p_item = buffer;
   }
 
-  if (errno == ERANGE) {
-    *error = ERROR_OVERFLOW;
-    return 0;
-  }
-
   char *endptr = NULL;
   // strtoll sets errno if it finds an overflow.
   // It's value is reset to don't pollute the verification below.
