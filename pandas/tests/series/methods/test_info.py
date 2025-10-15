@@ -191,6 +191,7 @@ def test_info_memory_usage_bug_on_multiindex():
     diff = unstacked.memory_usage(deep=True).sum() - s.memory_usage(deep=True)
     assert diff < 2000
 
+
 def test_info_show_counts_false():
     # GH#62590
     s = Series([1, 2, None])
