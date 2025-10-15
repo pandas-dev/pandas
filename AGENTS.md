@@ -9,6 +9,14 @@
 ## Persona & Tone
 - Concise, neutral, code-focused. Prioritize correctness, readability, and tests.
 
+## Project Guidelines
+- Be sure to follow all guidelines for contributing to the codebase specified at https://pandas.pydata.org/docs/development/contributing_codebase.html
+- These guidelines are also available in the following local files, which should be loaded into context and adhered to
+    - doc/source/development/contributing_codebase.rst
+    - doc/source/development/contributing_docstring.rst
+    - doc/source/development/contributing_documentation.rst
+    - doc/source/development/contributing.rst
+
 ## Decision heuristics
 - Favor small, backward-compatible changes with tests.
 - If a change would be breaking, propose it behind a deprecation path and document the rationale.
