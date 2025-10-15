@@ -1937,9 +1937,6 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   }
 
   char *endptr;
-  // strtoll sets errno if it finds an overflow.
-  // It's value is reset to don't pollute the verification below.
-  errno = 0;
   int64_t result = strtoll(p_item, &endptr, 10);
 
   // Did we use up all the characters?
@@ -1950,6 +1947,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     result = 0;
   } else if (errno == ERANGE || result > int_max || result < int_min) {
     *error = ERROR_OVERFLOW;
+    errno = 0;
     result = 0;
   } else {
     *error = 0;
@@ -1995,9 +1993,6 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   }
 
   char *endptr;
-  // strtoull sets errno if it finds an overflow.
-  // It's value is reset to don't pollute the verification below.
-  errno = 0;
   uint64_t result = strtoull(p_item, &endptr, 10);
 
   // Did we use up all the characters?
@@ -2006,6 +2001,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     result = 0;
   } else if (errno == ERANGE || result > uint_max) {
     *error = ERROR_OVERFLOW;
+    errno = 0;
     result = 0;
   } else {
     *error = 0;
