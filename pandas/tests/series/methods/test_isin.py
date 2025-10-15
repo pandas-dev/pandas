@@ -270,13 +270,9 @@ def test_isin_filtering_on_iterable(data, isin):
 
 
 def test_isin_int64_vs_uint64_mismatch():
-    # Regression test for mixing signed int64 Series with uint64 values
-    # Ensure we do not implicitly upcast to float64 and return incorrect True
-    # related to GH# (user report)
     ser = Series([1378774140726870442], dtype=np.int64)
     vals = [np.uint64(1378774140726870528)]
 
     res = ser.isin(vals)
-    # different values -> should be False
     expected = Series([False])
     tm.assert_series_equal(res, expected)
