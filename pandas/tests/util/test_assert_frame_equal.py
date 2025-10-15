@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from pandas.errors import Pandas4Warning
@@ -413,3 +414,12 @@ def test_datetimelike_compat_deprecated():
         tm.assert_series_equal(df["a"], df["a"], check_datetimelike_compat=True)
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         tm.assert_series_equal(df["a"], df["a"], check_datetimelike_compat=False)
+
+
+@pytest.mark.parametrize("na_value", [pd.NA, np.nan, None])
+def test_assert_frame_equal_nested_df_na(na_value):
+    # GH#43022
+    inner = DataFrame({"a": [1, na_value]})
+    df1 = DataFrame({"df": [inner]})
+    df2 = DataFrame({"df": [inner]})
+    tm.assert_frame_equal(df1, df2)
