@@ -190,3 +190,13 @@ def test_info_memory_usage_bug_on_multiindex():
     # high upper bound
     diff = unstacked.memory_usage(deep=True).sum() - s.memory_usage(deep=True)
     assert diff < 2000
+
+def test_info_show_counts_false():
+    # GH#62590
+    s = Series([1, 2, None])
+    buf = StringIO()
+    s.info(buf=buf, show_counts=False)
+    result = buf.getvalue()
+    assert "Non-Null Count" not in result
+    assert "<class 'pandas.Series'>" in result
+    assert "Dtype" in result
