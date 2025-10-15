@@ -40,7 +40,6 @@ from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
-    NumpyEADtype,
     PeriodDtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
@@ -190,15 +189,70 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         # don't accept a dtype parameter, which I need to pass to set the
         # result's dtype to a floating-point type.
 
-        if self.dtype in [
-            NumpyEADtype(np.uint8),
-            NumpyEADtype(np.uint16),
-            NumpyEADtype(np.uint32),
-            NumpyEADtype(np.uint64),
-            NumpyEADtype(np.int8),
-            NumpyEADtype(np.int16),
-            NumpyEADtype(np.int32),
-            NumpyEADtype(np.int64),
+        # All tests pass when I create a new extension array object with the
+        # appropriate dtype (in the integer-dtype source case), however MyPy
+        # complains about the missing dtype argument in the call to type(self)
+        # below. By creating a new array object, this call produces an array
+        # with a floating point dtype, even when the source dtype is integral.
+        # I think this happens because the new array is created with the newly
+        # produced data from the underlying take method, which has the
+        # appropriate underlying dtype.
+
+        # Essentially, these extension arrays are wrappers around Numpy arrays
+        # which have their own dtype and store the data. Thus, the new
+        # extension array inherits the dtype from the Numpy array used
+        # to create it.
+
+        # Unfortunately, some of the derived constructors of this class have a
+        # positional dtype argument, while some do not. If I call a constructor
+        # without specifying this argument, mypy will complain about the
+        # missing argument in the case of constructors that require it, but
+        # if I call the constructor with the dtype argument, the constructors
+        # that don't have it will fail at runtime since they don't recognize
+        # it.
+
+        # How can I get around this issue?
+        # Ideas:
+        #   Modify the extension array type to allow modification of its dtype
+        #   after construction.
+
+        #   Add a conditional branch to this method to call derived constructors
+        #   with or without the dtype argument, depending on their class.
+        #   This approach has the disadvantage of hardcoding information about
+        #   derived classes in this base class, which means that if someone
+        #   changes a constructor of a derived class to remove the dtype argument,
+        #   this method will break.
+
+        # Classes derived from this class include:
+
+        #   Categorical
+        #   DatetimeLikeArrayMixin
+        #       DatelikeOps
+        #           PeriodArray
+        #           DatetimeArray
+        #       TimelikeOps
+        #           TimedeltaArray
+        #   NumpyExtensionArray
+        #       StringArray
+
+        # The types of extension arrays (within Pandas) derived from this class are:
+        #   Class name              Constructor takes dtype argument    Dtype argument required
+        #   Categorical             yes                                 no
+        #   PeriodArray             yes                                 no
+        #   DatetimeArray
+        #   TimedeltaArray
+        #   StringArray             yes                                 no
+        #   NumpyExtensionArray     no                                  no
+
+        if hasattr(self.dtype, "numpy_dtype") and self.dtype.numpy_dtype in [
+            np.uint8,
+            np.uint16,
+            np.uint32,
+            np.uint64,
+            np.int8,
+            np.int16,
+            np.int32,
+            np.int64,
         ]:
             return type(self)(new_data)
         return self._from_backing_data(new_data)

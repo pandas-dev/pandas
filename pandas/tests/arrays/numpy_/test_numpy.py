@@ -327,6 +327,7 @@ def test_factorize_unsigned():
 
 @pytest.mark.parametrize("dtype", [np.uint32, np.uint64, np.int32, np.int64])
 def test_take_assigns_correct_dtype(dtype):
+    # GH#62448.
     array = NumpyExtensionArray(np.array([1, 2, 3], dtype=dtype))
 
     result = array.take([-1], allow_fill=True)
