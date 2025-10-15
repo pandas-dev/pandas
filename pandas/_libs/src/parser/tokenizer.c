@@ -1888,7 +1888,7 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
   size_t bytes_written = 0;
 
   while (left < end_ptr) {
-    size_t remaining_bytes_to_read = end_ptr - left;
+    const size_t remaining_bytes_to_read = end_ptr - left;
     const char *right = memchr(left, char_to_remove, remaining_bytes_to_read);
 
     if (!right) {
@@ -1896,7 +1896,7 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
       right = end_ptr;
     }
 
-    size_t chunk_size = right - left;
+    const size_t chunk_size = right - left;
 
     if (chunk_size + bytes_written >= PROCESSED_WORD_CAPACITY) {
       return -1;
@@ -1929,9 +1929,9 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  size_t str_len = strlen(p_item);
+  const size_t str_len = strlen(p_item);
   if (tsep != '\0' && memchr(p_item, tsep, str_len) != NULL) {
-    int status = copy_string_without_char(buffer, p_item, str_len, tsep);
+    const int status = copy_string_without_char(buffer, p_item, str_len, tsep);
 
     if (status != 0) {
       // Word is too big, probably will cause an overflow
@@ -1994,9 +1994,10 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  size_t str_len = strlen(p_item);
+  const size_t str_len = strlen(p_item);
   if (tsep != '\0' && memchr(p_item, tsep, str_len) != NULL) {
-    int status = copy_string_without_char(buffer, p_item, strlen(p_item), tsep);
+    const int status =
+        copy_string_without_char(buffer, p_item, strlen(p_item), tsep);
 
     if (status != 0) {
       // Word is too big, probably will cause an overflow
