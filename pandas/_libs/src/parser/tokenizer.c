@@ -1868,7 +1868,6 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
     left = right + 1;
   }
 
-  // null terminate
   output[bytes_written] = '\0';
   return 0;
 }
