@@ -2469,14 +2469,14 @@ class StataWriter(StataParser):
     >>> writer.write_file()
 
     Directly write a zip file
-    >>> compression = {{"method": "zip", "archive_name": "data_file.dta"}}
+    >>> compression = {"method": "zip", "archive_name": "data_file.dta"}
     >>> writer = StataWriter("./data_file.zip", data, compression=compression)
     >>> writer.write_file()
 
     Save a DataFrame with dates
     >>> from datetime import datetime
     >>> data = pd.DataFrame([[datetime(2000, 1, 1)]], columns=["date"])
-    >>> writer = StataWriter("./date_data_file.dta", data, {{"date": "tw"}})
+    >>> writer = StataWriter("./date_data_file.dta", data, {"date": "tw"})
     >>> writer.write_file()
     """
 
