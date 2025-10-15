@@ -1605,6 +1605,24 @@ class TestTypeInference:
         )
         assert not lib.is_string_array(np.array([1, 2]))
 
+    def test_is_interval_array_subclass(self):
+        # GH#46945
+
+        class TimestampsInterval(Interval):
+            def __init__(self, left: str, right: str, closed="both") -> None:
+                super().__init__(Timestamp(left), Timestamp(right), closed)
+
+            @property
+            def seconds(self) -> float:
+                return self.length.seconds
+
+        item = TimestampsInterval("1970-01-01 00:00:00", "1970-01-01 00:00:01")
+        arr = np.array([item], dtype=object)
+        assert not lib.is_interval_array(arr)
+        assert lib.infer_dtype(arr) != "interval"
+        out = Series([item])[0]
+        assert isinstance(out, TimestampsInterval)
+
     @pytest.mark.parametrize(
         "func",
         [
