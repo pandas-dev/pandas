@@ -1910,22 +1910,23 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
 
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                      int *error, char tsep) {
+  const char *p = p_item;
   // Skip leading spaces.
-  while (isspace_ascii(*p_item)) {
-    ++p_item;
+  while (isspace_ascii(*p)) {
+    ++p;
   }
 
   // Check that there is a first digit.
-  if (!has_digit_int(p_item)) {
+  if (!has_digit_int(p)) {
     // Error...
     *error = ERROR_NO_DIGITS;
     return 0;
   }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  const size_t str_len = strlen(p_item);
-  if (tsep != '\0' && memchr(p_item, tsep, str_len) != NULL) {
-    const int status = copy_string_without_char(buffer, p_item, str_len, tsep);
+  const size_t str_len = strlen(p);
+  if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
+    const int status = copy_string_without_char(buffer, p, str_len, tsep);
 
     if (status != 0) {
       // Word is too big, probably will cause an overflow
@@ -1933,11 +1934,11 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
       return 0;
     }
 
-    p_item = buffer;
+    p = buffer;
   }
 
   char *endptr;
-  int64_t result = strtoll(p_item, &endptr, 10);
+  int64_t result = strtoll(p, &endptr, 10);
 
   // Did we use up all the characters?
   if (!has_only_spaces(endptr)) {
@@ -1958,42 +1959,43 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
 uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
                        uint64_t uint_max, int *error, char tsep) {
+  const char *p = p_item;
   // Skip leading spaces.
-  while (isspace_ascii(*p_item)) {
-    ++p_item;
+  while (isspace_ascii(*p)) {
+    ++p;
   }
 
   // Handle sign.
-  if (*p_item == '-') {
+  if (*p == '-') {
     state->seen_sint = 1;
     *error = 0;
     return 0;
-  } else if (*p_item == '+') {
-    p_item++;
+  } else if (*p == '+') {
+    p++;
   }
 
   // Check that there is a first digit.
-  if (!isdigit_ascii(*p_item)) {
+  if (!isdigit_ascii(*p)) {
     // Error...
     *error = ERROR_NO_DIGITS;
     return 0;
   }
 
   char buffer[PROCESSED_WORD_CAPACITY];
-  const size_t str_len = strlen(p_item);
-  if (tsep != '\0' && memchr(p_item, tsep, str_len) != NULL) {
-    const int status = copy_string_without_char(buffer, p_item, str_len, tsep);
+  const size_t str_len = strlen(p);
+  if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
+    const int status = copy_string_without_char(buffer, p, str_len, tsep);
 
     if (status != 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
-    p_item = buffer;
+    p = buffer;
   }
 
   char *endptr;
-  uint64_t result = strtoull(p_item, &endptr, 10);
+  uint64_t result = strtoull(p, &endptr, 10);
 
   // Did we use up all the characters?
   if (!has_only_spaces(endptr)) {
