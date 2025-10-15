@@ -112,7 +112,8 @@ if TYPE_CHECKING:
         skipfooter: int
         nrows: int | None
         na_values: (
-            Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+            Hashable | Iterable[Hashable] | Mapping[Hashable,
+                                                    Iterable[Hashable]] | None
         )
         keep_default_na: bool
         na_filter: bool
@@ -577,7 +578,10 @@ class _Fwf_Defaults(TypedDict):
     widths: None
 
 
-_fwf_defaults: _Fwf_Defaults = {"colspecs": "infer", "infer_nrows": 100, "widths": None}
+_fwf_defaults: _Fwf_Defaults = {
+    "colspecs": "infer",
+    "infer_nrows": 100,
+    "widths": None}
 _c_unsupported = {"skipfooter"}
 _python_unsupported = {"low_memory", "float_precision"}
 _pyarrow_unsupported = {
@@ -608,7 +612,10 @@ def validate_integer(name: str, val: float, min_val: int = ...) -> int: ...
 
 
 @overload
-def validate_integer(name: str, val: int | None, min_val: int = ...) -> int | None: ...
+def validate_integer(
+    name: str,
+    val: int | None,
+    min_val: int = ...) -> int | None: ...
 
 
 def validate_integer(
@@ -662,7 +669,9 @@ def _validate_names(names: Sequence[Hashable] | None) -> None:
         if len(names) != len(set(names)):
             raise ValueError("Duplicate names are not allowed.")
         if not (
-            is_list_like(names, allow_sets=False) or isinstance(names, abc.KeysView)
+            is_list_like(
+                names, allow_sets=False) or isinstance(
+                names, abc.KeysView)
         ):
             raise ValueError("Names should be an ordered collection.")
 
@@ -781,7 +790,8 @@ def read_csv(
     nrows: int | None = None,
     # NA and Missing Data Handling
     na_values: (
-        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+        Hashable | Iterable[Hashable] | Mapping[Hashable,
+                                                Iterable[Hashable]] | None
     ) = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
@@ -1360,7 +1370,8 @@ def read_table(
     nrows: int | None = None,
     # NA and Missing Data Handling
     na_values: (
-        Hashable | Iterable[Hashable] | Mapping[Hashable, Iterable[Hashable]] | None
+        Hashable | Iterable[Hashable] | Mapping[Hashable,
+                                                Iterable[Hashable]] | None
     ) = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
@@ -1974,7 +1985,8 @@ def read_fwf(
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
     if colspecs not in (None, "infer") and widths is not None:
-        raise ValueError("You must specify only one of 'widths' and 'colspecs'")
+        raise ValueError(
+            "You must specify only one of 'widths' and 'colspecs'")
 
     # Compute 'colspecs' from 'widths', if specified.
     if widths is not None:
@@ -2004,9 +2016,11 @@ def read_fwf(
                         assert index_col is not lib.no_default
 
                         len_index = len(index_col)
-            if kwds.get("usecols") is None and len(names) + len_index != len(colspecs):
+            if kwds.get("usecols") is None and len(
+                    names) + len_index != len(colspecs):
                 # If usecols is used colspec may be longer than names
-                raise ValueError("Length of colspecs must match length of names")
+                raise ValueError(
+                    "Length of colspecs must match length of names")
 
     check_dtype_backend(kwds.setdefault("dtype_backend", lib.no_default))
     return _read(
@@ -2098,7 +2112,8 @@ class TextFileReader(abc.Iterator):
                 and value != getattr(value, "value", default)
             ):
                 raise ValueError(
-                    f"The {argname!r} option is not supported with the 'pyarrow' engine"
+                    f"The {
+                        argname!r} option is not supported with the 'pyarrow' engine"
                 )
             options[argname] = value
 
@@ -2114,7 +2129,8 @@ class TextFileReader(abc.Iterator):
                         pass
                     else:
                         raise ValueError(
-                            f"The {argname!r} option is not supported with the "
+                            f"The {
+                                argname!r} option is not supported with the "
                             f"{engine!r} engine"
                         )
             else:
@@ -2215,7 +2231,8 @@ class TextFileReader(abc.Iterator):
 
         if "python" in engine:
             for arg in _python_unsupported:
-                if fallback_reason and result[arg] != _c_parser_defaults.get(arg):
+                if fallback_reason and result[arg] != _c_parser_defaults.get(
+                        arg):
                     raise ValueError(
                         "Falling back to the 'python' engine because "
                         f"{fallback_reason}, but this causes {arg!r} to be "
@@ -2314,7 +2331,8 @@ class TextFileReader(abc.Iterator):
 
         if engine not in mapping:
             raise ValueError(
-                f"Unknown engine: {engine} (valid options are {mapping.keys()})"
+                f"Unknown engine: {engine} (valid options are {
+                    mapping.keys()})"
             )
         if not isinstance(f, list):
             # open file here
@@ -2399,7 +2417,8 @@ class TextFileReader(abc.Iterator):
                 dtype_arg = None
 
             if isinstance(dtype_arg, dict):
-                dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
+                # type: ignore[var-annotated]
+                dtype = defaultdict(lambda: None)
                 dtype.update(dtype_arg)
             elif dtype_arg is not None and pandas_dtype(dtype_arg) in (
                 np.str_,
@@ -2417,7 +2436,8 @@ class TextFileReader(abc.Iterator):
                         if pandas_dtype(dtype[k]) in (np.str_, np.object_)
                         else None
                     )
-                    new_col_dict[k] = Series(v, index=index, dtype=d, copy=False)
+                    new_col_dict[k] = Series(
+                        v, index=index, dtype=d, copy=False)
             else:
                 new_col_dict = col_dict
 
@@ -2508,7 +2528,8 @@ def TextParser(*args, **kwds) -> TextFileReader:
     return TextFileReader(*args, **kwds)
 
 
-def _clean_na_values(na_values, keep_default_na: bool = True, floatify: bool = True):
+def _clean_na_values(na_values, keep_default_na: bool = True,
+                     floatify: bool = True):
     na_fvalues: set | dict
     if na_values is None:
         if keep_default_na:
@@ -2648,7 +2669,8 @@ def _refine_defaults_read(
         )
 
     if delimiter and (sep is not lib.no_default):
-        raise ValueError("Specified a sep and a delimiter; you can only specify one.")
+        raise ValueError(
+            "Specified a sep and a delimiter; you can only specify one.")
 
     kwds["names"] = None if names is lib.no_default else names
 
@@ -2689,7 +2711,8 @@ def _refine_defaults_read(
             )
         kwds["on_bad_lines"] = on_bad_lines
     else:
-        raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
+        raise ValueError(
+            f"Argument {on_bad_lines} is invalid for on_bad_lines")
 
     check_dtype_backend(dtype_backend)
 
@@ -2711,7 +2734,8 @@ def _extract_dialect(kwds: dict[str, str | csv.Dialect]) -> csv.Dialect | None:
 
     dialect = kwds["dialect"]
     if isinstance(dialect, str) and dialect in csv.list_dialects():
-        # get_dialect is typed to return a `_csv.Dialect` for some reason in typeshed
+        # get_dialect is typed to return a `_csv.Dialect` for some reason in
+        # typeshed
         tdialect = cast(csv.Dialect, csv.get_dialect(dialect))
         _validate_dialect(tdialect)
 
