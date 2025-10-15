@@ -1977,8 +1977,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   char buffer[PROCESSED_WORD_CAPACITY];
   const size_t str_len = strlen(p_item);
   if (tsep != '\0' && memchr(p_item, tsep, str_len) != NULL) {
-    const int status =
-        copy_string_without_char(buffer, p_item, strlen(p_item), tsep);
+    const int status = copy_string_without_char(buffer, p_item, str_len, tsep);
 
     if (status != 0) {
       // Word is too big, probably will cause an overflow
