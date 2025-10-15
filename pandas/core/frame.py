@@ -9163,9 +9163,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
             combined = combined.astype(other.dtypes)
         else:
-            # GH #60128
-            # Promote large 64-bit integers to their nullable types.
-            # Without this, precision will be lost in a float64 rount-trip.
+            # GH#60128 Avoid lossy conversion to float64
             def _cast_large_numpy_ints_to_nullable(df: DataFrame) -> DataFrame:
                 BOUND = 2**53
                 cast_map: dict[str, str] = {}
@@ -9184,7 +9182,7 @@ class DataFrame(NDFrame, OpsMixin):
                                 cast_map[col] = "Int64"
                 return df.astype(cast_map) if cast_map else df
 
-            # Only cast frames whose index expand to the union (i.e., get <NA> on align)
+            # Cast any side that will gain rows on outer align (introduces <NA>).
             if len(other.index.difference(self.index, sort=False)):
                 self = _cast_large_numpy_ints_to_nullable(self)
             if len(self.index.difference(other.index, sort=False)):
