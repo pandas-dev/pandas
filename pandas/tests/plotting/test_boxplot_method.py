@@ -411,6 +411,7 @@ class TestDataFramePlots:
 
     @pytest.mark.filterwarnings("ignore:set_ticklabels:UserWarning")
     def test_boxplot_group_ordered_ticklabel(self, vert):
+        # GH 50427
         df = DataFrame(
             {
                 "value": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
