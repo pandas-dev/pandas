@@ -447,8 +447,13 @@ class GroupByPlot(PandasObject):
             kwargs = dict(kwargs)
             kwargs.pop("colormap", None)
 
-            def f(group, color, label):
-                return group.plot(*args, color=color, label=label, **kwargs)
+            def f(obj, color=None, label=None):
+                plot_kwargs = dict(kwargs)
+                if color is not None:
+                    plot_kwargs["color"] = color
+                if label is not None:
+                    plot_kwargs["label"] = label
+                return obj.plot(*args, **plot_kwargs)
 
             results = []
             for i, (name, group) in enumerate(self._groupby):
@@ -456,8 +461,13 @@ class GroupByPlot(PandasObject):
             return results
         else:
 
-            def f(self):
-                return self.plot(*args, **kwargs)
+            def f(obj, color=None, label=None):
+                plot_kwargs = dict(kwargs)
+                if color is not None:
+                    plot_kwargs["color"] = color
+                if label is not None:
+                    plot_kwargs["label"] = label
+                return obj.plot(*args, **plot_kwargs)
 
             f.__name__ = "plot"
             return self._groupby._python_apply_general(f, self._groupby._selected_obj)
