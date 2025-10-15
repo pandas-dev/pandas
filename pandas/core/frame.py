@@ -9185,10 +9185,9 @@ class DataFrame(NDFrame, OpsMixin):
                 return df.astype(cast_map) if cast_map else df
 
             # Only cast frames whose index expand to the union (i.e., get <NA> on align)
-            union_index = self.index.union(other.index)
-            if not self.index.equals(union_index):
+            if len(other.index.difference(self.index, sort=False)):
                 self = _cast_large_numpy_ints_to_nullable(self)
-            if not other.index.equals(union_index):
+            if len(self.index.difference(other.index, sort=False)):
                 other = _cast_large_numpy_ints_to_nullable(other)
 
             combined = self.combine(other, combiner, overwrite=False)
