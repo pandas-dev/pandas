@@ -1898,15 +1898,12 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
 
     size_t chunk_size = right - left;
 
-    // check if we have enough space, including the null terminator.
     if (chunk_size + bytes_written >= PROCESSED_WORD_CAPACITY) {
       return -1;
     }
-    // copy block
     memcpy(&output[bytes_written], left, chunk_size);
     bytes_written += chunk_size;
 
-    // Advance past the removed character if we found it.
     left = right + 1;
   }
 
