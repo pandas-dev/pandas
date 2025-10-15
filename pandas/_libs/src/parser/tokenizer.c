@@ -1886,18 +1886,19 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
   const char *left = str;
   const char *right;
   const char *end_ptr = str + str_len;
-  size_t bytes_read = 0;
+  size_t bytes_written = 0;
 
-  while ((right = memchr(left, char_to_remove, str_len - bytes_read)) != NULL) {
+  while ((right = memchr(left, char_to_remove, str_len - bytes_written)) !=
+         NULL) {
     size_t nbytes = right - left;
 
     // check if we have enough space, including the null terminator.
-    if (nbytes + bytes_read >= PROCESSED_WORD_CAPACITY) {
+    if (nbytes + bytes_written >= PROCESSED_WORD_CAPACITY) {
       return -1;
     }
     // copy block
-    memcpy(&output[bytes_read], left, nbytes);
-    bytes_read += nbytes;
+    memcpy(&output[bytes_written], left, nbytes);
+    bytes_written += nbytes;
     left = right + 1;
 
     // Exit after processing the entire string
@@ -1909,15 +1910,15 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
   // copy final chunk that doesn't contain char_to_remove
   if (end_ptr > left) {
     size_t nbytes = end_ptr - left;
-    if (nbytes + bytes_read >= PROCESSED_WORD_CAPACITY) {
+    if (nbytes + bytes_written >= PROCESSED_WORD_CAPACITY) {
       return -1;
     }
-    memcpy(&output[bytes_read], left, nbytes);
-    bytes_read += nbytes;
+    memcpy(&output[bytes_written], left, nbytes);
+    bytes_written += nbytes;
   }
 
   // null terminate
-  output[bytes_read] = '\0';
+  output[bytes_written] = '\0';
   return 0;
 }
 
