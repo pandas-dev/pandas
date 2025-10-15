@@ -1933,7 +1933,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
     p_item = buffer;
   }
 
-  char *endptr = NULL;
+  char *endptr;
   // strtoll sets errno if it finds an overflow.
   // It's value is reset to don't pollute the verification below.
   errno = 0;
@@ -1988,7 +1988,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     p_item = buffer;
   }
 
-  char *endptr = NULL;
+  char *endptr;
   // strtoull sets errno if it finds an overflow.
   // It's value is reset to don't pollute the verification below.
   errno = 0;
