@@ -73,6 +73,7 @@ if TYPE_CHECKING:
         DtypeObj,
         NpDtype,
         npt,
+        TimeUnit,
     )
 
     from pandas import DataFrame
@@ -275,7 +276,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @classmethod
     def _generate_range(
-        cls, start, end, periods, freq, closed=None, *, unit: str | None = None
+        cls, start, end, periods, freq, closed=None, *, unit: TimeUnit
     ) -> Self:
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -293,11 +294,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         if end is not None:
             end = Timedelta(end).as_unit("ns")
 
-        if unit is not None:
-            if unit not in ["s", "ms", "us", "ns"]:
-                raise ValueError("'unit' must be one of 's', 'ms', 'us', 'ns'")
-        else:
-            unit = "ns"
+        if unit not in ["s", "ms", "us", "ns"]:
+            raise ValueError("'unit' must be one of 's', 'ms', 'us', 'ns'")
 
         if start is not None and unit is not None:
             start = start.as_unit(unit, round_ok=False)

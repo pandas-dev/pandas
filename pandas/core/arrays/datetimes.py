@@ -88,6 +88,7 @@ if TYPE_CHECKING:
         IntervalClosedType,
         TimeAmbiguous,
         TimeNonexistent,
+        TimeUnit,
         npt,
     )
 
@@ -413,7 +414,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         nonexistent: TimeNonexistent = "raise",
         inclusive: IntervalClosedType = "both",
         *,
-        unit: str | None = None,
+        unit: TimeUnit = "ns",
     ) -> Self:
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
