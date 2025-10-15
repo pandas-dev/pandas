@@ -1897,13 +1897,11 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   const size_t str_len = strlen(p);
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
     const int status = copy_string_without_char(buffer, p, str_len, tsep);
-
     if (status != 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
       return 0;
     }
-
     p = buffer;
   }
 
@@ -1958,7 +1956,6 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   const size_t str_len = strlen(p);
   if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
     const int status = copy_string_without_char(buffer, p, str_len, tsep);
-
     if (status != 0) {
       // Word is too big, probably will cause an overflow
       *error = ERROR_OVERFLOW;
