@@ -1768,6 +1768,7 @@ def read_table(
         file.
     read_csv : Read a comma-separated values (csv) file into DataFrame.
     read_fwf : Read a table of fixed-width formatted lines into DataFrame.
+
     Examples
     --------
     >>> pd.read_table("data.txt")  # doctest: +SKIP
