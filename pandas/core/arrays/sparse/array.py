@@ -1572,7 +1572,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         if not self._null_fill_value:
             if isinstance(self, SparseArray) and self.fill_value == 0:
-                # special case where we can avoid densifying
+                # special case where we can avoid max recursion depth
                 return SparseArray(self.to_dense().cumsum())
             return SparseArray(self.to_dense()).cumsum()
 
