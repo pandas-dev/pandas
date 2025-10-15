@@ -1115,6 +1115,31 @@ def assert_series_equal(
             index_values=left.index,
             obj=str(obj),
         )
+    elif not check_dtype:
+        
+        left_na = left.isna().to_numpy(dtype=bool, copy=False)
+        right_na = right.isna().to_numpy(dtype=bool, copy=False)
+        assert_numpy_array_equal(
+            left_na, right_na, obj=f"{obj} NA mask", index_values=left.index
+        )
+
+      
+        def _normalize(s):
+            arr = s.to_numpy(dtype=object)
+            return [(None if pd.isna(x) else x) for x in arr]
+
+        left_norm = _normalize(left)
+        right_norm = _normalize(right)
+
+        _testing.assert_almost_equal(
+            left_norm,
+            right_norm,
+            check_dtype=False,
+            rtol=rtol,
+            atol=atol,
+            obj=str(obj),
+            index_values=left.index,
+        )
     else:
         _testing.assert_almost_equal(
             left._values,
@@ -1498,3 +1523,4 @@ def assert_metadata_equivalent(
             assert val is None
         else:
             assert val == getattr(right, attr, None)
+
