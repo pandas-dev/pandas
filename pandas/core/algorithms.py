@@ -867,6 +867,26 @@ def value_counts_internal(
         Series,
     )
 
+    def _preserve_freq(original_values, result_index):
+        freq = getattr(original_values, "freq", None)
+
+        if (
+            freq is not None
+            and type(original_values) is type(result_index)
+            and len(result_index) == len(original_values)
+            and result_index.equals(original_values)
+        ):
+            try:
+                # Rebuild index with freq using the same constructor
+                return type(result_index)(
+                    result_index._data, freq=freq, name=result_index.name
+                )
+            except (TypeError, ValueError):
+                # If reconstruction fails, return original index
+                pass
+
+        return result_index
+
     index_name = getattr(values, "name", None)
     name = "proportion" if normalize else "count"
 
@@ -929,6 +949,15 @@ def value_counts_internal(
             # Starting in 3.0, we no longer perform dtype inference on the
             #  Index object we construct here, xref GH#56161
             idx = Index(keys, dtype=keys.dtype, name=index_name)
+
+            if (
+                bins is None
+                and not sort
+                and hasattr(values, "freq")
+                and values.freq is not None
+            ):
+                idx = _preserve_freq(values, idx)
+
             result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
@@ -936,36 +965,6 @@ def value_counts_internal(
 
     if normalize:
         result = result / counts.sum()
-
-    # freq patching for DatetimeIndex, TimedeltaIndex
-    try:
-        from pandas import (
-            DatetimeIndex,
-            TimedeltaIndex,
-        )
-
-        if (
-            bins is None
-            and not sort
-            and isinstance(values, (DatetimeIndex, TimedeltaIndex))
-            and values.freq is not None
-            and isinstance(result.index, (DatetimeIndex, TimedeltaIndex))
-            and len(result.index) == len(values)
-            and result.index.equals(values)
-        ):
-            base_freq = values.freq
-            # Rebuild the index with the original freq; name preserved.
-            if isinstance(result.index, DatetimeIndex):
-                result.index = DatetimeIndex(
-                    result.index._data, freq=base_freq, name=result.index.name
-                )
-            else:  # TimedeltaIndex
-                result.index = TimedeltaIndex(
-                    result.index._data, freq=base_freq, name=result.index.name
-                )
-    except Exception:
-        # If freq patching fails, does not affect value_counts
-        pass
 
     return result
 
