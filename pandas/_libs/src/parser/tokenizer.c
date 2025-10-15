@@ -1910,11 +1910,14 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
 
 int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
                      int *error, char tsep) {
+  // Skip leading spaces.
   while (isspace_ascii(*p_item)) {
     ++p_item;
   }
 
+  // Check that there is a first digit.
   if (!has_digit_int(p_item)) {
+    // Error...
     *error = ERROR_NO_DIGITS;
     return 0;
   }
@@ -1939,6 +1942,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   errno = 0;
   int64_t result = strtoll(p_item, &endptr, 10);
 
+  // Did we use up all the characters?
   if (!has_only_spaces(endptr)) {
     // Check first for invalid characters because we may
     // want to skip integer parsing if we find one.
@@ -1956,10 +1960,12 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
 
 uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
                        uint64_t uint_max, int *error, char tsep) {
+  // Skip leading spaces.
   while (isspace_ascii(*p_item)) {
     ++p_item;
   }
 
+  // Handle sign.
   if (*p_item == '-') {
     state->seen_sint = 1;
     *error = 0;
@@ -1970,6 +1976,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
 
   // Check that there is a first digit.
   if (!isdigit_ascii(*p_item)) {
+    // Error...
     *error = ERROR_NO_DIGITS;
     return 0;
   }
@@ -1993,6 +2000,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   errno = 0;
   uint64_t result = strtoull(p_item, &endptr, 10);
 
+  // Did we use up all the characters?
   if (!has_only_spaces(endptr)) {
     *error = ERROR_INVALID_CHARS;
     result = 0;
