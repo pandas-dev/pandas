@@ -9141,21 +9141,13 @@ class DataFrame(NDFrame, OpsMixin):
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
         """
-        from pandas.core.dtypes.common import (
-            is_extension_array_dtype,
-            is_integer_dtype,
-            is_unsigned_integer_dtype,
-        )
 
         def combiner(x: Series, y: Series):
-            mask = x.isna()
-
-            # If the column y in other DataFrame is not in first DataFrame,
-            # just return y.
-            if y.name not in self.columns:
-                return y
-
-            return y.where(mask, x)
+            # GH#60128 Preserve EA dtypes by operating at the Series level.
+            # If 'y' is a new column, return it as-is; otherwise fill <NA> in 'x'
+            # from 'y'. Avoids dropping to NumPy arrays (which would lose
+            # Int64/UInt64 and reintroduce float64 paths).
+            return y if y.name not in self.columns else y.where(x.isna(), x)
 
         if len(other) == 0:
             combined = self.reindex(
@@ -9163,23 +9155,23 @@ class DataFrame(NDFrame, OpsMixin):
             )
             combined = combined.astype(other.dtypes)
         else:
-            # GH#60128 Avoid lossy conversion to float64
+            # GH#60128 Avoid precision loss from int64/uint64 -> float64 round-trip.
+            # Promote NumPy int64/uint64 to nullable Int64/UInt64 only when values
+            # exceed float64's exact range (|x| >= 2**53). This keeps alignment that
+            # introduces <NA> from forcing a lossy cast.
             def _cast_large_numpy_ints_to_nullable(df: DataFrame) -> DataFrame:
-                BOUND = 2**53
+                BOUND = 2**53  # first non-exact integer for float64
                 cast_map: dict[str, str] = {}
+
                 for col, dt in df.dtypes.items():
-                    if is_integer_dtype(dt) and not is_extension_array_dtype(dt):
-                        ser = df[col]
-                        if ser.size == 0:
-                            continue
-                        if is_unsigned_integer_dtype(dt):
-                            if ser.max() >= BOUND:
-                                # promote large uint64 to nullable UInt64
-                                cast_map[col] = "UInt64"
-                        else:
-                            if ser.max() >= BOUND or ser.min() <= -BOUND:
-                                # promote large int64 to nullable Int64
-                                cast_map[col] = "Int64"
+                    ser = df[col]
+                    if dt == np.dtype("uint64"):
+                        if ser.size and ser.max() >= BOUND:
+                            cast_map[col] = "UInt64"
+                    elif dt == np.dtype("int64"):
+                        if ser.size and (ser.max() >= BOUND or ser.min() <= -BOUND):
+                            cast_map[col] = "Int64"
+
                 return df.astype(cast_map) if cast_map else df
 
             # Cast any side that will gain rows on outer align (introduces <NA>).
