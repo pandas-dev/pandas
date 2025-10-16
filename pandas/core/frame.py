@@ -5250,7 +5250,7 @@ class DataFrame(NDFrame, OpsMixin):
             # GH#61916
             warnings.warn(
                 "For backward compatibility, 'str' dtypes are included by "
-                "select_dtypes when object dtypes are specified. "
+                "select_dtypes when 'object' dtype is specified. "
                 "This behavior is deprecated and will be removed in a future "
                 "version. Explicitly pass 'str' to `include` to select them, "
                 "or to `exclude` to remove them and silence this warning.",
