@@ -6069,6 +6069,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = self._binop(other, op, level=level, fill_value=fill_value)
             result._name = res_name
             return result
+        elif isinstance(other, ABCDataFrame):
+            # GH#46179
+            raise TypeError(
+                f"Series.{op.__name__.strip('_')} does not support a DataFrame "
+                f"`other`. Use df.{op.__name__.strip('_')}(ser) instead."
+            )
         else:
             if fill_value is not None:
                 if isna(other):
