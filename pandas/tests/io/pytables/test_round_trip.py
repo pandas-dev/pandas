@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    HDFStore,
     Index,
     Series,
     _testing as tm,
@@ -20,7 +21,6 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_store,
 )
 from pandas.util import _test_decorators as td
 
@@ -54,12 +54,12 @@ def test_conv_read_write(temp_file):
     tm.assert_frame_equal(df[df.index > 2], result)
 
 
-def test_long_strings(setup_path):
+def test_long_strings(temp_file):
     # GH6166
     data = ["a" * 50] * 10
     df = DataFrame({"a": data}, index=data)
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store.append("df", df, data_columns=["a"])
 
         result = store.select("df")
@@ -96,8 +96,8 @@ def test_api_append(tmp_path, setup_path):
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
 
-def test_api_2(tmp_path, setup_path):
-    path = tmp_path / setup_path
+def test_api_2(tmp_path, temp_file):
+    path = tmp_path / temp_file
 
     df = DataFrame(range(20))
     df.to_hdf(path, key="df", append=False, format="fixed")
@@ -112,7 +112,7 @@ def test_api_2(tmp_path, setup_path):
     df.to_hdf(path, key="df")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         df = DataFrame(range(20))
 
         _maybe_remove(store, "df")
@@ -171,8 +171,8 @@ def test_api_invalid(tmp_path, setup_path):
         read_hdf(path, "df")
 
 
-def test_get(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_get(temp_file):
+    with HDFStore(temp_file) as store:
         store["a"] = Series(
             np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
         )
@@ -194,8 +194,8 @@ def test_put_integer(setup_path):
     _check_roundtrip(df, tm.assert_frame_equal, setup_path)
 
 
-def test_table_values_dtypes_roundtrip(setup_path, using_infer_string):
-    with ensure_clean_store(setup_path) as store:
+def test_table_values_dtypes_roundtrip(temp_file, using_infer_string):
+    with HDFStore(temp_file) as store:
         df1 = DataFrame({"a": [1, 2, 3]}, dtype="f8")
         store.append("df_f8", df1)
         tm.assert_series_equal(df1.dtypes, store["df_f8"].dtypes)
@@ -361,7 +361,7 @@ def test_timeseries_preepoch(setup_path, request):
 @pytest.mark.parametrize(
     "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
-def test_frame(compression, setup_path):
+def test_frame(compression, temp_file):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
@@ -373,11 +373,9 @@ def test_frame(compression, setup_path):
     df.iloc[5, 3] = np.nan
 
     _check_roundtrip_table(
-        df, tm.assert_frame_equal, path=setup_path, compression=compression
+        df, tm.assert_frame_equal, path=temp_file, compression=compression
     )
-    _check_roundtrip(
-        df, tm.assert_frame_equal, path=setup_path, compression=compression
-    )
+    _check_roundtrip(df, tm.assert_frame_equal, path=temp_file, compression=compression)
 
     tdf = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
@@ -385,10 +383,10 @@ def test_frame(compression, setup_path):
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
     _check_roundtrip(
-        tdf, tm.assert_frame_equal, path=setup_path, compression=compression
+        tdf, tm.assert_frame_equal, path=temp_file, compression=compression
     )
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         # not consolidated
         df["foo"] = np.random.default_rng(2).standard_normal(len(df))
         store["df"] = df
@@ -399,7 +397,7 @@ def test_frame(compression, setup_path):
     df2 = df[:0]
     # Prevent df2 from having index with inferred_type as string
     df2.index = Index([])
-    _check_roundtrip(df2[:0], tm.assert_frame_equal, path=setup_path)
+    _check_roundtrip(df2[:0], tm.assert_frame_equal, path=temp_file)
 
 
 def test_empty_series_frame(setup_path):
@@ -432,7 +430,7 @@ def test_can_serialize_dates(setup_path):
 
 
 def test_store_hierarchical(
-    setup_path, using_infer_string, multiindex_dataframe_random_data
+    temp_file, using_infer_string, multiindex_dataframe_random_data
 ):
     frame = multiindex_dataframe_random_data
 
@@ -440,14 +438,14 @@ def test_store_hierarchical(
         # TODO(infer_string) make this work for string dtype
         msg = "Saving a MultiIndex with an extension dtype is not supported."
         with pytest.raises(NotImplementedError, match=msg):
-            _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
+            _check_roundtrip(frame, tm.assert_frame_equal, path=temp_file)
         return
-    _check_roundtrip(frame, tm.assert_frame_equal, path=setup_path)
-    _check_roundtrip(frame.T, tm.assert_frame_equal, path=setup_path)
-    _check_roundtrip(frame["A"], tm.assert_series_equal, path=setup_path)
+    _check_roundtrip(frame, tm.assert_frame_equal, path=temp_file)
+    _check_roundtrip(frame.T, tm.assert_frame_equal, path=temp_file)
+    _check_roundtrip(frame["A"], tm.assert_series_equal, path=temp_file)
 
     # check that the names are stored
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store["frame"] = frame
         recons = store["frame"]
         tm.assert_frame_equal(recons, frame)
@@ -456,7 +454,7 @@ def test_store_hierarchical(
 @pytest.mark.parametrize(
     "compression", [False, pytest.param(True, marks=td.skip_if_windows)]
 )
-def test_store_mixed(compression, setup_path):
+def test_store_mixed(compression, temp_file):
     def _make_one():
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
@@ -474,10 +472,10 @@ def test_store_mixed(compression, setup_path):
     df1 = _make_one()
     df2 = _make_one()
 
-    _check_roundtrip(df1, tm.assert_frame_equal, path=setup_path)
-    _check_roundtrip(df2, tm.assert_frame_equal, path=setup_path)
+    _check_roundtrip(df1, tm.assert_frame_equal, path=temp_file)
+    _check_roundtrip(df2, tm.assert_frame_equal, path=temp_file)
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store["obj"] = df1
         tm.assert_frame_equal(store["obj"], df1)
         store["obj"] = df2
@@ -487,19 +485,19 @@ def test_store_mixed(compression, setup_path):
     _check_roundtrip(
         df1["obj1"],
         tm.assert_series_equal,
-        path=setup_path,
+        path=temp_file,
         compression=compression,
     )
     _check_roundtrip(
         df1["bool1"],
         tm.assert_series_equal,
-        path=setup_path,
+        path=temp_file,
         compression=compression,
     )
     _check_roundtrip(
         df1["int1"],
         tm.assert_series_equal,
-        path=setup_path,
+        path=temp_file,
         compression=compression,
     )
 
@@ -509,7 +507,7 @@ def _check_roundtrip(obj, comparator, path, compression=False, **kwargs):
     if compression:
         options["complib"] = "blosc"
 
-    with ensure_clean_store(path, "w", **options) as store:
+    with HDFStore(path, "w", **options) as store:
         store["obj"] = obj
         retrieved = store["obj"]
         comparator(retrieved, obj, **kwargs)
@@ -520,7 +518,7 @@ def _check_roundtrip_table(obj, comparator, path, compression=False):
     if compression:
         options["complib"] = "blosc"
 
-    with ensure_clean_store(path, "w", **options) as store:
+    with HDFStore(path, "w", **options) as store:
         store.put("obj", obj, format="table")
         retrieved = store["obj"]
 
@@ -537,17 +535,17 @@ def test_unicode_index(setup_path):
     _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
 
-def test_unicode_longer_encoded(setup_path):
+def test_unicode_longer_encoded(temp_file):
     # GH 11234
     char = "\u0394"
     df = DataFrame({"A": [char]})
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store.put("df", df, format="table", encoding="utf-8")
         result = store.get("df")
         tm.assert_frame_equal(result, df)
 
     df = DataFrame({"A": ["a", char], "B": ["b", "b"]})
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store.put("df", df, format="table", encoding="utf-8")
         result = store.get("df")
         tm.assert_frame_equal(result, df)
