@@ -53,13 +53,9 @@ from pandas.io.formats.format import get_level_lengths
 if TYPE_CHECKING:
     from pandas._typing import (
         ExcelWriterMergeCells,
-        FilePath,
         IndexLabel,
         StorageOptions,
-        WriteExcelBuffer,
     )
-
-    from pandas import ExcelWriter
 
 
 class ExcelCell:
@@ -874,9 +870,9 @@ class ExcelFormatter:
             yield cell
 
     @doc(storage_options=_shared_docs["storage_options"])
-    def write(
+    def to_excel(
         self,
-        writer: FilePath | WriteExcelBuffer | ExcelWriter,
+        writer,
         sheet_name: str = "Sheet1",
         startrow: int = 0,
         startcol: int = 0,
@@ -884,6 +880,7 @@ class ExcelFormatter:
         engine: str | None = None,
         storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
+        autofilter: bool = False,
     ) -> None:
         """
         writer : path-like, file-like, or ExcelWriter object
@@ -931,12 +928,16 @@ class ExcelFormatter:
                 except Exception:
                     # Best-effort propagation; ignore if engine does not support it
                     pass
+            # Set autofilter on existing writer
+            if hasattr(writer, "autofilter"):
+                writer.autofilter = autofilter
         else:
             writer = ExcelWriter(
                 writer,
                 engine=engine,
                 storage_options=storage_options,
                 engine_kwargs=engine_kwargs,
+                autofilter=autofilter,
             )
             need_save = True
 
