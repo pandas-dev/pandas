@@ -689,7 +689,9 @@ indices_dict = {
     "categorical": CategoricalIndex(list("abcd") * 2),
     "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=11)),
     "empty": Index([]),
-    "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
+    "tuples": MultiIndex.from_tuples(
+        zip(["foo", "bar", "baz"], [1, 2, 3], strict=True)
+    ),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
     "multi": _create_multiindex(),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
@@ -1874,7 +1876,9 @@ _any_skipna_inferred_dtype = [
     ("period", [Period(2013), pd.NaT, Period(2018)]),
     ("interval", [Interval(0, 1), np.nan, Interval(0, 2)]),
 ]
-ids, _ = zip(*_any_skipna_inferred_dtype)  # use inferred type as fixture-id
+ids = [
+    pair[0] for pair in _any_skipna_inferred_dtype
+]  # use inferred type as fixture-id
 
 
 @pytest.fixture(params=_any_skipna_inferred_dtype, ids=ids)
