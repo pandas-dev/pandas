@@ -155,24 +155,11 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         # "ExtensionDtype | dtype[Any]"; expected "dtype[Any] | _HasDType[dtype[Any]]"
         return arr.view(dtype=dtype)  # type: ignore[arg-type]
 
-    def take(
-        self,
-        indices: TakeIndexer,
-        *,
-        allow_fill: bool = False,
-        fill_value: Any = None,
-        axis: AxisInt = 0,
-    ) -> Self:
-        if allow_fill:
-            fill_value = self._validate_scalar(fill_value)
 
-        new_data = take(
-            self._ndarray,
-            indices,
-            allow_fill=allow_fill,
-            fill_value=fill_value,
-            axis=axis,
-        )
+        # Notes on take method fix
+        # Please remove these once this fix is ready to submit.
+        # =======================================================================
+
         # One of the base classes to this class: ExtensionArray, provides
         # the dtype property, but abstractly, so it leaves the implementation
         # of dtype storage up to its derived classes. Some of these derived
@@ -244,17 +231,25 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         #   StringArray             yes                                 no
         #   NumpyExtensionArray     no                                  no
 
-        if hasattr(self.dtype, "numpy_dtype") and self.dtype.numpy_dtype in [
-            np.uint8,
-            np.uint16,
-            np.uint32,
-            np.uint64,
-            np.int8,
-            np.int16,
-            np.int32,
-            np.int64,
-        ]:
-            return type(self)(new_data)
+    
+    def take(
+        self,
+        indices: TakeIndexer,
+        *,
+        allow_fill: bool = False,
+        fill_value: Any = None,
+        axis: AxisInt = 0,
+    ) -> Self:
+        if allow_fill:
+            fill_value = self._validate_scalar(fill_value)
+
+        new_data = take(
+            self._ndarray,
+            indices,
+            allow_fill=allow_fill,
+            fill_value=fill_value,
+            axis=axis,
+        )
         return self._from_backing_data(new_data)
 
     # ------------------------------------------------------------------------

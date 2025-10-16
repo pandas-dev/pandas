@@ -45,6 +45,7 @@ if TYPE_CHECKING:
         InterpolateOptions,
         NpDtype,
         Scalar,
+        TakeIndexer,
         npt,
     )
 
@@ -349,6 +350,73 @@ class NumpyExtensionArray(
         if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
+
+    def take(
+        self,
+        indices: TakeIndexer,
+        *,
+        allow_fill: bool = False,
+        fill_value: Any = None,
+        axis: AxisInt = 0,
+    ) -> Self:
+        """
+        Take entries from this array at each index in a list of indices,
+        producing an array containing only those entries.
+        """
+        # See GH#62448.
+        if self.dtype.numpy_dtype in [
+            np.uint8,
+            np.uint16,
+            np.uint32,
+            np.uint64,
+            np.int8,
+            np.int16,
+            np.int32,
+            np.int64
+        ]:
+            # In this case, the resulting extension array should have a floating-point
+            # dtype to match the result of the underlying take method when
+            # NaN values need to be incorporated into it.
+            # This occurs when allow_fill is True and fill_value is None.
+            # (fill_value may be an arbitrary Python object, in which case
+            # the result will be an array of objects.)
+
+            # Call the take method of NDArrayBackedExtensionArray
+
+            # TODO: How is the dtype of a newly constructed NumpyExtensionArray set?
+            # It's set to match the dtype of its underlying array.
+
+            result = super().take(
+                indices,
+                allow_fill=allow_fill,
+                fill_value=fill_value,
+                axis=axis
+            )
+            return type(self)(result, copy=False)
+        
+        # In this case, the resulting extension array will have a dtype
+        # that matches that of the underlying Numpy array and we can link
+        # to the underlying array without manipulating the extension's
+        # dtype.
+
+        return super().take(
+            indices,
+            allow_fill=allow_fill,
+            fill_value=fill_value,
+            axis=axis
+        )
+        # result array dtype = self dtype
+
+        # Implementation steps:
+        #   Determine requirements for this method, including:
+        #       Argument types [done]
+        #       Return type [done]
+        #       Return dtype [done]
+        #   Write tests to check whether this method satisfies these requirements. [done]
+        #   Figure out what base class method to call to implement the take functionality. [done]
+        #   Implement the call. [done]
+        #   Check whether this method satisfies its requirements by running the tests.
+            
 
     # ------------------------------------------------------------------------
     # Reductions
