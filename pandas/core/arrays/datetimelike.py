@@ -2144,7 +2144,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         # "ExtensionDtype"; expected "Union[DatetimeTZDtype, dtype[Any]]"
         return dtype_to_unit(self.dtype)  # type: ignore[arg-type]
 
-    def as_unit(self, unit: str, round_ok: bool = True) -> Self:
+    def as_unit(self, unit: TimeUnit, round_ok: bool = True) -> Self:
         """
         Convert to a dtype with the given unit resolution.
 

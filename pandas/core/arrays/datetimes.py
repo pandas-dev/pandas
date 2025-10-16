@@ -535,7 +535,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             raise ValueError("'value' should be a Timestamp.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.datetime64(value._value, self.unit)  # type: ignore[call-overload]
+            return np.datetime64(value._value, self.unit)
         else:
             return value.as_unit(self.unit, round_ok=False).asm8
 
