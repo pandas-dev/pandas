@@ -63,11 +63,6 @@ from numpy cimport (
 cnp.import_array()
 
 from pandas._libs cimport util
-from pandas._libs.util cimport (
-    INT64_MAX,
-    INT64_MIN,
-    UINT64_MAX,
-)
 
 from pandas._libs import lib
 
@@ -149,10 +144,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         SKIP_LINE
         FINISHED
 
-    ctypedef enum TokenizerError:
-        TOKENIZER_OK,
-        ERROR_OVERFLOW,
-        ERROR_INVALID_CHARS
+    enum: ERROR_OVERFLOW, ERROR_INVALID_CHARS
 
     ctypedef enum BadLineHandleMethod:
         ERROR,
@@ -284,10 +276,8 @@ cdef extern from "pandas/parser/pd_parser.h":
     int tokenize_all_rows(parser_t *self, const char *encoding_errors) nogil
     int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors) nogil
 
-    int64_t str_to_int64(char *p_item, int64_t int_min,
-                         int64_t int_max, TokenizerError *error, char tsep) nogil
-    uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
-                           uint64_t uint_max, TokenizerError *error, char tsep) nogil
+    int64_t str_to_int64(char *p_item,  int *error, char tsep) nogil
+    uint64_t str_to_uint64(uint_state *state, char *p_item, int *error, char tsep) nogil
 
     double xstrtod(const char *p, char **q, char decimal,
                    char sci, char tsep, int skip_trailing,
@@ -1797,7 +1787,7 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                            const kh_str_starts_t *na_hashset,
                            uint64_t *data, uint_state *state) nogil:
     cdef:
-        TokenizerError error = TOKENIZER_OK
+        int error = 0
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
@@ -1813,15 +1803,13 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                 data[i] = 0
                 continue
 
-            data[i] = str_to_uint64(state, word, INT64_MAX, UINT64_MAX,
-                                    &error, parser.thousands)
+            data[i] = str_to_uint64(state, word, &error, parser.thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_uint64(state, word, INT64_MAX, UINT64_MAX,
-                                    &error, parser.thousands)
+            data[i] = str_to_uint64(state, word, &error, parser.thousands)
             if error != 0:
                 return error
 
@@ -1832,7 +1820,7 @@ cdef _try_int64(parser_t *parser, int64_t col,
                 int64_t line_start, int64_t line_end,
                 bint na_filter, kh_str_starts_t *na_hashset, bint raise_on_float):
     cdef:
-        TokenizerError error = TOKENIZER_OK
+        int error = 0
         int na_count = 0
         Py_ssize_t lines
         coliter_t it
@@ -1859,13 +1847,13 @@ cdef _try_int64(parser_t *parser, int64_t col,
     return result, na_count
 
 
-cdef TokenizerError _try_int64_nogil(parser_t *parser, int64_t col,
-                                     int64_t line_start,
-                                     int64_t line_end, bint na_filter,
-                                     const kh_str_starts_t *na_hashset, int64_t NA,
-                                     int64_t *data, int *na_count) nogil:
+cdef int _try_int64_nogil(parser_t *parser, int64_t col,
+                          int64_t line_start,
+                          int64_t line_end, bint na_filter,
+                          const kh_str_starts_t *na_hashset, int64_t NA,
+                          int64_t *data, int *na_count) nogil:
     cdef:
-        TokenizerError error = TOKENIZER_OK
+        int error = 0
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
@@ -1882,16 +1870,14 @@ cdef TokenizerError _try_int64_nogil(parser_t *parser, int64_t col,
                 data[i] = NA
                 continue
 
-            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
-                                   &error, parser.thousands)
-            if error != TOKENIZER_OK:
+            data[i] = str_to_int64(word, &error, parser.thousands)
+            if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
-                                   &error, parser.thousands)
-            if error != TOKENIZER_OK:
+            data[i] = str_to_int64(word, &error, parser.thousands)
+            if error != 0:
                 return error
 
     return error
