@@ -18,6 +18,8 @@ from pandas._libs.tslibs.dtypes import (
     OFFSET_TO_PERIOD_FREQSTR,
     FreqGroup,
 )
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -74,6 +76,13 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
         series = series.to_period(freq=freq)
 
     if ax_freq is not None and freq != ax_freq:
+        warnings.warn(
+            "Plotting with mixed-frequency series is deprecated and "
+            "will raise in a future version. Align series frequencies "
+            "before plotting instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         if is_superperiod(freq, ax_freq):  # upsample input
             series = series.copy()
             # error: "Index" has no attribute "asfreq"
@@ -290,7 +299,13 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
             if isinstance(data.index, ABCDatetimeIndex):
                 data = data.tz_localize(None).to_period(freq=freq_str)
             elif isinstance(data.index, ABCPeriodIndex):
-                data.index = data.index.asfreq(freq=freq_str, how="start")
+                # This will convert e.g. freq="60min" to freq="min", but will
+                #  retain type(freq). It is not clear to @jbrockmendel why
+                #  this is necessary as of 2025-09-24, but 18 tests fail
+                #  without it.
+                new_freq = to_offset(freq_str, is_period=True)
+                assert type(new_freq) is type(data.index.freq)
+                data.index = data.index.asfreq(freq=new_freq, how="start")
     return data
 
 
