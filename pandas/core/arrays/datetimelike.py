@@ -2140,9 +2140,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         >>> idx.as_unit("s").unit
         's'
         """
-        # error: Argument 1 to "dtype_to_unit" has incompatible type
-        # "ExtensionDtype"; expected "Union[DatetimeTZDtype, dtype[Any]]"
-        return dtype_to_unit(self.dtype)  # type: ignore[arg-type]
+        # error: Incompatible return value type (got "str", expected
+        # "Literal['s', 'ms', 'us', 'ns']")  [return-value]
+        return dtype_to_unit(self.dtype)  # type: ignore[return-value]
 
     def as_unit(self, unit: TimeUnit, round_ok: bool = True) -> Self:
         """

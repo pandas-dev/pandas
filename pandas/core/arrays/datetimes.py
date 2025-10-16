@@ -395,7 +395,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         result = cls._simple_new(subarr, freq=inferred_freq, dtype=data_dtype)
         if unit is not None and unit != result.unit:
             # If unit was specified in user-passed dtype, cast to it here
-            result = result.as_unit(unit)
+            # error: Argument 1 to "as_unit" of "TimelikeOps" has
+            # incompatible type "str"; expected "Literal['s', 'ms', 'us', 'ns']"
+            # [arg-type]
+            result = result.as_unit(unit)  # type: ignore[arg-type]
 
         validate_kwds = {"ambiguous": ambiguous}
         result._maybe_pin_freq(freq, validate_kwds)
