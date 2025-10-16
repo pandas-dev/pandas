@@ -17,6 +17,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.missing import NA
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -286,9 +287,15 @@ def validate_na_arg(value, name: str):
     ValueError
         When ``value`` is determined to be invalid.
     """
-    if value is lib.no_default or isinstance(value, bool) or isna(value):
+    if (
+        value is lib.no_default
+        or isinstance(value, bool)
+        or value is None
+        or value is NA
+        or (isna(value) and np.isnan(value))
+    ):
         return
-    raise ValueError(f"{name} must be an NA value, True, or False; got {value}")
+    raise ValueError(f"{name} must be None, pd.NA, np.nan, True, or False; got {value}")
 
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
