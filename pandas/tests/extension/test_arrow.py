@@ -3702,6 +3702,7 @@ def test_pow_with_all_na_float():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(pa_version_under14p0, reason="decimal32 not implemented")
 def test_cast_pontwise_result_decimal_nan():
     # GH#62522 we don't want to get back null[pyarrow] here
     ser = pd.Series([], dtype="float64[pyarrow]")
