@@ -980,7 +980,7 @@ def read_csv(
         Depending on whether ``na_values`` is passed in, the behavior is as follows:
 
         * If ``keep_default_na`` is ``True``, and ``na_values``
-        are specified, ``na_values``
+          are specified, ``na_values``
           is appended to the default ``NaN`` values used for parsing.
         * If ``keep_default_na`` is ``True``, and ``na_values`` are not specified, only
           the default ``NaN`` values are used for parsing.
@@ -1003,8 +1003,8 @@ def read_csv(
 
         * ``bool``. If ``True`` -> try parsing the index.
         * ``None``. Behaves like ``True`` if ``date_format`` is specified.
-        * ``list`` of ``int`` or
-        names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
+        * ``list`` of ``int`` or names.
+          e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
           each as a separate date column.
 
         If a column or index cannot be represented as an array of ``datetime``,
@@ -1089,9 +1089,9 @@ def read_csv(
         in ``quotechar``, ``delimiter``,
         or ``lineterminator``.
     doublequote : bool, default True
-       When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``, indicate
-       whether or not to interpret two consecutive ``quotechar`` elements INSIDE a
-       field as a single ``quotechar`` element.
+        When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``, indicate
+        whether or not to interpret two consecutive ``quotechar`` elements INSIDE a
+        field as a single ``quotechar`` element.
     escapechar : str (length 1), optional
         Character used to escape other characters.
     comment : str (length 1), optional
@@ -1126,22 +1126,22 @@ def read_csv(
 
         - ``'error'``, raise an Exception when a bad line is encountered.
         - ``'warn'``, raise a warning when a bad line is
-        encountered and skip that line.
+          encountered and skip that line.
         - ``'skip'``, skip bad lines without raising or warning when
-        they are encountered.
+          they are encountered.
         - Callable, function that will process a single bad line.
             - With ``engine='python'``, function with signature
               ``(bad_line: list[str]) -> list[str] | None``.
               ``bad_line`` is a list of strings split by the ``sep``.
               If the function returns ``None``, the bad line will be ignored.
               If the function returns a new ``list`` of strings with
-            more elements than
+              more elements than
               expected, a ``ParserWarning`` will be emitted while
-            dropping extra elements.
+              dropping extra elements.
             - With ``engine='pyarrow'``, function with signature
               as described in pyarrow documentation: `invalid_row_handler
               <https://arrow.apache.org/docs/python
-            /generated/pyarrow.csv.ParseOptions.html
+              /generated/pyarrow.csv.ParseOptions.html
               #pyarrow.csv.ParseOptions.invalid_row_handler>`_.
 
         .. versionadded:: 1.3.0
