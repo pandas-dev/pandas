@@ -1140,7 +1140,9 @@ class TestDataFrameQueryStrings:
             [">=", operator.ge],
         ],
     )
-    def test_query_lex_compare_strings(self, parser, engine, op, func):
+    def test_query_lex_compare_strings(
+        self, parser, engine, op, func
+    ):
         a = Series(np.random.default_rng(2).choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})
