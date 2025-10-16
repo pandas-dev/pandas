@@ -99,6 +99,7 @@ if TYPE_CHECKING:
         TimedeltaConvertibleTypes,
         TimeGrouperOrigin,
         TimestampConvertibleTypes,
+        TimeUnit,
         npt,
     )
 
@@ -2835,7 +2836,7 @@ def _get_timestamp_range_edges(
     first: Timestamp,
     last: Timestamp,
     freq: BaseOffset,
-    unit: str,
+    unit: TimeUnit,
     closed: Literal["right", "left"] = "left",
     origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
@@ -2985,7 +2986,7 @@ def _adjust_dates_anchored(
     closed: Literal["right", "left"] = "right",
     origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
-    unit: str = "ns",
+    unit: TimeUnit = "ns",
 ) -> tuple[Timestamp, Timestamp]:
     # First and last offsets should be calculated from the start day to fix an
     # error cause by resampling across multiple days when a one day period is
@@ -3094,7 +3095,7 @@ def asfreq(
 
         new_obj.index = _asfreq_compat(obj.index, freq)
     else:
-        unit = None
+        unit: TimeUnit = "ns"
         if isinstance(obj.index, DatetimeIndex):
             # TODO: should we disallow non-DatetimeIndex?
             unit = obj.index.unit
