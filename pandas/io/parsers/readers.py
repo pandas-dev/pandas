@@ -12,6 +12,7 @@ from collections import (
 )
 import csv
 import sys
+from textwrap import fill
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -35,6 +36,7 @@ from pandas.errors import (
     ParserWarning,
 )
 from pandas.util._decorators import (
+    Appender,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -51,6 +53,7 @@ from pandas.core.dtypes.common import (
 from pandas import Series
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import RangeIndex
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     IOHandles,
@@ -910,7 +913,7 @@ def read_csv(
         If ``converters`` are specified, they will be applied INSTEAD
         of ``dtype`` conversion.
 
-        .. versionadded:: 1.5.0
+        versionadded:: 1.5.0
             Support for ``defaultdict`` was added. Specify a ``defaultdict`` as input
                 where
             the default determines the ``dtype`` of the columns which are not explicitly
@@ -922,7 +925,7 @@ def read_csv(
         Multithreading is currently only supported by
         the pyarrow engine.
 
-        .. versionadded:: 1.4.0
+        versionadded:: 1.4.0
             The 'pyarrow' engine was added as an *experimental* engine,
                 and some features
             are unsupported, or may not work correctly, with this engine.
@@ -1022,7 +1025,7 @@ def read_csv(
         - "mixed", to infer the format for each element individually. This is risky,
           and you should probably use it along with `dayfirst`.
 
-        .. versionadded:: 2.0.0
+        versionadded:: 2.0.0
     dayfirst : bool, default False
         DD/MM format dates, international and European format.
     cache_dates : bool, default True
@@ -1056,10 +1059,10 @@ def read_csv(
         decompression using a custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-        .. versionadded:: 1.5.0
+        versionadded:: 1.5.0
             Added support for `.tar` files.
 
-        .. versionchanged:: 1.4.0 Zstandard support.
+        versionchanged:: 1.4.0 Zstandard support.
     thousands : str (length 1), optional
         Character acting as the thousands separator in numerical values.
     decimal : str (length 1), default '.'
@@ -1101,7 +1104,7 @@ def read_csv(
         How encoding errors are treated. `List of possible values
         <https://docs.python.org/3/library/codecs.html#error-handlers>`_.
 
-        .. versionadded:: 1.3.0
+        versionadded:: 1.3.0
     dialect : str or csv.Dialect, optional
         If provided, this parameter will override values (default or not)
         for the following parameters: ``delimiter``, ``doublequote``,
@@ -1132,12 +1135,12 @@ def read_csv(
               <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
               #pyarrow.csv.ParseOptions.invalid_row_handler>`_.
 
-        .. versionadded:: 1.3.0
+        versionadded:: 1.3.0
 
-        .. versionadded:: 1.4.0
+        versionadded:: 1.4.0
             Callable
 
-        .. versionchanged:: 2.2.0
+        versionchanged:: 2.2.0
             Callable for ``engine='pyarrow'``
     low_memory : bool, default True
         Internally process the file in chunks, resulting in lower memory
@@ -1179,7 +1182,7 @@ def read_csv(
         * ``"pyarrow"``: returns pyarrow-backed nullable
           :class:`ArrowDtype` :class:`DataFrame`
 
-        .. versionadded:: 2.0
+        versionadded:: 2.0
 
     Returns
     -------
@@ -1489,7 +1492,7 @@ def read_table(
         If ``converters`` are specified, they will be applied INSTEAD
         of ``dtype`` conversion.
 
-        .. versionadded:: 1.5.0
+        versionadded:: 1.5.0
             Support for ``defaultdict`` was added. Specify a ``defaultdict``
             as input where the default determines the ``dtype`` of the
             columns which are not explicitly listed.
@@ -1498,7 +1501,7 @@ def read_table(
         the python engine is currently more feature-complete. Multithreading
         is currently only supported by the pyarrow engine.
 
-        .. versionadded:: 1.4.0
+        versionadded:: 1.4.0
             The 'pyarrow' engine was added as an *experimental* engine, and
             some features are unsupported, or may not work correctly, with
             this engine.
@@ -1602,7 +1605,7 @@ def read_table(
         - "mixed", to infer the format for each element individually. This
           is risky, and you should probably use it along with `dayfirst`.
 
-        .. versionadded:: 2.0.0
+        versionadded:: 2.0.0
     dayfirst : bool, default False
         DD/MM format dates, international and European format.
     cache_dates : bool, default True
@@ -1635,10 +1638,10 @@ def read_table(
         decompression using a custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-        .. versionadded:: 1.5.0
+        versionadded:: 1.5.0
             Added support for `.tar` files.
 
-        .. versionchanged:: 1.4.0 Zstandard support.
+        versionchanged:: 1.4.0 Zstandard support.
     thousands : str (length 1), optional
         Character acting as the thousands separator in numerical values.
     decimal : str (length 1), default '.'
@@ -1679,7 +1682,7 @@ def read_table(
         How encoding errors are treated. `List of possible values
         <https://docs.python.org/3/library/codecs.html#error-handlers>`_.
 
-        .. versionadded:: 1.3.0
+        versionadded:: 1.3.0
     dialect : str or csv.Dialect, optional
         If provided, this parameter will override values (default or not)
         for the following parameters: ``delimiter``, ``doublequote``,
@@ -1708,12 +1711,12 @@ def read_table(
               <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
               #pyarrow.csv.ParseOptions.invalid_row_handler>`_.
 
-        .. versionadded:: 1.3.0
+        versionadded:: 1.3.0
 
-        .. versionadded:: 1.4.0
+        versionadded:: 1.4.0
             Callable
 
-        .. versionchanged:: 2.2.0
+        versionchanged:: 2.2.0
             Callable for ``engine='pyarrow'``
     low_memory : bool, default True
         Internally process the file in chunks, resulting in lower memory use
@@ -1754,7 +1757,7 @@ def read_table(
         * ``"pyarrow"``: returns pyarrow-backed nullable
           :class:`ArrowDtype` :class:`DataFrame`
 
-        .. versionadded:: 2.0
+        versionadded:: 2.0
 
     Returns
     -------
@@ -1848,24 +1851,6 @@ def read_table(
     col 3    datetime64[ns]
     dtype: object
     """
-    # locals() should never be modified
-    kwds = locals().copy()
-    del kwds["filepath_or_buffer"]
-    del kwds["sep"]
-
-    kwds_defaults = _refine_defaults_read(
-        dialect,
-        delimiter,
-        engine,
-        sep,
-        on_bad_lines,
-        names,
-        defaults={"delimiter": "\t"},
-        dtype_backend=dtype_backend,
-    )
-    kwds.update(kwds_defaults)
-
-    return _read(filepath_or_buffer, kwds)
 
 
 @overload
@@ -2399,8 +2384,7 @@ class TextFileReader(abc.Iterator):
                 dtype_arg = None
 
             if isinstance(dtype_arg, dict):
-                # type: ignore[var-annotated]
-                dtype = defaultdict(lambda: None)
+                dtype = defaultdict(lambda: None)  # type: ignore[var-annotated]
                 dtype.update(dtype_arg)
             elif dtype_arg is not None and pandas_dtype(dtype_arg) in (
                 np.str_,
@@ -2712,8 +2696,7 @@ def _extract_dialect(kwds: dict[str, str | csv.Dialect]) -> csv.Dialect | None:
 
     dialect = kwds["dialect"]
     if isinstance(dialect, str) and dialect in csv.list_dialects():
-        # get_dialect is typed to return a `_csv.Dialect` for some reason in
-        # typeshed
+        # get_dialect is typed to return a `_csv.Dialect` for some reason in typeshed
         tdialect = cast(csv.Dialect, csv.get_dialect(dialect))
         _validate_dialect(tdialect)
 
