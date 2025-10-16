@@ -437,53 +437,53 @@ class TestSeriesFlexComparison:
             FIRST = auto()
             SECOND = auto()
 
-        left = pd.Series([Thing.FIRST, Thing.SECOND])
+        left = Series([Thing.FIRST, Thing.SECOND])
         py_l = [Thing.FIRST, Thing.SECOND]
 
         result = left.eq(Thing.FIRST)
-        expected = pd.Series([True, False])
+        expected = Series([True, False])
         tm.assert_series_equal(result, expected)
 
         result = left.eq(py_l)
-        expected = pd.Series([True, True])
+        expected = Series([True, True])
         tm.assert_series_equal(result, expected)
 
         result = left.eq(np.asarray(py_l))
-        expected = pd.Series([True, True])
+        expected = Series([True, True])
         tm.assert_series_equal(result, expected)
 
-        result = left.eq(pd.Series(py_l))
-        expected = pd.Series([True, True])
+        result = left.eq(Series(py_l))
+        expected = Series([True, True])
         tm.assert_series_equal(result, expected)
 
-        result = pd.Series([[1, 2], [3, 4]]).eq([1, 2])
-        expected = pd.Series([True, False])
+        result = Series([[1, 2], [3, 4]]).eq([1, 2])
+        expected = Series([True, False])
         with pytest.raises(AssertionError):
             tm.assert_series_equal(result, expected)
-        expected = pd.Series([False, False])
+        expected = Series([False, False])
         tm.assert_series_equal(result, expected)
 
     def test_eq_with_index(self) -> None:
         # GH#62191 Test eq with non-trivial indices
-        left = pd.Series([1, 2], index=[1, 0])
+        left = Series([1, 2], index=[1, 0])
         py_l = [1, 2]
 
         # assuming Python list has the same index as the Series
         result = left.eq(py_l)
-        expected = pd.Series([True, True], index=[1, 0])
+        expected = Series([True, True], index=[1, 0])
         tm.assert_series_equal(result, expected)
 
         # assuming np.ndarray has the same index as the Series
         result = left.eq(np.asarray(py_l))
-        expected = pd.Series([True, True], index=[1, 0])
+        expected = Series([True, True], index=[1, 0])
         tm.assert_series_equal(result, expected)
 
-        result = left.eq(pd.Series(py_l))
-        expected = pd.Series([False, False])
+        result = left.eq(Series(py_l))
+        expected = Series([False, False])
         tm.assert_series_equal(result, expected)
 
-        result = left.eq(pd.Series([2, 1]))
-        expected = pd.Series([True, True])
+        result = left.eq(Series([2, 1]))
+        expected = Series([True, True])
         tm.assert_series_equal(result, expected)
 
 
