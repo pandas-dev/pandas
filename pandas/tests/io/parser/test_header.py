@@ -11,6 +11,7 @@ import pytest
 
 from pandas.errors import ParserError
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Index,
@@ -566,11 +567,8 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
     if columns is None:
         columns = ["", "", ""]
 
-    for i, col in enumerate(columns):
-        if not col:  # Unnamed.
-            col = f"Unnamed: {i if index_col is None else i + 1}_level_0"
-
-        exp_columns.append(col)
+    # After GH#59560: keep empty cells as "", do not auto-fill "Unnamed: ..."
+    exp_columns = [col or "" for col in (columns or [])]
 
     columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
     expected = DataFrame([[2, 3], [4, 5]], columns=columns)
@@ -725,3 +723,40 @@ b,j,y
     )
     expected = DataFrame([["a", "i"], ["b", "j"]], dtype="string[pyarrow]")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("engine", ["c", "python"])
+def test_multiindex_empty_vals_cleaned(tmp_path, engine):
+    # GH#59560 - ensure empty values in MultiIndex columns are preserved
+    path = tmp_path / "file.csv"
+    df = DataFrame(
+        np.arange(6).reshape((2, 3)),
+        columns=MultiIndex.from_tuples([("a", ""), ("b", ""), ("b", "b2")]),
+        index=MultiIndex.from_tuples([("i1", ""), ("i2", "")]),
+    )
+
+    df.to_csv(path)
+    result = pd.read_csv(
+        path,
+        header=[0, 1],
+        index_col=[0, 1],
+        engine=engine,
+        keep_default_na=False,
+    )
+
+    tm.assert_frame_equal(result, df)
+
+
+def test_multiindex_real_unnamed_label_preserved(tmp_path):
+    # GH#59560 follow-up: genuine "Unnamed:" labels should not be cleaned
+    path = tmp_path / "file.csv"
+    df = DataFrame(
+        np.arange(4).reshape((2, 2)),
+        columns=MultiIndex.from_tuples([("a", "Unnamed: revenue"), ("a", "sales")]),
+    )
+
+    df.to_csv(path)
+    result = pd.read_csv(path, header=[0, 1], index_col=0)
+
+    expected = MultiIndex.from_tuples([("a", "Unnamed: revenue"), ("a", "sales")])
+    tm.assert_index_equal(result.columns, expected)
