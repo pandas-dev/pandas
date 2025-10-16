@@ -967,6 +967,7 @@ def read_csv(
 
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
+
     na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}},
     optional
         Additional strings to recognize as ``NA``/``NaN``. If ``dict``
@@ -1551,6 +1552,7 @@ def read_table(
 
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
+
     na_values : Hashable, Iterable of Hashable or
     dict of {{Hashable : Iterable}}, optional
         Additional strings to recognize as ``NA``/``NaN``.
@@ -1587,7 +1589,7 @@ def read_table(
         * ``bool``. If ``True`` -> try parsing the index.
         * ``None``. Behaves like ``True`` if ``date_format`` is specified.
         * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` ->
-        try parsing columns 1, 2, 3
+          try parsing columns 1, 2, 3
           each as a separate date column.
 
         If a column or index cannot be represented as an array of ``datetime``,
@@ -1710,9 +1712,9 @@ def read_table(
 
         - ``'error'``, raise an Exception when a bad line is encountered.
         - ``'warn'``, raise a warning when a bad line is encountered and
-        skip that line.
+          skip that line.
         - ``'skip'``, skip bad lines without raising or warning when they
-        are encountered.
+          are encountered.
         - Callable, function that will process a single bad line.
             - With ``engine='python'``, function with signature
               ``(bad_line: list[str]) -> list[str] | None``.
@@ -1720,7 +1722,7 @@ def read_table(
               If the function returns ``None``, the bad line will be ignored.
               If the function returns a new ``list`` of strings with more elements than
               expected, a ``ParserWarning`` will be emitted while
-            dropping extra elements.
+              dropping extra elements.
             - With ``engine='pyarrow'``, function with signature
               as described in pyarrow documentation: `invalid_row_handler
               <https://arrow.apache.org/docs/
