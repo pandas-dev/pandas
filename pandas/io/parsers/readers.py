@@ -969,7 +969,7 @@ def read_csv(
           ``read_csv(..., skiprows=1000000, nrows=999999)``
 
     na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}},
-    optional
+        optional
         Additional strings to recognize as ``NA``/``NaN``. If ``dict``
         passed, specific
         per-column ``NA`` values.  By default the following values
@@ -1082,7 +1082,7 @@ def read_csv(
         Character used to denote the start and end of a quoted item. Quoted
         items can include the ``delimiter`` and it will be ignored.
     quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL,
-    2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+        2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
         Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
         ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that
         only fields containing special
@@ -1553,8 +1553,8 @@ def read_table(
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
 
-    na_values : Hashable, Iterable of Hashable or
-    dict of {{Hashable : Iterable}}, optional
+    na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}},
+        optional
         Additional strings to recognize as ``NA``/``NaN``.
         If ``dict`` passed, specific
         per-column ``NA`` values.  By default the following values are interpreted as
@@ -1565,7 +1565,7 @@ def read_table(
         Depending on whether ``na_values`` is passed in, the behavior is as follows:
 
         * If ``keep_default_na`` is ``True``,
-        and ``na_values`` are specified, ``na_values``
+          and ``na_values`` are specified, ``na_values``
           is appended to the default ``NaN`` values used for parsing.
         * If ``keep_default_na`` is ``True``, and ``na_values`` are not specified, only
           the default ``NaN`` values are used for parsing.
@@ -1588,8 +1588,8 @@ def read_table(
 
         * ``bool``. If ``True`` -> try parsing the index.
         * ``None``. Behaves like ``True`` if ``date_format`` is specified.
-        * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` ->
-          try parsing columns 1, 2, 3
+        * ``list`` of ``int`` or names.
+          e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
           each as a separate date column.
 
         If a column or index cannot be represented as an array of ``datetime``,
@@ -1666,7 +1666,7 @@ def read_table(
         Character used to denote the start and end of a quoted item. Quoted
         items can include the ``delimiter`` and it will be ignored.
     quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or
-    csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+        csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
         Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
         ``csv.QUOTE_MINIMAL`` (i.e., 0) which
         implies that only fields containing special
