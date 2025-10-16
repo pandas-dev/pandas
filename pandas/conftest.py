@@ -1876,9 +1876,9 @@ _any_skipna_inferred_dtype = [
     ("period", [Period(2013), pd.NaT, Period(2018)]),
     ("interval", [Interval(0, 1), np.nan, Interval(0, 2)]),
 ]
-ids, _ = zip(
-    *_any_skipna_inferred_dtype, strict=False
-)  # use inferred type as fixture-id
+ids = [
+    pair[0] for pair in _any_skipna_inferred_dtype
+]  # use inferred type as fixture-id
 
 
 @pytest.fixture(params=_any_skipna_inferred_dtype, ids=ids)
