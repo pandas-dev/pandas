@@ -6,19 +6,15 @@ from typing import (
     Any,
 )
 
-from pandas.io.excel._base import ExcelWriter
-from pandas.io.excel._util import (
-    combine_kwargs,
-    validate_freeze_panes,
-)
-
 if TYPE_CHECKING:
-    from pandas._typing import (
-        ExcelWriterIfSheetExists,
-        FilePath,
-        StorageOptions,
-        WriteExcelBuffer,
-    )
+    from pandas._typing import FilePath, StorageOptions, WriteExcelBuffer
+
+from xlsxwriter import Workbook
+
+from pandas.compat._optional import import_optional_dependency
+
+from pandas.io.excel._base import ExcelWriter
+from pandas.io.excel._util import validate_freeze_panes
 
 
 class _XlsxStyler:
@@ -93,27 +89,43 @@ class _XlsxStyler:
     }
 
     @classmethod
-    def convert(cls, style_dict, num_format_str=None) -> dict[str, Any]:
-        """
-        converts a style_dict to an xlsxwriter format dict
+    def convert(
+        cls,
+        style_dict: dict,
+        num_format_str: str | None = None,
+    ) -> dict[str, Any]:
+        """Convert a style_dict to an xlsxwriter format dict."""
+        # Create a copy to avoid modifying the input
+        style_dict = style_dict.copy()
 
-        Parameters
-        ----------
-        style_dict : style dictionary to convert
-        num_format_str : optional number format string
-        """
-        # Create a XlsxWriter format object.
-        props = {}
+        # Map CSS font-weight to xlsxwriter font-weight (bold)
+        if style_dict.get("font-weight") in ("bold", "bolder", 700, "700") or (
+            isinstance(style_dict.get("font"), dict)
+            and style_dict["font"].get("weight") in ("bold", "bolder", 700, "700")
+        ):
+            # For XLSXWriter, we need to set the font with bold=True
+            style_dict = {"font": {"bold": True, "name": "Calibri", "size": 11}}
+            # Also set the b property directly as it might be needed
+            style_dict["b"] = True
 
-        if num_format_str is not None:
-            props["num_format"] = num_format_str
+        # Handle font styles
+        if "font-style" in style_dict and style_dict["font-style"] == "italic":
+            style_dict["italic"] = True
+            del style_dict["font-style"]
 
-        if style_dict is None:
-            return props
-
+        # Convert CSS border styles to xlsxwriter format
+        #        border_map = {
+        #            "border-top": "top",
+        #           "border-right": "right",
+        #         "border-bottom": "bottom",
+        #        "border-left": "left",
+        #    }
         if "borders" in style_dict:
             style_dict = style_dict.copy()
             style_dict["border"] = style_dict.pop("borders")
+
+        # Initialize props to track which properties we've processed
+        props = {}
 
         for style_group_key, style_group in style_dict.items():
             for src, dst in cls.STYLE_MAPPING.get(style_group_key, []):
@@ -189,36 +201,29 @@ class XlsxWriter(ExcelWriter):
         datetime_format: str | None = None,
         mode: str = "w",
         storage_options: StorageOptions | None = None,
-        if_sheet_exists: ExcelWriterIfSheetExists | None = None,
-        engine_kwargs: dict[str, Any] | None = None,
-        **kwargs,
+        if_sheet_exists: str | None = None,
+        engine_kwargs: dict | None = None,
+        autofilter: bool = False,
     ) -> None:
         # Use the xlsxwriter module as the Excel writer.
-        from xlsxwriter import Workbook
-
-        engine_kwargs = combine_kwargs(engine_kwargs, kwargs)
-
-        if mode == "a":
-            raise ValueError("Append mode is not supported with xlsxwriter!")
-
+        import_optional_dependency("xlsxwriter")
         super().__init__(
             path,
-            engine=engine,
-            date_format=date_format,
-            datetime_format=datetime_format,
             mode=mode,
             storage_options=storage_options,
             if_sheet_exists=if_sheet_exists,
             engine_kwargs=engine_kwargs,
         )
 
-        self._engine_kwargs = engine_kwargs
+        self._engine_kwargs = engine_kwargs or {}
+        self.autofilter = autofilter
+        self._book = None
 
         try:
-            self._book = Workbook(self._handles.handle, **engine_kwargs)
-        except TypeError:
+            self._book = Workbook(self._handles.handle, **self._engine_kwargs)  # type: ignore[arg-type]
+        except TypeError as e:
             self._handles.handle.close()
-            raise
+            raise RuntimeError("Failed to create XlsxWriter workbook") from e
 
     @property
     def book(self):
@@ -260,14 +265,32 @@ class XlsxWriter(ExcelWriter):
         if validate_freeze_panes(freeze_panes):
             wks.freeze_panes(*(freeze_panes))
 
-        min_row = None
-        min_col = None
-        max_row = None
-        max_col = None
+        # Initialize bounds with first cell
+        first_cell = next(cells, None)
+        if first_cell is None:
+            return
 
-        header_bold = bool(self._engine_kwargs.get("header_bold", False)) if hasattr(self, "_engine_kwargs") else False
-        bold_format = self.book.add_format({"bold": True}) if header_bold else None
+        # Initialize with first cell's position
+        min_row = startrow + first_cell.row
+        min_col = startcol + first_cell.col
+        max_row = min_row
+        max_col = min_col
 
+        # Process first cell
+        val, fmt = self._value_with_fmt(first_cell.val)
+        stylekey = json.dumps(first_cell.style)
+        if fmt:
+            stylekey += fmt
+
+        if stylekey in style_dict:
+            style = style_dict[stylekey]
+        else:
+            style = self.book.add_format(_XlsxStyler.convert(first_cell.style, fmt))
+            style_dict[stylekey] = style
+
+        wks.write(startrow + first_cell.row, startcol + first_cell.col, val, style)
+
+        # Process remaining cells
         for cell in cells:
             val, fmt = self._value_with_fmt(cell.val)
 
@@ -281,34 +304,43 @@ class XlsxWriter(ExcelWriter):
                 style = self.book.add_format(_XlsxStyler.convert(cell.style, fmt))
                 style_dict[stylekey] = style
 
-            crow = startrow + cell.row
-            ccol = startcol + cell.col
-            if min_row is None or crow < min_row:
-                min_row = crow
-            if min_col is None or ccol < min_col:
-                min_col = ccol
-            if max_row is None or crow > max_row:
-                max_row = crow
-            if max_col is None or ccol > max_col:
-                max_col = ccol
+            row = startrow + cell.row
+            col = startcol + cell.col
+
+            # Write the cell
+            wks.write(row, col, val, style)
+
+            # Update bounds
+            min_row = min(min_row, row) if min_row is not None else row
+            min_col = min(min_col, col) if min_col is not None else col
+            max_row = max(max_row, row) if max_row is not None else row
+            max_col = max(max_col, col) if max_col is not None else col
 
             if cell.mergestart is not None and cell.mergeend is not None:
                 wks.merge_range(
-                    crow,
-                    ccol,
+                    row,
+                    col,
                     startrow + cell.mergestart,
                     startcol + cell.mergeend,
                     val,
                     style,
                 )
             else:
-                if bold_format is not None and (startrow == crow):
-                    wks.write(crow, ccol, val, bold_format)
-                else:
-                    wks.write(crow, ccol, val, style)
+                wks.write(row, col, val, style)
 
-        if hasattr(self, "_engine_kwargs") and bool(self._engine_kwargs.get("autofilter_header", False)):
-            if min_row is not None and min_col is not None and max_row is not None and max_col is not None:
+        # Apply autofilter if requested
+        if getattr(self, "autofilter", False):
+            wks.autofilter(min_row, min_col, max_row, max_col)
+
+        if hasattr(self, "_engine_kwargs") and bool(
+            self._engine_kwargs.get("autofilter_header", False)
+        ):
+            if (
+                min_row is not None
+                and min_col is not None
+                and max_row is not None
+                and max_col is not None
+            ):
                 try:
                     wks.autofilter(min_row, min_col, max_row, max_col)
                 except Exception:
