@@ -4,6 +4,10 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
+from enum import (
+    Enum,
+    auto,
+)
 import operator
 
 import numpy as np
@@ -424,6 +428,62 @@ class TestSeriesFlexComparison:
         right = Series([2, 2, 2], index=list("bcd"))
         result = getattr(left, op)(right, fill_value=fill_value)
         expected = Series(values, index=list("abcd"))
+        tm.assert_series_equal(result, expected)
+
+    def test_eq_objects(self) -> None:
+        # GH#62191 Test eq with Enum and List elements
+
+        class Thing(Enum):
+            FIRST = auto()
+            SECOND = auto()
+
+        left = pd.Series([Thing.FIRST, Thing.SECOND])
+        py_l = [Thing.FIRST, Thing.SECOND]
+
+        result = left.eq(Thing.FIRST)
+        expected = pd.Series([True, False])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(py_l)
+        expected = pd.Series([True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(np.asarray(py_l))
+        expected = pd.Series([True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(pd.Series(py_l))
+        expected = pd.Series([True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = pd.Series([[1, 2], [3, 4]]).eq([1, 2])
+        expected = pd.Series([True, False])
+        with pytest.raises(AssertionError):
+            tm.assert_series_equal(result, expected)
+        expected = pd.Series([False, False])
+        tm.assert_series_equal(result, expected)
+
+    def test_eq_with_index(self) -> None:
+        # GH#62191 Test eq with non-trivial indices
+        left = pd.Series([1, 2], index=[1, 0])
+        py_l = [1, 2]
+
+        # assuming Python list has the same index as the Series
+        result = left.eq(py_l)
+        expected = pd.Series([True, True], index=[1, 0])
+        tm.assert_series_equal(result, expected)
+
+        # assuming np.ndarray has the same index as the Series
+        result = left.eq(np.asarray(py_l))
+        expected = pd.Series([True, True], index=[1, 0])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(pd.Series(py_l))
+        expected = pd.Series([False, False])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(pd.Series([2, 1]))
+        expected = pd.Series([True, True])
         tm.assert_series_equal(result, expected)
 
 
