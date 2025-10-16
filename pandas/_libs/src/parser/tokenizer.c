@@ -1872,8 +1872,7 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
   return 0;
 }
 
-int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
-                     int *error, char tsep) {
+int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1907,7 +1906,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   char *endptr;
   int64_t number = strtoll(p, &endptr, 10);
 
-  if (errno == ERANGE || number > int_max || number < int_min) {
+  if (errno == ERANGE) {
     *error = ERROR_OVERFLOW;
     errno = 0;
     return 0;
@@ -1928,8 +1927,8 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   return number;
 }
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
-                       uint64_t uint_max, int *error, char tsep) {
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
+                       char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1967,7 +1966,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   char *endptr;
   uint64_t number = strtoull(p, &endptr, 10);
 
-  if (errno == ERANGE || number > uint_max) {
+  if (errno == ERANGE) {
     *error = ERROR_OVERFLOW;
     errno = 0;
     return 0;
@@ -1984,7 +1983,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     return 0;
   }
 
-  if (number > (uint64_t)int_max) {
+  if (number > (uint64_t)INT64_MAX) {
     state->seen_uint = 1;
   }
 
