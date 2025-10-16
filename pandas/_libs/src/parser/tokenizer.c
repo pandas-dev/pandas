@@ -1905,9 +1905,9 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   }
 
   char *endptr;
-  int64_t result = strtoll(p, &endptr, 10);
+  int64_t number = strtoll(p, &endptr, 10);
 
-  if (errno == ERANGE || result > int_max || result < int_min) {
+  if (errno == ERANGE || number > int_max || number < int_min) {
     *error = ERROR_OVERFLOW;
     errno = 0;
     return 0;
@@ -1925,7 +1925,7 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   }
 
   *error = 0;
-  return result;
+  return number;
 }
 
 uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
@@ -1965,9 +1965,9 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   }
 
   char *endptr;
-  uint64_t result = strtoull(p, &endptr, 10);
+  uint64_t number = strtoull(p, &endptr, 10);
 
-  if (errno == ERANGE || result > uint_max) {
+  if (errno == ERANGE || number > uint_max) {
     *error = ERROR_OVERFLOW;
     errno = 0;
     return 0;
@@ -1984,10 +1984,10 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     return 0;
   }
 
-  if (result > (uint64_t)int_max) {
+  if (number > (uint64_t)int_max) {
     state->seen_uint = 1;
   }
 
   *error = 0;
-  return result;
+  return number;
 }
