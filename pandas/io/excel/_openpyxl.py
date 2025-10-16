@@ -26,7 +26,10 @@ from pandas.io.excel._util import (
 if TYPE_CHECKING:
     from openpyxl import Workbook
     from openpyxl.descriptors.serialisable import Serialisable
-    from openpyxl.styles import Fill
+    from openpyxl.styles import (
+        Fill,
+        Font,
+    )
 
     from pandas._typing import (
         ExcelWriterIfSheetExists,
@@ -52,6 +55,7 @@ class OpenpyxlWriter(ExcelWriter):
         storage_options: StorageOptions | None = None,
         if_sheet_exists: ExcelWriterIfSheetExists | None = None,
         engine_kwargs: dict[str, Any] | None = None,
+        autofilter: bool = False,
         **kwargs,
     ) -> None:
         # Use the openpyxl module as the Excel writer.
@@ -67,8 +71,8 @@ class OpenpyxlWriter(ExcelWriter):
             engine_kwargs=engine_kwargs,
         )
 
-        # Persist engine kwargs for later feature toggles (e.g., autofilter/header bold)
-        self._engine_kwargs = engine_kwargs
+        self._engine_kwargs = engine_kwargs or {}
+        self.autofilter = autofilter
 
         # ExcelWriter replaced "a" by "r+" to allow us to first read the excel file from
         # the file and later write to it
@@ -184,50 +188,65 @@ class OpenpyxlWriter(ExcelWriter):
             return Color(**color_spec)
 
     @classmethod
-    def _convert_to_font(cls, font_dict):
-        """
-        Convert ``font_dict`` to an openpyxl v2 Font object.
+    def _convert_to_font(cls, style_dict: dict) -> Font:
+        """Convert style_dict to an openpyxl Font object.
 
         Parameters
         ----------
-        font_dict : dict
-            A dict with zero or more of the following keys (or their synonyms).
-                'name'
-                'size' ('sz')
-                'bold' ('b')
-                'italic' ('i')
-                'underline' ('u')
-                'strikethrough' ('strike')
-                'color'
-                'vertAlign' ('vertalign')
-                'charset'
-                'scheme'
-                'family'
-                'outline'
-                'shadow'
-                'condense'
+        style_dict : dict
+            Dictionary of style properties
 
         Returns
         -------
-        font : openpyxl.styles.Font
+        openpyxl.styles.Font
+            The converted font object
         """
         from openpyxl.styles import Font
 
-        _font_key_map = {
-            "sz": "size",
+        if not style_dict:
+            return Font()
+
+        # Check for font-weight in different formats
+        is_bold = False
+
+        # Check for 'font-weight' directly in style_dict
+        if style_dict.get("font-weight") in ("bold", "bolder", 700, "700"):
+            is_bold = True
+        # Check for 'font' dictionary with 'weight' key
+        elif isinstance(style_dict.get("font"), dict) and style_dict["font"].get(
+            "weight"
+        ) in ("bold", "bolder", 700, "700"):
+            is_bold = True
+        # Check for 'b' or 'bold' keys
+        elif style_dict.get("b") or style_dict.get("bold"):
+            is_bold = True
+
+        # Map style keys to Font constructor arguments
+        key_map = {
             "b": "bold",
             "i": "italic",
             "u": "underline",
             "strike": "strikethrough",
-            "vertalign": "vertAlign",
+            "vertAlign": "vertAlign",
+            "sz": "size",
+            "color": "color",
+            "name": "name",
+            "family": "family",
+            "scheme": "scheme",
         }
 
-        font_kwargs = {}
-        for k, v in font_dict.items():
-            k = _font_key_map.get(k, k)
-            if k == "color":
-                v = cls._convert_to_color(v)
-            font_kwargs[k] = v
+        font_kwargs = {"bold": is_bold}  # Set bold based on our checks
+
+        # Process other font properties
+        for style_key, font_key in key_map.items():
+            if style_key in style_dict and style_key not in (
+                "b",
+                "bold",
+            ):  # Skip b/bold as we've already handled it
+                value = style_dict[style_key]
+                if font_key == "color" and value is not None:
+                    value = cls._convert_to_color(value)
+                font_kwargs[font_key] = value
 
         return Font(**font_kwargs)
 
@@ -455,9 +474,9 @@ class OpenpyxlWriter(ExcelWriter):
     ) -> None:
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
+        _style_cache: dict[str, dict[str, Any]] = {}
 
-        _style_cache: dict[str, dict[str, Serialisable]] = {}
-
+        # Initialize worksheet
         if sheet_name in self.sheets and self._if_sheet_exists != "new":
             if "r+" in self._mode:
                 if self._if_sheet_exists == "replace":
@@ -490,90 +509,71 @@ class OpenpyxlWriter(ExcelWriter):
             )
 
         # Track bounds for autofilter application
-        min_row = None
-        min_col = None
-        max_row = None
-        max_col = None
+        min_row = min_col = max_row = max_col = None
 
-        # Prepare header bold setting
-        header_bold = bool(self._engine_kwargs.get("header_bold", False)) if hasattr(self, "_engine_kwargs") else False
-
+        # Process cells
         for cell in cells:
-            xcell = wks.cell(
-                row=startrow + cell.row + 1, column=startcol + cell.col + 1
-            )
+            xrow = startrow + cell.row
+            xcol = startcol + cell.col
+            xcell = wks.cell(row=xrow + 1, column=xcol + 1)  # +1 for 1-based indexing
+
+            # Apply cell value and format
             xcell.value, fmt = self._value_with_fmt(cell.val)
             if fmt:
                 xcell.number_format = fmt
 
-            style_kwargs: dict[str, Serialisable] | None = {}
+            # Apply cell style if provided
             if cell.style:
                 key = str(cell.style)
-                style_kwargs = _style_cache.get(key)
-                if style_kwargs is None:
+                if key not in _style_cache:
                     style_kwargs = self._convert_to_style_kwargs(cell.style)
                     _style_cache[key] = style_kwargs
+                else:
+                    style_kwargs = _style_cache[key]
 
-            if style_kwargs:
+                # Apply the style
                 for k, v in style_kwargs.items():
                     setattr(xcell, k, v)
 
             # Update bounds
-            crow = startrow + cell.row + 1
-            ccol = startcol + cell.col + 1
-            if min_row is None or crow < min_row:
-                min_row = crow
-            if min_col is None or ccol < min_col:
-                min_col = ccol
-            if max_row is None or crow > max_row:
-                max_row = crow
-            if max_col is None or ccol > max_col:
-                max_col = ccol
+            if min_row is None or xrow < min_row:
+                min_row = xrow
+            if max_row is None or xrow > max_row:
+                max_row = xrow
+            if min_col is None or xcol < min_col:
+                min_col = xcol
+            if max_col is None or xcol > max_col:
+                max_col = xcol
 
-            # Apply bold to first header row cells if requested
-            if header_bold and (cell.row == 0):
-                try:
-                    from openpyxl.styles import Font
-                    xcell.font = Font(bold=True)
-                except Exception:
-                    pass
+        # Apply autofilter if requested
+        if getattr(self, "autofilter", False) and all(
+            v is not None for v in [min_row, min_col, max_row, max_col]
+        ):
+            try:
+                from openpyxl.utils import get_column_letter
 
-            if cell.mergestart is not None and cell.mergeend is not None:
-                wks.merge_cells(
-                    start_row=startrow + cell.row + 1,
-                    start_column=startcol + cell.col + 1,
-                    end_column=startcol + cell.mergeend + 1,
-                    end_row=startrow + cell.mergestart + 1,
-                )
+                start_ref = f"{get_column_letter(min_col + 1)}{min_row + 1}"
+                end_ref = f"{get_column_letter(max_col + 1)}{max_row + 1}"
+                wks.auto_filter.ref = f"{start_ref}:{end_ref}"
+            except Exception:
+                pass
 
-                # When cells are merged only the top-left cell is preserved
-                # The behaviour of the other cells in a merged range is
-                # undefined
-                if style_kwargs:
-                    first_row = startrow + cell.row + 1
-                    last_row = startrow + cell.mergestart + 1
-                    first_col = startcol + cell.col + 1
-                    last_col = startcol + cell.mergeend + 1
 
-                    for row in range(first_row, last_row + 1):
-                        for col in range(first_col, last_col + 1):
-                            if row == first_row and col == first_col:
-                                # Ignore first cell. It is already handled.
-                                continue
-                            xcell = wks.cell(column=col, row=row)
-                            for k, v in style_kwargs.items():
-                                setattr(xcell, k, v)
+def _update_bounds(self, wks, cell, startrow, startcol):
+    """Helper method to update the bounds for autofilter"""
+    global min_row, max_row, min_col, max_col
 
-        # Apply autofilter over the used range if requested
-        if hasattr(self, "_engine_kwargs") and bool(self._engine_kwargs.get("autofilter_header", False)):
-            if min_row is not None and min_col is not None and max_row is not None and max_col is not None:
-                try:
-                    from openpyxl.utils import get_column_letter
-                    start_ref = f"{get_column_letter(min_col)}{min_row}"
-                    end_ref = f"{get_column_letter(max_col)}{max_row}"
-                    wks.auto_filter.ref = f"{start_ref}:{end_ref}"
-                except Exception:
-                    pass
+    crow = startrow + cell.row + 1
+    ccol = startcol + cell.col + 1
+
+    if min_row is None or crow < min_row:
+        min_row = crow
+    if max_row is None or crow > max_row:
+        max_row = crow
+    if min_col is None or ccol < min_col:
+        min_col = ccol
+    if max_col is None or ccol > max_col:
+        max_col = ccol
 
 
 class OpenpyxlReader(BaseExcelReader["Workbook"]):
