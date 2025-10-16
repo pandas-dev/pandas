@@ -172,7 +172,7 @@ class StringDtype(StorageExtensionDtype):
             warnings.warn(
                 "The 'pyarrow_numpy' storage option name is deprecated and will be "
                 'removed in pandas 3.0. Use \'pd.StringDtype(storage="pyarrow", '
-                "na_value-np.nan)' to construct the same dtype.\nOr enable the "
+                "na_value=np.nan)' to construct the same dtype.\nOr enable the "
                 "'pd.options.future.infer_string = True' option globally and use "
                 'the "str" alias as a shorthand notation to specify a dtype '
                 '(instead of "string[pyarrow_numpy]").',
@@ -1113,6 +1113,16 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 other = np.asarray(other)
             other = other[valid]
 
+        other_dtype = getattr(other, "dtype", None)
+        if op.__name__.strip("_") in ["mul", "rmul"] and (
+            lib.is_bool(other) or lib.is_np_dtype(other_dtype, "b")
+        ):
+            # GH#62595
+            raise TypeError(
+                "Cannot multiply StringArray by bools. "
+                "Explicitly cast to integers instead."
+            )
+
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
             result[mask] = self.dtype.na_value
@@ -1134,3 +1144,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return res_arr
 
     _arith_method = _cmp_method
+
+    def _str_zfill(self, width: int) -> Self:
+        return self._str_map(lambda x: x.zfill(width))
