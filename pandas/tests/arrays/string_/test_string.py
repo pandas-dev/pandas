@@ -61,14 +61,6 @@ def string_dtype_highest_priority(dtype1, dtype2):
     return DTYPE_HIERARCHY[max(h1, h2)]
 
 
-def test_dtype_constructor():
-    pytest.importorskip("pyarrow")
-
-    with tm.assert_produces_warning(FutureWarning):
-        dtype = pd.StringDtype("pyarrow_numpy")
-    assert dtype == pd.StringDtype("pyarrow", na_value=np.nan)
-
-
 def test_dtype_equality():
     pytest.importorskip("pyarrow")
 
