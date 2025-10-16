@@ -326,7 +326,10 @@ def test_factorize_unsigned():
 
 
 # TODO: Add the smaller width dtypes to the parameter sets of these tests.
-@pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.uint32, np.uint64, np.int8, np.int16, np.int32, np.int64])
+@pytest.mark.parametrize(
+    "dtype",
+    [np.uint8, np.uint16, np.uint32, np.uint64, np.int8, np.int16, np.int32, np.int64],
+)
 def test_take_assigns_floating_point_dtype(dtype):
     # GH#62448.
     array = NumpyExtensionArray(np.array([1, 2, 3], dtype=dtype))
@@ -339,7 +342,11 @@ def test_take_assigns_floating_point_dtype(dtype):
 
     assert result.dtype.numpy_dtype == np.float64
 
-@pytest.mark.parametrize("dtype", [np.uint8, np.uint16, np.uint32, np.uint64, np.int8, np.int16, np.int32, np.int64])
+
+@pytest.mark.parametrize(
+    "dtype",
+    [np.uint8, np.uint16, np.uint32, np.uint64, np.int8, np.int16, np.int32, np.int64],
+)
 def test_take_assigns_integer_dtype_when_fill_disallowed(dtype):
     # GH#62448.
     array = NumpyExtensionArray(np.array([1, 2, 3], dtype=dtype))
