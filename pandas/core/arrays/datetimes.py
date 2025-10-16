@@ -831,10 +831,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     idx_self = units.index(self.unit)
                     idx_offset = units.index(offset_unit)
                     res_unit = units[min(idx_self, idx_offset)]
-            dtype_naive = np.dtype(f"datetime64[{res_unit}]")
-            if res_values.dtype != dtype_naive:
-                res_values = res_values.astype(dtype_naive)
-            result = type(self)._simple_new(res_values, dtype=dtype_naive)
+            result = type(self)._simple_new(res_values, dtype=res_values.dtype)
+            result = result.as_unit(res_unit)
 
             if offset.normalize:
                 result = result.normalize()
