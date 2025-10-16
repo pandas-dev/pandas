@@ -478,12 +478,6 @@ def is_valid_string_storage(value: Any) -> None:
     legal_values = ["auto", "python", "pyarrow"]
     if value not in legal_values:
         msg = "Value must be one of python|pyarrow"
-        if value == "pyarrow_numpy":
-            # TODO: we can remove extra message after 3.0
-            msg += (
-                ". 'pyarrow_numpy' was specified, but this option should be "
-                "enabled using pandas.options.future.infer_string instead"
-            )
         raise ValueError(msg)
 
 
