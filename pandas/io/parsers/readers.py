@@ -850,7 +850,8 @@ def read_csv(
         Alias for ``sep``.
     header : int, Sequence of int, 'infer' or None, default 'infer'
         Row number(s) containing column labels and marking the start of the
-        data (zero-indexed). Default behavior is to infer the column names: if no ``names``
+        data (zero-indexed). Default behavior is to infer the column names:
+        if no ``names``
         are passed the behavior is identical to ``header=0`` and column
         names are inferred from the first line of the file, if column
         names are passed explicitly to ``names`` then the behavior is identical to
@@ -866,7 +867,8 @@ def read_csv(
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
         ``".{{count}}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
-        Empty headers are named ``"Unnamed: {{i}}"`` or ``"Unnamed: {{i}}_level_{{level}}"``
+        Empty headers are named ``"Unnamed: {{i}}"`` or ``
+        "Unnamed: {{i}}_level_{{level}}"``
         in the case of MultiIndex columns.
     names : Sequence of Hashable, optional
         Sequence of column labels to apply. If the file contains a header row,
@@ -874,18 +876,21 @@ def read_csv(
         Duplicates in this list are not allowed.
     index_col : Hashable, Sequence of Hashable or False, optional
       Column(s) to use as row label(s), denoted either by column labels or column
-      indices.  If a sequence of labels or indices is given, :class:`~pandas.MultiIndex`
+      indices.  If a sequence of labels or indices is given,
+      :class:`~pandas.MultiIndex`
       will be formed for the row labels.
 
       Note: ``index_col=False`` can be used to force pandas to *not* use the first
       column as the index, e.g., when you have a malformed file with delimiters at
       the end of each line.
     usecols : Sequence of Hashable or Callable, optional
-        Subset of columns to select, denoted either by column labels or column indices.
+        Subset of columns to select, denoted either
+        by column labels or column indices.
         If list-like, all elements must either
         be positional (i.e. integer indices into the document columns) or strings
         that correspond to column names provided either by the user in ``names`` or
-        inferred from the document header row(s). If ``names`` are given, the document
+        inferred from the document header row(s).
+        If ``names`` are given, the document
         header row(s) are not taken into account. For example, a valid list-like
         ``usecols`` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
         Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
@@ -910,25 +915,32 @@ def read_csv(
 
         .. versionadded:: 1.5.0
 
-            Support for ``defaultdict`` was added. Specify a ``defaultdict`` as input where
-            the default determines the ``dtype`` of the columns which are not explicitly
+            Support for ``defaultdict`` was
+            added. Specify a ``defaultdict`` as input where
+            the default determines the ``dtype``
+            of the columns which are not explicitly
             listed.
     engine : {{'c', 'python', 'pyarrow'}}, optional
-        Parser engine to use. The C and pyarrow engines are faster, while the python engine
-        is currently more feature-complete. Multithreading is currently only supported by
+        Parser engine to use. The C and pyarrow engines are faster,
+        while the python engine
+        is currently more feature-complete. Multithreading
+        is currently only supported by
         the pyarrow engine.
 
         .. versionadded:: 1.4.0
 
-            The 'pyarrow' engine was added as an *experimental* engine, and some features
+            The 'pyarrow' engine was added as an *experimental* engine,
+            and some features
             are unsupported, or may not work correctly, with this engine.
     converters : dict of {{Hashable : Callable}}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices.
     true_values : list, optional
-        Values to consider as ``True`` in addition to case-insensitive variants of 'True'.
+        Values to consider as ``True`` in addition
+        to case-insensitive variants of 'True'.
     false_values : list, optional
-        Values to consider as ``False`` in addition to case-insensitive variants of 'False'.
+        Values to consider as ``False`` in addition to case-insensitive
+        variants of 'False'.
     skipinitialspace : bool, default False
         Skip spaces after delimiter.
     skiprows : int, list of int or Callable, optional
@@ -936,7 +948,8 @@ def read_csv(
         at the start of the file.
 
         If callable, the callable function will be evaluated against the row
-        indices, returning ``True`` if the row should be skipped and ``False`` otherwise.
+        indices, returning ``True`` if the row should be skipped and ``False``
+        otherwise.
         An example of a valid callable argument would be ``lambda x: x in [0, 2]``.
     skipfooter : int, default 0
         Number of lines at bottom of file to skip (Unsupported with ``engine='c'``).
@@ -954,15 +967,20 @@ def read_csv(
 
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
-    na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, optional
-        Additional strings to recognize as ``NA``/``NaN``. If ``dict`` passed, specific
-        per-column ``NA`` values.  By default the following values are interpreted as
-        ``NaN``: empty string, "NaN", "N/A", "NULL", and other common representations of missing data.
+    na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}},
+    optional
+        Additional strings to recognize as ``NA``/``NaN``. If ``dict``
+        passed, specific
+        per-column ``NA`` values.  By default the following values
+        are interpreted as
+        ``NaN``: empty string, "NaN", "N/A", "NULL", and other common
+        representations of missing data.
     keep_default_na : bool, default True
         Whether or not to include the default ``NaN`` values when parsing the data.
         Depending on whether ``na_values`` is passed in, the behavior is as follows:
 
-        * If ``keep_default_na`` is ``True``, and ``na_values`` are specified, ``na_values``
+        * If ``keep_default_na`` is ``True``, and ``na_values``
+        are specified, ``na_values``
           is appended to the default ``NaN`` values used for parsing.
         * If ``keep_default_na`` is ``True``, and ``na_values`` are not specified, only
           the default ``NaN`` values are used for parsing.
@@ -971,7 +989,8 @@ def read_csv(
         * If ``keep_default_na`` is ``False``, and ``na_values`` are not specified, no
           strings will be parsed as ``NaN``.
 
-        Note that if ``na_filter`` is passed in as ``False``, the ``keep_default_na`` and
+        Note that if ``na_filter`` is passed in as ``False``,
+        the ``keep_default_na`` and
         ``na_values`` parameters will be ignored.
     na_filter : bool, default True
         Detect missing value markers (empty strings and the value of ``na_values``). In
@@ -984,7 +1003,8 @@ def read_csv(
 
         * ``bool``. If ``True`` -> try parsing the index.
         * ``None``. Behaves like ``True`` if ``date_format`` is specified.
-        * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
+        * ``list`` of ``int`` or
+        names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
           each as a separate date column.
 
         If a column or index cannot be represented as an array of ``datetime``,
@@ -995,7 +1015,8 @@ def read_csv(
 
         Note: A fast-path exists for iso8601-formatted dates.
     date_format : str or dict of column -> format, optional
-        Format to use for parsing dates and/or times when used in conjunction with ``parse_dates``.
+        Format to use for parsing dates and/or times when
+        used in conjunction with ``parse_dates``.
         The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
         `strftime documentation
         <https://docs.python.org/3/library/datetime.html
@@ -1027,19 +1048,23 @@ def read_csv(
         for more information on ``iterator`` and ``chunksize``.
 
     compression : str or dict, default 'infer'
-        For on-the-fly decompression of on-disk data. If 'infer' and 'filepath_or_buffer' is
+        For on-the-fly decompression of on-disk data.
+        If 'infer' and 'filepath_or_buffer' is
         path-like, then detect compression from the following extensions: '.gz',
         '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
         (otherwise no compression).
-        If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in.
+        If using 'zip' or 'tar', the ZIP file must contain only
+        one data file to be read in.
         Set to ``None`` for no decompression.
         Can also be a dict with key ``'method'`` set
-        to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+        to one of {``'zip'``, ``'gzip'``, ``'bz2'``,
+        ``'zstd'``, ``'xz'``, ``'tar'``} and
         other key-value pairs are forwarded to
         ``zipfile.ZipFile``, ``gzip.GzipFile``,
         ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or
         ``tarfile.TarFile``, respectively.
-        As an example, the following could be passed for Zstandard decompression using a
+        As an example, the following could be passed for
+        Zstandard decompression using a
         custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
@@ -1055,10 +1080,13 @@ def read_csv(
     quotechar : str (length 1), optional
         Character used to denote the start and end of a quoted item. Quoted
         items can include the ``delimiter`` and it will be ignored.
-    quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+    quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL,
+    2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
         Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
-        ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that only fields containing special
-        characters are quoted (e.g., characters defined in ``quotechar``, ``delimiter``,
+        ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that
+        only fields containing special
+        characters are quoted (e.g., characters defined
+        in ``quotechar``, ``delimiter``,
         or ``lineterminator``.
     doublequote : bool, default True
        When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``, indicate
@@ -1097,18 +1125,23 @@ def read_csv(
         Allowed values are:
 
         - ``'error'``, raise an Exception when a bad line is encountered.
-        - ``'warn'``, raise a warning when a bad line is encountered and skip that line.
-        - ``'skip'``, skip bad lines without raising or warning when they are encountered.
+        - ``'warn'``, raise a warning when a bad line is
+        encountered and skip that line.
+        - ``'skip'``, skip bad lines without raising or warning when
+        they are encountered.
         - Callable, function that will process a single bad line.
             - With ``engine='python'``, function with signature
               ``(bad_line: list[str]) -> list[str] | None``.
               ``bad_line`` is a list of strings split by the ``sep``.
               If the function returns ``None``, the bad line will be ignored.
-              If the function returns a new ``list`` of strings with more elements than
-              expected, a ``ParserWarning`` will be emitted while dropping extra elements.
+              If the function returns a new ``list`` of strings with
+            more elements than
+              expected, a ``ParserWarning`` will be emitted while
+            dropping extra elements.
             - With ``engine='pyarrow'``, function with signature
               as described in pyarrow documentation: `invalid_row_handler
-              <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
+              <https://arrow.apache.org/docs/python
+            /generated/pyarrow.csv.ParseOptions.html
               #pyarrow.csv.ParseOptions.invalid_row_handler>`_.
 
         .. versionadded:: 1.3.0
@@ -1126,7 +1159,8 @@ def read_csv(
         while parsing, but possibly mixed type inference.  To ensure no mixed
         types either set ``False``, or specify the type with the ``dtype`` parameter.
         Note that the entire file is read into a single :class:`~pandas.DataFrame`
-        regardless, use the ``chunksize`` or ``iterator`` parameter to return the data in
+        regardless, use the ``chunksize`` or ``iterator``
+        parameter to return the data in
         chunks. (Only valid with C parser).
     memory_map : bool, default False
         If a filepath is provided for ``filepath_or_buffer``, map the file object
@@ -1155,7 +1189,8 @@ def read_csv(
         is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype` :class:`DataFrame`
+        * ``"pyarrow"``: returns
+        pyarrow-backed nullable :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
@@ -1402,7 +1437,8 @@ def read_table(
         Alias for ``sep``.
     header : int, Sequence of int, 'infer' or None, default 'infer'
         Row number(s) containing column labels and marking the start of the
-        data (zero-indexed). Default behavior is to infer the column names: if no ``names``
+        data (zero-indexed). Default behavior
+        is to infer the column names: if no ``names``
         are passed the behavior is identical to ``header=0`` and column
         names are inferred from the first line of the file, if column
         names are passed explicitly to ``names`` then the behavior is identical to
@@ -1418,7 +1454,8 @@ def read_table(
         When inferred from the file contents, headers are kept distinct from
         each other by renaming duplicate names with a numeric suffix of the form
         ``".{{count}}"`` starting from 1, e.g. ``"foo"`` and ``"foo.1"``.
-        Empty headers are named ``"Unnamed: {{i}}"`` or ``"Unnamed: {{i}}_level_{{level}}"``
+        Empty headers are named
+        ``"Unnamed: {{i}}"`` or ``"Unnamed: {{i}}_level_{{level}}"``
         in the case of MultiIndex columns.
     names : Sequence of Hashable, optional
         Sequence of column labels to apply. If the file contains a header row,
@@ -1462,25 +1499,32 @@ def read_table(
 
         .. versionadded:: 1.5.0
 
-            Support for ``defaultdict`` was added. Specify a ``defaultdict`` as input where
-            the default determines the ``dtype`` of the columns which are not explicitly
+            Support for ``defaultdict`` was added.
+            Specify a ``defaultdict`` as input where
+            the default determines the ``dtype`` of the columns which
+            are not explicitly
             listed.
     engine : {{'c', 'python', 'pyarrow'}}, optional
-        Parser engine to use. The C and pyarrow engines are faster, while the python engine
-        is currently more feature-complete. Multithreading is currently only supported by
+        Parser engine to use. The C and pyarrow engines are faster,
+        while the python engine
+        is currently more feature-complete. Multithreading is
+        currently only supported by
         the pyarrow engine.
 
         .. versionadded:: 1.4.0
 
-            The 'pyarrow' engine was added as an *experimental* engine, and some features
+            The 'pyarrow' engine was added as an *experimental* engine,
+            and some features
             are unsupported, or may not work correctly, with this engine.
     converters : dict of {{Hashable : Callable}}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices.
     true_values : list, optional
-        Values to consider as ``True`` in addition to case-insensitive variants of 'True'.
+        Values to consider as ``True`` in addition to
+        case-insensitive variants of 'True'.
     false_values : list, optional
-        Values to consider as ``False`` in addition to case-insensitive variants of 'False'.
+        Values to consider as ``False`` in addition
+        to case-insensitive variants of 'False'.
     skipinitialspace : bool, default False
         Skip spaces after delimiter.
     skiprows : int, list of int or Callable, optional
@@ -1488,7 +1532,8 @@ def read_table(
         at the start of the file.
 
         If callable, the callable function will be evaluated against the row
-        indices, returning ``True`` if the row should be skipped and ``False`` otherwise.
+        indices, returning ``True`` if the row
+        should be skipped and ``False`` otherwise.
         An example of a valid callable argument would be ``lambda x: x in [0, 2]``.
     skipfooter : int, default 0
         Number of lines at bottom of file to skip (Unsupported with ``engine='c'``).
@@ -1506,15 +1551,19 @@ def read_table(
 
         * To read rows 1,000,000 through 1,999,999:
           ``read_csv(..., skiprows=1000000, nrows=999999)``
-    na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, optional
-        Additional strings to recognize as ``NA``/``NaN``. If ``dict`` passed, specific
+    na_values : Hashable, Iterable of Hashable or
+    dict of {{Hashable : Iterable}}, optional
+        Additional strings to recognize as ``NA``/``NaN``.
+        If ``dict`` passed, specific
         per-column ``NA`` values.  By default the following values are interpreted as
-        ``NaN``: empty string, "NaN", "N/A", "NULL", and other common representations of missing data.
+        ``NaN``: empty string, "NaN", "N/A", "NULL", and other
+        common representations of missing data.
     keep_default_na : bool, default True
         Whether or not to include the default ``NaN`` values when parsing the data.
         Depending on whether ``na_values`` is passed in, the behavior is as follows:
 
-        * If ``keep_default_na`` is ``True``, and ``na_values`` are specified, ``na_values``
+        * If ``keep_default_na`` is ``True``,
+        and ``na_values`` are specified, ``na_values``
           is appended to the default ``NaN`` values used for parsing.
         * If ``keep_default_na`` is ``True``, and ``na_values`` are not specified, only
           the default ``NaN`` values are used for parsing.
@@ -1523,7 +1572,8 @@ def read_table(
         * If ``keep_default_na`` is ``False``, and ``na_values`` are not specified, no
           strings will be parsed as ``NaN``.
 
-        Note that if ``na_filter`` is passed in as ``False``, the ``keep_default_na`` and
+        Note that if ``na_filter`` is passed in as
+        ``False``, the ``keep_default_na`` and
         ``na_values`` parameters will be ignored.
     na_filter : bool, default True
         Detect missing value markers (empty strings and the value of ``na_values``). In
@@ -1536,7 +1586,8 @@ def read_table(
 
         * ``bool``. If ``True`` -> try parsing the index.
         * ``None``. Behaves like ``True`` if ``date_format`` is specified.
-        * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
+        * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` ->
+        try parsing columns 1, 2, 3
           each as a separate date column.
 
         If a column or index cannot be represented as an array of ``datetime``,
@@ -1547,7 +1598,8 @@ def read_table(
 
         Note: A fast-path exists for iso8601-formatted dates.
     date_format : str or dict of column -> format, optional
-        Format to use for parsing dates and/or times when used in conjunction with ``parse_dates``.
+        Format to use for parsing dates and/or times when used
+        in conjunction with ``parse_dates``.
         The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
         `strftime documentation
         <https://docs.python.org/3/library/datetime.html
@@ -1579,19 +1631,23 @@ def read_table(
         for more information on ``iterator`` and ``chunksize``.
 
     compression : str or dict, default 'infer'
-        For on-the-fly decompression of on-disk data. If 'infer' and 'filepath_or_buffer' is
+        For on-the-fly decompression of on-disk data. If 'infer'
+        and 'filepath_or_buffer' is
         path-like, then detect compression from the following extensions: '.gz',
         '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
         (otherwise no compression).
-        If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in.
+        If using 'zip' or 'tar', the ZIP file must contain
+        only one data file to be read in.
         Set to ``None`` for no decompression.
         Can also be a dict with key ``'method'`` set
-        to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+        to one of {``'zip'``, ``'gzip'``, ``'bz2'``,
+        ``'zstd'``, ``'xz'``, ``'tar'``} and
         other key-value pairs are forwarded to
         ``zipfile.ZipFile``, ``gzip.GzipFile``,
         ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or
         ``tarfile.TarFile``, respectively.
-        As an example, the following could be passed for Zstandard decompression using a
+        As an example, the following could be passed for
+        Zstandard decompression using a
         custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
@@ -1607,10 +1663,13 @@ def read_table(
     quotechar : str (length 1), optional
         Character used to denote the start and end of a quoted item. Quoted
         items can include the ``delimiter`` and it will be ignored.
-    quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
+    quoting : {{0 or csv.QUOTE_MINIMAL, 1 or csv.QUOTE_ALL, 2 or
+    csv.QUOTE_NONNUMERIC, 3 or csv.QUOTE_NONE}}, default csv.QUOTE_MINIMAL
         Control field quoting behavior per ``csv.QUOTE_*`` constants. Default is
-        ``csv.QUOTE_MINIMAL`` (i.e., 0) which implies that only fields containing special
-        characters are quoted (e.g., characters defined in ``quotechar``, ``delimiter``,
+        ``csv.QUOTE_MINIMAL`` (i.e., 0) which
+        implies that only fields containing special
+        characters are quoted (e.g., characters defined
+        in ``quotechar``, ``delimiter``,
         or ``lineterminator``.
     doublequote : bool, default True
        When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``, indicate
@@ -1645,22 +1704,27 @@ def read_table(
         override values, a ``ParserWarning`` will be issued. See ``csv.Dialect``
         documentation for more details.
     on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
-        Specifies what to do upon encountering a bad line (a line with too many fields).
+        Specifies what to do upon encountering a bad
+        line (a line with too many fields).
         Allowed values are:
 
         - ``'error'``, raise an Exception when a bad line is encountered.
-        - ``'warn'``, raise a warning when a bad line is encountered and skip that line.
-        - ``'skip'``, skip bad lines without raising or warning when they are encountered.
+        - ``'warn'``, raise a warning when a bad line is encountered and
+        skip that line.
+        - ``'skip'``, skip bad lines without raising or warning when they
+        are encountered.
         - Callable, function that will process a single bad line.
             - With ``engine='python'``, function with signature
               ``(bad_line: list[str]) -> list[str] | None``.
               ``bad_line`` is a list of strings split by the ``sep``.
               If the function returns ``None``, the bad line will be ignored.
               If the function returns a new ``list`` of strings with more elements than
-              expected, a ``ParserWarning`` will be emitted while dropping extra elements.
+              expected, a ``ParserWarning`` will be emitted while
+            dropping extra elements.
             - With ``engine='pyarrow'``, function with signature
               as described in pyarrow documentation: `invalid_row_handler
-              <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
+              <https://arrow.apache.org/docs/
+              python/generated/pyarrow.csv.ParseOptions.html
               #pyarrow.csv.ParseOptions.invalid_row_handler>`_.
 
         .. versionadded:: 1.3.0
@@ -1678,7 +1742,8 @@ def read_table(
         while parsing, but possibly mixed type inference.  To ensure no mixed
         types either set ``False``, or specify the type with the ``dtype`` parameter.
         Note that the entire file is read into a single :class:`~pandas.DataFrame`
-        regardless, use the ``chunksize`` or ``iterator`` parameter to return the data in
+        regardless, use the ``chunksize`` or ``iterator`` parameter
+        to return the data in
         chunks. (Only valid with C parser).
     memory_map : bool, default False
         If a filepath is provided for ``filepath_or_buffer``, map the file object
@@ -1707,7 +1772,8 @@ def read_table(
         is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype` :class:`DataFrame`
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+        :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
