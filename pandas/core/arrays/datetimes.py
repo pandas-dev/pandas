@@ -64,6 +64,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import isna
 
+from pandas import Timedelta
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
@@ -93,7 +94,6 @@ if TYPE_CHECKING:
 
     from pandas import (
         DataFrame,
-        Timedelta,
     )
     from pandas.core.arrays import PeriodArray
 
@@ -824,27 +824,27 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 "s",
             ]
             res_unit = self.unit
-            # Only try to adjust unit if both units are recognized
-            try:
-                if hasattr(offset, "offset"):
-                    offset_td = Timedelta(offset.offset)
-                    offset_unit = offset_td.unit
-                    if self.unit in units and offset_unit in units:
-                        idx_self = units.index(self.unit)
-                        idx_offset = units.index(offset_unit)
-                        res_unit = units[min(idx_self, idx_offset)]
-            except Exception:
-                res_unit = self.unit
-            dtype = tz_to_dtype(self.tz, unit=res_unit)
-            if res_values.dtype != f"datetime64[{res_unit}]":
-                res_values = res_values.astype(f"datetime64[{res_unit}]")
-            result = type(self)._simple_new(res_values, dtype=dtype)
+            if hasattr(offset, "offset"):
+                offset_td = Timedelta(offset.offset)
+                offset_unit = offset_td.unit
+                if self.unit in units and offset_unit in units:
+                    idx_self = units.index(self.unit)
+                    idx_offset = units.index(offset_unit)
+                    res_unit = units[min(idx_self, idx_offset)]
+            dtype_naive = np.dtype(f"datetime64[{res_unit}]")
+            if res_values.dtype != dtype_naive:
+                res_values = res_values.astype(dtype_naive)
+            result = type(self)._simple_new(res_values, dtype=dtype_naive)
 
             if offset.normalize:
                 result = result.normalize()
                 result._freq = None
 
-            if self.tz is not None:
+            if (
+                self.tz is not None
+                and getattr(result.dtype, "tz", None) is None
+                and res_unit == "ns"
+            ):
                 result = result.tz_localize(self.tz)
 
         return result
