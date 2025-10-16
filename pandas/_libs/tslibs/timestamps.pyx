@@ -1308,7 +1308,10 @@ cdef class _Timestamp(ABCTimestamp):
     # -----------------------------------------------------------------
     # Transformation Methods
 
-    def normalize(self) -> "Timestamp":
+    def normalize(self,
+                  ambiguous: TimeAmbiguous = "raise",
+                  nonexistent: TimeNonexistent = "raise"
+                  ) -> "Timestamp":
         """
         Normalize Timestamp to midnight, preserving tz information.
 
@@ -1346,7 +1349,7 @@ cdef class _Timestamp(ABCTimestamp):
                 "Cannot normalize Timestamp without integer overflow"
             ) from err
         ts = type(self)._from_value_and_reso(normalized, reso=self._creso, tz=None)
-        return ts.tz_localize(self.tzinfo)
+        return ts.tz_localize(self.tzinfo, ambiguous=ambiguous, nonexistent=nonexistent)
 
     # -----------------------------------------------------------------
     # Pickle Methods

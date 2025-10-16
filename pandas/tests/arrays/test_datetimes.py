@@ -844,3 +844,25 @@ def test_factorize_sort_without_freq():
     tda = dta - dta[0]
     with pytest.raises(NotImplementedError, match=msg):
         tda.factorize(sort=True)
+
+
+def test_date_range_dst_boundries():
+    # GH#62602
+    start = pd.Timestamp("2024-04-26 01:00:00", tz="Africa/Cairo")
+    end = pd.Timestamp("2024-04-27 00:00:00", tz="Africa/Cairo")
+    tz = "Africa/Cairo"
+    freq = "D"
+
+    full_range = pd.date_range(
+        start=start,
+        end=end,
+        freq=freq,
+        tz=tz,
+        nonexistent="shift_forward",
+        ambiguous=True,
+        normalize=True,
+    )
+    expected = pd.DatetimeIndex(
+        ["2024-04-26 01:00:00+03:00"], dtype="datetime64[ns, Africa/Cairo]", freq="D"
+    )
+    assert full_range == expected

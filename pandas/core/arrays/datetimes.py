@@ -447,7 +447,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             end = end.as_unit(unit, round_ok=False)
 
         left_inclusive, right_inclusive = validate_inclusive(inclusive)
-        start, end = _maybe_normalize_endpoints(start, end, normalize)
+        start, end = _maybe_normalize_endpoints(
+            start, end, normalize, ambiguous, nonexistent
+        )
         tz = _infer_tz_from_endpoints(start, end, tz)
 
         if tz is not None:
@@ -2878,14 +2880,18 @@ def _infer_tz_from_endpoints(
 
 
 def _maybe_normalize_endpoints(
-    start: _TimestampNoneT1, end: _TimestampNoneT2, normalize: bool
+    start: _TimestampNoneT1,
+    end: _TimestampNoneT2,
+    normalize: bool,
+    ambiguous: TimeAmbiguous = "raise",
+    nonexistent: TimeNonexistent = "raise",
 ) -> tuple[_TimestampNoneT1, _TimestampNoneT2]:
     if normalize:
         if start is not None:
-            start = start.normalize()
+            start = start.normalize(ambiguous=ambiguous, nonexistent=nonexistent)
 
         if end is not None:
-            end = end.normalize()
+            end = end.normalize(ambiguous=ambiguous, nonexistent=nonexistent)
 
     return start, end
 
