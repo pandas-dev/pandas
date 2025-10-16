@@ -1907,6 +1907,12 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   char *endptr;
   int64_t result = strtoll(p, &endptr, 10);
 
+  if (errno == ERANGE || result > int_max || result < int_min) {
+    *error = ERROR_OVERFLOW;
+    errno = 0;
+    return 0;
+  }
+
   // Skip trailing spaces.
   while (isspace_ascii(*endptr)) {
     ++endptr;
@@ -1915,15 +1921,10 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   // Did we use up all the characters?
   if (*endptr) {
     *error = ERROR_INVALID_CHARS;
-    result = 0;
-  } else if (errno == ERANGE || result > int_max || result < int_min) {
-    *error = ERROR_OVERFLOW;
-    errno = 0;
-    result = 0;
-  } else {
-    *error = 0;
+    return 0;
   }
 
+  *error = 0;
   return result;
 }
 
@@ -1966,6 +1967,12 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   char *endptr;
   uint64_t result = strtoull(p, &endptr, 10);
 
+  if (errno == ERANGE || result > uint_max) {
+    *error = ERROR_OVERFLOW;
+    errno = 0;
+    return 0;
+  }
+
   // Skip trailing spaces.
   while (isspace_ascii(*endptr)) {
     ++endptr;
@@ -1974,18 +1981,13 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   // Did we use up all the characters?
   if (*endptr) {
     *error = ERROR_INVALID_CHARS;
-    result = 0;
-  } else if (errno == ERANGE || result > uint_max) {
-    *error = ERROR_OVERFLOW;
-    errno = 0;
-    result = 0;
-  } else {
-    *error = 0;
+    return 0;
   }
 
   if (result > (uint64_t)int_max) {
     state->seen_uint = 1;
   }
 
+  *error = 0;
   return result;
 }
