@@ -33,7 +33,10 @@ from pandas.core.indexes.extension import inherit_names
 
 if TYPE_CHECKING:
     from pandas._libs import NaTType
-    from pandas._typing import DtypeObj
+    from pandas._typing import (
+        DtypeObj,
+        TimeUnit,
+    )
 
 
 @inherit_names(
@@ -249,7 +252,7 @@ def timedelta_range(
     name=None,
     closed=None,
     *,
-    unit: str | None = None,
+    unit: TimeUnit = "ns",
 ) -> TimedeltaIndex:
     """
     Return a fixed frequency TimedeltaIndex with day as the default.
@@ -269,7 +272,7 @@ def timedelta_range(
     closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
-    unit : str, default None
+    unit : {'s', 'ms', 'us', 'ns'}, default 'ns'
         Specify the desired resolution of the result.
 
         .. versionadded:: 2.0.0
