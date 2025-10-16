@@ -228,3 +228,30 @@ class TestConvertDtypes:
         result = df.convert_dtypes(dtype_backend="pyarrow")
         expected = df.copy()
         tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtype_pyarrow_int64_limits_warning(self):
+        # GH 58485
+        pytest.importorskip("pyarrow")
+        data = {
+            "a": [
+                -9223372036854775808,
+                4611686018427387904,
+                9223372036854775807,
+                None,
+            ],
+            "b": [
+                -9223372036854775808,
+                4611686018427387904,
+                9223372036854775807,
+                None,
+            ],
+            "c": [
+                -9223372036854775808,
+                4611686018427387904,
+                9223372036854775807,
+                None,
+            ],
+        }
+        result = pd.DataFrame(data).convert_dtypes(dtype_backend="pyarrow")
+        expected = pd.DataFrame(data, dtype="int64[pyarrow]")
+        tm.assert_frame_equal(result, expected)
