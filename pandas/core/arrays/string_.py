@@ -1113,6 +1113,16 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 other = np.asarray(other)
             other = other[valid]
 
+        other_dtype = getattr(other, "dtype", None)
+        if op.__name__.strip("_") in ["mul", "rmul"] and (
+            lib.is_bool(other) or lib.is_np_dtype(other_dtype, "b")
+        ):
+            # GH#62595
+            raise TypeError(
+                "Cannot multiply StringArray by bools. "
+                "Explicitly cast to integers instead."
+            )
+
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
             result[mask] = self.dtype.na_value
