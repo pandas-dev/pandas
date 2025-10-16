@@ -156,6 +156,24 @@ class TestSeriesFlexArithmetic:
         # should accept axis=0 or axis='rows'
         op(a, b, axis=0)
 
+    def test_flex_disallows_dataframe(self):
+        # GH#46179
+        df = pd.DataFrame(
+            {2010: [1], 2020: [3]},
+            index=pd.MultiIndex.from_product([["a"], ["b"]], names=["scen", "mod"]),
+        )
+
+        ser = Series(
+            [10.0, 20.0, 30.0],
+            index=pd.MultiIndex.from_product(
+                [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+            ),
+        )
+
+        msg = "Series.add does not support a DataFrame `other`"
+        with pytest.raises(TypeError, match=msg):
+            ser.add(df, axis=0)
+
 
 class TestSeriesArithmetic:
     # Some of these may end up in tests/arithmetic, but are not yet sorted
