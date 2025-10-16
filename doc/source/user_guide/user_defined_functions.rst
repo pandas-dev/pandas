@@ -84,8 +84,6 @@ User-Defined Functions can be applied across various pandas methods:
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 | :ref:`udf.pipe`               | Series or DataFrame    | Series or DataFrame      | Chain functions together to apply to Series or Dataframe                                                                                     |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
-| :ref:`udf.filter`             | Series or DataFrame    | Boolean                  | Only accepts UDFs in group by. Function is called for each group, and the group is removed from the result if the function returns ``False`` |
-+-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 | :ref:`udf.agg`                | Series or DataFrame    | Scalar or Series         | Aggregate and summarizes values, e.g., sum or custom reducer                                                                                 |
 +-------------------------------+------------------------+--------------------------+----------------------------------------------------------------------------------------------------------------------------------------------+
 | :ref:`udf.transform` (axis=0) | Column (Series)        | Column (Series)          | Same as :meth:`apply` with (axis=0), but it raises an exception if the function changes the shape of the data                                |
@@ -260,16 +258,6 @@ calling multiple functions.
 :meth:`Resampler.pipe`. You can read more about ``pipe`` in groupby operations in :ref:`groupby.pipe`.
 
 When to use: Use :meth:`pipe` when you need to create a pipeline of operations and want to keep the code readable and maintainable.
-
-.. _udf.select:
-
-:meth:`Series.select` and :meth:`DataFrame.select`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The ``select`` method is used to select a subset of rows that match certain criteria.
-:meth:`Series.select` and :meth:`DataFrame.select` do not support user defined functions,
-but :meth:`SeriesGroupBy.filter` and :meth:`DataFrameGroupBy.filter` do. You can read more
-about ``filter`` in groupby operations in :ref:`groupby.filter`.
 
 .. _udf.agg:
 
