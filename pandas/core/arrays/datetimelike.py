@@ -2142,7 +2142,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         """
         # error: Incompatible return value type (got "str", expected
         # "Literal['s', 'ms', 'us', 'ns']")  [return-value]
-        return dtype_to_unit(self.dtype)  # type: ignore[return-value]
+        return dtype_to_unit(self.dtype)  # type: ignore[return-value,arg-type]
 
     def as_unit(self, unit: TimeUnit, round_ok: bool = True) -> Self:
         """
