@@ -78,6 +78,8 @@ def test_read_csv_local(all_parsers, csv1):
         ("2,334", 2334),
         ("-2,334", -2334),
         ("-2,334,", -2334),
+        # Multiple consecutive thousand separators are allowed in C engine,
+        # but it's not necessarily intended behavior and may change in the future.
         ("2,,,,,,,,,,,,,,,5", 25),
         ("2,,3,4,,,,,,,,,,,,5", 2345),
     ],
