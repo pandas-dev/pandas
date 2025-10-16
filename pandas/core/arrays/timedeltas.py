@@ -73,6 +73,7 @@ if TYPE_CHECKING:
         DtypeObj,
         NpDtype,
         npt,
+        TimeUnit,
     )
 
     from pandas import DataFrame
@@ -275,7 +276,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @classmethod
     def _generate_range(
-        cls, start, end, periods, freq, closed=None, *, unit: str | None = None
+        cls, start, end, periods, freq, closed=None, *, unit: TimeUnit
     ) -> Self:
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -293,11 +294,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         if end is not None:
             end = Timedelta(end).as_unit("ns")
 
-        if unit is not None:
-            if unit not in ["s", "ms", "us", "ns"]:
-                raise ValueError("'unit' must be one of 's', 'ms', 'us', 'ns'")
-        else:
-            unit = "ns"
+        if unit not in ["s", "ms", "us", "ns"]:
+            raise ValueError("'unit' must be one of 's', 'ms', 'us', 'ns'")
 
         if start is not None and unit is not None:
             start = start.as_unit(unit, round_ok=False)
@@ -327,7 +325,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             raise ValueError("'value' should be a Timedelta.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.timedelta64(value._value, self.unit)  # type: ignore[call-overload]
+            return np.timedelta64(value._value, self.unit)
         else:
             return value.as_unit(self.unit, round_ok=False).asm8
 
@@ -621,7 +619,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         if is_object_dtype(other.dtype):
             other = np.asarray(other)
             if self.ndim > 1:
-                res_cols = [left / right for left, right in zip(self, other)]
+                res_cols = [
+                    left / right for left, right in zip(self, other, strict=True)
+                ]
                 res_cols2 = [x.reshape(1, -1) for x in res_cols]
                 result = np.concatenate(res_cols2, axis=0)
             else:
@@ -670,7 +670,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         elif is_object_dtype(other.dtype):
             other = np.asarray(other)
             if self.ndim > 1:
-                res_cols = [left // right for left, right in zip(self, other)]
+                res_cols = [
+                    left // right for left, right in zip(self, other, strict=True)
+                ]
                 res_cols2 = [x.reshape(1, -1) for x in res_cols]
                 result = np.concatenate(res_cols2, axis=0)
             else:

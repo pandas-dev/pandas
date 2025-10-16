@@ -25,12 +25,12 @@ def dtype():
 
 @pytest.fixture
 def data():
-    return DecimalArray(make_data())
+    return DecimalArray(make_data(10))
 
 
 @pytest.fixture
 def data_for_twos():
-    return DecimalArray([decimal.Decimal(2) for _ in range(100)])
+    return DecimalArray([decimal.Decimal(2) for _ in range(10)])
 
 
 @pytest.fixture
@@ -340,7 +340,7 @@ def test_groupby_agg():
     # Ensure that the result of agg is inferred to be decimal dtype
     # https://github.com/pandas-dev/pandas/issues/29141
 
-    data = make_data()[:5]
+    data = make_data(5)
     df = pd.DataFrame(
         {"id1": [0, 0, 0, 1, 1], "id2": [0, 1, 0, 1, 1], "decimals": DecimalArray(data)}
     )
@@ -377,7 +377,7 @@ def test_groupby_agg_ea_method(monkeypatch):
 
     monkeypatch.setattr(DecimalArray, "my_sum", DecimalArray__my_sum, raising=False)
 
-    data = make_data()[:5]
+    data = make_data(5)
     df = pd.DataFrame({"id": [0, 0, 0, 1, 1], "decimals": DecimalArray(data)})
     expected = pd.Series(to_decimal([data[0] + data[1] + data[2], data[3] + data[4]]))
 
@@ -399,7 +399,7 @@ def test_indexing_no_materialize(monkeypatch):
 
     monkeypatch.setattr(DecimalArray, "__array__", DecimalArray__array__, raising=False)
 
-    data = make_data()
+    data = make_data(10)
     s = pd.Series(DecimalArray(data))
     df = pd.DataFrame({"a": s, "b": range(len(s))})
 

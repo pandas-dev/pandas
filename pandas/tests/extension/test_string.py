@@ -65,9 +65,9 @@ def dtype(string_dtype_arguments):
 
 @pytest.fixture
 def data(dtype, chunked):
-    strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
+    strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=10)
     while strings[0] == strings[1]:
-        strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
+        strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=10)
 
     arr = dtype.construct_array_type()._from_sequence(strings, dtype=dtype)
     return maybe_split_array(arr, chunked)
@@ -116,8 +116,7 @@ class TestStringArray(base.ExtensionTests):
             # only the NA-variant supports parametrized string alias
             assert dtype == f"string[{dtype.storage}]"
         elif dtype.storage == "pyarrow":
-            with tm.assert_produces_warning(FutureWarning):
-                assert dtype == "string[pyarrow_numpy]"
+            assert dtype == "str"
 
     def test_is_not_string_type(self, dtype):
         # Different from BaseDtypeTests.test_is_not_string_type

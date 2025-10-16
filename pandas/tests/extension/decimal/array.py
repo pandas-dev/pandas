@@ -301,8 +301,8 @@ def to_decimal(values, context=None):
     return DecimalArray([decimal.Decimal(x) for x in values], context=context)
 
 
-def make_data():
-    return [decimal.Decimal(val) for val in np.random.default_rng(2).random(100)]
+def make_data(n: int):
+    return [decimal.Decimal(val) for val in np.random.default_rng(2).random(n)]
 
 
 DecimalArray._add_arithmetic_ops()

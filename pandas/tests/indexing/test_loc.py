@@ -722,9 +722,12 @@ class TestLocBaseIndependent:
 
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame_with_reindex(self):
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_loc_setitem_frame_with_reindex(self, has_ref):
         # GH#6254 setting issue
         df = DataFrame(index=[3, 5, 4], columns=["A"], dtype=float)
+        if has_ref:
+            view = df[:]  # noqa: F841
         df.loc[[4, 3, 5], "A"] = np.array([1, 2, 3], dtype="int64")
 
         # setting integer values into a float dataframe with loc is inplace,
@@ -755,7 +758,8 @@ class TestLocBaseIndependent:
         expected = DataFrame({"A": [3.0, 2.0, 1.0], "B": "string"}, index=[1, 2, 3])
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_empty_frame(self):
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_loc_setitem_empty_frame(self, has_ref):
         # GH#6252 setting with an empty frame
         keys1 = ["@" + str(i) for i in range(5)]
         val1 = np.arange(5, dtype="int64")
@@ -766,6 +770,8 @@ class TestLocBaseIndependent:
         index = list(set(keys1).union(keys2))
         df = DataFrame(index=index)
         df["A"] = np.nan
+        if has_ref:
+            view = df[:]  # noqa: F841
         df.loc[keys1, "A"] = val1
 
         df["B"] = np.nan
@@ -780,12 +786,15 @@ class TestLocBaseIndependent:
         )
         tm.assert_frame_equal(df, expected)
 
-    def test_loc_setitem_frame(self):
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_loc_setitem_frame(self, has_ref):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)),
             index=list("abcd"),
             columns=list("ABCD"),
         )
+        if has_ref:
+            view = df[:]  # noqa: F841
 
         result = df.iloc[0, 0]
 
@@ -2118,7 +2127,8 @@ class TestLocSetitemWithExpansion:
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.filterwarnings("ignore:indexing past lexsort depth")
-    def test_loc_setitem_with_expansion_nonunique_index(self, index):
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_loc_setitem_with_expansion_nonunique_index(self, index, has_ref):
         # GH#40096
         if not len(index):
             pytest.skip("Not relevant for empty Index")
@@ -2144,11 +2154,15 @@ class TestLocSetitemWithExpansion:
 
         # Add new row, but no new columns
         df = orig.copy()
+        if has_ref:
+            view = df[:]
         df.loc[key, 0] = N
         tm.assert_frame_equal(df, expected)
 
         # add new row on a Series
         ser = orig.copy()[0]
+        if has_ref:
+            view = ser[:]
         ser.loc[key] = N
         # the series machinery lets us preserve int dtype instead of float
         expected = expected[0].astype(np.int64)
@@ -2156,6 +2170,8 @@ class TestLocSetitemWithExpansion:
 
         # add new row and new column
         df = orig.copy()
+        if has_ref:
+            view = df[:]  # noqa: F841
         df.loc[key, 1] = N
         expected = DataFrame(
             {0: list(arr) + [np.nan], 1: [np.nan] * N + [float(N)]},
@@ -2971,7 +2987,7 @@ def test_loc_getitem_multiindex_tuple_level():
 def test_loc_getitem_nullable_index_with_duplicates():
     # GH#34497
     df = DataFrame(
-        data=np.array([[1, 2, 3, 4], [5, 6, 7, 8], [1, 2, np.nan, np.nan]]).T,
+        data=np.array([[1, 2, 3, 4], [5, 6, 7, 8], [1, 2, pd.NA, pd.NA]]).T,
         columns=["a", "b", "c"],
         dtype="Int64",
     )
@@ -3339,11 +3355,12 @@ class TestLocSeries:
         expected = DataFrame({"a": [999, 200], "b": [3, 4]})
         tm.assert_frame_equal(expected, df)
 
-    def test_loc_reindexing_of_empty_index(self):
+    @pytest.mark.parametrize("dtype", ["str", object])
+    def test_loc_reindexing_of_empty_index(self, dtype):
         # GH 57735
-        df = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
+        df = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"], dtype=dtype)
         df.loc[Series([False] * 4, index=df.index, name=0), 0] = df[0]
-        expected = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"])
+        expected = DataFrame(index=[1, 1, 2, 2], data=["1", "1", "2", "2"], dtype=dtype)
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
