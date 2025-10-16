@@ -845,7 +845,7 @@ def read_csv(
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will also force
         the use of the Python parsing engine. Note that regex delimiters are prone
-        to ignoring quoted data. Regex example: ``'\r    '``.
+        to ignoring quoted data. Regex example: ``'\\r\\t'``.
     delimiter : str, optional
         Alias for ``sep``.
     header : int, Sequence of int, 'infer' or None, default 'infer'
@@ -1433,7 +1433,7 @@ def read_table(
         In addition, separators longer than 1 character and different from
         ``'\\s+'`` will be interpreted as regular expressions and will also force
         the use of the Python parsing engine. Note that regex delimiters are prone
-        to ignoring quoted data. Regex example: ``'\r    '``.
+        to ignoring quoted data. Regex example: ``'\\r\\t'``.
     delimiter : str, optional
         Alias for ``sep``.
     header : int, Sequence of int, 'infer' or None, default 'infer'
