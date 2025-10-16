@@ -442,7 +442,7 @@ class ArrowExtensionArray(
         if pa.types.is_null(arr.type):
             if lib.infer_dtype(values) == "decimal":
                 # GH#62522; the specific decimal precision here is arbitrary
-                arr = arr.cast(pa.decimal32(1))
+                arr = arr.cast(pa.decimal128(1))
         if pa.types.is_duration(arr.type):
             # workaround for https://github.com/apache/arrow/issues/40620
             result = ArrowExtensionArray._from_sequence(values)
