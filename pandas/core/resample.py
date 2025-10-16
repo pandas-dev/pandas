@@ -3095,7 +3095,7 @@ def asfreq(
 
         new_obj.index = _asfreq_compat(obj.index, freq)
     else:
-        unit = None
+        unit: TimeUnit = "ns"
         if isinstance(obj.index, DatetimeIndex):
             # TODO: should we disallow non-DatetimeIndex?
             unit = obj.index.unit

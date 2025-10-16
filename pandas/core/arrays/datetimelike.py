@@ -157,6 +157,8 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+    from pandas._typing import TimeUnit
+
     from pandas import Index
     from pandas.core.arrays import (
         DatetimeArray,
@@ -2114,7 +2116,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return get_unit_from_dtype(self._ndarray.dtype)
 
     @cache_readonly
-    def unit(self) -> str:
+    def unit(self) -> TimeUnit:
         """
         The precision unit of the datetime data.
 
