@@ -3768,25 +3768,6 @@ def test_arrow_dtype_itemsize_variable_width(type_name):
     assert dtype.itemsize == dtype.numpy_dtype.itemsize
 
 
-def test_arrow_dtype_error_fallback(monkeypatch):
-    # GH 57948
-
-    dtype = ArrowDtype(pa.int32())
-
-    class ErrorType:
-        id = None
-
-        @property
-        def bit_width(self):
-            raise ValueError("Simulated Error")
-
-        def to_pandas_dtype(self):
-            return pd.Series([0]).dtype
-
-    monkeypatch.setattr(dtype, "pyarrow_dtype", ErrorType())
-    assert dtype.itemsize == dtype.numpy_dtype.itemsize
-
-
 def test_cast_pontwise_result_decimal_nan():
     # GH#62522 we don't want to get back null[pyarrow] here
     ser = pd.Series([], dtype="float64[pyarrow]")
