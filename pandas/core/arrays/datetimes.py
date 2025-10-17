@@ -838,11 +838,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 result = result.normalize()
                 result._freq = None
 
-            if (
-                self.tz is not None
-                and getattr(result.dtype, "tz", None) is None
-                and res_unit == "ns"
-            ):
+            if self.tz is not None:
                 result = result.tz_localize(self.tz)
 
         return result
