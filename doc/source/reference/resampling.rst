@@ -7,6 +7,9 @@ Resampling
 ==========
 .. currentmodule:: pandas.core.resample
 
+.. note::
+   For more information on resampling, see the :ref:`Time series / date functionality <timeseries>` section of the User Guide.
+
 :class:`pandas.api.typing.Resampler` instances are returned by
 resample calls: :func:`pandas.DataFrame.resample`, :func:`pandas.Series.resample`.
 

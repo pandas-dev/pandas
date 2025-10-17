@@ -6,6 +6,9 @@
 Window
 ======
 
+.. note::
+   For more information on window operations, see the :ref:`Windowing operations <window>` section of the User Guide.
+
 :class:`pandas.api.typing.Rolling` instances are returned by ``.rolling`` calls:
 :func:`pandas.DataFrame.rolling` and :func:`pandas.Series.rolling`.
 :class:`pandas.api.typing.Expanding` instances are returned by ``.expanding`` calls:
