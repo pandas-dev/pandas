@@ -7,6 +7,7 @@ from decimal import Decimal
 import re
 
 import numpy as np
+import pyarrow as pa
 import pytest
 
 from pandas._libs import iNaT
@@ -1886,6 +1887,10 @@ def test_datetime_indexer_consistency_pyarrow_date32():
     ser = Series(["2016-01-01"], dtype="date32[pyarrow]")
     ser3 = ser.astype("datetime64[ns]")
     dti = Index(ser3)
+
+    # Make sure we don't treat Arrow date as timestamp
+    dtype = ser.dtype.arrow_dtype
+    assert not (dtype.kind == "M" and not pa.types.is_date(dtype))
 
     with pytest.raises(KeyError):
         dti.get_loc(ser[0])
