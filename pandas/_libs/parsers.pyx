@@ -2222,6 +2222,9 @@ def sanitize_objects(ndarray[object] values, set na_values) -> int:
         if val in na_values:
             values[i] = onan
             na_count += 1
+        elif val in [0, 1, True, False]:
+            # Skip memoization, since 1==True and 0==False
+            values[i] = val
         elif val in memo:
             values[i] = memo[val]
         else:
