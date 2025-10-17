@@ -524,6 +524,7 @@ def test_set_module():
     assert pd.Series.__module__ == "pandas"
     assert pd.date_range.__module__ == "pandas"
     assert pd.bdate_range.__module__ == "pandas"
+    assert pd.period_range.__module__ == "pandas"
     assert pd.timedelta_range.__module__ == "pandas"
     assert pd.to_datetime.__module__ == "pandas"
     assert pd.to_timedelta.__module__ == "pandas"
