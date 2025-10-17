@@ -503,14 +503,14 @@ def option_context(*args) -> Generator[None]:
         )
 
     ops = tuple(zip(args[::2], args[1::2], strict=True))
-    undo = ()
+    undo: tuple[tuple[Any, Any], ...] = ()
     try:
         undo = tuple((pat, get_option(pat)) for pat, val in ops)
         for pat, val in ops:
             set_option(pat, val)
         yield
     finally:
-        for pat, val in undo:
+        for pat, val in undo:  # type: ignore[misc]
             set_option(pat, val)
 
 
