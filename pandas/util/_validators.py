@@ -23,7 +23,6 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_integer,
 )
-from pandas.core.dtypes.missing import isna
 
 BoolishT = TypeVar("BoolishT", bool, int)
 BoolishNoneT = TypeVar("BoolishNoneT", bool, int, None)
@@ -292,7 +291,7 @@ def validate_na_arg(value, name: str):
         or isinstance(value, bool)
         or value is None
         or value is NA
-        or (isna(value) and np.isnan(value))
+        or (lib.is_float(value) and np.isnan(value))
     ):
         return
     raise ValueError(f"{name} must be None, pd.NA, np.nan, True, or False; got {value}")
