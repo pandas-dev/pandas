@@ -33,6 +33,7 @@ from pandas._libs import (
     properties,
     reshape,
 )
+from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import (
@@ -48,7 +49,6 @@ from pandas.errors import (
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
-    _chained_assignment_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -235,7 +235,7 @@ axis : int or str, optional
 # class "NDFrame")
 # definition in base class "NDFrame"
 @set_module("pandas")
-class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
+class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -360,6 +360,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         doc=base.IndexOpsMixin.hasnans.__doc__,
     )
     _mgr: SingleBlockManager
+
+    # override those to avoid inheriting from SetitemMixin (cython generates
+    # them by default)
+    __reduce__ = object.__reduce__
+    __setstate__ = NDFrame.__setstate__
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -1057,13 +1062,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             return self.iloc[loc]
 
-    def __setitem__(self, key, value) -> None:
-        if not PYPY and not WARNING_CHECK_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT + 1:
-                warnings.warn(
-                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
-                )
-
+    # def __setitem__() is implemented in SetitemMixin and dispatches to this method
+    def _setitem(self, key, value) -> None:
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
 

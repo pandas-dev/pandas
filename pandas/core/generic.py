@@ -2071,7 +2071,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             **meta,
         }
 
-    @final
     def __setstate__(self, state) -> None:
         if isinstance(state, BlockManager):
             self._mgr = state
@@ -4267,8 +4266,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         result = result.__finalize__(self)
         return result
 
+    # def __delitem__() is implemented in SetitemMixin and dispatches to this method
     @final
-    def __delitem__(self, key) -> None:
+    def _delitem(self, key) -> None:
         """
         Delete item
         """
