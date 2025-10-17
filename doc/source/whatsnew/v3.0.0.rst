@@ -1001,6 +1001,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
+- Bug in :func:`maybe_convert_objects` for large ``int`` values mixed with ``None`` (:issue:`58485`)
 - Bug in :meth:`DataFrame.astype` not casting ``values`` for Arrow-based dictionary dtype correctly (:issue:`58479`)
 - Bug in :meth:`DataFrame.update` bool dtype being converted to object (:issue:`55509`)
 - Bug in :meth:`Series.astype` might modify read-only array inplace when casting to a string dtype (:issue:`57212`)
