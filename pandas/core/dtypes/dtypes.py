@@ -2328,13 +2328,14 @@ class ArrowDtype(StorageExtensionDtype):
         >>> dtype.itemsize  # falls back to numpy dtype
         1
         """
+        if pa.types.is_boolean(self.pyarrow_dtype):
+            return self.numpy_dtype.itemsize
+
         # Use pyarrow itemsize for fixed-width data types
         # e.g. int32 -> 32 bits // 8 = 4 bytes
         try:
-            if pa.types.is_boolean(self.pyarrow_dtype):
-                return self.numpy_dtype.itemsize
             return self.pyarrow_dtype.bit_width // 8
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError, NotImplementedError):
             return self.numpy_dtype.itemsize
 
     def construct_array_type(self) -> type_t[ArrowExtensionArray]:
