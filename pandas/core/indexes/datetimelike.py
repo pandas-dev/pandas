@@ -44,6 +44,7 @@ from pandas.util._decorators import (
 from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
+    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
@@ -58,6 +59,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays.timedeltas import sequence_to_td64ns
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
@@ -416,7 +418,16 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                 # TODO: com.asarray_tuplesafe shouldn't cast e.g. DatetimeArray
             else:
                 res = keyarr
-        return Index(res, dtype=res.dtype)
+
+        res_index = Index(res, dtype=res.dtype)
+
+        if isinstance(res, ExtensionArray):
+            if res_index.dtype == "string[pyarrow]" and is_timedelta64_dtype(
+                self.dtype
+            ):
+                data, freq = sequence_to_td64ns(res_index, copy=False, unit=None)
+                res_index = type(res_index)(data)
+        return res_index
 
 
 class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
