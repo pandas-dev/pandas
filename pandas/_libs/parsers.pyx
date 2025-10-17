@@ -1137,7 +1137,7 @@ cdef class TextReader:
                              bint na_filter,
                              bint user_dtype,
                              kh_str_starts_t *na_hashset,
-                             set na_fset, bint raise_on_float):
+                             set na_fset, bint raise_on_invalid):
         if isinstance(dtype, CategoricalDtype):
             # TODO: I suspect that _categorical_convert could be
             # optimized when dtype is an instance of CategoricalDtype
@@ -1179,13 +1179,13 @@ cdef class TextReader:
         elif dtype.kind in "iu":
             try:
                 result, na_count = _try_int64(self.parser, i, start, end,
-                                              na_filter, na_hashset, raise_on_float)
+                                              na_filter, na_hashset, raise_on_invalid)
                 if user_dtype and na_count is not None:
                     if na_count > 0:
                         raise ValueError(f"Integer column has NA values in column {i}")
             except OverflowError:
                 result = _try_uint64(self.parser, i, start, end,
-                                     na_filter, na_hashset, raise_on_float)
+                                     na_filter, na_hashset, raise_on_invalid)
                 na_count = 0
 
             if result is not None and dtype != "int64":
@@ -1745,7 +1745,7 @@ cdef int _try_double_nogil(parser_t *parser,
 cdef _try_uint64(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
                  bint na_filter, kh_str_starts_t *na_hashset,
-                 bint raise_on_float):
+                 bint raise_on_invalid):
     cdef:
         int error
         Py_ssize_t lines
@@ -1767,9 +1767,9 @@ cdef _try_uint64(parser_t *parser, int64_t col,
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
-        elif raise_on_float and error == ERROR_INVALID_CHARS:
+        elif raise_on_invalid and error == ERROR_INVALID_CHARS:
             raise ValueError("Number is not int")
-        elif not raise_on_float or error != ERROR_INVALID_CHARS:
+        elif not raise_on_invalid or error != ERROR_INVALID_CHARS:
             return None
 
     if uint64_conflict(&state):
@@ -1818,7 +1818,7 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
 
 cdef _try_int64(parser_t *parser, int64_t col,
                 int64_t line_start, int64_t line_end,
-                bint na_filter, kh_str_starts_t *na_hashset, bint raise_on_float):
+                bint na_filter, kh_str_starts_t *na_hashset, bint raise_on_invalid):
     cdef:
         int error = 0
         int na_count = 0
@@ -1839,9 +1839,9 @@ cdef _try_int64(parser_t *parser, int64_t col,
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
-        elif raise_on_float and error == ERROR_INVALID_CHARS:
+        elif raise_on_invalid and error == ERROR_INVALID_CHARS:
             raise ValueError("Number is not int")
-        elif not raise_on_float or error != ERROR_INVALID_CHARS:
+        elif not raise_on_invalid or error != ERROR_INVALID_CHARS:
             return None, None
 
     return result, na_count
