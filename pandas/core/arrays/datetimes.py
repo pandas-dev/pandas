@@ -827,10 +827,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             if hasattr(offset, "offset"):
                 offset_td = Timedelta(offset.offset)
                 offset_unit = offset_td.unit
-                if self.unit in units and offset_unit in units:
-                    idx_self = units.index(self.unit)
-                    idx_offset = units.index(offset_unit)
-                    res_unit = units[min(idx_self, idx_offset)]
+                idx_self = units.index(self.unit)
+                idx_offset = units.index(offset_unit)
+                res_unit = units[min(idx_self, idx_offset)]
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
             result = result.as_unit(res_unit)
 
