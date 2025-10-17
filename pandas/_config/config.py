@@ -510,7 +510,7 @@ def option_context(*args) -> Generator[None]:
             set_option(pat, val)
         yield
     finally:
-        for pat, val in undo:  # type: ignore[misc]
+        for pat, val in undo:
             set_option(pat, val)
 
 
