@@ -1747,6 +1747,20 @@ class TestTypeInference:
         inferred = lib.infer_dtype(val, skipna=skipna)
         assert inferred == "boolean"
 
+    def test_large_non_nullable_integer_objects(self):
+        # GH 58485
+        arr = np.array(
+            [
+                -9223372036854775808,
+                4611686018427387904,
+                9223372036854775807,
+                None,
+            ],
+            dtype="object",
+        )
+        with pytest.raises(ValueError, match="too large to be represented by float64"):
+            lib.maybe_convert_objects(arr)
+
 
 class TestNumberScalar:
     def test_is_number(self):

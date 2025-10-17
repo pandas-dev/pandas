@@ -2793,6 +2793,31 @@ class TestDataFrameConstructors:
         expected = DataFrame(np.eye(3))
         tm.assert_frame_equal(df, expected)
 
+    def test_large_non_nullable_integer_objects(self):
+        # GH 58485
+        data = {
+            "a": [
+                -9223372036854775808,
+                4611686018427387904,
+                9223372036854775807,
+                None,
+            ],
+            "b": [
+                -9223372036854775808,
+                4611686018427387904,
+                9223372036854775807,
+                None,
+            ],
+            "c": [
+                -9223372036854775808,
+                4611686018427387904,
+                9223372036854775807,
+                None,
+            ],
+        }
+        with pytest.raises(ValueError, match="too large to be represented by float64"):
+            pd.DataFrame(data)
+
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):

@@ -116,6 +116,11 @@ cdef:
     object oUINT64_MAX = <uint64_t>UINT64_MAX
 
     float64_t NaN = <float64_t>np.nan
+    # the maximum absolute integer value that a 64-bit IEEE floating point number can store is when all 52 bits of its significand/mantissa are 1
+    # see: https://en.wikipedia.org/wiki/Double-precision_floating-point_format
+    # related concept in JavaScript:
+    # https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/MAX_SAFE_INTEGER
+    float64_t F64_SAFE_INT64_MAX = <float64_t>(2**53 - 1)
 
 # python-visible
 i8max = <int64_t>INT64_MAX
@@ -2868,6 +2873,9 @@ def maybe_convert_objects(ndarray[object] objects,
                             result = uints
                         else:
                             result = ints
+                    elif (np.absolute(floats) > F64_SAFE_INT64_MAX).any():
+                        # GH 58485
+                        raise ValueError("integer values with non-nullable dtype too large to be represented by float64, specify an integer dtype explicitly")
                     else:
                         result = floats
                 elif seen.nan_:

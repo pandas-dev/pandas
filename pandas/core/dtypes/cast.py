@@ -960,7 +960,7 @@ def convert_dtypes(
                 if len(arr) < len(input_array) and not is_nan_na():
                     # In the presence of NaNs, we cannot convert to IntegerDtype
                     pass
-                elif (arr.astype(int) == arr).all():
+                elif np.array_equal(arr, np.trunc(arr), equal_nan=True):
                     inferred_dtype = target_int_dtype
                 else:
                     inferred_dtype = input_array.dtype
@@ -987,7 +987,7 @@ def convert_dtypes(
                     if len(arr) < len(input_array) and not is_nan_na():
                         # In the presence of NaNs, we can't convert to IntegerDtype
                         inferred_dtype = inferred_float_dtype
-                    elif (arr.astype(int) == arr).all():
+                    elif np.array_equal(arr, np.trunc(arr)):
                         inferred_dtype = pandas_dtype_func("Int64")
                     else:
                         inferred_dtype = inferred_float_dtype
