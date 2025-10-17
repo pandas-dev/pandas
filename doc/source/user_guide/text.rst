@@ -18,7 +18,7 @@ Text data types
 There are two ways to store text data in pandas:
 
 1. :class:`StringDtype` extension type.
-2. ``object`` dtype NumPy array.
+2. NumPy ``object`` dtype.
 
 We recommend using :class:`StringDtype` to store text data via the alias
 ``dtype="str"`` (the default when dtype of strings is inferred), see
@@ -87,153 +87,16 @@ or convert from existing pandas data:
    type(s2[0])
 
 However there are four distinct :class:`StringDtype` variants that may be utilized.
-
-Python storage with ``np.nan`` values
--------------------------------------
-
-.. note::
-   This is the same as ``dtype='str'`` *when PyArrow is not installed*.
-
-The implementation uses a NumPy object array, which directly stores the
-Python string objects, hence why the storage here is called ``'python'``.
-NA values in this array are stored using ``np.nan``.
-
-.. ipython:: python
-
-   pd.Series(
-       ["a", "b", None, np.nan, pd.NA],
-       dtype=pd.StringDtype(storage="python", na_value=np.nan)
-   )
-
-Notice that the last three values are all inferred by pandas as being
-an NA values, and hence stored as ``np.nan``.
-
-PyArrow storage with ``np.nan`` values
---------------------------------------
-
-.. note::
-   This is the same as ``dtype='str'`` *when PyArrow is installed*.
-
-The implementation uses a PyArrow array, however NA values in this array
-are stored using ``np.nan``.
-
-.. ipython:: python
-
-   pd.Series(
-       ["a", "b", None, np.nan, pd.NA],
-       dtype=pd.StringDtype(storage="pyarrow", na_value=np.nan)
-   )
-
-Notice that the last three values are all inferred by pandas as being
-an NA values, and hence stored as ``np.nan``.
-
-Python storage with ``pd.NA`` values
-------------------------------------
-
-.. note::
-   This is the same as ``dtype='string'`` *when PyArrow is not installed*.
-
-The implementation uses a NumPy object array, which directly stores the
-Python string objects, hence why the storage here is called ``'python'``.
-NA values in this array are stored using ``np.nan``.
-
-.. ipython:: python
-
-   pd.Series(
-       ["a", "b", None, np.nan, pd.NA],
-       dtype=pd.StringDtype(storage="python", na_value=pd.NA)
-   )
-
-Notice that the last three values are all inferred by pandas as
-being an NA values, and hence stored as ``pd.NA``.
-
-PyArrow storage with ``pd.NA`` values
--------------------------------------
-
-.. note::
-   This is the same as ``dtype='string'`` *when PyArrow is installed*.
-
-The implementation uses a PyArrow array. NA values in this array are
-stored using ``pd.NA``.
-
-.. ipython:: python
-
-   pd.Series(
-       ["a", "b", None, np.nan, pd.NA],
-       dtype=pd.StringDtype(storage="python", na_value=pd.NA)
-   )
-
-Notice that the last three values are all inferred by pandas as being an NA
-values, and hence stored as ``pd.NA``.
+See :ref:`text.four_string_variants` section below for details.
 
 .. _text.differences:
 
 Behavior differences
 ====================
 
-``StringDtype`` with ``np.nan`` NA values
------------------------------------------
-
-1. Like ``dtype="object"``, :ref:`string accessor methods<api.series.str>`
-   that return **integer** output will return a NumPy array that is
-   either dtype int or float depending on the presence of NA values.
-   Methods returning **boolean** output will return a NumPy array this is
-   dtype bool, with the value ``False`` when an NA value is encountered.
-
-   .. ipython:: python
-
-      s = pd.Series(["a", None, "b"], dtype="str")
-      s
-      s.str.count("a")
-      s.dropna().str.count("a")
-
-   When NA values are present, the output dtype is float64. However
-   **boolean** output results in ``False`` for the NA values.
-
-   .. ipython:: python
-
-      s.str.isdigit()
-      s.str.match("a")
-
-2. Some string methods, like :meth:`Series.str.decode`, are not
-   available because the underlying array can only contain
-   strings, not bytes.
-3. Comparison operations will return a NumPy array with dtype bool. Missing
-   values will always compare as unequal just as :attr:`np.nan` does.
-
-``StringDtype`` with ``pd.NA`` NA values
-----------------------------------------
-
-1. :ref:`String accessor methods<api.series.str>`
-   that return **integer** output will always return a nullable integer dtype,
-   rather than either int or float dtype (depending on the presence of NA values).
-   Methods returning **boolean** output will return a nullable boolean dtype.
-
-   .. ipython:: python
-
-      s = pd.Series(["a", None, "b"], dtype="string")
-      s
-      s.str.count("a")
-      s.dropna().str.count("a")
-
-   Both outputs are ``Int64`` dtype. Similarly for methods returning boolean values.
-
-   .. ipython:: python
-
-      s.str.isdigit()
-      s.str.match("a")
-
-2. Some string methods, like :meth:`Series.str.decode` because the underlying
-   array can only contain strings, not bytes.
-3. Comparison operations will return an object with :class:`BooleanDtype`,
-   rather than a ``bool`` dtype object. Missing values will propagate
-   in comparison operations, rather than always comparing
-   unequal like :attr:`numpy.nan`.
-
-
-.. important::
-   Everything else that follows in the rest of this document applies equally to
-   ``'str'``, ``'string'``, and ``object`` dtype.
+There are various behavior differences between using NumPy ``object`` dtype,
+``dtype="str"``, and ``dtype="string"``. See the
+:ref:`String migration guide <string_migration_guide-differences>` section for further details.
 
 .. _text.string_methods:
 
@@ -822,6 +685,91 @@ String ``Index`` also supports ``get_dummies`` which returns a ``MultiIndex``.
     idx.str.get_dummies(sep="|")
 
 See also :func:`~pandas.get_dummies`.
+
+.. _text.four_string_variants:
+
+The four :class:`StringDtype` variants
+======================================
+
+There are four :class:`StringDtype` variants that are available to users.
+
+Python storage with ``np.nan`` values
+-------------------------------------
+
+.. note::
+   This is the same as ``dtype='str'`` *when PyArrow is not installed*.
+
+The implementation uses a NumPy object array, which directly stores the
+Python string objects, hence why the storage here is called ``'python'``.
+NA values in this array are represented and behave as ``np.nan``.
+
+.. ipython:: python
+
+   pd.Series(
+       ["a", "b", None, np.nan, pd.NA],
+       dtype=pd.StringDtype(storage="python", na_value=np.nan)
+   )
+
+Notice that the last three values are all inferred by pandas as being
+an NA values, and hence stored as ``np.nan``.
+
+PyArrow storage with ``np.nan`` values
+--------------------------------------
+
+.. note::
+   This is the same as ``dtype='str'`` *when PyArrow is installed*.
+
+The implementation uses a PyArrow array, however NA values in this array
+are represented and behave as ``np.nan``.
+
+.. ipython:: python
+
+   pd.Series(
+       ["a", "b", None, np.nan, pd.NA],
+       dtype=pd.StringDtype(storage="pyarrow", na_value=np.nan)
+   )
+
+Notice that the last three values are all inferred by pandas as being
+an NA values, and hence stored as ``np.nan``.
+
+Python storage with ``pd.NA`` values
+------------------------------------
+
+.. note::
+   This is the same as ``dtype='string'`` *when PyArrow is not installed*.
+
+The implementation uses a NumPy object array, which directly stores the
+Python string objects, hence why the storage here is called ``'python'``.
+NA values in this array are represented and behave as ``np.nan``.
+
+.. ipython:: python
+
+   pd.Series(
+       ["a", "b", None, np.nan, pd.NA],
+       dtype=pd.StringDtype(storage="python", na_value=pd.NA)
+   )
+
+Notice that the last three values are all inferred by pandas as
+being an NA values, and hence stored as ``pd.NA``.
+
+PyArrow storage with ``pd.NA`` values
+-------------------------------------
+
+.. note::
+   This is the same as ``dtype='string'`` *when PyArrow is installed*.
+
+The implementation uses a PyArrow array. NA values in this array are
+represented and behave as ``pd.NA``.
+
+.. ipython:: python
+
+   pd.Series(
+       ["a", "b", None, np.nan, pd.NA],
+       dtype=pd.StringDtype(storage="python", na_value=pd.NA)
+   )
+
+Notice that the last three values are all inferred by pandas as being an NA
+values, and hence stored as ``pd.NA``.
 
 Method summary
 ==============
