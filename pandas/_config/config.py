@@ -503,6 +503,7 @@ def option_context(*args) -> Generator[None]:
         )
 
     ops = tuple(zip(args[::2], args[1::2], strict=True))
+    undo = ()
     try:
         undo = tuple((pat, get_option(pat)) for pat, val in ops)
         for pat, val in ops:
