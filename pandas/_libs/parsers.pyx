@@ -1769,8 +1769,7 @@ cdef _try_uint64(parser_t *parser, int64_t col,
             raise OverflowError("Overflow")
         elif raise_on_invalid and error == ERROR_INVALID_CHARS:
             raise ValueError("Number is not int")
-        elif not raise_on_invalid or error != ERROR_INVALID_CHARS:
-            return None
+        return None
 
     if uint64_conflict(&state):
         raise ValueError("Cannot convert to numerical dtype")
@@ -1840,8 +1839,7 @@ cdef _try_int64(parser_t *parser, int64_t col,
             raise OverflowError("Overflow")
         elif raise_on_invalid and error == ERROR_INVALID_CHARS:
             raise ValueError("Number is not int")
-        elif not raise_on_invalid or error != ERROR_INVALID_CHARS:
-            return None, None
+        return None, None
 
     return result, na_count
 
