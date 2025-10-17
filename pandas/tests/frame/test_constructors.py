@@ -2816,7 +2816,7 @@ class TestDataFrameConstructors:
             ],
         }
         with pytest.raises(ValueError, match="too large to be represented by float64"):
-            pd.DataFrame(data)
+            DataFrame(data)
 
 
 class TestDataFrameConstructorIndexInference:
