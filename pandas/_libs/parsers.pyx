@@ -1787,7 +1787,7 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                            const kh_str_starts_t *na_hashset,
                            uint64_t *data, uint_state *state) nogil:
     cdef:
-        int error = 0
+        int error
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
@@ -1820,8 +1820,7 @@ cdef _try_int64(parser_t *parser, int64_t col,
                 int64_t line_start, int64_t line_end,
                 bint na_filter, kh_str_starts_t *na_hashset, bint raise_on_invalid):
     cdef:
-        int error = 0
-        int na_count = 0
+        int error, na_count = 0
         Py_ssize_t lines
         coliter_t it
         int64_t *data
@@ -1853,7 +1852,7 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
                           const kh_str_starts_t *na_hashset, int64_t NA,
                           int64_t *data, int *na_count) nogil:
     cdef:
-        int error = 0
+        int error
         Py_ssize_t i, lines = line_end - line_start
         coliter_t it
         const char *word = NULL
@@ -1880,7 +1879,7 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
             if error != 0:
                 return error
 
-    return error
+    return 0
 
 cdef _try_pylong(parser_t *parser, Py_ssize_t col,
                  int64_t line_start, int64_t line_end,
