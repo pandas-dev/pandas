@@ -151,6 +151,7 @@ class _IndexSlice:
 
 
 IndexSlice = _IndexSlice()
+IndexSlice.__module__ = "pandas"
 
 
 class IndexingMixin:

@@ -571,39 +571,61 @@ def test_set_module():
     assert api.typing.DataFrameGroupBy.__module__ == "pandas.api.typing"
 
 
-def get_classes(module):
-    classes = []
+def get_objects(module_name, recurse):
+    module = importlib.import_module(module_name)
+    objs = []
 
     for name, obj in inspect.getmembers(module):
-        if inspect.isclass(obj):
-            classes.append(obj)
+        if inspect.isfunction(obj) or type(obj).__name__ == "cython_function_or_method":
+            # Sphinx does not use the __module__ attribute for functions,
+            # so we do not need to overwrite the attribute.
+            continue
+        module_dunder = getattr(obj, "__module__", None)
+        if isinstance(module_dunder, str) and module_dunder.startswith("pandas"):
+            objs.append((module_name, name, obj))
+
+    if not recurse:
+        return objs
 
     paths = [str(pathlib.Path(module.__file__).parent)]
     for _, submodule_name, is_pkg in pkgutil.walk_packages(
         paths, module.__name__ + "."
     ):
+        tail = submodule_name[submodule_name.rfind(".") + 1 :]
+        if tail.startswith("_"):
+            continue
+        if submodule_name == "pandas.api.internals":
+            continue
         try:
-            submodule = importlib.import_module(submodule_name)
-            classes.extend(get_classes(submodule))
+            objs.extend(get_objects(submodule_name, recurse))
         except ImportError:
             pass
-    return classes
+    return objs
 
 
 @pytest.mark.slow
-def test_module_attribute():
-    # Check that each class pandas defines can be imported from
-    # the __module__ attribute
-    classes = get_classes(pd)
-    assert len(classes) > 100, len(classes)
-    failures = []
-    for klass in classes:
-        if klass.__name__ == "ellipsis":
-            # This is a weird one.
-            continue
-        try:
-            m = importlib.import_module(klass.__module__)
-            getattr(m, klass.__name__)
-        except AttributeError:
-            failures.append(klass)
+@pytest.mark.parametrize(
+    "module_name",
+    [
+        "pandas",
+        "pandas.api",
+        "pandas.arrays",
+        "pandas.errors",
+        pytest.param("pandas.io", marks=pytest.mark.xfail(reason="Private imports")),
+        "pandas.plotting",
+        "pandas.testing",
+    ],
+)
+def test_attributes_module(module_name):
+    objs = get_objects(module_name, recurse=module_name != "pandas")
+    failures = [
+        (module_name, name, type(obj), obj.__module__)
+        for module_name, name, obj in objs
+        if (
+            obj.__module__ != module_name
+            and obj.__module__ != "pandas"
+            # Can't seem to change __module__
+            and name != "Interval"
+        )
+    ]
     assert len(failures) == 0, failures

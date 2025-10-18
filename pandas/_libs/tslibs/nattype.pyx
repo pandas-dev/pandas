@@ -1871,6 +1871,7 @@ default 'raise'
 
 c_NaT = NaTType()  # C-visible
 NaT = c_NaT        # Python-visible
+NaT.__module__ = "pandas"
 
 
 # ----------------------------------------------------------------------
