@@ -863,29 +863,11 @@ def value_counts_internal(
     dropna: bool = True,
 ) -> Series:
     from pandas import (
+        DatetimeIndex,
         Index,
         Series,
+        TimedeltaIndex,
     )
-
-    def _preserve_freq(original_values, result_index):
-        freq = getattr(original_values, "freq", None)
-
-        if (
-            freq is not None
-            and type(original_values) is type(result_index)
-            and len(result_index) == len(original_values)
-            and result_index.equals(original_values)
-        ):
-            try:
-                # Rebuild index with freq using the same constructor
-                return type(result_index)(
-                    result_index._data, freq=freq, name=result_index.name
-                )
-            except (TypeError, ValueError):
-                # If reconstruction fails, return original index
-                pass
-
-        return result_index
 
     index_name = getattr(values, "name", None)
     name = "proportion" if normalize else "count"
@@ -953,10 +935,26 @@ def value_counts_internal(
             if (
                 bins is None
                 and not sort
-                and hasattr(values, "freq")
-                and values.freq is not None
+                and isinstance(values, (DatetimeIndex, TimedeltaIndex))
+                and values.inferred_freq is not None
             ):
-                idx = _preserve_freq(values, idx)
+                # freq preservation
+                # Check if the result would be the same as input
+                if len(idx) == len(values) and idx.equals(values):
+                    # Rebuild idx with the correct type and inferred frequency
+                    if isinstance(values, DatetimeIndex):
+                        idx = DatetimeIndex(
+                            idx._data if hasattr(idx, "_data") else idx.values,
+                            freq=values.inferred_freq,
+                            name=idx.name,
+                        )
+
+                    elif isinstance(values, TimedeltaIndex):
+                        idx = TimedeltaIndex(
+                            idx._data if hasattr(idx, "_data") else idx.values,
+                            freq=values.inferred_freq,
+                            name=idx.name,
+                        )
 
             result = Series(counts, index=idx, name=name, copy=False)
 
