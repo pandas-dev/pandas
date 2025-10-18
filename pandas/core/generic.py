@@ -2176,6 +2176,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions | None = None,
         engine_kwargs: dict[str, Any] | None = None,
+        autofilter: bool = False,
     ) -> None:
         """
         Write {klass} to an Excel sheet.
@@ -2309,7 +2310,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             merge_cells=merge_cells,
             inf_rep=inf_rep,
         )
-        formatter.write(
+        formatter.to_excel(
             excel_writer,
             sheet_name=sheet_name,
             startrow=startrow,
@@ -2318,6 +2319,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             engine=engine,
             storage_options=storage_options,
             engine_kwargs=engine_kwargs,
+            autofilter=autofilter,
         )
 
     @final
