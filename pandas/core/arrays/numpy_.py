@@ -4,6 +4,8 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
+    cast,
 )
 
 import numpy as np
@@ -13,7 +15,10 @@ from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.astype import astype_array
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import NumpyEADtype
 from pandas.core.dtypes.missing import isna
@@ -33,22 +38,21 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from pandas._typing import (
+        ArrayLike,
         AxisInt,
         Dtype,
         FillnaOptions,
         InterpolateOptions,
         NpDtype,
         Scalar,
-        Self,
         npt,
     )
 
     from pandas import Index
+    from pandas.arrays import StringArray
 
 
-# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
-# incompatible with definition in base class "ExtensionArray"
-class NumpyExtensionArray(  # type: ignore[misc]
+class NumpyExtensionArray(
     OpsMixin,
     NDArrayBackedExtensionArray,
     ObjectStringArrayMixin,
@@ -145,6 +149,24 @@ class NumpyExtensionArray(  # type: ignore[misc]
             result = result.copy()
         return cls(result)
 
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        result = super()._cast_pointwise_result(values)
+        lkind = self.dtype.kind
+        rkind = result.dtype.kind
+        if (
+            (lkind in "iu" and rkind in "iu")
+            or (lkind == "f" and rkind == "f")
+            or (lkind == rkind == "c")
+        ):
+            result = maybe_downcast_to_dtype(result, self.dtype.numpy_dtype)
+        elif rkind == "M":
+            # Ensure potential subsequent .astype(object) doesn't incorrectly
+            #  convert Timestamps to ints
+            from pandas import array as pd_array
+
+            result = pd_array(result, copy=False)
+        return result
+
     # ------------------------------------------------------------------------
     # Data
 
@@ -214,6 +236,16 @@ class NumpyExtensionArray(  # type: ignore[misc]
             # e.g. test_np_max_nested_tuples
             return result
         else:
+            if self.dtype.type is str:  # type: ignore[comparison-overlap]
+                # StringDtype
+                self = cast("StringArray", self)
+                try:
+                    # specify dtype to preserve storage/na_value
+                    return type(self)(result, dtype=self.dtype)
+                except ValueError:
+                    # if validation of input fails (no strings)
+                    # -> fallback to returning raw numpy array
+                    return result
             # one return value; re-box array-like results
             return type(self)(result)
 

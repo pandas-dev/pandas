@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas._libs.tslibs import Day
 
 import pandas as pd
 from pandas import (
@@ -751,6 +752,7 @@ def test_resample_agg_readonly():
     rs = ser.resample("1D")
 
     expected = Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
+    expected.index.freq = Day(1)  # GH#41943 no longer equivalent to 24h
 
     result = rs.agg("last")
     tm.assert_series_equal(result, expected)

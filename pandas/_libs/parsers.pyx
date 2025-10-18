@@ -8,9 +8,14 @@ from csv import (
 )
 import warnings
 
+from pandas._config import is_nan_na
+
 from pandas.util._exceptions import find_stack_level
 
-from pandas import StringDtype
+from pandas import (
+    ArrowDtype,
+    StringDtype,
+)
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BooleanArray,
@@ -24,6 +29,7 @@ from cpython.exc cimport (
     PyErr_Fetch,
     PyErr_Occurred,
 )
+from cpython.long cimport PyLong_FromString
 from cpython.object cimport PyObject
 from cpython.ref cimport (
     Py_INCREF,
@@ -43,7 +49,6 @@ from libc.string cimport (
     strncpy,
 )
 
-
 import numpy as np
 
 cimport numpy as cnp
@@ -58,11 +63,6 @@ from numpy cimport (
 cnp.import_array()
 
 from pandas._libs cimport util
-from pandas._libs.util cimport (
-    INT64_MAX,
-    INT64_MIN,
-    UINT64_MAX,
-)
 
 from pandas._libs import lib
 
@@ -276,10 +276,8 @@ cdef extern from "pandas/parser/pd_parser.h":
     int tokenize_all_rows(parser_t *self, const char *encoding_errors) nogil
     int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors) nogil
 
-    int64_t str_to_int64(char *p_item, int64_t int_min,
-                         int64_t int_max, int *error, char tsep) nogil
-    uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
-                           uint64_t uint_max, int *error, char tsep) nogil
+    int64_t str_to_int64(char *p_item,  int *error, char tsep) nogil
+    uint64_t str_to_uint64(uint_state *state, char *p_item, int *error, char tsep) nogil
 
     double xstrtod(const char *p, char **q, char decimal,
                    char sci, char tsep, int skip_trailing,
@@ -1065,6 +1063,10 @@ cdef class TextReader:
         else:
             col_res = None
             for dt in self.dtype_cast_order:
+                if (dt.kind in "iu" and
+                        self._column_has_float(i, start, end, na_filter, na_hashset)):
+                    continue
+
                 try:
                     col_res, na_count = self._convert_with_dtype(
                         dt, i, start, end, na_filter, 0, na_hashset, na_fset)
@@ -1077,9 +1079,13 @@ cdef class TextReader:
                         np.dtype("object"), i, start, end, 0,
                         0, na_hashset, na_fset)
                 except OverflowError:
-                    col_res, na_count = self._convert_with_dtype(
-                        np.dtype("object"), i, start, end, na_filter,
-                        0, na_hashset, na_fset)
+                    try:
+                        col_res, na_count = _try_pylong(self.parser, i, start,
+                                                        end, na_filter, na_hashset)
+                    except ValueError:
+                        col_res, na_count = self._convert_with_dtype(
+                            np.dtype("object"), i, start, end, 0,
+                            0, na_hashset, na_fset)
 
                 if col_res is not None:
                     break
@@ -1338,6 +1344,58 @@ cdef class TextReader:
             else:
                 return None
 
+    cdef bint _column_has_float(self, Py_ssize_t col,
+                                int64_t start, int64_t end,
+                                bint na_filter, kh_str_starts_t *na_hashset):
+        """Check if the column contains any float number."""
+        cdef:
+            Py_ssize_t i, j, lines = end - start
+            coliter_t it
+            const char *word = NULL
+            const char *ignored_chars = " +-"
+            const char *digits = "0123456789"
+            const char *float_indicating_chars = "eE"
+            char null_byte = 0
+
+        coliter_setup(&it, self.parser, col, start)
+
+        for i in range(lines):
+            COLITER_NEXT(it, word)
+
+            if na_filter and kh_get_str_starts_item(na_hashset, word):
+                continue
+
+            found_first_digit = False
+            j = 0
+            while word[j] != null_byte:
+                if word[j] == self.parser.decimal:
+                    return True
+                elif not found_first_digit and word[j] in ignored_chars:
+                    # no-op
+                    pass
+                elif not found_first_digit and word[j] not in digits:
+                    # word isn't numeric
+                    return False
+                elif not found_first_digit and word[j] in digits:
+                    found_first_digit = True
+                elif word[j] in float_indicating_chars:
+                    # preceding chars indicates numeric and
+                    # current char indicates float
+                    return True
+                elif word[j] not in digits:
+                    # previous characters indicates numeric
+                    # current character shows otherwise
+                    return False
+                elif word[j] in digits:
+                    # no-op
+                    pass
+                else:
+                    raise AssertionError(
+                            f"Unhandled case {word[j]=} {found_first_digit=}"
+                            )
+                j += 1
+
+        return False
 
 # Factor out code common to TextReader.__dealloc__ and TextReader.close
 # It cannot be a class method, since calling self.close() in __dealloc__
@@ -1452,7 +1510,13 @@ def _maybe_upcast(
 
     elif arr.dtype == np.object_:
         if use_dtype_backend:
-            dtype = StringDtype()
+            if dtype_backend == "pyarrow":
+                # using the StringDtype below would use large_string by default
+                # keep here to pyarrow's default of string
+                import pyarrow as pa
+                dtype = ArrowDtype(pa.string())
+            else:
+                dtype = StringDtype()
             cls = dtype.construct_array_type()
             arr = cls._from_sequence(arr, dtype=dtype)
 
@@ -1461,7 +1525,7 @@ def _maybe_upcast(
         if isinstance(arr, IntegerArray) and arr.isna().all():
             # use null instead of int64 in pyarrow
             arr = arr.to_numpy(na_value=None)
-        arr = ArrowExtensionArray(pa.array(arr, from_pandas=True))
+        arr = ArrowExtensionArray(pa.array(arr, from_pandas=is_nan_na()))
 
     return arr
 
@@ -1784,15 +1848,13 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                 data[i] = 0
                 continue
 
-            data[i] = str_to_uint64(state, word, INT64_MAX, UINT64_MAX,
-                                    &error, parser.thousands)
+            data[i] = str_to_uint64(state, word, &error, parser.thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_uint64(state, word, INT64_MAX, UINT64_MAX,
-                                    &error, parser.thousands)
+            data[i] = str_to_uint64(state, word, &error, parser.thousands)
             if error != 0:
                 return error
 
@@ -1849,19 +1911,47 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
                 data[i] = NA
                 continue
 
-            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
-                                   &error, parser.thousands)
+            data[i] = str_to_int64(word, &error, parser.thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
-                                   &error, parser.thousands)
+            data[i] = str_to_int64(word, &error, parser.thousands)
             if error != 0:
                 return error
 
     return 0
+
+cdef _try_pylong(parser_t *parser, Py_ssize_t col,
+                 int64_t line_start, int64_t line_end,
+                 bint na_filter, kh_str_starts_t *na_hashset):
+    cdef:
+        int na_count = 0
+        Py_ssize_t lines
+        coliter_t it
+        const char *word = NULL
+        ndarray[object] result
+        object NA = na_values[np.object_]
+
+    lines = line_end - line_start
+    result = np.empty(lines, dtype=object)
+    coliter_setup(&it, parser, col, line_start)
+
+    for i in range(lines):
+        COLITER_NEXT(it, word)
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            # in the hash table
+            na_count += 1
+            result[i] = NA
+            continue
+
+        py_int = PyLong_FromString(word, NULL, 10)
+        if py_int is None:
+            raise ValueError("Invalid integer ", word)
+        result[i] = py_int
+
+    return result, na_count
 
 
 # -> tuple[ndarray[bool], int]

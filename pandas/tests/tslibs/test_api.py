@@ -29,6 +29,7 @@ def test_namespace():
         "NaTType",
         "iNaT",
         "nat_strings",
+        "Day",
         "OutOfBoundsDatetime",
         "OutOfBoundsTimedelta",
         "Period",

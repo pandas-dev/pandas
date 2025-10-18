@@ -17,6 +17,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -258,7 +259,7 @@ def concat(
     1    b
     0    c
     1    d
-    dtype: object
+    dtype: str
 
     Clear the existing index and reset it in the result
     by setting the ``ignore_index`` option to ``True``.
@@ -268,7 +269,7 @@ def concat(
     1    b
     2    c
     3    d
-    dtype: object
+    dtype: str
 
     Add a hierarchical index at the outermost level of
     the data with the ``keys`` option.
@@ -278,7 +279,7 @@ def concat(
         1    b
     s2  0    c
         1    d
-    dtype: object
+    dtype: str
 
     Label the index keys you create with the ``names`` option.
 
@@ -288,7 +289,7 @@ def concat(
                  1         b
     s2           0         c
                  1         d
-    dtype: object
+    dtype: str
 
     Combine two ``DataFrame`` objects with identical columns.
 
@@ -392,7 +393,7 @@ def concat(
             "version. Copy-on-Write is active in pandas since 3.0 which utilizes "
             "a lazy copy mechanism that defers copies until necessary. Use "
             ".copy() to make an eager copy if necessary.",
-            DeprecationWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
     if join == "outer":

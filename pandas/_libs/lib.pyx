@@ -1974,9 +1974,11 @@ cdef class ComplexValidator(Validator):
         return cnp.PyDataType_ISCOMPLEX(self.dtype)
 
 
-cdef bint is_complex_array(ndarray values):
+cdef bint is_complex_array(ndarray values, bint skipna=True):
     cdef:
-        ComplexValidator validator = ComplexValidator(values.size, values.dtype)
+        ComplexValidator validator = ComplexValidator(values.size,
+                                                      values.dtype,
+                                                      skipna=skipna)
     return validator.validate(values)
 
 
@@ -2253,7 +2255,8 @@ cpdef bint is_interval_array(ndarray values):
     for i in range(n):
         val = values[i]
 
-        if isinstance(val, Interval):
+        if type(val) is Interval:
+            # GH#46945 catch Interval exactly, excluding subclasses
             if closed is None:
                 closed = val.closed
                 numeric = (

@@ -133,7 +133,7 @@ Consult the docs for setting up pyenv `here <https://github.com/pyenv/pyenv>`__.
    pyenv virtualenv <version> <name-to-give-it>
 
    # For instance:
-   pyenv virtualenv 3.10 pandas-dev
+   pyenv virtualenv 3.11 pandas-dev
 
    # Activate the virtualenv
    pyenv activate pandas-dev

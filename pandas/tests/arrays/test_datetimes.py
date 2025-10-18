@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import tz_compare
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -92,6 +93,15 @@ class TestNonNano:
         res = dta.normalize()
         tm.assert_extension_array_equal(res, expected)
 
+    def test_normalize_overflow_raises(self):
+        # GH#60583
+        ts = pd.Timestamp.min
+        dta = DatetimeArray._from_sequence([ts], dtype="M8[ns]")
+
+        msg = "Cannot normalize Timestamp without integer overflow"
+        with pytest.raises(ValueError, match=msg):
+            dta.normalize()
+
     def test_simple_new_requires_match(self, unit):
         arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
         dtype = DatetimeTZDtype(unit, "UTC")
@@ -100,7 +110,7 @@ class TestNonNano:
         assert dta.dtype == dtype
 
         wrong = DatetimeTZDtype("ns", "UTC")
-        with pytest.raises(AssertionError, match=""):
+        with pytest.raises(AssertionError, match="^$"):
             DatetimeArray._simple_new(arr, dtype=wrong)
 
     def test_std_non_nano(self, unit):
@@ -775,7 +785,7 @@ class TestDatetimeArray:
         )
 
         expected = pd.date_range("1/1/2000", periods=4, freq=freq_depr.lower())
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
@@ -804,7 +814,7 @@ class TestDatetimeArray:
         depr_msg = "'w' is deprecated and will be removed in a future version"
 
         expected = pd.date_range("1/1/2000", periods=4, freq="2W")
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result = pd.date_range("1/1/2000", periods=4, freq="2w")
         tm.assert_index_equal(result, expected)
 

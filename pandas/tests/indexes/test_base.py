@@ -581,12 +581,19 @@ class TestIndex:
         ],
     )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-    def test_map_dictlike(self, index, mapper, request):
+    def test_map_dictlike(self, index, mapper, request, using_infer_string):
         # GH 12756
         if isinstance(index, CategoricalIndex):
             pytest.skip("Tested in test_categorical")
         elif not index.is_unique:
             pytest.skip("Cannot map duplicated index")
+        if (
+            not using_infer_string
+            and isinstance(index.dtype, pd.StringDtype)
+            and index.dtype.storage == "python"
+        ):
+            mark = pytest.mark.xfail(reason="map does not retain dtype")
+            request.applymarker(mark)
 
         rng = np.arange(len(index), 0, -1, dtype=np.int64)
 
@@ -712,7 +719,7 @@ class TestIndex:
     )
     @pytest.mark.parametrize("keys", [["foo", "bar"], ["1", "bar"]])
     def test_drop_by_str_label_raises_missing_keys(self, index, keys):
-        with pytest.raises(KeyError, match=""):
+        with pytest.raises(KeyError, match=".* not found in axis"):
             index.drop(keys)
 
     @pytest.mark.parametrize(
@@ -741,7 +748,7 @@ class TestIndex:
 
     def test_drop_by_numeric_label_raises_missing_keys(self):
         index = Index([1, 2, 3])
-        with pytest.raises(KeyError, match=""):
+        with pytest.raises(KeyError, match=re.escape("[4] not found in axis")):
             index.drop([3, 4])
 
     @pytest.mark.parametrize(

@@ -12,6 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
+    Self,
 )
 
 import numpy as np
@@ -42,10 +43,7 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        Self,
-        npt,
-    )
+    from pandas._typing import npt
 
 
 class PyTablesScope(_scope.Scope):

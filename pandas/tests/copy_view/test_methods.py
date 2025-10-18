@@ -16,6 +16,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
+from pandas.util.version import Version
 
 
 def test_copy():
@@ -917,8 +918,9 @@ def test_round(decimals):
 
     assert tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     # TODO: Make inplace by using out parameter of ndarray.round?
-    if decimals >= 0:
+    if decimals >= 0 and Version(np.__version__) < Version("2.4.0.dev0"):
         # Ensure lazy copy if no-op
+        # TODO: Cannot rely on Numpy returning view after version 2.3
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))

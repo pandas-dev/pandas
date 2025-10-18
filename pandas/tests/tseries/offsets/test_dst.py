@@ -214,7 +214,7 @@ class TestDST:
         QuarterEnd: ["11/2/2012", "12/31/2012"],
         BQuarterBegin: ["11/2/2012", "12/3/2012"],
         BQuarterEnd: ["11/2/2012", "12/31/2012"],
-        Day: ["11/4/2012", "11/4/2012 23:00"],
+        Day: ["11/4/2012", "11/5/2012"],
     }.items()
 
     @pytest.mark.parametrize("tup", offset_classes)
@@ -263,3 +263,13 @@ def test_nontick_offset_with_ambiguous_time_error(original_dt, target_dt, offset
     msg = f"Cannot infer dst time from {target_dt}, try using the 'ambiguous' argument"
     with pytest.raises(ValueError, match=msg):
         localized_dt + offset
+
+
+def test_add_day_nonexistent_raises():
+    # https://github.com/pandas-dev/pandas/issues/41943#issuecomment-1466978225
+
+    ts = Timestamp("2015-03-28T2:30", tz="Europe/Warsaw")
+
+    msg = "is a nonexistent time due to daylight savings time"
+    with pytest.raises(ValueError, match=msg):
+        ts + Day(1)

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
-
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -17,7 +15,7 @@ def assert_matching(actual, expected, check_dtype=False):
     # avoid specifying internal representation
     # as much as possible
     assert len(actual) == len(expected)
-    for act, exp in zip(actual, expected):
+    for act, exp in zip(actual, expected, strict=True):
         act = np.asarray(act)
         exp = np.asarray(exp)
         tm.assert_numpy_array_equal(act, exp, check_dtype=check_dtype)
@@ -150,11 +148,7 @@ def test_set_levels_codes_directly(idx):
     with pytest.raises(AttributeError, match=msg):
         idx.levels = new_levels
 
-    msg = (
-        "property 'codes' of 'MultiIndex' object has no setter"
-        if PY311
-        else "can't set attribute"
-    )
+    msg = "property 'codes' of 'MultiIndex' object has no setter"
     with pytest.raises(AttributeError, match=msg):
         idx.codes = new_codes
 

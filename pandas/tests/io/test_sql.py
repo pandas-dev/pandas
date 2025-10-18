@@ -748,10 +748,9 @@ def postgresql_psycopg2_conn_types(postgresql_psycopg2_engine_types):
 
 
 @pytest.fixture
-def sqlite_str():
+def sqlite_str(temp_file):
     pytest.importorskip("sqlalchemy")
-    with tm.ensure_clean() as name:
-        yield f"sqlite:///{name}"
+    return f"sqlite:///{temp_file}"
 
 
 @pytest.fixture
@@ -817,20 +816,19 @@ def sqlite_conn_types(sqlite_engine_types):
 
 
 @pytest.fixture
-def sqlite_adbc_conn():
+def sqlite_adbc_conn(temp_file):
     pytest.importorskip("pyarrow")
     pytest.importorskip("adbc_driver_sqlite")
     from adbc_driver_sqlite import dbapi
 
-    with tm.ensure_clean() as name:
-        uri = f"file:{name}"
-        with dbapi.connect(uri) as conn:
-            yield conn
-            for view in get_all_views(conn):
-                drop_view(view, conn)
-            for tbl in get_all_tables(conn):
-                drop_table(tbl, conn)
-            conn.commit()
+    uri = f"file:{temp_file}"
+    with dbapi.connect(uri) as conn:
+        yield conn
+        for view in get_all_views(conn):
+            drop_view(view, conn)
+        for tbl in get_all_tables(conn):
+            drop_table(tbl, conn)
+        conn.commit()
 
 
 @pytest.fixture
@@ -2226,7 +2224,7 @@ def test_api_chunksize_read(conn, request):
 
     # reading the query in chunks with read_sql_query
     if conn_name == "sqlite_buildin":
-        with pytest.raises(NotImplementedError, match=""):
+        with pytest.raises(NotImplementedError, match="^$"):
             sql.read_sql_table("test_chunksize", conn, chunksize=5)
     else:
         res3 = DataFrame()
@@ -2504,20 +2502,20 @@ def test_sqlalchemy_integer_overload_mapping(conn, request, integer):
             sql.SQLTable("test_type", db, frame=df)
 
 
-def test_database_uri_string(request, test_frame1):
+def test_database_uri_string(temp_file, request, test_frame1):
     pytest.importorskip("sqlalchemy")
     # Test read_sql and .to_sql method with a database URI (GH10654)
     # db_uri = 'sqlite:///:memory:' # raises
     # sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) near
     # "iris": syntax error [SQL: 'iris']
-    with tm.ensure_clean() as name:
-        db_uri = "sqlite:///" + name
-        table = "iris"
-        test_frame1.to_sql(name=table, con=db_uri, if_exists="replace", index=False)
-        test_frame2 = sql.read_sql(table, db_uri)
-        test_frame3 = sql.read_sql_table(table, db_uri)
-        query = "SELECT * FROM iris"
-        test_frame4 = sql.read_sql_query(query, db_uri)
+    name = str(temp_file)
+    db_uri = "sqlite:///" + name
+    table = "iris"
+    test_frame1.to_sql(name=table, con=db_uri, if_exists="replace", index=False)
+    test_frame2 = sql.read_sql(table, db_uri)
+    test_frame3 = sql.read_sql_table(table, db_uri)
+    query = "SELECT * FROM iris"
+    test_frame4 = sql.read_sql_query(query, db_uri)
     tm.assert_frame_equal(test_frame1, test_frame2)
     tm.assert_frame_equal(test_frame1, test_frame3)
     tm.assert_frame_equal(test_frame1, test_frame4)
@@ -2581,16 +2579,15 @@ def test_column_with_percentage(conn, request):
     tm.assert_frame_equal(res, df)
 
 
-def test_sql_open_close(test_frame3):
+def test_sql_open_close(temp_file, test_frame3):
     # Test if the IO in the database still work if the connection closed
     # between the writing and reading (as in many real situations).
 
-    with tm.ensure_clean() as name:
-        with contextlib.closing(sqlite3.connect(name)) as conn:
-            assert sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False) == 4
+    with contextlib.closing(sqlite3.connect(temp_file)) as conn:
+        assert sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False) == 4
 
-        with contextlib.closing(sqlite3.connect(name)) as conn:
-            result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;", conn)
+    with contextlib.closing(sqlite3.connect(temp_file)) as conn:
+        result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;", conn)
 
     tm.assert_frame_equal(test_frame3, result)
 
@@ -3692,9 +3689,9 @@ def test_read_sql_invalid_dtype_backend_table(conn, request, func, dtype_backend
 def dtype_backend_data() -> DataFrame:
     return DataFrame(
         {
-            "a": Series([1, np.nan, 3], dtype="Int64"),
+            "a": Series([1, pd.NA, 3], dtype="Int64"),
             "b": Series([1, 2, 3], dtype="Int64"),
-            "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+            "c": Series([1.5, pd.NA, 2.5], dtype="Float64"),
             "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
             "e": [True, False, None],
             "f": [True, False, True],
@@ -3716,9 +3713,9 @@ def dtype_backend_expected():
 
         df = DataFrame(
             {
-                "a": Series([1, np.nan, 3], dtype="Int64"),
+                "a": Series([1, pd.NA, 3], dtype="Int64"),
                 "b": Series([1, 2, 3], dtype="Int64"),
-                "c": Series([1.5, np.nan, 2.5], dtype="Float64"),
+                "c": Series([1.5, pd.NA, 2.5], dtype="Float64"),
                 "d": Series([1.5, 2.0, 2.5], dtype="Float64"),
                 "e": Series([True, False, pd.NA], dtype="boolean"),
                 "f": Series([True, False, True], dtype="boolean"),
