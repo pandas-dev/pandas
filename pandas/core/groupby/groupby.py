@@ -109,9 +109,7 @@ from pandas.core.arrays import (
     SparseArray,
 )
 from pandas.core.arrays.string_ import StringDtype
-from pandas.core.arrays.string_arrow import (
-    ArrowStringArray,
-)
+from pandas.core.arrays.string_arrow import ArrowStringArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -434,11 +432,45 @@ class GroupByPlot(PandasObject):
         self._groupby = groupby
 
     def __call__(self, *args, **kwargs):
-        def f(self):
-            return self.plot(*args, **kwargs)
+        # Patch: assign a unique color from colormap to each group
+        colormap = kwargs.get("colormap", None)
+        color = kwargs.get("color", None)
+        if colormap is not None and color is None:
+            from pandas.plotting._matplotlib.style import get_standard_colors
 
-        f.__name__ = "plot"
-        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
+            group_keys = list(self._groupby.groups.keys())
+            colors = get_standard_colors(
+                num_colors=len(group_keys),
+                colormap=colormap,
+                color_type="default",
+            )
+            kwargs = dict(kwargs)
+            kwargs.pop("colormap", None)
+
+            def f(obj, color=None, label=None):
+                plot_kwargs = dict(kwargs)
+                if color is not None:
+                    plot_kwargs["color"] = color
+                if label is not None:
+                    plot_kwargs["label"] = label
+                return obj.plot(*args, **plot_kwargs)
+
+            results = []
+            for i, (name, group) in enumerate(self._groupby):
+                results.append(f(group, colors[i], name))
+            return results
+        else:
+
+            def f(obj, color=None, label=None):
+                plot_kwargs = dict(kwargs)
+                if color is not None:
+                    plot_kwargs["color"] = color
+                if label is not None:
+                    plot_kwargs["label"] = label
+                return obj.plot(*args, **plot_kwargs)
+
+            f.__name__ = "plot"
+            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
