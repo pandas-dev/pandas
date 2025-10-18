@@ -850,6 +850,41 @@ class TestDataFrameAnalytics:
     def test_sum_prod_nanops(self, method, unit, numeric_only):
         idx = ["a", "b", "c"]
         df = DataFrame({"a": [unit, unit], "b": [unit, np.nan], "c": [np.nan, np.nan]})
+        # New behavior: numeric_only=None is deprecated; emit a warning but
+        # continue to accept it during the deprecation period.
+        if numeric_only is None:
+            from pandas import errors
+
+            with tm.assert_produces_warning(errors.PandasFutureWarning):
+                # run the same checks as below while asserting we warned
+                result = getattr(df, method)(numeric_only=numeric_only)
+                expected = Series([unit, unit, unit], index=idx, dtype="float64")
+                tm.assert_series_equal(result, expected)
+
+                result = getattr(df, method)(numeric_only=numeric_only, min_count=1)
+                expected = Series([unit, unit, np.nan], index=idx)
+                tm.assert_series_equal(result, expected)
+
+                result = getattr(df, method)(numeric_only=numeric_only, min_count=0)
+                expected = Series([unit, unit, unit], index=idx, dtype="float64")
+                tm.assert_series_equal(result, expected)
+
+                result = getattr(df.iloc[1:], method)(
+                    numeric_only=numeric_only, min_count=1
+                )
+                expected = Series([unit, np.nan, np.nan], index=idx)
+                tm.assert_series_equal(result, expected)
+
+                # min_count > 1 cases
+                df2 = DataFrame({"A": [unit] * 10, "B": [unit] * 5 + [np.nan] * 5})
+                result = getattr(df2, method)(numeric_only=numeric_only, min_count=5)
+                expected = Series(result, index=["A", "B"])
+                tm.assert_series_equal(result, expected)
+
+                result = getattr(df2, method)(numeric_only=numeric_only, min_count=6)
+                expected = Series(result, index=["A", "B"])
+                tm.assert_series_equal(result, expected)
+            return
         # The default
         result = getattr(df, method)(numeric_only=numeric_only)
         expected = Series([unit, unit, unit], index=idx, dtype="float64")
@@ -1757,8 +1792,14 @@ class TestNuisanceColumns:
         with pytest.raises(TypeError, match="does not support operation"):
             getattr(df, all_boolean_reductions)(bool_only=False)
 
-        with pytest.raises(TypeError, match="does not support operation"):
-            getattr(df, all_boolean_reductions)(bool_only=None)
+        # With the deprecation in place, passing None should emit a
+        # PandasFutureWarning and then the operation should raise the
+        # original TypeError. Capture both.
+        from pandas import errors
+
+        with tm.assert_produces_warning(errors.PandasFutureWarning):
+            with pytest.raises(TypeError, match="does not support operation"):
+                getattr(df, all_boolean_reductions)(bool_only=None)
 
         with pytest.raises(TypeError, match="does not support operation"):
             getattr(np, all_boolean_reductions)(df, axis=0)
@@ -1995,6 +2036,20 @@ def test_minmax_extensionarray(method, numeric_only):
     int64_info = np.iinfo("int64")
     ser = Series([int64_info.max, None, int64_info.min], dtype=pd.Int64Dtype())
     df = DataFrame({"Int64": ser})
+    # New behavior: numeric_only=None is deprecated; emit a warning but
+    # continue to accept it during the deprecation period.
+    if numeric_only is None:
+        from pandas import errors
+
+        with tm.assert_produces_warning(errors.PandasFutureWarning):
+            result = getattr(df, method)(numeric_only=numeric_only)
+            expected = Series(
+                [getattr(int64_info, method)],
+                dtype="Int64",
+                index=Index(["Int64"]),
+            )
+            tm.assert_series_equal(result, expected)
+        return
     result = getattr(df, method)(numeric_only=numeric_only)
     expected = Series(
         [getattr(int64_info, method)],
