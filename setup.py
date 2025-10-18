@@ -321,7 +321,7 @@ else:
     endian_macro = [("__LITTLE_ENDIAN__", "1")]
 
 
-extra_compile_args = ["-DCYTHON_USE_TYPE_SPECS=1"]
+extra_compile_args = []
 extra_link_args = []
 if is_platform_windows():
     if debugging_symbols_requested:
@@ -569,9 +569,6 @@ for name, data in ext_data.items():
         extra_compile_args.append("-qlanglvl=extended0x:nolibext")
         undef_macros.append("_POSIX_THREADS")
 
-    print("-" * 80)
-    print(extra_compile_args)
-    print("-" * 80)
     obj = Extension(
         f"pandas.{name}",
         sources=sources,
