@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import abc
+import datetime as dt
 from datetime import datetime
 import functools
 from itertools import zip_longest
@@ -177,6 +178,7 @@ from pandas.core.indexers import (
     disallow_ndim_indexing,
     is_valid_positional_slice,
 )
+from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
@@ -3668,6 +3670,14 @@ class Index(IndexOpsMixin, PandasObject):
         Notice that the return value is an array of locations in ``index``
         and ``x`` is marked by -1, as it is not in ``index``.
         """
+        if isinstance(self, DatetimeIndex):
+            if hasattr(target, "__iter__") and not isinstance(target, (str, bytes)):
+                seq = list(target)
+                if seq and all(
+                    isinstance(x, dt.date) and not isinstance(x, dt.datetime)
+                    for x in seq
+                ):
+                    return np.full(len(seq), -1, dtype=np.intp)
         method = clean_reindex_fill_method(method)
         orig_target = target
         target = self._maybe_cast_listlike_indexer(target)

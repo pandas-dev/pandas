@@ -771,12 +771,13 @@ class TestTimeSeriesArithmetic:
         result2 = ts2 + ts
 
         date_labels = [x.date() for x in rng[5:]]
-        expected_index = Index(list(rng) + date_labels, dtype=object)
+        expected_index_result = Index(list(rng) + date_labels, dtype=object)
+        expected_index_result2 = Index(date_labels + list(rng), dtype=object)
 
         # Length and index checks
         assert len(result) == 35
-        tm.assert_index_equal(result.index, expected_index)
-        tm.assert_index_equal(result2.index, expected_index)
+        tm.assert_index_equal(result.index, expected_index_result)
+        tm.assert_index_equal(result2.index, expected_index_result2)
         assert result.index.dtype == object
 
         # All NaN because there are no matching labels now
