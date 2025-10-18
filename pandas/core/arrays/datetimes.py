@@ -45,6 +45,7 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._libs.tslibs.timedeltas import Timedelta
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
@@ -94,7 +95,6 @@ if TYPE_CHECKING:
 
     from pandas import (
         DataFrame,
-        Timedelta,
     )
     from pandas.core.arrays import PeriodArray
 
@@ -826,7 +826,22 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             result = type(self)._from_sequence(res_values, dtype=self.dtype)
 
         else:
+            units = [
+                "ns",
+                "us",
+                "ms",
+                "s",
+            ]
+            res_unit = self.unit
+            if hasattr(offset, "offset"):
+                offset_td = Timedelta(offset.offset)
+                offset_unit = offset_td.unit
+                idx_self = units.index(self.unit)
+                idx_offset = units.index(offset_unit)
+                res_unit = units[min(idx_self, idx_offset)]
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
+            result = result.as_unit(res_unit)
+
             if offset.normalize:
                 result = result.normalize()
                 result._freq = None
