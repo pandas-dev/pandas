@@ -21,6 +21,7 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 
 #include <ctype.h>
 #include <float.h>
+#include <limits.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -1620,9 +1621,9 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   }
 
   double number = 0.;
-  int exponent = 0;
-  int num_digits = 0;
-  int num_decimals = 0;
+  long int exponent = 0;
+  long int num_digits = 0;
+  long int num_decimals = 0;
 
   // Process string of digits.
   while (isdigit_ascii(*p)) {
@@ -1671,39 +1672,29 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     if (maybe_int != NULL)
       *maybe_int = 0;
 
-    // Handle optional sign
-    negative = 0;
-    switch (*++p) {
-    case '-':
-      negative = 1;
-      PD_FALLTHROUGH; // Fall through to increment position.
-    case '+':
-      p++;
-      break;
+    // move past scientific notation
+    p++;
+
+    char *endptr;
+    errno = 0;
+    long int n = strtol(p, &endptr, 10);
+
+    if (errno == ERANGE || checked_add(exponent, n, &exponent)) {
+      errno = 0;
+      exponent = n;
     }
 
-    // Process string of digits.
-    num_digits = 0;
-    int n = 0;
-    while (num_digits < max_digits && isdigit_ascii(*p)) {
-      n = n * 10 + (*p - '0');
-      num_digits++;
-      p++;
-    }
-
-    if (negative)
-      exponent -= n;
-    else
-      exponent += n;
+    int num_digits = endptr - p;
 
     // If no digits after the 'e'/'E', un-consume it.
     if (num_digits == 0)
       p--;
+    else
+      p = endptr;
   }
 
   if (exponent > 308) {
-    *error = ERANGE;
-    return HUGE_VAL;
+    number = number < 0 ? -HUGE_VAL : HUGE_VAL;
   } else if (exponent > 0) {
     number *= e[exponent];
   } else if (exponent < -308) { // Subnormal
@@ -1717,9 +1708,6 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   } else {
     number /= e[-exponent];
   }
-
-  if (number == HUGE_VAL || number == -HUGE_VAL)
-    *error = ERANGE;
 
   if (skip_trailing) {
     // Skip trailing whitespace.
