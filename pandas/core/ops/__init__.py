@@ -16,7 +16,9 @@ from pandas.core.ops.array_ops import (
     maybe_prepare_scalar_for_op,
 )
 from pandas.core.ops.common import (
+    get_op_exception_message,
     get_op_result_name,
+    get_shape_exception_message,
     unpack_zerodim_and_defer,
 )
 from pandas.core.ops.docstrings import make_flex_doc
@@ -70,7 +72,9 @@ __all__ = [
     "comparison_op",
     "fill_binop",
     "get_array_op",
+    "get_op_exception_message",
     "get_op_result_name",
+    "get_shape_exception_message",
     "invalid_comparison",
     "kleene_and",
     "kleene_or",

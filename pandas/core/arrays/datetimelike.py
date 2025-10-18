@@ -552,7 +552,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise InvalidComparison(other)
 
         elif len(other) != len(self):
-            raise ValueError("Lengths must match")
+            msg = ops.get_shape_exception_message(self, other)
+            raise ValueError(msg)
 
         else:
             try:
@@ -965,6 +966,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
+    def _supports_scalar_op(self, other, op_name):
+        return True
+
+    def _supports_array_op(self, other, op_name):
+        return True
+
     def _cmp_method(self, other, op):
         if self.ndim > 1 and getattr(other, "shape", None) == self.shape:
             # TODO: handle 2D-like listlikes
@@ -1101,9 +1108,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     @final
     def _add_datetimelike_scalar(self, other) -> DatetimeArray:
         if not lib.is_np_dtype(self.dtype, "m"):
-            raise TypeError(
-                f"cannot add {type(self).__name__} and {type(other).__name__}"
-            )
+            msg = ops.get_op_exception_message(self, other)
+            raise TypeError(msg)
 
         self = cast("TimedeltaArray", self)
 
@@ -1135,9 +1141,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     @final
     def _add_datetime_arraylike(self, other: DatetimeArray) -> DatetimeArray:
         if not lib.is_np_dtype(self.dtype, "m"):
-            raise TypeError(
-                f"cannot add {type(self).__name__} and {type(other).__name__}"
-            )
+            msg = ops.get_op_exception_message(self, other)
+            raise TypeError(msg)
 
         # defer to DatetimeArray.__add__
         return other + self
@@ -1147,7 +1152,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         self, other: datetime | np.datetime64
     ) -> TimedeltaArray:
         if self.dtype.kind != "M":
-            raise TypeError(f"cannot subtract a datelike from a {type(self).__name__}")
+            msg = ops.get_op_exception_message(self, other)
+            raise TypeError(msg)
 
         self = cast("DatetimeArray", self)
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
@@ -1164,10 +1170,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     @final
     def _sub_datetime_arraylike(self, other: DatetimeArray) -> TimedeltaArray:
         if self.dtype.kind != "M":
-            raise TypeError(f"cannot subtract a datelike from a {type(self).__name__}")
-
-        if len(self) != len(other):
-            raise ValueError("cannot add indices of unequal length")
+            msg = ops.get_op_exception_message(self, other)
+            raise TypeError(msg)
 
         self = cast("DatetimeArray", self)
 
@@ -1197,7 +1201,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     @final
     def _add_period(self, other: Period) -> PeriodArray:
         if not lib.is_np_dtype(self.dtype, "m"):
-            raise TypeError(f"cannot add Period to a {type(self).__name__}")
+            msg = ops.get_op_exception_message(self, other)
+            raise TypeError(msg)
 
         # We will wrap in a PeriodArray and defer to the reversed operation
         from pandas.core.arrays.period import PeriodArray
@@ -1241,7 +1246,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # overridden by PeriodArray
 
         if len(self) != len(other):
-            raise ValueError("cannot add indices of unequal length")
+            msg = ops.get_shape_exception_message(self, other)
+            raise ValueError(msg)
 
         self, other = cast(
             "DatetimeArray | TimedeltaArray", self
@@ -1269,9 +1275,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         Add pd.NaT to self
         """
         if isinstance(self.dtype, PeriodDtype):
-            raise TypeError(
-                f"Cannot add {type(self).__name__} and {type(NaT).__name__}"
-            )
+            msg = ops.get_op_exception_message(self, NaT)
+            raise TypeError(msg)
 
         # GH#19124 pd.NaT is treated like a timedelta for both timedelta
         # and datetime dtypes
@@ -1310,9 +1315,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         # If the operation is well-defined, we return an object-dtype ndarray
         # of DateOffsets.  Null entries are filled with pd.NaT
         if not isinstance(self.dtype, PeriodDtype):
-            raise TypeError(
-                f"cannot subtract {type(other).__name__} from {type(self).__name__}"
-            )
+            msg = ops.get_op_exception_message(self, other)
+            raise TypeError(msg)
 
         self = cast("PeriodArray", self)
         self._check_compatible_with(other)
@@ -1521,13 +1525,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif self.dtype.kind == "M" and hasattr(other, "dtype") and not other_is_dt64:
             # GH#19959 datetime - datetime is well-defined as timedelta,
             # but any other type - datetime is not well-defined.
-            raise TypeError(
-                f"cannot subtract {type(self).__name__} from "
-                f"{type(other).__name__}[{other.dtype}]"
-            )
+            msg = ops.get_op_exception_message(self, other)
+            raise TypeError(msg)
+
         elif isinstance(self.dtype, PeriodDtype) and lib.is_np_dtype(other_dtype, "m"):
             # TODO: Can we simplify/generalize these cases at all?
-            raise TypeError(f"cannot subtract {type(self).__name__} from {other.dtype}")
+            msg = ops.get_op_exception_message(self, other)
+            raise TypeError(msg)
         elif lib.is_np_dtype(self.dtype, "m"):
             self = cast("TimedeltaArray", self)
             return (-self) + other
