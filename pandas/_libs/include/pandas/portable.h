@@ -42,37 +42,37 @@ The full license is in the LICENSE file, distributed with this software.
 #endif
 #include <intsafe.h>
 #define checked_add(a, b, res)                                                 \
-  _Generic((a),                                                                \
-      int: IntAdd,                                                             \
-      unsigned int: UIntAdd,                                                   \
-      long: LongAdd,                                                           \
-      unsigned long: ULongAdd,                                                 \
-      long long: LongLongAdd,                                                  \
-      unsigned long long: ULongLongAdd,                                        \
-      short: ShortAdd,                                                         \
-      unsigned short: UShortAdd)(a, b, res)
+  _Generic((res),                                                              \
+      int *: IntAdd,                                                           \
+      unsigned int *: UIntAdd,                                                 \
+      long *: LongAdd,                                                         \
+      unsigned long *: ULongAdd,                                               \
+      long long *: LongLongAdd,                                                \
+      unsigned long long *: ULongLongAdd,                                      \
+      short *: ShortAdd,                                                       \
+      unsigned short *: UShortAdd)(a, b, res)
 
 #define checked_sub(a, b, res)                                                 \
-  _Generic((a),                                                                \
-      int: IntSub,                                                             \
-      unsigned int: UIntSub,                                                   \
-      long: LongSub,                                                           \
-      unsigned long: ULongSub,                                                 \
-      long long: LongLongSub,                                                  \
-      unsigned long long: ULongLongSub,                                        \
-      short: ShortSub,                                                         \
-      unsigned short: UShortSub)(a, b, res)
+  _Generic((res),                                                              \
+      int *: IntSub,                                                           \
+      unsigned int *: UIntSub,                                                 \
+      long *: LongSub,                                                         \
+      unsigned long *: ULongSub,                                               \
+      long long *: LongLongSub,                                                \
+      unsigned long long *: ULongLongSub,                                      \
+      short *: ShortSub,                                                       \
+      unsigned short *: UShortSub)(a, b, res)
 
 #define checked_mul(a, b, res)                                                 \
-  _Generic((a),                                                                \
-      int: IntMult,                                                            \
-      unsigned int: UIntMult,                                                  \
-      long: LongMult,                                                          \
-      unsigned long: ULongMult,                                                \
-      long long: LongLongMult,                                                 \
-      unsigned long long: ULongLongMult,                                       \
-      short: ShortMult,                                                        \
-      unsigned short: UShortMult)(a, b, res)
+  _Generic((res),                                                              \
+      int *: IntMult,                                                          \
+      unsigned int *: UIntMult,                                                \
+      long *: LongMult,                                                        \
+      unsigned long *: ULongMult,                                              \
+      long long *: LongLongMult,                                               \
+      unsigned long long *: ULongLongMult,                                     \
+      short *: ShortMult,                                                      \
+      unsigned short *: UShortMult)(a, b, res)
 
 #elif (defined(__has_builtin) && __has_builtin(__builtin_add_overflow)) ||     \
     __GNUC__ > 7
