@@ -17,6 +17,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     TypeAlias,
     TypeVar,
     cast,
@@ -120,7 +121,13 @@ class NamedAgg:
 class NamedAgg(tuple):
     __slots__ = ()
 
-    def __new__(cls, column, aggfunc, *args, **kwargs):
+    def __new__(
+        cls,
+        column: Hashable,
+        aggfunc: Callable[..., Any] | str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Self:
         if (
             callable(aggfunc)
             and not getattr(aggfunc, "_is_wrapped", False)
@@ -128,7 +135,7 @@ class NamedAgg(tuple):
         ):
             original_func = aggfunc
 
-            def wrapped(*call_args, **call_kwargs):
+            def wrapped(*call_args: Any, **call_kwargs: Any) -> Any:
                 series = call_args[0]
                 final_args = call_args[1:] + args
                 final_kwargs = {**kwargs, **call_kwargs}
