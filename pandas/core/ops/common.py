@@ -7,10 +7,13 @@ from __future__ import annotations
 from functools import wraps
 from typing import TYPE_CHECKING
 
+import numpy as np
+
 from pandas._libs.lib import item_from_zerodim
 from pandas._libs.missing import is_matching_na
 
 from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
     ABCIndex,
     ABCSeries,
 )
@@ -66,6 +69,15 @@ def _unpack_zerodim_and_defer(method: F, name: str) -> F:
                 return NotImplemented
 
         other = item_from_zerodim(other)
+
+        if isinstance(self, ABCExtensionArray):
+            if isinstance(other, list):
+                # See GH#62423
+                other = np.array(other)
+                if other.dtype.kind in "mM":
+                    from pandas.core.construction import ensure_wrapped_if_datetimelike
+
+                    other = ensure_wrapped_if_datetimelike(other)
 
         return method(self, other)
 
