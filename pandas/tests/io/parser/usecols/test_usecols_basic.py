@@ -8,6 +8,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config.config import option_context
+
 from pandas.errors import ParserError
 
 from pandas import (
@@ -545,3 +547,41 @@ b,2,y
         {"col1": array(["a", "b"]), "col2": np.array([1, 2], dtype="uint8")}
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("usecols", [(3, 0, 2), ("d", "a", "c")])
+@pytest.mark.parametrize("usecols_use_order", (True, False))
+def test_usecols_order(all_parsers, usecols, usecols_use_order):
+    # TODO: add portion in doc for 3.0 transition
+    parser = all_parsers
+    pyarrow_flag = False
+    data = """\
+a,b,c,d
+1,2,3,0
+4,5,6,0
+7,8,9,0
+10,11,12,13"""
+
+    if parser.engine == "pyarrow":
+        if isinstance(usecols[0], int):
+            msg = "The pyarrow engine does not allow 'usecols' to be integer column"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(StringIO(data), usecols=usecols)
+            return
+        else:
+            # looks like pyarrow already considers column order by default.
+            # Modifies test to account for it in selecting expected df
+            pyarrow_flag = True
+
+    if usecols_use_order or pyarrow_flag:
+        expected = DataFrame(
+            {"d": [0, 0, 0, 13], "a": [1, 4, 7, 10], "c": [3, 6, 9, 12]}
+        )
+    else:
+        expected = DataFrame(
+            {"a": [1, 4, 7, 10], "c": [3, 6, 9, 12], "d": [0, 0, 0, 13]}
+        )
+
+    with option_context("future.usecols_use_order", usecols_use_order):
+        result = parser.read_csv(StringIO(data), usecols=usecols)
+        tm.assert_frame_equal(result, expected)

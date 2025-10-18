@@ -900,5 +900,15 @@ with cf.config_prefix("future"):
         validator=is_one_of_factory([True, False]),
     )
 
+    cf.register_option(
+        "usecols_use_order",
+        False,
+        ": bool\n "
+        "Whether usecols parameter will use order of input when "
+        "making a DataFrame. \n This feature will be default in pandas 3.0"
+        "(at which point this option will be deprecated).",
+        validator=is_one_of_factory([True, False]),
+    )
+
 # GH#59502
 cf.deprecate_option("future.no_silent_downcasting", Pandas4Warning)
