@@ -606,6 +606,8 @@ def get_pandas_objects(
     if not recurse:
         return objs
 
+    # __file__ can, but shouldn't, be None
+    assert isinstance(module.__file__, str)
     paths = [pathlib.Path(module.__file__).parent]
     for module_info in pkgutil.walk_packages(paths):
         name = module_info.name
