@@ -413,10 +413,6 @@ class DictWrapper:
         object.__setattr__(self, "prefix", prefix)
 
     def __setattr__(self, key: str, val: Any) -> None:
-        if key == "__module__":
-            # Need to be able to set __module__ to pandas for pandas.options
-            super().__setattr__(key, val)
-            return
         prefix = object.__getattribute__(self, "prefix")
         if prefix:
             prefix += "."
@@ -447,7 +443,8 @@ class DictWrapper:
 
 
 options = DictWrapper(_global_config)
-options.__module__ = "pandas"
+# DictWrapper defines a custom setattr
+object.__setattr__(options, "__module__", "pandas")
 
 #
 # Functions for use by pandas developers, in addition to User - api

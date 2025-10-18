@@ -643,7 +643,8 @@ def test_attributes_module(module_name):
             # Explicit exceptions
             or ("Dtype" in name and obj.__module__ == "pandas")
             or (name == "Categorical" and obj.__module__ == "pandas")
-            # TODO: Can't seem to change __module__
+            # Setting __module__ on a cdef class has no effect
+            # https://github.com/cython/cython/issues/7231
             or name == "Interval"
         )
     ]
