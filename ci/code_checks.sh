@@ -74,8 +74,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Period.ordinal GL08" \
         -i "pandas.errors.IncompatibleFrequency SA01,SS06,EX01" \
         -i "pandas.api.extensions.ExtensionArray.value_counts EX01,RT03,SA01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
-        -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
         -i "pandas.core.resample.Resampler.quantile PR01,PR07" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BHalfYearBegin.is_on_offset GL08" \
