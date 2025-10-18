@@ -9141,20 +9141,13 @@ class DataFrame(NDFrame, OpsMixin):
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
         """
-        from pandas.core.computation import expressions
 
         def combiner(x: Series, y: Series):
-            mask = x.isna()._values
-
-            x_values = x._values
-            y_values = y._values
-
-            # If the column y in other DataFrame is not in first DataFrame,
-            # just return y_values.
-            if y.name not in self.columns:
-                return y_values
-
-            return expressions.where(mask, y_values, x_values)
+            # GH#60128 Preserve EA dtypes by operating at the Series level.
+            # If 'y' is a new column, return it as-is; otherwise fill <NA> in 'x'
+            # from 'y'. Avoids dropping to NumPy arrays (which would lose
+            # Int64/UInt64 and reintroduce float64 paths).
+            return y if y.name not in self.columns else y.where(x.isna(), x)
 
         if len(other) == 0:
             combined = self.reindex(
@@ -9162,6 +9155,24 @@ class DataFrame(NDFrame, OpsMixin):
             )
             combined = combined.astype(other.dtypes)
         else:
+            # GH#60128 Avoid precision loss from int64/uint64 <-> float64 round-trip.
+            def _cast_64_bit_ints_to_nullable(df: DataFrame) -> DataFrame:
+                cast_map: dict[str, str] = {}
+
+                for col, dt in df.dtypes.items():
+                    if dt == np.dtype("uint64"):
+                        cast_map[col] = "UInt64"
+                    elif dt == np.dtype("int64"):
+                        cast_map[col] = "Int64"
+
+                return df.astype(cast_map) if cast_map else df
+
+            # Only need to cast sides that gain rows on outer align (introduces <NA>).
+            if len(other.index.difference(self.index, sort=False)):
+                self = _cast_64_bit_ints_to_nullable(self)
+            if len(self.index.difference(other.index, sort=False)):
+                other = _cast_64_bit_ints_to_nullable(other)
+
             combined = self.combine(other, combiner, overwrite=False)
 
         dtypes = {
