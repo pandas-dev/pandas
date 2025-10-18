@@ -1178,3 +1178,40 @@ Use ``copy=True`` to prevent such a behaviour or simply don't reuse ``Categorica
     This also happens in some cases when you supply a NumPy array instead of a ``Categorical``:
     using an int array (e.g. ``np.array([1,2,3,4])``) will exhibit the same behavior, while using
     a string array (e.g. ``np.array(["a","b","c","a"])``) will not.
+
+.. note::
+
+    When constructing a :class:`pandas.Categorical` from a pandas :class:`Series` or
+     :class:`Index` with ``dtype='object'``, the dtype of the categories will be
+     preserved as ``object``. When constructing from a NumPy array
+     with ``dtype='object'`` or a raw Python sequence, pandas will infer the most
+     specific dtype for the categories (for example, ``string`` if all elements are strings).
+
+.. ipython:: python
+
+    with pd.option_context("future.infer_string", True):
+        ser = pd.Series(["foo", "bar", "baz"], dtype="object")
+        idx = pd.Index(["foo", "bar", "baz"], dtype="object")
+        arr = np.array(["foo", "bar", "baz"], dtype="object")
+        pylist = ["foo", "bar", "baz"]
+
+        cat_from_ser = pd.Categorical(ser)
+        cat_from_idx = pd.Categorical(idx)
+        cat_from_arr = pd.Categorical(arr)
+        cat_from_list = pd.Categorical(pylist)
+
+        # Series/Index with object dtype: infer string dtype
+        assert cat_from_ser.categories.inferred_type == "string"
+        assert cat_from_idx.categories.inferred_type == "string"
+
+        # Numpy array or list: infer string dtype
+        assert cat_from_arr.categories.inferred_type == "string"
+        assert cat_from_list.categories.inferred_type == "string"
+
+        # Mixed types: preserve object dtype
+        ser_mixed = pd.Series(["foo", 1, None], dtype="object")
+        idx_mixed = pd.Index(["foo", 1, None], dtype="object")
+        cat_mixed_ser = pd.Categorical(ser_mixed)
+        cat_mixed_idx = pd.Categorical(idx_mixed)
+        assert cat_mixed_ser.categories.dtype == "object"
+        assert cat_mixed_idx.categories.dtype == "object"
