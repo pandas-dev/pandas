@@ -102,6 +102,10 @@ class TestSelectDtypes:
             ri = df.select_dtypes(include=[str])
             tm.assert_frame_equal(ri, ei)
 
+        ri = df.select_dtypes(include=["object"])
+        ei = df[["a"]]
+        tm.assert_frame_equal(ri, ei)
+
     def test_select_dtypes_exclude_using_list_like(self):
         df = DataFrame(
             {
@@ -309,17 +313,15 @@ class TestSelectDtypes:
         df["g"] = df.f.diff()
         assert not hasattr(np, "u8")
         r = df.select_dtypes(include=["i8", "O"], exclude=["timedelta"])
-        if using_infer_string:
-            e = df[["b"]]
-        else:
-            e = df[["a", "b"]]
+        # if using_infer_string:
+        #     TODO warn
+        e = df[["a", "b"]]
         tm.assert_frame_equal(r, e)
 
         r = df.select_dtypes(include=["i8", "O", "timedelta64[ns]"])
-        if using_infer_string:
-            e = df[["b", "g"]]
-        else:
-            e = df[["a", "b", "g"]]
+        # if using_infer_string:
+        #     TODO warn
+        e = df[["a", "b", "g"]]
         tm.assert_frame_equal(r, e)
 
     def test_select_dtypes_empty(self):
@@ -483,3 +485,26 @@ class TestSelectDtypes:
         result = df.select_dtypes(include=["number"])
         result.iloc[0, 0] = 0
         tm.assert_frame_equal(df, df_orig)
+
+    def test_select_dtype_object_and_str(self, using_infer_string):
+        # https://github.com/pandas-dev/pandas/issues/61916
+        df = DataFrame(
+            {
+                "a": ["a", "b", "c"],
+                "b": [1, 2, 3],
+                "c": pd.array(["a", "b", "c"], dtype="string"),
+            }
+        )
+
+        # with "object" -> only select the object or default str dtype column
+        result = df.select_dtypes(include=["object"])
+        expected = df[["a"]]
+        tm.assert_frame_equal(result, expected)
+
+        # with "string" -> select both the default 'str' and the nullable 'string'
+        result = df.select_dtypes(include=["string"])
+        if using_infer_string:
+            expected = df[["a", "c"]]
+        else:
+            expected = df[["c"]]
+        tm.assert_frame_equal(result, expected)

@@ -157,6 +157,8 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+    from pandas._typing import TimeUnit
+
     from pandas import Index
     from pandas.core.arrays import (
         DatetimeArray,
@@ -971,6 +973,8 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         try:
             other = self._validate_comparison_value(other)
         except InvalidComparison:
+            if hasattr(other, "dtype") and isinstance(other.dtype, ArrowDtype):
+                return NotImplemented
             return invalid_comparison(self, other, op)
 
         dtype = getattr(other, "dtype", None)
@@ -1084,6 +1088,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         ):
             # e.g. TestTimedelta64ArithmeticUnsorted::test_timedelta
             # Day is unambiguously 24h
+            return self.freq
+        elif (
+            lib.is_np_dtype(self.dtype, "M")
+            and isinstance(other, Timestamp)
+            and isinstance(self.freq, Day)
+        ):
             return self.freq
 
         return None
@@ -2106,7 +2116,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         return get_unit_from_dtype(self._ndarray.dtype)
 
     @cache_readonly
-    def unit(self) -> str:
+    def unit(self) -> TimeUnit:
         """
         The precision unit of the datetime data.
 
@@ -2130,11 +2140,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         >>> idx.as_unit("s").unit
         's'
         """
-        # error: Argument 1 to "dtype_to_unit" has incompatible type
-        # "ExtensionDtype"; expected "Union[DatetimeTZDtype, dtype[Any]]"
-        return dtype_to_unit(self.dtype)  # type: ignore[arg-type]
+        # error: Incompatible return value type (got "str", expected
+        # "Literal['s', 'ms', 'us', 'ns']")  [return-value]
+        return dtype_to_unit(self.dtype)  # type: ignore[return-value,arg-type]
 
-    def as_unit(self, unit: str, round_ok: bool = True) -> Self:
+    def as_unit(self, unit: TimeUnit, round_ok: bool = True) -> Self:
         """
         Convert to a dtype with the given unit resolution.
 
@@ -2366,7 +2376,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             to_concat = [x for x in to_concat if len(x)]
 
             if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
-                pairs = zip(to_concat[:-1], to_concat[1:])
+                pairs = zip(to_concat[:-1], to_concat[1:], strict=True)
                 if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
                     new_freq = obj.freq
                     new_obj._freq = new_freq

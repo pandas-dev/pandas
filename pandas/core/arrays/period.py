@@ -962,7 +962,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             # GH#45038 match PeriodIndex behavior.
             tz = getattr(dtype, "tz", None)
             unit = dtl.dtype_to_unit(dtype)
-            return self.to_timestamp().tz_localize(tz).as_unit(unit)
+            # error: Argument 1 to "as_unit" of "TimelikeOps" has incompatible
+            # type "str"; expected "Literal['s', 'ms', 'us', 'ns']"  [arg-type]
+            return self.to_timestamp().tz_localize(tz).as_unit(unit)  # type: ignore[arg-type]
 
         return super().astype(dtype, copy=copy)
 
@@ -1445,7 +1447,7 @@ def _range_from_fields(
 
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
-        for y, q in zip(year, quarter):
+        for y, q in zip(year, quarter, strict=True):
             calendar_year, calendar_month = parsing.quarter_to_myear(y, q, freqstr)
             val = libperiod.period_ordinal(
                 calendar_year, calendar_month, 1, 1, 1, 1, 0, 0, base
@@ -1455,7 +1457,7 @@ def _range_from_fields(
         freq = to_offset(freq, is_period=True)
         base = libperiod.freq_to_dtype_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
-        for y, mth, d, h, mn, s in zip(*arrays):
+        for y, mth, d, h, mn, s in zip(*arrays, strict=True):
             ordinals.append(libperiod.period_ordinal(y, mth, d, h, mn, s, 0, 0, base))
 
     return np.array(ordinals, dtype=np.int64), freq

@@ -30,7 +30,7 @@ def test_unique(index_or_series_obj):
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("null_obj", [np.nan, None])
-def test_unique_null(null_obj, index_or_series_obj):
+def test_unique_null(null_obj, index_or_series_obj, using_nan_is_na):
     obj = index_or_series_obj
 
     if not allow_na_ops(obj):
@@ -39,6 +39,12 @@ def test_unique_null(null_obj, index_or_series_obj):
         pytest.skip("Test doesn't make sense on empty data")
     elif isinstance(obj, pd.MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
+    elif (
+        null_obj is not None
+        and not using_nan_is_na
+        and obj.dtype in ["Int64", "UInt16", "Float32"]
+    ):
+        pytest.skip("NaN is not a valid NA for this dtype.")
 
     values = obj._values
     values[0:2] = null_obj

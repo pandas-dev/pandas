@@ -40,6 +40,7 @@ from pandas._typing import (
     IgnoreRaise,
     IndexLabel,
     IndexT,
+    NaPosition,
     Scalar,
     Shape,
     npt,
@@ -719,7 +720,7 @@ class MultiIndex(Index):
         if not isinstance(df, ABCDataFrame):
             raise TypeError("Input must be a DataFrame")
 
-        column_names, columns = zip(*df.items())
+        column_names, columns = zip(*df.items(), strict=True)
         names = column_names if names is None else names
         return cls.from_arrays(columns, sortorder=sortorder, names=names)
 
@@ -877,7 +878,10 @@ class MultiIndex(Index):
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
         # https://github.com/pandas-dev/pandas/issues/31648
-        result = [x._rename(name=name) for x, name in zip(self._levels, self._names)]
+        result = [
+            x._rename(name=name)
+            for x, name in zip(self._levels, self._names, strict=True)
+        ]
         for level in result:
             # disallow midx.levels[0].name = "foo"
             level._no_setting_name = True
@@ -911,7 +915,7 @@ class MultiIndex(Index):
         else:
             level_numbers = [self._get_level_number(lev) for lev in level]
             new_levels_list = list(self._levels)
-            for lev_num, lev in zip(level_numbers, levels):
+            for lev_num, lev in zip(level_numbers, levels, strict=True):
                 new_levels_list[lev_num] = ensure_index(lev, copy=copy)._view()
             new_levels = FrozenList(new_levels_list)
 
@@ -1147,13 +1151,13 @@ class MultiIndex(Index):
         if level is None:
             new_codes = FrozenList(
                 _coerce_indexer_frozen(level_codes, lev, copy=copy).view()
-                for lev, level_codes in zip(self._levels, codes)
+                for lev, level_codes in zip(self._levels, codes, strict=True)
             )
             level_numbers = range(len(new_codes))
         else:
             level_numbers = [self._get_level_number(lev) for lev in level]
             new_codes_list = list(self._codes)
-            for lev_num, level_codes in zip(level_numbers, codes):
+            for lev_num, level_codes in zip(level_numbers, codes, strict=True):
                 lev = self.levels[lev_num]
                 new_codes_list[lev_num] = _coerce_indexer_frozen(
                     level_codes, lev, copy=copy
@@ -1477,7 +1481,7 @@ class MultiIndex(Index):
         Formats each item in tup according to its level's formatter function.
         """
         formatter_funcs = (level._formatter_func for level in self.levels)
-        return tuple(func(val) for func, val in zip(formatter_funcs, tup))
+        return tuple(func(val) for func, val in zip(formatter_funcs, tup, strict=True))
 
     def _get_values_for_csv(
         self, *, na_rep: str = "nan", **kwargs
@@ -1486,7 +1490,7 @@ class MultiIndex(Index):
         new_codes = []
 
         # go through the levels and format them
-        for level, level_codes in zip(self.levels, self.codes):
+        for level, level_codes in zip(self.levels, self.codes, strict=True):
             level_strs = level._get_values_for_csv(na_rep=na_rep, **kwargs)
             # add nan values, if there are any
             mask = level_codes == -1
@@ -1526,7 +1530,7 @@ class MultiIndex(Index):
             return []
 
         stringified_levels = []
-        for lev, level_codes in zip(self.levels, self.codes):
+        for lev, level_codes in zip(self.levels, self.codes, strict=True):
             na = _get_na_rep(lev.dtype)
 
             if len(lev) > 0:
@@ -1549,7 +1553,7 @@ class MultiIndex(Index):
             stringified_levels.append(formatted)
 
         result_levels = []
-        for lev, lev_name in zip(stringified_levels, self.names):
+        for lev, lev_name in zip(stringified_levels, self.names, strict=True):
             level = []
 
             if include_names:
@@ -1626,7 +1630,7 @@ class MultiIndex(Index):
             level = (self._get_level_number(lev) for lev in level)
 
         # set the name
-        for lev, name in zip(level, names):
+        for lev, name in zip(level, names, strict=True):
             if name is not None:
                 # GH 20527
                 # All items in 'names' need to be hashable:
@@ -2093,7 +2097,7 @@ class MultiIndex(Index):
         new_levels = []
         new_codes = []
 
-        for lev, level_codes in zip(self.levels, self.codes):
+        for lev, level_codes in zip(self.levels, self.codes, strict=True):
             if not lev.is_monotonic_increasing:
                 try:
                     # indexer to reorder the levels
@@ -2172,7 +2176,7 @@ class MultiIndex(Index):
         new_codes = []
 
         changed = False
-        for lev, level_codes in zip(self.levels, self.codes):
+        for lev, level_codes in zip(self.levels, self.codes, strict=True):
             # Since few levels are typically unused, bincount() is more
             # efficient than unique() - however it only accepts positive values
             # (and drops order):
@@ -2239,7 +2243,7 @@ class MultiIndex(Index):
             key = com.cast_scalar_indexer(key)
 
             retval = []
-            for lev, level_codes in zip(self.levels, self.codes):
+            for lev, level_codes in zip(self.levels, self.codes, strict=True):
                 if level_codes[key] == -1:
                     retval.append(np.nan)
                 else:
@@ -2398,8 +2402,54 @@ class MultiIndex(Index):
             return Index(new_tuples)
 
     def argsort(
-        self, *args, na_position: str = "last", **kwargs
+        self, *args, na_position: NaPosition = "last", **kwargs
     ) -> npt.NDArray[np.intp]:
+        """
+        Return the integer indices that would sort the index.
+
+        Parameters
+        ----------
+        *args
+            Passed to `numpy.ndarray.argsort`.
+        na_position : {'first' or 'last'}, default 'last'
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
+        **kwargs
+            Passed to `numpy.ndarray.argsort`.
+
+        Returns
+        -------
+        np.ndarray[np.intp]
+            Integer indices that would sort the index if used as
+            an indexer.
+
+        See Also
+        --------
+        numpy.argsort : Similar method for NumPy arrays.
+        Index.argsort : Similar method for Index.
+
+        Examples
+        --------
+        >>> midx = pd.MultiIndex.from_arrays([[3, 2], ["e", "c"]])
+        >>> midx
+        MultiIndex([(3, 'e'), (2, 'c')])
+
+        >>> order = midx.argsort()
+        >>> order
+        array([1, 0])
+
+        >>> midx[order]
+        MultiIndex([(2, 'c'),
+                    (3, 'e')],
+                  )
+
+        >>> midx = pd.MultiIndex.from_arrays([[2, 2], [np.nan, 0]])
+        >>> midx.argsort(na_position="first")
+        array([0, 1])
+
+        >>> midx.argsort()
+        array([1, 0])
+        """
         target = self._sort_levels_monotonic(raise_if_incomparable=True)
         keys = [lev.codes for lev in target._get_codes_for_sorting()]
         return lexsort_indexer(keys, na_position=na_position, codes_given=True)
@@ -3031,7 +3081,7 @@ class MultiIndex(Index):
 
         n = len(tup)
         start, end = 0, len(self)
-        zipped = zip(tup, self.levels, self.codes)
+        zipped = zip(tup, self.levels, self.codes, strict=True)
         for k, (lab, lev, level_codes) in enumerate(zipped):
             section = level_codes[start:end]
 
@@ -3315,7 +3365,7 @@ class MultiIndex(Index):
                     "Key for location must have same length as number of levels"
                 )
             result = None
-            for lev, k in zip(level, key):
+            for lev, k in zip(level, key, strict=True):
                 loc, new_index = self._get_loc_level(k, level=lev)
                 if isinstance(loc, slice):
                     mask = np.zeros(len(self), dtype=bool)
@@ -3901,7 +3951,7 @@ class MultiIndex(Index):
             if isinstance(result, MultiIndex):
                 return result
             return MultiIndex.from_arrays(
-                zip(*result), sortorder=None, names=result_names
+                zip(*result, strict=True), sortorder=None, names=result_names
             )
 
         else:
@@ -3948,7 +3998,7 @@ class MultiIndex(Index):
         if len(self.names) != len(other.names):
             return [None] * len(self.names)
         names = []
-        for a_name, b_name in zip(self.names, other.names):
+        for a_name, b_name in zip(self.names, other.names, strict=True):
             if a_name == b_name:
                 names.append(a_name)
             else:
@@ -4045,7 +4095,7 @@ class MultiIndex(Index):
         new_codes = []
 
         for i, (value_level, level, level_codes) in enumerate(
-            zip(subset.levels, self.levels, self.codes)
+            zip(subset.levels, self.levels, self.codes, strict=True)
         ):
             new_level = level.union(value_level, sort=False)
             value_codes = new_level.get_indexer_for(subset.get_level_values(i))
@@ -4076,7 +4126,7 @@ class MultiIndex(Index):
 
         new_levels = []
         new_codes = []
-        for k, level, level_codes in zip(item, self.levels, self.codes):
+        for k, level, level_codes in zip(item, self.levels, self.codes, strict=True):
             if k not in level:
                 # have to insert into level
                 # must insert at end otherwise you have to recompute all the
@@ -4172,7 +4222,7 @@ def _lexsort_depth(codes: list[np.ndarray], nlevels: int) -> int:
 
 
 def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
-    pivoted = list(zip(*label_list))
+    pivoted = list(zip(*label_list, strict=True))
     k = len(label_list)
 
     result = pivoted[: start + 1]
@@ -4181,7 +4231,7 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
     for cur in pivoted[start + 1 :]:
         sparse_cur = []
 
-        for i, (p, t) in enumerate(zip(prev, cur)):
+        for i, (p, t) in enumerate(zip(prev, cur, strict=True)):
             if i == k - 1:
                 sparse_cur.append(t)
                 result.append(sparse_cur)  # type: ignore[arg-type]
@@ -4196,7 +4246,7 @@ def sparsify_labels(label_list, start: int = 0, sentinel: object = ""):
 
         prev = cur
 
-    return list(zip(*result))
+    return list(zip(*result, strict=True))
 
 
 def _get_na_rep(dtype: DtypeObj) -> str:

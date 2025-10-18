@@ -1483,7 +1483,11 @@ class _MergeOperation:
             mask = indexer == -1
             if np.any(mask):
                 fill_value = na_value_for_dtype(index.dtype, compat=False)
-                index = index.append(Index([fill_value]))
+                if not index._can_hold_na:
+                    new_index = Index([fill_value])
+                else:
+                    new_index = Index([fill_value], dtype=index.dtype)
+                index = index.append(new_index)
         if indexer is None:
             return index.copy()
         return index.take(indexer)
@@ -1742,7 +1746,9 @@ class _MergeOperation:
 
                     mask = ~np.isnan(lk)
                     match = lk == casted
-                    if not match[mask].all():
+                    # error: Item "ExtensionArray" of
+                    # "ExtensionArray | Any" has no attribute "all"
+                    if not match[mask].all():  # type: ignore[union-attr]
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
@@ -1762,7 +1768,9 @@ class _MergeOperation:
 
                     mask = ~np.isnan(rk)
                     match = rk == casted
-                    if not match[mask].all():
+                    # error: Item "ExtensionArray" of
+                    # "ExtensionArray | Any" has no attribute "all"
+                    if not match[mask].all():  # type: ignore[union-attr]
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "

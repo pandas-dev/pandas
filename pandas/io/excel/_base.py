@@ -39,6 +39,7 @@ from pandas.errors import EmptyDataError
 from pandas.util._decorators import (
     Appender,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
@@ -434,6 +435,7 @@ def read_excel(
 ) -> dict[IntStrT, DataFrame]: ...
 
 
+@set_module("pandas")
 @doc(storage_options=_shared_docs["storage_options"])
 @Appender(_read_excel_doc)
 def read_excel(
@@ -951,6 +953,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         return output
 
 
+@set_module("pandas")
 @doc(storage_options=_shared_docs["storage_options"])
 class ExcelWriter(Generic[_WorkbookT]):
     """
@@ -1180,9 +1183,6 @@ class ExcelWriter(Generic[_WorkbookT]):
             cls = get_writer(engine)  # type: ignore[assignment]
 
         return object.__new__(cls)
-
-    # declare external properties you can count on
-    _path = None
 
     @property
     def supported_extensions(self) -> tuple[str, ...]:
@@ -1474,6 +1474,7 @@ def inspect_excel_format(
         return "zip"
 
 
+@set_module("pandas")
 @doc(storage_options=_shared_docs["storage_options"])
 class ExcelFile:
     """
