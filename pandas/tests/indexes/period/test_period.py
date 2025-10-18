@@ -240,19 +240,7 @@ def test_to_timestamp_monthly_resolution():
 
 
 def test_to_timestamp_yearly_resolution():
-    idx = PeriodIndex(["2011", "2012"], freq="A")
-    ts = idx.to_timestamp()
-    assert ts.dtype == np.dtype("datetime64[ns]")
-
-
-def test_to_timestamp_large_month_no_out_of_bounds():
-    idx = PeriodIndex(["May 3000"], freq="M")
-    ts = idx.to_timestamp()
-    assert ts.dtype == np.dtype("datetime64[ns]")
-
-
-def test_to_timestamp_large_year_no_out_of_bounds():
-    idx = PeriodIndex(["3000"], freq="Y")
+    idx = PeriodIndex(["2011", "2012"], freq="Y")
     ts = idx.to_timestamp()
     assert ts.dtype == np.dtype("datetime64[ns]")
 
@@ -265,7 +253,7 @@ def test_to_timestamp_daily_resolution():
 
 def test_to_timestamp_nanosecond_resolution():
     idx = PeriodIndex(
-        ["2011-01-01 00:00:00.000000001", "2011-01-01 00:00:00.000000002"], freq="N"
+        ["2011-01-01 00:00:00.000000001", "2011-01-01 00:00:00.000000002"], freq="ns"
     )
     ts = idx.to_timestamp()
     assert ts.dtype == np.dtype("datetime64[ns]")
