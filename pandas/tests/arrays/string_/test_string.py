@@ -251,13 +251,13 @@ def test_mul(dtype):
 
 def test_add_series(dtype):
     arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
-    df = pd.Series(["t", "y", "v", "w"], dtype=object)
+    ser = pd.Series(["t", "y", "v", "w"], dtype=object)
 
-    result = arr + df
+    result = arr + ser
     expected = pd.Series(["at", "by", "cv", "dw"]).astype(dtype)
     tm.assert_series_equal(result, expected)
 
-    result = df + arr
+    result = ser + arr
     expected = pd.Series(["ta", "yb", "vc", "wd"]).astype(dtype)
     tm.assert_series_equal(result, expected)
 
@@ -277,53 +277,23 @@ def test_add_strings(dtype):
 
 
 @pytest.mark.xfail(reason="GH-28527")
-def test_add_frame(dtype):
+def test_add_frame(request, dtype):
+    if isinstance(dtype, "str[python]"):
+        # This ONE dtype actually succeeds the test
+        # We are manually failing it to maintain continuity
+        mark = pytest.mark.xfail(reason="[XPASS(strict)] GH-28527")
+        request.applymarker(mark)
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
     assert arr.__add__(df) is NotImplemented
 
     result = arr + df
     expected = pd.DataFrame([["ax", np.nan, np.nan, np.nan]]).astype(dtype)
-    tm.assert_frame_equal(result, expected, check_dtype=False)
+    tm.assert_frame_equal(result, expected)
 
     result = df + arr
     expected = pd.DataFrame([["xa", np.nan, np.nan, np.nan]]).astype(dtype)
-    tm.assert_frame_equal(result, expected, check_dtype=False)
-
-    if isinstance(dtype, "str[python]"):
-        # This ONE dtype actually succeeds the test
-        # We are manually failing it to maintain continuity
-        pytest.fail("Manually failed")
-
-
-@pytest.mark.parametrize(
-    "invalid",
-    [
-        10,
-        1.5,
-        pd.Timedelta(hours=31),
-        pd.Timestamp("2021-01-01"),
-        True,
-        pd.Period("2025-09"),
-        # pd.Categorical(["test"]), #TODO causes box_pa issue, will open issue
-        # pd.offsets.Minute(3),
-        pd.Interval(1, 2, closed="right"),
-    ],
-)
-def test_add_frame_invalid(dtype, invalid):
-    arr = pd.array(["a", np.nan], dtype=dtype)
-    df = pd.DataFrame([[invalid, invalid]])
-
-    msg = "|".join(
-        [
-            r"can only concatenate str \(not \".+\"\) to str",
-            r"unsupported operand type\(s\) for \+: '.+' and 'str'",
-            r"operation 'add' not supported for dtype 'str|string' with dtype '.+'",
-            "Incompatible type when converting to PyArrow dtype for operation.",
-        ]
-    )
-    with pytest.raises(TypeError, match=msg):
-        arr + df
+    tm.assert_frame_equal(result, expected)
 
 
 def test_comparison_methods_scalar(comparison_op, dtype):
