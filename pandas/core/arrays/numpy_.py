@@ -45,6 +45,7 @@ if TYPE_CHECKING:
         InterpolateOptions,
         NpDtype,
         Scalar,
+        TakeIndexer,
         npt,
     )
 
@@ -349,6 +350,36 @@ class NumpyExtensionArray(
         if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
+
+    def take(
+        self,
+        indices: TakeIndexer,
+        *,
+        allow_fill: bool = False,
+        fill_value: Any = None,
+        axis: AxisInt = 0,
+    ) -> Self:
+        """
+        Take entries from this array at each index in a list of indices,
+        producing an array containing only those entries.
+        """
+        result = super().take(
+            indices, allow_fill=allow_fill, fill_value=fill_value, axis=axis
+        )
+        # See GH#62448.
+        if self.dtype.numpy_dtype in [
+            np.uint8,
+            np.uint16,
+            np.uint32,
+            np.uint64,
+            np.int8,
+            np.int16,
+            np.int32,
+            np.int64,
+        ]:
+            return type(self)(result, copy=False)
+
+        return result
 
     # ------------------------------------------------------------------------
     # Reductions
