@@ -937,9 +937,11 @@ class ExcelFormatter:
                 engine=engine,
                 storage_options=storage_options,
                 engine_kwargs=engine_kwargs,
-                autofilter=autofilter,
             )
             need_save = True
+            # Set autofilter on new writer instance if supported
+            if hasattr(writer, "autofilter"):
+                writer.autofilter = autofilter
 
         try:
             writer._write_cells(
@@ -952,4 +954,32 @@ class ExcelFormatter:
         finally:
             # make sure to close opened file handles
             if need_save:
+                # Call close() once; it will perform _save() and close handles.
+                # Avoid calling both _save() and close() which can double-close
+                # and trigger engine warnings (e.g., xlsxwriter).
                 writer.close()
+
+    # Backward-compat shim for tests/users calling ExcelFormatter.write(...)
+    def write(
+        self,
+        writer,
+        sheet_name: str = "Sheet1",
+        startrow: int = 0,
+        startcol: int = 0,
+        freeze_panes: tuple[int, int] | None = None,
+        engine: str | None = None,
+        storage_options: StorageOptions | None = None,
+        engine_kwargs: dict | None = None,
+        autofilter: bool = False,
+    ) -> None:
+        self.to_excel(
+            writer,
+            sheet_name=sheet_name,
+            startrow=startrow,
+            startcol=startcol,
+            freeze_panes=freeze_panes,
+            engine=engine,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
+            autofilter=autofilter,
+        )

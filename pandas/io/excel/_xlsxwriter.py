@@ -91,12 +91,15 @@ class _XlsxStyler:
     @classmethod
     def convert(
         cls,
-        style_dict: dict,
+        style_dict: dict | None,
         num_format_str: str | None = None,
     ) -> dict[str, Any]:
         """Convert a style_dict to an xlsxwriter format dict."""
-        # Create a copy to avoid modifying the input
-        style_dict = style_dict.copy()
+        # Normalize and copy to avoid modifying the input
+        if style_dict is None:
+            style_dict = {}
+        else:
+            style_dict = style_dict.copy()
 
         # Map CSS font-weight to xlsxwriter font-weight (bold)
         if style_dict.get("font-weight") in ("bold", "bolder", 700, "700") or (
@@ -186,6 +189,10 @@ class _XlsxStyler:
         if props.get("valign") == "center":
             props["valign"] = "vcenter"
 
+        # Ensure numeric format is applied when provided separately
+        if num_format_str and "num_format" not in props:
+            props["num_format"] = num_format_str
+
         return props
 
 
@@ -207,6 +214,10 @@ class XlsxWriter(ExcelWriter):
     ) -> None:
         # Use the xlsxwriter module as the Excel writer.
         import_optional_dependency("xlsxwriter")
+        # xlsxwriter does not support append; raise before delegating to
+        # base init which rewrites mode
+        if "a" in (mode or ""):
+            raise ValueError("Append mode is not supported with xlsxwriter!")
         super().__init__(
             path,
             mode=mode,
@@ -218,12 +229,9 @@ class XlsxWriter(ExcelWriter):
         self._engine_kwargs = engine_kwargs or {}
         self.autofilter = autofilter
         self._book = None
-
-        try:
-            self._book = Workbook(self._handles.handle, **self._engine_kwargs)  # type: ignore[arg-type]
-        except TypeError as e:
-            self._handles.handle.close()
-            raise RuntimeError("Failed to create XlsxWriter workbook") from e
+        # Let xlsxwriter raise its own TypeError to satisfy tests
+        # expecting that error
+        self._book = Workbook(self._handles.handle, **self._engine_kwargs)  # type: ignore[arg-type]
 
     @property
     def book(self):

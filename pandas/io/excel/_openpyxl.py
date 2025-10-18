@@ -222,13 +222,19 @@ class OpenpyxlWriter(ExcelWriter):
             is_bold = True
 
         # Map style keys to Font constructor arguments
+        # (accept both shorthand and CSS-like keys)
         key_map = {
             "b": "bold",
+            "bold": "bold",
             "i": "italic",
+            "italic": "italic",
             "u": "underline",
+            "underline": "underline",
             "strike": "strikethrough",
             "vertAlign": "vertAlign",
+            "vertalign": "vertAlign",
             "sz": "size",
+            "size": "size",
             "color": "color",
             "name": "name",
             "family": "family",
@@ -239,10 +245,7 @@ class OpenpyxlWriter(ExcelWriter):
 
         # Process other font properties
         for style_key, font_key in key_map.items():
-            if style_key in style_dict and style_key not in (
-                "b",
-                "bold",
-            ):  # Skip b/bold as we've already handled it
+            if style_key in style_dict and style_key not in ("b", "bold"):
                 value = style_dict[style_key]
                 if font_key == "color" and value is not None:
                     value = cls._convert_to_color(value)
@@ -515,7 +518,60 @@ class OpenpyxlWriter(ExcelWriter):
         for cell in cells:
             xrow = startrow + cell.row
             xcol = startcol + cell.col
-            xcell = wks.cell(row=xrow + 1, column=xcol + 1)  # +1 for 1-based indexing
+
+            # Handle merged ranges if specified on this cell
+            if cell.mergestart is not None and cell.mergeend is not None:
+                start_r = xrow + 1
+                start_c = xcol + 1
+                end_r = startrow + cell.mergestart + 1
+                end_c = startcol + cell.mergeend + 1
+
+                # Create the merged range
+                wks.merge_cells(
+                    start_row=start_r,
+                    start_column=start_c,
+                    end_row=end_r,
+                    end_column=end_c,
+                )
+
+                # Top-left cell of the merged range
+                tl = wks.cell(row=start_r, column=start_c)
+                tl.value, fmt = self._value_with_fmt(cell.val)
+                if fmt:
+                    tl.number_format = fmt
+
+                style_kwargs = None
+                if cell.style:
+                    key = str(cell.style)
+                    if key not in _style_cache:
+                        style_kwargs = self._convert_to_style_kwargs(cell.style)
+                        _style_cache[key] = style_kwargs
+                    else:
+                        style_kwargs = _style_cache[key]
+
+                    for k, v in style_kwargs.items():
+                        setattr(tl, k, v)
+
+                # Apply style across merged cells to satisfy tests
+                # that inspect non-top-left cells
+                if style_kwargs:
+                    for r in range(start_r, end_r + 1):
+                        for c in range(start_c, end_c + 1):
+                            if r == start_r and c == start_c:
+                                continue
+                            mcell = wks.cell(row=r, column=c)
+                            for k, v in style_kwargs.items():
+                                setattr(mcell, k, v)
+
+                # Update bounds with the entire merged rectangle
+                min_row = xrow if min_row is None else min(min_row, xrow)
+                min_col = xcol if min_col is None else min(min_col, xcol)
+                max_row = (end_r - 1) if max_row is None else max(max_row, end_r - 1)
+                max_col = (end_c - 1) if max_col is None else max(max_col, end_c - 1)
+                continue
+
+            # Non-merged cell path
+            xcell = wks.cell(row=xrow + 1, column=xcol + 1)
 
             # Apply cell value and format
             xcell.value, fmt = self._value_with_fmt(cell.val)
@@ -531,7 +587,6 @@ class OpenpyxlWriter(ExcelWriter):
                 else:
                     style_kwargs = _style_cache[key]
 
-                # Apply the style
                 for k, v in style_kwargs.items():
                     setattr(xcell, k, v)
 
