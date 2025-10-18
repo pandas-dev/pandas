@@ -824,24 +824,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         new_parr = self.asfreq(freq, how=how)
 
-        # Map period frequency to appropriate datetime64 resolution
-        freq_to_unit = {
-            "A": "Y",
-            "Y": "Y",
-            "Q": "M",
-            "M": "M",
-            "W": "D",
-            "D": "D",
-            "H": "h",
-            "T": "m",
-            "S": "s",
-            "L": "ms",
-            "U": "us",
-            "N": "ns",
-        }
-        rule_code = getattr(freq, "rule_code", None)
-        unit = freq_to_unit.get(rule_code, "ns")
-        dt64_dtype = np.dtype(f"datetime64[{unit}]")
+        dt64_dtype = np.dtype("datetime64[ns]")
 
         new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
         dta = DatetimeArray._from_sequence(new_data, dtype=dt64_dtype)
