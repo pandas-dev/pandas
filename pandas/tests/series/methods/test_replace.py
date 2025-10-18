@@ -486,7 +486,9 @@ class TestSeriesReplace:
         ser = pd.Series([1, 2, "A", fixed_now_ts, True])
         to_replace = {0: 1, 2: "A"}
         value = "foo"
-        msg = "Series.replace cannot use dict-like to_replace and non-None value"
+        msg = (
+            "Series.replace cannot specify both a dict-like 'to_replace' and a 'value'"
+        )
         with pytest.raises(ValueError, match=msg):
             ser.replace(to_replace, value)
 
