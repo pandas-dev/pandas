@@ -626,6 +626,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         return result
 
     def _can_fast_intersect(self, other: Self) -> bool:
+        # Note: we only get here with len(self) > 0 and len(other) > 0
         if self.freq is None:
             return False
 
