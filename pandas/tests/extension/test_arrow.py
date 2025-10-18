@@ -3724,6 +3724,72 @@ def test_mul_numpy_nullable_with_pyarrow_float():
     tm.assert_series_equal(result4, expected3)
 
 
+@pytest.mark.parametrize(
+    "type_name, expected_size",
+    [
+        # Integer types
+        ("int8", 1),
+        ("int16", 2),
+        ("int32", 4),
+        ("int64", 8),
+        ("uint8", 1),
+        ("uint16", 2),
+        ("uint32", 4),
+        ("uint64", 8),
+        # Floating point types
+        ("float16", 2),
+        ("float32", 4),
+        ("float64", 8),
+        # Boolean
+        ("bool_", 1),
+        # Date and timestamp types
+        ("date32", 4),
+        ("date64", 8),
+        ("timestamp", 8),
+        # Time types
+        ("time32", 4),
+        ("time64", 8),
+        # Decimal types
+        ("decimal128", 16),
+        ("decimal256", 32),
+    ],
+)
+def test_arrow_dtype_itemsize_fixed_width(type_name, expected_size):
+    # GH 57948
+
+    parametric_type_map = {
+        "timestamp": pa.timestamp("ns"),
+        "time32": pa.time32("s"),
+        "time64": pa.time64("ns"),
+        "decimal128": pa.decimal128(38, 10),
+        "decimal256": pa.decimal256(76, 10),
+    }
+
+    if type_name in parametric_type_map:
+        arrow_type = parametric_type_map.get(type_name)
+    else:
+        arrow_type = getattr(pa, type_name)()
+    dtype = ArrowDtype(arrow_type)
+
+    if type_name == "bool_":
+        expected_size = dtype.numpy_dtype.itemsize
+
+    assert dtype.itemsize == expected_size, (
+        f"{type_name} expected {expected_size}, got {dtype.itemsize} "
+        f"(bit_width={getattr(dtype.pyarrow_dtype, 'bit_width', 'N/A')})"
+    )
+
+
+@pytest.mark.parametrize("type_name", ["string", "binary", "large_string"])
+def test_arrow_dtype_itemsize_variable_width(type_name):
+    # GH 57948
+
+    arrow_type = getattr(pa, type_name)()
+    dtype = ArrowDtype(arrow_type)
+
+    assert dtype.itemsize == dtype.numpy_dtype.itemsize
+
+
 def test_cast_pontwise_result_decimal_nan():
     # GH#62522 we don't want to get back null[pyarrow] here
     ser = pd.Series([], dtype="float64[pyarrow]")
