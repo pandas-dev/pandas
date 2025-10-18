@@ -16,7 +16,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    NamedTuple,
+    Self,
     TypeAlias,
     TypeVar,
     cast,
@@ -113,11 +113,11 @@ ScalarResult = TypeVar("ScalarResult")
 
 
 @set_module("pandas")
-class NamedAgg(NamedTuple):
+class NamedAgg(tuple):
     """
     Helper for column specific aggregation with control over output column names.
 
-    Subclass of typing.NamedTuple.
+    Subclass of tuple.
 
     Parameters
     ----------
@@ -126,6 +126,8 @@ class NamedAgg(NamedTuple):
     aggfunc : function or str
         Function to apply to the provided column. If string, the name of a built-in
         pandas function.
+    *args, **kwargs :
+        Optional positional and keyword arguments passed to ``aggfunc``.
 
     See Also
     --------
@@ -133,18 +135,61 @@ class NamedAgg(NamedTuple):
 
     Examples
     --------
-    >>> df = pd.DataFrame({"key": [1, 1, 2], "a": [-1, 0, 1], 1: [10, 11, 12]})
+    >>> df = pd.DataFrame({"key": [1, 1, 2], "a": [-1, 0, 1], "b": [10, 11, 12]})
     >>> agg_a = pd.NamedAgg(column="a", aggfunc="min")
-    >>> agg_1 = pd.NamedAgg(column=1, aggfunc=lambda x: np.mean(x))
-    >>> df.groupby("key").agg(result_a=agg_a, result_1=agg_1)
-         result_a  result_1
+    >>> agg_b = pd.NamedAgg(column="b", aggfunc=lambda x: x.mean())
+    >>> df.groupby("key").agg(result_a=agg_a, result_b=agg_b)
+        result_a  result_b
     key
     1          -1      10.5
     2           1      12.0
+
+    >>> def n_between(ser, low, high, **kwargs):
+    ...     return ser.between(low, high, **kwargs).sum()
+
+    >>> agg_between = pd.NamedAgg("a", n_between, 0, 1)
+    >>> df.groupby("key").agg(count_between=agg_between)
+        count_between
+    key
+    1               1
+    2               1
+
+    >>> agg_between_kw = pd.NamedAgg("a", n_between, 0, 1, inclusive="both")
+    >>> df.groupby("key").agg(count_between_kw=agg_between_kw)
+        count_between_kw
+    key
+    1                   1
+    2                   1
     """
 
     column: Hashable
     aggfunc: AggScalar
+
+    __slots__ = ()
+
+    def __new__(
+        cls,
+        column: Hashable,
+        aggfunc: Callable[..., Any] | str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Self:
+        if (
+            callable(aggfunc)
+            and not getattr(aggfunc, "_is_wrapped", False)
+            and (args or kwargs)
+        ):
+            original_func = aggfunc
+
+            def wrapped(*call_args: Any, **call_kwargs: Any) -> Any:
+                series = call_args[0]
+                final_args = call_args[1:] + args
+                final_kwargs = {**kwargs, **call_kwargs}
+                return original_func(series, *final_args, **final_kwargs)
+
+            wrapped._is_wrapped = True  # type: ignore[attr-defined]
+            aggfunc = wrapped
+        return super().__new__(cls, (column, aggfunc))
 
 
 @set_module("pandas.api.typing")
