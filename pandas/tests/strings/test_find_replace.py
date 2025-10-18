@@ -175,17 +175,14 @@ def test_contains_na_kwarg_for_nullable_string_dtype(
 
     values = Series(["a", "b", "c", "a", np.nan], dtype=nullable_string_dtype)
 
-    msg = (
-        "Allowing a non-bool 'na' in obj.str.contains is deprecated and "
-        "will raise in a future version"
-    )
-    warn = None
-    if not pd.isna(na) and not isinstance(na, bool):
-        warn = FutureWarning
-    with tm.assert_produces_warning(warn, match=msg):
+    if na in [0, 3] and na is not False:
+        msg = f"na must be None, pd.NA, np.nan, True, or False; got {na}"
+        with pytest.raises(ValueError, match=msg):
+            values.str.contains("a", na=na, regex=regex)
+    else:
         result = values.str.contains("a", na=na, regex=regex)
-    expected = Series([True, False, False, True, expected], dtype="boolean")
-    tm.assert_series_equal(result, expected)
+        expected = Series([True, False, False, True, expected], dtype="boolean")
+        tm.assert_series_equal(result, expected)
 
 
 def test_contains_moar(any_string_dtype):
@@ -255,19 +252,9 @@ def test_contains_nan(any_string_dtype):
     expected = Series([True, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
-    msg = (
-        "Allowing a non-bool 'na' in obj.str.contains is deprecated and "
-        "will raise in a future version"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.str.contains("foo", na="foo")
-    if any_string_dtype == "object":
-        expected = Series(["foo", "foo", "foo"], dtype=np.object_)
-    elif any_string_dtype.na_value is np.nan:
-        expected = Series([True, True, True], dtype=np.bool_)
-    else:
-        expected = Series([True, True, True], dtype="boolean")
-    tm.assert_series_equal(result, expected)
+    msg = "na must be None, pd.NA, np.nan, True, or False; got foo"
+    with pytest.raises(ValueError, match=msg):
+        s.str.contains("foo", na="foo")
 
     result = s.str.contains("foo")
     if any_string_dtype == "str":
@@ -352,12 +339,10 @@ def test_startswith_endswith_validate_na(any_string_dtype):
         ["om", np.nan, "foo_nom", "nom", "bar_foo", np.nan, "foo"],
         dtype=any_string_dtype,
     )
-
-    msg = "Allowing a non-bool 'na' in obj.str.startswith is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    msg = "na must be None, pd.NA, np.nan, True, or False; got baz"
+    with pytest.raises(ValueError, match=msg):
         ser.str.startswith("kapow", na="baz")
-    msg = "Allowing a non-bool 'na' in obj.str.endswith is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with pytest.raises(ValueError, match=msg):
         ser.str.endswith("bar", na="baz")
 
 
