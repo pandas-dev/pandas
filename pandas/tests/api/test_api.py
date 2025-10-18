@@ -590,6 +590,7 @@ def get_classes(module):
     return classes
 
 
+@pytest.mark.slow
 def test_module_attribute():
     # Check that each class pandas defines can be imported from
     # the __module__ attribute
