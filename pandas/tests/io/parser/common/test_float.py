@@ -8,8 +8,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_linux
-
 from pandas import DataFrame
 import pandas._testing as tm
 
@@ -94,10 +92,10 @@ def test_small_int_followed_by_float(
 
     tm.assert_frame_equal(result, expected)
 
+
 @pytest.mark.parametrize(
-        "value",
-        ["81e31d04049863b72", "d81e31d04049863b72", "81e3104049863b72"]
-        )
+    "value", ["81e31d04049863b72", "d81e31d04049863b72", "81e3104049863b72"]
+)
 def test_invalid_float_number(all_parsers_all_precisions, value):
     # GH#62617
     parser, precision = all_parsers_all_precisions
