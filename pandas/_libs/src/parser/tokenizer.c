@@ -1684,10 +1684,8 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
       exponent = n;
     }
 
-    int num_digits = endptr - p;
-
     // If no digits after the 'e'/'E', un-consume it.
-    if (num_digits == 0)
+    if (endptr == p)
       p--;
     else
       p = endptr;
