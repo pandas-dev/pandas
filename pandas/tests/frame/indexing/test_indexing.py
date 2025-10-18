@@ -7,6 +7,7 @@ from decimal import Decimal
 import re
 
 import numpy as np
+import pyarrow as pa
 import pytest
 
 from pandas._libs import iNaT
@@ -1882,6 +1883,28 @@ def test_add_new_column_infer_string():
         columns=Index(["x", "y"], dtype="str"),
     )
     tm.assert_frame_equal(df, expected)
+
+
+def test_datetime_indexer_consistency_pyarrow_date32():
+    # GH#62158
+    pytest.importorskip("pyarrow", minversion="13.0.0")
+    ser = Series(["2016-01-01"], dtype="date32[pyarrow]")
+    ser3 = ser.astype("datetime64[ns]")
+    dti = Index(ser3)
+
+    # Make sure we don't treat Arrow date as timestamp
+    dtype = ser.dtype.arrow_dtype
+    assert not (dtype.kind == "M" and not pa.types.is_date(dtype))
+
+    with pytest.raises(KeyError):
+        dti.get_loc(ser[0])
+
+    # get_indexer returns -1 for both Arrow array and object-cast
+    result = dti.get_indexer(ser.values)
+    tm.assert_numpy_array_equal(result, np.array([-1], dtype=np.intp))
+
+    result_obj = dti.get_indexer(ser.values.astype(object))
+    tm.assert_numpy_array_equal(result_obj, np.array([-1], dtype=np.intp))
 
 
 class TestSetitemValidation:
