@@ -114,32 +114,6 @@ ScalarResult = TypeVar("ScalarResult")
 
 @set_module("pandas")
 class NamedAgg(tuple):
-    __slots__ = ()
-
-    def __new__(
-        cls,
-        column: Hashable,
-        aggfunc: Callable[..., Any] | str,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Self:
-        if (
-            callable(aggfunc)
-            and not getattr(aggfunc, "_is_wrapped", False)
-            and (args or kwargs)
-        ):
-            original_func = aggfunc
-
-            def wrapped(*call_args: Any, **call_kwargs: Any) -> Any:
-                series = call_args[0]
-                final_args = call_args[1:] + args
-                final_kwargs = {**kwargs, **call_kwargs}
-                return original_func(series, *final_args, **final_kwargs)
-
-            wrapped._is_wrapped = True  # type: ignore[attr-defined]
-            aggfunc = wrapped
-        return super().__new__(cls, (column, aggfunc))
-
     """
     Helper for column specific aggregation with with flexible argument passing and
     control over output column names.
@@ -195,6 +169,32 @@ class NamedAgg(tuple):
 
     column: Hashable
     aggfunc: AggScalar
+
+    __slots__ = ()
+
+    def __new__(
+        cls,
+        column: Hashable,
+        aggfunc: Callable[..., Any] | str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Self:
+        if (
+            callable(aggfunc)
+            and not getattr(aggfunc, "_is_wrapped", False)
+            and (args or kwargs)
+        ):
+            original_func = aggfunc
+
+            def wrapped(*call_args: Any, **call_kwargs: Any) -> Any:
+                series = call_args[0]
+                final_args = call_args[1:] + args
+                final_kwargs = {**kwargs, **call_kwargs}
+                return original_func(series, *final_args, **final_kwargs)
+
+            wrapped._is_wrapped = True  # type: ignore[attr-defined]
+            aggfunc = wrapped
+        return super().__new__(cls, (column, aggfunc))
 
 
 @set_module("pandas.api.typing")
