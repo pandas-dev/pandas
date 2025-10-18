@@ -141,7 +141,7 @@ class NamedAgg(tuple):
                 final_kwargs = {**kwargs, **call_kwargs}
                 return original_func(series, *final_args, **final_kwargs)
 
-            wrapped._is_wrapped = True
+            wrapped._is_wrapped = True  # type: ignore[attr-defined]
             aggfunc = wrapped
         return super().__new__(cls, (column, aggfunc))
 
