@@ -710,6 +710,7 @@ class TestCustomDatetimeIndex:
         b = bdate_range("12/10/2011", "12/20/2011", freq="C")
         result = a.intersection(b)
         tm.assert_index_equal(result, b)
+        assert result.freq == b.freq
 
     @pytest.mark.parametrize(
         "tz", [None, "UTC", "Europe/Berlin", timezone(timedelta(hours=-1))]
