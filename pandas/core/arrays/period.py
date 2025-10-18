@@ -123,6 +123,7 @@ def _field_accessor(name: str, docstring: str | None = None):
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
 class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
+    __module__ = "pandas.arrays"
     """
     Pandas ExtensionArray for storing Period data.
 

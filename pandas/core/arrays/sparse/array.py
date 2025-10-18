@@ -300,6 +300,7 @@ def _wrap_result(
 
 
 class SparseArray(OpsMixin, PandasObject, ExtensionArray):
+    __module__ = "pandas.arrays"
     """
     An ExtensionArray for storing sparse data.
 

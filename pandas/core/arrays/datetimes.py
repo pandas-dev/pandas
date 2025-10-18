@@ -172,6 +172,7 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
 
 
 class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
+    __module__ = "pandas.arrays"
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
 

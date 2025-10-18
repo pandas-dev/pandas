@@ -130,6 +130,7 @@ def _calculate_deltas(
 
 
 class ExponentialMovingWindow(BaseWindow):
+    __module__ = "pandas.api.typing"
     r"""
     Provide exponentially weighted (EW) calculations.
 
@@ -903,6 +904,7 @@ class ExponentialMovingWindow(BaseWindow):
 
 
 class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow):
+    __module__ = "pandas.api.typing"
     """
     Provide an exponential moving window groupby implementation.
     """

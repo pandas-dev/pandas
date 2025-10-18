@@ -42,6 +42,7 @@ if TYPE_CHECKING:
 
 
 class ExtensionDtype:
+    __module__ = "pandas.api.extensions"
     """
     A custom data type, to be paired with an ExtensionArray.
 

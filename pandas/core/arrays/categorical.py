@@ -246,6 +246,7 @@ def contains(cat, key, container) -> bool:
 
 
 class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):
+    __module__ = "pandas"
     """
     Represent a categorical variable in classic R / S-plus fashion.
 

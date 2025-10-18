@@ -8,6 +8,7 @@ if TYPE_CHECKING:
 
 
 class Flags:
+    __module__ = "pandas"
     """
     Flags that apply to pandas objects.
 

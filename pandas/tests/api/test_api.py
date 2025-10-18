@@ -564,3 +564,47 @@ def test_set_module():
     assert pd.read_xml.__module__ == "pandas"
     assert api.typing.SeriesGroupBy.__module__ == "pandas.api.typing"
     assert api.typing.DataFrameGroupBy.__module__ == "pandas.api.typing"
+
+
+import importlib
+import inspect
+import pathlib
+import pkgutil
+
+
+def get_classes(module):
+    classes = []
+
+    for name, obj in inspect.getmembers(module):
+        if inspect.isclass(obj):
+            classes.append(obj)
+
+    paths = [str(pathlib.Path(module.__file__).parent)]
+    for _, submodule_name, is_pkg in pkgutil.walk_packages(
+        paths, module.__name__ + "."
+    ):
+        try:
+            submodule = importlib.import_module(submodule_name)
+            classes.extend(get_classes(submodule))
+        except ImportError:
+            # pass
+            raise
+    return classes
+
+
+def test_module_attribute():
+    # Check that each class pandas defines can be imported from
+    # the __module__ attribute
+    classes = get_classes(pd)
+    assert len(classes) > 100, len(classes)
+    failures = []
+    for klass in classes:
+        if klass.__name__ == "ellipsis":
+            # This is a weird one.
+            continue
+        try:
+            m = importlib.import_module(klass.__module__)
+            getattr(m, klass.__name__)
+        except AttributeError:
+            failures.append(klass)
+    assert len(failures) == 0, failures

@@ -104,6 +104,7 @@ def _field_accessor(name: str, alias: str, docstring: str):
 
 
 class TimedeltaArray(dtl.TimelikeOps):
+    __module__ = "pandas.arrays"
     """
     Pandas ExtensionArray for timedelta data.
 

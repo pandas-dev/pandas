@@ -246,6 +246,7 @@ def coerce_to_array(
 
 
 class BooleanArray(BaseMaskedArray):
+    __module__ = "pandas.arrays"
     """
     Array of boolean (True/False) data with missing values.
 

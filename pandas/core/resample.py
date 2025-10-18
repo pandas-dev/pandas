@@ -113,6 +113,7 @@ _shared_docs_kwargs: dict[str, str] = {}
 
 
 class Resampler(BaseGroupBy, PandasObject):
+    __module__ = "pandas.api.typing"
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -2169,6 +2170,7 @@ class DatetimeIndexResampler(Resampler):
 class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
     _GroupByMixin, DatetimeIndexResampler
 ):
+    __module__ = "pandas.api.typing"
     """
     Provides a resample of a groupby implementation
     """
@@ -2270,6 +2272,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 class PeriodIndexResamplerGroupby(  # type: ignore[misc]
     _GroupByMixin, PeriodIndexResampler
 ):
+    __module__ = "pandas.api.typing"
     """
     Provides a resample of a groupby implementation.
     """
@@ -2306,6 +2309,7 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
     _GroupByMixin, TimedeltaIndexResampler
 ):
+    __module__ = "pandas.api.typing"
     """
     Provides a resample of a groupby implementation.
     """
@@ -2345,6 +2349,7 @@ def get_resampler_for_grouping(
 
 
 class TimeGrouper(Grouper):
+    __module__ = "pandas.api.typing"
     """
     Custom groupby class for time-interval grouping.
 

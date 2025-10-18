@@ -77,6 +77,7 @@ def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
 
 @set_module("pandas")
 class RangeIndex(Index):
+    __module__ = "pandas"
     """
     Immutable Index implementing a monotonic integer range.
 

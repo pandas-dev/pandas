@@ -17,6 +17,7 @@ from pandas.tseries.offsets import Nano
 
 
 class BaseIndexer:
+    __module__ = "pandas.api.indexers"
     """
     Base class for window bounds calculations.
 
@@ -211,6 +212,7 @@ class VariableWindowIndexer(BaseIndexer):
 
 
 class VariableOffsetWindowIndexer(BaseIndexer):
+    __module__ = "pandas.api.indexers"
     """
     Calculate window boundaries based on a non-fixed offset such as a BusinessDay.
 
@@ -434,6 +436,7 @@ class ExpandingIndexer(BaseIndexer):
 
 
 class FixedForwardWindowIndexer(BaseIndexer):
+    __module__ = "pandas.api.indexers"
     """
     Creates window boundaries for fixed-length windows that include the current row.
 

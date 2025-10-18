@@ -76,6 +76,7 @@ ResType: TypeAlias = dict[int, Any]
 
 
 class BaseExecutionEngine(abc.ABC):
+    __module__ = "pandas.api.executors"
     """
     Base class for execution engines for map and apply methods.
 

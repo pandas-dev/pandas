@@ -177,6 +177,7 @@ for more.
 
 
 class IntervalArray(IntervalMixin, ExtensionArray):
+    __module__ = "pandas.arrays"
     """
     Pandas array for interval data that are closed on the same side.
 

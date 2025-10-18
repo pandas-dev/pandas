@@ -64,6 +64,7 @@ if TYPE_CHECKING:
 
 
 class Grouper:
+    __module__ = "pandas"
     """
     A Grouper allows the user to specify a groupby instruction for an object.
 

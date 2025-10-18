@@ -246,6 +246,7 @@ class ArrowExtensionArray(
     ExtensionArraySupportsAnyAll,
     ArrowStringArrayMixin,
 ):
+    __module__ = "pandas.arrays"
     """
     Pandas ExtensionArray backed by a PyArrow ChunkedArray.
 

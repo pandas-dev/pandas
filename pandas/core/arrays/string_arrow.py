@@ -82,6 +82,7 @@ def _is_string_view(typ):
 
 
 class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringArray):
+    __module__ = "pandas.arrays"
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 

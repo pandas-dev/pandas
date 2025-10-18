@@ -70,6 +70,7 @@ def _pretty_print_args_kwargs(*args: Any, **kwargs: Any) -> str:
 
 
 class Expression:
+    __module__ = "pandas.api.typing"
     """
     Class representing a deferred column.
 

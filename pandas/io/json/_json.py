@@ -821,6 +821,7 @@ def read_json(
 
 
 class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
+    __module__ = "pandas.api.typing"
     """
     JsonReader provides an interface for reading in a JSON file.
 

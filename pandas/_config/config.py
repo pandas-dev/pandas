@@ -101,6 +101,7 @@ _reserved_keys: list[str] = ["all"]
 
 
 class OptionError(AttributeError, KeyError):
+    __module__ = "pandas.errors"
     """
     Exception raised for pandas.options.
 

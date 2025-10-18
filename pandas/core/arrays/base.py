@@ -106,6 +106,7 @@ _extension_array_shared_docs: dict[str, str] = {}
 
 
 class ExtensionArray:
+    __module__ = "pandas.api.extensions"
     """
     Abstract base class for custom 1-D array types.
 
@@ -2787,6 +2788,7 @@ class ExtensionOpsMixin:
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
+    __module__ = "pandas.api.extensions"
     """
     A mixin for defining ops on an ExtensionArray.
 
