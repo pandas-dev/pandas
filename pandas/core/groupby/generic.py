@@ -115,8 +115,7 @@ ScalarResult = TypeVar("ScalarResult")
 @set_module("pandas")
 class NamedAgg(tuple):
     """
-    Helper for column specific aggregation with with flexible argument passing and
-    control over output column names.
+    Helper for defining named aggregations in groupby operations.
 
     Subclass of tuple that wraps an aggregation function.
 
