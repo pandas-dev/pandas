@@ -231,3 +231,43 @@ def test_dunder_array(array):
             np.array(obj, dtype=dtype)
         with pytest.raises(TypeError, match=msg):
             np.array(obj, dtype=getattr(np, dtype))
+
+
+def test_to_timestamp_monthly_resolution():
+    idx = PeriodIndex(["2011-01", "NaT", "2011-02"], freq="2M")
+    ts = idx.to_timestamp()
+    assert ts.dtype == np.dtype("datetime64[M]")
+
+
+def test_to_timestamp_yearly_resolution():
+    idx = PeriodIndex(["2011", "2012"], freq="A")
+    ts = idx.to_timestamp()
+    assert ts.dtype == np.dtype("datetime64[Y]")
+
+
+def test_to_timestamp_large_month_no_out_of_bounds():
+    idx = PeriodIndex(["May 3000"], freq="M")
+    ts = idx.to_timestamp()
+    assert ts.dtype == np.dtype("datetime64[M]")
+    assert str(ts[0]) == "3000-05"
+
+
+def test_to_timestamp_large_year_no_out_of_bounds():
+    idx = PeriodIndex(["3000"], freq="Y")
+    ts = idx.to_timestamp()
+    assert ts.dtype == np.dtype("datetime64[Y]")
+    assert str(ts[0]) == "3000"
+
+
+def test_to_timestamp_daily_resolution():
+    idx = PeriodIndex(["2011-01-01", "2011-01-02"], freq="D")
+    ts = idx.to_timestamp()
+    assert ts.dtype == np.dtype("datetime64[D]")
+
+
+def test_to_timestamp_nanosecond_resolution():
+    idx = PeriodIndex(
+        ["2011-01-01 00:00:00.000000001", "2011-01-01 00:00:00.000000002"], freq="N"
+    )
+    ts = idx.to_timestamp()
+    assert ts.dtype == np.dtype("datetime64[ns]")
