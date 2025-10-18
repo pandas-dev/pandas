@@ -596,7 +596,7 @@ def _format_labels(
         # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
         unit = dtype_to_unit(bins.dtype)  # type: ignore[arg-type]
         formatter = lambda x: x
-        adjust = lambda x: x - Timedelta(1, unit=unit).as_unit(unit)
+        adjust = lambda x: x - Timedelta(1, input_unit=unit).as_unit(unit)
     else:
         precision = _infer_precision(precision, bins)
         formatter = lambda x: _round_frac(x, precision)

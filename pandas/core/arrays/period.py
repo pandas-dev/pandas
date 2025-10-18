@@ -807,10 +807,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if end:
             if freq == "B" or self.freq == "B":
                 # roll forward to ensure we land on B date
-                adjust = Timedelta(1, "D") - Timedelta(1, "ns")
+                adjust = Timedelta(1, input_unit="D") - Timedelta(1, input_unit="ns")
                 return self.to_timestamp(how="start") + adjust
             else:
-                adjust = Timedelta(1, "ns")
+                adjust = Timedelta(1, input_unit="ns")
                 return (self + self.freq).to_timestamp(how="start") - adjust
 
         if freq is None:
