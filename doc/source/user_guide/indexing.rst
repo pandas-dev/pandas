@@ -811,6 +811,10 @@ evaluate an expression such as ``df['A'] > 2 & df['B'] < 3`` as
 ``df['A'] > (2 & df['B']) < 3``, while the desired evaluation order is
 ``(df['A'] > 2) & (df['B'] < 3)``.
 
+For toggling boolean masks with the ``~`` operator, see
+:meth:`pandas.Series.__invert__`.
+
+
 Using a boolean vector to index a Series works exactly as in a NumPy ndarray:
 
 .. ipython:: python
