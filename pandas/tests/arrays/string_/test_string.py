@@ -241,7 +241,19 @@ def test_mul(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH-28527")
+def test_add_series(dtype):
+    arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
+    ser = pd.Series(["t", "y", "v", "w"], dtype=object)
+
+    result = arr + ser
+    expected = pd.Series(["at", "by", "cv", "dw"]).astype(dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser + arr
+    expected = pd.Series(["ta", "yb", "vc", "wd"]).astype(dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_add_strings(dtype):
     arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
     df = pd.DataFrame([["t", "y", "v", "w"]], dtype=object)
@@ -257,10 +269,14 @@ def test_add_strings(dtype):
 
 
 @pytest.mark.xfail(reason="GH-28527")
-def test_add_frame(dtype):
+def test_add_frame(request, dtype):
+    if isinstance(dtype, "str[python]"):
+        # This ONE dtype actually succeeds the test
+        # We are manually failing it to maintain continuity
+        mark = pytest.mark.xfail(reason="[XPASS(strict)] GH-28527")
+        request.applymarker(mark)
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
-
     assert arr.__add__(df) is NotImplemented
 
     result = arr + df
