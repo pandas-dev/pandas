@@ -82,7 +82,6 @@ def _is_string_view(typ):
 
 
 class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringArray):
-    __module__ = "pandas.arrays"
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
 
@@ -125,6 +124,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
     """
+
+    __module__ = "pandas.arrays"
 
     # error: Incompatible types in assignment (expression has type "StringDtype",
     # base class "ArrowExtensionArray" defined the type as "ArrowDtype")

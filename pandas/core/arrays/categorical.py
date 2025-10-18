@@ -246,7 +246,6 @@ def contains(cat, key, container) -> bool:
 
 
 class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):
-    __module__ = "pandas"
     """
     Represent a categorical variable in classic R / S-plus fashion.
 
@@ -361,6 +360,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     >>> c.min()
     'c'
     """
+
+    __module__ = "pandas"
 
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise

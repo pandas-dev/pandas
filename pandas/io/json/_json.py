@@ -821,7 +821,6 @@ def read_json(
 
 
 class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
-    __module__ = "pandas.api.typing"
     """
     JsonReader provides an interface for reading in a JSON file.
 
@@ -829,6 +828,8 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
     ``chunksize`` lines at a time. Otherwise, calling ``read`` reads in the
     whole document.
     """
+
+    __module__ = "pandas.api.typing"
 
     def __init__(
         self,

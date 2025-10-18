@@ -38,7 +38,6 @@ if TYPE_CHECKING:
 
 
 class Expanding(RollingAndExpandingMixin):
-    __module__ = "pandas.api.typing"
     """
     Provide expanding window calculations.
 
@@ -106,6 +105,8 @@ class Expanding(RollingAndExpandingMixin):
     3  3.0
     4  7.0
     """
+
+    __module__ = "pandas.api.typing"
 
     _attributes: list[str] = ["min_periods", "method"]
 
@@ -1452,10 +1453,11 @@ class Expanding(RollingAndExpandingMixin):
 
 
 class ExpandingGroupby(BaseWindowGroupby, Expanding):
-    __module__ = "pandas.api.typing"
     """
     Provide a expanding groupby implementation.
     """
+
+    __module__ = "pandas.api.typing"
 
     _attributes = Expanding._attributes + BaseWindowGroupby._attributes
 

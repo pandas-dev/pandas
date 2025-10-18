@@ -856,7 +856,6 @@ class BaseWindowGroupby(BaseWindow):
 
 
 class Window(BaseWindow):
-    __module__ = "pandas.api.typing"
     """
     Provide rolling window calculations.
 
@@ -1111,6 +1110,8 @@ class Window(BaseWindow):
     2020-01-02 2020-01-01  3.0
     2020-01-03 2020-01-02  6.0
     """
+
+    __module__ = "pandas.api.typing"
 
     _attributes = [
         "window",
@@ -3532,10 +3533,11 @@ Rolling.__doc__ = Window.__doc__
 
 
 class RollingGroupby(BaseWindowGroupby, Rolling):
-    __module__ = "pandas.api.typing"
     """
     Provide a rolling groupby implementation.
     """
+
+    __module__ = "pandas.api.typing"
 
     _attributes = Rolling._attributes + BaseWindowGroupby._attributes
 

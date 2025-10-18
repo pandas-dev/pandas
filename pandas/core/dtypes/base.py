@@ -42,7 +42,6 @@ if TYPE_CHECKING:
 
 
 class ExtensionDtype:
-    __module__ = "pandas.api.extensions"
     """
     A custom data type, to be paired with an ExtensionArray.
 
@@ -111,6 +110,8 @@ class ExtensionDtype:
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
     provided for registering virtual subclasses.
     """
+
+    __module__ = "pandas.api.extensions"
 
     _metadata: tuple[str, ...] = ()
 

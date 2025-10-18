@@ -76,7 +76,6 @@ ResType: TypeAlias = dict[int, Any]
 
 
 class BaseExecutionEngine(abc.ABC):
-    __module__ = "pandas.api.executors"
     """
     Base class for execution engines for map and apply methods.
 
@@ -88,6 +87,8 @@ class BaseExecutionEngine(abc.ABC):
     run in parallel, and others. Besides the default executor which
     simply runs the code with the Python interpreter and pandas.
     """
+
+    __module__ = "pandas.api.executors"
 
     @staticmethod
     @abc.abstractmethod

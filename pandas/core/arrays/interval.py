@@ -177,7 +177,6 @@ for more.
 
 
 class IntervalArray(IntervalMixin, ExtensionArray):
-    __module__ = "pandas.arrays"
     """
     Pandas array for interval data that are closed on the same side.
 
@@ -243,6 +242,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     methods: :meth:`IntervalArray.from_arrays`,
     :meth:`IntervalArray.from_breaks`, and :meth:`IntervalArray.from_tuples`.
     """
+
+    __module__ = "pandas.arrays"
 
     can_hold_na = True
     _na_value = _fill_value = np.nan

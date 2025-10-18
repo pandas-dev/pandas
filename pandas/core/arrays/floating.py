@@ -64,7 +64,6 @@ class FloatingDtype(NumericDtype):
 
 
 class FloatingArray(NumericArray):
-    __module__ = "pandas.arrays"
     """
     Array of floating (optional missing) values.
 
@@ -129,6 +128,8 @@ class FloatingArray(NumericArray):
     [0.1, <NA>, 0.3]
     Length: 3, dtype: Float32
     """
+
+    __module__ = "pandas.arrays"
 
     _dtype_cls = FloatingDtype
 

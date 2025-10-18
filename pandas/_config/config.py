@@ -101,7 +101,6 @@ _reserved_keys: list[str] = ["all"]
 
 
 class OptionError(AttributeError, KeyError):
-    __module__ = "pandas.errors"
     """
     Exception raised for pandas.options.
 
@@ -117,6 +116,8 @@ class OptionError(AttributeError, KeyError):
     Traceback (most recent call last):
     OptionError: No such option
     """
+
+    __module__ = "pandas.errors"
 
 
 #
@@ -413,6 +414,7 @@ class DictWrapper:
 
     def __setattr__(self, key: str, val: Any) -> None:
         if key == "__module__":
+            # Need to be able to set __module__ to pandas for pandas.options
             super().__setattr__(key, val)
             return
         prefix = object.__getattribute__(self, "prefix")

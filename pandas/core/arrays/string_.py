@@ -551,7 +551,6 @@ class BaseStringArray(ExtensionArray):
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
 class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
-    __module__ = "pandas.arrays"
     """
     Extension array for string data.
 
@@ -633,6 +632,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     [True, <NA>, False]
     Length: 3, dtype: boolean
     """
+
+    __module__ = "pandas.arrays"
 
     # undo the NumpyExtensionArray hack
     _typ = "extension"

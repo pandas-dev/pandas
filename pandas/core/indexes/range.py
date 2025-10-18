@@ -77,7 +77,6 @@ def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
 
 @set_module("pandas")
 class RangeIndex(Index):
-    __module__ = "pandas"
     """
     Immutable Index implementing a monotonic integer range.
 
@@ -137,6 +136,8 @@ class RangeIndex(Index):
     >>> list(pd.RangeIndex(1, 0))
     []
     """
+
+    __module__ = "pandas"
 
     _typ = "rangeindex"
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")

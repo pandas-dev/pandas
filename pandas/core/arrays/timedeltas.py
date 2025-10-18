@@ -104,7 +104,6 @@ def _field_accessor(name: str, alias: str, docstring: str):
 
 
 class TimedeltaArray(dtl.TimelikeOps):
-    __module__ = "pandas.arrays"
     """
     Pandas ExtensionArray for timedelta data.
 
@@ -147,6 +146,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
     """
+
+    __module__ = "pandas.arrays"
 
     _typ = "timedeltaarray"
     _internal_fill_value = np.timedelta64("NaT", "ns")

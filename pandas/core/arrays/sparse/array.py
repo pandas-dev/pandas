@@ -300,7 +300,6 @@ def _wrap_result(
 
 
 class SparseArray(OpsMixin, PandasObject, ExtensionArray):
-    __module__ = "pandas.arrays"
     """
     An ExtensionArray for storing sparse data.
 
@@ -380,6 +379,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     IntIndex
     Indices: array([2, 3], dtype=int32)
     """
+
+    __module__ = "pandas.arrays"
 
     _subtyp = "sparse_array"  # register ABCSparseArray
     _hidden_attrs = PandasObject._hidden_attrs | frozenset([])

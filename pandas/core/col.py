@@ -70,12 +70,13 @@ def _pretty_print_args_kwargs(*args: Any, **kwargs: Any) -> str:
 
 
 class Expression:
-    __module__ = "pandas.api.typing"
     """
     Class representing a deferred column.
 
     This is not meant to be instantiated directly. Instead, use :meth:`pandas.col`.
     """
+
+    __module__ = "pandas.api.typing"
 
     def __init__(self, func: Callable[[DataFrame], Any], repr_str: str) -> None:
         self._func = func

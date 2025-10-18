@@ -363,7 +363,6 @@ class Column(ABC):
 
 
 class DataFrame(ABC):
-    __module__ = "pandas.api.interchange"
     """
     A data frame class, with only the methods required by the interchange
     protocol defined.
@@ -377,6 +376,8 @@ class DataFrame(ABC):
     ``__dataframe__`` method of a public data frame class in a library adhering
     to the dataframe interchange protocol specification.
     """
+
+    __module__ = "pandas.api.interchange"
 
     version = 0  # version of the protocol
 

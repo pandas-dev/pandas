@@ -123,7 +123,6 @@ def _field_accessor(name: str, docstring: str | None = None):
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
 class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
-    __module__ = "pandas.arrays"
     """
     Pandas ExtensionArray for storing Period data.
 
@@ -177,6 +176,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     ['2023-01-01', '2023-01-02']
     Length: 2, dtype: period[D]
     """
+
+    __module__ = "pandas.arrays"
 
     # array priority higher than numpy scalars
     __array_priority__ = 1000

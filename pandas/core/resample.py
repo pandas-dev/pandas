@@ -113,7 +113,6 @@ _shared_docs_kwargs: dict[str, str] = {}
 
 
 class Resampler(BaseGroupBy, PandasObject):
-    __module__ = "pandas.api.typing"
     """
     Class for resampling datetimelike data, a groupby-like operation.
     See aggregate, transform, and apply functions on this object.
@@ -133,6 +132,8 @@ class Resampler(BaseGroupBy, PandasObject):
     -----
     After resampling, see aggregate, apply, and transform functions.
     """
+
+    __module__ = "pandas.api.typing"
 
     _grouper: BinGrouper
     _timegrouper: TimeGrouper
@@ -2170,10 +2171,11 @@ class DatetimeIndexResampler(Resampler):
 class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
     _GroupByMixin, DatetimeIndexResampler
 ):
-    __module__ = "pandas.api.typing"
     """
     Provides a resample of a groupby implementation
     """
+
+    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2272,10 +2274,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 class PeriodIndexResamplerGroupby(  # type: ignore[misc]
     _GroupByMixin, PeriodIndexResampler
 ):
-    __module__ = "pandas.api.typing"
     """
     Provides a resample of a groupby implementation.
     """
+
+    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2309,10 +2312,11 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
 class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
     _GroupByMixin, TimedeltaIndexResampler
 ):
-    __module__ = "pandas.api.typing"
     """
     Provides a resample of a groupby implementation.
     """
+
+    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2349,7 +2353,6 @@ def get_resampler_for_grouping(
 
 
 class TimeGrouper(Grouper):
-    __module__ = "pandas.api.typing"
     """
     Custom groupby class for time-interval grouping.
 
@@ -2361,6 +2364,8 @@ class TimeGrouper(Grouper):
     convention : {'start', 'end', 'e', 's'}
         If axis is PeriodIndex
     """
+
+    __module__ = "pandas.api.typing"
 
     _attributes = Grouper._attributes + (
         "closed",

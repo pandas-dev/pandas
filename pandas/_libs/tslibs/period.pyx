@@ -1627,11 +1627,11 @@ DIFFERENT_FREQ = ("Input has different freq={other_freq} "
 
 
 class IncompatibleFrequency(TypeError):
-    __module__ = "pandas.errors"
     """
     Raised when trying to compare or operate between Periods with different
     frequencies.
     """
+    __module__ = "pandas.errors"
     pass
 
 

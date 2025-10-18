@@ -64,7 +64,6 @@ if TYPE_CHECKING:
 
 
 class Grouper:
-    __module__ = "pandas"
     """
     A Grouper allows the user to specify a groupby instruction for an object.
 
@@ -253,6 +252,8 @@ class Grouper:
     2000-10-02 00:24:00    24
     Freq: 17min, dtype: int64
     """
+
+    __module__ = "pandas"
 
     sort: bool
     dropna: bool

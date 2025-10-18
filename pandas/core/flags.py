@@ -8,7 +8,6 @@ if TYPE_CHECKING:
 
 
 class Flags:
-    __module__ = "pandas"
     """
     Flags that apply to pandas objects.
 
@@ -55,6 +54,8 @@ class Flags:
     >>> df.flags
     <Flags(allows_duplicate_labels=True)>
     """
+
+    __module__ = "pandas"
 
     _keys: set[str] = {"allows_duplicate_labels"}
 
