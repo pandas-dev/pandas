@@ -643,9 +643,6 @@ def test_attributes_module(module_name):
             # Explicit exceptions
             or ("Dtype" in name and obj.__module__ == "pandas")
             or (name == "Categorical" and obj.__module__ == "pandas")
-            # Setting __module__ on a cdef class has no effect
-            # https://github.com/cython/cython/issues/7231
-            or name == "Interval"
         )
     ]
     assert len(failures) == 0, failures
