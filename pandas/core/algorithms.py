@@ -863,8 +863,10 @@ def value_counts_internal(
     dropna: bool = True,
 ) -> Series:
     from pandas import (
+        DatetimeIndex,
         Index,
         Series,
+        TimedeltaIndex,
     )
 
     index_name = getattr(values, "name", None)
@@ -929,6 +931,31 @@ def value_counts_internal(
             # Starting in 3.0, we no longer perform dtype inference on the
             #  Index object we construct here, xref GH#56161
             idx = Index(keys, dtype=keys.dtype, name=index_name)
+
+            if (
+                bins is None
+                and not sort
+                and isinstance(values, (DatetimeIndex, TimedeltaIndex))
+                and values.inferred_freq is not None
+            ):
+                # freq preservation
+                # Check if the result would be the same as input
+                if len(idx) == len(values) and idx.equals(values):
+                    # Rebuild idx with the correct type and inferred frequency
+                    if isinstance(values, DatetimeIndex):
+                        idx = DatetimeIndex(
+                            idx._data if hasattr(idx, "_data") else idx.values,
+                            freq=values.inferred_freq,
+                            name=idx.name,
+                        )
+
+                    elif isinstance(values, TimedeltaIndex):
+                        idx = TimedeltaIndex(
+                            idx._data if hasattr(idx, "_data") else idx.values,
+                            freq=values.inferred_freq,
+                            name=idx.name,
+                        )
+
             result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
