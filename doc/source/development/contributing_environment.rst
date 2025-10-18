@@ -211,7 +211,6 @@ for :ref:`building pandas with GitPod <contributing-gitpod>`.
 Step 3: build and install pandas
 --------------------------------
 
-There are currently two supported ways of building pandas, pip/meson and setuptools(setup.py).
 Historically, pandas has only supported using setuptools to build pandas. However, this method
 requires a lot of convoluted code in setup.py and also has many issues in compiling pandas in parallel
 due to limitations in setuptools.
@@ -254,28 +253,6 @@ Appending ``-Csetup-args="-Ddebug=true"`` will do the trick.
 With pip, it is possible to chain together multiple config settings. For example, specifying both a build directory
 and building with debug symbols would look like
 ``-Cbuilddir="your builddir here" -Csetup-args="-Dbuildtype=debug"``.
-
-**Compiling pandas with setup.py**
-
-.. note::
-   This method of compiling pandas will be deprecated and removed very soon, as the meson backend matures.
-
-To compile pandas with setuptools, run::
-
-   python setup.py develop
-
-.. note::
-   If pandas is already installed (via meson), you have to uninstall it first::
-
-        python -m pip uninstall pandas
-
-This is because python setup.py develop will not uninstall the loader script that ``meson-python``
-uses to import the extension from the build folder, which may cause errors such as an
-``FileNotFoundError`` to be raised.
-
-.. note::
-   You will need to repeat this step each time the C extensions change, for example
-   if you modified any file in ``pandas/_libs`` or if you did a fetch and merge from ``upstream/main``.
 
 **Checking the build**
 
