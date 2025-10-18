@@ -552,7 +552,7 @@ b,2,y
 @pytest.mark.parametrize("usecols", [(3, 0, 2), ("d", "a", "c")])
 @pytest.mark.parametrize("usecols_use_order", (True, False))
 def test_usecols_order(all_parsers, usecols, usecols_use_order):
-    # TODOE add portion in doc for 3.0 transition
+    # TODO: add portion in doc for 3.0 transition
     parser = all_parsers
     pyarrow_flag = False
     data = """\
