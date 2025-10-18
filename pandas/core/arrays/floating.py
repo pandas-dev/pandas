@@ -129,6 +129,8 @@ class FloatingArray(NumericArray):
     Length: 3, dtype: Float32
     """
 
+    __module__ = "pandas.arrays"
+
     _dtype_cls = FloatingDtype
 
 

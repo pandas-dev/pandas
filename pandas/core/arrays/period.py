@@ -177,6 +177,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     Length: 2, dtype: period[D]
     """
 
+    __module__ = "pandas.arrays"
+
     # array priority higher than numpy scalars
     __array_priority__ = 1000
     _typ = "periodarray"  # ABCPeriodArray

@@ -766,3 +766,4 @@ class _Options(dict):
 
 
 plot_params = _Options()
+plot_params.__module__ = "pandas.plotting"

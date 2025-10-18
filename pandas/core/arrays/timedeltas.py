@@ -147,6 +147,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     Length: 2, dtype: timedelta64[ns]
     """
 
+    __module__ = "pandas.arrays"
+
     _typ = "timedeltaarray"
     _internal_fill_value = np.timedelta64("NaT", "ns")
     _recognized_scalars = (timedelta, np.timedelta64, Tick)

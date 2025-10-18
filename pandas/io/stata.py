@@ -1019,6 +1019,7 @@ class StataParser:
 
 
 class StataReader(StataParser, abc.Iterator):
+    __module__ = "pandas.api.typing"
     __doc__ = _stata_reader_doc
 
     _path_or_buf: IO[bytes]  # Will be assigned by `_open_file`.
