@@ -175,7 +175,7 @@ class ArrowStringArrayMixin:
             or flags
             or (
                 isinstance(repl, str)
-                and (r"\g<" in repl or re.search(r"\\\d", repl) is not None)
+                and r"\g<" in repl  # Block named group references (\g<name>); numeric groups (\1) are supported by PyArrow
             )
         ):
             raise NotImplementedError(
