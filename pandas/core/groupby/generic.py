@@ -113,11 +113,41 @@ ScalarResult = TypeVar("ScalarResult")
 
 
 @set_module("pandas")
+<<<<<<< HEAD
 @dataclasses.dataclass
 class NamedAgg:
-    """
-    Helper for column specific aggregation with control over output column names.
+=======
+class NamedAgg(tuple):
+    __slots__ = ()
 
+    def __new__(cls, column, aggfunc, *args, **kwargs):
+        if (
+            callable(aggfunc)
+            and not getattr(aggfunc, "_is_wrapped", False)
+            and (args or kwargs)
+        ):
+            original_func = aggfunc
+
+            def wrapped(*call_args, **call_kwargs):
+                series = call_args[0]
+                final_args = call_args[1:] + args
+                final_kwargs = {**kwargs, **call_kwargs}
+                return original_func(series, *final_args, **final_kwargs)
+
+            wrapped._is_wrapped = True
+            aggfunc = wrapped
+        return super().__new__(cls, (column, aggfunc))
+
+>>>>>>> 4e8ccf6958 (code impl and examples)
+    """
+    Helper for column specific aggregation with with flexible argument passing and
+    control over output column names.
+
+<<<<<<< HEAD
+=======
+    Subclass of tuple that wraps an aggregation function.
+
+>>>>>>> 4e8ccf6958 (code impl and examples)
     Parameters
     ----------
     column : Hashable
@@ -125,8 +155,15 @@ class NamedAgg:
     aggfunc : function or str
         Function to apply to the provided column. If string, the name of a built-in
         pandas function.
+<<<<<<< HEAD
     *args, **kwargs :
         Optional positional and keyword arguments passed to ``aggfunc``.
+=======
+    *args : tuple, optional
+        Positional arguments to pass to `aggfunc` when it is called.
+    **kwargs : dict, optional
+        Keyword arguments to pass to `aggfunc` when it is called.
+>>>>>>> 4e8ccf6958 (code impl and examples)
 
     See Also
     --------
@@ -143,19 +180,36 @@ class NamedAgg:
     1          -1      10.5
     2           1      12.0
 
+<<<<<<< HEAD
     >>> def n_between(ser, low, high, **kwargs):
     ...     return ser.between(low, high, **kwargs).sum()
 
     >>> agg_between = pd.NamedAgg("a", n_between, 0, 1)
     >>> df.groupby("key").agg(count_between=agg_between)
         count_between
+=======
+    def n_between(ser, low, high, **kwargs):
+        return ser.between(low, high, **kwargs).sum()
+
+    Using positional arguments
+    agg_between = pd.NamedAgg("a", n_between, 0, 1)
+    df.groupby("key").agg(count_between=agg_between)
+                count_between
+>>>>>>> 4e8ccf6958 (code impl and examples)
     key
     1               1
     2               1
 
+<<<<<<< HEAD
     >>> agg_between_kw = pd.NamedAgg("a", n_between, 0, 1, inclusive="both")
     >>> df.groupby("key").agg(count_between_kw=agg_between_kw)
         count_between_kw
+=======
+    Using both positional and keyword arguments
+    agg_between_kw = pd.NamedAgg("a", n_between, 0, 1, inclusive="both")
+    df.groupby("key").agg(count_between_kw=agg_between_kw)
+                    count_between_kw
+>>>>>>> 4e8ccf6958 (code impl and examples)
     key
     1                   1
     2                   1
