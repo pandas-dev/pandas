@@ -573,7 +573,7 @@ def maybe_booleans_to_slice(ndarray[uint8_t, ndim=1] mask):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def array_equivalent_object(ndarray left, ndarray right) -> bool:
+def array_equivalent_object(ndarray left, ndarray right, strict=False) -> bool:
     """
     Perform an element by element comparison on N-d object arrays
     taking into account nan positions.
@@ -599,14 +599,14 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                 if x.shape != y.shape:
                     return False
                 if x.dtype == y.dtype == object:
-                    if not array_equivalent_object(x, y):
+                    if not array_equivalent_object(x, y, strict):
                         return False
                 else:
                     # Circular import isn't great, but so it goes.
                     # TODO: could use np.array_equal?
                     from pandas.core.dtypes.missing import array_equivalent
 
-                    if not array_equivalent(x, y):
+                    if not array_equivalent(x, y, strict):
                         return False
 
             elif PyArray_Check(x) or PyArray_Check(y):

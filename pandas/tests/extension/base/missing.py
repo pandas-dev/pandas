@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.missing import _array_equivalent_object
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -179,3 +181,8 @@ class BaseMissingTests:
         expected = pd.DataFrame({"A": data, "B": [0.0] * len(result)})
 
         tm.assert_frame_equal(result, expected)
+
+    def test_array_equivalent_object_strict_comparison(self):
+        arr1 = np.array([1, 2, 3], dtype="int32")
+        arr2 = np.array([1, 2, 3], dtype="int64")
+        assert not _array_equivalent_object(arr1, arr2, strict_nan=False)

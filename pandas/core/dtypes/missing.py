@@ -44,6 +44,8 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.inference import is_list_like
 
+import pandas as pd
+
 if TYPE_CHECKING:
     from re import Pattern
 
@@ -502,9 +504,15 @@ def _array_equivalent_object(
             mask = None
 
     try:
+        warnings.warn(
+            "array_equivalent_object now uses strict=True for comparison. "
+            "This may break code that relied on non-strict comparison.",
+            pd.errors.FutureWarning,
+            stacklevel=2,
+        )
         if mask is None:
-            return lib.array_equivalent_object(left, right)
-        if not lib.array_equivalent_object(left[~mask], right[~mask]):
+            return lib.array_equivalent_object(left, right, strict=True)
+        if not lib.array_equivalent_object(left[~mask], right[~mask], strict=True):
             return False
         left_remaining = left[mask]
         right_remaining = right[mask]
