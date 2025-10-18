@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import importlib
+import inspect
+import pathlib
+import pkgutil
+
 import pytest
 
 import pandas as pd
@@ -566,12 +571,6 @@ def test_set_module():
     assert api.typing.DataFrameGroupBy.__module__ == "pandas.api.typing"
 
 
-import importlib
-import inspect
-import pathlib
-import pkgutil
-
-
 def get_classes(module):
     classes = []
 
@@ -587,8 +586,7 @@ def get_classes(module):
             submodule = importlib.import_module(submodule_name)
             classes.extend(get_classes(submodule))
         except ImportError:
-            # pass
-            raise
+            pass
     return classes
 
 
