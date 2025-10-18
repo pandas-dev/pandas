@@ -115,9 +115,10 @@ ScalarResult = TypeVar("ScalarResult")
 @set_module("pandas")
 class NamedAgg(tuple):
     """
-    Helper for defining named aggregations in groupby operations.
+    Helper for defining named aggregations in ``DataFrame.groupby().agg``.
 
-    Subclass of tuple that wraps an aggregation function.
+    Use ``pd.NamedAgg`` to specify column-specific aggregations with explicit
+    output names.
 
     Parameters
     ----------
@@ -126,10 +127,8 @@ class NamedAgg(tuple):
     aggfunc : function or str
         Function to apply to the provided column. If string, the name of a built-in
         pandas function.
-    *args : tuple, optional
-        Positional arguments to pass to `aggfunc` when it is called.
-    **kwargs : dict, optional
-        Keyword arguments to pass to `aggfunc` when it is called.
+    *args, **kwargs :
+        Optional positional and keyword arguments passed to ``aggfunc``.
 
     See Also
     --------
@@ -137,30 +136,28 @@ class NamedAgg(tuple):
 
     Examples
     --------
-    >>> df = pd.DataFrame({"key": [1, 1, 2], "a": [-1, 0, 1], 1: [10, 11, 12]})
+    >>> df = pd.DataFrame({"key": [1, 1, 2], "a": [-1, 0, 1], "b": [10, 11, 12]})
     >>> agg_a = pd.NamedAgg(column="a", aggfunc="min")
-    >>> agg_1 = pd.NamedAgg(column=1, aggfunc=lambda x: np.mean(x))
-    >>> df.groupby("key").agg(result_a=agg_a, result_1=agg_1)
-         result_a  result_1
+    >>> agg_b = pd.NamedAgg(column="b", aggfunc=lambda x: x.mean())
+    >>> df.groupby("key").agg(result_a=agg_a, result_b=agg_b)
+        result_a  result_b
     key
     1          -1      10.5
     2           1      12.0
 
-    def n_between(ser, low, high, **kwargs):
-        return ser.between(low, high, **kwargs).sum()
+    >>> def n_between(ser, low, high, **kwargs):
+    ...     return ser.between(low, high, **kwargs).sum()
 
-    Using positional arguments
-    agg_between = pd.NamedAgg("a", n_between, 0, 1)
-    df.groupby("key").agg(count_between=agg_between)
-                count_between
+    >>> agg_between = pd.NamedAgg("a", n_between, 0, 1)
+    >>> df.groupby("key").agg(count_between=agg_between)
+        count_between
     key
     1               1
     2               1
 
-    Using both positional and keyword arguments
-    agg_between_kw = pd.NamedAgg("a", n_between, 0, 1, inclusive="both")
-    df.groupby("key").agg(count_between_kw=agg_between_kw)
-                    count_between_kw
+    >>> agg_between_kw = pd.NamedAgg("a", n_between, 0, 1, inclusive="both")
+    >>> df.groupby("key").agg(count_between_kw=agg_between_kw)
+        count_between_kw
     key
     1                   1
     2                   1
