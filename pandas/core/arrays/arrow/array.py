@@ -1707,15 +1707,23 @@ class ArrowExtensionArray(
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
 
-    def map(self, mapper, na_action: Literal["ignore"] | None = None):
+    def map(
+        self,
+        mapper,
+        na_action: Literal["ignore"] | None = None,
+        preserve_dtype: bool = False,
+    ):
         if is_numeric_dtype(self.dtype):
-            return map_array(self.to_numpy(), mapper, na_action=na_action)
+            result = map_array(self.to_numpy(), mapper, na_action=na_action)
+            if preserve_dtype:
+                result = self._cast_pointwise_result(result)
+            return result
         else:
             # For "mM" cases, the super() method passes `self` without the
             #  to_numpy call, which inside map_array casts to ndarray[object].
             #  Without the to_numpy() call, NA is preserved instead of changed
             #  to None.
-            return super().map(mapper, na_action)
+            return super().map(mapper, na_action, preserve_dtype=preserve_dtype)
 
     @doc(ExtensionArray.duplicated)
     def duplicated(
