@@ -115,10 +115,9 @@ ScalarResult = TypeVar("ScalarResult")
 @set_module("pandas")
 class NamedAgg(tuple):
     """
-    Helper for defining named aggregations in ``DataFrame.groupby().agg``.
+    Helper for column specific aggregation with control over output column names.
 
-    Use ``pd.NamedAgg`` to specify column-specific aggregations with explicit
-    output names.
+    Subclass of tuple.
 
     Parameters
     ----------
