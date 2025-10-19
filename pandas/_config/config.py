@@ -117,6 +117,8 @@ class OptionError(AttributeError, KeyError):
     OptionError: No such option
     """
 
+    __module__ = "pandas.errors"
+
 
 #
 # User API
@@ -441,6 +443,8 @@ class DictWrapper:
 
 
 options = DictWrapper(_global_config)
+# DictWrapper defines a custom setattr
+object.__setattr__(options, "__module__", "pandas")
 
 #
 # Functions for use by pandas developers, in addition to User - api
