@@ -1098,13 +1098,13 @@ def maybe_cast_to_datetime(
             dta = DatetimeArray._from_sequence(value, dtype=dtype)
         except TimezoneDtypeMismatchError as err:
             raise ValueError(
-                    "Cannot convert timezone-aware data to "
-                    "timezone-naive dtype. Use "
-                    "pd.Series(values).dt.tz_localize(None) instead."
-            ) from err          
+                "Cannot convert timezone-aware data to "
+                "timezone-naive dtype. Use "
+                "pd.Series(values).dt.tz_localize(None) instead."
+            ) from err
         except ValueError:
-            raise           
-        
+            raise
+
         return dta
 
 

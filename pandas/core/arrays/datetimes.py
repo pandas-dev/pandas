@@ -45,7 +45,10 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
-from pandas.errors import PerformanceWarning, TimezoneDtypeMismatchError
+from pandas.errors import (
+    PerformanceWarning,
+    TimezoneDtypeMismatchError,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
