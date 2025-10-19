@@ -5253,7 +5253,10 @@ class DataFrame(NDFrame, OpsMixin):
                 "select_dtypes when 'object' dtype is specified. "
                 "This behavior is deprecated and will be removed in a future "
                 "version. Explicitly pass 'str' to `include` to select them, "
-                "or to `exclude` to remove them and silence this warning.",
+                "or to `exclude` to remove them and silence this warning.\nSee "
+                "https://pandas.pydata.org/docs/user_guide/migration-3-strings.html"
+                "#string-migration-select-dtypes for details on how to write code "
+                "that works with pandas 2 and 3.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
