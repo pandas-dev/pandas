@@ -417,10 +417,10 @@ def test_cython_agg_EA_known_dtypes(data, op_name, action, with_na):
     result = grouped["col"].aggregate(op_name)
     assert result.dtype == expected_dtype
 
-#testing groupby.var() when called with pyarrow datatype 
 
 @pytest.mark.parametrize("with_na", [False, True])
 def test_groupby_var_arrow_decimal(with_na):
+    #testing groupby.var() when called with pyarrow datatype 
     # Create Arrow-backed decimal Series
     data = pd.Series(
         [
