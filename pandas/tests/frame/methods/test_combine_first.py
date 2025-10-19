@@ -399,13 +399,13 @@ class TestDataFrameCombineFirst:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "wide_val, dtype, EAdtype",
+        "wide_val, dtype",
         (
-            (1666880195890293744, "uint64", "UInt64"),
-            (-1666880195890293744, "int64", "Int64"),
+            (1666880195890293744, "uint64"),
+            (-1666880195890293744, "int64"),
         ),
     )
-    def test_combine_first_preserve_precision(self, wide_val, dtype, EAdtype):
+    def test_combine_first_preserve_precision(self, wide_val, dtype):
         # GH#60128
         df1 = DataFrame({"A": [wide_val, 5]}, dtype=dtype)
         df2 = DataFrame({"A": [6, 7, wide_val]}, dtype=dtype)
