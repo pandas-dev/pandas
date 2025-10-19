@@ -9052,16 +9052,16 @@ class DataFrame(NDFrame, OpsMixin):
                 orig_dt_self = self_original.dtypes.get(col)
                 orig_dt_other = other_original.dtypes.get(col)
 
-                is_at_risk = (orig_dt_self in [np.int64, np.uint64]) or (
+                was_promoted = (orig_dt_self in [np.int64, np.uint64]) or (
                     orig_dt_other in [np.int64, np.uint64]
                 )
 
-                if is_at_risk and not isna(ser).any():
+                if was_promoted and not isna(ser).any():
                     dtypes_to_resolve = [
                         dt for dt in (orig_dt_self, orig_dt_other) if dt is not None
                     ]
                     if dtypes_to_resolve:
-                        # if we had different dtypes, possibly promote
+                        # if we had different dtypes, reconcile
                         cast_map[col] = find_common_type(dtypes_to_resolve)
 
             if cast_map:
