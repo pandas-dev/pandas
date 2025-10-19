@@ -487,7 +487,7 @@ class TestTesting(Base):
 
 
 def get_pandas_objects(
-    module_name: str, recurse: bool, include_functions: bool
+    module_name: str, recurse: bool
 ) -> list[tuple[str, str, object]]:
     """
     Get all pandas objects within a module.
@@ -501,8 +501,6 @@ def get_pandas_objects(
         Name of the module to search.
     recurse : bool
         Whether to search submodules.
-    include_functions : bool
-        Whether to include functions in the search.
 
     Returns
     -------
@@ -512,10 +510,6 @@ def get_pandas_objects(
     objs = []
 
     for name, obj in inspect.getmembers(module):
-        if not include_functions and (
-            inspect.isfunction(obj) or type(obj).__name__ == "cython_function_or_method"
-        ):
-            continue
         module_dunder = getattr(obj, "__module__", None)
         if isinstance(module_dunder, str) and module_dunder.startswith("pandas"):
             objs.append((module_name, name, obj))
@@ -534,7 +528,6 @@ def get_pandas_objects(
             get_pandas_objects(
                 f"{module.__name__}.{name}",
                 recurse=module_info.ispkg,
-                include_functions=include_functions,
             )
         )
     return objs
@@ -558,12 +551,10 @@ def test_attributes_module(module_name):
     Ensures that all public objects have their __module__ set to the public import path.
     """
     recurse = module_name not in ["pandas", "pandas.testing"]
-    # TODO: resolve all cases so this can be removed
-    include_functions = module_name not in ["pandas.api", "pandas.plotting"]
     objs = get_pandas_objects(
-        module_name, recurse=recurse, include_functions=include_functions
+        module_name,
+        recurse=recurse,
     )
-    print(objs)
     failures = [
         (module_name, name, type(obj), obj.__module__)
         for module_name, name, obj in objs
@@ -574,4 +565,4 @@ def test_attributes_module(module_name):
             or (name == "Categorical" and obj.__module__ == "pandas")
         )
     ]
-    assert len(failures) == 0, failures
+    assert len(failures) == 0, "\n".join(str(e) for e in failures)

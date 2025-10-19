@@ -8,6 +8,8 @@ from typing import (
 
 from pandas._config import get_option
 
+from pandas.util._decorators import set_module
+
 from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
@@ -44,6 +46,7 @@ def holds_integer(column: Index) -> bool:
     return column.dtype.kind in "iu"
 
 
+@set_module("pandas.plotting")
 def hist_series(
     self: Series,
     by=None,
@@ -142,6 +145,7 @@ def hist_series(
     )
 
 
+@set_module("pandas.plotting")
 def hist_frame(
     data: DataFrame,
     column: IndexLabel | None = None,
@@ -271,6 +275,7 @@ def hist_frame(
     )
 
 
+@set_module("pandas.plotting")
 def boxplot(
     data: DataFrame,
     column: str | list[str] | None = None,
@@ -458,6 +463,7 @@ def boxplot(
     )
 
 
+@set_module("pandas.plotting")
 def boxplot_frame(
     self: DataFrame,
     column=None,
@@ -650,6 +656,7 @@ def boxplot_frame(
     )
 
 
+@set_module("pandas.plotting")
 def boxplot_frame_groupby(
     grouped: DataFrameGroupBy,
     subplots: bool = True,
