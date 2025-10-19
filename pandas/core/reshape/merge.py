@@ -681,7 +681,6 @@ def merge_asof(
     the merge key in ascending order before calling this function.
     Sorting by any additional 'by' grouping columns is not required.
 
-
     For each row in the left DataFrame:
 
       - A "backward" search selects the last row in the right DataFrame whose
