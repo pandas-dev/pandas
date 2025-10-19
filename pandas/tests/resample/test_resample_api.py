@@ -989,3 +989,25 @@ def test_resample_empty():
     )
     result = df.resample("8h").mean()
     tm.assert_frame_equal(result, expected)
+
+
+def test_asfreq_respects_origin_with_fixed_freq_all_seconds_equal():
+    idx = [
+        datetime(2025, 10, 17, 17, 15, 10),
+        datetime(2025, 10, 17, 17, 16, 10),
+        datetime(2025, 10, 17, 17, 17, 10),
+    ]
+    df = DataFrame({"value": [0, 1, 2]}, index=idx)
+
+    result = df.resample("1min", origin="start_day").asfreq()
+
+    exp_idx = pd.to_datetime(
+        [
+            "2025-10-17 17:15:00",
+            "2025-10-17 17:16:00",
+            "2025-10-17 17:17:00",
+        ]
+    ).astype(result.index.dtype)  # match time unit (s/us/ns)
+
+    exp = DataFrame({"value": [np.nan, np.nan, np.nan]}, index=exp_idx)
+    tm.assert_frame_equal(result, exp, check_freq=False)
