@@ -1,0 +1,7 @@
+[user]
+	email = test@example.com
+	name = test
+[pull]
+	rebase = false
+[push]
+	default = simple

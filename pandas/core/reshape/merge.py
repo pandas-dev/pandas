@@ -1928,6 +1928,25 @@ class _MergeOperation:
 
         return left_on, right_on
 
+    def _get_dupes(self, keys: list["ArrayLike"]) -> list:
+        from pandas import MultiIndex
+
+        multi_index = MultiIndex.from_arrays(keys)
+        dupes = multi_index[multi_index.duplicated()].unique()
+        if isinstance(dupes, MultiIndex):
+            return dupes.to_list()
+        return dupes.tolist()
+
+    
+    def _get_dupes(self, keys: list["ArrayLike"]) -> list:
+        from pandas import MultiIndex
+
+        multi_index = MultiIndex.from_arrays(keys)
+        dupes = multi_index[multi_index.duplicated()].unique()
+        if isinstance(dupes, MultiIndex):
+            return dupes.to_list()
+        return dupes.tolist()
+
     @final
     def _validate_validate_kwd(self, validate: str) -> None:
         # Check uniqueness of each
@@ -1944,30 +1963,42 @@ class _MergeOperation:
         # Check data integrity
         if validate in ["one_to_one", "1:1"]:
             if not left_unique and not right_unique:
+                left_dupes = self._get_dupes(self.left_join_keys)
+                right_dupes = self._get_dupes(self.right_join_keys)
                 raise MergeError(
                     "Merge keys are not unique in either left "
-                    "or right dataset; not a one-to-one merge"
+                    "or right dataset; not a one-to-one merge. "
+                    f"Left duplicate keys: {left_dupes}. "
+                    f"Right duplicate keys: {right_dupes}."
                 )
             if not left_unique:
+                left_dupes = self._get_dupes(self.left_join_keys)
                 raise MergeError(
-                    "Merge keys are not unique in left dataset; not a one-to-one merge"
+                    "Merge keys are not unique in left dataset; not a one-to-one merge. "
+                    f"Duplicate keys: {left_dupes}."
                 )
             if not right_unique:
+                right_dupes = self._get_dupes(self.right_join_keys)
                 raise MergeError(
-                    "Merge keys are not unique in right dataset; not a one-to-one merge"
+                    "Merge keys are not unique in right dataset; not a one-to-one merge. "
+                    f"Duplicate keys: {right_dupes}."
                 )
 
         elif validate in ["one_to_many", "1:m"]:
             if not left_unique:
+                left_dupes = self._get_dupes(self.left_join_keys)
                 raise MergeError(
-                    "Merge keys are not unique in left dataset; not a one-to-many merge"
+                    "Merge keys are not unique in left dataset; not a one-to-many merge. "
+                    f"Duplicate keys: {left_dupes}."
                 )
 
         elif validate in ["many_to_one", "m:1"]:
             if not right_unique:
+                right_dupes = self._get_dupes(self.right_join_keys)
                 raise MergeError(
                     "Merge keys are not unique in right dataset; "
-                    "not a many-to-one merge"
+                    "not a many-to-one merge. "
+                    f"Duplicate keys: {right_dupes}."
                 )
 
         elif validate in ["many_to_many", "m:m"]:
