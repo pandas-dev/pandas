@@ -142,6 +142,7 @@ h2:hover a.headerlink, h3:hover a.headerlink {
 	 margin: 1.5625em auto;
 	 padding: 0 0.6rem 0.8rem;
 	 overflow: hidden;
+     box-shadow: 0 .2rem .5rem rgba(0,0,0,0.1),0 0 .0625rem rgba(0,0,0,0.1) !important;
 	/* break-inside has replaced page-break-inside and is widely usable since 2019 */
 	 page-break-inside: avoid;
 	 break-inside: avoid;
