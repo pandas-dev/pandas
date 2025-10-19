@@ -1038,6 +1038,16 @@ class InvalidComparison(Exception):
     """
 
 
+class TimezoneDtypeMismatchError(ValueError):
+    """
+    Raised when both a separate tz and a tz-naive numpy datetime64 dtype are
+    supplied (e.g. tz is not None and dtype is datetime64[ns]).
+
+    Use case / message:
+        "cannot supply both a tz and a timezone-naive dtype (i.e. datetime64[ns])"
+    """
+
+
 __all__ = [
     "AbstractMethodError",
     "AttributeConflictWarning",
@@ -1081,6 +1091,7 @@ __all__ = [
     "PyperclipException",
     "PyperclipWindowsException",
     "SpecificationError",
+    "TimezoneDtypeMismatchError",
     "UndefinedVariableError",
     "UnsortedIndexError",
     "UnsupportedFunctionCall",
