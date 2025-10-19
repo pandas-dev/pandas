@@ -316,6 +316,8 @@ class ExponentialMovingWindow(BaseWindow):
     4  3.233686
     """
 
+    __module__ = "pandas.api.typing"
+
     _attributes = [
         "com",
         "span",
@@ -906,6 +908,8 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
     """
     Provide an exponential moving window groupby implementation.
     """
+
+    __module__ = "pandas.api.typing"
 
     _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
 

@@ -304,6 +304,8 @@ class BooleanArray(BaseMaskedArray):
     Length: 3, dtype: boolean
     """
 
+    __module__ = "pandas.arrays"
+
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}
 

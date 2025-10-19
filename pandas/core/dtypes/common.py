@@ -359,7 +359,7 @@ def is_datetime64tz_dtype(arr_or_dtype) -> bool:
     >>> is_datetime64tz_dtype(pd.DatetimeIndex([1, 2, 3], tz="US/Eastern"))
     True
 
-    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
+    >>> from pandas import DatetimeTZDtype
     >>> dtype = DatetimeTZDtype("ns", tz="US/Eastern")
     >>> s = pd.Series([], dtype=dtype)
     >>> is_datetime64tz_dtype(dtype)
@@ -407,7 +407,7 @@ def is_timedelta64_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
-    >>> from pandas.core.dtypes.common import is_timedelta64_dtype
+    >>> from pandas.api.types import is_timedelta64_dtype
     >>> is_timedelta64_dtype(object)
     False
     >>> is_timedelta64_dtype(np.timedelta64)
@@ -452,7 +452,7 @@ def is_period_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
-    >>> from pandas.core.dtypes.common import is_period_dtype
+    >>> from pandas.api.types import is_period_dtype
     >>> is_period_dtype(object)
     False
     >>> is_period_dtype(pd.PeriodDtype(freq="D"))
@@ -507,7 +507,7 @@ def is_interval_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
-    >>> from pandas.core.dtypes.common import is_interval_dtype
+    >>> from pandas.api.types import is_interval_dtype
     >>> is_interval_dtype(object)
     False
     >>> is_interval_dtype(pd.IntervalDtype())
@@ -684,10 +684,10 @@ def is_dtype_equal(source, target) -> bool:
     True
     >>> is_dtype_equal(object, "category")
     False
-    >>> from pandas.core.dtypes.dtypes import CategoricalDtype
+    >>> from pandas.api.types import CategoricalDtype
     >>> is_dtype_equal(CategoricalDtype(), "category")
     True
-    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
+    >>> from pandas.api.types import DatetimeTZDtype
     >>> is_dtype_equal(DatetimeTZDtype(tz="UTC"), "datetime64")
     False
     """
@@ -811,7 +811,7 @@ def is_signed_integer_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
-    >>> from pandas.core.dtypes.common import is_signed_integer_dtype
+    >>> from pandas.api.types import is_signed_integer_dtype
     >>> is_signed_integer_dtype(str)
     False
     >>> is_signed_integer_dtype(int)
@@ -1006,7 +1006,7 @@ def is_datetime64_any_dtype(arr_or_dtype) -> bool:
     Examples
     --------
     >>> from pandas.api.types import is_datetime64_any_dtype
-    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
+    >>> from pandas.api.types import DatetimeTZDtype
     >>> is_datetime64_any_dtype(str)
     False
     >>> is_datetime64_any_dtype(int)
@@ -1066,7 +1066,7 @@ def is_datetime64_ns_dtype(arr_or_dtype) -> bool:
     Examples
     --------
     >>> from pandas.api.types import is_datetime64_ns_dtype
-    >>> from pandas.core.dtypes.dtypes import DatetimeTZDtype
+    >>> from pandas.api.types import DatetimeTZDtype
     >>> is_datetime64_ns_dtype(str)
     False
     >>> is_datetime64_ns_dtype(int)
@@ -1121,7 +1121,7 @@ def is_timedelta64_ns_dtype(arr_or_dtype) -> bool:
 
     Examples
     --------
-    >>> from pandas.core.dtypes.common import is_timedelta64_ns_dtype
+    >>> from pandas.api.types import is_timedelta64_ns_dtype
     >>> is_timedelta64_ns_dtype(np.dtype("m8[ns]"))
     True
     >>> is_timedelta64_ns_dtype(np.dtype("m8[ps]"))  # Wrong frequency

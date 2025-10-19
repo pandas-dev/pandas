@@ -26,6 +26,8 @@ class FrozenList(PandasObject, list):
     for lookups, appropriately, etc.
     """
 
+    __module__ = "pandas.api.typing"
+
     # Side note: This has to be of type list. Otherwise,
     #            it messes up PyTables type checks.
 

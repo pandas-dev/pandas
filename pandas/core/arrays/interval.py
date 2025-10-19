@@ -243,6 +243,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     :meth:`IntervalArray.from_breaks`, and :meth:`IntervalArray.from_tuples`.
     """
 
+    __module__ = "pandas.arrays"
+
     can_hold_na = True
     _na_value = _fill_value = np.nan
 

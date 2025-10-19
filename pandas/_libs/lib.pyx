@@ -2944,7 +2944,9 @@ class _NoDefault(Enum):
 
 # Note: no_default is exported to the public API in pandas.api.extensions
 no_default = _NoDefault.no_default  # Sentinel indicating the default value.
+no_default.__module__ = "pandas.api.extensions"
 NoDefault = Literal[_NoDefault.no_default]
+NoDefault.__module__ = "pandas.api.typing"
 
 
 @cython.boundscheck(False)
