@@ -66,6 +66,7 @@ if TYPE_CHECKING:
         TimeAmbiguous,
         TimeNonexistent,
         npt,
+        TimeUnit,
     )
 
     from pandas.core.api import (
@@ -852,7 +853,7 @@ def date_range(
     name: Hashable | None = None,
     inclusive: IntervalClosedType = "both",
     *,
-    unit: str | None = None,
+    unit: TimeUnit = "ns",
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -893,7 +894,7 @@ def date_range(
         Include boundaries; Whether to set each bound as closed or open.
 
         .. versionadded:: 1.4.0
-    unit : str, default None
+    unit : {'s', 'ms', 'us', 'ns'}, default 'ns'
         Specify the desired resolution of the result.
 
         .. versionadded:: 2.0.0
