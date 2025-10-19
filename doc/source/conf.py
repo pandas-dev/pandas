@@ -391,9 +391,9 @@ header = f"""\
 
 
 html_context = {
-    'display_version': True,
-    'versions_dropdown': True,
-    'github_url': 'https://github.com/pandas-dev/pandas',
+    "display_version": True,
+    "versions_dropdown": True,
+    "github_url": "https://github.com/pandas-dev/pandas",
     # Remove the following items to simplify the footer
     # 'other_versions': [
     #     ("stable", "/pandas-docs/stable/"),
@@ -855,5 +855,5 @@ linkcheck_ignore = [
             "https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022",
             "pandas.zip",
         ]
-]
+    ],
 ]
