@@ -345,7 +345,8 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         float64_t[:, ::1] result
         uint8_t[:, :] mask
         int64_t nobs = 0
-        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, val
+        float64_t xx, xy, meanx, meany, divisor, number, v1sq, v2sq, val
+        float64_t* vx, vy
 
     N, K = (<object>mat).shape
     if minp is None:
@@ -357,40 +358,55 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     mask = np.isfinite(mat).view(np.uint8)
 
     with nogil:
-        for xi in range(K):
-            for yi in range(xi + 1):
+        # for xi in range(K):
+        #     for yi in range(xi + 1):
                 # Welford's method for the variance-calculation
                 # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-                nobs = ssqdmx = ssqdmy = covxy = meanx = meany = 0
-                for i in range(N):
-                    if mask[i, xi] and mask[i, yi]:
-                        vx = mat[i, xi]
-                        vy = mat[i, yi]
-                        nobs += 1
-                        dx = vx - meanx
-                        dy = vy - meany
-                        meanx += 1. / nobs * dx
-                        meany += 1. / nobs * dy
-                        ssqdmx += (vx - meanx) * dx
-                        ssqdmy += (vy - meany) * dy
-                        covxy += (vx - meanx) * dy
+        nobs = v1sq = v2sq = covxy = meanx = meany = 0
+        for i in range(N):
+            vx = ptr(mat[i,:])
+            vy = mat[i,:]
+            meanx = vx.mean()
+            meany = vy.mean()
+            for j in range(vx):
+                xx = (vx[j]- meanx)
+                yy = (vy[j]- meany)
+                nobs += 1
+                number += xx*yy
+                v1sq += xx*xx
+                v2sq += yy*yy
+            val = number/sqrt(v1sq * v2sq)
+            print(val)
 
-                if nobs < minpv:
-                    result[xi, yi] = result[yi, xi] = NaN
-                else:
-                    divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
+        # for i in range(N):
+        #     if mask[i, xi] and mask[i, yi]:
+        #         vx = mat[i, xi]
+        #         vy = mat[i, yi]
+        #         nobs += 1
+        #         dx = vx - meanx
+        #         dy = vy - meany
+        #         meanx += 1. / nobs * dx
+        #         meany += 1. / nobs * dy
+        #         ssqdmx += (vx - meanx) * dx
+        #         ssqdmy += (vy - meany) * dy
+        #         covxy += (vx - meanx) * dy
 
-                    # clip `covxy / divisor` to ensure coeff is within bounds
-                    if divisor != 0:
-                        val = covxy / divisor
-                        if not cov:
-                            if val > 1.0:
-                                val = 1.0
-                            elif val < -1.0:
-                                val = -1.0
-                        result[xi, yi] = result[yi, xi] = val
-                    else:
-                        result[xi, yi] = result[yi, xi] = NaN
+        # if nobs < minpv:
+        #     result[xi, yi] = result[yi, xi] = NaN
+        # else:esult[xi, yi] = result[yi, xi] = val
+        #     divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
+
+        #     # clip `covxy / divisor` to ensure coeff is within bounds
+        #     if divisor != 0:
+        #         val = covxy / divisor
+        #         if not cov:
+        #             if val > 1.0:
+        #                 val = 1.0
+        #             elif val < -1.0:
+        #                 val = -1.0
+        #         result[xi, yi] = result[yi, xi] = val
+        #     else:
+        #         result[xi, yi] = result[yi, xi] = NaN
 
     return result.base
 
