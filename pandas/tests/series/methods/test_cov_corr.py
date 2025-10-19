@@ -184,3 +184,15 @@ class TestSeriesCorr:
         df = pd.DataFrame([s1, s2])
         expected = pd.DataFrame([{0: 1.0, 1: 0}, {0: 0, 1: 1.0}])
         tm.assert_almost_equal(df.transpose().corr(method=my_corr), expected)
+        
+    def test_close_corr(self):
+        values = np.array([
+            [30.0, 30.100000381469727],
+            [116.80000305175781, 116.8000030517578]
+        ])
+        df = pd.DataFrame(values.T)
+        result = df.corr(method="pearson")
+        expected = pd.DataFrame(np.corrcoef(values[0], values[1]))
+        tm.assert_frame_equal(result, expected)
+        
+        
