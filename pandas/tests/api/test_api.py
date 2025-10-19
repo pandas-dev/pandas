@@ -525,10 +525,7 @@ def get_pandas_objects(
         if name.startswith("_") or name == "internals":
             continue
         objs.extend(
-            get_pandas_objects(
-                f"{module.__name__}.{name}",
-                recurse=module_info.ispkg,
-            )
+            get_pandas_objects(f"{module.__name__}.{name}", recurse=module_info.ispkg)
         )
     return objs
 
@@ -551,10 +548,7 @@ def test_attributes_module(module_name):
     Ensures that all public objects have their __module__ set to the public import path.
     """
     recurse = module_name not in ["pandas", "pandas.testing"]
-    objs = get_pandas_objects(
-        module_name,
-        recurse=recurse,
-    )
+    objs = get_pandas_objects(module_name, recurse=recurse)
     failures = [
         (module_name, name, type(obj), obj.__module__)
         for module_name, name, obj in objs
