@@ -271,7 +271,7 @@ def set_option(*args) -> None:
     if not nargs or nargs % 2 != 0:
         raise ValueError("Must provide an even number of non-keyword arguments")
 
-    for k, v in zip(args[::2], args[1::2]):
+    for k, v in zip(args[::2], args[1::2], strict=True):
         key = _get_single_key(k)
 
         opt = _get_registered_option(key)
@@ -502,7 +502,8 @@ def option_context(*args) -> Generator[None]:
             "option_context(pat, val, pat, val...)."
         )
 
-    ops = tuple(zip(args[::2], args[1::2]))
+    ops = tuple(zip(args[::2], args[1::2], strict=True))
+    undo: tuple[tuple[Any, Any], ...] = ()
     try:
         undo = tuple((pat, get_option(pat)) for pat, val in ops)
         for pat, val in ops:
