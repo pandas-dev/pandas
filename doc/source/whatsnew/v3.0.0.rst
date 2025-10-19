@@ -1001,6 +1001,7 @@ Numeric
 - Bug in :meth:`Series.dot` returning ``object`` dtype for :class:`ArrowDtype` and nullable-dtype data (:issue:`61375`)
 - Bug in :meth:`Series.std` and :meth:`Series.var` when using complex-valued data (:issue:`61645`)
 - Bug in ``np.matmul`` with :class:`Index` inputs raising a ``TypeError`` (:issue:`57079`)
+- Bug in arithmetic operations between objects with numpy-nullable dtype and :class:`ArrowDtype` incorrectly raising (:issue:`58602`)
 
 Conversion
 ^^^^^^^^^^
