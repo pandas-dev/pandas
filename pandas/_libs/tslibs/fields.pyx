@@ -109,7 +109,7 @@ def month_position_check(fields, weekdays) -> str | None:
         int32_t[:] months = fields["M"]
         int32_t[:] days = fields["D"]
 
-    for y, m, d, wd in zip(years, months, days, weekdays):
+    for y, m, d, wd in zip(years, months, days, weekdays, strict=True):
         if calendar_start:
             calendar_start &= d == 1
         if business_start:

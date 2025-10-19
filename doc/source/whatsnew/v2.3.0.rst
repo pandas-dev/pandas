@@ -10,6 +10,104 @@ including other versions of pandas.
 
 .. ---------------------------------------------------------------------------
 
+.. _whatsnew_230.upcoming_changes:
+
+Upcoming changes in pandas 3.0
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+pandas 3.0 will bring two bigger changes to the default behavior of pandas.
+
+Dedicated string data type by default
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Historically, pandas represented string columns with NumPy ``object`` data type.
+This representation has numerous problems: it is not specific to strings (any
+Python object can be stored in an ``object``-dtype array, not just strings) and
+it is often not very efficient (both performance wise and for memory usage).
+
+Starting with the upcoming pandas 3.0 release, a dedicated string data type will
+be enabled by default (backed by PyArrow under the hood, if installed, otherwise
+falling back to NumPy). This means that pandas will start inferring columns
+containing string data as the new ``str`` data type when creating pandas
+objects, such as in constructors or IO functions.
+
+Old behavior:
+
+.. code-block:: python
+
+    >>> ser = pd.Series(["a", "b"])
+    0    a
+    1    b
+    dtype: object
+
+New behavior:
+
+.. code-block:: python
+
+    >>> ser = pd.Series(["a", "b"])
+    0    a
+    1    b
+    dtype: str
+
+The string data type that is used in these scenarios will mostly behave as NumPy
+object would, including missing value semantics and general operations on these
+columns.
+
+However, the introduction of a new default dtype will also have some breaking
+consequences to your code (for example when checking for the ``.dtype`` being
+object dtype). To allow testing it in advance of the pandas 3.0 release, this
+future dtype inference logic can be enabled in pandas 2.3 with:
+
+.. code-block:: python
+
+   pd.options.future.infer_string = True
+
+See the :ref:`string_migration_guide` for more details on the behaviour changes
+and how to adapt your code to the new default.
+
+Copy-on-Write
+^^^^^^^^^^^^^
+
+The currently optional mode Copy-on-Write will be enabled by default in pandas 3.0. There
+won't be an option to retain the legacy behavior.
+
+In summary, the new "copy-on-write" behaviour will bring changes in behavior in
+how pandas operates with respect to copies and views.
+
+1. The result of *any* indexing operation (subsetting a DataFrame or Series in any way,
+   i.e. including accessing a DataFrame column as a Series) or any method returning a
+   new DataFrame or Series, always *behaves as if* it were a copy in terms of user
+   API.
+2. As a consequence, if you want to modify an object (DataFrame or Series), the only way
+   to do this is to directly modify that object itself.
+
+Because every single indexing step now behaves as a copy, this also means that
+"chained assignment" (updating a DataFrame with multiple setitem steps) will
+stop working. Because this now consistently never works, the
+``SettingWithCopyWarning`` will be removed.
+
+The new behavioral semantics are explained in more detail in the
+:ref:`user guide about Copy-on-Write <copy_on_write>`.
+
+The new behavior can be enabled since pandas 2.0 with the following option:
+
+.. code-block:: python
+
+   pd.options.mode.copy_on_write = True
+
+Some of the behaviour changes allow a clear deprecation, like the changes in
+chained assignment. Other changes are more subtle and thus, the warnings are
+hidden behind an option that can be enabled since pandas 2.2:
+
+.. code-block:: python
+
+   pd.options.mode.copy_on_write = "warn"
+
+This mode will warn in many different scenarios that aren't actually relevant to
+most queries. We recommend exploring this mode, but it is not necessary to get rid
+of all of these warnings. The :ref:`migration guide <copy_on_write.migration_guide>`
+explains the upgrade process in more detail.
+
 .. _whatsnew_230.enhancements:
 
 Enhancements
@@ -32,39 +130,6 @@ Other enhancements
 - The :meth:`~Series.sum` reduction is now implemented for :class:`StringDtype` columns (:issue:`59853`)
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_230.notable_bug_fixes:
-
-Notable bug fixes
-~~~~~~~~~~~~~~~~~
-
-These are bug fixes that might have notable behavior changes.
-
-.. _whatsnew_230.notable_bug_fixes.string_comparisons:
-
-Comparisons between different string dtypes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In previous versions, comparing :class:`Series` of different string dtypes (e.g. ``pd.StringDtype("pyarrow", na_value=pd.NA)`` against ``pd.StringDtype("python", na_value=np.nan)``) would result in inconsistent resulting dtype or incorrectly raise. pandas will now use the hierarchy
-
-    object < (python, NaN) < (pyarrow, NaN) < (python, NA) < (pyarrow, NA)
-
-in determining the result dtype when there are different string dtypes compared. Some examples:
-
-- When ``pd.StringDtype("pyarrow", na_value=pd.NA)`` is compared against any other string dtype, the result will always be ``boolean[pyarrow]``.
-- When ``pd.StringDtype("python", na_value=pd.NA)`` is compared against ``pd.StringDtype("pyarrow", na_value=np.nan)``, the result will be ``boolean``, the NumPy-backed nullable extension array.
-- When ``pd.StringDtype("python", na_value=pd.NA)`` is compared against ``pd.StringDtype("python", na_value=np.nan)``, the result will be ``boolean``, the NumPy-backed nullable extension array.
-
-.. _whatsnew_230.api_changes:
-
-API changes
-~~~~~~~~~~~
-
-- When enabling the ``future.infer_string`` option, :class:`Index` set operations (like
-  union or intersection) will now ignore the dtype of an empty :class:`RangeIndex` or
-  empty :class:`Index` with ``object`` dtype when determining the dtype of the resulting
-  Index (:issue:`60797`)
-
-.. ---------------------------------------------------------------------------
 .. _whatsnew_230.deprecations:
 
 Deprecations
@@ -85,8 +150,6 @@ Numeric
 
 Strings
 ^^^^^^^
-- Bug in :meth:`.DataFrameGroupBy.min`, :meth:`.DataFrameGroupBy.max`, :meth:`.Resampler.min`, :meth:`.Resampler.max` where all NA values of string dtype would return float instead of string dtype (:issue:`60810`)
-- Bug in :meth:`DataFrame.sum` with ``axis=1``, :meth:`.DataFrameGroupBy.sum` or :meth:`.SeriesGroupBy.sum` with ``skipna=True``, and :meth:`.Resampler.sum` with all NA values of :class:`StringDtype` resulted in ``0`` instead of the empty string ``""`` (:issue:`60229`)
 - Bug in :meth:`Series.__pos__` and :meth:`DataFrame.__pos__` where an ``Exception`` was not raised for :class:`StringDtype` with ``storage="pyarrow"`` (:issue:`60710`)
 - Bug in :meth:`Series.rank` for :class:`StringDtype` with ``storage="pyarrow"`` that incorrectly returned integer results with ``method="average"`` and raised an error if it would truncate results (:issue:`59768`)
 - Bug in :meth:`Series.replace` with :class:`StringDtype` when replacing with a non-string value was not upcasting to ``object`` dtype (:issue:`60282`)
@@ -113,4 +176,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v2.2.3..v2.3.0|HEAD
+.. contributors:: v2.2.3..v2.3.0

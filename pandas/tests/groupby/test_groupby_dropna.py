@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under10p1
+from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -411,12 +412,7 @@ def test_groupby_drop_nan_with_multi_index():
         "Float64",
         "category",
         "string",
-        pytest.param(
-            "string[pyarrow]",
-            marks=pytest.mark.skipif(
-                pa_version_under10p1, reason="pyarrow is not installed"
-            ),
-        ),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
         "datetime64[ns]",
         "period[D]",
         "Sparse[float]",
@@ -437,6 +433,8 @@ def test_no_sort_keep_na(sequence_index, dtype, test_series, as_index):
         uniques = {"x": "x", "y": "y", "z": pd.NA}
     elif dtype in ("datetime64[ns]", "period[D]"):
         uniques = {"x": "2016-01-01", "y": "2017-01-01", "z": pd.NA}
+    elif dtype is not None and dtype.startswith(("I", "U", "F")):
+        uniques = {"x": 1, "y": 2, "z": pd.NA}
     else:
         uniques = {"x": 1, "y": 2, "z": np.nan}
 
@@ -542,7 +540,7 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
 
     gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
     if reduction_func == "corrwith":
-        warn = FutureWarning
+        warn = Pandas4Warning
         msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None
@@ -573,7 +571,7 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
             expected = expected["size"].rename(None)
 
     if reduction_func == "corrwith":
-        warn = FutureWarning
+        warn = Pandas4Warning
         msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None

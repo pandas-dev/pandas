@@ -237,13 +237,13 @@ class ParserBase:
         def extract(r):
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
-        columns = list(zip(*(extract(r) for r in header)))
+        columns = list(zip(*(extract(r) for r in header), strict=True))
         names = columns.copy()
         for single_ic in sorted(ic):
             names.insert(single_ic, single_ic)
 
         # Clean the column names (if we have an index_col).
-        if len(ic):
+        if ic:
             col_names = [
                 r[ic[0]]
                 if ((r[ic[0]] is not None) and r[ic[0]] not in self.unnamed_cols)
@@ -328,9 +328,11 @@ class ParserBase:
 
         if self.index_names is not None:
             names: Iterable = self.index_names
+            zip_strict = True
         else:
             names = itertools.cycle([None])
-        for i, (arr, name) in enumerate(zip(index, names)):
+            zip_strict = False
+        for i, (arr, name) in enumerate(zip(index, names, strict=zip_strict)):
             if self._should_parse_dates(i):
                 arr = date_converter(
                     arr,

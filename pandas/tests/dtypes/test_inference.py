@@ -35,6 +35,7 @@ from pandas._libs import (
     ops as libops,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.cast import find_result_type
@@ -1396,6 +1397,19 @@ class TestTypeInference:
         arr = np.array([na_value, Period("2011-01", freq="D"), na_value])
         assert lib.infer_dtype(arr, skipna=True) == "period"
 
+    @pytest.mark.parametrize("na_value", [pd.NA, np.nan])
+    def test_infer_dtype_numeric_with_na(self, na_value):
+        # GH61621
+        ser = Series([1, 2, na_value], dtype=object)
+        assert lib.infer_dtype(ser, skipna=True) == "integer"
+
+        ser = Series([1.0, 2.0, na_value], dtype=object)
+        assert lib.infer_dtype(ser, skipna=True) == "floating"
+
+        # GH#61976
+        ser = Series([1 + 1j, na_value], dtype=object)
+        assert lib.infer_dtype(ser, skipna=True) == "complex"
+
     def test_infer_dtype_all_nan_nat_like(self):
         arr = np.array([np.nan, np.nan])
         assert lib.infer_dtype(arr, skipna=True) == "floating"
@@ -1591,6 +1605,24 @@ class TestTypeInference:
         )
         assert not lib.is_string_array(np.array([1, 2]))
 
+    def test_is_interval_array_subclass(self):
+        # GH#46945
+
+        class TimestampsInterval(Interval):
+            def __init__(self, left: str, right: str, closed="both") -> None:
+                super().__init__(Timestamp(left), Timestamp(right), closed)
+
+            @property
+            def seconds(self) -> float:
+                return self.length.seconds
+
+        item = TimestampsInterval("1970-01-01 00:00:00", "1970-01-01 00:00:01")
+        arr = np.array([item], dtype=object)
+        assert not lib.is_interval_array(arr)
+        assert lib.infer_dtype(arr) != "interval"
+        out = Series([item])[0]
+        assert isinstance(out, TimestampsInterval)
+
     @pytest.mark.parametrize(
         "func",
         [
@@ -1663,7 +1695,7 @@ class TestTypeInference:
         result = lib.infer_dtype(Series(arr), skipna=True)
         assert result == "categorical"
 
-        arr = Categorical(list("abc"), categories=["cegfab"], ordered=True)
+        arr = Categorical([None, None, None], categories=["cegfab"], ordered=True)
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "categorical"
 
@@ -1845,7 +1877,7 @@ class TestNumberScalar:
         assert is_datetime64_any_dtype(ts)
         assert is_datetime64_any_dtype(tsa)
 
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert not is_datetime64tz_dtype("datetime64")
             assert not is_datetime64tz_dtype("datetime64[ns]")
             assert not is_datetime64tz_dtype(ts)

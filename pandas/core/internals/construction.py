@@ -24,7 +24,6 @@ from pandas.core.dtypes.cast import (
     dict_compat,
     maybe_cast_to_datetime,
     maybe_convert_platform,
-    maybe_infer_to_datetimelike,
 )
 from pandas.core.dtypes.common import (
     is_1d_only_ea_dtype,
@@ -34,7 +33,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -290,9 +292,20 @@ def ndarray_to_mgr(
     # embedded in an object type
     if dtype is None and infer_object and is_object_dtype(values.dtype):
         obj_columns = list(values)
-        maybe_datetime = [maybe_infer_to_datetimelike(x) for x in obj_columns]
+        maybe_datetime = [
+            lib.maybe_convert_objects(
+                x,
+                # Here we do not convert numeric dtypes, as if we wanted that,
+                #  numpy would have done it for us.
+                convert_numeric=False,
+                convert_non_numeric=True,
+                convert_to_nullable_dtype=False,
+                dtype_if_all_nat=np.dtype("M8[s]"),
+            )
+            for x in obj_columns
+        ]
         # don't convert (and copy) the objects if no type inference occurs
-        if any(x is not y for x, y in zip(obj_columns, maybe_datetime)):
+        if any(x is not y for x, y in zip(obj_columns, maybe_datetime, strict=True)):
             block_values = [
                 new_block_2d(ensure_block_shape(dval, 2), placement=BlockPlacement(n))
                 for n, dval in enumerate(maybe_datetime)
@@ -364,7 +377,11 @@ def dict_to_mgr(
 
     if columns is not None:
         columns = ensure_index(columns)
-        arrays = [np.nan] * len(columns)
+        if dtype is not None and not isinstance(dtype, np.dtype):
+            # e.g. test_dataframe_from_dict_of_series
+            arrays = [dtype.na_value] * len(columns)
+        else:
+            arrays = [np.nan] * len(columns)
         midxs = set()
         data_keys = ensure_index(data.keys())  # type: ignore[arg-type]
         data_values = list(data.values())
@@ -412,14 +429,18 @@ def dict_to_mgr(
         # We only need to copy arrays that will not get consolidated, i.e.
         #  only EA arrays
         arrays = [
-            x.copy()
-            if isinstance(x, ExtensionArray)
-            else x.copy(deep=True)
-            if (
-                isinstance(x, Index)
-                or (isinstance(x, ABCSeries) and is_1d_only_ea_dtype(x.dtype))
+            (
+                x.copy()
+                if isinstance(x, ExtensionArray)
+                else (
+                    x.copy(deep=True)
+                    if (
+                        isinstance(x, Index)
+                        or (isinstance(x, ABCSeries) and is_1d_only_ea_dtype(x.dtype))
+                    )
+                    else x
+                )
             )
-            else x
             for x in arrays
         ]
 
@@ -485,7 +506,7 @@ def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
 
         v = extract_array(v, extract_numpy=True)
         res = maybe_convert_platform(v)
-        # We don't do maybe_infer_to_datetimelike here bc we will end up doing
+        # We don't do maybe_infer_objects here bc we will end up doing
         #  it column-by-column in ndarray_to_mgr
         return res
 
@@ -634,7 +655,7 @@ def reorder_arrays(
                     arr = np.empty(length, dtype=object)
                     arr.fill(np.nan)
                 else:
-                    arr = arrays[k]  # type: ignore[assignment]
+                    arr = arrays[k]
                 new_arrays.append(arr)
 
             arrays = new_arrays
@@ -949,10 +970,13 @@ def convert_object_array(
 
     def convert(arr):
         if dtype != np.dtype("O"):
+            # e.g. if dtype is UInt32 then we want to cast Nones to NA instead of
+            #  NaN in maybe_convert_objects.
+            to_nullable = dtype_backend != "numpy" or isinstance(dtype, BaseMaskedDtype)
             arr = lib.maybe_convert_objects(
                 arr,
                 try_float=coerce_float,
-                convert_to_nullable_dtype=dtype_backend != "numpy",
+                convert_to_nullable_dtype=to_nullable,
             )
             # Notes on cases that get here 2023-02-15
             # 1) we DO get here when arr is all Timestamps and dtype=None
@@ -965,7 +989,15 @@ def convert_object_array(
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
                     convert_to_nullable_dtype = dtype_backend != "numpy"
-                    arr = maybe_infer_to_datetimelike(arr, convert_to_nullable_dtype)
+                    arr = lib.maybe_convert_objects(
+                        arr,
+                        # Here we do not convert numeric dtypes, as if we wanted that,
+                        #  numpy would have done it for us.
+                        convert_numeric=False,
+                        convert_non_numeric=True,
+                        convert_to_nullable_dtype=convert_to_nullable_dtype,
+                        dtype_if_all_nat=np.dtype("M8[s]"),
+                    )
                     if convert_to_nullable_dtype and arr.dtype == np.dtype("O"):
                         new_dtype = StringDtype()
                         arr_cls = new_dtype.construct_array_type()

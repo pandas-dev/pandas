@@ -647,7 +647,7 @@ def test_groupby_agg_err_catching(err_cls):
         to_decimal,
     )
 
-    data = make_data()[:5]
+    data = make_data(5)
     df = DataFrame(
         {"id1": [0, 0, 0, 1, 1], "id2": [0, 1, 0, 1, 1], "decimals": DecimalArray(data)}
     )

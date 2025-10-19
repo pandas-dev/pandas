@@ -1,3 +1,4 @@
+import pathlib
 from textwrap import (
     dedent,
     indent,
@@ -18,7 +19,9 @@ from pandas.io.formats.style import Styler
 
 @pytest.fixture
 def env():
-    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    project_dir = pathlib.Path(__file__).parent.parent.parent.parent.parent.resolve()
+    template_dir = project_dir / "io" / "formats" / "templates"
+    loader = jinja2.FileSystemLoader(template_dir)
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     return env
 

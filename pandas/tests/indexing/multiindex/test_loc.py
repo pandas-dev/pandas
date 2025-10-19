@@ -22,14 +22,21 @@ def frame_random_data_integer_multi_index():
 
 
 class TestMultiIndexLoc:
-    def test_loc_setitem_frame_with_multiindex(self, multiindex_dataframe_random_data):
+    @pytest.mark.parametrize("has_ref", [True, False])
+    def test_loc_setitem_frame_with_multiindex(
+        self, multiindex_dataframe_random_data, has_ref
+    ):
         frame = multiindex_dataframe_random_data
+        if has_ref:
+            view = frame[:]
         frame.loc[("bar", "two"), "B"] = 5
         assert frame.loc[("bar", "two"), "B"] == 5
 
         # with integer labels
         df = frame.copy()
         df.columns = list(range(3))
+        if has_ref:
+            view = df[:]  # noqa: F841
         df.loc[("bar", "two"), 1] = 7
         assert df.loc[("bar", "two"), 1] == 7
 
@@ -757,7 +764,7 @@ class TestKeyErrorsWithMultiIndex:
         df = DataFrame(np.arange(12).reshape(4, 3), columns=["A", "B", "C"])
         df2 = df.set_index(["A", "B"])
 
-        with pytest.raises(KeyError, match="1"):
+        with pytest.raises(KeyError, match="6"):
             df2.loc[(1, 6)]
 
     def test_missing_key_raises_keyerror2(self):

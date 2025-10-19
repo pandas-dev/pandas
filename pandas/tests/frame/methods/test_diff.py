@@ -249,10 +249,10 @@ class TestDataFrameDiff:
                 0,
                 DataFrame(
                     {
-                        "a": [np.nan, 0, 1, 0, np.nan, np.nan, np.nan, 0],
-                        "b": [np.nan, 1, np.nan, np.nan, -2, 1, np.nan, np.nan],
-                        "c": np.repeat(np.nan, 8),
-                        "d": [np.nan, 3, 5, 7, 9, 11, 13, 15],
+                        "a": [pd.NA, 0, 1, 0, pd.NA, pd.NA, pd.NA, 0],
+                        "b": [pd.NA, 1, pd.NA, pd.NA, -2, 1, pd.NA, pd.NA],
+                        "c": np.repeat(pd.NA, 8),  # type: ignore[call-overload]
+                        "d": [pd.NA, 3, 5, 7, 9, 11, 13, 15],
                     },
                     dtype="Int64",
                 ),
@@ -261,10 +261,10 @@ class TestDataFrameDiff:
                 1,
                 DataFrame(
                     {
-                        "a": np.repeat(np.nan, 8),
-                        "b": [0, 1, np.nan, 1, np.nan, np.nan, np.nan, 0],
-                        "c": np.repeat(np.nan, 8),
-                        "d": np.repeat(np.nan, 8),
+                        "a": np.repeat(pd.NA, 8),  # type: ignore[call-overload]
+                        "b": [0, 1, pd.NA, 1, pd.NA, pd.NA, pd.NA, 0],
+                        "c": np.repeat(pd.NA, 8),  # type: ignore[call-overload]
+                        "d": np.repeat(pd.NA, 8),  # type: ignore[call-overload]
                     },
                     dtype="Int64",
                 ),
@@ -275,9 +275,9 @@ class TestDataFrameDiff:
         # GH#24171 IntegerNA Support for DataFrame.diff()
         df = DataFrame(
             {
-                "a": np.repeat([0, 1, np.nan, 2], 2),
-                "b": np.tile([0, 1, np.nan, 2], 2),
-                "c": np.repeat(np.nan, 8),
+                "a": np.repeat([0, 1, pd.NA, 2], 2),
+                "b": np.tile([0, 1, pd.NA, 2], 2),
+                "c": np.repeat(pd.NA, 8),
                 "d": np.arange(1, 9) ** 2,
             },
             dtype="Int64",

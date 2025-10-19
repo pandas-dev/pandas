@@ -6,7 +6,10 @@ from collections import abc
 from numbers import Number
 import re
 from re import Pattern
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    TypeGuard,
+)
 
 import numpy as np
 
@@ -14,8 +17,6 @@ from pandas._libs import lib
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
-
-    from pandas._typing import TypeGuard
 
 is_bool = lib.is_bool
 

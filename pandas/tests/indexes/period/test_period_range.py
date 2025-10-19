@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     NaT,
     Period,
@@ -211,7 +213,7 @@ class TestPeriodRangeDisallowedFreqs:
             f"future version, please use '{freq_depr.lower()[1:]}' instead."
         )
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             period_range("2020-01-01 00:00:00 00:00", periods=2, freq=freq_depr)
 
     @pytest.mark.parametrize("freq", ["2m", "2q-sep", "2y", "2H", "2S"])
@@ -237,5 +239,5 @@ class TestPeriodRangeDisallowedFreqs:
             f"future version, please use '{freq.upper()[1:]}' instead."
         )
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             period_range(freq=freq, start="1/1/2001", end="12/1/2009")

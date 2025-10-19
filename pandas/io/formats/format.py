@@ -42,6 +42,7 @@ from pandas._libs.tslibs import (
     Timestamp,
 )
 from pandas._libs.tslibs.nattype import NaTType
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_complex_dtype,
@@ -454,7 +455,7 @@ class DataFrameFormatter:
         self.na_rep = na_rep
         self.formatters = self._initialize_formatters(formatters)
         self.justify = self._initialize_justify(justify)
-        self.float_format = float_format
+        self.float_format = self._validate_float_format(float_format)
         self.sparsify = self._initialize_sparsify(sparsify)
         self.show_index_names = index_names
         self.decimal = decimal
@@ -579,7 +580,7 @@ class DataFrameFormatter:
                     f"Col_space length({len(col_space)}) should match "
                     f"DataFrame number of columns({len(self.frame.columns)})"
                 )
-            result = dict(zip(self.frame.columns, col_space))
+            result = dict(zip(self.frame.columns, col_space, strict=True))
         return result
 
     def _calc_max_cols_fitted(self) -> int | None:
@@ -786,7 +787,7 @@ class DataFrameFormatter:
             if self.sparsify and len(fmt_columns):
                 fmt_columns = sparsify_labels(fmt_columns)
 
-            str_columns = [list(x) for x in zip(*fmt_columns)]
+            str_columns = [list(x) for x in zip(*fmt_columns, strict=True)]
         else:
             fmt_columns = columns._format_flat(include_name=False)
             str_columns = [
@@ -795,7 +796,9 @@ class DataFrameFormatter:
                     if not self._get_formatter(i) and is_numeric_dtype(dtype)
                     else x
                 ]
-                for i, (x, dtype) in enumerate(zip(fmt_columns, self.frame.dtypes))
+                for i, (x, dtype) in enumerate(
+                    zip(fmt_columns, self.frame.dtypes, strict=False)
+                )
             ]
         return str_columns
 
@@ -848,6 +851,29 @@ class DataFrameFormatter:
         else:
             names.append("" if columns.name is None else columns.name)
         return names
+
+    def _validate_float_format(
+        self, fmt: FloatFormatType | None
+    ) -> FloatFormatType | None:
+        """
+        Validates and processes the float_format argument.
+        Converts new-style format strings to callables.
+        """
+        if fmt is None or callable(fmt):
+            return fmt
+
+        if isinstance(fmt, str):
+            if "%" in fmt:
+                # Keeps old-style format strings as they are (C code handles them)
+                return fmt
+            else:
+                try:
+                    _ = fmt.format(1.0)  # Test with an arbitrary float
+                    return fmt.format
+                except (ValueError, KeyError, IndexError) as e:
+                    raise ValueError(f"Invalid new-style format string {fmt!r}") from e
+
+        raise ValueError("float_format must be a string or callable")
 
 
 class DataFrameRenderer:
@@ -1336,7 +1362,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
             formatted = np.array(
                 [
                     formatter(val) if not m else na_rep
-                    for val, m in zip(values.ravel(), mask.ravel())
+                    for val, m in zip(values.ravel(), mask.ravel(), strict=True)
                 ]
             ).reshape(values.shape)
             return formatted
@@ -1354,6 +1380,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
                 imag_values,
                 real_mask,
                 imag_mask,
+                strict=True,
             ):
                 if not re_isna and not im_isna:
                     formatted_lst.append(formatter(val))
@@ -1773,7 +1800,7 @@ def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[st
         + imag_pt[0]  # +/-
         + f"{imag_pt[1:]:>{padded_length}}"  # complex part (no sign), possibly nan
         + "j"
-        for real_pt, imag_pt in zip(padded_parts[:n], padded_parts[n:])
+        for real_pt, imag_pt in zip(padded_parts[:n], padded_parts[n:], strict=True)
     ]
     return padded
 
@@ -1929,6 +1956,7 @@ class EngFormatter:
         return formatted
 
 
+@set_module("pandas")
 def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> None:
     """
     Format float representation in DataFrame with SI notation.
