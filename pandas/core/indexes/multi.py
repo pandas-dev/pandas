@@ -2711,6 +2711,36 @@ class MultiIndex(Index):
         return result
 
     def insert_level(self, position: int, value, name=None):
+        """
+        Insert a new level at the specified position in the MultiIndex.
+
+        Parameters
+        ----------
+        position : int
+            The position at which to insert the new level (0-based).
+        value : scalar or array-like
+            Value(s) to use for the new level. If scalar, broadcast to all items.
+            If array-like, length must match the length of the index.
+        name : object, optional
+            Name for the new level.
+
+        Returns
+        -------
+        MultiIndex
+            New MultiIndex with the inserted level.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_tuples([("A", 1), ("B", 2)])
+        >>> idx.insert_level(0, "new_value")
+        MultiIndex([('new_value', 'A', 1), ('new_value', 'B', 2)], ...)
+
+        >>> idx.insert_level(1, ["X", "Y"])
+        MultiIndex([('A', 'X', 1), ('B', 'Y', 2)], ...)
+
+        >>> idx.insert_level(0, "new_val", name="new_level")
+        MultiIndex([('new_val', 'A', 1), ('new_val', 'B', 2)], ...)
+        """
         if not isinstance(position, int):
             raise TypeError("position must be an integer")
 
@@ -2725,13 +2755,9 @@ class MultiIndex(Index):
                 raise ValueError("Length of values must match length of index")
 
         new_tuples = []
+
         for i, tup in enumerate(self):
-            if position == 0:
-                new_tuple = (value[i],) + tup
-            elif position == len(tup):
-                new_tuple = tup + (value[i],)
-            else:
-                new_tuple = tup[:position] + (value[i],) + tup[position:]
+            new_tuple = tup[:position] + (value[i],) + tup[position:]
             new_tuples.append(new_tuple)
 
         new_names = self.names[:position] + [name] + self.names[position:]
