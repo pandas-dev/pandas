@@ -780,7 +780,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
 
     levs = (
         [lev[c] if c >= 0 else None for c in codes]
-        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1], strict=True)
+        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1], strict=False)
     )
 
     # Remove duplicate tuples in the MultiIndex.
@@ -794,7 +794,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
         [
             # Not all indices can accept None values.
             Index(new_lev, dtype=lev.dtype) if None not in new_lev else new_lev
-            for new_lev, lev in zip(new_levs, columns.levels)
+            for new_lev, lev in zip(new_levs, columns.levels, strict=False)
         ],
         names=columns.names[:-1],
     )
