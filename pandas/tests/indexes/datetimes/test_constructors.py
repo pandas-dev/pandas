@@ -31,6 +31,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import period_array
+from pandas.errors import TimezoneDtypeMismatchError
 
 
 class TestDatetimeIndex:
@@ -709,7 +710,7 @@ class TestDatetimeIndex:
             "cannot supply both a tz and a timezone-naive dtype "
             r"\(i\.e\. datetime64\[ns\]\)"
         )
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(TimezoneDtypeMismatchError, match=msg):
             DatetimeIndex(idx, dtype="datetime64[ns]")
 
         # this is effectively trying to convert tz's
