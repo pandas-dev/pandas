@@ -971,6 +971,8 @@ class PlotAccessor(PandasObject):
         >>> plot = df.groupby("col2").plot(kind="bar", title="DataFrameGroupBy Plot")
     """
 
+    __module__ = "pandas.plotting"
+
     _common_kinds = ("line", "bar", "barh", "kde", "density", "area", "hist", "box")
     _series_kinds = ("pie",)
     _dataframe_kinds = ("scatter", "hexbin")
