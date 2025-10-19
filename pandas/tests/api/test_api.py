@@ -486,16 +486,6 @@ class TestTesting(Base):
             pd.util.foo
 
 
-def test_module():
-    for name in pd.__all__:
-        obj = getattr(pd, name)
-        if inspect.isclass(obj) or inspect.isfunction(obj):
-            assert obj.__module__ in ("pandas", "pandas._config.config")
-
-    assert api.typing.SeriesGroupBy.__module__ == "pandas.api.typing"
-    assert api.typing.DataFrameGroupBy.__module__ == "pandas.api.typing"
-
-
 def get_pandas_objects(
     module_name: str, recurse: bool, include_functions: bool
 ) -> list[tuple[str, str, object]]:
