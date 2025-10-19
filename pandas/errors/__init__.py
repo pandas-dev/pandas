@@ -1045,6 +1045,15 @@ class TimezoneDtypeMismatchError(ValueError):
 
     Use case / message:
         "cannot supply both a tz and a timezone-naive dtype (i.e. datetime64[ns])"
+
+    Examples
+    --------
+    >>> from pandas.core.arrays import datetimes  # doctest: +SKIP
+    >>> datetimes._validate_tz_from_dtype("datetime64[ns]", tz="UTC")  # doctest: +SKIP
+    Traceback (most recent call last):
+    ...
+    TimezoneDtypeMismatchError: cannot supply both a tz and a timezone-naive dtype
+    (i.e. datetime64[ns])
     """
 
 
