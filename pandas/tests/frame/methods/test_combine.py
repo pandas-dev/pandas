@@ -45,3 +45,17 @@ class TestCombine:
         )
         tm.assert_frame_equal(chunk, exp)
         tm.assert_frame_equal(chunk2, exp)
+
+    def test_combine_non_unique_columns(self):
+        # GH#51340
+        df = pd.DataFrame({"A": range(5), "B": range(5)})
+        df.columns = ["A", "A"]
+
+        other = df.copy()
+        df.iloc[1, :] = 11
+
+        def combiner(a, b):
+            return b
+
+        result = df.combine(other, combiner)
+        tm.assert_frame_equal(result, other)

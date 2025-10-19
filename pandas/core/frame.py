@@ -9041,9 +9041,9 @@ class DataFrame(NDFrame, OpsMixin):
         new_columns = self.columns.union(other_columns, sort=False)
         do_fill = fill_value is not None
         result = {}
-        for col in new_columns:
-            series = this[col]
-            other_series = other[col]
+        for i, col in enumerate(new_columns):
+            series = this.iloc[:, i]
+            other_series = other.iloc[:, i]
 
             this_dtype = series.dtype
             other_dtype = other_series.dtype
