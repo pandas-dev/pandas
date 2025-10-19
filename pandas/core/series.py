@@ -35,7 +35,10 @@ from pandas._libs import (
 )
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
-from pandas.compat._constants import REF_COUNT
+from pandas.compat._constants import (
+    REF_COUNT,
+    WARNING_CHECK_DISABLED,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -1055,8 +1058,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if sys.getrefcount(self) <= 3:
+        if not PYPY and not WARNING_CHECK_DISABLED:
+            if sys.getrefcount(self) <= REF_COUNT + 1:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -1704,7 +1707,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Index : 1, Value : B
         Index : 2, Value : C
         """
-        return zip(iter(self.index), iter(self))
+        return zip(iter(self.index), iter(self), strict=True)
 
     # ----------------------------------------------------------------------
     # Misc public methods
@@ -2989,22 +2992,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # -------------------------------------------------------------------
     # Combination
 
-    def _append_internal(
-        self, to_append, ignore_index: bool = False, verify_integrity: bool = False
-    ):
+    def _append_internal(self, to_append: Series, ignore_index: bool = False) -> Series:
         from pandas.core.reshape.concat import concat
 
-        if isinstance(to_append, (list, tuple)):
-            to_concat = [self]
-            to_concat.extend(to_append)
-        else:
-            to_concat = [self, to_append]
-        if any(isinstance(x, (ABCDataFrame,)) for x in to_concat[1:]):
-            msg = "to_append should be a Series or list/tuple of Series, got DataFrame"
-            raise TypeError(msg)
-        return concat(
-            to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
-        )
+        return concat([self, to_append], ignore_index=ignore_index)
 
     @doc(
         _shared_docs["compare"],
@@ -3336,7 +3327,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        if not PYPY:
+        if not PYPY and not WARNING_CHECK_DISABLED:
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
@@ -4428,6 +4419,34 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2            NaN
         3  I am a rabbit
         dtype: object
+
+        For categorical data, the function is only applied to the categories:
+
+        >>> s = pd.Series(list("cabaa"))
+        >>> s.map(print)
+        c
+        a
+        b
+        a
+        a
+        0    None
+        1    None
+        2    None
+        3    None
+        4    None
+        dtype: object
+
+        >>> s_cat = s.astype("category")
+        >>> s_cat.map(print)  # function called once per unique category
+        a
+        b
+        c
+        0    None
+        1    None
+        2    None
+        3    None
+        4    None
+        dtype: object
         """
         if func is None:
             if "arg" in kwargs:
@@ -5514,12 +5533,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             for condition, replacement in caselist
         ]
         default = self.copy(deep=False)
-        conditions, replacements = zip(*caselist)
+        conditions, replacements = zip(*caselist, strict=True)
         common_dtypes = [infer_dtype_from(arg)[0] for arg in [*replacements, default]]
         if len(set(common_dtypes)) > 1:
             common_dtype = find_common_type(common_dtypes)
             updated_replacements = []
-            for condition, replacement in zip(conditions, replacements):
+            for condition, replacement in zip(conditions, replacements, strict=True):
                 if is_scalar(replacement):
                     replacement = construct_1d_arraylike_from_scalar(
                         value=replacement, length=len(condition), dtype=common_dtype
@@ -5534,7 +5553,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         counter = range(len(conditions) - 1, -1, -1)
         for position, condition, replacement in zip(
-            counter, reversed(conditions), reversed(replacements)
+            counter, reversed(conditions), reversed(replacements), strict=True
         ):
             try:
                 default = default.mask(
@@ -6050,6 +6069,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = self._binop(other, op, level=level, fill_value=fill_value)
             result._name = res_name
             return result
+        elif isinstance(other, ABCDataFrame):
+            # GH#46179
+            raise TypeError(
+                f"Series.{op.__name__.strip('_')} does not support a DataFrame "
+                f"`other`. Use df.{op.__name__.strip('_')}(ser) instead."
+            )
         else:
             if fill_value is not None:
                 if isna(other):
@@ -6073,8 +6098,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
-            The second operand in this operation.
+        other : object
+            When a Series is provided, will align on indexes. For all other types,
+            will behave the same as ``==`` but with possibly different results due
+            to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -6142,8 +6169,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
-            The second operand in this operation.
+        other : object
+            When a Series is provided, will align on indexes. For all other types,
+            will behave the same as ``==`` but with possibly different results due
+            to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -6214,8 +6243,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
-            The second operand in this operation.
+        other : object
+            When a Series is provided, will align on indexes. For all other types,
+            will behave the same as ``==`` but with possibly different results due
+            to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.

@@ -167,21 +167,6 @@ class StringDtype(StorageExtensionDtype):
                 else:
                     storage = "python"
 
-        if storage == "pyarrow_numpy":
-            # TODO: Enforce in 3.0 (#60152)
-            warnings.warn(
-                "The 'pyarrow_numpy' storage option name is deprecated and will be "
-                'removed in pandas 3.0. Use \'pd.StringDtype(storage="pyarrow", '
-                "na_value-np.nan)' to construct the same dtype.\nOr enable the "
-                "'pd.options.future.infer_string = True' option globally and use "
-                'the "str" alias as a shorthand notation to specify a dtype '
-                '(instead of "string[pyarrow_numpy]").',
-                FutureWarning,  # pdlint: ignore[warning_class]
-                stacklevel=find_stack_level(),
-            )
-            storage = "pyarrow"
-            na_value = np.nan
-
         # validate options
         if storage not in {"python", "pyarrow"}:
             raise ValueError(
@@ -280,9 +265,6 @@ class StringDtype(StorageExtensionDtype):
             return cls(storage="python")
         elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
-        elif string == "string[pyarrow_numpy]":
-            # this is deprecated in the dtype __init__, remove this in pandas 3.0
-            return cls(storage="pyarrow_numpy")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
@@ -493,6 +475,12 @@ class BaseStringArray(ExtensionArray):
             if self.dtype.storage == "pyarrow":
                 import pyarrow as pa
 
+                # TODO: shouldn't this already be caught my passed mask?
+                #  it isn't in test_extract_expand_capture_groups_index
+                # mask = mask | np.array(
+                #    [x is libmissing.NA for x in result], dtype=bool
+                #    )
+
                 result = pa.array(
                     result, mask=mask, type=pa.large_string(), from_pandas=True
                 )
@@ -645,6 +633,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     Length: 3, dtype: boolean
     """
 
+    __module__ = "pandas.arrays"
+
     # undo the NumpyExtensionArray hack
     _typ = "extension"
 
@@ -758,7 +748,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         result = super()._cast_pointwise_result(values)
         if isinstance(result.dtype, StringDtype):
             # Ensure we retain our same na_value/storage
-            result = result.astype(self.dtype)  # type: ignore[call-overload]
+            result = result.astype(self.dtype)
         return result
 
     @classmethod
@@ -778,7 +768,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
         values = self._ndarray.copy()
         values[self.isna()] = None
-        return pa.array(values, type=type, from_pandas=True)
+        return pa.array(values, type=type)
 
     def _values_for_factorize(self) -> tuple[np.ndarray, libmissing.NAType | float]:  # type: ignore[override]
         arr = self._ndarray
@@ -1107,6 +1097,16 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 other = np.asarray(other)
             other = other[valid]
 
+        other_dtype = getattr(other, "dtype", None)
+        if op.__name__.strip("_") in ["mul", "rmul"] and (
+            lib.is_bool(other) or lib.is_np_dtype(other_dtype, "b")
+        ):
+            # GH#62595
+            raise TypeError(
+                "Cannot multiply StringArray by bools. "
+                "Explicitly cast to integers instead."
+            )
+
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")
             result[mask] = self.dtype.na_value
@@ -1128,3 +1128,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             return res_arr
 
     _arith_method = _cmp_method
+
+    def _str_zfill(self, width: int) -> Self:
+        return self._str_map(lambda x: x.zfill(width))

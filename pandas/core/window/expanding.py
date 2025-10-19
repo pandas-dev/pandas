@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -11,28 +10,10 @@ from typing import (
     overload,
 )
 
-from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    doc,
-)
-
 from pandas.core.indexers.objects import (
     BaseIndexer,
     ExpandingIndexer,
     GroupbyIndexer,
-)
-from pandas.core.window.doc import (
-    _shared_docs,
-    create_section_header,
-    kwargs_numeric_only,
-    numba_notes,
-    template_header,
-    template_pipe,
-    template_returns,
-    template_see_also,
-    window_agg_numba_parameters,
-    window_apply_parameters,
 )
 from pandas.core.window.rolling import (
     BaseWindowGroupby,
@@ -125,6 +106,8 @@ class Expanding(RollingAndExpandingMixin):
     4  7.0
     """
 
+    __module__ = "pandas.api.typing"
+
     _attributes: list[str] = ["min_periods", "method"]
 
     def __init__(
@@ -147,18 +130,63 @@ class Expanding(RollingAndExpandingMixin):
         """
         return ExpandingIndexer()
 
-    @doc(
-        _shared_docs["aggregate"],
-        see_also=dedent(
-            """
+    def aggregate(self, func=None, *args, **kwargs):
+        """
+        Aggregate using one or more operations over the specified axis.
+
+        Parameters
+        ----------
+        func : function, str, list or dict
+            Function to use for aggregating the data. If a function, must either
+            work when passed a Series/Dataframe or when passed to
+            Series/Dataframe.apply.
+
+            Accepted combinations are:
+
+            - function
+            - string function name
+            - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+            - dict of axis labels -> functions, function names or list of such.
+
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
+
+        Returns
+        -------
+        scalar, Series or DataFrame
+
+            The return can be:
+
+            * scalar : when Series.agg is called with single function
+            * Series : when DataFrame.agg is called with a single function
+            * DataFrame : when DataFrame.agg is called with several functions
+
         See Also
         --------
         DataFrame.aggregate : Similar DataFrame method.
         Series.aggregate : Similar Series method.
-        """
-        ),
-        examples=dedent(
-            """
+
+        Notes
+        -----
+        The aggregation operations are always performed over an axis, either the
+        index (default) or the column axis. This behavior is different from
+        `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+        `var`), where the default is to compute the aggregation of the flattened
+        array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+        ``numpy.mean(arr_2d, axis=0)``.
+
+        `agg` is an alias for `aggregate`. Use the alias.
+
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+        for more details.
+
+        A passed user-defined-function will be passed a Series for evaluation.
+
+        If ``func`` defines an index relabeling, ``axis`` must be ``0`` or ``index``.
+
         Examples
         --------
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
@@ -174,27 +202,36 @@ class Expanding(RollingAndExpandingMixin):
         1  1.666667  4.666667  7.666667
         2  2.428571  5.428571  8.428571
         """
-        ),
-        klass="Series/Dataframe",
-        axis="",
-    )
-    def aggregate(self, func=None, *args, **kwargs):
         return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
+    def count(self, numeric_only: bool = False):
+        """
+        Calculate the expanding count of non NaN observations.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.count : Aggregating count for Series.
+        DataFrame.count : Aggregating count for DataFrame.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
         >>> ser.expanding().count()
         a    1.0
         b    2.0
@@ -202,38 +239,8 @@ class Expanding(RollingAndExpandingMixin):
         d    4.0
         dtype: float64
         """
-        ),
-        window_method="expanding",
-        aggregation_description="count of non NaN observations",
-        agg_method="count",
-    )
-    def count(self, numeric_only: bool = False):
         return super().count(numeric_only=numeric_only)
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        window_apply_parameters,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
-        >>> ser.expanding().apply(lambda s: s.max() - 2 * s.min())
-        a   -1.0
-        b    0.0
-        c    1.0
-        d    2.0
-        dtype: float64
-        """
-        ),
-        window_method="expanding",
-        aggregation_description="custom aggregation function",
-        agg_method="apply",
-    )
     def apply(
         self,
         func: Callable[..., Any],
@@ -243,6 +250,67 @@ class Expanding(RollingAndExpandingMixin):
         args: tuple[Any, ...] | None = None,
         kwargs: dict[str, Any] | None = None,
     ):
+        """
+        Calculate the expanding custom aggregation function.
+
+        Parameters
+        ----------
+        func : function
+            Must produce a single value from an ndarray input if ``raw=True``
+            or a single value from a Series if ``raw=False``. Can also accept a
+            Numba JIT function with ``engine='numba'`` specified.
+
+        raw : bool, default False
+            * ``False`` : passes each row or column as a Series to the
+              function.
+            * ``True`` : the passed function will receive ndarray objects instead.
+
+            If you are just applying a NumPy reduction function this will
+            achieve much better performance.
+
+        engine : str, default None
+            * ``'cython'`` : Runs rolling apply through C-extensions from cython.
+            * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
+              Only available when ``raw`` is set to ``True``.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+              applied to both the ``func`` and the ``apply`` rolling aggregation.
+
+        args : tuple, default None
+            Positional arguments to be passed into func.
+
+        kwargs : dict, default None
+            Keyword arguments to be passed into func.
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.apply : Aggregating apply for Series.
+        DataFrame.apply : Aggregating apply for DataFrame.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
+        >>> ser.expanding().apply(lambda s: s.max() - 2 * s.min())
+        a   -1.0
+        b    0.0
+        c    1.0
+        d    2.0
+        dtype: float64
+        """
         return super().apply(
             func,
             raw=raw,
@@ -269,52 +337,144 @@ class Expanding(RollingAndExpandingMixin):
     ) -> T: ...
 
     @final
-    @Substitution(
-        klass="Expanding",
-        examples="""
-    >>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
-    ...                   index=pd.date_range('2012-08-02', periods=4))
-    >>> df
-                A
-    2012-08-02  1
-    2012-08-03  2
-    2012-08-04  3
-    2012-08-05  4
-
-    To get the difference between each expanding window's maximum and minimum
-    value in one pass, you can do
-
-    >>> df.expanding().pipe(lambda x: x.max() - x.min())
-                  A
-    2012-08-02  0.0
-    2012-08-03  1.0
-    2012-08-04  2.0
-    2012-08-05  3.0""",
-    )
-    @Appender(template_pipe)
     def pipe(
         self,
         func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
         *args: Any,
         **kwargs: Any,
     ) -> T:
+        """
+        Apply a ``func`` with arguments to this Expanding object and return its result.
+
+        Use `.pipe` when you want to improve readability by chaining together
+        functions that expect Series, DataFrames, GroupBy, Rolling, Expanding or
+        Resampler
+        objects.
+        Instead of writing
+
+        >>> h = lambda x, arg2, arg3: x + 1 - arg2 * arg3
+        >>> g = lambda x, arg1: x * 5 / arg1
+        >>> f = lambda x: x**4
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 2, 3, 4]}, index=pd.date_range("2012-08-02", periods=4)
+        ... )
+        >>> h(g(f(df.rolling("2D")), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
+
+        You can write
+
+        >>> (
+        ...     df.rolling("2D").pipe(f).pipe(g, arg1=1).pipe(h, arg2=2, arg3=3)
+        ... )  # doctest: +SKIP
+
+        which is much more readable.
+
+        Parameters
+        ----------
+        func : callable or tuple of (callable, str)
+            Function to apply to this Expanding object or, alternatively,
+            a `(callable, data_keyword)` tuple where `data_keyword` is a
+            string indicating the keyword of `callable` that expects the
+            Expanding object.
+        *args : iterable, optional
+            Positional arguments passed into `func`.
+        **kwargs : dict, optional
+                A dictionary of keyword arguments passed into `func`.
+
+        Returns
+        -------
+        Expanding
+            The original object with the function `func` applied.
+
+        See Also
+        --------
+        Series.pipe : Apply a function with arguments to a series.
+        DataFrame.pipe: Apply a function with arguments to a dataframe.
+        apply : Apply function to each group instead of to the
+            full Expanding object.
+
+        Notes
+        -----
+        See more `here
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame(
+        ...     {"A": [1, 2, 3, 4]}, index=pd.date_range("2012-08-02", periods=4)
+        ... )
+        >>> df
+                    A
+        2012-08-02  1
+        2012-08-03  2
+        2012-08-04  3
+        2012-08-05  4
+
+        To get the difference between each expanding window's maximum and minimum
+        value in one pass, you can do
+
+        >>> df.expanding().pipe(lambda x: x.max() - x.min())
+                      A
+        2012-08-02  0.0
+        2012-08-03  1.0
+        2012-08-04  2.0
+        2012-08-05  3.0
+        """
         return super().pipe(func, *args, **kwargs)
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        kwargs_numeric_only,
-        window_agg_numba_parameters(),
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Notes"),
-        numba_notes,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
+    def sum(
+        self,
+        numeric_only: bool = False,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        """
+        Calculate the expanding sum.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.3.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+            .. versionadded:: 1.3.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.sum : Aggregating sum for Series.
+        DataFrame.sum : Aggregating sum for DataFrame.
+
+        Notes
+        -----
+        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for extended
+        documentation and performance considerations for the Numba engine.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
         >>> ser.expanding().sum()
         a     1.0
         b     3.0
@@ -322,38 +482,65 @@ class Expanding(RollingAndExpandingMixin):
         d    10.0
         dtype: float64
         """
-        ),
-        window_method="expanding",
-        aggregation_description="sum",
-        agg_method="sum",
-    )
-    def sum(
-        self,
-        numeric_only: bool = False,
-        engine: Literal["cython", "numba"] | None = None,
-        engine_kwargs: dict[str, bool] | None = None,
-    ):
         return super().sum(
             numeric_only=numeric_only,
             engine=engine,
             engine_kwargs=engine_kwargs,
         )
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        kwargs_numeric_only,
-        window_agg_numba_parameters(),
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Notes"),
-        numba_notes,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([3, 2, 1, 4], index=['a', 'b', 'c', 'd'])
+    def max(
+        self,
+        numeric_only: bool = False,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        """
+        Calculate the expanding maximum.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.3.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+            .. versionadded:: 1.3.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.max : Aggregating max for Series.
+        DataFrame.max : Aggregating max for DataFrame.
+
+        Notes
+        -----
+        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for extended
+        documentation and performance considerations for the Numba engine.
+
+        Examples
+        --------
+        >>> ser = pd.Series([3, 2, 1, 4], index=["a", "b", "c", "d"])
         >>> ser.expanding().max()
         a    3.0
         b    3.0
@@ -361,38 +548,65 @@ class Expanding(RollingAndExpandingMixin):
         d    4.0
         dtype: float64
         """
-        ),
-        window_method="expanding",
-        aggregation_description="maximum",
-        agg_method="max",
-    )
-    def max(
-        self,
-        numeric_only: bool = False,
-        engine: Literal["cython", "numba"] | None = None,
-        engine_kwargs: dict[str, bool] | None = None,
-    ):
         return super().max(
             numeric_only=numeric_only,
             engine=engine,
             engine_kwargs=engine_kwargs,
         )
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        kwargs_numeric_only,
-        window_agg_numba_parameters(),
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Notes"),
-        numba_notes,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([2, 3, 4, 1], index=['a', 'b', 'c', 'd'])
+    def min(
+        self,
+        numeric_only: bool = False,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        """
+        Calculate the expanding minimum.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.3.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+            .. versionadded:: 1.3.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.min : Aggregating min for Series.
+        DataFrame.min : Aggregating min for DataFrame.
+
+        Notes
+        -----
+        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for extended
+        documentation and performance considerations for the Numba engine.
+
+        Examples
+        --------
+        >>> ser = pd.Series([2, 3, 4, 1], index=["a", "b", "c", "d"])
         >>> ser.expanding().min()
         a    2.0
         b    2.0
@@ -400,38 +614,65 @@ class Expanding(RollingAndExpandingMixin):
         d    1.0
         dtype: float64
         """
-        ),
-        window_method="expanding",
-        aggregation_description="minimum",
-        agg_method="min",
-    )
-    def min(
-        self,
-        numeric_only: bool = False,
-        engine: Literal["cython", "numba"] | None = None,
-        engine_kwargs: dict[str, bool] | None = None,
-    ):
         return super().min(
             numeric_only=numeric_only,
             engine=engine,
             engine_kwargs=engine_kwargs,
         )
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        kwargs_numeric_only,
-        window_agg_numba_parameters(),
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Notes"),
-        numba_notes,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
+    def mean(
+        self,
+        numeric_only: bool = False,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        """
+        Calculate the expanding mean.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.3.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+            .. versionadded:: 1.3.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.mean : Aggregating mean for Series.
+        DataFrame.mean : Aggregating mean for DataFrame.
+
+        Notes
+        -----
+        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for extended
+        documentation and performance considerations for the Numba engine.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
         >>> ser.expanding().mean()
         a    1.0
         b    1.5
@@ -439,38 +680,65 @@ class Expanding(RollingAndExpandingMixin):
         d    2.5
         dtype: float64
         """
-        ),
-        window_method="expanding",
-        aggregation_description="mean",
-        agg_method="mean",
-    )
-    def mean(
-        self,
-        numeric_only: bool = False,
-        engine: Literal["cython", "numba"] | None = None,
-        engine_kwargs: dict[str, bool] | None = None,
-    ):
         return super().mean(
             numeric_only=numeric_only,
             engine=engine,
             engine_kwargs=engine_kwargs,
         )
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        kwargs_numeric_only,
-        window_agg_numba_parameters(),
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Notes"),
-        numba_notes,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
+    def median(
+        self,
+        numeric_only: bool = False,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        """
+        Calculate the expanding median.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.3.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+            .. versionadded:: 1.3.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.median : Aggregating median for Series.
+        DataFrame.median : Aggregating median for DataFrame.
+
+        Notes
+        -----
+        See :ref:`window.numba_engine` and :ref:`enhancingperf.numba` for extended
+        documentation and performance considerations for the Numba engine.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
         >>> ser.expanding().median()
         a    1.0
         b    1.5
@@ -478,52 +746,72 @@ class Expanding(RollingAndExpandingMixin):
         d    2.5
         dtype: float64
         """
-        ),
-        window_method="expanding",
-        aggregation_description="median",
-        agg_method="median",
-    )
-    def median(
-        self,
-        numeric_only: bool = False,
-        engine: Literal["cython", "numba"] | None = None,
-        engine_kwargs: dict[str, bool] | None = None,
-    ):
         return super().median(
             numeric_only=numeric_only,
             engine=engine,
             engine_kwargs=engine_kwargs,
         )
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        dedent(
-            """
+    def std(
+        self,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        """
+        Calculate the expanding standard deviation.
+
+        Parameters
+        ----------
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
-            is ``N - ddof``, where ``N`` represents the number of elements.\n
-        """
-        ).replace("\n", "", 1),
-        kwargs_numeric_only,
-        window_agg_numba_parameters("1.4"),
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        "numpy.std : Equivalent method for NumPy array.\n",
-        template_see_also,
-        create_section_header("Notes"),
-        dedent(
-            """
+            is ``N - ddof``, where ``N`` represents the number of elements.
+
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.4.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+            .. versionadded:: 1.4.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        numpy.std : Equivalent method for NumPy array.
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.std : Aggregating std for Series.
+        DataFrame.std : Aggregating std for DataFrame.
+
+        Notes
+        -----
         The default ``ddof`` of 1 used in :meth:`Series.std` is different
         than the default ``ddof`` of 0 in :func:`numpy.std`.
 
-        A minimum of one period is required for the rolling calculation.\n
-        """
-        ).replace("\n", "", 1),
-        create_section_header("Examples"),
-        dedent(
-            """
+        A minimum of one period is required for the rolling calculation.
+
+        Examples
+        --------
         >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
 
         >>> s.expanding(3).std()
@@ -536,18 +824,6 @@ class Expanding(RollingAndExpandingMixin):
         6    0.786796
         dtype: float64
         """
-        ).replace("\n", "", 1),
-        window_method="expanding",
-        aggregation_description="standard deviation",
-        agg_method="std",
-    )
-    def std(
-        self,
-        ddof: int = 1,
-        numeric_only: bool = False,
-        engine: Literal["cython", "numba"] | None = None,
-        engine_kwargs: dict[str, bool] | None = None,
-    ):
         return super().std(
             ddof=ddof,
             numeric_only=numeric_only,
@@ -555,35 +831,66 @@ class Expanding(RollingAndExpandingMixin):
             engine_kwargs=engine_kwargs,
         )
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        dedent(
-            """
+    def var(
+        self,
+        ddof: int = 1,
+        numeric_only: bool = False,
+        engine: Literal["cython", "numba"] | None = None,
+        engine_kwargs: dict[str, bool] | None = None,
+    ):
+        """
+        Calculate the expanding variance.
+
+        Parameters
+        ----------
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
-            is ``N - ddof``, where ``N`` represents the number of elements.\n
-        """
-        ).replace("\n", "", 1),
-        kwargs_numeric_only,
-        window_agg_numba_parameters("1.4"),
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        "numpy.var : Equivalent method for NumPy array.\n",
-        template_see_also,
-        create_section_header("Notes"),
-        dedent(
-            """
+            is ``N - ddof``, where ``N`` represents the number of elements.
+
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        engine : str, default None
+            * ``'cython'`` : Runs the operation through C-extensions from cython.
+            * ``'numba'`` : Runs the operation through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or globally setting
+              ``compute.use_numba``
+
+            .. versionadded:: 1.4.0
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+              and ``parallel`` dictionary keys. The values must either be ``True`` or
+              ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+              ``{'nopython': True, 'nogil': False, 'parallel': False}``
+
+            .. versionadded:: 1.4.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        numpy.var : Equivalent method for NumPy array.
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.var : Aggregating var for Series.
+        DataFrame.var : Aggregating var for DataFrame.
+
+        Notes
+        -----
         The default ``ddof`` of 1 used in :meth:`Series.var` is different
         than the default ``ddof`` of 0 in :func:`numpy.var`.
 
-        A minimum of one period is required for the rolling calculation.\n
-        """
-        ).replace("\n", "", 1),
-        create_section_header("Examples"),
-        dedent(
-            """
+        A minimum of one period is required for the rolling calculation.
+
+        Examples
+        --------
         >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
 
         >>> s.expanding(3).var()
@@ -596,18 +903,6 @@ class Expanding(RollingAndExpandingMixin):
         6    0.619048
         dtype: float64
         """
-        ).replace("\n", "", 1),
-        window_method="expanding",
-        aggregation_description="variance",
-        agg_method="var",
-    )
-    def var(
-        self,
-        ddof: int = 1,
-        numeric_only: bool = False,
-        engine: Literal["cython", "numba"] | None = None,
-        engine_kwargs: dict[str, bool] | None = None,
-    ):
         return super().var(
             ddof=ddof,
             numeric_only=numeric_only,
@@ -615,26 +910,39 @@ class Expanding(RollingAndExpandingMixin):
             engine_kwargs=engine_kwargs,
         )
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        dedent(
-            """
+    def sem(self, ddof: int = 1, numeric_only: bool = False):
+        """
+        Calculate the expanding standard error of mean.
+
+        Parameters
+        ----------
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
-            is ``N - ddof``, where ``N`` represents the number of elements.\n
-        """
-        ).replace("\n", "", 1),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Notes"),
-        "A minimum of one period is required for the calculation.\n\n",
-        create_section_header("Examples"),
-        dedent(
-            """
+            is ``N - ddof``, where ``N`` represents the number of elements.
+
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.sem : Aggregating sem for Series.
+        DataFrame.sem : Aggregating sem for DataFrame.
+
+        Notes
+        -----
+        A minimum of one period is required for the calculation.
+
+        Examples
+        --------
         >>> s = pd.Series([0, 1, 2, 3])
 
         >>> s.expanding().sem()
@@ -644,29 +952,39 @@ class Expanding(RollingAndExpandingMixin):
         3    0.745356
         dtype: float64
         """
-        ).replace("\n", "", 1),
-        window_method="expanding",
-        aggregation_description="standard error of mean",
-        agg_method="sem",
-    )
-    def sem(self, ddof: int = 1, numeric_only: bool = False):
         return super().sem(ddof=ddof, numeric_only=numeric_only)
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        "scipy.stats.skew : Third moment of a probability density.\n",
-        template_see_also,
-        create_section_header("Notes"),
-        "A minimum of three periods is required for the rolling calculation.\n\n",
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([-1, 0, 2, -1, 2], index=['a', 'b', 'c', 'd', 'e'])
+    def skew(self, numeric_only: bool = False):
+        """
+        Calculate the expanding unbiased skewness.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        scipy.stats.skew : Third moment of a probability density.
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.skew : Aggregating skew for Series.
+        DataFrame.skew : Aggregating skew for DataFrame.
+
+        Notes
+        -----
+        A minimum of three periods is required for the rolling calculation.
+
+        Examples
+        --------
+        >>> ser = pd.Series([-1, 0, 2, -1, 2], index=["a", "b", "c", "d", "e"])
         >>> ser.expanding().skew()
         a         NaN
         b         NaN
@@ -675,36 +993,46 @@ class Expanding(RollingAndExpandingMixin):
         e    0.315356
         dtype: float64
         """
-        ),
-        window_method="expanding",
-        aggregation_description="unbiased skewness",
-        agg_method="skew",
-    )
-    def skew(self, numeric_only: bool = False):
         return super().skew(numeric_only=numeric_only)
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        "scipy.stats.kurtosis : Reference SciPy method.\n",
-        template_see_also,
-        create_section_header("Notes"),
-        "A minimum of four periods is required for the calculation.\n\n",
-        create_section_header("Examples"),
-        dedent(
-            """
+    def kurt(self, numeric_only: bool = False):
+        """
+        Calculate the expanding Fisher's definition of kurtosis without bias.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        scipy.stats.kurtosis : Reference SciPy method.
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.kurt : Aggregating kurt for Series.
+        DataFrame.kurt : Aggregating kurt for DataFrame.
+
+        Notes
+        -----
+        A minimum of four periods is required for the calculation.
+
+        Examples
+        --------
         The example below will show a rolling calculation with a window size of
         four matching the equivalent function call using `scipy.stats`.
 
         >>> arr = [1, 2, 3, 4, 999]
         >>> import scipy.stats
-        >>> print(f"{{scipy.stats.kurtosis(arr[:-1], bias=False):.6f}}")
+        >>> print(f"{scipy.stats.kurtosis(arr[:-1], bias=False):.6f}")
         -1.200000
-        >>> print(f"{{scipy.stats.kurtosis(arr, bias=False):.6f}}")
+        >>> print(f"{scipy.stats.kurtosis(arr, bias=False):.6f}")
         4.999874
         >>> s = pd.Series(arr)
         >>> s.expanding(4).kurt()
@@ -715,30 +1043,31 @@ class Expanding(RollingAndExpandingMixin):
         4    4.999874
         dtype: float64
         """
-        ).replace("\n", "", 1),
-        window_method="expanding",
-        aggregation_description="Fisher's definition of kurtosis without bias",
-        agg_method="kurt",
-    )
-    def kurt(self, numeric_only: bool = False):
         return super().kurt(numeric_only=numeric_only)
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        dedent(
-            """
-        GroupBy.first : Similar method for GroupBy objects.
-        Expanding.last : Method to get the last element in each window.\n
+    def first(self, numeric_only: bool = False):
         """
-        ).replace("\n", "", 1),
-        create_section_header("Examples"),
-        dedent(
-            """
+        Calculate the expanding First (left-most) element of the window.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        GroupBy.first : Similar method for GroupBy objects.
+        Expanding.last : Method to get the last element in each window.
+
+        Examples
+        --------
         The example below will show an expanding calculation with a window size of
         three.
 
@@ -751,30 +1080,31 @@ class Expanding(RollingAndExpandingMixin):
         4         0.0
         dtype: float64
         """
-        ).replace("\n", "", 1),
-        window_method="expanding",
-        aggregation_description="First (left-most) element of the window",
-        agg_method="first",
-    )
-    def first(self, numeric_only: bool = False):
         return super().first(numeric_only=numeric_only)
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        dedent(
-            """
-        GroupBy.last : Similar method for GroupBy objects.
-        Expanding.first : Method to get the first element in each window.\n
+    def last(self, numeric_only: bool = False):
         """
-        ).replace("\n", "", 1),
-        create_section_header("Examples"),
-        dedent(
-            """
+        Calculate the expanding Last (right-most) element of the window.
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        GroupBy.last : Similar method for GroupBy objects.
+        Expanding.first : Method to get the first element in each window.
+
+        Examples
+        --------
         The example below will show an expanding calculation with a window size of
         three.
 
@@ -787,25 +1117,25 @@ class Expanding(RollingAndExpandingMixin):
         4         4.0
         dtype: float64
         """
-        ).replace("\n", "", 1),
-        window_method="expanding",
-        aggregation_description="Last (right-most) element of the window",
-        agg_method="last",
-    )
-    def last(self, numeric_only: bool = False):
         return super().last(numeric_only=numeric_only)
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        dedent(
-            """
+    def quantile(
+        self,
+        q: float,
+        interpolation: QuantileInterpolation = "linear",
+        numeric_only: bool = False,
+    ):
+        """
+        Calculate the expanding quantile.
+
+        Parameters
+        ----------
         q : float
             Quantile to compute. 0 <= quantile <= 1.
 
             .. deprecated:: 2.1.0
                 This was renamed from 'quantile' to 'q' in version 2.1.0.
-        interpolation : {{'linear', 'lower', 'higher', 'midpoint', 'nearest'}}
+        interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
@@ -815,18 +1145,28 @@ class Expanding(RollingAndExpandingMixin):
                 * higher: `j`.
                 * nearest: `i` or `j` whichever is nearest.
                 * midpoint: (`i` + `j`) / 2.
-        """
-        ).replace("\n", "", 1),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser = pd.Series([1, 2, 3, 4, 5, 6], index=['a', 'b', 'c', 'd', 'e', 'f'])
-        >>> ser.expanding(min_periods=4).quantile(.25)
+
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.quantile : Aggregating quantile for Series.
+        DataFrame.quantile : Aggregating quantile for DataFrame.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1, 2, 3, 4, 5, 6], index=["a", "b", "c", "d", "e", "f"])
+        >>> ser.expanding(min_periods=4).quantile(0.25)
         a     NaN
         b     NaN
         c     NaN
@@ -835,30 +1175,27 @@ class Expanding(RollingAndExpandingMixin):
         f    2.25
         dtype: float64
         """
-        ),
-        window_method="expanding",
-        aggregation_description="quantile",
-        agg_method="quantile",
-    )
-    def quantile(
-        self,
-        q: float,
-        interpolation: QuantileInterpolation = "linear",
-        numeric_only: bool = False,
-    ):
         return super().quantile(
             q=q,
             interpolation=interpolation,
             numeric_only=numeric_only,
         )
 
-    @doc(
-        template_header,
-        ".. versionadded:: 1.4.0 \n\n",
-        create_section_header("Parameters"),
-        dedent(
-            """
-        method : {{'average', 'min', 'max'}}, default 'average'
+    def rank(
+        self,
+        method: WindowingRankType = "average",
+        ascending: bool = True,
+        pct: bool = False,
+        numeric_only: bool = False,
+    ):
+        """
+        Calculate the expanding rank.
+
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        method : {'average', 'min', 'max'}, default 'average'
             How to rank the group of records that have the same value (i.e. ties):
 
             * average: average rank of the group
@@ -870,16 +1207,25 @@ class Expanding(RollingAndExpandingMixin):
         pct : bool, default False
             Whether or not to display the returned rankings in percentile
             form.
-        """
-        ).replace("\n", "", 1),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.rank : Aggregating rank for Series.
+        DataFrame.rank : Aggregating rank for DataFrame.
+
+        Examples
+        --------
         >>> s = pd.Series([1, 4, 2, 3, 5, 3])
         >>> s.expanding().rank()
         0    1.0
@@ -908,18 +1254,6 @@ class Expanding(RollingAndExpandingMixin):
         5    3.0
         dtype: float64
         """
-        ).replace("\n", "", 1),
-        window_method="expanding",
-        aggregation_description="rank",
-        agg_method="rank",
-    )
-    def rank(
-        self,
-        method: WindowingRankType = "average",
-        ascending: bool = True,
-        pct: bool = False,
-        numeric_only: bool = False,
-    ):
         return super().rank(
             method=method,
             ascending=ascending,
@@ -927,18 +1261,36 @@ class Expanding(RollingAndExpandingMixin):
             numeric_only=numeric_only,
         )
 
-    @doc(
-        template_header,
-        ".. versionadded:: 3.0.0 \n\n",
-        create_section_header("Parameters"),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """
+    def nunique(
+        self,
+        numeric_only: bool = False,
+    ):
+        """
+        Calculate the expanding nunique.
+
+        .. versionadded:: 3.0.0
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.nunique : Aggregating nunique for Series.
+        DataFrame.nunique : Aggregating nunique for DataFrame.
+
+        Examples
+        --------
         >>> s = pd.Series([1, 4, 2, 3, 5, 3])
         >>> s.expanding().nunique()
         0    1.0
@@ -949,24 +1301,22 @@ class Expanding(RollingAndExpandingMixin):
         5    5.0
         dtype: float64
         """
-        ).replace("\n", "", 1),
-        window_method="expanding",
-        aggregation_description="nunique",
-        agg_method="nunique",
-    )
-    def nunique(
-        self,
-        numeric_only: bool = False,
-    ):
         return super().nunique(
             numeric_only=numeric_only,
         )
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        dedent(
-            """
+    def cov(
+        self,
+        other: DataFrame | Series | None = None,
+        pairwise: bool | None = None,
+        ddof: int = 1,
+        numeric_only: bool = False,
+    ):
+        """
+        Calculate the expanding sample covariance.
+
+        Parameters
+        ----------
         other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
@@ -980,18 +1330,27 @@ class Expanding(RollingAndExpandingMixin):
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
             is ``N - ddof``, where ``N`` represents the number of elements.
-        """
-        ).replace("\n", "", 1),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        template_see_also,
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser1 = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
-        >>> ser2 = pd.Series([10, 11, 13, 16], index=['a', 'b', 'c', 'd'])
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.cov : Aggregating cov for Series.
+        DataFrame.cov : Aggregating cov for DataFrame.
+
+        Examples
+        --------
+        >>> ser1 = pd.Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
+        >>> ser2 = pd.Series([10, 11, 13, 16], index=["a", "b", "c", "d"])
         >>> ser1.expanding().cov(ser2)
         a         NaN
         b    0.500000
@@ -999,18 +1358,6 @@ class Expanding(RollingAndExpandingMixin):
         d    3.333333
         dtype: float64
         """
-        ),
-        window_method="expanding",
-        aggregation_description="sample covariance",
-        agg_method="cov",
-    )
-    def cov(
-        self,
-        other: DataFrame | Series | None = None,
-        pairwise: bool | None = None,
-        ddof: int = 1,
-        numeric_only: bool = False,
-    ):
         return super().cov(
             other=other,
             pairwise=pairwise,
@@ -1018,11 +1365,18 @@ class Expanding(RollingAndExpandingMixin):
             numeric_only=numeric_only,
         )
 
-    @doc(
-        template_header,
-        create_section_header("Parameters"),
-        dedent(
-            """
+    def corr(
+        self,
+        other: DataFrame | Series | None = None,
+        pairwise: bool | None = None,
+        ddof: int = 1,
+        numeric_only: bool = False,
+    ):
+        """
+        Calculate the expanding correlation.
+
+        Parameters
+        ----------
         other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
@@ -1035,23 +1389,30 @@ class Expanding(RollingAndExpandingMixin):
             observations will be used.
         ddof : int, default 1
             Delta Degrees of Freedom.  The divisor used in calculations
-            is ``N - ddof``, where ``N`` represents the number of elements.\n
-        """
-        ).replace("\n", "", 1),
-        kwargs_numeric_only,
-        create_section_header("Returns"),
-        template_returns,
-        create_section_header("See Also"),
-        dedent(
-            """
+            is ``N - ddof``, where ``N`` represents the number of elements.
+
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 1.5.0
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type is the same as the original object with ``np.float64`` dtype.
+
+        See Also
+        --------
         cov : Similar method to calculate covariance.
         numpy.corrcoef : NumPy Pearson's correlation calculation.
-        """
-        ).replace("\n", "", 1),
-        template_see_also,
-        create_section_header("Notes"),
-        dedent(
-            """
+        Series.expanding : Calling expanding with Series data.
+        DataFrame.expanding : Calling expanding with DataFrames.
+        Series.corr : Aggregating corr for Series.
+        DataFrame.corr : Aggregating corr for DataFrame.
+
+        Notes
+        -----
+
         This function uses Pearson's definition of correlation
         (https://en.wikipedia.org/wiki/Pearson_correlation_coefficient).
 
@@ -1070,14 +1431,12 @@ class Expanding(RollingAndExpandingMixin):
         columns on the second level.
 
         In the case of missing elements, only complete pairwise observations
-        will be used.\n
-        """
-        ),
-        create_section_header("Examples"),
-        dedent(
-            """\
-        >>> ser1 = pd.Series([1, 2, 3, 4], index=['a', 'b', 'c', 'd'])
-        >>> ser2 = pd.Series([10, 11, 13, 16], index=['a', 'b', 'c', 'd'])
+        will be used.
+
+        Examples
+        --------
+        >>> ser1 = pd.Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
+        >>> ser2 = pd.Series([10, 11, 13, 16], index=["a", "b", "c", "d"])
         >>> ser1.expanding().corr(ser2)
         a         NaN
         b    1.000000
@@ -1085,18 +1444,6 @@ class Expanding(RollingAndExpandingMixin):
         d    0.975900
         dtype: float64
         """
-        ),
-        window_method="expanding",
-        aggregation_description="correlation",
-        agg_method="corr",
-    )
-    def corr(
-        self,
-        other: DataFrame | Series | None = None,
-        pairwise: bool | None = None,
-        ddof: int = 1,
-        numeric_only: bool = False,
-    ):
         return super().corr(
             other=other,
             pairwise=pairwise,
@@ -1109,6 +1456,8 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
     """
     Provide a expanding groupby implementation.
     """
+
+    __module__ = "pandas.api.typing"
 
     _attributes = Expanding._attributes + BaseWindowGroupby._attributes
 
