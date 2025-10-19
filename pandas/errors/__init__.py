@@ -1047,9 +1047,8 @@ class TimezoneDtypeMismatchError(ValueError):
 
     See Also
     --------
-    pandas.core.dtypes.dtypes.DatetimeTZDtype : Datetime dtype with an associated
-    timezone.
-    pandas.core.arrays.datetimes._validate_tz_from_dtype : Validation helper that may
+    core.dtypes.dtypes.DatetimeTZDtype : Datetime dtype with an associated timezone.
+    core.arrays.datetimes._validate_tz_from_dtype : Validation helper that may
     raise this error.
 
     Examples
