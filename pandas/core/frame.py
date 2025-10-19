@@ -9026,7 +9026,7 @@ class DataFrame(NDFrame, OpsMixin):
         2  NaN  3.0 1.0
         """
 
-        # GH#62691 Prevent lossy conversion of wide integers
+        # GH#60128 Prevent lossy conversion of wide integers
         # by proactively promoting them to their nullable versions
         # because an outer align will force a round trip through float64.
         def _promote_wide_ints(df: DataFrame) -> DataFrame:
@@ -9042,17 +9042,13 @@ class DataFrame(NDFrame, OpsMixin):
                 df = df.astype(cast_map)
             return df
 
-        # store originals before promotion
-        self_original = self
-        other_original = other
-        self = _promote_wide_ints(self)
-        other = _promote_wide_ints(other)
-
-        def _restore_wide_ints(df: DataFrame) -> DataFrame:
+        def _restore_wide_ints(
+            self_original: DataFrame, other_original: DataFrame, combined_df: DataFrame
+        ) -> DataFrame:
             """Restores previously int64/uint64 columns if they don't have NAs."""
             cast_map: dict[str, str] = {}
-            for col in df.columns:
-                ser = df[col]
+            for col in combined_df.columns:
+                ser = combined_df[col]
                 orig_dt_self = self_original.dtypes.get(col)
                 orig_dt_other = other_original.dtypes.get(col)
 
@@ -9068,8 +9064,14 @@ class DataFrame(NDFrame, OpsMixin):
                         cast_map[col] = find_common_type(dtypes_to_resolve)
 
             if cast_map:
-                df = df.astype(cast_map)
-            return df
+                combined_df = combined_df.astype(cast_map)
+            return combined_df
+
+        # store originals and promote wide ints before align
+        self_original = self
+        other_original = other
+        self = _promote_wide_ints(self)
+        other = _promote_wide_ints(other)
 
         other_idxlen = len(other.index)  # save for compare
         other_columns = other.columns
@@ -9138,7 +9140,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # convert_objects just in case
         frame_result = self._constructor(result, index=new_index, columns=new_columns)
-        frame_result = _restore_wide_ints(frame_result)
+        frame_result = _restore_wide_ints(self_original, other_original, frame_result)
         return frame_result.__finalize__(self, method="combine")
 
     def combine_first(self, other: DataFrame) -> DataFrame:
