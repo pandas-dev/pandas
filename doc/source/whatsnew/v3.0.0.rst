@@ -936,6 +936,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
+- Bug in :class:`Categorical` where constructing from a pandas :class:`Series` or :class:`Index` with ``dtype='object'`` did not preserve the categories' dtype as ``object``; now the ``categories.dtype`` is preserved as ``object`` for these cases, while numpy arrays and Python sequences with ``dtype='object'`` continue to infer the most specific dtype (for example, ``str`` if all elements are strings) (:issue:`61778`)
 - Bug in :func:`Series.apply` where ``nan`` was ignored for :class:`CategoricalDtype` (:issue:`59938`)
 - Bug in :func:`testing.assert_index_equal` raising ``TypeError`` instead of ``AssertionError`` for incomparable ``CategoricalIndex`` when ``check_categorical=True`` and ``exact=False`` (:issue:`61935`)
 - Bug in :meth:`Categorical.astype` where ``copy=False`` would still trigger a copy of the codes (:issue:`62000`)
