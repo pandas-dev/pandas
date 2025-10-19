@@ -676,9 +676,9 @@ def merge_asof(
     """
     Perform a merge by key distance.
 
-    This is similar to a left-join except that we match on nearest 
-    key rather than equal keys. Both DataFrames must be first sorted by 
-    the merge key in ascending order before calling this function. 
+    This is similar to a left-join except that we match on nearest
+    key rather than equal keys. Both DataFrames must be first sorted by
+    the merge key in ascending order before calling this function.
     Sorting by any additional 'by' grouping columns is not required.
 
 
@@ -703,14 +703,14 @@ def merge_asof(
         Second pandas object to merge.
     on : label
         Field name to join on. Must be found in both DataFrames.
-        The data MUST be in ascending order. Furthermore this must be 
-        a numeric column, such as datetimelike, integer, or float. 'on' 
+        The data MUST be in ascending order. Furthermore this must be
+        a numeric column, such as datetimelike, integer, or float. 'on'
         or 'left_on' / 'right_on' must be given.
     left_on : label
-        Field name to join on in left DataFrame. If specified, sort the left 
+        Field name to join on in left DataFrame. If specified, sort the left
         DataFrame by this column in ascending order before merging.
     right_on : label
-        Field name to join on in right DataFrame. If specified, sort the right 
+        Field name to join on in right DataFrame. If specified, sort the right
         DataFrame by this column in ascending order before merging.
     left_index : bool
         Use the index of the left DataFrame as the join key.
@@ -742,7 +742,7 @@ def merge_asof(
     Returns
     -------
     DataFrame
-        A DataFrame of the two merged objects, containing all rows from the 
+        A DataFrame of the two merged objects, containing all rows from the
         left DataFrame and the nearest matches from the right DataFrame.
 
 
