@@ -1047,7 +1047,6 @@ class TimezoneDtypeMismatchError(ValueError):
         "cannot supply both a tz and a timezone-naive dtype (i.e. datetime64[ns])"
     """
 
-
 __all__ = [
     "AbstractMethodError",
     "AttributeConflictWarning",
