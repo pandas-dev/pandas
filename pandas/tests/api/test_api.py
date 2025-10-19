@@ -486,93 +486,18 @@ class TestTesting(Base):
             pd.util.foo
 
 
-def test_set_module():
-    assert pd.DataFrame.__module__ == "pandas"
-    assert pd.CategoricalDtype.__module__ == "pandas"
-    assert pd.DatetimeTZDtype.__module__ == "pandas"
-    assert pd.PeriodDtype.__module__ == "pandas"
-    assert pd.IntervalDtype.__module__ == "pandas"
-    assert pd.SparseDtype.__module__ == "pandas"
-    assert pd.ArrowDtype.__module__ == "pandas"
-    assert pd.StringDtype.__module__ == "pandas"
-    assert pd.BooleanDtype.__module__ == "pandas"
-    assert pd.Int8Dtype.__module__ == "pandas"
-    assert pd.Int16Dtype.__module__ == "pandas"
-    assert pd.Int32Dtype.__module__ == "pandas"
-    assert pd.Int64Dtype.__module__ == "pandas"
-    assert pd.UInt8Dtype.__module__ == "pandas"
-    assert pd.UInt16Dtype.__module__ == "pandas"
-    assert pd.UInt32Dtype.__module__ == "pandas"
-    assert pd.UInt64Dtype.__module__ == "pandas"
-    assert pd.Float32Dtype.__module__ == "pandas"
-    assert pd.Float64Dtype.__module__ == "pandas"
-    assert pd.Index.__module__ == "pandas"
-    assert pd.CategoricalIndex.__module__ == "pandas"
-    assert pd.DatetimeIndex.__module__ == "pandas"
-    assert pd.IntervalIndex.__module__ == "pandas"
-    assert pd.MultiIndex.__module__ == "pandas"
-    assert pd.PeriodIndex.__module__ == "pandas"
-    assert pd.RangeIndex.__module__ == "pandas"
-    assert pd.TimedeltaIndex.__module__ == "pandas"
-    assert pd.Period.__module__ == "pandas"
-    assert pd.Timestamp.__module__ == "pandas"
-    assert pd.Timedelta.__module__ == "pandas"
-    assert pd.concat.__module__ == "pandas"
-    assert pd.isna.__module__ == "pandas"
-    assert pd.notna.__module__ == "pandas"
-    assert pd.merge.__module__ == "pandas"
-    assert pd.merge_ordered.__module__ == "pandas"
-    assert pd.merge_asof.__module__ == "pandas"
-    assert pd.read_csv.__module__ == "pandas"
-    assert pd.read_table.__module__ == "pandas"
-    assert pd.read_fwf.__module__ == "pandas"
-    assert pd.Series.__module__ == "pandas"
-    assert pd.date_range.__module__ == "pandas"
-    assert pd.bdate_range.__module__ == "pandas"
-    assert pd.period_range.__module__ == "pandas"
-    assert pd.timedelta_range.__module__ == "pandas"
-    assert pd.to_datetime.__module__ == "pandas"
-    assert pd.to_timedelta.__module__ == "pandas"
-    assert pd.to_numeric.__module__ == "pandas"
-    assert pd.NamedAgg.__module__ == "pandas"
-    assert pd.IndexSlice.__module__ == "pandas"
-    assert pd.lreshape.__module__ == "pandas"
-    assert pd.melt.__module__ == "pandas"
-    assert pd.wide_to_long.__module__ == "pandas"
-    assert pd.crosstab.__module__ == "pandas"
-    assert pd.pivot_table.__module__ == "pandas"
-    assert pd.pivot.__module__ == "pandas"
-    assert pd.cut.__module__ == "pandas"
-    assert pd.qcut.__module__ == "pandas"
-    assert pd.read_clipboard.__module__ == "pandas"
-    assert pd.ExcelFile.__module__ == "pandas"
-    assert pd.ExcelWriter.__module__ == "pandas"
-    assert pd.read_excel.__module__ == "pandas"
-    assert pd.read_feather.__module__ == "pandas"
-    assert pd.set_eng_float_format.__module__ == "pandas"
-    assert pd.read_html.__module__ == "pandas"
-    assert pd.read_iceberg.__module__ == "pandas"
-    assert pd.read_json.__module__ == "pandas"
-    assert pd.json_normalize.__module__ == "pandas"
-    assert pd.read_orc.__module__ == "pandas"
-    assert pd.read_parquet.__module__ == "pandas"
-    assert pd.read_pickle.__module__ == "pandas"
-    assert pd.to_pickle.__module__ == "pandas"
-    assert pd.HDFStore.__module__ == "pandas"
-    assert pd.read_hdf.__module__ == "pandas"
-    assert pd.read_sas.__module__ == "pandas"
-    assert pd.read_spss.__module__ == "pandas"
-    assert pd.read_sql.__module__ == "pandas"
-    assert pd.read_sql_query.__module__ == "pandas"
-    assert pd.read_sql_table.__module__ == "pandas"
-    assert pd.read_stata.__module__ == "pandas"
-    assert pd.read_xml.__module__ == "pandas"
+def test_module():
+    for name in pd.__all__:
+        obj = getattr(pd, name)
+        if inspect.isclass(obj) or inspect.isfunction(obj):
+            assert obj.__module__ in ("pandas", "pandas._config.config")
+
     assert api.typing.SeriesGroupBy.__module__ == "pandas.api.typing"
     assert api.typing.DataFrameGroupBy.__module__ == "pandas.api.typing"
 
 
 def get_pandas_objects(
-    module_name: str, recurse: bool
+    module_name: str, recurse: bool, include_functions: bool
 ) -> list[tuple[str, str, object]]:
     """
     Get all pandas objects within a module.
@@ -586,6 +511,8 @@ def get_pandas_objects(
         Name of the module to search.
     recurse : bool
         Whether to search submodules.
+    include_functions : bool
+        Whether to include functions in the search.
 
     Returns
     -------
@@ -595,9 +522,9 @@ def get_pandas_objects(
     objs = []
 
     for name, obj in inspect.getmembers(module):
-        if inspect.isfunction(obj) or type(obj).__name__ == "cython_function_or_method":
-            # We have not set __module__ on public functions; may do
-            # so in the future.
+        if not include_functions and (
+            inspect.isfunction(obj) or type(obj).__name__ == "cython_function_or_method"
+        ):
             continue
         module_dunder = getattr(obj, "__module__", None)
         if isinstance(module_dunder, str) and module_dunder.startswith("pandas"):
@@ -614,7 +541,11 @@ def get_pandas_objects(
         if name.startswith("_") or name == "internals":
             continue
         objs.extend(
-            get_pandas_objects(f"{module.__name__}.{name}", recurse=module_info.ispkg)
+            get_pandas_objects(
+                f"{module.__name__}.{name}",
+                recurse=module_info.ispkg,
+                include_functions=include_functions,
+            )
         )
     return objs
 
@@ -633,8 +564,16 @@ def get_pandas_objects(
     ],
 )
 def test_attributes_module(module_name):
+    """
+    Ensures that all public objects have their __module__ set to the public import path.
+    """
     recurse = module_name not in ["pandas", "pandas.testing"]
-    objs = get_pandas_objects(module_name, recurse=recurse)
+    # TODO: resolve all cases so this can be removed
+    include_functions = module_name not in ["pandas.api", "pandas.plotting"]
+    objs = get_pandas_objects(
+        module_name, recurse=recurse, include_functions=include_functions
+    )
+    print(objs)
     failures = [
         (module_name, name, type(obj), obj.__module__)
         for module_name, name, obj in objs
