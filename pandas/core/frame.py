@@ -9026,7 +9026,9 @@ class DataFrame(NDFrame, OpsMixin):
         2  NaN  3.0 1.0
         """
 
-        # GH#60128 Prevent lossy conversion of wide integers to float64.
+        # GH#60128 Integers n where |n| > 2**53 would lose precision after align
+        # upcasts them to float. Avoid lossy conversion by preemptively promoting
+        # int64 and uint64 Dtypes to their nullable EA Dtypes, Int64 and UInt64.
         def _promote_wide_ints(df: DataFrame) -> DataFrame:
             """Promotes int64/uint64 columns to their nullable versions."""
             cast_map: dict[str, str] = {}
@@ -9059,6 +9061,7 @@ class DataFrame(NDFrame, OpsMixin):
                         dt for dt in (orig_dt_self, orig_dt_other) if dt is not None
                     ]
                     if dtypes_to_resolve:
+                        # if we had different dtypes, possibly promote
                         cast_map[col] = find_common_type(dtypes_to_resolve)
 
             if cast_map:
@@ -9190,7 +9193,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
 
         def combiner(x: Series, y: Series):
-            # GH#60128 The combiner must preserve EA dtypes
+            # GH#60128 The combiner is supposed to preserve EA Dtypes.
             return y if y.name not in self.columns else y.where(x.isna(), x)
 
         if len(other) == 0:
