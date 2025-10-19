@@ -227,7 +227,6 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
             raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
 
         if num_dtis == len(indexes):
-            sort = True
             result = indexes[0]
 
         elif num_dtis > 1:
