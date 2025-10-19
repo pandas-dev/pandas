@@ -19,6 +19,7 @@ from pandas._libs.tslibs import (
     astype_overflowsafe,
     timezones,
 )
+from pandas.errors import TimezoneDtypeMismatchError
 
 import pandas as pd
 from pandas import (
@@ -31,7 +32,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays import period_array
-from pandas.errors import TimezoneDtypeMismatchError
 
 
 class TestDatetimeIndex:
