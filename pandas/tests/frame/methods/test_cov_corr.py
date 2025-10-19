@@ -210,7 +210,7 @@ class TestDataFrameCorr:
     @pytest.mark.parametrize("length", [2, 20, 200, 2000])
     def test_corr_for_constant_columns(self, length):
         # GH: 37448
-        #now matches numpy behavior
+        # now matches numpy behavior
         df = DataFrame(length * [[0.4, 0.1]], columns=["A", "B"])
         result = df.corr()
         if length == 2:
@@ -218,9 +218,7 @@ class TestDataFrameCorr:
                 {"A": [np.nan, np.nan], "B": [np.nan, np.nan]}, index=["A", "B"]
             )
         else:
-            expected = DataFrame(
-                {"A": [1., 1.], "B": [1., 1.]}, index=["A", "B"]
-            )
+            expected = DataFrame({"A": [1.0, 1.0], "B": [1.0, 1.0]}, index=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
     def test_calc_corr_small_numbers(self):
@@ -499,3 +497,12 @@ class TestDataFrameCorrWith:
         result2 = df.dropna().cov()
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)
+
+    def test_close_corr(self):
+        values = np.array(
+            [[30.0, 30.100000381469727], [116.80000305175781, 116.8000030517578]]
+        )
+        df = DataFrame(values.T)
+        result = df.corr(method="pearson")
+        expected = DataFrame(np.corrcoef(values[0], values[1]))
+        tm.assert_frame_equal(result, expected)
