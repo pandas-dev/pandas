@@ -376,13 +376,13 @@ def is_named_tuple(obj: object) -> bool:
     return isinstance(obj, abc.Sequence) and hasattr(obj, "_fields")
 
 
-def is_hashable(obj: object, allow_slice: bool | None = None) -> TypeGuard[Hashable]:
+def is_hashable(obj: object, allow_slice: bool = True) -> TypeGuard[Hashable]:
     """
     Return True if hash(obj) will succeed, False otherwise.
 
     If `allow_slice` is False, objects that are slices or tuples containing slices
     will always return False, even if hash(obj) would succeed.
-    If `allow_slice` is True or None, slices and tuples containing slices are treated as
+    If `allow_slice` is True, slices and tuples containing slices are treated as
     hashable if hash(obj) does not raise TypeError.
 
     Some types will pass a test against collections.abc.Hashable but fail when
@@ -395,8 +395,8 @@ def is_hashable(obj: object, allow_slice: bool | None = None) -> TypeGuard[Hasha
     ----------
     obj : object
         The object to check for hashability. Any Python object can be passed here.
-    allow_slice : bool or None
-        If True or None, return True if the object is hashable (including slices).
+    allow_slice : bool
+        If True, return True if the object is hashable (including slices).
         If False, return True if the object is hashable and not a slice.
 
     Returns
@@ -431,16 +431,11 @@ def is_hashable(obj: object, allow_slice: bool | None = None) -> TypeGuard[Hasha
     # Reconsider this decision once this numpy bug is fixed:
     # https://github.com/numpy/numpy/issues/5562
 
-    def _contains_slice(x: object) -> bool:
-        # Check if object is a slice or a tuple containing a slice
-        if isinstance(x, tuple):
-            return any(isinstance(v, slice) for v in x)
-        elif isinstance(x, slice):
-            return True
-        return False
-
-    if allow_slice is False and _contains_slice(obj):
-        return False
+    if allow_slice is False:
+        if isinstance(obj, tuple) and any(isinstance(v, slice) for v in obj):
+            return False
+        elif isinstance(obj, slice):
+            return False
 
     try:
         hash(obj)
