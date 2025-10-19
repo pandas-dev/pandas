@@ -6623,6 +6623,7 @@ class Index(IndexOpsMixin, PandasObject):
             not hasattr(target, "dtype")
             and isinstance(self.dtype, StringDtype)
             and self.dtype.na_value is np.nan
+            and using_string_dtype()
         ):
             # Fill missing values to ensure consistent missing value representation
             target_index = target_index.fillna(np.nan)
