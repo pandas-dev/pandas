@@ -63,11 +63,6 @@ from numpy cimport (
 cnp.import_array()
 
 from pandas._libs cimport util
-from pandas._libs.util cimport (
-    INT64_MAX,
-    INT64_MIN,
-    UINT64_MAX,
-)
 
 from pandas._libs import lib
 
@@ -281,10 +276,8 @@ cdef extern from "pandas/parser/pd_parser.h":
     int tokenize_all_rows(parser_t *self, const char *encoding_errors) nogil
     int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors) nogil
 
-    int64_t str_to_int64(char *p_item, int64_t int_min,
-                         int64_t int_max, int *error, char tsep) nogil
-    uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
-                           uint64_t uint_max, int *error, char tsep) nogil
+    int64_t str_to_int64(char *p_item,  int *error, char tsep) nogil
+    uint64_t str_to_uint64(uint_state *state, char *p_item, int *error, char tsep) nogil
 
     double xstrtod(const char *p, char **q, char decimal,
                    char sci, char tsep, int skip_trailing,
@@ -1855,15 +1848,13 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                 data[i] = 0
                 continue
 
-            data[i] = str_to_uint64(state, word, INT64_MAX, UINT64_MAX,
-                                    &error, parser.thousands)
+            data[i] = str_to_uint64(state, word, &error, parser.thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_uint64(state, word, INT64_MAX, UINT64_MAX,
-                                    &error, parser.thousands)
+            data[i] = str_to_uint64(state, word, &error, parser.thousands)
             if error != 0:
                 return error
 
@@ -1920,15 +1911,13 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
                 data[i] = NA
                 continue
 
-            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
-                                   &error, parser.thousands)
+            data[i] = str_to_int64(word, &error, parser.thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
-                                   &error, parser.thousands)
+            data[i] = str_to_int64(word, &error, parser.thousands)
             if error != 0:
                 return error
 
