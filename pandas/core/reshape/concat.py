@@ -46,6 +46,7 @@ from pandas.core.indexes.api import (
     get_objs_combined_axis,
     get_unanimous_names,
 )
+from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
@@ -162,7 +163,7 @@ def concat(
     levels=None,
     names: list[HashableT] | None = None,
     verify_integrity: bool = False,
-    sort: bool = False,
+    sort: bool | lib.NoDefault = lib.no_default,
     copy: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | Series:
     """
@@ -405,13 +406,38 @@ def concat(
             "Only can inner (intersect) or outer (union) join the other axis"
         )
 
-    if not is_bool(sort):
-        raise ValueError(
-            f"The 'sort' keyword only accepts boolean values; {sort} was passed."
-        )
-    sort = bool(sort)
-
     objs, keys, ndims = _clean_keys_and_objs(objs, keys)
+
+    if sort is lib.no_default:
+        if axis == 0:
+            non_concat_axis = [
+                obj.columns if isinstance(obj, ABCDataFrame) else Index([obj.name])
+                for obj in objs
+            ]
+        else:
+            non_concat_axis = [obj.index for obj in objs]
+
+        if all(isinstance(index, DatetimeIndex) for index in non_concat_axis):
+            from pandas.core.indexes.api import union_indexes
+
+            no_sort_result_index = union_indexes(non_concat_axis, sort=False)
+            if not no_sort_result_index.is_monotonic_increasing:
+                msg = (
+                    "Sorting by default when concatenating all DatetimeIndex is "
+                    "deprecated.  In the future, pandas will respect the default "
+                    "of `sort=False`. Specify `sort=True` or `sort=False` to "
+                    "silence this message."
+                )
+                warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+            sort = True
+        else:
+            sort = False
+    else:
+        if not is_bool(sort):
+            raise ValueError(
+                f"The 'sort' keyword only accepts boolean values; {sort} was passed."
+            )
+        sort = bool(sort)
 
     # select an object to be our result reference
     sample, objs = _get_sample_object(objs, ndims, keys, names, levels, intersect)
