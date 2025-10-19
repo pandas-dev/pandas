@@ -23,9 +23,14 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include <float.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include "pandas/portable.h"
 #include "pandas/vendored/klib/khash.h" // for kh_int64_t, kh_destroy_int64
+
+// Arrow256 allows up to 76 decimal digits.
+// We rounded up to the next power of 2.
+#define PROCESSED_WORD_CAPACITY 128
 
 void coliter_setup(coliter_t *self, parser_t *parser, int64_t i,
                    int64_t start) {
@@ -1834,8 +1839,40 @@ int uint64_conflict(uint_state *self) {
   return self->seen_uint && (self->seen_sint || self->seen_null);
 }
 
-int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
-                     int *error, char tsep) {
+/* Copy a string without `char_to_remove` into `output`.
+ */
+static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
+                                    const char *str, size_t str_len,
+                                    char char_to_remove) {
+  const char *left = str;
+  const char *end_ptr = str + str_len;
+  size_t bytes_written = 0;
+
+  while (left < end_ptr) {
+    const size_t remaining_bytes_to_read = end_ptr - left;
+    const char *right = memchr(left, char_to_remove, remaining_bytes_to_read);
+
+    if (!right) {
+      // If it doesn't find the char to remove, just copy until EOS.
+      right = end_ptr;
+    }
+
+    const size_t chunk_size = right - left;
+
+    if (chunk_size + bytes_written >= PROCESSED_WORD_CAPACITY) {
+      return -1;
+    }
+    memcpy(&output[bytes_written], left, chunk_size);
+    bytes_written += chunk_size;
+
+    left = right + 1;
+  }
+
+  output[bytes_written] = '\0';
+  return 0;
+}
+
+int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1843,105 +1880,45 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   }
 
   // Handle sign.
-  const bool isneg = *p == '-' ? true : false;
+  const bool has_sign = *p == '-' || *p == '+';
   // Handle sign.
-  if (isneg || (*p == '+')) {
-    p++;
-  }
+  const char *digit_start = has_sign ? p + 1 : p;
 
   // Check that there is a first digit.
-  if (!isdigit_ascii(*p)) {
+  if (!isdigit_ascii(*digit_start)) {
     // Error...
     *error = ERROR_NO_DIGITS;
     return 0;
   }
 
-  int64_t number = 0;
-  if (isneg) {
-    // If number is greater than pre_min, at least one more digit
-    // can be processed without overflowing.
-    int dig_pre_min = -(int_min % 10);
-    int64_t pre_min = int_min / 10;
-
-    // Process the digits.
-    char d = *p;
-    if (tsep != '\0') {
-      while (1) {
-        if (d == tsep) {
-          d = *++p;
-          continue;
-        } else if (!isdigit_ascii(d)) {
-          break;
-        }
-        if ((number > pre_min) ||
-            ((number == pre_min) && (d - '0' <= dig_pre_min))) {
-          number = number * 10 - (d - '0');
-          d = *++p;
-        } else {
-          *error = ERROR_OVERFLOW;
-          return 0;
-        }
-      }
-    } else {
-      while (isdigit_ascii(d)) {
-        if ((number > pre_min) ||
-            ((number == pre_min) && (d - '0' <= dig_pre_min))) {
-          number = number * 10 - (d - '0');
-          d = *++p;
-        } else {
-          *error = ERROR_OVERFLOW;
-          return 0;
-        }
-      }
+  char buffer[PROCESSED_WORD_CAPACITY];
+  const size_t str_len = strlen(p);
+  if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
+    const int status = copy_string_without_char(buffer, p, str_len, tsep);
+    if (status != 0) {
+      // Word is too big, probably will cause an overflow
+      *error = ERROR_OVERFLOW;
+      return 0;
     }
-  } else {
-    // If number is less than pre_max, at least one more digit
-    // can be processed without overflowing.
-    int64_t pre_max = int_max / 10;
-    int dig_pre_max = int_max % 10;
+    p = buffer;
+  }
 
-    // Process the digits.
-    char d = *p;
-    if (tsep != '\0') {
-      while (1) {
-        if (d == tsep) {
-          d = *++p;
-          continue;
-        } else if (!isdigit_ascii(d)) {
-          break;
-        }
-        if ((number < pre_max) ||
-            ((number == pre_max) && (d - '0' <= dig_pre_max))) {
-          number = number * 10 + (d - '0');
-          d = *++p;
+  char *endptr;
+  int64_t number = strtoll(p, &endptr, 10);
 
-        } else {
-          *error = ERROR_OVERFLOW;
-          return 0;
-        }
-      }
-    } else {
-      while (isdigit_ascii(d)) {
-        if ((number < pre_max) ||
-            ((number == pre_max) && (d - '0' <= dig_pre_max))) {
-          number = number * 10 + (d - '0');
-          d = *++p;
-
-        } else {
-          *error = ERROR_OVERFLOW;
-          return 0;
-        }
-      }
-    }
+  if (errno == ERANGE) {
+    *error = ERROR_OVERFLOW;
+    errno = 0;
+    return 0;
   }
 
   // Skip trailing spaces.
-  while (isspace_ascii(*p)) {
-    ++p;
+  while (isspace_ascii(*endptr)) {
+    ++endptr;
   }
 
   // Did we use up all the characters?
-  if (*p) {
+  if (*endptr) {
     *error = ERROR_INVALID_CHARS;
     return 0;
   }
@@ -1950,8 +1927,8 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   return number;
 }
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
-                       uint64_t uint_max, int *error, char tsep) {
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
+                       char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1974,58 +1951,39 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     return 0;
   }
 
-  // If number is less than pre_max, at least one more digit
-  // can be processed without overflowing.
-  //
-  // Process the digits.
-  uint64_t number = 0;
-  const uint64_t pre_max = uint_max / 10;
-  const uint64_t dig_pre_max = uint_max % 10;
-  char d = *p;
-  if (tsep != '\0') {
-    while (1) {
-      if (d == tsep) {
-        d = *++p;
-        continue;
-      } else if (!isdigit_ascii(d)) {
-        break;
-      }
-      if ((number < pre_max) ||
-          ((number == pre_max) && ((uint64_t)(d - '0') <= dig_pre_max))) {
-        number = number * 10 + (d - '0');
-        d = *++p;
-
-      } else {
-        *error = ERROR_OVERFLOW;
-        return 0;
-      }
+  char buffer[PROCESSED_WORD_CAPACITY];
+  const size_t str_len = strlen(p);
+  if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
+    const int status = copy_string_without_char(buffer, p, str_len, tsep);
+    if (status != 0) {
+      // Word is too big, probably will cause an overflow
+      *error = ERROR_OVERFLOW;
+      return 0;
     }
-  } else {
-    while (isdigit_ascii(d)) {
-      if ((number < pre_max) ||
-          ((number == pre_max) && ((uint64_t)(d - '0') <= dig_pre_max))) {
-        number = number * 10 + (d - '0');
-        d = *++p;
+    p = buffer;
+  }
 
-      } else {
-        *error = ERROR_OVERFLOW;
-        return 0;
-      }
-    }
+  char *endptr;
+  uint64_t number = strtoull(p, &endptr, 10);
+
+  if (errno == ERANGE) {
+    *error = ERROR_OVERFLOW;
+    errno = 0;
+    return 0;
   }
 
   // Skip trailing spaces.
-  while (isspace_ascii(*p)) {
-    ++p;
+  while (isspace_ascii(*endptr)) {
+    ++endptr;
   }
 
   // Did we use up all the characters?
-  if (*p) {
+  if (*endptr) {
     *error = ERROR_INVALID_CHARS;
     return 0;
   }
 
-  if (number > (uint64_t)int_max) {
+  if (number > (uint64_t)INT64_MAX) {
     state->seen_uint = 1;
   }
 
