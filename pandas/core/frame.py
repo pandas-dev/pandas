@@ -205,6 +205,8 @@ from pandas.io.formats.info import (
 )
 import pandas.plotting
 
+from pandas.core.tools.datetimes import to_datetime
+
 if TYPE_CHECKING:
     import datetime
 
@@ -11632,6 +11634,27 @@ class DataFrame(NDFrame, OpsMixin):
             result = result.__finalize__(self, method="all")
         return result
 
+    def convert_date_na_columns(self):
+        """
+        Convert all columns containing only dates and nulls in a DataFrame to datetime objects.
+        """
+        for col in self.columns:
+            if self.is_date_or_null_column(self[col]):
+                try:
+                    self[col] = to_datetime(self[col])
+                except (ValueError, TypeError):
+                    continue
+            else:
+                continue
+
+    def is_date_or_null_column(self, column: Series) -> bool:
+        """Check if a pandas Series contains only datetime.date objects or nulls."""
+        for value in column:
+            from datetime import date
+            if not (isna(value) or isinstance(value, date)):
+                return False
+        return True
+
     @doc(make_doc("min", ndim=2))
     def min(
         self,
@@ -11640,6 +11663,7 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
+        self.convert_date_na_columns()
         result = super().min(axis, skipna, numeric_only, **kwargs)
         if isinstance(result, Series):
             result = result.__finalize__(self, method="min")
@@ -11653,6 +11677,7 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only: bool = False,
         **kwargs,
     ):
+        self.convert_date_na_columns()
         result = super().max(axis, skipna, numeric_only, **kwargs)
         if isinstance(result, Series):
             result = result.__finalize__(self, method="max")
