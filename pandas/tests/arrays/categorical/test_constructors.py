@@ -827,6 +827,10 @@ class TestCategoricalConstructors:
         assert cat_from_ser.categories.dtype == object
         assert cat_from_idx.categories.dtype == object
 
-        # Numpy array or list: infer string dtype
-        assert cat_from_arr.categories.dtype == "str"
-        assert cat_from_list.categories.dtype == "str"
+        if using_infer_string:
+            # Numpy array or list: infer string dtype
+            assert cat_from_arr.categories.dtype == "str"
+            assert cat_from_list.categories.dtype == "str"
+        else:
+            assert cat_from_arr.categories.dtype == object
+            assert cat_from_list.categories.dtype == object
