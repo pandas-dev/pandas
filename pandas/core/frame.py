@@ -9025,6 +9025,52 @@ class DataFrame(NDFrame, OpsMixin):
         1  0.0  3.0 1.0
         2  NaN  3.0 1.0
         """
+
+        # GH#62691 Prevent lossy conversion of wide integers
+        # by proactively promoting them to their nullable versions
+        # because an outer align will force a round trip through float64.
+        def _promote_wide_ints(df: DataFrame) -> DataFrame:
+            """Promotes int64/uint64 columns to their nullable versions."""
+            cast_map: dict[str, str] = {}
+            for col, dt in df.dtypes.items():
+                if dt == np.dtype("int64"):
+                    cast_map[col] = "Int64"
+                elif dt == np.dtype("uint64"):
+                    cast_map[col] = "UInt64"
+
+            if cast_map:
+                df = df.astype(cast_map)
+            return df
+
+        # store originals before promotion
+        self_original = self
+        other_original = other
+        self = _promote_wide_ints(self)
+        other = _promote_wide_ints(other)
+
+        def _restore_wide_ints(df: DataFrame):
+            """Restores previously int64/uint64 columns if they don't have NAs."""
+            cast_map: dict[str, str] = {}
+            for col in df.columns:
+                ser = df[col]
+                orig_dt_self = self_original.dtypes.get(col)
+                orig_dt_other = other_original.dtypes.get(col)
+
+                is_at_risk = (orig_dt_self in [np.int64, np.uint64]) or (
+                    orig_dt_other in [np.int64, np.uint64]
+                )
+
+                if is_at_risk and not isna(ser).any():
+                    dtypes_to_resolve = [
+                        dt for dt in (orig_dt_self, orig_dt_other) if dt is not None
+                    ]
+                    if dtypes_to_resolve:
+                        cast_map[col] = find_common_type(dtypes_to_resolve)
+
+            if cast_map:
+                df = df.astype(cast_map)
+            return df
+
         other_idxlen = len(other.index)  # save for compare
         other_columns = other.columns
 
@@ -9092,6 +9138,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         # convert_objects just in case
         frame_result = self._constructor(result, index=new_index, columns=new_columns)
+        frame_result = _restore_wide_ints(frame_result)
         return frame_result.__finalize__(self, method="combine")
 
     def combine_first(self, other: DataFrame) -> DataFrame:
@@ -9141,13 +9188,20 @@ class DataFrame(NDFrame, OpsMixin):
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
         """
+        from pandas.core.computation import expressions
 
         def combiner(x: Series, y: Series):
-            # GH#60128 Preserve EA dtypes by operating at the Series level.
-            # If 'y' is a new column, return it as-is; otherwise fill <NA> in 'x'
-            # from 'y'. Avoids dropping to NumPy arrays (which would lose
-            # Int64/UInt64 and reintroduce float64 paths).
-            return y if y.name not in self.columns else y.where(x.isna(), x)
+            mask = x.isna()._values
+
+            x_values = x._values
+            y_values = y._values
+
+            # If the column y in other DataFrame is not in first DataFrame,
+            # just return y_values.
+            if y.name not in self.columns:
+                return y_values
+
+            return expressions.where(mask, y_values, x_values)
 
         if len(other) == 0:
             combined = self.reindex(
@@ -9155,21 +9209,6 @@ class DataFrame(NDFrame, OpsMixin):
             )
             combined = combined.astype(other.dtypes)
         else:
-            # GH#60128 Avoid precision loss from int64/uint64 <-> float64 round-trip.
-            def _promote_ints_to_nullable(df: DataFrame) -> DataFrame:
-                cast_map: dict[str, str] = {}
-
-                for col, dt in df.dtypes.items():
-                    if dt == np.dtype("uint64"):
-                        cast_map[col] = "UInt64"
-                    elif dt == np.dtype("int64"):
-                        cast_map[col] = "Int64"
-
-                return df.astype(cast_map) if cast_map else df
-
-            self = _promote_ints_to_nullable(self)
-            other = _promote_ints_to_nullable(other)
-
             combined = self.combine(other, combiner, overwrite=False)
 
         dtypes = {
