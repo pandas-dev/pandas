@@ -170,6 +170,7 @@ Other enhancements
 - :func:`read_spss` now supports kwargs to be passed to pyreadstat (:issue:`56356`)
 - :func:`read_stata` now returns ``datetime64`` resolutions better matching those natively stored in the stata format (:issue:`55642`)
 - :meth:`DataFrame.agg` called with ``axis=1`` and a ``func`` which relabels the result index now raises a ``NotImplementedError`` (:issue:`58807`).
+- :meth:`DataFrame.corr` now uses two pass Welford's Method to improve numerical stability with precision for very large/small values (:issue:`59652`)
 - :meth:`Index.get_loc` now accepts also subclasses of ``tuple`` as keys (:issue:`57922`)
 - :meth:`Styler.set_tooltips` provides alternative method to storing tooltips by using title attribute of td elements. (:issue:`56981`)
 - Added missing parameter ``weights`` in :meth:`DataFrame.plot.kde` for the estimation of the PDF (:issue:`59337`)

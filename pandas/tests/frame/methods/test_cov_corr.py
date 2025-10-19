@@ -210,11 +210,17 @@ class TestDataFrameCorr:
     @pytest.mark.parametrize("length", [2, 20, 200, 2000])
     def test_corr_for_constant_columns(self, length):
         # GH: 37448
+        #now matches numpy behavior
         df = DataFrame(length * [[0.4, 0.1]], columns=["A", "B"])
         result = df.corr()
-        expected = DataFrame(
-            {"A": [np.nan, np.nan], "B": [np.nan, np.nan]}, index=["A", "B"]
-        )
+        if length == 2:
+            expected = DataFrame(
+                {"A": [np.nan, np.nan], "B": [np.nan, np.nan]}, index=["A", "B"]
+            )
+        else:
+            expected = DataFrame(
+                {"A": [1., 1.], "B": [1., 1.]}, index=["A", "B"]
+            )
         tm.assert_frame_equal(result, expected)
 
     def test_calc_corr_small_numbers(self):
