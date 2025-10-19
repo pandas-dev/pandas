@@ -151,7 +151,7 @@ def import_optional_dependency(
     install_name = package_name if package_name is not None else name
 
     msg = (
-        f"`Import {install_name}` failed. {extra} "
+        f"`Import {install_name} failed. {extra} "
         f"Use pip or conda to install the {install_name} package."
     )
     try:

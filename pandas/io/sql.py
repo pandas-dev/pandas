@@ -895,13 +895,23 @@ def pandasSQL_builder(
     if isinstance(con, sqlite3.Connection) or con is None:
         return SQLiteDatabase(con)
 
-    sqlalchemy = import_optional_dependency("sqlalchemy", errors="ignore")
+    is_sqlalchemy_type = isinstance(con, str) or con.__module__.startswith("sqlalchemy")
 
-    if isinstance(con, str) and sqlalchemy is None:
-        raise ImportError("Using URI string without sqlalchemy installed.")
+    if is_sqlalchemy_type:
+        try:
+            sqlalchemy = import_optional_dependency(
+                "sqlalchemy", min_version="2.0.36", errors="raise"
+            )
+        except ImportError as e:
+            if isinstance(con, str):
+                raise ImportError(
+                    "Using URI string without matching version of sqlalchemy installed."
+                ) from e
+            else:
+                raise e
 
-    if sqlalchemy is not None and isinstance(con, (str, sqlalchemy.engine.Connectable)):
-        return SQLDatabase(con, schema, need_transaction)
+        if isinstance(con, (str, sqlalchemy.engine.Connectable)):
+            return SQLDatabase(con, schema, need_transaction)
 
     adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
     if adbc and isinstance(con, adbc.Connection):

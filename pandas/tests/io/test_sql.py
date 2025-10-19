@@ -2598,9 +2598,36 @@ def test_sql_open_close(test_frame3):
 @td.skip_if_installed("sqlalchemy")
 def test_con_string_import_error():
     conn = "mysql://root@localhost/pandas"
-    msg = "Using URI string without sqlalchemy installed"
+    msg = "Using URI string without matching version of sqlalchemy installed."
     with pytest.raises(ImportError, match=msg):
         sql.read_sql("SELECT * FROM iris", conn)
+
+
+@td.skip_if_installed("sqlalchemy")
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_con_sqlalchemy_import_error(conn, request):
+    conn = request.getfixturevalue(conn)
+    msg = r"Pandas requires version '2\.0\.36' or newer of 'sqlalchemy'.*"
+    with pytest.raises(ImportError, match=msg):
+        _ = pandasSQL_builder(conn)
+
+
+@td.skip_if_no_unsupported_installed("sqlalchemy", min_version="2.0.36")
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_con_sqlalchemy_import_error_unsupported(conn, request):
+    conn = request.getfixturevalue(conn)
+    msg = r"Import SQLAlchemy failed\..*"
+    with pytest.raises(ImportError, match=msg):
+        _ = pandasSQL_builder(conn)
+
+
+@td.skip_if_no("sqlalchemy", min_version="2.0.36")
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_con_sqlalchemy_connectable(conn, request):
+    conn = request.getfixturevalue(conn)
+    pandas_sql = pandasSQL_builder(conn)
+
+    assert isinstance(pandas_sql, SQLDatabase)
 
 
 @td.skip_if_installed("sqlalchemy")

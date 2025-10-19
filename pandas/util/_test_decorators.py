@@ -43,7 +43,9 @@ from pandas.compat import (
 from pandas.compat._optional import import_optional_dependency
 
 
-def skip_if_installed(package: str) -> pytest.MarkDecorator:
+def skip_if_installed(
+    package: str, min_version: str | None = None
+) -> pytest.MarkDecorator:
     """
     Skip a test if a package is installed.
 
@@ -51,6 +53,42 @@ def skip_if_installed(package: str) -> pytest.MarkDecorator:
     ----------
     package : str
         The name of the package.
+    min_version: str or None, default None
+        Optional minimum version of the package.
+
+    Returns
+    -------
+    pytest.MarkDecorator
+        a pytest.mark.skipif to use as either a test decorator or a
+        parametrization mark.
+    """
+    msg = f"Skipping because '{package}'"
+    if min_version:
+        msg += f" satisfying a min_version of {min_version}"
+    msg += " is installed."
+    return pytest.mark.skipif(
+        bool(
+            import_optional_dependency(
+                package, min_version=min_version, errors="ignore"
+            )
+        ),
+        reason=msg,
+    )
+
+
+def skip_if_no_unsupported_installed(
+    package: str, min_version: str
+) -> pytest.MarkDecorator:
+    """
+    Skip a test if there is no unsupported version of a package installed.
+    The test will hence be executed only if an unsupported version is installed.
+
+    Parameters
+    ----------
+    package : str
+        The name of the package.
+    min_version: str or None, default None
+        The minimum version of the package.
 
     Returns
     -------
@@ -59,8 +97,13 @@ def skip_if_installed(package: str) -> pytest.MarkDecorator:
         parametrization mark.
     """
     return pytest.mark.skipif(
-        bool(import_optional_dependency(package, errors="ignore")),
-        reason=f"Skipping because {package} is installed.",
+        bool(import_optional_dependency(package, errors="ignore"))
+        and not bool(
+            import_optional_dependency(
+                package, min_version=min_version, errors="ignore"
+            )
+        ),
+        reason=f"Skipping because no unsupported version of {package} is installed",
     )
 
 
