@@ -9048,7 +9048,7 @@ class DataFrame(NDFrame, OpsMixin):
         self = _promote_wide_ints(self)
         other = _promote_wide_ints(other)
 
-        def _restore_wide_ints(df: DataFrame):
+        def _restore_wide_ints(df: DataFrame) -> DataFrame:
             """Restores previously int64/uint64 columns if they don't have NAs."""
             cast_map: dict[str, str] = {}
             for col in df.columns:
