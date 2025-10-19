@@ -566,3 +566,13 @@ def test_attributes_module(module_name):
         )
     ]
     assert len(failures) == 0, "\n".join(str(e) for e in failures)
+
+    # Check that all objects can indeed be imported from their __module__
+    failures = []
+    for module_name, name, obj in objs:
+        module = importlib.import_module(obj.__module__)
+        try:
+            getattr(module, name)
+        except Exception:
+            failures.append((module_name, name, type(obj), obj.__module__))
+    assert len(failures) == 0, "\n".join(str(e) for e in failures)
