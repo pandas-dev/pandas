@@ -7,7 +7,6 @@ from decimal import Decimal
 import re
 
 import numpy as np
-import pyarrow as pa
 import pytest
 
 from pandas._libs import iNaT
@@ -1884,6 +1883,8 @@ def test_add_new_column_infer_string():
 def test_datetime_indexer_consistency_pyarrow_date32():
     # GH#62158
     pytest.importorskip("pyarrow", minversion="13.0.0")
+    import pyarrow as pa
+
     ser = Series(["2016-01-01"], dtype="date32[pyarrow]")
     ser3 = ser.astype("datetime64[ns]")
     dti = Index(ser3)
