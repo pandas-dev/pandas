@@ -26,34 +26,34 @@ pa = pytest.importorskip("pyarrow")
 
 @pytest.mark.single_cpu
 class TestFeather:
-    def check_error_on_write(self, df, exc, err_msg):
+    def check_error_on_write(self, df, exc, err_msg, temp_file):
         # check that we are raising the exception
         # on writing
 
         with pytest.raises(exc, match=err_msg):
-            with tm.ensure_clean() as path:
-                to_feather(df, path)
+            to_feather(df, temp_file)
 
-    def check_external_error_on_write(self, df):
+    def check_external_error_on_write(self, df, temp_file):
         # check that we are raising the exception
         # on writing
 
         with tm.external_error_raised(Exception):
-            with tm.ensure_clean() as path:
-                to_feather(df, path)
+            to_feather(df, temp_file)
 
-    def check_round_trip(self, df, expected=None, write_kwargs=None, **read_kwargs):
+    def check_round_trip(
+        self, df, temp_file, expected=None, write_kwargs=None, **read_kwargs
+    ):
         if write_kwargs is None:
             write_kwargs = {}
         if expected is None:
             expected = df.copy()
 
-        with tm.ensure_clean() as path:
-            to_feather(df, path, **write_kwargs)
+        path = temp_file
+        to_feather(df, path, **write_kwargs)
 
-            result = read_feather(path, **read_kwargs)
+        result = read_feather(path, **read_kwargs)
 
-            tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_error(self):
         msg = "feather only support IO with DataFrames"
@@ -168,7 +168,7 @@ class TestFeather:
         tm.assert_frame_equal(expected, res)
 
     def test_read_feather_dtype_backend(
-        self, string_storage, dtype_backend, using_infer_string
+        self, string_storage, dtype_backend, using_infer_string, temp_file
     ):
         # GH#50765
         df = pd.DataFrame(
@@ -184,10 +184,10 @@ class TestFeather:
             }
         )
 
-        with tm.ensure_clean() as path:
-            to_feather(df, path)
-            with pd.option_context("mode.string_storage", string_storage):
-                result = read_feather(path, dtype_backend=dtype_backend)
+        path = temp_file
+        to_feather(df, path)
+        with pd.option_context("mode.string_storage", string_storage):
+            result = read_feather(path, dtype_backend=dtype_backend)
 
         if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
@@ -231,16 +231,16 @@ class TestFeather:
         df = pd.DataFrame({"a": [1, 2, 3]}, index=pd.Index([3, 4, 5], name="test"))
         self.check_round_trip(df)
 
-    def test_invalid_dtype_backend(self):
+    def test_invalid_dtype_backend(self, tmp_path):
         msg = (
             "dtype_backend numpy is invalid, only 'numpy_nullable' and "
             "'pyarrow' are allowed."
         )
         df = pd.DataFrame({"int": list(range(1, 4))})
-        with tm.ensure_clean("tmp.feather") as path:
-            df.to_feather(path)
-            with pytest.raises(ValueError, match=msg):
-                read_feather(path, dtype_backend="numpy")
+        path = tmp_path / "tmp.feather"
+        df.to_feather(path)
+        with pytest.raises(ValueError, match=msg):
+            read_feather(path, dtype_backend="numpy")
 
     def test_string_inference(self, tmp_path, using_infer_string):
         # GH#54431
