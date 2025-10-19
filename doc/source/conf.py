@@ -391,16 +391,23 @@ header = f"""\
 
 
 html_context = {
-    "redirects": dict(moved_api_pages),
-    "header": header,
+    'display_version': True,
+    'versions_dropdown': True,
+    'github_url': 'https://github.com/pandas-dev/pandas',
+    # Remove the following items to simplify the footer
+    # 'other_versions': [
+    #     ("stable", "/pandas-docs/stable/"),
+    #     ("dev", "/pandas-docs/dev/"),
+    # ],
+    # 'last_updated': datetime.now().strftime('%Y-%m-%d'),
+    # 'last_updated_date': datetime.now().strftime('%Y-%m-%d'),
 }
 
 # If false, no module index is generated.
 html_use_modindex = True
 
 # If false, no index is generated.
-# html_use_index = True
-
+# html
 # If true, the index is split into individual pages for each letter.
 # html_split_index = False
 
@@ -848,5 +855,5 @@ linkcheck_ignore = [
             "https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022",
             "pandas.zip",
         ]
-    ],
+]
 ]
