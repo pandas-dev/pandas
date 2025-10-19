@@ -717,7 +717,7 @@ def merge_asof(
     right_index : bool
         Use the index of the right DataFrame as the join key.
     by : column name or list of column names
-        Match on these columns before performing merge operation. It is not required 
+        Match on these columns before performing merge operation. It is not required
         to sort by these columns.
     left_by : column name
         Field names to match on in the left DataFrame.
@@ -744,7 +744,6 @@ def merge_asof(
     DataFrame
         A DataFrame of the two merged objects, containing all rows from the
         left DataFrame and the nearest matches from the right DataFrame.
-
 
     See Also
     --------
