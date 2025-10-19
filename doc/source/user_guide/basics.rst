@@ -2372,11 +2372,15 @@ integers:
 
    df.select_dtypes(include=["number", "bool"], exclude=["unsignedinteger"])
 
-To select string columns you must use the ``object`` dtype:
+To select string columns include ``str``:
 
 .. ipython:: python
 
-   df.select_dtypes(include=["object"])
+   df.select_dtypes(include=[str])
+
+.. note::
+
+    This is a change in pandas 3.0. Previously strings were stored in ``object`` dtype columns, so would be selected with ``include=[object]``.  See https://pandas.pydata.org/docs/user_guide/migration-3-strings.html#hardcoded-use-of-object-dtype.
 
 To see all the child dtypes of a generic ``dtype`` like ``numpy.number`` you
 can define a function that returns a tree of child dtypes:

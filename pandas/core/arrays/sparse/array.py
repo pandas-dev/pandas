@@ -370,6 +370,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     Indices: array([2, 3], dtype=int32)
     """
 
+    __module__ = "pandas.arrays"
+
     _subtyp = "sparse_array"  # register ABCSparseArray
     _hidden_attrs = PandasObject._hidden_attrs | frozenset([])
     _sparse_index: SparseIndex

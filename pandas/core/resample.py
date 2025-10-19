@@ -133,6 +133,8 @@ class Resampler(BaseGroupBy, PandasObject):
     After resampling, see aggregate, apply, and transform functions.
     """
 
+    __module__ = "pandas.api.typing"
+
     _grouper: BinGrouper
     _timegrouper: TimeGrouper
     binner: DatetimeIndex | TimedeltaIndex | PeriodIndex  # depends on subclass
@@ -2173,6 +2175,8 @@ class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
     Provides a resample of a groupby implementation
     """
 
+    __module__ = "pandas.api.typing"
+
     @property
     def _resampler_cls(self):
         return DatetimeIndexResampler
@@ -2274,6 +2278,8 @@ class PeriodIndexResamplerGroupby(  # type: ignore[misc]
     Provides a resample of a groupby implementation.
     """
 
+    __module__ = "pandas.api.typing"
+
     @property
     def _resampler_cls(self):
         return PeriodIndexResampler
@@ -2309,6 +2315,8 @@ class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
     """
     Provides a resample of a groupby implementation.
     """
+
+    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2356,6 +2364,8 @@ class TimeGrouper(Grouper):
     convention : {'start', 'end', 'e', 's'}
         If axis is PeriodIndex
     """
+
+    __module__ = "pandas.api.typing"
 
     _attributes = Grouper._attributes + (
         "closed",
