@@ -9156,7 +9156,7 @@ class DataFrame(NDFrame, OpsMixin):
             combined = combined.astype(other.dtypes)
         else:
             # GH#60128 Avoid precision loss from int64/uint64 <-> float64 round-trip.
-            def _cast_64_bit_ints_to_nullable(df: DataFrame) -> DataFrame:
+            def _promote_ints_to_nullable(df: DataFrame) -> DataFrame:
                 cast_map: dict[str, str] = {}
 
                 for col, dt in df.dtypes.items():
@@ -9167,11 +9167,8 @@ class DataFrame(NDFrame, OpsMixin):
 
                 return df.astype(cast_map) if cast_map else df
 
-            # Only need to cast sides that gain rows on outer align (introduces <NA>).
-            if len(other.index.difference(self.index, sort=False)):
-                self = _cast_64_bit_ints_to_nullable(self)
-            if len(self.index.difference(other.index, sort=False)):
-                other = _cast_64_bit_ints_to_nullable(other)
+            self = _promote_ints_to_nullable(self)
+            other = _promote_ints_to_nullable(other)
 
             combined = self.combine(other, combiner, overwrite=False)
 
