@@ -20,7 +20,10 @@ from pandas import (
     Timestamp,
     bdate_range,
 )
+import pyarrow as pa
+import decimal
 import pandas._testing as tm
+import math
 
 
 @pytest.mark.parametrize(
@@ -413,3 +416,61 @@ def test_cython_agg_EA_known_dtypes(data, op_name, action, with_na):
 
     result = grouped["col"].aggregate(op_name)
     assert result.dtype == expected_dtype
+
+#testing groupby.var() when called with pyarrow datatype 
+
+@pytest.mark.parametrize("with_na", [False, True])
+def test_groupby_var_arrow_decimal(with_na):
+    # Create Arrow-backed decimal Series
+    data = pd.Series(
+        [
+            decimal.Decimal("123.000"),
+            decimal.Decimal("12.000"),
+            decimal.Decimal("5.5"),
+            decimal.Decimal("7.25")
+        ],
+        dtype=pd.ArrowDtype(pa.decimal128(6, 3))
+    )
+
+    if with_na:
+        data.iloc[3] = pd.NA  # introduce a missing value
+
+    df = DataFrame({"key": ["a", "a", "b", "b"], "col": data})
+    grouped = df.groupby("key")
+
+    # Perform the aggregation using .var() (calls _cython_agg_general internally)
+    result = grouped.var()#it correctly converts it to double[pyarrow]
+
+
+    # Check dtype is still Arrow double
+    expected_dtype = pd.ArrowDtype(pa.float64())  
+    assert isinstance(result["col"].dtype, pd.ArrowDtype)
+    assert result["col"].dtype == expected_dtype
+ 
+
+    # Compute expected variance manually for group "a"
+    vals_a = [123.0, 12.0]  # convert to float
+    if with_na:
+        vals_b = [5.5]  # single value → var is NA
+    else:
+        vals_b = [5.5, 7.25]
+
+    # Compute variance using pandas (float)
+    expected_var_a = pd.Series(vals_a).var()
+    expected_var_b = pd.Series(vals_b).var() if len(vals_b) > 1 else pd.NA
+
+    # Helper function for float comparison with NA support
+    def _almost_equal_or_na(a, b, tol=1e-12):
+        if pd.isna(a) and pd.isna(b):
+            return True
+        return math.isclose(float(a), float(b), rel_tol=tol, abs_tol=tol)
+
+    # Compare the DataFrame result
+    assert _almost_equal_or_na(result.loc["a", "col"], expected_var_a)
+    assert _almost_equal_or_na(result.loc["b", "col"], expected_var_b)
+
+    # Also test the SeriesGroupBy path
+    result_series = grouped["col"].var()
+    assert _almost_equal_or_na(result_series.loc["a"], expected_var_a)
+    assert _almost_equal_or_na(result_series.loc["b"], expected_var_b)
+
