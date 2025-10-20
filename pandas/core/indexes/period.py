@@ -538,6 +538,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return self + periods
 
 
+@set_module("pandas")
 def period_range(
     start=None,
     end=None,

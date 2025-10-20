@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import importlib
+import inspect
+import pathlib
+import pkgutil
+
 import pytest
 
 import pandas as pd
@@ -524,6 +529,7 @@ def test_set_module():
     assert pd.Series.__module__ == "pandas"
     assert pd.date_range.__module__ == "pandas"
     assert pd.bdate_range.__module__ == "pandas"
+    assert pd.period_range.__module__ == "pandas"
     assert pd.timedelta_range.__module__ == "pandas"
     assert pd.to_datetime.__module__ == "pandas"
     assert pd.to_timedelta.__module__ == "pandas"
@@ -563,3 +569,80 @@ def test_set_module():
     assert pd.read_xml.__module__ == "pandas"
     assert api.typing.SeriesGroupBy.__module__ == "pandas.api.typing"
     assert api.typing.DataFrameGroupBy.__module__ == "pandas.api.typing"
+
+
+def get_pandas_objects(
+    module_name: str, recurse: bool
+) -> list[tuple[str, str, object]]:
+    """
+    Get all pandas objects within a module.
+
+    An object is determined to be part of pandas if it has a string
+    __module__ attribute that starts with ``"pandas"``.
+
+    Parameters
+    ----------
+    module_name : str
+        Name of the module to search.
+    recurse : bool
+        Whether to search submodules.
+
+    Returns
+    -------
+        List of all objects that are determined to be a part of pandas.
+    """
+    module = importlib.import_module(module_name)
+    objs = []
+
+    for name, obj in inspect.getmembers(module):
+        if inspect.isfunction(obj) or type(obj).__name__ == "cython_function_or_method":
+            # We have not set __module__ on public functions; may do
+            # so in the future.
+            continue
+        module_dunder = getattr(obj, "__module__", None)
+        if isinstance(module_dunder, str) and module_dunder.startswith("pandas"):
+            objs.append((module_name, name, obj))
+
+    if not recurse:
+        return objs
+
+    # __file__ can, but shouldn't, be None
+    assert isinstance(module.__file__, str)
+    paths = [pathlib.Path(module.__file__).parent]
+    for module_info in pkgutil.walk_packages(paths):
+        name = module_info.name
+        if name.startswith("_") or name == "internals":
+            continue
+        objs.extend(
+            get_pandas_objects(f"{module.__name__}.{name}", recurse=module_info.ispkg)
+        )
+    return objs
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "module_name",
+    [
+        "pandas",
+        "pandas.api",
+        "pandas.arrays",
+        "pandas.errors",
+        pytest.param("pandas.io", marks=pytest.mark.xfail(reason="Private imports")),
+        "pandas.plotting",
+        "pandas.testing",
+    ],
+)
+def test_attributes_module(module_name):
+    recurse = module_name not in ["pandas", "pandas.testing"]
+    objs = get_pandas_objects(module_name, recurse=recurse)
+    failures = [
+        (module_name, name, type(obj), obj.__module__)
+        for module_name, name, obj in objs
+        if not (
+            obj.__module__ == module_name
+            # Explicit exceptions
+            or ("Dtype" in name and obj.__module__ == "pandas")
+            or (name == "Categorical" and obj.__module__ == "pandas")
+        )
+    ]
+    assert len(failures) == 0, failures
