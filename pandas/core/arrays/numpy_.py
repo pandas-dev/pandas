@@ -58,6 +58,7 @@ class NumpyExtensionArray(
     NDArrayBackedExtensionArray,
     ObjectStringArrayMixin,
 ):
+    __module__ = "pandas.arrays"
     """
     A pandas ExtensionArray for NumPy data.
 

@@ -717,6 +717,7 @@ Other Deprecations
 - Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)
 - Deprecated allowing ``fill_value`` that cannot be held in the original dtype (excepting NA values for integer and bool dtypes) in :meth:`Series.unstack` and :meth:`DataFrame.unstack` (:issue:`12189`, :issue:`53868`)
 - Deprecated allowing ``fill_value`` that cannot be held in the original dtype (excepting NA values for integer and bool dtypes) in :meth:`Series.shift` and :meth:`DataFrame.shift` (:issue:`53802`)
+- Deprecated backward-compatibility behavior for :meth:`DataFrame.select_dtypes` matching "str" dtype when ``np.object_`` is specified (:issue:`61916`)
 - Deprecated option "future.no_silent_downcasting", as it is no longer used. In a future version accessing this option will raise (:issue:`59502`)
 - Deprecated slicing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` using a ``datetime.date`` object, explicitly cast to :class:`Timestamp` instead (:issue:`35830`)
 
@@ -797,6 +798,7 @@ Other Removals
 - Enforce deprecation in :func:`testing.assert_series_equal` and :func:`testing.assert_frame_equal` with object dtype and mismatched null-like values, which are now considered not-equal (:issue:`18463`)
 - Enforce banning of upcasting in in-place setitem-like operations (:issue:`59007`) (see `PDEP6 <https://pandas.pydata.org/pdeps/0006-ban-upcasting.html>`_)
 - Enforced deprecation ``all`` and ``any`` reductions with ``datetime64``, :class:`DatetimeTZDtype`, and :class:`PeriodDtype` dtypes (:issue:`58029`)
+- Enforced deprecation allowing non-``bool`` and NA values for ``na`` in :meth:`.str.contains`, :meth:`.str.startswith`, and :meth:`.str.endswith` (:issue:`59615`)
 - Enforced deprecation disallowing ``float`` "periods" in :func:`date_range`, :func:`period_range`, :func:`timedelta_range`, :func:`interval_range`,  (:issue:`56036`)
 - Enforced deprecation disallowing parsing datetimes with mixed time zones unless user passes ``utc=True`` to :func:`to_datetime` (:issue:`57275`)
 - Enforced deprecation in :meth:`Series.value_counts` and :meth:`Index.value_counts` with object dtype performing dtype inference on the ``.index`` of the result (:issue:`56161`)
@@ -1001,6 +1003,7 @@ Numeric
 - Bug in :meth:`Series.dot` returning ``object`` dtype for :class:`ArrowDtype` and nullable-dtype data (:issue:`61375`)
 - Bug in :meth:`Series.std` and :meth:`Series.var` when using complex-valued data (:issue:`61645`)
 - Bug in ``np.matmul`` with :class:`Index` inputs raising a ``TypeError`` (:issue:`57079`)
+- Bug in arithmetic operations between objects with numpy-nullable dtype and :class:`ArrowDtype` incorrectly raising (:issue:`58602`)
 
 Conversion
 ^^^^^^^^^^
@@ -1056,6 +1059,7 @@ MultiIndex
 - :func:`MultiIndex.get_level_values` accessing a :class:`DatetimeIndex` does not carry the frequency attribute along (:issue:`58327`, :issue:`57949`)
 - Bug in :class:`DataFrame` arithmetic operations in case of unaligned MultiIndex columns (:issue:`60498`)
 - Bug in :class:`DataFrame` arithmetic operations with :class:`Series` in case of unaligned MultiIndex (:issue:`61009`)
+- Bug in :meth:`MultiIndex.union` raising when indexes have duplicates with differing names (:issue:`62059`)
 - Bug in :meth:`MultiIndex.from_tuples` causing wrong output with input of type tuples having NaN values (:issue:`60695`, :issue:`60988`)
 - Bug in :meth:`DataFrame.__setitem__` where column alignment logic would reindex the assigned value with an empty index, incorrectly setting all values to ``NaN``.(:issue:`61841`)
 - Bug in :meth:`DataFrame.reindex` and :meth:`Series.reindex` where reindexing :class:`Index` to a :class:`MultiIndex` would incorrectly set all values to ``NaN``.(:issue:`60923`)

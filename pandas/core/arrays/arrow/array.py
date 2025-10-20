@@ -296,6 +296,8 @@ class ArrowExtensionArray(
     Length: 3, dtype: int64[pyarrow]
     """  # noqa: E501 (http link too long)
 
+    __module__ = "pandas.arrays"
+
     _pa_array: pa.ChunkedArray
     _dtype: ArrowDtype
 
