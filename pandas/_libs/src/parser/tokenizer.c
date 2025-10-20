@@ -1907,8 +1907,6 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   int64_t number = strtoll(p, &endptr, 10);
 
   if (errno == ERANGE) {
-    // Python's integers can handle pure overflow errors,
-    // but for invalid characters, try using different conversion methods.
     *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
     errno = 0;
     return 0;
@@ -1969,8 +1967,6 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
   uint64_t number = strtoull(p, &endptr, 10);
 
   if (errno == ERANGE) {
-    // Python's integers can handle pure overflow errors,
-    // but for invalid characters, try using different conversion methods.
     *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
     errno = 0;
     return 0;
