@@ -1740,20 +1740,25 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
 
 static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
                                      char tsep) {
+  const char *digits = "0123456789";
+  const char *whitespaces = " \t\n\v\f\r";
+
   const char *p = s;
   const size_t length = strlen(s);
   char *s_copy = malloc(length + 1);
   char *dst = s_copy;
+  size_t n_digits;
   // Skip leading whitespace.
-  while (isspace_ascii(*p))
-    p++;
+  p += strspn(p, whitespaces);
   // Copy Leading sign
   if (*p == '+' || *p == '-') {
     *dst++ = *p++;
   }
   // Copy integer part dropping `tsep`
-  while (isdigit_ascii(*p)) {
-    *dst++ = *p++;
+  while ((n_digits = strspn(p, digits))) {
+    memcpy(dst, p, n_digits);
+    dst += n_digits;
+    p += n_digits;
     p += (tsep != '\0' && *p == tsep);
   }
   // Replace `decimal` with '.'
@@ -1762,8 +1767,10 @@ static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
     p++;
   }
   // Copy fractional part after decimal (if any)
-  while (isdigit_ascii(*p)) {
-    *dst++ = *p++;
+  if ((n_digits = strspn(p, digits))) {
+    memcpy(dst, p, n_digits);
+    dst += n_digits;
+    p += n_digits;
   }
   // Copy exponent if any
   if (toupper_ascii(*p) == toupper_ascii('E')) {
@@ -1773,8 +1780,10 @@ static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
       *dst++ = *p++;
     }
     // Copy exponent digits
-    while (isdigit_ascii(*p)) {
-      *dst++ = *p++;
+    if ((n_digits = strspn(p, digits))) {
+      memcpy(dst, p, n_digits);
+      dst += n_digits;
+      p += n_digits;
     }
   }
   *dst++ = '\0'; // terminate
