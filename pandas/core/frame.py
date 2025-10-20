@@ -9062,13 +9062,14 @@ class DataFrame(NDFrame, OpsMixin):
                     ]
                     if dtypes_to_resolve:
                         if isna(ser).any():
-                            # Currently, align upcasts to float64 when NAs are present.
-                            # Do this so we don't have to modify any tests that expect
-                            # float dtype when NAs are present. BUT we could consider
-                            # embracing nullable integer dtype since large integers are
-                            # still losing information on conversion to float -- it's
-                            # just not obvious because they aren't cast back to int
-                            # when NAs are present.
+                            # Currently, align upcasts to float64 when NAs are
+                            # present. Do this so we don't have to modify any
+                            # tests that expect float dtype when NAs are
+                            # present. BUT we could consider embracing nullable
+                            # integer dtypes since large integers are still
+                            # losing information on conversion to float -- it's
+                            # just not obvious because they aren't cast back to
+                            # int when NAs are present.
                             dtypes_to_resolve.append(np.dtype("float64"))
                         target_type = find_common_type(dtypes_to_resolve)
                         cast_map[col] = target_type
