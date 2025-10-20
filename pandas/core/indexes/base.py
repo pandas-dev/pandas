@@ -6619,6 +6619,14 @@ class Index(IndexOpsMixin, PandasObject):
             # If we started with a list-like, avoid inference to string dtype if self
             # is object dtype (coercing to string dtype will alter the missing values)
             target_index = Index(target, dtype=self.dtype)
+        elif (
+            not hasattr(target, "dtype")
+            and isinstance(self.dtype, StringDtype)
+            and self.dtype.na_value is np.nan
+            and using_string_dtype()
+        ):
+            # Fill missing values to ensure consistent missing value representation
+            target_index = target_index.fillna(np.nan)
         return target_index
 
     @final
