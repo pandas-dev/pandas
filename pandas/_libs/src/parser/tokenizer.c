@@ -1776,7 +1776,7 @@ static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
   // Copy fractional part after decimal (if any)
   str_consume_span(&dst, &p, digits);
   // Copy exponent if any
-  if (toupper_ascii(*p) == toupper_ascii('E')) {
+  if (toupper_ascii(*p) == 'E') {
     *dst++ = *p++;
     // Copy leading exponent sign (if any)
     if (*p == '+' || *p == '-') {
