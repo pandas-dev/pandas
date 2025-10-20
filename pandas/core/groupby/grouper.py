@@ -253,6 +253,8 @@ class Grouper:
     Freq: 17min, dtype: int64
     """
 
+    __module__ = "pandas"
+
     sort: bool
     dropna: bool
     _grouper: Index | None

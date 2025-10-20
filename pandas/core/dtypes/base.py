@@ -111,6 +111,8 @@ class ExtensionDtype:
     provided for registering virtual subclasses.
     """
 
+    __module__ = "pandas.api.extensions"
+
     _metadata: tuple[str, ...] = ()
 
     def __str__(self) -> str:
