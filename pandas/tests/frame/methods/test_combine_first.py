@@ -487,7 +487,7 @@ def test_combine_first_with_nan_multiindex():
     expected = DataFrame(
         {
             "c": [np.nan, np.nan, 1, 1, 1, 1, 1, np.nan, 1, np.nan, 1],
-            "d": [1, 4, np.nan, 2, 5, np.nan, np.nan, 3, np.nan, 6, np.nan],
+            "d": [1.0, 4.0, np.nan, 2.0, 5.0, np.nan, np.nan, 3.0, np.nan, 6.0, np.nan],
         },
         index=mi_expected,
     )
