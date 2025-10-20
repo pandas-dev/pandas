@@ -22,6 +22,7 @@ import numpy as np
 
 from pandas._config import (
     get_option,
+    is_nan_na,
     using_string_dtype,
 )
 
@@ -160,6 +161,7 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.floating import FloatingDtype
 from pandas.core.arrays.string_ import (
     StringArray,
     StringDtype,
@@ -6594,6 +6596,14 @@ class Index(IndexOpsMixin, PandasObject):
         If we have a float key and are not a floating index, then try to cast
         to an int if equivalent.
         """
+        if (
+            is_float(key)
+            and np.isnan(key)
+            and isinstance(self.dtype, FloatingDtype)
+            and is_nan_na()
+        ):
+            # TODO: better place to do this?
+            key = self.dtype.na_value
         return key
 
     def _maybe_cast_listlike_indexer(self, target) -> Index:
@@ -6609,6 +6619,14 @@ class Index(IndexOpsMixin, PandasObject):
             # If we started with a list-like, avoid inference to string dtype if self
             # is object dtype (coercing to string dtype will alter the missing values)
             target_index = Index(target, dtype=self.dtype)
+        elif (
+            not hasattr(target, "dtype")
+            and isinstance(self.dtype, StringDtype)
+            and self.dtype.na_value is np.nan
+            and using_string_dtype()
+        ):
+            # Fill missing values to ensure consistent missing value representation
+            target_index = target_index.fillna(np.nan)
         return target_index
 
     @final

@@ -3786,7 +3786,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         MyStyler : subclass of Styler
-            Has the correct ``env``,``template_html``, ``template_html_table`` and
+            Has the correct ``env``, ``template_html``, ``template_html_table`` and
             ``template_html_style`` class attributes set.
 
         See Also

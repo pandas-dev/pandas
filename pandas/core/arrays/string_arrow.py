@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Self,
 )
-import warnings
 
 import numpy as np
 
@@ -19,7 +18,7 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
     pa_version_under16p0,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_na_arg
 
 from pandas.core.dtypes.common import (
     is_scalar,
@@ -124,6 +123,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
     """
+
+    __module__ = "pandas.arrays"
 
     # error: Incompatible types in assignment (expression has type "StringDtype",
     # base class "ArrowExtensionArray" defined the type as "ArrowDtype")
@@ -242,17 +243,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return super().insert(loc, item)
 
     def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
-        if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
-            # TODO: Enforce in 3.0 (#59615)
-            # GH#59561
-            warnings.warn(
-                f"Allowing a non-bool 'na' in obj.str.{method_name} is deprecated "
-                "and will raise in a future version.",
-                FutureWarning,  # pdlint: ignore[warning_class]
-                stacklevel=find_stack_level(),
-            )
-            na = bool(na)
-
+        validate_na_arg(na, name="na")
         if self.dtype.na_value is np.nan:
             if na is lib.no_default or isna(na):
                 # NaN propagates as False

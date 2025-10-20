@@ -12,6 +12,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import (
     algos as libalgos,
     lib,
@@ -35,7 +37,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import BaseMaskedDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+)
 from pandas.core.dtypes.missing import (
     array_equivalent,
     is_valid_na_for_dtype,
@@ -310,7 +315,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         key = check_array_indexer(self, key)
 
         if is_scalar(value):
-            if is_valid_na_for_dtype(value, self.dtype):
+            if is_valid_na_for_dtype(value, self.dtype) and not (
+                lib.is_float(value) and not is_nan_na()
+            ):
                 self._mask[key] = True
             else:
                 value = self._validate_setitem_value(value)
@@ -326,7 +333,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __contains__(self, key) -> bool:
         if isna(key) and key is not self.dtype.na_value:
             # GH#52840
-            if self._data.dtype.kind == "f" and lib.is_float(key):
+            if lib.is_float(key) and is_nan_na():
+                key = self.dtype.na_value
+            elif self._data.dtype.kind == "f" and lib.is_float(key):
                 return bool((np.isnan(self._data) & ~self._mask).any())
 
         return bool(super().__contains__(key))
@@ -338,7 +347,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     yield val
             else:
                 na_value = self.dtype.na_value
-                for isna_, val in zip(self._mask, self._data):
+                for isna_, val in zip(self._mask, self._data, strict=True):
                     if isna_:
                         yield na_value
                     else:
@@ -684,6 +693,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                     # reached in e.g. np.sqrt on BooleanArray
                     # we don't support float16
                     x = x.astype(np.float32)
+                if is_nan_na():
+                    m[np.isnan(x)] = True
                 return FloatingArray(x, m)
             else:
                 x[mask] = np.nan
@@ -758,6 +769,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         other = ops.maybe_prepare_scalar_for_op(other, (len(self),))
         pd_op = ops.get_array_op(op)
         other = ensure_wrapped_if_datetimelike(other)
+
+        if isinstance(other, ExtensionArray) and isinstance(other.dtype, ArrowDtype):
+            # GH#58602
+            return NotImplemented
 
         if op_name in {"pow", "rpow"} and isinstance(other, np.bool_):
             # Avoid DeprecationWarning: In future, it will be an error
@@ -835,7 +850,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         mask = None
 
-        if isinstance(other, BaseMaskedArray):
+        if isinstance(other, ExtensionArray) and isinstance(other.dtype, ArrowDtype):
+            # GH#58602
+            return NotImplemented
+
+        elif isinstance(other, BaseMaskedArray):
             other, mask = other._data, other._mask
 
         elif is_list_like(other):
@@ -889,6 +908,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if result.dtype.kind == "f":
             from pandas.core.arrays import FloatingArray
+
+            if is_nan_na():
+                mask[np.isnan(result)] = True
 
             return FloatingArray(result, mask, copy=False)
 
