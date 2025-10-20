@@ -1732,6 +1732,17 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   return number;
 }
 
+static inline size_t str_consume_span(char **dst, const char **src,
+                                      const char *charset) {
+  size_t n = strspn(*src, charset);
+  if (n) {
+    memcpy(*dst, *src, n);
+    *dst += n;
+    *src += n;
+  }
+  return n;
+}
+
 /* copy a decimal number string with `decimal`, `tsep` as decimal point
    and thousands separator to an equivalent c-locale decimal string (striping
    `tsep`, replacing `decimal` with '.'). The returned memory should be free-d
@@ -1747,7 +1758,6 @@ static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
   const size_t length = strlen(s);
   char *s_copy = malloc(length + 1);
   char *dst = s_copy;
-  size_t n_digits;
   // Skip leading whitespace.
   p += strspn(p, whitespaces);
   // Copy Leading sign
@@ -1755,10 +1765,7 @@ static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
     *dst++ = *p++;
   }
   // Copy integer part dropping `tsep`
-  while ((n_digits = strspn(p, digits))) {
-    memcpy(dst, p, n_digits);
-    dst += n_digits;
-    p += n_digits;
+  while (str_consume_span(&dst, &p, digits)) {
     p += (tsep != '\0' && *p == tsep);
   }
   // Replace `decimal` with '.'
@@ -1767,11 +1774,7 @@ static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
     p++;
   }
   // Copy fractional part after decimal (if any)
-  if ((n_digits = strspn(p, digits))) {
-    memcpy(dst, p, n_digits);
-    dst += n_digits;
-    p += n_digits;
-  }
+  str_consume_span(&dst, &p, digits);
   // Copy exponent if any
   if (toupper_ascii(*p) == toupper_ascii('E')) {
     *dst++ = *p++;
@@ -1780,11 +1783,7 @@ static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
       *dst++ = *p++;
     }
     // Copy exponent digits
-    if ((n_digits = strspn(p, digits))) {
-      memcpy(dst, p, n_digits);
-      dst += n_digits;
-      p += n_digits;
-    }
+    str_consume_span(&dst, &p, digits);
   }
   *dst++ = '\0'; // terminate
   if (endpos != NULL)
