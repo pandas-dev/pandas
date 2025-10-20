@@ -490,7 +490,6 @@ def test_combine_first_with_nan_multiindex():
             "d": [1, 4, np.nan, 2, 5, np.nan, np.nan, 3, np.nan, 6, np.nan],
         },
         index=mi_expected,
-        dtype="Int64",
     )
     tm.assert_frame_equal(res, expected)
 
@@ -537,7 +536,6 @@ def test_combine_first_duplicates_rows_for_nan_index_values():
         index=MultiIndex.from_arrays(
             [[1, 2, 3, 4], [np.nan, 5, 6, 7]], names=["a", "b"]
         ),
-        dtype="Int64",
     )
     combined = df1.combine_first(df2)
     tm.assert_frame_equal(combined, expected)
