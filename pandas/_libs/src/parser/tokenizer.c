@@ -1732,15 +1732,25 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   return number;
 }
 
+static inline size_t str_consume_nspan(char **dst, const char **src,
+                                       const char *charset, size_t count) {
+  size_t size = strspn(*src, charset);
+  if (size > count) {
+    size = count;
+  }
+  if (size) {
+    if (dst) {
+      memcpy(*dst, *src, size);
+      *dst += size;
+    }
+    *src += size;
+  }
+  return size;
+}
+
 static inline size_t str_consume_span(char **dst, const char **src,
                                       const char *charset) {
-  size_t n = strspn(*src, charset);
-  if (n) {
-    memcpy(*dst, *src, n);
-    *dst += n;
-    *src += n;
-  }
-  return n;
+  return str_consume_nspan(dst, src, charset, SIZE_MAX);
 }
 
 /* copy a decimal number string with `decimal`, `tsep` as decimal point
@@ -1752,37 +1762,33 @@ static inline size_t str_consume_span(char **dst, const char **src,
 static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
                                      char tsep) {
   const char *digits = "0123456789";
+  const char *exponents = "Ee";
+  const char *signs = "+-";
   const char *whitespaces = " \t\n\v\f\r";
+  const char decimals[] = {decimal, '\0'};
+  const char tseps[] = {tsep, '\0'};
 
   const char *p = s;
   const size_t length = strlen(s);
   char *s_copy = malloc(length + 1);
   char *dst = s_copy;
   // Skip leading whitespace.
-  p += strspn(p, whitespaces);
+  str_consume_span(NULL, &p, whitespaces);
   // Copy Leading sign
-  if (*p == '+' || *p == '-') {
-    *dst++ = *p++;
-  }
+  str_consume_nspan(&dst, &p, signs, 1);
   // Copy integer part dropping `tsep`
   while (str_consume_span(&dst, &p, digits)) {
-    p += (tsep != '\0' && *p == tsep);
+    str_consume_nspan(NULL, &p, tseps, 1);
   }
   // Replace `decimal` with '.'
-  if (*p == decimal) {
+  if (str_consume_nspan(NULL, &p, decimals, 1)) {
     *dst++ = '.';
-    p++;
   }
   // Copy fractional part after decimal (if any)
   str_consume_span(&dst, &p, digits);
   // Copy exponent if any
-  if (toupper_ascii(*p) == 'E') {
-    *dst++ = *p++;
-    // Copy leading exponent sign (if any)
-    if (*p == '+' || *p == '-') {
-      *dst++ = *p++;
-    }
-    // Copy exponent digits
+  if (str_consume_nspan(&dst, &p, exponents, 1)) {
+    str_consume_nspan(&dst, &p, signs, 1);
     str_consume_span(&dst, &p, digits);
   }
   *dst++ = '\0'; // terminate
