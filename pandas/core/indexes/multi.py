@@ -3946,7 +3946,9 @@ class MultiIndex(Index):
         if other.has_duplicates:
             # This is only necessary if other has dupes,
             # otherwise difference is faster
-            result = super()._union(other, sort)
+            result = super(MultiIndex, self.rename(result_names))._union(
+                other.rename(result_names), sort
+            )
 
             if isinstance(result, MultiIndex):
                 return result
