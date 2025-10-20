@@ -109,10 +109,11 @@ Binary operator functions
 
 Unary operator functions
 ------------------------
-.. toctree::
-   :maxdepth: 1
+.. autosummary::
+   :toctree: api/
 
-   api/pandas.Series.__invert__
+   Series.__invert__
+
 
 
 Function application, GroupBy & window
