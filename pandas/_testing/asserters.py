@@ -325,7 +325,17 @@ def assert_index_equal(
     # skip exact index checking when `check_categorical` is False
     elif check_exact and check_categorical:
         if not left.equals(right):
-            mismatch = left._values != right._values
+            # _values compare can raise TypeError (non-comparable
+            # categoricals (GH#61935)
+            try:
+                mismatch = left._values != right._values
+            except TypeError:
+                raise_assert_detail(
+                    obj,
+                    "types are not comparable (non-matching categorical categories)",
+                    left,
+                    right,
+                )
 
             if not isinstance(mismatch, np.ndarray):
                 mismatch = cast("ExtensionArray", mismatch).fillna(True)
@@ -665,7 +675,7 @@ def assert_numpy_array_equal(
                 )
 
             diff = 0
-            for left_arr, right_arr in zip(left, right):
+            for left_arr, right_arr in zip(left, right, strict=True):
                 # count up differences
                 if not array_equivalent(left_arr, right_arr, strict_nan=strict_nan):
                     diff += 1
@@ -1437,7 +1447,7 @@ def assert_copy(iter1, iter2, **eql_kwargs) -> None:
     the same object. (Does not check that items
     in sequences are also not the same object)
     """
-    for elem1, elem2 in zip(iter1, iter2):
+    for elem1, elem2 in zip(iter1, iter2, strict=True):
         assert_almost_equal(elem1, elem2, **eql_kwargs)
         msg = (
             f"Expected object {type(elem1)!r} and object {type(elem2)!r} to be "

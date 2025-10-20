@@ -51,7 +51,10 @@ from pandas.errors import (
     PerformanceWarning,
     PossibleDataLossError,
 )
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -312,6 +315,7 @@ def to_hdf(
             f(store)
 
 
+@set_module("pandas")
 def read_hdf(
     path_or_buf: FilePath | HDFStore,
     key=None,
@@ -488,6 +492,7 @@ def _is_metadata_of(group: Node, parent_group: Node) -> bool:
     return False
 
 
+@set_module("pandas")
 class HDFStore:
     """
     Dict-like IO interface for storing pandas objects in PyTables.
@@ -1074,7 +1079,7 @@ class HDFStore:
 
         # validate rows
         nrows = None
-        for t, k in itertools.chain([(s, selector)], zip(tbls, keys)):
+        for t, k in itertools.chain([(s, selector)], zip(tbls, keys, strict=True)):
             if t is None:
                 raise KeyError(f"Invalid table [{k}]")
             if not t.is_table:
@@ -2207,7 +2212,9 @@ class IndexCol:
         return ",".join(
             [
                 f"{key}->{value}"
-                for key, value in zip(["name", "cname", "axis", "pos", "kind"], temp)
+                for key, value in zip(
+                    ["name", "cname", "axis", "pos", "kind"], temp, strict=True
+                )
             ]
         )
 
@@ -2532,7 +2539,9 @@ class DataCol(IndexCol):
         return ",".join(
             [
                 f"{key}->{value}"
-                for key, value in zip(["name", "cname", "dtype", "kind", "shape"], temp)
+                for key, value in zip(
+                    ["name", "cname", "dtype", "kind", "shape"], temp, strict=True
+                )
             ]
         )
 
@@ -3125,7 +3134,7 @@ class GenericFixed(Fixed):
         setattr(self.attrs, f"{key}_nlevels", index.nlevels)
 
         for i, (lev, level_codes, name) in enumerate(
-            zip(index.levels, index.codes, index.names)
+            zip(index.levels, index.codes, index.names, strict=True)
         ):
             # write the level
             if isinstance(lev.dtype, ExtensionDtype):
@@ -3301,18 +3310,16 @@ class GenericFixed(Fixed):
             # store as UTC
             # with a zone
 
-            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-            # attribute "asi8"
+            # error: "ExtensionArray" has no attribute "asi8"
             self._handle.create_array(
                 self.group,
                 key,
-                value.asi8,  # type: ignore[union-attr]
+                value.asi8,  # type: ignore[attr-defined]
             )
 
             node = getattr(self.group, key)
-            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray]" has no
-            # attribute "tz"
-            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[union-attr]
+            # error: "ExtensionArray" has no attribute "tz"
+            node._v_attrs.tz = _get_tz(value.tz)  # type: ignore[attr-defined]
             node._v_attrs.value_type = f"datetime64[{value.dtype.unit}]"
         elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
@@ -4160,7 +4167,7 @@ class Table(Fixed):
 
         # add my values
         vaxes = []
-        for i, (blk, b_items) in enumerate(zip(blocks, blk_items)):
+        for i, (blk, b_items) in enumerate(zip(blocks, blk_items, strict=True)):
             # shape of the data column are the indexable axes
             klass = DataCol
             name = None
@@ -4301,7 +4308,7 @@ class Table(Fixed):
         if table_exists:
             by_items = {
                 tuple(b_items.tolist()): (b, b_items)
-                for b, b_items in zip(blocks, blk_items)
+                for b, b_items in zip(blocks, blk_items, strict=True)
             }
             new_blocks: list[Block] = []
             new_blk_items = []
@@ -5195,8 +5202,7 @@ def _maybe_convert_for_string_atom(
     columns: list[str],
 ):
     if isinstance(bvalues.dtype, StringDtype):
-        # "ndarray[Any, Any]" has no attribute "to_numpy"
-        bvalues = bvalues.to_numpy()  # type: ignore[union-attr]
+        bvalues = bvalues.to_numpy()
     if bvalues.dtype != object:
         return bvalues
 
