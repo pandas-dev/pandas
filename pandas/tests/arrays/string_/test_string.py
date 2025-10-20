@@ -278,11 +278,9 @@ def test_add_strings(dtype):
 
 @pytest.mark.xfail(reason="GH-28527")
 def test_add_frame(request, dtype):
-    if isinstance(dtype, "str[python]"):
-        # This ONE dtype actually succeeds the test
-        # We are manually failing it to maintain continuity
-        mark = pytest.mark.xfail(reason="[XPASS(strict)] GH-28527")
-        request.applymarker(mark)
+    # "str[python]" actually safely adds but with the wrong dtype
+    # result = <StringDtype(na_value=nan)>
+    # expected = <StringDtype(storage='python', na_value=nan)>
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
     assert arr.__add__(df) is NotImplemented
