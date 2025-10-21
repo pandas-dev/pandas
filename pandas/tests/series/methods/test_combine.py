@@ -19,8 +19,6 @@ class TestCombine:
 
     def test_combine_series(self):
         # GH#31899
-        # Note - combine() with another Series is also tested elsewhere because
-        # it is used when testing operators
         s1 = Series([91, NA, 94], dtype="Int8")
         s2 = Series([91, NA, 11], dtype="Int8")
         result = s1.combine(s2, lambda x, y: x + y)
