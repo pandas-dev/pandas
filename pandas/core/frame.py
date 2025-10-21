@@ -1914,11 +1914,11 @@ class DataFrame(NDFrame, OpsMixin):
         orient = orient.lower()  # type: ignore[assignment]
         if orient == "index":
             if len(data) > 0:
+                index = list(data.keys())
                 # TODO speed up Series case
                 if isinstance(next(iter(data.values())), (Series, dict)):
                     data = _from_nested_dict(data)
                 else:
-                    index = list(data.keys())
                     # error: Incompatible types in assignment (expression has type
                     # "List[Any]", variable has type "Dict[Any, Any]")
                     data = list(data.values())  # type: ignore[assignment]
