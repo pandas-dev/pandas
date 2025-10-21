@@ -20,10 +20,7 @@ from pandas import (
     Timestamp,
     bdate_range,
 )
-import pyarrow as pa
-import decimal
 import pandas._testing as tm
-import math
 
 
 @pytest.mark.parametrize(
