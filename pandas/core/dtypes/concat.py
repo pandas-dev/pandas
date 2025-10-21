@@ -223,7 +223,7 @@ def union_categoricals(
     >>> b = pd.Categorical(["a", "b"])
     >>> pd.api.types.union_categoricals([a, b])
     ['b', 'c', 'a', 'b']
-    Categories (3, object): ['b', 'c', 'a']
+    Categories (3, str): ['b', 'c', 'a']
 
     By default, the resulting categories will be ordered as they appear
     in the `categories` of the data. If you want the categories to be
@@ -231,7 +231,7 @@ def union_categoricals(
 
     >>> pd.api.types.union_categoricals([a, b], sort_categories=True)
     ['b', 'c', 'a', 'b']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     `union_categoricals` also works with the case of combining two
     categoricals of the same categories and order information (e.g. what
@@ -241,7 +241,7 @@ def union_categoricals(
     >>> b = pd.Categorical(["a", "b", "a"], ordered=True)
     >>> pd.api.types.union_categoricals([a, b])
     ['a', 'b', 'a', 'b', 'a']
-    Categories (2, object): ['a' < 'b']
+    Categories (2, str): ['a' < 'b']
 
     Raises `TypeError` because the categories are ordered and not identical.
 
@@ -259,7 +259,7 @@ def union_categoricals(
     >>> b = pd.Categorical(["c", "b", "a"], ordered=True)
     >>> pd.api.types.union_categoricals([a, b], ignore_order=True)
     ['a', 'b', 'c', 'c', 'b', 'a']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     `union_categoricals` also works with a `CategoricalIndex`, or `Series`
     containing categorical data, but note that the resulting array will
@@ -269,7 +269,7 @@ def union_categoricals(
     >>> b = pd.Series(["a", "b"], dtype="category")
     >>> pd.api.types.union_categoricals([a, b])
     ['b', 'c', 'a', 'b']
-    Categories (3, object): ['b', 'c', 'a']
+    Categories (3, str): ['b', 'c', 'a']
     """
     from pandas import Categorical
     from pandas.core.arrays.categorical import recode_for_categories
@@ -318,7 +318,8 @@ def union_categoricals(
             categories = categories.sort_values()
 
         new_codes = [
-            recode_for_categories(c.codes, c.categories, categories) for c in to_union
+            recode_for_categories(c.codes, c.categories, categories, copy=False)
+            for c in to_union
         ]
         new_codes = np.concatenate(new_codes)
     else:

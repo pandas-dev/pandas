@@ -6,14 +6,14 @@ from collections.abc import (
     Sequence,
 )
 from functools import partial
+import pathlib
 import re
 from typing import (
     TYPE_CHECKING,
     Any,
     DefaultDict,
-    Optional,
+    TypeAlias,
     TypedDict,
-    Union,
 )
 from uuid import uuid4
 
@@ -50,11 +50,11 @@ if TYPE_CHECKING:
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
-BaseFormatter = Union[str, Callable]
-ExtFormatter = Union[BaseFormatter, dict[Any, Optional[BaseFormatter]]]
-CSSPair = tuple[str, Union[str, float]]
-CSSList = list[CSSPair]
-CSSProperties = Union[str, CSSList]
+BaseFormatter: TypeAlias = str | Callable
+ExtFormatter: TypeAlias = BaseFormatter | dict[Any, BaseFormatter | None]
+CSSPair: TypeAlias = tuple[str, str | float]
+CSSList: TypeAlias = list[CSSPair]
+CSSProperties: TypeAlias = str | CSSList
 
 
 class CSSDict(TypedDict):
@@ -62,8 +62,8 @@ class CSSDict(TypedDict):
     props: CSSProperties
 
 
-CSSStyles = list[CSSDict]
-Subset = Union[slice, Sequence, Index]
+CSSStyles: TypeAlias = list[CSSDict]
+Subset = slice | Sequence | Index
 
 
 class StylerRenderer:
@@ -71,7 +71,9 @@ class StylerRenderer:
     Base class to process rendering a Styler with a specified jinja2 template.
     """
 
-    loader = jinja2.PackageLoader("pandas", "io/formats/templates")
+    this_dir = pathlib.Path(__file__).parent.resolve()
+    template_dir = this_dir / "templates"
+    loader = jinja2.FileSystemLoader(template_dir)
     env = jinja2.Environment(loader=loader, trim_blocks=True)
     template_html = env.get_template("html.tpl")
     template_html_table = env.get_template("html_table.tpl")
@@ -427,7 +429,7 @@ class StylerRenderer:
         clabels = self.data.columns.tolist()
         if self.data.columns.nlevels == 1:
             clabels = [[x] for x in clabels]
-        clabels = list(zip(*clabels))
+        clabels = list(zip(*clabels, strict=True))
 
         head = []
         # 1) column headers
@@ -912,7 +914,7 @@ class StylerRenderer:
             return row_indices
 
         body = []
-        for r, row in zip(concatenated_visible_rows(self), d["body"]):
+        for r, row in zip(concatenated_visible_rows(self), d["body"], strict=True):
             # note: cannot enumerate d["body"] because rows were dropped if hidden
             # during _translate_body so must zip to acquire the true r-index associated
             # with the ctx obj which contains the cell styles.

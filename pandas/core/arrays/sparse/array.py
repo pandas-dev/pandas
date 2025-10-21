@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -84,20 +85,27 @@ from pandas.core.nanops import check_below_min_count
 
 from pandas.io.formats import printing
 
-# See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Sequence,
     )
-    from enum import Enum
+    from types import EllipsisType
+    from typing import (
+        Protocol,
+        type_check_only,
+    )
 
-    class ellipsis(Enum):
-        Ellipsis = "..."
+    from scipy.sparse import (
+        csc_array,
+        csc_matrix,
+    )
 
-    Ellipsis = ellipsis.Ellipsis
-
-    from scipy.sparse import spmatrix
+    @type_check_only
+    class _SparseMatrixLike(Protocol):
+        @property
+        def shape(self, /) -> tuple[int, int]: ...
+        def tocsc(self, /) -> csc_array | csc_matrix: ...
 
     from pandas._typing import NumpySorter
 
@@ -113,15 +121,11 @@ if TYPE_CHECKING:
         PositionalIndexer,
         Scalar,
         ScalarIndexer,
-        Self,
         SequenceIndexer,
         npt,
     )
 
     from pandas import Series
-
-else:
-    ellipsis = type(Ellipsis)
 
 
 # ----------------------------------------------------------------------------
@@ -366,6 +370,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     Indices: array([2, 3], dtype=int32)
     """
 
+    __module__ = "pandas.arrays"
+
     _subtyp = "sparse_array"  # register ABCSparseArray
     _hidden_attrs = PandasObject._hidden_attrs | frozenset([])
     _sparse_index: SparseIndex
@@ -511,7 +517,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return new
 
     @classmethod
-    def from_spmatrix(cls, data: spmatrix) -> Self:
+    def from_spmatrix(cls, data: _SparseMatrixLike) -> Self:
         """
         Create a SparseArray from a scipy.sparse matrix.
 
@@ -543,10 +549,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         # our sparse index classes require that the positions be strictly
         # increasing. So we need to sort loc, and arr accordingly.
-        data = data.tocsc()
-        data.sort_indices()
-        arr = data.data
-        idx = data.indices
+        data_csc = data.tocsc()
+        data_csc.sort_indices()
+        arr = data_csc.data
+        idx = data_csc.indices
 
         zero = np.array(0, dtype=arr.dtype).item()
         dtype = SparseDtype(arr.dtype, zero)
@@ -606,6 +612,23 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     @classmethod
     def _from_factorized(cls, values, original) -> Self:
         return cls(values, dtype=original.dtype)
+
+    def _cast_pointwise_result(self, values):
+        result = super()._cast_pointwise_result(values)
+        if result.dtype.kind == self.dtype.kind:
+            try:
+                # e.g. test_groupby_agg_extension
+                res = type(self)._from_sequence(result, dtype=self.dtype)
+                if ((res == result) | (isna(result) & res.isna())).all():
+                    # This does not hold for e.g.
+                    #  test_arith_frame_with_scalar[0-__truediv__]
+                    return res
+                return type(self)._from_sequence(result)
+            except (ValueError, TypeError):
+                return type(self)._from_sequence(result)
+        else:
+            # e.g. test_combine_le avoid casting bools to Sparse[float64, nan]
+            return type(self)._from_sequence(result)
 
     # ------------------------------------------------------------------------
     # Data
@@ -943,31 +966,22 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     @overload
     def __getitem__(
         self,
-        key: SequenceIndexer | tuple[int | ellipsis, ...],
+        key: SequenceIndexer | tuple[int | EllipsisType, ...],
     ) -> Self: ...
 
     def __getitem__(
         self,
-        key: PositionalIndexer | tuple[int | ellipsis, ...],
+        key: PositionalIndexer | tuple[int | EllipsisType, ...],
     ) -> Self | Any:
         if isinstance(key, tuple):
             key = unpack_tuple_and_ellipses(key)
-            if key is Ellipsis:
+            if key is ...:
                 raise ValueError("Cannot slice with Ellipsis")
 
         if is_integer(key):
             return self._get_val_at(key)
         elif isinstance(key, tuple):
-            # error: Invalid index type "Tuple[Union[int, ellipsis], ...]"
-            # for "ndarray[Any, Any]"; expected type
-            # "Union[SupportsIndex, _SupportsArray[dtype[Union[bool_,
-            # integer[Any]]]], _NestedSequence[_SupportsArray[dtype[
-            # Union[bool_, integer[Any]]]]], _NestedSequence[Union[
-            # bool, int]], Tuple[Union[SupportsIndex, _SupportsArray[
-            # dtype[Union[bool_, integer[Any]]]], _NestedSequence[
-            # _SupportsArray[dtype[Union[bool_, integer[Any]]]]],
-            # _NestedSequence[Union[bool, int]]], ...]]"
-            data_slice = self.to_dense()[key]  # type: ignore[index]
+            data_slice = self.to_dense()[key]
         elif isinstance(key, slice):
             # Avoid densifying when handling contiguous slices
             if key.step is None or key.step == 1:
@@ -1200,10 +1214,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
             data = np.concatenate(values)
             indices_arr = np.concatenate(indices)
-            # error: Argument 2 to "IntIndex" has incompatible type
-            # "ndarray[Any, dtype[signedinteger[_32Bit]]]";
-            # expected "Sequence[int]"
-            sp_index = IntIndex(length, indices_arr)  # type: ignore[arg-type]
+            sp_index = IntIndex(length, indices_arr)
 
         else:
             # when concatenating block indices, we don't claim that you'll
@@ -1725,7 +1736,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
                     self._simple_new(
                         sp_value, self.sp_index, SparseDtype(sp_value.dtype, fv)
                     )
-                    for sp_value, fv in zip(sp_values, fill_value)
+                    for sp_value, fv in zip(sp_values, fill_value, strict=True)
                 )
                 return arrays
             elif method == "reduce":

@@ -450,7 +450,7 @@ class TestSafeSort:
             safe_sort(values=arg, codes=codes)
 
     @pytest.mark.parametrize(
-        "arg, exp", [[[1, 3, 2], [1, 2, 3]], [[1, 3, np.nan, 2], [1, 2, 3, np.nan]]]
+        "arg, exp", [[[1, 3, 2], [1, 2, 3]], [[1, 3, NA, 2], [1, 2, 3, NA]]]
     )
     def test_extension_array(self, arg, exp):
         a = array(arg, dtype="Int64")

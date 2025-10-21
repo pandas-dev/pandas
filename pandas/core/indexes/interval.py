@@ -11,6 +11,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
 )
 
 import numpy as np
@@ -97,7 +98,6 @@ if TYPE_CHECKING:
         Dtype,
         DtypeObj,
         IntervalClosedType,
-        Self,
         npt,
     )
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -1056,8 +1056,8 @@ class IntervalIndex(ExtensionIndex):
             first_nan_loc = np.arange(len(self))[self.isna()][0]
             mask[first_nan_loc] = True
 
-        other_tups = set(zip(other.left, other.right))
-        for i, tup in enumerate(zip(self.left, self.right)):
+        other_tups = set(zip(other.left, other.right, strict=True))
+        for i, tup in enumerate(zip(self.left, self.right, strict=True)):
             if tup in other_tups:
                 mask[i] = True
 

@@ -11,6 +11,7 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
+    Self,
     cast,
     final,
 )
@@ -74,7 +75,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
         JoinHow,
-        Self,
+        TimeUnit,
         npt,
     )
 
@@ -434,10 +435,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     _is_unique = Index.is_unique
 
     @property
-    def unit(self) -> str:
+    def unit(self) -> TimeUnit:
         return self._data.unit
 
-    def as_unit(self, unit: str) -> Self:
+    def as_unit(self, unit: TimeUnit) -> Self:
         """
         Convert to a dtype with the given unit resolution.
 
@@ -599,7 +600,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # At this point we should have result.dtype == self.dtype
             #  and type(result) is type(self._data)
             result = self._wrap_setop_result(other, result)
-            return result._with_freq(None)._with_freq("infer")
+            # error: "Index" has no attribute "_with_freq"; maybe "_with_infer"?
+            return result._with_freq(None)._with_freq("infer")  # type: ignore[attr-defined]
 
         else:
             return self._fast_intersect(other, sort)

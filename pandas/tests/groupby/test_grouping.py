@@ -10,7 +10,10 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    Pandas4Warning,
+    SpecificationError,
+)
 
 import pandas as pd
 from pandas import (
@@ -545,21 +548,21 @@ class TestGrouping:
         grouped = df.groupby("to filter").groups
         assert grouped["A"] == [0]
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             grouped = df.groupby([("to filter", "")]).groups
         assert grouped["A"] == [0]
 
         df = DataFrame([[1, "A"], [2, "B"]], columns=midx)
 
         expected = df.groupby("to filter").groups
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.groupby([("to filter", "")]).groups
         assert result == expected
 
         df = DataFrame([[1, "A"], [2, "A"]], columns=midx)
 
         expected = df.groupby("to filter").groups
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = df.groupby([("to filter", "")]).groups
         tm.assert_dict_equal(result, expected)
 
@@ -571,7 +574,7 @@ class TestGrouping:
         )
 
         msg = "`groups` by one element list returns scalar is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected = df.groupby([("b", 1)]).groups
         result = df.groupby(("b", 1)).groups
         tm.assert_dict_equal(expected, result)
@@ -583,14 +586,14 @@ class TestGrouping:
             ),
         )
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected = df2.groupby([("b", "d")]).groups
         result = df.groupby(("b", 1)).groups
         tm.assert_dict_equal(expected, result)
 
         df3 = DataFrame(df.values, columns=[("a", "d"), ("b", "d"), ("b", "e"), "c"])
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected = df3.groupby([("b", "d")]).groups
         result = df.groupby(("b", 1)).groups
         tm.assert_dict_equal(expected, result)
@@ -623,7 +626,7 @@ class TestGrouping:
         tm.assert_frame_equal(expected_max, result_max)
 
         msg = "`groups` by one element list returns scalar is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             expected_groups = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].groups
             result_groups = df.groupby([("a", 1)])["b"].groups
         tm.assert_dict_equal(expected_groups, result_groups)
@@ -737,7 +740,7 @@ class TestGrouping:
         # Grouper in a list grouping
         gb = df.groupby([grouper])
         expected = {Timestamp("2011-01-01"): Index(list(range(364)))}
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = gb.groups
         tm.assert_dict_equal(result, expected)
 
@@ -871,6 +874,22 @@ class TestGrouping:
         result = df.groupby("category_tuple").apply(lambda x: x.sort_values(by="num1"))
         expected = expected[result.columns]
         tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
+    def test_groupby_grouper_immutable_list_item(self):
+        # GH 26564 - prevent 'ValueError: all keys need to be the same shape'
+        # when reusing a list of groupers
+        df1 = DataFrame([["05/29/2019"], ["05/28/2019"]], columns=["date"]).assign(
+            date=lambda df: pd.to_datetime(df["date"])
+        )
+        df2 = DataFrame(columns=["date"]).assign(
+            date=lambda df: pd.to_datetime(df["date"])
+        )
+
+        groupers = [Grouper(key="date", freq="1D")]
+
+        df1.groupby(groupers).head()
+        # no error
+        df2.groupby(groupers).head()
 
 
 # get_group
@@ -1019,7 +1038,7 @@ class TestIteration:
         grouped = df.groupby(["A"])
         msg = "`groups` by one element list returns scalar is deprecated"
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             groups = grouped.groups
             assert groups is grouped.groups  # caching works
 

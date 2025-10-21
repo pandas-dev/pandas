@@ -303,13 +303,13 @@ class CSSToExcelConverter:
         #       'slantDashDot'
         #       'thick'
         #       'thin'
-        if width is None and style is None and color is None:
-            # Return None will remove "border" from style dictionary
-            return None
-
         if width is None and style is None:
-            # Return "none" will keep "border" in style dictionary
-            return "none"
+            if color is None:
+                # Return None will remove "border" from style dictionary
+                return None
+            else:
+                # Return "none" will keep "border" in style dictionary
+                return "none"
 
         if style in ("none", "hidden"):
             return "none"
@@ -410,11 +410,6 @@ class CSSToExcelConverter:
             return decoration.split()
         else:
             return ()
-
-    def _get_underline(self, decoration: Sequence[str]) -> str | None:
-        if "underline" in decoration:
-            return "single"
-        return None
 
     def _get_shadow(self, props: Mapping[str, str]) -> bool | None:
         if "text-shadow" in props:
@@ -638,7 +633,7 @@ class ExcelFormatter:
             )
 
         for lnum, (spans, levels, level_codes) in enumerate(
-            zip(level_lengths, columns.levels, columns.codes)
+            zip(level_lengths, columns.levels, columns.codes, strict=True)
         ):
             values = levels.take(level_codes)
             for i, span_val in spans.items():
@@ -797,7 +792,10 @@ class ExcelFormatter:
                 level_lengths = get_level_lengths(level_strs)
 
                 for spans, levels, level_codes in zip(
-                    level_lengths, self.df.index.levels, self.df.index.codes
+                    level_lengths,
+                    self.df.index.levels,
+                    self.df.index.codes,
+                    strict=False,
                 ):
                     values = levels.take(
                         level_codes,
@@ -829,7 +827,7 @@ class ExcelFormatter:
 
             else:
                 # Format hierarchical rows with non-merged values.
-                for indexcolvals in zip(*self.df.index):
+                for indexcolvals in zip(*self.df.index, strict=True):
                     for idx, indexcolval in enumerate(indexcolvals):
                         # GH#60099
                         if isinstance(indexcolval, Period):

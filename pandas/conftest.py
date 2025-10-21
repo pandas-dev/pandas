@@ -176,25 +176,19 @@ def pytest_collection_modifyitems(items, config) -> None:
                 ignore_doctest_warning(item, path, message)
 
 
-hypothesis_health_checks = [
-    hypothesis.HealthCheck.too_slow,
-    hypothesis.HealthCheck.differing_executors,
-]
-
-# Hypothesis
+# Similar to "ci" config in
+# https://hypothesis.readthedocs.io/en/latest/reference/api.html#built-in-profiles
 hypothesis.settings.register_profile(
-    "ci",
-    # Hypothesis timing checks are tuned for scalars by default, so we bump
-    # them from 200ms to 500ms per test case as the global default.  If this
-    # is too short for a specific test, (a) try to make it faster, and (b)
-    # if it really is slow add `@settings(deadline=...)` with a working value,
-    # or `deadline=None` to entirely disable timeouts for that test.
-    # 2022-02-09: Changed deadline from 500 -> None. Deadline leads to
-    # non-actionable, flaky CI failures (# GH 24641, 44969, 45118, 44969)
+    "pandas_ci",
+    database=None,
     deadline=None,
-    suppress_health_check=tuple(hypothesis_health_checks),
+    max_examples=15,
+    suppress_health_check=(
+        hypothesis.HealthCheck.too_slow,
+        hypothesis.HealthCheck.differing_executors,
+    ),
 )
-hypothesis.settings.load_profile("ci")
+hypothesis.settings.load_profile("pandas_ci")
 
 # Registering these strategies makes them globally available via st.from_type,
 # which is use for offsets in tests/tseries/offsets/test_offsets_properties.py
@@ -695,7 +689,9 @@ indices_dict = {
     "categorical": CategoricalIndex(list("abcd") * 2),
     "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=11)),
     "empty": Index([]),
-    "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
+    "tuples": MultiIndex.from_tuples(
+        zip(["foo", "bar", "baz"], [1, 2, 3], strict=True)
+    ),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
     "multi": _create_multiindex(),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
@@ -1880,7 +1876,9 @@ _any_skipna_inferred_dtype = [
     ("period", [Period(2013), pd.NaT, Period(2018)]),
     ("interval", [Interval(0, 1), np.nan, Interval(0, 2)]),
 ]
-ids, _ = zip(*_any_skipna_inferred_dtype)  # use inferred type as fixture-id
+ids = [
+    pair[0] for pair in _any_skipna_inferred_dtype
+]  # use inferred type as fixture-id
 
 
 @pytest.fixture(params=_any_skipna_inferred_dtype, ids=ids)
@@ -2116,3 +2114,16 @@ def temp_file(tmp_path):
     file_path = tmp_path / str(uuid.uuid4())
     file_path.touch()
     return file_path
+
+
+@pytest.fixture(scope="session")
+def monkeysession():
+    with pytest.MonkeyPatch.context() as mp:
+        yield mp
+
+
+@pytest.fixture(params=[True, False])
+def using_nan_is_na(request):
+    opt = request.param
+    with pd.option_context("mode.nan_is_na", opt):
+        yield opt

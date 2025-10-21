@@ -12,7 +12,7 @@ from pandas.compat._optional import import_optional_dependency
 PKG = os.path.dirname(os.path.dirname(__file__))
 
 
-def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> None:
+def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> None:  # noqa: PT028
     """
     Run the pandas test suite using pytest.
 

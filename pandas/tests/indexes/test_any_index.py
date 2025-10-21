@@ -9,6 +9,7 @@ import pytest
 
 from pandas.errors import InvalidIndexError
 
+from pandas import StringDtype
 import pandas._testing as tm
 
 
@@ -36,8 +37,15 @@ def test_mutability(index):
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-def test_map_identity_mapping(index, request):
+def test_map_identity_mapping(index, request, using_infer_string):
     # GH#12766
+    if (
+        not using_infer_string
+        and isinstance(index.dtype, StringDtype)
+        and index.dtype.storage == "python"
+    ):
+        mark = pytest.mark.xfail(reason="Does not preserve dtype")
+        request.applymarker(mark)
 
     result = index.map(lambda x: x)
     if index.dtype == object and (result.dtype == bool or result.dtype == "string"):
@@ -109,6 +117,15 @@ class TestRoundTrips:
 
 
 class TestIndexing:
+    def test_getitem_0d_ndarray(self, index):
+        # GH#55601
+        if len(index) == 0:
+            pytest.skip(reason="Test assumes non-empty index")
+        key = np.array(0)
+        result = index[key]
+
+        assert result == index[0]
+
     def test_get_loc_listlike_raises_invalid_index_error(self, index):
         # and never TypeError
         key = np.array([0, 1], dtype=np.intp)

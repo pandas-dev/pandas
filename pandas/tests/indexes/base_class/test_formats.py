@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
 import pandas._config.config as cf
 
 from pandas import Index
@@ -16,7 +15,6 @@ class TestIndexRendering:
         res = eval(repr(idx))
         tm.assert_index_equal(res, idx)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="repr different")
     @pytest.mark.parametrize(
         "index,expected",
         [
@@ -77,11 +75,13 @@ class TestIndexRendering:
             ),
         ],
     )
-    def test_string_index_repr(self, index, expected):
+    def test_string_index_repr(self, index, expected, using_infer_string):
         result = repr(index)
+        if using_infer_string:
+            expected = expected.replace("dtype='object'", "dtype='str'")
+
         assert result == expected
 
-    @pytest.mark.xfail(using_string_dtype(), reason="repr different")
     @pytest.mark.parametrize(
         "index,expected",
         [
@@ -121,11 +121,16 @@ class TestIndexRendering:
             ),
         ],
     )
-    def test_string_index_repr_with_unicode_option(self, index, expected):
+    def test_string_index_repr_with_unicode_option(
+        self, index, expected, using_infer_string
+    ):
         # Enable Unicode option -----------------------------------------
         with cf.option_context("display.unicode.east_asian_width", True):
             result = repr(index)
-            assert result == expected
+
+        if using_infer_string:
+            expected = expected.replace("dtype='object'", "dtype='str'")
+        assert result == expected
 
     def test_repr_summary(self):
         with cf.option_context("display.max_seq_items", 10):

@@ -52,7 +52,7 @@ def test_preserve_dtypes(op):
 
 def test_astype_nansafe():
     # see gh-22343
-    arr = pd.array([np.nan, 1, 2], dtype="Int8")
+    arr = pd.array([pd.NA, 1, 2], dtype="Int8")
     msg = "cannot convert NA to integer"
 
     with pytest.raises(ValueError, match=msg):
@@ -230,7 +230,7 @@ def test_construct_cast_invalid(dtype):
     with pytest.raises(TypeError, match=msg):
         pd.Series(arr).astype(dtype)
 
-    arr = [1.2, 2.3, 3.7, np.nan]
+    arr = [1.2, 2.3, 3.7, pd.NA]
     with pytest.raises(TypeError, match=msg):
         pd.array(arr, dtype=dtype)
 

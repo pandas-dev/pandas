@@ -42,6 +42,9 @@ gettz_dateutil = lambda x: maybe_get_tz("dateutil/" + x)
 gettz_pytz = lambda x: x
 
 
+@pytest.mark.filterwarnings(
+    "ignore:`alltrue` is deprecated as of NumPy 1.25.0:DeprecationWarning"
+)
 @pytest.mark.parametrize("gettz", [gettz_dateutil, gettz_pytz])
 def test_append_with_timezones(setup_path, gettz):
     # as columns
@@ -332,6 +335,9 @@ def test_dst_transitions(setup_path):
             tm.assert_frame_equal(result, df)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:`alltrue` is deprecated as of NumPy 1.25.0:DeprecationWarning"
+)
 def test_read_with_where_tz_aware_index(tmp_path, setup_path):
     # GH 11926
     periods = 10

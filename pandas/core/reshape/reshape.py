@@ -13,7 +13,10 @@ import numpy as np
 from pandas._config.config import get_option
 
 import pandas._libs.reshape as libreshape
-from pandas.errors import PerformanceWarning
+from pandas.errors import (
+    Pandas4Warning,
+    PerformanceWarning,
+)
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
@@ -28,7 +31,10 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import ExtensionDtype
-from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+)
 
 import pandas.core.algorithms as algos
 from pandas.core.algorithms import (
@@ -122,8 +128,11 @@ class _Unstacker:
 
         self.level = self.index._get_level_number(level)
 
-        # when index includes `nan`, need to lift levels/strides by 1
-        self.lift = 1 if -1 in self.index.codes[self.level] else 0
+        # `nan` values have code `-1`, when sorting, we lift to assign them
+        # at index 0
+        self.has_nan = -1 in self.index.codes[self.level]
+        should_lift = self.has_nan and self.sort
+        self.lift = 1 if should_lift else 0
 
         # Note: the "pop" below alters these in-place.
         self.new_index_levels = list(self.index.levels)
@@ -132,8 +141,16 @@ class _Unstacker:
         self.removed_name = self.new_index_names.pop(self.level)
         self.removed_level = self.new_index_levels.pop(self.level)
         self.removed_level_full = index.levels[self.level]
+        self.unique_nan_index: int = -1
         if not self.sort:
-            unique_codes = unique(self.index.codes[self.level])
+            unique_codes: np.ndarray = unique(self.index.codes[self.level])
+            if self.has_nan:
+                # drop nan codes, because they are not represented in level
+                nan_mask = unique_codes == -1
+
+                unique_codes = unique_codes[~nan_mask]
+                self.unique_nan_index = np.flatnonzero(nan_mask)[0]
+
             self.removed_level = self.removed_level.take(unique_codes)
             self.removed_level_full = self.removed_level_full.take(unique_codes)
 
@@ -204,7 +221,7 @@ class _Unstacker:
         ngroups = len(obs_ids)
 
         comp_index = ensure_platform_int(comp_index)
-        stride = self.index.levshape[self.level] + self.lift
+        stride = self.index.levshape[self.level] + self.has_nan
         self.full_shape = ngroups, stride
 
         selector = self.sorted_labels[-1] + stride * comp_index + self.lift
@@ -298,7 +315,25 @@ class _Unstacker:
                 new_values[:] = fill_value
         else:
             if not mask_all:
+                old_dtype = dtype
                 dtype, fill_value = maybe_promote(dtype, fill_value)
+                if old_dtype != dtype:
+                    if old_dtype.kind not in "iub":
+                        warnings.warn(
+                            # GH#12189, GH#53868
+                            "Using a fill_value that cannot be held in the existing "
+                            "dtype is deprecated and will raise in a future version.",
+                            Pandas4Warning,
+                            stacklevel=find_stack_level(),
+                        )
+                    elif not isna(fill_value):
+                        warnings.warn(
+                            # GH#12189, GH#53868
+                            "Using a fill_value that cannot be held in the existing "
+                            "dtype is deprecated and will raise in a future version.",
+                            Pandas4Warning,
+                            stacklevel=find_stack_level(),
+                        )
             new_values = np.empty(result_shape, dtype=dtype)
             if not mask_all:
                 new_values.fill(fill_value)
@@ -338,23 +373,20 @@ class _Unstacker:
 
     def get_new_columns(self, value_columns: Index | None):
         if value_columns is None:
-            if self.lift == 0:
+            if not self.has_nan:
                 return self.removed_level._rename(name=self.removed_name)
 
             lev = self.removed_level.insert(0, item=self.removed_level._na_value)
             return lev.rename(self.removed_name)
 
-        stride = len(self.removed_level) + self.lift
+        stride = len(self.removed_level) + self.has_nan
         width = len(value_columns)
         propagator = np.repeat(np.arange(width), stride)
 
         new_levels: FrozenList | list[Index]
 
         if isinstance(value_columns, MultiIndex):
-            # error: Cannot determine type of "__add__"  [has-type]
-            new_levels = value_columns.levels + (  # type: ignore[has-type]
-                self.removed_level_full,
-            )
+            new_levels = value_columns.levels + (self.removed_level_full,)  # pyright: ignore[reportOperatorIssue]
             new_names = value_columns.names + (self.removed_name,)
 
             new_codes = [lab.take(propagator) for lab in value_columns.codes]
@@ -380,12 +412,21 @@ class _Unstacker:
         if len(self.removed_level_full) != len(self.removed_level):
             # In this case, we remap the new codes to the original level:
             repeater = self.removed_level_full.get_indexer(self.removed_level)
-            if self.lift:
+            if self.has_nan:
+                # insert nan index at first position
                 repeater = np.insert(repeater, 0, -1)
         else:
             # Otherwise, we just use each level item exactly once:
-            stride = len(self.removed_level) + self.lift
+            stride = len(self.removed_level) + self.has_nan
             repeater = np.arange(stride) - self.lift
+            if self.has_nan and not self.sort:
+                assert self.unique_nan_index > -1, (
+                    "`unique_nan_index` not properly initialized"
+                )
+                # assign -1 where should be nan according to the unique values.
+                repeater[self.unique_nan_index] = -1
+                # compensate for the removed index level
+                repeater[self.unique_nan_index + 1 :] -= 1
 
         return repeater
 

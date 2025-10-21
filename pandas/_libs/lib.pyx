@@ -1752,7 +1752,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
             return "complex"
 
     elif util.is_float_object(val):
-        if is_float_array(values):
+        if is_float_array(values, skipna=skipna):
             return "floating"
         elif is_integer_float_array(values, skipna=skipna):
             if is_integer_na_array(values, skipna=skipna):
@@ -1954,9 +1954,11 @@ cdef class FloatValidator(Validator):
 
 
 # Note: only python-exposed for tests
-cpdef bint is_float_array(ndarray values):
+cpdef bint is_float_array(ndarray values, bint skipna=True):
     cdef:
-        FloatValidator validator = FloatValidator(values.size, values.dtype)
+        FloatValidator validator = FloatValidator(values.size,
+                                                  values.dtype,
+                                                  skipna=skipna)
     return validator.validate(values)
 
 
@@ -1972,9 +1974,11 @@ cdef class ComplexValidator(Validator):
         return cnp.PyDataType_ISCOMPLEX(self.dtype)
 
 
-cdef bint is_complex_array(ndarray values):
+cdef bint is_complex_array(ndarray values, bint skipna=True):
     cdef:
-        ComplexValidator validator = ComplexValidator(values.size, values.dtype)
+        ComplexValidator validator = ComplexValidator(values.size,
+                                                      values.dtype,
+                                                      skipna=skipna)
     return validator.validate(values)
 
 
@@ -2251,7 +2255,8 @@ cpdef bint is_interval_array(ndarray values):
     for i in range(n):
         val = values[i]
 
-        if isinstance(val, Interval):
+        if type(val) is Interval:
+            # GH#46945 catch Interval exactly, excluding subclasses
             if closed is None:
                 closed = val.closed
                 numeric = (
@@ -2939,7 +2944,9 @@ class _NoDefault(Enum):
 
 # Note: no_default is exported to the public API in pandas.api.extensions
 no_default = _NoDefault.no_default  # Sentinel indicating the default value.
+no_default.__module__ = "pandas.api.extensions"
 NoDefault = Literal[_NoDefault.no_default]
+NoDefault.__module__ = "pandas.api.typing"
 
 
 @cython.boundscheck(False)

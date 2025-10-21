@@ -143,7 +143,7 @@ def test_select(setup_path):
         tm.assert_frame_equal(expected, result)
 
         # equivalently
-        result = store.select("df", [("columns=['A', 'B']")])
+        result = store.select("df", ["columns=['A', 'B']"])
         expected = df.reindex(columns=["A", "B"])
         tm.assert_frame_equal(expected, result)
 

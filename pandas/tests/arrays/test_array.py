@@ -384,7 +384,7 @@ def test_array_copy():
         ([1, 2], IntegerArray._from_sequence([1, 2], dtype="Int64")),
         ([1, None], IntegerArray._from_sequence([1, None], dtype="Int64")),
         ([1, pd.NA], IntegerArray._from_sequence([1, pd.NA], dtype="Int64")),
-        ([1, np.nan], IntegerArray._from_sequence([1, np.nan], dtype="Int64")),
+        ([1, np.nan], IntegerArray._from_sequence([1, pd.NA], dtype="Int64")),
         # float
         ([0.1, 0.2], FloatingArray._from_sequence([0.1, 0.2], dtype="Float64")),
         ([0.1, None], FloatingArray._from_sequence([0.1, pd.NA], dtype="Float64")),
@@ -487,8 +487,7 @@ def test_bounds_check():
 class DecimalDtype2(DecimalDtype):
     name = "decimal2"
 
-    @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(self):
         """
         Return the array type associated with this dtype.
 

@@ -46,7 +46,7 @@ def test_scientific_no_exponent(all_parsers_all_precisions):
     [
         -617,
         -100000,
-        pytest.param(-99999999999999999, marks=pytest.mark.skip_ubsan),
+        -99999999999999999,
     ],
 )
 def test_very_negative_exponent(all_parsers_all_precisions, neg_exp):
@@ -59,7 +59,6 @@ def test_very_negative_exponent(all_parsers_all_precisions, neg_exp):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.skip_ubsan
 @xfail_pyarrow  # AssertionError: Attributes of DataFrame.iloc[:, 0] are different
 @pytest.mark.parametrize("exp", [999999999999999999, -999999999999999999])
 def test_too_many_exponent_digits(all_parsers_all_precisions, exp, request):
@@ -76,5 +75,32 @@ def test_too_many_exponent_digits(all_parsers_all_precisions, exp, request):
         expected = DataFrame({"data": [value]})
     else:
         expected = DataFrame({"data": [f"10E{exp}"]})
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value, expected_value",
+    [
+        ("32.0", 32.0),
+        ("32e0", 32.0),
+        ("3.2e1", 32.0),
+        ("3.2e80", 3.2e80),
+        ("3.2e-80", 3.2e-80),
+        ("18446744073709551616.0", float(1 << 64)),  # loses precision
+        ("18446744073709551616.5", float(1 << 64)),  # loses precision
+        ("36893488147419103232.3", float(1 << 65)),  # loses precision
+    ],
+)
+def test_small_int_followed_by_float(
+    all_parsers_all_precisions, value, expected_value, request
+):
+    # GH#51295
+    parser, precision = all_parsers_all_precisions
+    data = f"""data
+    42
+    {value}"""
+    result = parser.read_csv(StringIO(data), float_precision=precision)
+    expected = DataFrame({"data": [42.0, expected_value]})
 
     tm.assert_frame_equal(result, expected)
