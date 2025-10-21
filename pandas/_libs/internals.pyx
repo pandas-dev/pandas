@@ -1033,7 +1033,7 @@ cdef class SetitemMixin:
     def __setitem__(self, key, value) -> None:
         cdef bint is_unique = 0
         if not PYPY:
-            _is_unique_referenced_temporary(self)
+            is_unique = _is_unique_referenced_temporary(self)
             if is_unique:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=1
