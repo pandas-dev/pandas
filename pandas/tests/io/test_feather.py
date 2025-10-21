@@ -184,10 +184,9 @@ class TestFeather:
             }
         )
 
-        path = temp_file
-        to_feather(df, path)
+        to_feather(df, temp_file)
         with pd.option_context("mode.string_storage", string_storage):
-            result = read_feather(path, dtype_backend=dtype_backend)
+            result = read_feather(temp_file, dtype_backend=dtype_backend)
 
         if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
