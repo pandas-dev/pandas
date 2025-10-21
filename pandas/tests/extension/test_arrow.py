@@ -687,6 +687,21 @@ class TestArrowArray(base.ExtensionTests):
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
+    def test_fillna_readonly(self, data_missing):
+        data = data_missing.copy()
+        data._readonly = True
+
+        # by default copy=True, then this works fine
+        result = data.fillna(data_missing[1])
+        assert result[0] == data_missing[1]
+        tm.assert_extension_array_equal(data, data_missing)
+
+        # copy=False is generally not honored by ArrowExtensionArray, always
+        # returns new data -> same result as above
+        result = data.fillna(data_missing[1])
+        assert result[0] == data_missing[1]
+        tm.assert_extension_array_equal(data, data_missing)
+
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
     )

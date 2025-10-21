@@ -237,6 +237,19 @@ class TestSparseArray(base.ExtensionTests):
     def test_fillna_no_op_returns_copy(self, data, request):
         super().test_fillna_no_op_returns_copy(data)
 
+    def test_fillna_readonly(self, data_missing):
+        # copy=False keyword is not ignored by SparseArray.fillna
+        data = data_missing.copy()
+        data._readonly = True
+
+        # by default copy=True, then this works fine
+        result = data.fillna(data_missing[1])
+        assert result[0] == data_missing[1]
+
+        # copy=False is ignored -> so same result as above
+        result = data.fillna(data_missing[1], copy=False)
+        assert result[0] == data_missing[1]
+
     @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self, data_missing):
         # this one looks doable.
