@@ -1671,6 +1671,42 @@ function takes a number of arguments. Only the first is required.
 * ``chunksize``: Number of rows to write at a time
 * ``date_format``: Format string for datetime objects
 
+Floating Point Precision on Writing and Reading to CSV Files
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Floating Point Precision inaccuracies when writing and reading to CSV files happen due to how the numeric data is represented and parsed in pandas.
+During the write process, pandas converts all the numeric values into text that is stored as bytes in the CSV file. However, when we read the CSV back, pandas parses those
+text values and converts them back into different types (floats, integers, strings) which is when the loss of float point precision happens.
+The conversion process is not always guaranteed to be accurate because small differences in data representation between original and reloaded data frame can occur leading to precision loss.
+
+* ``float_format``: Format string for floating point numbers
+``df.to_csv('file.csv', float_format='%.17g')`` allows for floating point precision to be specified when writing to the CSV file. In this example, this ensures that the floating point is written in this exact format of 17 significant digits (64-bit float).
+
+``df = pd.read_csv('file.csv', float_precision='round_trip')`` allows for floating point precision to be specified when reading from the CSV file. This is guaranteed to round-trip values after writing to a file and Pandas will read the numbers without losing or changing decimal places.
+
+.. ipython:: python
+   import pandas as pd
+   import os
+
+   x0 = 18292498239.824
+   df1 = pd.DataFrame({'One': [x0]}, index=["bignum"])
+
+   df1.to_csv('test.csv', float_format='%.17g')
+   df2 = pd.read_csv('test.csv', index_col=0, float_precision='round_trip')
+
+   x1 = df1['One'][0]
+   x2 = df2['One'][0]
+
+   print("x0 = %f; x1 = %f; Are they equal? %s" % (x0, x1, (x0 == x1)))
+   print("x0 = %f; x2 = %f; Are they equal? %s" % (x0, x2, (x0 == x2)))
+
+   os.remove('test.csv')
+
+  .. Output received:
+   x0 = 18292498239.824001; x1 = 18292498239.824001; Are they equal? True
+   x0 = 18292498239.824001; x2 = 18292498239.824001; Are they equal? True
+   ..
+
 Writing a formatted string
 ++++++++++++++++++++++++++
 
