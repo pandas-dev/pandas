@@ -9028,9 +9028,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         # GH#60128 Integers n where |n| > 2**53 would lose precision after align
         # upcasts them to float. Avoid lossy conversion by preemptively promoting
-        # int64 and uint64 Dtypes to their nullable EA Dtypes, Int64 and UInt64.
+        # int64 and uint64 to their nullable ExtensionDtypes, Int64 and UInt64.
         def _promote_wide_ints(df: DataFrame) -> DataFrame:
-            """Promotes int64/uint64 columns to their nullable versions."""
+            """Promotes int64/uint64 columns to their nullable ExtensionDtypes."""
             cast_map: dict[str, str] = {}
             for col, dt in df.dtypes.items():
                 if dt == np.dtype("int64"):
@@ -9042,10 +9042,13 @@ class DataFrame(NDFrame, OpsMixin):
                 df = df.astype(cast_map)
             return df
 
+        # To maintain backwards compatibility, this function can restore
+        # int64/uint64 columns from float64 when possible. But we should
+        # really consider just embracing nullable ExtensionDtypes instead.
         def _restore_wide_ints(
             self_original: DataFrame, other_original: DataFrame, combined_df: DataFrame
         ) -> DataFrame:
-            """Restores previously int64/uint64 columns if they don't have NAs."""
+            """Restores original dtypes by re-casting the promoted int columns."""
             cast_map: dict[str, str] = {}
             for col in combined_df.columns:
                 ser = combined_df[col]
@@ -9062,14 +9065,13 @@ class DataFrame(NDFrame, OpsMixin):
                     ]
                     if dtypes_to_resolve:
                         if isna(ser).any():
-                            # Currently, align upcasts to float64 when NAs are
-                            # present. Do this so we don't have to modify any
-                            # tests that expect float dtype when NAs are
-                            # present. BUT we could consider embracing nullable
-                            # integer dtypes since large integers are still
-                            # losing information on conversion to float -- it's
-                            # just not obvious because they aren't cast back to
-                            # int when NAs are present.
+                            # If there are NAs, we can't safely downcast back
+                            # to int. Previously, we left the data as float64.
+                            # However, converting large integers to float can
+                            # lose precision, even if it's not immediately
+                            # obvious (since we don't cast back). Consider
+                            # embracing nullable ExtensionDtypes instead
+                            # and dropping this whole restoration step.
                             dtypes_to_resolve.append(np.dtype("float64"))
                         target_type = find_common_type(dtypes_to_resolve)
                         cast_map[col] = target_type
