@@ -6072,6 +6072,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = self._binop(other, op, level=level, fill_value=fill_value)
             result._name = res_name
             return result
+        elif isinstance(other, ABCDataFrame):
+            # GH#46179
+            raise TypeError(
+                f"Series.{op.__name__.strip('_')} does not support a DataFrame "
+                f"`other`. Use df.{op.__name__.strip('_')}(ser) instead."
+            )
         else:
             if fill_value is not None:
                 if isna(other):
@@ -6095,8 +6101,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
-            The second operand in this operation.
+        other : object
+            When a Series is provided, will align on indexes. For all other types,
+            will behave the same as ``==`` but with possibly different results due
+            to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -6164,8 +6172,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
-            The second operand in this operation.
+        other : object
+            When a Series is provided, will align on indexes. For all other types,
+            will behave the same as ``==`` but with possibly different results due
+            to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -6236,8 +6246,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
-            The second operand in this operation.
+        other : object
+            When a Series is provided, will align on indexes. For all other types,
+            will behave the same as ``==`` but with possibly different results due
+            to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.

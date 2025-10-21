@@ -76,6 +76,8 @@ class Expression:
     This is not meant to be instantiated directly. Instead, use :meth:`pandas.col`.
     """
 
+    __module__ = "pandas.api.typing"
+
     def __init__(self, func: Callable[[DataFrame], Any], repr_str: str) -> None:
         self._func = func
         self._repr_str = repr_str
