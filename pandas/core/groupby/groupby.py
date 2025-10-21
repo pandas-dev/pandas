@@ -1758,9 +1758,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
 
-        def array_func(values: ArrayLike) -> ArrayLike:
+        def array_func(values: ArrayLike) -> ArrayLike:  
             try:
-                result = self._grouper._cython_operation(
+                result = self._grouper._cython_operation( 
                     "aggregate",
                     values,
                     how,
