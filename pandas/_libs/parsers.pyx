@@ -144,7 +144,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         SKIP_LINE
         FINISHED
 
-    enum: ERROR_OVERFLOW
+    enum: ERROR_OVERFLOW, ERROR_INVALID_CHARS
 
     ctypedef enum BadLineHandleMethod:
         ERROR,
@@ -1051,7 +1051,7 @@ cdef class TextReader:
         if col_dtype is not None:
             col_res, na_count = self._convert_with_dtype(
                 col_dtype, i, start, end, na_filter,
-                1, na_hashset, na_fset)
+                1, na_hashset, na_fset, False)
 
             # Fallback on the parse (e.g. we requested int dtype,
             # but its actually a float).
@@ -1062,22 +1062,26 @@ cdef class TextReader:
             return self._string_convert(i, start, end, na_filter, na_hashset)
         else:
             col_res = None
+            maybe_int = True
             for dt in self.dtype_cast_order:
-                if (dt.kind in "iu" and
-                        self._column_has_float(i, start, end, na_filter, na_hashset)):
+                if not maybe_int and dt.kind in "iu":
                     continue
 
                 try:
                     col_res, na_count = self._convert_with_dtype(
-                        dt, i, start, end, na_filter, 0, na_hashset, na_fset)
-                except ValueError:
-                    # This error is raised from trying to convert to uint64,
-                    # and we discover that we cannot convert to any numerical
-                    # dtype successfully. As a result, we leave the data
-                    # column AS IS with object dtype.
-                    col_res, na_count = self._convert_with_dtype(
-                        np.dtype("object"), i, start, end, 0,
-                        0, na_hashset, na_fset)
+                        dt, i, start, end, na_filter, 0, na_hashset, na_fset, True)
+                except ValueError as e:
+                    if str(e) == "Number is not int":
+                        maybe_int = False
+                        continue
+                    else:
+                        # This error is raised from trying to convert to uint64,
+                        # and we discover that we cannot convert to any numerical
+                        # dtype successfully. As a result, we leave the data
+                        # column AS IS with object dtype.
+                        col_res, na_count = self._convert_with_dtype(
+                            np.dtype("object"), i, start, end, 0,
+                            0, na_hashset, na_fset, False)
                 except OverflowError:
                     try:
                         col_res, na_count = _try_pylong(self.parser, i, start,
@@ -1085,7 +1089,7 @@ cdef class TextReader:
                     except ValueError:
                         col_res, na_count = self._convert_with_dtype(
                             np.dtype("object"), i, start, end, 0,
-                            0, na_hashset, na_fset)
+                            0, na_hashset, na_fset, False)
 
                 if col_res is not None:
                     break
@@ -1133,7 +1137,7 @@ cdef class TextReader:
                              bint na_filter,
                              bint user_dtype,
                              kh_str_starts_t *na_hashset,
-                             set na_fset):
+                             set na_fset, bint raise_on_invalid):
         if isinstance(dtype, CategoricalDtype):
             # TODO: I suspect that _categorical_convert could be
             # optimized when dtype is an instance of CategoricalDtype
@@ -1174,14 +1178,14 @@ cdef class TextReader:
 
         elif dtype.kind in "iu":
             try:
-                result, na_count = _try_int64(self.parser, i, start,
-                                              end, na_filter, na_hashset)
+                result, na_count = _try_int64(self.parser, i, start, end,
+                                              na_filter, na_hashset, raise_on_invalid)
                 if user_dtype and na_count is not None:
                     if na_count > 0:
                         raise ValueError(f"Integer column has NA values in column {i}")
             except OverflowError:
                 result = _try_uint64(self.parser, i, start, end,
-                                     na_filter, na_hashset)
+                                     na_filter, na_hashset, raise_on_invalid)
                 na_count = 0
 
             if result is not None and dtype != "int64":
@@ -1343,59 +1347,6 @@ cdef class TextReader:
                     return self.header[0][j]
             else:
                 return None
-
-    cdef bint _column_has_float(self, Py_ssize_t col,
-                                int64_t start, int64_t end,
-                                bint na_filter, kh_str_starts_t *na_hashset):
-        """Check if the column contains any float number."""
-        cdef:
-            Py_ssize_t i, j, lines = end - start
-            coliter_t it
-            const char *word = NULL
-            const char *ignored_chars = " +-"
-            const char *digits = "0123456789"
-            const char *float_indicating_chars = "eE"
-            char null_byte = 0
-
-        coliter_setup(&it, self.parser, col, start)
-
-        for i in range(lines):
-            COLITER_NEXT(it, word)
-
-            if na_filter and kh_get_str_starts_item(na_hashset, word):
-                continue
-
-            found_first_digit = False
-            j = 0
-            while word[j] != null_byte:
-                if word[j] == self.parser.decimal:
-                    return True
-                elif not found_first_digit and word[j] in ignored_chars:
-                    # no-op
-                    pass
-                elif not found_first_digit and word[j] not in digits:
-                    # word isn't numeric
-                    return False
-                elif not found_first_digit and word[j] in digits:
-                    found_first_digit = True
-                elif word[j] in float_indicating_chars:
-                    # preceding chars indicates numeric and
-                    # current char indicates float
-                    return True
-                elif word[j] not in digits:
-                    # previous characters indicates numeric
-                    # current character shows otherwise
-                    return False
-                elif word[j] in digits:
-                    # no-op
-                    pass
-                else:
-                    raise AssertionError(
-                            f"Unhandled case {word[j]=} {found_first_digit=}"
-                            )
-                j += 1
-
-        return False
 
 # Factor out code common to TextReader.__dealloc__ and TextReader.close
 # It cannot be a class method, since calling self.close() in __dealloc__
@@ -1793,7 +1744,8 @@ cdef int _try_double_nogil(parser_t *parser,
 
 cdef _try_uint64(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
-                 bint na_filter, kh_str_starts_t *na_hashset):
+                 bint na_filter, kh_str_starts_t *na_hashset,
+                 bint raise_on_invalid):
     cdef:
         int error
         Py_ssize_t lines
@@ -1815,6 +1767,8 @@ cdef _try_uint64(parser_t *parser, int64_t col,
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
+        elif raise_on_invalid and error == ERROR_INVALID_CHARS:
+            raise ValueError("Number is not int")
         return None
 
     if uint64_conflict(&state):
@@ -1863,7 +1817,7 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
 
 cdef _try_int64(parser_t *parser, int64_t col,
                 int64_t line_start, int64_t line_end,
-                bint na_filter, kh_str_starts_t *na_hashset):
+                bint na_filter, kh_str_starts_t *na_hashset, bint raise_on_invalid):
     cdef:
         int error, na_count = 0
         Py_ssize_t lines
@@ -1883,6 +1837,8 @@ cdef _try_int64(parser_t *parser, int64_t col,
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
+        elif raise_on_invalid and error == ERROR_INVALID_CHARS:
+            raise ValueError("Number is not int")
         return None, None
 
     return result, na_count
