@@ -621,6 +621,9 @@ def boxplot_frame(
     returned by `boxplot`.  When ``return_type='axes'`` is selected,
     the matplotlib axes on which the boxplot is drawn are returned:
 
+    .. plot::
+        :context: close-figs
+
         >>> boxplot = df.boxplot(column=["Col1", "Col2"], return_type="axes")
         >>> type(boxplot)
         <class 'matplotlib.axes._axes.Axes'>
@@ -628,12 +631,18 @@ def boxplot_frame(
     When grouping with ``by``, a Series mapping columns to ``return_type``
     is returned:
 
+    .. plot::
+        :context: close-figs
+
         >>> boxplot = df.boxplot(column=["Col1", "Col2"], by="X", return_type="axes")
         >>> type(boxplot)
         <class 'pandas.Series'>
 
     If ``return_type`` is `None`, a NumPy array of axes with the same shape
     as ``layout`` is returned:
+
+    .. plot::
+        :context: close-figs
 
         >>> boxplot = df.boxplot(column=["Col1", "Col2"], by="X", return_type=None)
         >>> type(boxplot)

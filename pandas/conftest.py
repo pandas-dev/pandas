@@ -1951,8 +1951,8 @@ def ip():
     return InteractiveShell(config=c)
 
 
-@pytest.fixture
-def mpl_cleanup():
+@pytest.fixture(autouse=True)
+def mpl_cleanup(doctest_namespace):
     """
     Ensure Matplotlib is cleaned up around a test.
 
