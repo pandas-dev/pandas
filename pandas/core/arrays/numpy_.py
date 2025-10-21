@@ -368,9 +368,6 @@ class NumpyExtensionArray(
             indices, allow_fill=allow_fill, fill_value=fill_value, axis=axis
         )
         # See GH#62448.
-        # TODO: Not all Pandas extension dtypes have an underlying Numpy dtype.
-        # I will need to handle the case where self.dtype doesn't have this
-        # attribute.
         if self.dtype.kind in "iub":
             return type(self)(result, copy=False)
 
