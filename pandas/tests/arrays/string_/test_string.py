@@ -36,6 +36,33 @@ def cls(dtype):
     return dtype.construct_array_type()
 
 
+def string_dtype_highest_priority(dtype1, dtype2):
+    if HAS_PYARROW:
+        DTYPE_HIERARCHY = [
+            pd.StringDtype("python", na_value=np.nan),
+            pd.StringDtype("pyarrow", na_value=np.nan),
+            pd.StringDtype("python", na_value=pd.NA),
+            pd.StringDtype("pyarrow", na_value=pd.NA),
+        ]
+    else:
+        DTYPE_HIERARCHY = [
+            pd.StringDtype("python", na_value=np.nan),
+            pd.StringDtype("python", na_value=pd.NA),
+        ]
+
+    h1 = DTYPE_HIERARCHY.index(dtype1)
+    h2 = DTYPE_HIERARCHY.index(dtype2)
+    return DTYPE_HIERARCHY[max(h1, h2)]
+
+
+def test_dtype_constructor():
+    pytest.importorskip("pyarrow")
+
+    with tm.assert_produces_warning(FutureWarning):
+        dtype = pd.StringDtype("pyarrow_numpy")
+    assert dtype == pd.StringDtype("pyarrow", na_value=np.nan)
+
+
 def test_dtype_equality():
     pytest.importorskip("pyarrow")
 
