@@ -51,6 +51,91 @@ CSV & text files
 The workhorse function for reading text files (a.k.a. flat files) is
 :func:`read_csv`. See the :ref:`cookbook<cookbook.csv>` for some advanced strategies.
 
+
+
+How to Load Data to Pandas in Google Colab
+------------------------------------------
+
+Google Colab is a cloud based platform which allows users to write and execute Python code
+because Colab runs on remote servers, local files on your computer are not directly accessible
+Pandas users often need to take some extra steps to read data.
+
+
+Common Data Sources in Colab
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++----------------------+--------------------------------------+
+| Source               | Recommended Method                   |
++======================+======================================+
+| Local file upload    | ``files.upload()``                   |
++----------------------+--------------------------------------+
+| Google Drive         | ``drive.mount('/content/drive')``    |
++----------------------+--------------------------------------+
+| Remote dataset (URL) | ``pd.read_csv(url)``                 |
++----------------------+--------------------------------------+
+
+**1. Upload local files manually**
+
+For small files or one-time uploads, you can upload directly from your
+computer using Colab’s file dialog.
+
+.. code-block:: python
+
+    from google.colab import files
+    import pandas as pd
+
+    uploaded = files.upload()          # Choose a file from your computer
+    df = pd.read_csv("your_file.csv")
+    df.head()
+
+**2. Mount Google Drive**
+
+For larger or persistent datasets, mounting Google Drive provides access to
+files that stay available between Colab sessions.
+
+.. code-block:: python
+
+    from google.colab import drive
+    drive.mount("/content/drive")
+
+    df = pd.read_csv("/content/drive/MyDrive/data/your_file.csv")
+    df.head()
+
+**3. Read from a URL**
+
+You can also read data directly from public GitHub repositories, Google Sheets, Kaggle datasets, or cloud storage services.
+All of these ultimately provide a URL or accessible path to ``pd.read_csv()``.
+
+.. code-block:: python
+
+    import pandas as pd
+    url = "https://example.com/data.csv"
+    df = pd.read_csv(url)
+    df.head()
+
+Example using a public dataset:
+
+.. code-block:: python
+
+    url = "https://raw.githubusercontent.com/mwaskom/seaborn-data/master/titanic.csv"
+    df = pd.read_csv(url)
+    df.head()
+
+.. tip::
+
+    If you receive a ``FileNotFoundError`` after uploading, verify that the
+    filename matches exactly (case-sensitive) and that the file was uploaded
+    to the current Colab session.
+
+.. note::
+
+    Files uploaded manually exist only for the duration of the Colab session.
+    Mount Google Drive to keep data available between sessions.
+
+For more details, see the official
+`Google Colab guide on file access <https://colab.research.google.com/notebooks/io.ipynb>`_.
+
+
 Parsing options
 '''''''''''''''
 
