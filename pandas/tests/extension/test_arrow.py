@@ -3700,3 +3700,10 @@ def test_pow_with_all_na_float():
     result = s.pow(2)
     expected = pd.Series([pd.NA, pd.NA], dtype="float64[pyarrow]")
     tm.assert_series_equal(result, expected)
+
+def test_groupby_var_arrow_decimal():
+    df = pd.DataFrame({"A": pd.Series([True, True], dtype="bool[pyarrow]"), "B": pd.Series([Decimal(123), Decimal(12)], dtype=pd.ArrowDtype(pa.decimal128(6,3)))})
+    result=df.groupby("A").var().dtypes
+    expected = pd.Series([pd.ArrowDtype(pa.float64())], index=result.index)
+    
+    tm.assert_series_equal(result, expected)
