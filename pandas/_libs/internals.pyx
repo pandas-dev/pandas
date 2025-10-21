@@ -23,7 +23,7 @@ from numpy cimport (
 cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
-from pandas.compat import PYPY
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.errors import ChainedAssignmentError
 from pandas.errors.cow import _chained_assignment_msg
 
@@ -1032,7 +1032,7 @@ cdef class SetitemMixin:
 
     def __setitem__(self, key, value) -> None:
         cdef bint is_unique = 0
-        if not PYPY:
+        if not CHAINED_WARNING_DISABLED:
             is_unique = _is_unique_referenced_temporary(self)
             if is_unique:
                 warnings.warn(
