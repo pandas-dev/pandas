@@ -634,7 +634,6 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
         :context: close-figs
 
         >>> pd.plotting.lag_plot(s, lag=1)
-        <Axes: xlabel='y(t)', ylabel='y(t + 1)'>
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.lag_plot(series=series, lag=lag, ax=ax, **kwds)
