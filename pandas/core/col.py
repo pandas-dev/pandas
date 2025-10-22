@@ -9,6 +9,8 @@ from typing import (
     Any,
 )
 
+from pandas.util._decorators import set_module
+
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
@@ -222,6 +224,7 @@ class NamespaceExpression:
         return wrapper
 
 
+@set_module("pandas")
 def col(col_name: Hashable) -> Expression:
     """
     Generate deferred object representing a column of a DataFrame.
