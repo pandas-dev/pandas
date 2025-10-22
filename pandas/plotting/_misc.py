@@ -6,6 +6,8 @@ from typing import (
     Any,
 )
 
+from pandas.util._decorators import set_module
+
 from pandas.plotting._core import _get_plot_backend
 
 if TYPE_CHECKING:
@@ -26,6 +28,7 @@ if TYPE_CHECKING:
     )
 
 
+@set_module("pandas.plotting")
 def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     """
     Helper function to convert DataFrame and Series to matplotlib.table.
@@ -79,6 +82,7 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     )
 
 
+@set_module("pandas.plotting")
 def register() -> None:
     """
     Register pandas formatters and converters with matplotlib.
@@ -125,6 +129,7 @@ def register() -> None:
     plot_backend.register()
 
 
+@set_module("pandas.plotting")
 def deregister() -> None:
     """
     Remove pandas formatters and converters.
@@ -169,6 +174,7 @@ def deregister() -> None:
     plot_backend.deregister()
 
 
+@set_module("pandas.plotting")
 def scatter_matrix(
     frame: DataFrame,
     alpha: float = 0.5,
@@ -264,6 +270,7 @@ def scatter_matrix(
     )
 
 
+@set_module("pandas.plotting")
 def radviz(
     frame: DataFrame,
     class_column: str,
@@ -352,6 +359,7 @@ def radviz(
     )
 
 
+@set_module("pandas.plotting")
 def andrews_curves(
     frame: DataFrame,
     class_column: str,
@@ -427,6 +435,7 @@ def andrews_curves(
     )
 
 
+@set_module("pandas.plotting")
 def bootstrap_plot(
     series: Series,
     fig: Figure | None = None,
@@ -487,6 +496,7 @@ def bootstrap_plot(
     )
 
 
+@set_module("pandas.plotting")
 def parallel_coordinates(
     frame: DataFrame,
     class_column: str,
@@ -573,6 +583,7 @@ def parallel_coordinates(
     )
 
 
+@set_module("pandas.plotting")
 def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Axes:
     """
     Lag plot for time series.
@@ -622,13 +633,13 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
     .. plot::
         :context: close-figs
 
-        >>> pd.plotting.lag_plot(s, lag=1)
-        <Axes: xlabel='y(t)', ylabel='y(t + 1)'>
+        >>> _ = pd.plotting.lag_plot(s, lag=1)
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.lag_plot(series=series, lag=lag, ax=ax, **kwds)
 
 
+@set_module("pandas.plotting")
 def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Axes:
     """
     Autocorrelation plot for time series.

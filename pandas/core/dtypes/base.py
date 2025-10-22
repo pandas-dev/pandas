@@ -19,6 +19,7 @@ from pandas._libs import missing as libmissing
 from pandas._libs.hashtable import object_hash
 from pandas._libs.properties import cache_readonly
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -480,6 +481,7 @@ class StorageExtensionDtype(ExtensionDtype):
         return libmissing.NA
 
 
+@set_module("pandas.api.extensions")
 def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]:
     """
     Register an ExtensionType with pandas as class decorator.
