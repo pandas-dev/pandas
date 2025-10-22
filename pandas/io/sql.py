@@ -2040,8 +2040,8 @@ class SQLDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
-        engine: str = "auto",
         hints: dict[str, str] | None = None,
+        engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
         """
@@ -2407,8 +2407,8 @@ class ADBCDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
-        engine: str = "auto",
         hints: dict[str, str] | None = None,
+        engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
         """
@@ -2641,7 +2641,9 @@ class SQLiteTable(SQLTable):
         )
         return insert_statement
 
-    def _execute_insert(self, conn, keys, data_iter, hints) -> int:
+    def _execute_insert(
+        self, conn, keys: list[str], data_iter, hint_str: str | None = None
+    ) -> int:
         from sqlite3 import Error
 
         data_list = list(data_iter)
@@ -2651,7 +2653,9 @@ class SQLiteTable(SQLTable):
             raise DatabaseError("Execution failed") from exc
         return conn.rowcount
 
-    def _execute_insert_multi(self, conn, keys, data_iter, hints) -> int:
+    def _execute_insert_multi(
+        self, conn, keys: list[str], data_iter, hint_str: str | None = None
+    ) -> int:
         data_list = list(data_iter)
         flattened_data = [x for row in data_list for x in row]
         conn.execute(self.insert_statement(num_rows=len(data_list)), flattened_data)
@@ -2887,8 +2891,8 @@ class SQLiteDatabase(PandasSQL):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
-        engine: str = "auto",
         hints: dict[str, str] | None = None,
+        engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
         """

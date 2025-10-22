@@ -2798,7 +2798,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
-        hints: dict[str, str | list[str]] | None = None,
+        hints: dict[str, str] | None = None,
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
