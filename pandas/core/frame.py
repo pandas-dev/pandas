@@ -5237,6 +5237,30 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
+        blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
+        if (
+            np.object_ in include
+            and str not in include
+            and str not in exclude
+            and any(
+                isinstance(dtype, StringDtype) and dtype.na_value is np.nan
+                for dtype in blk_dtypes
+            )
+        ):
+            # GH#61916
+            warnings.warn(
+                "For backward compatibility, 'str' dtypes are included by "
+                "select_dtypes when 'object' dtype is specified. "
+                "This behavior is deprecated and will be removed in a future "
+                "version. Explicitly pass 'str' to `include` to select them, "
+                "or to `exclude` to remove them and silence this warning.\nSee "
+                "https://pandas.pydata.org/docs/user_guide/migration-3-strings.html"
+                "#string-migration-select-dtypes for details on how to write code "
+                "that works with pandas 2 and 3.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         mgr = self._mgr._get_data_subset(predicate).copy(deep=False)
         return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)
 
@@ -9346,21 +9370,140 @@ class DataFrame(NDFrame, OpsMixin):
 
     # ----------------------------------------------------------------------
     # Data reshaping
-    @Appender(
-        dedent(
-            """
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
+    )
+    def groupby(
+        self,
+        by=None,
+        level: IndexLabel | None = None,
+        as_index: bool = True,
+        sort: bool = True,
+        group_keys: bool = True,
+        observed: bool = True,
+        dropna: bool = True,
+    ) -> DataFrameGroupBy:
+        """
+        Group DataFrame using a mapper or by a Series of columns.
+
+        A groupby operation involves some combination of splitting the
+        object, applying a function, and combining the results. This can be
+        used to group large amounts of data and compute operations on these
+        groups.
+
+        Parameters
+        ----------
+        by : mapping, function, label, pd.Grouper or list of such
+            Used to determine the groups for the groupby.
+            If ``by`` is a function, it's called on each value of the object's
+            index. If a dict or Series is passed, the Series or dict VALUES
+            will be used to determine the groups (the Series' values are first
+            aligned; see ``.align()`` method). If a list or ndarray of length
+            equal to the selected axis is passed (see the `groupby user guide
+            <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
+            the values are used as-is to determine the groups. A label or list
+            of labels may be passed to group by the columns in ``self``.
+            Notice that a tuple is interpreted as a (single) key.
+        level : int, level name, or sequence of such, default None
+            If the axis is a MultiIndex (hierarchical), group by a particular
+            level or levels. Do not specify both ``by`` and ``level``.
+        as_index : bool, default True
+            Return object with group labels as the
+            index. Only relevant for DataFrame input. as_index=False is
+            effectively "SQL-style" grouped output. This argument has no effect
+            on filtrations (see the `filtrations in the user guide
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+            such as ``head()``, ``tail()``, ``nth()`` and in transformations
+            (see the `transformations in the user guide
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
+        sort : bool, default True
+            Sort group keys. Get better performance by turning this off.
+            Note this does not influence the order of observations within each
+            group. Groupby preserves the order of rows within each group. If False,
+            the groups will appear in the same order as they did in the original
+            DataFrame.
+            This argument has no effect on filtrations (see the `filtrations
+            in the user guide
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+            such as ``head()``, ``tail()``, ``nth()`` and in transformations
+            (see the `transformations in the user guide
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
+
+            .. versionchanged:: 2.0.0
+
+                Specifying ``sort=False`` with an ordered categorical grouper will no
+                longer sort the values.
+
+        group_keys : bool, default True
+            When calling apply and the ``by`` argument produces a like-indexed
+            (i.e. :ref:`a transform <groupby.transform>`) result, add group keys to
+            index to identify pieces. By default group keys are not included
+            when the result's index (and column) labels match the inputs, and
+            are included otherwise.
+
+            .. versionchanged:: 1.5.0
+
+               Warns that ``group_keys`` will no longer be ignored when the
+               result from ``apply`` is a like-indexed Series or DataFrame.
+               Specify ``group_keys`` explicitly to include the group keys or
+               not.
+
+            .. versionchanged:: 2.0.0
+
+               ``group_keys`` now defaults to ``True``.
+
+        observed : bool, default True
+            This only applies if any of the groupers are Categoricals.
+            If True: only show observed values for categorical groupers.
+            If False: show all values for categorical groupers.
+
+            .. versionchanged:: 3.0.0
+
+                The default value is now ``True``.
+
+        dropna : bool, default True
+            If True, and if group keys contain NA values, NA values together
+            with row/column will be dropped.
+            If False, NA values will also be treated as the key in groups.
+
+        Returns
+        -------
+        pandas.api.typing.DataFrameGroupBy
+            Returns a groupby object that contains information about the groups.
+
+        See Also
+        --------
+        resample : Convenience method for frequency conversion and resampling
+            of time series.
+
+        Notes
+        -----
+        See the `user guide
+        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
+        detailed usage and examples, including splitting an object into groups,
+        iterating through groups, selecting a group, aggregation, and more.
+
+        The implementation of groupby is hash-based, meaning in particular that
+        objects that compare as equal will be considered to be in the same group.
+        An exception to this is that pandas has special handling of NA values:
+        any NA values will be collapsed to a single group, regardless of how
+        they compare. See the user guide linked above for more details.
+
         Examples
         --------
-        >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
-        ...                               'Parrot', 'Parrot'],
-        ...                    'Max Speed': [380., 370., 24., 26.]})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Animal": ["Falcon", "Falcon", "Parrot", "Parrot"],
+        ...         "Max Speed": [380.0, 370.0, 24.0, 26.0],
+        ...     }
+        ... )
         >>> df
            Animal  Max Speed
         0  Falcon      380.0
         1  Falcon      370.0
         2  Parrot       24.0
         3  Parrot       26.0
-        >>> df.groupby(['Animal']).mean()
+        >>> df.groupby(["Animal"]).mean()
                 Max Speed
         Animal
         Falcon      375.0
@@ -9371,11 +9514,12 @@ class DataFrame(NDFrame, OpsMixin):
         We can groupby different levels of a hierarchical index
         using the `level` parameter:
 
-        >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
-        ...           ['Captive', 'Wild', 'Captive', 'Wild']]
-        >>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
-        >>> df = pd.DataFrame({'Max Speed': [390., 350., 30., 20.]},
-        ...                   index=index)
+        >>> arrays = [
+        ...     ["Falcon", "Falcon", "Parrot", "Parrot"],
+        ...     ["Captive", "Wild", "Captive", "Wild"],
+        ... ]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=("Animal", "Type"))
+        >>> df = pd.DataFrame({"Max Speed": [390.0, 350.0, 30.0, 20.0]}, index=index)
         >>> df
                         Max Speed
         Animal Type
@@ -9413,7 +9557,7 @@ class DataFrame(NDFrame, OpsMixin):
         2.0 2   5
         NaN 1   4
 
-        >>> arr = [["a", 12, 12], [None, 12.3, 33.], ["b", 12.3, 123], ["a", 1, 1]]
+        >>> arr = [["a", 12, 12], [None, 12.3, 33.0], ["b", 12.3, 123], ["a", 1, 1]]
         >>> df = pd.DataFrame(arr, columns=["a", "b", "c"])
 
         >>> df.groupby(by="a").sum()
@@ -9432,10 +9576,13 @@ class DataFrame(NDFrame, OpsMixin):
         When using ``.apply()``, use ``group_keys`` to include or exclude the
         group keys. The ``group_keys`` argument defaults to ``True`` (include).
 
-        >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
-        ...                               'Parrot', 'Parrot'],
-        ...                    'Max Speed': [380., 370., 24., 26.]})
-        >>> df.groupby("Animal", group_keys=True)[['Max Speed']].apply(lambda x: x)
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Animal": ["Falcon", "Falcon", "Parrot", "Parrot"],
+        ...         "Max Speed": [380.0, 370.0, 24.0, 26.0],
+        ...     }
+        ... )
+        >>> df.groupby("Animal", group_keys=True)[["Max Speed"]].apply(lambda x: x)
                   Max Speed
         Animal
         Falcon 0      380.0
@@ -9443,29 +9590,13 @@ class DataFrame(NDFrame, OpsMixin):
         Parrot 2       24.0
                3       26.0
 
-        >>> df.groupby("Animal", group_keys=False)[['Max Speed']].apply(lambda x: x)
+        >>> df.groupby("Animal", group_keys=False)[["Max Speed"]].apply(lambda x: x)
            Max Speed
         0      380.0
         1      370.0
         2       24.0
         3       26.0
         """
-        )
-    )
-    @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
-    @deprecate_nonkeyword_arguments(
-        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
-    )
-    def groupby(
-        self,
-        by=None,
-        level: IndexLabel | None = None,
-        as_index: bool = True,
-        sort: bool = True,
-        group_keys: bool = True,
-        observed: bool = True,
-        dropna: bool = True,
-    ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         if level is None and by is None:

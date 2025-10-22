@@ -727,3 +727,13 @@ def test_to_pytimedelta_large_values():
     result = td.to_pytimedelta()
     expected = timedelta(days=13343, seconds=86304, microseconds=609987)
     assert result == expected
+
+
+def test_timedelta_week_suffix():
+    # GH#12691 ensure 'W' suffix works as a string passed to Timedelta
+    expected = Timedelta("7 days")
+    result = Timedelta(1, unit="W")
+    assert result == expected
+
+    result = Timedelta("1W")
+    assert result == expected
