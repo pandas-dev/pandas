@@ -862,22 +862,27 @@ class Block(PandasObject, libinternals.Block):
                     # This is ugly, but we have to get rid of intermediate refs. We
                     # can simply clear the referenced_blocks if we already copied,
                     # otherwise we have to remove ourselves
-                    # GH#62787: Handle invalid weak references properly
-                    self_blk_ids = {
-                        id(ref_block): i
-                        for i, b in enumerate(self.refs.referenced_blocks)
-                        if (ref_block := b()) is not None
-                    }
-                    for b in result:
-                        if b.refs is self.refs:
-                            # We are still sharing memory with self
-                            if id(b) in self_blk_ids:
-                                # Remove ourselves from the refs; we are temporary
-                                self.refs.referenced_blocks.pop(self_blk_ids[id(b)])
-                        else:
-                            # We have already copied, so we can clear the refs to avoid
-                            # future copies
-                            b.refs.referenced_blocks.clear()
+                    # GH#62787: Handle invalid weak references properly and robustly
+                    # Build a set of block ids from the current result that still share
+                    # the same refs object; those are temporary and should be removed
+                    # from referenced_blocks without relying on stale indices.
+                    to_remove_ids = {id(blk) for blk in result if blk.refs is self.refs}
+                    if to_remove_ids:
+                        # Keep only live weakrefs not pointing to blocks we remove
+                        new_refs = []
+                        for wr in self.refs.referenced_blocks:
+                            obj = wr()
+                            if obj is None:
+                                continue
+                            if id(obj) in to_remove_ids:
+                                continue
+                            new_refs.append(wr)
+                        self.refs.referenced_blocks = new_refs
+                    # For blocks that have already copied, clear their refs to avoid
+                    # future copies.
+                    for blk in result:
+                        if blk.refs is not self.refs:
+                            blk.refs.referenced_blocks.clear()
                 new_rb.extend(result)
             rb = new_rb
         return rb
