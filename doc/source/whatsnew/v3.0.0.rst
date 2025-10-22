@@ -156,7 +156,7 @@ All warnings for upcoming changes in pandas will have the base class :class:`pan
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- :func:`DataFrame.to_sql` now accepts a ``hints`` parameter to pass database-specific query hints for optimizing insert performance. The hints are specified as a dictionary mapping dialect names to hint strings (e.g., ``{'oracle': '/*+ APPEND PARALLEL(4) */', 'mysql': 'DELAYED'}``). Users are responsible for providing correctly formatted hint strings for their target database (:issue:`XXXXX`)
+- :func:`DataFrame.to_sql` now accepts a ``hints`` parameter to pass database-specific query hints for optimizing insert performance. The hints are specified as a dictionary mapping dialect names to hint strings (e.g., ``{'oracle': '/*+ APPEND PARALLEL(4) */', 'mysql': 'DELAYED'}``). Users are responsible for providing correctly formatted hint strings for their target database (:issue:`61370`)
 - :func:`pandas.merge` propagates the ``attrs`` attribute to the result if all
   inputs have identical ``attrs``, as has so far already been the case for
   :func:`pandas.concat`.

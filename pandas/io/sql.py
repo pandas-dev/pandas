@@ -837,7 +837,7 @@ def to_sql(
             - SQLite will raise a UserWarning (hints not supported)
             - ADBC connections will raise NotImplementedError
 
-        .. versionadded::
+        .. versionadded:: 3.0.0
 
     **engine_kwargs
         Any additional kwargs are passed to the engine.
