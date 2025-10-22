@@ -1366,7 +1366,7 @@ def nankurt(
     # With a few modifications, like using the maximum value instead of the averages
     # and some adaptations because they use the average and we use the sum for `m2`.
     # We need to estimate an upper bound to the error to consider the data constant.
-    # Lets call:
+    # Let's call:
     # x: true value in data
     # y: floating point representation
     # e: relative approximation error
@@ -1377,7 +1377,7 @@ def nankurt(
     # (|x - y|/|x|)² <= e²
     # Σ (|x - y|/|x|)² <= ne²
     #
-    # Lets say that the fperr upper bound for m2 is constrained by the summation.
+    # Let's say that the fperr upper bound for m2 is constrained by the summation.
     # |m2 - y|/|m2| <= ne²
     # |m2 - y| <= n|m2|e²
     #

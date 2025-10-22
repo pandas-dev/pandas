@@ -162,7 +162,7 @@ jobs:
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.2.0
+        uses: pypa/cibuildwheel@v3.2.1
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
@@ -229,7 +229,7 @@ jobs:
       - build_sdist
       - build_wheels
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     environment:
       name: pypi
@@ -243,6 +243,8 @@ jobs:
         with:
           path: dist          # everything lands in ./dist/**
 
+      # TODO: This step can be probably be achieved by actions/download-artifact@v5
+      # by specifying merge-multiple: true, and a glob pattern
       - name: Collect files
         run: |
           mkdir -p upload

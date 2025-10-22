@@ -442,7 +442,7 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
 
             # Over the first window, observations can only be added
             # never removed
-            if i == 0 or not is_monotonic_increasing_bounds or s < end[i]:
+            if i == 0 or not is_monotonic_increasing_bounds or s >= end[i - 1]:
 
                 prev_value = values[s]
                 num_consecutive_same_value = 0
