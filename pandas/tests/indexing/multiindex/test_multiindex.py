@@ -304,3 +304,4 @@ class TestMultiIndexBasic:
         series1 = df.loc[("b", 16)]
         series2 = df.loc["b"].loc[16]
         tm.assert_equal(series1.array, series2.array)
+    
