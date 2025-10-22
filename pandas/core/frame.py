@@ -9029,31 +9029,31 @@ class DataFrame(NDFrame, OpsMixin):
         # GH#60128 Integers n where |n| > 2**53 would lose precision after align
         # upcasts them to float. Avoid lossy conversion by preemptively promoting
         # int64 and uint64 to their nullable ExtensionDtypes, Int64 and UInt64.
-        def _promote_wide_ints(df: DataFrame) -> DataFrame:
-            """Promotes int64/uint64 columns to their nullable ExtensionDtypes."""
+        def _ensure_nullable_int64_dtypes(df: DataFrame) -> DataFrame:
+            """Promote int64/uint64 DataFrame columns to Int64/UInt64."""
             cast_map: dict[str, str] = {}
             for col, dt in df.dtypes.items():
-                if dt == np.dtype("int64"):
+                if dt == np.int64:
                     cast_map[col] = "Int64"
-                elif dt == np.dtype("uint64"):
+                elif dt == np.uint64:
                     cast_map[col] = "UInt64"
 
             if cast_map:
                 df = df.astype(cast_map)
             return df
 
-        # To maintain backwards compatibility, this function can restore
-        # int64/uint64 columns from float64 when possible. But we should
-        # really consider just embracing nullable ExtensionDtypes instead.
-        def _restore_wide_ints(
-            self_original: DataFrame, other_original: DataFrame, combined_df: DataFrame
+        # To maintain backwards compatibility, downcast the pre-promoted int64
+        # columns of the combined DataFrame back to how they would have resolved.
+        # Consider just embracing nullable ExtensionDtypes instead, though.
+        def _revert_int64_dtype_promotion(
+            self_orig: DataFrame, other_orig: DataFrame, combined_df: DataFrame
         ) -> DataFrame:
-            """Restores original dtypes by re-casting the promoted int columns."""
+            """Resolve the combined dtypes according to the original dtypes."""
             cast_map: dict[str, str] = {}
             for col in combined_df.columns:
                 ser = combined_df[col]
-                orig_dt_self = self_original.dtypes.get(col)
-                orig_dt_other = other_original.dtypes.get(col)
+                orig_dt_self = self_orig.dtypes.get(col)
+                orig_dt_other = other_orig.dtypes.get(col)
 
                 was_promoted = (orig_dt_self in [np.int64, np.uint64]) or (
                     orig_dt_other in [np.int64, np.uint64]
@@ -9080,11 +9080,11 @@ class DataFrame(NDFrame, OpsMixin):
                 combined_df = combined_df.astype(cast_map)
             return combined_df
 
-        # store originals and promote wide ints before align
-        self_original = self
-        other_original = other
-        self = _promote_wide_ints(self)
-        other = _promote_wide_ints(other)
+        # store originals and prepare for align
+        self_orig = self
+        other_orig = other
+        self = _ensure_nullable_int64_dtypes(self)
+        other = _ensure_nullable_int64_dtypes(other)
 
         other_idxlen = len(other.index)  # save for compare
         other_columns = other.columns
@@ -9153,7 +9153,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         # convert_objects just in case
         frame_result = self._constructor(result, index=new_index, columns=new_columns)
-        frame_result = _restore_wide_ints(self_original, other_original, frame_result)
+        frame_result = _revert_int64_dtype_promotion(
+            self_orig, other_orig, frame_result
+        )
         return frame_result.__finalize__(self, method="combine")
 
     def combine_first(self, other: DataFrame) -> DataFrame:
