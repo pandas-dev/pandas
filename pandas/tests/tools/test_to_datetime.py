@@ -659,7 +659,7 @@ class TestToDatetime:
         ts2 = args[1]
         result = to_datetime([ts1, ts2], format=fmt, utc=utc)
         if constructor is Timestamp:
-            expected = expected.as_unit("s")
+            expected = expected.as_unit("us")
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -2984,10 +2984,7 @@ class TestDatetimeParsingWrappers:
 
         reso = {
             "nanosecond": "ns",
-            "microsecond": "us",
-            "millisecond": "ms",
-            "second": "s",
-        }.get(reso_attrname, "s")
+        }.get(reso_attrname, "us")
         result2 = to_datetime(date_str, yearfirst=yearfirst)
         result3 = to_datetime([date_str], yearfirst=yearfirst)
         # result5 is used below

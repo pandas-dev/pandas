@@ -38,8 +38,6 @@ from pandas.io.excel._util import _writers
 
 
 def get_exp_unit(path: str) -> str:
-    if path.endswith(".ods"):
-        return "s"
     return "us"
 
 
@@ -297,13 +295,13 @@ class TestRoundTrip:
 
         res = pd.read_excel(tmp_excel, parse_dates=["date_strings"], index_col=0)
         expected = df[:]
-        expected["date_strings"] = expected["date_strings"].astype("M8[s]")
+        expected["date_strings"] = expected["date_strings"].astype("M8[us]")
         tm.assert_frame_equal(res, expected)
 
         res = pd.read_excel(
             tmp_excel, parse_dates=["date_strings"], date_format="%m/%d/%Y", index_col=0
         )
-        expected["date_strings"] = expected["date_strings"].astype("M8[s]")
+        expected["date_strings"] = expected["date_strings"].astype("M8[us]")
         tm.assert_frame_equal(expected, res)
 
     def test_multiindex_interval_datetimes(self, tmp_excel):
@@ -356,17 +354,15 @@ class TestRoundTrip:
             MultiIndex.from_arrays(
                 [
                     [
-                        pd.to_datetime("2006-10-06 00:00:00"),
-                        pd.to_datetime("2006-10-07 00:00:00"),
+                        pd.to_datetime("2006-10-06 00:00:00").as_unit("s"),
+                        pd.to_datetime("2006-10-07 00:00:00").as_unit("s"),
                     ],
                     ["X", "Y"],
                 ],
                 names=["date", "category"],
             ),
         )
-        time_format = (
-            "datetime64[s]" if tmp_excel.endswith(".ods") else "datetime64[us]"
-        )
+        time_format = "datetime64[us]"
         expected.index = expected.index.set_levels(
             expected.index.levels[0].astype(time_format), level=0
         )
