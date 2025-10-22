@@ -10,6 +10,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
@@ -50,6 +51,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
+@set_module("pandas")
 def pivot_table(
     data: DataFrame,
     values=None,
@@ -504,7 +506,7 @@ def _add_margins(
         margin_dummy[cols] = margin_dummy[cols].apply(
             maybe_downcast_to_dtype, args=(dtype,)
         )
-    result = result._append_internal(margin_dummy)
+    result = concat([result, margin_dummy])
     result.index.names = row_names
 
     return result
@@ -699,6 +701,7 @@ def _convert_by(by):
     return by
 
 
+@set_module("pandas")
 def pivot(
     data: DataFrame,
     *,
@@ -917,6 +920,7 @@ def pivot(
     return result
 
 
+@set_module("pandas")
 def crosstab(
     index,
     columns,

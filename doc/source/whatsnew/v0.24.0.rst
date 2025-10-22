@@ -50,7 +50,7 @@ marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` 
 
 .. ipython:: python
 
-   s = pd.Series([1, 2, np.nan], dtype='Int64')
+   s = pd.Series([1, 2, pd.NA], dtype='Int64')
    s
 
 
@@ -166,7 +166,7 @@ See the :ref:`dtypes docs <basics.dtypes>` for more on extension arrays.
 
 .. ipython:: python
 
-   pd.array([1, 2, np.nan], dtype='Int64')
+   pd.array([1, 2, pd.NA], dtype='Int64')
    pd.array(['a', 'b', 'c'], dtype='category')
 
 Passing data for which there isn't dedicated extension type (e.g. float, integer, etc.)
