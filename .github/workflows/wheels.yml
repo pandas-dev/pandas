@@ -98,10 +98,9 @@ jobs:
         - [ubuntu-24.04, musllinux_x86_64]
         - [ubuntu-24.04-arm, manylinux_aarch64]
         - [ubuntu-24.04-arm, musllinux_aarch64]
-        - [macos-13, macosx_x86_64]
-        # Note: M1 images on Github Actions start from macOS 14
-        - [macos-14, macosx_arm64]
-        - [windows-2022, win_amd64]
+        - [macos-15-intel, macosx_x86_64]
+        - [macos-15, macosx_arm64]
+        - [windows-2025, win_amd64]
         - [windows-11-arm, win_arm64]
         python: [["cp311", "3.11"], ["cp312", "3.12"], ["cp313", "3.13"], ["cp313t", "3.13"], ["cp314", "3.14"], ["cp314t", "3.14"]]
         include:
