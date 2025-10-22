@@ -2710,7 +2710,9 @@ class MultiIndex(Index):
         result = self._reorder_ilevels(order)
         return result
 
-    def insert_level(self, position: int, value, name=None):
+    def insert_level(
+        self, position: int, value, name: Hashable = lib.no_default
+    ) -> MultiIndex:
         """
         Insert a new level at the specified position in the MultiIndex.
 
@@ -2718,11 +2720,11 @@ class MultiIndex(Index):
         ----------
         position : int
             The position at which to insert the new level (0-based).
-        value : scalar or array-like
-            Value(s) to use for the new level. If scalar, broadcast to all items.
-            If array-like, length must match the length of the index.
-        name : object, optional
-            Name for the new level.
+            Must be between 0 and nlevels (inclusive).
+        value : array-like
+            Values to use for the new level. Length must match the length of the index.
+        name : Hashable, default lib.no_default
+            Name for the new level. If not provided, the new level will have no name.
 
         Returns
         -------
@@ -2732,14 +2734,11 @@ class MultiIndex(Index):
         Examples
         --------
         >>> idx = pd.MultiIndex.from_tuples([("A", 1), ("B", 2)])
-        >>> idx.insert_level(0, "new_value")
+        >>> idx.insert_level(0, ["new_value", "new_value"])
         MultiIndex([('new_value', 'A', 1), ('new_value', 'B', 2)], ...)
 
         >>> idx.insert_level(1, ["X", "Y"])
         MultiIndex([('A', 'X', 1), ('B', 'Y', 2)], ...)
-
-        >>> idx.insert_level(0, "new_val", name="new_level")
-        MultiIndex([('new_val', 'A', 1), ('new_val', 'B', 2)], ...)
         """
         if not isinstance(position, int):
             raise TypeError("position must be an integer")
@@ -2747,22 +2746,28 @@ class MultiIndex(Index):
         if position < 0 or position > self.nlevels:
             raise ValueError(f"position must be between 0 and {self.nlevels}")
 
+        if name is lib.no_default:
+            name = None
+
         if not hasattr(value, "__iter__") or isinstance(value, str):
-            value = [value] * len(self)
-        else:
-            value = list(value)
-            if len(value) != len(self):
-                raise ValueError("Length of values must match length of index")
+            raise TypeError("value must be an array-like object")
 
-        new_tuples = []
+        value = list(value)
+        if len(value) != len(self):
+            raise ValueError("Length of values must match length of index")
 
-        for i, tup in enumerate(self):
-            new_tuple = tup[:position] + (value[i],) + tup[position:]
-            new_tuples.append(new_tuple)
+        new_level = Index(value)
+        new_codes_for_level = new_level.get_indexer(value)
 
+        new_levels = self.levels[:position] + [new_level] + self.levels[position:]
+        new_codes = (
+            self.codes[:position] + [new_codes_for_level] + self.codes[position:]
+        )
         new_names = self.names[:position] + [name] + self.names[position:]
 
-        return MultiIndex.from_tuples(new_tuples, names=new_names)
+        return MultiIndex(
+            levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
+        )
 
     def _reorder_ilevels(self, order) -> MultiIndex:
         if len(order) != self.nlevels:
