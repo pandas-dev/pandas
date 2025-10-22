@@ -18,7 +18,6 @@ from datetime import (
     datetime,
     time,
 )
-from functools import partial
 import re
 from typing import (
     TYPE_CHECKING,
@@ -230,6 +229,41 @@ def _wrap_result_adbc(
         df = df.set_index(index_col)
 
     return df
+
+
+def _process_sql_hints(
+    hints: dict[str, str | list[str]] | None, dialect_name: str
+) -> str | None:
+    if hints is None or not hints:
+        return None
+
+    dialect_name = dialect_name.lower()
+
+    hint_value = None
+    for key, value in hints.items():
+        if key.lower() == dialect_name:
+            hint_value = value
+            break
+
+    if hint_value is None:
+        return None
+
+    if isinstance(hint_value, list):
+        hint_str = " ".join(hint_value)
+    else:
+        hint_str = str(hint_value)
+
+    if hint_str.strip().startswith("/*+") and hint_str.strip().endswith("*/"):
+        return hint_str.strip()
+
+    if dialect_name == "oracle":
+        return f"/*+ {hint_str} */"
+    elif dialect_name == "mysql":
+        return hint_str
+    elif dialect_name == "mssql":
+        return hint_str
+    else:
+        return f"/*+ {hint_str} */"
 
 
 # -----------------------------------------------------------------------------
@@ -750,6 +784,7 @@ def to_sql(
     dtype: DtypeArg | None = None,
     method: Literal["multi"] | Callable | None = None,
     engine: str = "auto",
+    hints: dict[str, str | list[str]] | None = None,
     **engine_kwargs,
 ) -> int | None:
     """
@@ -852,6 +887,7 @@ def to_sql(
             dtype=dtype,
             method=method,
             engine=engine,
+            hints=hints,
             **engine_kwargs,
         )
 
@@ -998,7 +1034,13 @@ class SQLTable(PandasObject):
         else:
             self._execute_create()
 
-    def _execute_insert(self, conn, keys: list[str], data_iter) -> int:
+    def _execute_insert(
+        self,
+        conn,
+        keys: list[str],
+        data_iter,
+        hint_str: str | None = None,
+    ) -> int:
         """
         Execute SQL statement inserting data
 
@@ -1010,11 +1052,23 @@ class SQLTable(PandasObject):
         data_iter : generator of list
            Each item contains a list of values to be inserted
         """
-        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
-        result = self.pd_sql.execute(self.table.insert(), data)
+        data = [dict(zip(keys, row, strict=False)) for row in data_iter]
+
+        if hint_str:
+            stmt = self.table.insert().prefix_with(hint_str)
+        else:
+            stmt = self.table.insert()
+
+        result = self.pd_sql.execute(stmt, data)
         return result.rowcount
 
-    def _execute_insert_multi(self, conn, keys: list[str], data_iter) -> int:
+    def _execute_insert_multi(
+        self,
+        conn,
+        keys: list[str],
+        data_iter,
+        hint_str: str | None = None,
+    ) -> int:
         """
         Alternative to _execute_insert for DBs support multi-value INSERT.
 
@@ -1023,11 +1077,15 @@ class SQLTable(PandasObject):
         but performance degrades quickly with increase of columns.
 
         """
-
         from sqlalchemy import insert
 
-        data = [dict(zip(keys, row, strict=True)) for row in data_iter]
-        stmt = insert(self.table).values(data)
+        data = [dict(zip(keys, row, strict=False)) for row in data_iter]
+
+        if hint_str:
+            stmt = insert(self.table).values(data).prefix_with(hint_str)
+        else:
+            stmt = insert(self.table).values(data)
+
         result = self.pd_sql.execute(stmt)
         return result.rowcount
 
@@ -1084,6 +1142,8 @@ class SQLTable(PandasObject):
         self,
         chunksize: int | None = None,
         method: Literal["multi"] | Callable | None = None,
+        hints: dict[str, str | list[str]] | None = None,
+        dialect_name: str | None = None,
     ) -> int | None:
         # set insert method
         if method is None:
@@ -1091,7 +1151,11 @@ class SQLTable(PandasObject):
         elif method == "multi":
             exec_insert = self._execute_insert_multi
         elif callable(method):
-            exec_insert = partial(method, self)
+
+            def callable_wrapper(conn, keys, data_iter, hint_str=None):
+                return method(self, conn, keys, data_iter)
+
+            exec_insert = callable_wrapper
         else:
             raise ValueError(f"Invalid parameter `method`: {method}")
 
@@ -1108,6 +1172,9 @@ class SQLTable(PandasObject):
             raise ValueError("chunksize argument should be non-zero")
 
         chunks = (nrows // chunksize) + 1
+
+        hint_str = _process_sql_hints(hints, dialect_name) if dialect_name else None
+
         total_inserted = None
         with self.pd_sql.run_transaction() as conn:
             for i in range(chunks):
@@ -1119,7 +1186,7 @@ class SQLTable(PandasObject):
                 chunk_iter = zip(
                     *(arr[start_i:end_i] for arr in data_list), strict=True
                 )
-                num_inserted = exec_insert(conn, keys, chunk_iter)
+                num_inserted = exec_insert(conn, keys, chunk_iter, hint_str)
                 # GH 46891
                 if num_inserted is not None:
                     if total_inserted is None:
@@ -1503,6 +1570,7 @@ class PandasSQL(PandasObject, ABC):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        hints: dict[str, str | list[str]] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -1539,6 +1607,8 @@ class BaseEngine:
         schema=None,
         chunksize: int | None = None,
         method=None,
+        hints: dict[str, str | list[str]] | None = None,
+        dialect_name: str | None = None,
         **engine_kwargs,
     ) -> int | None:
         """
@@ -1563,6 +1633,8 @@ class SQLAlchemyEngine(BaseEngine):
         schema=None,
         chunksize: int | None = None,
         method=None,
+        hints: dict[str, str | list[str]] | None = None,
+        dialect_name: str | None = None,
         **engine_kwargs,
     ) -> int | None:
         from sqlalchemy import exc
@@ -1975,6 +2047,7 @@ class SQLDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
+        hints: dict[str, str | list[str]] | None = None,
         **engine_kwargs,
     ) -> int | None:
         """
@@ -2047,6 +2120,8 @@ class SQLDatabase(PandasSQL):
             schema=schema,
             chunksize=chunksize,
             method=method,
+            hints=hints,
+            dialect_name=self.con.dialect.name,
             **engine_kwargs,
         )
 
@@ -2339,6 +2414,7 @@ class ADBCDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
+        hints: dict[str, str | list[str]] | None = None,
         **engine_kwargs,
     ) -> int | None:
         """
@@ -2388,6 +2464,8 @@ class ADBCDatabase(PandasSQL):
             raise NotImplementedError(
                 "engine != 'auto' not implemented for ADBC drivers"
             )
+        if hints:
+            raise NotImplementedError("'hints' is not implemented for ADBC drivers")
 
         if schema:
             table_name = f"{schema}.{name}"
@@ -2569,7 +2647,7 @@ class SQLiteTable(SQLTable):
         )
         return insert_statement
 
-    def _execute_insert(self, conn, keys, data_iter) -> int:
+    def _execute_insert(self, conn, keys, data_iter, hints) -> int:
         from sqlite3 import Error
 
         data_list = list(data_iter)
@@ -2579,7 +2657,7 @@ class SQLiteTable(SQLTable):
             raise DatabaseError("Execution failed") from exc
         return conn.rowcount
 
-    def _execute_insert_multi(self, conn, keys, data_iter) -> int:
+    def _execute_insert_multi(self, conn, keys, data_iter, hints) -> int:
         data_list = list(data_iter)
         flattened_data = [x for row in data_list for x in row]
         conn.execute(self.insert_statement(num_rows=len(data_list)), flattened_data)
@@ -2816,6 +2894,7 @@ class SQLiteDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
+        hints: dict[str, str | list[str]] | None = None,
         **engine_kwargs,
     ) -> int | None:
         """
@@ -2857,6 +2936,13 @@ class SQLiteDatabase(PandasSQL):
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
         """
+        if hints:
+            warnings.warn(
+                "SQL hints are not supported for SQLite and will be ignored.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
+
         if dtype:
             if not is_dict_like(dtype):
                 # error: Value expression in dictionary comprehension has incompatible
