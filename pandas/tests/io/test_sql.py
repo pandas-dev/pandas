@@ -4398,3 +4398,185 @@ def test_xsqlite_if_exists(sqlite_buildin):
         (5, "E"),
     ]
     drop_table(table_name, sqlite_buildin)
+
+
+# -----------------------------------------------------------------------------
+# -- Testing SQL Hints
+
+
+class TestProcessSQLHints:
+    """Tests for _process_sql_hints helper function."""
+
+    def test_process_sql_hints_oracle_list(self):
+        """Test hint processing with Oracle dialect and list input."""
+        hints = {"oracle": ["APPEND", "PARALLEL"]}
+        result = sql._process_sql_hints(hints, "oracle")
+        assert result == "/*+ APPEND PARALLEL */"
+
+    def test_process_sql_hints_oracle_string(self):
+        """Test hint processing with Oracle dialect and string input."""
+        hints = {"oracle": "APPEND PARALLEL"}
+        result = sql._process_sql_hints(hints, "oracle")
+        assert result == "/*+ APPEND PARALLEL */"
+
+    def test_process_sql_hints_preformatted(self):
+        """Test that pre-formatted hints are returned as-is."""
+        hints = {"oracle": "/*+ APPEND PARALLEL */"}
+        result = sql._process_sql_hints(hints, "oracle")
+        assert result == "/*+ APPEND PARALLEL */"
+
+    def test_process_sql_hints_case_insensitive(self):
+        """Test that dialect names are case-insensitive."""
+        hints = {"ORACLE": ["APPEND"]}
+        result = sql._process_sql_hints(hints, "oracle")
+        assert result == "/*+ APPEND */"
+
+        hints = {"oracle": ["APPEND"]}
+        result = sql._process_sql_hints(hints, "ORACLE")
+        assert result == "/*+ APPEND */"
+
+    def test_process_sql_hints_no_match(self):
+        """Test that None is returned when dialect doesn't match."""
+        hints = {"mysql": "HIGH_PRIORITY"}
+        result = sql._process_sql_hints(hints, "oracle")
+        assert result is None
+
+    def test_process_sql_hints_none(self):
+        """Test that None input returns None."""
+        result = sql._process_sql_hints(None, "oracle")
+        assert result is None
+
+    def test_process_sql_hints_empty_dict(self):
+        """Test that empty dict returns None."""
+        result = sql._process_sql_hints({}, "oracle")
+        assert result is None
+
+    def test_process_sql_hints_mysql(self):
+        """Test hint processing for MySQL dialect."""
+        hints = {"mysql": "HIGH_PRIORITY"}
+        result = sql._process_sql_hints(hints, "mysql")
+        assert result == "HIGH_PRIORITY"
+
+    def test_process_sql_hints_mssql(self):
+        """Test hint processing for SQL Server dialect."""
+        hints = {"mssql": "TABLOCK"}
+        result = sql._process_sql_hints(hints, "mssql")
+        assert result == "TABLOCK"
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_to_sql_with_hints_parameter(conn, test_frame1, request):
+    """Test that to_sql accepts hints parameter without error."""
+    conn = request.getfixturevalue(conn)
+
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
+        pandasSQL.to_sql(
+            test_frame1, "test_hints", hints={"oracle": ["APPEND"]}, if_exists="replace"
+        )
+        assert pandasSQL.has_table("test_hints")
+    assert count_rows(conn, "test_hints") == len(test_frame1)
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_to_sql_hints_none_default(conn, test_frame1, request):
+    """Test that hints defaults to None and doesn't break existing code."""
+    conn = request.getfixturevalue(conn)
+
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
+        pandasSQL.to_sql(test_frame1, "test_no_hints")
+        assert pandasSQL.has_table("test_no_hints")
+    assert count_rows(conn, "test_no_hints") == len(test_frame1)
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_to_sql_hints_with_method(conn, test_frame1, request):
+    """Test that hints work alongside custom method parameter."""
+    conn = request.getfixturevalue(conn)
+
+    check = []
+
+    def sample(pd_table, conn, keys, data_iter):
+        check.append(1)
+        data = [dict(zip(keys, row)) for row in data_iter]
+        conn.execute(pd_table.table.insert(), data)
+
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
+        pandasSQL.to_sql(
+            test_frame1,
+            "test_hints_method",
+            method=sample,
+            hints={"oracle": ["APPEND"]},
+        )
+        assert pandasSQL.has_table("test_hints_method")
+
+    assert check == [1]
+    assert count_rows(conn, "test_hints_method") == len(test_frame1)
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+@pytest.mark.parametrize("method", [None, "multi"])
+def test_to_sql_hints_with_different_methods(conn, method, test_frame1, request):
+    """Test hints work with different insertion methods."""
+    conn = request.getfixturevalue(conn)
+
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
+        pandasSQL.to_sql(
+            test_frame1,
+            "test_hints_methods",
+            method=method,
+            hints={"oracle": ["APPEND", "PARALLEL"]},
+            if_exists="replace",
+        )
+        assert pandasSQL.has_table("test_hints_methods")
+
+    assert count_rows(conn, "test_hints_methods") == len(test_frame1)
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+def test_to_sql_hints_multidb_dict(conn, test_frame1, request):
+    """Test that multi-database hints dict works (only matching dialect used)."""
+    conn = request.getfixturevalue(conn)
+
+    hints = {
+        "oracle": ["APPEND", "PARALLEL"],
+        "mysql": "HIGH_PRIORITY",
+        "postgresql": "some_pg_hint",
+        "sqlite": "ignored",
+    }
+
+    with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
+        pandasSQL.to_sql(
+            test_frame1, "test_multidb_hints", hints=hints, if_exists="replace"
+        )
+        assert pandasSQL.has_table("test_multidb_hints")
+
+    assert count_rows(conn, "test_multidb_hints") == len(test_frame1)
+
+
+def test_to_sql_hints_adbc_not_supported(sqlite_adbc_conn, test_frame1):
+    """Test that ADBC connections raise NotImplementedError for hints."""
+    pytest.importorskip("adbc_driver_manager.dbapi")
+
+    df = test_frame1.copy()
+    msg = "'hints' is not implemented for ADBC drivers"
+
+    with pytest.raises(NotImplementedError, match=msg):
+        df.to_sql("test", sqlite_adbc_conn, hints={"oracle": ["APPEND"]})
+
+
+def test_to_sql_hints_sqlite_builtin(sqlite_buildin, test_frame1):
+    """Test that sqlite builtin connection handles hints gracefully."""
+    df = test_frame1.copy()
+
+    msg = "SQL hints are not supported for SQLite and will be ignored."
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        result = df.to_sql(
+            "test_sqlite_hints",
+            sqlite_buildin,
+            if_exists="replace",
+            hints={"sqlite": "IGNORED"},
+        )
+
+    assert result == len(test_frame1)
+    result_df = pd.read_sql("SELECT * FROM test_sqlite_hints", sqlite_buildin)
+    assert len(result_df) == len(test_frame1)
