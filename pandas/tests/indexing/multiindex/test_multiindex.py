@@ -294,7 +294,7 @@ class TestMultiIndexBasic:
         )
 
         tm.assert_frame_equal(meta, result)
-    
+
     def test_multiindex_with_interval_index(self):
         # for https://github.com/pandas-dev/pandas/issues/25298
         intIndex = IntervalIndex.from_arrays([1,5,8,13,16], [4,9,12,17,20])
