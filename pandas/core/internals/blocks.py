@@ -862,8 +862,11 @@ class Block(PandasObject, libinternals.Block):
                     # This is ugly, but we have to get rid of intermediate refs. We
                     # can simply clear the referenced_blocks if we already copied,
                     # otherwise we have to remove ourselves
+                    # GH#62787: Handle invalid weak references properly
                     self_blk_ids = {
-                        id(b()): i for i, b in enumerate(self.refs.referenced_blocks)
+                        id(ref_block): i
+                        for i, b in enumerate(self.refs.referenced_blocks)
+                        if (ref_block := b()) is not None
                     }
                     for b in result:
                         if b.refs is self.refs:
