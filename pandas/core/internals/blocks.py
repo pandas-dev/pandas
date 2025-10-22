@@ -877,7 +877,8 @@ class Block(PandasObject, libinternals.Block):
                             if id(obj) in to_remove_ids:
                                 continue
                             new_refs.append(wr)
-                        self.refs.referenced_blocks = new_refs
+                        # Preserve list identity to avoid breaking external references
+                        self.refs.referenced_blocks[:] = new_refs
                     # For blocks that have already copied, clear their refs to avoid
                     # future copies.
                     for blk in result:
