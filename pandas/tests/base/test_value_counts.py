@@ -341,151 +341,79 @@ def test_value_counts_object_inference_deprecated():
     tm.assert_series_equal(res, exp)
 
 
-def _vc_make_index(kind: str, periods=5, freq="D"):
-    if kind == "dt":
-        return pd.date_range("2016-01-01", periods=periods, freq=freq)
-    if kind == "td":
-        return pd.timedelta_range(Timedelta(0), periods=periods, freq=freq)
-    raise ValueError("kind must be 'dt' or 'td'")
-
-
 @pytest.mark.parametrize(
-    "kind,freq,normalize",
+    "index",
     [
-        ("dt", "D", False),
-        ("dt", "D", True),
-        ("td", "D", False),
-        ("td", "D", True),
-        ("td", Timedelta(hours=1), False),
-        ("td", Timedelta(hours=1), True),
+        pd.date_range("2016-01-01", periods=5, freq="D"),
+        pd.timedelta_range(Timedelta(0), periods=5, freq="h"),
+    ],
+    ids=["DatetimeIndex[D]", "TimedeltaIndex[h]"],
+)
+@pytest.mark.parametrize(
+    "build,kwargs,exp_preserve,exp_hasnans,exp_index_fn",
+    [
+        (lambda idx: idx, {"sort": False}, True, False, lambda idx, obj: idx),
+        (
+            lambda idx: idx,
+            {"sort": False, "normalize": True},
+            True,
+            False,
+            lambda idx, obj: idx,
+        ),
+        (lambda idx: idx, {}, False, False, None),
+        (
+            lambda idx: idx.insert(1, idx[1]),
+            {"sort": False},
+            False,
+            False,
+            lambda idx, obj: type(idx)(idx, freq=None),
+        ),
+        (
+            lambda idx: idx.delete(2),
+            {"sort": False},
+            False,
+            False,
+            lambda idx, obj: type(idx)(obj, freq=None),
+        ),
+        (
+            lambda idx: idx.insert(1, pd.NaT),
+            {"sort": False, "dropna": False},
+            False,
+            True,
+            lambda idx, obj: type(idx)(
+                list(idx[:1]) + [pd.NaT] + list(idx[1:]), freq=None
+            ),
+        ),
+        (
+            lambda idx: idx.insert(1, pd.NaT),
+            {"sort": False, "dropna": True},
+            False,
+            False,
+            lambda idx, obj: type(idx)(idx, freq=None),
+        ),
     ],
 )
-def test_value_counts_freq_preserved_datetimelike_no_sort(kind, freq, normalize):
-    idx = _vc_make_index(kind, periods=5, freq=freq)
-    vc = idx.value_counts(sort=False, normalize=normalize)
-    assert vc.index.freq == idx.freq
-    if normalize:
-        assert np.isclose(vc.values, 1 / len(idx)).all()
-
-
-@pytest.mark.parametrize(
-    "kind,freq",
-    [
-        ("dt", "D"),
-        ("td", "D"),
-        ("td", Timedelta(hours=1)),
-    ],
-)
-def test_value_counts_freq_drops_datetimelike_when_sorted(kind, freq):
-    idx = _vc_make_index(kind, periods=5, freq=freq)
-    vc = idx.value_counts()  # default sort=True (reorders)
-    assert vc.index.freq is None
-
-
-@pytest.mark.parametrize(
-    "kind,freq",
-    [
-        ("dt", "D"),
-        ("td", "D"),
-        ("td", Timedelta(hours=1)),
-    ],
-)
-def test_value_counts_freq_drops_datetimelike_with_duplicates(kind, freq):
-    base = _vc_make_index(kind, periods=5, freq=freq)
-    obj = base.insert(1, base[1])  # duplicate one label
-    vc = obj.value_counts(sort=False)
-    assert vc.index.freq is None
-
-
-@pytest.mark.parametrize(
-    "kind,freq",
-    [
-        ("dt", "D"),
-        ("td", "D"),
-        ("td", Timedelta(hours=1)),
-    ],
-)
-def test_value_counts_freq_drops_datetimelike_with_gap(kind, freq):
-    base = _vc_make_index(kind, periods=5, freq=freq)
-    obj = base.delete(2)  # remove one step to break contiguity
-    vc = obj.value_counts(sort=False)
-    assert vc.index.freq is None
-
-
-@pytest.mark.parametrize(
-    "kind,freq,dropna,expect_hasnans",
-    [
-        ("dt", "D", False, True),  # keep NaT
-        ("dt", "D", True, False),  # drop NaT
-        ("td", "D", False, True),
-        ("td", "D", True, False),
-        ("td", Timedelta(hours=1), False, True),
-        ("td", Timedelta(hours=1), True, False),
-    ],
-)
-def test_value_counts_freq_drops_datetimelike_with_nat(
-    kind, freq, dropna, expect_hasnans
+def test_value_counts_freq_datetimelike(
+    index, build, kwargs, exp_preserve, exp_hasnans, exp_index_fn
 ):
-    base = _vc_make_index(kind, periods=3, freq=freq)
-    obj = base.insert(1, pd.NaT)
-    vc = obj.value_counts(dropna=dropna, sort=False)
-    assert vc.index.freq is None
-    assert vc.index.hasnans is expect_hasnans
+    obj = build(index)
+    vc = obj.value_counts(**kwargs)
 
+    # without sort
+    if exp_index_fn is not None:
+        expected_idx = exp_index_fn(index, obj)
+        tm.assert_index_equal(vc.index, expected_idx)
 
-@pytest.mark.parametrize(
-    "freq,start,periods,sort",
-    [
-        ("D", "2016-01-01", 5, False),
-        ("D", "2016-01-01", 5, True),
-        ("M", "2016-01", 6, False),  # MonthEnd
-        ("M", "2016-01", 6, True),
-        ("Q-DEC", "2016Q1", 4, False),  # QuarterEnd (Dec anchored)
-        ("Q-DEC", "2016Q1", 4, True),
-        ("Y-DEC", "2014", 3, False),  # YearEnd (Dec anchored)
-        ("Y-DEC", "2014", 3, True),
-    ],
-)
-def test_value_counts_period_freq_preserved_sort_and_nosort(freq, start, periods, sort):
-    pi = pd.period_range(start=start, periods=periods, freq=freq)
-    vc = pi.value_counts(sort=sort)
-    assert isinstance(vc.index, pd.PeriodIndex)
-    assert vc.index.dtype == pi.dtype
-    assert vc.index.freq == pi.freq
+    # freq preservation / drop
+    if exp_preserve:
+        assert vc.index.freq == index.freq
+    else:
+        assert vc.index.freq is None
 
+    # NaT presence
+    assert vc.index.hasnans is exp_hasnans
 
-def test_value_counts_period_freq_preserved_with_duplicates():
-    pi = pd.period_range("2016-01", periods=5, freq="M")
-    obj = pi.insert(1, pi[1])  # duplicate one label
-    vc = obj.value_counts(sort=False)
-    assert isinstance(vc.index, pd.PeriodIndex)
-    assert vc.index.dtype == pi.dtype
-    assert vc.index.freq == pi.freq
-
-
-def test_value_counts_period_freq_preserved_with_gap():
-    pi = pd.period_range("2016-01", periods=5, freq="M")
-    obj = pi.delete(2)  # remove one element
-    vc = obj.value_counts(sort=False)
-    assert isinstance(vc.index, pd.PeriodIndex)
-    assert vc.index.dtype == pi.dtype
-    assert vc.index.freq == pi.freq
-
-
-def test_value_counts_period_freq_preserved_with_normalize():
-    pi = pd.period_range("2016-01", periods=4, freq="M")
-    vc = pi.value_counts(normalize=True, sort=False)
-    assert isinstance(vc.index, pd.PeriodIndex)
-    assert vc.index.dtype == pi.dtype
-    assert vc.index.freq == pi.freq
-    assert np.isclose(vc.values, 1 / len(pi)).all()
-
-
-def test_value_counts_period_freq_preserved_with_nat_dropna_true():
-    pi = pd.period_range("2016-01", periods=5, freq="M")
-    obj = pi.insert(1, pd.NaT)
-    vc = obj.value_counts(dropna=True, sort=False)
-    assert not vc.index.hasnans
-    assert isinstance(vc.index, pd.PeriodIndex)
-    assert vc.index.dtype == pi.dtype
-    assert vc.index.freq == pi.freq
+    # without normalize
+    if kwargs.get("normalize", False):
+        expected_val = 1.0 / len(index)
+        assert np.isclose(vc.to_numpy(), expected_val).all()

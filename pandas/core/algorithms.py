@@ -937,24 +937,12 @@ def value_counts_internal(
                 and not sort
                 and isinstance(values, (DatetimeIndex, TimedeltaIndex))
                 and values.inferred_freq is not None
+                and len(idx) == len(values)
+                and idx.equals(values)
             ):
                 # freq preservation
-                # Check if the result would be the same as input
-                if len(idx) == len(values) and idx.equals(values):
-                    # Rebuild idx with the correct type and inferred frequency
-                    if isinstance(values, DatetimeIndex):
-                        idx = DatetimeIndex(
-                            idx._data if hasattr(idx, "_data") else idx.values,
-                            freq=values.inferred_freq,
-                            name=idx.name,
-                        )
-
-                    elif isinstance(values, TimedeltaIndex):
-                        idx = TimedeltaIndex(
-                            idx._data if hasattr(idx, "_data") else idx.values,
-                            freq=values.inferred_freq,
-                            name=idx.name,
-                        )
+                # Rebuild idx with the correct type and inferred frequency
+                idx.freq = values.inferred_freq
 
             result = Series(counts, index=idx, name=name, copy=False)
 
