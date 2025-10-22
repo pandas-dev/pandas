@@ -231,39 +231,16 @@ def _wrap_result_adbc(
     return df
 
 
-def _process_sql_hints(
-    hints: dict[str, str | list[str]] | None, dialect_name: str
-) -> str | None:
-    if hints is None or not hints:
+def _process_sql_hints(hints: dict[str, str] | None, dialect_name: str) -> str | None:
+    if hints is None:
         return None
 
     dialect_name = dialect_name.lower()
-
-    hint_value = None
     for key, value in hints.items():
         if key.lower() == dialect_name:
-            hint_value = value
-            break
+            return value
 
-    if hint_value is None:
-        return None
-
-    if isinstance(hint_value, list):
-        hint_str = " ".join(hint_value)
-    else:
-        hint_str = str(hint_value)
-
-    if hint_str.strip().startswith("/*+") and hint_str.strip().endswith("*/"):
-        return hint_str.strip()
-
-    if dialect_name == "oracle":
-        return f"/*+ {hint_str} */"
-    elif dialect_name == "mysql":
-        return hint_str
-    elif dialect_name == "mssql":
-        return hint_str
-    else:
-        return f"/*+ {hint_str} */"
+    return None
 
 
 # -----------------------------------------------------------------------------
@@ -784,7 +761,7 @@ def to_sql(
     dtype: DtypeArg | None = None,
     method: Literal["multi"] | Callable | None = None,
     engine: str = "auto",
-    hints: dict[str, str | list[str]] | None = None,
+    hints: dict[str, str] | None = None,
     **engine_kwargs,
 ) -> int | None:
     """
@@ -844,6 +821,23 @@ def to_sql(
         behavior is 'sqlalchemy'
 
         .. versionadded:: 1.3.0
+
+    hints : dict[str, str], optional
+        SQL hints to optimize insertion performance, keyed by database dialect name.
+        Each hint should be a complete string formatted exactly as required by the
+        target database. The user is responsible for constructing dialect-specific
+        syntax.
+
+        Examples: ``{'oracle': '/*+ APPEND PARALLEL(4) */'}``
+                  ``{'mysql': 'DELAYED'}``
+                  ``{'mssql': 'WITH (TABLOCK)'}``
+
+        .. note::
+            - Hints are database-specific and will be ignored for unsupported dialects
+            - SQLite will raise a UserWarning (hints not supported)
+            - ADBC connections will raise NotImplementedError
+
+        .. versionadded::
 
     **engine_kwargs
         Any additional kwargs are passed to the engine.
@@ -1142,7 +1136,7 @@ class SQLTable(PandasObject):
         self,
         chunksize: int | None = None,
         method: Literal["multi"] | Callable | None = None,
-        hints: dict[str, str | list[str]] | None = None,
+        hints: dict[str, str] | None = None,
         dialect_name: str | None = None,
     ) -> int | None:
         # set insert method
@@ -1570,7 +1564,7 @@ class PandasSQL(PandasObject, ABC):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
-        hints: dict[str, str | list[str]] | None = None,
+        hints: dict[str, str] | None = None,
         engine: str = "auto",
         **engine_kwargs,
     ) -> int | None:
@@ -1607,7 +1601,7 @@ class BaseEngine:
         schema=None,
         chunksize: int | None = None,
         method=None,
-        hints: dict[str, str | list[str]] | None = None,
+        hints: dict[str, str] | None = None,
         dialect_name: str | None = None,
         **engine_kwargs,
     ) -> int | None:
@@ -1633,7 +1627,7 @@ class SQLAlchemyEngine(BaseEngine):
         schema=None,
         chunksize: int | None = None,
         method=None,
-        hints: dict[str, str | list[str]] | None = None,
+        hints: dict[str, str] | None = None,
         dialect_name: str | None = None,
         **engine_kwargs,
     ) -> int | None:
@@ -2047,7 +2041,7 @@ class SQLDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
-        hints: dict[str, str | list[str]] | None = None,
+        hints: dict[str, str] | None = None,
         **engine_kwargs,
     ) -> int | None:
         """
@@ -2414,7 +2408,7 @@ class ADBCDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
-        hints: dict[str, str | list[str]] | None = None,
+        hints: dict[str, str] | None = None,
         **engine_kwargs,
     ) -> int | None:
         """
@@ -2894,7 +2888,7 @@ class SQLiteDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
-        hints: dict[str, str | list[str]] | None = None,
+        hints: dict[str, str] | None = None,
         **engine_kwargs,
     ) -> int | None:
         """
