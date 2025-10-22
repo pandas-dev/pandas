@@ -8,6 +8,8 @@ from typing import (
 
 from pandas._config import get_option
 
+from pandas.util._decorators import set_module
+
 from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
@@ -44,6 +46,7 @@ def holds_integer(column: Index) -> bool:
     return column.dtype.kind in "iu"
 
 
+@set_module("pandas.plotting")
 def hist_series(
     self: Series,
     by=None,
@@ -142,6 +145,7 @@ def hist_series(
     )
 
 
+@set_module("pandas.plotting")
 def hist_frame(
     data: DataFrame,
     column: IndexLabel | None = None,
@@ -271,6 +275,7 @@ def hist_frame(
     )
 
 
+@set_module("pandas.plotting")
 def boxplot(
     data: DataFrame,
     column: str | list[str] | None = None,
@@ -458,6 +463,7 @@ def boxplot(
     )
 
 
+@set_module("pandas.plotting")
 def boxplot_frame(
     self: DataFrame,
     column=None,
@@ -615,6 +621,9 @@ def boxplot_frame(
     returned by `boxplot`.  When ``return_type='axes'`` is selected,
     the matplotlib axes on which the boxplot is drawn are returned:
 
+    .. plot::
+        :context: close-figs
+
         >>> boxplot = df.boxplot(column=["Col1", "Col2"], return_type="axes")
         >>> type(boxplot)
         <class 'matplotlib.axes._axes.Axes'>
@@ -622,12 +631,18 @@ def boxplot_frame(
     When grouping with ``by``, a Series mapping columns to ``return_type``
     is returned:
 
+    .. plot::
+        :context: close-figs
+
         >>> boxplot = df.boxplot(column=["Col1", "Col2"], by="X", return_type="axes")
         >>> type(boxplot)
         <class 'pandas.Series'>
 
     If ``return_type`` is `None`, a NumPy array of axes with the same shape
     as ``layout`` is returned:
+
+    .. plot::
+        :context: close-figs
 
         >>> boxplot = df.boxplot(column=["Col1", "Col2"], by="X", return_type=None)
         >>> type(boxplot)
@@ -650,6 +665,7 @@ def boxplot_frame(
     )
 
 
+@set_module("pandas.plotting")
 def boxplot_frame_groupby(
     grouped: DataFrameGroupBy,
     subplots: bool = True,
