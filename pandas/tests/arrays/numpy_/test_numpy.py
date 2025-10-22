@@ -328,7 +328,7 @@ def test_factorize_unsigned():
 @pytest.mark.parametrize(
     "dtype",
     [
-        np.bool,
+        np.bool_,
         np.uint8,
         np.uint16,
         np.uint32,
@@ -341,7 +341,7 @@ def test_factorize_unsigned():
 )
 def test_take_assigns_floating_point_dtype(dtype):
     # GH#62448.
-    if dtype == np.bool:
+    if dtype == np.bool_:
         array = NumpyExtensionArray(np.array([False, True, False], dtype=dtype))
         expected = np.dtype(object)
     else:
@@ -358,7 +358,7 @@ def test_take_assigns_floating_point_dtype(dtype):
 @pytest.mark.parametrize(
     "dtype",
     [
-        np.bool,
+        np.bool_,
         np.uint8,
         np.uint16,
         np.uint32,
@@ -371,7 +371,7 @@ def test_take_assigns_floating_point_dtype(dtype):
 )
 def test_take_assigns_integer_dtype_when_fill_disallowed(dtype):
     # GH#62448.
-    if dtype == np.bool:
+    if dtype == np.bool_:
         array = NumpyExtensionArray(np.array([False, True, False], dtype=dtype))
     else:
         array = NumpyExtensionArray(np.array([1, 2, 3], dtype=dtype))
