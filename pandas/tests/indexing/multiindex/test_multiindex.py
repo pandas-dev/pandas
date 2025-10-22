@@ -8,6 +8,8 @@ from pandas import (
     CategoricalDtype,
     DataFrame,
     Index,
+    Interval,
+    IntervalIndex,
     MultiIndex,
     Series,
 )
@@ -292,3 +294,13 @@ class TestMultiIndexBasic:
         )
 
         tm.assert_frame_equal(meta, result)
+    
+    def test_multiindex_with_interval_index(self):
+        # for https://github.com/pandas-dev/pandas/issues/25298
+        intIndex = IntervalIndex.from_arrays([1,5,8,13,16], [4,9,12,17,20])
+        multiIndex = MultiIndex.from_arrays([["a", "a", "b", "b", "c"], intIndex])
+        data = [(1,2),(3,4),(5,6),(7,8), (9,10)]
+        df = DataFrame(data, index=multiIndex)
+        series1 = df.loc[("b", 16)]
+        series2 = df.loc["b"].loc[16]
+        tm.assert_equal(series1.array, series2.array)
