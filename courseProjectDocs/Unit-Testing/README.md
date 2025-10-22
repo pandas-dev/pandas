@@ -5,7 +5,7 @@
 This document explains how to run the 15 additional unit test cases added to the pandas codebase as part of our SWEN 777 course project. These tests target critical edge cases and uncovered logic paths across three key pandas modules.
 
 **Project Details:**
-- **Course:** SWEN 777 - Software Architecture
+- **Course:** SWEN 777 - Software Quality Assurance
 - **Group Size:** 3 members  
 - **Deliverable:** 15 meaningful unit test cases (5 per student)
 - **Target:** Increase test coverage for uncovered or edge-case logic
