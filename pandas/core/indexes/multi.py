@@ -52,7 +52,6 @@ from pandas.errors import (
     UnsortedIndexError,
 )
 from pandas.util._decorators import (
-    Appender,
     cache_readonly,
     doc,
     set_module,
@@ -101,7 +100,6 @@ from pandas.core.construction import sanitize_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
-    _index_shared_docs,
     ensure_index,
     get_unanimous_names,
 )
@@ -2290,7 +2288,6 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
 
-    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
         self: MultiIndex,
         indices,
@@ -2299,6 +2296,51 @@ class MultiIndex(Index):
         fill_value=None,
         **kwargs,
     ) -> MultiIndex:
+        """
+        Return a new MultiIndex of the values selected by the indices.
+
+        For internal compatibility with numpy arrays.
+
+        Parameters
+        ----------
+        indices : array-like
+            Indices to be taken.
+        axis : int, optional
+            The axis over which to select values, always 0.
+        allow_fill : bool, default True
+            How to handle negative values in `indices`.
+
+            * False: negative values in `indices` indicate positional indices
+            from the right (the default). This is similar to
+            :func:`numpy.take`.
+
+            * True: negative values in `indices` indicate
+            missing values. These values are set to `fill_value`. Any other
+            other negative values raise a ``ValueError``.
+
+        fill_value : scalar, default None
+            If allow_fill=True and fill_value is not None, indices specified by
+            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+        **kwargs
+            Required for compatibility with numpy.
+
+        Returns
+        -------
+        Index
+            An index formed of elements at the given indices. Will be the same
+            type as self, except for RangeIndex.
+
+        See Also
+        --------
+        numpy.ndarray.take: Return an array formed from the
+            elements of a at the given indices.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["a", "b", "c"])
+        >>> idx.take([2, 2, 1, 2])
+        Index(['c', 'c', 'b', 'c'], dtype='str')
+        """
         nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
 
@@ -2454,8 +2496,43 @@ class MultiIndex(Index):
         keys = [lev.codes for lev in target._get_codes_for_sorting()]
         return lexsort_indexer(keys, na_position=na_position, codes_given=True)
 
-    @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats: int, axis=None) -> MultiIndex:
+        """
+        Repeat elements of a MultiIndex.
+
+        Returns a new MultiIndex where each element of the current MultiIndex
+        is repeated consecutively a given number of times.
+
+        Parameters
+        ----------
+        repeats : int or array of ints
+            The number of repetitions for each element. This should be a
+            non-negative integer. Repeating 0 times will return an empty
+            MultiIndex.
+        axis : None
+            Must be ``None``. Has no effect but is accepted for compatibility
+            with numpy.
+
+        Returns
+        -------
+        MultiIndex
+            Newly created MultiIndex with repeated elements.
+
+        See Also
+        --------
+        Series.repeat : Equivalent function for Series.
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["a", "b", "c"])
+        >>> idx
+        Index(['a', 'b', 'c'], dtype='object')
+        >>> idx.repeat(2)
+        Index(['a', 'a', 'b', 'b', 'c', 'c'], dtype='object')
+        >>> idx.repeat([1, 2, 3])
+        Index(['a', 'b', 'b', 'c', 'c', 'c'], dtype='object')
+        """
         nv.validate_repeat((), {"axis": axis})
         # error: Incompatible types in assignment (expression has type "ndarray",
         # variable has type "int")
