@@ -71,7 +71,7 @@ from pandas.errors import (
     InvalidIndexError,
 )
 from pandas.util._decorators import (
-    Appender
+    Appender,
     cache_readonly,
     doc,
     set_module,
