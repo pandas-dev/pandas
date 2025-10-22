@@ -71,7 +71,7 @@ from pandas.errors import (
     InvalidIndexError,
 )
 from pandas.util._decorators import (
-    Appender,
+    Appender
     cache_readonly,
     doc,
     set_module,
@@ -1170,8 +1170,16 @@ class Index(IndexOpsMixin, PandasObject):
             result._references.add_index_reference(result)
         return result
 
-    _index_shared_docs["take"] = """
-        Return a new %(klass)s of the values selected by the indices.
+    def take(
+        self,
+        indices,
+        axis: Axis = 0,
+        allow_fill: bool = True,
+        fill_value=None,
+        **kwargs,
+    ) -> Self:
+        """
+        Return a new Index of the values selected by the indices.
 
         For internal compatibility with numpy arrays.
 
@@ -1189,7 +1197,7 @@ class Index(IndexOpsMixin, PandasObject):
               :func:`numpy.take`.
 
             * True: negative values in `indices` indicate
-              missing values. These values are set to `fill_value`. Any other
+              missing values. These values are set to `fill_value`. Any
               other negative values raise a ``ValueError``.
 
         fill_value : scalar, default None
@@ -1215,16 +1223,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.take([2, 2, 1, 2])
         Index(['c', 'c', 'b', 'c'], dtype='str')
         """
-
-    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
-    def take(
-        self,
-        indices,
-        axis: Axis = 0,
-        allow_fill: bool = True,
-        fill_value=None,
-        **kwargs,
-    ) -> Self:
         if kwargs:
             nv.validate_take((), kwargs)
         if is_scalar(indices):
@@ -1272,10 +1270,11 @@ class Index(IndexOpsMixin, PandasObject):
             allow_fill = False
         return allow_fill
 
-    _index_shared_docs["repeat"] = """
-        Repeat elements of a %(klass)s.
+    def repeat(self, repeats, axis: None = None) -> Self:
+        """
+        Repeat elements of a Index.
 
-        Returns a new %(klass)s where each element of the current %(klass)s
+        Returns a new Index where each element of the current Index
         is repeated consecutively a given number of times.
 
         Parameters
@@ -1283,15 +1282,15 @@ class Index(IndexOpsMixin, PandasObject):
         repeats : int or array of ints
             The number of repetitions for each element. This should be a
             non-negative integer. Repeating 0 times will return an empty
-            %(klass)s.
+            Index.
         axis : None
             Must be ``None``. Has no effect but is accepted for compatibility
             with numpy.
 
         Returns
         -------
-        %(klass)s
-            Newly created %(klass)s with repeated elements.
+        Index
+            Newly created Index with repeated elements.
 
         See Also
         --------
@@ -1308,9 +1307,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.repeat([1, 2, 3])
         Index(['a', 'b', 'b', 'c', 'c', 'c'], dtype='object')
         """
-
-    @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
-    def repeat(self, repeats, axis: None = None) -> Self:
         repeats = ensure_platform_int(repeats)
         nv.validate_repeat((), {"axis": axis})
         res_values = self._values.repeat(repeats)
@@ -5940,7 +5936,10 @@ class Index(IndexOpsMixin, PandasObject):
             "complex",
         }
 
-    _index_shared_docs["get_indexer_non_unique"] = """
+    def get_indexer_non_unique(
+        self, target
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+        """
         Compute indexer and mask for new index given the current index.
 
         The indexer should be then used as an input to ndarray.take to align the
@@ -5948,7 +5947,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        target : %(target_klass)s
+        target : Index
             An iterable containing the values to be used for computing indexer.
 
         Returns
@@ -5992,11 +5991,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> index.get_indexer_non_unique(['f', 'b', 's'])
         (array([-1,  1,  3,  4, -1]), array([0, 2]))
         """
-
-    @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
-    def get_indexer_non_unique(
-        self, target
-    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         target = self._maybe_cast_listlike_indexer(target)
 
         if not self._should_compare(target) and not self._should_partial_index(target):
