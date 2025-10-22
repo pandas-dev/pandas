@@ -144,6 +144,10 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.integer import (
+    Int64Dtype,
+    UInt64Dtype,
+)
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
@@ -9031,12 +9035,12 @@ class DataFrame(NDFrame, OpsMixin):
         # int64 and uint64 to their nullable ExtensionDtypes, Int64 and UInt64.
         def _ensure_nullable_int64_dtypes(df: DataFrame) -> DataFrame:
             """Promote int64/uint64 DataFrame columns to Int64/UInt64."""
-            cast_map: dict[str, str] = {}
+            cast_map: dict[IndexLabel, DtypeObj] = {}
             for col, dt in df.dtypes.items():
                 if dt == np.int64:
-                    cast_map[col] = "Int64"
+                    cast_map[col] = Int64Dtype()
                 elif dt == np.uint64:
-                    cast_map[col] = "UInt64"
+                    cast_map[col] = UInt64Dtype()
 
             if cast_map:
                 df = df.astype(cast_map)
@@ -9049,7 +9053,7 @@ class DataFrame(NDFrame, OpsMixin):
             self_orig: DataFrame, other_orig: DataFrame, combined_df: DataFrame
         ) -> DataFrame:
             """Resolve the combined dtypes according to the original dtypes."""
-            cast_map: dict[str, str] = {}
+            cast_map: dict[IndexLabel, DtypeObj] = {}
             for col in combined_df.columns:
                 ser = combined_df[col]
                 orig_dt_self = self_orig.dtypes.get(col)
@@ -9072,7 +9076,7 @@ class DataFrame(NDFrame, OpsMixin):
                             # obvious (since we don't cast back). Consider
                             # embracing nullable ExtensionDtypes instead
                             # and dropping this whole restoration step.
-                            dtypes_to_resolve.append(np.dtype("float64"))
+                            dtypes_to_resolve.append(np.dtype(np.float64))
                         target_type = find_common_type(dtypes_to_resolve)
                         cast_map[col] = target_type
 
