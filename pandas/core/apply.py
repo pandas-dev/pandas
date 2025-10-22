@@ -835,6 +835,31 @@ class NDFrameApply(Apply):
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
 
+        # GH#49352 - Handle numeric_only with list of functions
+        # When numeric_only=True is passed with a list of functions, filter
+        # to numeric columns before processing to avoid TypeError on non-numeric Series
+        if op_name == "agg" and kwargs.get("numeric_only", False):
+            # Check if obj is a DataFrame (not Series) with 2 dimensions
+            if isinstance(obj, ABCDataFrame) and obj.ndim == 2:
+                # Filter to numeric columns before processing
+                numeric_obj = obj.select_dtypes(include="number")
+
+                # Only proceed if we have numeric columns
+                if not numeric_obj.empty:
+                    # Create kwargs without numeric_only to avoid passing it to Series methods
+                    kwargs_filtered = {k: v for k, v in kwargs.items() if k != "numeric_only"}
+
+                    # Compute with filtered object and cleaned kwargs
+                    keys, results = self.compute_list_like(op_name, numeric_obj, kwargs_filtered)
+                    result = self.wrap_results_list_like(keys, results)
+                    return result
+                else:
+                    # No numeric columns - return empty result
+                    from pandas import DataFrame
+                    # Get function names for index
+                    keys = list(self.func) if is_list_like(self.func) else []
+                    return DataFrame(index=keys)
+
         keys, results = self.compute_list_like(op_name, obj, kwargs)
         result = self.wrap_results_list_like(keys, results)
         return result
@@ -1626,6 +1651,19 @@ class GroupByApply(Apply):
             selected_obj = obj._selected_obj
         else:
             selected_obj = obj._obj_with_exclusions
+
+        # GH#49352 - Handle numeric_only with list of functions for GroupBy
+        # Filter to numeric columns before processing to avoid TypeError
+        if op_name == "agg" and kwargs.get("numeric_only", False):
+            # For GroupBy, filter the selected object to numeric columns
+            if selected_obj.ndim == 2:
+                numeric_obj = selected_obj.select_dtypes(include="number")
+
+                if not numeric_obj.empty:
+                    # Update selected_obj to filtered numeric columns
+                    selected_obj = numeric_obj
+                    # Remove numeric_only from kwargs to avoid passing to Series methods
+                    kwargs = {k: v for k, v in kwargs.items() if k != "numeric_only"}
 
         # Only set as_index=True on groupby objects, not Window or Resample
         # that inherit from this class.
