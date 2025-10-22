@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     NA,
     Categorical,
@@ -121,8 +123,11 @@ class TestAstype:
 
         # non-standard categories
         dtype = CategoricalDtype(list("adc"), dtype_ordered)
-        result = cat.astype(dtype)
-        expected = Categorical(data, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = cat.astype(dtype)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = Categorical(data, dtype=dtype)
         tm.assert_categorical_equal(result, expected)
 
         if dtype_ordered is False:

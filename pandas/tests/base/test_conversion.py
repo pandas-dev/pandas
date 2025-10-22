@@ -21,9 +21,9 @@ from pandas.core.arrays import (
     NumpyExtensionArray,
     PeriodArray,
     SparseArray,
+    StringArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.string_ import StringArrayNumpySemantics
 from pandas.core.arrays.string_arrow import ArrowStringArray
 
 
@@ -222,7 +222,7 @@ class TestToIterable:
 )
 def test_values_consistent(arr, expected_type, dtype, using_infer_string):
     if using_infer_string and dtype == "object":
-        expected_type = ArrowStringArray if HAS_PYARROW else StringArrayNumpySemantics
+        expected_type = ArrowStringArray if HAS_PYARROW else StringArray
     l_values = Series(arr)._values
     r_values = pd.Index(arr)._values
     assert type(l_values) is expected_type
@@ -353,7 +353,10 @@ def test_array_multiindex_raises():
         ),
     ],
 )
-def test_to_numpy(arr, expected, zero_copy, index_or_series_or_array):
+def test_to_numpy(arr, expected, zero_copy, index_or_series_or_array, using_nan_is_na):
+    if not using_nan_is_na and arr[-1] is pd.NA:
+        expected = np.array([0, pd.NA], dtype=object)
+
     box = index_or_series_or_array
 
     with tm.assert_produces_warning(None):

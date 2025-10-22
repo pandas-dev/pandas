@@ -61,6 +61,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     AbstractMethodError,
     DataError,
+    Pandas4Warning,
 )
 from pandas.util._decorators import (
     Appender,
@@ -557,7 +558,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 "and will be removed. In a future version `groups` by one element "
                 "list will return tuple. Use ``df.groupby(by='a').groups`` "
                 "instead of ``df.groupby(by=['a']).groups`` to avoid this warning",
-                FutureWarning,
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
         return self._grouper.groups
@@ -681,7 +682,10 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                     raise ValueError(msg) from err
 
             converters = (get_converter(s) for s in index_sample)
-            names = (tuple(f(n) for f, n in zip(converters, name)) for name in names)
+            names = (
+                tuple(f(n) for f, n in zip(converters, name, strict=True))
+                for name in names
+            )
 
         else:
             converter = get_converter(index_sample)
@@ -1187,7 +1191,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if isinstance(result, Series) and name is not None:
             result.name = name
 
-        return result
+        return result.__finalize__(self.obj, method="groupby")
 
     @final
     def _set_result_index_ordered(
@@ -1234,6 +1238,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             zip(
                 reversed(self._grouper.names),
                 self._grouper.get_group_levels(),
+                strict=True,
             )
         ):
             if name is None:
@@ -1885,7 +1890,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             mask.fill(False)
             mask[indices.astype(int)] = True
             # mask fails to broadcast when passed to where; broadcast manually.
-            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T  # type: ignore[assignment]
+            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
             filtered = self._selected_obj.where(mask)  # Fill with NaNs.
         return filtered
 
@@ -4320,7 +4325,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _nth(
         self,
         n: PositionalIndexer | tuple,
-        dropna: Literal["any", "all", None] = None,
+        dropna: Literal["any", "all"] | None = None,
     ) -> NDFrameT:
         if not dropna:
             mask = self._make_mask_from_positional_indexer(n)

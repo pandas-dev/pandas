@@ -16,7 +16,10 @@ from pandas._libs import (
 )
 from pandas.compat import HAS_PYARROW
 from pandas.compat.numpy import np_version_gt2
-from pandas.errors import IntCastingNaNError
+from pandas.errors import (
+    IntCastingNaNError,
+    Pandas4Warning,
+)
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
 
@@ -392,7 +395,9 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result, exp)
 
     def test_constructor_categorical(self):
-        cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"])
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            cat = Categorical([0, 1, 2, 0, 1, 2], ["a", "b", "c"])
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 
@@ -536,7 +541,7 @@ class TestSeriesConstructors:
         tm.assert_numpy_array_equal(s.__array__(), exp_s2)
 
     def test_unordered_compare_equal(self):
-        left = Series(["a", "b", "c"], dtype=CategoricalDtype(["a", "b"]))
+        left = Series(["a", "b", None], dtype=CategoricalDtype(["a", "b"]))
         right = Series(Categorical(["a", "b", np.nan], categories=["a", "b"]))
         tm.assert_series_equal(left, right)
 
@@ -2137,7 +2142,9 @@ class TestSeriesConstructors:
         # but after PDEP-14 (string dtype), it was decided to keep dtype="string"
         # returning the NA string dtype, so expected is changed from
         # "string[pyarrow_numpy]" to "string[python]"
-        expected = Series(["a", "b"], dtype="string[python]")
+        expected = Series(
+            ["a", "b"], dtype="string[pyarrow]" if HAS_PYARROW else "string[python]"
+        )
         with pd.option_context("future.infer_string", True):
             result = Series(["a", "b"], dtype="string")
         tm.assert_series_equal(result, expected)

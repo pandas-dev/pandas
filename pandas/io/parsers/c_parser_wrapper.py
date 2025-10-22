@@ -292,7 +292,7 @@ class CParserWrapper(ParserBase):
 
             # rename dict keys
             data_tups = sorted(data.items())
-            data = {k: v for k, (i, v) in zip(names, data_tups)}
+            data = {k: v for k, (i, v) in zip(names, data_tups, strict=True)}
 
             date_data = self._do_date_conversions(names, data)
 
@@ -317,7 +317,7 @@ class CParserWrapper(ParserBase):
             if self.usecols is None:
                 self._check_data_length(names, alldata)
 
-            data = {k: v for k, (i, v) in zip(names, data_tups)}
+            data = {k: v for k, (i, v) in zip(names, data_tups, strict=False)}
 
             date_data = self._do_date_conversions(names, data)
             index, column_names = self._make_index(alldata, names)

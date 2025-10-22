@@ -200,7 +200,7 @@ def test_multi_index_naming_not_all_at_beginning(all_parsers):
 
 
 @xfail_pyarrow  # ValueError: Found non-unique column index
-def test_no_multi_index_level_names_empty(all_parsers):
+def test_no_multi_index_level_names_empty(temp_file, all_parsers):
     # GH 10984
     parser = all_parsers
     midx = MultiIndex.from_tuples([("A", 1, 2), ("A", 1, 2), ("B", 1, 2)])
@@ -209,9 +209,8 @@ def test_no_multi_index_level_names_empty(all_parsers):
         index=midx,
         columns=["x", "y", "z"],
     )
-    with tm.ensure_clean() as path:
-        expected.to_csv(path)
-        result = parser.read_csv(path, index_col=[0, 1, 2])
+    expected.to_csv(temp_file)
+    result = parser.read_csv(temp_file, index_col=[0, 1, 2])
     tm.assert_frame_equal(result, expected)
 
 
@@ -240,7 +239,7 @@ I2,1,3
 
 
 @pytest.mark.slow
-def test_index_col_large_csv(all_parsers, monkeypatch):
+def test_index_col_large_csv(temp_file, all_parsers, monkeypatch):
     # https://github.com/pandas-dev/pandas/issues/37094
     parser = all_parsers
 
@@ -252,11 +251,10 @@ def test_index_col_large_csv(all_parsers, monkeypatch):
         }
     )
 
-    with tm.ensure_clean() as path:
-        df.to_csv(path, index=False)
-        with monkeypatch.context() as m:
-            m.setattr("pandas.core.algorithms._MINIMUM_COMP_ARR_LEN", ARR_LEN)
-            result = parser.read_csv(path, index_col=[0])
+    df.to_csv(temp_file, index=False)
+    with monkeypatch.context() as m:
+        m.setattr("pandas.core.algorithms._MINIMUM_COMP_ARR_LEN", ARR_LEN)
+        result = parser.read_csv(temp_file, index_col=[0])
 
     tm.assert_frame_equal(result, df.set_index("a"))
 
