@@ -271,7 +271,7 @@ def test_s3_parquet(s3_bucket_public, s3so, df1):
 
 @td.skip_if_installed("fsspec")
 def test_not_present_exception():
-    msg = "`Import fsspec` failed.  Use pip or conda to install the fsspec package."
+    msg = "`Import fsspec` failed.  Use pip, conda or your preferred package manager to install the fsspec package."
     with pytest.raises(ImportError, match=msg):
         read_csv("memory://test/test.csv")
 
