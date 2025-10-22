@@ -6598,3 +6598,30 @@ The files ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the 
     24009288 Oct 10 06:43 test_fixed_compress.hdf
     24458940 Oct 10 06:44 test_table.hdf
     24458940 Oct 10 06:44 test_table_compress.hdf
+
+
+Connect To Google Colab
+--------------------------
+
+To uploade files in `Google Colab <https://colab.research.google.com>`__, you have a `lot of options
+<https://colab.research.google.com/notebooks/io.ipynb>`__. A few recommended options:
+
+
+Direct upload 
+''''''''''''''
+Fewer steps, but your file(s) will disappear when your session ends.
+
+1. In the Google Colab sidebar (mostly present in the left side), click the ``Files`` icon.
+2. Click the ``upload`` button.
+3. Select your file and its done!
+
+Uploading from Local files using Python
+'''''''''''''''''''''''''''''''''''''''
+.. code-block:: python
+   :linenos:
+
+   from google.colab import files
+   uploaded = files.upload()
+   for fn in uploaded.keys():
+      print('User uploaded file "{name}" with length {length} \
+                  bytes'.format(name=fn, length=len(uploaded[fn])))
