@@ -51,7 +51,7 @@ self_blk_ids = {
 
 **The Issue:**
 1. `b()` calls could return `None` if weak references became invalid
-2. `id(None)` would be used as a key, causing later KeyError 
+2. `id(None)` would be used as a key, causing later KeyError
 3. The error manifested as "weakref is not in list" when trying to pop from the list
 
 ### Why np.nan specifically?
