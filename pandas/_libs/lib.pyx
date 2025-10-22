@@ -41,6 +41,7 @@ from cython cimport (
 from pandas._config import using_string_dtype
 
 from pandas._libs.missing import check_na_tuples_nonequal
+from pandas.util._decorators import set_module
 
 import_datetime()
 
@@ -154,6 +155,7 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 # ----------------------------------------------------------------------
 
 
+@set_module("pandas.api.types")
 def is_scalar(val: object) -> bool:
     """
     Return True if given object is scalar.
@@ -255,6 +257,7 @@ cdef int64_t get_itemsize(object val):
         return -1
 
 
+@set_module("pandas.api.types")
 def is_iterator(obj: object) -> bool:
     """
     Check if the object is an iterator.
@@ -1095,6 +1098,7 @@ def indices_fast(ndarray[intp_t, ndim=1] index, const int64_t[:] labels, list ke
 
 # core.common import for fast inference checks
 
+@set_module("pandas.api.types")
 def is_float(obj: object) -> bool:
     """
     Return True if given object is float.
@@ -1128,6 +1132,7 @@ def is_float(obj: object) -> bool:
     return util.is_float_object(obj)
 
 
+@set_module("pandas.api.types")
 def is_integer(obj: object) -> bool:
     """
     Return True if given object is integer.
@@ -1172,6 +1177,7 @@ def is_int_or_none(obj) -> bool:
     return obj is None or util.is_integer_object(obj)
 
 
+@set_module("pandas.api.types")
 def is_bool(obj: object) -> bool:
     """
     Return True if given object is boolean.
@@ -1202,6 +1208,7 @@ def is_bool(obj: object) -> bool:
     return util.is_bool_object(obj)
 
 
+@set_module("pandas.api.types")
 def is_complex(obj: object) -> bool:
     """
     Return True if given object is complex.
@@ -1237,6 +1244,7 @@ cpdef bint is_decimal(object obj):
     return isinstance(obj, Decimal)
 
 
+@set_module("pandas.api.types")
 def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     """
     Check if the object is list-like.
@@ -1520,6 +1528,7 @@ cdef object _try_infer_map(object dtype):
     return None
 
 
+@set_module("pandas.api.types")
 def infer_dtype(value: object, skipna: bool = True) -> str:
     """
     Return a string label of the type of the elements in a list-like input.

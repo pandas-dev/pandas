@@ -12,6 +12,7 @@ import numpy as np
 
 from pandas._libs import missing as libmissing
 from pandas._libs.sparse import IntIndex
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -38,6 +39,7 @@ if TYPE_CHECKING:
     from pandas._typing import NpDtype
 
 
+@set_module("pandas")
 def get_dummies(
     data,
     prefix=None,
@@ -364,6 +366,7 @@ def _get_dummies_1d(
         return DataFrame(dummy_mat, index=index, columns=dummy_cols, dtype=_dtype)
 
 
+@set_module("pandas")
 def from_dummies(
     data: DataFrame,
     sep: None | str = None,

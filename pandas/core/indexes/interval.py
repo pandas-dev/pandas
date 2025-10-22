@@ -1108,6 +1108,7 @@ def _is_type_compatible(a, b) -> bool:
     )
 
 
+@set_module("pandas")
 def interval_range(
     start=None,
     end=None,

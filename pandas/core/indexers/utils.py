@@ -12,6 +12,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -417,6 +418,7 @@ def unpack_tuple_and_ellipses(item: tuple):
 # Public indexer validation
 
 
+@set_module("pandas.api.indexers")
 def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     """
     Check if `indexer` is a valid array indexer for `array`.

@@ -23,6 +23,7 @@ from pandas._libs.tslibs import (
     get_supported_dtype,
     is_supported_dtype,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -72,6 +73,7 @@ if TYPE_CHECKING:
     )
 
 
+@set_module("pandas")
 def array(
     data: Sequence[object] | AnyArrayLike,
     dtype: Dtype | None = None,

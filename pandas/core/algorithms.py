@@ -35,7 +35,10 @@ from pandas._typing import (
     TakeIndexer,
     npt,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -325,6 +328,7 @@ def unique(values: T) -> T: ...
 def unique(values: np.ndarray | Series) -> np.ndarray: ...
 
 
+@set_module("pandas")
 def unique(values):
     """
     Return unique values based on a hash table.
@@ -649,6 +653,7 @@ def factorize_array(
     return codes, uniques
 
 
+@set_module("pandas")
 @doc(
     values=dedent(
         """\
@@ -1111,6 +1116,7 @@ def rank(
 # ---- #
 
 
+@set_module("pandas.api.extensions")
 def take(
     arr,
     indices: TakeIndexer,
