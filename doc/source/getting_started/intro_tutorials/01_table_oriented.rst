@@ -36,6 +36,13 @@ pandas data table representation
 
     <ul class="task-bullet">
         <li>
+.. note::
+
+   The diagram shows that each row has an **index label** (0, 1, 2, ...), 
+   and each column has a **column label** (Name, Age). 
+   A single column of a DataFrame is a Series, which also has row labels. 
+   More about indexes can be found in the 
+   `indexing guide <https://pandas.pydata.org/docs/user_guide/indexing.html>`_.
 
 I want to store passenger data of the Titanic. For a number of passengers, I know the name (characters), age (integers) and sex (male/female) data.
 
