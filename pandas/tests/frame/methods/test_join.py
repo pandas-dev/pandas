@@ -597,7 +597,7 @@ class TestDataFrameJoin:
         expected1 = DataFrame(
             {"hr": cat_data, "values1": values1, "values2": values2}
         ).set_index("hr")
-        expected1.columns = pd.Index([4, 3], dtype="object", name="other_hr")
+        expected1.columns = Index([4, 3], dtype="object", name="other_hr")
 
         tm.assert_frame_equal(df_joined_1, expected1)
 
