@@ -2750,24 +2750,21 @@ class MultiIndex(Index):
             name = None
 
         if not hasattr(value, "__iter__") or isinstance(value, str):
-            raise TypeError("value must be an array-like object")
+            raise ValueError("value must be an array-like object")
 
         value = list(value)
         if len(value) != len(self):
             raise ValueError("Length of values must match length of index")
 
-        new_level = Index(value)
-        new_codes_for_level = new_level.get_indexer(value)
+        # 简洁可靠的实现
+        new_tuples = []
+        for i, tup in enumerate(self):
+            new_tuple = tup[:position] + (value[i],) + tup[position:]
+            new_tuples.append(new_tuple)
 
-        new_levels = self.levels[:position] + [new_level] + self.levels[position:]
-        new_codes = (
-            self.codes[:position] + [new_codes_for_level] + self.codes[position:]
-        )
         new_names = self.names[:position] + [name] + self.names[position:]
 
-        return MultiIndex(
-            levels=new_levels, codes=new_codes, names=new_names, verify_integrity=False
-        )
+        return MultiIndex.from_tuples(new_tuples, names=new_names)
 
     def _reorder_ilevels(self, order) -> MultiIndex:
         if len(order) != self.nlevels:
