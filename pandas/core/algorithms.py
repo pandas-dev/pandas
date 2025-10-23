@@ -947,7 +947,7 @@ def value_counts_internal(
             ):
                 # freq preservation
                 # Rebuild idx with the correct type and inferred frequency
-                idx.freq = values.inferred_freq
+                idx.freq = values.inferred_freq  # type: ignore[attr-defined]
 
             result = Series(counts, index=idx, name=name, copy=False)
 
