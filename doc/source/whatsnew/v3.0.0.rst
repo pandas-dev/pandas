@@ -515,6 +515,22 @@ If we had passed ``pd.Int64Dtype()`` or ``"int64[pyarrow]"`` for the dtype in th
 
 With ``"mode.nan_is_na"`` set to ``False``, ``ser.to_numpy()`` (and ``frame.values`` and ``np.asarray(obj)``) will convert to ``object`` dtype if :class:`NA` entries are present, where before they would coerce to ``NaN``.  To retain a float numpy dtype, explicitly pass ``na_value=np.nan`` to :meth:`Series.to_numpy`.
 
+The ``__module__`` attribute now points to public modules
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``__module__`` attribute on functions and classes in the public API has been
+updated to refer to the preferred public module from which to access the object,
+rather than the module in which the object happens to be defined (:issue:`55178`).
+
+This produces more informative displays in the Python console for classes, e.g.,
+instead of ``<class 'pandas.core.frame.DataFrame'>`` you now see
+``<class 'pandas.DataFrame'>``, and in interactive tools such as IPython, e.g.,
+instead of ``<function pandas.io.parsers.readers.read_csv(...)>`` you now see
+``<function pandas.read_csv(...)>``.
+
+This may break code that relies on the previous ``__module__`` values (e.g.
+doctests inspecting the ``type()`` of a DataFrame object).
+
 .. _whatsnew_300.api_breaking.deps:
 
 Increased minimum version for Python
