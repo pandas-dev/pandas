@@ -1,4 +1,3 @@
-
 .. _whatsnew_234:
 
 What's new in 2.3.4 (November XX, 2025)
