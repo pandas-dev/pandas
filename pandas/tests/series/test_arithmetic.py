@@ -45,6 +45,13 @@ def _permute(obj):
 
 
 class TestSeriesFlexArithmetic:
+    def test_flex_op_with_extensionarray_and_fill_value(self):
+        # GH#62467 ensure ExtensionArray "other" with fill_value works
+        left = Series([pd.Timestamp(2025, 8, 20)] * 2)
+        right = left._values  # ExtensionArray (DatetimeArray)
+        result = left.sub(right, fill_value=left[0])
+        expected = Series([Timedelta(0), Timedelta(0)])
+        tm.assert_series_equal(result, expected)
     @pytest.mark.parametrize(
         "ts",
         [
