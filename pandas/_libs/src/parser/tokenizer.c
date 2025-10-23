@@ -1732,25 +1732,26 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   return number;
 }
 
-static inline size_t str_consume_nspan(char **dst, const char **src,
-                                       const char *charset, size_t count) {
-  size_t size = strspn(*src, charset);
-  if (size > count) {
-    size = count;
+static inline int str_consume_nspan(char **dst, size_t dst_sz, const char **src,
+                                    size_t src_sz, const char *charset) {
+  size_t span_sz = strspn(*src, charset);
+  if (span_sz > src_sz) {
+    span_sz = src_sz;
   }
-  if (size) {
-    if (dst) {
-      memcpy(*dst, *src, size);
-      *dst += size;
+  if (dst) {
+    if (span_sz > dst_sz) {
+      return -1;
     }
-    *src += size;
+    memcpy(*dst, *src, span_sz);
+    *dst += span_sz;
   }
-  return size;
+  *src += span_sz;
+  return span_sz;
 }
 
-static inline size_t str_consume_span(char **dst, const char **src,
-                                      const char *charset) {
-  return str_consume_nspan(dst, src, charset, SIZE_MAX);
+static inline int str_consume_span(char **dst, size_t dst_sz, const char **src,
+                                   const char *charset) {
+  return str_consume_nspan(dst, dst_sz, src, SIZE_MAX, charset);
 }
 
 /* copy a decimal number string with `decimal`, `tsep` as decimal point
@@ -1772,24 +1773,25 @@ static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
   const size_t length = strlen(s);
   char *s_copy = malloc(length + 1);
   char *dst = s_copy;
+  char *dst_end = dst + length;
   // Skip leading whitespace.
-  str_consume_span(NULL, &p, whitespaces);
+  str_consume_span(NULL, 0, &p, whitespaces);
   // Copy Leading sign
-  str_consume_nspan(&dst, &p, signs, 1);
+  str_consume_nspan(&dst, dst_end - dst, &p, 1, signs);
   // Copy integer part dropping `tsep`
-  while (str_consume_span(&dst, &p, digits)) {
-    str_consume_nspan(NULL, &p, tseps, 1);
+  while (str_consume_span(&dst, dst_end - dst, &p, digits)) {
+    str_consume_nspan(NULL, 0, &p, 1, tseps);
   }
   // Replace `decimal` with '.'
-  if (str_consume_nspan(NULL, &p, decimals, 1)) {
+  if (str_consume_nspan(NULL, 0, &p, 1, decimals)) {
     *dst++ = '.';
   }
   // Copy fractional part after decimal (if any)
-  str_consume_span(&dst, &p, digits);
+  str_consume_span(&dst, dst_end - dst, &p, digits);
   // Copy exponent if any
-  if (str_consume_nspan(&dst, &p, exponents, 1)) {
-    str_consume_nspan(&dst, &p, signs, 1);
-    str_consume_span(&dst, &p, digits);
+  if (str_consume_nspan(&dst, dst_end - dst, &p, 1, exponents)) {
+    str_consume_nspan(&dst, dst_end - dst, &p, 1, signs);
+    str_consume_span(&dst, dst_end - dst, &p, digits);
   }
   *dst++ = '\0'; // terminate
   if (endpos != NULL)
