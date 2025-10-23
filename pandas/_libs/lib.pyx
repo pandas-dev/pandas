@@ -1386,6 +1386,7 @@ cdef class Seen:
         bint nan_             # seen_np.nan
         bint uint_            # seen_uint (unsigned integer)
         bint sint_            # seen_sint (signed integer)
+        bint overflow_        # seen_overflow
         bint float_           # seen_float
         bint object_          # seen_object
         bint complex_         # seen_complex
@@ -1414,6 +1415,7 @@ cdef class Seen:
         self.nan_ = False
         self.uint_ = False
         self.sint_ = False
+        self.overflow_ = False
         self.float_ = False
         self.object_ = False
         self.complex_ = False
@@ -2379,6 +2381,9 @@ def maybe_convert_numeric(
         ndarray[uint64_t, ndim=1] uints = cnp.PyArray_EMPTY(
             1, values.shape, cnp.NPY_UINT64, 0
         )
+        ndarray[object, ndim=1] pyints = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_OBJECT, 0
+        )
         ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(
             1, values.shape, cnp.NPY_UINT8, 0
         )
@@ -2476,6 +2481,7 @@ def maybe_convert_numeric(
 
                 if maybe_int:
                     as_int = int(val)
+                    pyints[i] = as_int
 
                     if as_int in na_values:
                         mask[i] = 1
@@ -2490,7 +2496,7 @@ def maybe_convert_numeric(
                             if seen.coerce_numeric:
                                 seen.float_ = True
                             else:
-                                raise ValueError("Integer out of range.")
+                                seen.overflow_ = True
                         else:
                             if as_int >= 0:
                                 uints[i] = as_int
@@ -2529,11 +2535,15 @@ def maybe_convert_numeric(
         return (floats, None)
     elif seen.int_:
         if seen.null_ and convert_to_masked_nullable:
-            if seen.uint_:
+            if seen.overflow_:
+                return (pyints, mask.view(np.bool_))
+            elif seen.uint_:
                 return (uints, mask.view(np.bool_))
             else:
                 return (ints, mask.view(np.bool_))
-        if seen.uint_:
+        if seen.overflow_:
+            return (pyints, None)
+        elif seen.uint_:
             return (uints, None)
         else:
             return (ints, None)
