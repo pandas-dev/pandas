@@ -3,7 +3,7 @@
 What's new in 2.3.4 (November XX, 2025)
 ----------------------------------------
 
-These are the changes in pandas 2.3.3. See :ref:`release` for a full changelog
+These are the changes in pandas 2.3.4. See :ref:`release` for a full changelog
 including other versions of pandas.
 
 {{ header }}
