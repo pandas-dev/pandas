@@ -1756,12 +1756,11 @@ static inline int str_consume_span(char **dst, size_t dst_sz, const char **src,
 
 /* copy a decimal number string with `decimal`, `tsep` as decimal point
    and thousands separator to an equivalent c-locale decimal string (striping
-   `tsep`, replacing `decimal` with '.'). The returned memory should be free-d
-   with a call to `free`.
-*/
+   `tsep`, replacing `decimal` with '.'). The result is written into `dst`
+   and null-terminated. */
 
-static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
-                                     char tsep) {
+static int _str_copy_decimal_str_c(char *dst, size_t dst_sz, const char *src,
+                                   char **endpos, char decimal, char tsep) {
   const char *digits = "0123456789";
   const char *exponents = "Ee";
   const char *signs = "+-";
@@ -1769,42 +1768,42 @@ static char *_str_copy_decimal_str_c(const char *s, char **endpos, char decimal,
   const char decimals[] = {decimal, '\0'};
   const char tseps[] = {tsep, '\0'};
 
-  const char *p = s;
-  const size_t length = strlen(s);
-  char *s_copy = malloc(length + 1);
-  char *dst = s_copy;
-  char *dst_end = dst + length;
+  const char *s = src;
+  char *d = dst;
+  char *de = dst + dst_sz;
   // Skip leading whitespace.
-  str_consume_span(NULL, 0, &p, whitespaces);
+  str_consume_span(NULL, 0, &s, whitespaces);
   // Copy Leading sign
-  str_consume_nspan(&dst, dst_end - dst, &p, 1, signs);
+  str_consume_nspan(&d, de - d, &s, 1, signs);
   // Copy integer part dropping `tsep`
-  while (str_consume_span(&dst, dst_end - dst, &p, digits)) {
-    str_consume_nspan(NULL, 0, &p, 1, tseps);
+  while (str_consume_span(&d, de - d, &s, digits)) {
+    str_consume_nspan(NULL, 0, &s, 1, tseps);
   }
   // Replace `decimal` with '.'
-  if (str_consume_nspan(NULL, 0, &p, 1, decimals)) {
-    *dst++ = '.';
+  if (str_consume_nspan(NULL, 0, &s, 1, decimals)) {
+    *d++ = '.';
   }
   // Copy fractional part after decimal (if any)
-  str_consume_span(&dst, dst_end - dst, &p, digits);
+  str_consume_span(&d, de - d, &s, digits);
   // Copy exponent if any
-  if (str_consume_nspan(&dst, dst_end - dst, &p, 1, exponents)) {
-    str_consume_nspan(&dst, dst_end - dst, &p, 1, signs);
-    str_consume_span(&dst, dst_end - dst, &p, digits);
+  if (str_consume_nspan(&d, de - d, &s, 1, exponents)) {
+    str_consume_nspan(&d, de - d, &s, 1, signs);
+    str_consume_span(&d, de - d, &s, digits);
   }
-  *dst++ = '\0'; // terminate
+  *d++ = '\0'; // terminate
   if (endpos != NULL)
-    *endpos = (char *)p;
-  return s_copy;
+    *endpos = (char *)s;
+  return 0;
 }
 
 double round_trip(const char *p, char **q, char decimal, char Py_UNUSED(sci),
                   char tsep, int skip_trailing, int *error, int *maybe_int) {
   // 'normalize' representation to C-locale; replace decimal with '.' and
   // remove thousands separator.
+  const size_t length = strlen(p);
+  char *pc = malloc(length + 1);
   char *endptr;
-  char *pc = _str_copy_decimal_str_c(p, &endptr, decimal, tsep);
+  _str_copy_decimal_str_c(pc, length + 1, p, &endptr, decimal, tsep);
   // This is called from a nogil block in parsers.pyx
   // so need to explicitly get GIL before Python calls
   PyGILState_STATE gstate = PyGILState_Ensure();
