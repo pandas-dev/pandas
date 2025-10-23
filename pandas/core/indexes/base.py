@@ -1185,12 +1185,12 @@ class Index(IndexOpsMixin, PandasObject):
             How to handle negative values in `indices`.
 
             * False: negative values in `indices` indicate positional indices
-              from the right (the default). This is similar to
-              :func:`numpy.take`.
+                from the right (the default). This is similar to
+                :func:`numpy.take`.
 
             * True: negative values in `indices` indicate
-              missing values. These values are set to `fill_value`. Any other
-              other negative values raise a ``ValueError``.
+                missing values. These values are set to `fill_value`. Any other
+                other negative values raise a ``ValueError``.
 
         fill_value : scalar, default None
             If allow_fill=True and fill_value is not None, indices specified by
@@ -1216,7 +1216,6 @@ class Index(IndexOpsMixin, PandasObject):
         Index(['c', 'c', 'b', 'c'], dtype='str')
         """
 
-    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
         self,
         indices,
@@ -1225,6 +1224,51 @@ class Index(IndexOpsMixin, PandasObject):
         fill_value=None,
         **kwargs,
     ) -> Self:
+        """
+        Return a new Index of the values selected by the indices.
+
+        For internal compatibility with numpy arrays.
+
+        Parameters
+        ----------
+        indices : array-like
+            Indices to be taken.
+        axis : int, optional
+            The axis over which to select values, always 0.
+        allow_fill : bool, default True
+            How to handle negative values in `indices`.
+
+            * False: negative values in `indices` indicate positional indices
+              from the right (the default). This is similar to
+              :func:`numpy.take`.
+
+            * True: negative values in `indices` indicate
+              missing values. These values are set to `fill_value`. Any
+              other negative values raise a ``ValueError``.
+
+        fill_value : scalar, default None
+            If allow_fill=True and fill_value is not None, indices specified by
+            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+        **kwargs
+            Required for compatibility with numpy.
+
+        Returns
+        -------
+        Index
+            An index formed of elements at the given indices. Will be the same
+            type as self, except for RangeIndex.
+
+        See Also
+        --------
+        numpy.ndarray.take: Return an array formed from the
+            elements of a at the given indices.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["a", "b", "c"])
+        >>> idx.take([2, 2, 1, 2])
+        Index(['c', 'c', 'b', 'c'], dtype='str')
+        """
         if kwargs:
             nv.validate_take((), kwargs)
         if is_scalar(indices):
@@ -1272,10 +1316,11 @@ class Index(IndexOpsMixin, PandasObject):
             allow_fill = False
         return allow_fill
 
-    _index_shared_docs["repeat"] = """
-        Repeat elements of a %(klass)s.
+    def repeat(self, repeats, axis: None = None) -> Self:
+        """
+        Repeat elements of a Index.
 
-        Returns a new %(klass)s where each element of the current %(klass)s
+        Returns a new Index where each element of the current Index
         is repeated consecutively a given number of times.
 
         Parameters
@@ -1283,15 +1328,15 @@ class Index(IndexOpsMixin, PandasObject):
         repeats : int or array of ints
             The number of repetitions for each element. This should be a
             non-negative integer. Repeating 0 times will return an empty
-            %(klass)s.
+            Index.
         axis : None
             Must be ``None``. Has no effect but is accepted for compatibility
             with numpy.
 
         Returns
         -------
-        %(klass)s
-            Newly created %(klass)s with repeated elements.
+        Index
+            Newly created Index with repeated elements.
 
         See Also
         --------
@@ -1300,7 +1345,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx = pd.Index(["a", "b", "c"])
         >>> idx
         Index(['a', 'b', 'c'], dtype='object')
         >>> idx.repeat(2)
@@ -1308,9 +1353,6 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.repeat([1, 2, 3])
         Index(['a', 'b', 'b', 'c', 'c', 'c'], dtype='object')
         """
-
-    @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
-    def repeat(self, repeats, axis: None = None) -> Self:
         repeats = ensure_platform_int(repeats)
         nv.validate_repeat((), {"axis": axis})
         res_values = self._values.repeat(repeats)
@@ -5993,10 +6035,61 @@ class Index(IndexOpsMixin, PandasObject):
         (array([-1,  1,  3,  4, -1]), array([0, 2]))
         """
 
-    @Appender(_index_shared_docs["get_indexer_non_unique"] % _index_doc_kwargs)
     def get_indexer_non_unique(
         self, target
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
+        """
+        Compute indexer and mask for new index given the current index.
+
+        The indexer should be then used as an input to ndarray.take to align the
+        current data to the new index.
+
+        Parameters
+        ----------
+        target : Index
+            An iterable containing the values to be used for computing indexer.
+
+        Returns
+        -------
+        indexer : np.ndarray[np.intp]
+            Integers from 0 to n - 1 indicating that the index at these
+            positions matches the corresponding target values. Missing values
+            in the target are marked by -1.
+        missing : np.ndarray[np.intp]
+            An indexer into the target of the values not found.
+            These correspond to the -1 in the indexer array.
+
+        See Also
+        --------
+        Index.get_indexer : Computes indexer and mask for new index given
+            the current index.
+        Index.get_indexer_for : Returns an indexer even when non-unique.
+
+        Examples
+        --------
+        >>> index = pd.Index(["c", "b", "a", "b", "b"])
+        >>> index.get_indexer_non_unique(["b", "b"])
+        (array([1, 3, 4, 1, 3, 4]), array([], dtype=int64))
+
+        In the example below there are no matched values.
+
+        >>> index = pd.Index(["c", "b", "a", "b", "b"])
+        >>> index.get_indexer_non_unique(["q", "r", "t"])
+        (array([-1, -1, -1]), array([0, 1, 2]))
+
+        For this reason, the returned ``indexer`` contains only integers equal to -1.
+        It demonstrates that there's no match between the index and the ``target``
+        values at these positions. The mask [0, 1, 2] in the return value shows that
+        the first, second, and third elements are missing.
+
+        Notice that the return value is a tuple contains two items. In the example
+        below the first item is an array of locations in ``index``. The second
+        item is a mask shows that the first and third elements are missing.
+
+        >>> index = pd.Index(["c", "b", "a", "b", "b"])
+        >>> index.get_indexer_non_unique(["f", "b", "s"])
+        (array([-1,  1,  3,  4, -1]), array([0, 2]))
+        """
         target = self._maybe_cast_listlike_indexer(target)
 
         if not self._should_compare(target) and not self._should_partial_index(target):
