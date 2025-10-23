@@ -2337,9 +2337,18 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.Index(["a", "b", "c"])
-        >>> idx.take([2, 2, 1, 2])
-        Index(['c', 'c', 'b', 'c'], dtype='str')
+        >>> idx = pd.MultiIndex.from_arrays([["a", "b", "c"], [1, 2, 3]])
+        >>> idx
+        MultiIndex([('a', 1),
+                    ('b', 2),
+                    ('c', 3)],
+                   )
+        >>> idx.take([2, 2, 1, 0])
+        MultiIndex([('c', 3),
+                    ('c', 3),
+                    ('b', 2),
+                    ('a', 1)],
+                   )
         """
         nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
@@ -2525,13 +2534,28 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.Index(["a", "b", "c"])
+        >>> idx = pd.MultiIndex.from_arrays([["a", "b", "c"], [1, 2, 3]])
         >>> idx
-        Index(['a', 'b', 'c'], dtype='object')
+        MultiIndex([('a', 1),
+                    ('b', 2),
+                    ('c', 3)],
+                   )
         >>> idx.repeat(2)
-        Index(['a', 'a', 'b', 'b', 'c', 'c'], dtype='object')
+        MultiIndex([('a', 1),
+                    ('a', 1),
+                    ('b', 2),
+                    ('b', 2),
+                    ('c', 3),
+                    ('c', 3)],
+                   )
         >>> idx.repeat([1, 2, 3])
-        Index(['a', 'b', 'b', 'c', 'c', 'c'], dtype='object')
+        MultiIndex([('a', 1),
+                    ('b', 2),
+                    ('b', 2),
+                    ('c', 3),
+                    ('c', 3),
+                    ('c', 3)],
+                   )
         """
         nv.validate_repeat((), {"axis": axis})
         # error: Incompatible types in assignment (expression has type "ndarray",
