@@ -255,6 +255,21 @@ the number of groups, which is the same as the length of the ``groups`` dictiona
    grouped.groups
    len(grouped)
 
+Iterating over GroupBy
+----------------------
+
+A ``GroupBy`` object can be iterated as ``(key, group)`` pairs,
+where each ``key`` represents the group name and ``group`` is a
+DataFrame containing the rows of that group.
+
+Example:
+::
+
+    for key, group in df.groupby("A"):
+        print(key)
+        print(group)
+
+
 
 .. _groupby.tabcompletion:
 
