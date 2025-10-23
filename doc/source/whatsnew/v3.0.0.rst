@@ -1150,7 +1150,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.apply` where the applied function could be called on fewer than ``min_period`` periods if ``method="table"``. (:issue:`58868`)
 - Bug in :meth:`Series.resample` could raise when the date range ended shortly before a non-existent time. (:issue:`58380`)
 - Bug in :meth:`Series.rolling.var` and :meth:`Series.rolling.std` where the end of window was not indexed correctly. (:issue:`47721`, :issue:`52407`, :issue:`54518`, :issue:`55343`)
-- Bug in :meth:`DataFrameGroupBy.agg` where `numeric_only=True` was ignored when passing a list of aggregation functions (:issue:`49352`)
+- Bug in :meth:`DataFrameGroupBy.agg` where ``numeric_only=True`` was ignored when passing a list of aggregation functions (:issue:`49352`)
 
 Reshaping
 ^^^^^^^^^
@@ -1204,6 +1204,7 @@ Other
 - Bug in :func:`eval` with ``engine="numexpr"`` returning unexpected result for float division. (:issue:`59736`)
 - Bug in :func:`to_numeric` raising ``TypeError`` when ``arg`` is a :class:`Timedelta` or :class:`Timestamp` scalar. (:issue:`59944`)
 - Bug in :func:`unique` on :class:`Index` not always returning :class:`Index` (:issue:`57043`)
+- Bug in :meth:`DataFrame.agg` where ``numeric_only=True`` was ignored when passing a list of aggregation functions, causing non-numeric columns to be included or raising TypeError (:issue:`49352`)
 - Bug in :meth:`DataFrame.apply` raising ``RecursionError`` when passing ``func=list[int]``. (:issue:`61565`)
 - Bug in :meth:`DataFrame.apply` where passing ``engine="numba"`` ignored ``args`` passed to the applied function (:issue:`58712`)
 - Bug in :meth:`DataFrame.eval` and :meth:`DataFrame.query` which caused an exception when using NumPy attributes via ``@`` notation, e.g., ``df.eval("@np.floor(a)")``. (:issue:`58041`)
@@ -1243,7 +1244,7 @@ Other
 - Fixed bug in the :meth:`Series.rank` with object dtype and extremely small float values (:issue:`62036`)
 - Fixed bug where the :class:`DataFrame` constructor misclassified array-like objects with a ``.name`` attribute as :class:`Series` or :class:`Index` (:issue:`61443`)
 - Fixed regression in :meth:`DataFrame.from_records` not initializing subclasses properly (:issue:`57008`)
-- Bug in :meth:`DataFrame.agg` where `numeric_only=True` was ignored when passing a list of aggregation functions, causing non-numeric columns to be included or raising TypeError (:issue:49352)
+
 .. ***DO NOT USE THIS SECTION***
 
 -

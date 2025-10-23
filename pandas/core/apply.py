@@ -849,15 +849,20 @@ class NDFrameApply(Apply):
                 # Only proceed if we have numeric columns
                 if not numeric_obj.empty:
                     # Create kwargs without numeric_only to avoid passing it to Series methods
-                    kwargs_filtered = {k: v for k, v in kwargs.items() if k != "numeric_only"}
+                    kwargs_filtered = {
+                        k: v for k, v in kwargs.items() if k != "numeric_only"
+                    }
 
                     # Compute with filtered object and cleaned kwargs
-                    keys, results = self.compute_list_like(op_name, numeric_obj, kwargs_filtered)
+                    keys, results = self.compute_list_like(
+                        op_name, numeric_obj, kwargs_filtered
+                    )
                     result = self.wrap_results_list_like(keys, results)
                     return result
                 else:
                     # No numeric columns - return empty result
                     from pandas import DataFrame
+
                     # Get function names for index
                     keys = list(self.func) if is_list_like(self.func) else []
                     return DataFrame(index=keys)
