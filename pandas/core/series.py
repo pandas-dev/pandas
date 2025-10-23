@@ -2749,6 +2749,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         this, other = self.align(other, join="inner")
         if len(this) == 0:
             return np.nan
+    
+        if method in ("spearman", "kendall"):
+            if this.dtype == "category" and this.cat.ordered:
+                this = this.cat.codes.replace(-1, np.nan)
+            if other.dtype == "category" and other.cat.ordered:
+                other = other.cat.codes.replace(-1, np.nan)
 
         this_values = this.to_numpy(dtype=float, na_value=np.nan, copy=False)
         other_values = other.to_numpy(dtype=float, na_value=np.nan, copy=False)

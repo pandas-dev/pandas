@@ -11718,6 +11718,11 @@ class DataFrame(NDFrame, OpsMixin):
         data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
         idx = cols.copy()
+
+        if method in ("spearman", "kendall"):
+            data = data._transform_ord_cat_cols_to_coded_cols()
+
+
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
@@ -12007,7 +12012,8 @@ class DataFrame(NDFrame, OpsMixin):
             correl = num / dom
 
         elif method in ["kendall", "spearman"] or callable(method):
-
+            left = left._convert_ordered_cat_to_code()
+            right = right._convert_ordered_cat_to_code()
             def c(x):
                 return nanops.nancorr(x[0], x[1], method=method)
 
@@ -12037,6 +12043,25 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
         return correl
+
+    def _transform_ord_cat_cols_to_coded_cols(self) -> DataFrame:
+        """
+        any ordered categorical columns are transformed to the respectice caregorical codes
+        other columns remain untouched
+        """
+        categ = self.select_dtypes("category")
+        if len(categ.columns) == 0:
+            return self
+
+        cols_convert = categ.loc[:, categ.agg(lambda x: x.cat.ordered)].columns
+
+        if len(cols_convert) > 0:
+            data = self.copy(deep=False)
+            data[cols_convert] = data[cols_convert].transform(
+                lambda x: x.cat.codes.replace(-1, np.nan)
+            )
+            return data
+        return self
 
     # ----------------------------------------------------------------------
     # ndarray-like stats methods

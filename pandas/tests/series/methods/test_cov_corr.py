@@ -11,7 +11,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-
 class TestSeriesCov:
     def test_cov(self, datetime_series):
         # full overlap
@@ -184,3 +183,31 @@ class TestSeriesCorr:
         df = pd.DataFrame([s1, s2])
         expected = pd.DataFrame([{0: 1.0, 1: 0}, {0: 0, 1: 1.0}])
         tm.assert_almost_equal(df.transpose().corr(method=my_corr), expected)
+    
+    @pytest.mark.parametrize("method", ["kendall", "spearman"])
+    def test_corr_rank_ordered_categorical(self, method,):
+        stats = pytest.importorskip("scipy.stats")
+        method_scipy_func = {
+            "kendall": stats.kendalltau,
+            "spearman": stats.spearmanr
+        }
+        ser_ord_cat = pd.Series( pd.Categorical(
+             ["low", "m", "h", "vh"], 
+             categories=["low", "m", "h", "vh"], ordered=True
+             ))
+        ser_ord_cat_codes = ser_ord_cat.cat.codes.replace(-1, np.nan)
+        ser_ord_int = pd.Series([0, 1, 2, 3])
+        ser_ord_float = pd.Series([2.0, 3.0, 4.5, 6.5])
+    
+        corr_calc = ser_ord_cat.corr(ser_ord_int, method=method)
+        corr_expected = method_scipy_func[method](ser_ord_cat_codes, ser_ord_int)[0]
+        tm.assert_almost_equal(corr_calc, corr_expected)
+
+        corr_calc = ser_ord_cat.corr(ser_ord_float, method=method)
+        corr_expected = method_scipy_func[method](ser_ord_cat_codes, ser_ord_float)[0]
+        tm.assert_almost_equal(corr_calc, corr_expected)
+
+        corr_calc = ser_ord_cat.corr(ser_ord_cat, method=method)
+        corr_expected = method_scipy_func[method](ser_ord_cat_codes, ser_ord_cat_codes)[0]
+        tm.assert_almost_equal(corr_calc, corr_expected)
+        
