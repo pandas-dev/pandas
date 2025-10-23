@@ -89,15 +89,6 @@ or convert from existing pandas data:
 However there are four distinct :class:`StringDtype` variants that may be utilized.
 See :ref:`text.four_string_variants` section below for details.
 
-.. _text.differences:
-
-Behavior differences
-====================
-
-There are various behavior differences between using NumPy ``object`` dtype,
-``dtype="str"``, and ``dtype="string"``. See the
-:ref:`String migration guide <string_migration_guide-differences>` section for further details.
-
 .. _text.string_methods:
 
 String methods
@@ -685,6 +676,77 @@ String ``Index`` also supports ``get_dummies`` which returns a ``MultiIndex``.
     idx.str.get_dummies(sep="|")
 
 See also :func:`~pandas.get_dummies`.
+
+.. _text.differences:
+
+Behavior differences
+====================
+
+Differences in behavior will be primarily due to the kind of NA value.
+
+``StringDtype`` with ``np.nan`` NA values
+-----------------------------------------
+
+1. Like ``dtype="object"``, :ref:`string accessor methods<api.series.str>`
+   that return **integer** output will return a NumPy array that is
+   either dtype int or float depending on the presence of NA values.
+   Methods returning **boolean** output will return a NumPy array this is
+   dtype bool, with the value ``False`` when an NA value is encountered.
+
+   .. ipython:: python
+
+      s = pd.Series(["a", None, "b"], dtype="str")
+      s
+      s.str.count("a")
+      s.dropna().str.count("a")
+
+   When NA values are present, the output dtype is float64. However
+   **boolean** output results in ``False`` for the NA values.
+
+   .. ipython:: python
+
+      s.str.isdigit()
+      s.str.match("a")
+
+2. Some string methods, like :meth:`Series.str.decode`, are not
+   available because the underlying array can only contain
+   strings, not bytes.
+3. Comparison operations will return a NumPy array with dtype bool. Missing
+   values will always compare as unequal just as :attr:`np.nan` does.
+
+``StringDtype`` with ``pd.NA`` NA values
+----------------------------------------
+
+1. :ref:`String accessor methods<api.series.str>`
+   that return **integer** output will always return a nullable integer dtype,
+   rather than either int or float dtype (depending on the presence of NA values).
+   Methods returning **boolean** output will return a nullable boolean dtype.
+
+   .. ipython:: python
+
+      s = pd.Series(["a", None, "b"], dtype="string")
+      s
+      s.str.count("a")
+      s.dropna().str.count("a")
+
+   Both outputs are ``Int64`` dtype. Similarly for methods returning boolean values.
+
+   .. ipython:: python
+
+      s.str.isdigit()
+      s.str.match("a")
+
+2. Some string methods, like :meth:`Series.str.decode` because the underlying
+   array can only contain strings, not bytes.
+3. Comparison operations will return an object with :class:`BooleanDtype`,
+   rather than a ``bool`` dtype object. Missing values will propagate
+   in comparison operations, rather than always comparing
+   unequal like :attr:`numpy.nan`.
+
+
+.. important::
+   Everything else that follows in the rest of this document applies equally to
+   ``'str'``, ``'string'``, and ``object`` dtype.
 
 .. _text.four_string_variants:
 
