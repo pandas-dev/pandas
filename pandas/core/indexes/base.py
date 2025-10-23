@@ -1265,7 +1265,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.take([2, 2, 1, 2])
         Index(['c', 'c', 'b', 'c'], dtype='str')
         """
@@ -1345,7 +1345,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx = pd.Index(["a", "b", "c"])
         >>> idx
         Index(['a', 'b', 'c'], dtype='object')
         >>> idx.repeat(2)
@@ -6067,14 +6067,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
-        >>> index.get_indexer_non_unique(['b', 'b'])
+        >>> index = pd.Index(["c", "b", "a", "b", "b"])
+        >>> index.get_indexer_non_unique(["b", "b"])
         (array([1, 3, 4, 1, 3, 4]), array([], dtype=int64))
 
         In the example below there are no matched values.
 
-        >>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
-        >>> index.get_indexer_non_unique(['q', 'r', 't'])
+        >>> index = pd.Index(["c", "b", "a", "b", "b"])
+        >>> index.get_indexer_non_unique(["q", "r", "t"])
         (array([-1, -1, -1]), array([0, 1, 2]))
 
         For this reason, the returned ``indexer`` contains only integers equal to -1.
@@ -6086,8 +6086,8 @@ class Index(IndexOpsMixin, PandasObject):
         below the first item is an array of locations in ``index``. The second
         item is a mask shows that the first and third elements are missing.
 
-        >>> index = pd.Index(['c', 'b', 'a', 'b', 'b'])
-        >>> index.get_indexer_non_unique(['f', 'b', 's'])
+        >>> index = pd.Index(["c", "b", "a", "b", "b"])
+        >>> index.get_indexer_non_unique(["f", "b", "s"])
         (array([-1,  1,  3,  4, -1]), array([0, 2]))
         """
         target = self._maybe_cast_listlike_indexer(target)
