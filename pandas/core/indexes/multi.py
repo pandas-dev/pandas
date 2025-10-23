@@ -3460,6 +3460,23 @@ class MultiIndex(Index):
 
             return new_index
 
+        # type-check key against level(s), raise error if mismatch
+        if isinstance(key, tuple):
+            for i, k in enumerate(key):
+                if not self._is_key_type_compatible(k, i):
+                    raise TypeError(
+                        f"Type mismatch at index level {i}: "
+                        f"expected {type(self.levels[i][0]).__name__}, "
+                        f"got {type(k).__name__}"
+                    )
+        else:
+            if not self._is_key_type_compatible(key, level):
+                raise TypeError(
+                    f"Type mismatch at index level {level}: "
+                    f"expected {type(self.levels[level][0]).__name__}, "
+                    f"got {type(key).__name__}"
+                )
+
         if isinstance(level, (tuple, list)):
             if len(key) != len(level):
                 raise AssertionError(
@@ -3590,6 +3607,18 @@ class MultiIndex(Index):
                 result_index = self[indexer]
 
             return indexer, result_index
+
+    def _is_key_type_compatible(self, key, level):
+        """
+        Return True if the key type is compatible with the type of the level's values.
+        """
+        if len(self.levels[level]) == 0:
+            return True  # nothing to compare
+        level_type = type(self.levels[level][0])
+
+        # Same type → OK
+        if isinstance(key, level_type):
+            return True
 
     def _get_level_indexer(
         self, key, level: int = 0, indexer: npt.NDArray[np.bool_] | None = None
