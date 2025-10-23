@@ -2731,6 +2731,12 @@ class MultiIndex(Index):
         MultiIndex
             New MultiIndex with the inserted level.
 
+        See Also
+        --------
+        MultiIndex.droplevel : Remove levels from the MultiIndex.
+        MultiIndex.swaplevel : Swap two levels in the MultiIndex.
+        MultiIndex.reorder_levels : Reorder levels using specified order.
+
         Examples
         --------
         >>> idx = pd.MultiIndex.from_tuples([("A", 1), ("B", 2)])
