@@ -206,14 +206,15 @@ class TestFrameAggNumericOnly:
 
     def test_agg_list_numeric_only_large_dataframe(self):
         """Test with a larger DataFrame for performance verification."""
-        np.random.seed(42)
+        rng = np.random.default_rng(42)
         df = DataFrame(
             {
-                "A": np.random.randint(1, 100, 1000),
-                "B": np.random.randn(1000),
+                "A": rng.integers(1, 100, 1000),
+                "B": rng.standard_normal(1000),
                 "C": ["text"] * 1000,
             }
         )
+
         result = df.agg(["sum", "mean", "std"], numeric_only=True)
 
         # Just verify structure, not exact values due to randomness
