@@ -1831,7 +1831,7 @@ static int _str_copy_decimal_str_c(char *dst, size_t dst_sz, const char *src,
   }
 
   // Copy exponent if any
-  if ((ret = str_consume_nspan(&d, de - d, &s, 1, exponents)) > 0) {
+  if (decimal && (ret = str_consume_nspan(&d, de - d, &s, 1, exponents)) > 0) {
     SAFE_CONSUME_NSPAN(d, de, s, 1, signs);
     SAFE_CONSUME_SPAN(d, de, s, digits);
   } else if (ret < 0) {
