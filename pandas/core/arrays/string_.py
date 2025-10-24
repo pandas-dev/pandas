@@ -633,6 +633,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     Length: 3, dtype: boolean
     """
 
+    __module__ = "pandas.arrays"
+
     # undo the NumpyExtensionArray hack
     _typ = "extension"
 

@@ -30,7 +30,10 @@ from pandas._libs.tslibs.offsets import (
     to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 
 from pandas.core.dtypes.common import is_numeric_dtype
 from pandas.core.dtypes.dtypes import (
@@ -83,6 +86,7 @@ def get_period_alias(offset_str: str) -> str | None:
 # Period codes
 
 
+@set_module("pandas")
 def infer_freq(
     index: DatetimeIndex | TimedeltaIndex | Series | DatetimeLikeArrayMixin,
 ) -> str | None:

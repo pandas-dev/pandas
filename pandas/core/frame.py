@@ -5237,6 +5237,30 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
+        blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
+        if (
+            np.object_ in include
+            and str not in include
+            and str not in exclude
+            and any(
+                isinstance(dtype, StringDtype) and dtype.na_value is np.nan
+                for dtype in blk_dtypes
+            )
+        ):
+            # GH#61916
+            warnings.warn(
+                "For backward compatibility, 'str' dtypes are included by "
+                "select_dtypes when 'object' dtype is specified. "
+                "This behavior is deprecated and will be removed in a future "
+                "version. Explicitly pass 'str' to `include` to select them, "
+                "or to `exclude` to remove them and silence this warning.\nSee "
+                "https://pandas.pydata.org/docs/user_guide/migration-3-strings.html"
+                "#string-migration-select-dtypes for details on how to write code "
+                "that works with pandas 2 and 3.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         mgr = self._mgr._get_data_subset(predicate).copy(deep=False)
         return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)
 
