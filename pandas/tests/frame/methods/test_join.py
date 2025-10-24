@@ -575,3 +575,41 @@ class TestDataFrameJoin:
 
         tm.assert_index_equal(result.index, expected)
         assert result.index.tz.key == "US/Central"
+
+    def test_frame_join_categorical_index(self):
+        # GH 61675
+        cat_data = pd.Categorical(
+            [15, 16, 17, 18],
+            categories=pd.Series(list(range(3, 24)), dtype="Int64"),
+            ordered=True,
+        )
+        values1 = "a b c d".split()
+        values2 = "xyzzy foo bar ...".split()
+        df1 = DataFrame({"hr": cat_data, "values1": values1}).set_index("hr")
+        df2 = DataFrame({"hr": cat_data, "values2": values2}).set_index("hr")
+        df1.columns = pd.CategoricalIndex([4], dtype=cat_data.dtype, name="other_hr")
+        df2.columns = pd.CategoricalIndex([3], dtype=cat_data.dtype, name="other_hr")
+
+        df_joined_1 = (
+            df1.reset_index(level="hr")
+            .merge(df2.reset_index(level="hr"), on="hr")
+            .set_index("hr")
+        )
+        expected1 = DataFrame(
+            {"hr": cat_data, "values1": values1, "values2": values2}
+        ).set_index("hr")
+        expected1.columns = Index([4, 3], dtype="object", name="other_hr")
+
+        tm.assert_frame_equal(df_joined_1, expected1)
+
+        df_joined_2 = df1.join(df2)
+        expected2 = DataFrame(
+            {"hr": cat_data, "values1": values1, "values2": values2}
+        ).set_index("hr")
+        expected2.columns = pd.CategoricalIndex(
+            [4, 3], dtype=cat_data.dtype, name="other_hr"
+        )
+
+        tm.assert_frame_equal(df_joined_2, expected2)
+
+        assert df_joined_1.equals(df_joined_2)
