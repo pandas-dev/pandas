@@ -1800,10 +1800,6 @@ static int _str_copy_decimal_str_c(char *dst, size_t dst_sz, const char *src,
   // Copy leading sign (optional)
   SAFE_CONSUME_NSPAN(d, de, s, 1, signs);
 
-  // Check that there is a first digit or decimal point.
-  if (!isdigit_ascii(*s) && *s != decimal)
-    return ERROR_NO_DIGITS;
-
   // Copy integer part dropping `tsep`
   while ((ret = str_consume_span(&d, de - d, &s, digits))) {
     if (ret < 0)
