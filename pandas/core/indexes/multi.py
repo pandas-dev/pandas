@@ -31,7 +31,6 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.tslibs.timestamps import Timestamp
 from pandas._typing import (
     AnyAll,
     AnyArrayLike,
@@ -3612,34 +3611,43 @@ class MultiIndex(Index):
 
     def _is_key_type_compatible(self, key, level):
         """
-        Return True if the key is compatible with the type of the level's values.
+        Return True if the key type is compatible with the type of the level's values.
+
+        Compatible types:
+        - int ↔ np.integer
+        - float ↔ np.floating
+        - str ↔ np.str_
+        - datetime.date ↔ datetime.datetime
+        - slices (for partial indexing)
         """
         if len(self.levels[level]) == 0:
             return True  # nothing to compare
 
-        level_type = self.levels[level][0]
+        level_val = self.levels[level][0]
+        level_type = type(level_val)
 
-        # Allow slices (used in partial indexing)
+        # Same type
+        if isinstance(key, level_type):
+            return True
+
+        # NumPy integer / float / string compatibility
+        if isinstance(level_val, np.integer) and isinstance(key, int):
+            return True
+        if isinstance(level_val, np.floating) and isinstance(key, float):
+            return True
+        if isinstance(level_val, np.str_) and isinstance(key, str):
+            return True
+
+        # Allow subclasses of datetime.date for datetime levels
+        if isinstance(level_val, datetime.date) and isinstance(key, datetime.date):
+            return True
+
+        # Allow slices (used internally for partial selection)
         if isinstance(key, slice):
             return True
 
-        # datetime/date/Timestamp compatibility
-        datetime_types = (datetime.date, np.datetime64, Timestamp)
-        if isinstance(level_type, datetime_types) and isinstance(
-            key, datetime_types + (str,)
-        ):
-            return True
-
-        # numeric compatibility
-        if np.issubdtype(type(level_type), np.integer) and isinstance(key, int):
-            return True
-        if np.issubdtype(type(level_type), np.floating) and isinstance(
-            key, (int, float)
-        ):
-            return True
-
-        # string compatibility
-        if isinstance(level_type, str) and isinstance(key, str):
+        # Allow any NumPy generic types for flexibility
+        if isinstance(key, np.generic):
             return True
 
         return False
