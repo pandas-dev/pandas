@@ -9037,13 +9037,26 @@ class DataFrame(NDFrame, OpsMixin):
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
+        def rename_duplicates(columns: Index) -> Index:
+            seen = {}
+            for col in columns:
+                if col in seen:
+                    col = col + f".{seen[col]}"
+                seen[col] = seen.get(col, 0) + 1
+            return columns
+
+        new_columns_out = self.columns.union(other_columns, sort=False)
+        self_columns, other_columns = (
+            rename_duplicates(self.columns),
+            rename_duplicates(other_columns),
+        )
         # preserve column order
-        new_columns = self.columns.union(other_columns, sort=False)
+        new_columns_unique = self_columns.union(other_columns, sort=False)
         do_fill = fill_value is not None
         result = {}
-        for i, col in enumerate(new_columns):
-            series = this.iloc[:, i]
-            other_series = other.iloc[:, i]
+        for col in new_columns_unique:
+            series = this[col]
+            other_series = other[col]
 
             this_dtype = series.dtype
             other_dtype = other_series.dtype
@@ -9091,7 +9104,9 @@ class DataFrame(NDFrame, OpsMixin):
             result[col] = arr
 
         # convert_objects just in case
-        frame_result = self._constructor(result, index=new_index, columns=new_columns)
+        frame_result = self._constructor(
+            result, index=new_index, columns=new_columns_out
+        )
         return frame_result.__finalize__(self, method="combine")
 
     def combine_first(self, other: DataFrame) -> DataFrame:
