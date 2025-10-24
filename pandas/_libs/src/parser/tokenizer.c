@@ -1732,6 +1732,8 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   return number;
 }
 
+/* Helper functions and macros for string consumption and buffer management */
+
 static inline int str_consume_nspan(char **dst, size_t dst_sz, const char **src,
                                     size_t src_sz, const char *charset) {
   size_t span_sz = strspn(*src, charset);
@@ -1754,6 +1756,32 @@ static inline int str_consume_span(char **dst, size_t dst_sz, const char **src,
   return str_consume_nspan(dst, dst_sz, src, SIZE_MAX, charset);
 }
 
+#define SKIP_SPAN(s, charset) str_consume_span(NULL, 0, &(s), (charset))
+
+#define SKIP_NSPAN(s, n, charset)                                              \
+  str_consume_nspan(NULL, 0, &(s), (n), (charset))
+
+#define SAFE_CONSUME_SPAN(d, de, s, charset)                                   \
+  do {                                                                         \
+    size_t _remaining = (de) - (d);                                            \
+    int _ret = str_consume_span(&(d), _remaining, &(s), (charset));            \
+    if (_ret < 0)                                                              \
+      return ERROR_OVERFLOW;                                                   \
+  } while (0)
+
+#define SAFE_CONSUME_NSPAN(d, de, s, n, charset)                               \
+  do {                                                                         \
+    size_t _remaining = (de) - (d);                                            \
+    if (str_consume_nspan(&(d), _remaining, &(s), (n), (charset)) < 0)         \
+      return ERROR_OVERFLOW;                                                   \
+  } while (0)
+
+#define CHECK_BUFFER_SPACE(d, de)                                              \
+  do {                                                                         \
+    if ((d) >= (de))                                                           \
+      return ERROR_OVERFLOW;                                                   \
+  } while (0)
+
 /* copy a decimal number string with `decimal`, `tsep` as decimal point
    and thousands separator to an equivalent c-locale decimal string (striping
    `tsep`, replacing `decimal` with '.'). The result is written into `dst`
@@ -1761,38 +1789,59 @@ static inline int str_consume_span(char **dst, size_t dst_sz, const char **src,
 
 static int _str_copy_decimal_str_c(char *dst, size_t dst_sz, const char *src,
                                    char **endpos, char decimal, char tsep) {
-  const char *digits = "0123456789";
-  const char *exponents = "Ee";
-  const char *signs = "+-";
-  const char *whitespaces = " \t\n\v\f\r";
+  static const char *digits = "0123456789";
+  static const char *exponents = "Ee";
+  static const char *signs = "+-";
+  static const char *whitespaces = " \t\n\v\f\r";
+
   const char decimals[] = {decimal, '\0'};
   const char tseps[] = {tsep, '\0'};
 
   const char *s = src;
   char *d = dst;
-  char *de = dst + dst_sz;
-  // Skip leading whitespace.
-  str_consume_span(NULL, 0, &s, whitespaces);
-  // Copy Leading sign
-  str_consume_nspan(&d, de - d, &s, 1, signs);
-  // Copy integer part dropping `tsep`
-  while (str_consume_span(&d, de - d, &s, digits)) {
-    str_consume_nspan(NULL, 0, &s, 1, tseps);
-  }
-  // Replace `decimal` with '.'
-  if (str_consume_nspan(NULL, 0, &s, 1, decimals)) {
-    *d++ = '.';
-  }
-  // Copy fractional part after decimal (if any)
-  str_consume_span(&d, de - d, &s, digits);
-  // Copy exponent if any
-  if (str_consume_nspan(&d, de - d, &s, 1, exponents)) {
-    str_consume_nspan(&d, de - d, &s, 1, signs);
-    str_consume_span(&d, de - d, &s, digits);
-  }
-  *d++ = '\0'; // terminate
+  const char *de = dst + dst_sz;
+  int ret;
+
   if (endpos != NULL)
     *endpos = (char *)s;
+
+  // Skip leading whitespace.
+  SKIP_SPAN(s, whitespaces);
+
+  // Copy leading sign (optional)
+  SAFE_CONSUME_NSPAN(d, de, s, 1, signs);
+
+  // Copy integer part dropping `tsep`
+  while ((ret = str_consume_span(&d, de - d, &s, digits))) {
+    if (ret < 0)
+      return ERROR_OVERFLOW;
+    SKIP_NSPAN(s, 1, tseps);
+  }
+
+  // Replace `decimal` with '.'
+  if (SKIP_NSPAN(s, 1, decimals)) {
+    CHECK_BUFFER_SPACE(d, de);
+    *d++ = '.';
+  }
+
+  // Copy fractional part after decimal (if any)
+  SAFE_CONSUME_SPAN(d, de, s, digits);
+
+  // Copy exponent if any
+  if ((ret = str_consume_nspan(&d, de - d, &s, 1, exponents)) > 0) {
+    SAFE_CONSUME_NSPAN(d, de, s, 1, signs);
+    SAFE_CONSUME_SPAN(d, de, s, digits);
+  } else if (ret < 0) {
+    return ERROR_OVERFLOW;
+  }
+
+  // Terminate string
+  CHECK_BUFFER_SPACE(d, de);
+  *d++ = '\0';
+
+  if (endpos != NULL)
+    *endpos = (char *)s;
+
   return 0;
 }
 
