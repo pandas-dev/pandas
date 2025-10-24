@@ -8,6 +8,7 @@ from collections.abc import (
     Iterable,
     Sequence,
 )
+import datetime
 from functools import wraps
 from itertools import zip_longest
 from sys import getsizeof
@@ -3619,6 +3620,19 @@ class MultiIndex(Index):
         # Same type → OK
         if isinstance(key, level_type):
             return True
+        # Allow Python int for numpy integer types
+        if isinstance(level_type, np.integer) and isinstance(key, int):
+            return True
+
+        # Allow Python float for numpy float types
+        if isinstance(level_type, np.floating) and isinstance(key, float):
+            return True
+
+        # Allow subclasses of datetime.date for datetime levels
+        if isinstance(level_type, datetime.date) and isinstance(key, datetime.date):
+            return True
+
+        return False
 
     def _get_level_indexer(
         self, key, level: int = 0, indexer: npt.NDArray[np.bool_] | None = None
