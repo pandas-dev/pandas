@@ -3011,7 +3011,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             * 0, or 'index' : Resulting differences are stacked vertically
             with rows drawn alternately from self and other.
             * 1, or 'columns' : Resulting differences are aligned horizontally
-
             with columns drawn alternately from self and other.
 
         keep_shape : bool, default False
