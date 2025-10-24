@@ -37,7 +37,10 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import BaseMaskedDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+)
 from pandas.core.dtypes.missing import (
     array_equivalent,
     is_valid_na_for_dtype,
@@ -767,6 +770,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         pd_op = ops.get_array_op(op)
         other = ensure_wrapped_if_datetimelike(other)
 
+        if isinstance(other, ExtensionArray) and isinstance(other.dtype, ArrowDtype):
+            # GH#58602
+            return NotImplemented
+
         if op_name in {"pow", "rpow"} and isinstance(other, np.bool_):
             # Avoid DeprecationWarning: In future, it will be an error
             #  for 'np.bool_' scalars to be interpreted as an index
@@ -843,7 +850,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         mask = None
 
-        if isinstance(other, BaseMaskedArray):
+        if isinstance(other, ExtensionArray) and isinstance(other.dtype, ArrowDtype):
+            # GH#58602
+            return NotImplemented
+
+        elif isinstance(other, BaseMaskedArray):
             other, mask = other._data, other._mask
 
         elif is_list_like(other):

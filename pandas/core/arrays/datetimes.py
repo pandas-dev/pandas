@@ -88,6 +88,7 @@ if TYPE_CHECKING:
         IntervalClosedType,
         TimeAmbiguous,
         TimeNonexistent,
+        TimeUnit,
         npt,
     )
 
@@ -221,6 +222,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     ['2023-01-01 00:00:00', '2023-01-02 00:00:00']
     Length: 2, dtype: datetime64[s]
     """
+
+    __module__ = "pandas.arrays"
 
     _typ = "datetimearray"
     _internal_fill_value = np.datetime64("NaT", "ns")
@@ -394,7 +397,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         result = cls._simple_new(subarr, freq=inferred_freq, dtype=data_dtype)
         if unit is not None and unit != result.unit:
             # If unit was specified in user-passed dtype, cast to it here
-            result = result.as_unit(unit)
+            # error: Argument 1 to "as_unit" of "TimelikeOps" has
+            # incompatible type "str"; expected "Literal['s', 'ms', 'us', 'ns']"
+            # [arg-type]
+            result = result.as_unit(unit)  # type: ignore[arg-type]
 
         validate_kwds = {"ambiguous": ambiguous}
         result._maybe_pin_freq(freq, validate_kwds)
@@ -413,7 +419,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         nonexistent: TimeNonexistent = "raise",
         inclusive: IntervalClosedType = "both",
         *,
-        unit: str | None = None,
+        unit: TimeUnit = "ns",
     ) -> Self:
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -534,7 +540,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             raise ValueError("'value' should be a Timestamp.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.datetime64(value._value, self.unit)  # type: ignore[call-overload]
+            return np.datetime64(value._value, self.unit)
         else:
             return value.as_unit(self.unit, round_ok=False).asm8
 
