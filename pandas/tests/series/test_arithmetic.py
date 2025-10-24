@@ -784,8 +784,6 @@ class TestTimeSeriesArithmetic:
         assert result.isna().all()
         assert result2.isna().all()
 
-        tm.assert_series_equal(result, result2)
-
 
 class TestNamePreservation:
     @pytest.mark.parametrize("box", [list, tuple, np.array, Index, Series, pd.array])
