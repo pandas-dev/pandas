@@ -1043,6 +1043,7 @@ Interval
 - :meth:`Index.is_monotonic_decreasing`, :meth:`Index.is_monotonic_increasing`, and :meth:`Index.is_unique` could incorrectly be ``False`` for an ``Index`` created from a slice of another ``Index``. (:issue:`57911`)
 - Bug in :class:`Index`, :class:`Series`, :class:`DataFrame` constructors when given a sequence of :class:`Interval` subclass objects casting them to :class:`Interval` (:issue:`46945`)
 - Bug in :func:`interval_range` where start and end numeric types were always cast to 64 bit (:issue:`57268`)
+- Bug in :meth:`IntervalIndex.get_indexer` and :meth:`IntervalIndex.drop` when one of the sides of the index is non-unique (:issue:`52245`)
 
 Indexing
 ^^^^^^^^
