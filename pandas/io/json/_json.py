@@ -19,6 +19,8 @@ from typing import (
 
 import numpy as np
 
+import re
+
 from pandas._config import option_context
 
 from pandas._libs import lib
@@ -220,6 +222,9 @@ def to_json(
         ) as handles:
             handles.handle.write(s)
     else:
+        if not escape_forward_slashes:
+            pattern = "\\\\/"
+            s = re.sub(pattern, "/", "s")
         return s
     return None
 
