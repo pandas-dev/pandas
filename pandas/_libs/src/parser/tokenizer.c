@@ -1740,6 +1740,10 @@ static inline int str_consume_nspan(char **dst, size_t dst_sz, const char **src,
   if (span_sz > src_sz) {
     span_sz = src_sz;
   }
+  // Assuming the span size is within the expected range.
+  if (span_sz > INT_MAX) {
+    return -1;
+  }
   if (dst) {
     if (span_sz > dst_sz) {
       return -1;
@@ -1748,7 +1752,7 @@ static inline int str_consume_nspan(char **dst, size_t dst_sz, const char **src,
     *dst += span_sz;
   }
   *src += span_sz;
-  return span_sz;
+  return (int)span_sz;
 }
 
 static inline int str_consume_span(char **dst, size_t dst_sz, const char **src,
