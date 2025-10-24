@@ -1800,22 +1800,28 @@ static int _str_copy_decimal_str_c(char *dst, size_t dst_sz, const char *src,
   const char *s = src;
   char *d = dst;
   const char *de = dst + dst_sz;
+  bool seen_digit = false;
   int ret;
 
   if (endpos != NULL)
     *endpos = (char *)s;
 
-  // Skip leading whitespace.
+  // Skip leading whitespace
   SKIP_SPAN(s, whitespaces);
 
   // Copy leading sign (optional)
   SAFE_CONSUME_NSPAN(d, de, s, 1, signs);
 
+  // Check that there is a first digit or decimal point.
+  if (!isdigit_ascii(*s) && *s != decimal)
+    return ERROR_NO_DIGITS;
+
   // Copy integer part dropping `tsep`
   while ((ret = str_consume_span(&d, de - d, &s, digits))) {
     if (ret < 0)
       return ERROR_OVERFLOW;
-    SKIP_NSPAN(s, 1, tseps);
+    seen_digit = true;
+    SKIP_SPAN(s, tseps);
   }
 
   // Replace `decimal` with '.'
@@ -1825,7 +1831,16 @@ static int _str_copy_decimal_str_c(char *dst, size_t dst_sz, const char *src,
   }
 
   // Copy fractional part after decimal (if any)
-  SAFE_CONSUME_SPAN(d, de, s, digits);
+  if ((ret = str_consume_span(&d, de - d, &s, digits)) > 0) {
+    seen_digit = true;
+  } else if (ret < 0) {
+    return ERROR_OVERFLOW;
+  }
+
+  if (!seen_digit) {
+    // No digits found in integer or fractional part
+    return ERROR_NO_DIGITS;
+  }
 
   // Copy exponent if any
   if ((ret = str_consume_nspan(&d, de - d, &s, 1, exponents)) > 0) {
@@ -1835,9 +1850,16 @@ static int _str_copy_decimal_str_c(char *dst, size_t dst_sz, const char *src,
     return ERROR_OVERFLOW;
   }
 
+  // Skip trailing whitespace
+  SKIP_SPAN(s, whitespaces);
+
   // Terminate string
   CHECK_BUFFER_SPACE(d, de);
   *d++ = '\0';
+
+  // Did we use up all the characters?
+  if (*s)
+    return ERROR_INVALID_CHARS;
 
   if (endpos != NULL)
     *endpos = (char *)s;
@@ -1903,87 +1925,21 @@ int uint64_conflict(uint_state *self) {
   return self->seen_uint && (self->seen_sint || self->seen_null);
 }
 
-/* Copy a string without `char_to_remove` into `output`.
- */
-static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
-                                    const char *str, size_t str_len,
-                                    char char_to_remove) {
-  const char *left = str;
-  const char *end_ptr = str + str_len;
-  size_t bytes_written = 0;
-
-  while (left < end_ptr) {
-    const size_t remaining_bytes_to_read = end_ptr - left;
-    const char *right = memchr(left, char_to_remove, remaining_bytes_to_read);
-
-    if (!right) {
-      // If it doesn't find the char to remove, just copy until EOS.
-      right = end_ptr;
-    }
-
-    const size_t chunk_size = right - left;
-
-    if (chunk_size + bytes_written >= PROCESSED_WORD_CAPACITY) {
-      return -1;
-    }
-    memcpy(&output[bytes_written], left, chunk_size);
-    bytes_written += chunk_size;
-
-    left = right + 1;
-  }
-
-  output[bytes_written] = '\0';
-  return 0;
-}
-
 int64_t str_to_int64(const char *p_item, int *error, char tsep) {
-  const char *p = p_item;
-  // Skip leading spaces.
-  while (isspace_ascii(*p)) {
-    ++p;
-  }
-
-  // Handle sign.
-  const bool has_sign = *p == '-' || *p == '+';
-  // Handle sign.
-  const char *digit_start = has_sign ? p + 1 : p;
-
-  // Check that there is a first digit.
-  if (!isdigit_ascii(*digit_start)) {
-    // Error...
-    *error = ERROR_NO_DIGITS;
+  char buffer[PROCESSED_WORD_CAPACITY];
+  char *endptr;
+  int status = _str_copy_decimal_str_c(buffer, PROCESSED_WORD_CAPACITY, p_item,
+                                       &endptr, '\0', tsep);
+  if (status != 0) {
+    *error = status;
     return 0;
   }
 
-  char buffer[PROCESSED_WORD_CAPACITY];
-  const size_t str_len = strlen(p);
-  if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int status = copy_string_without_char(buffer, p, str_len, tsep);
-    if (status != 0) {
-      // Word is too big, probably will cause an overflow
-      *error = ERROR_OVERFLOW;
-      return 0;
-    }
-    p = buffer;
-  }
-
-  char *endptr;
-  int64_t number = strtoll(p, &endptr, 10);
+  int64_t number = strtoll(buffer, &endptr, 10);
 
   if (errno == ERANGE) {
     *error = ERROR_OVERFLOW;
     errno = 0;
-    return 0;
-  }
-
-  // Skip trailing spaces.
-  while (isspace_ascii(*endptr)) {
-    ++endptr;
-  }
-
-  // Did we use up all the characters?
-  if (*endptr) {
-    *error = ERROR_INVALID_CHARS;
     return 0;
   }
 
@@ -1993,57 +1949,26 @@ int64_t str_to_int64(const char *p_item, int *error, char tsep) {
 
 uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
                        char tsep) {
-  const char *p = p_item;
-  // Skip leading spaces.
-  while (isspace_ascii(*p)) {
-    ++p;
+  char buffer[PROCESSED_WORD_CAPACITY];
+  char *endptr;
+  int status = _str_copy_decimal_str_c(buffer, PROCESSED_WORD_CAPACITY, p_item,
+                                       &endptr, '\0', tsep);
+  if (status != 0) {
+    *error = status;
+    return 0;
   }
 
-  // Handle sign.
-  if (*p == '-') {
+  if (buffer[0] == '-') {
     state->seen_sint = 1;
     *error = 0;
     return 0;
-  } else if (*p == '+') {
-    p++;
   }
 
-  // Check that there is a first digit.
-  if (!isdigit_ascii(*p)) {
-    // Error...
-    *error = ERROR_NO_DIGITS;
-    return 0;
-  }
-
-  char buffer[PROCESSED_WORD_CAPACITY];
-  const size_t str_len = strlen(p);
-  if (tsep != '\0' && memchr(p, tsep, str_len) != NULL) {
-    const int status = copy_string_without_char(buffer, p, str_len, tsep);
-    if (status != 0) {
-      // Word is too big, probably will cause an overflow
-      *error = ERROR_OVERFLOW;
-      return 0;
-    }
-    p = buffer;
-  }
-
-  char *endptr;
-  uint64_t number = strtoull(p, &endptr, 10);
+  uint64_t number = strtoull(buffer, &endptr, 10);
 
   if (errno == ERANGE) {
     *error = ERROR_OVERFLOW;
     errno = 0;
-    return 0;
-  }
-
-  // Skip trailing spaces.
-  while (isspace_ascii(*endptr)) {
-    ++endptr;
-  }
-
-  // Did we use up all the characters?
-  if (*endptr) {
-    *error = ERROR_INVALID_CHARS;
     return 0;
   }
 
