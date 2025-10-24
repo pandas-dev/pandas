@@ -2779,3 +2779,38 @@ def test_stack_preserves_na(dtype, na_value, test_multiindex):
         )
     expected = Series(1, index=expected_index)
     tm.assert_series_equal(result, expected)
+
+
+def test_unstack_sort_false_with_value_counts():
+    # GH#62816
+    # Test that unstack(sort=False) correctly aligns column labels with data values
+    # Previously, column labels were reordered but data values were not, causing misalignment
+    df = DataFrame(
+        {
+            "Department": ["Finance", "Finance", "HR", "HR"],
+            "Gender": ["Male", "Female", "Male", "Female"],
+            "Location": ["NY", "CA", "NY", "CA"],
+        }
+    )
+
+    # Create a value_counts Series with specific order
+    result_series = df.value_counts(subset=["Department", "Gender", "Location"])
+
+    # Unstack with sort=False should preserve the order of values
+    result = result_series.unstack(fill_value=0, sort=False)
+
+    # Verify that the data values match their column labels
+    # The key test is that column order matches the data order
+    for col in result.columns:
+        for idx in result.index:
+            # Reconstruct the original MultiIndex tuple
+            full_idx = (*idx, col)
+            if full_idx in result_series.index:
+                expected_val = result_series[full_idx]
+                actual_val = result.loc[idx, col]
+                assert actual_val == expected_val, (
+                    f"Mismatch at {idx}, {col}: expected {expected_val}, got {actual_val}"
+                )
+            else:
+                # Should be fill_value (0) if not in original series
+                assert result.loc[idx, col] == 0

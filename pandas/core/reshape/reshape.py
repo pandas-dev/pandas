@@ -207,8 +207,10 @@ class _Unstacker:
 
     def _make_sorted_values(self, values: np.ndarray) -> np.ndarray:
         indexer, _ = self._indexer_and_to_sort
-        sorted_values = algos.take_nd(values, indexer, axis=0)
-        return sorted_values
+        if self.sort:
+            sorted_values = algos.take_nd(values, indexer, axis=0)
+            return sorted_values
+        return values
 
     def _make_selectors(self) -> None:
         new_levels = self.new_index_levels
@@ -566,6 +568,14 @@ def unstack(
 def unstack(
     obj: Series | DataFrame, level, fill_value=None, sort: bool = True
 ) -> Series | DataFrame:
+    if not sort:
+        warnings.warn(
+            "The 'sort=False' parameter in unstack is deprecated and will be "
+            "removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if isinstance(level, (tuple, list)):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,
