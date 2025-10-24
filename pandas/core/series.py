@@ -1622,14 +1622,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Add index (row) labels.
 
         storage_options : dict, optional
-        Extra options that make sense for a particular storage connection, e.g.
-        host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
-        are forwarded to ``urllib.request.Request`` as header options. For other
-        URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
-        forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-        details, and for more examples on storage options refer `here
-        <https://pandas.pydata.org/docs/user_guide/io.html?
-        highlight=storage_options#reading-writing-remote-files>`_.
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
 
         **kwargs
             These parameters will be passed to `tabulate \
@@ -2763,7 +2763,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         periods : int, default 1
             Periods to shift for calculating difference, accepts negative
             values.
-        ""
+
         Returns
         -------
         Series
@@ -4657,7 +4657,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             - dict-like of axis labels -> functions, function names or list-like of such
 
         axis : {0 or 'index'}
-        Unused. Parameter needed for compatibility with DataFrame.
+            Unused. Parameter needed for compatibility with DataFrame.
 
         *args
             Positional arguments to pass to `func`.
