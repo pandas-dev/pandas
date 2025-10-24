@@ -3011,6 +3011,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             * 0, or 'index' : Resulting differences are stacked vertically
             with rows drawn alternately from self and other.
             * 1, or 'columns' : Resulting differences are aligned horizontally
+
             with columns drawn alternately from self and other.
 
         keep_shape : bool, default False
@@ -3085,6 +3086,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    d     b
         4    e     e
         """
+
         return super().compare(
             other=other,
             align_axis=align_axis,
@@ -4653,7 +4655,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             - function
             - string function name
             - list-like of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
-            - dict-like of axis labels -> functions, function names or list-like of such.
+            - dict-like of axis labels -> functions, function names or list-like of such
 
         axis : {0 or 'index'}
         Unused. Parameter needed for compatibility with DataFrame.
