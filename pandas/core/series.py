@@ -2997,7 +2997,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         keep_equal: bool = False,
         result_names: Suffixes = ("self", "other"),
     ) -> DataFrame | Series:
-
         """
         Compare to another Series and show the differences.
 
@@ -3026,7 +3025,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Set the dataframes names in the comparison.
 
             .. versionadded:: 1.5.0
-        
+
         Returns
         -------
         Series or DataFrame
@@ -4614,10 +4613,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    4
         dtype: int64
 
-        >>> s.agg('min')
+        >>> s.agg("min")
         1
 
-        >>> s.agg(['min', 'max'])
+        >>> s.agg(["min", "max"])
         min   1
         max   4
         dtype: int64
@@ -4686,7 +4685,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> df = pd.DataFrame({{'A': range(3), 'B': range(1, 4)}})
+        >>> df = pd.DataFrame({{"A": range(3), "B": range(1, 4)}})
         >>> df
         A  B
         0  0  1
@@ -4715,12 +4714,23 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         You can call transform on a GroupBy object:
 
-        >>> df = pd.DataFrame({{
-        ...     "Date": [
-        ...         "2015-05-08", "2015-05-07", "2015-05-06", "2015-05-05",
-        ...         "2015-05-08", "2015-05-07", "2015-05-06", "2015-05-05"],
-        ...     "Data": [5, 8, 6, 1, 50, 100, 60, 120],
-        ... }})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "Date": [
+        ...                 "2015-05-08",
+        ...                 "2015-05-07",
+        ...                 "2015-05-06",
+        ...                 "2015-05-05",
+        ...                 "2015-05-08",
+        ...                 "2015-05-07",
+        ...                 "2015-05-06",
+        ...                 "2015-05-05",
+        ...             ],
+        ...             "Data": [5, 8, 6, 1, 50, 100, 60, 120],
+        ...         }
+        ...     }
+        ... )
         >>> df
                 Date  Data
         0  2015-05-08     5
@@ -4731,7 +4741,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         5  2015-05-07   100
         6  2015-05-06    60
         7  2015-05-05   120
-        >>> df.groupby('Date')['Data'].transform('sum')
+        >>> df.groupby("Date")["Data"].transform("sum")
         0     55
         1    108
         2     66
@@ -4742,10 +4752,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         7    121
         Name: Data, dtype: int64
 
-        >>> df = pd.DataFrame({{
-        ...     "c": [1, 1, 1, 2, 2, 2, 2],
-        ...     "type": ["m", "n", "o", "m", "m", "n", "n"]
-        ... }})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "c": [1, 1, 1, 2, 2, 2, 2],
+        ...             "type": ["m", "n", "o", "m", "m", "n", "n"],
+        ...         }
+        ...     }
+        ... )
         >>> df
         c type
         0  1    m
@@ -4755,7 +4769,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         4  2    m
         5  2    n
         6  2    n
-        >>> df['size'] = df.groupby('c')['type'].transform(len)
+        >>> df["size"] = df.groupby("c")["type"].transform(len)
         >>> df
         c type size
         0  1    m    3
