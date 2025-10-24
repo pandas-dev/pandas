@@ -335,6 +335,7 @@ def read_csv(
     **kwds: Unpack[_read_shared[HashableT]],
 ) -> DataFrame: ...
 
+
 @overload
 def read_csv(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
@@ -1045,7 +1046,8 @@ def read_table(
         Duplicates in this list are not allowed.
     index_col : Hashable, Sequence of Hashable or False, optional
         Column(s) to use as row label(s), denoted either by column labels or column
-        indices.  If a sequence of labels or indices is given, :class:`~pandas.MultiIndex`
+        indices.  If a sequence of labels or indices is given,
+        :class:`~pandas.MultiIndex`
         will be formed for the row labels.
 
         Note: ``index_col=False`` can be used to force pandas to *not* use the first
