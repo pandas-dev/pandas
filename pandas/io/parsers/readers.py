@@ -1312,11 +1312,9 @@ def read_table(
               python/generated/pyarrow.csv.ParseOptions.html
               #pyarrow.csv.ParseOptions.invalid_row_handler>`_.
 
-        .. versionadded:: 1.3.0
+        .. versionadded:: 2.2.0
 
-        .. versionadded:: 1.4.0
-
-            Callable
+            Callable for ``engine='pyarrow'``
 
     low_memory : bool, default True
         Internally process the file in chunks, resulting in lower memory use
