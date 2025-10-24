@@ -2426,18 +2426,24 @@ def maybe_convert_numeric(
 
             val = int(val)
             seen.saw_int(val)
+            pyints[i] = val
 
             if val >= 0:
                 if val <= oUINT64_MAX:
                     uints[i] = val
-                else:
+                elif seen.coerce_numeric:
                     seen.float_ = True
+                else:
+                    seen.overflow_ = True
 
             if oINT64_MIN <= val <= oINT64_MAX:
                 ints[i] = val
 
             if val < oINT64_MIN or (seen.sint_ and seen.uint_):
-                seen.float_ = True
+                if seen.coerce_numeric:
+                    seen.float_ = True
+                else:
+                    seen.overflow_ = True
 
         elif util.is_bool_object(val):
             floats[i] = uints[i] = ints[i] = bools[i] = val
