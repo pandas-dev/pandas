@@ -463,14 +463,14 @@ def read_csv(
         then you should explicitly pass ``header=0`` to override the column names.
         Duplicates in this list are not allowed.
     index_col : Hashable, Sequence of Hashable or False, optional
-        Column(s) to use as row label(s), denoted either by column labels or column
-        indices.  If a sequence of labels or indices is given,
-        :class:`~pandas.MultiIndex`
-        will be formed for the row labels.
+      Column(s) to use as row label(s), denoted either by column labels or column
+      indices.  If a sequence of labels or indices is given,
+      :class:`~pandas.MultiIndex`
+      will be formed for the row labels.
 
-        Note: ``index_col=False`` can be used to force pandas to *not* use the first
-        column as the index, e.g., when you have a malformed file with delimiters at
-        the end of each line.
+      Note: ``index_col=False`` can be used to force pandas to *not* use the first
+      column as the index, e.g., when you have a malformed file with delimiters at
+      the end of each line.
     usecols : Sequence of Hashable or Callable, optional
         Subset of columns to select, denoted either
         by column labels or column indices.
@@ -732,6 +732,12 @@ def read_csv(
               <https://arrow.apache.org/docs/python
               /generated/pyarrow.csv.ParseOptions.html
               #pyarrow.csv.ParseOptions.invalid_row_handler>`_.
+
+        .. versionadded:: 1.3.0
+
+        .. versionadded:: 1.4.0
+
+            Callable
 
         .. versionchanged:: 2.2.0
 
@@ -1045,14 +1051,13 @@ def read_table(
         then you should explicitly pass ``header=0`` to override the column names.
         Duplicates in this list are not allowed.
     index_col : Hashable, Sequence of Hashable or False, optional
-        Column(s) to use as row label(s), denoted either by column labels or column
-        indices.  If a sequence of labels or indices is given,
-        :class:`~pandas.MultiIndex`
-        will be formed for the row labels.
+      Column(s) to use as row label(s), denoted either by column labels or column
+      indices.  If a sequence of labels or indices is given, :class:`~pandas.MultiIndex`
+      will be formed for the row labels.
 
-        Note: ``index_col=False`` can be used to force pandas to *not* use the first
-        column as the index, e.g., when you have a malformed file with delimiters at
-        the end of each line.
+      Note: ``index_col=False`` can be used to force pandas to *not* use the first
+      column as the index, e.g., when you have a malformed file with delimiters at
+      the end of each line.
     usecols : Sequence of Hashable or Callable, optional
         Subset of columns to select, denoted either by column labels or column indices.
         If list-like, all elements must either
@@ -1312,7 +1317,13 @@ def read_table(
               python/generated/pyarrow.csv.ParseOptions.html
               #pyarrow.csv.ParseOptions.invalid_row_handler>`_.
 
-        .. versionadded:: 2.2.0
+        .. versionadded:: 1.3.0
+
+        .. versionadded:: 1.4.0
+
+            Callable
+
+        .. versionchanged:: 2.2.0
 
             Callable for ``engine='pyarrow'``
 
