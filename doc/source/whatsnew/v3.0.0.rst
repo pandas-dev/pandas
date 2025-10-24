@@ -515,6 +515,22 @@ If we had passed ``pd.Int64Dtype()`` or ``"int64[pyarrow]"`` for the dtype in th
 
 With ``"mode.nan_is_na"`` set to ``False``, ``ser.to_numpy()`` (and ``frame.values`` and ``np.asarray(obj)``) will convert to ``object`` dtype if :class:`NA` entries are present, where before they would coerce to ``NaN``.  To retain a float numpy dtype, explicitly pass ``na_value=np.nan`` to :meth:`Series.to_numpy`.
 
+The ``__module__`` attribute now points to public modules
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``__module__`` attribute on functions and classes in the public API has been
+updated to refer to the preferred public module from which to access the object,
+rather than the module in which the object happens to be defined (:issue:`55178`).
+
+This produces more informative displays in the Python console for classes, e.g.,
+instead of ``<class 'pandas.core.frame.DataFrame'>`` you now see
+``<class 'pandas.DataFrame'>``, and in interactive tools such as IPython, e.g.,
+instead of ``<function pandas.io.parsers.readers.read_csv(...)>`` you now see
+``<function pandas.read_csv(...)>``.
+
+This may break code that relies on the previous ``__module__`` values (e.g.
+doctests inspecting the ``type()`` of a DataFrame object).
+
 .. _whatsnew_300.api_breaking.deps:
 
 Increased minimum version for Python
@@ -938,6 +954,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
+- Bug in :class:`Categorical` where constructing from a pandas :class:`Series` or :class:`Index` with ``dtype='object'`` did not preserve the categories' dtype as ``object``; now the ``categories.dtype`` is preserved as ``object`` for these cases, while numpy arrays and Python sequences with ``dtype='object'`` continue to infer the most specific dtype (for example, ``str`` if all elements are strings) (:issue:`61778`)
 - Bug in :func:`Series.apply` where ``nan`` was ignored for :class:`CategoricalDtype` (:issue:`59938`)
 - Bug in :func:`testing.assert_index_equal` raising ``TypeError`` instead of ``AssertionError`` for incomparable ``CategoricalIndex`` when ``check_categorical=True`` and ``exact=False`` (:issue:`61935`)
 - Bug in :meth:`Categorical.astype` where ``copy=False`` would still trigger a copy of the codes (:issue:`62000`)
@@ -1041,6 +1058,7 @@ Indexing
 - Bug in reindexing of :class:`DataFrame` with :class:`PeriodDtype` columns in case of consolidated block (:issue:`60980`, :issue:`60273`)
 - Bug in :meth:`DataFrame.loc.__getitem__` and :meth:`DataFrame.iloc.__getitem__` with a :class:`CategoricalDtype` column with integer categories raising when trying to index a row containing a ``NaN`` entry (:issue:`58954`)
 - Bug in :meth:`Index.__getitem__` incorrectly raising with a 0-dim ``np.ndarray`` key (:issue:`55601`)
+- Bug in :meth:`Index.get_indexer` not casting missing values correctly for new string datatype (:issue:`55833`)
 - Bug in adding new rows with :meth:`DataFrame.loc.__setitem__` or :class:`Series.loc.__setitem__` which failed to retain dtype on the object's index in some cases (:issue:`41626`)
 - Bug in indexing on a :class:`DatetimeIndex` with a ``timestamp[pyarrow]`` dtype or on a :class:`TimedeltaIndex` with a ``duration[pyarrow]`` dtype (:issue:`62277`)
 
@@ -1086,6 +1104,7 @@ I/O
 - Bug in :meth:`HDFStore.select` causing queries on categorical string columns to return unexpected results (:issue:`57608`)
 - Bug in :meth:`MultiIndex.factorize` incorrectly raising on length-0 indexes (:issue:`57517`)
 - Bug in :meth:`read_csv` causing segmentation fault when ``encoding_errors`` is not a string. (:issue:`59059`)
+- Bug in :meth:`read_csv` for the ``c`` and ``python`` engines where parsing numbers with large exponents caused overflows. Now, numbers with large positive exponents are parsed as ``inf`` or ``-inf`` depending on the sign of the mantissa, while those with large negative exponents are parsed as ``0.0`` (:issue:`62617`, :issue:`38794`, :issue:`62740`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``index_col`` is specified and ``na_values`` is a dict containing the key ``None``. (:issue:`57547`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``nrows`` and ``iterator`` are specified without specifying a ``chunksize``. (:issue:`59079`)
 - Bug in :meth:`read_csv` where the order of the ``na_values`` makes an inconsistency when ``na_values`` is a list non-string values. (:issue:`59303`)
@@ -1147,7 +1166,6 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.apply` for ``method="table"`` where column order was not being respected due to the columns getting sorted by default. (:issue:`59666`)
 - Bug in :meth:`Rolling.apply` where the applied function could be called on fewer than ``min_period`` periods if ``method="table"``. (:issue:`58868`)
 - Bug in :meth:`Series.resample` could raise when the date range ended shortly before a non-existent time. (:issue:`58380`)
-- Bug in :meth:`Series.rolling.var` and :meth:`Series.rolling.std` where the end of window was not indexed correctly. (:issue:`47721`, :issue:`52407`, :issue:`54518`, :issue:`55343`)
 
 Reshaping
 ^^^^^^^^^
