@@ -218,7 +218,15 @@ def test_add_2d(dtype, request):
         s + b
 
 
-def test_add_sequence(dtype):
+def test_add_sequence(dtype, request):
+    if dtype.storage == "python" and dtype.na_value is np.nan:
+        mark = pytest.mark.xfail(
+            reason="As of GH#62522, the list gets wrapped withm sanitize_array, "
+            "which casts to a higher-priority StringArray, so we get "
+            "NotImplemented."
+        )
+        request.applymarker(mark)
+
     a = pd.array(["a", "b", None, None], dtype=dtype)
     other = ["x", None, "y", None]
 
@@ -391,10 +399,18 @@ def test_comparison_methods_array_arrow_extension(comparison_op, dtype2):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_comparison_methods_list(comparison_op, dtype):
+@pytest.mark.parametrize("box", [pd.array, pd.Index, pd.Series])
+def test_comparison_methods_list(comparison_op, dtype, box, request):
+    if box is pd.array and dtype.na_value is np.nan:
+        mark = pytest.mark.xfail(
+            reason="After wrapping list, op returns NotImplemented, see GH#62522"
+        )
+        request.applymarker(mark)
+
     op_name = f"__{comparison_op.__name__}__"
 
-    a = pd.array(["a", None, "c"], dtype=dtype)
+    a = box(pd.array(["a", None, "c"], dtype=dtype))
+    item = "c"
     other = [None, None, "c"]
     result = comparison_op(a, other)
 
@@ -407,15 +423,21 @@ def test_comparison_methods_list(comparison_op, dtype):
             expected = np.array([True, True, False])
         else:
             expected = np.array([False, False, False])
-            expected[-1] = getattr(other[-1], op_name)(a[-1])
-        tm.assert_numpy_array_equal(result, expected)
+            expected[-1] = getattr(other[-1], op_name)(item)
+        if box is not pd.Index:
+            # if GH#62766 is addressed this check can be removed
+            expected = tm.box_expected(expected, box)
+        tm.assert_equal(result, expected)
 
     else:
         expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
         expected = np.full(len(a), fill_value=None, dtype="object")
-        expected[-1] = getattr(other[-1], op_name)(a[-1])
+        expected[-1] = getattr(other[-1], op_name)(item)
         expected = pd.array(expected, dtype=expected_dtype)
-        tm.assert_extension_array_equal(result, expected)
+        if box is not pd.Index:
+            # if GH#62766 is addressed this check can be removed
+            expected = tm.box_expected(expected, box)
+        tm.assert_equal(result, expected)
 
 
 def test_constructor_raises(cls):

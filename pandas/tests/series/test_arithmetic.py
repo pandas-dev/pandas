@@ -358,10 +358,10 @@ class TestSeriesArithmetic:
 
     @pytest.mark.parametrize("val", [3, 3.5])
     def test_add_list_to_masked_array(self, val):
-        # GH#22962
+        # GH#22962, behavior changed by GH#62552
         ser = Series([1, None, 3], dtype="Int64")
         result = ser + [1, None, val]
-        expected = Series([2, pd.NA, 3 + val], dtype=object)
+        expected = Series([2, pd.NA, 3 + val], dtype="Float64")
         tm.assert_series_equal(result, expected)
 
         result = [1, None, val] + ser

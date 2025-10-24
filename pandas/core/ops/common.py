@@ -7,8 +7,6 @@ from __future__ import annotations
 from functools import wraps
 from typing import TYPE_CHECKING
 
-import numpy as np
-
 from pandas._libs.lib import item_from_zerodim
 from pandas._libs.missing import is_matching_na
 
@@ -16,6 +14,11 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCSeries,
+)
+
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+    sanitize_array,
 )
 
 if TYPE_CHECKING:
@@ -59,6 +62,7 @@ def _unpack_zerodim_and_defer(method: F, name: str) -> F:
     -------
     method
     """
+    is_logical = name.strip("_") in ["or", "xor", "and", "ror", "rxor", "rand"]
 
     @wraps(method)
     def new_method(self, other):
@@ -69,15 +73,14 @@ def _unpack_zerodim_and_defer(method: F, name: str) -> F:
                 return NotImplemented
 
         other = item_from_zerodim(other)
-
-        if isinstance(self, ABCExtensionArray):
-            if isinstance(other, list):
-                # See GH#62423
-                other = np.array(other)
-                if other.dtype.kind in "mM":
-                    from pandas.core.construction import ensure_wrapped_if_datetimelike
-
-                    other = ensure_wrapped_if_datetimelike(other)
+        if (
+            isinstance(self, ABCExtensionArray)
+            and isinstance(other, list)
+            and not is_logical
+        ):
+            # See GH#62423
+            other = sanitize_array(other, None)
+            other = ensure_wrapped_if_datetimelike(other)
 
         return method(self, other)
 
