@@ -571,7 +571,7 @@ class TestGetIndexer:
             ),
             (
                 [Timestamp("2020-01-01"), Timestamp(date(2020, 1, 2))],
-                np.array([0, -1], dtype=np.intp),
+                np.array([0, 1], dtype=np.intp),
             ),
         ],
     )
