@@ -781,3 +781,41 @@ Q2 A  False     True
    B   True    False
    C   True    False
 """
+
+# --- add at bottom of pandas/core/ops/docstrings.py ---
+
+_doc_series_invert = """
+Bitwise NOT (``~``).
+
+For boolean dtype, behaves as logical NOT. Missing values (``NA``) propagate.
+For integer dtypes, performs bitwise inversion (two's complement) elementwise.
+
+Returns
+-------
+Series
+    Elementwise result with the same index and name.
+
+Notes
+-----
+On ``boolean[pyarrow]`` dtype, ``NA`` values also propagate under ``~``.
+
+See Also
+--------
+Series.__and__, Series.__or__, Series.__xor__
+
+Examples
+--------
+>>> s = pd.Series([True, False, pd.NA], dtype="boolean")
+>>> ~s
+0    False
+1     True
+2     <NA>
+dtype: boolean
+
+>>> s = pd.Series([1, 2, -3], dtype="Int32")
+>>> ~s
+0   -2
+1   -3
+2    2
+dtype: Int32
+"""
