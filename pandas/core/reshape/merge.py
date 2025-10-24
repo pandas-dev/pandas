@@ -3029,8 +3029,34 @@ def _validate_operand(obj: DataFrame | Series) -> DataFrame:
         return obj.to_frame()
     else:
         raise TypeError(
-            f"Can only merge Series or DataFrame objects, a {type(obj)} was passed"
+            _get_merge_error_message(obj)
         )
+
+
+def _get_merge_error_message(obj: object) -> str:
+    """Generate a helpful error message for invalid merge arguments."""
+    obj_type_name = type(obj).__name__
+    obj_module_name = type(obj).__module__
+    
+    # Special handling for known DataFrame-like libraries
+    if obj_module_name == "polars.dataframe.frame" and obj_type_name == "DataFrame":
+        return (
+            "Can only merge Series or DataFrame objects, received "
+            "polars.DataFrame. Please convert the polars DataFrame to a "
+            "pandas DataFrame using `.to_pandas()` or pass it to "
+            "pd.DataFrame()."
+        )
+    elif "polars" in obj_module_name.lower():
+        return (
+            f"Can only merge Series or DataFrame objects, received "
+            f"{obj_module_name}.{obj_type_name} (a polars object). "
+            "Please convert to a pandas DataFrame using `.to_pandas()`."
+        )
+    
+    return (
+        f"Can only merge Series or DataFrame objects, received "
+        f"{obj_module_name}.{obj_type_name}. Expected a pandas Series or DataFrame."
+    )
 
 
 def _items_overlap_with_suffix(
