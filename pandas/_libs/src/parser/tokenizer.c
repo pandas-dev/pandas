@@ -1871,10 +1871,9 @@ double round_trip(const char *p, char **q, char decimal, char Py_UNUSED(sci),
                   char tsep, int skip_trailing, int *error, int *maybe_int) {
   // 'normalize' representation to C-locale; replace decimal with '.' and
   // remove thousands separator.
-  const size_t length = strlen(p);
-  char *pc = malloc(length + 1);
+  char pc[PROCESSED_WORD_CAPACITY];
   char *endptr;
-  _str_copy_decimal_str_c(pc, length + 1, p, &endptr, decimal, tsep);
+  _str_copy_decimal_str_c(pc, sizeof(pc), p, &endptr, decimal, tsep);
   // This is called from a nogil block in parsers.pyx
   // so need to explicitly get GIL before Python calls
   PyGILState_STATE gstate = PyGILState_Ensure();
@@ -1903,7 +1902,6 @@ double round_trip(const char *p, char **q, char decimal, char Py_UNUSED(sci),
   PyErr_Clear();
 
   PyGILState_Release(gstate);
-  free(pc);
   if (skip_trailing && q != NULL && *q != p) {
     while (isspace_ascii(**q)) {
       (*q)++;
