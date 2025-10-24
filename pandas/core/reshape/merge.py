@@ -1954,42 +1954,65 @@ class _MergeOperation:
     def _validate_validate_kwd(self, validate: str) -> None:
         # Check uniqueness of each
         if self.left_index:
-            left_unique = self.orig_left.index.is_unique
+            left_keys = self.orig_left.index
         else:
-            left_unique = MultiIndex.from_arrays(self.left_join_keys).is_unique
+            left_keys = MultiIndex.from_arrays(self.left_join_keys)
 
         if self.right_index:
-            right_unique = self.orig_right.index.is_unique
+            right_keys = self.orig_right.index
         else:
-            right_unique = MultiIndex.from_arrays(self.right_join_keys).is_unique
+            right_keys = MultiIndex.from_arrays(self.right_join_keys)
+        
+        left_unique = left_keys.is_unique
+        right_unique = right_keys.is_unique
+
+        def sample_duplicates(keys, limit=10):
+            """Return up to 'limit' unique duplicate keys."""
+            keys = Index(keys)
+            dups = keys[keys.duplicated()]
+            if not len(dups):
+                return []
+            return list(dups.unique()[:limit])
 
         # Check data integrity
         if validate in ["one_to_one", "1:1"]:
             if not left_unique and not right_unique:
+                combined_keys = list(left_keys.append(right_keys))
+                sample = sample_duplicates(combined_keys, limit=10)
                 raise MergeError(
                     "Merge keys are not unique in either left "
                     "or right dataset; not a one-to-one merge"
+                    f"Offending keys (sample): {sample}"
                 )
             if not left_unique:
+                sample = sample_duplicates(left_keys)
                 raise MergeError(
                     "Merge keys are not unique in left dataset; not a one-to-one merge"
+                    f"Offending keys (sample): {sample}"
                 )
             if not right_unique:
+                sample = sample_duplicates(right_keys)
                 raise MergeError(
                     "Merge keys are not unique in right dataset; not a one-to-one merge"
+                    f"Offending keys (sample): {sample}"
                 )
 
         elif validate in ["one_to_many", "1:m"]:
             if not left_unique:
+                sample = sample_duplicates(left_keys)
                 raise MergeError(
                     "Merge keys are not unique in left dataset; not a one-to-many merge"
+                    f"Offending keys (sample): {sample}"
+
                 )
 
         elif validate in ["many_to_one", "m:1"]:
             if not right_unique:
+                sample = sample_duplicates(right_keys)
                 raise MergeError(
                     "Merge keys are not unique in right dataset; "
                     "not a many-to-one merge"
+                    f"Offending keys (sample): {sample}"
                 )
 
         elif validate in ["many_to_many", "m:m"]:
