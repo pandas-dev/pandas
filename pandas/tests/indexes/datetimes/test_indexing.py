@@ -600,7 +600,7 @@ class TestGetIndexer:
         [
             (
                 [date(2020, 1, 1), Timestamp("2020-01-02")],
-                np.array([-1, -1], dtype=np.intp),
+                np.array([-1, 1], dtype=np.intp),
             ),
             (
                 [Timestamp("2020-01-01"), Timestamp(date(2020, 1, 2))],
@@ -617,7 +617,7 @@ class TestGetIndexer:
     @pytest.mark.parametrize(
         "target, positions",
         [
-            ([date(9999, 1, 1), Timestamp("2020-01-01")], [-1, -1]),
+            ([date(9999, 1, 1), Timestamp("2020-01-01")], [-1, 0]),
             ([Timestamp("2020-01-01"), date(9999, 1, 1)], [0, -1]),
             ([date(9999, 1, 1), date(9999, 1, 1)], [-1, -1]),
         ],
