@@ -632,52 +632,185 @@ class SeriesGroupBy(GroupBy[Series]):
                 result.index = default_index(len(result))
             return result.__finalize__(self.obj, method="groupby")
 
-    __examples_series_doc = dedent(
+    # __examples_series_doc = dedent(
+    #     """
+    # >>> ser = pd.Series([390.0, 350.0, 30.0, 20.0],
+    # ...                 index=["Falcon", "Falcon", "Parrot", "Parrot"],
+    # ...                 name="Max Speed")
+    # >>> grouped = ser.groupby([1, 1, 2, 2])
+    # >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
+    #     Falcon    0.707107
+    #     Falcon   -0.707107
+    #     Parrot    0.707107
+    #     Parrot   -0.707107
+    #     Name: Max Speed, dtype: float64
+
+    # Broadcast result of the transformation
+
+    # >>> grouped.transform(lambda x: x.max() - x.min())
+    # Falcon    40.0
+    # Falcon    40.0
+    # Parrot    10.0
+    # Parrot    10.0
+    # Name: Max Speed, dtype: float64
+
+    # >>> grouped.transform("mean")
+    # Falcon    370.0
+    # Falcon    370.0
+    # Parrot     25.0
+    # Parrot     25.0
+    # Name: Max Speed, dtype: float64
+
+    # .. versionchanged:: 1.3.0
+
+    # The resulting dtype will reflect the return value of the passed ``func``,
+    # for example:
+
+    # >>> grouped.transform(lambda x: x.astype(int).max())
+    # Falcon    390
+    # Falcon    390
+    # Parrot     30
+    # Parrot     30
+    # Name: Max Speed, dtype: int64
+    # """
+    # )
+
+    # @Substitution(klass="Series", example=__examples_series_doc)
+    # @Appender(_transform_template)
+    def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         """
-    >>> ser = pd.Series([390.0, 350.0, 30.0, 20.0],
-    ...                 index=["Falcon", "Falcon", "Parrot", "Parrot"],
-    ...                 name="Max Speed")
-    >>> grouped = ser.groupby([1, 1, 2, 2])
-    >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-        Falcon    0.707107
-        Falcon   -0.707107
-        Parrot    0.707107
-        Parrot   -0.707107
+        Test Call function producing a same-indexed Series on each group.
+
+        Returns a Series having the same indexes as the original object
+        filled with the transformed values.
+
+        Parameters
+        ----------
+        func : function, str
+            Function to apply to each group. See the Notes section below for requirements.
+
+            Accepted inputs are:
+
+            - String
+            - Python function
+            - Numba JIT function with ``engine='numba'`` specified.
+
+            Only passing a single function is supported with this engine.
+            If the ``'numba'`` engine is chosen, the function must be
+            a user defined function with ``values`` and ``index`` as the
+            first and second arguments respectively in the function signature.
+            Each group's index will be passed to the user defined function
+            and optionally available for use.
+
+            If a string is chosen, then it needs to be the name
+            of the groupby method you want to use.
+        *args
+            Positional arguments to pass to func.
+        engine : str, default None
+            * ``'cython'`` : Runs the function through C-extensions from cython.
+            * ``'numba'`` : Runs the function through JIT compiled code from numba.
+            * ``None`` : Defaults to ``'cython'`` or the global setting ``compute.use_numba``
+
+        engine_kwargs : dict, default None
+            * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+            * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+            and ``parallel`` dictionary keys. The values must either be ``True`` or
+            ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+            ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
+            applied to the function
+
+        **kwargs
+            Keyword arguments to be passed into func.
+
+        Returns
+        -------
+        Series
+            Series with the same indexes as the original object filled
+            with transformed values.
+
+        See Also
+        --------
+        Series.groupby.apply : Apply function ``func`` group-wise and combine
+            the results together.
+        Series.groupby.aggregate : Aggregate using one or more operations.
+        Series.transform : Call ``func`` on self producing a Series with the
+            same axis shape as self.
+
+        Notes
+        -----
+        Each group is endowed the attribute 'name' in case you need to know
+        which group you are working on.
+
+        The current implementation imposes three requirements on f:
+
+        * f must return a value that either has the same shape as the input
+        subframe or can be broadcast to the shape of the input subframe.
+        For example, if `f` returns a scalar it will be broadcast to have the
+        same shape as the input subframe.
+        * if this is a DataFrame, f must support application column-by-column
+        in the subframe. If f also supports application to the entire subframe,
+        then a fast path is used starting from the second chunk.
+        * f must not mutate groups. Mutation is not supported and may
+        produce unexpected results. See :ref:`gotchas.udf-mutation` for more details.
+
+        When using ``engine='numba'``, there will be no "fall back" behavior internally.
+        The group data and group index will be passed as numpy arrays to the JITed
+        user defined function, and no alternative execution attempts will be tried.
+
+        .. versionchanged:: 1.3.0
+
+            The resulting dtype will reflect the return value of the passed ``func``,
+            see the examples below.
+
+        .. versionchanged:: 2.0.0
+
+            When using ``.transform`` on a grouped DataFrame and the transformation function
+            returns a DataFrame, pandas now aligns the result's index
+            with the input's index. You can call ``.to_numpy()`` on the
+            result of the transformation function to avoid alignment.
+
+        Examples
+        --------
+
+        >>> ser = pd.Series([390.0, 350.0, 30.0, 20.0],
+        ...                 index=["Falcon", "Falcon", "Parrot", "Parrot"],
+        ...                 name="Max Speed")
+        >>> grouped = ser.groupby([1, 1, 2, 2])
+        >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
+            Falcon    0.707107
+            Falcon   -0.707107
+            Parrot    0.707107
+            Parrot   -0.707107
+            Name: Max Speed, dtype: float64
+
+        Broadcast result of the transformation
+
+        >>> grouped.transform(lambda x: x.max() - x.min())
+        Falcon    40.0
+        Falcon    40.0
+        Parrot    10.0
+        Parrot    10.0
         Name: Max Speed, dtype: float64
 
-    Broadcast result of the transformation
+        >>> grouped.transform("mean")
+        Falcon    370.0
+        Falcon    370.0
+        Parrot     25.0
+        Parrot     25.0
+        Name: Max Speed, dtype: float64
 
-    >>> grouped.transform(lambda x: x.max() - x.min())
-    Falcon    40.0
-    Falcon    40.0
-    Parrot    10.0
-    Parrot    10.0
-    Name: Max Speed, dtype: float64
+        .. versionchanged:: 1.3.0
 
-    >>> grouped.transform("mean")
-    Falcon    370.0
-    Falcon    370.0
-    Parrot     25.0
-    Parrot     25.0
-    Name: Max Speed, dtype: float64
+        The resulting dtype will reflect the return value of the passed ``func``,
+        for example:
 
-    .. versionchanged:: 1.3.0
-
-    The resulting dtype will reflect the return value of the passed ``func``,
-    for example:
-
-    >>> grouped.transform(lambda x: x.astype(int).max())
-    Falcon    390
-    Falcon    390
-    Parrot     30
-    Parrot     30
-    Name: Max Speed, dtype: int64
-    """
-    )
-
-    @Substitution(klass="Series", example=__examples_series_doc)
-    @Appender(_transform_template)
-    def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
+        >>> grouped.transform(lambda x: x.astype(int).max())
+        Falcon    390
+        Falcon    390
+        Parrot     30
+        Parrot     30
+        Name: Max Speed, dtype: int64
+        """
         return self._transform(
             func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
