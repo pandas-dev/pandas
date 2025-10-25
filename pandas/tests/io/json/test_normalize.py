@@ -511,6 +511,19 @@ class TestJSONNormalize:
         expected_df = DataFrame(data=expected, columns=result.columns.values)
         tm.assert_equal(expected_df, result)
 
+    def test_json_normalize_max_level_with_nan(self):
+        # GH 62829 - test for bug where max_level=0 fails with nan in input list
+        d = {
+            1: {"id": 10, "status": "AVAL"},
+            2: {"id": 30, "status": "AVAL", "items": {"id": 12, "size": 20}},
+            3: {"id": 50, "status": "AVAL", "items": {"id": 13, "size": 30}},
+        }
+        df = DataFrame.from_dict(d, orient="index")
+        data_list = df["items"].tolist()
+        expected = DataFrame({"id": [np.nan, 12.0, 13.0], "size": [np.nan, 20.0, 30.0]})
+        result = json_normalize(data_list, max_level=0)
+        tm.assert_frame_equal(result, expected)
+
     def test_nested_flattening_consistent(self):
         # see gh-21537
         df1 = json_normalize([{"A": {"B": 1}}])
