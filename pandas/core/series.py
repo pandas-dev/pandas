@@ -5650,7 +5650,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         This method prints information about a Series including
         the index dtype, non-NA values and memory usage.
-    
+
         .. versionadded:: 1.4.0
 
         Parameters
@@ -5699,7 +5699,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Examples
         --------
         >>> int_values = [1, 2, 3, 4, 5]
-        >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
+        >>> text_values = ["alpha", "beta", "gamma", "delta", "epsilon"]
         >>> s = pd.Series(text_values, index=int_values)
         >>> s.info()
         <class 'pandas.Series'>
@@ -5726,16 +5726,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> buffer = io.StringIO()
         >>> s.info(buf=buffer)
         >>> s = buffer.getvalue()
-        >>> with open("df_info.txt", "w",
-        ...           encoding="utf-8") as f:  # doctest: +SKIP
+        >>> with open("df_info.txt", "w", encoding="utf-8") as f:  # doctest: +SKIP
         ...     f.write(s)
         260
 
         The `memory_usage` parameter allows deep introspection mode, specially
         useful for big Series and fine-tune memory optimization:
 
-        >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
-        >>> s = pd.Series(np.random.choice(['a', 'b', 'c'], 10 ** 6))
+        >>> random_strings_array = np.random.choice(["a", "b", "c"], 10**6)
+        >>> s = pd.Series(np.random.choice(["a", "b", "c"], 10**6))
         >>> s.info()
         <class 'pandas.Series'>
         RangeIndex: 1000000 entries, 0 to 999999
@@ -5746,7 +5745,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtypes: object(1)
         memory usage: 7.6+ MB
 
-        >>> s.info(memory_usage='deep')
+        >>> s.info(memory_usage="deep")
         <class 'pandas.Series'>
         RangeIndex: 1000000 entries, 0 to 999999
         Series name: None
@@ -6183,7 +6182,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def isnull(self) -> Series:
         """
-        
+
         Series.isnull is an alias for Series.isna.
 
         Detect missing values.
