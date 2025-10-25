@@ -1962,7 +1962,7 @@ class _MergeOperation:
             right_keys = self.orig_right.index
         else:
             right_keys = MultiIndex.from_arrays(self.right_join_keys)
-        
+
         left_unique = left_keys.is_unique
         right_unique = right_keys.is_unique
 
@@ -1978,7 +1978,7 @@ class _MergeOperation:
             if not left_unique and not right_unique:
                 left_sample = sample_duplicates(left_keys, limit=5)
                 right_sample = sample_duplicates(right_keys, limit=5)
-                
+
                 raise MergeError(
                     "Merge keys are not unique in either left "
                     "or right dataset; not a one-to-one merge. "
@@ -1988,13 +1988,15 @@ class _MergeOperation:
             if not left_unique:
                 sample = sample_duplicates(left_keys)
                 raise MergeError(
-                    "Merge keys are not unique in left dataset; not a one-to-one merge. "
+                    "Merge keys are not unique in left dataset; "
+                    "not a one-to-one merge. "
                     f"Offending keys (sample): {sample}"
                 )
             if not right_unique:
                 sample = sample_duplicates(right_keys)
                 raise MergeError(
-                    "Merge keys are not unique in right dataset; not a one-to-one merge. "
+                    "Merge keys are not unique in right dataset; "
+                    "not a one-to-one merge. "
                     f"Offending keys (sample): {sample}"
                 )
 
@@ -2002,9 +2004,9 @@ class _MergeOperation:
             if not left_unique:
                 sample = sample_duplicates(left_keys)
                 raise MergeError(
-                    "Merge keys are not unique in left dataset; not a one-to-many merge. "
+                    "Merge keys are not unique in left dataset; "
+                    "not a one-to-many merge. "
                     f"Offending keys (sample): {sample}"
-
                 )
 
         elif validate in ["many_to_one", "m:1"]:
