@@ -86,6 +86,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_string_dtype,
+    is_bool,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -1756,46 +1757,45 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         # that goes through SeriesGroupBy
 
-        # Check to confirm numeric_only is fed either True or False and no other data type
-        if(isinstance(numeric_only, bool)):
-            data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
+        if not is_bool(numeric_only):
+            raise ValueError("numeric_only accepts only Boolean values")
 
-            def array_func(values: ArrayLike) -> ArrayLike:
-                try:
-                    result = self._grouper._cython_operation(
-                        "aggregate",
-                        values,
-                        how,
-                        axis=data.ndim - 1,
-                        min_count=min_count,
-                        **kwargs,
-                    )
-                except NotImplementedError:
-                    # generally if we have numeric_only=False
-                    # and non-applicable functions
-                    # try to python agg
-                    # TODO: shouldn't min_count matter?
-                    # TODO: avoid special casing SparseArray here
-                    if how in ["any", "all"] and isinstance(values, SparseArray):
-                        pass
-                    elif alt is None or how in ["any", "all", "std", "sem"]:
-                        raise  # TODO: re-raise as TypeError?  should not be reached
-                else:
-                    return result
+        data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
 
-                assert alt is not None
-                result = self._agg_py_fallback(how, values, ndim=data.ndim, alt=alt)
+        def array_func(values: ArrayLike) -> ArrayLike:
+            try:
+                result = self._grouper._cython_operation(
+                    "aggregate",
+                    values,
+                    how,
+                    axis=data.ndim - 1,
+                    min_count=min_count,
+                    **kwargs,
+                )
+            except NotImplementedError:
+                # generally if we have numeric_only=False
+                # and non-applicable functions
+                # try to python agg
+                # TODO: shouldn't min_count matter?
+                # TODO: avoid special casing SparseArray here
+                if how in ["any", "all"] and isinstance(values, SparseArray):
+                    pass
+                elif alt is None or how in ["any", "all", "std", "sem"]:
+                    raise  # TODO: re-raise as TypeError?  should not be reached
+            else:
                 return result
 
-            new_mgr = data.grouped_reduce(array_func)
-            res = self._wrap_agged_manager(new_mgr)
-            if how in ["idxmin", "idxmax"]:
-                # mypy expects how to be Literal["idxmin", "idxmax"].
-                res = self._wrap_idxmax_idxmin(res, how=how, skipna=kwargs["skipna"])  # type: ignore[arg-type]
-            out = self._wrap_aggregated_output(res)
-            return out
-        else:
-            raise ValueError("numeric_only accepts only Boolean values")
+            assert alt is not None
+            result = self._agg_py_fallback(how, values, ndim=data.ndim, alt=alt)
+            return result
+
+        new_mgr = data.grouped_reduce(array_func)
+        res = self._wrap_agged_manager(new_mgr)
+        if how in ["idxmin", "idxmax"]:
+            # mypy expects how to be Literal["idxmin", "idxmax"].
+            res = self._wrap_idxmax_idxmin(res, how=how, skipna=kwargs["skipna"])  # type: ignore[arg-type]
+        out = self._wrap_aggregated_output(res)
+        return out
 
     def _cython_transform(self, how: str, numeric_only: bool = False, **kwargs):
         raise AbstractMethodError(self)
