@@ -52,13 +52,16 @@ def test_div(dtype):
 
 
 @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
-def test_divide_by_zero(zero, negative):
+def test_divide_by_zero(zero, negative, using_nan_is_na):
     # https://github.com/pandas-dev/pandas/issues/27398, GH#22793
     a = pd.array([0, 1, -1, None], dtype="Int64")
     result = a / zero
+    exp_mask = np.array([False, False, False, True])
+    if using_nan_is_na:
+        exp_mask[0] = True
     expected = FloatingArray(
         np.array([np.nan, np.inf, -np.inf, 1], dtype="float64"),
-        np.array([False, False, False, True]),
+        exp_mask,
     )
     if negative:
         expected *= -1
@@ -99,7 +102,7 @@ def test_mod(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_pow_scalar():
+def test_pow_scalar(using_nan_is_na):
     a = pd.array([-1, 0, 1, None, 2], dtype="Int64")
     result = a**0
     expected = pd.array([1, 1, 1, 1, 1], dtype="Int64")
@@ -114,10 +117,13 @@ def test_pow_scalar():
     tm.assert_extension_array_equal(result, expected)
 
     result = a**np.nan
-    expected = FloatingArray(
-        np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64"),
-        np.array([False, False, False, True, False]),
-    )
+    if using_nan_is_na:
+        expected = expected.astype("Float64")
+    else:
+        expected = FloatingArray(
+            np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64"),
+            np.array([False, False, False, True, False]),
+        )
     tm.assert_extension_array_equal(result, expected)
 
     # reversed
@@ -136,10 +142,13 @@ def test_pow_scalar():
     tm.assert_extension_array_equal(result, expected)
 
     result = np.nan**a
-    expected = FloatingArray(
-        np.array([1, np.nan, np.nan, np.nan], dtype="float64"),
-        np.array([False, False, True, False]),
-    )
+    if using_nan_is_na:
+        expected = expected.astype("Float64")
+    else:
+        expected = FloatingArray(
+            np.array([1, np.nan, np.nan, np.nan], dtype="float64"),
+            np.array([False, False, True, False]),
+        )
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -154,9 +163,9 @@ def test_pow_array():
 def test_rpow_one_to_na():
     # https://github.com/pandas-dev/pandas/issues/22022
     # https://github.com/pandas-dev/pandas/issues/29997
-    arr = pd.array([np.nan, np.nan], dtype="Int64")
+    arr = pd.array([pd.NA, pd.NA], dtype="Int64")
     result = np.array([1.0, 2.0]) ** arr
-    expected = pd.array([1.0, np.nan], dtype="Float64")
+    expected = pd.array([1.0, pd.NA], dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -212,7 +221,7 @@ def test_error_invalid_values(data, all_arithmetic_operators):
 # TODO test unsigned overflow
 
 
-def test_arith_coerce_scalar(data, all_arithmetic_operators):
+def test_arith_coerce_scalar(data, all_arithmetic_operators, using_nan_is_na):
     op = tm.get_op_from_name(all_arithmetic_operators)
     s = pd.Series(data)
     other = 0.01
@@ -220,9 +229,11 @@ def test_arith_coerce_scalar(data, all_arithmetic_operators):
     result = op(s, other)
     expected = op(s.astype(float), other)
     expected = expected.astype("Float64")
+    if not using_nan_is_na:
+        expected[s.isna()] = pd.NA
 
     # rmod results in NaN that wasn't NA in original nullable Series -> unmask it
-    if all_arithmetic_operators == "__rmod__":
+    if all_arithmetic_operators == "__rmod__" and not using_nan_is_na:
         mask = (s == 0).fillna(False).to_numpy(bool)
         expected.array._mask[mask] = False
 
@@ -243,14 +254,14 @@ def test_arithmetic_conversion(all_arithmetic_operators, other):
 def test_cross_type_arithmetic():
     df = pd.DataFrame(
         {
-            "A": pd.Series([1, 2, np.nan], dtype="Int64"),
-            "B": pd.Series([1, np.nan, 3], dtype="UInt8"),
+            "A": pd.Series([1, 2, pd.NA], dtype="Int64"),
+            "B": pd.Series([1, pd.NA, 3], dtype="UInt8"),
             "C": [1, 2, 3],
         }
     )
 
     result = df.A + df.C
-    expected = pd.Series([2, 4, np.nan], dtype="Int64")
+    expected = pd.Series([2, 4, pd.NA], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
     result = (df.A + df.C) * 3 == 12
@@ -258,7 +269,7 @@ def test_cross_type_arithmetic():
     tm.assert_series_equal(result, expected)
 
     result = df.A + df.B
-    expected = pd.Series([2, np.nan, np.nan], dtype="Int64")
+    expected = pd.Series([2, pd.NA, pd.NA], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
 

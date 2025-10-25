@@ -12,6 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -59,7 +60,6 @@ if TYPE_CHECKING:
         JoinHow,
         NaPosition,
         NumpySorter,
-        Self,
         npt,
     )
 
@@ -136,6 +136,8 @@ class RangeIndex(Index):
     >>> list(pd.RangeIndex(1, 0))
     []
     """
+
+    __module__ = "pandas"
 
     _typ = "rangeindex"
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
@@ -1175,6 +1177,7 @@ class RangeIndex(Index):
         """
         Conserve RangeIndex type for scalar and slice keys.
         """
+        key = lib.item_from_zerodim(key)
         if key is Ellipsis:
             key = slice(None)
         if isinstance(key, slice):

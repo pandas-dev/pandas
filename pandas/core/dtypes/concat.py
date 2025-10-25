@@ -12,6 +12,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.cast import (
@@ -168,6 +169,7 @@ def _get_result_dtype(
     return any_ea, kinds, target_dtype
 
 
+@set_module("pandas.api.types")
 def union_categoricals(
     to_union, sort_categories: bool = False, ignore_order: bool = False
 ) -> Categorical:
@@ -318,7 +320,8 @@ def union_categoricals(
             categories = categories.sort_values()
 
         new_codes = [
-            recode_for_categories(c.codes, c.categories, categories) for c in to_union
+            recode_for_categories(c.codes, c.categories, categories, copy=False)
+            for c in to_union
         ]
         new_codes = np.concatenate(new_codes)
     else:

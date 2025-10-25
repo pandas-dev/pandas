@@ -12,35 +12,32 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
     pre-commit run validate-min-versions-in-sync --all-files
 """
+
 from __future__ import annotations
 
 import pathlib
 import sys
+import tomllib
+from typing import Any
 
 import yaml
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
-
-from typing import Any
-
 from scripts.generate_pip_deps_from_conda import CONDA_TO_PIP
 
-DOC_PATH = pathlib.Path("doc/source/getting_started/install.rst").resolve()
+BASE_PATH = pathlib.Path(__file__).parents[1]
+DOC_PATH = (BASE_PATH / "doc/source/getting_started/install.rst").resolve()
 CI_PATH = next(
-    pathlib.Path("ci/deps").absolute().glob("actions-*-minimum_versions.yaml")
+    (BASE_PATH / "ci/deps").absolute().glob("actions-*-minimum_versions.yaml")
 )
-CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
-SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
-YAML_PATH = pathlib.Path("ci/deps")
-ENV_PATH = pathlib.Path("environment.yml")
+CODE_PATH = (BASE_PATH / "pandas/compat/_optional.py").resolve()
+SETUP_PATH = (BASE_PATH / "pyproject.toml").resolve()
+YAML_PATH = BASE_PATH / "ci/deps"
+ENV_PATH = BASE_PATH / "environment.yml"
 EXCLUDE_DEPS = {"tzdata", "pyqt", "pyqt5"}
 # pandas package is not available
 # in pre-commit environment
-sys.path.append("pandas/compat")
-sys.path.append("pandas/util")
+sys.path.append(str(BASE_PATH / "pandas/compat"))
+sys.path.append(str(BASE_PATH / "pandas/util"))
 import _exceptions
 import version
 
@@ -104,14 +101,11 @@ def get_operator_from(dependency: str) -> str | None:
 
 
 def get_yaml_map_from(
-    yaml_dic: list[str | dict[str, list[str]]]
+    yaml_dic: list[str | dict[str, list[str]]],
 ) -> dict[str, list[str] | None]:
     yaml_map: dict[str, list[str] | None] = {}
     for dependency in yaml_dic:
-        if (
-            isinstance(dependency, dict)
-            or dependency in yaml_map
-        ):
+        if isinstance(dependency, dict) or dependency in yaml_map:
             continue
         search_text = str(dependency)
         operator = get_operator_from(search_text)

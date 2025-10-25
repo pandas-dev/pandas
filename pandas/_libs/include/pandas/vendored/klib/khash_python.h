@@ -222,15 +222,11 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
 }
 
 static inline Py_hash_t _Pandas_HashDouble(double val) {
-  // Since Python3.10, nan is no longer has hash 0
+  // nan no longer has hash 0
   if (isnan(val)) {
     return 0;
   }
-#if PY_VERSION_HEX < 0x030A0000
-  return _Py_HashDouble(val);
-#else
   return _Py_HashDouble(NULL, val);
-#endif
 }
 
 static inline Py_hash_t floatobject_hash(PyFloatObject *key) {

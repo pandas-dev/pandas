@@ -61,21 +61,15 @@ pytestmark = [
 
 
 def make_data():
-    return list(range(1, 9)) + [pd.NA] + list(range(10, 98)) + [pd.NA] + [99, 100]
+    return [1, 2, 3, 4] + [pd.NA] + [10, 11] + [pd.NA] + [99, 100]
 
 
 def make_float_data():
-    return (
-        list(np.arange(0.1, 0.9, 0.1))
-        + [pd.NA]
-        + list(np.arange(1, 9.8, 0.1))
-        + [pd.NA]
-        + [9.9, 10.0]
-    )
+    return [0.1, 0.2, 0.3, 0.4] + [pd.NA] + [1.0, 1.1] + [pd.NA] + [9.9, 10.0]
 
 
 def make_bool_data():
-    return [True, False] * 4 + [np.nan] + [True, False] * 44 + [np.nan] + [True, False]
+    return [True, False] * 2 + [np.nan] + [True, False] + [np.nan] + [True, False]
 
 
 @pytest.fixture(
@@ -111,8 +105,8 @@ def data(dtype):
 @pytest.fixture
 def data_for_twos(dtype):
     if dtype.kind == "b":
-        return pd.array(np.ones(100), dtype=dtype)
-    return pd.array(np.ones(100) * 2, dtype=dtype)
+        return pd.array(np.ones(10), dtype=dtype)
+    return pd.array(np.ones(10) * 2, dtype=dtype)
 
 
 @pytest.fixture
@@ -168,6 +162,8 @@ def data_for_grouping(dtype):
 
 
 class TestMaskedArrays(base.ExtensionTests):
+    _combine_le_expected_dtype = "boolean"
+
     @pytest.fixture(autouse=True)
     def skip_if_doesnt_support_2d(self, dtype, request):
         # Override the fixture so that we run these tests.
@@ -176,20 +172,23 @@ class TestMaskedArrays(base.ExtensionTests):
         #  override becomes unnecessary.
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
-    def test_map(self, data_missing, na_action):
+    def test_map(self, data_missing, na_action, using_nan_is_na):
         result = data_missing.map(lambda x: x, na_action=na_action)
-        if data_missing.dtype == Float32Dtype():
+        if data_missing.dtype == Float32Dtype() and using_nan_is_na:
             # map roundtrips through objects, which converts to float64
             expected = data_missing.to_numpy(dtype="float64", na_value=np.nan)
         else:
             expected = data_missing.to_numpy()
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_map_na_action_ignore(self, data_missing_for_sorting):
+    def test_map_na_action_ignore(self, data_missing_for_sorting, using_nan_is_na):
         zero = data_missing_for_sorting[2]
         result = data_missing_for_sorting.map(lambda x: zero, na_action="ignore")
         if data_missing_for_sorting.dtype.kind == "b":
             expected = np.array([False, pd.NA, False], dtype=object)
+        elif not using_nan_is_na:
+            # TODO: would we prefer to get NaN in this case to get a non-object?
+            expected = np.array([zero, pd.NA, zero], dtype=object)
         else:
             expected = np.array([zero, np.nan, zero])
         tm.assert_numpy_array_equal(result, expected)
@@ -215,42 +214,14 @@ class TestMaskedArrays(base.ExtensionTests):
         sdtype = tm.get_dtype(obj)
         expected = pointwise_result
 
-        if op_name in ("eq", "ne", "le", "ge", "lt", "gt"):
-            return expected.astype("boolean")
-
-        if sdtype.kind in "iu":
-            if op_name in ("__rtruediv__", "__truediv__", "__div__"):
-                filled = expected.fillna(np.nan)
-                expected = filled.astype("Float64")
-            else:
-                # combine method result in 'biggest' (int64) dtype
-                expected = expected.astype(sdtype)
-        elif sdtype.kind == "b":
+        if sdtype.kind == "b":
             if op_name in (
-                "__floordiv__",
-                "__rfloordiv__",
-                "__pow__",
-                "__rpow__",
                 "__mod__",
                 "__rmod__",
             ):
                 # combine keeps boolean type
                 expected = expected.astype("Int8")
 
-            elif op_name in ("__truediv__", "__rtruediv__"):
-                # combine with bools does not generate the correct result
-                #  (numpy behaviour for div is to regard the bools as numeric)
-                op = self.get_op_from_name(op_name)
-                expected = self._combine(obj.astype(float), other, op)
-                expected = expected.astype("Float64")
-
-            if op_name == "__rpow__":
-                # for rpow, combine does not propagate NaN
-                result = getattr(obj, op_name)(other)
-                expected[result.isna()] = np.nan
-        else:
-            # combine method result in 'biggest' (float64) dtype
-            expected = expected.astype(sdtype)
         return expected
 
     def test_divmod_series_array(self, data, data_for_twos, request):
@@ -262,16 +233,6 @@ class TestMaskedArrays(base.ExtensionTests):
             )
             request.applymarker(mark)
         super().test_divmod_series_array(data, data_for_twos)
-
-    def test_combine_le(self, data_repeated):
-        # TODO: patching self is a bad pattern here
-        orig_data1, orig_data2 = data_repeated(2)
-        if orig_data1.dtype.kind == "b":
-            self._combine_le_expected_dtype = "boolean"
-        else:
-            # TODO: can we make this boolean?
-            self._combine_le_expected_dtype = object
-        super().test_combine_le(data_repeated)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         if op_name in ["any", "all"] and ser.dtype.kind != "b":
@@ -380,32 +341,35 @@ class TestMaskedArrays(base.ExtensionTests):
             )
 
         if op_name == "cumsum":
-            result = getattr(ser, op_name)(skipna=skipna)
-            expected = pd.Series(
-                pd.array(
-                    getattr(ser.astype("float64"), op_name)(skipna=skipna),
-                    dtype=expected_dtype,
-                )
-            )
-            tm.assert_series_equal(result, expected)
+            pass
         elif op_name in ["cummax", "cummin"]:
-            result = getattr(ser, op_name)(skipna=skipna)
-            expected = pd.Series(
-                pd.array(
-                    getattr(ser.astype("float64"), op_name)(skipna=skipna),
-                    dtype=ser.dtype,
-                )
-            )
-            tm.assert_series_equal(result, expected)
+            expected_dtype = ser.dtype  # type: ignore[assignment]
         elif op_name == "cumprod":
-            result = getattr(ser[:12], op_name)(skipna=skipna)
-            expected = pd.Series(
-                pd.array(
-                    getattr(ser[:12].astype("float64"), op_name)(skipna=skipna),
-                    dtype=expected_dtype,
-                )
-            )
-            tm.assert_series_equal(result, expected)
-
+            ser = ser[:12]
         else:
             raise NotImplementedError(f"{op_name} not supported")
+
+        result = getattr(ser, op_name)(skipna=skipna)
+        expected = pd.Series(
+            pd.array(
+                getattr(ser.astype("float64"), op_name)(skipna=skipna),
+                dtype="Float64",
+            )
+        )
+        expected[np.isnan(expected)] = pd.NA
+        expected = expected.astype(expected_dtype)
+        tm.assert_series_equal(result, expected)
+
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
+
+
+@pytest.mark.parametrize(
+    "arr", [pd.array([True, False]), pd.array([1, 2]), pd.array([1.0, 2.0])]
+)
+def test_cast_pointwise_result_all_na_respects_original_dtype(arr):
+    # GH#62344
+    values = [pd.NA, pd.NA]
+    result = arr._cast_pointwise_result(values)
+    assert result.dtype == arr.dtype
+    assert all(x is pd.NA for x in result)

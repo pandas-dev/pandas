@@ -11,7 +11,9 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Literal,
+    TypeVar,
     cast,
+    overload,
 )
 import warnings
 
@@ -33,7 +35,10 @@ from pandas._typing import (
     TakeIndexer,
     npt,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -103,6 +108,8 @@ if TYPE_CHECKING:
         BaseMaskedArray,
         ExtensionArray,
     )
+
+    T = TypeVar("T", bound=Index | Categorical | ExtensionArray)
 
 
 # --------------- #
@@ -211,14 +218,15 @@ def _reconstruct_data(
         #  that values.dtype == dtype
         cls = dtype.construct_array_type()
 
-        # error: Incompatible types in assignment (expression has type
-        # "ExtensionArray", variable has type "ndarray[Any, Any]")
-        values = cls._from_sequence(values, dtype=dtype)  # type: ignore[assignment]
+        # error: Incompatible return value type
+        # (got "ExtensionArray",
+        # expected "ndarray[tuple[Any, ...], dtype[Any]]")
+        return cls._from_sequence(values, dtype=dtype)  # type: ignore[return-value]
 
-    else:
-        values = values.astype(dtype, copy=False)  # type: ignore[assignment]
-
-    return values
+    # error: Incompatible return value type
+    # (got "ndarray[tuple[Any, ...], dtype[Any]]",
+    # expected "ExtensionArray")
+    return values.astype(dtype, copy=False)  # type: ignore[return-value]
 
 
 def _ensure_arraylike(values, func_name: str) -> ArrayLike:
@@ -314,6 +322,13 @@ def _check_object_for_strings(values: np.ndarray) -> str:
 # --------------- #
 
 
+@overload
+def unique(values: T) -> T: ...
+@overload
+def unique(values: np.ndarray | Series) -> np.ndarray: ...
+
+
+@set_module("pandas")
 def unique(values):
     """
     Return unique values based on a hash table.
@@ -638,6 +653,7 @@ def factorize_array(
     return codes, uniques
 
 
+@set_module("pandas")
 @doc(
     values=dedent(
         """\
@@ -904,7 +920,10 @@ def value_counts_internal(
                 .size()
             )
             result.index.names = values.names
-            counts = result._values
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, Any] | DatetimeArray | TimedeltaArray | PeriodArray | Any",
+            # variable has type "ndarray[tuple[int, ...], dtype[Any]]")
+            counts = result._values  # type: ignore[assignment]
 
         else:
             values = _ensure_arraylike(values, func_name="value_counts")
@@ -1097,6 +1116,7 @@ def rank(
 # ---- #
 
 
+@set_module("pandas.api.extensions")
 def take(
     arr,
     indices: TakeIndexer,
@@ -1311,7 +1331,7 @@ def searchsorted(
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: AxisInt = 0):
+def diff(arr, n: int | float | np.integer | np.floating, axis: AxisInt = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1400,7 +1420,7 @@ def diff(arr, n: int, axis: AxisInt = 0):
     if arr.dtype.name in _diff_special:
         # TODO: can diff_2d dtype specialization troubles be fixed by defining
         #  out_arr inside diff_2d?
-        algos.diff_2d(arr, out_arr, n, axis, datetimelike=is_timedelta)
+        algos.diff_2d(arr, out_arr, int(n), axis, datetimelike=is_timedelta)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is
         #  a tuple, ditto for lag_indexer.

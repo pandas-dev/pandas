@@ -20,6 +20,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -34,12 +35,16 @@ from pandas._libs import (
 )
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
-from pandas.compat._constants import REF_COUNT
+from pandas.compat._constants import (
+    REF_COUNT,
+    WARNING_CHECK_DISABLED,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
     InvalidIndexError,
+    Pandas4Warning,
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
@@ -68,7 +73,6 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     maybe_box_native,
-    maybe_cast_pointwise_result,
 )
 from pandas.core.dtypes.common import (
     is_dict_like,
@@ -82,7 +86,6 @@ from pandas.core.dtypes.common import (
     validate_all_hashable,
 )
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype,
     ExtensionDtype,
     SparseDtype,
 )
@@ -115,7 +118,6 @@ from pandas.core.arrays.arrow import (
 )
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
-from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
     array as pd_array,
     extract_array,
@@ -191,7 +193,6 @@ if TYPE_CHECKING:
         ReindexMethod,
         Renamer,
         Scalar,
-        Self,
         SortKind,
         StorageOptions,
         Suffixes,
@@ -353,9 +354,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     __pandas_priority__ = 3000
 
     # Override cache_readonly bc Series is mutable
-    # error: Incompatible types in assignment (expression has type "property",
-    # base class "IndexOpsMixin" defined the type as "Callable[[IndexOpsMixin], bool]")
-    hasnans = property(  # type: ignore[assignment]
+    hasnans = property(
         # error: "Callable[[IndexOpsMixin], bool]" has no attribute "fget"
         base.IndexOpsMixin.hasnans.fget,  # type: ignore[attr-defined]
         doc=base.IndexOpsMixin.hasnans.__doc__,
@@ -386,7 +385,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
             data = data.copy(deep=False)
@@ -410,7 +409,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
 
@@ -479,7 +478,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Passing a {type(data).__name__} to {type(self).__name__} "
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=2,
                 )
                 allow_mgr = True
@@ -764,7 +763,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         array([1, 2, 3])
 
         >>> pd.Series(list("aabc")).values
-        <ArrowStringArrayNumpySemantics>
+        <ArrowStringArray>
         ['a', 'a', 'b', 'c']
         Length: 4, dtype: str
 
@@ -1059,8 +1058,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
-            if sys.getrefcount(self) <= 3:
+        if not PYPY and not WARNING_CHECK_DISABLED:
+            if sys.getrefcount(self) <= REF_COUNT + 1:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -1473,7 +1472,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> None: ...
 
     @deprecate_nonkeyword_arguments(
-        version="4.0", allowed_args=["self", "buf"], name="to_string"
+        Pandas4Warning, allowed_args=["self", "buf"], name="to_string"
     )
     def to_string(
         self,
@@ -1599,11 +1598,58 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         **kwargs,
     ) -> str | None: ...
 
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        storage_options=_shared_docs["storage_options"],
-        examples=dedent(
-            """Examples
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self", "buf"], name="to_markdown"
+    )
+    def to_markdown(
+        self,
+        buf: IO[str] | None = None,
+        mode: str = "wt",
+        index: bool = True,
+        storage_options: StorageOptions | None = None,
+        **kwargs,
+    ) -> str | None:
+        """
+        Print Series in Markdown-friendly format.
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        mode : str, optional
+            Mode in which file is opened, "wt" by default.
+        index : bool, optional, default True
+            Add index (row) labels.
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
+
+        **kwargs
+            These parameters will be passed to `tabulate \
+                <https://pypi.org/project/tabulate>`_.
+
+        Returns
+        -------
+        str
+            Series in Markdown-friendly format.
+
+        See Also
+        --------
+        Series.to_frame : Rrite a text representation of object to the system clipboard.
+        Series.to_latex : Render Series to LaTeX-formatted table.
+
+        Notes
+        -----
+        Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
+
+        Examples
             --------
             >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
             >>> print(s.to_markdown())
@@ -1627,53 +1673,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             |  2 | dog      |
             +----+----------+
             |  3 | quetzal  |
-            +----+----------+"""
-        ),
-    )
-    @deprecate_nonkeyword_arguments(
-        version="4.0", allowed_args=["self", "buf"], name="to_markdown"
-    )
-    def to_markdown(
-        self,
-        buf: IO[str] | None = None,
-        mode: str = "wt",
-        index: bool = True,
-        storage_options: StorageOptions | None = None,
-        **kwargs,
-    ) -> str | None:
-        """
-        Print {klass} in Markdown-friendly format.
-
-        Parameters
-        ----------
-        buf : str, Path or StringIO-like, optional, default None
-            Buffer to write to. If None, the output is returned as a string.
-        mode : str, optional
-            Mode in which file is opened, "wt" by default.
-        index : bool, optional, default True
-            Add index (row) labels.
-
-        {storage_options}
-
-        **kwargs
-            These parameters will be passed to `tabulate \
-                <https://pypi.org/project/tabulate>`_.
-
-        Returns
-        -------
-        str
-            {klass} in Markdown-friendly format.
-
-        See Also
-        --------
-        Series.to_frame : Rrite a text representation of object to the system clipboard.
-        Series.to_latex : Render Series to LaTeX-formatted table.
-
-        Notes
-        -----
-        Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
-
-        {examples}
+            +----+----------+
         """
         return self.to_frame().to_markdown(
             buf, mode=mode, index=index, storage_options=storage_options, **kwargs
@@ -1708,7 +1708,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Index : 1, Value : B
         Index : 2, Value : C
         """
-        return zip(iter(self.index), iter(self))
+        return zip(iter(self.index), iter(self), strict=True)
 
     # ----------------------------------------------------------------------
     # Misc public methods
@@ -1965,6 +1965,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
+    )
     def groupby(
         self,
         by=None,
@@ -2990,27 +2993,48 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # -------------------------------------------------------------------
     # Combination
 
-    def _append(
-        self, to_append, ignore_index: bool = False, verify_integrity: bool = False
-    ):
+    def _append_internal(self, to_append: Series, ignore_index: bool = False) -> Series:
         from pandas.core.reshape.concat import concat
 
-        if isinstance(to_append, (list, tuple)):
-            to_concat = [self]
-            to_concat.extend(to_append)
-        else:
-            to_concat = [self, to_append]
-        if any(isinstance(x, (ABCDataFrame,)) for x in to_concat[1:]):
-            msg = "to_append should be a Series or list/tuple of Series, got DataFrame"
-            raise TypeError(msg)
-        return concat(
-            to_concat, ignore_index=ignore_index, verify_integrity=verify_integrity
-        )
+        return concat([self, to_append], ignore_index=ignore_index)
 
-    @doc(
-        _shared_docs["compare"],
-        dedent(
-            """
+    def compare(
+        self,
+        other: Series,
+        align_axis: Axis = 1,
+        keep_shape: bool = False,
+        keep_equal: bool = False,
+        result_names: Suffixes = ("self", "other"),
+    ) -> DataFrame | Series:
+        """
+        Compare to another Series and show the differences.
+
+        Parameters
+        ----------
+        other : Series
+            Object to compare with.
+
+        align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
+            Determine which axis to align the comparison on.
+
+            * 0, or 'index' : Resulting differences are stacked vertically
+              with rows drawn alternately from self and other.
+            * 1, or 'columns' : Resulting differences are aligned horizontally
+              with columns drawn alternately from self and other.
+
+        keep_shape : bool, default False
+            If true, all rows and columns are kept.
+            Otherwise, only the ones with different values are kept.
+
+        keep_equal : bool, default False
+            If true, the result keeps values that are equal.
+            Otherwise, equal values are shown as NaNs.
+
+        result_names : tuple, default ('self', 'other')
+            Set the dataframes names in the comparison.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         Series or DataFrame
@@ -3070,17 +3094,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    d     b
         4    e     e
         """
-        ),
-        klass=_shared_doc_kwargs["klass"],
-    )
-    def compare(
-        self,
-        other: Series,
-        align_axis: Axis = 1,
-        keep_shape: bool = False,
-        keep_equal: bool = False,
-        result_names: Suffixes = ("self", "other"),
-    ) -> DataFrame | Series:
+
         return super().compare(
             other=other,
             align_axis=align_axis,
@@ -3184,15 +3198,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 new_values[:] = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        # try_float=False is to match agg_series
-        npvalues = lib.maybe_convert_objects(new_values, try_float=False)
-        # same_dtype here is a kludge to avoid casting e.g. [True, False] to
-        #  ["True", "False"]
-        same_dtype = isinstance(self.dtype, (StringDtype, CategoricalDtype))
-        res_values = maybe_cast_pointwise_result(
-            npvalues, self.dtype, same_dtype=same_dtype
+        res_values = self.array._cast_pointwise_result(new_values)
+        return self._constructor(
+            res_values,
+            dtype=res_values.dtype,
+            index=new_index,
+            name=new_name,
+            copy=False,
         )
-        return self._constructor(res_values, index=new_index, name=new_name, copy=False)
 
     def combine_first(self, other) -> Series:
         """
@@ -3338,7 +3351,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        if not PYPY:
+        if not PYPY and not WARNING_CHECK_DISABLED:
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
@@ -4430,15 +4443,44 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2            NaN
         3  I am a rabbit
         dtype: object
+
+        For categorical data, the function is only applied to the categories:
+
+        >>> s = pd.Series(list("cabaa"))
+        >>> s.map(print)
+        c
+        a
+        b
+        a
+        a
+        0    None
+        1    None
+        2    None
+        3    None
+        4    None
+        dtype: object
+
+        >>> s_cat = s.astype("category")
+        >>> s_cat.map(print)  # function called once per unique category
+        a
+        b
+        c
+        0    None
+        1    None
+        2    None
+        3    None
+        4    None
+        dtype: object
         """
         if func is None:
             if "arg" in kwargs:
                 # `.map(arg=my_func)`
                 func = kwargs.pop("arg")
+                # https://github.com/pandas-dev/pandas/pull/61264
                 warnings.warn(
                     "The parameter `arg` has been renamed to `func`, and it "
                     "will stop being supported in a future version of pandas.",
-                    FutureWarning,
+                    Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
             else:
@@ -4515,14 +4557,81 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     )
 
-    @doc(
-        _shared_docs["aggregate"],
-        klass=_shared_doc_kwargs["klass"],
-        axis=_shared_doc_kwargs["axis"],
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc,
-    )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
+        """
+        Aggregate using one or more operations over the specified axis.
+
+        Parameters
+        ----------
+        func : function, str, list or dict
+            Function to use for aggregating the data. If a function, must either
+            work when passed a Series or when passed to Series.apply.
+
+            Accepted combinations are:
+
+            - function
+            - string function name
+            - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+            - dict of axis labels -> functions, function names or list of such.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
+
+        Returns
+        -------
+        scalar, Series or DataFrame
+            The return can be:
+
+            * scalar : when Series.agg is called with single function
+            * Series : when DataFrame.agg is called with a single function
+            * DataFrame : when DataFrame.agg is called with several functions
+
+        See Also
+        --------
+        Series.apply : Invoke function on a Series.
+        Series.transform : Transform function producing a Series with like indexes.
+
+        Notes
+        -----
+        The aggregation operations are always performed over an axis, either the
+        index (default) or the column axis. This behavior is different from
+        `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+        `var`), where the default is to compute the aggregation of the flattened
+        array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+        ``numpy.mean(arr_2d, axis=0)``.
+
+        `agg` is an alias for `aggregate`. Use the alias.
+
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+        for more details.
+
+        A passed user-defined-function will be passed a Series for evaluation.
+
+        If ``func`` defines an index relabeling, ``axis`` must be ``0`` or ``index``.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4])
+        >>> s
+        0    1
+        1    2
+        2    3
+        3    4
+        dtype: int64
+
+        >>> s.agg("min")
+        1
+
+        >>> s.agg(["min", "max"])
+        min   1
+        max   4
+        dtype: int64
+        """
+
         # Validate the axis parameter
         self._get_axis_number(axis)
 
@@ -4536,14 +4645,151 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     agg = aggregate
 
-    @doc(
-        _shared_docs["transform"],
-        klass=_shared_doc_kwargs["klass"],
-        axis=_shared_doc_kwargs["axis"],
-    )
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> DataFrame | Series:
+        """
+        Call ``func`` on self producing a Series with the same axis shape as self.
+
+        Parameters
+        ----------
+        func : function, str, list-like or dict-like
+            Function to use for transforming the data. If a function, must either
+            work when passed a Series or when passed to Series.apply. If func
+            is both list-like and dict-like, dict-like behavior takes precedence.
+
+            Accepted combinations are:
+
+            - function
+            - string function name
+            - list-like of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
+            - dict-like of axis labels -> functions, function names or list-like of such
+
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
+
+        Returns
+        -------
+        Series
+            A Series that must have the same length as self.
+
+        Raises
+        ------
+        ValueError : If the returned Series has a different length than self.
+
+        See Also
+        --------
+        Series.agg : Only perform aggregating type operations.
+        Series.apply : Invoke function on a Series.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+        for more details.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({{"A": range(3), "B": range(1, 4)}})
+        >>> df
+        A  B
+        0  0  1
+        1  1  2
+        2  2  3
+        >>> df.transform(lambda x: x + 1)
+        A  B
+        0  1  2
+        1  2  3
+        2  3  4
+
+        Even though the resulting Series must have the same length as the
+        input Series, it is possible to provide several input functions:
+
+        >>> s = pd.Series(range(3))
+        >>> s
+        0    0
+        1    1
+        2    2
+        dtype: int64
+        >>> s.transform([np.sqrt, np.exp])
+            sqrt        exp
+        0  0.000000   1.000000
+        1  1.000000   2.718282
+        2  1.414214   7.389056
+
+        You can call transform on a GroupBy object:
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "Date": [
+        ...                 "2015-05-08",
+        ...                 "2015-05-07",
+        ...                 "2015-05-06",
+        ...                 "2015-05-05",
+        ...                 "2015-05-08",
+        ...                 "2015-05-07",
+        ...                 "2015-05-06",
+        ...                 "2015-05-05",
+        ...             ],
+        ...             "Data": [5, 8, 6, 1, 50, 100, 60, 120],
+        ...         }
+        ...     }
+        ... )
+        >>> df
+                Date  Data
+        0  2015-05-08     5
+        1  2015-05-07     8
+        2  2015-05-06     6
+        3  2015-05-05     1
+        4  2015-05-08    50
+        5  2015-05-07   100
+        6  2015-05-06    60
+        7  2015-05-05   120
+        >>> df.groupby("Date")["Data"].transform("sum")
+        0     55
+        1    108
+        2     66
+        3    121
+        4     55
+        5    108
+        6     66
+        7    121
+        Name: Data, dtype: int64
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "c": [1, 1, 1, 2, 2, 2, 2],
+        ...             "type": ["m", "n", "o", "m", "m", "n", "n"],
+        ...         }
+        ...     }
+        ... )
+        >>> df
+        c type
+        0  1    m
+        1  1    n
+        2  1    o
+        3  2    m
+        4  2    m
+        5  2    n
+        6  2    n
+        >>> df["size"] = df.groupby("c")["type"].transform(len)
+        >>> df
+        c type size
+        0  1    m    3
+        1  1    n    3
+        2  1    o    3
+        3  2    m    4
+        4  2    m    4
+        5  2    n    4
+        6  2    n    4
+        """
         # Validate axis argument
         self._get_axis_number(axis)
         ser = self.copy(deep=False)
@@ -5515,12 +5761,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             for condition, replacement in caselist
         ]
         default = self.copy(deep=False)
-        conditions, replacements = zip(*caselist)
+        conditions, replacements = zip(*caselist, strict=True)
         common_dtypes = [infer_dtype_from(arg)[0] for arg in [*replacements, default]]
         if len(set(common_dtypes)) > 1:
             common_dtype = find_common_type(common_dtypes)
             updated_replacements = []
-            for condition, replacement in zip(conditions, replacements):
+            for condition, replacement in zip(conditions, replacements, strict=True):
                 if is_scalar(replacement):
                     replacement = construct_1d_arraylike_from_scalar(
                         value=replacement, length=len(condition), dtype=common_dtype
@@ -5535,7 +5781,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         counter = range(len(conditions) - 1, -1, -1)
         for position, condition, replacement in zip(
-            counter, reversed(conditions), reversed(replacements)
+            counter, reversed(conditions), reversed(replacements), strict=True
         ):
             try:
                 default = default.mask(
@@ -6051,6 +6297,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             result = self._binop(other, op, level=level, fill_value=fill_value)
             result._name = res_name
             return result
+        elif isinstance(other, ABCDataFrame):
+            # GH#46179
+            raise TypeError(
+                f"Series.{op.__name__.strip('_')} does not support a DataFrame "
+                f"`other`. Use df.{op.__name__.strip('_')}(ser) instead."
+            )
         else:
             if fill_value is not None:
                 if isna(other):
@@ -6074,8 +6326,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
-            The second operand in this operation.
+        other : object
+            When a Series is provided, will align on indexes. For all other types,
+            will behave the same as ``==`` but with possibly different results due
+            to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -6143,8 +6397,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
-            The second operand in this operation.
+        other : object
+            When a Series is provided, will align on indexes. For all other types,
+            will behave the same as ``==`` but with possibly different results due
+            to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -6215,8 +6471,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        other : Series or scalar value
-            The second operand in this operation.
+        other : object
+            When a Series is provided, will align on indexes. For all other types,
+            will behave the same as ``==`` but with possibly different results due
+            to the other arguments.
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -6685,7 +6943,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="all")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="all")
     @Appender(make_doc("all", ndim=1))
     def all(
         self,
@@ -6705,7 +6963,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             filter_type="bool",
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="min")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="min")
     def min(
         self,
         axis: Axis | None = 0,
@@ -6776,7 +7034,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="max")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="max")
     def max(
         self,
         axis: Axis | None = 0,
@@ -6847,7 +7105,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="sum")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="sum")
     def sum(
         self,
         axis: Axis | None = None,
@@ -6948,7 +7206,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="prod")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="prod")
     @doc(make_doc("prod", ndim=1))
     def prod(
         self,
@@ -6967,7 +7225,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="mean")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="mean")
     def mean(
         self,
         axis: Axis | None = 0,
@@ -7021,7 +7279,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="median")
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self"], name="median"
+    )
     def median(
         self,
         axis: Axis | None = 0,
@@ -7102,7 +7362,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="sem")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="sem")
     @doc(make_doc("sem", ndim=1))
     def sem(
         self,
@@ -7121,7 +7381,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="var")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="var")
     def var(
         self,
         axis: Axis | None = None,
@@ -7208,7 +7468,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="std")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="std")
     @doc(make_doc("std", ndim=1))
     def std(
         self,
@@ -7227,7 +7487,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             **kwargs,
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="skew")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="skew")
     @doc(make_doc("skew", ndim=1))
     def skew(
         self,
@@ -7240,7 +7500,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self, axis=axis, skipna=skipna, numeric_only=numeric_only, **kwargs
         )
 
-    @deprecate_nonkeyword_arguments(version="4.0", allowed_args=["self"], name="kurt")
+    @deprecate_nonkeyword_arguments(Pandas4Warning, allowed_args=["self"], name="kurt")
     def kurt(
         self,
         axis: Axis | None = 0,

@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timezones import maybe_get_tz
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -193,7 +194,7 @@ class TestSeriesDatetimeValues:
             tm.assert_index_equal(result.index, ser.index)
 
             msg = "The behavior of TimedeltaProperties.to_pytimedelta is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg):
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
                 result = ser.dt.to_pytimedelta()
             assert isinstance(result, np.ndarray)
             assert result.dtype == object
@@ -732,9 +733,9 @@ class TestSeriesDatetimeValues:
         "input_series, expected_output",
         [
             [["2020-01-01"], [[2020, 1, 3]]],
-            [[pd.NaT], [[np.nan, np.nan, np.nan]]],
+            [[pd.NaT], [[None, None, None]]],
             [["2019-12-31", "2019-12-29"], [[2020, 1, 2], [2019, 52, 7]]],
-            [["2010-01-01", pd.NaT], [[2009, 53, 5], [np.nan, np.nan, np.nan]]],
+            [["2010-01-01", pd.NaT], [[2009, 53, 5], [None, None, None]]],
             # see GH#36032
             [["2016-01-08", "2016-01-04"], [[2016, 1, 5], [2016, 1, 1]]],
             [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],

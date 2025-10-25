@@ -11,6 +11,7 @@ from typing import (
     Any,
     Literal,
     NoReturn,
+    Self,
     cast,
     final,
 )
@@ -49,6 +50,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     SparseDtype,
@@ -99,7 +101,6 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeObj,
         QuantileInterpolation,
-        Self,
         Shape,
         npt,
     )
@@ -384,7 +385,9 @@ class BaseBlockManager(PandasObject):
         self_axes, other_axes = self.axes, other.axes
         if len(self_axes) != len(other_axes):
             return False
-        if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
+        if not all(
+            ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes, strict=True)
+        ):
             return False
 
         return self._equal_values(other)
@@ -571,8 +574,27 @@ class BaseBlockManager(PandasObject):
                     self._iset_split_block(  # type: ignore[attr-defined]
                         0, blk_loc, values
                     )
-                    # first block equals values
-                    self.blocks[0].setitem((indexer[0], np.arange(len(blk_loc))), value)
+
+                    indexer = list(indexer)
+                    # first block equals values we are setting to -> set to all columns
+                    if lib.is_integer(indexer[1]):
+                        col_indexer = 0
+                    elif len(blk_loc) > 1:
+                        col_indexer = slice(None)  # type: ignore[assignment]
+                    else:
+                        col_indexer = np.arange(len(blk_loc))  # type: ignore[assignment]
+                    indexer[1] = col_indexer
+
+                    row_indexer = indexer[0]
+                    if isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
+                        # numpy cannot handle a 2d indexer in combo with a slice
+                        row_indexer = np.squeeze(row_indexer, axis=1)
+                    if isinstance(row_indexer, np.ndarray) and len(row_indexer) == 0:
+                        # numpy does not like empty indexer combined with slice
+                        # and we are setting nothing anyway
+                        return self
+                    indexer[0] = row_indexer
+                    self.blocks[0].setitem(tuple(indexer), value)
                     return self
             # No need to split if we either set all columns or on a single block
             # manager
@@ -969,7 +991,7 @@ class BaseBlockManager(PandasObject):
                     elif only_slice:
                         # GH#33597 slice instead of take, so we get
                         #  views instead of copies
-                        for i, ml in zip(taker, mgr_locs):
+                        for i, ml in zip(taker, mgr_locs, strict=True):
                             slc = slice(i, i + 1)
                             bp = BlockPlacement(ml)
                             nb = blk.getitem_block_columns(slc, new_mgr_locs=bp)
@@ -1138,7 +1160,24 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
-                result[rl] = blk.iget((i, loc))
+                item = blk.iget((i, loc))
+                if (
+                    result.dtype.kind in "iub"
+                    and lib.is_float(item)
+                    and isna(item)
+                    and isinstance(blk.dtype, CategoricalDtype)
+                ):
+                    # GH#58954 caused bc interleaved_dtype is wrong for Categorical
+                    # TODO(GH#38240) this will be unnecessary
+                    # Note that doing this in a try/except would work for the
+                    #  integer case, but not for bool, which will cast the NaN
+                    #  entry to True.
+                    if result.dtype.kind == "b":
+                        new_dtype = object
+                    else:
+                        new_dtype = np.float64
+                    result = result.astype(new_dtype)
+                result[rl] = item
 
         if isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
@@ -2374,12 +2413,12 @@ def _tuples_to_blocks_no_consolidate(tuples, refs) -> list[Block]:
         new_block_2d(
             ensure_block_shape(arr, ndim=2), placement=BlockPlacement(i), refs=ref
         )
-        for ((i, arr), ref) in zip(tuples, refs)
+        for ((i, arr), ref) in zip(tuples, refs, strict=True)
     ]
 
 
 def _stack_arrays(tuples, dtype: np.dtype):
-    placement, arrays = zip(*tuples)
+    placement, arrays = zip(*tuples, strict=True)
 
     first = arrays[0]
     shape = (len(arrays),) + first.shape

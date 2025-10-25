@@ -17,6 +17,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -392,7 +393,7 @@ def concat(
             "version. Copy-on-Write is active in pandas since 3.0 which utilizes "
             "a lazy copy mechanism that defers copies until necessary. Use "
             ".copy() to make an eager copy if necessary.",
-            DeprecationWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
     if join == "outer":

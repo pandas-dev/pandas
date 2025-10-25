@@ -78,6 +78,9 @@ from pandas._libs.tslibs.np_datetime import (
 )
 
 from pandas._libs.tslibs.offsets cimport is_tick_object
+
+from pandas._libs.tslibs.offsets import Day
+
 from pandas._libs.tslibs.util cimport (
     is_array,
     is_float_object,
@@ -721,11 +724,14 @@ cpdef inline str parse_timedelta_unit(str unit):
     elif unit == "M":
         return unit
     elif unit in c_DEPR_UNITS:
+        from pandas.errors import Pandas4Warning
+
+        # https://github.com/pandas-dev/pandas/pull/59240
         warnings.warn(
             f"\'{unit}\' is deprecated and will be removed in a "
             f"future version. Please use \'{c_DEPR_UNITS.get(unit)}\' "
             f"instead of \'{unit}\'.",
-            FutureWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
         unit = c_DEPR_UNITS[unit]
@@ -2062,6 +2068,9 @@ class Timedelta(_Timedelta):
 
         disallow_ambiguous_unit(unit)
 
+        cdef:
+            int64_t new_value
+
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed
         if isinstance(value, _Timedelta):
@@ -2576,5 +2585,9 @@ cpdef int64_t get_unit_for_round(freq, NPY_DATETIMEUNIT creso) except? -1:
     from pandas._libs.tslibs.offsets import to_offset
 
     freq = to_offset(freq)
-    freq.nanos  # raises on non-fixed freq
+    if isinstance(freq, Day):
+        # In the "round" context, Day unambiguously means 24h, not calendar-day
+        freq = Timedelta(days=freq.n)
+    else:
+        freq.nanos  # raises on non-fixed freq
     return delta_to_nanoseconds(freq, creso)

@@ -73,4 +73,4 @@ Bug fixes
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v2.3.0..v2.3.1|HEAD
+.. contributors:: v2.3.0..v2.3.1

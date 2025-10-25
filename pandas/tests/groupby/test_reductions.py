@@ -186,9 +186,10 @@ def test_masked_kleene_logic(all_boolean_reductions, skipna, data):
 )
 def test_masked_mixed_types(dtype1, dtype2, exp_col1, exp_col2):
     # GH#37506
-    data = [1.0, np.nan]
+    data1 = [1.0, np.nan] if dtype1.startswith("f") else [1.0, pd.NA]
+    data2 = [1.0, np.nan] if dtype2.startswith("f") else [1.0, pd.NA]
     df = DataFrame(
-        {"col1": pd.array(data, dtype=dtype1), "col2": pd.array(data, dtype=dtype2)}
+        {"col1": pd.array(data1, dtype=dtype1), "col2": pd.array(data2, dtype=dtype2)}
     )
     result = df.groupby([1, 1]).agg("all", skipna=False)
 
@@ -272,7 +273,7 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
     max_value = np.finfo(float_numpy_dtype).max
     df = DataFrame(
         {
-            "a": Series(np.repeat(range(1, 6), repeats=2), dtype="intp"),
+            "a": Series(np.repeat(range(1, 5), repeats=2), dtype="intp"),
             "b": Series(
                 [
                     np.nan,
@@ -283,8 +284,6 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
                     np.nan,
                     max_value,
                     np.nan,
-                    np.nan,
-                    np.nan,
                 ],
                 dtype=float_numpy_dtype,
             ),
@@ -293,13 +292,13 @@ def test_idxmin_idxmax_extremes_skipna(skipna, how, float_numpy_dtype):
     gb = df.groupby("a")
 
     if not skipna:
-        msg = f"DataFrameGroupBy.{how} with skipna=False"
+        msg = f"{how} with skipna=False"
         with pytest.raises(ValueError, match=msg):
             getattr(gb, how)(skipna=skipna)
         return
     result = getattr(gb, how)(skipna=skipna)
     expected = DataFrame(
-        {"b": [1, 3, 4, 6, np.nan]}, index=pd.Index(range(1, 6), name="a", dtype="intp")
+        {"b": [1, 3, 4, 6]}, index=pd.Index(range(1, 5), name="a", dtype="intp")
     )
     tm.assert_frame_equal(result, expected)
 
@@ -381,8 +380,10 @@ def test_first_last_skipna(any_real_nullable_dtype, sort, skipna, how):
     df = DataFrame(
         {
             "a": [2, 1, 1, 2, 3, 3],
-            "b": [na_value, 3.0, na_value, 4.0, np.nan, np.nan],
-            "c": [na_value, 3.0, na_value, 4.0, np.nan, np.nan],
+            # TODO: test that has mixed na_value and NaN either working for
+            #  float or raising for int?
+            "b": [na_value, 3.0, na_value, 4.0, na_value, na_value],
+            "c": [na_value, 3.0, na_value, 4.0, na_value, na_value],
         },
         dtype=any_real_nullable_dtype,
     )
@@ -427,8 +428,8 @@ def test_mean_on_timedelta():
     "values, dtype, result_dtype",
     [
         ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "float64", "float64"),
-        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "Float64", "Float64"),
-        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "Int64", "Float64"),
+        ([0, 1, pd.NA, 3, 4, 5, 6, 7, 8, 9], "Float64", "Float64"),
+        ([0, 1, pd.NA, 3, 4, 5, 6, 7, 8, 9], "Int64", "Float64"),
         ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "timedelta64[ns]", "timedelta64[ns]"),
         (
             pd.to_datetime(
@@ -473,8 +474,8 @@ def test_mean_skipna(values, dtype, result_dtype, skipna):
     "values, dtype",
     [
         ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "float64"),
-        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "Float64"),
-        ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "Int64"),
+        ([0, 1, pd.NA, 3, 4, 5, 6, 7, 8, 9], "Float64"),
+        ([0, 1, pd.NA, 3, 4, 5, 6, 7, 8, 9], "Int64"),
         ([0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9], "timedelta64[ns]"),
     ],
 )
@@ -519,32 +520,32 @@ def test_sum_skipna_object(skipna):
     "func, values, dtype, result_dtype",
     [
         ("prod", [0, 1, 3, np.nan, 4, 5, 6, 7, -8, 9], "float64", "float64"),
-        ("prod", [0, -1, 3, 4, 5, np.nan, 6, 7, 8, 9], "Float64", "Float64"),
-        ("prod", [0, 1, 3, -4, 5, 6, 7, -8, np.nan, 9], "Int64", "Int64"),
+        ("prod", [0, -1, 3, 4, 5, pd.NA, 6, 7, 8, 9], "Float64", "Float64"),
+        ("prod", [0, 1, 3, -4, 5, 6, 7, -8, pd.NA, 9], "Int64", "Int64"),
         ("prod", [np.nan] * 10, "float64", "float64"),
-        ("prod", [np.nan] * 10, "Float64", "Float64"),
-        ("prod", [np.nan] * 10, "Int64", "Int64"),
+        ("prod", [pd.NA] * 10, "Float64", "Float64"),
+        ("prod", [pd.NA] * 10, "Int64", "Int64"),
         ("var", [0, -1, 3, 4, np.nan, 5, 6, 7, 8, 9], "float64", "float64"),
-        ("var", [0, 1, 3, -4, 5, 6, 7, -8, 9, np.nan], "Float64", "Float64"),
-        ("var", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "Int64", "Float64"),
+        ("var", [0, 1, 3, -4, 5, 6, 7, -8, 9, pd.NA], "Float64", "Float64"),
+        ("var", [0, -1, 3, 4, 5, -6, 7, pd.NA, 8, 9], "Int64", "Float64"),
         ("var", [np.nan] * 10, "float64", "float64"),
-        ("var", [np.nan] * 10, "Float64", "Float64"),
-        ("var", [np.nan] * 10, "Int64", "Float64"),
+        ("var", [pd.NA] * 10, "Float64", "Float64"),
+        ("var", [pd.NA] * 10, "Int64", "Float64"),
         ("std", [0, 1, 3, -4, 5, 6, 7, -8, np.nan, 9], "float64", "float64"),
-        ("std", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "Float64", "Float64"),
-        ("std", [0, 1, 3, -4, 5, 6, 7, -8, 9, np.nan], "Int64", "Float64"),
+        ("std", [0, -1, 3, 4, 5, -6, 7, pd.NA, 8, 9], "Float64", "Float64"),
+        ("std", [0, 1, 3, -4, 5, 6, 7, -8, 9, pd.NA], "Int64", "Float64"),
         ("std", [np.nan] * 10, "float64", "float64"),
-        ("std", [np.nan] * 10, "Float64", "Float64"),
-        ("std", [np.nan] * 10, "Int64", "Float64"),
+        ("std", [pd.NA] * 10, "Float64", "Float64"),
+        ("std", [pd.NA] * 10, "Int64", "Float64"),
         ("sem", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "float64", "float64"),
-        ("sem", [0, 1, 3, -4, 5, 6, 7, -8, np.nan, 9], "Float64", "Float64"),
-        ("sem", [0, -1, 3, 4, 5, -6, 7, 8, 9, np.nan], "Int64", "Float64"),
+        ("sem", [0, 1, 3, -4, 5, 6, 7, -8, pd.NA, 9], "Float64", "Float64"),
+        ("sem", [0, -1, 3, 4, 5, -6, 7, 8, 9, pd.NA], "Int64", "Float64"),
         ("sem", [np.nan] * 10, "float64", "float64"),
-        ("sem", [np.nan] * 10, "Float64", "Float64"),
-        ("sem", [np.nan] * 10, "Int64", "Float64"),
+        ("sem", [pd.NA] * 10, "Float64", "Float64"),
+        ("sem", [pd.NA] * 10, "Int64", "Float64"),
         ("min", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "float64", "float64"),
-        ("min", [0, 1, 3, -4, 5, 6, 7, -8, np.nan, 9], "Float64", "Float64"),
-        ("min", [0, -1, 3, 4, 5, -6, 7, 8, 9, np.nan], "Int64", "Int64"),
+        ("min", [0, 1, 3, -4, 5, 6, 7, -8, pd.NA, 9], "Float64", "Float64"),
+        ("min", [0, -1, 3, 4, 5, -6, 7, 8, 9, pd.NA], "Int64", "Int64"),
         (
             "min",
             [0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9],
@@ -571,11 +572,11 @@ def test_sum_skipna_object(skipna):
             "datetime64[ns]",
         ),
         ("min", [np.nan] * 10, "float64", "float64"),
-        ("min", [np.nan] * 10, "Float64", "Float64"),
-        ("min", [np.nan] * 10, "Int64", "Int64"),
+        ("min", [pd.NA] * 10, "Float64", "Float64"),
+        ("min", [pd.NA] * 10, "Int64", "Int64"),
         ("max", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "float64", "float64"),
-        ("max", [0, 1, 3, -4, 5, 6, 7, -8, np.nan, 9], "Float64", "Float64"),
-        ("max", [0, -1, 3, 4, 5, -6, 7, 8, 9, np.nan], "Int64", "Int64"),
+        ("max", [0, 1, 3, -4, 5, 6, 7, -8, pd.NA, 9], "Float64", "Float64"),
+        ("max", [0, -1, 3, 4, 5, -6, 7, 8, 9, pd.NA], "Int64", "Int64"),
         (
             "max",
             [0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9],
@@ -602,11 +603,11 @@ def test_sum_skipna_object(skipna):
             "datetime64[ns]",
         ),
         ("max", [np.nan] * 10, "float64", "float64"),
-        ("max", [np.nan] * 10, "Float64", "Float64"),
-        ("max", [np.nan] * 10, "Int64", "Int64"),
+        ("max", [pd.NA] * 10, "Float64", "Float64"),
+        ("max", [pd.NA] * 10, "Int64", "Int64"),
         ("median", [0, -1, 3, 4, 5, -6, 7, np.nan, 8, 9], "float64", "float64"),
-        ("median", [0, 1, 3, -4, 5, 6, 7, -8, np.nan, 9], "Float64", "Float64"),
-        ("median", [0, -1, 3, 4, 5, -6, 7, 8, 9, np.nan], "Int64", "Float64"),
+        ("median", [0, 1, 3, -4, 5, 6, 7, -8, pd.NA, 9], "Float64", "Float64"),
+        ("median", [0, -1, 3, 4, 5, -6, 7, 8, 9, pd.NA], "Int64", "Float64"),
         (
             "median",
             [0, 1, np.nan, 3, 4, 5, 6, 7, 8, 9],
@@ -633,8 +634,8 @@ def test_sum_skipna_object(skipna):
             "datetime64[ns]",
         ),
         ("median", [np.nan] * 10, "float64", "float64"),
-        ("median", [np.nan] * 10, "Float64", "Float64"),
-        ("median", [np.nan] * 10, "Int64", "Float64"),
+        ("median", [pd.NA] * 10, "Float64", "Float64"),
+        ("median", [pd.NA] * 10, "Int64", "Float64"),
     ],
 )
 def test_multifunc_skipna(func, values, dtype, result_dtype, skipna):
@@ -1003,8 +1004,6 @@ def test_string_dtype_all_na(
         else:
             expected_dtype = "int64"
         expected_value = 1 if reduction_func == "size" else 0
-    elif reduction_func in ["idxmin", "idxmax"]:
-        expected_dtype, expected_value = "float64", np.nan
     elif not skipna or min_count > 0:
         expected_value = pd.NA
     elif reduction_func == "sum":
@@ -1032,8 +1031,11 @@ def test_string_dtype_all_na(
         with pytest.raises(TypeError, match=msg):
             method(*args, **kwargs)
         return
-    elif reduction_func in ["idxmin", "idxmax"] and not skipna:
-        msg = f"{reduction_func} with skipna=False encountered an NA value."
+    elif reduction_func in ["idxmin", "idxmax"]:
+        if skipna:
+            msg = f"{reduction_func} with skipna=True encountered all NA values"
+        else:
+            msg = f"{reduction_func} with skipna=False encountered an NA value."
         with pytest.raises(ValueError, match=msg):
             method(*args, **kwargs)
         return

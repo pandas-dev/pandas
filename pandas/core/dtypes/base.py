@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Self,
     TypeVar,
     cast,
     overload,
@@ -18,6 +19,7 @@ from pandas._libs import missing as libmissing
 from pandas._libs.hashtable import object_hash
 from pandas._libs.properties import cache_readonly
 from pandas.errors import AbstractMethodError
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -28,7 +30,6 @@ from pandas.core.dtypes.generic import (
 if TYPE_CHECKING:
     from pandas._typing import (
         DtypeObj,
-        Self,
         Shape,
         npt,
         type_t,
@@ -111,6 +112,8 @@ class ExtensionDtype:
     provided for registering virtual subclasses.
     """
 
+    __module__ = "pandas.api.extensions"
+
     _metadata: tuple[str, ...] = ()
 
     def __str__(self) -> str:
@@ -146,7 +149,7 @@ class ExtensionDtype:
         return False
 
     def __hash__(self) -> int:
-        # for python>=3.10, different nan objects have different hashes
+        # different nan objects have different hashes
         # we need to avoid that and thus use hash function with old behavior
         return object_hash(tuple(getattr(self, attr) for attr in self._metadata))
 
@@ -211,8 +214,7 @@ class ExtensionDtype:
         """
         return None
 
-    @classmethod
-    def construct_array_type(cls) -> type_t[ExtensionArray]:
+    def construct_array_type(self) -> type_t[ExtensionArray]:
         """
         Return the array type associated with this dtype.
 
@@ -220,7 +222,7 @@ class ExtensionDtype:
         -------
         type
         """
-        raise AbstractMethodError(cls)
+        raise AbstractMethodError(self)
 
     def empty(self, shape: Shape) -> ExtensionArray:
         """
@@ -479,6 +481,7 @@ class StorageExtensionDtype(ExtensionDtype):
         return libmissing.NA
 
 
+@set_module("pandas.api.extensions")
 def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]:
     """
     Register an ExtensionType with pandas as class decorator.

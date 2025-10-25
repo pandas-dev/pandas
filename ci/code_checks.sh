@@ -73,9 +73,12 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
         -i "pandas.errors.IncompatibleFrequency SA01,SS06,EX01" \
-        -i "pandas.core.groupby.DataFrameGroupBy.plot PR02" \
-        -i "pandas.core.groupby.SeriesGroupBy.plot PR02" \
-        -i "pandas.core.resample.Resampler.quantile PR01,PR07" \
+        -i "pandas.errors.InvalidVersion GL08" \
+        -i "pandas.api.extensions.ExtensionArray.value_counts EX01,RT03,SA01" \
+        -i "pandas.api.typing.DataFrameGroupBy.plot PR02" \
+        -i "pandas.api.typing.SeriesGroupBy.plot PR02" \
+        -i "pandas.api.typing.Resampler.quantile PR01,PR07" \
+        -i "pandas.arrays.NumpyExtensionArray GL08" \
         -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BHalfYearBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BHalfYearBegin.n GL08" \
@@ -163,6 +166,7 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.DateOffset.is_on_offset GL08" \
         -i "pandas.tseries.offsets.DateOffset.n GL08" \
         -i "pandas.tseries.offsets.DateOffset.normalize GL08" \
+        -i "pandas.tseries.offsets.Day.freqstr SA01" \
         -i "pandas.tseries.offsets.Day.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Day.n GL08" \
         -i "pandas.tseries.offsets.Day.normalize GL08" \
