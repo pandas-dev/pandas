@@ -204,7 +204,7 @@ def union_indexes(indexes, sort: bool | None | lib.NoDefault = True) -> Index:
     if len(indexes) == 1:
         result = indexes[0]
         if isinstance(result, list):
-            if not sort:
+            if not sort or sort is lib.no_default:
                 result = Index(result)
             else:
                 result = Index(sorted(result))

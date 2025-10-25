@@ -434,6 +434,8 @@ def concat(
                     "silence this message."
                 )
                 warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+        else:
+            sort = False
     else:
         if not is_bool(sort):
             raise ValueError(
