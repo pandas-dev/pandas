@@ -161,6 +161,7 @@ Other enhancements
   :func:`pandas.concat`.
 - :class:`pandas.api.typing.FrozenList` is available for typing the outputs of :attr:`MultiIndex.names`, :attr:`MultiIndex.codes` and :attr:`MultiIndex.levels` (:issue:`58237`)
 - :class:`pandas.api.typing.SASReader` is available for typing the output of :func:`read_sas` (:issue:`55689`)
+- Added functionality to support saving json without escaping forward slashes by adding to :meth:`DataFrame.to_json` (:issue:`61442`)
 - Added :meth:`.Styler.to_typst` to write Styler objects to file, buffer or string in Typst format (:issue:`57617`)
 - Added missing :meth:`pandas.Series.info` to API reference (:issue:`60926`)
 - :class:`pandas.api.typing.NoDefault` is available for typing ``no_default``
@@ -228,7 +229,6 @@ Other enhancements
 - Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
 - Switched wheel upload to **PyPI Trusted Publishing** (OIDC) for release-tag pushes in ``wheels.yml``. (:issue:`61718`)
-- Added functionality to support saving json without escaping forward slashes by adding to :meth:`DataFrame.to_json` (:issue:`61442`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
