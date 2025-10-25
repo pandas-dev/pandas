@@ -34,6 +34,7 @@ from typing import (
     Self,
     cast,
     overload,
+    Optional,
 )
 import warnings
 
@@ -268,6 +269,8 @@ if TYPE_CHECKING:
     from pandas.core.internals.managers import SingleBlockManager
 
     from pandas.io.formats.style import Styler
+
+    from pandas.core.frame_versioning import DataFrameSnapshotStore
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -14353,6 +14356,93 @@ class DataFrame(NDFrame, OpsMixin):
                ['monkey', nan, None]], dtype=object)
         """
         return self._mgr.as_array()
+    
+    def snapshot(self, name: Optional[str] = None) -> str:
+        """
+        Create a named snapshot of this DataFrame and return the snapshot id.
+
+        Parameters
+        ----------
+        name : str, optional
+            Optional snapshot name. If not provided a timestamped id is returned.
+
+        Returns
+        -------
+        str
+            Snapshot id.
+        """
+        store = _ensure_snapshot_store(self)
+        return store.snapshot(self, name=name)
+
+    def restore(self, name: str, inplace: bool = False):
+        """
+        Restore a previously created snapshot.
+
+        Parameters
+        ----------
+        name : str
+            Snapshot id returned by :meth:`DataFrame.snapshot`.
+        inplace : bool, default False
+            If True, mutate this DataFrame to match the snapshot. Otherwise return
+            a restored copy.
+
+        Returns
+        -------
+        DataFrame or None
+            Restored DataFrame when ``inplace=False``, otherwise None.
+        """
+        store = getattr(self, "_version_snapshots", None)
+        if store is None:
+            raise KeyError(f"No snapshots present for this DataFrame (requested: {name})")
+        restored = store.restore(name)
+        if inplace:
+            # Replace internal state. Using _mgr replacement is more correct than __dict__ update.
+            # Many pandas internals use the attribute _mgr for BlockManager. Use it cautiously.
+            try:
+                # pandas >= 1.x use _mgr (BlockManager); adapt if different in your branch.
+                object.__setattr__(self, "_mgr", restored._mgr)
+                # also copy other key attrs
+                object.__setattr__(self, "axes", restored.axes)
+                object.__setattr__(self, "_item_cache", restored._item_cache)
+            except Exception:
+                # fallback: shallow __dict__ update (less safe)
+                self.__dict__.update(restored.__dict__)
+            return None
+        return restored
+
+    def list_snapshots(self) -> list[str]:
+        """
+        List snapshot ids for this DataFrame.
+        """
+        store = getattr(self, "_version_snapshots", None)
+        return store.list() if store is not None else []
+
+    def drop_snapshot(self, name: str) -> None:
+        """
+        Drop a snapshot by id.
+        """
+        store = getattr(self, "_version_snapshots", None)
+        if store is None:
+            raise KeyError(f"No snapshots present for this DataFrame (requested drop: {name})")
+        store.drop(name)
+
+    def clear_snapshots(self) -> None:
+        """
+        Clear all snapshots for this DataFrame.
+        """
+        store = getattr(self, "_version_snapshots", None)
+        if store is not None:
+            store.clear()
+
+    def snapshot_info(self, name: Optional[str] = None) -> dict:
+        """
+        Return metadata for all snapshots or a single snapshot.
+        """
+        store = getattr(self, "_version_snapshots", None)
+        if store is None:
+            return {"count": 0, "snapshots": []}
+        return store.info(name)
+
 
 
 def _from_nested_dict(
@@ -14390,3 +14480,12 @@ def _reindex_for_setitem(
             "incompatible index of inserted column with frame index"
         ) from err
     return reindexed_value, None
+
+def _ensure_snapshot_store(self) -> DataFrameSnapshotStore:
+    # attach a per-instance store to DataFrame
+    store = getattr(self, "_version_snapshots", None)
+    if store is None:
+        store = DataFrameSnapshotStore()
+        # attach to object
+        object.__setattr__(self, "_version_snapshots", store)
+    return store
