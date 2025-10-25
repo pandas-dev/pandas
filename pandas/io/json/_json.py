@@ -137,6 +137,7 @@ def to_json(
     escape_forward_slashes: bool | True = ...,
 ) -> str: ...
 
+
 def to_json(
     path_or_buf: FilePath | WriteBuffer[str] | WriteBuffer[bytes] | None,
     obj: NDFrame,
