@@ -2633,6 +2633,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             indent=indent,
             storage_options=storage_options,
             mode=mode,
+            escape_forward_slashes=escape_forward_slashes,
         )
 
     @final
