@@ -1150,6 +1150,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupBy.groups` would fail when the groups were :class:`Categorical` with an NA value (:issue:`61356`)
 - Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupby.groups` that would not respect groupby argument ``dropna`` (:issue:`55919`)
 - Bug in :meth:`.DataFrameGroupBy.median` where nat values gave an incorrect result. (:issue:`57926`)
+- Bug in :meth:`.DataFrameGroupBy` reductions where boolean-valued inputs were mishandled in the Cython aggregation path (``_cython_agg_general``); adding an ``is_bool`` check fixes incorrect results for some bool inputs. (:issue:`62778`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` when ``interpolation="nearest"`` is inconsistent with :meth:`DataFrame.quantile` (:issue:`47942`)
 - Bug in :meth:`.Resampler.interpolate` on a :class:`DataFrame` with non-uniform sampling and/or indices not aligning with the resulting resampled index would result in wrong interpolation (:issue:`21351`)
 - Bug in :meth:`.Series.rolling` when used with a :class:`.BaseIndexer` subclass and computing min/max (:issue:`46726`)
