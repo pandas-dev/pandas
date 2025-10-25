@@ -19,8 +19,6 @@ from typing import (
 
 import numpy as np
 
-import re
-
 from pandas._config import option_context
 
 from pandas._libs import lib
