@@ -226,12 +226,16 @@ class StylerRenderer:
         """
         Render a Styler in latex format
         """
+        centering = kwargs.pop("centering", False)
         d = self._render(sparse_index, sparse_columns, None, None)
         self._translate_latex(d, clines=clines)
-        self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
+        self.template_latex.globals["parse_wrap"] = partial(
+            _parse_latex_table_wrapping, centering=centering
+        )
         self.template_latex.globals["parse_table"] = _parse_latex_table_styles
         self.template_latex.globals["parse_cell"] = _parse_latex_cell_styles
         self.template_latex.globals["parse_header"] = _parse_latex_header_span
+        d["centering"] = centering
         d.update(kwargs)
         return self.template_latex.render(**d)
 
@@ -2329,7 +2333,9 @@ class Tooltips:
         return d
 
 
-def _parse_latex_table_wrapping(table_styles: CSSStyles, caption: str | None) -> bool:
+def _parse_latex_table_wrapping(
+    table_styles: CSSStyles, caption: str | None, centering: bool = False
+) -> bool:
     """
     Indicate whether LaTeX {tabular} should be wrapped with a {table} environment.
 
@@ -2340,9 +2346,13 @@ def _parse_latex_table_wrapping(table_styles: CSSStyles, caption: str | None) ->
     IGNORED_WRAPPERS = ["toprule", "midrule", "bottomrule", "column_format"]
     # ignored selectors are included with {tabular} so do not need wrapping
     return (
-        table_styles is not None
-        and any(d["selector"] not in IGNORED_WRAPPERS for d in table_styles)
-    ) or caption is not None
+        (
+            table_styles is not None
+            and any(d["selector"] not in IGNORED_WRAPPERS for d in table_styles)
+        )
+        or caption is not None
+        or centering
+    )
 
 
 def _parse_latex_table_styles(table_styles: CSSStyles, selector: str) -> str | None:

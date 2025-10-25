@@ -9,6 +9,7 @@
 {% if position_float is not none%}
 \{{position_float}}
 {% endif %}
+{%- if centering %}\centering{% endif -%}
 {% if caption and caption is string %}
 \caption{% raw %}{{% endraw %}{{caption}}{% raw %}}{% endraw %}
 

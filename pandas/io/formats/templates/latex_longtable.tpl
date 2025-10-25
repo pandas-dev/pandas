@@ -29,6 +29,7 @@
 \label{{label}} \\
 {% endif %}
 {% endif %}
+{%- if centering %}\centering{% endif -%}
 {% set toprule = parse_table(table_styles, 'toprule') %}
 {% if toprule is not none %}
 \{{toprule}}

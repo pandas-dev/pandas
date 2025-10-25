@@ -3309,6 +3309,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         caption: str | tuple[str, str] | None = ...,
         label: str | None = ...,
         position: str | None = ...,
+        centering: bool = ...,
     ) -> str: ...
 
     @overload
@@ -3336,6 +3337,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         caption: str | tuple[str, str] | None = ...,
         label: str | None = ...,
         position: str | None = ...,
+        centering: bool = ...,
     ) -> None: ...
 
     @final
@@ -3363,6 +3365,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         caption: str | tuple[str, str] | None = None,
         label: str | None = None,
         position: str | None = None,
+        centering: bool = False,
     ) -> str | None:
         r"""
         Render object to a LaTeX tabular, longtable, or nested table.
@@ -3468,6 +3471,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         position : str, optional
             The LaTeX positional argument for tables, to be placed after
             ``\begin{}`` in the output.
+
+        centering : bool, default False
+            Whether to add the ``\centering`` command to center the table
+            inside the table environment.
 
         Returns
         -------
@@ -3614,6 +3621,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if (multirow and isinstance(self.index, MultiIndex))
             else None,
             "bold_rows": bold_rows,
+            "centering": centering,
         }
 
         return self._to_latex_via_styler(

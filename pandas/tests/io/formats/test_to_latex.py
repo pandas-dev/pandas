@@ -182,6 +182,30 @@ class TestToLatex:
         )
         assert result == expected
 
+    def test_to_latex_centering(self):
+        # test for \centering command #GH ENH #62733
+        df = DataFrame({"a": [1], "b": [2]})
+
+        # test with DataFrame.to_latex (centering=True)
+        latex_centered = df.to_latex(centering=True)
+        assert r"\centering" in latex_centered
+        # test with DataFrame.to_latex (centering=False)
+        latex_default = df.to_latex(centering=False)
+        assert r"\centering" not in latex_default
+        # test with DataFrame.to_latex with longtable (centering=True)
+        latex_long_centered = df.to_latex(centering=True, longtable=True)
+        assert r"\centering" in latex_long_centered
+        # test with DataFrame.to_latex with longtable (centering=False)
+        latex_long_default = df.to_latex(centering=False, longtable=True)
+        assert r"\centering" not in latex_long_default
+        # test with Styler.to_latex (centering=True)
+        styler = df.style
+        latex_styler_centered = styler.to_latex(centering=True)
+        assert r"\centering" in latex_styler_centered
+        # test with Styler.to_latex (centering=False)
+        latex_styler_default = styler.to_latex(centering=False)
+        assert r"\centering" not in latex_styler_default
+
 
 class TestToLatexLongtable:
     def test_to_latex_empty_longtable(self):

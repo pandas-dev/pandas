@@ -637,6 +637,7 @@ class Styler(StylerRenderer):
         multicol_align: str | None = ...,
         siunitx: bool = ...,
         environment: str | None = ...,
+        centering: bool = ...,
         encoding: str | None = ...,
         convert_css: bool = ...,
     ) -> None: ...
@@ -659,6 +660,7 @@ class Styler(StylerRenderer):
         multicol_align: str | None = ...,
         siunitx: bool = ...,
         environment: str | None = ...,
+        centering: bool = ...,
         encoding: str | None = ...,
         convert_css: bool = ...,
     ) -> str: ...
@@ -680,6 +682,7 @@ class Styler(StylerRenderer):
         multicol_align: str | None = None,
         siunitx: bool = False,
         environment: str | None = None,
+        centering: bool = False,
         encoding: str | None = None,
         convert_css: bool = False,
     ) -> str | None:
@@ -778,6 +781,9 @@ class Styler(StylerRenderer):
             ``pandas.options.styler.latex.environment``, which is `None`.
 
             .. versionadded:: 1.4.0
+        centering : bool, default False
+            Whether to add the ``\centering`` command to center the table
+            inside the table environment.
         encoding : str, optional
             Character encoding setting. Defaults
             to ``pandas.options.styler.render.encoding``, which is "utf-8".
@@ -1227,6 +1233,7 @@ class Styler(StylerRenderer):
             convert_css=convert_css,
             siunitx=siunitx,
             clines=clines,
+            centering=centering,
         )
 
         encoding = (
