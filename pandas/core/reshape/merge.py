@@ -1125,7 +1125,7 @@ class _MergeOperation:
 
         left.columns = llabels
         right.columns = rlabels
-        result = concat([left, right], axis=1, sort=False)
+        result = concat([left, right], axis=1)
         return result
 
     def get_result(self) -> DataFrame:
