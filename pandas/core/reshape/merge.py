@@ -1968,7 +1968,6 @@ class _MergeOperation:
 
         def sample_duplicates(keys, limit=10):
             """Return up to 'limit' unique duplicate keys."""
-            keys = Index(keys)
             dups = keys[keys.duplicated()]
             if not len(dups):
                 return []
@@ -1977,23 +1976,25 @@ class _MergeOperation:
         # Check data integrity
         if validate in ["one_to_one", "1:1"]:
             if not left_unique and not right_unique:
-                combined_keys = list(left_keys.append(right_keys))
-                sample = sample_duplicates(combined_keys, limit=10)
+                left_sample = sample_duplicates(left_keys, limit=5)
+                right_sample = sample_duplicates(right_keys, limit=5)
+                
                 raise MergeError(
                     "Merge keys are not unique in either left "
-                    "or right dataset; not a one-to-one merge"
-                    f"Offending keys (sample): {sample}"
+                    "or right dataset; not a one-to-one merge. "
+                    f"Offending keys in left dataset (sample): {left_sample} "
+                    f"Offending keys in right dataset (sample): {right_sample} "
                 )
             if not left_unique:
                 sample = sample_duplicates(left_keys)
                 raise MergeError(
-                    "Merge keys are not unique in left dataset; not a one-to-one merge"
+                    "Merge keys are not unique in left dataset; not a one-to-one merge. "
                     f"Offending keys (sample): {sample}"
                 )
             if not right_unique:
                 sample = sample_duplicates(right_keys)
                 raise MergeError(
-                    "Merge keys are not unique in right dataset; not a one-to-one merge"
+                    "Merge keys are not unique in right dataset; not a one-to-one merge. "
                     f"Offending keys (sample): {sample}"
                 )
 
@@ -2001,7 +2002,7 @@ class _MergeOperation:
             if not left_unique:
                 sample = sample_duplicates(left_keys)
                 raise MergeError(
-                    "Merge keys are not unique in left dataset; not a one-to-many merge"
+                    "Merge keys are not unique in left dataset; not a one-to-many merge. "
                     f"Offending keys (sample): {sample}"
 
                 )
@@ -2011,7 +2012,7 @@ class _MergeOperation:
                 sample = sample_duplicates(right_keys)
                 raise MergeError(
                     "Merge keys are not unique in right dataset; "
-                    "not a many-to-one merge"
+                    "not a many-to-one merge. "
                     f"Offending keys (sample): {sample}"
                 )
 
