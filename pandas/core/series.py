@@ -5113,7 +5113,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return super().set_axis(labels, axis=axis, copy=copy)
 
     # error: Cannot determine type of 'reindex'
-    # type: ignore[has-type]
 
     def reindex(  # type: ignore[override]
         self,
@@ -5650,8 +5649,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Print a concise summary of a Series.
 
         This method prints information about a Series including
-        the index dtype"", non-NA values and memory usage.
-        "\n.. versionadded:: 1.4.0\n"\
+        the index dtype, non-NA values and memory usage.
+    
+        .. versionadded:: 1.4.0
 
         Parameters
         ----------
@@ -6110,7 +6110,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return default
 
     # error: Cannot determine type of 'isna'
-    # type: ignore[has-type]
 
     def isna(self) -> Series:
         """
@@ -6181,10 +6180,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return NDFrame.isna(self)
 
     # error: Cannot determine type of 'isna'
-    # type: ignore[has-type]
 
     def isnull(self) -> Series:
         """
+        
         Series.isnull is an alias for Series.isna.
 
         Detect missing values.
@@ -6254,7 +6253,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return super().isnull()
 
     # error: Cannot determine type of 'notna'
-    # type: ignore[has-type]
 
     def notna(self) -> Series:
         """
@@ -6325,10 +6323,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return super().notna()
 
     # error: Cannot determine type of 'notna'
-    # type: ignore[has-type]
 
     def notnull(self) -> Series:
         """
+
         Series.notnull is an alias for Series.notna.
 
         Detect existing (non-missing) values.
