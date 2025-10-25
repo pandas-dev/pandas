@@ -1172,7 +1172,9 @@ def test_rolling_decreasing_indices(method):
     increasing = getattr(df.rolling(window=5), method)()
     decreasing = getattr(df_reverse.rolling(window=5), method)()
 
-    assert np.abs(decreasing.values[::-1][:-4] - increasing.values[4:]).max() < 1e-12
+    tm.assert_almost_equal(
+        decreasing.values[::-1][:-4], increasing.values[4:], atol=1e-12
+    )
 
 
 @pytest.mark.parametrize(
@@ -1438,12 +1440,17 @@ def test_rolling_skew_kurt_numerical_stability(method):
 
 
 @pytest.mark.parametrize(
-    "method, data, values",
+    ("method", "data", "values"),
     [
         (
             "skew",
             [3000000, 1, 1, 2, 3, 4, 999],
             [np.nan] * 3 + [2.0, 0.854563, 0.0, 1.999984],
+        ),
+        (
+            "skew",
+            [1e6, -1e6, 1, 2, 3, 4, 5, 6],
+            [np.nan] * 3 + [-5.51135192e-06, -2.0, 0.0, 0.0, 0.0],
         ),
         (
             "kurt",
