@@ -101,6 +101,7 @@ cdef class NDArrayBacked:
                     self.__setstate__(state[0])
                     return
                 elif len(state) == 2:
+                    # GH#62820: Handle missing attrs dict during auto-unpickling
                     self.__setstate__((*state, {}))
                     return
                 raise NotImplementedError(state)  # pragma: no cover
