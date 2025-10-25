@@ -3,7 +3,6 @@ import pytest
 
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import PY312
-from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -902,9 +901,7 @@ def test_select_as_multiple(setup_path):
         result = store.select_as_multiple(
             ["df1", "df2"], where=["A>0", "B>0"], selector="df1"
         )
-        msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            expected = concat([df1, df2], axis=1)
+        expected = concat([df1, df2], axis=1)
         expected = expected[(expected.A > 0) & (expected.B > 0)]
         tm.assert_frame_equal(result, expected, check_freq=False)
         # FIXME: 2021-01-20 this is failing with freq None vs 4B on some builds
@@ -913,9 +910,7 @@ def test_select_as_multiple(setup_path):
         result = store.select_as_multiple(
             ["df1", "df2"], where="index>df2.index[4]", selector="df2"
         )
-        msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            expected = concat([df1, df2], axis=1)
+        expected = concat([df1, df2], axis=1)
         expected = expected[5:]
         tm.assert_frame_equal(result, expected)
 

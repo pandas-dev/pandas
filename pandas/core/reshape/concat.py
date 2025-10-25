@@ -673,7 +673,7 @@ def new_axes(
     objs: list[Series | DataFrame],
     bm_axis: AxisInt,
     intersect: bool,
-    sort: bool,
+    sort: bool | lib.NoDefault,
     keys: Iterable[Hashable] | None,
     names: list[HashableT] | None,
     axis: AxisInt,
