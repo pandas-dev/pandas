@@ -117,9 +117,6 @@ def nested_to_record(
         singleton = True
     new_ds = []
     for d in ds:
-        if not isinstance(d, dict):
-            new_ds.append({})
-            continue
         new_d = copy.deepcopy(d)
         for k, v in d.items():
             # each key gets renamed with prefix
@@ -504,6 +501,13 @@ def json_normalize(
         # GH35923 Fix pd.json_normalize to not skip the first element of a
         # generator input
         data = list(data)
+        for item in data:
+            if not isinstance(item, dict):
+                msg = (
+                    "All items in data must be of type dict, "
+                    f"found {type(item).__name__}"
+                )
+                raise TypeError(msg)
     else:
         raise NotImplementedError
 
@@ -520,7 +524,7 @@ def json_normalize(
         return DataFrame(_simple_json_normalize(data, sep=sep), index=index)
 
     if record_path is None:
-        if any(isinstance(y, dict) for y in data):
+        if any([isinstance(x, dict) for x in y.values()] for y in data):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:
