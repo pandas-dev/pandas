@@ -419,7 +419,8 @@ def concat(
             non_concat_axis = [obj.index for obj in objs]
 
         if (
-            any(not isinstance(index, DatetimeIndex) for index in non_concat_axis)
+            intersect
+            or any(not isinstance(index, DatetimeIndex) for index in non_concat_axis)
             or all(
                 id(prev) == id(curr)
                 for prev, curr in zip(non_concat_axis, non_concat_axis[1:])
