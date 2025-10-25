@@ -2296,10 +2296,8 @@ def test_to_json_escape_forward_slashes():
             "path6": Series(["//"], dtype="str")
         }
     )
-    result = df.to_json(escape_forward_slashes=False)
-    expected = """{"path1":"/escape/three/slashes", "path2":"/", 
-    "path3":"ending/", "path4":"/beginning", 
-    "path5":"/multiples//multiple", "path6":"//"}"""
+    result = df.to_json(orient="records", escape_forward_slashes=False)
+    expected = """[{"path1":"/escape/three/slashes","path2":"/","path3":"ending/","path4":"/beginning","path5":"/multiples//multiple","path6":"//"}]"""
 
     assert result == expected
 
