@@ -3124,6 +3124,6 @@ def test_merge_pyarrow_datetime_duplicates():
 
 
 def test_merge_validate_one_to_one_offending_keys():
-    df = pd.DataFrame({"a": [1, 1, 3], "b": [4, 5, 6]})
+    df = DataFrame({"a": [1, 1, 3], "b": [4, 5, 6]})
     with pytest.raises(pd.errors.MergeError, match="Offending keys"):
         df.merge(df, on="a", validate="one_to_one")
