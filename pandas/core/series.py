@@ -6187,8 +6187,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def isnull(self) -> Series:
         """
-        Series.isnull is an alias for Series.isna. 
-        
+        Series.isnull is an alias for Series.isna.
+
         Detect missing values.
 
         Return a boolean same-sized object indicating if the values are NA.
@@ -6329,8 +6329,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def notnull(self) -> Series:
         """
-        Series.notnull is an alias for Series.notna. 
-        
+        Series.notnull is an alias for Series.notna.
+
         Detect existing (non-missing) values.
 
         Return a boolean same-sized object indicating if the values are not NA.
