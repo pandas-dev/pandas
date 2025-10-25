@@ -1899,6 +1899,9 @@ cdef class BusinessDay(BusinessMixin):
     """
     DateOffset subclass representing possibly n business days.
 
+    This offset is commonly used in financial and business contexts where weekends
+    and holidays are excluded from date calculations. 
+
     Parameters
     ----------
     n : int, default 1
@@ -1907,6 +1910,16 @@ cdef class BusinessDay(BusinessMixin):
         Normalize start/end dates to midnight.
     offset : timedelta, default timedelta(0)
         Time offset to apply.
+
+    Returns
+    -------
+    BusinessDay
+        A business day offset instance.
+
+    See Also
+    --------
+    CustomBusinessDay : A business day offset with custom holidays and weekmask.
+    DateOffset : The base class for all time-based offsets.
 
     Examples
     --------
@@ -1925,6 +1938,7 @@ cdef class BusinessDay(BusinessMixin):
     >>> ts + pd.offsets.BusinessDay(normalize=True)
     Timestamp('2022-12-12 00:00:00')
     """
+
     _period_dtype_code = PeriodDtypeCode.B
     _prefix = "B"
     _attributes = tuple(["n", "normalize", "offset"])
