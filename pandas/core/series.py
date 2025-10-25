@@ -6114,7 +6114,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return default
 
     # error: Cannot determine type of 'isna'
-
     def isna(self) -> Series:
         """
         Detect missing values.
@@ -6184,80 +6183,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return NDFrame.isna(self)
 
     # error: Cannot determine type of 'isna'
-
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isnull(self) -> Series:
         """
-
         Series.isnull is an alias for Series.isna.
-
-        Detect missing values.
-
-        Return a boolean same-sized object indicating if the values are NA.
-        NA values, such as None or :attr:`numpy.NaN`, gets mapped to True
-        values.
-        Everything else gets mapped to False values. Characters such as empty
-        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
-
-        Returns
-        -------
-        Series
-            Mask of bool values for each element in Series that
-            indicates whether an element is an NA value.
-
-        See Also
-        --------
-        Series.isnull : Alias of isna.
-        Series.notna : Boolean inverse of isna.
-        Series.dropna : Omit axes labels with missing values.
-        isna : Top-level isna.
-
-        Examples
-        --------
-        Show which entries in a DataFrame are NA.
-
-        >>> df = pd.DataFrame(
-        ...     dict(
-        ...         age=[5, 6, np.nan],
-        ...         born=[
-        ...             pd.NaT,
-        ...             pd.Timestamp("1939-05-27"),
-        ...             pd.Timestamp("1940-04-25"),
-        ...         ],
-        ...         name=["Alfred", "Batman", ""],
-        ...         toy=[None, "Batmobile", "Joker"],
-        ...     )
-        ... )
-        >>> df
-           age       born    name        toy
-        0  5.0        NaT  Alfred        NaN
-        1  6.0 1939-05-27  Batman  Batmobile
-        2  NaN 1940-04-25              Joker
-
-        >>> df.isna()
-             age   born   name    toy
-        0  False   True  False   True
-        1  False  False  False  False
-        2   True  False  False  False
-
-        Show which entries in a Series are NA.
-
-        >>> ser = pd.Series([5, 6, np.nan])
-        >>> ser
-        0    5.0
-        1    6.0
-        2    NaN
-        dtype: float64
-
-        >>> ser.isna()
-        0    False
-        1    False
-        2     True
-        dtype: bool
         """
         return super().isnull()
 
     # error: Cannot determine type of 'notna'
-
     def notna(self) -> Series:
         """
         Detect existing (non-missing) values.
@@ -6327,75 +6260,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return super().notna()
 
     # error: Cannot determine type of 'notna'
-
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def notnull(self) -> Series:
         """
-
         Series.notnull is an alias for Series.notna.
-
-        Detect existing (non-missing) values.
-
-        Return a boolean same-sized object indicating if the values are not NA.
-        Non-missing values get mapped to True. Characters such as empty
-        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
-        NA values, such as None or :attr:`numpy.NaN`, get mapped to False
-        values.
-
-        Returns
-        -------
-        Series
-            Mask of bool values for each element in Series that
-            indicates whether an element is not an NA value.
-
-        See Also
-        --------
-        Series.notnull : Alias of notna.
-        Series.isna : Boolean inverse of notna.
-        Series.dropna : Omit axes labels with missing values.
-        notna : Top-level notna.
-
-        Examples
-        --------
-        Show which entries in a DataFrame are not NA.
-
-        >>> df = pd.DataFrame(
-        ...     dict(
-        ...         age=[5, 6, np.nan],
-        ...         born=[
-        ...             pd.NaT,
-        ...             pd.Timestamp("1939-05-27"),
-        ...             pd.Timestamp("1940-04-25"),
-        ...         ],
-        ...         name=["Alfred", "Batman", ""],
-        ...         toy=[None, "Batmobile", "Joker"],
-        ...     )
-        ... )
-        >>> df
-           age       born    name        toy
-        0  5.0        NaT  Alfred        NaN
-        1  6.0 1939-05-27  Batman  Batmobile
-        2  NaN 1940-04-25              Joker
-
-        >>> df.notna()
-             age   born  name    toy
-        0   True  False  True  False
-        1   True   True  True   True
-        2  False   True  True   True
-
-        Show which entries in a Series are not NA.
-
-        >>> ser = pd.Series([5, 6, np.nan])
-        >>> ser
-        0    5.0
-        1    6.0
-        2    NaN
-        dtype: float64
-
-        >>> ser.notna()
-        0     True
-        1     True
-        2    False
-        dtype: bool
         """
         return super().notnull()
 
