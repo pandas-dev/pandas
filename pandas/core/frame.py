@@ -270,7 +270,7 @@ if TYPE_CHECKING:
 
     from pandas.io.formats.style import Styler
 
-    from pandas.core.frame_versioning import DataFrameSnapshotStore
+from pandas.core.frame_versioning import DataFrameSnapshotStore
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -14393,13 +14393,10 @@ class DataFrame(NDFrame, OpsMixin):
         """
         store = getattr(self, "_version_snapshots", None)
         if store is None:
-            raise KeyError(f"No snapshots present for this DataFrame (requested: {name})")
+            raise KeyError(f"No snapshots present for this DataFrame(requested:{name})")
         restored = store.restore(name)
         if inplace:
-            # Replace internal state. Using _mgr replacement is more correct than __dict__ update.
-            # Many pandas internals use the attribute _mgr for BlockManager. Use it cautiously.
             try:
-                # pandas >= 1.x use _mgr (BlockManager); adapt if different in your branch.
                 object.__setattr__(self, "_mgr", restored._mgr)
                 # also copy other key attrs
                 object.__setattr__(self, "axes", restored.axes)
@@ -14423,7 +14420,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         store = getattr(self, "_version_snapshots", None)
         if store is None:
-            raise KeyError(f"No snapshots present for this DataFrame (requested drop: {name})")
+            raise KeyError(f"No snapshots present for this DataFrame(requested drop:{name})")
         store.drop(name)
 
     def clear_snapshots(self) -> None:
