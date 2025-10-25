@@ -346,7 +346,8 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         uint8_t[:, :] mask
         int64_t nobs = 0
         float64_t vx, vy, meanx, meany, divisor, ssqdmx, ssqdmy, cxy, val
-        float64_t sumx, sumy
+        float64_t ref_x, ref_y, dx, dy
+        bint ref_set
 
     N, K = (<object>mat).shape
     if minp is None:
@@ -364,27 +365,33 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                 # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
                 # Changed to Welford's two-pass for improved numeric stability
                 nobs = ssqdmx = ssqdmy = cxy = meanx = meany = 0
-                sumx = sumy = 0
+                ref_set = False
                 for i in range(N):
                     if mask[i, xi] and mask[i, yi]:
-                        sumx += mat[i, xi]
-                        sumy += mat[i, yi]
                         nobs += 1
+                        vx = mat[i, xi]
+                        vy = mat[i, yi]
+                        if not ref_set:
+                            ref_x = vx
+                            ref_y = vy
+                            ref_set = True
+
+                        vx -= ref_x
+                        vy -= ref_y
+                        dx = vx - meanx
+                        dy = vy - meany
+                        meanx += dx / nobs
+                        meany += dy / nobs
+                        cxy += dx * (vy - meany)
+                        ssqdmx += (vx - meanx) * dx
+                        ssqdmy += (vy - meany) * dy
+
                 if nobs < minpv:
                     result[xi, yi] = result[yi, xi] = NaN
                     continue
-                meanx = sumx / nobs
-                meany = sumy / nobs
-                for i in range(N):
-                    if mask[i, xi] and mask[i, yi]:
-                        vx = mat[i, xi] - meanx
-                        vy = mat[i, yi] - meany
-                        cxy += vx * vy
-                        ssqdmx += vx * vx
-                        ssqdmy += vy * vy
-                divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
 
-                # clip `covxy / divisor` to ensure coeff is within bounds
+                divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
+                # clip `cxy / divisor` to ensure coeff is within bounds
                 if divisor != 0:
                     val = cxy / divisor
                     if not cov:

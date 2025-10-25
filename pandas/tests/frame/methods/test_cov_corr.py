@@ -210,15 +210,11 @@ class TestDataFrameCorr:
     @pytest.mark.parametrize("length", [2, 20, 200, 2000])
     def test_corr_for_constant_columns(self, length):
         # GH: 37448
-        # now matches numpy behavior
         df = DataFrame(length * [[0.4, 0.1]], columns=["A", "B"])
         result = df.corr()
-        if length == 2:
-            expected = DataFrame(
-                {"A": [np.nan, np.nan], "B": [np.nan, np.nan]}, index=["A", "B"]
-            )
-        else:
-            expected = DataFrame({"A": [1.0, 1.0], "B": [1.0, 1.0]}, index=["A", "B"])
+        expected = DataFrame(
+            {"A": [np.nan, np.nan], "B": [np.nan, np.nan]}, index=["A", "B"]
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_calc_corr_small_numbers(self):
@@ -498,11 +494,50 @@ class TestDataFrameCorrWith:
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)
 
-    def test_close_corr(self):
-        values = np.array(
-            [[30.0, 30.100000381469727], [116.80000305175781, 116.8000030517578]]
-        )
-        df = DataFrame(values.T)
+    pair_cases = [
+        np.array(
+            [[30.0, 30.100000381469727], [116.80000305175781, 116.8000030517578]],
+            dtype=np.longdouble,
+        ),
+        np.array(
+            [[-30.0, 30.100000381469727], [116.80000305175781, -116.8000030517578]],
+            dtype=np.longdouble,
+        ),
+        np.array([[1e-8, 3.42e-8], [2e-9, 3e-8]], dtype=np.longdouble),
+        np.array([[1e12, 1e-8], [1e12 + 1e-3, 2e-8]], dtype=np.longdouble),
+        np.array([[0.0, 1e-12], [1e-14, 0.0]], dtype=np.longdouble),
+    ]
+
+    @pytest.mark.parametrize("values", pair_cases)
+    def test_pair_correlation(self, values):
+        df = DataFrame(values.T, dtype=np.longdouble)
         result = df.corr(method="pearson")
-        expected = DataFrame(np.corrcoef(values[0], values[1]))
+        expected = DataFrame(np.corrcoef(values[0], values[1]), dtype=np.float64)
+        tm.assert_frame_equal(result, expected)
+
+    multi_cases = [
+        np.array(
+            [[1e12, 1e-8, 5.5], [1e12 + 1e-3, 2e-8, 5.50000001]], dtype=np.longdouble
+        ),
+        np.array(
+            [
+                [1e12, 1e12 + 1e-3, 1e12 + 2e-3],
+                [1e12 + 2e-3, 1e12 + 3e-3, 1e12 + 4e-3],
+                [1e12 + 1e-2, 1e12 + 1e-2, 1e12 + 1e-2],
+            ],
+            dtype=np.longdouble,
+        ),
+        np.array([[1e-8, 2e-8], [2e-8, 3e-8], [0.0, 1e-12]], dtype=np.longdouble),
+    ]
+
+    @pytest.mark.parametrize("values", multi_cases)
+    def test_multi_correlation(self, values):
+        df = DataFrame(values.T, dtype=np.longdouble)
+        result = df.corr(method="pearson")
+        expected = DataFrame(
+            np.corrcoef(values),
+            index=range(values.shape[0]),
+            columns=range(values.shape[0]),
+            dtype=np.float64,
+        )
         tm.assert_frame_equal(result, expected)
