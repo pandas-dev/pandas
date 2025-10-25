@@ -1,12 +1,12 @@
-# pandas/core/frame_versioning.py
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
 import uuid
-from typing import Dict, Optional
+from typing import Dict, Optional, TYPE_CHECKING
 
-import pandas as pd
+if TYPE_CHECKING:
+    import pandas as pd  # only used for type hints
 
 
 def _generate_snapshot_id(name: Optional[str] = None) -> str:
@@ -31,17 +31,17 @@ class DataFrameSnapshotStore:
 
     def __init__(self) -> None:
         # snapshot_id -> DataFrame
-        self._snapshots: Dict[str, pd.DataFrame] = {}
+        self._snapshots: Dict[str, "pd.DataFrame"] = {}
         self._meta: Dict[str, SnapshotMeta] = {}
 
-    def snapshot(self, df: pd.DataFrame, name: Optional[str] = None) -> str:
+    def snapshot(self, df: "pd.DataFrame", name: Optional[str] = None) -> str:
         sid = _generate_snapshot_id(name)
         # deep copy for safety
         self._snapshots[sid] = df.copy(deep=True)
         self._meta[sid] = SnapshotMeta(name=sid, created_at=datetime.utcnow())
         return sid
 
-    def restore(self, name: str) -> pd.DataFrame:
+    def restore(self, name: str) -> "pd.DataFrame":
         if name not in self._snapshots:
             raise KeyError(f"Snapshot not found: {name}")
         # return a deep copy so modifications don't change stored snapshot
@@ -66,4 +66,5 @@ class DataFrameSnapshotStore:
                 raise KeyError(f"Snapshot not found: {name}")
             meta = self._meta[name]
             return {"name": meta.name, "created_at": meta.created_at.isoformat()}
-        return {"count": len(self._snapshots), "snapshots": [m.name for m in self._meta.values()]}
+        return {"count": len(self._snapshots),
+                "snapshots": [m.name for m in self._meta.values()]}
