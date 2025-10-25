@@ -527,6 +527,10 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         #  are present in this file.
         return super().view(dtype)
 
+    def _putmask(self, mask: npt.NDArray[np.bool_], value) -> None:
+        super()._putmask(mask, value)
+        self._freq = None  # GH#24555
+
     # ------------------------------------------------------------------
     # Validation Methods
     # TODO: try to de-duplicate these, ensure identical behavior
