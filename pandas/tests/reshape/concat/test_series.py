@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -54,11 +56,15 @@ class TestSeriesConcat:
 
         pieces = [ts[:-2], ts[2:], ts[2:-2]]
 
-        result = concat(pieces, axis=1)
+        msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = concat(pieces, axis=1)
         expected = DataFrame(pieces).T
         tm.assert_frame_equal(result, expected)
 
-        result = concat(pieces, keys=["A", "B", "C"], axis=1)
+        msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = concat(pieces, keys=["A", "B", "C"], axis=1)
         expected = DataFrame(pieces, index=["A", "B", "C"]).T
         tm.assert_frame_equal(result, expected)
 

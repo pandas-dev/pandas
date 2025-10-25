@@ -6521,7 +6521,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self.copy(deep=False)
 
         # GH 19920: retain column metadata after concat
-        result = concat(results, axis=1)
+        result = concat(results, axis=1, sort=False)
         # GH#40810 retain subclass
         # error: Incompatible types in assignment
         # (expression has type "Self", variable has type "DataFrame")

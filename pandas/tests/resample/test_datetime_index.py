@@ -602,11 +602,13 @@ def test_resample_ohlc_dataframe(unit):
     df.index = df.index.as_unit(unit)
     df.columns.name = "Cols"
     res = df.resample("h").ohlc()
-    exp = pd.concat(
-        [df["VOLUME"].resample("h").ohlc(), df["PRICE"].resample("h").ohlc()],
-        axis=1,
-        keys=df.columns,
-    )
+    msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        exp = pd.concat(
+            [df["VOLUME"].resample("h").ohlc(), df["PRICE"].resample("h").ohlc()],
+            axis=1,
+            keys=df.columns,
+        )
     assert exp.columns.names[0] == "Cols"
     tm.assert_frame_equal(exp, res)
 

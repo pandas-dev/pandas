@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY312
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -732,9 +733,13 @@ def test_coordinates(setup_path):
         c = store.select_as_coordinates("df1", ["A>0", "B>0"])
         df1_result = store.select("df1", c)
         df2_result = store.select("df2", c)
-        result = concat([df1_result, df2_result], axis=1)
+        msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = concat([df1_result, df2_result], axis=1)
 
-        expected = concat([df1, df2], axis=1)
+        msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = concat([df1, df2], axis=1)
         expected = expected[(expected.A > 0) & (expected.B > 0)]
         tm.assert_frame_equal(result, expected, check_freq=False)
         # FIXME: 2021-01-18 on some (mostly windows) builds we get freq=None

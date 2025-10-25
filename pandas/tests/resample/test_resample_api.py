@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs import lib
 from pandas._libs.tslibs import Day
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -440,13 +441,16 @@ def cases(request):
 
 
 def test_agg_mixed_column_aggregation(cases, a_mean, a_std, b_mean, b_std, request):
-    expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
+    msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_product([["A", "B"], ["mean", "<lambda_0>"]])
     # "date" is an index and a column, so get included in the agg
     if "df_mult" in request.node.callspec.id:
         date_mean = cases["date"].mean()
         date_std = cases["date"].std()
-        expected = pd.concat([date_mean, date_std, expected], axis=1)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = pd.concat([date_mean, date_std, expected], axis=1)
         expected.columns = pd.MultiIndex.from_product(
             [["date", "A", "B"], ["mean", "<lambda_0>"]]
         )
@@ -463,13 +467,17 @@ def test_agg_mixed_column_aggregation(cases, a_mean, a_std, b_mean, b_std, reque
     ],
 )
 def test_agg_both_mean_std_named_result(cases, a_mean, b_std, agg):
-    expected = pd.concat([a_mean, b_std], axis=1)
+    msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        expected = pd.concat([a_mean, b_std], axis=1)
     result = cases.aggregate(**agg)
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
 def test_agg_both_mean_std_dict_of_list(cases, a_mean, a_std):
-    expected = pd.concat([a_mean, a_std], axis=1)
+    msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        expected = pd.concat([a_mean, a_std], axis=1)
     expected.columns = pd.MultiIndex.from_tuples([("A", "mean"), ("A", "std")])
     result = cases.aggregate({"A": ["mean", "std"]})
     tm.assert_frame_equal(result, expected)
@@ -479,7 +487,9 @@ def test_agg_both_mean_std_dict_of_list(cases, a_mean, a_std):
     "agg", [{"func": ["mean", "sum"]}, {"mean": "mean", "sum": "sum"}]
 )
 def test_agg_both_mean_sum(cases, a_mean, a_sum, agg):
-    expected = pd.concat([a_mean, a_sum], axis=1)
+    msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        expected = pd.concat([a_mean, a_sum], axis=1)
     expected.columns = ["mean", "sum"]
     result = cases["A"].aggregate(**agg)
     tm.assert_frame_equal(result, expected)
@@ -502,7 +512,9 @@ def test_agg_dict_of_dict_specificationerror(cases, agg):
 
 
 def test_agg_dict_of_lists(cases, a_mean, a_std, b_mean, b_std):
-    expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
+    msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        expected = pd.concat([a_mean, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_tuples(
         [("A", "mean"), ("A", "std"), ("B", "mean"), ("B", "std")]
     )
@@ -556,7 +568,9 @@ def test_agg_no_column(cases, agg):
 def test_agg_specificationerror_nested(cases, cols, agg, a_sum, a_std, b_mean, b_std):
     # agg with different hows
     # equivalent of using a selection list / or not
-    expected = pd.concat([a_sum, a_std, b_mean, b_std], axis=1)
+    msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        expected = pd.concat([a_sum, a_std, b_mean, b_std], axis=1)
     expected.columns = pd.MultiIndex.from_tuples(
         [("A", "sum"), ("A", "std"), ("B", "mean"), ("B", "std")]
     )

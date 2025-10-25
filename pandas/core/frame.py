@@ -11114,6 +11114,7 @@ class DataFrame(NDFrame, OpsMixin):
         result = concat(
             [self, row_df],
             ignore_index=ignore_index,
+            sort=False,
         )
         return result.__finalize__(self, method="append")
 

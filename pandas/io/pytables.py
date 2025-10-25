@@ -1109,7 +1109,9 @@ class HDFStore:
             ]
 
             # concat and return
-            return concat(objs, axis=axis, verify_integrity=False)._consolidate()
+            return concat(
+                objs, axis=axis, verify_integrity=False, sort=False
+            )._consolidate()
 
         # create the iterator
         it = TableIterator(
@@ -4860,7 +4862,7 @@ class AppendableFrameTable(AppendableTable):
         if len(frames) == 1:
             df = frames[0]
         else:
-            df = concat(frames, axis=1)
+            df = concat(frames, axis=1, sort=False)
 
         selection = Selection(self, where=where, start=start, stop=stop)
         # apply the selection filters & axis orderings

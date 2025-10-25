@@ -263,7 +263,7 @@ def pivot_table(
             pieces.append(_table)
             keys.append(getattr(func, "__name__", func))
 
-        table = concat(pieces, keys=keys, axis=1)
+        table = concat(pieces, keys=keys, axis=1, sort=False)
         return table.__finalize__(data, method="pivot_table")
 
     table = __internal_pivot_table(

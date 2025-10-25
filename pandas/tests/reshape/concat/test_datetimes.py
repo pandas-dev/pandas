@@ -52,7 +52,9 @@ class TestDatetimeConcat:
         idx2 = date_range(start=idx1[0], end=idx1[-1], freq="h")
         df1 = DataFrame({"a": [1, 2, 3]}, index=idx1)
         df2 = DataFrame({"b": [1, 2, 3]}, index=idx2)
-        result = concat([df1, df2], axis=1)
+        msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = concat([df1, df2], axis=1)
 
         exp_idx = DatetimeIndex(
             [

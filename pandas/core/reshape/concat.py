@@ -418,10 +418,15 @@ def concat(
             non_concat_axis = [obj.index for obj in objs]
 
         if all(isinstance(index, DatetimeIndex) for index in non_concat_axis):
-            from pandas.core.indexes.api import union_indexes
-
-            no_sort_result_index = union_indexes(non_concat_axis, sort=False)
-            if not no_sort_result_index.is_monotonic_increasing:
+            warn = any(
+                id(prev) != id(curr)
+                for prev, curr in zip(non_concat_axis, non_concat_axis[1:])
+            ) and any(
+                prev[-1] > curr[0]
+                for prev, curr in zip(non_concat_axis, non_concat_axis[1:])
+                if not prev.empty and not curr.empty
+            )
+            if warn:
                 msg = (
                     "Sorting by default when concatenating all DatetimeIndex is "
                     "deprecated.  In the future, pandas will respect the default "

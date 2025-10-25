@@ -7,6 +7,7 @@ import pytest
 
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import PY312
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -887,7 +888,9 @@ def test_append_to_multiple(setup_path):
     )
     df2 = df1.copy().rename(columns="{}_2".format)
     df2["foo"] = "bar"
-    df = concat([df1, df2], axis=1)
+    msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df = concat([df1, df2], axis=1)
 
     with ensure_clean_store(setup_path) as store:
         # exceptions
@@ -928,7 +931,9 @@ def test_append_to_multiple_dropna(setup_path):
         index=date_range("2000-01-01", periods=10, freq="B"),
     ).rename(columns="{}_2".format)
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
-    df = concat([df1, df2], axis=1)
+    msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df = concat([df1, df2], axis=1)
 
     with ensure_clean_store(setup_path) as store:
         # dropna=True should guarantee rows are synchronized
@@ -949,7 +954,9 @@ def test_append_to_multiple_dropna_false(setup_path):
     )
     df2 = df1.copy().rename(columns="{}_2".format)
     df1.iloc[1, df1.columns.get_indexer(["A", "B"])] = np.nan
-    df = concat([df1, df2], axis=1)
+    msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df = concat([df1, df2], axis=1)
 
     with (
         ensure_clean_store(setup_path) as store,
