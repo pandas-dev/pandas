@@ -79,7 +79,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.api.typing.SeriesGroupBy.plot PR02" \
         -i "pandas.api.typing.Resampler.quantile PR01,PR07" \
         -i "pandas.arrays.NumpyExtensionArray GL08" \
-        -i "pandas.tseries.offsets.BDay PR02,SA01" \
         -i "pandas.tseries.offsets.BHalfYearBegin.is_on_offset GL08" \
         -i "pandas.tseries.offsets.BHalfYearBegin.n GL08" \
         -i "pandas.tseries.offsets.BHalfYearBegin.normalize GL08" \
@@ -108,7 +107,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.BYearEnd.month GL08" \
         -i "pandas.tseries.offsets.BYearEnd.n GL08" \
         -i "pandas.tseries.offsets.BYearEnd.normalize GL08" \
-        -i "pandas.tseries.offsets.BusinessDay PR02,SA01" \
         -i "pandas.tseries.offsets.BusinessDay.calendar GL08" \
         -i "pandas.tseries.offsets.BusinessDay.holidays GL08" \
         -i "pandas.tseries.offsets.BusinessDay.is_on_offset GL08" \
