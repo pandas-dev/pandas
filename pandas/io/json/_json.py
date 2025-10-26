@@ -153,7 +153,7 @@ def to_json(
     indent: int = 0,
     storage_options: StorageOptions | None = None,
     mode: Literal["a", "w"] = "w",
-    escape_forward_slashes: Literal[True, False] = Literal[True],
+    escape_forward_slashes: Literal[True, False] = True,
 ) -> str | None:
     if orient in ["records", "values"] and index is True:
         raise ValueError(
