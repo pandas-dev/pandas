@@ -609,7 +609,7 @@ class Styler(StylerRenderer):
             merge_cells=merge_cells,
             inf_rep=inf_rep,
         )
-        formatter.write(
+        formatter.to_excel(
             excel_writer,
             sheet_name=sheet_name,
             startrow=startrow,
