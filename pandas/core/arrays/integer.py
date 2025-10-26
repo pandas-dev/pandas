@@ -142,6 +142,8 @@ class IntegerArray(NumericArray):
     Length: 3, dtype: UInt16
     """
 
+    __module__ = "pandas.arrays"
+
     _dtype_cls = IntegerDtype
 
 

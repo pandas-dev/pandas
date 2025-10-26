@@ -1819,6 +1819,8 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     >>> ts + pd.DateOffset(hour=8)
     Timestamp('2017-01-01 08:10:11')
     """
+    __module__ = "pandas"
+
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
 
