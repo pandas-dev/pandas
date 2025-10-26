@@ -3168,65 +3168,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         concatenated = concatenated.reindex(concat_index, axis=1)
         return self._set_result_index_ordered(concatenated)
 
-    # __examples_dataframe_doc = dedent(
-    #     """
-    # >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
-    # ...                           'foo', 'bar'],
-    # ...                    'B' : ['one', 'one', 'two', 'three',
-    # ...                           'two', 'two'],
-    # ...                    'C' : [1, 5, 5, 2, 5, 5],
-    # ...                    'D' : [2.0, 5., 8., 1., 2., 9.]})
-    # >>> grouped = df.groupby('A')[['C', 'D']]
-    # >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-    #         C         D
-    # 0 -1.154701 -0.577350
-    # 1  0.577350  0.000000
-    # 2  0.577350  1.154701
-    # 3 -1.154701 -1.000000
-    # 4  0.577350 -0.577350
-    # 5  0.577350  1.000000
-
-    # Broadcast result of the transformation
-
-    # >>> grouped.transform(lambda x: x.max() - x.min())
-    #     C    D
-    # 0  4.0  6.0
-    # 1  3.0  8.0
-    # 2  4.0  6.0
-    # 3  3.0  8.0
-    # 4  4.0  6.0
-    # 5  3.0  8.0
-
-    # >>> grouped.transform("mean")
-    #     C    D
-    # 0  3.666667  4.0
-    # 1  4.000000  5.0
-    # 2  3.666667  4.0
-    # 3  4.000000  5.0
-    # 4  3.666667  4.0
-    # 5  4.000000  5.0
-
-    # .. versionchanged:: 1.3.0
-
-    # The resulting dtype will reflect the return value of the passed ``func``,
-    # for example:
-
-    # >>> grouped.transform(lambda x: x.astype(int).max())
-    # C  D
-    # 0  5  8
-    # 1  5  9
-    # 2  5  8
-    # 3  5  9
-    # 4  5  8
-    # 5  5  9
-    # """
-    # )
-
-    # @Substitution(klass="DataFrame", example=__examples_dataframe_doc)
-    # @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
         """
-        Test  Call function producing a same-indexed Series on each group.
+        Call function producing a same-indexed Series on each group.
 
         Returns a Series having the same indexes as the original object
         filled with the transformed values.
@@ -4194,30 +4138,347 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
     @property
-    @doc(DataFrame.plot.__doc__)
     def plot(self) -> GroupByPlot:
+        """
+        Make plots of Series or DataFrame.
+
+        Uses the backend specified by the
+        option ``plotting.backend``. By default, matplotlib is used.
+
+        Parameters
+        ----------
+        data : Series or DataFrame
+            The object for which the method is called.
+
+        Attributes
+        ----------
+        x : label or position, default None
+            Only used if data is a DataFrame.
+        y : label, position or list of label, positions, default None
+            Allows plotting of one column versus another. Only used if data is a
+            DataFrame.
+        kind : str
+            The kind of plot to produce:
+
+            - 'line' : line plot (default)
+            - 'bar' : vertical bar plot
+            - 'barh' : horizontal bar plot
+            - 'hist' : histogram
+            - 'box' : boxplot
+            - 'kde' : Kernel Density Estimation plot
+            - 'density' : same as 'kde'
+            - 'area' : area plot
+            - 'pie' : pie plot
+            - 'scatter' : scatter plot (DataFrame only)
+            - 'hexbin' : hexbin plot (DataFrame only)
+        ax : matplotlib axes object, default None
+            An axes of the current figure.
+        subplots : bool or sequence of iterables, default False
+            Whether to group columns into subplots:
+
+            - ``False`` : No subplots will be used
+            - ``True`` : Make separate subplots for each column.
+            - sequence of iterables of column labels: Create a subplot for each
+            group of columns. For example `[('a', 'c'), ('b', 'd')]` will
+            create 2 subplots: one with columns 'a' and 'c', and one
+            with columns 'b' and 'd'. Remaining columns that aren't specified
+            will be plotted in additional subplots (one per column).
+
+            .. versionadded:: 1.5.0
+
+        sharex : bool, default True if ax is None else False
+            In case ``subplots=True``, share x axis and set some x axis labels
+            to invisible; defaults to True if ax is None otherwise False if
+            an ax is passed in; Be aware, that passing in both an ax and
+            ``sharex=True`` will alter all x axis labels for all axis in a figure.
+        sharey : bool, default False
+            In case ``subplots=True``, share y axis and set some y axis labels to invisible.
+        layout : tuple, optional
+            (rows, columns) for the layout of subplots.
+        figsize : a tuple (width, height) in inches
+            Size of a figure object.
+        use_index : bool, default True
+            Use index as ticks for x axis.
+        title : str or list
+            Title to use for the plot. If a string is passed, print the string
+            at the top of the figure. If a list is passed and `subplots` is
+            True, print each item in the list above the corresponding subplot.
+        grid : bool, default None (matlab style default)
+            Axis grid lines.
+        legend : bool or {'reverse'}
+            Place legend on axis subplots.
+        style : list or dict
+            The matplotlib line style per column.
+        logx : bool or 'sym', default False
+            Use log scaling or symlog scaling on x axis.
+
+        logy : bool or 'sym' default False
+            Use log scaling or symlog scaling on y axis.
+
+        loglog : bool or 'sym', default False
+            Use log scaling or symlog scaling on both x and y axes.
+
+        xticks : sequence
+            Values to use for the xticks.
+        yticks : sequence
+            Values to use for the yticks.
+        xlim : 2-tuple/list
+            Set the x limits of the current axes.
+        ylim : 2-tuple/list
+            Set the y limits of the current axes.
+        xlabel : label, optional
+            Name to use for the xlabel on x-axis. Default uses index name as xlabel, or the
+            x-column name for planar plots.
+
+            .. versionchanged:: 2.0.0
+
+                Now applicable to histograms.
+
+        ylabel : label, optional
+            Name to use for the ylabel on y-axis. Default will show no ylabel, or the
+            y-column name for planar plots.
+
+            .. versionchanged:: 2.0.0
+
+                Now applicable to histograms.
+
+        rot : float, default None
+            Rotation for ticks (xticks for vertical, yticks for horizontal
+            plots).
+        fontsize : float, default None
+            Font size for xticks and yticks.
+        colormap : str or matplotlib colormap object, default None
+            Colormap to select colors from. If string, load colormap with that
+            name from matplotlib.
+        colorbar : bool, optional
+            If True, plot colorbar (only relevant for 'scatter' and 'hexbin'
+            plots).
+        position : float
+            Specify relative alignments for bar plot layout.
+            From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
+            (center).
+        table : bool, Series or DataFrame, default False
+            If True, draw a table using the data in the DataFrame and the data
+            will be transposed to meet matplotlib's default layout.
+            If a Series or DataFrame is passed, use passed data to draw a
+            table.
+        yerr : DataFrame, Series, array-like, dict and str
+            See :ref:`Plotting with Error Bars <visualization.errorbars>` for
+            detail.
+        xerr : DataFrame, Series, array-like, dict and str
+            Equivalent to yerr.
+        stacked : bool, default False in line and bar plots, and True in area plot
+            If True, create stacked plot.
+        secondary_y : bool or sequence, default False
+            Whether to plot on the secondary y-axis if a list/tuple, which
+            columns to plot on secondary y-axis.
+        mark_right : bool, default True
+            When using a secondary_y axis, automatically mark the column
+            labels with "(right)" in the legend.
+        include_bool : bool, default is False
+            If True, boolean values can be plotted.
+        backend : str, default None
+            Backend to use instead of the backend specified in the option
+            ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
+            specify the ``plotting.backend`` for the whole session, set
+            ``pd.options.plotting.backend``.
+        **kwargs
+            Options to pass to matplotlib plotting method.
+
+        Returns
+        -------
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+            If the backend is not the default matplotlib one, the return value
+            will be the object returned by the backend.
+
+        See Also
+        --------
+        matplotlib.pyplot.plot : Plot y versus x as lines and/or markers.
+        DataFrame.hist : Make a histogram.
+        DataFrame.boxplot : Make a box plot.
+        DataFrame.plot.scatter : Make a scatter plot with varying marker
+            point size and color.
+        DataFrame.plot.hexbin : Make a hexagonal binning plot of
+            two variables.
+        DataFrame.plot.kde : Make Kernel Density Estimate plot using
+            Gaussian kernels.
+        DataFrame.plot.area : Make a stacked area plot.
+        DataFrame.plot.bar : Make a bar plot.
+        DataFrame.plot.barh : Make a horizontal bar plot.
+
+        Notes
+        -----
+        - See matplotlib documentation online for more on this subject
+        - If `kind` = 'bar' or 'barh', you can specify relative alignments
+        for bar plot layout by `position` keyword.
+        From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
+        (center)
+
+        Examples
+        --------
+        For Series:
+
+        .. plot::
+            :context: close-figs
+
+            >>> ser = pd.Series([1, 2, 3, 3])
+            >>> plot = ser.plot(kind="hist", title="My plot")
+
+        For DataFrame:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame(
+            ...     {
+            ...         "length": [1.5, 0.5, 1.2, 0.9, 3],
+            ...         "width": [0.7, 0.2, 0.15, 0.2, 1.1],
+            ...     },
+            ...     index=["pig", "rabbit", "duck", "chicken", "horse"],
+            ... )
+            >>> plot = df.plot(title="DataFrame Plot")
+
+        For SeriesGroupBy:
+
+        .. plot::
+            :context: close-figs
+
+            >>> lst = [-1, -2, -3, 1, 2, 3]
+            >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+            >>> plot = ser.groupby(lambda x: x > 0).plot(title="SeriesGroupBy Plot")
+
+        For DataFrameGroupBy:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({"col1": [1, 2, 3, 4], "col2": ["A", "B", "A", "B"]})
+            >>> plot = df.groupby("col2").plot(kind="bar", title="DataFrameGroupBy Plot")
+        """
         result = GroupByPlot(self)
         return result
 
-    @doc(DataFrame.corr.__doc__)
     def corr(
         self,
         method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
         min_periods: int = 1,
         numeric_only: bool = False,
     ) -> DataFrame:
+        """
+        Compute correlation with `other` Series, excluding missing values.
+
+        The two `Series` objects are not required to be the same length and will be
+        aligned internally before the correlation function is applied.
+
+        Parameters
+        ----------
+        other : Series
+            Series with which to compute the correlation.
+        method : {'pearson', 'kendall', 'spearman'} or callable
+            Method used to compute correlation:
+
+            - pearson : Standard correlation coefficient
+            - kendall : Kendall Tau correlation coefficient
+            - spearman : Spearman rank correlation
+            - callable: Callable with input two 1d ndarrays and returning a float.
+
+            .. warning::
+                Note that the returned matrix from corr will have 1 along the
+                diagonals and will be symmetric regardless of the callable's
+                behavior.
+        min_periods : int, optional
+            Minimum number of observations needed to have a valid result.
+
+        Returns
+        -------
+        float
+            Correlation with other.
+
+        See Also
+        --------
+        DataFrame.corr : Compute pairwise correlation between columns.
+        DataFrame.corrwith : Compute pairwise correlation with another
+            DataFrame or Series.
+
+        Notes
+        -----
+        Pearson, Kendall and Spearman correlation are currently computed using pairwise complete observations.
+
+        * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
+        * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
+        * `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
+
+        Automatic data alignment: as with all pandas operations, automatic data alignment is performed for this method.
+        ``corr()`` automatically considers values with matching indices.
+
+        Examples
+        --------
+        >>> def histogram_intersection(a, b):
+        ...     v = np.minimum(a, b).sum().round(decimals=1)
+        ...     return v
+        >>> s1 = pd.Series([0.2, 0.0, 0.6, 0.2])
+        >>> s2 = pd.Series([0.3, 0.6, 0.0, 0.1])
+        >>> s1.corr(s2, method=histogram_intersection)
+        0.3
+
+        Pandas auto-aligns the values with matching indices
+
+        >>> s1 = pd.Series([1, 2, 3], index=[0, 1, 2])
+        >>> s2 = pd.Series([1, 2, 3], index=[2, 1, 0])
+        >>> s1.corr(s2)
+        -1.0
+
+        If the input is a constant array, the correlation is not defined in this case,
+        and ``np.nan`` is returned.
+
+        >>> s1 = pd.Series([0.45, 0.45])
+        >>> s1.corr(s1)
+        nan
+        """
         result = self._op_via_apply(
             "corr", method=method, min_periods=min_periods, numeric_only=numeric_only
         )
         return result
 
-    @doc(DataFrame.cov.__doc__)
     def cov(
         self,
         min_periods: int | None = None,
         ddof: int | None = 1,
         numeric_only: bool = False,
     ) -> DataFrame:
+        """
+        Compute covariance with Series, excluding missing values.
+
+        The two `Series` objects are not required to be the same length and
+        will be aligned internally before the covariance is calculated.
+
+        Parameters
+        ----------
+        other : Series
+            Series with which to compute the covariance.
+        min_periods : int, optional
+            Minimum number of observations needed to have a valid result.
+        ddof : int, default 1
+            Delta degrees of freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+
+        Returns
+        -------
+        float
+            Covariance between Series and other normalized by N-1
+            (unbiased estimator).
+
+        See Also
+        --------
+        DataFrame.cov : Compute pairwise covariance of columns.
+
+        Examples
+        --------
+        >>> s1 = pd.Series([0.90010907, 0.13484424, 0.62036035])
+        >>> s2 = pd.Series([0.12528585, 0.26962463, 0.51111198])
+        >>> s1.cov(s2)
+        -0.01685762652715874
+        """
         result = self._op_via_apply(
             "cov", min_periods=min_periods, ddof=ddof, numeric_only=numeric_only
         )
