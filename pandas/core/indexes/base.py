@@ -69,6 +69,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
     InvalidIndexError,
+    Pandas4Warning,
 )
 from pandas.util._decorators import (
     Appender,
@@ -7888,11 +7889,17 @@ def get_values_for_csv(
     """
     if isinstance(values, Categorical) and values.categories.dtype.kind in "Mm":
         # GH#40754 Convert categorical datetimes to datetime array
-        values = algos.take_nd(
-            values.categories._values,
-            ensure_platform_int(values._codes),
-            fill_value=na_rep,
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "reindexing with a fill_value that cannot be held",
+                Pandas4Warning,
+            )
+            values = algos.take_nd(
+                values.categories._values,
+                ensure_platform_int(values._codes),
+                fill_value=na_rep,
+            )
 
     values = ensure_wrapped_if_datetimelike(values)
 
