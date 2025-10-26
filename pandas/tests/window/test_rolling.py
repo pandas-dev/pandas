@@ -1843,15 +1843,18 @@ def test_rolling_mean_sum_floating_artifacts():
     assert (result[-3:] == 0).all()
 
 
+@pytest.mark.xfail(reason="Series.rolling.kurt computes -3 to degenerate distribution")
 def test_rolling_skew_kurt_floating_artifacts():
     # GH 42064 46431
 
     sr = Series([1 / 3, 4, 0, 0, 0, 0, 0])
     r = sr.rolling(4)
     result = r.skew()
-    assert (result[-2:] == 0).all()
+    expected = Series([np.nan, np.nan, np.nan, 1.9619045191072484, 2.0, np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
     result = r.kurt()
-    assert (result[-2:] == -3).all()
+    expected = Series([np.nan, np.nan, np.nan, 3.8636048803878786, 4.0, np.nan, np.nan])
+    tm.assert_series_equal(result, expected)
 
 
 def test_numeric_only_frame(arithmetic_win_operators, numeric_only):

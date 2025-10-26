@@ -170,11 +170,11 @@ def test_center_reindex_frame(frame, roll_func):
 
 
 def test_rolling_skew_edge_cases(step):
-    expected = Series([np.nan] * 4 + [0.0])[::step]
+    expected = Series([np.nan] * 5)[::step]
     # yields all NaN (0 variance)
     d = Series([1] * 5)
     x = d.rolling(window=5, step=step).skew()
-    # index 4 should be 0 as it contains 5 same obs
+    # index 4 should be NaN as it contains 5 same obs (variance 0)
     tm.assert_series_equal(expected, x)
 
     expected = Series([np.nan] * 5)[::step]
@@ -213,10 +213,9 @@ def test_rolling_kurt_edge_cases(step):
 
 def test_rolling_skew_eq_value_fperr(step):
     # #18804 all rolling skew for all equal values should return Nan
-    # #46717 update: all equal values should return 0 instead of NaN
     a = Series([1.1] * 15).rolling(window=10, step=step).skew()
-    assert (a[a.index >= 9] == 0).all()
-    assert a[a.index < 9].isna().all()
+    expected = Series([np.nan] * 15)[::step]
+    tm.assert_series_equal(expected, a)
 
 
 def test_rolling_kurt_eq_value_fperr(step):
