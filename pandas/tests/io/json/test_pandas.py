@@ -2298,10 +2298,8 @@ def test_to_json_escape_forward_slashes():
         }
     )
     result = df.to_json(orient="records", escape_forward_slashes=False)
-    expected1 = """[{"path1":"/escape/three/slashes","path2":"/","path3":"ending/""" ""
-    expected2 = (
-        ""","path4":"/beginning","path5":"/multiples//multiple","path6":"//"}]"""
-    )
+    expected1 = '[{"path1":"/escape/three/slashes","path2":"/","path3":"ending/"'
+    expected2 = ',"path4":"/beginning","path5":"/multiples//multiple","path6":"//"}]'
     expected = expected1 + expected2
 
     assert result == expected
