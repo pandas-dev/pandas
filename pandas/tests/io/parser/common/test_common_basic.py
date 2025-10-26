@@ -785,7 +785,7 @@ def test_dict_keys_as_names(all_parsers):
 
 @pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @xfail_pyarrow  # UnicodeDecodeError: 'utf-8' codec can't decode byte 0xed in position 0
-def test_encoding_surrogatepass(all_parsers, temp_file):
+def test_encoding_surrogatepass(all_parsers, tmp_path):
     # GH39017
     parser = all_parsers
     content = b"\xed\xbd\xbf"
@@ -793,7 +793,7 @@ def test_encoding_surrogatepass(all_parsers, temp_file):
     expected = DataFrame({decoded: [decoded]}, index=[decoded * 2])
     expected.index.name = decoded * 2
 
-    path = temp_file
+    path = tmp_path / "test_encoding.csv"
     path.write_bytes(
         content * 2 + b"," + content + b"\n" + content * 2 + b"," + content
     )
@@ -834,12 +834,12 @@ def test_short_multi_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_seek(all_parsers, temp_file):
+def test_read_seek(all_parsers, tmp_path):
     # GH48646
     parser = all_parsers
     prefix = "### DATA\n"
     content = "nkey,value\ntables,rectangular\n"
-    path = temp_file
+    path = tmp_path / "test_seek.csv"
     path.write_text(prefix + content, encoding="utf-8")
     with open(path, encoding="utf-8") as file:
         file.readline()
