@@ -788,7 +788,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
             raise ValueError
         return replacer
 
-    def test_replace_series(self, how, to_key, from_key, replacer):
+    def test_replace_series(self, to_key, from_key, replacer):
         index = pd.Index([3, 4], name="xxx")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         obj = obj.astype(from_key)
@@ -825,7 +825,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
         "from_key", ["datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"], indirect=True
     )
     def test_replace_series_datetime_tz(
-        self, how, to_key, from_key, replacer, using_infer_string
+        self, to_key, from_key, replacer, using_infer_string
     ):
         index = pd.Index([3, 4], name="xyz")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy").dt.as_unit("ns")
@@ -850,7 +850,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
         ["datetime64[ns]", "datetime64[ns, UTC]", "datetime64[ns, US/Eastern]"],
         indirect=True,
     )
-    def test_replace_series_datetime_datetime(self, how, to_key, from_key, replacer):
+    def test_replace_series_datetime_datetime(self, to_key, from_key, replacer):
         index = pd.Index([3, 4], name="xyz")
         obj = pd.Series(self.rep[from_key], index=index, name="yyy").dt.as_unit("ns")
         assert obj.dtype == from_key
