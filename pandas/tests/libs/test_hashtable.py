@@ -1,6 +1,7 @@
 from collections import namedtuple
 from collections.abc import Generator
 from contextlib import contextmanager
+from itertools import product
 import re
 import struct
 import tracemalloc
@@ -780,3 +781,80 @@ def test_float_complex_int_are_equal_as_objects():
     result = isin(np.array(values, dtype=object), np.asarray(comps))
     expected = np.array([False, True, True, True], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "throw1hash, throw2hash, throw1eq, throw2eq",
+    product([True, False], repeat=4),
+)
+def test_exceptions_thrown_from_custom_hash_and_eq_methods(
+    throw1hash, throw2hash, throw1eq, throw2eq
+):
+    # GH 57052
+    class testkey:
+        def __init__(self, value, throw_hash=False, throw_eq=False):
+            self.value = value
+            self.throw_hash = throw_hash
+            self.throw_eq = throw_eq
+
+        def __hash__(self):
+            if self.throw_hash:
+                raise RuntimeError(f"exception in {self!r}.__hash__")
+            return hash(self.value)
+
+        def __eq__(self, other):
+            if self.throw_eq:
+                raise RuntimeError(f"exception in {self!r}.__eq__")
+            return self.value == other.value
+
+        def __repr__(self):
+            return f"{self.__class__.__name__}({self.value}, {self.throw_hash}, {self.throw_eq})"
+
+    table = ht.PyObjectHashTable()
+
+    key1 = testkey(value="hello1")
+    key2 = testkey(value="hello2")
+
+    table.set_item(key1, 123)
+    table.set_item(key2, 456)
+
+    key1.throw_hash = throw1hash
+    key2.throw_hash = throw2hash
+    key1.throw_eq = throw1eq
+    key2.throw_eq = throw2eq
+
+    if throw1hash and throw1eq:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key1!r}.") + "__(hash|eq)__"
+        ):
+            table.get_item(key1)
+    elif throw1hash:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key1!r}.__hash__")
+        ):
+            table.get_item(key1)
+    elif throw1eq:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key1!r}.__eq__")
+        ):
+            table.get_item(key1)
+    else:
+        assert table.get_item(key1) == 123
+
+    if throw2hash and throw2eq:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key2!r}.") + "__(hash|eq)__"
+        ):
+            table.get_item(key2)
+    elif throw2hash:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key2!r}.__hash__")
+        ):
+            table.get_item(key2)
+    elif throw2eq:
+        with pytest.raises(
+            RuntimeError, match=re.escape(f"exception in {key2!r}.__eq__")
+        ):
+            table.get_item(key2)
+    else:
+        assert table.get_item(key2) == 456
