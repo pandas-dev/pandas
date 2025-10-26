@@ -393,7 +393,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         else:
             # At this point we know the result is an array.
             result = cast(Self, result)
-        result._freq = self._get_getitem_freq(key)
+        # error: Incompatible types in assignment (expression has type
+        # "BaseOffset | None", variable has type "None")
+        result._freq = self._get_getitem_freq(key)  # type: ignore[assignment]
         return result
 
     def _get_getitem_freq(self, key) -> BaseOffset | None:
@@ -2046,7 +2048,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             if self._freq is None:
                 # Set _freq directly to bypass duplicative _validate_frequency
                 # check.
-                self._freq = to_offset(self.inferred_freq)
+                self._freq = to_offset(self.inferred_freq)  # type: ignore[assignment]
         elif freq is lib.no_default:
             # user did not specify anything, keep inferred freq if the original
             #  data had one, otherwise do nothing
@@ -2446,7 +2448,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         if isinstance(maybe_slice, slice):
             freq = self._get_getitem_freq(maybe_slice)
-            result._freq = freq
+            result._freq = freq  # type: ignore[assignment]
 
         return result
 
