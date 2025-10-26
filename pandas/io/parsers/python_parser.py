@@ -222,11 +222,10 @@ class PythonParser(ParserBase):
                 # prevents CSV parsing errors on lines that will be discarded
                 if self.skiprows is not None:
                     while self.skipfunc(self.pos):
-                        self.pos += 1
-                        try:
-                            f.readline()
-                        except (StopIteration, AttributeError):
+                        line = f.readline()
+                        if not line:
                             break
+                        self.pos += 1
             else:
                 # attempt to sniff the delimiter from the first valid line,
                 # i.e. no comment line and not in skiprows
