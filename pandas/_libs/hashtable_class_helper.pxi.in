@@ -1356,6 +1356,14 @@ cdef class PyObjectHashTable(HashTable):
         cdef:
             khiter_t k
 
+        # GH 57052
+        # in khash_python.h, kh_python_hash_equal and kh_python_hash_func will be called repeatedly by khash in a loop.
+        # if object implements custom __hash__ and __eq__ methods that can raise exceptions,
+        # kh_python_hash_{equal,func} will suppress the exceptions without warnings.
+        # as a workaround: try triggering exceptions here, before starting the khash loop
+        hash(val)
+        val == val
+
         k = kh_get_pymap(self.table, <PyObject*>val)
         if k != self.table.n_buckets:
             return self.table.vals[k]
@@ -1369,6 +1377,8 @@ cdef class PyObjectHashTable(HashTable):
             char* buf
 
         hash(key)
+        # GH 57052
+        key == key
 
         k = kh_put_pymap(self.table, <PyObject*>key, &ret)
         if kh_exist_pymap(self.table, k):
