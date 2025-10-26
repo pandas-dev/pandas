@@ -696,6 +696,7 @@ def test_pyarrow_ambiguous_group_references(pyarrow_string_dtype, pattern, repl)
         ),
     ],
 )
+@td.skip_if_no("pyarrow")
 def test_pyarrow_backend_group_replacement(pattern, repl, expected_list):
     ser = Series(["var.one[0]", "var.two[1]", "var.three[2]"]).convert_dtypes(
         dtype_backend="pyarrow"
