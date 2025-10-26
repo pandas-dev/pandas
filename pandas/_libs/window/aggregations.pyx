@@ -611,13 +611,14 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
                     add_skew(val, &nobs, &mean, &m2, &m3, &numerically_unstable)
 
             if requires_recompute or numerically_unstable:
-                numerically_unstable = False
                 mean = m2 = m3 = 0.0
                 nobs = 0
 
                 for j in range(s, e):
                     val = values[j]
                     add_skew(val, &nobs, &mean, &m2, &m3, &numerically_unstable)
+
+                numerically_unstable = False
 
             output[i] = calc_skew(minp, nobs, mean, m2, m3)
 
