@@ -621,7 +621,6 @@ a b
 def test_read_csv_unclosed_double_quote_in_data_still_errors(python_parser_only):
     # GH 62739
     tbl = """\
-comment line
 a b
 "
 1 3
