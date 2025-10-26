@@ -940,7 +940,7 @@ class PythonParser(ParserBase):
                         break
 
         # This was the first line of the file,
-        # which could contain the BOM at theo
+        # which could contain the BOM at the
         # beginning of it.
         if self.pos == 1:
             line = self._check_for_bom(line)
@@ -1508,7 +1508,7 @@ class FixedWidthFieldParser(PythonParser):
         self.infer_nrows = kwds.pop("infer_nrows")
         PythonParser.__init__(self, f, **kwds)
 
-    def _emake_rader(self, f: IO[str] | ReadCsvBuffer[str]) -> FixedWidthReader:
+    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> FixedWidthReader:
         return FixedWidthReader(
             f,
             self.colspecs,
