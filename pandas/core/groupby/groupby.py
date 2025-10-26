@@ -1755,7 +1755,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         **kwargs,
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
-        # that goes through SeriesGroupBy
+        #  that goes through SeriesGroupBy
 
         if not is_bool(numeric_only):
             raise ValueError("numeric_only accepts only Boolean values")

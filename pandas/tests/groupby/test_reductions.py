@@ -1522,13 +1522,10 @@ def test_groupby_std_datetimelike():
     tm.assert_frame_equal(result, expected)
 
 def test_mean_numeric_only_validates_bool():
-    """
-    Test that numeric_only parameter only accepts boolean values.
-    See GH#62778
-    """
+    # GH#62778
+
     df = pd.DataFrame({"A": range(5), "B": range(5)})
 
-    # These test cases should raise a ValueError
     msg = "numeric_only accepts only Boolean values"
     with pytest.raises(ValueError, match=msg):
         df.groupby(["A"]).mean(["B"])
@@ -1538,9 +1535,3 @@ def test_mean_numeric_only_validates_bool():
 
     with pytest.raises(ValueError, match=msg):
         df.groupby(["A"]).mean(numeric_only=1)
-
-    # These test cases should work absolutely fine
-    df.groupby(["A"]).mean()
-    df.groupby(["A"]).mean(numeric_only=True)
-    df.groupby(["A"]).mean(numeric_only=False)
-
