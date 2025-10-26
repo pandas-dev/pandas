@@ -2028,7 +2028,7 @@ class Timedelta(_Timedelta):
 
         if (
             unit is not None
-            and not (is_float_object(ts_input) or is_integer_object(ts_input))
+            and not (is_float_object(value) or is_integer_object(value))
         ):
             # GH#53198
             warnings.warn(
