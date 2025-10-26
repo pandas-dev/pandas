@@ -76,6 +76,7 @@ from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
 )
 from pandas.core.dtypes.common import (
+    is_bool,
     is_bool_dtype,
     is_float_dtype,
     is_hashable,
@@ -86,7 +87,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
     is_string_dtype,
-    is_bool,
     needs_i8_conversion,
     pandas_dtype,
 )
@@ -110,9 +110,7 @@ from pandas.core.arrays import (
     SparseArray,
 )
 from pandas.core.arrays.string_ import StringDtype
-from pandas.core.arrays.string_arrow import (
-    ArrowStringArray,
-)
+from pandas.core.arrays.string_arrow import ArrowStringArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
