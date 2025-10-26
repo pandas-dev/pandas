@@ -218,6 +218,15 @@ class PythonParser(ParserBase):
 
             if sep is not None:
                 dia.delimiter = sep
+                # Skip rows at file level before csv.reader sees them
+                # prevents CSV parsing errors on lines that will be discarded
+                if self.skiprows is not None:
+                    while self.skipfunc(self.pos):
+                        self.pos += 1
+                        try:
+                            f.readline()
+                        except (StopIteration, AttributeError):
+                            break
             else:
                 # attempt to sniff the delimiter from the first valid line,
                 # i.e. no comment line and not in skiprows
@@ -907,7 +916,12 @@ class PythonParser(ParserBase):
         else:
             while self.skipfunc(self.pos):
                 self.pos += 1
-                next(self.data)
+                try:
+                    next(self.data)
+                except csv.Error:
+                    # CSV parsing error on a skipped line is acceptable
+                    # The line is being discarded without using its content
+                    pass
 
             while True:
                 orig_line = self._next_iter_line(row_num=self.pos + 1)
@@ -926,7 +940,7 @@ class PythonParser(ParserBase):
                         break
 
         # This was the first line of the file,
-        # which could contain the BOM at the
+        # which could contain the BOM at theo
         # beginning of it.
         if self.pos == 1:
             line = self._check_for_bom(line)
@@ -1494,7 +1508,7 @@ class FixedWidthFieldParser(PythonParser):
         self.infer_nrows = kwds.pop("infer_nrows")
         PythonParser.__init__(self, f, **kwds)
 
-    def _make_reader(self, f: IO[str] | ReadCsvBuffer[str]) -> FixedWidthReader:
+    def _emake_rader(self, f: IO[str] | ReadCsvBuffer[str]) -> FixedWidthReader:
         return FixedWidthReader(
             f,
             self.colspecs,
