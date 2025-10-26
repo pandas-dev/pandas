@@ -639,6 +639,20 @@ def test_replace_named_groups_regex_swap_expected_fail(
         ser.str.replace(pattern, repl, regex=True)
 
 
+@pytest.mark.parametrize("use_compile", [True, False])
+def test_replace_non_named_group(any_string_dtype, use_compile):
+    ser = Series(["var.one[0]", "var.two[1]", "var.three[2]"], dtype=any_string_dtype)
+    pattern = r"\[(\d+)\]"
+    if use_compile:
+        pattern = re.compile(pattern)
+    repl = r"(\1)"
+    result = ser.str.replace(pattern, repl, regex=True)
+    expected = Series(
+        ["var.one(0)", "var.two(1)", "var.three(2)"], dtype=any_string_dtype
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_replace_callable_named_groups(any_string_dtype):
     # test regex named groups
     ser = Series(["Foo Bar Baz", np.nan], dtype=any_string_dtype)
