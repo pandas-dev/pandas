@@ -27,7 +27,6 @@ from pandas._libs.lib import no_default
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
-    doc,
     set_module,
 )
 
@@ -473,8 +472,44 @@ class RangeIndex(Index):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    @doc(Index.get_loc)
     def get_loc(self, key) -> int:
+        """
+        Get integer location, slice or boolean mask for requested label.
+
+        Parameters
+        ----------
+        key : label
+            The key to check its location if it is present in the index.
+
+        Returns
+        -------
+        int if unique index, slice if monotonic index, else mask
+            Integer location, slice or boolean mask.
+
+        See Also
+        --------
+        Index.get_slice_bound : Calculate slice bound that corresponds to
+            given label.
+        Index.get_indexer : Computes indexer and mask for new index given
+            the current index.
+        Index.get_non_unique : Returns indexer and masks for new index given
+            the current index.
+        Index.get_indexer_for : Returns an indexer even when non-unique.
+
+        Examples
+        --------
+        >>> unique_index = pd.Index(list("abc"))
+        >>> unique_index.get_loc("b")
+        1
+
+        >>> monotonic_index = pd.Index(list("abbc"))
+        >>> monotonic_index.get_loc("b")
+        slice(1, 3, None)
+
+        >>> non_monotonic_index = pd.Index(list("abcb"))
+        >>> non_monotonic_index.get_loc("b")
+        array([False,  True, False,  True])
+        """
         if is_integer(key) or (is_float(key) and key.is_integer()):
             new_key = int(key)
             try:
@@ -528,12 +563,47 @@ class RangeIndex(Index):
     def tolist(self) -> list[int]:
         return list(self._range)
 
-    @doc(Index.__iter__)
     def __iter__(self) -> Iterator[int]:
+        """
+        Return an iterator of the values.
+
+        These are each a scalar type, which is a Python scalar
+        (for str, int, float) or a pandas scalar
+        (for Timestamp/Timedelta/Interval/Period)
+
+        Returns
+        -------
+        iterator
+            An iterator yielding scalar values from the Series.
+
+        See Also
+        --------
+        Series.items : Lazily iterate over (index, value) tuples.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3])
+        >>> for x in s:
+        ...     print(x)
+        1
+        2
+        3
+        """
         yield from self._range
 
-    @doc(Index._shallow_copy)
     def _shallow_copy(self, values, name: Hashable = no_default):
+        """
+        Create a new Index with the same class as the caller, don't copy the
+        data, use the same object attributes with passed in attributes taking
+        precedence.
+
+        *this is an internal non-public method*
+
+        Parameters
+        ----------
+        values : the values to create the new Index, optional
+        name : Label, defaults to self.name
+        """
         name = self._name if name is no_default else name
 
         if values.dtype.kind == "f":
@@ -560,8 +630,42 @@ class RangeIndex(Index):
             target = self._shallow_copy(target._values, name=target.name)
         return super()._wrap_reindex_result(target, indexer, preserve_names)
 
-    @doc(Index.copy)
     def copy(self, name: Hashable | None = None, deep: bool = False) -> Self:
+        """
+        Make a copy of this object.
+
+        Name is set on the new object.
+
+        Parameters
+        ----------
+        name : Label, optional
+            Set name for new object.
+        deep : bool, default False
+            If True attempts to make a deep copy of the Index.
+                Else makes a shallow copy.
+
+        Returns
+        -------
+        Index
+            Index refer to new object which is a copy of this object.
+
+        See Also
+        --------
+        Index.delete: Make new Index with passed location(-s) deleted.
+        Index.drop: Make new Index with passed list of labels deleted.
+
+        Notes
+        -----
+        In most cases, there should be no functional difference from using
+        ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["a", "b", "c"])
+        >>> new_idx = idx.copy()
+        >>> idx is new_idx
+        False
+        """
         name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
         return new_index
