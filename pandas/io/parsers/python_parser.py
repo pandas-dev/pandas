@@ -916,12 +916,7 @@ class PythonParser(ParserBase):
         else:
             while self.skipfunc(self.pos):
                 self.pos += 1
-                try:
-                    next(self.data)
-                except csv.Error:
-                    # CSV parsing error on a skipped line is acceptable
-                    # The line is being discarded without using its content
-                    pass
+                next(self.data)
 
             while True:
                 orig_line = self._next_iter_line(row_num=self.pos + 1)
