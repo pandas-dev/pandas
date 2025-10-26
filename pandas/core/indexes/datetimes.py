@@ -1133,7 +1133,7 @@ def bdate_range(
         msg = "freq must be specified for bdate_range; use date_range instead"
         raise TypeError(msg)
 
-    if isinstance(freq, str) and freq.startswith("C"):
+    if isinstance(freq, str) and freq.upper().startswith("C"):
         try:
             weekmask = weekmask or "Mon Tue Wed Thu Fri"
             freq = prefix_mapping[freq](holidays=holidays, weekmask=weekmask)

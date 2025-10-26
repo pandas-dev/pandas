@@ -1216,7 +1216,7 @@ class TestCustomDateRange:
             )
 
     @pytest.mark.parametrize(
-        "freq", [freq for freq in prefix_mapping if freq.startswith("C")]
+        "freq", [freq for freq in prefix_mapping if freq.upper().startswith("C")]
     )
     def test_all_custom_freq(self, freq):
         # should not raise
