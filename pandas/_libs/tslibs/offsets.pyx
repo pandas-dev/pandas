@@ -1900,7 +1900,7 @@ cdef class BusinessDay(BusinessMixin):
     DateOffset subclass representing possibly n business days.
 
     This offset is commonly used in financial and business contexts where weekends
-    and holidays are excluded from date calculations. 
+    and holidays are excluded from date calculations.
 
     Parameters
     ----------
@@ -1938,7 +1938,6 @@ cdef class BusinessDay(BusinessMixin):
     >>> ts + pd.offsets.BusinessDay(normalize=True)
     Timestamp('2022-12-12 00:00:00')
     """
-
     _period_dtype_code = PeriodDtypeCode.B
     _prefix = "B"
     _attributes = tuple(["n", "normalize", "offset"])
