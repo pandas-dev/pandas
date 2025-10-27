@@ -521,7 +521,11 @@ class ParserBase:
             if values.dtype == np.object_:
                 na_count = parsers.sanitize_objects(values, na_values)
 
-        if result.dtype == np.object_ and try_num_bool:
+        if (
+            result.dtype == np.object_
+            and try_num_bool
+            and (len(result) == 0 or not isinstance(result[0], int))
+        ):
             result, bool_mask = libops.maybe_convert_bool(
                 np.asarray(values),
                 true_values=self.true_values,
