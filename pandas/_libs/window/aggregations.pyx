@@ -525,6 +525,9 @@ cdef void add_skew(float64_t val, int64_t *nobs,
     cdef:
         float64_t n, delta, delta_n, term1, m3_update, new_m3
 
+    # This formulas are adapted from
+    # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Higher-order_statistics
+
     # Not NaN
     if val == val:
         nobs[0] += 1
@@ -551,6 +554,16 @@ cdef void remove_skew(float64_t val, int64_t *nobs,
     """ remove a value from the skew calc """
     cdef:
         float64_t n, delta, delta_n, term1, m3_update, new_m3
+
+    # This is the online update for the central moments
+    # when we remove an observation.
+    #
+    # δ = x - m_{n+1}
+    # m_{n} = m_{n+1} - (δ / n)
+    # m²_n = Σ_{i=1}^{n+1}(x_i - m_{n})² - (x - m_{n})² # uses new mean
+    #      = m²_{n+1} - (δ²/n)*(n+1)
+    # m³_n = Σ_{i=1}^{n+1}(x_i - m_{n})³ - (x - m_{n})³ # uses new mean
+    #      = m³_{n+1} - (δ³/n²)*(n+1)*(n+2) + 3 * m²_{n+1}*(δ/n)
 
     # Not NaN
     if val == val:
