@@ -82,7 +82,7 @@ from pandas._typing import (
     WriteExcelBuffer,
     npt,
 )
-from pandas.compat import PYPY
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
     REF_COUNT,
 )
@@ -7081,7 +7081,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY:
+            if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
                 ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
@@ -7330,7 +7330,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY:
+            if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
                 ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
@@ -7472,7 +7472,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY:
+            if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
                 ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
@@ -7559,7 +7559,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY:
+            if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
                 ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
@@ -7924,7 +7924,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if inplace:
-            if not PYPY:
+            if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
                 ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
@@ -8581,7 +8581,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if inplace:
-            if not PYPY:
+            if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
                 ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
@@ -10218,7 +10218,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY:
+            if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
                 ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
@@ -10284,7 +10284,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None:
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY:
+            if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
                 ) < REF_COUNT and not lib.is_local_in_caller_frame(self):

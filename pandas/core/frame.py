@@ -49,7 +49,7 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
-from pandas.compat import PYPY
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
     REF_COUNT,
 )
@@ -4404,7 +4404,7 @@ class DataFrame(NDFrame, OpsMixin):
         z  3  50
         # Values for 'a' and 'b' are completely ignored!
         """
-        if not PYPY:
+        if not CHAINED_WARNING_DISABLED:
             if sys.getrefcount(self) <= REF_COUNT and not lib.is_local_in_caller_frame(
                 self
             ):
@@ -9364,7 +9364,7 @@ class DataFrame(NDFrame, OpsMixin):
         1  2  500.0
         2  3    6.0
         """
-        if not PYPY:
+        if not CHAINED_WARNING_DISABLED:
             if sys.getrefcount(self) < REF_COUNT and not lib.is_local_in_caller_frame(
                 self
             ):

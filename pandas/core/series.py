@@ -34,7 +34,7 @@ from pandas._libs import (
     reshape,
 )
 from pandas._libs.lib import is_range_indexer
-from pandas.compat import PYPY
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
     REF_COUNT,
 )
@@ -1057,7 +1057,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY:
+        if not CHAINED_WARNING_DISABLED:
             if sys.getrefcount(self) <= REF_COUNT and not lib.is_local_in_caller_frame(
                 self
             ):
@@ -3353,7 +3353,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        if not PYPY:
+        if not CHAINED_WARNING_DISABLED:
             if sys.getrefcount(self) < REF_COUNT and not lib.is_local_in_caller_frame(
                 self
             ):
