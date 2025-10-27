@@ -26,7 +26,7 @@ class TestDataFrameShift:
         expected = df.T.shift(periods=1, fill_value=12345).T
         tm.assert_frame_equal(res, expected)
 
-        # same but with an 1D ExtensionArray backing it
+        # same but with a 1D ExtensionArray backing it
         df2 = df[[0]].astype("Float64")
         res2 = df2.shift(axis=1, periods=1, fill_value=12345)
         expected2 = DataFrame([12345] * 5, dtype="Float64")

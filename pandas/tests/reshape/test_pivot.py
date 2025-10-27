@@ -2673,8 +2673,6 @@ class TestPivot:
 
         result = df.pivot(index=1, columns=0, values=2)
         expected_columns = Index(["A", "B"], name=0, dtype=any_string_dtype)
-        if any_string_dtype == "object":
-            expected_columns = expected_columns.astype("str")
         tm.assert_index_equal(result.columns, expected_columns)
 
     def test_pivot_index_none(self):
