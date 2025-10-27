@@ -1,3 +1,4 @@
+from itertools import combinations
 import numpy as np
 import pytest
 
@@ -251,6 +252,24 @@ class TestDataFrameCorr:
         else:
             with pytest.raises(ValueError, match="could not convert string to float"):
                 df.corr(meth, numeric_only=numeric_only)
+    
+    @pytest.mark.parametrize("method", ["kendall", "spearman"])
+    def test_corr_rank_ordered_categorical(self, method,):
+        df = DataFrame(
+            {
+                "ord_cat": pd.Series(pd.Categorical(["low", "m", "h", "vh"], categories=["low", "m", "h", "vh"], ordered=True)), 
+                "ord_cat_none": pd.Series(pd.Categorical(["low", "m", "h", None], categories=["low", "m", "h"], ordered=True)), 
+                "ord_int": pd.Series([0, 1, 2, 3]), 
+                "ord_float": pd.Series([2.0, 3.0, 4.5, 6.5]),
+                "ord_float_nan": pd.Series([2.0, 3.0, 4.5, np.nan]),
+                "ord_cat_shuff": pd.Series(pd.Categorical(["m", "h", "vh", "low"], categories=["low", "m", "h", "vh"], ordered=True)), 
+            }
+        )
+        corr_calc = df.corr(method=method)
+        for col1, col2 in combinations(["ord_cat", "ord_int", "ord_float"], r=2):
+            expected = df[col1].corr(df[col2], method=method)
+            tm.assert_almost_equal(corr_calc[col1][col2], expected)
+
 
 
 class TestDataFrameCorrWith:
