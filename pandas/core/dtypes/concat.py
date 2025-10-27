@@ -162,7 +162,7 @@ def _get_result_dtype(
                 target_dtype = np.dtype(object)
                 kinds = {"o"}
     elif "b" in kinds and len(kinds) > 1:
-        # GH#21108
+        # GH#21108, GH#45101
         target_dtype = np.dtype(object)
         kinds = {"o"}
     else:
