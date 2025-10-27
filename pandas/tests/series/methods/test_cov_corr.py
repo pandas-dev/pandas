@@ -192,8 +192,8 @@ class TestSeriesCorr:
             "spearman": stats.spearmanr
         }
         ser_ord_cat = pd.Series( pd.Categorical(
-             ["low", "m", "h", "vh"], 
-             categories=["low", "m", "h", "vh"], ordered=True
+             ["low", "med", "high", "very_high"], 
+             categories=["low", "med", "high", "very_high"], ordered=True
              ))
         ser_ord_cat_codes = ser_ord_cat.cat.codes.replace(-1, np.nan)
         ser_ord_int = pd.Series([0, 1, 2, 3])
@@ -212,8 +212,8 @@ class TestSeriesCorr:
         tm.assert_almost_equal(corr_calc, corr_expected)
 
         ser_ord_cat_shuff = pd.Series( pd.Categorical(
-             ["h", "low", "vh", "m"], 
-             categories=["low", "m", "h", "vh"], ordered=True
+             ["high", "low", "very_high", "med"], 
+             categories=["low", "med", "high", "very_high"], ordered=True
              ))
         ser_ord_cat_shuff_codes = ser_ord_cat_shuff.cat.codes.replace(-1, np.nan)
         
