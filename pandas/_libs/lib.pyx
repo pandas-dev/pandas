@@ -77,6 +77,9 @@ cdef extern from "pandas/parser/pd_parser.h":
 
 PandasParser_IMPORT
 
+cdef extern from "pandas/frame_utils.h":
+    int is_local_in_caller_frame_impl(PyObject *object)
+
 from pandas._libs cimport util
 from pandas._libs.util cimport (
     INT64_MAX,
@@ -3327,3 +3330,8 @@ def is_np_dtype(object dtype, str kinds=None) -> bool:
     if kinds is None:
         return True
     return dtype.kind in kinds
+
+
+def is_local_in_caller_frame(object obj):
+    """Return whether or not the object is a local in the caller's frame."""
+    return is_local_in_caller_frame_impl(<PyObject *>obj)

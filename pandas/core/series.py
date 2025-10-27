@@ -1058,7 +1058,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def __setitem__(self, key, value) -> None:
         if not PYPY:
-            if sys.getrefcount(self) <= REF_COUNT and not sys._is_local_in_caller_frame(
+            if sys.getrefcount(self) <= REF_COUNT and not lib.is_local_in_caller_frame(
                 self
             ):
                 warnings.warn(
@@ -3354,7 +3354,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: int64
         """
         if not PYPY:
-            if sys.getrefcount(self) < REF_COUNT and not sys._is_local_in_caller_frame(
+            if sys.getrefcount(self) < REF_COUNT and not lib.is_local_in_caller_frame(
                 self
             ):
                 warnings.warn(
