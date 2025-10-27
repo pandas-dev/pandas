@@ -703,8 +703,8 @@ def merge_asof(
     on : label
         Field name to join on. Must be found in both DataFrames.
         The data MUST be in ascending order. Furthermore this must be
-        a numeric column, such as datetimelike, integer, or float. 'on'
-        or 'left_on' / 'right_on' must be given.
+        a numeric column, such as datetimelike, integer, or float. ``on``
+        or ``left_on`` / ``right_on`` must be given.
     left_on : label
         Field name to join on in left DataFrame. If specified, sort the left
         DataFrame by this column in ascending order before merging.
