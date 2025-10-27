@@ -11722,7 +11722,6 @@ class DataFrame(NDFrame, OpsMixin):
         if method in ("spearman", "kendall"):
             data = data._transform_ord_cat_cols_to_coded_cols()
 
-
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
@@ -12014,6 +12013,7 @@ class DataFrame(NDFrame, OpsMixin):
         elif method in ["kendall", "spearman"] or callable(method):
             left = left._transform_ord_cat_cols_to_coded_cols()
             right = right._transform_ord_cat_cols_to_coded_cols()
+
             def c(x):
                 return nanops.nancorr(x[0], x[1], method=method)
 
@@ -12046,8 +12046,8 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _transform_ord_cat_cols_to_coded_cols(self) -> DataFrame:
         """
-        any ordered categorical columns are transformed to the respectice caregorical codes
-        other columns remain untouched
+        any ordered categorical columns are transformed to the respective
+        categorical codes while other columns remain untouched
         """
         categ = self.select_dtypes("category")
         if len(categ.columns) == 0:

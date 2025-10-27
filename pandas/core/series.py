@@ -2749,7 +2749,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         this, other = self.align(other, join="inner")
         if len(this) == 0:
             return np.nan
-    
+
         if method in ("spearman", "kendall"):
             if this.dtype == "category" and this.cat.ordered:
                 this = this.cat.codes.replace(-1, np.nan)

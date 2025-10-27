@@ -1,4 +1,5 @@
 from itertools import combinations
+
 import numpy as np
 import pytest
 
@@ -252,24 +253,45 @@ class TestDataFrameCorr:
         else:
             with pytest.raises(ValueError, match="could not convert string to float"):
                 df.corr(meth, numeric_only=numeric_only)
-    
+
     @pytest.mark.parametrize("method", ["kendall", "spearman"])
-    def test_corr_rank_ordered_categorical(self, method,):
+    def test_corr_rank_ordered_categorical(
+        self,
+        method,
+    ):
         df = DataFrame(
             {
-                "ord_cat": pd.Series(pd.Categorical(["low", "m", "h", "vh"], categories=["low", "m", "h", "vh"], ordered=True)), 
-                "ord_cat_none": pd.Series(pd.Categorical(["low", "m", "h", None], categories=["low", "m", "h"], ordered=True)), 
-                "ord_int": pd.Series([0, 1, 2, 3]), 
-                "ord_float": pd.Series([2.0, 3.0, 4.5, 6.5]),
-                "ord_float_nan": pd.Series([2.0, 3.0, 4.5, np.nan]),
-                "ord_cat_shuff": pd.Series(pd.Categorical(["m", "h", "vh", "low"], categories=["low", "m", "h", "vh"], ordered=True)), 
+                "ord_cat": Series(
+                    pd.Categorical(
+                        ["low", "m", "h", "vh"],
+                        categories=["low", "m", "h", "vh"],
+                        ordered=True,
+                    )
+                ),
+                "ord_cat_none": Series(
+                    pd.Categorical(
+                        ["low", "m", "h", None],
+                        categories=["low", "m", "h"],
+                        ordered=True,
+                    )
+                ),
+                "ord_int": Series([0, 1, 2, 3]),
+                "ord_float": Series([2.0, 3.0, 4.5, 6.5]),
+                "ord_float_nan": Series([2.0, 3.0, 4.5, np.nan]),
+                "ord_cat_shuff": Series(
+                    pd.Categorical(
+                        ["m", "h", "vh", "low"],
+                        categories=["low", "m", "h", "vh"],
+                        ordered=True,
+                    )
+                ),
+                "ord_int_shuff": Series([2, 3, 0, 1]),
             }
         )
         corr_calc = df.corr(method=method)
-        for col1, col2 in combinations(["ord_cat", "ord_int", "ord_float"], r=2):
-            expected = df[col1].corr(df[col2], method=method)
-            tm.assert_almost_equal(corr_calc[col1][col2], expected)
-
+        for col1, col2 in combinations(df.columns, r=2):
+            corr_expected = df[col1].corr(df[col2], method=method)
+            tm.assert_almost_equal(corr_calc[col1][col2], corr_expected)
 
 
 class TestDataFrameCorrWith:
@@ -512,3 +534,49 @@ class TestDataFrameCorrWith:
         result2 = df.dropna().cov()
         tm.assert_frame_equal(result1, expected)
         tm.assert_frame_equal(result2, expected)
+
+    @pytest.mark.parametrize("method", ["kendall", "spearman"])
+    def test_corr_rank_ordered_categorical(
+        self,
+        method,
+    ):
+        df1 = DataFrame(
+            {
+                "a": Series(
+                    pd.Categorical(
+                        ["low", "m", "h", "vh"],
+                        categories=["low", "m", "h", "vh"],
+                        ordered=True,
+                    )
+                ),
+                "b": Series(
+                    pd.Categorical(
+                        ["low", "m", "h", None],
+                        categories=["low", "m", "h"],
+                        ordered=True,
+                    )
+                ),
+                "c": Series([0, 1, 2, 3]),
+                "d": Series([2.0, 3.0, 4.5, 6.5]),
+            }
+        )
+
+        df2 = DataFrame(
+            {
+                "a": Series([2.0, 3.0, 4.5, np.nan]),
+                "b": Series(
+                    pd.Categorical(
+                        ["m", "h", "vh", "low"],
+                        categories=["low", "m", "h", "vh"],
+                        ordered=True,
+                    )
+                ),
+                "c": Series([2, 3, 0, 1]),
+                "d": Series([2.0, 3.0, 4.5, 6.5]),
+            }
+        )
+
+        corr_calc = df1.corrwith(df2, method=method)
+        for col in df1.columns:
+            corr_expected = df1[col].corr(df2[col], method=method)
+            tm.assert_almost_equal(corr_calc.get(col), corr_expected)
