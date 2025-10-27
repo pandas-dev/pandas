@@ -330,11 +330,13 @@ class TestDataFramePlots:
         ax = plotting.parallel_coordinates(df, "class", sort_labels=True)
         polylines, labels = ax.get_legend_handles_labels()
         color_label_tuples = zip(
-            [polyline.get_color() for polyline in polylines], labels
+            [polyline.get_color() for polyline in polylines], labels, strict=True
         )
         ordered_color_label_tuples = sorted(color_label_tuples, key=lambda x: x[1])
         prev_next_tupels = zip(
-            list(ordered_color_label_tuples[0:-1]), list(ordered_color_label_tuples[1:])
+            list(ordered_color_label_tuples[0:-1]),
+            list(ordered_color_label_tuples[1:]),
+            strict=True,
         )
         for prev, nxt in prev_next_tupels:
             # labels and colors are ordered strictly increasing
@@ -524,7 +526,7 @@ class TestDataFramePlots:
         plot_bar = df.plot.bar()
         assert all(
             (a.get_text() == b.get_text())
-            for a, b in zip(plot_bar.get_xticklabels(), expected)
+            for a, b in zip(plot_bar.get_xticklabels(), expected, strict=True)
         )
 
     def test_barh_plot_labels_mixed_integer_string(self):
@@ -539,7 +541,7 @@ class TestDataFramePlots:
         assert all(
             actual.get_text() == expected.get_text()
             for actual, expected in zip(
-                plot_barh.get_yticklabels(), expected_yticklabels
+                plot_barh.get_yticklabels(), expected_yticklabels, strict=True
             )
         )
 
@@ -681,7 +683,7 @@ class TestDataFramePlots:
         _check_plot_works(s.plot.bar)
         assert all(
             (a.get_text() == b.get_text())
-            for a, b in zip(s.plot.bar().get_xticklabels(), expected)
+            for a, b in zip(s.plot.bar().get_xticklabels(), expected, strict=True)
         )
 
 
