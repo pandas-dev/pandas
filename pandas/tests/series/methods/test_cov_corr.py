@@ -200,14 +200,37 @@ class TestSeriesCorr:
         ser_ord_float = pd.Series([2.0, 3.0, 4.5, 6.5])
     
         corr_calc = ser_ord_cat.corr(ser_ord_int, method=method)
-        corr_expected = method_scipy_func[method](ser_ord_cat_codes, ser_ord_int)[0]
+        corr_expected = method_scipy_func[method](ser_ord_cat_codes, ser_ord_int, nan_policy="omit")[0]
         tm.assert_almost_equal(corr_calc, corr_expected)
 
         corr_calc = ser_ord_cat.corr(ser_ord_float, method=method)
-        corr_expected = method_scipy_func[method](ser_ord_cat_codes, ser_ord_float)[0]
+        corr_expected = method_scipy_func[method](ser_ord_cat_codes, ser_ord_float, nan_policy="omit")[0]
         tm.assert_almost_equal(corr_calc, corr_expected)
 
         corr_calc = ser_ord_cat.corr(ser_ord_cat, method=method)
-        corr_expected = method_scipy_func[method](ser_ord_cat_codes, ser_ord_cat_codes)[0]
+        corr_expected = method_scipy_func[method](ser_ord_cat_codes, ser_ord_cat_codes, nan_policy="omit")[0]
+        tm.assert_almost_equal(corr_calc, corr_expected)
+
+        ser_ord_cat_shuff = pd.Series( pd.Categorical(
+             ["h", "low", "vh", "m"], 
+             categories=["low", "m", "h", "vh"], ordered=True
+             ))
+        ser_ord_cat_shuff_codes = ser_ord_cat_shuff.cat.codes.replace(-1, np.nan)
+        
+        corr_calc = ser_ord_cat_shuff.corr(ser_ord_cat, method=method)
+        corr_expected = method_scipy_func[method](ser_ord_cat_shuff_codes, ser_ord_cat_codes, nan_policy="omit")[0]
+        tm.assert_almost_equal(corr_calc, corr_expected)
+
+        corr_calc = ser_ord_cat_shuff.corr(ser_ord_cat_shuff, method=method)
+        corr_expected = method_scipy_func[method](ser_ord_cat_shuff_codes, ser_ord_cat_shuff_codes, nan_policy="omit")[0]
         tm.assert_almost_equal(corr_calc, corr_expected)
         
+        ser_ord_cat_with_nan = pd.Series( pd.Categorical(
+             ["h", "low", "vh", None, "m"], 
+             categories=["low", "m", "h", "vh"], ordered=True
+             ))
+        ser_ord_cat_shuff_with_nan_codes = ser_ord_cat_with_nan.cat.codes.replace(-1, np.nan)
+        ser_ord_int = pd.Series([2, 0, 1, 3, None])
+        corr_calc = ser_ord_cat_with_nan.corr(ser_ord_int, method=method)
+        corr_expected = method_scipy_func[method](ser_ord_cat_shuff_with_nan_codes, ser_ord_int, nan_policy="omit")[0]
+        tm.assert_almost_equal(corr_calc, corr_expected)

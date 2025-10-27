@@ -12012,8 +12012,8 @@ class DataFrame(NDFrame, OpsMixin):
             correl = num / dom
 
         elif method in ["kendall", "spearman"] or callable(method):
-            left = left._convert_ordered_cat_to_code()
-            right = right._convert_ordered_cat_to_code()
+            left = left._transform_ord_cat_cols_to_coded_cols()
+            right = right._transform_ord_cat_cols_to_coded_cols()
             def c(x):
                 return nanops.nancorr(x[0], x[1], method=method)
 
