@@ -544,6 +544,25 @@ class TestTimeConversionFormats:
 
 
 class TestToDatetime:
+    def test_to_datetime_mixed_string_resos(self):
+        # GH#62801
+        vals = [
+            "2016-01-01 01:02:03",
+            "2016-01-01 01:02:03.001",
+            "2016-01-01 01:02:03.001002",
+            "2016-01-01 01:02:03.001002003",
+        ]
+        expected = DatetimeIndex([Timestamp(x).as_unit("ns") for x in vals])
+
+        result1 = DatetimeIndex(vals)
+        tm.assert_index_equal(result1, expected)
+
+        result2 = to_datetime(vals, format="ISO8601")
+        tm.assert_index_equal(result2, expected)
+
+        result3 = to_datetime(vals, format="mixed")
+        tm.assert_index_equal(result3, expected)
+
     def test_to_datetime_none(self):
         # GH#23055
         assert to_datetime(None) is NaT
