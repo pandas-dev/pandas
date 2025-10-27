@@ -99,12 +99,11 @@ python -m pytest \
 ## Expected Test Results
 
 When you run the tests, you should see:
-
-- **Total Tests:** 15
-- **Tests Passed:** 15 
-- **Tests Failed:** 0
-- **Success Rate:** 100%
-- **Execution Time:** ~1.04 seconds
+- **Total Tests**: 15
+- **Tests Passed**: 15
+- **Tests Failed**: 0
+- **Success Rate**: 100%
+- **Execution Time**: ~1.04 seconds
 
 **Sample Output:**
 ```
@@ -117,16 +116,16 @@ pandas/tests/test_nanops_additional.py::test_nanmean_mask_edge_cases PASSED
 pandas/tests/test_nanops_additional.py::test_nanvar_ddof_boundary_conditions PASSED
 pandas/tests/test_nanops_additional.py::test_nanargmax_nanargmin_error_conditions PASSED
 pandas/tests/test_nanops_additional.py::test_nanskew_nankurt_insufficient_samples PASSED
-pandas/tests/test_series_constructors_additional.py::test_series_constructor_invalid_key_types PASSED    [  7%]
-pandas/tests/test_series_constructors_additional.py::test_series_constructor_empty_edge_cases PASSED    [  8%]
-pandas/tests/test_series_constructors_additional.py::test_series_constructor_mixed_dtype_edge_cases PASSED    [  9%]
-pandas/tests/test_series_constructors_additional.py::test_series_constructor_memory_intensive PASSED    [ 10%]
-pandas/tests/test_series_constructors_additional.py::test_series_constructor_invalid_index_length PASSED    [ 11%]
-pandas/tests/tseries/offsets/test_offsets.py::test_dateoffset_boundary_values PASSED    [ 12%]
-pandas/tests/tseries/offsets/test_offsets.py::test_business_day_weekend_edge_cases PASSED    [ 13%]
-pandas/tests/tseries/offsets/test_offsets.py::test_custom_business_hour_edge_cases PASSED    [ 14%]
-pandas/tests/tseries/offsets/test_offsets.py::test_quarter_offset_leap_year PASSED    [ 15%]
-pandas/tests/tseries/offsets/test_offsets.py::test_offset_frequency_string_edge_cases PASSED    [ 16%]
+pandas/tests/test_series_constructors_additional.py::test_series_constructor_invalid_key_types PASSED
+pandas/tests/test_series_constructors_additional.py::test_series_constructor_empty_edge_cases PASSED
+pandas/tests/test_series_constructors_additional.py::test_series_constructor_mixed_dtype_edge_cases PASSED
+pandas/tests/test_series_constructors_additional.py::test_series_constructor_memory_intensive PASSED
+pandas/tests/test_series_constructors_additional.py::test_series_constructor_invalid_index_length PASSED
+pandas/tests/tseries/offsets/test_offsets.py::test_dateoffset_boundary_values PASSED
+pandas/tests/tseries/offsets/test_offsets.py::test_business_day_weekend_edge_cases PASSED
+pandas/tests/tseries/offsets/test_offsets.py::test_custom_business_hour_edge_cases PASSED
+pandas/tests/tseries/offsets/test_offsets.py::test_quarter_offset_leap_year PASSED
+pandas/tests/tseries/offsets/test_offsets.py::test_offset_frequency_string_edge_cases PASSED
 
 ============================== 15 passed in 1.04s ==============================
 ```
@@ -135,7 +134,6 @@ pandas/tests/tseries/offsets/test_offsets.py::test_offset_frequency_string_edge_
 
 ### Comprehensive Coverage Command
 To run both baseline and additional tests for complete coverage analysis:
-
 ```bash
 python -m pytest \
     pandas/tests/series/test_constructors.py \
@@ -154,76 +152,107 @@ python -m pytest \
 ```
 
 ### Coverage Report Location
-- **HTML Report:** `courseProjectDocs/Setup/htmlcov/index.html`
-- **Terminal Output:** Displayed during test execution
-- **Expected Coverage:** 11% overall (improvement from ~10% baseline)
+- **HTML Report**: `courseProjectDocs/Setup/htmlcov/index.html`
+- **Terminal Output**: Displayed during test execution
+- **Expected Coverage**: 11% overall (improvement from ~10% baseline)
 
-## Troubleshooting
+## Unit Testing II - Mocking & Stubbing Tests
 
-### Common Issues and Solutions
+### Additional Mocking Tests (NEW)
 
-1. **Environment Setup**
-   - Ensure virtual environment is activated
-   - Verify Python 3.13+ installation
-   - Check pandas development build installation
+In addition to the original 15 unit tests above, we have added 15 mocking-based tests for Unit Testing II assignment:
 
-2. **Test Execution Problems**
-   - Clear pytest cache: `python -m pytest --cache-clear`
-   - Run tests individually if batch execution fails
-   - Check for import conflicts
+**New Test Files:**
+1. **`pandas/tests/mocking/test_database_io.py`** - 5 tests for database I/O operations
+2. **`pandas/tests/mocking/test_filesystem_io.py`** - 5 tests for file system I/O operations
+3. **`pandas/tests/mocking/test_datetime.py`** - 5 tests for datetime/time-series operations
 
-3. **Coverage Report Issues**
-   - Ensure output directory exists: `mkdir -p courseProjectDocs/Setup/htmlcov`
-   - Run with verbose output: `--cov-report=term-missing`
+### Prerequisites for Mocking Tests
+Before running the mocking tests, ensure you have:
+- All prerequisites from above
+- **pytest-mock 3.15.1+** (NEW REQUIREMENT)
 
+```bash
+# Install pytest-mock if not already installed
+pip install pytest-mock
+```
+
+### Running Mocking Tests
+
+#### Run All 15 Mocking Tests
+```bash
+# Run all mocking tests with verbose output
+pytest pandas/tests/mocking/ -v
+```
+
+**Expected Output:**
+```
+============================= test session starts ==============================
+platform darwin -- Python 3.13.5, pytest-8.4.2, pluggy-1.6.0
+collected 15 items
+
+pandas/tests/mocking/test_database_io.py::TestDatabaseIOMocking::test_read_sql_basic PASSED
+pandas/tests/mocking/test_database_io.py::TestDatabaseIOMocking::test_read_sql_empty_result PASSED
+pandas/tests/mocking/test_database_io.py::TestDatabaseIOMocking::test_read_sql_with_parameters PASSED
+pandas/tests/mocking/test_database_io.py::TestDatabaseIOMocking::test_read_sql_dtype_handling PASSED
+pandas/tests/mocking/test_database_io.py::TestDatabaseIOMocking::test_read_sql_connection_error_handling PASSED
+pandas/tests/mocking/test_datetime.py::TestDateTimeOperationsMocking::test_timestamp_now_mocked PASSED
+pandas/tests/mocking/test_datetime.py::TestDateTimeOperationsMocking::test_date_range_generation PASSED
+pandas/tests/mocking/test_datetime.py::TestDateTimeOperationsMocking::test_time_series_resampling PASSED
+pandas/tests/mocking/test_datetime.py::TestDateTimeOperationsMocking::test_rolling_window_operations PASSED
+pandas/tests/mocking/test_datetime.py::TestDateTimeOperationsMocking::test_datetime_parsing_with_format PASSED
+pandas/tests/mocking/test_filesystem_io.py::TestFileSystemIOMocking::test_read_csv_basic PASSED
+pandas/tests/mocking/test_filesystem_io.py::TestFileSystemIOMocking::test_read_csv_with_delimiter PASSED
+pandas/tests/mocking/test_filesystem_io.py::TestFileSystemIOMocking::test_read_excel_basic PASSED
+pandas/tests/mocking/test_filesystem_io.py::TestFileSystemIOMocking::test_read_hdf_basic PASSED
+pandas/tests/mocking/test_filesystem_io.py::TestFileSystemIOMocking::test_csv_file_not_found_handling PASSED
+
+============================== 15 passed in 0.83s ==============================
+```
+
+#### Run Mocking Tests by Category
+```bash
+# Database I/O tests
+pytest pandas/tests/mocking/test_database_io.py -v
+
+# File System I/O tests
+pytest pandas/tests/mocking/test_filesystem_io.py -v
+
+# DateTime operations tests
+pytest pandas/tests/mocking/test_datetime.py -v
+```
+
+#### Generate Mocking Test Coverage Report
+```bash
+# Generate coverage report for mocking test code
+pytest pandas/tests/mocking/ --cov=pandas/tests/mocking --cov-report=term
+
+# Expected output:
+# Name                                         Stmts   Miss Branch BrPart  Cover
+# --------------------------------------------------------------------------------
+# pandas/tests/mocking/__init__.py                 0      0      0      0   100%
+# pandas/tests/mocking/test_database_io.py        44      0      0      0   100%
+# pandas/tests/mocking/test_datetime.py           70     10      8      3    81%
+# pandas/tests/mocking/test_filesystem_io.py      45      1      2      1    96%
+# --------------------------------------------------------------------------------
+# TOTAL                                          159     11     10      4    90%
+```
+
+### Mocking Test Results Summary
+- **Total Mocking Tests**: 15
+- **Passed**: 15 (100%)
+- **Failed**: 0
+- **Execution Time**: 0.83 seconds
+- **Test Code Coverage**: 90%
+
+For detailed mocking strategy and design decisions, see: `courseProjectDocs/Unit-Testing/mocking.md`
 
 
 ## Project Team Information
 
 **Course:** SWEN 777 - Software Testing and Quality Assurance  
-**Project:** Pandas Unit Testing Extension  
 **Team Members:**
 - Nithikesh Reddy
 - Sandeep
 - Malikarjuna
-
-
-## Results
-
-- **Test Execution:** All 15 tests should pass
-- **Coverage Improvement:** From ~10% to 11% overall coverage
-- **New Code Coverage:** 100% coverage for added test functions
-- pytest-cov 7.0.0+ (for coverage analysis)
-- numpy
-- Virtual environment recommended
-
-## Setting Up Test Environment
-
-1. Create and activate a virtual environment
-2. Install development dependencies from requirements-dev.txt
-3. Build pandas in development mode
-
-## Coverage Analysis
-
-To analyze coverage improvements from these tests, use pytest with coverage flags targeting the specific modules (pandas.core.nanops, pandas.core.series, pandas.tseries.offsets) and generate both HTML and terminal reports.
-
-## Test Design Principles
-All added tests follow these principles:
-1. **Edge Case Focus:** Target boundary conditions and unusual inputs
-2. **Error Handling:** Test exception conditions and error paths
-3. **Uncovered Logic:** Address gaps identified in coverage analysis
-4. **Maintainability:** Clear naming and comprehensive documentation
-5. **Integration:** Seamlessly integrate with existing test structure
-
-## Files Modified
-
-1. `pandas/tests/test_nanops.py` - Added 5 test functions (lines ~1280-1340)
-2. `pandas/tests/series/test_constructors.py` - Added 5 test functions (lines ~890-970)
-3. `pandas/tests/tseries/offsets/test_offsets.py` - Added 5 test functions (lines ~1235-1310)
-
-## Group Members
-
-- Member 1: Nanops module test cases (5 tests)
-- Member 2: Series constructor test cases (5 tests)  
-- Member 3: DateTime offset test cases (5 tests)
 
