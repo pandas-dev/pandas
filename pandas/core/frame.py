@@ -9109,13 +9109,17 @@ class DataFrame(NDFrame, OpsMixin):
 
         new_columns_out = self.columns.union(other_columns, sort=False)
         # Deduplicate column names if necessary
-        self_columns = Index(dedup_names(self_columns, False), dtype=self_columns.dtype)
-        other_columns = Index(
-            dedup_names(other_columns, False), dtype=other_columns.dtype
+        self_columns = Index(
+            dedup_names(list(self_columns), False), dtype=self_columns.dtype
         )
-        this.columns = Index(dedup_names(this.columns, False), dtype=this.columns.dtype)
+        other_columns = Index(
+            dedup_names(list(other_columns), False), dtype=other_columns.dtype
+        )
+        this.columns = Index(
+            dedup_names(list(this.columns), False), dtype=this.columns.dtype
+        )
         other.columns = Index(
-            dedup_names(other.columns, False), dtype=other.columns.dtype
+            dedup_names(list(other.columns), False), dtype=other.columns.dtype
         )
 
         # preserve column order
