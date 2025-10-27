@@ -474,41 +474,48 @@ class RangeIndex(Index):
 
     def get_loc(self, key) -> int:
         """
-        Get integer location, slice or boolean mask for requested label.
+        Get integer location for requested label.
 
         Parameters
         ----------
-        key : label
-            The key to check its location if it is present in the index.
+        key : int or float
+            Label to locate. Integer-like floats (e.g. 3.0) are accepted and
+            treated as the corresponding integer. Non-integer floats and other
+            non-integer labels are not valid and will raise KeyError or
+            InvalidIndexError.
 
         Returns
         -------
-        int if unique index, slice if monotonic index, else mask
-            Integer location, slice or boolean mask.
+        int
+            Integer location of the label within the RangeIndex.
+
+        Raises
+        ------
+        KeyError
+            If the label is not present in the RangeIndex or the label is a
+            non-integer value.
+        InvalidIndexError
+            If the label is of an invalid type for the RangeIndex.
 
         See Also
         --------
-        Index.get_slice_bound : Calculate slice bound that corresponds to
+        RangeIndex.get_slice_bound : Calculate slice bound that corresponds to
             given label.
-        Index.get_indexer : Computes indexer and mask for new index given
+        RangeIndex.get_indexer : Computes indexer and mask for new index given
             the current index.
-        Index.get_non_unique : Returns indexer and masks for new index given
+        RangeIndex.get_non_unique : Returns indexer and masks for new index given
             the current index.
-        Index.get_indexer_for : Returns an indexer even when non-unique.
+        RangeIndex.get_indexer_for : Returns an indexer even when non-unique.
 
         Examples
         --------
-        >>> unique_index = pd.Index(list("abc"))
-        >>> unique_index.get_loc("b")
-        1
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.get_loc(3)
+        3
 
-        >>> monotonic_index = pd.Index(list("abbc"))
-        >>> monotonic_index.get_loc("b")
-        slice(1, 3, None)
-
-        >>> non_monotonic_index = pd.Index(list("abcb"))
-        >>> non_monotonic_index.get_loc("b")
-        array([False,  True, False,  True])
+        >>> idx = pd.RangeIndex(2, 10, 2)  # values [2, 4, 6, 8]
+        >>> idx.get_loc(6)
+        2
         """
         if is_integer(key) or (is_float(key) and key.is_integer()):
             new_key = int(key)
@@ -567,33 +574,25 @@ class RangeIndex(Index):
         """
         Return an iterator of the values.
 
-        These are each a scalar type, which is a Python scalar
-        (for str, int, float) or a pandas scalar
-        (for Timestamp/Timedelta/Interval/Period)
-
         Returns
         -------
         iterator
-            An iterator yielding scalar values from the Series.
-
-        See Also
-        --------
-        Series.items : Lazily iterate over (index, value) tuples.
+            An iterator yielding ints from the RangeIndex.
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3])
-        >>> for x in s:
+        >>> idx = pd.RangeIndex(3)
+        >>> for x in idx:
         ...     print(x)
+        0
         1
         2
-        3
         """
         yield from self._range
 
     def _shallow_copy(self, values, name: Hashable = no_default):
         """
-        Create a new Index with the same class as the caller, don't copy the
+        Create a new RangeIndex with the same class as the caller, don't copy the
         data, use the same object attributes with passed in attributes taking
         precedence.
 
@@ -601,7 +600,7 @@ class RangeIndex(Index):
 
         Parameters
         ----------
-        values : the values to create the new Index, optional
+        values : the values to create the new RangeIndex, optional
         name : Label, defaults to self.name
         """
         name = self._name if name is no_default else name
@@ -641,18 +640,18 @@ class RangeIndex(Index):
         name : Label, optional
             Set name for new object.
         deep : bool, default False
-            If True attempts to make a deep copy of the Index.
+            If True attempts to make a deep copy of the RangeIndex.
                 Else makes a shallow copy.
 
         Returns
         -------
-        Index
-            Index refer to new object which is a copy of this object.
+        RangeIndex
+            RangeIndex refer to new object which is a copy of this object.
 
         See Also
         --------
-        Index.delete: Make new Index with passed location(-s) deleted.
-        Index.drop: Make new Index with passed list of labels deleted.
+        RangeIndex.delete: Make new RangeIndex with passed location(-s) deleted.
+        RangeIndex.drop: Make new RangeIndex with passed list of labels deleted.
 
         Notes
         -----
@@ -661,7 +660,7 @@ class RangeIndex(Index):
 
         Examples
         --------
-        >>> idx = pd.Index(["a", "b", "c"])
+        >>> idx = pd.RangeIndex(3)
         >>> new_idx = idx.copy()
         >>> idx is new_idx
         False
