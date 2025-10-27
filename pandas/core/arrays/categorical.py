@@ -460,6 +460,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 codes = arr.indices.to_numpy()
                 dtype = CategoricalDtype(categories, values.dtype.pyarrow_dtype.ordered)
             else:
+                preserve_object = False
+                if isinstance(values, (ABCIndex, ABCSeries)) and values.dtype == object:
+                    # GH#61778
+                    preserve_object = True
                 if not isinstance(values, ABCIndex):
                     # in particular RangeIndex xref test_index_equal_range_categories
                     values = sanitize_array(values, None)
@@ -476,7 +480,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                             "by passing in a categories argument."
                         ) from err
 
-                # we're inferring from values
+                if preserve_object:
+                    # GH#61778 wrap categories in an Index to prevent dtype
+                    #  inference in the CategoricalDtype constructor
+                    from pandas import Index
+
+                    categories = Index(categories, dtype=object, copy=False)
+
+                # if not preserve_obejct, we're inferring from values
                 dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif isinstance(values.dtype, CategoricalDtype):

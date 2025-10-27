@@ -1447,6 +1447,9 @@ def any_string_dtype(request):
         return pd.StringDtype(storage, na_value)
 
 
+any_string_dtype2 = any_string_dtype
+
+
 @pytest.fixture(params=tm.DATETIME64_DTYPES)
 def datetime64_dtype(request):
     """
