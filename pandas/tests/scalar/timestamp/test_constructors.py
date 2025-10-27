@@ -1076,7 +1076,9 @@ def test_timestamp_nano_range(nano):
 
 def test_non_nano_value():
     # https://github.com/pandas-dev/pandas/issues/49076
-    result = Timestamp("1800-01-01", unit="s").value
+    msg = "The 'unit' keyword is only used when"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        result = Timestamp("1800-01-01", unit="s").value
     # `.value` shows nanoseconds, even though unit is 's'
     assert result == -5364662400000000000
 
