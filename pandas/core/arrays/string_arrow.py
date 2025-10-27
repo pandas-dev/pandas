@@ -425,8 +425,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             or flags
             or (  # substitution contains a named group pattern
                 # https://docs.python.org/3/library/re.html
-                isinstance(repl, str)
-                and (r"\g<" in repl or re.search(r"\\\d", repl) is not None)
+                isinstance(repl, str) and r"\g<" in repl
             )
         ):
             return super()._str_replace(pat, repl, n, case, flags, regex)
