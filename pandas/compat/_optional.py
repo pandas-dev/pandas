@@ -152,8 +152,7 @@ def import_optional_dependency(
 
     msg = (
         f"`Import {install_name}` failed. {extra} "
-        f"Use pip, conda, or your preferred package "
-        f"manager to install the {install_name} package."
+        f"Please install the {install_name} package."
     )
     try:
         module = importlib.import_module(name)
