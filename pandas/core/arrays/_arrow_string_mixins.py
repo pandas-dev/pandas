@@ -173,15 +173,12 @@ class ArrowStringArrayMixin:
             or callable(repl)
             or not case
             or flags
-            or (
-                isinstance(repl, str)
-                and (r"\g<" in repl or re.search(r"\\\d", repl) is not None)
-            )
+            or (isinstance(repl, str) and r"\g<" in repl)
         ):
             raise NotImplementedError(
                 "replace is not supported with a re.Pattern, callable repl, "
                 "case=False, flags!=0, or when the replacement string contains "
-                "named group references (\\g<...>, \\d+)"
+                "named group references (\\g<...>)"
             )
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
