@@ -17,6 +17,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
@@ -227,8 +228,10 @@ class BinOp(ops.BinOp):
         elif kind in ("timedelta64", "timedelta"):
             if isinstance(conv_val, str):
                 conv_val = Timedelta(conv_val)
-            else:
+            elif lib.is_integer(conv_val) or lib.is_float(conv_val):
                 conv_val = Timedelta(conv_val, unit="s")
+            else:
+                conv_val = Timedelta(conv_val)
             conv_val = conv_val.as_unit("ns")._value
             return TermValue(int(conv_val), conv_val, kind)
         elif meta == "category":
