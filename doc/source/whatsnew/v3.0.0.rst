@@ -1036,6 +1036,7 @@ Conversion
 
 Strings
 ^^^^^^^
+- Bug in :meth:`Series.str.replace` raising an error on valid group references (``\1``, ``\2``, etc.) on series converted to PyArrow backend dtype (:issue:`62653`)
 - Bug in :meth:`Series.str.zfill` raising ``AttributeError`` for :class:`ArrowDtype` (:issue:`61485`)
 - Bug in :meth:`Series.value_counts` would not respect ``sort=False`` for series having ``string`` dtype (:issue:`55224`)
 - Bug in multiplication with a :class:`StringDtype` incorrectly allowing multiplying by bools; explicitly cast to integers instead (:issue:`62595`)
@@ -1152,6 +1153,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupby.groups` that would not respect groupby argument ``dropna`` (:issue:`55919`)
 - Bug in :meth:`.DataFrameGroupBy.median` where nat values gave an incorrect result. (:issue:`57926`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` when ``interpolation="nearest"`` is inconsistent with :meth:`DataFrame.quantile` (:issue:`47942`)
+- Bug in :meth:`.DataFrameGroupBy` reductions where non-Boolean values were allowed for the ``numeric_only`` argument; passing a non-Boolean value will now raise (:issue:`62778`)
 - Bug in :meth:`.Resampler.interpolate` on a :class:`DataFrame` with non-uniform sampling and/or indices not aligning with the resulting resampled index would result in wrong interpolation (:issue:`21351`)
 - Bug in :meth:`.Series.rolling` when used with a :class:`.BaseIndexer` subclass and computing min/max (:issue:`46726`)
 - Bug in :meth:`DataFrame.ewm` and :meth:`Series.ewm` when passed ``times`` and aggregation functions other than mean (:issue:`51695`)
@@ -1208,6 +1210,7 @@ ExtensionArray
 - Bug in comparison between object with :class:`ArrowDtype` and incompatible-dtyped (e.g. string vs bool) incorrectly raising instead of returning all-``False`` (for ``==``) or all-``True`` (for ``!=``) (:issue:`59505`)
 - Bug in constructing pandas data structures when passing into ``dtype`` a string of the type followed by ``[pyarrow]`` while PyArrow is not installed would raise ``NameError`` rather than ``ImportError`` (:issue:`57928`)
 - Bug in various :class:`DataFrame` reductions for pyarrow temporal dtypes returning incorrect dtype when result was null (:issue:`59234`)
+- Fixed flex arithmetic with :class:`ExtensionArray` operands raising when ``fill_value`` was passed. (:issue:`62467`)
 
 Styler
 ^^^^^^
