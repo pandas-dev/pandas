@@ -159,9 +159,7 @@ from pandas.core.tools.datetimes import to_datetime
 
 import pandas.io.formats.format as fmt
 from pandas.io.formats.info import (
-    INFO_DOCSTRING,
     SeriesInfo,
-    series_sub_kwargs,
 )
 import pandas.plotting
 
@@ -1598,11 +1596,58 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         **kwargs,
     ) -> str | None: ...
 
-    @doc(
-        klass=_shared_doc_kwargs["klass"],
-        storage_options=_shared_docs["storage_options"],
-        examples=dedent(
-            """Examples
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self", "buf"], name="to_markdown"
+    )
+    def to_markdown(
+        self,
+        buf: IO[str] | None = None,
+        mode: str = "wt",
+        index: bool = True,
+        storage_options: StorageOptions | None = None,
+        **kwargs,
+    ) -> str | None:
+        """
+        Print Series in Markdown-friendly format.
+
+        Parameters
+        ----------
+        buf : str, Path or StringIO-like, optional, default None
+            Buffer to write to. If None, the output is returned as a string.
+        mode : str, optional
+            Mode in which file is opened, "wt" by default.
+        index : bool, optional, default True
+            Add index (row) labels.
+
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection, e.g.
+            host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+            are forwarded to ``urllib.request.Request`` as header options. For other
+            URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+            forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+            details, and for more examples on storage options refer `here
+            <https://pandas.pydata.org/docs/user_guide/io.html?
+            highlight=storage_options#reading-writing-remote-files>`_.
+
+        **kwargs
+            These parameters will be passed to `tabulate \
+                <https://pypi.org/project/tabulate>`_.
+
+        Returns
+        -------
+        str
+            Series in Markdown-friendly format.
+
+        See Also
+        --------
+        Series.to_frame : Rrite a text representation of object to the system clipboard.
+        Series.to_latex : Render Series to LaTeX-formatted table.
+
+        Notes
+        -----
+        Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
+
+        Examples
             --------
             >>> s = pd.Series(["elk", "pig", "dog", "quetzal"], name="animal")
             >>> print(s.to_markdown())
@@ -1626,53 +1671,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             |  2 | dog      |
             +----+----------+
             |  3 | quetzal  |
-            +----+----------+"""
-        ),
-    )
-    @deprecate_nonkeyword_arguments(
-        Pandas4Warning, allowed_args=["self", "buf"], name="to_markdown"
-    )
-    def to_markdown(
-        self,
-        buf: IO[str] | None = None,
-        mode: str = "wt",
-        index: bool = True,
-        storage_options: StorageOptions | None = None,
-        **kwargs,
-    ) -> str | None:
-        """
-        Print {klass} in Markdown-friendly format.
-
-        Parameters
-        ----------
-        buf : str, Path or StringIO-like, optional, default None
-            Buffer to write to. If None, the output is returned as a string.
-        mode : str, optional
-            Mode in which file is opened, "wt" by default.
-        index : bool, optional, default True
-            Add index (row) labels.
-
-        {storage_options}
-
-        **kwargs
-            These parameters will be passed to `tabulate \
-                <https://pypi.org/project/tabulate>`_.
-
-        Returns
-        -------
-        str
-            {klass} in Markdown-friendly format.
-
-        See Also
-        --------
-        Series.to_frame : Rrite a text representation of object to the system clipboard.
-        Series.to_latex : Render Series to LaTeX-formatted table.
-
-        Notes
-        -----
-        Requires the `tabulate <https://pypi.org/project/tabulate>`_ package.
-
-        {examples}
+            +----+----------+
         """
         return self.to_frame().to_markdown(
             buf, mode=mode, index=index, storage_options=storage_options, **kwargs
@@ -2997,10 +2996,43 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         return concat([self, to_append], ignore_index=ignore_index)
 
-    @doc(
-        _shared_docs["compare"],
-        dedent(
-            """
+    def compare(
+        self,
+        other: Series,
+        align_axis: Axis = 1,
+        keep_shape: bool = False,
+        keep_equal: bool = False,
+        result_names: Suffixes = ("self", "other"),
+    ) -> DataFrame | Series:
+        """
+        Compare to another Series and show the differences.
+
+        Parameters
+        ----------
+        other : Series
+            Object to compare with.
+
+        align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
+            Determine which axis to align the comparison on.
+
+            * 0, or 'index' : Resulting differences are stacked vertically
+              with rows drawn alternately from self and other.
+            * 1, or 'columns' : Resulting differences are aligned horizontally
+              with columns drawn alternately from self and other.
+
+        keep_shape : bool, default False
+            If true, all rows and columns are kept.
+            Otherwise, only the ones with different values are kept.
+
+        keep_equal : bool, default False
+            If true, the result keeps values that are equal.
+            Otherwise, equal values are shown as NaNs.
+
+        result_names : tuple, default ('self', 'other')
+            Set the dataframes names in the comparison.
+
+            .. versionadded:: 1.5.0
+
         Returns
         -------
         Series or DataFrame
@@ -3060,17 +3092,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3    d     b
         4    e     e
         """
-        ),
-        klass=_shared_doc_kwargs["klass"],
-    )
-    def compare(
-        self,
-        other: Series,
-        align_axis: Axis = 1,
-        keep_shape: bool = False,
-        keep_equal: bool = False,
-        result_names: Suffixes = ("self", "other"),
-    ) -> DataFrame | Series:
+
         return super().compare(
             other=other,
             align_axis=align_axis,
@@ -4533,14 +4555,81 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     )
 
-    @doc(
-        _shared_docs["aggregate"],
-        klass=_shared_doc_kwargs["klass"],
-        axis=_shared_doc_kwargs["axis"],
-        see_also=_agg_see_also_doc,
-        examples=_agg_examples_doc,
-    )
     def aggregate(self, func=None, axis: Axis = 0, *args, **kwargs):
+        """
+        Aggregate using one or more operations over the specified axis.
+
+        Parameters
+        ----------
+        func : function, str, list or dict
+            Function to use for aggregating the data. If a function, must either
+            work when passed a Series or when passed to Series.apply.
+
+            Accepted combinations are:
+
+            - function
+            - string function name
+            - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+            - dict of axis labels -> functions, function names or list of such.
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
+
+        Returns
+        -------
+        scalar, Series or DataFrame
+            The return can be:
+
+            * scalar : when Series.agg is called with single function
+            * Series : when DataFrame.agg is called with a single function
+            * DataFrame : when DataFrame.agg is called with several functions
+
+        See Also
+        --------
+        Series.apply : Invoke function on a Series.
+        Series.transform : Transform function producing a Series with like indexes.
+
+        Notes
+        -----
+        The aggregation operations are always performed over an axis, either the
+        index (default) or the column axis. This behavior is different from
+        `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+        `var`), where the default is to compute the aggregation of the flattened
+        array, e.g., ``numpy.mean(arr_2d)`` as opposed to
+        ``numpy.mean(arr_2d, axis=0)``.
+
+        `agg` is an alias for `aggregate`. Use the alias.
+
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+        for more details.
+
+        A passed user-defined-function will be passed a Series for evaluation.
+
+        If ``func`` defines an index relabeling, ``axis`` must be ``0`` or ``index``.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4])
+        >>> s
+        0    1
+        1    2
+        2    3
+        3    4
+        dtype: int64
+
+        >>> s.agg("min")
+        1
+
+        >>> s.agg(["min", "max"])
+        min   1
+        max   4
+        dtype: int64
+        """
+
         # Validate the axis parameter
         self._get_axis_number(axis)
 
@@ -4554,14 +4643,151 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     agg = aggregate
 
-    @doc(
-        _shared_docs["transform"],
-        klass=_shared_doc_kwargs["klass"],
-        axis=_shared_doc_kwargs["axis"],
-    )
     def transform(
         self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> DataFrame | Series:
+        """
+        Call ``func`` on self producing a Series with the same axis shape as self.
+
+        Parameters
+        ----------
+        func : function, str, list-like or dict-like
+            Function to use for transforming the data. If a function, must either
+            work when passed a Series or when passed to Series.apply. If func
+            is both list-like and dict-like, dict-like behavior takes precedence.
+
+            Accepted combinations are:
+
+            - function
+            - string function name
+            - list-like of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
+            - dict-like of axis labels -> functions, function names or list-like of such
+
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
+
+        Returns
+        -------
+        Series
+            A Series that must have the same length as self.
+
+        Raises
+        ------
+        ValueError : If the returned Series has a different length than self.
+
+        See Also
+        --------
+        Series.agg : Only perform aggregating type operations.
+        Series.apply : Invoke function on a Series.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+        for more details.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({{"A": range(3), "B": range(1, 4)}})
+        >>> df
+        A  B
+        0  0  1
+        1  1  2
+        2  2  3
+        >>> df.transform(lambda x: x + 1)
+        A  B
+        0  1  2
+        1  2  3
+        2  3  4
+
+        Even though the resulting Series must have the same length as the
+        input Series, it is possible to provide several input functions:
+
+        >>> s = pd.Series(range(3))
+        >>> s
+        0    0
+        1    1
+        2    2
+        dtype: int64
+        >>> s.transform([np.sqrt, np.exp])
+            sqrt        exp
+        0  0.000000   1.000000
+        1  1.000000   2.718282
+        2  1.414214   7.389056
+
+        You can call transform on a GroupBy object:
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "Date": [
+        ...                 "2015-05-08",
+        ...                 "2015-05-07",
+        ...                 "2015-05-06",
+        ...                 "2015-05-05",
+        ...                 "2015-05-08",
+        ...                 "2015-05-07",
+        ...                 "2015-05-06",
+        ...                 "2015-05-05",
+        ...             ],
+        ...             "Data": [5, 8, 6, 1, 50, 100, 60, 120],
+        ...         }
+        ...     }
+        ... )
+        >>> df
+                Date  Data
+        0  2015-05-08     5
+        1  2015-05-07     8
+        2  2015-05-06     6
+        3  2015-05-05     1
+        4  2015-05-08    50
+        5  2015-05-07   100
+        6  2015-05-06    60
+        7  2015-05-05   120
+        >>> df.groupby("Date")["Data"].transform("sum")
+        0     55
+        1    108
+        2     66
+        3    121
+        4     55
+        5    108
+        6     66
+        7    121
+        Name: Data, dtype: int64
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "c": [1, 1, 1, 2, 2, 2, 2],
+        ...             "type": ["m", "n", "o", "m", "m", "n", "n"],
+        ...         }
+        ...     }
+        ... )
+        >>> df
+        c type
+        0  1    m
+        1  1    n
+        2  1    o
+        3  2    m
+        4  2    m
+        5  2    n
+        6  2    n
+        >>> df["size"] = df.groupby("c")["type"].transform(len)
+        >>> df
+        c type size
+        0  1    m    3
+        1  1    n    3
+        2  1    o    3
+        3  2    m    4
+        4  2    m    4
+        5  2    n    4
+        6  2    n    4
+        """
         # Validate axis argument
         self._get_axis_number(axis)
         ser = self.copy(deep=False)
@@ -4887,11 +5113,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return super().set_axis(labels, axis=axis, copy=copy)
 
     # error: Cannot determine type of 'reindex'
-    @doc(
-        NDFrame.reindex,  # type: ignore[has-type]
-        klass=_shared_doc_kwargs["klass"],
-        optional_reindex=_shared_doc_kwargs["optional_reindex"],
-    )
+
     def reindex(  # type: ignore[override]
         self,
         index=None,
@@ -4904,6 +5126,223 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         limit: int | None = None,
         tolerance=None,
     ) -> Series:
+        """
+        Conform Series to new index with optional filling logic.
+
+        Places NA/NaN in locations having no value in the previous index. A new object
+        is produced unless the new index is equivalent to the current one and
+        ``copy=False``.
+
+        Parameters
+        ----------
+        index : scalar, list-like, dict-like or function, optional
+            A scalar, list-like, dict-like or functions transformations to
+            apply to that axis' values.
+        axis : {0 or 'index'}, default 0
+            The axis to rename. For `Series` this parameter is unused and defaults to 0.
+        method : {{None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}}
+            Method to use for filling holes in reindexed DataFrame.
+            Please note: this is only applicable to DataFrames/Series with a
+            monotonically increasing/decreasing index.
+
+            * None (default): don't fill gaps
+            * pad / ffill: Propagate last valid observation forward to next
+              valid.
+            * backfill / bfill: Use next valid observation to fill gap.
+            * nearest: Use nearest valid observations to fill gap.
+
+        copy : bool, default False
+            Return a new object, even if the passed indexes are the same.
+
+            .. note::
+                The `copy` keyword will change behavior in pandas 3.0.
+                `Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                will be enabled by default, which means that all methods with a
+                `copy` keyword will use a lazy copy mechanism to defer the copy and
+                ignore the `copy` keyword. The `copy` keyword will be removed in a
+                future version of pandas.
+
+                You can already get the future behavior and improvements through
+                enabling copy on write ``pd.options.mode.copy_on_write = True``
+
+            .. deprecated:: 3.0.0
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : scalar, default np.nan
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value.
+        limit : int, default None
+            Maximum number of consecutive elements to forward or backward fill.
+        tolerance : optional
+            Maximum distance between original and new labels for inexact
+            matches. The values of the index at the matching locations most
+            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
+
+        Returns
+        -------
+        Series
+            Series with changed index.
+
+        See Also
+        --------
+        DataFrame.set_index : Set row labels.
+        DataFrame.reset_index : Remove row labels or move them to new columns.
+        DataFrame.reindex_like : Change to same indices as other DataFrame.
+
+        Examples
+        --------
+        ``DataFrame.reindex`` supports two calling conventions
+
+        * ``(index=index_labels, columns=column_labels, ...)``
+        * ``(labels, axis={{'index', 'columns'}}, ...)``
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
+
+        Create a DataFrame with some fictional data.
+
+        >>> index = ["Firefox", "Chrome", "Safari", "IE10", "Konqueror"]
+        >>> columns = ["http_status", "response_time"]
+        >>> df = pd.DataFrame(
+        ...     [[200, 0.04], [200, 0.02], [404, 0.07], [404, 0.08], [301, 1.0]],
+        ...     columns=columns,
+        ...     index=index,
+        ... )
+        >>> df
+                   http_status  response_time
+        Firefox            200           0.04
+        Chrome             200           0.02
+        Safari             404           0.07
+        IE10               404           0.08
+        Konqueror          301           1.00
+
+        Create a new index and reindex the DataFrame. By default
+        values in the new index that do not have corresponding
+        records in the DataFrame are assigned ``NaN``.
+
+        >>> new_index = ["Safari", "Iceweasel", "Comodo Dragon", "IE10", "Chrome"]
+        >>> df.reindex(new_index)
+                       http_status  response_time
+        Safari               404.0           0.07
+        Iceweasel              NaN            NaN
+        Comodo Dragon          NaN            NaN
+        IE10                 404.0           0.08
+        Chrome               200.0           0.02
+
+        We can fill in the missing values by passing a value to
+        the keyword ``fill_value``. Because the index is not monotonically
+        increasing or decreasing, we cannot use arguments to the keyword
+        ``method`` to fill the ``NaN`` values.
+
+        >>> df.reindex(new_index, fill_value=0)
+                       http_status  response_time
+        Safari                 404           0.07
+        Iceweasel                0           0.00
+        Comodo Dragon            0           0.00
+        IE10                   404           0.08
+        Chrome                 200           0.02
+
+        >>> df.reindex(new_index, fill_value="missing")
+                      http_status response_time
+        Safari                404          0.07
+        Iceweasel         missing       missing
+        Comodo Dragon     missing       missing
+        IE10                  404          0.08
+        Chrome                200          0.02
+
+        We can also reindex the columns.
+
+        >>> df.reindex(columns=["http_status", "user_agent"])
+                   http_status  user_agent
+        Firefox            200         NaN
+        Chrome             200         NaN
+        Safari             404         NaN
+        IE10               404         NaN
+        Konqueror          301         NaN
+
+        Or we can use "axis-style" keyword arguments
+
+        >>> df.reindex(["http_status", "user_agent"], axis="columns")
+                   http_status  user_agent
+        Firefox            200         NaN
+        Chrome             200         NaN
+        Safari             404         NaN
+        IE10               404         NaN
+        Konqueror          301         NaN
+
+        To further illustrate the filling functionality in
+        ``reindex``, we will create a DataFrame with a
+        monotonically increasing index (for example, a sequence
+        of dates).
+
+        >>> date_index = pd.date_range("1/1/2010", periods=6, freq="D")
+        >>> df2 = pd.DataFrame(
+        ...     {{"prices": [100, 101, np.nan, 100, 89, 88]}}, index=date_index
+        ... )
+        >>> df2
+                    prices
+        2010-01-01   100.0
+        2010-01-02   101.0
+        2010-01-03     NaN
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
+
+        Suppose we decide to expand the DataFrame to cover a wider
+        date range.
+
+        >>> date_index2 = pd.date_range("12/29/2009", periods=10, freq="D")
+        >>> df2.reindex(date_index2)
+                    prices
+        2009-12-29     NaN
+        2009-12-30     NaN
+        2009-12-31     NaN
+        2010-01-01   100.0
+        2010-01-02   101.0
+        2010-01-03     NaN
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
+        2010-01-07     NaN
+
+        The index entries that did not have a value in the original data frame
+        (for example, '2009-12-29') are by default filled with ``NaN``.
+        If desired, we can fill in the missing values using one of several
+        options.
+
+        For example, to back-propagate the last valid value to fill the ``NaN``
+        values, pass ``bfill`` as an argument to the ``method`` keyword.
+
+        >>> df2.reindex(date_index2, method="bfill")
+                    prices
+        2009-12-29   100.0
+        2009-12-30   100.0
+        2009-12-31   100.0
+        2010-01-01   100.0
+        2010-01-02   101.0
+        2010-01-03     NaN
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
+        2010-01-07     NaN
+
+        Please note that the ``NaN`` value present in the original DataFrame
+        (at index value 2010-01-03) will not be filled by any of the
+        value propagation schemes. This is because filling while reindexing
+        does not look at DataFrame values, but only compares the original and
+        desired indexes. If you do want to fill in the ``NaN`` values present
+        in the original DataFrame, use the ``fillna()`` method.
+
+        See the :ref:`user guide <basics.reindexing>` for more.
+        """
         return super().reindex(
             index=index,
             method=method,
@@ -5203,7 +5642,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return super().pop(item=item)
 
-    @doc(INFO_DOCSTRING, **series_sub_kwargs)
     def info(
         self,
         verbose: bool | None = None,
@@ -5212,6 +5650,116 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         memory_usage: bool | str | None = None,
         show_counts: bool = True,
     ) -> None:
+        """
+        Print a concise summary of a Series.
+
+        This method prints information about a Series including
+        the index dtype, non-NA values and memory usage.
+
+        .. versionadded:: 1.4.0
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            Whether to print the full summary. By default, the setting in
+            ``pandas.options.display.max_info_columns`` is followed.
+        buf : writable buffer, defaults to sys.stdout
+            Where to send the output. By default, the output is printed to
+            sys.stdout. Pass a writable buffer if you need to further process
+            the output.
+        max_cols : int, optional
+            Unused, exists only for compatibility with DataFrame.info.
+        memory_usage : bool, str, optional
+            Specifies whether total memory usage of the Series
+            elements (including the index) should be displayed. By default,
+            this follows the ``pandas.options.display.memory_usage`` setting.
+
+            True always show memory usage. False never shows memory usage.
+            A value of 'deep' is equivalent to "True with deep introspection".
+            Memory usage is shown in human-readable units (base-2
+            representation). Without deep introspection a memory estimation is
+            made based in column dtype and number of rows assuming values
+            consume the same memory amount for corresponding dtypes. With deep
+            memory introspection, a real memory usage calculation is performed
+            at the cost of computational resources. See the
+            :ref:`Frequently Asked Questions <df-memory-usage>` for more
+            details.
+        show_counts : bool, optional
+            Whether to show the non-null counts. By default, this is shown
+            only if the DataFrame is smaller than
+            ``pandas.options.display.max_info_rows`` and
+            ``pandas.options.display.max_info_columns``. A value of True always
+            shows the counts, and False never shows the counts.
+
+        Returns
+        -------
+        None
+            This method prints a summary of a Series and returns None.
+
+        See Also
+        --------
+        Series.describe: Generate descriptive statistics of Series.
+        Series.memory_usage: Memory usage of Series.
+
+        Examples
+        --------
+        >>> int_values = [1, 2, 3, 4, 5]
+        >>> text_values = ["alpha", "beta", "gamma", "delta", "epsilon"]
+        >>> s = pd.Series(text_values, index=int_values)
+        >>> s.info()
+        <class 'pandas.Series'>
+        Index: 5 entries, 1 to 5
+        Series name: None
+        Non-Null Count  Dtype
+        --------------  -----
+        5 non-null      object
+        dtypes: object(1)
+        memory usage: 80.0+ bytes
+
+        Prints a summary excluding information about its values:
+
+        >>> s.info(verbose=False)
+        <class 'pandas.Series'>
+        Index: 5 entries, 1 to 5
+        dtypes: object(1)
+        memory usage: 80.0+ bytes
+
+        Pipe output of Series.info to buffer instead of sys.stdout, get
+        buffer content and writes to a text file:
+
+        >>> import io
+        >>> buffer = io.StringIO()
+        >>> s.info(buf=buffer)
+        >>> s = buffer.getvalue()
+        >>> with open("df_info.txt", "w", encoding="utf-8") as f:  # doctest: +SKIP
+        ...     f.write(s)
+        260
+
+        The `memory_usage` parameter allows deep introspection mode, specially
+        useful for big Series and fine-tune memory optimization:
+
+        >>> random_strings_array = np.random.choice(["a", "b", "c"], 10**6)
+        >>> s = pd.Series(np.random.choice(["a", "b", "c"], 10**6))
+        >>> s.info()
+        <class 'pandas.Series'>
+        RangeIndex: 1000000 entries, 0 to 999999
+        Series name: None
+        Non-Null Count    Dtype
+        --------------    -----
+        1000000 non-null  object
+        dtypes: object(1)
+        memory usage: 7.6+ MB
+
+        >>> s.info(memory_usage="deep")
+        <class 'pandas.Series'>
+        RangeIndex: 1000000 entries, 0 to 999999
+        Series name: None
+        Non-Null Count    Dtype
+        --------------    -----
+        1000000 non-null  object
+        dtypes: object(1)
+        memory usage: 55.3 MB
+        """
         return SeriesInfo(self, memory_usage).render(
             buf=buf,
             max_cols=max_cols,
@@ -5566,8 +6114,72 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return default
 
     # error: Cannot determine type of 'isna'
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def isna(self) -> Series:
+        """
+        Detect missing values.
+
+        Return a boolean same-sized object indicating if the values are NA.
+        NA values, such as None or :attr:`numpy.NaN`, gets mapped to True
+        values.
+        Everything else gets mapped to False values. Characters such as empty
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
+
+        Returns
+        -------
+        Series
+            Mask of bool values for each element in Series that
+            indicates whether an element is an NA value.
+
+        See Also
+        --------
+        Series.isnull : Alias of isna.
+        Series.notna : Boolean inverse of isna.
+        Series.dropna : Omit axes labels with missing values.
+        isna : Top-level isna.
+
+        Examples
+        --------
+        Show which entries in a DataFrame are NA.
+
+        >>> df = pd.DataFrame(
+        ...     dict(
+        ...         age=[5, 6, np.nan],
+        ...         born=[
+        ...             pd.NaT,
+        ...             pd.Timestamp("1939-05-27"),
+        ...             pd.Timestamp("1940-04-25"),
+        ...         ],
+        ...         name=["Alfred", "Batman", ""],
+        ...         toy=[None, "Batmobile", "Joker"],
+        ...     )
+        ... )
+        >>> df
+           age       born    name        toy
+        0  5.0        NaT  Alfred        NaN
+        1  6.0 1939-05-27  Batman  Batmobile
+        2  NaN 1940-04-25              Joker
+
+        >>> df.isna()
+             age   born   name    toy
+        0  False   True  False   True
+        1  False  False  False  False
+        2   True  False  False  False
+
+        Show which entries in a Series are NA.
+
+        >>> ser = pd.Series([5, 6, np.nan])
+        >>> ser
+        0    5.0
+        1    6.0
+        2    NaN
+        dtype: float64
+
+        >>> ser.isna()
+        0    False
+        1    False
+        2     True
+        dtype: bool
+        """
         return NDFrame.isna(self)
 
     # error: Cannot determine type of 'isna'
@@ -5579,8 +6191,72 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return super().isnull()
 
     # error: Cannot determine type of 'notna'
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
     def notna(self) -> Series:
+        """
+        Detect existing (non-missing) values.
+
+        Return a boolean same-sized object indicating if the values are not NA.
+        Non-missing values get mapped to True. Characters such as empty
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
+        NA values, such as None or :attr:`numpy.NaN`, get mapped to False
+        values.
+
+        Returns
+        -------
+        Series
+            Mask of bool values for each element in Series that
+            indicates whether an element is not an NA value.
+
+        See Also
+        --------
+        Series.notnull : Alias of notna.
+        Series.isna : Boolean inverse of notna.
+        Series.dropna : Omit axes labels with missing values.
+        notna : Top-level notna.
+
+        Examples
+        --------
+        Show which entries in a DataFrame are not NA.
+
+        >>> df = pd.DataFrame(
+        ...     dict(
+        ...         age=[5, 6, np.nan],
+        ...         born=[
+        ...             pd.NaT,
+        ...             pd.Timestamp("1939-05-27"),
+        ...             pd.Timestamp("1940-04-25"),
+        ...         ],
+        ...         name=["Alfred", "Batman", ""],
+        ...         toy=[None, "Batmobile", "Joker"],
+        ...     )
+        ... )
+        >>> df
+           age       born    name        toy
+        0  5.0        NaT  Alfred        NaN
+        1  6.0 1939-05-27  Batman  Batmobile
+        2  NaN 1940-04-25              Joker
+
+        >>> df.notna()
+             age   born  name    toy
+        0   True  False  True  False
+        1   True   True  True   True
+        2  False   True  True   True
+
+        Show which entries in a Series are not NA.
+
+        >>> ser = pd.Series([5, 6, np.nan])
+        >>> ser
+        0    5.0
+        1    6.0
+        2    NaN
+        dtype: float64
+
+        >>> ser.notna()
+        0     True
+        1     True
+        2    False
+        dtype: bool
+        """
         return super().notna()
 
     # error: Cannot determine type of 'notna'
