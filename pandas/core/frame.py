@@ -194,7 +194,10 @@ from pandas.core.sorting import (
     nargsort,
 )
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    dedup_names,
+    get_handle,
+)
 from pandas.io.formats import (
     console,
     format as fmt,
@@ -9026,7 +9029,7 @@ class DataFrame(NDFrame, OpsMixin):
         2  NaN  3.0 1.0
         """
         other_idxlen = len(other.index)  # save for compare
-        other_columns = other.columns
+        self_columns, other_columns = self.columns, other.columns
 
         this, other = self.align(other)
         new_index = this.index
@@ -9037,19 +9040,17 @@ class DataFrame(NDFrame, OpsMixin):
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
-        def rename_duplicates(columns: Index) -> Index:
-            seen = {}
-            for col in columns:
-                if col in seen:
-                    col = col + f".{seen[col]}"
-                seen[col] = seen.get(col, 0) + 1
-            return columns
-
         new_columns_out = self.columns.union(other_columns, sort=False)
-        self_columns, other_columns = (
-            rename_duplicates(self.columns),
-            rename_duplicates(other_columns),
+        # Deduplicate column names if necessary
+        self_columns = Index(dedup_names(self_columns, False), dtype=self_columns.dtype)
+        other_columns = Index(
+            dedup_names(other_columns, False), dtype=other_columns.dtype
         )
+        this.columns = Index(dedup_names(this.columns, False), dtype=this.columns.dtype)
+        other.columns = Index(
+            dedup_names(other.columns, False), dtype=other.columns.dtype
+        )
+
         # preserve column order
         new_columns_unique = self_columns.union(other_columns, sort=False)
         do_fill = fill_value is not None
