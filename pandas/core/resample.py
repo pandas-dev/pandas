@@ -2642,7 +2642,7 @@ class TimeGrouper(Grouper):
                 edges_dti = binner.tz_localize(None)
                 edges_dti = (
                     edges_dti
-                    + Timedelta(days=1, unit=edges_dti.unit).as_unit(edges_dti.unit)
+                    + Timedelta(days=1).as_unit(edges_dti.unit)
                     - Timedelta(1, unit=edges_dti.unit).as_unit(edges_dti.unit)
                 )
                 bin_edges = edges_dti.tz_localize(binner.tz).asi8
