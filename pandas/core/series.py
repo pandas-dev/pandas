@@ -6183,7 +6183,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return NDFrame.isna(self)
 
     # error: Cannot determine type of 'isna'
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> Series:
         """
         Series.isnull is an alias for Series.isna.
@@ -6260,7 +6260,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return super().notna()
 
     # error: Cannot determine type of 'notna'
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self) -> Series:
         """
         Series.notnull is an alias for Series.notna.
@@ -6738,7 +6738,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(other, Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
-        elif isinstance(other, (np.ndarray, list, tuple)):
+        elif isinstance(other, (np.ndarray, list, tuple, ExtensionArray)):
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index, copy=False)
