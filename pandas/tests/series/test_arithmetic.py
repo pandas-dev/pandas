@@ -160,6 +160,28 @@ class TestSeriesFlexArithmetic:
         # should accept axis=0 or axis='rows'
         op(a, b, axis=0)
 
+    @pytest.mark.parametrize("kind", ["datetime", "timedelta"])
+    def test_rhs_extension_array_sub_with_fill_value(self, kind):
+        # GH:62467
+        if kind == "datetime":
+            left = Series(
+                [pd.Timestamp("2025-08-20"), pd.Timestamp("2025-08-21")],
+                dtype=np.dtype("datetime64[ns]"),
+            )
+        else:
+            left = Series(
+                [Timedelta(days=1), Timedelta(days=2)],
+                dtype=np.dtype("timedelta64[ns]"),
+            )
+
+        right = (
+            left._values
+        )  # DatetimeArray or TimedeltaArray which is an ExtensionArray
+
+        result = left.sub(right, fill_value=left.iloc[0])
+        expected = Series(np.zeros(len(left), dtype=np.dtype("timedelta64[ns]")))
+        tm.assert_series_equal(result, expected)
+
     def test_flex_disallows_dataframe(self):
         # GH#46179
         df = pd.DataFrame(
@@ -428,6 +450,22 @@ class TestSeriesFlexComparison:
         right = Series([2, 2, 2], index=list("bcd"))
         result = getattr(left, op)(right)
         expected = Series(values, index=list("abcd"))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "left",
+        [
+            Series(Categorical(["a", "b", "a"])),
+            Series(pd.period_range("2020Q1", periods=3, freq="Q")),
+        ],
+        ids=["categorical", "period"],
+    )
+    def test_rhs_extension_array_eq_with_fill_value(self, left):
+        # GH:#62467
+        right = left._values  # this is an ExtensionArray
+
+        result = left.eq(right, fill_value=left.iloc[0])
+        expected = Series([True, True, True])
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
