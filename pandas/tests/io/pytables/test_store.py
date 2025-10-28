@@ -48,8 +48,8 @@ def test_context(tmp_path):
             raise ValueError("blah")
     except ValueError:
         pass
-    
-    path2 = tmp_path / "test2.h5" 
+
+    path2 = tmp_path / "test2.h5"
     with HDFStore(path2) as tbl:
         tbl["a"] = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
