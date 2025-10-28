@@ -1,12 +1,9 @@
 """
 Unit Testing II - Mocking & Stubbing: DateTime Operations
-Student: Malikarjuna
-Requirement: FR-6 - Intelligent time-series functionality (resampling, rolling, frequency conversion)
+Malikarjuna
+Requirement:  Intelligent time-series functionality (resampling, rolling, frequency conversion)
 
-This module tests pandas time-series operations using mocks to control
-time-dependent behavior and avoid relying on system clock.
 
-Following pandas test conventions: using pytest-style tests with monkeypatch.
 """
 
 import pytest
@@ -22,8 +19,7 @@ class TestDateTimeOperationsMocking:
         """
         Test current timestamp creation with controlled time
         
-        Rationale: System clock is non-deterministic; mocking ensures
-        reproducible test results
+        
         """
         # Setup: Fix current time to specific moment
         fixed_time = pd.Timestamp('2024-01-15 12:00:00')
@@ -46,11 +42,10 @@ class TestDateTimeOperationsMocking:
         """
         Test date range generation for time-series
         
-        Test Oracle (FR-6): Creating a date range for 365 days at daily frequency
+        Test Oracle : Creating a date range for 365 days at daily frequency
         should produce exactly 365 timestamps
         
-        Rationale: Date range generation can be tested without waiting for
-        actual date calculations
+        
         """
         # Setup: Mock date range
         expected_dates = pd.date_range('2023-01-01', periods=365, freq='D')
@@ -76,8 +71,7 @@ class TestDateTimeOperationsMocking:
         """
         Test time-series resampling operation (FR-6)
         
-        Rationale: Resampling is core time-series operation; mocking allows
-        testing without actual aggregation computation
+        
         """
         # Setup: Create time-series data
         dates = pd.date_range('2023-01-01', periods=100, freq='h')
@@ -112,11 +106,10 @@ class TestDateTimeOperationsMocking:
         """
         Test rolling window calculations (FR-6)
         
-        Test Oracle (FR-6): Rolling mean with window=7 on 30-day data should
+        Test Oracle: Rolling mean with window=7 on 30-day data should
         produce 30 values with first 6 as NaN
         
-        Rationale: Rolling operations are computationally intensive; mocking
-        tests logic without actual window calculations
+       
         """
         # Setup: Time-series data
         dates = pd.date_range('2023-01-01', periods=30, freq='D')
@@ -152,8 +145,7 @@ class TestDateTimeOperationsMocking:
         """
         Test datetime string parsing with custom format
         
-        Rationale: Datetime parsing depends on locale/timezone; mocking
-        ensures consistent parsing behavior
+    
         """
         # Setup: Mock parsing of custom date format
         date_strings = ['2023-01-15', '2023-02-20', '2023-03-25']

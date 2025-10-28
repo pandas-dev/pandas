@@ -1,13 +1,9 @@
 """
 Unit Testing II - Mocking & Stubbing: File System I/O Operations
-Student: Sandeep
-Requirement: FR-5 - Loading data from flat files (CSV, Excel, HDF5)
+Sandeep
+Requirement:  Loading data from flat files (CSV, Excel, HDF5)
 
-This module tests pandas file I/O functionality using mocks to avoid
-requiring actual file system operations. Tests verify pandas correctly handles
-file parsing without creating real files.
 
-Following pandas test conventions: using pytest-style tests with monkeypatch.
 """
 
 import pytest
@@ -25,8 +21,7 @@ class TestFileSystemIOMocking:
         Test Oracle (FR-5): Reading a CSV file containing 100 rows and 5 columns
         should create a DataFrame with 100 rows and 5 columns
         
-        Rationale: File I/O is slow; mocking allows testing CSV parsing logic
-        without actual file creation
+    
         """
         # Setup: Mock CSV data (100 rows, 5 columns)
         expected_data = pd.DataFrame({
@@ -53,8 +48,7 @@ class TestFileSystemIOMocking:
         """
         Test CSV read with custom delimiter (tab-separated, pipe-separated)
         
-        Rationale: Delimited files come in various formats; verify pandas
-        handles custom delimiters correctly
+    
         """
         # Setup: Mock TSV data
         tsv_data = pd.DataFrame({
@@ -81,8 +75,7 @@ class TestFileSystemIOMocking:
         """
         Test Excel file read operation
         
-        Rationale: Excel files require xlrd/openpyxl; mocking avoids
-        dependency on external libraries
+    
         """
         # Setup: Mock Excel data
         excel_data = pd.DataFrame({
@@ -110,8 +103,7 @@ class TestFileSystemIOMocking:
         
         Test Oracle (NFR-3): System should load data using ultrafast HDF5 format
         
-        Rationale: HDF5 format is for high-performance storage; verify
-        pandas handles HDF5 correctly without requiring pytables
+
         """
         # Setup: Mock HDF5 data
         hdf_data = pd.DataFrame({
@@ -137,8 +129,6 @@ class TestFileSystemIOMocking:
         """
         Test error handling when CSV file doesn't exist
         
-        Rationale: File not found is common error; pandas should handle
-        with clear error message
         """
         # Setup: Mock to raise FileNotFoundError
         def mock_read_csv(filepath, **kwargs):
