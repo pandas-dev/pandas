@@ -808,7 +808,7 @@ def test_exceptions_thrown_from_custom_hash_and_eq_methods(
             return self.value == other.value
 
         def __repr__(self):
-            return f"{self.__class__.__name__}({self.value}, {self.throw_hash}, {self.throw_eq})"
+            return f"testkey({self.value}, {self.throw_hash}, {self.throw_eq})"
 
     table = ht.PyObjectHashTable()
 
