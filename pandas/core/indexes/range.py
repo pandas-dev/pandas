@@ -94,7 +94,7 @@ class RangeIndex(Index):
         The end value of the range (exclusive).
     step : int, default None
         The step size of the range.
-    dtype : np.int64
+    dtype : np.int64, default None
         Unused, accepted for homogeneity with other index types.
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
