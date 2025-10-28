@@ -1305,6 +1305,14 @@ class TestCustomDateRange:
         )
         tm.assert_index_equal(result, expected)
 
+    def test_cdaterange_deprecated_error_CBH(self):
+        # GH#62849
+        msg = "invalid custom frequency string: CBH, did you mean cbh?"
+        with pytest.raises(ValueError, match=msg):
+            bdate_range(
+                START, END, freq="CBH", weekmask="Mon Wed Fri", holidays=["2009-03-14"]
+            )
+
 
 class TestDateRangeNonNano:
     def test_date_range_reso_validation(self):
