@@ -1914,13 +1914,15 @@ class DataFrame(NDFrame, OpsMixin):
         orient = orient.lower()  # type: ignore[assignment]
         if orient == "index":
             if len(data) > 0:
-                index = list(data.keys())
                 # TODO speed up Series case
                 if isinstance(next(iter(data.values())), (Series, dict)):
+                    original_keys = list(data.keys())
                     data = _from_nested_dict(data)
                     if not data and columns is None:
                         columns = []
+                        index = original_keys
                 else:
+                    index = list(data.keys())
                     # error: Incompatible types in assignment (expression has type
                     # "List[Any]", variable has type "Dict[Any, Any]")
                     data = list(data.values())  # type: ignore[assignment]
@@ -14411,8 +14413,8 @@ class DataFrame(NDFrame, OpsMixin):
 
 def _from_nested_dict(
     data: Mapping[HashableT, Mapping[HashableT2, T]],
-) -> collections.defaultdict[HashableT2, dict[HashableT, T]]:
-    new_data: collections.defaultdict[HashableT2, dict[HashableT, T]] = (
+) -> collections.defaultdict[HashableT2, dict[HashableT, Any]]:
+    new_data: collections.defaultdict[HashableT2, dict[HashableT, Any]] = (
         collections.defaultdict(dict)
     )
     all_cols_dict = {}
