@@ -625,14 +625,17 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
             s = start[i]
             e = end[i]
 
+            # Over the first window, observations can only be added
+            # never removed
             requires_recompute = (
-                i == 0
-                or not is_monotonic_increasing_bounds
-                or s >= end[i - 1]
-                or numerically_unstable
+                    i == 0
+                    or not is_monotonic_increasing_bounds
+                    or s >= end[i - 1]
             )
 
             if not requires_recompute:
+                # After the first window, observations can both be added
+                # and removed
                 # calculate deletes
                 for j in range(start[i - 1], s):
                     val = values[j]
