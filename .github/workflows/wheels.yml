@@ -64,7 +64,7 @@ jobs:
           python -m pip install build
           python -m build --sdist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: sdist
           path: ./dist/*
@@ -138,7 +138,7 @@ jobs:
       # removes unnecessary files from the release
       - name: Download sdist (not macOS)
         #if: ${{ matrix.buildplat[1] != 'macosx_*' }}
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: sdist
           path: ./dist
@@ -196,7 +196,7 @@ jobs:
         shell: bash -el {0}
         run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           path: ./wheelhouse/*.whl
@@ -238,11 +238,11 @@ jobs:
 
     steps:
       - name: Download all artefacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           path: dist          # everything lands in ./dist/**
 
-      # TODO: This step can be probably be achieved by actions/download-artifact@v5
+      # TODO: This step can be probably be achieved by actions/download-artifact@v6
       # by specifying merge-multiple: true, and a glob pattern
       - name: Collect files
         run: |
