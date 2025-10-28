@@ -1914,11 +1914,13 @@ class DataFrame(NDFrame, OpsMixin):
         orient = orient.lower()  # type: ignore[assignment]
         if orient == "index":
             if len(data) > 0:
+                index = list(data.keys())
                 # TODO speed up Series case
                 if isinstance(next(iter(data.values())), (Series, dict)):
                     data = _from_nested_dict(data)
+                    if not data and columns is None:
+                        columns = []
                 else:
-                    index = list(data.keys())
                     # error: Incompatible types in assignment (expression has type
                     # "List[Any]", variable has type "Dict[Any, Any]")
                     data = list(data.values())  # type: ignore[assignment]
@@ -14413,9 +14415,22 @@ def _from_nested_dict(
     new_data: collections.defaultdict[HashableT2, dict[HashableT, T]] = (
         collections.defaultdict(dict)
     )
+    all_cols_dict = {}
+    for s in data.values():
+        if isinstance(s, (dict, ABCSeries)):
+            all_cols_dict.update(dict.fromkeys(s.keys()))
+    all_cols_list = list(all_cols_dict.keys())
+    if not all_cols_list:
+        return new_data
     for index, s in data.items():
-        for col, v in s.items():
-            new_data[col][index] = v
+        if isinstance(s, (dict, ABCSeries)):
+            for col in all_cols_list:
+                new_data[col][index] = s.get(col, None)
+        elif s is None or is_scalar(s):
+            for col in all_cols_list:
+                new_data[col][index] = s
+        else:
+            raise TypeError(f"Value at index {index} is not a dict/Series/scalar/None")
     return new_data
 
 

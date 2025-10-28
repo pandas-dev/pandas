@@ -2649,6 +2649,48 @@ class TestDataFrameConstructors:
         with pytest.raises(ValueError, match=msg):
             DataFrame({"a": col_a, "b": col_b})
 
+    @pytest.mark.parametrize(
+        "data, expected",
+        [
+            (
+                {
+                    "good": Series({"a": 1, "b": 2}),
+                    "blank": Series(dtype="float64"),
+                },
+                DataFrame(
+                    {"a": [1.0, np.nan], "b": [2.0, np.nan]}, index=["good", "blank"]
+                ),
+            ),
+            (
+                {
+                    "blank": Series(dtype="float64"),
+                    "good": Series({"a": 1, "b": 2}),
+                },
+                DataFrame(
+                    {"a": [np.nan, 1.0], "b": [np.nan, 2.0]}, index=["blank", "good"]
+                ),
+            ),
+            (
+                {"blank": Series(dtype="float64")},
+                DataFrame(index=["blank"], columns=[]),
+            ),
+            (
+                {
+                    "good": Series({"a": 1, "b": 2}),
+                    "blank_dict": {},
+                },
+                DataFrame(
+                    {"a": [1.0, np.nan], "b": [2.0, np.nan]},
+                    index=["good", "blank_dict"],
+                ),
+            ),
+        ],
+    )
+    def test_from_dict_orient_index_empty_series_or_dict(self, data, expected):
+        # GH-62775
+        result = DataFrame.from_dict(data, orient="index")
+        tm.assert_frame_equal(result, expected)
+
     def test_from_dict_with_missing_copy_false(self):
         # GH#45369 filled columns should not be views of one another
         df = DataFrame(index=[1, 2, 3], columns=["a", "b", "c"], copy=False)
