@@ -10,13 +10,13 @@ from __future__ import annotations
 
 from collections import abc
 from collections.abc import Callable
+import dataclasses
 from functools import partial
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    Self,
     TypeAlias,
     TypeVar,
     cast,
@@ -113,11 +113,10 @@ ScalarResult = TypeVar("ScalarResult")
 
 
 @set_module("pandas")
-class NamedAgg(tuple):
+@dataclasses.dataclass
+class NamedAgg:
     """
     Helper for column specific aggregation with control over output column names.
-
-    Subclass of tuple.
 
     Parameters
     ----------
@@ -164,32 +163,32 @@ class NamedAgg(tuple):
 
     column: Hashable
     aggfunc: AggScalar
+    args: tuple[Any, ...] = dataclasses.field(default_factory=tuple)
+    kwargs: dict[str, Any] = dataclasses.field(default_factory=dict)
 
-    __slots__ = ()
-
-    def __new__(
-        cls,
+    def __init__(
+        self,
         column: Hashable,
         aggfunc: Callable[..., Any] | str,
         *args: Any,
         **kwargs: Any,
-    ) -> Self:
-        if (
-            callable(aggfunc)
-            and not getattr(aggfunc, "_is_wrapped", False)
-            and (args or kwargs)
-        ):
-            original_func = aggfunc
+    ) -> None:
+        self.column = column
+        self.aggfunc = aggfunc
+        self.args = args
+        self.kwargs = kwargs
 
-            def wrapped(*call_args: Any, **call_kwargs: Any) -> Any:
-                series = call_args[0]
-                final_args = call_args[1:] + args
-                final_kwargs = {**kwargs, **call_kwargs}
-                return original_func(series, *final_args, **final_kwargs)
-
-            wrapped._is_wrapped = True  # type: ignore[attr-defined]
-            aggfunc = wrapped
-        return super().__new__(cls, (column, aggfunc))
+    def __getitem__(self, key: int) -> Any:
+        """Provide backward-compatible tuple-style access."""
+        if key == 0:
+            return self.column
+        elif key == 1:
+            return self.aggfunc
+        elif key == 2:
+            return self.args
+        elif key == 3:
+            return self.kwargs
+        raise IndexError("index out of range")
 
 
 @set_module("pandas.api.typing")
