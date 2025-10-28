@@ -643,7 +643,7 @@ def test_close_on_error():
 @pytest.mark.parametrize("compression", [None, "infer"])
 def test_read_csv_chained_url_no_error(compression):
     # GH 60100
-    tar_file_path = "data/tar/test-csv.tar"
+    tar_file_path = "pandas/tests/io/data/tar/test-csv.tar"
     chained_file_url = f"tar://test.csv::file://{tar_file_path}"
 
     result = pd.read_csv(chained_file_url, compression=compression, sep=";")
