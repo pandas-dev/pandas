@@ -244,9 +244,6 @@ def test_mul(any_string_dtype):
 
 def test_add_strings(any_string_dtype, request):
     dtype = any_string_dtype
-    if dtype != np.dtype(object):
-        mark = pytest.mark.xfail(reason="GH-28527")
-        request.applymarker(mark)
     arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
     df = pd.DataFrame([["t", "y", "v", "w"]], dtype=object)
     assert arr.__add__(df) is NotImplemented
@@ -261,10 +258,15 @@ def test_add_strings(any_string_dtype, request):
 
 
 @pytest.mark.xfail(reason="GH-28527")
-def test_add_frame(dtype):
+def test_add_frame(request, dtype):
+    if dtype.storage == "python":
+        # Inconsistent behavior between different versions of the python engine.
+        # Some return correctly, some return but with the wrong dtype
+        # Others just fail, we are blanket failing all
+        mark = pytest.mark.xfail(reason="[XPASS(strict)] GH-28527")
+        request.node.applymarker(mark)
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
-
     assert arr.__add__(df) is NotImplemented
 
     result = arr + df
