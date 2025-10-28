@@ -2864,7 +2864,7 @@ class MultiIndex(Index):
 
         if all(val is None for val in value):
             new_level = Index([], dtype="object")
-            new_codes = [-1] * len(value)
+            new_codes = np.full(len(value), -1, dtype=np.intp)
         else:
             new_codes, new_level = factorize_from_iterable(value)
 
