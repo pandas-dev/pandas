@@ -941,12 +941,10 @@ def value_counts_internal(
                 bins is None
                 and not sort
                 and isinstance(values, (DatetimeIndex, TimedeltaIndex))
-                and values.inferred_freq is not None
-                and len(idx) == len(values)
                 and idx.equals(values)
+                and values.inferred_freq is not None
             ):
-                # freq preservation
-                # Rebuild idx with the correct type and inferred frequency
+                # Preserve freq of original index
                 idx.freq = values.inferred_freq  # type: ignore[attr-defined]
 
             result = Series(counts, index=idx, name=name, copy=False)

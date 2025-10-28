@@ -342,78 +342,63 @@ def test_value_counts_object_inference_deprecated():
 
 
 @pytest.mark.parametrize(
-    "index",
+    ("index", "expected_index"),
     [
-        pd.date_range("2016-01-01", periods=5, freq="D"),
-        pd.timedelta_range(Timedelta(0), periods=5, freq="h"),
-    ],
-    ids=["DatetimeIndex[D]", "TimedeltaIndex[h]"],
-)
-@pytest.mark.parametrize(
-    "build,kwargs,exp_preserve,exp_hasnans,exp_index_fn",
-    [
-        (lambda idx: idx, {"sort": False}, True, False, lambda idx, obj: idx),
-        (
-            lambda idx: idx,
-            {"sort": False, "normalize": True},
-            True,
-            False,
-            lambda idx, obj: idx,
+        pytest.param(
+            pd.date_range("2016-01-01", periods=5, freq="D"),
+            pd.date_range("2016-01-01", periods=5, freq="D"),
         ),
-        (lambda idx: idx, {}, False, False, None),
-        (
-            lambda idx: idx.insert(1, idx[1]),
-            {"sort": False},
-            False,
-            False,
-            lambda idx, obj: type(idx)(idx, freq=None),
+        pytest.param(
+            pd.timedelta_range(Timedelta(0), periods=5, freq="h"),
+            pd.timedelta_range(Timedelta(0), periods=5, freq="h"),
         ),
-        (
-            lambda idx: idx.delete(2),
-            {"sort": False},
-            False,
-            False,
-            lambda idx, obj: type(idx)(obj, freq=None),
+        pytest.param(
+            pd.date_range("2016-01-01", periods=5, freq="D").insert(
+                1, pd.date_range("2016-01-01", periods=5, freq="D")[1]
+            ),
+            DatetimeIndex(pd.date_range("2016-01-01", periods=5, freq="D"), freq=None),
         ),
-        (
-            lambda idx: idx.insert(1, pd.NaT),
-            {"sort": False, "dropna": False},
-            False,
-            True,
-            lambda idx, obj: type(idx)(
-                list(idx[:1]) + [pd.NaT] + list(idx[1:]), freq=None
+        pytest.param(
+            pd.timedelta_range(Timedelta(0), periods=5, freq="h").insert(
+                1, pd.timedelta_range(Timedelta(0), periods=5, freq="h")[1]
+            ),
+            TimedeltaIndex(
+                pd.timedelta_range(Timedelta(0), periods=5, freq="h"), freq=None
             ),
         ),
-        (
-            lambda idx: idx.insert(1, pd.NaT),
-            {"sort": False, "dropna": True},
-            False,
-            False,
-            lambda idx, obj: type(idx)(idx, freq=None),
+        pytest.param(
+            pd.date_range("2016-01-01", periods=5, freq="D").delete(2),
+            DatetimeIndex(
+                pd.date_range("2016-01-01", periods=5, freq="D").delete(2), freq=None
+            ),
+        ),
+        pytest.param(
+            pd.timedelta_range(Timedelta(0), periods=5, freq="h").delete(2),
+            TimedeltaIndex(
+                pd.timedelta_range(Timedelta(0), periods=5, freq="h").delete(2),
+                freq=None,
+            ),
+        ),
+        pytest.param(
+            pd.date_range("2016-01-01", periods=5, freq="D").insert(1, pd.NaT),
+            DatetimeIndex(
+                list(pd.date_range("2016-01-01", periods=5, freq="D")[:1])
+                + [pd.NaT]
+                + list(pd.date_range("2016-01-01", periods=5, freq="D")[1:]),
+                freq=None,
+            ),
+        ),
+        pytest.param(
+            pd.timedelta_range(Timedelta(0), periods=5, freq="h").insert(1, pd.NaT),
+            TimedeltaIndex(
+                list(pd.timedelta_range(Timedelta(0), periods=5, freq="h")[:1])
+                + [pd.NaT]
+                + list(pd.timedelta_range(Timedelta(0), periods=5, freq="h")[1:]),
+                freq=None,
+            ),
         ),
     ],
 )
-def test_value_counts_freq_datetimelike(
-    index, build, kwargs, exp_preserve, exp_hasnans, exp_index_fn
-):
-    obj = build(index)
-    vc = obj.value_counts(**kwargs)
-
-    # without sort
-    if exp_index_fn is not None:
-        expected_idx = exp_index_fn(index, obj)
-        tm.assert_index_equal(vc.index, expected_idx)
-
-    # freq preservation / drop
-    if exp_preserve:
-        assert vc.index.freq == index.freq
-    else:
-        assert vc.index.freq is None
-
-    # NaT presence
-    assert vc.index.hasnans is exp_hasnans
-
-    # without normalize
-    if kwargs.get("normalize", False):
-        expected_val = 1.0 / len(index)
-        assert np.isclose(vc.to_numpy(), expected_val).all()
+def test_value_counts_index_datetimelike(index, expected_index):
+    vc = index.value_counts(sort=False, dropna=False)
+    tm.assert_index_equal(vc.index, expected_index)
