@@ -137,9 +137,8 @@ We could naturally group by either the ``A`` or ``B`` columns, or both:
 
    ``df.groupby('A')`` is just syntactic sugar for ``df.groupby(df['A'])``.
 
-The above GroupBy will split the DataFrame on its index (rows). DataFrame groupby
-always operates along axis 0 (rows). To split by columns instead, first transpose
-the DataFrame:
+DataFrame groupby always operates along axis 0 (rows). To split by columns, first do
+a transpose:
 
 .. ipython::
 
@@ -151,11 +150,6 @@ the DataFrame:
        ...:
 
     In [5]: grouped = df.T.groupby(get_letter_type)
-
-.. note::
-
-   Prior to pandas 3.0, groupby had an ``axis`` parameter. This has been removed.
-   To group by columns, transpose your DataFrame using ``.T`` before calling groupby.
 
 pandas :class:`~pandas.Index` objects support duplicate values. If a
 non-unique index is used as the group key in a groupby operation, all values
