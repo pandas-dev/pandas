@@ -42,7 +42,6 @@ tables = pytest.importorskip("tables")
 
 
 def test_context(setup_path, tmp_path):
-    
     try:
         with HDFStore(tmp_path / setup_path) as tbl:
             raise ValueError("blah")
