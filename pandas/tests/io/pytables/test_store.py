@@ -41,22 +41,23 @@ pytestmark = [pytest.mark.single_cpu]
 tables = pytest.importorskip("tables")
 
 
-def test_context(setup_path):
-    with tm.ensure_clean(setup_path) as path:
-        try:
-            with HDFStore(path) as tbl:
-                raise ValueError("blah")
-        except ValueError:
-            pass
-    with tm.ensure_clean(setup_path) as path:
-        with HDFStore(path) as tbl:
-            tbl["a"] = DataFrame(
-                1.1 * np.arange(120).reshape((30, 4)),
-                columns=Index(list("ABCD"), dtype=object),
-                index=Index([f"i-{i}" for i in range(30)], dtype=object),
-            )
-            assert len(tbl) == 1
-            assert type(tbl["a"]) == DataFrame
+def test_context(tmp_path):
+    path1 = tmp_path / "test1.h5"
+    try:
+        with HDFStore(path1) as tbl:
+            raise ValueError("blah")
+    except ValueError:
+        pass
+
+    path2 = tmp_path / "test2.h5"
+    with HDFStore(path2) as tbl:
+        tbl["a"] = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
+        assert len(tbl) == 1
+        assert type(tbl["a"]) == DataFrame
 
 
 def test_no_track_times(tmp_path, setup_path):
@@ -971,37 +972,37 @@ def test_pickle_path_localpath():
 
 
 @pytest.mark.parametrize("propindexes", [True, False])
-def test_copy(propindexes):
+def test_copy(propindexes, temp_file):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
         index=Index([f"i-{i}" for i in range(30)]),
     )
 
-    with tm.ensure_clean() as path:
-        with HDFStore(path) as st:
-            st.append("df", df, data_columns=["A"])
-        with tempfile.NamedTemporaryFile() as new_f:
-            with HDFStore(path) as store:
-                with contextlib.closing(
-                    store.copy(new_f.name, keys=None, propindexes=propindexes)
-                ) as tstore:
-                    # check keys
-                    keys = store.keys()
-                    assert set(keys) == set(tstore.keys())
-                    # check indices & nrows
-                    for k in tstore.keys():
-                        if tstore.get_storer(k).is_table:
-                            new_t = tstore.get_storer(k)
-                            orig_t = store.get_storer(k)
+    path = temp_file
+    with HDFStore(path) as st:
+        st.append("df", df, data_columns=["A"])
+    with tempfile.NamedTemporaryFile() as new_f:
+        with HDFStore(path) as store:
+            with contextlib.closing(
+                store.copy(new_f.name, keys=None, propindexes=propindexes)
+            ) as tstore:
+                # check keys
+                keys = store.keys()
+                assert set(keys) == set(tstore.keys())
+                # check indices & nrows
+                for k in tstore.keys():
+                    if tstore.get_storer(k).is_table:
+                        new_t = tstore.get_storer(k)
+                        orig_t = store.get_storer(k)
 
-                            assert orig_t.nrows == new_t.nrows
+                        assert orig_t.nrows == new_t.nrows
 
-                            # check propindixes
-                            if propindexes:
-                                for a in orig_t.axes:
-                                    if a.is_indexed:
-                                        assert new_t[a.name].is_indexed
+                        # check propindixes
+                        if propindexes:
+                            for a in orig_t.axes:
+                                if a.is_indexed:
+                                    assert new_t[a.name].is_indexed
 
 
 def test_duplicate_column_name(tmp_path, setup_path):
