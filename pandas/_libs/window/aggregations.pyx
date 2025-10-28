@@ -503,8 +503,8 @@ cdef float64_t calc_skew(int64_t minp, int64_t nobs,
         #         _zero_out_fperr(m2) to fix floating error.
         #         if the variance is less than 1e-14, it could be
         #         treat as zero, here we follow the original
-        #         skew/kurt behaviour to check m2 < n * (eps * eps * mean * mean)
-        elif m2 < dnobs * (1e-28 * mean * mean if fabs(mean) > 1e-14 else 1e-14):
+        #         skew/kurt behaviour to check m2 <= n * 1e-14
+        elif m2 <= dnobs * 1e-14:
             result = NaN
         else:
             moments_ratio = m3 / (m2 * sqrt(m2))
