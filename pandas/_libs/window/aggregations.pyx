@@ -485,6 +485,7 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
 
 cdef float64_t calc_skew(int64_t minp, int64_t nobs,
                          float64_t mean, float64_t m2, float64_t m3,
+                         int64_t num_consecutive_same_value
                          ) noexcept nogil:
     cdef:
         float64_t result, dnobs
@@ -495,6 +496,10 @@ cdef float64_t calc_skew(int64_t minp, int64_t nobs,
 
         if nobs < 3:
             result = NaN
+        # GH 42064 46431
+        # uniform case, force result to be 0
+        elif num_consecutive_same_value >= nobs:
+            result = 0.0
         # #18044: with degenerate distribution, floating issue will
         #         cause m2 != 0. and cause the result is a very
         #         large number.
@@ -519,7 +524,9 @@ cdef float64_t calc_skew(int64_t minp, int64_t nobs,
 cdef void add_skew(float64_t val, int64_t *nobs,
                    float64_t *mean, float64_t *m2,
                    float64_t *m3,
-                   bint *numerically_unstable
+                   bint *numerically_unstable,
+                   int64_t *num_consecutive_same_value,
+                   float64_t *prev_value,
                    ) noexcept nogil:
     """ add a value from the skew calc """
     cdef:
@@ -545,6 +552,14 @@ cdef void add_skew(float64_t val, int64_t *nobs,
         m3[0] = new_m3
         m2[0] += term1
         mean[0] += delta_n
+
+        # GH#42064, record num of same values to remove floating point artifacts
+        if val == prev_value[0]:
+            num_consecutive_same_value[0] += 1
+        else:
+            # reset to 1 (include current value itself)
+            num_consecutive_same_value[0] = 1
+        prev_value[0] = val
 
 
 cdef void remove_skew(float64_t val, int64_t *nobs,
@@ -591,9 +606,11 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
         Py_ssize_t i, j
         float64_t val
         float64_t mean, m2, m3
+        float64_t prev_value
         int64_t nobs = 0, N = len(start)
-        int64_t s, e
+        int64_t s, e, num_consecutive_same_value
         ndarray[float64_t] output
+        bint is_monotonic_increasing_bounds
         bint requires_recompute, numerically_unstable = False
 
     minp = max(minp, 3)
@@ -604,6 +621,7 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
 
     with nogil:
         for i in range(0, N):
+
             s = start[i]
             e = end[i]
 
@@ -615,6 +633,7 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
             )
 
             if not requires_recompute:
+                # calculate deletes
                 for j in range(start[i - 1], s):
                     val = values[j]
                     remove_skew(val, &nobs, &mean, &m2, &m3, &numerically_unstable)
@@ -622,7 +641,8 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
                 # calculate adds
                 for j in range(end[i - 1], e):
                     val = values[j]
-                    add_skew(val, &nobs, &mean, &m2, &m3, &numerically_unstable)
+                    add_skew(val, &nobs, &mean, &m2, &m3, &numerically_unstable,
+                             &num_consecutive_same_value, &prev_value)
 
             if requires_recompute or numerically_unstable:
                 mean = m2 = m3 = 0.0
@@ -630,11 +650,12 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
 
                 for j in range(s, e):
                     val = values[j]
-                    add_skew(val, &nobs, &mean, &m2, &m3, &numerically_unstable)
+                    add_skew(val, &nobs, &mean, &m2, &m3, &numerically_unstable,
+                             &num_consecutive_same_value, &prev_value)
 
                 numerically_unstable = False
 
-            output[i] = calc_skew(minp, nobs, mean, m2, m3)
+            output[i] = calc_skew(minp, nobs, mean, m2, m3, num_consecutive_same_value)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
