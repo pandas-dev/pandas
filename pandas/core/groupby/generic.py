@@ -135,11 +135,11 @@ class NamedAgg(tuple):
 
     Examples
     --------
-    >>> df = pd.DataFrame({"key": [1, 1, 2], "a": [-1, 0, 1], "b": [10, 11, 12]})
+    >>> df = pd.DataFrame({"key": [1, 1, 2], "a": [-1, 0, 1], 1: [10, 11, 12]})
     >>> agg_a = pd.NamedAgg(column="a", aggfunc="min")
-    >>> agg_b = pd.NamedAgg(column="b", aggfunc=lambda x: x.mean())
-    >>> df.groupby("key").agg(result_a=agg_a, result_b=agg_b)
-        result_a  result_b
+    >>> agg_1 = pd.NamedAgg(column=1, aggfunc=lambda x: np.mean(x))
+    >>> df.groupby("key").agg(result_a=agg_a, result_1=agg_1)
+        result_a  result_1
     key
     1          -1      10.5
     2           1      12.0
