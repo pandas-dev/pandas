@@ -93,6 +93,7 @@ from pandas.core.arrays import (
     ExtensionArray,
 )
 from pandas.core.arrays.categorical import (
+    factorize_from_iterable,
     factorize_from_iterables,
     recode_for_categories,
 )
@@ -2755,22 +2756,27 @@ class MultiIndex(Index):
         if name is lib.no_default:
             name = None
 
-        if not hasattr(value, "__iter__") or isinstance(value, str):
-            raise ValueError("value must be an array-like object")
+        if not (is_list_like(value) and len(value) == len(self)):
+            raise ValueError(
+                "value must be an array-like object of the same length as self"
+            )
 
-        value = list(value)
-        if len(value) != len(self):
-            raise ValueError("Length of values must match length of index")
+        if all(val is None for val in value):
+            new_level = Index([], dtype="object")
+            new_codes = [-1] * len(value)
+        else:
+            new_codes, new_level = factorize_from_iterable(value)
 
-        # 简洁可靠的实现
-        new_tuples = []
-        for i, tup in enumerate(self):
-            new_tuple = tup[:position] + (value[i],) + tup[position:]
-            new_tuples.append(new_tuple)
-
+        new_levels = self.levels[:position] + [new_level] + self.levels[position:]
+        new_codes_list = self.codes[:position] + [new_codes] + self.codes[position:]
         new_names = self.names[:position] + [name] + self.names[position:]
 
-        return MultiIndex.from_tuples(new_tuples, names=new_names)
+        return MultiIndex(
+            levels=new_levels,
+            codes=new_codes_list,
+            names=new_names,
+            verify_integrity=False,
+        )
 
     def _reorder_ilevels(self, order) -> MultiIndex:
         if len(order) != self.nlevels:

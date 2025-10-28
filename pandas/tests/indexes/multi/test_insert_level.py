@@ -108,9 +108,17 @@ def test_insert_level_basic(position, value, name, expected_tuples, expected_nam
     [
         (5, ["invalid"] * 3, "position must be between"),
         (-1, ["invalid"] * 3, "position must be between"),
-        (1, ["too", "few"], "Length of values must match"),
+        (
+            1,
+            ["too", "few"],
+            "value must be an array-like object of the same length as self",
+        ),
         (3, ["value"] * 3, "position must be between"),
-        (0, "scalar_value", "value must be an array-like object"),
+        (
+            0,
+            "scalar_value",
+            "value must be an array-like object of the same length as self",
+        ),
     ],
 )
 def test_insert_level_error_cases(position, value, expected_error):
