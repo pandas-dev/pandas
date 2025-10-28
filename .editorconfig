@@ -1,0 +1,47 @@
+
+root = true
+
+[*]
+charset = UTF-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+spelling_language = en-us
+
+[*.py]
+max_line_length = 88
+indent_style = space
+indent_size = 4
+
+[*.pyx]
+max_line_length = 88
+indent_style = space
+indent_size = 4
+
+
+[*.c]
+max_line_length = 80
+indent_style = space
+indent_size = 2
+
+[meson.build]
+max_line_length = 80
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 4
+
+[*.json]
+indent_style = space
+indent_size = 4
+
+
+[*.sh]
+indent_style = space
+indent_size = 4
+
+[*.rst]
+indent_style = space
+indent_size = 4
