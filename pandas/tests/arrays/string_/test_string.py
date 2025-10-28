@@ -3,16 +3,12 @@ This module tests the functionality of StringArray and ArrowStringArray.
 Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 """
 
-import operator
-
 import numpy as np
 import pytest
 
 from pandas._config import using_string_dtype
 
-from pandas.compat import HAS_PYARROW
 from pandas.compat.pyarrow import pa_version_under19p0
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_dtype_equal
 
@@ -40,25 +36,6 @@ def dtype2(string_dtype_arguments2):
 def cls(dtype):
     """Fixture giving array type from parametrized 'dtype'"""
     return dtype.construct_array_type()
-
-
-def string_dtype_highest_priority(dtype1, dtype2):
-    if HAS_PYARROW:
-        DTYPE_HIERARCHY = [
-            pd.StringDtype("python", na_value=np.nan),
-            pd.StringDtype("pyarrow", na_value=np.nan),
-            pd.StringDtype("python", na_value=pd.NA),
-            pd.StringDtype("pyarrow", na_value=pd.NA),
-        ]
-    else:
-        DTYPE_HIERARCHY = [
-            pd.StringDtype("python", na_value=np.nan),
-            pd.StringDtype("python", na_value=pd.NA),
-        ]
-
-    h1 = DTYPE_HIERARCHY.index(dtype1)
-    h2 = DTYPE_HIERARCHY.index(dtype2)
-    return DTYPE_HIERARCHY[max(h1, h2)]
 
 
 def test_dtype_equality():
@@ -287,152 +264,6 @@ def test_add_frame(request, dtype):
     result = df + arr
     expected = pd.DataFrame([["xa", np.nan, np.nan, np.nan]]).astype(dtype)
     tm.assert_frame_equal(result, expected)
-
-
-def test_comparison_methods_scalar(comparison_op, dtype):
-    op_name = f"__{comparison_op.__name__}__"
-    a = pd.array(["a", None, "c"], dtype=dtype)
-    other = "a"
-    result = getattr(a, op_name)(other)
-    if dtype.na_value is np.nan:
-        expected = np.array([getattr(item, op_name)(other) for item in a])
-        if comparison_op == operator.ne:
-            expected[1] = True
-        else:
-            expected[1] = False
-        tm.assert_numpy_array_equal(result, expected.astype(np.bool_))
-    else:
-        expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
-        expected = np.array([getattr(item, op_name)(other) for item in a], dtype=object)
-        expected = pd.array(expected, dtype=expected_dtype)
-        tm.assert_extension_array_equal(result, expected)
-
-
-def test_comparison_methods_scalar_pd_na(comparison_op, dtype):
-    op_name = f"__{comparison_op.__name__}__"
-    a = pd.array(["a", None, "c"], dtype=dtype)
-    result = getattr(a, op_name)(pd.NA)
-
-    if dtype.na_value is np.nan:
-        if operator.ne == comparison_op:
-            expected = np.array([True, True, True])
-        else:
-            expected = np.array([False, False, False])
-        tm.assert_numpy_array_equal(result, expected)
-    else:
-        expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
-        expected = pd.array([None, None, None], dtype=expected_dtype)
-        tm.assert_extension_array_equal(result, expected)
-        tm.assert_extension_array_equal(result, expected)
-
-
-def test_comparison_methods_scalar_not_string(comparison_op, dtype):
-    op_name = f"__{comparison_op.__name__}__"
-
-    a = pd.array(["a", None, "c"], dtype=dtype)
-    other = 42
-
-    if op_name not in ["__eq__", "__ne__"]:
-        with pytest.raises(TypeError, match="Invalid comparison|not supported between"):
-            getattr(a, op_name)(other)
-
-        return
-
-    result = getattr(a, op_name)(other)
-
-    if dtype.na_value is np.nan:
-        expected_data = {
-            "__eq__": [False, False, False],
-            "__ne__": [True, True, True],
-        }[op_name]
-        expected = np.array(expected_data)
-        tm.assert_numpy_array_equal(result, expected)
-    else:
-        expected_data = {"__eq__": [False, None, False], "__ne__": [True, None, True]}[
-            op_name
-        ]
-        expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
-        expected = pd.array(expected_data, dtype=expected_dtype)
-        tm.assert_extension_array_equal(result, expected)
-
-
-def test_comparison_methods_array(comparison_op, dtype, dtype2):
-    op_name = f"__{comparison_op.__name__}__"
-
-    a = pd.array(["a", None, "c"], dtype=dtype)
-    other = pd.array([None, None, "c"], dtype=dtype2)
-    result = comparison_op(a, other)
-
-    # ensure operation is commutative
-    result2 = comparison_op(other, a)
-    tm.assert_equal(result, result2)
-
-    if dtype.na_value is np.nan and dtype2.na_value is np.nan:
-        if operator.ne == comparison_op:
-            expected = np.array([True, True, False])
-        else:
-            expected = np.array([False, False, False])
-            expected[-1] = getattr(other[-1], op_name)(a[-1])
-        tm.assert_numpy_array_equal(result, expected)
-
-    else:
-        max_dtype = string_dtype_highest_priority(dtype, dtype2)
-        if max_dtype.storage == "python":
-            expected_dtype = "boolean"
-        else:
-            expected_dtype = "bool[pyarrow]"
-
-        expected = np.full(len(a), fill_value=None, dtype="object")
-        expected[-1] = getattr(other[-1], op_name)(a[-1])
-        expected = pd.array(expected, dtype=expected_dtype)
-        tm.assert_extension_array_equal(result, expected)
-
-
-@td.skip_if_no("pyarrow")
-def test_comparison_methods_array_arrow_extension(comparison_op, dtype2):
-    # Test pd.ArrowDtype(pa.string()) against other string arrays
-    import pyarrow as pa
-
-    op_name = f"__{comparison_op.__name__}__"
-    dtype = pd.ArrowDtype(pa.string())
-    a = pd.array(["a", None, "c"], dtype=dtype)
-    other = pd.array([None, None, "c"], dtype=dtype2)
-    result = comparison_op(a, other)
-
-    # ensure operation is commutative
-    result2 = comparison_op(other, a)
-    tm.assert_equal(result, result2)
-
-    expected = pd.array([None, None, True], dtype="bool[pyarrow]")
-    expected[-1] = getattr(other[-1], op_name)(a[-1])
-    tm.assert_extension_array_equal(result, expected)
-
-
-def test_comparison_methods_list(comparison_op, dtype):
-    op_name = f"__{comparison_op.__name__}__"
-
-    a = pd.array(["a", None, "c"], dtype=dtype)
-    other = [None, None, "c"]
-    result = comparison_op(a, other)
-
-    # ensure operation is commutative
-    result2 = comparison_op(other, a)
-    tm.assert_equal(result, result2)
-
-    if dtype.na_value is np.nan:
-        if operator.ne == comparison_op:
-            expected = np.array([True, True, False])
-        else:
-            expected = np.array([False, False, False])
-            expected[-1] = getattr(other[-1], op_name)(a[-1])
-        tm.assert_numpy_array_equal(result, expected)
-
-    else:
-        expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
-        expected = np.full(len(a), fill_value=None, dtype="object")
-        expected[-1] = getattr(other[-1], op_name)(a[-1])
-        expected = pd.array(expected, dtype=expected_dtype)
-        tm.assert_extension_array_equal(result, expected)
 
 
 def test_constructor_raises(cls):
@@ -848,3 +679,30 @@ def test_string_array_view_type_error():
     arr = pd.array(["a", "b", "c"], dtype="string")
     with pytest.raises(TypeError, match="Cannot change data-type for string array."):
         arr.view("i8")
+
+
+@pytest.mark.parametrize("box", [pd.Series, pd.array])
+def test_numpy_array_ufunc(dtype, box):
+    arr = box(["a", "bb", "ccc"], dtype=dtype)
+
+    # custom ufunc that works with string (object) input -> returning numeric
+    str_len_ufunc = np.frompyfunc(lambda x: len(x), 1, 1)
+    result = str_len_ufunc(arr)
+    expected_cls = pd.Series if box is pd.Series else np.array
+    # TODO we should infer int64 dtype here?
+    expected = expected_cls([1, 2, 3], dtype=object)
+    tm.assert_equal(result, expected)
+
+    # custom ufunc returning strings
+    str_multiply_ufunc = np.frompyfunc(lambda x: x * 2, 1, 1)
+    result = str_multiply_ufunc(arr)
+    expected = box(["aa", "bbbb", "cccccc"], dtype=dtype)
+    if dtype.storage == "pyarrow":
+        # TODO ArrowStringArray should also preserve the class / dtype
+        if box is pd.array:
+            expected = np.array(["aa", "bbbb", "cccccc"], dtype=object)
+        else:
+            # not specifying the dtype because the exact dtype is not yet preserved
+            expected = pd.Series(["aa", "bbbb", "cccccc"])
+
+    tm.assert_equal(result, expected)
