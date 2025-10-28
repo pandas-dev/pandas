@@ -1,9 +1,6 @@
 """
 Unit Testing II - Mocking & Stubbing: File System I/O Operations
 Sandeep
-Requirement:  Loading data from flat files (CSV, Excel, HDF5)
-
-
 """
 
 import pytest

@@ -16,9 +16,7 @@ class TestDatabaseIOMocking:
         
         Test Oracle (FR-5): Reading a SQL query that returns 100 rows and 3 columns
         should create a DataFrame with 100 rows and 3 columns
-        
-        Rationale: Database connections are external dependencies; mocking allows
-        testing SQL functionality without a real database server
+    
         """
         # Setup: Mock data that would come from database
         expected_data = pd.DataFrame({
@@ -44,9 +42,7 @@ class TestDatabaseIOMocking:
     def test_read_sql_empty_result(self, monkeypatch):
         """
         Test SQL query returning empty result set
-        
-        Rationale: Empty query results are common; pandas should handle
-        them gracefully with an empty DataFrame
+
         """
         # Setup: Mock empty result
         empty_data = pd.DataFrame(columns=['id', 'name', 'value'])
@@ -67,9 +63,6 @@ class TestDatabaseIOMocking:
     def test_read_sql_with_parameters(self, monkeypatch):
         """
         Test parameterized SQL queries
-        
-        Rationale: Parameterized queries prevent SQL injection; verify pandas
-        handles parameter passing correctly
         """
         # Setup: Mock filtered data
         filtered_data = pd.DataFrame({
@@ -103,7 +96,6 @@ class TestDatabaseIOMocking:
         Test Oracle (FR-5): SQL INTEGER should convert to int64, VARCHAR to string,
         DECIMAL to float64 in the resulting DataFrame
         
-        Rationale: Type mapping from SQL to pandas is critical for correctness
         """
         # Setup: Mock with specific dtypes (using dict to avoid dtype conversion)
         typed_data = pd.DataFrame({
@@ -132,9 +124,7 @@ class TestDatabaseIOMocking:
     def test_read_sql_connection_error_handling(self, monkeypatch):
         """
         Test error handling when database connection fails
-        
-        Rationale: Connection failures are common in production; pandas should
-        handle them with clear error messages
+    
         """
         # Setup: Mock to raise connection error
         def mock_read_sql(query, con, **kwargs):
