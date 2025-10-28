@@ -41,6 +41,7 @@ from cython cimport (
 from pandas._config import using_string_dtype
 
 from pandas._libs.missing import check_na_tuples_nonequal
+from pandas.util._decorators import set_module
 
 import_datetime()
 
@@ -154,6 +155,7 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 # ----------------------------------------------------------------------
 
 
+@set_module("pandas.api.types")
 def is_scalar(val: object) -> bool:
     """
     Return True if given object is scalar.
@@ -255,6 +257,7 @@ cdef int64_t get_itemsize(object val):
         return -1
 
 
+@set_module("pandas.api.types")
 def is_iterator(obj: object) -> bool:
     """
     Check if the object is an iterator.
@@ -1095,6 +1098,7 @@ def indices_fast(ndarray[intp_t, ndim=1] index, const int64_t[:] labels, list ke
 
 # core.common import for fast inference checks
 
+@set_module("pandas.api.types")
 def is_float(obj: object) -> bool:
     """
     Return True if given object is float.
@@ -1128,6 +1132,7 @@ def is_float(obj: object) -> bool:
     return util.is_float_object(obj)
 
 
+@set_module("pandas.api.types")
 def is_integer(obj: object) -> bool:
     """
     Return True if given object is integer.
@@ -1172,6 +1177,7 @@ def is_int_or_none(obj) -> bool:
     return obj is None or util.is_integer_object(obj)
 
 
+@set_module("pandas.api.types")
 def is_bool(obj: object) -> bool:
     """
     Return True if given object is boolean.
@@ -1202,6 +1208,7 @@ def is_bool(obj: object) -> bool:
     return util.is_bool_object(obj)
 
 
+@set_module("pandas.api.types")
 def is_complex(obj: object) -> bool:
     """
     Return True if given object is complex.
@@ -1237,6 +1244,7 @@ cpdef bint is_decimal(object obj):
     return isinstance(obj, Decimal)
 
 
+@set_module("pandas.api.types")
 def is_list_like(obj: object, allow_sets: bool = True) -> bool:
     """
     Check if the object is list-like.
@@ -1378,6 +1386,7 @@ cdef class Seen:
         bint nan_             # seen_np.nan
         bint uint_            # seen_uint (unsigned integer)
         bint sint_            # seen_sint (signed integer)
+        bint overflow_        # seen_overflow
         bint float_           # seen_float
         bint object_          # seen_object
         bint complex_         # seen_complex
@@ -1406,6 +1415,7 @@ cdef class Seen:
         self.nan_ = False
         self.uint_ = False
         self.sint_ = False
+        self.overflow_ = False
         self.float_ = False
         self.object_ = False
         self.complex_ = False
@@ -1520,6 +1530,7 @@ cdef object _try_infer_map(object dtype):
     return None
 
 
+@set_module("pandas.api.types")
 def infer_dtype(value: object, skipna: bool = True) -> str:
     """
     Return a string label of the type of the elements in a list-like input.
@@ -2370,6 +2381,9 @@ def maybe_convert_numeric(
         ndarray[uint64_t, ndim=1] uints = cnp.PyArray_EMPTY(
             1, values.shape, cnp.NPY_UINT64, 0
         )
+        ndarray[object, ndim=1] pyints = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_OBJECT, 0
+        )
         ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(
             1, values.shape, cnp.NPY_UINT8, 0
         )
@@ -2412,18 +2426,24 @@ def maybe_convert_numeric(
 
             val = int(val)
             seen.saw_int(val)
+            pyints[i] = val
 
             if val >= 0:
                 if val <= oUINT64_MAX:
                     uints[i] = val
-                else:
+                elif seen.coerce_numeric:
                     seen.float_ = True
+                else:
+                    seen.overflow_ = True
 
             if oINT64_MIN <= val <= oINT64_MAX:
                 ints[i] = val
 
             if val < oINT64_MIN or (seen.sint_ and seen.uint_):
-                seen.float_ = True
+                if seen.coerce_numeric:
+                    seen.float_ = True
+                else:
+                    seen.overflow_ = True
 
         elif util.is_bool_object(val):
             floats[i] = uints[i] = ints[i] = bools[i] = val
@@ -2467,6 +2487,7 @@ def maybe_convert_numeric(
 
                 if maybe_int:
                     as_int = int(val)
+                    pyints[i] = as_int
 
                     if as_int in na_values:
                         mask[i] = 1
@@ -2481,7 +2502,7 @@ def maybe_convert_numeric(
                             if seen.coerce_numeric:
                                 seen.float_ = True
                             else:
-                                raise ValueError("Integer out of range.")
+                                seen.overflow_ = True
                         else:
                             if as_int >= 0:
                                 uints[i] = as_int
@@ -2520,11 +2541,15 @@ def maybe_convert_numeric(
         return (floats, None)
     elif seen.int_:
         if seen.null_ and convert_to_masked_nullable:
-            if seen.uint_:
+            if seen.overflow_:
+                return (pyints, mask.view(np.bool_))
+            elif seen.uint_:
                 return (uints, mask.view(np.bool_))
             else:
                 return (ints, mask.view(np.bool_))
-        if seen.uint_:
+        if seen.overflow_:
+            return (pyints, None)
+        elif seen.uint_:
             return (uints, None)
         else:
             return (ints, None)

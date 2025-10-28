@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.common import is_extension_array_dtype
 
 import pandas as pd
@@ -107,6 +109,22 @@ def test_resample_interpolate(index):
     result = df.resample("1min").asfreq().interpolate()
     expected = df.resample("1min").interpolate()
     tm.assert_frame_equal(result, expected)
+
+
+def test_resample_interpolate_inplace_deprecated():
+    # GH#58690
+    dti = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
+
+    df = DataFrame(range(len(dti)), index=dti)
+    rs = df.resample("1min")
+    msg = "The 'inplace' keyword in DatetimeIndexResampler.interpolate"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        rs.interpolate(inplace=False)
+
+    msg2 = "Cannot interpolate inplace on a resampled object"
+    with pytest.raises(ValueError, match=msg2):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            rs.interpolate(inplace=True)
 
 
 def test_resample_interpolate_regular_sampling_off_grid(
