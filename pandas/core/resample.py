@@ -26,7 +26,10 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import NDFrameT
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    Pandas4Warning,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.dtypes import (
@@ -847,7 +850,6 @@ class Resampler(BaseGroupBy, PandasObject):
         *,
         axis: Axis = 0,
         limit: int | None = None,
-        inplace: bool = False,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area=None,
         **kwargs,
@@ -892,8 +894,6 @@ class Resampler(BaseGroupBy, PandasObject):
         limit : int, optional
             Maximum number of consecutive NaNs to fill. Must be greater than
             0.
-        inplace : bool, default False
-            Update the data in place if possible.
         limit_direction : {{'forward', 'backward', 'both'}}, Optional
             Consecutive NaNs will be filled in this direction.
 
@@ -987,6 +987,19 @@ class Resampler(BaseGroupBy, PandasObject):
         Note that the series correctly decreases between two anchors
         ``07:00:00`` and ``07:00:02``.
         """
+        if "inplace" in kwargs:
+            # GH#58690
+            warnings.warn(
+                f"The 'inplace' keyword in {type(self).__name__}.interpolate "
+                "is deprecated and will be removed in a future version. "
+                "resample(...).interpolate is never inplace.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            inplace = kwargs.pop("inplace")
+            if inplace:
+                raise ValueError("Cannot interpolate inplace on a resampled object.")
+
         result = self._upsample("asfreq")
 
         # If the original data has timestamps which are not aligned with the
@@ -1020,7 +1033,7 @@ class Resampler(BaseGroupBy, PandasObject):
             method=method,
             axis=axis,
             limit=limit,
-            inplace=inplace,
+            inplace=False,
             limit_direction=limit_direction,
             limit_area=limit_area,
             **kwargs,
@@ -2642,7 +2655,7 @@ class TimeGrouper(Grouper):
                 edges_dti = binner.tz_localize(None)
                 edges_dti = (
                     edges_dti
-                    + Timedelta(days=1, unit=edges_dti.unit).as_unit(edges_dti.unit)
+                    + Timedelta(days=1).as_unit(edges_dti.unit)
                     - Timedelta(1, unit=edges_dti.unit).as_unit(edges_dti.unit)
                 )
                 bin_edges = edges_dti.tz_localize(binner.tz).asi8
