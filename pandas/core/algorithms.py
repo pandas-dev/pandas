@@ -35,7 +35,10 @@ from pandas._typing import (
     TakeIndexer,
     npt,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -215,14 +218,15 @@ def _reconstruct_data(
         #  that values.dtype == dtype
         cls = dtype.construct_array_type()
 
-        # error: Incompatible types in assignment (expression has type
-        # "ExtensionArray", variable has type "ndarray[Any, Any]")
-        values = cls._from_sequence(values, dtype=dtype)  # type: ignore[assignment]
+        # error: Incompatible return value type
+        # (got "ExtensionArray",
+        # expected "ndarray[tuple[Any, ...], dtype[Any]]")
+        return cls._from_sequence(values, dtype=dtype)  # type: ignore[return-value]
 
-    else:
-        values = values.astype(dtype, copy=False)
-
-    return values
+    # error: Incompatible return value type
+    # (got "ndarray[tuple[Any, ...], dtype[Any]]",
+    # expected "ExtensionArray")
+    return values.astype(dtype, copy=False)  # type: ignore[return-value]
 
 
 def _ensure_arraylike(values, func_name: str) -> ArrayLike:
@@ -324,6 +328,7 @@ def unique(values: T) -> T: ...
 def unique(values: np.ndarray | Series) -> np.ndarray: ...
 
 
+@set_module("pandas")
 def unique(values):
     """
     Return unique values based on a hash table.
@@ -648,6 +653,7 @@ def factorize_array(
     return codes, uniques
 
 
+@set_module("pandas")
 @doc(
     values=dedent(
         """\
@@ -1110,6 +1116,7 @@ def rank(
 # ---- #
 
 
+@set_module("pandas.api.extensions")
 def take(
     arr,
     indices: TakeIndexer,

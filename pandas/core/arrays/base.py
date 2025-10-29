@@ -30,8 +30,6 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
-    Appender,
-    Substitution,
     cache_readonly,
 )
 from pandas.util._validators import (
@@ -257,6 +255,8 @@ class ExtensionArray:
 
     https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/list/array.py
     """
+
+    __module__ = "pandas.api.extensions"
 
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
@@ -1669,9 +1669,48 @@ class ExtensionArray:
         Categories (3, str): ['a', 'b', 'c']
         """
 
-    @Substitution(klass="ExtensionArray")
-    @Appender(_extension_array_shared_docs["repeat"])
     def repeat(self, repeats: int | Sequence[int], axis: AxisInt | None = None) -> Self:
+        """
+        Repeat elements of an ExtensionArray.
+
+        Returns a new ExtensionArray where each element of the current ExtensionArray
+        is repeated consecutively a given number of times.
+
+        Parameters
+        ----------
+        repeats : int or array of ints
+            The number of repetitions for each element. This should be a
+            non-negative integer. Repeating 0 times will return an empty
+            ExtensionArray.
+        axis : None
+            Must be ``None``. Has no effect but is accepted for compatibility
+            with numpy.
+
+        Returns
+        -------
+        ExtensionArray
+            Newly created ExtensionArray with repeated elements.
+
+        See Also
+        --------
+        Series.repeat : Equivalent function for Series.
+        Index.repeat : Equivalent function for Index.
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
+        ExtensionArray.take : Take arbitrary positions.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(["a", "b", "c"])
+        >>> cat
+        ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
+        >>> cat.repeat(2)
+        ['a', 'a', 'b', 'b', 'c', 'c']
+        Categories (3, str): ['a', 'b', 'c']
+        >>> cat.repeat([1, 2, 3])
+        ['a', 'b', 'b', 'c', 'c', 'c']
+        Categories (3, str): ['a', 'b', 'c']
+        """
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
@@ -1769,7 +1808,7 @@ class ExtensionArray:
         .. code-block:: python
 
            def take(self, indices, allow_fill=False, fill_value=None):
-               from pandas.core.algorithms import take
+               from pandas.api.extensions import take
 
                # If the ExtensionArray is backed by an ndarray, then
                # just pass that here instead of coercing to object.
@@ -2775,6 +2814,8 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
        with NumPy arrays.
     """
 
+    __module__ = "pandas.api.extensions"
+
     @classmethod
     def _create_method(cls, op, coerce_to_dtype: bool = True, result_dtype=None):
         """
@@ -2832,7 +2873,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
             # If the operator is not defined for the underlying objects,
             # a TypeError should be raised
-            res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
+            res = [op(a, b) for (a, b) in zip(lvalues, rvalues, strict=True)]
 
             def _maybe_convert(arr):
                 if coerce_to_dtype:
@@ -2848,7 +2889,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                 return res
 
             if op.__name__ in {"divmod", "rdivmod"}:
-                a, b = zip(*res)
+                a, b = zip(*res, strict=True)
                 return _maybe_convert(a), _maybe_convert(b)
 
             return _maybe_convert(res)
