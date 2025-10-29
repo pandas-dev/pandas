@@ -1409,6 +1409,7 @@ cdef class PyObjectHashTable(HashTable):
             hash(val)
 
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+            raise_if_errors()
             self.table.vals[k] = i
 
     def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
