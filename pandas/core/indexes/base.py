@@ -20,7 +20,6 @@ from typing import (
 import warnings
 
 import numpy as np
-import pyarrow as pa
 
 from pandas._config import (
     get_option,
@@ -6611,6 +6610,8 @@ class Index(IndexOpsMixin, PandasObject):
             return is_numeric_dtype(dtype)
         # GH#62158
         elif isinstance(dtype, ArrowDtype):
+            import pyarrow as pa
+
             if dtype.kind != "M":
                 return False
             pa_dtype = dtype.pyarrow_dtype
