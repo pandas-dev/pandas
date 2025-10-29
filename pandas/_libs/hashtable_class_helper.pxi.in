@@ -4,6 +4,8 @@ Template for each `dtype` helper function for hashtable
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 from cpython.unicode cimport PyUnicode_AsUTF8
+from cpython.exc cimport PyErr_Occurred, PyErr_Fetch
+from cpython.ref cimport Py_XDECREF
 
 {{py:
 
@@ -1309,6 +1311,22 @@ cdef class StringHashTable(HashTable):
         return labels
 
 
+cdef raise_if_errors():
+    cdef:
+        object exc
+        PyObject *type
+        PyObject *value
+        PyObject *traceback
+
+    PyErr_Fetch(&type, &value, &traceback)
+    if value != NULL:
+        exc = <object>value
+        Py_XDECREF(value)
+        Py_XDECREF(type)
+        Py_XDECREF(traceback)
+        raise exc
+
+
 cdef class PyObjectHashTable(HashTable):
 
     def __init__(self, int64_t size_hint=1):
@@ -1356,15 +1374,8 @@ cdef class PyObjectHashTable(HashTable):
         cdef:
             khiter_t k
 
-        # GH 57052
-        # in khash_python.h, kh_python_hash_equal and kh_python_hash_func will be called repeatedly by khash in a loop.
-        # if object implements custom __hash__ and __eq__ methods that can raise exceptions,
-        # kh_python_hash_{equal,func} will suppress the exceptions without warnings.
-        # as a workaround: try triggering exceptions here, before starting the khash loop
-        hash(val)
-        val == val
-
         k = kh_get_pymap(self.table, <PyObject*>val)
+        raise_if_errors()
         if k != self.table.n_buckets:
             return self.table.vals[k]
         else:
@@ -1377,10 +1388,9 @@ cdef class PyObjectHashTable(HashTable):
             char* buf
 
         hash(key)
-        # GH 57052
-        key == key
 
         k = kh_put_pymap(self.table, <PyObject*>key, &ret)
+        raise_if_errors()
         if kh_exist_pymap(self.table, k):
             self.table.vals[k] = val
         else:
