@@ -1424,6 +1424,7 @@ cdef class PyObjectHashTable(HashTable):
             hash(val)
 
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+            raise_if_errors()
             self.table.vals[k] = i
             if ret != 0:
                 Py_INCREF(val)
