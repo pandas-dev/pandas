@@ -694,7 +694,7 @@ cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
         # GH 42064 46431
         # uniform case, force result to be -3.
         elif num_consecutive_same_value >= nobs:
-            result = -3.
+            result = NaN
         else:
             dnobs = <float64_t>nobs
             A = x / dnobs
