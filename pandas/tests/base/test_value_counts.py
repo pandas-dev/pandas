@@ -356,27 +356,22 @@ def test_value_counts_object_inference_deprecated():
             pd.date_range("2016-01-01", periods=5, freq="D").insert(
                 1, pd.date_range("2016-01-01", periods=5, freq="D")[1]
             ),
-            DatetimeIndex(pd.date_range("2016-01-01", periods=5, freq="D"), freq=None),
+            DatetimeIndex(pd.date_range("2016-01-01", periods=5, freq="D")),
         ),
         pytest.param(
             pd.timedelta_range(Timedelta(0), periods=5, freq="h").insert(
                 1, pd.timedelta_range(Timedelta(0), periods=5, freq="h")[1]
             ),
-            TimedeltaIndex(
-                pd.timedelta_range(Timedelta(0), periods=5, freq="h"), freq=None
-            ),
+            TimedeltaIndex(pd.timedelta_range(Timedelta(0), periods=5, freq="h")),
         ),
         pytest.param(
             pd.date_range("2016-01-01", periods=5, freq="D").delete(2),
-            DatetimeIndex(
-                pd.date_range("2016-01-01", periods=5, freq="D").delete(2), freq=None
-            ),
+            DatetimeIndex(pd.date_range("2016-01-01", periods=5, freq="D").delete(2)),
         ),
         pytest.param(
             pd.timedelta_range(Timedelta(0), periods=5, freq="h").delete(2),
             TimedeltaIndex(
-                pd.timedelta_range(Timedelta(0), periods=5, freq="h").delete(2),
-                freq=None,
+                pd.timedelta_range(Timedelta(0), periods=5, freq="h").delete(2)
             ),
         ),
         pytest.param(
@@ -384,8 +379,7 @@ def test_value_counts_object_inference_deprecated():
             DatetimeIndex(
                 list(pd.date_range("2016-01-01", periods=5, freq="D")[:1])
                 + [pd.NaT]
-                + list(pd.date_range("2016-01-01", periods=5, freq="D")[1:]),
-                freq=None,
+                + list(pd.date_range("2016-01-01", periods=5, freq="D")[1:])
             ),
         ),
         pytest.param(
@@ -393,8 +387,7 @@ def test_value_counts_object_inference_deprecated():
             TimedeltaIndex(
                 list(pd.timedelta_range(Timedelta(0), periods=5, freq="h")[:1])
                 + [pd.NaT]
-                + list(pd.timedelta_range(Timedelta(0), periods=5, freq="h")[1:]),
-                freq=None,
+                + list(pd.timedelta_range(Timedelta(0), periods=5, freq="h")[1:])
             ),
         ),
     ],
