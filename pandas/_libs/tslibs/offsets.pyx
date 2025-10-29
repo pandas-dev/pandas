@@ -692,6 +692,9 @@ cdef class BaseOffset:
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
         dt = Timestamp(dt)
+        if self.normalize and (dt - dt.normalize())._value != 0:
+            # GH#32616
+            dt = dt.normalize()
         if not self.is_on_offset(dt):
             dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
