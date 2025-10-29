@@ -88,17 +88,7 @@ def get_indexer_indexer(
     # "Union[ExtensionArray, ndarray[Any, Any], Index, Series]", variable has
     # type "Index")
 
-    # before:
-    # MultiIndex([('a', 'top10'),
-    #             ('a',  'top2')],
-    #            names=['A', 'B'])
     target = ensure_key_mapped(target, key, levels=level)  # type: ignore[assignment]
-    # # after
-    # MultiIndex([('a', 1),
-    #             ('a', 0)],
-    #            names=['A', None])
-    # the big problem is that the name is lost as well,
-    # but with the new change I preserve it
 
     target = target._sort_levels_monotonic()
 
@@ -547,11 +537,6 @@ def _ensure_key_mapped_multiindex(
     else:
         sort_levels = range(index.nlevels)
 
-    # breakpoint() # the loops through the levels
-    # for the levels to be sorted, it applies the key function
-    # (uses the number, not the name)
-    # it returns the indexeer: ensure_key_mapped(
-    #   index._get_level_values(1), key) = Index([1, 0], dtype='int64')
     mapped = [
         (
             ensure_key_mapped(index._get_level_values(level), key)
@@ -585,13 +570,12 @@ def ensure_key_mapped(
         return values
 
     if isinstance(values, ABCMultiIndex):
-        # redirects to special MultiIndex handler
         return _ensure_key_mapped_multiindex(values, key, level=levels)
 
     result = key(values.copy())
     if len(result) != len(values):
         raise ValueError(
-            "User-provided `key` bfunction must not change the shape of the array."
+            "User-provided `key` function must not change the shape of the array."
         )
 
     try:
