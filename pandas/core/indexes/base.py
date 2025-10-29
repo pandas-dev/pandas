@@ -6307,15 +6307,13 @@ class Index(IndexOpsMixin, PandasObject):
         elif isinstance(dtype, ArrowDtype):
             import pyarrow as pa
 
-            if dtype.kind != "M":
+            if self.dtype.kind != "M" or dtype.kind != "M":
                 return False
             pa_dtype = dtype.pyarrow_dtype
             if pa.types.is_date(pa_dtype):
                 return False
             if pa.types.is_timestamp(pa_dtype):
-                if (getattr(pa_dtype, "tz", None) is None) ^ (
-                    getattr(self, "tz", None) is None
-                ):
+                if (pa_dtype.tz is None) ^ (getattr(self, "tz", None) is None):
                     return False
             return True
         # TODO: this was written assuming we only get here with object-dtype,
