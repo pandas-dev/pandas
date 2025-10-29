@@ -181,8 +181,7 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        # Note: Don't use macOS latest since macos 14 appears to be arm64 only
-        os: [macos-13, macos-14, windows-2025]
+        os: [macos-15-intel, macos-15, windows-2025]
         env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
@@ -399,7 +398,7 @@ jobs:
           pyodide build
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 

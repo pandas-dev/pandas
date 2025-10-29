@@ -4,6 +4,10 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
+from enum import (
+    Enum,
+    auto,
+)
 import operator
 
 import numpy as np
@@ -155,6 +159,28 @@ class TestSeriesFlexArithmetic:
         _check_fill(op, equiv_op, a, b, fill_value=fv)
         # should accept axis=0 or axis='rows'
         op(a, b, axis=0)
+
+    @pytest.mark.parametrize("kind", ["datetime", "timedelta"])
+    def test_rhs_extension_array_sub_with_fill_value(self, kind):
+        # GH:62467
+        if kind == "datetime":
+            left = Series(
+                [pd.Timestamp("2025-08-20"), pd.Timestamp("2025-08-21")],
+                dtype=np.dtype("datetime64[ns]"),
+            )
+        else:
+            left = Series(
+                [Timedelta(days=1), Timedelta(days=2)],
+                dtype=np.dtype("timedelta64[ns]"),
+            )
+
+        right = (
+            left._values
+        )  # DatetimeArray or TimedeltaArray which is an ExtensionArray
+
+        result = left.sub(right, fill_value=left.iloc[0])
+        expected = Series(np.zeros(len(left), dtype=np.dtype("timedelta64[ns]")))
+        tm.assert_series_equal(result, expected)
 
     def test_flex_disallows_dataframe(self):
         # GH#46179
@@ -427,6 +453,22 @@ class TestSeriesFlexComparison:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "left",
+        [
+            Series(Categorical(["a", "b", "a"])),
+            Series(pd.period_range("2020Q1", periods=3, freq="Q")),
+        ],
+        ids=["categorical", "period"],
+    )
+    def test_rhs_extension_array_eq_with_fill_value(self, left):
+        # GH:#62467
+        right = left._values  # this is an ExtensionArray
+
+        result = left.eq(right, fill_value=left.iloc[0])
+        expected = Series([True, True, True])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "values, op, fill_value",
         [
             ([False, False, True, True], "eq", 2),
@@ -442,6 +484,62 @@ class TestSeriesFlexComparison:
         right = Series([2, 2, 2], index=list("bcd"))
         result = getattr(left, op)(right, fill_value=fill_value)
         expected = Series(values, index=list("abcd"))
+        tm.assert_series_equal(result, expected)
+
+    def test_eq_objects(self) -> None:
+        # GH#62191 Test eq with Enum and List elements
+
+        class Thing(Enum):
+            FIRST = auto()
+            SECOND = auto()
+
+        left = Series([Thing.FIRST, Thing.SECOND])
+        py_l = [Thing.FIRST, Thing.SECOND]
+
+        result = left.eq(Thing.FIRST)
+        expected = Series([True, False])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(py_l)
+        expected = Series([True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(np.asarray(py_l))
+        expected = Series([True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(Series(py_l))
+        expected = Series([True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = Series([[1, 2], [3, 4]]).eq([1, 2])
+        expected = Series([True, False])
+        with pytest.raises(AssertionError):
+            tm.assert_series_equal(result, expected)
+        expected = Series([False, False])
+        tm.assert_series_equal(result, expected)
+
+    def test_eq_with_index(self) -> None:
+        # GH#62191 Test eq with non-trivial indices
+        left = Series([1, 2], index=[1, 0])
+        py_l = [1, 2]
+
+        # assuming Python list has the same index as the Series
+        result = left.eq(py_l)
+        expected = Series([True, True], index=[1, 0])
+        tm.assert_series_equal(result, expected)
+
+        # assuming np.ndarray has the same index as the Series
+        result = left.eq(np.asarray(py_l))
+        expected = Series([True, True], index=[1, 0])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(Series(py_l))
+        expected = Series([False, False])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(Series([2, 1]))
+        expected = Series([True, True])
         tm.assert_series_equal(result, expected)
 
 
