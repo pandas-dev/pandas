@@ -410,29 +410,20 @@ def test_single_bin(data, length):
     tm.assert_series_equal(result, expected)
 
 
-def test_single_bin_edge_adjustment():
-    # gh-58517 - test edge adjustment when all values are the same
-    # mutation on _nbins_to_bins
-    data = [0.1, 0.1, 0.1]
-    result, bins = cut(data, 3, retbins=True)
+@pytest.mark.parametrize(
+    "values,threshold",
+    [
+        ([0.1, 0.1, 0.1], 0.001),  # small positive values
+        ([-0.1, -0.1, -0.1], 0.001),  # negative values
+        ([0.01, 0.01, 0.01], 0.0001),  # very small values
+    ],
+)
+def test_single_bin_edge_adjustment(values, threshold):
+    # gh-58517 - edge adjustment mutation when all values are same
+    result, bins = cut(values, 3, retbins=True)
 
-    # mutation would create large bin sizes
     bin_range = bins[-1] - bins[0]
-    assert bin_range < 0.001
-
-    # Test negative values
-    data_neg = [-0.1, -0.1, -0.1]
-    result_neg, bins_neg = cut(data_neg, 3, retbins=True)
-
-    bin_range_neg = bins_neg[-1] - bins_neg[0]
-    assert bin_range_neg < 0.001
-
-    # Test very small values
-    data_tiny = [0.01, 0.01, 0.01]
-    result_tiny, bins_tiny = cut(data_tiny, 3, retbins=True)
-
-    bin_range_tiny = bins_tiny[-1] - bins_tiny[0]
-    assert bin_range_tiny < 0.0001
+    assert bin_range < threshold
 
 
 @pytest.mark.parametrize(
