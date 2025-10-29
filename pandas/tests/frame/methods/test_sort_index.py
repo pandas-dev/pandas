@@ -1,4 +1,4 @@
-from natsort import index_natsorted
+from natsort import index_natsorted  # should we import this? or change test?
 import numpy as np
 import pytest
 
