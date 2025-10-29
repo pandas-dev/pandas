@@ -966,7 +966,7 @@ class TestDataFrameSortIndexKey:
         )
         tm.assert_frame_equal(sorted_df, expected)
 
-    def test_sort_multi_index_sort_by_level_name_2(self):
+    def test_sort_index_multiindex_by_level_name_2(self):
         # GH#62361
 
         df = DataFrame(
