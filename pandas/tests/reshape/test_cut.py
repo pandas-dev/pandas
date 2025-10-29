@@ -411,6 +411,22 @@ def test_single_bin(data, length):
 
 
 @pytest.mark.parametrize(
+    "values,threshold",
+    [
+        ([0.1, 0.1, 0.1], 0.001),  # small positive values
+        ([-0.1, -0.1, -0.1], 0.001),  # negative values
+        ([0.01, 0.01, 0.01], 0.0001),  # very small values
+    ],
+)
+def test_single_bin_edge_adjustment(values, threshold):
+    # gh-58517 - edge adjustment mutation when all values are same
+    result, bins = cut(values, 3, retbins=True)
+
+    bin_range = bins[-1] - bins[0]
+    assert bin_range < threshold
+
+
+@pytest.mark.parametrize(
     "array_1_writeable,array_2_writeable", [(True, True), (True, False), (False, False)]
 )
 def test_cut_read_only(array_1_writeable, array_2_writeable):
