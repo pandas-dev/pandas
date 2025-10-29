@@ -1784,7 +1784,9 @@ def reconstruct_func(
             else:
                 converted_kwargs[key] = val
 
-        func, columns, order = normalize_keyword_aggregation(converted_kwargs)
+        func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
+            converted_kwargs
+        )
 
     assert func is not None
 
