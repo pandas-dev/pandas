@@ -327,6 +327,7 @@ class TestCategoricalIndex2:
         msg = "|".join(
             [
                 rf"unsupported operand type\(s\) for [\+-]: {cat_or_list}",
+                "Object with dtype category cannot perform the numpy op (add|subtract)",
                 "operation 'r?(add|sub)' not supported for dtype 'str' "
                 "with dtype 'category'",
             ]
