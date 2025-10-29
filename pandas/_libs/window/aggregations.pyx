@@ -648,6 +648,10 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
                              &num_consecutive_same_value, &prev_value)
 
             if requires_recompute or numerically_unstable:
+
+                prev_value = values[s]
+                num_consecutive_same_value = 0
+
                 mean = m2 = m3 = 0.0
                 nobs = 0
 
