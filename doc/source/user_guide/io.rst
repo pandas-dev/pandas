@@ -1699,7 +1699,7 @@ The conversion process is not always guaranteed to be accurate because small dif
    x1 = df1.iloc[0, 0]
    x2 = df2['One'][0]
 
-   print("x0 = %f; x1 = %f; Are they equal? %s" % (x0, x1, (x0 == x1)))
+   print(f"x0 = {x0}; x1 = {x1}; Are they equal? {x0 == x1}")
    print("x0 = %f; x2 = %f; Are they equal? %s" % (x0, x2, (x0 == x2)))
 
    os.remove('test.csv')
