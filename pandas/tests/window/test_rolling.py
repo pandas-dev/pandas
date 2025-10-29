@@ -764,7 +764,9 @@ def test_iter_rolling_dataframe(df, expected, window, min_periods):
     df = DataFrame(df)
     expecteds = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for expected, actual in zip(expecteds, df.rolling(window, min_periods=min_periods)):
+    for expected, actual in zip(
+        expecteds, df.rolling(window, min_periods=min_periods), strict=False
+    ):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -810,7 +812,7 @@ def test_iter_rolling_on_dataframe(expected, window):
     expecteds = [
         DataFrame(values, index=df.loc[index, "C"]) for (values, index) in expected
     ]
-    for expected, actual in zip(expecteds, df.rolling(window, on="C")):
+    for expected, actual in zip(expecteds, df.rolling(window, on="C"), strict=False):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -819,7 +821,7 @@ def test_iter_rolling_on_dataframe_unordered():
     df = DataFrame({"a": ["x", "y", "x"], "b": [0, 1, 2]})
     results = list(df.groupby("a").rolling(2))
     expecteds = [df.iloc[idx, [1]] for idx in [[0], [0, 2], [1]]]
-    for result, expected in zip(results, expecteds):
+    for result, expected in zip(results, expecteds, strict=True):
         tm.assert_frame_equal(result, expected)
 
 
@@ -861,7 +863,7 @@ def test_iter_rolling_series(ser, expected, window, min_periods):
     expecteds = [Series(values, index=index) for (values, index) in expected]
 
     for expected, actual in zip(
-        expecteds, ser.rolling(window, min_periods=min_periods)
+        expecteds, ser.rolling(window, min_periods=min_periods), strict=True
     ):
         tm.assert_series_equal(actual, expected)
 
@@ -909,10 +911,11 @@ def test_iter_rolling_datetime(expected, expected_index, window):
     ser = Series(range(5), index=date_range(start="2020-01-01", periods=5, freq="D"))
 
     expecteds = [
-        Series(values, index=idx) for (values, idx) in zip(expected, expected_index)
+        Series(values, index=idx)
+        for (values, idx) in zip(expected, expected_index, strict=True)
     ]
 
-    for expected, actual in zip(expecteds, ser.rolling(window)):
+    for expected, actual in zip(expecteds, ser.rolling(window), strict=True):
         tm.assert_series_equal(actual, expected)
 
 
