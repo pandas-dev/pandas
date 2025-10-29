@@ -1054,6 +1054,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if level is not None:
                 level = ax._get_level_number(level)
 
+            if isinstance(replacements, ABCSeries) and not replacements.index.is_unique:
+                # GH#58621
+                raise ValueError("Cannot rename with a Series with non-unique index.")
+
             # GH 13473
             if not callable(replacements):
                 if ax._is_multi and level is not None:

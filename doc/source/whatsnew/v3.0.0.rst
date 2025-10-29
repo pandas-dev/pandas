@@ -980,6 +980,7 @@ Datetimelike
 - Bug in :meth:`DataFrame.fillna` raising an ``AssertionError`` instead of ``OutOfBoundsDatetime`` when filling a ``datetime64[ns]`` column with an out-of-bounds timestamp. Now correctly raises ``OutOfBoundsDatetime``. (:issue:`61208`)
 - Bug in :meth:`DataFrame.min` and :meth:`DataFrame.max` casting ``datetime64`` and ``timedelta64`` columns to ``float64`` and losing precision (:issue:`60850`)
 - Bug in :meth:`Dataframe.agg` with df with missing values resulting in IndexError (:issue:`58810`)
+- Bug in :meth:`DateOffset.rollback` (and subclass methods) with ``normalize=True`` rolling back one offset too long (:issue:`32616`)
 - Bug in :meth:`DatetimeIndex.is_year_start` and :meth:`DatetimeIndex.is_quarter_start` does not raise on Custom business days frequencies bigger then "1C" (:issue:`58664`)
 - Bug in :meth:`DatetimeIndex.is_year_start` and :meth:`DatetimeIndex.is_quarter_start` returning ``False`` on double-digit frequencies (:issue:`58523`)
 - Bug in :meth:`DatetimeIndex.union` and :meth:`DatetimeIndex.intersection` when ``unit`` was non-nanosecond (:issue:`59036`)
@@ -1049,6 +1050,7 @@ Interval
 - Bug in :class:`Index`, :class:`Series`, :class:`DataFrame` constructors when given a sequence of :class:`Interval` subclass objects casting them to :class:`Interval` (:issue:`46945`)
 - Bug in :func:`interval_range` where start and end numeric types were always cast to 64 bit (:issue:`57268`)
 - Bug in :meth:`IntervalIndex.get_indexer` and :meth:`IntervalIndex.drop` when one of the sides of the index is non-unique (:issue:`52245`)
+- Construction of :class:`IntervalArray` and :class:`IntervalIndex` from arrays with mismatched signed/unsigned integer dtypes (e.g., ``int64`` and ``uint64``) now raises a :exc:`TypeError` instead of proceeding silently. (:issue:`55715`)
 
 Indexing
 ^^^^^^^^
@@ -1236,6 +1238,7 @@ Other
 - Bug in :meth:`DataFrame.query` where using duplicate column names led to a ``TypeError``. (:issue:`59950`)
 - Bug in :meth:`DataFrame.query` which raised an exception or produced incorrect results when expressions contained backtick-quoted column names containing the hash character ``#``, backticks, or characters that fall outside the ASCII range (U+0001..U+007F). (:issue:`59285`) (:issue:`49633`)
 - Bug in :meth:`DataFrame.query` which raised an exception when querying integer column names using backticks. (:issue:`60494`)
+- Bug in :meth:`DataFrame.rename` and :meth:`Series.rename` when passed a ``mapper``, ``index``, or ``columns`` argument that is a :class:`Series` with non-unique ``ser.index`` producing a corrupted result instead of raising ``ValueError`` (:issue:`58621`)
 - Bug in :meth:`DataFrame.sample` with ``replace=False`` and ``(n * max(weights) / sum(weights)) > 1``, the method would return biased results. Now raises ``ValueError``. (:issue:`61516`)
 - Bug in :meth:`DataFrame.shift` where passing a ``freq`` on a DataFrame with no columns did not shift the index correctly. (:issue:`60102`)
 - Bug in :meth:`DataFrame.sort_index` when passing ``axis="columns"`` and ``ignore_index=True`` and ``ascending=False`` not returning a :class:`RangeIndex` columns (:issue:`57293`)
