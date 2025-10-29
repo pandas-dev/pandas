@@ -1,3 +1,4 @@
+from natsort import index_natsorted
 import numpy as np
 import pytest
 
@@ -942,6 +943,88 @@ class TestDataFrameSortIndexKey:
             )
 
         tm.assert_frame_equal(result, expected)
+
+    def test_sort_multi_index_sort_by_level_name(self):
+        # GH#62361
+
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=MultiIndex.from_product(
+                [["a"], ["top10", "top2"]], names=("A", "B")
+            ),
+        )
+
+        expected = DataFrame(
+            [[2, 1], [4, 3]],
+            columns=MultiIndex.from_product(
+                [["a"], ["top2", "top10"]], names=("A", "B")
+            ),
+        )
+
+        sorted_df = df.sort_index(
+            axis=1, level="B", key=lambda x: np.argsort(index_natsorted(x))
+        )
+        tm.assert_frame_equal(sorted_df, expected)
+
+    def test_sort_multi_index_sort_by_level_name_2(self):
+        # GH#62361
+
+        df = DataFrame(
+            [[1, 2], [3, 4]],
+            columns=MultiIndex.from_tuples(
+                [("alpha10", "top10"), ("alpha3", "top2")], names=("A", "B")
+            ),
+        )
+
+        expected = DataFrame(
+            [[2, 1], [4, 3]],
+            columns=MultiIndex.from_tuples(
+                [("alpha3", "top2"), ("alpha10", "top10")], names=("A", "B")
+            ),
+        )
+
+        sorted_df = df.sort_index(
+            axis=1, level=0, key=lambda x: np.argsort(index_natsorted(x))
+        )
+        tm.assert_frame_equal(sorted_df, expected)
+
+        sorted_df = df.sort_index(
+            axis=1, level="A", key=lambda x: np.argsort(index_natsorted(x))
+        )
+        tm.assert_frame_equal(sorted_df, expected)
+
+        sorted_df = df.sort_index(
+            axis=1, level=1, key=lambda x: np.argsort(index_natsorted(x))
+        )
+        tm.assert_frame_equal(sorted_df, expected)
+
+        sorted_df = df.sort_index(
+            axis=1, level="B", key=lambda x: np.argsort(index_natsorted(x))
+        )
+        tm.assert_frame_equal(sorted_df, expected)
+
+        sorted_df = df.sort_index(
+            axis=1, level=[0, 1], key=lambda x: np.argsort(index_natsorted(x))
+        )
+        tm.assert_frame_equal(sorted_df, expected)
+
+        sorted_df = df.sort_index(
+            axis=1, level=[1, 0], key=lambda x: np.argsort(index_natsorted(x))
+        )
+        tm.assert_frame_equal(sorted_df, expected)
+
+        sorted_df = df.sort_index(
+            axis=1, level=[1, "A"], key=lambda x: np.argsort(index_natsorted(x))
+        )
+        tm.assert_frame_equal(sorted_df, expected)
+
+        # repetition does not matter
+        sorted_df = df.sort_index(
+            axis=1,
+            level=["A", "B", 0, 1, "B"],
+            key=lambda x: np.argsort(index_natsorted(x)),
+        )
+        tm.assert_frame_equal(sorted_df, expected)
 
 
 def test_sort_index_with_sliced_multiindex():

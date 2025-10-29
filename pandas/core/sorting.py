@@ -57,7 +57,7 @@ if TYPE_CHECKING:
 
 def get_indexer_indexer(
     target: Index,
-    level: Level | list[Level] | None,
+    level: Level | list[Level] | None,  # can level actually be a list here?
     ascending: list[bool] | bool,
     kind: SortKind,
     na_position: NaPosition,
@@ -87,7 +87,19 @@ def get_indexer_indexer(
     # error: Incompatible types in assignment (expression has type
     # "Union[ExtensionArray, ndarray[Any, Any], Index, Series]", variable has
     # type "Index")
+
+    # before:
+    # MultiIndex([('a', 'top10'),
+    #             ('a',  'top2')],
+    #            names=['A', 'B'])
     target = ensure_key_mapped(target, key, levels=level)  # type: ignore[assignment]
+    # # after
+    # MultiIndex([('a', 1),
+    #             ('a', 0)],
+    #            names=['A', None])
+    # the big problem is that the name is lost as well,
+    # but with the new change I preserve it
+
     target = target._sort_levels_monotonic()
 
     if level is not None:
@@ -531,11 +543,15 @@ def _ensure_key_mapped_multiindex(
             level_iter = [level]
         else:
             level_iter = level
-
         sort_levels: range | set = {index._get_level_number(lev) for lev in level_iter}
     else:
         sort_levels = range(index.nlevels)
 
+    # breakpoint() # the loops through the levels
+    # for the levels to be sorted, it applies the key function
+    # (uses the number, not the name)
+    # it returns the indexeer: ensure_key_mapped(
+    #   index._get_level_values(1), key) = Index([1, 0], dtype='int64')
     mapped = [
         (
             ensure_key_mapped(index._get_level_values(level), key)
@@ -569,19 +585,23 @@ def ensure_key_mapped(
         return values
 
     if isinstance(values, ABCMultiIndex):
+        # redirects to special MultiIndex handler
         return _ensure_key_mapped_multiindex(values, key, level=levels)
 
     result = key(values.copy())
     if len(result) != len(values):
         raise ValueError(
-            "User-provided `key` function must not change the shape of the array."
+            "User-provided `key` bfunction must not change the shape of the array."
         )
 
     try:
         if isinstance(
             values, Index
         ):  # convert to a new Index subclass, not necessarily the same
-            result = Index(result, tupleize_cols=False)
+            # preserve the original name when creating the new Index
+            result = Index(
+                result, tupleize_cols=False, name=getattr(values, "name", None)
+            )
         else:
             # try to revert to original type otherwise
             type_of_values = type(values)
