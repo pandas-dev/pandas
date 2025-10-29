@@ -88,13 +88,13 @@ class RangeIndex(Index):
 
     Parameters
     ----------
-    start : int (default: 0), range, or other RangeIndex instance
+    start : int, range, or other RangeIndex instance, default None
         If int and "stop" is not given, interpreted as "stop" instead.
-    stop : int (default: 0)
+    stop : int, default None
         The end value of the range (exclusive).
-    step : int (default: 1)
+    step : int, default None
         The step size of the range.
-    dtype : np.int64
+    dtype : np.int64, default None
         Unused, accepted for homogeneity with other index types.
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
