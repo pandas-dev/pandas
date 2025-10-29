@@ -194,11 +194,15 @@ def test_construct_from_td64_with_unit():
     #  results, and in non-overflow cases is irrelevant GH#46827
     obj = np.timedelta64(123456789000000000, "h")
 
-    with pytest.raises(OutOfBoundsTimedelta, match="123456789000000000 hours"):
-        Timedelta(obj, input_unit="ps")
+    msg = "The 'input_unit' keyword is only used when the Timedelta input is"
 
     with pytest.raises(OutOfBoundsTimedelta, match="123456789000000000 hours"):
-        Timedelta(obj, input_unit="ns")
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            Timedelta(obj, input_unit="ps")
+
+    with pytest.raises(OutOfBoundsTimedelta, match="123456789000000000 hours"):
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            Timedelta(obj, input_unit="ns")
 
     with pytest.raises(OutOfBoundsTimedelta, match="123456789000000000 hours"):
         Timedelta(obj)
@@ -634,6 +638,9 @@ def test_timedelta_pass_td_and_kwargs_raises():
         Timedelta(td, days=2)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'input_unit' keyword is only used when the Timedelta input:UserWarning"
+)
 @pytest.mark.parametrize(
     "constructor, value, unit",
     [

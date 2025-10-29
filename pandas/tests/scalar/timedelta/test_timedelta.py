@@ -83,7 +83,7 @@ class TestNonNano:
 
     def test_cmp_cross_reso(self, td):
         # numpy gets this wrong because of silent overflow
-        other = Timedelta(days=106751, input_unit="ns")
+        other = Timedelta(days=106751)
         assert other < td
         assert td > other
         assert not other == td
@@ -726,4 +726,14 @@ def test_to_pytimedelta_large_values():
     td = Timedelta(1152921504609987375, input_unit="ns")
     result = td.to_pytimedelta()
     expected = timedelta(days=13343, seconds=86304, microseconds=609987)
+    assert result == expected
+
+
+def test_timedelta_week_suffix():
+    # GH#12691 ensure 'W' suffix works as a string passed to Timedelta
+    expected = Timedelta("7 days")
+    result = Timedelta(1, input_unit="W")
+    assert result == expected
+
+    result = Timedelta("1W")
     assert result == expected

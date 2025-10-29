@@ -296,6 +296,8 @@ class ArrowExtensionArray(
     Length: 3, dtype: int64[pyarrow]
     """  # noqa: E501 (http link too long)
 
+    __module__ = "pandas.arrays"
+
     _pa_array: pa.ChunkedArray
     _dtype: ArrowDtype
 
@@ -439,6 +441,10 @@ class ArrowExtensionArray(
             #  or test_agg_lambda_complex128_dtype_conversion for complex values
             return super()._cast_pointwise_result(values)
 
+        if pa.types.is_null(arr.type):
+            if lib.infer_dtype(values) == "decimal":
+                # GH#62522; the specific decimal precision here is arbitrary
+                arr = arr.cast(pa.decimal128(1))
         if pa.types.is_duration(arr.type):
             # workaround for https://github.com/apache/arrow/issues/40620
             result = ArrowExtensionArray._from_sequence(values)

@@ -829,6 +829,8 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
     whole document.
     """
 
+    __module__ = "pandas.api.typing"
+
     def __init__(
         self,
         filepath_or_buffer,

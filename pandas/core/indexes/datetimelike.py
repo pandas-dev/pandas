@@ -75,6 +75,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Axis,
         JoinHow,
+        TimeUnit,
         npt,
     )
 
@@ -434,10 +435,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     _is_unique = Index.is_unique
 
     @property
-    def unit(self) -> str:
+    def unit(self) -> TimeUnit:
         return self._data.unit
 
-    def as_unit(self, unit: str) -> Self:
+    def as_unit(self, unit: TimeUnit) -> Self:
         """
         Convert to a dtype with the given unit resolution.
 

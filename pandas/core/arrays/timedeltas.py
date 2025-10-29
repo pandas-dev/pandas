@@ -73,6 +73,7 @@ if TYPE_CHECKING:
         DtypeObj,
         NpDtype,
         npt,
+        TimeUnit,
     )
 
     from pandas import DataFrame
@@ -145,6 +146,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
     """
+
+    __module__ = "pandas.arrays"
 
     _typ = "timedeltaarray"
     _internal_fill_value = np.timedelta64("NaT", "ns")
@@ -275,7 +278,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @classmethod
     def _generate_range(
-        cls, start, end, periods, freq, closed=None, *, unit: str | None = None
+        cls, start, end, periods, freq, closed=None, *, unit: TimeUnit
     ) -> Self:
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -293,11 +296,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         if end is not None:
             end = Timedelta(end).as_unit("ns")
 
-        if unit is not None:
-            if unit not in ["s", "ms", "us", "ns"]:
-                raise ValueError("'unit' must be one of 's', 'ms', 'us', 'ns'")
-        else:
-            unit = "ns"
+        if unit not in ["s", "ms", "us", "ns"]:
+            raise ValueError("'unit' must be one of 's', 'ms', 'us', 'ns'")
 
         if start is not None and unit is not None:
             start = start.as_unit(unit, round_ok=False)
@@ -327,7 +327,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             raise ValueError("'value' should be a Timedelta.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.timedelta64(value._value, self.unit)  # type: ignore[call-overload]
+            return np.timedelta64(value._value, self.unit)
         else:
             return value.as_unit(self.unit, round_ok=False).asm8
 
