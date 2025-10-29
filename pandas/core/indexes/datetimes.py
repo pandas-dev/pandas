@@ -42,7 +42,6 @@ from pandas.core.arrays.datetimes import (
     tz_to_dtype,
 )
 import pandas.core.common as com
-from pandas.core.indexes.api import ensure_index
 from pandas.core.indexes.base import (
     Index,
     maybe_extract_name,
@@ -698,21 +697,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return slice(None)
         else:
             return indexer
-
-    def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        # Ensure Python `date` objects never match DatetimeIndex elements (GH#62158)
-        tgt = ensure_index(target)
-        if method is None and tolerance is None and tgt.dtype == object:
-            result = super().get_indexer(
-                tgt, method=method, limit=limit, tolerance=tolerance
-            )
-            mask = [
-                isinstance(x, dt.date) and not isinstance(x, dt.datetime) for x in tgt
-            ]
-            result = np.array(result)
-            result[mask] = -1
-            return result
-        return super().get_indexer(tgt, method=method, limit=limit, tolerance=tolerance)
 
     # --------------------------------------------------------------------
 

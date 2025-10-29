@@ -19,6 +19,7 @@ from typing import (
 import warnings
 
 import numpy as np
+import pyarrow as pa
 
 from pandas._config import (
     get_option,
@@ -6303,6 +6304,19 @@ class Index(IndexOpsMixin, PandasObject):
             return dtype.kind == "b"
         elif is_numeric_dtype(self.dtype):
             return is_numeric_dtype(dtype)
+        # GH#62158
+        elif isinstance(dtype, ArrowDtype):
+            if dtype.kind != "M":
+                return False
+            pa_dtype = dtype.pyarrow_dtype
+            if pa.types.is_date(pa_dtype):
+                return False
+            if pa.types.is_timestamp(pa_dtype):
+                if (getattr(pa_dtype, "tz", None) is None) ^ (
+                    getattr(self, "tz", None) is None
+                ):
+                    return False
+            return True
         # TODO: this was written assuming we only get here with object-dtype,
         #  which is no longer correct. Can we specialize for EA?
         return True
