@@ -1672,7 +1672,7 @@ function takes a number of arguments. Only the first is required.
 * ``date_format``: Format string for datetime objects
 
 Floating Point Precision on Writing and Reading to CSV Files
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Floating Point Precision inaccuracies when writing and reading to CSV files happen due to how the numeric data is represented and parsed in pandas.
 During the write process, pandas converts all the numeric values into text that is stored as bytes in the CSV file. However, when we read the CSV back, pandas parses those
@@ -1686,20 +1686,20 @@ The conversion process is not always guaranteed to be accurate because small dif
 ``df = pd.read_csv('file.csv', float_precision='round_trip')`` allows for floating point precision to be specified when reading from the CSV file. This is guaranteed to round-trip values after writing to a file and Pandas will read the numbers without losing or changing decimal places.
 
 .. ipython:: python
-   from import StringIO
-   import pandas as pd
 
-   x0 = 18292498239.824
-   df1 = pd.DataFrame({'One': [x0]}, index=["bignum"])
+    from io import StringIO
 
-   csv_string = df1.to_csv(float_format='%.17g')
-   df2 = pd.read_csv(StringIO(csv_string), index_col=0, float_precision='round_trip')
+    x0 = 18292498239.824
+    df1 = pd.DataFrame({'One': [x0]}, index=["bignum"])
 
-   x1 = df1.iloc[0, 0]
-   x2 = df2.iloc[0, 0]
+    csv_string = df1.to_csv(float_format='%.17g')
+    df2 = pd.read_csv(StringIO(csv_string), index_col=0, float_precision='round_trip')
 
-   print(f"x0 = {x0}; x1 = {x1}; Are they equal? {x0 == x1}")
-   print(f"x0 = {x0}; x2 = {x2}; Are they equal? {x0 == x2}")
+    x1 = df1.iloc[0, 0]
+    x2 = df2.iloc[0, 0]
+
+    print(f"x0 = {x0}; x1 = {x1}; Are they equal? {x0 == x1}")
+    print(f"x0 = {x0}; x2 = {x2}; Are they equal? {x0 == x2}")
 
 Writing a formatted string
 ++++++++++++++++++++++++++
