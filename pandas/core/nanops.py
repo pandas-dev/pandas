@@ -1400,7 +1400,7 @@ def nankurt(
         if count < 4:
             return np.nan
         if denominator == 0:
-            return values.dtype.type(0)
+            return np.nan
 
     with np.errstate(invalid="ignore", divide="ignore"):
         result = numerator / denominator - adj
