@@ -1212,7 +1212,7 @@ def _objects_to_td64ns(
     data, unit=None, errors: DateTimeErrorChoices = "raise"
 ) -> np.ndarray:
     """
-    Convert a object-dtyped or string-dtyped array into an
+    Convert an object-dtyped or string-dtyped array into a
     timedelta64[ns]-dtyped array.
 
     Parameters

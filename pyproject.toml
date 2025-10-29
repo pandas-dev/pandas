@@ -591,9 +591,6 @@ exclude = [
 "pandas/tests/tseries/offsets/test_month.py" = ["B905"]
 "pandas/tests/tseries/offsets/test_offsets.py" = ["B905"]
 "pandas/tests/util/test_validate_kwargs.py" = ["B905"]
-"pandas/tests/window/test_cython_aggregations.py" = ["B905"]
-"pandas/tests/window/test_expanding.py" = ["B905"]
-"pandas/tests/window/test_rolling.py" = ["B905"]
 "scripts/validate_unwanted_patterns.py" = ["B905"]
 
 [tool.ruff.lint.flake8-pytest-style]
