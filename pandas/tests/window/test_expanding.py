@@ -180,7 +180,7 @@ def test_iter_expanding_dataframe(df, expected, min_periods):
     df = DataFrame(df)
     expecteds = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for expected, actual in zip(expecteds, df.expanding(min_periods)):
+    for expected, actual in zip(expecteds, df.expanding(min_periods), strict=False):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -199,7 +199,7 @@ def test_iter_expanding_series(ser, expected, min_periods):
     # GH 11704
     expecteds = [Series(values, index=index) for (values, index) in expected]
 
-    for expected, actual in zip(expecteds, ser.expanding(min_periods)):
+    for expected, actual in zip(expecteds, ser.expanding(min_periods), strict=True):
         tm.assert_series_equal(actual, expected)
 
 
