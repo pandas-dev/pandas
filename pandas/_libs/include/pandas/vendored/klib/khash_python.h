@@ -221,6 +221,9 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
 }
 
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
+  if (PyErr_Occurred() != NULL) {
+    return 0;
+  }
   if (a == b) {
     return 1;
   }
@@ -243,7 +246,6 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
 
   int result = PyObject_RichCompareBool(a, b, Py_EQ);
   if (result < 0) {
-    PyErr_Clear();
     return 0;
   }
   return result;
@@ -320,6 +322,9 @@ static inline Py_hash_t tupleobject_hash(PyTupleObject *key) {
 }
 
 static inline khuint32_t kh_python_hash_func(PyObject *key) {
+  if (PyErr_Occurred() != NULL) {
+    return 0;
+  }
   Py_hash_t hash;
   // For PyObject_Hash holds:
   //    hash(0.0) == 0 == hash(-0.0)
@@ -343,7 +348,6 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
   }
 
   if (hash == -1) {
-    PyErr_Clear();
     return 0;
   }
 #if SIZEOF_PY_HASH_T == 4
