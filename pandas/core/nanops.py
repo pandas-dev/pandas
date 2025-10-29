@@ -1410,7 +1410,7 @@ def nankurt(
         result = result.astype(dtype, copy=False)
 
     if isinstance(result, np.ndarray):
-        result = np.where(denominator == 0, 0, result)
+        result = np.where(denominator == 0, np.nan, result)
         result[count < 4] = np.nan
 
     return result
