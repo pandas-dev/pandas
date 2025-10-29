@@ -28,6 +28,7 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
     Resolution,
+    Timedelta,
     Timestamp,
     astype_overflowsafe,
     fields,
@@ -64,7 +65,6 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import isna
 
-from pandas import Timedelta
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
 import pandas.core.common as com
