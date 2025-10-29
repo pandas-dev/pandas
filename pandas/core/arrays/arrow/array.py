@@ -832,7 +832,10 @@ class ArrowExtensionArray(
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Need to wrap np.array results GH#62800
         result = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
-        return type(self)._from_sequence(result)
+        if type(self) is ArrowExtensionArray:
+            # Exclude ArrowStringArray
+            return type(self)._from_sequence(result)
+        return result
 
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
