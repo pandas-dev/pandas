@@ -45,3 +45,4 @@
     - CLN: Code cleanup
 - Pull request descriptions should follow the template, and **succinctly** describe the change being made. Usually a few sentences is sufficient.
 - Pull requests which are resolving an existing Github Issue should include a link to the issue in the PR Description.
+- Do not add summaries or additional comments to individual commit messages. The single PR description is sufficient.
