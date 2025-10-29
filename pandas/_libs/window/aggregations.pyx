@@ -628,9 +628,9 @@ def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
             # Over the first window, observations can only be added
             # never removed
             requires_recompute = (
-                    i == 0
-                    or not is_monotonic_increasing_bounds
-                    or s >= end[i - 1]
+                i == 0
+                or not is_monotonic_increasing_bounds
+                or s >= end[i - 1]
             )
 
             if not requires_recompute:
