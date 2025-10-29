@@ -1696,7 +1696,7 @@ The conversion process is not always guaranteed to be accurate because small dif
    df1.to_csv('test.csv', float_format='%.17g')
    df2 = pd.read_csv('test.csv', index_col=0, float_precision='round_trip')
 
-   x1 = df1['One'][0]
+   x1 = df1.iloc[0, 0]
    x2 = df2['One'][0]
 
    print("x0 = %f; x1 = %f; Are they equal? %s" % (x0, x1, (x0 == x1)))
