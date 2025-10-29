@@ -933,7 +933,7 @@ class TestWideToLong:
         tm.assert_frame_equal(result.sort_index(axis=1), expected.sort_index(axis=1))
 
     def test_invalid_separator(self):
-        # if an invalid separator is supplied a empty data frame is returned
+        # if an invalid separator is supplied an empty data frame is returned
         sep = "nope!"
         df = DataFrame(
             {
