@@ -215,7 +215,7 @@ class TestDateRanges:
         # check that overflows in calculating `addend = periods * stride`
         #  are caught
         with tm.assert_produces_warning(None):
-            # we should _not_ be seeing a overflow RuntimeWarning
+            # we should _not_ be seeing an overflow RuntimeWarning
             dti = date_range(start="1677-09-22", periods=213503, freq="D")
 
         assert dti[0] == Timestamp("1677-09-22")

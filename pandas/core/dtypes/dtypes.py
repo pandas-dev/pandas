@@ -176,7 +176,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         The categories are stored in an Index,
         and if an index is provided the dtype of that index will be used.
     ordered : bool or None, default False
-        Whether or not this categorical is treated as a ordered categorical.
+        Whether or not this categorical is treated as an ordered categorical.
         None can be used to maintain the ordered value of existing categoricals when
         used in operations that combine categoricals, e.g. astype, and will resolve to
         False if there is no existing ordered to maintain.

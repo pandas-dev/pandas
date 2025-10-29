@@ -49,7 +49,7 @@ class TestTimestampConstructorUnitKeyword:
 
     @pytest.mark.parametrize("typ", [int, float])
     def test_construct_from_int_float_with_unit_out_of_bound_raises(self, typ):
-        # GH#50870  make sure we get a OutOfBoundsDatetime instead of OverflowError
+        # GH#50870  make sure we get an OutOfBoundsDatetime instead of OverflowError
         val = typ(150000000000000)
 
         msg = f"cannot convert input {val} with the unit 'D'"
