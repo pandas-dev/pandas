@@ -8,6 +8,9 @@ Window
 
 :class:`pandas.api.typing.Rolling` instances are returned by ``.rolling`` calls:
 :func:`pandas.DataFrame.rolling` and :func:`pandas.Series.rolling`.
+.. note::
+
+   Looking for a beginner-friendly introduction? See the :doc:`../user_guide/window` user guide for windowing operations.
 :class:`pandas.api.typing.Expanding` instances are returned by ``.expanding`` calls:
 :func:`pandas.DataFrame.expanding` and :func:`pandas.Series.expanding`.
 :class:`pandas.api.typing.ExponentialMovingWindow` instances are returned by ``.ewm``

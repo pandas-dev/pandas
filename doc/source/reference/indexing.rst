@@ -6,9 +6,11 @@
 Index objects
 =============
 
+.. note::
+
+   Looking for a beginner-friendly introduction? See the :doc:`../user_guide/indexing` user guide for indexing and selecting data.
 Index
 -----
-.. currentmodule:: pandas
 
 **Many of these methods or variants thereof are available on the objects
 that contain an index (Series/DataFrame) and those should most likely be
