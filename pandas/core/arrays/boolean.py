@@ -63,6 +63,12 @@ class BooleanDtype(BaseMaskedDtype):
     -------
     None
 
+    See Also
+    --------
+    BooleanArray : Array of boolean (True/False) data with missing values.
+    Int64Dtype : Extension dtype for int64 integer data.
+    StringDtype : Extension dtype for string data.
+
     Examples
     --------
     >>> pd.BooleanDtype()
@@ -78,11 +84,6 @@ class BooleanDtype(BaseMaskedDtype):
     [True, False, <NA>]
     Length: 3, dtype: boolean
 
-    See Also
-    --------
-    BooleanArray : Array of boolean (True/False) data with missing values.
-    Int64Dtype : Extension dtype for int64 integer data.
-    StringDtype : Extension dtype for string data.
     """
 
     name: ClassVar[str] = "boolean"
