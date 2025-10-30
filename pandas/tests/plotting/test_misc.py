@@ -5,6 +5,7 @@ import os
 import numpy as np
 import pytest
 
+from pandas.errors import PandasFutureWarning
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -864,34 +865,45 @@ def test_plot_bar_label_count_expected_success():
         [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
     )
     df.plot(subplots=[("A", "B", "D")], kind="bar", title=["A&B&D", "C"])
-    @pytest.mark.filterwarnings("default")
-    def test_change_scatter_markersize_rcparams(self):
-        # GH 54204
-        # Ensure proper use of lines.markersize to style pandas scatter
-        # plots like matplotlib does.
-        # Will raise deprecation warnings.
-        df = DataFrame(data={"x": [1, 2, 3], "y": [1, 2, 3]})
 
-        pandas_default = df.plot.scatter(
+
+def testhhh_change_scatter_markersize_future_warning():
+    # GH 54204
+    # Will raise FutureWarning if s not provided to df.plot.scatter
+    df = DataFrame(data={"x": [1, 2, 3], "y": [1, 2, 3]})
+    with tm.assert_produces_warning(PandasFutureWarning):
+        pandas_default_without_rcparams = df.plot.scatter(
             x="x", y="y", title="pandas scatter, default rc marker size"
         )
+    # Verify that pandas still defaults to 20
+    assert pandas_default_without_rcparams.collections[0].get_sizes()[0] == 20
 
-        mpl_default = mpl.pyplot.scatter(df["x"], df["y"])
 
-        # verify that pandas and matplotlib scatter
-        # default marker size are the same (s = 6^2 = 36)
-        assert (
-            pandas_default.collections[0].get_sizes()[0] == mpl_default.get_sizes()[0]
+@pytest.mark.filterwarnings(
+    "ignore:The default of s=20 will be changed:pandas.errors.PandasFutureWarning"
+)
+def testhhh_scatter_markersize_same_default_with_rcparams():
+    # GH 54204
+    # Ensure default markersize is still 20 if no rcparams
+    df = DataFrame(data={"x": [1, 2, 3], "y": [1, 2, 3]})
+    with mpl.rc_context({"lines.markersize": 10}):
+        pandas_default_with_rcparams = df.plot.scatter(
+            x="x", y="y", title="pandas scatter, changed rc marker size"
         )
+    # Verify that pandas default markersize is still 20 with rc_params
+    assert pandas_default_with_rcparams.collections[0].get_sizes()[0] == 20
 
-        with mpl.rc_context({"lines.markersize": 10}):
-            pandas_changed = df.plot.scatter(
-                x="x", y="y", title="pandas scatter, changed rc marker size"
-            )
-            mpl_changed = mpl.pyplot.scatter(df["x"], df["y"])
 
-        # verify that pandas and matplotlib scatter
-        # changed marker size are the same (s = 10^2 = 100)
-        assert (
-            pandas_changed.collections[0].get_sizes()[0] == mpl_changed.get_sizes()[0]
-        )
+@pytest.mark.filterwarnings(
+    "ignore:The default of s=20 will be changed:pandas.errors.PandasFutureWarning"
+)
+def testhhh_scatter_markersize_same_default_without_rcparams():
+    # GH 54204
+    # Ensure default markersize is still 20 if no rcparams
+    df = DataFrame(data={"x": [1, 2, 3], "y": [1, 2, 3]})
+
+    pandas_default_with_rcparams = df.plot.scatter(
+        x="x", y="y", title="pandas scatter, changed rc marker size"
+    )
+    # Verify that pandas default markersize is still 20 without rc_params
+    assert pandas_default_with_rcparams.collections[0].get_sizes()[0] == 20
