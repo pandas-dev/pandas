@@ -335,8 +335,6 @@ regular expression object will raise a ``ValueError``.
 ``removeprefix`` and ``removesuffix`` have the same effect as ``str.removeprefix`` and ``str.removesuffix`` added in
 `Python 3.9 <https://docs.python.org/3/library/stdtypes.html#str.removeprefix>`__:
 
-.. versionadded:: 1.4.0
-
 .. ipython:: python
 
    s = pd.Series(["str_foo", "str_bar", "no_prefix"])
