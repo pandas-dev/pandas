@@ -929,6 +929,14 @@ class DataFrame(NDFrame, OpsMixin):
             - converting to pandas: for pandas >= 2.0.3
             - converting from pandas: for pandas >= 3.0.0
 
+        .. deprecated:: 3.0.0
+
+            The Dataframe Interchange Protocol is deprecated.
+            For dataframe-agnostic code, you may want to look into:
+
+            - `Arrow PyCapsule Interface <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`_
+            - `Narwhals <https://github.com/narwhals-dev/narwhals>`_
+
         Parameters
         ----------
         nan_as_null : bool, default False
@@ -970,7 +978,14 @@ class DataFrame(NDFrame, OpsMixin):
         These methods (``column_names``, ``select_columns_by_name``) should work
         for any dataframe library which implements the interchange protocol.
         """
-
+        warnings.warn(
+            "The Dataframe Interchange Protocol is deprecated.\n"
+            "For dataframe-agnostic code, you may want to look into:\n"
+            "- Arrow PyCapsule Interface: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html\n"
+            "- Narwhals: https://github.com/narwhals-dev/narwhals\n",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         from pandas.core.interchange.dataframe import PandasDataFrameXchg
 
         return PandasDataFrameXchg(self, allow_copy=allow_copy)
