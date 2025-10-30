@@ -1036,6 +1036,7 @@ Conversion
 - Bug in :meth:`Series.convert_dtypes` and :meth:`DataFrame.convert_dtypes` removing timezone information for objects with :class:`ArrowDtype` (:issue:`60237`)
 - Bug in :meth:`Series.reindex` not maintaining ``float32`` type when a ``reindex`` introduces a missing value (:issue:`45857`)
 - Bug in :meth:`to_datetime` and :meth:`to_timedelta` with input ``None`` returning ``None`` instead of ``NaT``, inconsistent with other conversion methods (:issue:`23055`)
+- Bug in :meth:`ArrowDtype._get_common_dtype` and :meth:`ExtentionDtype._get_common_dtype` when using ``date32[pyarrow]`` and ``date64[pyarrow]`` types (:issue:`62343`)
 
 Strings
 ^^^^^^^
