@@ -449,6 +449,7 @@ class OpenpyxlWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        autofilter: bool = False,
     ) -> None:
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
@@ -486,6 +487,11 @@ class OpenpyxlWriter(ExcelWriter):
                 row=freeze_panes[0] + 1, column=freeze_panes[1] + 1
             )
 
+        min_r = None
+        min_c = None
+        max_r = None
+        max_c = None
+
         for cell in cells:
             xcell = wks.cell(
                 row=startrow + cell.row + 1, column=startcol + cell.col + 1
@@ -506,10 +512,23 @@ class OpenpyxlWriter(ExcelWriter):
                 for k, v in style_kwargs.items():
                     setattr(xcell, k, v)
 
+            abs_row = startrow + cell.row + 1
+            abs_col = startcol + cell.col + 1
+
+            # track bounds (1-based for openpyxl)
+            if min_r is None or abs_row < min_r:
+                min_r = abs_row
+            if min_c is None or abs_col < min_c:
+                min_c = abs_col
+            if max_r is None or abs_row > max_r:
+                max_r = abs_row
+            if max_c is None or abs_col > max_c:
+                max_c = abs_col
+
             if cell.mergestart is not None and cell.mergeend is not None:
                 wks.merge_cells(
-                    start_row=startrow + cell.row + 1,
-                    start_column=startcol + cell.col + 1,
+                    start_row=abs_row,
+                    start_column=abs_col,
                     end_column=startcol + cell.mergeend + 1,
                     end_row=startrow + cell.mergestart + 1,
                 )
@@ -531,6 +550,17 @@ class OpenpyxlWriter(ExcelWriter):
                             xcell = wks.cell(column=col, row=row)
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
+
+        if autofilter and min_r is not None and min_c is not None and max_r is not None and max_c is not None:
+            try:
+                # Convert numeric bounds to Excel-style range e.g. A1:D10
+                from openpyxl.utils import get_column_letter
+
+                start_ref = f"{get_column_letter(min_c)}{min_r}"
+                end_ref = f"{get_column_letter(max_c)}{max_r}"
+                wks.auto_filter.ref = f"{start_ref}:{end_ref}"
+            except Exception:
+                pass
 
 
 class OpenpyxlReader(BaseExcelReader["Workbook"]):

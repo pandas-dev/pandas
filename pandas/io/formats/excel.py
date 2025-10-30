@@ -884,6 +884,7 @@ class ExcelFormatter:
         engine: str | None = None,
         storage_options: StorageOptions | None = None,
         engine_kwargs: dict | None = None,
+        autofilter: bool = False,
     ) -> None:
         """
         writer : path-like, file-like, or ExcelWriter object
@@ -938,6 +939,7 @@ class ExcelFormatter:
                 startrow=startrow,
                 startcol=startcol,
                 freeze_panes=freeze_panes,
+                autofilter=autofilter,
             )
         finally:
             # make sure to close opened file handles

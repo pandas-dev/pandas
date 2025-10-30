@@ -773,7 +773,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         labels = ensure_index(labels)
         self._mgr.set_axis(axis, labels)
-
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def droplevel(self, level: IndexLabel, axis: Axis = 0) -> Self:
@@ -1515,7 +1514,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             f"The truth value of a {type(self).__name__} is ambiguous. "
             "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
         )
-
     @final
     def abs(self) -> Self:
         """
@@ -2180,6 +2178,141 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions | None = None,
         engine_kwargs: dict[str, Any] | None = None,
+        autofilter: bool = False,
+    ) -> None:
+        """
+        Write object to an Excel sheet.
+
+        To write a single object to an Excel .xlsx file it is only necessary
+        to specify a target file name.
+
+        .. code-block:: python
+
+            df.to_excel("path_to_file.xlsx")
+
+        To write to different sheets of the same .xlsx file it is necessary to
+        create an `ExcelWriter` object with a target file name,
+        and specify a sheet in the file to write to.
+
+        .. code-block:: python
+
+            with pd.ExcelWriter("path_to_file.xlsx") as writer:
+                df1.to_excel(writer, sheet_name="Sheet_name_1")
+                df2.to_excel(writer, sheet_name="Sheet_name_2")
+
+        When using `ExcelWriter`, note that the objects are not written until the
+        `ExcelWriter` object is closed.
+
+        Parameters
+        ----------
+        excel_writer : string, path object or ExcelWriter object
+            File path or existing ExcelWriter
+            If a string is passed, a new ExcelWriter object is created.
+        sheet_name : str, default 'Sheet1'
+            Name of sheet which will contain DataFrame.
+        na_rep : str, default ''
+            Missing data representation
+        float_format : str, default None
+            Format string for floating point numbers
+        columns : sequence, optional
+            Columns to write
+        header : bool or list of str, default True
+            Write out the column names. If a list of string is given
+            it is assumed to be aliases for the column names
+        index : bool, default True
+            Write row names (index)
+        index_label : str or sequence, default None
+            Column label for index column(s) if desired. If None is given, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the DataFrame uses MultiIndex.
+        startrow : int, default 0
+            Upper left cell row to dump data frame.
+            Per default (0) header is written, too.
+        startcol : int, default 0
+            Upper left cell column to dump data frame.
+        engine : str, optional
+            Write engine to use, 'openpyxl' or 'xlsxwriter'.
+            Defaults to 'xlsxwriter'.
+        merge_cells : bool, default True
+            Write MultiIndex and Hierarchical Rows as merged cells.
+            The indices corresponding to each row will be combined and
+            presented as a single cell.
+        inf_rep : str, default 'inf'
+            Representation for infinity (there is no native Numpy representation
+            for infinity in integer dtypes)
+        freeze_panes : tuple of int (length 2), default None
+            First rows to freeze panes on. Only applicable when `freeze_panes`
+            is passed as a tuple.
+        storage_options : dict, optional
+            Extra options that make sense for a particular storage connection,
+            e.g. host, port, username, password, etc., if using a URL that
+            requires authentication.
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
+        autofilter : bool, default False
+            Whether to apply autofilter to the header row.
+
+        See Also
+        --------
+        read_excel : Read from an Excel file into a DataFrame.
+        ExcelFile : Class for parsing tabular excel files.
+        ExcelWriter : Class for writing DataFrame objects into excel sheets.
+
+        Notes
+        -----
+        The `engine` keyword is not supported when `excel_writer` is an
+        existing `ExcelWriter`.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df.to_excel("pandas_simple.xlsx")
+        >>> df.to_excel("pandas_simple.xlsx", engine="openpyxl")
+        """
+        if isinstance(excel_writer, ExcelWriter):
+            if engine is not None:
+                raise ValueError(
+                    "engine should not be specified when passing an ExcelWriter"
+                )
+            engine = excel_writer.engine
+        else:
+            excel_writer = ExcelWriter(
+                excel_writer,
+                engine=engine,
+                mode=mode,
+                if_sheet_exists=if_sheet_exists,
+                engine_kwargs=engine_kwargs,
+                date_format=date_format,
+                datetime_format=datetime_format,
+                storage_options=storage_options,
+            )
+
+        formatter = ExcelFormatter(
+            self,
+            na_rep=na_rep,
+            float_format=float_format,
+            columns=columns,
+            header=header,
+            index=index,
+            index_label=index_label,
+            inf_rep=inf_rep,
+        )
+
+        formatter.write(
+            excel_writer,
+            sheet_name=sheet_name,
+            startrow=startrow,
+            startcol=startcol,
+            freeze_panes=freeze_panes,
+            engine=engine,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
+            autofilter=autofilter,
+        )
+
+        if not isinstance(excel_writer, ExcelWriter):
+            # we need to close the writer if we created it
+            excel_writer.close()
     ) -> None:
         """
         Write {klass} to an Excel sheet.
@@ -4851,7 +4984,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ignore_index: bool = ...,
         key: ValueKeyFunc = ...,
     ) -> Self: ...
-
     @overload
     def sort_values(
         self,
@@ -5627,7 +5759,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self.loc(axis=axis)[values]
         else:
             raise TypeError("Must pass either `items`, `like`, or `regex`")
-
     @final
     def head(self, n: int = 5) -> Self:
         """
@@ -6100,8 +6231,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         other : the object from which to get the attributes that we are going
             to propagate. If ``other`` has an ``input_objs`` attribute, then
-            this attribute must contain an iterable of objects, each with an
-            ``attrs`` attribute.
+            this attribute must contain an iterable of objects, each with an ``attrs`` attribute.
         method : str, optional
             A passed method name providing context on where ``__finalize__``
             was called.
@@ -9614,10 +9744,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1  1  2  3  4
         2  6  7  8  9
         >>> other
-            A    B    C    D
-        2   10   20   30   40
-        3   60   70   80   90
-        4  600  700  800  900
+            A    B    C    D   E
+        2   10   20   30   40 NaN
+        3   60   70   80   90 NaN
+        4  600  700  800  900 NaN
 
         Align on columns:
 
@@ -9706,7 +9836,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         left = left.__finalize__(self)
         right = right.__finalize__(other)
         return left, right
-
     @final
     def _align_frame(
         self,
@@ -12044,7 +12173,6 @@ Returns
 {see_also}\
 {examples}
 """
-
 _sum_prod_doc = """
 {desc}
 
@@ -12826,8 +12954,6 @@ min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 """
-
-
 def make_doc(name: str, ndim: int) -> str:
     """
     Generate the docstring for a Series/DataFrame reduction.
