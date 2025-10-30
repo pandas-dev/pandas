@@ -1287,10 +1287,10 @@ def nanskew(
         result = result.astype(dtype, copy=False)
 
     if isinstance(result, np.ndarray):
-        result = np.where(m2 == 0, 0, result)
+        result = np.where(m2 == 0, np.nan, result)
         result[count < 3] = np.nan
     else:
-        result = dtype.type(0) if m2 == 0 else result
+        result = np.nan if m2 == 0 else result
         if count < 3:
             return np.nan
 

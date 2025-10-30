@@ -559,10 +559,10 @@ class TestnanopsDataFrame:
         result = func(values, axis=axis, bias=False)
         # fix for handling cases where all elements in an axis are the same
         if isinstance(result, np.ndarray):
-            result[np.max(values, axis=axis) == np.min(values, axis=axis)] = 0
+            result[np.max(values, axis=axis) == np.min(values, axis=axis)] = np.nan
             return result
         elif np.max(values) == np.min(values):
-            return 0.0
+            return np.nan
         return result
 
     def test_nanskew(self, skipna):
@@ -1021,7 +1021,7 @@ class TestNanskewFixedValues:
         # xref GH 11974
         data = val * np.ones(300)
         skew = nanops.nanskew(data)
-        assert skew == 0.0
+        assert np.isnan(skew)
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -1089,7 +1089,7 @@ class TestNankurtFixedValues:
         # xref GH 11974
         data = val * np.ones(300)
         kurt = nanops.nankurt(data)
-        tm.assert_equal(kurt, 0.0)
+        tm.assert_equal(kurt, np.nan)
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
