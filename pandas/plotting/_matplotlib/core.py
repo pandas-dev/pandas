@@ -19,11 +19,13 @@ from typing import (
 )
 import warnings
 
-import matplotlib as mpl
 import numpy as np
 
 from pandas._libs import lib
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    PandasFutureWarning,
+)
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
@@ -54,6 +56,7 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
+import matplotlib as mpl
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
@@ -81,11 +84,6 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
-    from matplotlib.artist import Artist
-    from matplotlib.axes import Axes
-    from matplotlib.axis import Axis
-    from matplotlib.figure import Figure
-
     from pandas._typing import (
         IndexLabel,
         NDFrameT,
@@ -93,6 +91,10 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from matplotlib.artist import Artist
+    from matplotlib.axes import Axes
+    from matplotlib.axis import Axis
+    from matplotlib.figure import Figure
     from pandas import (
         DataFrame,
         Index,
@@ -1325,18 +1327,18 @@ class ScatterPlot(PlanePlot):
         **kwargs,
     ) -> None:
         if s is None:
-            #  The default size of the elements in a scatter plot
-            # is now based on the rcParam ``lines.markersize``.
-            # This means that if rcParams are temporarily changed,
-            # the marker size changes as well according to mpl.rc_context().
+            # The default size of the elements in a scatter plot
+            # is 20, but this will change in a future version.
+            # In the future the value will be derived from
+            # mpl.rcParams["lines.markersize"] if not provided
             warnings.warn(
-                """The default of s=20 is deprecated and
-                has changed to mpl.rcParams['lines.markersize'].
-                Specify `s` to suppress this warning""",
-                DeprecationWarning,
+                "The default of s=20 will be changed to use "
+                "mpl.rcParams['lines.markersize'] in the future. "
+                "Specify `s` to suppress this warning",
+                PandasFutureWarning,
                 stacklevel=find_stack_level(),
             )
-            s = mpl.rcParams["lines.markersize"] ** 2.0
+            s = 20
         elif is_hashable(s) and s in data.columns:
             s = data[s]
         self.s = s
