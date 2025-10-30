@@ -121,15 +121,13 @@ number of alternatives are available to plot data. Let’s use some
 standard Python to get an overview of the available plot methods:
 
 .. ipython:: python
+    :okwarning:
 
-    import warnings
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        [
-            method_name
-            for method_name in dir(air_quality.plot)
-            if not method_name.startswith("_")
-        ]
+    [
+        method_name
+        for method_name in dir(air_quality.plot)
+        if not method_name.startswith("_")
+    ]
 
 .. note::
     In many development environments such as IPython and
