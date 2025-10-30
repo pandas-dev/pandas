@@ -55,6 +55,8 @@ class Flags:
     <Flags(allows_duplicate_labels=True)>
     """
 
+    __module__ = "pandas"
+
     _keys: set[str] = {"allows_duplicate_labels"}
 
     def __init__(self, obj: NDFrame, *, allows_duplicate_labels: bool) -> None:
