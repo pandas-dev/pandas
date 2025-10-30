@@ -19,6 +19,7 @@ from typing import (
 )
 import warnings
 
+import matplotlib as mpl
 import numpy as np
 
 from pandas._libs import lib
@@ -56,7 +57,6 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import isna
 
-import matplotlib as mpl
 import pandas.core.common as com
 
 from pandas.io.formats.printing import pprint_thing
@@ -84,6 +84,11 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
+    from matplotlib.artist import Artist
+    from matplotlib.axes import Axes
+    from matplotlib.axis import Axis
+    from matplotlib.figure import Figure
+
     from pandas._typing import (
         IndexLabel,
         NDFrameT,
@@ -91,10 +96,6 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from matplotlib.artist import Artist
-    from matplotlib.axes import Axes
-    from matplotlib.axis import Axis
-    from matplotlib.figure import Figure
     from pandas import (
         DataFrame,
         Index,
