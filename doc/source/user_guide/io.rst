@@ -3760,6 +3760,13 @@ The look and feel of Excel worksheets created from pandas can be modified using 
     to create styled excel files. For documentation on styling spreadsheets, see
     `here <https://pandas.pydata.org/docs/user_guide/style.html#Export-to-Excel>`__.
 
+To make the header row bold when exporting to Excel:
+
+.. code-block:: python
+
+    df.style.applymap_index(lambda v: "font-weight: bold;", axis="columns").to_excel("out.xlsx")
+
+For more advanced styling with borders:
 
 .. code-block:: python
 
