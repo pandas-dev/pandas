@@ -83,7 +83,6 @@ class BooleanDtype(BaseMaskedDtype):
     <BooleanArray>
     [True, False, <NA>]
     Length: 3, dtype: boolean
-
     """
 
     name: ClassVar[str] = "boolean"
