@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -24,7 +26,7 @@ class TestDataFrameShift:
         expected = df.T.shift(periods=1, fill_value=12345).T
         tm.assert_frame_equal(res, expected)
 
-        # same but with an 1D ExtensionArray backing it
+        # same but with a 1D ExtensionArray backing it
         df2 = df[[0]].astype("Float64")
         res2 = df2.shift(axis=1, periods=1, fill_value=12345)
         expected2 = DataFrame([12345] * 5, dtype="Float64")
@@ -766,3 +768,29 @@ class TestDataFrameShift:
         result = ser.shift(1)
         expected = Series([np.nan, pd.Interval(1, 2, closed="right")])
         tm.assert_series_equal(result, expected)
+
+    def test_shift_invalid_fill_value_deprecation(self):
+        # GH#53802
+        df = DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": [True, False, True],
+            }
+        )
+
+        msg = "shifting with a fill value that cannot"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.shift(1, fill_value="foo")
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["a"].shift(1, fill_value="foo")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["b"].shift(1, fill_value="foo")
+
+        # An incompatible null value
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.shift(1, fill_value=NaT)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["a"].shift(1, fill_value=NaT)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["b"].shift(1, fill_value=NaT)

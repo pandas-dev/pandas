@@ -23,6 +23,7 @@ from pandas._libs.tslibs import (
     get_supported_dtype,
     is_supported_dtype,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
@@ -72,6 +73,7 @@ if TYPE_CHECKING:
     )
 
 
+@set_module("pandas")
 def array(
     data: Sequence[object] | AnyArrayLike,
     dtype: Dtype | None = None,
@@ -229,14 +231,14 @@ def array(
     Length: 2, dtype: Float64
 
     >>> pd.array(["a", None, "c"])
-    <StringArray>
+    <ArrowStringArray>
     ['a', <NA>, 'c']
     Length: 3, dtype: string
 
-    >>> with pd.option_context("string_storage", "pyarrow"):
+    >>> with pd.option_context("string_storage", "python"):
     ...     arr = pd.array(["a", None, "c"])
     >>> arr
-    <ArrowStringArray>
+    <StringArray>
     ['a', <NA>, 'c']
     Length: 3, dtype: string
 

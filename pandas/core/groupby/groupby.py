@@ -76,6 +76,7 @@ from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
 )
 from pandas.core.dtypes.common import (
+    is_bool,
     is_bool_dtype,
     is_float_dtype,
     is_hashable,
@@ -109,9 +110,7 @@ from pandas.core.arrays import (
     SparseArray,
 )
 from pandas.core.arrays.string_ import StringDtype
-from pandas.core.arrays.string_arrow import (
-    ArrowStringArray,
-)
+from pandas.core.arrays.string_arrow import ArrowStringArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -682,7 +681,10 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                     raise ValueError(msg) from err
 
             converters = (get_converter(s) for s in index_sample)
-            names = (tuple(f(n) for f, n in zip(converters, name)) for name in names)
+            names = (
+                tuple(f(n) for f, n in zip(converters, name, strict=True))
+                for name in names
+            )
 
         else:
             converter = get_converter(index_sample)
@@ -1188,7 +1190,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if isinstance(result, Series) and name is not None:
             result.name = name
 
-        return result
+        return result.__finalize__(self.obj, method="groupby")
 
     @final
     def _set_result_index_ordered(
@@ -1235,6 +1237,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             zip(
                 reversed(self._grouper.names),
                 self._grouper.get_group_levels(),
+                strict=True,
             )
         ):
             if name is None:
@@ -1752,6 +1755,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
 
+        if not is_bool(numeric_only):
+            raise ValueError("numeric_only accepts only Boolean values")
+
         data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
 
         def array_func(values: ArrayLike) -> ArrayLike:
@@ -1886,7 +1892,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             mask.fill(False)
             mask[indices.astype(int)] = True
             # mask fails to broadcast when passed to where; broadcast manually.
-            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T  # type: ignore[assignment]
+            mask = np.tile(mask, list(self._selected_obj.shape[1:]) + [1]).T
             filtered = self._selected_obj.where(mask)  # Fill with NaNs.
         return filtered
 
@@ -4321,7 +4327,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _nth(
         self,
         n: PositionalIndexer | tuple,
-        dropna: Literal["any", "all", None] = None,
+        dropna: Literal["any", "all"] | None = None,
     ) -> NDFrameT:
         if not dropna:
             mask = self._make_mask_from_positional_indexer(n)

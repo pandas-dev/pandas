@@ -67,6 +67,7 @@ from pandas._libs.tslibs.dtypes cimport (
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
+    is_float_object,
     is_integer_object,
 )
 
@@ -1339,7 +1340,12 @@ cdef class _Timestamp(ABCTimestamp):
             int64_t ppd = periods_per_day(self._creso)
             _Timestamp ts
 
-        normalized = normalize_i8_stamp(local_val, ppd)
+        try:
+            normalized = normalize_i8_stamp(local_val, ppd)
+        except OverflowError as err:
+            raise ValueError(
+                "Cannot normalize Timestamp without integer overflow"
+            ) from err
         ts = type(self)._from_value_and_reso(normalized, reso=self._creso, tz=None)
         return ts.tz_localize(self.tzinfo)
 
@@ -2649,6 +2655,19 @@ class Timestamp(_Timestamp):
             if hasattr(ts_input, "fold"):
                 ts_input = ts_input.replace(fold=fold)
 
+        if (
+            unit is not None
+            and not (is_float_object(ts_input) or is_integer_object(ts_input))
+        ):
+            # GH#53198
+            warnings.warn(
+                "The 'unit' keyword is only used when the Timestamp input is "
+                f"an integer or float, not {type(ts_input).__name__}. "
+                "To specify the storage unit of the output use `ts.as_unit(unit)`",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
+
         # GH 30543 if pd.Timestamp already passed, return it
         # check that only ts_input is passed
         # checking verbosely, because cython doesn't optimize
@@ -3357,6 +3376,7 @@ default 'raise'
             datetime ts_input
             tzinfo_type tzobj
             _TSObject ts
+            NPY_DATETIMEUNIT creso = self._creso
 
         # set to naive if needed
         tzobj = self.tzinfo
@@ -3396,8 +3416,12 @@ default 'raise'
             dts.sec = validate("second", second)
         if microsecond is not None:
             dts.us = validate("microsecond", microsecond)
+            if creso < NPY_DATETIMEUNIT.NPY_FR_us:
+                # GH#57749
+                creso = NPY_DATETIMEUNIT.NPY_FR_us
         if nanosecond is not None:
             dts.ps = validate("nanosecond", nanosecond) * 1000
+            creso = NPY_FR_ns  # GH#57749
         if tzinfo is not object:
             tzobj = tzinfo
 
@@ -3407,17 +3431,17 @@ default 'raise'
             #  to datetimes outside of pydatetime range.
             ts = _TSObject()
             try:
-                ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
+                ts.value = npy_datetimestruct_to_datetime(creso, &dts)
             except OverflowError as err:
                 fmt = dts_to_iso_string(&dts)
                 raise OutOfBoundsDatetime(
                     f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
                 ) from err
             ts.dts = dts
-            ts.creso = self._creso
+            ts.creso = creso
             ts.fold = fold
             return create_timestamp_from_ts(
-                ts.value, dts, tzobj, fold, reso=self._creso
+                ts.value, dts, tzobj, fold, reso=creso
             )
 
         elif tzobj is not None and treat_tz_as_pytz(tzobj):
@@ -3436,10 +3460,10 @@ default 'raise'
             ts_input = datetime(**kwargs)
 
         ts = convert_datetime_to_tsobject(
-            ts_input, tzobj, nanos=dts.ps // 1000, reso=self._creso
+            ts_input, tzobj, nanos=dts.ps // 1000, reso=creso
         )
         return create_timestamp_from_ts(
-            ts.value, dts, tzobj, fold, reso=self._creso
+            ts.value, dts, tzobj, fold, reso=creso
         )
 
     def to_julian_date(self) -> np.float64:
@@ -3542,7 +3566,7 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 
 
 @cython.cdivision(False)
-cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) noexcept nogil:
+cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd):
     """
     Round the localized nanosecond timestamp down to the previous midnight.
 
@@ -3556,4 +3580,6 @@ cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) noexcept nogil:
     -------
     int64_t
     """
-    return local_val - (local_val % ppd)
+    with cython.overflowcheck(True):
+        # GH#60583
+        return local_val - (local_val % ppd)

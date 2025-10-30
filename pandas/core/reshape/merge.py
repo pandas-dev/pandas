@@ -677,7 +677,9 @@ def merge_asof(
     Perform a merge by key distance.
 
     This is similar to a left-join except that we match on nearest
-    key rather than equal keys. Both DataFrames must be sorted by the key.
+    key rather than equal keys. Both DataFrames must be first sorted by
+    the merge key in ascending order before calling this function.
+    Sorting by any additional 'by' grouping columns is not required.
 
     For each row in the left DataFrame:
 
@@ -700,19 +702,22 @@ def merge_asof(
         Second pandas object to merge.
     on : label
         Field name to join on. Must be found in both DataFrames.
-        The data MUST be ordered. Furthermore this must be a numeric column,
-        such as datetimelike, integer, or float. On or left_on/right_on
-        must be given.
+        The data MUST be in ascending order. Furthermore this must be
+        a numeric column, such as datetimelike, integer, or float. ``on``
+        or ``left_on`` / ``right_on`` must be given.
     left_on : label
-        Field name to join on in left DataFrame.
+        Field name to join on in left DataFrame. If specified, sort the left
+        DataFrame by this column in ascending order before merging.
     right_on : label
-        Field name to join on in right DataFrame.
+        Field name to join on in right DataFrame. If specified, sort the right
+        DataFrame by this column in ascending order before merging.
     left_index : bool
         Use the index of the left DataFrame as the join key.
     right_index : bool
         Use the index of the right DataFrame as the join key.
     by : column name or list of column names
-        Match on these columns before performing merge operation.
+        Match on these columns before performing merge operation. It is not required
+        to sort by these columns.
     left_by : column name
         Field names to match on in the left DataFrame.
     right_by : column name
@@ -736,7 +741,8 @@ def merge_asof(
     Returns
     -------
     DataFrame
-        A DataFrame of the two merged objects.
+        A DataFrame of the two merged objects, containing all rows from the
+        left DataFrame and the nearest matches from the right DataFrame.
 
     See Also
     --------
@@ -1129,16 +1135,15 @@ class _MergeOperation:
         return result
 
     def get_result(self) -> DataFrame:
+        """
+        Execute the merge.
+        """
         if self.indicator:
             self.left, self.right = self._indicator_pre_merge(self.left, self.right)
 
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         result = self._reindex_and_concat(join_index, left_indexer, right_indexer)
-        result = result.__finalize__(
-            types.SimpleNamespace(input_objs=[self.left, self.right]),
-            method=self._merge_type,
-        )
 
         if self.indicator:
             result = self._indicator_post_merge(result)
@@ -1167,6 +1172,13 @@ class _MergeOperation:
     def _indicator_pre_merge(
         self, left: DataFrame, right: DataFrame
     ) -> tuple[DataFrame, DataFrame]:
+        """
+        Add one indicator column to each of the left and right inputs.
+
+        These columns are used to produce another column in the output of the
+        merge, indicating for each row of the output whether it was produced
+        using the left, right or both inputs.
+        """
         columns = left.columns.union(right.columns)
 
         for i in ["_left_indicator", "_right_indicator"]:
@@ -1180,8 +1192,8 @@ class _MergeOperation:
                 "Cannot use name of an existing column for indicator column"
             )
 
-        left = left.copy()
-        right = right.copy()
+        left = left.copy(deep=False)
+        right = right.copy(deep=False)
 
         left["_left_indicator"] = 1
         left["_left_indicator"] = left["_left_indicator"].astype("int8")
@@ -1193,6 +1205,12 @@ class _MergeOperation:
 
     @final
     def _indicator_post_merge(self, result: DataFrame) -> DataFrame:
+        """
+        Add an indicator column to the merge result.
+
+        This column indicates for each row of the output whether it was produced using
+        the left, right or both inputs.
+        """
         result["_left_indicator"] = result["_left_indicator"].fillna(0)
         result["_right_indicator"] = result["_right_indicator"].fillna(0)
 
@@ -1483,7 +1501,11 @@ class _MergeOperation:
             mask = indexer == -1
             if np.any(mask):
                 fill_value = na_value_for_dtype(index.dtype, compat=False)
-                index = index.append(Index([fill_value]))
+                if not index._can_hold_na:
+                    new_index = Index([fill_value])
+                else:
+                    new_index = Index([fill_value], dtype=index.dtype)
+                index = index.append(new_index)
         if indexer is None:
             return index.copy()
         return index.take(indexer)
@@ -1742,7 +1764,9 @@ class _MergeOperation:
 
                     mask = ~np.isnan(lk)
                     match = lk == casted
-                    if not match[mask].all():
+                    # error: Item "ExtensionArray" of
+                    # "ExtensionArray | Any" has no attribute "all"
+                    if not match[mask].all():  # type: ignore[union-attr]
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
@@ -1762,7 +1786,9 @@ class _MergeOperation:
 
                     mask = ~np.isnan(rk)
                     match = rk == casted
-                    if not match[mask].all():
+                    # error: Item "ExtensionArray" of
+                    # "ExtensionArray | Any" has no attribute "all"
+                    if not match[mask].all():  # type: ignore[union-attr]
                         warnings.warn(
                             "You are merging on int and float "
                             "columns where the float values "
@@ -1845,11 +1871,11 @@ class _MergeOperation:
             # incompatible dtypes. See GH 16900.
             if name in self.left.columns:
                 typ = cast(Categorical, lk).categories.dtype if lk_is_cat else object
-                self.left = self.left.copy()
+                self.left = self.left.copy(deep=False)
                 self.left[name] = self.left[name].astype(typ)
             if name in self.right.columns:
                 typ = cast(Categorical, rk).categories.dtype if rk_is_cat else object
-                self.right = self.right.copy()
+                self.right = self.right.copy(deep=False)
                 self.right[name] = self.right[name].astype(typ)
 
     def _validate_left_right_on(self, left_on, right_on):
@@ -1934,42 +1960,62 @@ class _MergeOperation:
     def _validate_validate_kwd(self, validate: str) -> None:
         # Check uniqueness of each
         if self.left_index:
-            left_unique = self.orig_left.index.is_unique
+            left_join_index = self.orig_left.index
+            left_unique = left_join_index.is_unique
         else:
-            left_unique = MultiIndex.from_arrays(self.left_join_keys).is_unique
+            left_join_index = MultiIndex.from_arrays(self.left_join_keys)
+            left_unique = left_join_index.is_unique
 
         if self.right_index:
+            right_join_index = self.orig_right.index
             right_unique = self.orig_right.index.is_unique
         else:
-            right_unique = MultiIndex.from_arrays(self.right_join_keys).is_unique
+            right_join_index = MultiIndex.from_arrays(self.right_join_keys)
+            right_unique = right_join_index.is_unique
+
+        def left_error_msg(x: Index) -> str:
+            name = self.left_on if not self.left_index else lib.no_default
+            msg = x[x.duplicated()][:5].to_frame(name=name).to_string(index=False)
+            return f"\nDuplicates in left:\n {msg} ..."
+
+        def right_error_msg(x: Index) -> str:
+            name = self.right_on if not self.right_index else lib.no_default
+            msg = x[x.duplicated()][:5].to_frame(name=name).to_string(index=False)
+            return f"\nDuplicates in right:\n {msg} ..."
 
         # Check data integrity
         if validate in ["one_to_one", "1:1"]:
             if not left_unique and not right_unique:
                 raise MergeError(
                     "Merge keys are not unique in either left "
-                    "or right dataset; not a one-to-one merge"
+                    "or right dataset; not a one-to-one merge."
+                    f"{left_error_msg(left_join_index)}"
+                    f"{right_error_msg(right_join_index)}"
                 )
             if not left_unique:
                 raise MergeError(
                     "Merge keys are not unique in left dataset; not a one-to-one merge"
+                    f"{left_error_msg(left_join_index)}"
                 )
             if not right_unique:
                 raise MergeError(
                     "Merge keys are not unique in right dataset; not a one-to-one merge"
+                    f"{right_error_msg(right_join_index)}"
                 )
 
         elif validate in ["one_to_many", "1:m"]:
             if not left_unique:
                 raise MergeError(
                     "Merge keys are not unique in left dataset; not a one-to-many merge"
+                    f"{left_error_msg(left_join_index)}"
                 )
 
         elif validate in ["many_to_one", "m:1"]:
             if not right_unique:
                 raise MergeError(
                     "Merge keys are not unique in right dataset; "
-                    "not a many-to-one merge"
+                    "not a many-to-one merge\n"
+                    f"{right_error_msg(right_join_index)}"
                 )
 
         elif validate in ["many_to_many", "m:m"]:

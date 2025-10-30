@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -578,10 +579,7 @@ class TestAstypeCategorical:
         ser = Series(np.random.default_rng(2).integers(0, 10000, 100)).sort_values()
         ser = cut(ser, range(0, 10500, 500), right=False, labels=cat)
 
-        msg = (
-            "dtype '<class 'pandas.core.arrays.categorical.Categorical'>' "
-            "not understood"
-        )
+        msg = "dtype '<class 'pandas.Categorical'>' not understood"
         with pytest.raises(TypeError, match=msg):
             ser.astype(Categorical)
         with pytest.raises(TypeError, match=msg):
@@ -624,8 +622,11 @@ class TestAstypeCategorical:
 
         # different categories
         dtype = CategoricalDtype(list("adc"), dtype_ordered)
-        result = ser.astype(dtype)
-        expected = Series(s_data, name=name, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser.astype(dtype)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = Series(s_data, name=name, dtype=dtype)
         tm.assert_series_equal(result, expected)
 
         if dtype_ordered is False:

@@ -729,6 +729,26 @@ class TestInference:
         result = lib.maybe_convert_objects(arr)
         tm.assert_numpy_array_equal(arr, result)
 
+    @pytest.mark.parametrize(
+        "value, expected_value",
+        [
+            (-(1 << 65), -(1 << 65)),
+            (1 << 65, 1 << 65),
+            (str(1 << 65), 1 << 65),
+            (f"-{1 << 65}", -(1 << 65)),
+        ],
+    )
+    @pytest.mark.parametrize("coerce_numeric", [False, True])
+    def test_convert_numeric_overflow(self, value, expected_value, coerce_numeric):
+        arr = np.array([value], dtype=object)
+        expected = np.array([expected_value], dtype=float if coerce_numeric else object)
+        result, _ = lib.maybe_convert_numeric(
+            arr,
+            set(),
+            coerce_numeric=coerce_numeric,
+        )
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize("val", [None, np.nan, float("nan")])
     @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
     def test_maybe_convert_objects_nat_inference(self, val, dtype):
@@ -1605,6 +1625,24 @@ class TestTypeInference:
         )
         assert not lib.is_string_array(np.array([1, 2]))
 
+    def test_is_interval_array_subclass(self):
+        # GH#46945
+
+        class TimestampsInterval(Interval):
+            def __init__(self, left: str, right: str, closed="both") -> None:
+                super().__init__(Timestamp(left), Timestamp(right), closed)
+
+            @property
+            def seconds(self) -> float:
+                return self.length.seconds
+
+        item = TimestampsInterval("1970-01-01 00:00:00", "1970-01-01 00:00:01")
+        arr = np.array([item], dtype=object)
+        assert not lib.is_interval_array(arr)
+        assert lib.infer_dtype(arr) != "interval"
+        out = Series([item])[0]
+        assert isinstance(out, TimestampsInterval)
+
     @pytest.mark.parametrize(
         "func",
         [
@@ -1677,7 +1715,7 @@ class TestTypeInference:
         result = lib.infer_dtype(Series(arr), skipna=True)
         assert result == "categorical"
 
-        arr = Categorical(list("abc"), categories=["cegfab"], ordered=True)
+        arr = Categorical([None, None, None], categories=["cegfab"], ordered=True)
         result = lib.infer_dtype(arr, skipna=True)
         assert result == "categorical"
 

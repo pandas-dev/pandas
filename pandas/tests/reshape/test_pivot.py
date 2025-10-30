@@ -642,7 +642,7 @@ class TestPivotTable:
         )
 
         df = df.set_index("ts").reset_index()
-        mins = df.ts.map(lambda x: x.replace(hour=0, minute=0, second=0, microsecond=0))
+        mins = df.ts.map(lambda x: x.replace(hour=0, minute=0, second=0))
 
         result = pivot_table(
             df.set_index("ts").reset_index(),
@@ -2673,8 +2673,6 @@ class TestPivot:
 
         result = df.pivot(index=1, columns=0, values=2)
         expected_columns = Index(["A", "B"], name=0, dtype=any_string_dtype)
-        if any_string_dtype == "object":
-            expected_columns = expected_columns.astype("str")
         tm.assert_index_equal(result.columns, expected_columns)
 
     def test_pivot_index_none(self):
