@@ -867,7 +867,7 @@ def test_plot_bar_label_count_expected_success():
     df.plot(subplots=[("A", "B", "D")], kind="bar", title=["A&B&D", "C"])
 
 
-def testhhh_change_scatter_markersize_future_warning():
+def test_change_scatter_markersize_future_warning():
     # GH 54204
     # Will raise FutureWarning if s not provided to df.plot.scatter
     df = DataFrame(data={"x": [1, 2, 3], "y": [1, 2, 3]})
@@ -882,7 +882,7 @@ def testhhh_change_scatter_markersize_future_warning():
 @pytest.mark.filterwarnings(
     "ignore:The default of s=20 will be changed:pandas.errors.PandasFutureWarning"
 )
-def testhhh_scatter_markersize_same_default_with_rcparams():
+def test_scatter_markersize_same_default_with_rcparams():
     # GH 54204
     # Ensure default markersize is still 20 if no rcparams
     df = DataFrame(data={"x": [1, 2, 3], "y": [1, 2, 3]})
@@ -897,7 +897,7 @@ def testhhh_scatter_markersize_same_default_with_rcparams():
 @pytest.mark.filterwarnings(
     "ignore:The default of s=20 will be changed:pandas.errors.PandasFutureWarning"
 )
-def testhhh_scatter_markersize_same_default_without_rcparams():
+def test_scatter_markersize_same_default_without_rcparams():
     # GH 54204
     # Ensure default markersize is still 20 if no rcparams
     df = DataFrame(data={"x": [1, 2, 3], "y": [1, 2, 3]})
