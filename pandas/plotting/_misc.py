@@ -282,12 +282,12 @@ def radviz(
     """
     Plot a multidimensional dataset in 2D.
 
-    Each Series in the DataFrame is represented as a evenly distributed
+    Each Series in the DataFrame is represented as an evenly distributed
     slice on a circle. Each data point is rendered in the circle according to
     the value on each Series. Highly correlated `Series` in the `DataFrame`
     are placed closer on the unit circle.
 
-    RadViz allow to project a N-dimensional data set into a 2D space where the
+    RadViz allow to project an N-dimensional data set into a 2D space where the
     influence of each dimension can be interpreted as a balance between the
     influence of all dimensions.
 
