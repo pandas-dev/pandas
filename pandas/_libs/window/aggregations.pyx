@@ -498,9 +498,9 @@ cdef float64_t calc_skew(int64_t minp, int64_t nobs,
         if nobs < 3:
             result = NaN
         # GH 42064 46431
-        # uniform case, force result to be 0
+        # uniform case, force result to be NaN
         elif num_consecutive_same_value >= nobs:
-            result = 0.0
+            result = NaN
         # #18044: with uniform distribution, floating issue will
         #         cause B != 0. and cause the result is a very
         #         large number.
