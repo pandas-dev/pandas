@@ -6304,11 +6304,11 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_numeric_dtype(self.dtype):
             return is_numeric_dtype(dtype)
         # GH#62158
+        elif self.dtype.kind == "M" and dtype == object:
+            return False
         elif isinstance(dtype, ArrowDtype):
             import pyarrow as pa
 
-            if self.dtype.kind != "M" or dtype.kind != "M":
-                return False
             pa_dtype = dtype.pyarrow_dtype
             if pa.types.is_date(pa_dtype):
                 return False
