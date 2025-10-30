@@ -237,9 +237,11 @@ class ParserBase:
         def extract(r):
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
-        columns = list(zip(*(extract(r) for r in header), strict=False))
-        # Clean the columns by removing placeholders.
-        columns = self._clean_column_levels(columns)
+        columns = list(zip(*(extract(r) for r in header), strict=True))
+
+        # Clean unnamed placeholders for CSV parsers only (GH#59560)
+        if getattr(self, "_clean_csv_unnamed_columns", False):
+            columns = self._clean_column_levels(columns)
 
         names = columns.copy()
         for single_ic in sorted(ic):
@@ -732,7 +734,7 @@ class ParserBase:
                 ""
                 if (
                     level is None
-                    or str(level).strip() == ""
+                    or (isinstance(level, str) and level.strip() == "")
                     or _is_generated_unnamed(level)
                 )
                 else level

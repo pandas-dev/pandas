@@ -64,6 +64,7 @@ class CParserWrapper(ParserBase):
 
     def __init__(self, src: ReadCsvBuffer[str], **kwds) -> None:
         super().__init__(kwds)
+        self._clean_csv_unnamed_columns = True
         self.kwds = kwds
         kwds = kwds.copy()
 
