@@ -155,6 +155,18 @@ def test_engine_kwargs_append_data_only(tmp_excel, data_only, expected):
     )
 
 
+def test_to_excel_autofilter_openpyxl(tmp_excel):
+    # Ensure that writing with autofilter=True sets auto_filter.ref
+    df = DataFrame({"A": [1, 2], "B": [3, 4]})
+    df.to_excel(tmp_excel, engine="openpyxl", index=False, autofilter=True)
+
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        ws = wb[wb.sheetnames[0]]
+        # Expect filter over the full range, e.g. A1:B3 (header + 2 rows)
+        assert ws.auto_filter is not None
+        assert ws.auto_filter.ref is not None
+
+
 @pytest.mark.parametrize("kwarg_name", ["read_only", "data_only"])
 @pytest.mark.parametrize("kwarg_value", [True, False])
 def test_engine_kwargs_append_reader(datapath, ext, kwarg_name, kwarg_value):

@@ -84,3 +84,24 @@ def test_book_and_sheets_consistent(tmp_excel):
         assert writer.sheets == {}
         sheet = writer.book.add_worksheet("test_name")
         assert writer.sheets == {"test_name": sheet}
+
+
+def test_to_excel(tmp_excel):
+    DataFrame([[1, 2]]).to_excel(tmp_excel)
+
+
+def test_to_excel_autofilter_xlsxwriter(tmp_excel):
+    pytest.importorskip("xlsxwriter")
+    openpyxl = pytest.importorskip("openpyxl")
+
+    df = DataFrame({"A": [1, 2], "B": [3, 4]})
+    # Write with xlsxwriter, verify via openpyxl that an autofilter exists
+    df.to_excel(tmp_excel, engine="xlsxwriter", index=False, autofilter=True)
+
+    wb = openpyxl.load_workbook(tmp_excel)
+    try:
+        ws = wb[wb.sheetnames[0]]
+        assert ws.auto_filter is not None
+        assert ws.auto_filter.ref is not None
+    finally:
+        wb.close()
