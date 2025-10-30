@@ -229,6 +229,8 @@ class TestIntervalIndexInsideMultiIndex:
         multiIndex = pd.MultiIndex.from_arrays([["a", "a", "b", "b", "c"], intIndex])
         data = [(1, 2), (3, 4), (5, 6), (7, 8), (9, 10)]
         df = DataFrame(data, index=multiIndex)
-        series1 = df.loc[("b", 16)]
-        series2 = df.loc["b"].loc[16]
-        tm.assert_equal(series1.array, series2.array)
+        result1 = df.loc[("b", 16)]
+        expected = Series([7, 8])
+        tm.assert_series_equal(result1, expected, check_names=False)
+        result2 = df.loc["b"].loc[16]
+        tm.assert_series_equal(result2, expected, check_names=False)
