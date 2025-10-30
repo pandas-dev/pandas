@@ -6310,6 +6310,8 @@ class Index(IndexOpsMixin, PandasObject):
             import pyarrow as pa
 
             pa_dtype = dtype.pyarrow_dtype
+            if self.dtype.kind != "M" or dtype.kind != "M":
+                return False
             if pa.types.is_date(pa_dtype):
                 return False
             if pa.types.is_timestamp(pa_dtype):
