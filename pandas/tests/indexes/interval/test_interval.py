@@ -882,6 +882,14 @@ class TestIntervalIndex:
         assert not year_2017_index._is_all_dates
 
 
+def test_from_arrays_mismatched_signedness_raises():
+    # GH 55715
+    left = np.array([0, 1, 2], dtype="int64")
+    right = np.array([1, 2, 3], dtype="uint64")
+    with pytest.raises(TypeError, match="matching signedness"):
+        IntervalIndex.from_arrays(left, right)
+
+
 def test_dir():
     # GH#27571 dir(interval_index) should not raise
     index = IntervalIndex.from_arrays([0, 1], [1, 2])

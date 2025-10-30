@@ -269,7 +269,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         categories are assumed to be the unique values of `values` (sorted, if
         possible, otherwise in the order in which they appear).
     ordered : bool, default False
-        Whether or not this categorical is treated as a ordered categorical.
+        Whether or not this categorical is treated as an ordered categorical.
         If True, the resulting categorical will be ordered.
         An ordered categorical respects, when sorted, the order of its
         `categories` attribute (which in turn is the `categories` argument, if
@@ -360,6 +360,8 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     >>> c.min()
     'c'
     """
+
+    __module__ = "pandas"
 
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise
@@ -458,6 +460,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                 codes = arr.indices.to_numpy()
                 dtype = CategoricalDtype(categories, values.dtype.pyarrow_dtype.ordered)
             else:
+                preserve_object = False
+                if isinstance(values, (ABCIndex, ABCSeries)) and values.dtype == object:
+                    # GH#61778
+                    preserve_object = True
                 if not isinstance(values, ABCIndex):
                     # in particular RangeIndex xref test_index_equal_range_categories
                     values = sanitize_array(values, None)
@@ -474,7 +480,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
                             "by passing in a categories argument."
                         ) from err
 
-                # we're inferring from values
+                if preserve_object:
+                    # GH#61778 wrap categories in an Index to prevent dtype
+                    #  inference in the CategoricalDtype constructor
+                    from pandas import Index
+
+                    categories = Index(categories, dtype=object, copy=False)
+
+                # if not preserve_obejct, we're inferring from values
                 dtype = CategoricalDtype(categories, dtype.ordered)
 
         elif isinstance(values.dtype, CategoricalDtype):
@@ -1090,7 +1103,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         new_categories : Index-like
            The categories in new order.
         ordered : bool, default None
-           Whether or not the categorical is treated as a ordered categorical.
+           Whether or not the categorical is treated as an ordered categorical.
            If not given, do not change the ordered information.
         rename : bool, default False
            Whether or not the new_categories should be considered as a rename
@@ -1264,7 +1277,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         new_categories : Index-like
            The categories in new order.
         ordered : bool, optional
-           Whether or not the categorical is treated as a ordered categorical.
+           Whether or not the categorical is treated as an ordered categorical.
            If not given, do not change the ordered information.
 
         Returns

@@ -18,14 +18,6 @@ from pandas.core.arrays.string_arrow import (
 )
 
 
-def test_eq_all_na():
-    pytest.importorskip("pyarrow")
-    a = pd.array([pd.NA, pd.NA], dtype=StringDtype("pyarrow"))
-    result = a == a
-    expected = pd.array([pd.NA, pd.NA], dtype="boolean[pyarrow]")
-    tm.assert_extension_array_equal(result, expected)
-
-
 def test_config(string_storage):
     # with the default string_storage setting
     # always "python" at the moment

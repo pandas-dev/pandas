@@ -296,6 +296,8 @@ class ArrowExtensionArray(
     Length: 3, dtype: int64[pyarrow]
     """  # noqa: E501 (http link too long)
 
+    __module__ = "pandas.arrays"
+
     _pa_array: pa.ChunkedArray
     _dtype: ArrowDtype
 
@@ -832,6 +834,14 @@ class ArrowExtensionArray(
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow ChunkedArray."""
         return self._pa_array
+
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        # Need to wrap np.array results GH#62800
+        result = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
+        if type(self) is ArrowExtensionArray:
+            # Exclude ArrowStringArray
+            return type(self)._from_sequence(result)
+        return result
 
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None

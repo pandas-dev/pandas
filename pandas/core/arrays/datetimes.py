@@ -223,6 +223,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     Length: 2, dtype: datetime64[s]
     """
 
+    __module__ = "pandas.arrays"
+
     _typ = "datetimearray"
     _internal_fill_value = np.datetime64("NaT", "ns")
     _recognized_scalars = (datetime, np.datetime64)
