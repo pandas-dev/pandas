@@ -21,7 +21,6 @@ class TestSas:
     def test_sas_read_no_format_or_extension(self, temp_file):
         # see gh-24548
         msg = "unable to infer format of SAS file.+"
-        # Using the pytest temp_file fixture instead of tm.ensure_clean
         with pytest.raises(ValueError, match=msg):
             read_sas(temp_file)
 
