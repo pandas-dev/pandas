@@ -173,3 +173,19 @@ def test_interval_dtype_with_categorical(dtype):
 
     result = find_common_type([dtype, cat.dtype])
     assert result == dtype
+
+
+@pytest.mark.parametrize(
+    "dtypes,expected",
+    [
+        (
+            ["date32[pyarrow]", "null[pyarrow]"],
+            "date32[day][pyarrow]",
+        ),
+    ],
+)
+def test_pyarrow_dtypes(dtypes, expected):
+    """Test finding common types with pyarrow dtypes not in numpy."""
+    source_dtypes = [pandas_dtype(dtype) for dtype in dtypes]
+    result = find_common_type(source_dtypes)
+    assert result == pandas_dtype(expected)

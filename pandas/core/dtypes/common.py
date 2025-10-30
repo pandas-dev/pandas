@@ -1872,6 +1872,11 @@ def pandas_dtype(dtype) -> DtypeObj:
             result = result()
         return result
 
+    # try a pyarrow dtype
+    from pandas.core.dtypes.dtypes import ArrowDtype
+    if isinstance(dtype, ArrowDtype):
+        return ArrowDtype(dtype)
+
     # try a numpy dtype
     # raise a consistent TypeError if failed
     try:

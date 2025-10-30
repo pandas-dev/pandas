@@ -2277,6 +2277,12 @@ class ArrowDtype(StorageExtensionDtype):
     @cache_readonly
     def numpy_dtype(self) -> np.dtype:
         """Return an instance of the related numpy dtype"""
+        if pa.types.is_date32(self.pyarrow_dtype) or pa.types.is_date64(
+            self.pyarrow_dtype
+        ):
+            # date32 and date64 are pyarrow timestamps but do not have a
+            # corresponding numpy dtype.
+            return np.dtype(object)
         if pa.types.is_timestamp(self.pyarrow_dtype):
             # pa.timestamp(unit).to_pandas_dtype() returns ns units
             # regardless of the pyarrow timestamp units.
@@ -2452,6 +2458,18 @@ class ArrowDtype(StorageExtensionDtype):
         from pandas.core.dtypes.cast import find_common_type
 
         null_dtype = type(self)(pa.null())
+
+        # Cover cases where numpy does not have a corresponding dtype, but
+        # only one non-null dtype is received, or all dtypes are null.
+        single_dtype = {
+            dtype
+            for dtype in dtypes
+            if dtype != null_dtype
+        }
+        if len(single_dtype) == 0:
+            return null_dtype
+        if len(single_dtype) == 1:
+            return single_dtype.pop()
 
         new_dtype = find_common_type(
             [
