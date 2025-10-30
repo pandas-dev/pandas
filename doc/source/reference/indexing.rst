@@ -184,7 +184,7 @@ CategoricalIndex
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
-   CategoricalIndex
+   pandas.CategoricalIndex
 
 Categorical components
 ~~~~~~~~~~~~~~~~~~~~~~
