@@ -124,12 +124,8 @@ def pivot_table(
     sort : bool, default True
         Specifies if the result should be sorted.
 
-        .. versionadded:: 1.3.0
-
     **kwargs : dict
         Optional keyword arguments to pass to ``aggfunc``.
-
-        .. versionadded:: 3.0.0
 
     Returns
     -------

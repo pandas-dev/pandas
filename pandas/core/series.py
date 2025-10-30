@@ -1307,8 +1307,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         Series or DataFrame or None
@@ -3030,8 +3028,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         result_names : tuple, default ('self', 'other')
             Set the dataframes names in the comparison.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -5655,8 +5651,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         This method prints information about a Series including
         the index dtype, non-NA values and memory usage.
-
-        .. versionadded:: 1.4.0
 
         Parameters
         ----------

@@ -35,9 +35,7 @@ template_see_also = dedent(
 kwargs_numeric_only = dedent(
     """
     numeric_only : bool, default False
-        Include only float, int, boolean columns.
-
-        .. versionadded:: 1.5.0\n
+        Include only float, int, boolean columns.\n
     """
 ).replace("\n", "", 1)
 
@@ -148,16 +146,13 @@ numba_notes = (
 )
 
 
-def window_agg_numba_parameters(version: str = "1.3") -> str:
-    return (
-        dedent(
-            """
+def window_agg_numba_parameters() -> str:
+    return dedent(
+        """
     engine : str, default None
         * ``'cython'`` : Runs the operation through C-extensions from cython.
         * ``'numba'`` : Runs the operation through JIT compiled code from numba.
         * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
-
-          .. versionadded:: {version}.0
 
     engine_kwargs : dict, default None
         * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -165,10 +160,6 @@ def window_agg_numba_parameters(version: str = "1.3") -> str:
           and ``parallel`` dictionary keys. The values must either be ``True`` or
           ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
           ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
-
-          .. versionadded:: {version}.0\n
+          \n
     """
-        )
-        .replace("\n", "", 1)
-        .replace("{version}", version)
-    )
+    ).replace("\n", "", 1)

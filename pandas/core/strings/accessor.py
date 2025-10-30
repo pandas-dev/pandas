@@ -849,7 +849,6 @@ class StringMethods(NoNewAttributesMixin):
         - If ``None`` and `pat` length is not 1, treats `pat` as a regular expression.
         - Cannot be set to False if `pat` is a compiled regex
 
-        .. versionadded:: 1.4.0
          """,
             "raises_split": """
                       Raises

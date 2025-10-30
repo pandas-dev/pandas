@@ -2195,16 +2195,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * ``None`` : Defaults to ``'cython'`` or globally setting
               ``compute.use_numba``
 
-            .. versionadded:: 1.4.0
-
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
-
-            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -2397,8 +2393,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * ``None`` : Defaults to ``'cython'`` or globally setting
               ``compute.use_numba``
 
-            .. versionadded:: 1.4.0
-
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -2406,12 +2400,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
 
-            .. versionadded:: 1.4.0
-
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
 
@@ -2515,8 +2505,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * ``None`` : Defaults to ``'cython'`` or globally setting
               ``compute.use_numba``
 
-            .. versionadded:: 1.4.0
-
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -2524,12 +2512,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
 
-            .. versionadded:: 1.4.0
-
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
 
@@ -2745,8 +2729,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
 
@@ -4399,8 +4381,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Method to use when the desired quantile falls between two points.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
 

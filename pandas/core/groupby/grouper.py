@@ -113,8 +113,6 @@ class Grouper:
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
 
-        .. versionadded:: 1.3.0
-
     offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
 

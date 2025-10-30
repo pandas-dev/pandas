@@ -79,8 +79,6 @@ keep_equal : bool, default False
 
 result_names : tuple, default ('self', 'other')
     Set the dataframes names in the comparison.
-
-    .. versionadded:: 1.5.0
 """
 
 _shared_docs["groupby"] = """
@@ -338,9 +336,7 @@ _shared_docs["compression_options"] = """compression : str or dict, default 'inf
     As an example, the following could be passed for faster compression and to create
     a reproducible gzip archive:
     ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
-
-    .. versionadded:: 1.5.0
-        Added support for `.tar` files."""
+    Added support for `.tar` files."""
 
 _shared_docs["decompression_options"] = """compression : str or dict, default 'infer'
     For on-the-fly decompression of on-disk data. If 'infer' and '%s' is
@@ -358,9 +354,7 @@ _shared_docs["decompression_options"] = """compression : str or dict, default 'i
     As an example, the following could be passed for Zstandard decompression using a
     custom compression dictionary:
     ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
-
-    .. versionadded:: 1.5.0
-        Added support for `.tar` files."""
+    Added support for `.tar` files."""
 
 _shared_docs["replace"] = """
     Replace values given in `to_replace` with `value`.
