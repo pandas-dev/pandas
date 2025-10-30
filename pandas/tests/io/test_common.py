@@ -583,7 +583,7 @@ def test_encoding_errors(encoding_errors, format, temp_file):
             + b'"}}'
         )
         reader = partial(pd.read_json, orient="index")
-    file = Path(temp_file)
+    file = temp_file
     file.write_bytes(content)
 
     if encoding_errors != "replace":
