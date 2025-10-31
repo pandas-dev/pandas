@@ -9038,16 +9038,6 @@ class DataFrame(NDFrame, OpsMixin):
         0  0 -5.0
         1  0  4.0
 
-        However, if the same element in both dataframes is None, that None
-        is preserved
-
-        >>> df1 = pd.DataFrame({"A": [0, 0], "B": [None, 4]})
-        >>> df2 = pd.DataFrame({"A": [1, 1], "B": [None, 3]})
-        >>> df1.combine(df2, take_smaller, fill_value=-5)
-            A    B
-        0  0 -5.0
-        1  0  3.0
-
         Example that demonstrates the use of `overwrite` and behavior when
         the axis differ between the dataframes.
 
