@@ -698,7 +698,7 @@ def factorize(
         NaN values will be encoded as non-negative integers and will not drop the
         NaN from the uniques of the values.
 
-    {size_hint}\
+    {size_hint}
 
     Returns
     -------
@@ -730,7 +730,7 @@ def factorize(
     ``pd.factorize(values)``. The results are identical for methods like
     :meth:`Series.factorize`.
 
-    >>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"))
+    >>> codes, uniques = pd.factorize(np.array(["b", "b", "a", "c", "b"], dtype="O"))
     >>> codes
     array([0, 0, 1, 2, 0])
     >>> uniques
@@ -739,8 +739,9 @@ def factorize(
     With ``sort=True``, the `uniques` will be sorted, and `codes` will be
     shuffled so that the relationship is the maintained.
 
-    >>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"),
-    ...                               sort=True)
+    >>> codes, uniques = pd.factorize(
+    ...     np.array(["b", "b", "a", "c", "b"], dtype="O"), sort=True
+    ... )
     >>> codes
     array([1, 1, 0, 2, 1])
     >>> uniques
@@ -750,7 +751,7 @@ def factorize(
     the `codes` with the sentinel value ``-1`` and missing values are not
     included in `uniques`.
 
-    >>> codes, uniques = pd.factorize(np.array(['b', None, 'a', 'c', 'b'], dtype="O"))
+    >>> codes, uniques = pd.factorize(np.array(["b", None, "a", "c", "b"], dtype="O"))
     >>> codes
     array([ 0, -1,  1,  2,  0])
     >>> uniques
@@ -760,7 +761,7 @@ def factorize(
     NumPy arrays). When factorizing pandas objects, the type of `uniques`
     will differ. For Categoricals, a `Categorical` is returned.
 
-    >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
+    >>> cat = pd.Categorical(["a", "a", "c"], categories=["a", "b", "c"])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
     array([0, 0, 1])
@@ -774,7 +775,7 @@ def factorize(
     For all other pandas objects, an Index of the appropriate type is
     returned.
 
-    >>> cat = pd.Series(['a', 'a', 'c'])
+    >>> cat = pd.Series(["a", "a", "c"])
     >>> codes, uniques = pd.factorize(cat)
     >>> codes
     array([0, 0, 1])

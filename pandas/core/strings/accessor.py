@@ -848,7 +848,6 @@ class StringMethods(NoNewAttributesMixin):
         - If ``None`` and `pat` length is 1, treats `pat` as a literal string.
         - If ``None`` and `pat` length is not 1, treats `pat` as a regular expression.
         - Cannot be set to False if `pat` is a compiled regex
-
          """,
             "raises_split": """
                       Raises
