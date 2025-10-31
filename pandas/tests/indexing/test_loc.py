@@ -258,6 +258,25 @@ class TestLoc:
         else:
             assert res == exp
 
+    @pytest.mark.parametrize(
+        "obj",
+        [
+            DataFrame({"A": [datetime(2025, 10, 30)]}),
+            DataFrame({"A": [Timestamp(2025, 10, 30)] * 2}),
+            DataFrame({"A": [Timedelta(1)]}),
+            DataFrame({"A": [Timedelta(1), Timedelta(2)]}),
+        ],
+    )
+    def test_loc_empty_slice_assignment_with_datetime(self, obj):
+        # issue #50942
+        # empty slice assignment with datetime or timedelta should not raise exceptions
+        mask = [False] * len(obj)
+        try:
+            obj.loc[mask] = obj
+            assert True
+        except Exception:
+            pytest.fail("loc empty slice assignment raised Exception unexpectedly!")
+
 
 class TestLocBaseIndependent:
     # Tests for loc that do not depend on subclassing Base
