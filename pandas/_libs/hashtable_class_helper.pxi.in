@@ -4,8 +4,6 @@ Template for each `dtype` helper function for hashtable
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 from cpython.unicode cimport PyUnicode_AsUTF8
-from cpython.exc cimport PyErr_Occurred, PyErr_Fetch
-from cpython.ref cimport Py_XDECREF
 
 {{py:
 
@@ -75,7 +73,7 @@ cimported_types = ['complex64',
                    'int16',
                    'int32',
                    'int64',
-                   'pymap',
+                   'pymap_checked',
                    'str',
                    'strbox',
                    'uint8',
@@ -1311,32 +1309,16 @@ cdef class StringHashTable(HashTable):
         return labels
 
 
-cdef raise_if_errors():
-    cdef:
-        object exc
-        PyObject *type
-        PyObject *value
-        PyObject *traceback
-
-    PyErr_Fetch(&type, &value, &traceback)
-    if value != NULL:
-        exc = <object>value
-        Py_XDECREF(value)
-        Py_XDECREF(type)
-        Py_XDECREF(traceback)
-        raise exc
-
-
 cdef class PyObjectHashTable(HashTable):
 
     def __init__(self, int64_t size_hint=1):
-        self.table = kh_init_pymap()
+        self.table = kh_init_pymap_checked()
         size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
-        kh_resize_pymap(self.table, size_hint)
+        kh_resize_pymap_checked(self.table, size_hint)
 
     def __dealloc__(self):
         if self.table is not NULL:
-            kh_destroy_pymap(self.table)
+            kh_destroy_pymap_checked(self.table)
             self.table = NULL
 
     def __len__(self) -> int:
@@ -1347,7 +1329,7 @@ cdef class PyObjectHashTable(HashTable):
             khiter_t k
         hash(key)
 
-        k = kh_get_pymap(self.table, <PyObject*>key)
+        k = kh_get_pymap_checked(self.table, <PyObject*>key)
         return k != self.table.n_buckets
 
     def sizeof(self, deep: bool = False) -> int:
@@ -1374,8 +1356,7 @@ cdef class PyObjectHashTable(HashTable):
         cdef:
             khiter_t k
 
-        k = kh_get_pymap(self.table, <PyObject*>val)
-        raise_if_errors()
+        k = kh_get_pymap_checked(self.table, <PyObject*>val)
         if k != self.table.n_buckets:
             return self.table.vals[k]
         else:
@@ -1389,9 +1370,8 @@ cdef class PyObjectHashTable(HashTable):
 
         hash(key)
 
-        k = kh_put_pymap(self.table, <PyObject*>key, &ret)
-        raise_if_errors()
-        if kh_exist_pymap(self.table, k):
+        k = kh_put_pymap_checked(self.table, <PyObject*>key, &ret)
+        if kh_exist_pymap_checked(self.table, k):
             self.table.vals[k] = val
         else:
             raise KeyError(key)
@@ -1408,8 +1388,7 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            k = kh_put_pymap(self.table, <PyObject*>val, &ret)
-            raise_if_errors()
+            k = kh_put_pymap_checked(self.table, <PyObject*>val, &ret)
             self.table.vals[k] = i
 
     def lookup(self, ndarray[object] values, object mask = None) -> ndarray:
@@ -1426,7 +1405,7 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            k = kh_get_pymap(self.table, <PyObject*>val)
+            k = kh_get_pymap_checked(self.table, <PyObject*>val)
             if k != self.table.n_buckets:
                 locs[i] = self.table.vals[k]
             else:
@@ -1504,10 +1483,10 @@ cdef class PyObjectHashTable(HashTable):
                 labels[i] = na_sentinel
                 continue
 
-            k = kh_get_pymap(self.table, <PyObject*>val)
+            k = kh_get_pymap_checked(self.table, <PyObject*>val)
             if k == self.table.n_buckets:
                 # k hasn't been seen yet
-                k = kh_put_pymap(self.table, <PyObject*>val, &ret)
+                k = kh_put_pymap_checked(self.table, <PyObject*>val, &ret)
                 uniques.append(val)
                 if return_inverse:
                     self.table.vals[k] = count
