@@ -829,6 +829,14 @@ class ArrowExtensionArray(
         """Convert myself to a pyarrow ChunkedArray."""
         return self._pa_array
 
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        # Need to wrap np.array results GH#62800
+        result = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
+        if type(self) is ArrowExtensionArray:
+            # Exclude ArrowStringArray
+            return type(self)._from_sequence(result)
+        return result
+
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
