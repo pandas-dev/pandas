@@ -4168,7 +4168,7 @@ class Index(IndexOpsMixin, PandasObject):
         limit : int, optional
             Maximum number of consecutive labels in ``target`` to match for
             inexact matches.
-        tolerance : int or float, optional
+        tolerance : int, float, or list-like, optional
             Maximum distance between original and new labels for inexact
             matches. The values of the index at the matching locations must
             satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
