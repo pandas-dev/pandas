@@ -30,7 +30,6 @@ from pandas.errors import (
 from pandas.errors.cow import _chained_assignment_msg
 from pandas.util._decorators import (
     doc,
-    set_module,
 )
 
 from pandas.core.dtypes.cast import (
@@ -104,7 +103,6 @@ _one_ellipsis_message = "indexer may only contain one '...' entry"
 
 
 # the public IndexSlicerMaker
-@set_module("pandas")
 class _IndexSlice:
     """
     Create an object to more easily perform multi-index slicing.
@@ -153,6 +151,7 @@ class _IndexSlice:
 
 
 IndexSlice = _IndexSlice()
+IndexSlice.__module__ = "pandas"
 
 
 class IndexingMixin:
@@ -1509,8 +1508,12 @@ class _LocIndexer(_LocationIndexer):
 
         # Slices are not valid keys passed in by the user,
         # even though they are hashable in Python 3.12
+        contains_slice = False
+        if isinstance(key, tuple):
+            contains_slice = any(isinstance(v, slice) for v in key)
+
         if is_scalar(key) or (
-            isinstance(labels, MultiIndex) and is_hashable(key, allow_slice=False)
+            isinstance(labels, MultiIndex) and is_hashable(key) and not contains_slice
         ):
             # Otherwise get_loc will raise InvalidIndexError
 
