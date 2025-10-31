@@ -2714,14 +2714,12 @@ class TestLocBooleanMask:
         assert isinstance(df["time"].dtype, pd.DatetimeTZDtype)
         assert str(df["time"].dtype.tz) == "UTC"
 
-        expected_time = Timestamp(_time)
         expected = DataFrame(
             {
                 "id": [1, 2, 3],
-                "time": [pd.NaT, expected_time, expected_time],
+                "time": [pd.NaT, _time, _time],
             }
         )
-        expected["time"] = expected["time"].astype("datetime64[us, UTC]")
         tm.assert_frame_equal(df, expected)
 
 
