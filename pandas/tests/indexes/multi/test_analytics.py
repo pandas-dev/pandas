@@ -185,7 +185,7 @@ def test_map(idx):
 @pytest.mark.parametrize(
     "mapper",
     [
-        lambda values, idx: {i: e for e, i in zip(values, idx)},
+        lambda values, idx: {i: e for e, i in zip(values, idx, strict=True)},
         lambda values, idx: pd.Series(values, idx),
     ],
 )

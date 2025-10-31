@@ -176,7 +176,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         The categories are stored in an Index,
         and if an index is provided the dtype of that index will be used.
     ordered : bool or None, default False
-        Whether or not this categorical is treated as a ordered categorical.
+        Whether or not this categorical is treated as an ordered categorical.
         None can be used to maintain the ordered value of existing categoricals when
         used in operations that combine categoricals, e.g. astype, and will resolve to
         False if there is no existing ordered to maintain.
@@ -2308,8 +2308,35 @@ class ArrowDtype(StorageExtensionDtype):
 
     @cache_readonly
     def itemsize(self) -> int:
-        """Return the number of bytes in this dtype"""
-        return self.numpy_dtype.itemsize
+        """
+        Return the number of bytes in this dtype.
+
+        For Arrow-backed dtypes:
+        - Returns the fixed-width bit size divided by 8 for standard fixed-width types.
+        - For boolean types, returns the NumPy itemsize.
+        - Falls back to the NumPy dtype itemsize for variable-width & unsupported types.
+
+        Examples
+        --------
+        >>> import pyarrow as pa
+        >>> import pandas as pd
+        >>> dtype = pd.ArrowDtype(pa.int32())
+        >>> dtype.itemsize
+        4
+
+        >>> dtype = pd.ArrowDtype(pa.bool_())
+        >>> dtype.itemsize  # falls back to numpy dtype
+        1
+        """
+        if pa.types.is_boolean(self.pyarrow_dtype):
+            return self.numpy_dtype.itemsize
+
+        # Use pyarrow itemsize for fixed-width data types
+        # e.g. int32 -> 32 bits // 8 = 4 bytes
+        try:
+            return self.pyarrow_dtype.bit_width // 8
+        except (ValueError, AttributeError, NotImplementedError):
+            return self.numpy_dtype.itemsize
 
     def construct_array_type(self) -> type_t[ArrowExtensionArray]:
         """

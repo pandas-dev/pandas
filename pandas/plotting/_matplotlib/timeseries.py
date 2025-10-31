@@ -75,7 +75,7 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
 
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
-            series = series.copy()
+            series = series.copy(deep=False)
             # error: "Index" has no attribute "asfreq"
             series.index = series.index.asfreq(  # type: ignore[attr-defined]
                 ax_freq, how="s"
@@ -142,7 +142,7 @@ def _replot_ax(ax: Axes, freq: BaseOffset):
     labels = []
     if data is not None:
         for series, plotf, kwds in data:
-            series = series.copy()
+            series = series.copy(deep=False)
             idx = series.index.asfreq(freq, how="S")
             series.index = idx
             # TODO #54485

@@ -429,7 +429,7 @@ class StylerRenderer:
         clabels = self.data.columns.tolist()
         if self.data.columns.nlevels == 1:
             clabels = [[x] for x in clabels]
-        clabels = list(zip(*clabels))
+        clabels = list(zip(*clabels, strict=True))
 
         head = []
         # 1) column headers
@@ -914,7 +914,7 @@ class StylerRenderer:
             return row_indices
 
         body = []
-        for r, row in zip(concatenated_visible_rows(self), d["body"]):
+        for r, row in zip(concatenated_visible_rows(self), d["body"], strict=True):
             # note: cannot enumerate d["body"] because rows were dropped if hidden
             # during _translate_body so must zip to acquire the true r-index associated
             # with the ctx obj which contains the cell styles.

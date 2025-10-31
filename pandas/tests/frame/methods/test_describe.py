@@ -371,6 +371,13 @@ class TestDataFrameDescribe:
         with pytest.raises(ValueError, match=msg):
             df.describe(include="all", exclude=exclude)
 
+    def test_describe_when_included_dtypes_not_present(self):
+        # GH#61863
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = "No columns match the specified include or exclude data types"
+        with pytest.raises(ValueError, match=msg):
+            df.describe(include=["datetime"])
+
     def test_describe_with_duplicate_columns(self):
         df = DataFrame(
             [[1, 1, 1], [2, 2, 2], [3, 3, 3]],

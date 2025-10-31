@@ -514,7 +514,7 @@ def _array_equivalent_object(
         left_remaining = left
         right_remaining = right
 
-    for left_value, right_value in zip(left_remaining, right_remaining):
+    for left_value, right_value in zip(left_remaining, right_remaining, strict=True):
         if left_value is NaT and right_value is not NaT:
             return False
 

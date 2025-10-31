@@ -6,29 +6,29 @@ import pytest
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    HDFStore,
     Series,
     _testing as tm,
     date_range,
     period_range,
 )
-from pandas.tests.io.pytables.common import ensure_clean_store
 
 pytestmark = pytest.mark.single_cpu
 
 
 @pytest.mark.parametrize("unit", ["us", "ns"])
-def test_store_datetime_fractional_secs(setup_path, unit):
+def test_store_datetime_fractional_secs(temp_file, unit):
     dt = datetime.datetime(2012, 1, 2, 3, 4, 5, 123456)
     dti = DatetimeIndex([dt], dtype=f"M8[{unit}]")
     series = Series([0], index=dti)
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store["a"] = series
         assert store["a"].index[0] == dt
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-def test_tseries_indices_series(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_tseries_indices_series(temp_file):
+    with HDFStore(temp_file) as store:
         idx = date_range("2020-01-01", periods=10)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         store["a"] = ser
@@ -49,8 +49,8 @@ def test_tseries_indices_series(setup_path):
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
-def test_tseries_indices_frame(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_tseries_indices_frame(temp_file):
+    with HDFStore(temp_file) as store:
         idx = date_range("2020-01-01", periods=10)
         df = DataFrame(
             np.random.default_rng(2).standard_normal((len(idx), 3)), index=idx

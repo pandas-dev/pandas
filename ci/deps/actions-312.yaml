@@ -44,6 +44,7 @@ dependencies:
   - psycopg2>=2.9.10
   - pyarrow>=13.0.0
   - pyiceberg>=0.8.1
+  - pydantic<2.12.0  # TMP pin to avoid pyiceberg/pydantic issues
   - pymysql>=1.1.1
   - pyreadstat>=1.2.8
   - pytables>=3.10.1

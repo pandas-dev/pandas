@@ -169,7 +169,7 @@ def get_group_index(
     labels = [ensure_int64(x) for x in labels]
     lshape = list(shape)
     if not xnull:
-        for i, (lab, size) in enumerate(zip(labels, shape)):
+        for i, (lab, size) in enumerate(zip(labels, shape, strict=True)):
             labels[i], lshape[i] = maybe_lift(lab, size)
 
     # Iteratively process all the labels in chunks sized so less
@@ -289,7 +289,11 @@ def decons_obs_group_ids(
     if not is_int64_overflow_possible(shape):
         # obs ids are deconstructable! take the fast route!
         out = _decons_group_index(obs_ids, shape)
-        return out if xnull or not lift.any() else [x - y for x, y in zip(out, lift)]
+        return (
+            out
+            if xnull or not lift.any()
+            else [x - y for x, y in zip(out, lift, strict=True)]
+        )
 
     indexer = unique_label_indices(comp_ids)
     return [lab[indexer].astype(np.intp, subok=False, copy=True) for lab in labels]
@@ -341,7 +345,7 @@ def lexsort_indexer(
 
     labels = []
 
-    for k, order in zip(reversed(keys), orders):
+    for k, order in zip(reversed(keys), orders, strict=True):
         k = ensure_key_mapped(k, key)
         if codes_given:
             codes = cast(np.ndarray, k)
@@ -473,9 +477,9 @@ def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
     if arr_values.ndim > 1:
         if mask.any():
             if axis == 1:
-                zipped = zip(arr_values, mask)
+                zipped = zip(arr_values, mask, strict=True)
             else:
-                zipped = zip(arr_values.T, mask.T)
+                zipped = zip(arr_values.T, mask.T, strict=True)
             return np.array([_nanargminmax(v, m, func) for v, m in zipped])
         return func(arr_values, axis=axis)
 

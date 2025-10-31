@@ -372,6 +372,8 @@ class NaTType(_NaT):
     1         NaT
     """
 
+    __module__ = "pandas.api.typing"
+
     def __new__(cls):
         cdef _NaT base
 
@@ -1869,6 +1871,7 @@ default 'raise'
 
 c_NaT = NaTType()  # C-visible
 NaT = c_NaT        # Python-visible
+NaT.__module__ = "pandas"
 
 
 # ----------------------------------------------------------------------

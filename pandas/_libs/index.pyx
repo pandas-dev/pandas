@@ -321,6 +321,9 @@ cdef class IndexEngine:
             if is_strict_monotonic:
                 self.unique = 1
                 self.need_unique_check = 0
+            elif self.monotonic_inc == 1 or self.monotonic_dec == 1:
+                self.unique = 0
+                self.need_unique_check = 0
 
     cdef _call_monotonic(self, values):
         return algos.is_monotonic(values, timelike=False)
@@ -838,7 +841,7 @@ cdef class BaseMultiIndexCodesEngine:
             raise KeyError(key)
         try:
             indices = [1 if checknull(v) else lev.get_loc(v) + multiindex_nulls_shift
-                       for lev, v in zip(self.levels, key)]
+                       for lev, v in zip(self.levels, key, strict=True)]
         except KeyError:
             raise KeyError(key)
 

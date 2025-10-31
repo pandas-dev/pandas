@@ -35,3 +35,51 @@ The full license is in the LICENSE file, distributed with this software.
   do {                                                                         \
   } while (0) /* fallthrough */
 #endif
+
+#if defined(_WIN32)
+#ifndef ENABLE_INTSAFE_SIGNED_FUNCTIONS
+#define ENABLE_INTSAFE_SIGNED_FUNCTIONS
+#endif
+#include <intsafe.h>
+#define checked_add(a, b, res)                                                 \
+  _Generic((res),                                                              \
+      int *: IntAdd,                                                           \
+      unsigned int *: UIntAdd,                                                 \
+      long *: LongAdd,                                                         \
+      unsigned long *: ULongAdd,                                               \
+      long long *: LongLongAdd,                                                \
+      unsigned long long *: ULongLongAdd,                                      \
+      short *: ShortAdd,                                                       \
+      unsigned short *: UShortAdd)(a, b, res)
+
+#define checked_sub(a, b, res)                                                 \
+  _Generic((res),                                                              \
+      int *: IntSub,                                                           \
+      unsigned int *: UIntSub,                                                 \
+      long *: LongSub,                                                         \
+      unsigned long *: ULongSub,                                               \
+      long long *: LongLongSub,                                                \
+      unsigned long long *: ULongLongSub,                                      \
+      short *: ShortSub,                                                       \
+      unsigned short *: UShortSub)(a, b, res)
+
+#define checked_mul(a, b, res)                                                 \
+  _Generic((res),                                                              \
+      int *: IntMult,                                                          \
+      unsigned int *: UIntMult,                                                \
+      long *: LongMult,                                                        \
+      unsigned long *: ULongMult,                                              \
+      long long *: LongLongMult,                                               \
+      unsigned long long *: ULongLongMult,                                     \
+      short *: ShortMult,                                                      \
+      unsigned short *: UShortMult)(a, b, res)
+
+#elif (defined(__has_builtin) && __has_builtin(__builtin_add_overflow)) ||     \
+    __GNUC__ > 7
+#define checked_add(a, b, res) __builtin_add_overflow(a, b, res)
+#define checked_sub(a, b, res) __builtin_sub_overflow(a, b, res)
+#define checked_mul(a, b, res) __builtin_mul_overflow(a, b, res)
+#else
+_Static_assert(0,
+               "Overflow checking not detected; please try a newer compiler");
+#endif

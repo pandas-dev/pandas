@@ -382,6 +382,7 @@ cdef class Interval(IntervalMixin):
     >>> year_2017.length
     Timedelta('365 days 00:00:00')
     """
+    __module__ = "pandas"
     _typ = "interval"
     __array_priority__ = 1000
 
@@ -444,6 +445,7 @@ cdef class Interval(IntervalMixin):
     >>> interval.closed
     'left'
     """
+    __module__ = "pandas"
 
     def __init__(self, left, right, str closed="right"):
         # note: it is faster to just do these checks than to use a special

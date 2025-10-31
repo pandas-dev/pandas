@@ -712,7 +712,10 @@ class IntervalIndex(ExtensionIndex):
             # -> at most one match per interval in target
             # want exact matches -> need both left/right to match, so defer to
             # left/right get_indexer, compare elementwise, equality -> match
-            indexer = self._get_indexer_unique_sides(target)
+            if self.left.is_unique and self.right.is_unique:
+                indexer = self._get_indexer_unique_sides(target)
+            else:
+                indexer = self._get_indexer_pointwise(target)[0]
 
         elif not (is_object_dtype(target.dtype) or is_string_dtype(target.dtype)):
             # homogeneous scalar index: use IntervalTree
@@ -1056,8 +1059,8 @@ class IntervalIndex(ExtensionIndex):
             first_nan_loc = np.arange(len(self))[self.isna()][0]
             mask[first_nan_loc] = True
 
-        other_tups = set(zip(other.left, other.right))
-        for i, tup in enumerate(zip(self.left, self.right)):
+        other_tups = set(zip(other.left, other.right, strict=True))
+        for i, tup in enumerate(zip(self.left, self.right, strict=True)):
             if tup in other_tups:
                 mask[i] = True
 
@@ -1108,6 +1111,7 @@ def _is_type_compatible(a, b) -> bool:
     )
 
 
+@set_module("pandas")
 def interval_range(
     start=None,
     end=None,

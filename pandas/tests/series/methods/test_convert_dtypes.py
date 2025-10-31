@@ -209,11 +209,14 @@ class TestSeriesConvertDtypes:
             "convert_boolean",
             "convert_floating",
         ]
-        params_dict = dict(zip(param_names, params))
+        params_dict = dict(zip(param_names, params, strict=True))
 
         expected_dtype = expected_default
         for spec, dtype in expected_other.items():
-            if all(params_dict[key] is val for key, val in zip(spec[::2], spec[1::2])):
+            if all(
+                params_dict[key] is val
+                for key, val in zip(spec[::2], spec[1::2], strict=False)
+            ):
                 expected_dtype = dtype
         if (
             using_infer_string

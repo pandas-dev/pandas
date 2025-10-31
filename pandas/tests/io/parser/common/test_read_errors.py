@@ -246,7 +246,7 @@ def test_null_byte_char(request, all_parsers):
 
 
 @pytest.mark.filterwarnings("always::ResourceWarning")
-def test_open_file(all_parsers):
+def test_open_file(all_parsers, temp_file):
     # GH 39024
     parser = all_parsers
 
@@ -259,14 +259,13 @@ def test_open_file(all_parsers):
         msg = "'utf-8' codec can't decode byte 0xe4"
         err = ValueError
 
-    with tm.ensure_clean() as path:
-        file = Path(path)
-        file.write_bytes(b"\xe4\na\n1")
+    file = Path(temp_file)
+    file.write_bytes(b"\xe4\na\n1")
 
-        with tm.assert_produces_warning(None):
-            # should not trigger a ResourceWarning
-            with pytest.raises(err, match=msg):
-                parser.read_csv(file, sep=None, encoding_errors="replace")
+    with tm.assert_produces_warning(None):
+        # should not trigger a ResourceWarning
+        with pytest.raises(err, match=msg):
+            parser.read_csv(file, sep=None, encoding_errors="replace")
 
 
 def test_invalid_on_bad_line(all_parsers):

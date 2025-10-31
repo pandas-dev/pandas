@@ -19,7 +19,7 @@ ci:
     skip: [pyright, mypy]
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.11
+    rev: v0.13.3
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -46,7 +46,7 @@ repos:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
 -   repo: https://github.com/MarcoGorelli/cython-lint
-    rev: v0.16.7
+    rev: v0.17.0
     hooks:
     -   id: cython-lint
     -   id: double-quote-cython-strings
@@ -67,7 +67,7 @@ repos:
     -   id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
 -   repo: https://github.com/PyCQA/isort
-    rev: 6.0.1
+    rev: 6.1.0
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
@@ -92,14 +92,14 @@ repos:
     - id: sphinx-lint
       args: ["--enable", "all", "--disable", "line-too-long"]
 -   repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v21.1.0
+    rev: v21.1.2
     hooks:
     - id: clang-format
       files: ^pandas/_libs/src|^pandas/_libs/include
       args: [-i]
       types_or: [c, c++]
 -   repo: https://github.com/trim21/pre-commit-mirror-meson
-    rev: v1.9.0
+    rev: v1.9.1
     hooks:
     - id: meson-fmt
       args: ['--inplace']

@@ -14,6 +14,18 @@ import pandas._testing as tm
 
 
 class TestSeriesConcat:
+    @pytest.mark.parametrize("bool_dtype", [bool, "boolean"])
+    @pytest.mark.parametrize("dtype", [np.int64, np.float64, "Int64", "Float64"])
+    def test_concat_bool_and_numeric(self, bool_dtype, dtype):
+        # GH#21108, GH#45101
+        left = Series([True, False], dtype=bool_dtype)
+        right = Series([1, 2], dtype=dtype)
+        result = concat([left, right], ignore_index=True)
+        expected = Series([True, False, 1, 2], dtype=object)
+        assert result.iloc[0] is True
+        assert type(result.iloc[2]) in [int, float]  # i.e. not bool
+        tm.assert_series_equal(result, expected)
+
     def test_concat_series(self):
         ts = Series(
             np.arange(20, dtype=np.float64),

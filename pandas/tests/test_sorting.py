@@ -89,6 +89,7 @@ class TestSorting:
         grouped = data.groupby(["a", "b", "c", "d"])
         assert len(grouped) == len(values)
 
+    @pytest.mark.slow
     @pytest.mark.parametrize("agg", ["mean", "median"])
     def test_int64_overflow_groupby_large_df_shuffled(self, agg):
         rs = np.random.default_rng(2)

@@ -296,6 +296,8 @@ class ArrowExtensionArray(
     Length: 3, dtype: int64[pyarrow]
     """  # noqa: E501 (http link too long)
 
+    __module__ = "pandas.arrays"
+
     _pa_array: pa.ChunkedArray
     _dtype: ArrowDtype
 
@@ -439,6 +441,10 @@ class ArrowExtensionArray(
             #  or test_agg_lambda_complex128_dtype_conversion for complex values
             return super()._cast_pointwise_result(values)
 
+        if pa.types.is_null(arr.type):
+            if lib.infer_dtype(values) == "decimal":
+                # GH#62522; the specific decimal precision here is arbitrary
+                arr = arr.cast(pa.decimal128(1))
         if pa.types.is_duration(arr.type):
             # workaround for https://github.com/apache/arrow/issues/40620
             result = ArrowExtensionArray._from_sequence(values)
@@ -569,6 +575,7 @@ class ArrowExtensionArray(
         -------
         pa.Array or pa.ChunkedArray
         """
+        value = extract_array(value, extract_numpy=True)
         if isinstance(value, cls):
             pa_array = value._pa_array
         elif isinstance(value, (pa.Array, pa.ChunkedArray)):
@@ -822,6 +829,14 @@ class ArrowExtensionArray(
         """Convert myself to a pyarrow ChunkedArray."""
         return self._pa_array
 
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        # Need to wrap np.array results GH#62800
+        result = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
+        if type(self) is ArrowExtensionArray:
+            # Exclude ArrowStringArray
+            return type(self)._from_sequence(result)
+        return result
+
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
@@ -887,7 +902,7 @@ class ArrowExtensionArray(
                 boxed = self._box_pa(other)
             except pa.lib.ArrowInvalid:
                 # e.g. GH#60228 [1, "b"] we have to operate pointwise
-                res_values = [op(x, y) for x, y in zip(self, other)]
+                res_values = [op(x, y) for x, y in zip(self, other, strict=True)]
                 result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
             else:
                 rtype = boxed.type
@@ -1051,7 +1066,7 @@ class ArrowExtensionArray(
         result = self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
         if is_nan_na() and result.dtype.kind == "f":
             parr = result._pa_array
-            mask = pc.is_nan(parr).to_numpy()
+            mask = pc.is_nan(parr).fill_null(False).to_numpy()
             arr = pc.replace_with_mask(parr, mask, pa.scalar(None, type=parr.type))
             result = type(self)(arr)
         return result
@@ -2712,7 +2727,7 @@ class ArrowExtensionArray(
         if expand:
             return {
                 col: self._from_pyarrow_array(pc.struct_field(result, [i]))
-                for col, i in zip(groups, range(result.type.num_fields))
+                for col, i in zip(groups, range(result.type.num_fields), strict=True)
             }
         else:
             return type(self)(pc.struct_field(result, [0]))
@@ -2806,6 +2821,13 @@ class ArrowExtensionArray(
         predicate = lambda val: "\n".join(tw.wrap(val))
         result = self._apply_elementwise(predicate)
         return self._from_pyarrow_array(pa.chunked_array(result))
+
+    def _str_zfill(self, width: int) -> Self:
+        # TODO: Replace with pc.utf8_zfill when supported by arrow
+        # Arrow ENH - https://github.com/apache/arrow/issues/46683
+        predicate = lambda val: val.zfill(width)
+        result = self._apply_elementwise(predicate)
+        return type(self)(pa.chunked_array(result))
 
     @property
     def _dt_days(self) -> Self:

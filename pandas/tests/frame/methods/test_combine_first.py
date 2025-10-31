@@ -398,6 +398,21 @@ class TestDataFrameCombineFirst:
         ).set_index(["a", "b"])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "wide_val, dtype",
+        (
+            (1666880195890293744, "UInt64"),
+            (-1666880195890293744, "Int64"),
+        ),
+    )
+    def test_combine_first_preserve_EA_precision(self, wide_val, dtype):
+        # GH#60128
+        df1 = DataFrame({"A": [wide_val, 5]}, dtype=dtype)
+        df2 = DataFrame({"A": [6, 7, wide_val]}, dtype=dtype)
+        result = df1.combine_first(df2)
+        expected = DataFrame({"A": [wide_val, 5, wide_val]}, dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize(
     "scalar1, scalar2",

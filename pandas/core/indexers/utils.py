@@ -12,6 +12,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_array_like,
@@ -417,6 +418,7 @@ def unpack_tuple_and_ellipses(item: tuple):
 # Public indexer validation
 
 
+@set_module("pandas.api.indexers")
 def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     """
     Check if `indexer` is a valid array indexer for `array`.
@@ -434,10 +436,11 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     ----------
     array : array-like
         The array that is being indexed (only used for the length).
-    indexer : array-like or list-like
-        The array-like that's used to index. List-like input that is not yet
-        a numpy array or an ExtensionArray is converted to one. Other input
-        types are passed through as is.
+    indexer : array-like, list-like, int, slice, or other indexer
+        The indexer used for indexing. Array-like and list-like inputs that
+        are not yet a numpy array or an ExtensionArray are converted to one.
+        Non-array indexers (int, slice, Ellipsis, tuples, etc.) are passed
+        through as is.
 
     Returns
     -------
@@ -485,6 +488,13 @@ def check_array_indexer(array: AnyArrayLike, indexer: Any) -> Any:
     >>> mask = np.array([True, False])
     >>> pd.api.indexers.check_array_indexer(arr, mask)
     array([ True, False])
+
+    Integer and slice indexers are passed through as is:
+
+    >>> pd.api.indexers.check_array_indexer(arr, 1)
+    1
+    >>> pd.api.indexers.check_array_indexer(arr, slice(0, 1, 1))
+    slice(0, 1, 1)
 
     Similarly for integer indexers, an integer ndarray is returned when it is
     a valid indexer, otherwise an error is  (for integer indexers, a matching

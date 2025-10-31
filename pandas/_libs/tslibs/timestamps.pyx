@@ -67,6 +67,7 @@ from pandas._libs.tslibs.dtypes cimport (
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
+    is_float_object,
     is_integer_object,
 )
 
@@ -2653,6 +2654,19 @@ class Timestamp(_Timestamp):
 
             if hasattr(ts_input, "fold"):
                 ts_input = ts_input.replace(fold=fold)
+
+        if (
+            unit is not None
+            and not (is_float_object(ts_input) or is_integer_object(ts_input))
+        ):
+            # GH#53198
+            warnings.warn(
+                "The 'unit' keyword is only used when the Timestamp input is "
+                f"an integer or float, not {type(ts_input).__name__}. "
+                "To specify the storage unit of the output use `ts.as_unit(unit)`",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
 
         # GH 30543 if pd.Timestamp already passed, return it
         # check that only ts_input is passed

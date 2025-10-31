@@ -12,6 +12,7 @@ import numpy as np
 from pandas._config import using_string_dtype
 
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import set_module
 
 import pandas as pd
 from pandas.core.interchange.dataframe_protocol import (
@@ -34,6 +35,7 @@ _NP_DTYPES: dict[DtypeKind, dict[int, Any]] = {
 }
 
 
+@set_module("pandas.api.interchange")
 def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from any DataFrame supporting the interchange protocol.
