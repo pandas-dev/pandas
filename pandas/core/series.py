@@ -3272,6 +3272,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             # TODO: try to match resos?
             other = to_datetime(other)
             warnings.warn(
+                # GH#62931
                 "Silently casting non-datetime 'other' to datetime in "
                 "Series.combine_first is deprecated and will be removed "
                 "in a future version. Explicitly cast before calling "

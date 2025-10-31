@@ -78,6 +78,7 @@ class TestCombineFirst:
         tm.assert_series_equal(rs, xp)
 
     def test_combine_first_dt64_casting_deprecation(self, unit):
+        # GH#62931
         s0 = to_datetime(Series(["2010", np.nan])).dt.as_unit(unit)
         s1 = Series([np.nan, "2011"])
 
