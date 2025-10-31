@@ -5292,14 +5292,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         IE10                   404           0.08
         Chrome                 200           0.02
 
-        >>> df.reindex(new_index, fill_value="missing")
-                      http_status response_time
-        Safari                404          0.07
-        Iceweasel         missing       missing
-        Comodo Dragon     missing       missing
-        IE10                  404          0.08
-        Chrome                200          0.02
-
         We can also reindex the columns.
 
         >>> df.reindex(columns=["http_status", "user_agent"])
