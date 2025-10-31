@@ -1,5 +1,8 @@
+from cpython.exc cimport (
+    PyErr_Fetch,
+    PyErr_Occurred,
+)
 from cpython.object cimport PyObject
-from cpython.exc cimport PyErr_Occurred, PyErr_Fetch
 from cpython.ref cimport Py_XDECREF
 
 
