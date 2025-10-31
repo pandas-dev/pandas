@@ -96,6 +96,7 @@ libs_sources = {
         ],
         'deps': [fast_float_dep],
     },
+    'khash': {'sources': ['khash.pyx']},
     'missing': {'sources': ['missing.pyx']},
     'pandas_datetime': {
         'sources': [
