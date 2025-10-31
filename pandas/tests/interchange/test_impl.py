@@ -94,7 +94,9 @@ def test_large_string_pyarrow():
     tm.assert_frame_equal(result, expected)
 
     # check round-trip
-    assert pa.Table.equals(pa.interchange.from_dataframe(result), table)
+    # Don't check stacklevel as PyArrow calls the deprecated `__dataframe__` method.
+    with tm.assert_produces_warning(match="Interchange", check_stacklevel=False):
+        assert pa.Table.equals(pa.interchange.from_dataframe(result), table)
 
 
 @pytest.mark.parametrize(
@@ -121,6 +123,7 @@ def test_bitmasks_pyarrow(offset, length, expected_values):
     tm.assert_frame_equal(result, expected)
 
     # check round-trip
+    # Don't check stacklevel as PyArrow calls the deprecated `__dataframe__` method.
     with tm.assert_produces_warning(match="Interchange", check_stacklevel=False):
         assert pa.Table.equals(pa.interchange.from_dataframe(result), table)
 
@@ -297,7 +300,9 @@ def test_empty_pyarrow(data):
     from pyarrow.interchange import from_dataframe as pa_from_dataframe
 
     expected = pd.DataFrame(data)
-    arrow_df = pa_from_dataframe(expected)
+    # Don't check stacklevel as PyArrow calls the deprecated `__dataframe__` method.
+    with tm.assert_produces_warning(match="Interchange", check_stacklevel=False):
+        arrow_df = pa_from_dataframe(expected)
     result = from_dataframe(arrow_df)
     tm.assert_frame_equal(result, expected, check_column_type=False)
 
@@ -441,7 +446,8 @@ def test_large_string():
     # GH#56702
     pytest.importorskip("pyarrow")
     df = pd.DataFrame({"a": ["x"]}, dtype="large_string[pyarrow]")
-    with tm.assert_produces_warning(match="Interchange"):
+    # Don't check stacklevel as PyArrow calls the deprecated `__dataframe__` method.
+    with tm.assert_produces_warning(match="Interchange", check_stacklevel=False):
         result = pd.api.interchange.from_dataframe(df.__dataframe__())
     expected = pd.DataFrame({"a": ["x"]}, dtype="str")
     tm.assert_frame_equal(result, expected)
