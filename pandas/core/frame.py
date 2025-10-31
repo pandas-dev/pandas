@@ -194,7 +194,9 @@ from pandas.core.sorting import (
     nargsort,
 )
 
-from pandas.io.common import get_handle
+from pandas.io.common import (
+    get_handle,
+)
 from pandas.io.formats import (
     console,
     format as fmt,
@@ -9083,7 +9085,7 @@ class DataFrame(NDFrame, OpsMixin):
         2  NaN  3.0 1.0
         """
         other_idxlen = len(other.index)  # save for compare
-        other_columns = other.columns
+        self_columns, other_columns = self.columns, other.columns
 
         this, other = self.align(other)
         new_index = this.index
@@ -9095,12 +9097,12 @@ class DataFrame(NDFrame, OpsMixin):
             return other.copy()
 
         # preserve column order
-        new_columns = self.columns.union(other_columns, sort=False)
+        new_columns = self_columns.union(other_columns, sort=False)
         do_fill = fill_value is not None
         result = {}
-        for col in new_columns:
-            series = this[col]
-            other_series = other[col]
+        for i in range(this.shape[1]):
+            series = this.iloc[:, i]
+            other_series = other.iloc[:, i]
 
             this_dtype = series.dtype
             other_dtype = other_series.dtype
@@ -9111,7 +9113,7 @@ class DataFrame(NDFrame, OpsMixin):
             # don't overwrite columns unnecessarily
             # DO propagate if this column is not in the intersection
             if not overwrite and other_mask.all():
-                result[col] = this[col].copy()
+                result[this.columns[i]] = this.iloc[:, i].copy()
                 continue
 
             if do_fill:
@@ -9120,7 +9122,7 @@ class DataFrame(NDFrame, OpsMixin):
                 series[this_mask] = fill_value
                 other_series[other_mask] = fill_value
 
-            if col not in self.columns:
+            if other.columns[i] not in self.columns:
                 # If self DataFrame does not have col in other DataFrame,
                 # try to promote series, which is all NaN, as other_dtype.
                 new_dtype = other_dtype
@@ -9145,7 +9147,7 @@ class DataFrame(NDFrame, OpsMixin):
                     arr, new_dtype
                 )
 
-            result[col] = arr
+            result[this.columns[i]] = arr
 
         # convert_objects just in case
         frame_result = self._constructor(result, index=new_index, columns=new_columns)
