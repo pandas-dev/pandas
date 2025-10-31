@@ -431,22 +431,6 @@ class TestCommon:
         for k in norm_expected:
             norm_expected[k] = Timestamp(norm_expected[k].date())
 
-        normalized = {
-            "Day": Timestamp("2010-12-31 00:00:00"),
-            "DateOffset": Timestamp("2010-12-31 00:00:00"),
-            "MonthBegin": Timestamp("2010-12-01 00:00:00"),
-            "SemiMonthBegin": Timestamp("2010-12-15 00:00:00"),
-            "YearBegin": Timestamp("2010-01-01 00:00:00"),
-            "HalfYearBegin": Timestamp("2010-07-01 00:00:00"),
-            "Week": Timestamp("2010-12-25 00:00:00"),
-            "Hour": Timestamp("2011-01-01 00:00:00"),
-            "Minute": Timestamp("2011-01-01 00:00:00"),
-            "Second": Timestamp("2011-01-01 00:00:00"),
-            "Milli": Timestamp("2011-01-01 00:00:00"),
-            "Micro": Timestamp("2011-01-01 00:00:00"),
-        }
-        norm_expected.update(normalized)
-
         sdt = datetime(2011, 1, 1, 9, 0)
         ndt = np.datetime64("2011-01-01 09:00")
 
