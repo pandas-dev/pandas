@@ -739,6 +739,7 @@ Other Deprecations
 - Deprecated option "future.no_silent_downcasting", as it is no longer used. In a future version accessing this option will raise (:issue:`59502`)
 - Deprecated slicing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` using a ``datetime.date`` object, explicitly cast to :class:`Timestamp` instead (:issue:`35830`)
 - Deprecated the 'inplace' keyword from :meth:`Resampler.interpolate`, as passing ``True`` raises ``AttributeError`` (:issue:`58690`)
+- Deprecated silent casting of non-datetime 'other' to datetime in :meth:`Series.combine_first` (:issue:`??`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.prior_deprecations:

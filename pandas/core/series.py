@@ -3271,6 +3271,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if this.dtype.kind == "M" and other.dtype.kind != "M":
             # TODO: try to match resos?
             other = to_datetime(other)
+            warnings.warn(
+                "Silently casting non-datetime 'other' to datetime in "
+                "Series.combine_first is deprecated and will be removed "
+                "in a future version. Explicitly cast before calling "
+                "combine_first instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         combined = concat([this, other])
         combined = combined.reindex(new_index)
         return combined.__finalize__(self, method="combine_first")
