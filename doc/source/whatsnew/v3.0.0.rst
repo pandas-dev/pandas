@@ -975,6 +975,7 @@ Datetimelike
 - Bug in :class:`Timestamp` constructor failing to raise when given a ``np.datetime64`` object with non-standard unit (:issue:`25611`)
 - Bug in :func:`date_range` where the last valid timestamp would sometimes not be produced (:issue:`56134`)
 - Bug in :func:`date_range` where using a negative frequency value would not include all points between the start and end values (:issue:`56147`)
+- Bug in :func:`infer_freq` with a :class:`Series` with :class:`ArrowDtype` timestamp dtype incorrectly raising ``TypeError`` (:issue:`58403`)
 - Bug in :func:`to_datetime` where passing an ``lxml.etree._ElementUnicodeResult`` together with ``format`` raised  ``TypeError``. Now subclasses of ``str`` are handled. (:issue:`60933`)
 - Bug in :func:`tseries.api.guess_datetime_format` would fail to infer time format when "%Y" == "%H%M" (:issue:`57452`)
 - Bug in :func:`tseries.frequencies.to_offset` would fail to parse frequency strings starting with "LWOM" (:issue:`59218`)
