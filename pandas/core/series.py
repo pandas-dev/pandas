@@ -3112,8 +3112,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Combine the Series and `other` using `func` to perform elementwise
         selection for combined Series.
-        `fill_value` is assumed when value is missing at some index
-        from one of the two objects being combined.
+        `fill_value` is assumed when value is not present at some index
+        from one of the two Series being combined.
 
         Parameters
         ----------
