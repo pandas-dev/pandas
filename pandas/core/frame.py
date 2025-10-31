@@ -9123,7 +9123,7 @@ class DataFrame(NDFrame, OpsMixin):
             # don't overwrite columns unnecessarily
             # DO propagate if this column is not in the intersection
             if not overwrite and other_mask.all():
-                result.iloc[:, i] = this.iloc[:, i].copy()
+                result[this.columns[i]] = this.iloc[:, i].copy()
                 continue
 
             if do_fill:
@@ -9157,7 +9157,7 @@ class DataFrame(NDFrame, OpsMixin):
                     arr, new_dtype
                 )
 
-            result[new_columns[i]] = arr
+            result[this.columns[i]] = arr
 
         # convert_objects just in case
         frame_result = self._constructor(result, index=new_index, columns=new_columns)
