@@ -31,6 +31,7 @@ from pandas.errors.cow import _chained_assignment_msg
 from pandas.util._decorators import (
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     can_hold_element,
@@ -63,6 +64,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import algorithms as algos
+from pandas.core.arrays import ExtensionArray
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -926,6 +928,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
 
+        self._maybe_warn_non_casting_setitem(key, value)
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
             key = (list(x) if is_iterator(x) else x for x in key)
@@ -940,6 +943,39 @@ class _LocationIndexer(NDFrameIndexerBase):
             cast("_iLocIndexer", self) if self.name == "iloc" else self.obj.iloc
         )
         iloc._setitem_with_indexer(indexer, value, self.name)
+
+    @final
+    def _maybe_warn_non_casting_setitem(self, key, value) -> None:
+        # GH#52593 many users got confused by this, so issue a warning
+
+        if (
+            self.ndim == 2
+            and isinstance(key, tuple)
+            and len(key) > 1
+            and isinstance(key[0], slice)
+            and key[0] == slice(None)
+        ):
+            # This is a `df.loc[:, foo] = bar` call
+            if is_hashable(key[1]) and key[1] in self.obj.columns:
+                obj = self.obj[key[1]]
+                if isinstance(obj, ABCSeries) and isinstance(
+                    value, (ABCSeries, Index, ExtensionArray, np.ndarray)
+                ):
+                    # check necessary in case of non-unique columns
+                    if obj.dtype != value.dtype:
+                        warnings.warn(
+                            "Setting `df.loc[:, col] = values` does *not* change "
+                            "the dtype of `df[col]`. It writes the entries from "
+                            "`values` into the existing array behind `df[col]`. "
+                            "To swap out the old array for the new one, use "
+                            "`df[col] = values` instead.",
+                            UserWarning,
+                            stacklevel=find_stack_level(),
+                        )
+        # TODO: the checks above handle the most common cases, but miss
+        # a) obj.columns is MultiIndex
+        # b) non-unique columns
+        # c) df.loc[:, [col]] = ...
 
     def _validate_key(self, key, axis: AxisInt) -> None:
         """

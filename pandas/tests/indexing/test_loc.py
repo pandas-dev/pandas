@@ -581,8 +581,11 @@ class TestLocBaseIndependent:
         # GH 6149
         # coerce similarly for setitem and loc when rows have a null-slice
         df = frame_for_consistency.copy()
+        msg = r"Setting `df.loc\[:, col\] = values` does \*not\* change"
+        err = UserWarning if isinstance(val, np.ndarray) else None
         with pytest.raises(TypeError, match="Invalid value"):
-            df.loc[:, "date"] = val
+            with tm.assert_produces_warning(err, match=msg):
+                df.loc[:, "date"] = val
 
     def test_loc_setitem_consistency_dt64_to_str(self, frame_for_consistency):
         # GH 6149
@@ -646,18 +649,21 @@ class TestLocBaseIndependent:
         ]
         df = DataFrame(values, index=mi, columns=cols)
 
+        msg = r"Setting `df.loc\[:, col\] = values` does \*not\* change"
         ctx = contextlib.nullcontext()
         if using_infer_string:
             ctx = pytest.raises(TypeError, match="Invalid value")
 
         with ctx:
-            df.loc[:, ("Respondent", "StartDate")] = to_datetime(
-                df.loc[:, ("Respondent", "StartDate")]
-            )
+            with tm.assert_produces_warning(UserWarning, match=msg):
+                df.loc[:, ("Respondent", "StartDate")] = to_datetime(
+                    df.loc[:, ("Respondent", "StartDate")]
+                )
         with ctx:
-            df.loc[:, ("Respondent", "EndDate")] = to_datetime(
-                df.loc[:, ("Respondent", "EndDate")]
-            )
+            with tm.assert_produces_warning(UserWarning, match=msg):
+                df.loc[:, ("Respondent", "EndDate")] = to_datetime(
+                    df.loc[:, ("Respondent", "EndDate")]
+                )
 
         if using_infer_string:
             # infer-objects won't infer stuff anymore
@@ -1426,7 +1432,9 @@ class TestLocBaseIndependent:
 
         # pre-2.0 this swapped in a new array, in 2.0 it operates inplace,
         #  consistent with non-split-path
-        df.loc[:, "Alpha"] = categories
+        msg = r"Setting `df.loc\[:, col\] = values` does \*not\* change"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.loc[:, "Alpha"] = categories
 
         result = df["Alpha"]
         expected = Series(categories, index=df.index, name="Alpha").astype(

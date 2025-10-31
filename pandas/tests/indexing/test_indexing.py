@@ -548,7 +548,9 @@ class TestFancy:
 
         # GH5702 (loc)
         df = df_orig.copy()
-        df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
+        msg = r"Setting `df.loc\[:, col\] = values` does \*not\* change"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.loc[:, "A"] = df.loc[:, "A"].astype(np.int64)
         expected = DataFrame(
             [[1, "2", "3", ".4", 5, 6.0, "foo"]], columns=list("ABCDEFG")
         )
@@ -570,12 +572,14 @@ class TestFancy:
 
         # With the enforcement of GH#45333 in 2.0, this assignment occurs inplace,
         #  so float64 is retained
+        msg = r"Setting `df.loc\[:, col\] = values` does \*not\* change"
         df.iloc[:, 0] = df["A"].astype(np.int64)
         expected = DataFrame({"A": [1.0, 2.0, 3.0, 4.0]})
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame({"A": [1.0, 2.0, 3.0, 4.0]})
-        df.loc[:, "A"] = df["A"].astype(np.int64)
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.loc[:, "A"] = df["A"].astype(np.int64)
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize("indexer", [tm.getitem, tm.loc])
