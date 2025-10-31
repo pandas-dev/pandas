@@ -3,7 +3,6 @@
 #pragma once
 
 #include <Python.h>
-
 #include <pymem.h>
 #include <string.h>
 
@@ -218,9 +217,6 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
 
   int result = PyObject_RichCompareBool(a, b, Py_EQ);
   if (result < 0) {
-    if (PyErr_Occurred() != NULL) {
-      return 0;
-    }
     return 0;
   }
   return result;
@@ -323,9 +319,6 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
   }
 
   if (hash == -1) {
-    if (PyErr_Occurred() != NULL) {
-      return 0;
-    }
     return 0;
   }
 #if SIZEOF_PY_HASH_T == 4
