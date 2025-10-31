@@ -144,3 +144,12 @@ class TestCombineFirst:
             ),
         )
         tm.assert_series_equal(result, expected)
+
+    def test_combine_first_none_not_nan(self):
+        # GH#58977
+        s1 = Series([None, None, None], index=["a", "b", "c"])
+        s2 = Series([None, None, None], index=["b", "c", "d"])
+
+        result = s1.combine_first(s2)
+        expected = Series([None] * 4, index=["a", "b", "c", "d"])
+        tm.assert_series_equal(result, expected)
