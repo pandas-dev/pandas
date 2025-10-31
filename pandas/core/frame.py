@@ -195,7 +195,6 @@ from pandas.core.sorting import (
 )
 
 from pandas.io.common import (
-    dedup_names,
     get_handle,
 )
 from pandas.io.formats import (
@@ -9107,28 +9106,13 @@ class DataFrame(NDFrame, OpsMixin):
         if self.empty and len(other) == other_idxlen:
             return other.copy()
 
-        new_columns_out = self.columns.union(other_columns, sort=False)
-        # Deduplicate column names if necessary
-        self_columns = Index(
-            dedup_names(list(self_columns), False), dtype=self_columns.dtype
-        )
-        other_columns = Index(
-            dedup_names(list(other_columns), False), dtype=other_columns.dtype
-        )
-        this.columns = Index(
-            dedup_names(list(this.columns), False), dtype=this.columns.dtype
-        )
-        other.columns = Index(
-            dedup_names(list(other.columns), False), dtype=other.columns.dtype
-        )
-
         # preserve column order
-        new_columns_unique = self_columns.union(other_columns, sort=False)
+        new_columns = self_columns.union(other_columns, sort=False)
         do_fill = fill_value is not None
         result = {}
-        for col in new_columns_unique:
-            series = this[col]
-            other_series = other[col]
+        for i in range(this.shape[1]):
+            series = this.iloc[:, i]
+            other_series = other.iloc[:, i]
 
             this_dtype = series.dtype
             other_dtype = other_series.dtype
@@ -9139,7 +9123,7 @@ class DataFrame(NDFrame, OpsMixin):
             # don't overwrite columns unnecessarily
             # DO propagate if this column is not in the intersection
             if not overwrite and other_mask.all():
-                result[col] = this[col].copy()
+                result.iloc[:, i] = this.iloc[:, i].copy()
                 continue
 
             if do_fill:
@@ -9148,7 +9132,7 @@ class DataFrame(NDFrame, OpsMixin):
                 series[this_mask] = fill_value
                 other_series[other_mask] = fill_value
 
-            if col not in self.columns:
+            if other.columns[i] not in self.columns:
                 # If self DataFrame does not have col in other DataFrame,
                 # try to promote series, which is all NaN, as other_dtype.
                 new_dtype = other_dtype
@@ -9173,12 +9157,10 @@ class DataFrame(NDFrame, OpsMixin):
                     arr, new_dtype
                 )
 
-            result[col] = arr
+            result[new_columns[i]] = arr
 
         # convert_objects just in case
-        frame_result = self._constructor(
-            result, index=new_index, columns=new_columns_out
-        )
+        frame_result = self._constructor(result, index=new_index, columns=new_columns)
         return frame_result.__finalize__(self, method="combine")
 
     def combine_first(self, other: DataFrame) -> DataFrame:
