@@ -380,7 +380,7 @@ In cases with mixed-resolution inputs, the highest resolution is used:
 When all objects passed to :func:`concat` have a :class:`DatetimeIndex`,
 passing ``sort=False`` will now result in the non-concatenation axis not
 being sorted. Previously, the result would always be sorted along
-the non-concatenation axis even when ``sort=False`` is passed.
+the non-concatenation axis even when ``sort=False`` is passed. :issue:`57335`
 
 If you do not specify the ``sort`` argument, pandas will continue to return a
 sorted result but this behavior is deprecated and you will receive a warning.

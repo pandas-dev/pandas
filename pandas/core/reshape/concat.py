@@ -422,8 +422,7 @@ def concat(
             intersect
             or any(not isinstance(index, DatetimeIndex) for index in non_concat_axis)
             or all(
-                id(prev) == id(curr)
-                for prev, curr in zip(non_concat_axis, non_concat_axis[1:])
+                prev is curr for prev, curr in zip(non_concat_axis, non_concat_axis[1:])
             )
             or (
                 all(

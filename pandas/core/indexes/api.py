@@ -182,7 +182,7 @@ def safe_sort_index(index: Index) -> Index:
     return index
 
 
-def union_indexes(indexes, sort: bool | None | lib.NoDefault = True) -> Index:
+def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
     """
     Return the union of indexes.
 
