@@ -13810,8 +13810,8 @@ class DataFrame(NDFrame, OpsMixin):
         0.1  1    1
         0.5  3  100
 
-        Specifying `numeric_only=False` will also compute the quantile of
-        datetime and timedelta data.
+        Specifying `numeric_only=False` will compute the quantiles for all
+        columns.
 
         >>> df = pd.DataFrame(
         ...     {
