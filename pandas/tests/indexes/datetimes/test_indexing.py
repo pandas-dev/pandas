@@ -119,6 +119,17 @@ class TestGetItem:
 
 
 class TestWhere:
+    @pytest.mark.parametrize("is_td", [True, False])
+    def test_where_freq_invalidation(self, is_td):
+        # GH#24555
+        index = date_range("20130101", periods=3, tz="US/Eastern")
+        if is_td:
+            index = index - index[0]
+        other = Index([pd.NaT, pd.NaT] + index[2:].tolist())
+
+        result = index.where(notna(other), other)
+        assert result.freq is None
+
     def test_where_doesnt_retain_freq(self):
         dti = date_range("20130101", periods=3, freq="D", name="idx")
         cond = [True, True, False]

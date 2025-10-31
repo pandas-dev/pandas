@@ -106,6 +106,8 @@ class Expanding(RollingAndExpandingMixin):
     4  7.0
     """
 
+    __module__ = "pandas.api.typing"
+
     _attributes: list[str] = ["min_periods", "method"]
 
     def __init__(
@@ -1452,8 +1454,10 @@ class Expanding(RollingAndExpandingMixin):
 
 class ExpandingGroupby(BaseWindowGroupby, Expanding):
     """
-    Provide a expanding groupby implementation.
+    Provide an expanding groupby implementation.
     """
+
+    __module__ = "pandas.api.typing"
 
     _attributes = Expanding._attributes + BaseWindowGroupby._attributes
 

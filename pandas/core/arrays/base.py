@@ -256,6 +256,8 @@ class ExtensionArray:
     https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/list/array.py
     """
 
+    __module__ = "pandas.api.extensions"
+
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = "extension"
@@ -1806,7 +1808,7 @@ class ExtensionArray:
         .. code-block:: python
 
            def take(self, indices, allow_fill=False, fill_value=None):
-               from pandas.core.algorithms import take
+               from pandas.api.extensions import take
 
                # If the ExtensionArray is backed by an ndarray, then
                # just pass that here instead of coercing to object.
@@ -2811,6 +2813,8 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
        implementation to be called when involved in binary operations
        with NumPy arrays.
     """
+
+    __module__ = "pandas.api.extensions"
 
     @classmethod
     def _create_method(cls, op, coerce_to_dtype: bool = True, result_dtype=None):

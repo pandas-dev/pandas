@@ -3293,28 +3293,71 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
-        >>> html_string = '''<table border="1" class="dataframe">
-        ...   <thead>
-        ...     <tr style="text-align: right;">
-        ...       <th></th>
-        ...       <th>col1</th>
-        ...       <th>col2</th>
-        ...     </tr>
-        ...   </thead>
-        ...   <tbody>
-        ...     <tr>
-        ...       <th>0</th>
-        ...       <td>1</td>
-        ...       <td>4</td>
-        ...     </tr>
-        ...     <tr>
-        ...       <th>1</th>
-        ...       <td>2</td>
-        ...       <td>3</td>
-        ...     </tr>
-        ...   </tbody>
-        ... </table>'''
-        >>> assert html_string == df.to_html()
+        >>> html_string = df.to_html()
+        >>> print(html_string)
+        <table border="1" class="dataframe">
+          <thead>
+            <tr style="text-align: right;">
+              <th></th>
+              <th>col1</th>
+              <th>col2</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>0</th>
+              <td>1</td>
+              <td>4</td>
+            </tr>
+            <tr>
+              <th>1</th>
+              <td>2</td>
+              <td>3</td>
+            </tr>
+          </tbody>
+        </table>
+
+        HTML output
+
+        +----+-----+-----+
+        |    |col1 |col2 |
+        +====+=====+=====+
+        |0   |1    |4    |
+        +----+-----+-----+
+        |1   |2    |3    |
+        +----+-----+-----+
+
+        >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
+        >>> html_string = df.to_html(index=False)
+        >>> print(html_string)
+        <table border="1" class="dataframe">
+          <thead>
+            <tr style="text-align: right;">
+              <th>col1</th>
+              <th>col2</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>4</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>3</td>
+            </tr>
+          </tbody>
+        </table>
+
+        HTML output
+
+        +-----+-----+
+        |col1 |col2 |
+        +=====+=====+
+        |1    |4    |
+        +-----+-----+
+        |2    |3    |
+        +-----+-----+
         """
         if justify is not None and justify not in fmt.VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
@@ -5236,6 +5279,30 @@ class DataFrame(NDFrame, OpsMixin):
                     return False
 
             return True
+
+        blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
+        if (
+            np.object_ in include
+            and str not in include
+            and str not in exclude
+            and any(
+                isinstance(dtype, StringDtype) and dtype.na_value is np.nan
+                for dtype in blk_dtypes
+            )
+        ):
+            # GH#61916
+            warnings.warn(
+                "For backward compatibility, 'str' dtypes are included by "
+                "select_dtypes when 'object' dtype is specified. "
+                "This behavior is deprecated and will be removed in a future "
+                "version. Explicitly pass 'str' to `include` to select them, "
+                "or to `exclude` to remove them and silence this warning.\nSee "
+                "https://pandas.pydata.org/docs/user_guide/migration-3-strings.html"
+                "#string-migration-select-dtypes for details on how to write code "
+                "that works with pandas 2 and 3.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         mgr = self._mgr._get_data_subset(predicate).copy(deep=False)
         return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)
@@ -9141,20 +9208,10 @@ class DataFrame(NDFrame, OpsMixin):
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
         """
-        from pandas.core.computation import expressions
 
         def combiner(x: Series, y: Series):
-            mask = x.isna()._values
-
-            x_values = x._values
-            y_values = y._values
-
-            # If the column y in other DataFrame is not in first DataFrame,
-            # just return y_values.
-            if y.name not in self.columns:
-                return y_values
-
-            return expressions.where(mask, y_values, x_values)
+            # GH#60128 The combiner is supposed to preserve EA Dtypes.
+            return y if y.name not in self.columns else y.where(x.isna(), x)
 
         if len(other) == 0:
             combined = self.reindex(
@@ -11497,6 +11554,15 @@ class DataFrame(NDFrame, OpsMixin):
         def _series_round(ser: Series, decimals: int) -> Series:
             if is_integer_dtype(ser.dtype) or is_float_dtype(ser.dtype):
                 return ser.round(decimals)
+            elif isinstance(ser._values, (DatetimeArray, TimedeltaArray, PeriodArray)):
+                # GH#57781
+                # TODO: also the ArrowDtype analogues?
+                warnings.warn(
+                    "obj.round has no effect with datetime, timedelta, "
+                    "or period dtypes. Use obj.dt.round(...) instead.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
             return ser
 
         nv.validate_round(args, kwargs)

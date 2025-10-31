@@ -189,7 +189,7 @@ def generate_numba_table_func(
     """
     Generate a numba jitted function to apply window calculations table-wise.
 
-    Func will be passed a M window size x N number of columns array, and
+    Func will be passed an M window size x N number of columns array, and
     must return a 1 x N number of columns array.
 
     1. jit the user's function
