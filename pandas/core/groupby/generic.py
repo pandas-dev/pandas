@@ -207,9 +207,7 @@ class SeriesGroupBy(GroupBy[Series]):
     1        1        2
     2        3        4
 
-    .. versionchanged:: 1.3.0
-
-        The resulting dtype will reflect the return value of the aggregating function.
+    The resulting dtype will reflect the return value of the aggregating function.
 
     >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
     1    1.0
@@ -263,11 +261,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
-
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``,
-            see the examples below.
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
 
         Functions that mutate the passed object can produce unexpected
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
@@ -288,9 +283,7 @@ class SeriesGroupBy(GroupBy[Series]):
         its argument and returns a Series.  `apply` combines the result for
         each group together into a new Series.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``.
+        The resulting dtype will reflect the return value of the passed ``func``.
 
         >>> g1.apply(lambda x: x * 2 if x.name == "a" else x / 2)
         a    0.0
@@ -411,10 +404,8 @@ class SeriesGroupBy(GroupBy[Series]):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``,
-            see the examples below.
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
 
         Examples
         --------
@@ -453,10 +444,8 @@ class SeriesGroupBy(GroupBy[Series]):
         1        1        2
         2        3        4
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the aggregating
-            function.
+        The resulting dtype will reflect the return value of the aggregating
+        function.
 
         >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
         1    1.0
@@ -660,8 +649,6 @@ class SeriesGroupBy(GroupBy[Series]):
     Parrot     25.0
     Parrot     25.0
     Name: Max Speed, dtype: float64
-
-    .. versionchanged:: 1.3.0
 
     The resulting dtype will reflect the return value of the passed ``func``,
     for example:
@@ -1744,9 +1731,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     See :ref:`groupby.aggregate.named` for more.
 
-    .. versionchanged:: 1.3.0
-
-        The resulting dtype will reflect the return value of the aggregating function.
+    The resulting dtype will reflect the return value of the aggregating function.
 
     >>> df.groupby("A")[["B"]].agg(lambda x: x.astype(float).min())
           B
@@ -1837,10 +1822,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``,
-            see the examples below.
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
 
         Examples
         --------
@@ -1920,10 +1903,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         See :ref:`groupby.aggregate.named` for more.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the aggregating
-            function.
+        The resulting dtype will reflect the return value of the aggregating
+        function.
 
         >>> df.groupby("A")[["B"]].agg(lambda x: x.astype(float).min())
               B
@@ -2281,8 +2262,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     3  4.000000  5.0
     4  3.666667  4.0
     5  4.000000  5.0
-
-    .. versionchanged:: 1.3.0
 
     The resulting dtype will reflect the return value of the passed ``func``,
     for example:
