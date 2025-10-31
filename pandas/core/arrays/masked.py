@@ -25,7 +25,6 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import doc
 
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
