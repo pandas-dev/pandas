@@ -382,7 +382,7 @@ class Apply(metaclass=abc.ABCMeta):
         for name, how in func.items():
             colg = obj._gotitem(name, ndim=1)
             results[name] = colg.transform(how, 0, *args, **kwargs)
-        return concat(results, axis=1)
+        return concat(results, axis=1)  # nobug
 
     def transform_str_or_callable(self, func) -> DataFrame | Series:
         """
@@ -485,7 +485,7 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
 
         try:
-            return concat(results, keys=keys, axis=1, sort=False)
+            return concat(results, keys=keys, axis=1, sort=False)  # maybebug
         except TypeError as err:
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
@@ -635,7 +635,7 @@ class Apply(metaclass=abc.ABCMeta):
                 keys_to_use = ktu
 
             axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
-            result = concat(
+            result = concat(  # maybebug
                 results,
                 axis=axis,
                 keys=keys_to_use,

@@ -2690,7 +2690,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         from pandas import Index
         from pandas.core.reshape.concat import concat
 
-        result = concat([counts, freqs], ignore_index=True, axis=1)
+        result = concat([counts, freqs], ignore_index=True, axis=1)  # nobug
         result.columns = Index(["counts", "freqs"])
         result.index.name = "categories"
 

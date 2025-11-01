@@ -6525,7 +6525,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self.copy(deep=False)
 
         # GH 19920: retain column metadata after concat
-        result = concat(results, axis=1)
+        result = concat(results, axis=1)  # nobug
         # GH#40810 retain subclass
         # error: Incompatible types in assignment
         # (expression has type "Self", variable has type "DataFrame")
@@ -9507,7 +9507,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # error: List item 0 has incompatible type "NDFrame"; expected
         #  "Union[Series, DataFrame]"
-        diff = concat(
+        diff = concat(  # bug
             [self, other],  # type: ignore[list-item]
             axis=axis,
             keys=result_names,

@@ -223,7 +223,7 @@ def get_dummies(
                 dtype=dtype,
             )
             with_dummies.append(dummy)
-        result = concat(with_dummies, axis=1)
+        result = concat(with_dummies, axis=1)  # nobug
     else:
         result = _get_dummies_1d(
             data,
@@ -342,7 +342,7 @@ def _get_dummies_1d(
             )
             sparse_series.append(Series(data=sarr, index=index, name=col, copy=False))
 
-        return concat(sparse_series, axis=1)
+        return concat(sparse_series, axis=1)  # nobug
 
     else:
         # ensure ndarray layout is column-major
@@ -568,7 +568,7 @@ def from_dummies(
                     "Dummy DataFrame contains unassigned value(s); "
                     f"First instance in row: {assigned.idxmin()}"
                 )
-            data_slice = concat(
+            data_slice = concat(  # nobug
                 (data_to_decode.loc[:, prefix_slice], assigned == 0), axis=1
             )
         else:

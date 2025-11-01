@@ -1143,7 +1143,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 group_levels = self._grouper.levels
                 group_names = self._grouper.names
 
-                result = concat(
+                result = concat(  # maybebug
                     values,
                     axis=0,
                     keys=group_keys,
@@ -1152,10 +1152,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     sort=False,
                 )
             else:
-                result = concat(values, axis=0)
+                result = concat(values, axis=0)  # maybebug
 
         elif not not_indexed_same:
-            result = concat(values, axis=0)
+            result = concat(values, axis=0)  # maybebug
 
             ax = self._selected_obj.index
             if self.dropna:
@@ -1178,7 +1178,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = result.reindex(ax, axis=0)
 
         else:
-            result = concat(values, axis=0)
+            result = concat(values, axis=0)  # maybebug
 
         if self.obj.ndim == 1:
             name = self.obj.name
@@ -5238,7 +5238,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return (
             shifted_dataframes[0]
             if len(shifted_dataframes) == 1
-            else concat(shifted_dataframes, axis=1, sort=False)
+            else concat(shifted_dataframes, axis=1, sort=False)  # nobug
         )
 
     @final

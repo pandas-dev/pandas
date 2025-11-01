@@ -549,7 +549,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if any(isinstance(x, DataFrame) for x in results.values()):
             from pandas import concat
 
-            res_df = concat(
+            res_df = concat(  # nobug
                 results.values(), axis=1, keys=[key.label for key in results]
             )
             return res_df
@@ -722,7 +722,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if results:
             from pandas.core.reshape.concat import concat
 
-            concatenated = concat(results, ignore_index=True)
+            concatenated = concat(results, ignore_index=True)  # nobug
             result = self._set_result_index_ordered(concatenated)
         else:
             result = self.obj._constructor(dtype=np.float64)
@@ -2238,7 +2238,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             applied.append(res)
 
         concat_index = obj.columns
-        concatenated = concat(
+        concatenated = concat(  # nobug
             applied, axis=0, verify_integrity=False, ignore_index=True
         )
         concatenated = concatenated.reindex(concat_index, axis=1)
@@ -2530,7 +2530,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # concat would raise
             res_df = DataFrame([], columns=columns, index=self._grouper.result_index)
         else:
-            res_df = concat(results, keys=columns, axis=1)
+            res_df = concat(results, keys=columns, axis=1)  # nobug
 
         if not self.as_index:
             res_df.index = default_index(len(res_df))
@@ -3390,7 +3390,9 @@ def _wrap_transform_general_frame(
         # other dimension; this will preserve dtypes
         # GH14457
         if res.index.is_(obj.index):
-            res_frame = concat([res] * len(group.columns), axis=1, ignore_index=True)
+            res_frame = concat(
+                [res] * len(group.columns), axis=1, ignore_index=True
+            )  # nobug
             res_frame.columns = group.columns
             res_frame.index = group.index
         else:

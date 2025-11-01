@@ -249,7 +249,9 @@ def melt(
         if not isinstance(id_data.dtype, np.dtype):
             # i.e. ExtensionDtype
             if num_cols_adjusted > 0:
-                mdata[col] = concat([id_data] * num_cols_adjusted, ignore_index=True)
+                mdata[col] = concat(
+                    [id_data] * num_cols_adjusted, ignore_index=True
+                )  # nobug
             else:
                 # We can't concat empty list. (GH 46044)
                 mdata[col] = type(id_data)([], name=id_data.name, dtype=id_data.dtype)
@@ -261,7 +263,7 @@ def melt(
     if frame.shape[1] > 0 and not any(
         not isinstance(dt, np.dtype) and dt._supports_2d for dt in frame.dtypes
     ):
-        mdata[value_name] = concat(
+        mdata[value_name] = concat(  # nobug
             [frame.iloc[:, i] for i in range(frame.shape[1])], ignore_index=True
         ).values
     else:
@@ -666,7 +668,7 @@ def wide_to_long(
         value_vars_flattened.extend(value_var)
         _melted.append(melt_stub(df, stub, i, j, value_var, sep))
 
-    melted = concat(_melted, axis=1)
+    melted = concat(_melted, axis=1)  # maybebug
     id_vars = df.columns.difference(value_vars_flattened)
     new = df[id_vars]
 

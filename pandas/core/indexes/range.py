@@ -1181,7 +1181,7 @@ class RangeIndex(Index):
 
         return super().insert(loc, item)
 
-    def _concat(self, indexes: list[Index], name: Hashable) -> Index:
+    def _concat(self, indexes: list[Index], name: Hashable) -> Index:  # nobug
         """
         Overriding parent method for the case of all RangeIndex instances.
 
@@ -1191,7 +1191,7 @@ class RangeIndex(Index):
         indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Index([0,1,2,4,5], dtype='int64')
         """
         if not all(isinstance(x, RangeIndex) for x in indexes):
-            result = super()._concat(indexes, name)
+            result = super()._concat(indexes, name)  # nobug
             if result.dtype.kind == "i":
                 return self._shallow_copy(result._values)
             return result

@@ -5379,9 +5379,9 @@ class Index(IndexOpsMixin, PandasObject):
         names = {obj.name for obj in to_concat}
         name = None if len(names) > 1 else self.name
 
-        return self._concat(to_concat, name)
+        return self._concat(to_concat, name)  # nobug
 
-    def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
+    def _concat(self, to_concat: list[Index], name: Hashable) -> Index:  # nobug
         """
         Concatenate multiple Index objects.
         """
