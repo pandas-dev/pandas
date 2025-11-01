@@ -14,6 +14,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -28,7 +29,7 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
-from pandas.errors import Pandas4Warning
+
 
 class TestCommon:
     @pytest.mark.parametrize("name", [None, "new_name"])
