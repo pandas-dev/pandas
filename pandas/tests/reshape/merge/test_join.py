@@ -673,6 +673,7 @@ class TestJoin:
 
     @pytest.mark.parametrize("how", ["left", "right", "inner", "outer"])
     def test_join_many_sort_unique(self, how, sort):
+        # https://github.com/pandas-dev/pandas/pull/62954
         df = DataFrame({"a": [1, 2, 3]}, index=[1, 0, 2])
         df2 = DataFrame({"b": [4, 5, 6]}, index=[2, 0, 1])
         if how == "right":
@@ -687,6 +688,7 @@ class TestJoin:
 
     @pytest.mark.parametrize("how", ["left", "right", "inner", "outer"])
     def test_join_many_sort_nonunique(self, how, sort):
+        # https://github.com/pandas-dev/pandas/pull/62954
         df = DataFrame({"a": [1, 2, 3]}, index=[3, 0, 0])
         df2 = DataFrame({"b": [4, 5, 6]}, index=[2, 0, 1])
         if how == "inner":
