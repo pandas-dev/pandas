@@ -191,7 +191,7 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
   return 1;
 }
 
-static inline int _is_pandas_NA_type(PyObject *o) {
+static inline int _is_pandas_NA_type(PyObject* o) {
   // TODO compare PyTypeObject* C_NA, not strings!
   PyObject* type_name = PyType_GetName(Py_TYPE(o));
   return PyUnicode_CompareWithASCIIString(type_name, "NAType") == 0;
