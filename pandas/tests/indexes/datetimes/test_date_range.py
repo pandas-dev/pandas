@@ -215,7 +215,7 @@ class TestDateRanges:
         # check that overflows in calculating `addend = periods * stride`
         #  are caught
         with tm.assert_produces_warning(None):
-            # we should _not_ be seeing a overflow RuntimeWarning
+            # we should _not_ be seeing an overflow RuntimeWarning
             dti = date_range(start="1677-09-22", periods=213503, freq="D")
 
         assert dti[0] == Timestamp("1677-09-22")
@@ -1740,3 +1740,28 @@ class TestDateRangeNonTickFreq:
             freq="-1YE",
         )
         tm.assert_index_equal(rng, exp)
+
+    def test_date_range_tzaware_endpoints_accept_ambiguous(self):
+        # https://github.com/pandas-dev/pandas/issues/52908
+        start = Timestamp("1916-08-01", tz="Europe/Oslo")
+        end = Timestamp("1916-12-01", tz="Europe/Oslo")
+        res = date_range(start, end, freq="MS", ambiguous=True)
+        exp = date_range(
+            "1916-08-01", "1916-12-01", freq="MS", tz="Europe/Oslo", ambiguous=True
+        )
+        tm.assert_index_equal(res, exp)
+
+    def test_date_range_tzaware_endpoints_accept_nonexistent(self):
+        # Europe/London spring-forward: 2015-03-29 01:30 does not exist.
+        tz = "Europe/London"
+        start = Timestamp("2015-03-28 01:30", tz=tz)
+        end = Timestamp("2015-03-30 01:30", tz=tz)
+
+        result = date_range(start, end, freq="D", nonexistent="shift_forward")
+
+        # Build expected by generating naive daily times, then tz_localize so
+        # the nonexistent handling is applied during localization.
+        expected = date_range(
+            "2015-03-28 01:30", "2015-03-30 01:30", freq="D"
+        ).tz_localize(tz, nonexistent="shift_forward")
+        tm.assert_index_equal(result, expected)

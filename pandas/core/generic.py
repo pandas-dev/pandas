@@ -109,6 +109,7 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.cast import can_hold_element
 from pandas.core.dtypes.common import (
     ensure_object,
     ensure_platform_int,
@@ -614,7 +615,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             clean_column_name(k): Series(
                 v, copy=False, index=self.index, name=k, dtype=dtype
             ).__finalize__(self)
-            for k, v, dtype in zip(self.columns, self._iter_column_arrays(), dtypes)
+            for k, v, dtype in zip(
+                self.columns,
+                self._iter_column_arrays(),
+                dtypes,
+                strict=True,
+            )
         }
 
     @final
@@ -1047,6 +1053,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             if level is not None:
                 level = ax._get_level_number(level)
+
+            if isinstance(replacements, ABCSeries) and not replacements.index.is_unique:
+                # GH#58621
+                raise ValueError("Cannot rename with a Series with non-unique index.")
 
             # GH 13473
             if not callable(replacements):
@@ -6096,10 +6106,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Propagate metadata from other to self.
 
+        This is the default implementation. Subclasses may override this method to
+        implement their own metadata handling.
+
         Parameters
         ----------
         other : the object from which to get the attributes that we are going
-            to propagate
+            to propagate. If ``other`` has an ``input_objs`` attribute, then
+            this attribute must contain an iterable of objects, each with an
+            ``attrs`` attribute.
         method : str, optional
             A passed method name providing context on where ``__finalize__``
             was called.
@@ -6108,6 +6123,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
                The value passed as `method` are not currently considered
                stable across pandas releases.
+
+        Notes
+        -----
+        In case ``other`` has an ``input_objs`` attribute, this method only
+        propagates its metadata if each object in ``input_objs`` has the exact
+        same metadata as the others.
         """
         if isinstance(other, NDFrame):
             if other.attrs:
@@ -7117,53 +7138,69 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             new_data = self._mgr.fillna(value=value, limit=limit, inplace=inplace)
 
         elif isinstance(value, (dict, ABCSeries)):
-            if axis == 1:
-                raise NotImplementedError(
-                    "Currently only can fill with dict/Series column by column"
-                )
             result = self if inplace else self.copy(deep=False)
-            for k, v in value.items():
-                if k not in result:
-                    continue
+            if axis == 1:
+                # Check that all columns in result have the same dtype
+                # otherwise don't bother with fillna and losing accurate dtypes
+                unique_dtypes = algos.unique(self._mgr.get_dtypes())
+                if len(unique_dtypes) > 1:
+                    raise ValueError(
+                        "All columns must have the same dtype, but got dtypes: "
+                        f"{list(unique_dtypes)}"
+                    )
+                # Use the first column, which we have already validated has the
+                # same dtypes as the other columns.
+                if not can_hold_element(result.iloc[:, 0], value):
+                    frame_dtype = unique_dtypes.item()
+                    raise ValueError(
+                        f"{value} not a suitable type to fill into {frame_dtype}"
+                    )
+                result = result.T.fillna(value=value).T
+            else:
+                for k, v in value.items():
+                    if k not in result:
+                        continue
 
-                res_k = result[k].fillna(v, limit=limit)
+                    res_k = result[k].fillna(v, limit=limit)
 
-                if not inplace:
-                    result[k] = res_k
-                else:
-                    # We can write into our existing column(s) iff dtype
-                    #  was preserved.
-                    if isinstance(res_k, ABCSeries):
-                        # i.e. 'k' only shows up once in self.columns
-                        if res_k.dtype == result[k].dtype:
-                            result.loc[:, k] = res_k
-                        else:
-                            # Different dtype -> no way to do inplace.
-                            result[k] = res_k
+                    if not inplace:
+                        result[k] = res_k
                     else:
-                        # see test_fillna_dict_inplace_nonunique_columns
-                        locs = result.columns.get_loc(k)
-                        if isinstance(locs, slice):
-                            locs = range(self.shape[1])[locs]
-                        elif isinstance(locs, np.ndarray) and locs.dtype.kind == "b":
-                            locs = locs.nonzero()[0]
-                        elif not (
-                            isinstance(locs, np.ndarray) and locs.dtype.kind == "i"
-                        ):
-                            # Should never be reached, but let's cover our bases
-                            raise NotImplementedError(
-                                "Unexpected get_loc result, please report a bug at "
-                                "https://github.com/pandas-dev/pandas"
-                            )
-
-                        for i, loc in enumerate(locs):
-                            res_loc = res_k.iloc[:, i]
-                            target = self.iloc[:, loc]
-
-                            if res_loc.dtype == target.dtype:
-                                result.iloc[:, loc] = res_loc
+                        # We can write into our existing column(s) iff dtype
+                        #  was preserved.
+                        if isinstance(res_k, ABCSeries):
+                            # i.e. 'k' only shows up once in self.columns
+                            if res_k.dtype == result[k].dtype:
+                                result.loc[:, k] = res_k
                             else:
-                                result.isetitem(loc, res_loc)
+                                # Different dtype -> no way to do inplace.
+                                result[k] = res_k
+                        else:
+                            # see test_fillna_dict_inplace_nonunique_columns
+                            locs = result.columns.get_loc(k)
+                            if isinstance(locs, slice):
+                                locs = range(self.shape[1])[locs]
+                            elif (
+                                isinstance(locs, np.ndarray) and locs.dtype.kind == "b"
+                            ):
+                                locs = locs.nonzero()[0]
+                            elif not (
+                                isinstance(locs, np.ndarray) and locs.dtype.kind == "i"
+                            ):
+                                # Should never be reached, but let's cover our bases
+                                raise NotImplementedError(
+                                    "Unexpected get_loc result, please report a bug at "
+                                    "https://github.com/pandas-dev/pandas"
+                                )
+
+                            for i, loc in enumerate(locs):
+                                res_loc = res_k.iloc[:, i]
+                                target = self.iloc[:, loc]
+
+                                if res_loc.dtype == target.dtype:
+                                    result.iloc[:, loc] = res_loc
+                                else:
+                                    result.isetitem(loc, res_loc)
             if inplace:
                 return self._update_inplace(result)
             else:
@@ -7546,7 +7583,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             items = list(to_replace.items())
             if items:
-                keys, values = zip(*items)
+                keys, values = zip(*items, strict=True)
             else:
                 keys, values = ([], [])  # type: ignore[assignment]
 
@@ -7565,7 +7602,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 for k, v in items:
                     # error: Incompatible types in assignment (expression has type
                     # "list[Never]", variable has type "tuple[Any, ...]")
-                    keys, values = list(zip(*v.items())) or (  # type: ignore[assignment]
+                    keys, values = list(zip(*v.items(), strict=True)) or (  # type: ignore[assignment]
                         [],
                         [],
                     )
@@ -7605,8 +7642,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     # Operate column-wise
                     if self.ndim == 1:
                         raise ValueError(
-                            "Series.replace cannot use dict-like to_replace "
-                            "and non-None value"
+                            "Series.replace cannot specify both a dict-like "
+                            "'to_replace' and a 'value'"
                         )
                     mapping = {
                         col: (to_rep, value) for col, to_rep in to_replace.items()
@@ -8123,7 +8160,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # ----------------------------------------------------------------------
     # Action Methods
 
-    @doc(klass=_shared_doc_kwargs["klass"])
     def isna(self) -> Self:
         """
         Detect missing values.
@@ -8136,15 +8172,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass}
-            Mask of bool values for each element in {klass} that
-            indicates whether an element is an NA value.
+        Series/DataFrame
+            Mask of bool values for each element in Series/DataFrame
+            that indicates whether an element is an NA value.
 
         See Also
         --------
-        {klass}.isnull : Alias of isna.
-        {klass}.notna : Boolean inverse of isna.
-        {klass}.dropna : Omit axes labels with missing values.
+        Series.isnull : Alias of isna.
+        DataFrame.isnull : Alias of isna.
+        Series.notna : Boolean inverse of isna.
+        DataFrame.notna : Boolean inverse of isna.
+        Series.dropna : Omit axes labels with missing values.
+        DataFrame.dropna : Omit axes labels with missing values.
         isna : Top-level isna.
 
         Examples
@@ -8192,11 +8231,77 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         return isna(self).__finalize__(self, method="isna")
 
-    @doc(isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> Self:
+        """
+        Detect missing values.
+
+        Return a boolean same-sized object indicating if the values are NA.
+        NA values, such as None or :attr:`numpy.NaN`, gets mapped to True
+        values.
+        Everything else gets mapped to False values. Characters such as empty
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values.
+
+        Returns
+        -------
+        Series/DataFrame
+            Mask of bool values for each element in Series/DataFrame
+            that indicates whether an element is an NA value.
+
+        See Also
+        --------
+        Series.isna : Alias of isnull.
+        DataFrame.isna : Alias of isnull.
+        Series.notna : Boolean inverse of isnull.
+        DataFrame.notna : Boolean inverse of isnull.
+        Series.dropna : Omit axes labels with missing values.
+        DataFrame.dropna : Omit axes labels with missing values.
+        isna : Top-level isna.
+
+        Examples
+        --------
+        Show which entries in a DataFrame are NA.
+
+        >>> df = pd.DataFrame(
+        ...     dict(
+        ...         age=[5, 6, np.nan],
+        ...         born=[
+        ...             pd.NaT,
+        ...             pd.Timestamp("1939-05-27"),
+        ...             pd.Timestamp("1940-04-25"),
+        ...         ],
+        ...         name=["Alfred", "Batman", ""],
+        ...         toy=[None, "Batmobile", "Joker"],
+        ...     )
+        ... )
+        >>> df
+           age       born    name        toy
+        0  5.0        NaT  Alfred        NaN
+        1  6.0 1939-05-27  Batman  Batmobile
+        2  NaN 1940-04-25              Joker
+
+        >>> df.isna()
+             age   born   name    toy
+        0  False   True  False   True
+        1  False  False  False  False
+        2   True  False  False  False
+
+        Show which entries in a Series are NA.
+
+        >>> ser = pd.Series([5, 6, np.nan])
+        >>> ser
+        0    5.0
+        1    6.0
+        2    NaN
+        dtype: float64
+
+        >>> ser.isna()
+        0    False
+        1    False
+        2     True
+        dtype: bool
+        """
         return isna(self).__finalize__(self, method="isnull")
 
-    @doc(klass=_shared_doc_kwargs["klass"])
     def notna(self) -> Self:
         """
         Detect existing (non-missing) values.
@@ -8209,15 +8314,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Returns
         -------
-        {klass}
-            Mask of bool values for each element in {klass} that
-            indicates whether an element is not an NA value.
+        Series/DataFrame
+            Mask of bool values for each element in Series/DataFrame
+            that indicates whether an element is not an NA value.
 
         See Also
         --------
-        {klass}.notnull : Alias of notna.
-        {klass}.isna : Boolean inverse of notna.
-        {klass}.dropna : Omit axes labels with missing values.
+        Series.notnull : Alias of notna.
+        DataFrame.notnull : Alias of notna.
+        Series.isna : Boolean inverse of notna.
+        DataFrame.isna : Boolean inverse of notna.
+        Series.dropna : Omit axes labels with missing values.
+        DataFrame.dropna : Omit axes labels with missing values.
         notna : Top-level notna.
 
         Examples
