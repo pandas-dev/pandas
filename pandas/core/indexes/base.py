@@ -4435,7 +4435,7 @@ class Index(IndexOpsMixin, PandasObject):
                 Pandas4Warning,
                 stacklevel=find_stack_level()
             )
-            
+
         other = ensure_index(other)
         sort = sort or how == "outer"
 
