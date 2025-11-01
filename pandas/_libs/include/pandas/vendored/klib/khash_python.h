@@ -191,6 +191,12 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
   return 1;
 }
 
+static inline int _is_pandas_NA_type(PyObject *o) {
+  // TODO compare PyTypeObject* C_NA, not strings!
+  PyObject* type_name = PyType_GetName(Py_TYPE(o));
+  return PyUnicode_CompareWithASCIIString(type_name, "NAType") == 0;
+}
+
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
   if (PyErr_Occurred() != NULL) {
     return 0;
@@ -213,6 +219,8 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
       return tupleobject_cmp((PyTupleObject *)a, (PyTupleObject *)b);
     }
     // frozenset isn't yet supported
+  } else if (_is_pandas_NA_type(a) || _is_pandas_NA_type(b)) {
+    return 0;
   }
 
   int result = PyObject_RichCompareBool(a, b, Py_EQ);
@@ -314,6 +322,13 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
   } else if (PyTuple_Check(key)) {
     // hash tuple subclasses as builtin tuples
     hash = tupleobject_hash((PyTupleObject *)key);
+  } else if (PyDict_Check(key) || PyList_Check(key)) {
+    // before GH 57052 was fixed, all exceptions raised from PyObject_Hash were suppressed.
+    // some features rely on this behaviour, e.g. _libs.hashtable.value_count_object via DataFrame.describe,
+    // which counts generic objects using PyObjectHashTable.
+    // using hash = 0 for dict and list objects puts all of them in the same bucket,
+    // which is not optimal for performance but that is what the behaviour was before.
+    hash = 0;
   } else {
     hash = PyObject_Hash(key);
   }
