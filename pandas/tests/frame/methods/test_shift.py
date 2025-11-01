@@ -796,6 +796,7 @@ class TestDataFrameShift:
             df["b"].shift(1, fill_value=NaT)
 
     def test_shift_dt_index_multiple_periods_unsorted(self):
+        # https://github.com/pandas-dev/pandas/pull/62843
         values = date_range("1/1/2000", periods=4, freq="D")
         df = DataFrame({"a": [1, 2]}, index=[values[1], values[0]])
         result = df.shift(periods=[1, 2], freq="D")

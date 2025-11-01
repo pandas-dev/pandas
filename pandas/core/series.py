@@ -2993,7 +2993,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _append_internal(self, to_append: Series, ignore_index: bool = False) -> Series:
         from pandas.core.reshape.concat import concat
 
-        return concat([self, to_append], ignore_index=ignore_index)  # nobug
+        return concat([self, to_append], ignore_index=ignore_index)
 
     def compare(
         self,
@@ -3277,7 +3277,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 stacklevel=find_stack_level(),
             )
 
-        combined = concat([this, other])  # nobug
+        combined = concat([this, other])
         combined = combined.reindex(new_index)
         return combined.__finalize__(self, method="combine_first")
 

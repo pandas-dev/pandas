@@ -345,6 +345,7 @@ def test_str_cat_align_mixed_inputs(join_type):
 
 
 def test_str_cat_datetime_index_unsorted(join_type):
+    # https://github.com/pandas-dev/pandas/pull/62843
     values = [datetime(2024, 1, 1), datetime(2024, 1, 2)]
     s = Series(["a", "b"], index=[values[0], values[1]])
     others = Series(["c", "d"], index=[values[1], values[0]])

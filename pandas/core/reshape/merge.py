@@ -507,7 +507,7 @@ def _groupby_and_merge(
     # if we have a missing piece this can be reset
     from pandas.core.reshape.concat import concat
 
-    result = concat(pieces, ignore_index=True)  # nobug
+    result = concat(pieces, ignore_index=True)
     result = result.reindex(columns=pieces[0].columns)
     return result, lby
 
@@ -1131,7 +1131,7 @@ class _MergeOperation:
 
         left.columns = llabels
         right.columns = rlabels
-        result = concat([left, right], axis=1)  # nobug
+        result = concat([left, right], axis=1)
         return result
 
     def get_result(self) -> DataFrame:

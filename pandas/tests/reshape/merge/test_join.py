@@ -672,12 +672,32 @@ class TestJoin:
         with pytest.raises(ValueError, match=msg):
             df_list[0].join(df_list[1:], on="a")
 
-    def test_join_many_datetime_unsorted(self):
+    @pytest.mark.parametrize(
+        "how",
+        [
+            "inner",
+            pytest.param(
+                "outer",
+                marks=pytest.mark.xfail(reason="sort=False not handled correctly"),
+            ),
+            "left",
+            pytest.param(
+                "right",
+                marks=pytest.mark.xfail(reason="sort=False not handled correctly"),
+            ),
+        ],
+    )
+    def test_join_many_datetime_unsorted(self, how):
+        # https://github.com/pandas-dev/pandas/pull/62843
         index = Index([datetime(2024, 1, 2), datetime(2024, 1, 1)])
         df = DataFrame({"a": [1, 2]}, index=index)
         df2 = DataFrame({"b": [1, 2]}, index=index)
-        result = df.join([df2], how="outer")
-        expected = DataFrame({"a": [1, 2], "b": [1, 2]}, index=index)
+        result = df.join([df2], how=how)
+        if how == "outer":
+            # Outer always sorts the index.
+            expected = DataFrame({"a": [2, 1], "b": [2, 1]}, index=[index[1], index[0]])
+        else:
+            expected = DataFrame({"a": [1, 2], "b": [1, 2]}, index=index)
         tm.assert_frame_equal(result, expected)
 
     def test_join_many_mixed(self):

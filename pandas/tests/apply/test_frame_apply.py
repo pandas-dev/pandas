@@ -916,6 +916,7 @@ def test_listlike_lambda(ops, by_row, expected):
 
 
 def test_listlike_datetime_index_unsorted():
+    # https://github.com/pandas-dev/pandas/pull/62843
     values = [datetime(2024, 1, 1), datetime(2024, 1, 2)]
     df = DataFrame({"a": [1, 2]}, index=[values[1], values[0]])
     result = df.apply([lambda x: x], by_row=False)
@@ -928,6 +929,7 @@ def test_listlike_datetime_index_unsorted():
 
 
 def test_dictlike_datetime_index_unsorted():
+    # https://github.com/pandas-dev/pandas/pull/62843
     values = [datetime(2024, 1, 1), datetime(2024, 1, 2), datetime(2024, 1, 3)]
     df = DataFrame({"a": [1, 2], "b": [3, 4]}, index=[values[1], values[0]])
     result = df.apply(

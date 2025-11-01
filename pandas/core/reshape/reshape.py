@@ -1103,7 +1103,7 @@ def stack_reshape(
         buf.append(data)
 
     if len(buf) > 0 and not frame.empty:
-        result = concat(buf, ignore_index=True)  # nobug
+        result = concat(buf, ignore_index=True)
     else:
         # input is empty
         if len(level) < frame.columns.nlevels:

@@ -390,9 +390,9 @@ and users can skip the check by explicitly specifying ``sort=True`` or
 ``sort=False``.
 
 This deprecation can also impact pandas' internal usage of :func:`concat`.
-While we have investigated uses of :func:`concat` to determine if this could lead
-to a change in behavior of other functions and methods in the API, it is
-possible some have been missed. In order to be cautious here, pandas has *not*
+Here cases where :func:`concat` was sorting a :class:`DatetimeIndex` but not
+other indexes are considered bugs and have been fixed as noted below. However
+it is possible some have been missed. In order to be cautious here, pandas has *not*
 added ``sort=False`` to any internal calls where we believe behavior should not change.
 If we have missed something, users will not experience a behavior change but they
 will receive a warning about :func:`concat` even though they are not directly
@@ -428,6 +428,14 @@ we may address any potential behavior changes.
 .. ipython:: python
 
     pd.concat([df1, df2], axis=1, sort=False)
+
+Cases where pandas' internal usage of :func:`concat` resulted in inconsistent sorting
+that are now fixed in this release are as follows.
+
+- :meth:`Series.apply` and :meth:`DataFrame.apply` with a list-like or dict-like ``func`` argument.
+- :meth:`Series.shift`, :meth:`DataFrame.shift`, :meth:`.SeriesGroupBy.shift`, :meth:`.DataFrameGroupBy.shift` with the ``periods`` argument a list of length greater than 1.
+- :meth:`DataFrame.join` with ``other`` a list of one or more Series or DataFrames and ``how="inner"``, ``how="left"``, or ``how="right"``.
+- :meth:`Series.str.cat` with ``others`` a Series or DataFrame.
 
 .. _whatsnew_300.api_breaking.value_counts_sorting:
 
@@ -1233,7 +1241,6 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupBy.apply` with ``as_index=False`` that was returning :class:`MultiIndex` instead of returning :class:`Index`. (:issue:`58291`)
 - Bug in :meth:`DataFrameGroupBy.cumsum` and :meth:`DataFrameGroupBy.cumprod` where ``numeric_only`` parameter was passed indirectly through kwargs instead of passing directly. (:issue:`58811`)
 - Bug in :meth:`DataFrameGroupBy.cumsum` where it did not return the correct dtype when the label contained ``None``. (:issue:`58811`)
-- Bug in :meth:`DataFrameGroupBy.shift` where the resulting index would be sorted if the input is a :class:`DatetimeIndex` and multiple periods are specified (:issue:`62843`)
 - Bug in :meth:`DataFrameGroupby.transform` and :meth:`SeriesGroupby.transform` with a reducer and ``observed=False`` that coerces dtype to float when there are unobserved categories. (:issue:`55326`)
 - Bug in :meth:`Rolling.apply` for ``method="table"`` where column order was not being respected due to the columns getting sorted by default. (:issue:`59666`)
 - Bug in :meth:`Rolling.apply` where the applied function could be called on fewer than ``min_period`` periods if ``method="table"``. (:issue:`58868`)

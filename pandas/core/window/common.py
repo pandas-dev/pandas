@@ -68,9 +68,9 @@ def flex_binary_moment(arg1, arg2, f, pairwise: bool = False):
                 result_index = arg1.index.union(arg2.index)
                 if len(result_index):
                     # construct result frame
-                    result = concat(  # nobug
+                    result = concat(
                         [
-                            concat(  # nobug
+                            concat(
                                 [results[i][j] for j in range(len(arg2.columns))],
                                 ignore_index=True,
                             )

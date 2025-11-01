@@ -186,7 +186,7 @@ class SelectNSeries(SelectN[Series]):
             # reverse indices
             inds = narr - 1 - inds
 
-        result = concat([dropped.iloc[inds], nan_index]).iloc[:findex]  # nobug
+        result = concat([dropped.iloc[inds], nan_index]).iloc[:findex]
         result.index = original_index.take(result.index)
         return result
 

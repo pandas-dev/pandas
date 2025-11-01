@@ -1025,7 +1025,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
             missing_data_points_index = obj.index.difference(final_index)
             if len(missing_data_points_index) > 0:
-                result = concat(  # nobug
+                result = concat(
                     [result, obj.loc[missing_data_points_index]]
                 ).sort_index()
 
