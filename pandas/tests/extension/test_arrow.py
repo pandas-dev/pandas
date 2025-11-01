@@ -3780,7 +3780,6 @@ def test_arrow_dtype_itemsize_fixed_width(type_name, expected_size):
     )
 
 
-@pytest.mark.filterwarnings("ignore::Pandas4Warning")  # min versions build
 def test_roundtrip_of_nested_types():
     df = pd.DataFrame(
         {
@@ -3853,8 +3852,13 @@ def test_roundtrip_of_nested_types():
         }
     )
 
-    table = pa.Table.from_pandas(df)
-    result = table.to_pandas()
+    if pa_version_under19p0:
+        with tm.assert_produces_warning(Pandas4Warning):
+            table = pa.Table.from_pandas(df)
+            result = table.to_pandas()
+    else:
+        table = pa.Table.from_pandas(df)
+        result = table.to_pandas()
     tm.assert_frame_equal(result, df)
 
 
