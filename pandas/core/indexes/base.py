@@ -69,6 +69,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
     InvalidIndexError,
+    Pandas4Warning
 )
 from pandas.util._decorators import (
     Appender,
@@ -4426,6 +4427,15 @@ class Index(IndexOpsMixin, PandasObject):
         (Index([1, 2, 3, 4, 5, 6], dtype='int64'),
         array([ 0,  1,  2, -1, -1, -1]), array([-1, -1, -1,  0,  1,  2]))
         """
+        if not isinstance(other, Index):
+            warnings.warn(
+                f"Passing a Series to {type(self).__name__}.join is deprecated "
+                "and will raise in a future version. "
+                "Pass Index.join(other.index) instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level()
+            )
+            
         other = ensure_index(other)
         sort = sort or how == "outer"
 

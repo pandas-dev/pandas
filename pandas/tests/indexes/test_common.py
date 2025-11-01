@@ -28,7 +28,7 @@ from pandas import (
     RangeIndex,
 )
 import pandas._testing as tm
-
+from pandas.errors import Pandas4Warning
 
 class TestCommon:
     @pytest.mark.parametrize("name", [None, "new_name"])
@@ -523,3 +523,10 @@ def test_to_frame_name_tuple_multiindex():
     result = idx.to_frame(name=(1, 2))
     expected = pd.DataFrame([1], columns=MultiIndex.from_arrays([[1], [2]]), index=idx)
     tm.assert_frame_equal(result, expected)
+
+def test_join_series_deprecated():
+    # GH#62897
+    idx = pd.Index([1, 2])
+    ser = pd.Series([1, 2, 2])
+    with tm.assert_produces_warning(Pandas4Warning, match="Passing a Series"):
+        idx.join(ser)
