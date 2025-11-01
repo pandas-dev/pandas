@@ -951,6 +951,10 @@ def assert_series_equal(
     >>> b = pd.Series([1, 2, 3, 4])
     >>> tm.assert_series_equal(a, b)
     """
+    if not check_dtype:
+        left = left.astype("object")
+        right = right.astype("object")
+
     __tracebackhide__ = True
     if (
         check_exact is lib.no_default

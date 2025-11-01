@@ -10,6 +10,16 @@ from pandas import (
 import pandas._testing as tm
 
 
+def test_assert_frame_equal_na_different_dtype():
+    import pandas as pd
+    from pandas.testing import assert_frame_equal
+
+    df1 = pd.DataFrame({"x": pd.Series([pd.NA], dtype="Int32")})
+    df2 = pd.DataFrame({"x": pd.Series([pd.NA], dtype="object")})
+
+    assert_frame_equal(df1, df2, check_dtype=False)
+
+
 def _assert_series_equal_both(a, b, **kwargs):
     """
     Check that two Series equal.
