@@ -3780,6 +3780,7 @@ def test_arrow_dtype_itemsize_fixed_width(type_name, expected_size):
     )
 
 
+@pytest.mark.filterwarnings("ignore::Pandas4Warning")  # min versions build
 def test_roundtrip_of_nested_types():
     df = pd.DataFrame(
         {
