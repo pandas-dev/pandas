@@ -671,6 +671,20 @@ class TestJoin:
         with pytest.raises(ValueError, match=msg):
             df_list[0].join(df_list[1:], on="a")
 
+    @pytest.mark.parametrize("how", ["left", "right", "inner", "outer"])
+    def test_join_many_sort(self, how, sort):
+        df = DataFrame({"a": [1, 2, 3]}, index=[1, 0, 2])
+        df2 = DataFrame({"b": [4, 5, 6]}, index=[2, 0, 1])
+        if how == "right":
+            expected = DataFrame({"a": [3, 2, 1], "b": [4, 5, 6]}, index=[2, 0, 1])
+        else:
+            expected = DataFrame({"a": [1, 2, 3], "b": [6, 5, 4]}, index=[1, 0, 2])
+        if how == "outer" or sort:
+            # outer always sorts.
+            expected = expected.sort_index()
+        result = df.join([df2], how=how, sort=sort)
+        tm.assert_frame_equal(result, expected)
+
     def test_join_many_mixed(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((8, 4)),

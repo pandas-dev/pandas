@@ -11389,7 +11389,7 @@ class DataFrame(NDFrame, OpsMixin):
             # "Iterable[Union[DataFrame, Series]]" due to the if statements
             frames = [cast("DataFrame | Series", self)] + list(other)
 
-            can_concat = all(df.index.is_unique for df in frames)
+            can_concat = (how != "right") and all(df.index.is_unique for df in frames)
 
             # join indexes only using concat
             if can_concat:
@@ -11397,8 +11397,13 @@ class DataFrame(NDFrame, OpsMixin):
                     res = concat(
                         frames, axis=1, join="outer", verify_integrity=True, sort=sort
                     )
-                    return res.reindex(self.index)
+                    result = res.reindex(self.index)
+                    if sort:
+                        result = result.sort_index()
+                    return result
                 else:
+                    if how == "outer":
+                        sort = True
                     return concat(
                         frames, axis=1, join=how, verify_integrity=True, sort=sort
                     )
@@ -11409,6 +11414,7 @@ class DataFrame(NDFrame, OpsMixin):
                 joined = merge(
                     joined,
                     frame,
+                    sort=sort,
                     how=how,
                     left_index=True,
                     right_index=True,
