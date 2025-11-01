@@ -1183,7 +1183,6 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
-- Bug in :func:`DataFrame.join` not producing the correct row order when joining with a list of Series/DataFrames (:issue:`62954)
 - Bug in :func:`concat` with mixed integer and bool dtypes incorrectly casting the bools to integers (:issue:`45101`)
 - Bug in :func:`qcut` where values at the quantile boundaries could be incorrectly assigned (:issue:`59355`)
 - Bug in :meth:`DataFrame.combine_first` not preserving the column order (:issue:`60427`)
@@ -1191,6 +1190,7 @@ Reshaping
 - Bug in :meth:`DataFrame.combine` with non-unique columns incorrectly raising (:issue:`51340`)
 - Bug in :meth:`DataFrame.explode` producing incorrect result for :class:`pyarrow.large_list` type (:issue:`61091`)
 - Bug in :meth:`DataFrame.join` inconsistently setting result index name (:issue:`55815`)
+- Bug in :meth:`DataFrame.join` not producing the correct row order when joining with a list of Series/DataFrames (:issue:`62954`)
 - Bug in :meth:`DataFrame.join` when a :class:`DataFrame` with a :class:`MultiIndex` would raise an ``AssertionError`` when :attr:`MultiIndex.names` contained ``None``. (:issue:`58721`)
 - Bug in :meth:`DataFrame.merge` where merging on a column containing only ``NaN`` values resulted in an out-of-bounds array access (:issue:`59421`)
 - Bug in :meth:`Series.combine_first` incorrectly replacing ``None`` entries with ``NaN`` (:issue:`58977`)
