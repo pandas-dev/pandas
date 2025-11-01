@@ -75,6 +75,8 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
 delimiter : str, default ``None``
   Alternative argument name for sep.
 
+For loading local CSV files in Google Colab, see the :ref:`Loading Data in Google Colab <io.colab>` section for upload methods.
+
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
 
@@ -3353,6 +3355,7 @@ using internally.
    # Returns a DataFrame
    pd.read_excel("path_to_file.xls", sheet_name="Sheet1")
 
+For reading Excel files in online environments, refer to the :ref:`Loading Data in Google Colab <io.colab>` section, which covers Drive mounting and direct URL reading.
 
 .. _io.excel.excelfile_class:
 
