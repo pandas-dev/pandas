@@ -1180,6 +1180,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.apply` for ``method="table"`` where column order was not being respected due to the columns getting sorted by default. (:issue:`59666`)
 - Bug in :meth:`Rolling.apply` where the applied function could be called on fewer than ``min_period`` periods if ``method="table"``. (:issue:`58868`)
 - Bug in :meth:`Series.resample` could raise when the date range ended shortly before a non-existent time. (:issue:`58380`)
+- Bug in :meth:`Series.resample` raising error when resampling non-nanosecond resolutions out of bounds for nanosecond precision (:issue:`57427`)
 
 Reshaping
 ^^^^^^^^^
