@@ -115,7 +115,7 @@ def test_no_permission(all_parsers, temp_file):
 
     with pytest.raises(PermissionError, match=msg) as e:
         parser.read_csv(path)
-    assert path == e.value.filename
+    assert str(path.resolve()) == e.value.filename
 
 
 @pytest.mark.parametrize(
