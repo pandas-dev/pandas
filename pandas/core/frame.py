@@ -11588,9 +11588,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if new_cols is not None and len(new_cols) > 0:
             return self._constructor(
-                concat(new_cols, axis=1),
-                index=self.index,
-                columns=self.columns,
+                concat(new_cols, axis=1), index=self.index, columns=self.columns
             ).__finalize__(self, method="round")
         else:
             return self.copy(deep=False)
