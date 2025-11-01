@@ -668,7 +668,7 @@ def wide_to_long(
         value_vars_flattened.extend(value_var)
         _melted.append(melt_stub(df, stub, i, j, value_var, sep))
 
-    melted = concat(_melted, axis=1)  # maybebug
+    melted = concat(_melted, axis=1)  # nobug
     id_vars = df.columns.difference(value_vars_flattened)
     new = df[id_vars]
 

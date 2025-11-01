@@ -6130,7 +6130,7 @@ class DataFrame(NDFrame, OpsMixin):
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
                     .add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
                 )
-            return concat(shifted_dataframes, axis=1)  # bug
+            return concat(shifted_dataframes, axis=1, sort=False)  # nobug
         elif suffix:
             raise ValueError("Cannot specify `suffix` if `periods` is an int.")
         periods = cast(int, periods)
@@ -11168,7 +11168,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         from pandas.core.reshape.concat import concat
 
-        result = concat(  # possible bug
+        result = concat(  # nobug
             [self, row_df],
             ignore_index=ignore_index,
         )
@@ -11401,7 +11401,7 @@ class DataFrame(NDFrame, OpsMixin):
                     )
                     return res.reindex(self.index)
                 else:
-                    return concat(  # bug
+                    return concat(  # nobug
                         frames, axis=1, join=how, verify_integrity=True, sort=sort
                     )
 

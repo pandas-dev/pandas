@@ -659,7 +659,7 @@ class StringMethods(NoNewAttributesMixin):
         # align if required
         if any(not data.index.equals(x.index) for x in others):
             # Need to add keys for uniqueness in case of duplicate columns
-            others = concat(  # bug
+            others = concat(  # nobug
                 others,
                 axis=1,
                 join=(join if join == "inner" else "outer"),

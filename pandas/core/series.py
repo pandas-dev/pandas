@@ -2994,7 +2994,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _append_internal(self, to_append: Series, ignore_index: bool = False) -> Series:
         from pandas.core.reshape.concat import concat
 
-        return concat([self, to_append], ignore_index=ignore_index)  # maybebug
+        return concat([self, to_append], ignore_index=ignore_index)  # nobug
 
     def compare(
         self,
@@ -3271,7 +3271,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if this.dtype.kind == "M" and other.dtype.kind != "M":
             # TODO: try to match resos?
             other = to_datetime(other)
-        combined = concat([this, other])  # bug
+        combined = concat([this, other])  # nobug
         combined = combined.reindex(new_index)
         return combined.__finalize__(self, method="combine_first")
 

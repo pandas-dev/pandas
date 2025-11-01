@@ -9507,7 +9507,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # error: List item 0 has incompatible type "NDFrame"; expected
         #  "Union[Series, DataFrame]"
-        diff = concat(  # bug
+        diff = concat(  # nobug - self and other must have same index/coluns
             [self, other],  # type: ignore[list-item]
             axis=axis,
             keys=result_names,

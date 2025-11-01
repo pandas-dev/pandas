@@ -1,3 +1,4 @@
+from datetime import datetime
 import re
 
 import numpy as np
@@ -670,6 +671,14 @@ class TestJoin:
         msg = "Joining multiple DataFrames only supported for joining on index"
         with pytest.raises(ValueError, match=msg):
             df_list[0].join(df_list[1:], on="a")
+
+    def test_join_many_datetime_unsorted(self):
+        index = Index([datetime(2024, 1, 2), datetime(2024, 1, 1)])
+        df = DataFrame({"a": [1, 2]}, index=index)
+        df2 = DataFrame({"b": [1, 2]}, index=index)
+        result = df.join([df2], how="outer")
+        expected = DataFrame({"a": [1, 2], "b": [1, 2]}, index=index)
+        tm.assert_frame_equal(result, expected)
 
     def test_join_many_mixed(self):
         df = DataFrame(

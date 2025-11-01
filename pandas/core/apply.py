@@ -485,7 +485,7 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
 
         try:
-            return concat(results, keys=keys, axis=1, sort=False)  # maybebug
+            return concat(results, keys=keys, axis=1, sort=False)  # nobug
         except TypeError as err:
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
@@ -635,10 +635,11 @@ class Apply(metaclass=abc.ABCMeta):
                 keys_to_use = ktu
 
             axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
-            result = concat(  # maybebug
+            result = concat(  # nobug
                 results,
                 axis=axis,
                 keys=keys_to_use,
+                sort=False,
             )
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars
