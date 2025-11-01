@@ -3853,7 +3853,7 @@ def test_roundtrip_of_nested_types():
     )
 
     if pa_version_under19p0:
-        with tm.assert_produces_warning(Pandas4Warning):
+        with tm.assert_produces_warning(Pandas4Warning, check_stacklevel=False):
             table = pa.Table.from_pandas(df)
             result = table.to_pandas()
     else:
