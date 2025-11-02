@@ -1656,7 +1656,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             nbs = blk.reduce(func)
             res_blocks.extend(nbs)
 
-        index = Index([None])  # placeholder
+        index = default_index(1)  # placeholder
         new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr
 
