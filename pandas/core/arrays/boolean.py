@@ -65,7 +65,7 @@ class BooleanDtype(BaseMaskedDtype):
 
     See Also
     --------
-    BooleanArray : Array of boolean (True/False) data with missing values.
+    arrays.BooleanArray : Array of boolean (True/False) data with missing values.
     Int64Dtype : Extension dtype for int64 integer data.
     StringDtype : Extension dtype for string data.
 
