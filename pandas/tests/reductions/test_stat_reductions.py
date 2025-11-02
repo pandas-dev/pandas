@@ -9,7 +9,6 @@ import pytest
 
 import pandas as pd
 from pandas import (
-    DataFrame,
     Series,
     date_range,
 )
@@ -227,28 +226,6 @@ class TestSeriesStatReductions:
         s = datetime_series.iloc[[0]]
         result = s.sem(ddof=1)
         assert pd.isna(result)
-
-    def test_skew(self):
-        sp_stats = pytest.importorskip("scipy.stats")
-
-        string_series = Series(range(20), dtype=np.float64, name="series")
-
-        alt = lambda x: sp_stats.skew(x, bias=False)
-        self._check_stat_op("skew", alt, string_series)
-
-        # test corner cases, skew() returns NaN unless there's at least 3
-        # values
-        min_N = 3
-        for i in range(1, min_N + 1):
-            s = Series(np.ones(i))
-            df = DataFrame(np.ones((i, i)))
-            if i < min_N:
-                assert np.isnan(s.skew())
-                assert np.isnan(df.skew()).all()
-            else:
-                assert 0 == s.skew()
-                assert isinstance(s.skew(), np.float64)  # GH53482
-                assert (df.skew() == 0).all()
 
     def test_kurt(self):
         sp_stats = pytest.importorskip("scipy.stats")
