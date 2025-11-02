@@ -1206,6 +1206,7 @@ Reshaping
 - Bug in :meth:`DataFrame.merge` where user-provided suffixes could result in duplicate column names if the resulting names matched existing columns. Now raises a :class:`MergeError` in such cases. (:issue:`61402`)
 - Bug in :meth:`DataFrame.merge` with :class:`CategoricalDtype` columns incorrectly raising ``RecursionError`` (:issue:`56376`)
 - Bug in :meth:`DataFrame.merge` with a ``float32`` index incorrectly casting the index to ``float64`` (:issue:`41626`)
+- Bug in :meth:`DataFrame.join`` when joining with empty columns of differing dtypes (:issue:`62949``)
 
 Sparse
 ^^^^^^

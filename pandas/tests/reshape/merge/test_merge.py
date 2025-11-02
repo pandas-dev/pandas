@@ -738,6 +738,21 @@ class TestMerge:
         )
         tm.assert_frame_equal(result, expected)
 
+    def test_join_empty_columns_warning(self):
+        pd.set_option("infer_string", True)
+        df = DataFrame({"a": "x", "b": ["y", "z"]}).set_index(["a", "b"])
+        df.columns = Index([], dtype="int64")
+        ser = DataFrame({"b": ["y", "z"], "value": [1, 2]}).set_index("b")["value"]
+
+        with tm.assert_produces_warning(None):  # No warning expected
+            result = df.join(ser, on="b")
+
+        expected = DataFrame(
+            {"value": [1, 2]},
+            index=MultiIndex.from_tuples([("x", "y"), ("x", "z")], names=["a", "b"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("unit", ["D", "h", "m", "s", "ms", "us", "ns"])
     def test_other_datetime_unit(self, unit):
         # GH 13389

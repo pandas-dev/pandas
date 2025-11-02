@@ -1131,7 +1131,14 @@ class _MergeOperation:
 
         left.columns = llabels
         right.columns = rlabels
-        result = concat([left, right], axis=1)
+        if len(left.columns) == 0 and len(right.columns) == 0:
+            result = left.copy()
+        elif len(left.columns) == 0:
+            result = right.copy()
+        elif len(right.columns) == 0:
+            result = left.copy()
+        else:
+            result = concat([left, right], axis=1)
         return result
 
     def get_result(self) -> DataFrame:
