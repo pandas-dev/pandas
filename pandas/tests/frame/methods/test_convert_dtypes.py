@@ -228,3 +228,10 @@ class TestConvertDtypes:
         result = df.convert_dtypes(dtype_backend="pyarrow")
         expected = df.copy()
         tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtypes_complex(self):
+        # GH 60129
+        df = pd.DataFrame({'a': [1.0+5.0j, 1.5-3.0j]})
+        result = df.convert_dtypes()
+        tm.assert_frame_equal(result, df)
+        assert result['a'].dtype.kind == 'c'
