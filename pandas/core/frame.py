@@ -304,17 +304,7 @@ axis : int or str, optional
     or number (0, 1).""",
 }
 
-_how = {
-    "left",
-    "right",
-    "outer",
-    "inner",
-    "left_semi",
-    "cross",
-    "left_anti",
-    "right_anti",
-}
-_merge_doc = f"""
+_merge_doc = """
 Merge DataFrame or named Series objects with a database-style join.
 
 A named Series object is treated as a DataFrame with a single named column.
@@ -335,7 +325,8 @@ Parameters
 ----------%s
 right : DataFrame or named Series
     Object to merge with.
-how : {_how},
+how : {'left', 'right', 'outer', 'inner', 'left_semi',
+       'cross', 'left_anti', 'right_anti'},
     default 'inner'
     Type of merge to be performed.
 
@@ -435,11 +426,9 @@ DataFrame.join : Similar method using indices.
 
 Examples
 --------
->>> df1 = pd.DataFrame({
-    "lkey": ['foo', 'bar', 'baz', 'foo'],
+>>> df1 = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
 ...                     'value': [1, 2, 3, 5]})
->>> df2 = pd.DataFrame({
-    "rkey": ['foo', 'bar', 'baz', 'foo'],
+>>> df2 = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
 ...                     'value': [5, 6, 7, 8]})
 >>> df1
     lkey value
@@ -488,8 +477,8 @@ Traceback (most recent call last):
 ValueError: columns overlap but no suffix specified:
     Index(['value'], dtype='object')
 
->>> df1 = pd.DataFrame({"a": ['foo', 'bar'], 'b': [1, 2]})
->>> df2 = pd.DataFrame({"a": ['foo', 'baz'], 'c': [3, 4]})
+>>> df1 = pd.DataFrame({'a': ['foo', 'bar'], 'b': [1, 2]})
+>>> df2 = pd.DataFrame({'a': ['foo', 'baz'], 'c': [3, 4]})
 >>> df1
       a  b
 0   foo  1
@@ -508,8 +497,8 @@ ValueError: columns overlap but no suffix specified:
 0   foo  1  3.0
 1   bar  2  NaN
 
->>> df1 = pd.DataFrame({"left": ['foo', 'bar']})
->>> df2 = pd.DataFrame({"right": [7, 8]})
+>>> df1 = pd.DataFrame({'left': ['foo', 'bar']})
+>>> df2 = pd.DataFrame({'right': [7, 8]})
 >>> df1
     left
 0   foo
