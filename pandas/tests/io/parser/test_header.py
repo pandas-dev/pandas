@@ -730,7 +730,7 @@ def test_multiindex_empty_vals_cleaned(tmp_path, engine):
     # GH#59560 - ensure empty values in MultiIndex columns are preserved
     path = tmp_path / "file.csv"
     df = DataFrame(
-        np.arange(6).reshape((2, 3)),
+        np.arange(6, dtype=np.int64).reshape((2, 3)),
         columns=MultiIndex.from_tuples([("a", ""), ("b", ""), ("b", "b2")]),
         index=MultiIndex.from_tuples([("i1", ""), ("i2", "")]),
     )
@@ -751,7 +751,7 @@ def test_multiindex_real_unnamed_label_preserved(tmp_path):
     # GH#59560 follow-up: genuine "Unnamed:" labels should not be cleaned
     path = tmp_path / "file.csv"
     df = DataFrame(
-        np.arange(4).reshape((2, 2)),
+        np.arange(4, dtype=np.int64).reshape((2, 2)),
         columns=MultiIndex.from_tuples([("a", "Unnamed: revenue"), ("a", "sales")]),
     )
 

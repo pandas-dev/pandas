@@ -735,7 +735,7 @@ class ParserBase:
                 if (
                     level is None
                     or (isinstance(level, str) and level.strip() == "")
-                    or _is_generated_unnamed(level)
+                    or (isinstance(level, str) and _is_generated_unnamed(level))
                 )
                 else level
                 for level in col
