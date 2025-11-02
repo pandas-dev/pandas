@@ -335,7 +335,7 @@ class TestSeriesConvertDtypes:
 
     def test_convert_dtypes_complex(self):
         # GH 60129
-        ser = pd.Series([1.5+3.0j, 1.5-3.0j])
+        ser = pd.Series([1.5 + 3.0j, 1.5 - 3.0j])
         result = ser.convert_dtypes()
         tm.assert_series_equal(result, ser)
-        assert result.dtype.kind == 'c'
+        assert result.dtype.kind == "c"

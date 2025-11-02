@@ -934,8 +934,7 @@ def convert_dtypes(
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
     ) and isinstance(input_array, np.ndarray):
-
-        if input_array.dtype.kind == 'c':
+        if input_array.dtype.kind == "c":
             return input_array.dtype
 
         if input_array.dtype == object:
