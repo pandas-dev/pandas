@@ -325,8 +325,8 @@ Parameters
 ----------%s
 right : DataFrame or named Series
     Object to merge with.
-how : {'left', 'right', 'outer', 'inner', 'left_semi',
-       'cross', 'left_anti', 'right_anti'},
+how : {'left', 'right', 'outer', 'inner', 'left_semi', 'cross', 'left_anti',
+'right_anti'},
     default 'inner'
     Type of merge to be performed.
 
