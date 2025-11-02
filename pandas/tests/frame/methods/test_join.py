@@ -575,3 +575,27 @@ class TestDataFrameJoin:
 
         tm.assert_index_equal(result.index, expected)
         assert result.index.tz.key == "US/Central"
+
+    def test_frame_join_categorical_index(self):
+        # GH 61675
+        cat_data = pd.Categorical(
+            [3, 4],
+            categories=pd.Series([2, 3, 4, 5], dtype="Int64"),
+            ordered=True,
+        )
+        values1 = "a b".split()
+        values2 = "foo bar".split()
+        df1 = DataFrame({"hr": cat_data, "values1": values1}).set_index("hr")
+        df2 = DataFrame({"hr": cat_data, "values2": values2}).set_index("hr")
+        df1.columns = pd.CategoricalIndex([4], dtype=cat_data.dtype, name="other_hr")
+        df2.columns = pd.CategoricalIndex([3], dtype=cat_data.dtype, name="other_hr")
+
+        df_joined = df1.join(df2)
+        expected = DataFrame(
+            {"hr": cat_data, "values1": values1, "values2": values2}
+        ).set_index("hr")
+        expected.columns = pd.CategoricalIndex(
+            [4, 3], dtype=cat_data.dtype, name="other_hr"
+        )
+
+        tm.assert_frame_equal(df_joined, expected)
