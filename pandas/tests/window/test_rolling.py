@@ -1833,10 +1833,12 @@ def test_rolling_skew_kurt_floating_artifacts():
 
     sr = Series([1 / 3, 4, 0, 0, 0, 0, 0])
     r = sr.rolling(4)
+
     result = r.skew()
-    assert (result[-2:] == 0).all()
+    assert np.isnan(result[-2:]).all()
+
     result = r.kurt()
-    assert (result[-2:] == -3).all()
+    assert np.isnan(result[-2:]).all()
 
 
 def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
