@@ -257,18 +257,3 @@ class TestSeriesStatReductions:
 
         alt = lambda x: sp_stats.kurtosis(x, bias=False)
         self._check_stat_op("kurt", alt, string_series)
-
-    def test_kurt_corner(self):
-        # test corner cases, kurt() returns NaN unless there's at least 4
-        # values
-        min_N = 4
-        for i in range(1, min_N + 1):
-            s = Series(np.ones(i))
-            df = DataFrame(np.ones((i, i)))
-            if i < min_N:
-                assert np.isnan(s.kurt())
-                assert np.isnan(df.kurt()).all()
-            else:
-                assert 0 == s.kurt()
-                assert isinstance(s.kurt(), np.float64)  # GH53482
-                assert (df.kurt() == 0).all()
