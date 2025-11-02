@@ -339,7 +339,7 @@ how : {'left', 'right', 'outer', 'inner', 'left_semi', 'cross', 'left_anti',
     * inner: use intersection of keys from both frames, similar to a SQL inner
       join; preserve the order of the left keys.
     * left_semi: Filter for rows in the left that have a match on the right;
-      preserve the order of the left keys.
+      preserve the order of the left keys, similar to SQL left semi join.
 
       .. versionadded:: 3.0
     * cross: creates the cartesian product from both frames, preserves the order

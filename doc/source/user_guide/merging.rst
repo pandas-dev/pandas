@@ -475,6 +475,18 @@ either the left or right tables, the values in the joined table will be
 
 .. ipython:: python
 
+   result = pd.merge(left, right, how="left_semi", on=["key1", "key2"])
+   result
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_on_key_inner.png
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
+
+.. ipython:: python
+
    result = pd.merge(left, right, how="cross")
    result
 
