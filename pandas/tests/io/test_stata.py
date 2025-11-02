@@ -24,6 +24,7 @@ from pandas.core.frame import (
     Series,
 )
 
+from pandas.io import stata as stata_mod
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
     CategoricalConversionWarning,
@@ -2620,3 +2621,26 @@ def test_ascii_error(temp_file, version):
     df.to_stata(temp_file, write_index=0, version=version)
     df_input = read_stata(temp_file)
     tm.assert_frame_equal(df, df_input)
+
+
+class _BoomReader:
+    def __init__(self, *a, **k):
+        raise ValueError("Version of given Stata file is 10.")
+
+
+def test_non_stata_gives_clear_message(monkeypatch, tmp_path):
+    monkeypatch.setattr(stata_mod, "StataReader", _BoomReader)
+    with pytest.raises(ValueError, match=r"not a valid Stata dataset"):
+        read_stata(tmp_path / "not_stata.dta")
+
+
+def test_github_blob_hint_is_appended(monkeypatch):
+    monkeypatch.setattr(stata_mod, "StataReader", _BoomReader)
+    with pytest.raises(ValueError, match=r"Raw file URL"):
+        read_stata("https://github.com/user/repo/blob/main/file.dta")
+
+
+def test_github_tree_hint_is_appended(monkeypatch):
+    monkeypatch.setattr(stata_mod, "StataReader", _BoomReader)
+    with pytest.raises(ValueError, match=r"Raw file URL"):
+        read_stata("https://github.com/user/repo/tree/main/data")

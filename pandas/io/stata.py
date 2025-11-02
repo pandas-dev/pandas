@@ -2218,19 +2218,48 @@ def read_stata(
     ...         # Operate on a single chunk, e.g., chunk.mean()
     ...         pass  # doctest: +SKIP
     """
-    reader = StataReader(
-        filepath_or_buffer,
-        convert_dates=convert_dates,
-        convert_categoricals=convert_categoricals,
-        index_col=index_col,
-        convert_missing=convert_missing,
-        preserve_dtypes=preserve_dtypes,
-        columns=columns,
-        order_categoricals=order_categoricals,
-        chunksize=chunksize,
-        storage_options=storage_options,
-        compression=compression,
-    )
+    try:
+        reader = StataReader(
+            filepath_or_buffer,
+            convert_dates=convert_dates,
+            convert_categoricals=convert_categoricals,
+            index_col=index_col,
+            convert_missing=convert_missing,
+            preserve_dtypes=preserve_dtypes,
+            columns=columns,
+            order_categoricals=order_categoricals,
+            chunksize=chunksize,
+            storage_options=storage_options,
+            compression=compression,
+        )
+    except ValueError as e:
+        # If users pass HTML/JSON/etc. (e.g., a GitHub page URL), StataReader
+        # often raises a version/format ValueError. Replace with a clearer message.
+        msg = str(e)
+        if (
+            "Version of given Stata file is" in msg
+            or "not a Stata dataset" in msg
+            or "not a valid Stata" in msg
+        ):
+            base = (
+                "This is not a valid Stata dataset. This may be because it is not a "
+                "valid Stata dataset, or a Stata dataset from a version of Stata that "
+                "pandas cannot import. pandas supports importing versions 105, 108, "
+                "111 (Stata 7SE), 113 (Stata 8/9), 114 (Stata 10/11), 115 (Stata 12), "
+                "117 (Stata 13), 118 (Stata 14/15/16), and 119 (Stata 15/16, over 32, "
+                "767 variables)."
+            )
+            hint = ""
+            if isinstance(filepath_or_buffer, (str, os.PathLike)):
+                s = os.fspath(filepath_or_buffer)
+                if "github.com" in s and ("/blob/" in s or "/tree/" in s):
+                    hint = (
+                        " If you're loading from GitHub, use the Raw file URL "
+                        "(replace '/blob/' with '/raw/' or click the 'Raw' button)."
+                    )
+            raise ValueError(base + hint) from e
+        # Different error: keep original
+        raise
 
     if iterator or chunksize:
         return reader
