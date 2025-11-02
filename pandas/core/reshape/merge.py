@@ -1054,6 +1054,7 @@ class _MergeOperation:
             "right",
             "inner",
             "outer",
+            "left_semi",
             "left_anti",
             "right_anti",
             "cross",
@@ -1403,7 +1404,11 @@ class _MergeOperation:
         left_ax = self.left.index
         right_ax = self.right.index
 
-        if self.left_index and self.right_index and self.how != "asof":
+        if (
+            self.left_index
+            and self.right_index
+            and self.how not in ("asof", "left_semi")
+        ):
             join_index, left_indexer, right_indexer = left_ax.join(
                 right_ax, how=self.how, return_indexers=True, sort=self.sort
             )
@@ -1647,15 +1652,7 @@ class _MergeOperation:
                     k = cast(Hashable, k)
                     left_keys.append(left._get_label_or_level_values(k))
                     join_names.append(k)
-            if isinstance(self.right.index, MultiIndex):
-                right_keys = [
-                    lev._values.take(lev_codes)
-                    for lev, lev_codes in zip(
-                        self.right.index.levels, self.right.index.codes
-                    )
-                ]
-            else:
-                right_keys = [self.right.index._values]
+            right_keys = self._unpack_index_as_join_key(self.right.index)
         elif _any(self.right_on):
             for k in self.right_on:
                 k = extract_array(k, extract_numpy=True)
@@ -1669,17 +1666,22 @@ class _MergeOperation:
                     k = cast(Hashable, k)
                     right_keys.append(right._get_label_or_level_values(k))
                     join_names.append(k)
-            if isinstance(self.left.index, MultiIndex):
-                left_keys = [
-                    lev._values.take(lev_codes)
-                    for lev, lev_codes in zip(
-                        self.left.index.levels, self.left.index.codes
-                    )
-                ]
-            else:
-                left_keys = [self.left.index._values]
+            left_keys = self._unpack_index_as_join_key(self.left.index)
+        elif self.how == "left_semi":
+            left_keys = self._unpack_index_as_join_key(self.left.index)
+            right_keys = self._unpack_index_as_join_key(self.right.index)
 
         return left_keys, right_keys, join_names, left_drop, right_drop
+
+    def _unpack_index_as_join_key(self, index: Index) -> list[ArrayLike]:
+        if isinstance(index, MultiIndex):
+            keys = [
+                lev._values.take(lev_codes)
+                for lev, lev_codes in zip(index.levels, index.codes)
+            ]
+        else:
+            keys = [index._values]
+        return keys
 
     @final
     def _maybe_coerce_merge_keys(self) -> None:
@@ -2241,15 +2243,8 @@ def restore_dropped_levels_multijoin(
 
 class _SemiMergeOperation(_MergeOperation):
     def __init__(self, *args, **kwargs):
-        if kwargs.get("validate", None):
-            raise NotImplementedError("validate is not supported for semi-join.")
-
         super().__init__(*args, **kwargs)
-        if self.left_index or self.right_index:
-            raise NotImplementedError(
-                "left_index or right_index are not supported for semi-join."
-            )
-        elif self.indicator:
+        if self.indicator:
             raise NotImplementedError("indicator is not supported for semi-join.")
         elif self.sort:
             raise NotImplementedError(
@@ -2273,7 +2268,7 @@ class _SemiMergeOperation(_MergeOperation):
         left_indexer: npt.NDArray[np.intp] | None,
         right_indexer: npt.NDArray[np.intp] | None,
     ) -> DataFrame:
-        left = self.left[:]
+        left = self.left
 
         if left_indexer is not None and not is_range_indexer(left_indexer, len(left)):
             lmgr = left._mgr.take(left_indexer, axis=1, verify=False)
@@ -2956,7 +2951,7 @@ def _factorize_keys(
         lk_data, rk_data = lk, rk  # type: ignore[assignment]
         lk_mask, rk_mask = None, None
 
-    hash_join_available = how == "inner" and not sort
+    hash_join_available = how == "inner" and not sort and lk.dtype.kind in "iufbO"
     if hash_join_available:
         rlab = rizer.factorize(rk_data, mask=rk_mask)
         if rizer.get_count() == len(rlab):
