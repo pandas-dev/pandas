@@ -501,7 +501,7 @@ cdef float64_t calc_skew(int64_t minp, int64_t nobs,
         # degenerate case, force result to be NaN
         elif num_consecutive_same_value >= nobs:
             result = NaN
-        # #18044: with uniform distribution, floating issue will
+        # #18044: with degenerate distribution, floating issue will
         #         cause B != 0. and cause the result is a very
         #         large number.
         #
