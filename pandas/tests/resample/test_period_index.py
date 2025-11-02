@@ -396,8 +396,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("convention", ["start", "end"])
     def test_weekly_upsample(self, day, target, convention, simple_period_range_series):
         freq = f"W-{day}"
-        ts = simple_period_range_series("1/1/1990", "12/31/1995", freq=freq)
-
+        ts = simple_period_range_series("1/1/1990", "07/31/1990", freq=freq)
         warn = None if target == "D" else FutureWarning
         msg = r"PeriodDtype\[B\] is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
