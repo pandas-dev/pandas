@@ -598,7 +598,7 @@ class BaseBlockManager(PandasObject):
                     return self
             # No need to split if we either set all columns or on a single block
             # manager
-            self = self.copy()
+            self = self.copy(deep=True)
 
         return self.apply("setitem", indexer=indexer, value=value)
 
@@ -712,7 +712,7 @@ class BaseBlockManager(PandasObject):
     def nblocks(self) -> int:
         return len(self.blocks)
 
-    def copy(self, deep: bool | Literal["all"] = True) -> Self:
+    def copy(self, *, deep: bool) -> Self:
         """
         Make deep or shallow copy of BlockManager
 
@@ -727,15 +727,7 @@ class BaseBlockManager(PandasObject):
         BlockManager
         """
         # this preserves the notion of view copying of axes
-        if deep:
-            # hit in e.g. tests.io.json.test_pandas
-
-            def copy_func(ax):
-                return ax.copy(deep=True) if deep == "all" else ax.view()
-
-            new_axes = [copy_func(ax) for ax in self.axes]
-        else:
-            new_axes = [ax.view() for ax in self.axes]
+        new_axes = [ax.view() for ax in self.axes]
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes

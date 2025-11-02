@@ -1833,9 +1833,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         df = self._constructor_expanddim_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(self, method="to_frame")
 
-    def _set_name(
-        self, name, inplace: bool = False, deep: bool | None = None
-    ) -> Series:
+    def _set_name(self, name, inplace: bool = False) -> Series:
         """
         Set the Series name.
 
