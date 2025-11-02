@@ -377,6 +377,8 @@ class DataFrame(ABC):
     to the dataframe interchange protocol specification.
     """
 
+    __module__ = "pandas.api.interchange"
+
     version = 0  # version of the protocol
 
     @abstractmethod

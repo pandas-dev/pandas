@@ -340,6 +340,9 @@ class TestGetIndexer:
         expected = index.get_indexer(target)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
     def test_get_indexer_categorical_with_nans(self):
         # GH#41934 nans in both index and in target
         ii = IntervalIndex.from_breaks(range(5))
@@ -499,6 +502,25 @@ class TestGetIndexer:
 
         result = idx.get_indexer_non_unique(arr)[0]
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
+    def test_get_indexer_non_unique_right(self):
+        # GH#52245
+        data = [
+            Interval(Timestamp("2020-05-26"), Timestamp("2020-05-27")),
+            Interval(Timestamp("2020-05-27"), Timestamp("2020-05-27")),
+        ]
+
+        index = IntervalIndex(data)
+
+        result = index.get_indexer([index[0]])
+        expected = np.array([0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # GH#52245 OP is about drop so we test that here, but the underlying
+        #  problem is in get_indexer.
+        result = index.drop(index[0])
+        expected = index[1:]
+        tm.assert_index_equal(result, expected)
 
 
 class TestSliceLocs:

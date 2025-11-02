@@ -6,11 +6,8 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
-    cast,
 )
 import warnings
-
-import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -48,7 +45,6 @@ if TYPE_CHECKING:
     from pandas._typing import NDFrameT
 
     from pandas import (
-        DataFrame,
         DatetimeIndex,
         Index,
         PeriodIndex,
@@ -79,19 +75,16 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
 
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
-            series = series.copy()
+            series = series.copy(deep=False)
             # error: "Index" has no attribute "asfreq"
             series.index = series.index.asfreq(  # type: ignore[attr-defined]
                 ax_freq, how="s"
             )
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
-            # Resampling with PeriodDtype is deprecated, so we convert to
-            #  DatetimeIndex, resample, then convert back.
-            ser_ts = series.to_timestamp()
-            ser_d = ser_ts.resample("D").last().dropna()
-            ser_freq = ser_d.resample(ax_freq).last().dropna()
-            series = ser_freq.to_period(ax_freq)
+            how = "last"
+            series = getattr(series.resample("D"), how)().dropna()
+            series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
         elif is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
@@ -149,7 +142,7 @@ def _replot_ax(ax: Axes, freq: BaseOffset):
     labels = []
     if data is not None:
         for series, plotf, kwds in data:
-            series = series.copy()
+            series = series.copy(deep=False)
             idx = series.index.asfreq(freq, how="S")
             series.index = idx
             # TODO #54485
@@ -231,8 +224,8 @@ def _get_freq(ax: Axes, series: Series):
     return freq, ax_freq
 
 
-def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
-    freq = _get_index_freq(data.index)
+def use_dynamic_x(ax: Axes, index: Index) -> bool:
+    freq = _get_index_freq(index)
     ax_freq = _get_ax_freq(ax)
 
     if freq is None:  # convert irregular if axes has freq info
@@ -250,16 +243,15 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
         return False
 
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
-    if isinstance(data.index, ABCDatetimeIndex):
+    if isinstance(index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
         freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
         base = to_offset(freq_str, is_period=True)._period_dtype_code  # type: ignore[attr-defined]
-        x = data.index
         if base <= FreqGroup.FR_DAY.value:
-            return x[:1].is_normalized
-        period = Period(x[0], freq_str)
+            return index[:1].is_normalized
+        period = Period(index[0], freq_str)
         assert isinstance(period, Period)
-        return period.to_timestamp().tz_localize(x.tz) == x[0]
+        return period.to_timestamp().tz_localize(index.tz) == index[0]
     return True
 
 
@@ -267,13 +259,7 @@ def _get_index_freq(index: Index) -> BaseOffset | None:
     freq = getattr(index, "freq", None)
     if freq is None:
         freq = getattr(index, "inferred_freq", None)
-        if freq == "B":
-            # error: "Index" has no attribute "dayofweek"
-            weekdays = np.unique(index.dayofweek)  # type: ignore[attr-defined]
-            if (5 in weekdays) or (6 in weekdays):
-                freq = None
-
-    freq = to_offset(freq)
+        freq = to_offset(freq)
     return freq
 
 
@@ -281,13 +267,7 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
-        freq: str | BaseOffset | None = data.index.freq
-
-        if freq is None:
-            # We only get here for DatetimeIndex
-            data.index = cast("DatetimeIndex", data.index)
-            freq = data.index.inferred_freq
-            freq = to_offset(freq)
+        freq = _get_index_freq(data.index)
 
         if freq is None:
             freq = _get_ax_freq(ax)
@@ -310,14 +290,14 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
             if isinstance(data.index, ABCDatetimeIndex):
                 data = data.tz_localize(None).to_period(freq=freq_str)
             elif isinstance(data.index, ABCPeriodIndex):
-                data.index = data.index.asfreq(freq=freq_str)
+                data.index = data.index.asfreq(freq=freq_str, how="start")
     return data
 
 
 # Patch methods for subplot.
 
 
-def _format_coord(freq, t, y) -> str:
+def _format_coord(freq: BaseOffset, t, y) -> str:
     time_period = Period(ordinal=int(t), freq=freq)
     return f"t = {time_period}  y = {y:8f}"
 
@@ -333,7 +313,7 @@ def format_dateaxis(
     default, changing the limits of the x axis will intelligently change
     the positions of the ticks.
     """
-    from matplotlib import pylab
+    import matplotlib.pyplot as plt
 
     # handle index specific formatting
     # Note: DatetimeIndex does not use this
@@ -365,4 +345,20 @@ def format_dateaxis(
     else:
         raise TypeError("index type not supported")
 
-    pylab.draw_if_interactive()
+    plt.draw_if_interactive()
+
+
+def prepare_ts_data(
+    series: Series, ax: Axes, kwargs: dict[str, Any]
+) -> tuple[BaseOffset | str, Series]:
+    freq, data = maybe_resample(series, ax, kwargs)
+
+    # Set ax with freq info
+    decorate_axes(ax, freq)
+    # digging deeper
+    if hasattr(ax, "left_ax"):
+        decorate_axes(ax.left_ax, freq)
+    if hasattr(ax, "right_ax"):
+        decorate_axes(ax.right_ax, freq)
+
+    return freq, data

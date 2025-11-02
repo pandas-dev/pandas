@@ -161,7 +161,12 @@ static int pandas_parser_exec(PyObject *Py_UNUSED(module)) {
 }
 
 static PyModuleDef_Slot pandas_parser_slots[] = {
-    {Py_mod_exec, pandas_parser_exec}, {0, NULL}};
+    {Py_mod_exec, pandas_parser_exec},
+#if PY_VERSION_HEX >= 0x030D0000
+    {Py_mod_gil, Py_MOD_GIL_NOT_USED},
+#endif
+    {0, NULL},
+};
 
 static struct PyModuleDef pandas_parsermodule = {
     PyModuleDef_HEAD_INIT,

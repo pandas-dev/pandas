@@ -1,3 +1,6 @@
+html {
+  scroll-padding-top: 5rem;
+}
 body {
     padding-top: 5em;
     color: #444;
@@ -11,6 +14,7 @@ h2 {
     font-size: 1.8rem;
     font-weight: 700;
     color: #130654;
+    margin: 2.4rem 0 1.2rem;
 }
 h3 {
     font-size: 1.3rem;
@@ -18,6 +22,15 @@ h3 {
     color: black;
 }
 h3 a {
+    color: black;
+    text-decoration: underline dotted !important;
+}
+h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: black;
+}
+h4 a {
     color: black;
     text-decoration: underline dotted !important;
 }
@@ -103,3 +116,22 @@ blockquote {
     color: #787878;
     font-size: 18px;
  }
+.toc {
+    background: #f9f9f9;
+    padding: 1em;
+    border: 0.1em solid darkgrey;
+    border-radius: 0.4em;
+    display: inline-block;
+    margin: 1em 0;
+}
+.toc .toctitle {
+    font-weight: bold;
+    padding-bottom: 1em;
+}
+a.headerlink {
+    opacity: 0;
+}
+h2:hover a.headerlink, h3:hover a.headerlink {
+    opacity: 1;
+    transition: opacity 0.5s;
+}

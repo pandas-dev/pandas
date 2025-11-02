@@ -22,6 +22,7 @@ from pandas._libs.tslibs.timedeltas import (
     disallow_ambiguous_unit,
     parse_timedelta_unit,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import ArrowDtype
@@ -73,6 +74,7 @@ def to_timedelta(
 ) -> TimedeltaIndex: ...
 
 
+@set_module("pandas")
 def to_timedelta(
     arg: str
     | int
@@ -170,7 +172,7 @@ def to_timedelta(
     TimedeltaIndex(['0 days 00:00:00', '0 days 00:00:01', '0 days 00:00:02',
                     '0 days 00:00:03', '0 days 00:00:04'],
                    dtype='timedelta64[ns]', freq=None)
-    >>> pd.to_timedelta(np.arange(5), unit="d")
+    >>> pd.to_timedelta(np.arange(5), unit="D")
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
     """
@@ -182,7 +184,7 @@ def to_timedelta(
         raise ValueError("errors must be one of 'raise', or 'coerce'.")
 
     if arg is None:
-        return arg
+        return NaT
     elif isinstance(arg, ABCSeries):
         values = _convert_listlike(arg._values, unit=unit, errors=errors)
         return arg._constructor(values, index=arg.index, name=arg.name)

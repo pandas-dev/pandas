@@ -6,6 +6,7 @@ import pytest
 from scripts import validate_docstrings
 
 
+# fmt: off
 class BadDocstrings:
     """Everything here has a bad docstring"""
 
@@ -36,7 +37,7 @@ class BadDocstrings:
         >>> import pandas as pd
         >>> df = pd.DataFrame(np.ones((3, 3)),
         ...                   columns=('a', 'b', 'c'))
-        >>> df.all(1)
+        >>> df.all(axis=1)
         0    True
         1    True
         2    True
@@ -88,6 +89,7 @@ class BadDocstrings:
         >>> import pathlib
         >>> pathlib.Path("foo.txt").touch()
         """
+# fmt: on
 
 
 class TestValidator:
@@ -227,13 +229,13 @@ class TestValidator:
                 "errors": [
                     ("ER01", "err desc"),
                     ("ER02", "err desc"),
-                    ("ER03", "err desc")
+                    ("ER03", "err desc"),
                 ],
                 "warnings": [],
                 "examples_errors": "",
                 "deprecated": True,
                 "file": "file1",
-                "file_line": "file_line1"
+                "file_line": "file_line1",
             },
         )
         monkeypatch.setattr(
@@ -272,12 +274,11 @@ class TestValidator:
                 None: {"ER03"},
                 "pandas.DataFrame.align": {"ER01"},
                 # ignoring an error that is not requested should be of no effect
-                "pandas.Index.all": {"ER03"}
-            }
+                "pandas.Index.all": {"ER03"},
+            },
         )
         # two functions * two not global ignored errors - one function ignored error
         assert exit_status == 2 * 2 - 1
-
 
 
 class TestApiItems:

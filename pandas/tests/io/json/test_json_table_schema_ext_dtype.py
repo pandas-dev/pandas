@@ -50,7 +50,7 @@ class TestBuildSchema:
                 {"name": "index", "type": "integer"},
                 {"name": "A", "type": "any", "extDtype": "DateDtype"},
                 {"name": "B", "type": "number", "extDtype": "decimal"},
-                {"name": "C", "type": "any", "extDtype": "string"},
+                {"name": "C", "type": "string", "extDtype": "string"},
                 {"name": "D", "type": "integer", "extDtype": "Int64"},
             ],
             "primaryKey": ["index"],
@@ -80,10 +80,10 @@ class TestTableSchemaType:
     @pytest.mark.parametrize("box", [lambda x: x, Series])
     def test_as_json_table_type_ext_string_array_dtype(self, box):
         string_data = box(array(["pandas"], dtype="string"))
-        assert as_json_table_type(string_data.dtype) == "any"
+        assert as_json_table_type(string_data.dtype) == "string"
 
     def test_as_json_table_type_ext_string_dtype(self):
-        assert as_json_table_type(StringDtype()) == "any"
+        assert as_json_table_type(StringDtype()) == "string"
 
     @pytest.mark.parametrize("box", [lambda x: x, Series])
     def test_as_json_table_type_ext_integer_array_dtype(self, box):
@@ -97,18 +97,22 @@ class TestTableSchemaType:
 class TestTableOrient:
     @pytest.fixture
     def da(self):
+        """Fixture for creating a DateArray."""
         return DateArray([dt.date(2021, 10, 10)])
 
     @pytest.fixture
     def dc(self):
+        """Fixture for creating a DecimalArray."""
         return DecimalArray([decimal.Decimal(10)])
 
     @pytest.fixture
     def sa(self):
+        """Fixture for creating a StringDtype array."""
         return array(["pandas"], dtype="string")
 
     @pytest.fixture
     def ia(self):
+        """Fixture for creating an Int64Dtype array."""
         return array([10], dtype="Int64")
 
     def test_build_date_series(self, da):
@@ -155,7 +159,7 @@ class TestTableOrient:
         expected = OrderedDict(
             [
                 ("schema", schema),
-                ("data", [OrderedDict([("id", 0), ("a", 10.0)])]),
+                ("data", [OrderedDict([("id", 0), ("a", "10")])]),
             ]
         )
 
@@ -172,7 +176,7 @@ class TestTableOrient:
 
         fields = [
             {"name": "id", "type": "integer"},
-            {"name": "a", "type": "any", "extDtype": "string"},
+            {"name": "a", "type": "string", "extDtype": "string"},
         ]
 
         schema = {"fields": fields, "primaryKey": ["id"]}
@@ -231,7 +235,7 @@ class TestTableOrient:
             OrderedDict({"name": "idx", "type": "integer"}),
             OrderedDict({"name": "A", "type": "any", "extDtype": "DateDtype"}),
             OrderedDict({"name": "B", "type": "number", "extDtype": "decimal"}),
-            OrderedDict({"name": "C", "type": "any", "extDtype": "string"}),
+            OrderedDict({"name": "C", "type": "string", "extDtype": "string"}),
             OrderedDict({"name": "D", "type": "integer", "extDtype": "Int64"}),
         ]
 
@@ -241,7 +245,7 @@ class TestTableOrient:
                 [
                     ("idx", 0),
                     ("A", "2021-10-10T00:00:00.000"),
-                    ("B", 10.0),
+                    ("B", "10"),
                     ("C", "pandas"),
                     ("D", 10),
                 ]

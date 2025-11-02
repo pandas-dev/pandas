@@ -6,8 +6,6 @@ from datetime import (
 import numpy as np
 import pytest
 
-from pandas._config import using_pyarrow_string_dtype
-
 import pandas as pd
 from pandas import (
     Categorical,
@@ -143,11 +141,13 @@ class TestSeriesRepr:
         rep_str = repr(ser)
         assert "Name: 0" in rep_str
 
-    @pytest.mark.xfail(
-        using_pyarrow_string_dtype(), reason="TODO: investigate why this is failing"
-    )
-    def test_newline(self):
-        ser = Series(["a\n\r\tb"], name="a\n\r\td", index=["a\n\r\tf"])
+    def test_newline(self, any_string_dtype):
+        ser = Series(
+            ["a\n\r\tb"],
+            name="a\n\r\td",
+            index=Index(["a\n\r\tf"], dtype=any_string_dtype),
+            dtype=any_string_dtype,
+        )
         assert "\t" not in repr(ser)
         assert "\r" not in repr(ser)
         assert "a\n" not in repr(ser)
@@ -280,6 +280,37 @@ class TestSeriesRepr:
         expected = "True    1\nNone    2\nNaN     3\nNaT     4\ndtype: int64"
         assert result == expected
 
+    def test_2d_extension_type(self):
+        # GH#33770
+
+        # Define a stub extension type with just enough code to run Series.__repr__()
+        class DtypeStub(pd.api.extensions.ExtensionDtype):
+            @property
+            def type(self):
+                return np.ndarray
+
+            @property
+            def name(self):
+                return "DtypeStub"
+
+        class ExtTypeStub(pd.api.extensions.ExtensionArray):
+            def __len__(self) -> int:
+                return 2
+
+            def __getitem__(self, ix):
+                return [ix == 1, ix == 0]
+
+            @property
+            def dtype(self):
+                return DtypeStub()
+
+        series = Series(ExtTypeStub(), copy=False)
+        res = repr(series)  # This line crashed before GH#33770 was fixed.
+        expected = "\n".join(
+            ["0    [False True]", "1    [True False]", "dtype: DtypeStub"]
+        )
+        assert res == expected
+
 
 class TestCategoricalRepr:
     def test_categorical_repr_unicode(self):
@@ -309,38 +340,27 @@ class TestCategoricalRepr:
         assert exp == a.__str__()
 
         a = Series(Categorical(["a", "b"] * 25))
+        exp = (
+            "0     a\n1     b\n"
+            "     ..\n"
+            "48    a\n49    b\n"
+            "Length: 50, dtype: category\nCategories (2, object): ['a', 'b']"
+        )
         if using_infer_string:
-            exp = (
-                "0     a\n1     b\n"
-                "     ..\n"
-                "48    a\n49    b\n"
-                "Length: 50, dtype: category\nCategories (2, string): [a, b]"
-            )
-        else:
-            exp = (
-                "0     a\n1     b\n"
-                "     ..\n"
-                "48    a\n49    b\n"
-                "Length: 50, dtype: category\nCategories (2, object): ['a', 'b']"
-            )
+            exp = exp.replace("object", "str")
         with option_context("display.max_rows", 5):
             assert exp == repr(a)
 
         levs = list("abcdefghijklmnopqrstuvwxyz")
         a = Series(Categorical(["a", "b"], categories=levs, ordered=True))
+        exp = (
+            "0    a\n1    b\n"
+            "dtype: category\n"
+            "Categories (26, object): ['a' < 'b' < 'c' < 'd' ... "
+            "'w' < 'x' < 'y' < 'z']"
+        )
         if using_infer_string:
-            exp = (
-                "0    a\n1    b\n"
-                "dtype: category\n"
-                "Categories (26, string): [a < b < c < d ... w < x < y < z]"
-            )
-        else:
-            exp = (
-                "0    a\n1    b\n"
-                "dtype: category\n"
-                "Categories (26, object): ['a' < 'b' < 'c' < 'd' ... "
-                "'w' < 'x' < 'y' < 'z']"
-            )
+            exp = exp.replace("object", "str")
         assert exp == a.__str__()
 
     def test_categorical_series_repr(self):

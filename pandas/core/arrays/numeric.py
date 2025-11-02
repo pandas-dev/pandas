@@ -4,10 +4,12 @@ import numbers
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
+    Self,
 )
 
 import numpy as np
+
+from pandas._config import is_nan_na
 
 from pandas._libs import (
     lib,
@@ -28,13 +30,15 @@ from pandas.core.arrays.masked import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import (
+        Callable,
+        Mapping,
+    )
 
     import pyarrow
 
     from pandas._typing import (
         DtypeObj,
-        Self,
         npt,
     )
 
@@ -99,6 +103,8 @@ class NumericDtype(BaseMaskedDtype):
                 array = array.combine_chunks()
 
         data, mask = pyarrow_array_to_numpy_and_mask(array, dtype=self.numpy_dtype)
+        if data.dtype.kind == "f" and is_nan_na():
+            mask[np.isnan(data)] = False
         return array_class(data.copy(), ~mask, copy=False)
 
     @classmethod
@@ -148,7 +154,7 @@ def _coerce_to_data_and_mask(
     if dtype is not None:
         dtype = dtype_cls._standardize_dtype(dtype)
 
-    cls = dtype_cls.construct_array_type()
+    cls = dtype_cls().construct_array_type()
     if isinstance(values, cls):
         values, mask = values._data, values._mask
         if dtype is not None:
@@ -172,6 +178,8 @@ def _coerce_to_data_and_mask(
             raise TypeError(f"{values.dtype} cannot be converted to {name}")
 
     elif values.dtype.kind == "b" and checker(dtype):
+        # fastpath
+        mask = np.zeros(len(values), dtype=np.bool_)
         if not copy:
             values = np.asarray(values, dtype=default_dtype)
         else:
@@ -188,8 +196,24 @@ def _coerce_to_data_and_mask(
         if values.dtype.kind in "iu":
             # fastpath
             mask = np.zeros(len(values), dtype=np.bool_)
+        elif values.dtype.kind == "f":
+            # np.isnan is faster than is_numeric_na() for floats
+            # github issue: #60066
+            if is_nan_na():
+                mask = np.isnan(values)
+            else:
+                mask = np.zeros(len(values), dtype=np.bool_)
+                if dtype_cls.__name__.strip("_").startswith(("I", "U")):
+                    wrong = np.isnan(values)
+                    if wrong.any():
+                        raise ValueError("Cannot cast NaN value to Integer dtype.")
         else:
-            mask = libmissing.is_numeric_na(values)
+            if is_nan_na():
+                mask = libmissing.is_numeric_na(values)
+            else:
+                # is_numeric_na will raise on non-numeric NAs
+                libmissing.is_numeric_na(values)
+                mask = libmissing.is_pdna_or_none(values)
     else:
         assert len(mask) == len(values)
 
@@ -221,14 +245,13 @@ def _coerce_to_data_and_mask(
     # we copy as need to coerce here
     if mask.any():
         values = values.copy()
-        values[mask] = cls._internal_fill_value
+        values[mask] = dtype_cls._internal_fill_value
     if inferred_type in ("string", "unicode"):
         # casts from str are always safe since they raise
         # a ValueError if the str cannot be parsed into a float
         values = values.astype(dtype, copy=copy)
     else:
         values = dtype_cls._safe_cast(values, dtype, copy=False)
-
     return values, mask, dtype, inferred_type
 
 
@@ -256,6 +279,10 @@ class NumericArray(BaseMaskedArray):
         if values.dtype == np.float16:
             # If we don't raise here, then accessing self.dtype would raise
             raise TypeError("FloatingArray does not support np.float16 dtype.")
+
+        # NB: if is_nan_na() is True
+        #  then caller is responsible for ensuring
+        #  assert mask[np.isnan(values)].all()
 
         super().__init__(values, mask, copy=copy)
 

@@ -1,0 +1,45 @@
+.. _whatsnew_223:
+
+What's new in 2.2.3 (September 20, 2024)
+----------------------------------------
+
+These are the changes in pandas 2.2.3. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+.. _whatsnew_220.py13_compat:
+
+Pandas 2.2.3 is now compatible with Python 3.13
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandas 2.2.3 is the first version of pandas that is generally compatible with the upcoming
+Python 3.13, and both wheels for free-threaded and normal Python 3.13 will be uploaded for
+this release.
+
+As usual please report any bugs discovered to our `issue tracker <https://github.com/pandas-dev/pandas/issues/new/choose>`_
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_223.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Bug in :func:`eval` on :class:`complex` including division ``/`` discards imaginary part. (:issue:`21374`)
+- Minor fixes for numpy 2.1 compatibility. (:issue:`59444`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_223.other:
+
+Other
+~~~~~
+- Missing licenses for 3rd party dependencies were added back into the wheels. (:issue:`58632`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_223.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v2.2.2..v2.2.3|HEAD

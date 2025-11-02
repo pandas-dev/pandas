@@ -12,7 +12,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
-import warnings
 
 import numpy as np
 
@@ -29,7 +28,6 @@ from pandas._libs.tslibs import (
     is_supported_dtype,
     is_unitless,
 )
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
@@ -166,7 +164,7 @@ def _masked_arith_op(x: np.ndarray, y, op) -> np.ndarray:
     else:
         if not is_scalar(y):
             raise TypeError(
-                f"Cannot broadcast np.ndarray with operand of type { type(y) }"
+                f"Cannot broadcast np.ndarray with operand of type {type(y)}"
             )
 
         # mask is only meaningful for x
@@ -424,15 +422,13 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     right = lib.item_from_zerodim(right)
     if is_list_like(right) and not hasattr(right, "dtype"):
         # e.g. list, tuple
-        warnings.warn(
+        raise TypeError(
+            # GH#52264
             "Logical ops (and, or, xor) between Pandas objects and dtype-less "
-            "sequences (e.g. list, tuple) are deprecated and will raise in a "
-            "future version. Wrap the object in a Series, Index, or np.array "
+            "sequences (e.g. list, tuple) are no longer supported. "
+            "Wrap the object in a Series, Index, or np.array "
             "before operating instead.",
-            FutureWarning,
-            stacklevel=find_stack_level(),
         )
-        right = construct_1d_object_array_from_listlike(right)
 
     # NB: We assume extract_array has already been called on left and right
     lvalues = ensure_wrapped_if_datetimelike(left)
@@ -589,6 +585,8 @@ _BOOL_OP_NOT_ALLOWED = {
     roperator.rfloordiv,
     operator.pow,
     roperator.rpow,
+    divmod,
+    roperator.rdivmod,
 }
 
 

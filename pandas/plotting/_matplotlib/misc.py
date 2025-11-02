@@ -3,8 +3,7 @@ from __future__ import annotations
 import random
 from typing import TYPE_CHECKING
 
-from matplotlib import patches
-import matplotlib.lines as mlines
+import matplotlib as mpl
 import numpy as np
 
 from pandas.core.dtypes.missing import notna
@@ -129,7 +128,7 @@ def scatter_matrix(
 
 
 def _get_marker_compat(marker):
-    if marker not in mlines.lineMarkers:
+    if marker not in mpl.lines.lineMarkers:
         return "o"
     return marker
 
@@ -190,10 +189,10 @@ def radviz(
         )
     ax.legend()
 
-    ax.add_patch(patches.Circle((0.0, 0.0), radius=1.0, facecolor="none"))
+    ax.add_patch(mpl.patches.Circle((0.0, 0.0), radius=1.0, facecolor="none"))
 
-    for xy, name in zip(s, df.columns):
-        ax.add_patch(patches.Circle(xy, radius=0.025, facecolor="gray"))
+    for xy, name in zip(s, df.columns, strict=True):
+        ax.add_patch(mpl.patches.Circle(xy, radius=0.025, facecolor="gray"))
 
         if xy[0] < 0.0 and xy[1] < 0.0:
             ax.text(
@@ -267,7 +266,7 @@ def andrews_curves(
     color_values = get_standard_colors(
         num_colors=len(classes), colormap=colormap, color_type="random", color=color
     )
-    colors = dict(zip(classes, color_values))
+    colors = dict(zip(classes, color_values, strict=False))
     if ax is None:
         ax = plt.gca()
         ax.set_xlim(-np.pi, np.pi)
@@ -400,7 +399,7 @@ def parallel_coordinates(
     if sort_labels:
         classes = sorted(classes)
         color_values = sorted(color_values)
-    colors = dict(zip(classes, color_values))
+    colors = dict(zip(classes, color_values, strict=True))
 
     for i in range(n):
         y = df.iloc[i].values

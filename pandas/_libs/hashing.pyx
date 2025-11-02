@@ -23,7 +23,7 @@ from pandas._libs.util cimport is_nan
 
 @cython.boundscheck(False)
 def hash_object_array(
-    ndarray[object] arr, str key, str encoding="utf8"
+    ndarray[object, ndim=1] arr, str key, str encoding="utf8"
 ) -> np.ndarray[np.uint64]:
     """
     Parameters
@@ -91,6 +91,8 @@ def hash_object_array(
             hash(val)
             data = <bytes>str(val).encode(encoding)
         else:
+            free(vecs)
+            free(lens)
             raise TypeError(
                 f"{val} of type {type(val)} is not a valid type for hashing, "
                 "must be string or null"

@@ -224,7 +224,7 @@ def test_apply_categorical(by_row, using_infer_string):
     result = ser.apply(lambda x: "A")
     exp = Series(["A"] * 7, name="XX", index=list("abcdefg"))
     tm.assert_series_equal(result, exp)
-    assert result.dtype == object if not using_infer_string else "string[pyarrow_numpy]"
+    assert result.dtype == object if not using_infer_string else "str"
 
 
 @pytest.mark.parametrize("series", [["1-1", "1-1", np.nan], ["1-1", "1-2", np.nan]])
@@ -236,10 +236,10 @@ def test_apply_categorical_with_nan_values(series, by_row):
         with pytest.raises(AttributeError, match=msg):
             s.apply(lambda x: x.split("-")[0], by_row=by_row)
         return
-
-    result = s.apply(lambda x: x.split("-")[0], by_row=by_row)
+    # NaN for cat dtype fixed in (GH 59966)
+    result = s.apply(lambda x: x.split("-")[0] if pd.notna(x) else False, by_row=by_row)
     result = result.astype(object)
-    expected = Series(["1", "1", np.nan], dtype="category")
+    expected = Series(["1", "1", False], dtype="category")
     expected = expected.astype(object)
     tm.assert_series_equal(result, expected)
 
@@ -376,13 +376,13 @@ def test_demo():
 
 
 @pytest.mark.parametrize("func", [str, lambda x: str(x)])
-def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row):
+def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row, engine):
     # test that we are evaluating row-by-row first if by_row="compat"
     # else vectorized evaluation
     result = string_series.apply(func, by_row=by_row)
 
     if by_row:
-        expected = string_series.map(func)
+        expected = string_series.map(func, engine=engine)
         tm.assert_series_equal(result, expected)
     else:
         assert result == str(string_series)

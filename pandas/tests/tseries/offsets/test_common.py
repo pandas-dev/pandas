@@ -9,6 +9,7 @@ from pandas._libs.tslibs import (
 )
 from pandas.compat import (
     IS64,
+    WASM,
     is_platform_windows,
 )
 
@@ -106,6 +107,7 @@ def _offset(request):
     return request.param
 
 
+@pytest.mark.skipif(WASM, reason="OverflowError received on WASM")
 def test_apply_out_of_range(request, tz_naive_fixture, _offset):
     tz = tz_naive_fixture
 
@@ -130,7 +132,11 @@ def test_apply_out_of_range(request, tz_naive_fixture, _offset):
         if tz is not None:
             assert t.tzinfo is not None
 
-        if isinstance(tz, tzlocal) and not IS64 and _offset is not DateOffset:
+        if (
+            isinstance(tz, tzlocal)
+            and ((not IS64) or WASM)
+            and _offset is not DateOffset
+        ):
             # If we hit OutOfBoundsDatetime on non-64 bit machines
             # we'll drop out of the try clause before the next test
             request.applymarker(

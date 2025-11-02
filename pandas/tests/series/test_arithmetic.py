@@ -4,13 +4,17 @@ from datetime import (
     timezone,
 )
 from decimal import Decimal
+from enum import (
+    Enum,
+    auto,
+)
 import operator
 
 import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas._libs.tslibs import IncompatibleFrequency
+from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 from pandas import (
@@ -26,7 +30,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core import ops
 from pandas.core.computation import expressions as expr
-from pandas.core.computation.check import NUMEXPR_INSTALLED
+from pandas.util.version import Version
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
@@ -156,6 +160,46 @@ class TestSeriesFlexArithmetic:
         # should accept axis=0 or axis='rows'
         op(a, b, axis=0)
 
+    @pytest.mark.parametrize("kind", ["datetime", "timedelta"])
+    def test_rhs_extension_array_sub_with_fill_value(self, kind):
+        # GH:62467
+        if kind == "datetime":
+            left = Series(
+                [pd.Timestamp("2025-08-20"), pd.Timestamp("2025-08-21")],
+                dtype=np.dtype("datetime64[ns]"),
+            )
+        else:
+            left = Series(
+                [Timedelta(days=1), Timedelta(days=2)],
+                dtype=np.dtype("timedelta64[ns]"),
+            )
+
+        right = (
+            left._values
+        )  # DatetimeArray or TimedeltaArray which is an ExtensionArray
+
+        result = left.sub(right, fill_value=left.iloc[0])
+        expected = Series(np.zeros(len(left), dtype=np.dtype("timedelta64[ns]")))
+        tm.assert_series_equal(result, expected)
+
+    def test_flex_disallows_dataframe(self):
+        # GH#46179
+        df = pd.DataFrame(
+            {2010: [1], 2020: [3]},
+            index=pd.MultiIndex.from_product([["a"], ["b"]], names=["scen", "mod"]),
+        )
+
+        ser = Series(
+            [10.0, 20.0, 30.0],
+            index=pd.MultiIndex.from_product(
+                [["a"], ["b"], [0, 1, 2]], names=["scen", "mod", "id"]
+            ),
+        )
+
+        msg = "Series.add does not support a DataFrame `other`"
+        with pytest.raises(TypeError, match=msg):
+            ser.add(df, axis=0)
+
 
 class TestSeriesArithmetic:
     # Some of these may end up in tests/arithmetic, but are not yet sorted
@@ -171,10 +215,6 @@ class TestSeriesArithmetic:
 
         result = ts + _permute(ts[::2])
         tm.assert_series_equal(result, expected)
-
-        msg = "Input has different freq=D from Period\\(freq=Y-DEC\\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            ts + ts.asfreq("D", how="end")
 
     @pytest.mark.parametrize(
         "target_add,input_value,expected_value",
@@ -212,9 +252,9 @@ class TestSeriesArithmetic:
         s1 = Series(range(1, 10))
         s2 = Series("foo", index=index)
 
-        msg = "not all arguments converted during string formatting|mod not"
+        msg = "not all arguments converted during string formatting|'mod' not supported"
 
-        with pytest.raises((TypeError, NotImplementedError), match=msg):
+        with pytest.raises(TypeError, match=msg):
             s2 % s1
 
     def test_add_with_duplicate_index(self):
@@ -353,18 +393,22 @@ class TestSeriesArithmetic:
 
     def test_add_list_to_masked_array_boolean(self, request):
         # GH#22962
+        ne = import_optional_dependency("numexpr", errors="ignore")
         warning = (
             UserWarning
-            if request.node.callspec.id == "numexpr" and NUMEXPR_INSTALLED
+            if request.node.callspec.id == "numexpr"
+            and ne
+            and Version(ne.__version__) < Version("2.13.1")
             else None
         )
         ser = Series([True, None, False], dtype="boolean")
-        with tm.assert_produces_warning(warning):
+        msg = "operator is not supported by numexpr for the bool dtype"
+        with tm.assert_produces_warning(warning, match=msg):
             result = ser + [True, None, True]
         expected = Series([True, None, True], dtype="boolean")
         tm.assert_series_equal(result, expected)
 
-        with tm.assert_produces_warning(warning):
+        with tm.assert_produces_warning(warning, match=msg):
             result = [True, None, True] + ser
         tm.assert_series_equal(result, expected)
 
@@ -409,6 +453,22 @@ class TestSeriesFlexComparison:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "left",
+        [
+            Series(Categorical(["a", "b", "a"])),
+            Series(pd.period_range("2020Q1", periods=3, freq="Q")),
+        ],
+        ids=["categorical", "period"],
+    )
+    def test_rhs_extension_array_eq_with_fill_value(self, left):
+        # GH:#62467
+        right = left._values  # this is an ExtensionArray
+
+        result = left.eq(right, fill_value=left.iloc[0])
+        expected = Series([True, True, True])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "values, op, fill_value",
         [
             ([False, False, True, True], "eq", 2),
@@ -424,6 +484,62 @@ class TestSeriesFlexComparison:
         right = Series([2, 2, 2], index=list("bcd"))
         result = getattr(left, op)(right, fill_value=fill_value)
         expected = Series(values, index=list("abcd"))
+        tm.assert_series_equal(result, expected)
+
+    def test_eq_objects(self) -> None:
+        # GH#62191 Test eq with Enum and List elements
+
+        class Thing(Enum):
+            FIRST = auto()
+            SECOND = auto()
+
+        left = Series([Thing.FIRST, Thing.SECOND])
+        py_l = [Thing.FIRST, Thing.SECOND]
+
+        result = left.eq(Thing.FIRST)
+        expected = Series([True, False])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(py_l)
+        expected = Series([True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(np.asarray(py_l))
+        expected = Series([True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(Series(py_l))
+        expected = Series([True, True])
+        tm.assert_series_equal(result, expected)
+
+        result = Series([[1, 2], [3, 4]]).eq([1, 2])
+        expected = Series([True, False])
+        with pytest.raises(AssertionError):
+            tm.assert_series_equal(result, expected)
+        expected = Series([False, False])
+        tm.assert_series_equal(result, expected)
+
+    def test_eq_with_index(self) -> None:
+        # GH#62191 Test eq with non-trivial indices
+        left = Series([1, 2], index=[1, 0])
+        py_l = [1, 2]
+
+        # assuming Python list has the same index as the Series
+        result = left.eq(py_l)
+        expected = Series([True, True], index=[1, 0])
+        tm.assert_series_equal(result, expected)
+
+        # assuming np.ndarray has the same index as the Series
+        result = left.eq(np.asarray(py_l))
+        expected = Series([True, True], index=[1, 0])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(Series(py_l))
+        expected = Series([False, False])
+        tm.assert_series_equal(result, expected)
+
+        result = left.eq(Series([2, 1]))
+        expected = Series([True, True])
         tm.assert_series_equal(result, expected)
 
 
@@ -499,27 +615,14 @@ class TestSeriesComparison:
             result = op(ser, cidx)
             assert result.name == names[2]
 
-    def test_comparisons(self, using_infer_string):
+    def test_comparisons(self):
         s = Series(["a", "b", "c"])
         s2 = Series([False, True, False])
 
         # it works!
         exp = Series([False, False, False])
-        if using_infer_string:
-            import pyarrow as pa
-
-            msg = "has no kernel"
-            # TODO(3.0) GH56008
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                s == s2
-            with tm.assert_produces_warning(
-                DeprecationWarning, match="comparison", check_stacklevel=False
-            ):
-                with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
-                    s2 == s
-        else:
-            tm.assert_series_equal(s == s2, exp)
-            tm.assert_series_equal(s2 == s, exp)
+        tm.assert_series_equal(s == s2, exp)
+        tm.assert_series_equal(s2 == s, exp)
 
     # -----------------------------------------------------------------
     # Categorical Dtype Comparisons
@@ -807,9 +910,6 @@ class TestNamePreservation:
             r"Logical ops \(and, or, xor\) between Pandas objects and "
             "dtype-less sequences"
         )
-        warn = None
-        if box in [list, tuple] and is_logical:
-            warn = FutureWarning
 
         right = box(right)
         if flex:
@@ -818,9 +918,12 @@ class TestNamePreservation:
                 return
             result = getattr(left, name)(right)
         else:
-            # GH#37374 logical ops behaving as set ops deprecated
-            with tm.assert_produces_warning(warn, match=msg):
-                result = op(left, right)
+            if is_logical and box in [list, tuple]:
+                with pytest.raises(TypeError, match=msg):
+                    # GH#52264 logical ops with dtype-less sequences deprecated
+                    op(left, right)
+                return
+            result = op(left, right)
 
         assert isinstance(result, Series)
         if box in [Index, Series]:

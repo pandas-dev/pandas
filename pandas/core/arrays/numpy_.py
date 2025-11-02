@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
+    Self,
+    cast,
 )
 
 import numpy as np
@@ -12,7 +15,10 @@ from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.astype import astype_array
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
+    maybe_downcast_to_dtype,
+)
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import NumpyEADtype
 from pandas.core.dtypes.missing import isna
@@ -29,27 +35,29 @@ from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
+        ArrayLike,
         AxisInt,
         Dtype,
         FillnaOptions,
         InterpolateOptions,
         NpDtype,
         Scalar,
-        Self,
         npt,
     )
 
     from pandas import Index
+    from pandas.arrays import StringArray
 
 
-# error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
-# incompatible with definition in base class "ExtensionArray"
-class NumpyExtensionArray(  # type: ignore[misc]
+class NumpyExtensionArray(
     OpsMixin,
     NDArrayBackedExtensionArray,
     ObjectStringArrayMixin,
 ):
+    __module__ = "pandas.arrays"
     """
     A pandas ExtensionArray for NumPy data.
 
@@ -70,6 +78,11 @@ class NumpyExtensionArray(  # type: ignore[misc]
     Methods
     -------
     None
+
+    See Also
+    --------
+    array : Create an array.
+    Series.to_numpy : Convert a Series to a NumPy array.
 
     Examples
     --------
@@ -137,8 +150,23 @@ class NumpyExtensionArray(  # type: ignore[misc]
             result = result.copy()
         return cls(result)
 
-    def _from_backing_data(self, arr: np.ndarray) -> NumpyExtensionArray:
-        return type(self)(arr)
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        result = super()._cast_pointwise_result(values)
+        lkind = self.dtype.kind
+        rkind = result.dtype.kind
+        if (
+            (lkind in "iu" and rkind in "iu")
+            or (lkind == "f" and rkind == "f")
+            or (lkind == rkind == "c")
+        ):
+            result = maybe_downcast_to_dtype(result, self.dtype.numpy_dtype)
+        elif rkind == "M":
+            # Ensure potential subsequent .astype(object) doesn't incorrectly
+            #  convert Timestamps to ints
+            from pandas import array as pd_array
+
+            result = pd_array(result, copy=False)
+        return result
 
     # ------------------------------------------------------------------------
     # Data
@@ -153,6 +181,9 @@ class NumpyExtensionArray(  # type: ignore[misc]
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
+        if copy is not None:
+            # Note: branch avoids `copy=None` for NumPy 1.x support
+            return np.array(self._ndarray, dtype=dtype, copy=copy)
         return np.asarray(self._ndarray, dtype=dtype)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
@@ -206,6 +237,16 @@ class NumpyExtensionArray(  # type: ignore[misc]
             # e.g. test_np_max_nested_tuples
             return result
         else:
+            if self.dtype.type is str:  # type: ignore[comparison-overlap]
+                # StringDtype
+                self = cast("StringArray", self)
+                try:
+                    # specify dtype to preserve storage/na_value
+                    return type(self)(result, dtype=self.dtype)
+                except ValueError:
+                    # if validation of input fails (no strings)
+                    # -> fallback to returning raw numpy array
+                    return result
             # one return value; re-box array-like results
             return type(self)(result)
 
@@ -287,6 +328,9 @@ class NumpyExtensionArray(  # type: ignore[misc]
         See NDFrame.interpolate.__doc__.
         """
         # NB: we return type(self) even if copy=False
+        if not self.dtype._is_numeric:
+            raise TypeError(f"Cannot interpolate with {self.dtype} dtype")
+
         if not copy:
             out_data = self._ndarray
         else:
@@ -558,6 +602,11 @@ class NumpyExtensionArray(  # type: ignore[misc]
             return TimedeltaArray._simple_new(result, dtype=result.dtype)
         return type(self)(result)
 
-    # ------------------------------------------------------------------------
-    # String methods interface
-    _str_na_value = np.nan
+    def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
+        # NEP 51: https://github.com/numpy/numpy/pull/22449
+        if self.dtype.kind in "SU":
+            return "'{}'".format
+        elif self.dtype == "object":
+            return repr
+        else:
+            return str

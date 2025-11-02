@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Hashable,
     Sequence,
 )
@@ -8,9 +9,9 @@ import itertools
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
     NoReturn,
+    Self,
     cast,
     final,
 )
@@ -49,6 +50,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
     SparseDtype,
@@ -92,12 +94,13 @@ from pandas.core.internals.ops import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from pandas._typing import (
         ArrayLike,
         AxisInt,
         DtypeObj,
         QuantileInterpolation,
-        Self,
         Shape,
         npt,
     )
@@ -247,7 +250,7 @@ class BaseBlockManager(PandasObject):
     def make_empty(self, axes=None) -> Self:
         """return an empty BlockManager with the items axis of len 0"""
         if axes is None:
-            axes = [Index([])] + self.axes[1:]
+            axes = [default_index(0)] + self.axes[1:]
 
         # preserve dtype if possible
         if self.ndim == 1:
@@ -261,11 +264,8 @@ class BaseBlockManager(PandasObject):
             blocks = []
         return type(self).from_blocks(blocks, axes)
 
-    def __nonzero__(self) -> bool:
+    def __bool__(self) -> bool:
         return True
-
-    # Python3 compat
-    __bool__ = __nonzero__
 
     def set_axis(self, axis: AxisInt, new_labels: Index) -> None:
         # Caller is responsible for ensuring we have an Index object.
@@ -351,6 +351,8 @@ class BaseBlockManager(PandasObject):
         Warning! The returned arrays don't handle Copy-on-Write, so this should
         be used with caution (only in read-mode).
         """
+        # TODO: Deprecate, usage in Dask
+        # https://github.com/dask/dask/blob/484fc3f1136827308db133cd256ba74df7a38d8c/dask/base.py#L1312
         return [blk.values for blk in self.blocks]
 
     def __repr__(self) -> str:
@@ -383,7 +385,9 @@ class BaseBlockManager(PandasObject):
         self_axes, other_axes = self.axes, other.axes
         if len(self_axes) != len(other_axes):
             return False
-        if not all(ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes)):
+        if not all(
+            ax1.equals(ax2) for ax1, ax2 in zip(self_axes, other_axes, strict=True)
+        ):
             return False
 
         return self._equal_values(other)
@@ -570,8 +574,27 @@ class BaseBlockManager(PandasObject):
                     self._iset_split_block(  # type: ignore[attr-defined]
                         0, blk_loc, values
                     )
-                    # first block equals values
-                    self.blocks[0].setitem((indexer[0], np.arange(len(blk_loc))), value)
+
+                    indexer = list(indexer)
+                    # first block equals values we are setting to -> set to all columns
+                    if lib.is_integer(indexer[1]):
+                        col_indexer = 0
+                    elif len(blk_loc) > 1:
+                        col_indexer = slice(None)  # type: ignore[assignment]
+                    else:
+                        col_indexer = np.arange(len(blk_loc))  # type: ignore[assignment]
+                    indexer[1] = col_indexer
+
+                    row_indexer = indexer[0]
+                    if isinstance(row_indexer, np.ndarray) and row_indexer.ndim == 2:
+                        # numpy cannot handle a 2d indexer in combo with a slice
+                        row_indexer = np.squeeze(row_indexer, axis=1)
+                    if isinstance(row_indexer, np.ndarray) and len(row_indexer) == 0:
+                        # numpy does not like empty indexer combined with slice
+                        # and we are setting nothing anyway
+                        return self
+                    indexer[0] = row_indexer
+                    self.blocks[0].setitem(tuple(indexer), value)
                     return self
             # No need to split if we either set all columns or on a single block
             # manager
@@ -645,8 +668,7 @@ class BaseBlockManager(PandasObject):
                 new_blocks.append(blk)
 
             elif blk.is_object:
-                nbs = blk._split()
-                new_blocks.extend(nb for nb in nbs if nb.is_bool)
+                new_blocks.extend(nb for nb in blk._split() if nb.is_bool)
 
         return self._combine(new_blocks)
 
@@ -818,11 +840,13 @@ class BaseBlockManager(PandasObject):
             raise IndexError("Requested axis not found in manager")
 
         if axis == 0:
-            new_blocks = self._slice_take_blocks_ax0(
-                indexer,
-                fill_value=fill_value,
-                only_slice=only_slice,
-                use_na_proxy=use_na_proxy,
+            new_blocks = list(
+                self._slice_take_blocks_ax0(
+                    indexer,
+                    fill_value=fill_value,
+                    only_slice=only_slice,
+                    use_na_proxy=use_na_proxy,
+                )
             )
         else:
             new_blocks = [
@@ -854,7 +878,7 @@ class BaseBlockManager(PandasObject):
         *,
         use_na_proxy: bool = False,
         ref_inplace_op: bool = False,
-    ) -> list[Block]:
+    ) -> Generator[Block]:
         """
         Slice/take blocks along axis=0.
 
@@ -872,9 +896,9 @@ class BaseBlockManager(PandasObject):
         ref_inplace_op: bool, default False
             Don't track refs if True because we operate inplace
 
-        Returns
-        -------
-        new_blocks : list of Block
+        Yields
+        ------
+        Block : New Block
         """
         allow_fill = fill_value is not lib.no_default
 
@@ -889,9 +913,10 @@ class BaseBlockManager(PandasObject):
                 # GH#32959 EABlock would fail since we can't make 0-width
                 # TODO(EA2D): special casing unnecessary with 2D EAs
                 if sllen == 0:
-                    return []
+                    return
                 bp = BlockPlacement(slice(0, sllen))
-                return [blk.getitem_block_columns(slobj, new_mgr_locs=bp)]
+                yield blk.getitem_block_columns(slobj, new_mgr_locs=bp)
+                return
             elif not allow_fill or self.ndim == 1:
                 if allow_fill and fill_value is None:
                     fill_value = blk.fill_value
@@ -899,25 +924,21 @@ class BaseBlockManager(PandasObject):
                 if not allow_fill and only_slice:
                     # GH#33597 slice instead of take, so we get
                     #  views instead of copies
-                    blocks = [
-                        blk.getitem_block_columns(
+                    for i, ml in enumerate(slobj):
+                        yield blk.getitem_block_columns(
                             slice(ml, ml + 1),
                             new_mgr_locs=BlockPlacement(i),
                             ref_inplace_op=ref_inplace_op,
                         )
-                        for i, ml in enumerate(slobj)
-                    ]
-                    return blocks
                 else:
                     bp = BlockPlacement(slice(0, sllen))
-                    return [
-                        blk.take_nd(
-                            slobj,
-                            axis=0,
-                            new_mgr_locs=bp,
-                            fill_value=fill_value,
-                        )
-                    ]
+                    yield blk.take_nd(
+                        slobj,
+                        axis=0,
+                        new_mgr_locs=bp,
+                        fill_value=fill_value,
+                    )
+                return
 
         if sl_type == "slice":
             blknos = self.blknos[slobj]
@@ -932,18 +953,15 @@ class BaseBlockManager(PandasObject):
 
         # When filling blknos, make sure blknos is updated before appending to
         # blocks list, that way new blkno is exactly len(blocks).
-        blocks = []
         group = not only_slice
         for blkno, mgr_locs in libinternals.get_blkno_placements(blknos, group=group):
             if blkno == -1:
                 # If we've got here, fill_value was not lib.no_default
 
-                blocks.append(
-                    self._make_na_block(
-                        placement=mgr_locs,
-                        fill_value=fill_value,
-                        use_na_proxy=use_na_proxy,
-                    )
+                yield self._make_na_block(
+                    placement=mgr_locs,
+                    fill_value=fill_value,
+                    use_na_proxy=use_na_proxy,
                 )
             else:
                 blk = self.blocks[blkno]
@@ -958,7 +976,7 @@ class BaseBlockManager(PandasObject):
                     for mgr_loc in mgr_locs:
                         newblk = blk.copy(deep=deep)
                         newblk.mgr_locs = BlockPlacement(slice(mgr_loc, mgr_loc + 1))
-                        blocks.append(newblk)
+                        yield newblk
 
                 else:
                     # GH#32779 to avoid the performance penalty of copying,
@@ -969,21 +987,19 @@ class BaseBlockManager(PandasObject):
 
                     if isinstance(taker, slice):
                         nb = blk.getitem_block_columns(taker, new_mgr_locs=mgr_locs)
-                        blocks.append(nb)
+                        yield nb
                     elif only_slice:
                         # GH#33597 slice instead of take, so we get
                         #  views instead of copies
-                        for i, ml in zip(taker, mgr_locs):
+                        for i, ml in zip(taker, mgr_locs, strict=True):
                             slc = slice(i, i + 1)
                             bp = BlockPlacement(ml)
                             nb = blk.getitem_block_columns(slc, new_mgr_locs=bp)
                             # We have np.shares_memory(nb.values, blk.values)
-                            blocks.append(nb)
+                            yield nb
                     else:
                         nb = blk.take_nd(taker, axis=0, new_mgr_locs=mgr_locs)
-                        blocks.append(nb)
-
-        return blocks
+                        yield nb
 
     def _make_na_block(
         self, placement: BlockPlacement, fill_value=None, use_na_proxy: bool = False
@@ -1144,7 +1160,24 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
-                result[rl] = blk.iget((i, loc))
+                item = blk.iget((i, loc))
+                if (
+                    result.dtype.kind in "iub"
+                    and lib.is_float(item)
+                    and isna(item)
+                    and isinstance(blk.dtype, CategoricalDtype)
+                ):
+                    # GH#58954 caused bc interleaved_dtype is wrong for Categorical
+                    # TODO(GH#38240) this will be unnecessary
+                    # Note that doing this in a try/except would work for the
+                    #  integer case, but not for bool, which will cast the NaN
+                    #  entry to True.
+                    if result.dtype.kind == "b":
+                        new_dtype = object
+                    else:
+                        new_dtype = np.float64
+                    result = result.astype(new_dtype)
+                result[rl] = item
 
         if isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
@@ -1304,7 +1337,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                     # Defer setting the new values to enable consolidation
                     self._iset_split_block(blkno_l, blk_locs, refs=refs)
 
-        if len(removed_blknos):
+        if removed_blknos:
             # Remove blocks & update blknos accordingly
             is_deleted = np.zeros(self.nblocks, dtype=np.bool_)
             is_deleted[removed_blknos] = True
@@ -1368,7 +1401,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         """Removes columns from a block by splitting the block.
 
         Avoids copying the whole block through slicing and updates the manager
-        after determinint the new block structure. Optionally adds a new block,
+        after determining the new block structure. Optionally adds a new block,
         otherwise has to be done by the caller.
 
         Parameters
@@ -1480,14 +1513,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         value : np.ndarray or ExtensionArray
         refs : The reference tracking object of the value to set.
         """
-        with warnings.catch_warnings():
-            # TODO: re-issue this with setitem-specific message?
-            warnings.filterwarnings(
-                "ignore",
-                "The behavior of Index.insert with object-dtype is deprecated",
-                category=FutureWarning,
-            )
-            new_axis = self.items.insert(loc, item)
+        new_axis = self.items.insert(loc, item)
 
         if value.ndim == 2:
             value = value.T
@@ -1532,7 +1558,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         When inserting a new Block at location 'loc', we increment
         all of the mgr_locs of blocks above that by one.
         """
-        for blkno, count in _fast_count_smallints(self.blknos[loc:]):
+        # Faster version of set(arr) for sequences of small numbers
+        blknos = np.bincount(self.blknos[loc:]).nonzero()[0]
+        for blkno in blknos:
             # .620 this way, .326 of which is in increment_above
             blk = self.blocks[blkno]
             blk._mgr_locs = blk._mgr_locs.increment_above(loc)
@@ -1604,7 +1632,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             nrows = 0
         else:
             nrows = result_blocks[0].values.shape[-1]
-        index = Index(range(nrows))
+        index = default_index(nrows)
 
         return type(self).from_blocks(result_blocks, [self.axes[0], index])
 
@@ -1742,21 +1770,18 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         bm = BlockManager(new_blocks, [new_columns, new_index], verify_integrity=False)
         return bm
 
-    def to_dict(self) -> dict[str, Self]:
+    def to_iter_dict(self) -> Generator[tuple[str, Self]]:
         """
-        Return a dict of str(dtype) -> BlockManager
+        Yield a tuple of (str(dtype), BlockManager)
 
         Returns
         -------
-        values : a dict of dtype -> BlockManager
+        values : a tuple of (str(dtype), BlockManager)
         """
-
-        bd: dict[str, list[Block]] = {}
-        for b in self.blocks:
-            bd.setdefault(str(b.dtype), []).append(b)
-
-        # TODO(EA2D): the combine will be unnecessary with 2D EAs
-        return {dtype: self._combine(blocks) for dtype, blocks in bd.items()}
+        key = lambda block: str(block.dtype)
+        for dtype, blocks in itertools.groupby(sorted(self.blocks, key=key), key=key):
+            # TODO(EA2D): the combine will be unnecessary with 2D EAs
+            yield dtype, self._combine(list(blocks))
 
     def as_array(
         self,
@@ -1814,6 +1839,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 arr = np.asarray(blk.values, dtype=dtype)
             else:
                 arr = np.array(blk.values, dtype=dtype, copy=copy)
+            if passed_nan and blk.dtype.kind in "mM":
+                arr[isna(blk.values)] = na_value
 
             if not copy:
                 arr = arr.view()
@@ -1879,6 +1906,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             else:
                 arr = blk.get_values(dtype)
             result[rl.indexer] = arr
+            if na_value is not lib.no_default and blk.dtype.kind in "mM":
+                result[rl.indexer][isna(arr)] = na_value
             itemmask[rl.indexer] = 1
 
         if not itemmask.all():
@@ -1908,10 +1937,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self._known_consolidated = True
 
     def _consolidate_inplace(self) -> None:
-        # In general, _consolidate_inplace should only be called via
-        #  DataFrame._consolidate_inplace, otherwise we will fail to invalidate
-        #  the DataFrame's _item_cache. The exception is for newly-created
-        #  BlockManager objects not yet attached to a DataFrame.
         if not self.is_consolidated():
             self.blocks = _consolidate(self.blocks)
             self._is_consolidated = True
@@ -2075,7 +2100,7 @@ class SingleBlockManager(BaseBlockManager):
         """
         Quick access to the backing array of the Block.
         """
-        return self.arrays[0]
+        return self.blocks[0].values
 
     # error: Cannot override writeable attribute with read-only property
     @property
@@ -2168,7 +2193,7 @@ class SingleBlockManager(BaseBlockManager):
         """
         if not self._has_no_reference(0):
             self.blocks = (self._block.copy(),)
-            self._cache.clear()
+            self._reset_cache()
 
         arr = self.array
 
@@ -2193,7 +2218,7 @@ class SingleBlockManager(BaseBlockManager):
         nb = self._block.delete(indexer)[0]
         self.blocks = (nb,)
         self.axes[0] = self.axes[0].delete(indexer)
-        self._cache.clear()
+        self._reset_cache()
         return self
 
     def fast_xs(self, loc):
@@ -2337,7 +2362,7 @@ def _grouping_func(tup: tuple[int, ArrayLike]) -> tuple[int, DtypeObj]:
 
 
 def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list[Block]:
-    tuples = list(enumerate(arrays))
+    tuples = enumerate(arrays)
 
     if not consolidate:
         return _tuples_to_blocks_no_consolidate(tuples, refs)
@@ -2358,7 +2383,7 @@ def _form_blocks(arrays: list[ArrayLike], consolidate: bool, refs: list) -> list
             if issubclass(dtype.type, (str, bytes)):
                 dtype = np.dtype(object)
 
-            values, placement = _stack_arrays(list(tup_block), dtype)
+            values, placement = _stack_arrays(tup_block, dtype)
             if is_dtlike:
                 values = ensure_wrapped_if_datetimelike(values)
             blk = block_type(values, placement=BlockPlacement(placement), ndim=2)
@@ -2388,12 +2413,12 @@ def _tuples_to_blocks_no_consolidate(tuples, refs) -> list[Block]:
         new_block_2d(
             ensure_block_shape(arr, ndim=2), placement=BlockPlacement(i), refs=ref
         )
-        for ((i, arr), ref) in zip(tuples, refs)
+        for ((i, arr), ref) in zip(tuples, refs, strict=True)
     ]
 
 
 def _stack_arrays(tuples, dtype: np.dtype):
-    placement, arrays = zip(*tuples)
+    placement, arrays = zip(*tuples, strict=True)
 
     first = arrays[0]
     shape = (len(arrays),) + first.shape
@@ -2455,15 +2480,6 @@ def _merge_blocks(
 
     # can't consolidate --> no merge
     return blocks, False
-
-
-def _fast_count_smallints(arr: npt.NDArray[np.intp]):
-    """Faster version of set(arr) for sequences of small numbers."""
-    counts = np.bincount(arr)
-    nz = counts.nonzero()[0]
-    # Note: list(zip(...) outperforms list(np.c_[nz, counts[nz]]) here,
-    #  in one benchmark by a factor of 11
-    return zip(nz, counts[nz])
 
 
 def _preprocess_slice_or_indexer(

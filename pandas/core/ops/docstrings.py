@@ -376,7 +376,7 @@ _op_descriptions: dict[str, dict[str, str | None]] = {
     "ne": {
         "op": "!=",
         "desc": "Not equal to",
-        "reverse": None,
+        "reverse": "eq",
         "series_examples": _ne_example_SERIES,
         "series_returns": _returns_series,
     },
@@ -397,14 +397,14 @@ _op_descriptions: dict[str, dict[str, str | None]] = {
     "gt": {
         "op": ">",
         "desc": "Greater than",
-        "reverse": None,
+        "reverse": "lt",
         "series_examples": _gt_example_SERIES,
         "series_returns": _returns_series,
     },
     "ge": {
         "op": ">=",
         "desc": "Greater than or equal to",
-        "reverse": None,
+        "reverse": "le",
         "series_examples": _ge_example_SERIES,
         "series_returns": _returns_series,
     },
@@ -435,7 +435,10 @@ missing data in either one of the inputs.
 
 Parameters
 ----------
-other : Series or scalar value
+other : object
+    When a Series is provided, will align on indexes. For all other types,
+    will behave the same as ``==`` but with possibly different results due
+    to the other arguments.
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level.

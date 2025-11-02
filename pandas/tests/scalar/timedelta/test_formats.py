@@ -6,7 +6,7 @@ from pandas import Timedelta
 @pytest.mark.parametrize(
     "td, expected_repr",
     [
-        (Timedelta(10, unit="d"), "Timedelta('10 days 00:00:00')"),
+        (Timedelta(10, unit="D"), "Timedelta('10 days 00:00:00')"),
         (Timedelta(10, unit="s"), "Timedelta('0 days 00:00:10')"),
         (Timedelta(10, unit="ms"), "Timedelta('0 days 00:00:00.010000')"),
         (Timedelta(-10, unit="ms"), "Timedelta('-1 days +23:59:59.990000')"),

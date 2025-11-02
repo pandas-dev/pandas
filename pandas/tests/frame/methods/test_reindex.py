@@ -13,6 +13,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.compat.numpy import np_version_gt2
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -754,7 +755,10 @@ class TestDataFrameSelectReindex:
             index=[datetime(2012, 1, 1), datetime(2012, 1, 2), datetime(2012, 1, 3)],
             columns=["a", "b", "c"],
         )
-        time_freq = date_range("2012-01-01", "2012-01-03", freq="d")
+
+        msg = "'d' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            time_freq = date_range("2012-01-01", "2012-01-03", freq="d")
         some_cols = ["a", "b"]
 
         index_freq = df.reindex(index=time_freq).index.freq
@@ -1255,3 +1259,31 @@ class TestDataFrameSelectReindex:
         msg = "Invalid fill method"
         with pytest.raises(ValueError, match=msg):
             df.reindex([1, 0, 2], method="asfreq")
+
+    def test_reindex_index_name_matches_multiindex_level(self):
+        df = DataFrame(
+            {"value": [1, 2], "other": ["A", "B"]},
+            index=Index([10, 20], name="a"),
+        )
+        target = MultiIndex.from_product(
+            [[10, 20], ["x", "y"]],
+            names=["a", "b"],
+        )
+
+        result = df.reindex(index=target)
+        expected = DataFrame(
+            data={"value": [1, 1, 2, 2], "other": ["A", "A", "B", "B"]},
+            index=MultiIndex.from_product([[10, 20], ["x", "y"]], names=["a", "b"]),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_reindex_index_name_no_match_multiindex_level(self):
+        df = DataFrame({"value": [1, 2]}, index=Index([10, 20], name="different_name"))
+        target = MultiIndex.from_product([[10, 20], ["x", "y"]], names=["a", "b"])
+
+        result = df.reindex(index=target)
+        expected = DataFrame(
+            data={"value": [np.nan] * 4},
+            index=MultiIndex.from_product([[10, 20], ["x", "y"]], names=["a", "b"]),
+        )
+        tm.assert_frame_equal(result, expected)

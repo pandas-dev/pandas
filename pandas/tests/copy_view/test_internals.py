@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
 
@@ -65,7 +68,7 @@ def test_iset_splits_blocks_inplace(locs, arr, dtype):
             "c": [7, 8, 9],
             "d": [10, 11, 12],
             "e": [13, 14, 15],
-            "f": ["a", "b", "c"],
+            "f": Series(["a", "b", "c"], dtype=object),
         },
     )
     arr = arr.astype(dtype)

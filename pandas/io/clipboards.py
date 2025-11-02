@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import warnings
 
 from pandas._libs import lib
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
@@ -21,6 +22,7 @@ if TYPE_CHECKING:
     from pandas._typing import DtypeBackend
 
 
+@set_module("pandas")
 def read_clipboard(
     sep: str = r"\s+",
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
@@ -38,14 +40,15 @@ def read_clipboard(
         A string or regex delimiter. The default of ``'\\s+'`` denotes
         one or more whitespace characters.
 
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed nullable
+          :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
 
@@ -113,9 +116,8 @@ def read_clipboard(
         if index_length != 0:
             kwargs.setdefault("index_col", list(range(index_length)))
 
-    # Edge case where sep is specified to be None, return to default
-    if sep is None and kwargs.get("delim_whitespace") is None:
-        sep = r"\s+"
+    elif not isinstance(sep, str):
+        raise ValueError(f"{sep=} must be a string")
 
     # Regex separator currently only works with python engine.
     # Default to python if separator is multi-character (regex)

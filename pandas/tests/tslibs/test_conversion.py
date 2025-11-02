@@ -1,8 +1,10 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 
 import numpy as np
 import pytest
-from pytz import UTC
 
 from pandas._libs.tslibs import (
     OutOfBoundsTimedelta,
@@ -55,7 +57,7 @@ def _compare_local_to_utc(tz_didx, naive_didx):
 def test_tz_localize_to_utc_copies():
     # GH#46460
     arr = np.arange(5, dtype="i8")
-    result = tz_convert_from_utc(arr, tz=UTC)
+    result = tz_convert_from_utc(arr, tz=timezone.utc)
     tm.assert_numpy_array_equal(result, arr)
     assert not np.shares_memory(arr, result)
 
@@ -66,8 +68,8 @@ def test_tz_localize_to_utc_copies():
 
 def test_tz_convert_single_matches_tz_convert_hourly(tz_aware_fixture):
     tz = tz_aware_fixture
-    tz_didx = date_range("2014-03-01", "2015-01-10", freq="h", tz=tz)
-    naive_didx = date_range("2014-03-01", "2015-01-10", freq="h")
+    tz_didx = date_range("2014-03-01", "2014-04-01", freq="h", tz=tz)
+    naive_didx = date_range("2014-03-01", "2014-04-01", freq="h")
 
     _compare_utc_to_local(tz_didx)
     _compare_local_to_utc(tz_didx, naive_didx)
@@ -100,7 +102,7 @@ def test_tz_convert_readonly():
     # GH#35530
     arr = np.array([0], dtype=np.int64)
     arr.setflags(write=False)
-    result = tz_convert_from_utc(arr, UTC)
+    result = tz_convert_from_utc(arr, timezone.utc)
     tm.assert_numpy_array_equal(result, arr)
 
 
@@ -141,14 +143,18 @@ class SubDatetime(datetime):
     "dt, expected",
     [
         pytest.param(
-            Timestamp("2000-01-01"), Timestamp("2000-01-01", tz=UTC), id="timestamp"
+            Timestamp("2000-01-01"),
+            Timestamp("2000-01-01", tz=timezone.utc),
+            id="timestamp",
         ),
         pytest.param(
-            datetime(2000, 1, 1), datetime(2000, 1, 1, tzinfo=UTC), id="datetime"
+            datetime(2000, 1, 1),
+            datetime(2000, 1, 1, tzinfo=timezone.utc),
+            id="datetime",
         ),
         pytest.param(
             SubDatetime(2000, 1, 1),
-            SubDatetime(2000, 1, 1, tzinfo=UTC),
+            SubDatetime(2000, 1, 1, tzinfo=timezone.utc),
             id="subclassed_datetime",
         ),
     ],
@@ -157,5 +163,5 @@ def test_localize_pydatetime_dt_types(dt, expected):
     # GH 25851
     # ensure that subclassed datetime works with
     # localize_pydatetime
-    result = conversion.localize_pydatetime(dt, UTC)
+    result = conversion.localize_pydatetime(dt, timezone.utc)
     assert result == expected

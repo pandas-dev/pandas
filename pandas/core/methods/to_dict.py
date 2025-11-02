@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 def create_data_for_split(
     df: DataFrame, are_all_object_dtype_cols: bool, object_dtype_indices: list[int]
-) -> Generator[list, None, None]:
+) -> Generator[list]:
     """
     Simple helper method to create data for to ``to_dict(orient="split")``
     to create the main output data
@@ -148,7 +148,7 @@ def to_dict(
         Return a collections.abc.MutableMapping object representing the
         DataFrame. The resulting transformation depends on the `orient` parameter.
     """
-    if not df.columns.is_unique:
+    if orient != "tight" and not df.columns.is_unique:
         warnings.warn(
             "DataFrame columns are not unique, some columns will be omitted.",
             UserWarning,
@@ -198,7 +198,9 @@ def to_dict(
                 if i in object_dtype_indices_as_set
                 else list(map(maybe_box_native, v.to_numpy())),
             )
-            for i, (box_na_value, (k, v)) in enumerate(zip(box_na_values, df.items()))
+            for i, (box_na_value, (k, v)) in enumerate(
+                zip(box_na_values, df.items(), strict=True)
+            )
         )
 
     elif orient == "split":
@@ -235,12 +237,13 @@ def to_dict(
         columns = df.columns.tolist()
         if are_all_object_dtype_cols:
             return [
-                into_c(zip(columns, map(maybe_box_native, row)))
+                into_c(zip(columns, map(maybe_box_native, row), strict=True))
                 for row in df.itertuples(index=False, name=None)
             ]
         else:
             data = [
-                into_c(zip(columns, t)) for t in df.itertuples(index=False, name=None)
+                into_c(zip(columns, t, strict=True))
+                for t in df.itertuples(index=False, name=None)
             ]
             if box_native_indices:
                 object_dtype_indices_as_set = set(box_native_indices)
@@ -260,7 +263,7 @@ def to_dict(
         columns = df.columns.tolist()
         if are_all_object_dtype_cols:
             return into_c(
-                (t[0], dict(zip(df.columns, map(maybe_box_native, t[1:]))))
+                (t[0], dict(zip(df.columns, map(maybe_box_native, t[1:]), strict=True)))
                 for t in df.itertuples(name=None)
             )
         elif box_native_indices:
@@ -272,14 +275,17 @@ def to_dict(
                         column: maybe_box_native(v)
                         if i in object_dtype_indices_as_set
                         else v
-                        for i, (column, v) in enumerate(zip(columns, t[1:]))
+                        for i, (column, v) in enumerate(
+                            zip(columns, t[1:], strict=True)
+                        )
                     },
                 )
                 for t in df.itertuples(name=None)
             )
         else:
             return into_c(
-                (t[0], dict(zip(columns, t[1:]))) for t in df.itertuples(name=None)
+                (t[0], dict(zip(columns, t[1:], strict=True)))
+                for t in df.itertuples(name=None)
             )
 
     else:

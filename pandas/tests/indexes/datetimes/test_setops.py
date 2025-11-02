@@ -1,11 +1,11 @@
 from datetime import (
     datetime,
+    timedelta,
     timezone,
 )
 
 import numpy as np
 import pytest
-import pytz
 
 import pandas.util._test_decorators as td
 
@@ -199,6 +199,69 @@ class TestDatetimeIndexSetOps:
         idx2 = date_range("2000-01-01", periods=3, tz="UTC").as_unit("us")
         result = idx1.union(idx2)
         expected = date_range("2000-01-01", periods=3, tz="UTC").as_unit("us")
+        tm.assert_index_equal(result, expected)
+
+    def test_union_same_nonzero_timezone_different_units(self):
+        # GH 60080 - fix timezone being changed to UTC when units differ
+        # but timezone is the same
+        tz = "UTC+05:00"
+        idx1 = date_range("2000-01-01", periods=3, tz=tz).as_unit("us")
+        idx2 = date_range("2000-01-01", periods=3, tz=tz).as_unit("ns")
+
+        # Check pre-conditions
+        assert idx1.tz == idx2.tz
+        assert idx1.dtype != idx2.dtype  # Different units
+
+        # Test union preserves timezone when units differ
+        result = idx1.union(idx2)
+        expected = date_range("2000-01-01", periods=3, tz=tz).as_unit("ns")
+        tm.assert_index_equal(result, expected)
+
+    def test_union_different_dates_same_timezone_different_units(self):
+        # GH 60080 - fix timezone being changed to UTC when units differ
+        # but timezone is the same
+        tz = "UTC+05:00"
+        idx1 = date_range("2000-01-01", periods=3, tz=tz).as_unit("us")
+        idx3 = date_range("2000-01-03", periods=3, tz=tz).as_unit("us")
+
+        # Test with different dates to ensure it's not just returning one of the inputs
+        result = idx1.union(idx3)
+        expected = DatetimeIndex(
+            ["2000-01-01", "2000-01-02", "2000-01-03", "2000-01-04", "2000-01-05"],
+            tz=tz,
+        ).as_unit("us")
+        tm.assert_index_equal(result, expected)
+
+    def test_intersection_same_timezone_different_units(self):
+        # GH 60080 - fix timezone being changed to UTC when units differ
+        # but timezone is the same
+        tz = "UTC+05:00"
+        idx1 = date_range("2000-01-01", periods=3, tz=tz).as_unit("us")
+        idx2 = date_range("2000-01-01", periods=3, tz=tz).as_unit("ns")
+
+        # Check pre-conditions
+        assert idx1.tz == idx2.tz
+        assert idx1.dtype != idx2.dtype  # Different units
+
+        # Test intersection
+        result = idx1.intersection(idx2)
+        expected = date_range("2000-01-01", periods=3, tz=tz).as_unit("ns")
+        tm.assert_index_equal(result, expected)
+
+    def test_symmetric_difference_same_timezone_different_units(self):
+        # GH 60080 - fix timezone being changed to UTC when units differ
+        # but timezone is the same
+        tz = "UTC+05:00"
+        idx1 = date_range("2000-01-01", periods=3, tz=tz).as_unit("us")
+        idx4 = date_range("2000-01-02", periods=3, tz=tz).as_unit("ns")
+
+        # Check pre-conditions
+        assert idx1.tz == idx4.tz
+        assert idx1.dtype != idx4.dtype  # Different units
+
+        # Test symmetric_difference
+        result = idx1.symmetric_difference(idx4)
+        expected = DatetimeIndex(["2000-01-01", "2000-01-04"], tz=tz).as_unit("ns")
         tm.assert_index_equal(result, expected)
 
     # TODO: moved from test_datetimelike; de-duplicate with version below
@@ -560,6 +623,7 @@ class TestBusinessDatetimeIndex:
         tm.assert_index_equal(res, idx)
 
     def test_month_range_union_tz_pytz(self, sort):
+        pytz = pytest.importorskip("pytz")
         tz = pytz.timezone("US/Eastern")
 
         early_start = datetime(2011, 1, 1)
@@ -648,7 +712,7 @@ class TestCustomDatetimeIndex:
         assert result.freq == b.freq
 
     @pytest.mark.parametrize(
-        "tz", [None, "UTC", "Europe/Berlin", pytz.FixedOffset(-60)]
+        "tz", [None, "UTC", "Europe/Berlin", timezone(timedelta(hours=-1))]
     )
     def test_intersection_dst_transition(self, tz):
         # GH 46702: Europe/Berlin has DST transition
@@ -664,3 +728,32 @@ class TestCustomDatetimeIndex:
         result = index1.union(index2)
         expected = date_range("2021-10-28", periods=6, freq="D", tz="Europe/London")
         tm.assert_index_equal(result, expected)
+
+
+def test_union_non_nano_rangelike():
+    # GH 59036
+    l1 = DatetimeIndex(
+        ["2024-05-11", "2024-05-12"], dtype="datetime64[us]", name="Date", freq="D"
+    )
+    l2 = DatetimeIndex(["2024-05-13"], dtype="datetime64[us]", name="Date", freq="D")
+    result = l1.union(l2)
+    expected = DatetimeIndex(
+        ["2024-05-11", "2024-05-12", "2024-05-13"],
+        dtype="datetime64[us]",
+        name="Date",
+        freq="D",
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_intersection_non_nano_rangelike():
+    # GH 59271
+    l1 = date_range("2024-01-01", "2024-01-03", unit="s")
+    l2 = date_range("2024-01-02", "2024-01-04", unit="s")
+    result = l1.intersection(l2)
+    expected = DatetimeIndex(
+        ["2024-01-02", "2024-01-03"],
+        dtype="datetime64[s]",
+        freq="D",
+    )
+    tm.assert_index_equal(result, expected)

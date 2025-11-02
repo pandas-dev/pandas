@@ -6,23 +6,19 @@ import os
 from sys import byteorder
 from typing import (
     TYPE_CHECKING,
-    Callable,
     ContextManager,
-    cast,
 )
-import warnings
 
 import numpy as np
 
+from pandas._config import using_string_dtype
 from pandas._config.localization import (
     can_set_locale,
     get_locales,
     set_locale,
 )
 
-from pandas.compat import pa_version_under10p1
-
-from pandas.core.dtypes.common import is_string_dtype
+from pandas.compat import HAS_PYARROW
 
 import pandas as pd
 from pandas import (
@@ -58,7 +54,6 @@ from pandas._testing.asserters import (
     assert_indexing_slices_equivalent,
     assert_interval_array_equal,
     assert_is_sorted,
-    assert_is_valid_plot_return_object,
     assert_metadata_equivalent,
     assert_numpy_array_equal,
     assert_period_array_equal,
@@ -79,20 +74,21 @@ from pandas._testing.contexts import (
     with_csv_dialect,
 )
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BaseMaskedArray,
-    ExtensionArray,
     NumpyExtensionArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         Dtype,
         NpDtype,
     )
 
-    from pandas.core.arrays import ArrowExtensionArray
 
 UNSIGNED_INT_NUMPY_DTYPES: list[NpDtype] = ["uint8", "uint16", "uint32", "uint64"]
 UNSIGNED_INT_EA_DTYPES: list[Dtype] = ["UInt8", "UInt16", "UInt32", "UInt64"]
@@ -107,7 +103,11 @@ FLOAT_EA_DTYPES: list[Dtype] = ["Float32", "Float64"]
 ALL_FLOAT_DTYPES: list[Dtype] = [*FLOAT_NUMPY_DTYPES, *FLOAT_EA_DTYPES]
 
 COMPLEX_DTYPES: list[Dtype] = [complex, "complex64", "complex128"]
-STRING_DTYPES: list[Dtype] = [str, "str", "U"]
+if using_string_dtype():
+    STRING_DTYPES: list[Dtype] = ["U"]
+else:
+    STRING_DTYPES: list[Dtype] = [str, "str", "U"]  # type: ignore[no-redef]
+COMPLEX_FLOAT_DTYPES: list[Dtype] = [*COMPLEX_DTYPES, *FLOAT_NUMPY_DTYPES]
 
 DATETIME64_DTYPES: list[Dtype] = ["datetime64[ns]", "M8[ns]"]
 TIMEDELTA64_DTYPES: list[Dtype] = ["timedelta64[ns]", "m8[ns]"]
@@ -183,7 +183,7 @@ NP_NAT_OBJECTS = [
     ]
 ]
 
-if not pa_version_under10p1:
+if HAS_PYARROW:
     import pyarrow as pa
 
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
@@ -290,17 +290,11 @@ def box_expected(expected, box_cls, transpose: bool = True):
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
-            expected = Index(expected)
+        expected = Index(expected)
     elif box_cls is Series:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
-            expected = Series(expected)
+        expected = Series(expected)
     elif box_cls is DataFrame:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", "Dtype inference", category=FutureWarning)
-            expected = Series(expected).to_frame()
+        expected = Series(expected).to_frame()
         if transpose:
             # for vector operations, we need a DataFrame to be a single-row,
             #  not a single-column, in order to operate against non-DataFrame
@@ -354,8 +348,9 @@ class SubclassedDataFrame(DataFrame):
     def _constructor(self):
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def _constructor_sliced(self):
+    def _constructor_sliced(self):  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
 
@@ -503,6 +498,8 @@ def shares_memory(left, right) -> bool:
     if isinstance(left, MultiIndex):
         return shares_memory(left._codes, right)
     if isinstance(left, (Index, Series)):
+        if isinstance(right, (Index, Series)):
+            return shares_memory(left._values, right._values)
         return shares_memory(left._values, right)
 
     if isinstance(left, NDArrayBackedExtensionArray):
@@ -512,24 +509,18 @@ def shares_memory(left, right) -> bool:
     if isinstance(left, pd.core.arrays.IntervalArray):
         return shares_memory(left._left, right) or shares_memory(left._right, right)
 
-    if (
-        isinstance(left, ExtensionArray)
-        and is_string_dtype(left.dtype)
-        and left.dtype.storage in ("pyarrow", "pyarrow_numpy")  # type: ignore[attr-defined]
-    ):
-        # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
-        left = cast("ArrowExtensionArray", left)
-        if (
-            isinstance(right, ExtensionArray)
-            and is_string_dtype(right.dtype)
-            and right.dtype.storage in ("pyarrow", "pyarrow_numpy")  # type: ignore[attr-defined]
-        ):
-            right = cast("ArrowExtensionArray", right)
+    if isinstance(left, ArrowExtensionArray):
+        if isinstance(right, ArrowExtensionArray):
+            # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
             left_pa_data = left._pa_array
             right_pa_data = right._pa_array
             left_buf1 = left_pa_data.chunk(0).buffers()[1]
             right_buf1 = right_pa_data.chunk(0).buffers()[1]
-            return left_buf1 == right_buf1
+            return left_buf1.address == right_buf1.address
+        else:
+            # if we have one one ArrowExtensionArray and one other array, assume
+            # they can only share memory if they share the same numpy buffer
+            return np.shares_memory(left, right)
 
     if isinstance(left, BaseMaskedArray) and isinstance(right, BaseMaskedArray):
         # By convention, we'll say these share memory if they share *either*
@@ -538,8 +529,8 @@ def shares_memory(left, right) -> bool:
             left._mask, right._mask
         )
 
-    if isinstance(left, DataFrame) and len(left._mgr.arrays) == 1:
-        arr = left._mgr.arrays[0]
+    if isinstance(left, DataFrame) and len(left._mgr.blocks) == 1:
+        arr = left._mgr.blocks[0].values
         return shares_memory(arr, right)
 
     raise NotImplementedError(type(left), type(right))
@@ -550,6 +541,25 @@ __all__ = [
     "ALL_INT_NUMPY_DTYPES",
     "ALL_NUMPY_DTYPES",
     "ALL_REAL_NUMPY_DTYPES",
+    "BOOL_DTYPES",
+    "BYTES_DTYPES",
+    "COMPLEX_DTYPES",
+    "DATETIME64_DTYPES",
+    "ENDIAN",
+    "FLOAT_EA_DTYPES",
+    "FLOAT_NUMPY_DTYPES",
+    "NARROW_NP_DTYPES",
+    "NP_NAT_OBJECTS",
+    "NULL_OBJECTS",
+    "OBJECT_DTYPES",
+    "SIGNED_INT_EA_DTYPES",
+    "SIGNED_INT_NUMPY_DTYPES",
+    "STRING_DTYPES",
+    "TIMEDELTA64_DTYPES",
+    "UNSIGNED_INT_EA_DTYPES",
+    "UNSIGNED_INT_NUMPY_DTYPES",
+    "SubclassedDataFrame",
+    "SubclassedSeries",
     "assert_almost_equal",
     "assert_attr_equal",
     "assert_categorical_equal",
@@ -565,7 +575,6 @@ __all__ = [
     "assert_indexing_slices_equivalent",
     "assert_interval_array_equal",
     "assert_is_sorted",
-    "assert_is_valid_plot_return_object",
     "assert_metadata_equivalent",
     "assert_numpy_array_equal",
     "assert_period_array_equal",
@@ -574,51 +583,32 @@ __all__ = [
     "assert_sp_array_equal",
     "assert_timedelta_array_equal",
     "at",
-    "BOOL_DTYPES",
     "box_expected",
-    "BYTES_DTYPES",
     "can_set_locale",
-    "COMPLEX_DTYPES",
     "convert_rows_list_to_csv_str",
-    "DATETIME64_DTYPES",
     "decompress_file",
-    "ENDIAN",
     "ensure_clean",
     "external_error_raised",
-    "FLOAT_EA_DTYPES",
-    "FLOAT_NUMPY_DTYPES",
     "get_cython_table_params",
     "get_dtype",
-    "getitem",
-    "get_locales",
     "get_finest_unit",
+    "get_locales",
     "get_obj",
     "get_op_from_name",
+    "getitem",
     "iat",
     "iloc",
     "loc",
     "maybe_produces_warning",
-    "NARROW_NP_DTYPES",
-    "NP_NAT_OBJECTS",
-    "NULL_OBJECTS",
-    "OBJECT_DTYPES",
     "raise_assert_detail",
     "raises_chained_assignment_error",
     "round_trip_pathlib",
     "round_trip_pickle",
-    "setitem",
     "set_locale",
     "set_timezone",
+    "setitem",
     "shares_memory",
-    "SIGNED_INT_EA_DTYPES",
-    "SIGNED_INT_NUMPY_DTYPES",
-    "STRING_DTYPES",
-    "SubclassedDataFrame",
-    "SubclassedSeries",
-    "TIMEDELTA64_DTYPES",
     "to_array",
-    "UNSIGNED_INT_EA_DTYPES",
-    "UNSIGNED_INT_NUMPY_DTYPES",
     "with_csv_dialect",
     "write_to_compressed",
 ]

@@ -13,6 +13,7 @@ from pandas._libs.tslibs.ccalendar import (
 from pandas._libs.tslibs.offsets import _get_offset
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat import is_platform_windows
+import pandas.util._test_decorators as td
 
 from pandas import (
     DatetimeIndex,
@@ -23,7 +24,6 @@ from pandas import (
     date_range,
     period_range,
 )
-import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
     TimedeltaArray,
@@ -200,17 +200,6 @@ def test_infer_freq_custom(base_delta_code_pair, constructor):
 
     index = constructor(b, base_delta)
     assert frequencies.infer_freq(index) is None
-
-
-@pytest.mark.parametrize(
-    "freq,expected", [("Q", "QE-DEC"), ("Q-NOV", "QE-NOV"), ("Q-OCT", "QE-OCT")]
-)
-def test_infer_freq_index(freq, expected):
-    rng = period_range("1959Q2", "2009Q3", freq=freq)
-    with tm.assert_produces_warning(FutureWarning, match="Dtype inference"):
-        rng = Index(rng.to_timestamp("D", how="e").astype(object))
-
-    assert rng.inferred_freq == expected
 
 
 @pytest.mark.parametrize(
@@ -554,3 +543,16 @@ def test_infer_freq_non_nano_tzaware(tz_aware_fixture):
 
     res = frequencies.infer_freq(dta)
     assert res == "B"
+
+
+@td.skip_if_no("pyarrow")
+def test_infer_freq_pyarrow():
+    # GH#58403
+    data = ["2022-01-01T10:00:00", "2022-01-01T10:00:30", "2022-01-01T10:01:00"]
+    pd_series = Series(data).astype("timestamp[s][pyarrow]")
+    pd_index = Index(data).astype("timestamp[s][pyarrow]")
+
+    assert frequencies.infer_freq(pd_index.values) == "30s"
+    assert frequencies.infer_freq(pd_series.values) == "30s"
+    assert frequencies.infer_freq(pd_index) == "30s"
+    assert frequencies.infer_freq(pd_series) == "30s"

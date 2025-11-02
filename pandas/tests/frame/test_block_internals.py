@@ -7,6 +7,8 @@ import itertools
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Categorical,
@@ -44,14 +46,14 @@ class TestDataFrameBlockInternals:
     def test_cast_internals(self, float_frame):
         msg = "Passing a BlockManager to DataFrame"
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            Pandas4Warning, match=msg, check_stacklevel=False
         ):
             casted = DataFrame(float_frame._mgr, dtype=int)
         expected = DataFrame(float_frame._series, dtype=int)
         tm.assert_frame_equal(casted, expected)
 
         with tm.assert_produces_warning(
-            DeprecationWarning, match=msg, check_stacklevel=False
+            Pandas4Warning, match=msg, check_stacklevel=False
         ):
             casted = DataFrame(float_frame._mgr, dtype=np.int32)
         expected = DataFrame(float_frame._series, dtype=np.int32)
@@ -161,19 +163,6 @@ class TestDataFrameBlockInternals:
         tm.assert_series_equal(result, expected)
 
     def test_construction_with_mixed(self, float_string_frame, using_infer_string):
-        # test construction edge cases with mixed types
-
-        # f7u12, this does not work without extensive workaround
-        data = [
-            [datetime(2001, 1, 5), np.nan, datetime(2001, 1, 2)],
-            [datetime(2000, 1, 2), datetime(2000, 1, 3), datetime(2000, 1, 1)],
-        ]
-        df = DataFrame(data)
-
-        # check dtypes
-        result = df.dtypes
-        expected = Series({"datetime64[us]": 3})
-
         # mixed-type frames
         float_string_frame["datetime"] = datetime.now()
         float_string_frame["timedelta"] = timedelta(days=1, seconds=1)
@@ -183,7 +172,9 @@ class TestDataFrameBlockInternals:
         expected = Series(
             [np.dtype("float64")] * 4
             + [
-                np.dtype("object") if not using_infer_string else "string",
+                np.dtype("object")
+                if not using_infer_string
+                else pd.StringDtype(na_value=np.nan),
                 np.dtype("datetime64[us]"),
                 np.dtype("timedelta64[us]"),
             ],
@@ -195,8 +186,7 @@ class TestDataFrameBlockInternals:
         # convert from a numpy array of non-ns timedelta64; as of 2.0 this does
         #  *not* convert
         arr = np.array([1, 2, 3], dtype="timedelta64[s]")
-        df = DataFrame(index=range(3))
-        df["A"] = arr
+        df = DataFrame({"A": arr})
         expected = DataFrame(
             {"A": pd.timedelta_range("00:00:01", periods=3, freq="s")}, index=range(3)
         )
@@ -214,11 +204,11 @@ class TestDataFrameBlockInternals:
         assert expected.dtypes["dt1"] == "M8[s]"
         assert expected.dtypes["dt2"] == "M8[s]"
 
-        df = DataFrame(index=range(3))
-        df["dt1"] = np.datetime64("2013-01-01")
-        df["dt2"] = np.array(
+        dt1 = np.datetime64("2013-01-01")
+        dt2 = np.array(
             ["2013-01-01", "2013-01-02", "2013-01-03"], dtype="datetime64[D]"
         )
+        df = DataFrame({"dt1": dt1, "dt2": dt2})
 
         # df['dt3'] = np.array(['2013-01-01 00:00:01','2013-01-01
         # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]')
@@ -245,24 +235,23 @@ class TestDataFrameBlockInternals:
             f("float64")
 
         # 10822
-        msg = "^Unknown datetime string format, unable to parse: aa, at position 0$"
+        msg = "^Unknown datetime string format, unable to parse: aa$"
         with pytest.raises(ValueError, match=msg):
             f("M8[ns]")
 
-    def test_pickle(self, float_string_frame, timezone_frame):
-        empty_frame = DataFrame()
-
+    def test_pickle_float_string_frame(self, float_string_frame):
         unpickled = tm.round_trip_pickle(float_string_frame)
         tm.assert_frame_equal(float_string_frame, unpickled)
 
         # buglet
         float_string_frame._mgr.ndim
 
-        # empty
+    def test_pickle_empty(self):
+        empty_frame = DataFrame()
         unpickled = tm.round_trip_pickle(empty_frame)
         repr(unpickled)
 
-        # tz frame
+    def test_pickle_empty_tz_frame(self, timezone_frame):
         unpickled = tm.round_trip_pickle(timezone_frame)
         tm.assert_frame_equal(timezone_frame, unpickled)
 
@@ -394,26 +383,3 @@ def test_update_inplace_sets_valid_block_values():
 
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)
-
-
-def test_nonconsolidated_item_cache_take():
-    # https://github.com/pandas-dev/pandas/issues/35521
-
-    # create non-consolidated dataframe with object dtype columns
-    df = DataFrame()
-    df["col1"] = Series(["a"], dtype=object)
-    df["col2"] = Series([0], dtype=object)
-
-    # access column (item cache)
-    df["col1"] == "A"
-    # take operation
-    # (regression was that this consolidated but didn't reset item cache,
-    # resulting in an invalid cache and the .at operation not working properly)
-    df[df["col2"] == 0]
-
-    # now setting value should update actual dataframe
-    df.at[0, "col1"] = "A"
-
-    expected = DataFrame({"col1": ["A"], "col2": [0]}, dtype=object)
-    tm.assert_frame_equal(df, expected)
-    assert df.at[0, "col1"] == "A"

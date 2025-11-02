@@ -5,10 +5,7 @@ Boilerplate functions used in defining binary operations.
 from __future__ import annotations
 
 from functools import wraps
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+from typing import TYPE_CHECKING
 
 from pandas._libs.lib import item_from_zerodim
 from pandas._libs.missing import is_matching_na
@@ -19,6 +16,8 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import F
 
 
@@ -57,20 +56,14 @@ def _unpack_zerodim_and_defer(method: F, name: str) -> F:
     -------
     method
     """
-    stripped_name = name.removeprefix("__").removesuffix("__")
-    is_cmp = stripped_name in {"eq", "ne", "lt", "le", "gt", "ge"}
 
     @wraps(method)
     def new_method(self, other):
-        if is_cmp and isinstance(self, ABCIndex) and isinstance(other, ABCSeries):
-            # For comparison ops, Index does *not* defer to Series
-            pass
-        else:
-            prio = getattr(other, "__pandas_priority__", None)
-            if prio is not None:
-                if prio > self.__pandas_priority__:
-                    # e.g. other is DataFrame while self is Index/Series/EA
-                    return NotImplemented
+        prio = getattr(other, "__pandas_priority__", None)
+        if prio is not None:
+            if prio > self.__pandas_priority__:
+                # e.g. other is DataFrame while self is Index/Series/EA
+                return NotImplemented
 
         other = item_from_zerodim(other)
 

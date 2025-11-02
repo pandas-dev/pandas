@@ -8,7 +8,6 @@ import numpy as np
 
 from pandas._libs.tslibs import BaseOffset
 from pandas._libs.window.indexers import calculate_variable_window_bounds
-from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import ensure_platform_int
 
@@ -16,48 +15,37 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 
 from pandas.tseries.offsets import Nano
 
-get_window_bounds_doc = """
-Computes the bounds of a window.
-
-Parameters
-----------
-num_values : int, default 0
-    number of values that will be aggregated over
-window_size : int, default 0
-    the number of rows in a window
-min_periods : int, default None
-    min_periods passed from the top level rolling API
-center : bool, default None
-    center passed from the top level rolling API
-closed : str, default None
-    closed passed from the top level rolling API
-step : int, default None
-    step passed from the top level rolling API
-    .. versionadded:: 1.5
-win_type : str, default None
-    win_type passed from the top level rolling API
-
-Returns
--------
-A tuple of ndarray[int64]s, indicating the boundaries of each
-window
-"""
-
 
 class BaseIndexer:
     """
     Base class for window bounds calculations.
+
+    Parameters
+    ----------
+    index_array : np.ndarray, default None
+        Array-like structure representing the indices for the data points.
+        If None, the default indices are assumed. This can be useful for
+        handling non-uniform indices in data, such as in time series
+        with irregular timestamps.
+    window_size : int, default 0
+        Size of the moving window. This is the number of observations used
+        for calculating the statistic. The default is to consider all
+        observations within the window.
+    **kwargs
+        Additional keyword arguments passed to the subclass's methods.
+
+    See Also
+    --------
+    DataFrame.rolling : Provides rolling window calculations on dataframe.
+    Series.rolling : Provides rolling window calculations on series.
 
     Examples
     --------
     >>> from pandas.api.indexers import BaseIndexer
     >>> class CustomIndexer(BaseIndexer):
     ...     def get_window_bounds(self, num_values, min_periods, center, closed, step):
-    ...         start = np.empty(num_values, dtype=np.int64)
-    ...         end = np.empty(num_values, dtype=np.int64)
-    ...         for i in range(num_values):
-    ...             start[i] = i
-    ...             end[i] = i + self.window_size
+    ...         start = np.arange(num_values, dtype=np.int64)
+    ...         end = np.arange(num_values, dtype=np.int64) + self.window_size
     ...         return start, end
     >>> df = pd.DataFrame({"values": range(5)})
     >>> indexer = CustomIndexer(window_size=2)
@@ -70,6 +58,8 @@ class BaseIndexer:
     4	4.0
     """
 
+    __module__ = "pandas.api.indexers"
+
     def __init__(
         self, index_array: np.ndarray | None = None, window_size: int = 0, **kwargs
     ) -> None:
@@ -79,7 +69,6 @@ class BaseIndexer:
         for key, value in kwargs.items():
             setattr(self, key, value)
 
-    @Appender(get_window_bounds_doc)
     def get_window_bounds(
         self,
         num_values: int = 0,
@@ -88,13 +77,38 @@ class BaseIndexer:
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Computes the bounds of a window.
+
+        Parameters
+        ----------
+        num_values : int, default 0
+            number of values that will be aggregated over
+        window_size : int, default 0
+            the number of rows in a window
+        min_periods : int, default None
+            min_periods passed from the top level rolling API
+        center : bool, default None
+            center passed from the top level rolling API
+        closed : str, default None
+            closed passed from the top level rolling API
+        step : int, default None
+            step passed from the top level rolling API
+            .. versionadded:: 1.5
+        win_type : str, default None
+            win_type passed from the top level rolling API
+
+        Returns
+        -------
+        A tuple of ndarray[int64]s, indicating the boundaries of each
+        window
+        """
         raise NotImplementedError
 
 
 class FixedWindowIndexer(BaseIndexer):
     """Creates window boundaries that are of fixed length."""
 
-    @Appender(get_window_bounds_doc)
     def get_window_bounds(
         self,
         num_values: int = 0,
@@ -103,6 +117,32 @@ class FixedWindowIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Computes the bounds of a window.
+
+        Parameters
+        ----------
+        num_values : int, default 0
+            number of values that will be aggregated over
+        window_size : int, default 0
+            the number of rows in a window
+        min_periods : int, default None
+            min_periods passed from the top level rolling API
+        center : bool, default None
+            center passed from the top level rolling API
+        closed : str, default None
+            closed passed from the top level rolling API
+        step : int, default None
+            step passed from the top level rolling API
+            .. versionadded:: 1.5
+        win_type : str, default None
+            win_type passed from the top level rolling API
+
+        Returns
+        -------
+        A tuple of ndarray[int64]s, indicating the boundaries of each
+        window
+        """
         if center or self.window_size == 0:
             offset = (self.window_size - 1) // 2
         else:
@@ -124,7 +164,6 @@ class FixedWindowIndexer(BaseIndexer):
 class VariableWindowIndexer(BaseIndexer):
     """Creates window boundaries that are of variable length, namely for time series."""
 
-    @Appender(get_window_bounds_doc)
     def get_window_bounds(
         self,
         num_values: int = 0,
@@ -133,6 +172,32 @@ class VariableWindowIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Computes the bounds of a window.
+
+        Parameters
+        ----------
+        num_values : int, default 0
+            number of values that will be aggregated over
+        window_size : int, default 0
+            the number of rows in a window
+        min_periods : int, default None
+            min_periods passed from the top level rolling API
+        center : bool, default None
+            center passed from the top level rolling API
+        closed : str, default None
+            closed passed from the top level rolling API
+        step : int, default None
+            step passed from the top level rolling API
+            .. versionadded:: 1.5
+        win_type : str, default None
+            win_type passed from the top level rolling API
+
+        Returns
+        -------
+        A tuple of ndarray[int64]s, indicating the boundaries of each
+        window
+        """
         # error: Argument 4 to "calculate_variable_window_bounds" has incompatible
         # type "Optional[bool]"; expected "bool"
         # error: Argument 6 to "calculate_variable_window_bounds" has incompatible
@@ -150,6 +215,31 @@ class VariableWindowIndexer(BaseIndexer):
 class VariableOffsetWindowIndexer(BaseIndexer):
     """
     Calculate window boundaries based on a non-fixed offset such as a BusinessDay.
+
+    Parameters
+    ----------
+    index_array : np.ndarray, default 0
+        Array-like structure specifying the indices for data points.
+        This parameter is currently not used.
+
+    window_size : int, optional, default 0
+        Specifies the number of data points in each window.
+        This parameter is currently not used.
+
+    index : DatetimeIndex, optional
+        ``DatetimeIndex`` of the labels of each observation.
+
+    offset : BaseOffset, optional
+        ``DateOffset`` representing the size of the window.
+
+    **kwargs
+        Additional keyword arguments passed to the parent class ``BaseIndexer``.
+
+    See Also
+    --------
+    api.indexers.BaseIndexer : Base class for all indexers.
+    DataFrame.rolling : Rolling window calculations on DataFrames.
+    offsets : Module providing various time offset classes.
 
     Examples
     --------
@@ -183,6 +273,8 @@ class VariableOffsetWindowIndexer(BaseIndexer):
     2020-01-10   9.0
     """
 
+    __module__ = "pandas.api.indexers"
+
     def __init__(
         self,
         index_array: np.ndarray | None = None,
@@ -199,7 +291,6 @@ class VariableOffsetWindowIndexer(BaseIndexer):
             raise ValueError("offset must be a DateOffset-like object.")
         self.offset = offset
 
-    @Appender(get_window_bounds_doc)
     def get_window_bounds(
         self,
         num_values: int = 0,
@@ -208,6 +299,32 @@ class VariableOffsetWindowIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Computes the bounds of a window.
+
+        Parameters
+        ----------
+        num_values : int, default 0
+            number of values that will be aggregated over
+        window_size : int, default 0
+            the number of rows in a window
+        min_periods : int, default None
+            min_periods passed from the top level rolling API
+        center : bool, default None
+            center passed from the top level rolling API
+        closed : str, default None
+            closed passed from the top level rolling API
+        step : int, default None
+            step passed from the top level rolling API
+            .. versionadded:: 1.5
+        win_type : str, default None
+            win_type passed from the top level rolling API
+
+        Returns
+        -------
+        A tuple of ndarray[int64]s, indicating the boundaries of each
+        window
+        """
         if step is not None:
             raise NotImplementedError("step not implemented for variable offset window")
         if num_values <= 0:
@@ -280,7 +397,6 @@ class VariableOffsetWindowIndexer(BaseIndexer):
 class ExpandingIndexer(BaseIndexer):
     """Calculate expanding window bounds, mimicking df.expanding()"""
 
-    @Appender(get_window_bounds_doc)
     def get_window_bounds(
         self,
         num_values: int = 0,
@@ -289,6 +405,32 @@ class ExpandingIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Computes the bounds of a window.
+
+        Parameters
+        ----------
+        num_values : int, default 0
+            number of values that will be aggregated over
+        window_size : int, default 0
+            the number of rows in a window
+        min_periods : int, default None
+            min_periods passed from the top level rolling API
+        center : bool, default None
+            center passed from the top level rolling API
+        closed : str, default None
+            closed passed from the top level rolling API
+        step : int, default None
+            step passed from the top level rolling API
+            .. versionadded:: 1.5
+        win_type : str, default None
+            win_type passed from the top level rolling API
+
+        Returns
+        -------
+        A tuple of ndarray[int64]s, indicating the boundaries of each
+        window
+        """
         return (
             np.zeros(num_values, dtype=np.int64),
             np.arange(1, num_values + 1, dtype=np.int64),
@@ -298,6 +440,26 @@ class ExpandingIndexer(BaseIndexer):
 class FixedForwardWindowIndexer(BaseIndexer):
     """
     Creates window boundaries for fixed-length windows that include the current row.
+
+    Parameters
+    ----------
+    index_array : np.ndarray, default None
+        Array-like structure representing the indices for the data points.
+        If None, the default indices are assumed. This can be useful for
+        handling non-uniform indices in data, such as in time series
+        with irregular timestamps.
+    window_size : int, default 0
+        Size of the moving window. This is the number of observations used
+        for calculating the statistic. The default is to consider all
+        observations within the window.
+    **kwargs
+        Additional keyword arguments passed to the subclass's methods.
+
+    See Also
+    --------
+    DataFrame.rolling : Provides rolling window calculations.
+    api.indexers.VariableWindowIndexer : Calculate window bounds based on
+        variable-sized windows.
 
     Examples
     --------
@@ -320,7 +482,8 @@ class FixedForwardWindowIndexer(BaseIndexer):
     4  4.0
     """
 
-    @Appender(get_window_bounds_doc)
+    __module__ = "pandas.api.indexers"
+
     def get_window_bounds(
         self,
         num_values: int = 0,
@@ -329,6 +492,32 @@ class FixedForwardWindowIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Computes the bounds of a window.
+
+        Parameters
+        ----------
+        num_values : int, default 0
+            number of values that will be aggregated over
+        window_size : int, default 0
+            the number of rows in a window
+        min_periods : int, default None
+            min_periods passed from the top level rolling API
+        center : bool, default None
+            center passed from the top level rolling API
+        closed : str, default None
+            closed passed from the top level rolling API
+        step : int, default None
+            step passed from the top level rolling API
+            .. versionadded:: 1.5
+        win_type : str, default None
+            win_type passed from the top level rolling API
+
+        Returns
+        -------
+        A tuple of ndarray[int64]s, indicating the boundaries of each
+        window
+        """
         if center:
             raise ValueError("Forward-looking windows can't have center=True")
         if closed is not None:
@@ -385,7 +574,6 @@ class GroupbyIndexer(BaseIndexer):
             **kwargs,
         )
 
-    @Appender(get_window_bounds_doc)
     def get_window_bounds(
         self,
         num_values: int = 0,
@@ -394,6 +582,32 @@ class GroupbyIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Computes the bounds of a window.
+
+        Parameters
+        ----------
+        num_values : int, default 0
+            number of values that will be aggregated over
+        window_size : int, default 0
+            the number of rows in a window
+        min_periods : int, default None
+            min_periods passed from the top level rolling API
+        center : bool, default None
+            center passed from the top level rolling API
+        closed : str, default None
+            closed passed from the top level rolling API
+        step : int, default None
+            step passed from the top level rolling API
+            .. versionadded:: 1.5
+        win_type : str, default None
+            win_type passed from the top level rolling API
+
+        Returns
+        -------
+        A tuple of ndarray[int64]s, indicating the boundaries of each
+        window
+        """
         # 1) For each group, get the indices that belong to the group
         # 2) Use the indices to calculate the start & end bounds of the window
         # 3) Append the window bounds in group order
@@ -417,9 +631,9 @@ class GroupbyIndexer(BaseIndexer):
             )
             start = start.astype(np.int64)
             end = end.astype(np.int64)
-            assert len(start) == len(
-                end
-            ), "these should be equal in length from get_window_bounds"
+            assert len(start) == len(end), (
+                "these should be equal in length from get_window_bounds"
+            )
             # Cannot use groupby_indices as they might not be monotonic with the object
             # we're rolling over
             window_indices = np.arange(
@@ -442,7 +656,6 @@ class GroupbyIndexer(BaseIndexer):
 class ExponentialMovingWindowIndexer(BaseIndexer):
     """Calculate ewm window bounds (the entire window)"""
 
-    @Appender(get_window_bounds_doc)
     def get_window_bounds(
         self,
         num_values: int = 0,
@@ -451,4 +664,30 @@ class ExponentialMovingWindowIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Computes the bounds of a window.
+
+        Parameters
+        ----------
+        num_values : int, default 0
+            number of values that will be aggregated over
+        window_size : int, default 0
+            the number of rows in a window
+        min_periods : int, default None
+            min_periods passed from the top level rolling API
+        center : bool, default None
+            center passed from the top level rolling API
+        closed : str, default None
+            closed passed from the top level rolling API
+        step : int, default None
+            step passed from the top level rolling API
+            .. versionadded:: 1.5
+        win_type : str, default None
+            win_type passed from the top level rolling API
+
+        Returns
+        -------
+        A tuple of ndarray[int64]s, indicating the boundaries of each
+        window
+        """
         return np.array([0], dtype=np.int64), np.array([num_values], dtype=np.int64)

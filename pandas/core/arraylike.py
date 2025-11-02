@@ -298,7 +298,9 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
 
     # align all the inputs.
     types = tuple(type(x) for x in inputs)
-    alignable = [x for x, t in zip(inputs, types) if issubclass(t, NDFrame)]
+    alignable = [
+        x for x, t in zip(inputs, types, strict=True) if issubclass(t, NDFrame)
+    ]
 
     if len(alignable) > 1:
         # This triggers alignment.
@@ -317,20 +319,20 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         for obj in alignable[1:]:
             # this relies on the fact that we aren't handling mixed
             # series / frame ufuncs.
-            for i, (ax1, ax2) in enumerate(zip(axes, obj.axes)):
+            for i, (ax1, ax2) in enumerate(zip(axes, obj.axes, strict=True)):
                 axes[i] = ax1.union(ax2)
 
-        reconstruct_axes = dict(zip(self._AXIS_ORDERS, axes))
+        reconstruct_axes = dict(zip(self._AXIS_ORDERS, axes, strict=True))
         inputs = tuple(
             x.reindex(**reconstruct_axes) if issubclass(t, NDFrame) else x
-            for x, t in zip(inputs, types)
+            for x, t in zip(inputs, types, strict=True)
         )
     else:
-        reconstruct_axes = dict(zip(self._AXIS_ORDERS, self.axes))
+        reconstruct_axes = dict(zip(self._AXIS_ORDERS, self.axes, strict=True))
 
     if self.ndim == 1:
-        names = [getattr(x, "name") for x in inputs if hasattr(x, "name")]
-        name = names[0] if len(set(names)) == 1 else None
+        names = {x.name for x in inputs if hasattr(x, "name")}
+        name = names.pop() if len(names) == 1 else None
         reconstruct_kwargs = {"name": name}
     else:
         reconstruct_kwargs = {}
@@ -403,12 +405,12 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             # for np.<ufunc>(..) calls
             # kwargs cannot necessarily be handled block-by-block, so only
             # take this path if there are no kwargs
-            mgr = inputs[0]._mgr
+            mgr = inputs[0]._mgr  # pyright: ignore[reportGeneralTypeIssues]
             result = mgr.apply(getattr(ufunc, method))
         else:
             # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
             # Those can have an axis keyword and thus can't be called block-by-block
-            result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)
+            result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)  # pyright: ignore[reportGeneralTypeIssues]
             # e.g. np.negative (only one reached), with "where" and "out" in kwargs
 
     result = reconstruct(result)
@@ -450,7 +452,7 @@ def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwarg
         if not isinstance(out, tuple) or len(out) != len(result):
             raise NotImplementedError
 
-        for arr, res in zip(out, result):
+        for arr, res in zip(out, result, strict=True):
             _assign_where(arr, res, where)
 
         return out
@@ -522,7 +524,7 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
             #  so calls DataFrame.min (without ever getting here) with the np.min
             #  default of axis=None, which DataFrame.min catches and changes to axis=0.
             # np.minimum.reduce(df) gets here bc axis is not in kwargs,
-            #  so we set axis=0 to match the behaviorof np.minimum.reduce(df.values)
+            #  so we set axis=0 to match the behavior of np.minimum.reduce(df.values)
             kwargs["axis"] = 0
 
     # By default, numpy's reductions do not skip NaNs, so we have to

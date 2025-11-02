@@ -4,16 +4,20 @@ import numpy as np
 
 from pandas import (
     DatetimeIndex,
+    Index,
     Series,
 )
 import pandas._testing as tm
 
 
-def test_series_set_value():
-    # GH#1561
+def test_series_set_value(using_infer_string):
+    # GH#1561, GH#51363 as of 3.0 we do not do inference in Index.insert
 
     dates = [datetime(2001, 1, 1), datetime(2001, 1, 2)]
-    index = DatetimeIndex(dates)
+    if using_infer_string:
+        index = DatetimeIndex(dates)
+    else:
+        index = Index(dates, dtype=object)
 
     s = Series(dtype=object)
     s._set_value(dates[0], 1.0)

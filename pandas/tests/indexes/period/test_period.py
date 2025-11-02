@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import IncompatibleFrequency
+
 from pandas import (
     Index,
     NaT,
@@ -198,7 +200,7 @@ def test_maybe_convert_timedelta():
 
     offset = offsets.BusinessDay()
     msg = r"Input has different freq=B from PeriodIndex\(freq=D\)"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(IncompatibleFrequency, match=msg):
         pi._maybe_convert_timedelta(offset)
 
 

@@ -9,6 +9,7 @@ from time import struct_time
 from typing import (
     ClassVar,
     Literal,
+    Self,
     TypeAlias,
     overload,
 )
@@ -22,10 +23,7 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
 )
-from pandas._typing import (
-    Self,
-    TimestampNonexistent,
-)
+from pandas._typing import TimestampNonexistent
 
 _TimeZones: TypeAlias = str | _tzinfo | None | int
 

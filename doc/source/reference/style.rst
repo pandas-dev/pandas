@@ -27,6 +27,7 @@ Styler properties
    Styler.template_html_style
    Styler.template_html_table
    Styler.template_latex
+   Styler.template_typst
    Styler.template_string
    Styler.loader
 
@@ -41,6 +42,7 @@ Style application
    Styler.map_index
    Styler.format
    Styler.format_index
+   Styler.format_index_names
    Styler.relabel_index
    Styler.hide
    Styler.concat
@@ -76,6 +78,7 @@ Style export and import
 
    Styler.to_html
    Styler.to_latex
+   Styler.to_typst
    Styler.to_excel
    Styler.to_string
    Styler.export

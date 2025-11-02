@@ -296,6 +296,7 @@ class TestnanopsDataFrame:
         self,
         testfunc,
         targfunc,
+        testar,
         testarval,
         targarval,
         skipna,
@@ -319,6 +320,13 @@ class TestnanopsDataFrame:
                 else:
                     targ = bool(targ)
 
+            if testfunc.__name__ in ["nanargmax", "nanargmin"] and (
+                testar.startswith("arr_nan")
+                or (testar.endswith("nan") and (not skipna or axis == 1))
+            ):
+                with pytest.raises(ValueError, match="Encountered .* NA value"):
+                    testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
+                return
             res = testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
 
             if (
@@ -350,6 +358,7 @@ class TestnanopsDataFrame:
         self.check_fun_data(
             testfunc,
             targfunc,
+            testar,
             testarval2,
             targarval2,
             skipna=skipna,
@@ -370,6 +379,7 @@ class TestnanopsDataFrame:
         self.check_fun_data(
             testfunc,
             targfunc,
+            testar,
             testarval,
             targarval,
             skipna=skipna,
@@ -527,11 +537,8 @@ class TestnanopsDataFrame:
         nullnan = isna(nans)
         if res.ndim:
             res[nullnan] = -1
-        elif (
-            hasattr(nullnan, "all")
-            and nullnan.all()
-            or not hasattr(nullnan, "all")
-            and nullnan
+        elif (hasattr(nullnan, "all") and nullnan.all()) or (
+            not hasattr(nullnan, "all") and nullnan
         ):
             res = -1
         return res
@@ -1044,6 +1051,23 @@ class TestNanskewFixedValues:
         skew = nanops.nanskew(samples, skipna=True)
         tm.assert_almost_equal(skew, actual_skew)
 
+    @pytest.mark.parametrize(
+        "initial_data, nobs",
+        [
+            ([-2.05191341e-05, -4.10391103e-05], 27),
+            ([-2.05191341e-10, -4.10391103e-10], 27),
+            ([-2.05191341e-05, -4.10391103e-05], 10_000),
+            ([-2.05191341e-10, -4.10391103e-10], 10_000),
+        ],
+    )
+    def test_low_variance(self, initial_data, nobs):
+        st = pytest.importorskip("scipy.stats")
+        data = np.zeros((nobs,), dtype=np.float64)
+        data[: len(initial_data)] = initial_data
+        skew = nanops.nanskew(data)
+        expected = st.skew(data, bias=False)
+        tm.assert_almost_equal(skew, expected)
+
     @property
     def prng(self):
         return np.random.default_rng(2)
@@ -1065,7 +1089,7 @@ class TestNankurtFixedValues:
         # xref GH 11974
         data = val * np.ones(300)
         kurt = nanops.nankurt(data)
-        assert kurt == 0.0
+        tm.assert_equal(kurt, 0.0)
 
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
@@ -1094,6 +1118,24 @@ class TestNankurtFixedValues:
         samples = np.hstack([samples, np.nan])
         kurt = nanops.nankurt(samples, skipna=True)
         tm.assert_almost_equal(kurt, actual_kurt)
+
+    @pytest.mark.parametrize(
+        "initial_data, nobs",
+        [
+            ([-2.05191341e-05, -4.10391103e-05], 27),
+            ([-2.05191341e-10, -4.10391103e-10], 27),
+            ([-2.05191341e-05, -4.10391103e-05], 10_000),
+            ([-2.05191341e-10, -4.10391103e-10], 10_000),
+        ],
+    )
+    def test_low_variance(self, initial_data, nobs):
+        # GH#57972
+        st = pytest.importorskip("scipy.stats")
+        data = np.zeros((nobs,), dtype=np.float64)
+        data[: len(initial_data)] = initial_data
+        kurt = nanops.nankurt(data)
+        expected = st.kurtosis(data, bias=False)
+        tm.assert_almost_equal(kurt, expected)
 
     @property
     def prng(self):

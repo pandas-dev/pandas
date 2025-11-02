@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import OutOfBoundsDatetime
+
 import pandas as pd
 from pandas import (
     Series,
@@ -41,21 +43,16 @@ class TestSeriesClip:
             assert list(isna(s)) == list(isna(lower))
             assert list(isna(s)) == list(isna(upper))
 
-    def test_series_clipping_with_na_values(self, any_numeric_ea_dtype, nulls_fixture):
+    def test_series_clipping_with_na_values(self, any_numeric_ea_dtype):
         # Ensure that clipping method can handle NA values with out failing
         # GH#40581
 
-        if nulls_fixture is pd.NaT:
-            # constructor will raise, see
-            #  test_constructor_mismatched_null_nullable_dtype
-            pytest.skip("See test_constructor_mismatched_null_nullable_dtype")
-
-        ser = Series([nulls_fixture, 1.0, 3.0], dtype=any_numeric_ea_dtype)
+        ser = Series([pd.NA, 1.0, 3.0], dtype=any_numeric_ea_dtype)
         s_clipped_upper = ser.clip(upper=2.0)
         s_clipped_lower = ser.clip(lower=2.0)
 
-        expected_upper = Series([nulls_fixture, 1.0, 2.0], dtype=any_numeric_ea_dtype)
-        expected_lower = Series([nulls_fixture, 2.0, 3.0], dtype=any_numeric_ea_dtype)
+        expected_upper = Series([pd.NA, 1.0, 2.0], dtype=any_numeric_ea_dtype)
+        expected_lower = Series([pd.NA, 2.0, 3.0], dtype=any_numeric_ea_dtype)
 
         tm.assert_series_equal(s_clipped_upper, expected_upper)
         tm.assert_series_equal(s_clipped_lower, expected_lower)
@@ -131,12 +128,30 @@ class TestSeriesClip:
         )
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [object, "M8[us]"])
-    def test_clip_with_timestamps_and_oob_datetimes(self, dtype):
+    def test_clip_with_timestamps_and_oob_datetimes_object(self):
         # GH-42794
-        ser = Series([datetime(1, 1, 1), datetime(9999, 9, 9)], dtype=dtype)
+        ser = Series([datetime(1, 1, 1), datetime(9999, 9, 9)], dtype=object)
 
         result = ser.clip(lower=Timestamp.min, upper=Timestamp.max)
-        expected = Series([Timestamp.min, Timestamp.max], dtype=dtype)
+        expected = Series([Timestamp.min, Timestamp.max], dtype=object)
+
+        tm.assert_series_equal(result, expected)
+
+    def test_clip_with_timestamps_and_oob_datetimes_non_nano(self):
+        # GH#56410
+        dtype = "M8[us]"
+        ser = Series([datetime(1, 1, 1), datetime(9999, 9, 9)], dtype=dtype)
+
+        msg = (
+            r"Incompatible \(high-resolution\) value for dtype='datetime64\[us\]'. "
+            "Explicitly cast before operating"
+        )
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            ser.clip(lower=Timestamp.min, upper=Timestamp.max)
+
+        lower = Timestamp.min.as_unit("us")
+        upper = Timestamp.max.as_unit("us")
+        result = ser.clip(lower=lower, upper=upper)
+        expected = Series([lower, upper], dtype=dtype)
 
         tm.assert_series_equal(result, expected)

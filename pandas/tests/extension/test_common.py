@@ -93,8 +93,13 @@ class CapturingStringArray(pd.arrays.StringArray):
 def test_ellipsis_index():
     # GH#42430 1D slices over extension types turn into N-dimensional slices
     #  over ExtensionArrays
+    dtype = pd.StringDtype()
     df = pd.DataFrame(
-        {"col1": CapturingStringArray(np.array(["hello", "world"], dtype=object))}
+        {
+            "col1": CapturingStringArray(
+                np.array(["hello", "world"], dtype=object), dtype=dtype
+            )
+        }
     )
     _ = df.iloc[:1]
 

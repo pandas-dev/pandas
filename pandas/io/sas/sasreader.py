@@ -8,12 +8,17 @@ from abc import (
     ABC,
     abstractmethod,
 )
+from collections.abc import Iterator
 from typing import (
     TYPE_CHECKING,
+    Self,
     overload,
 )
 
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 
 from pandas.core.shared_docs import _shared_docs
 
@@ -27,16 +32,17 @@ if TYPE_CHECKING:
         CompressionOptions,
         FilePath,
         ReadBuffer,
-        Self,
     )
 
     from pandas import DataFrame
 
 
-class ReaderBase(ABC):
+class SASReader(Iterator["DataFrame"], ABC):
     """
-    Protocol for XportReader and SAS7BDATReader classes.
+    Abstract class for XportReader and SAS7BDATReader.
     """
+
+    __module__ = "pandas.api.typing"
 
     @abstractmethod
     def read(self, nrows: int | None = None) -> DataFrame: ...
@@ -66,7 +72,7 @@ def read_sas(
     chunksize: int = ...,
     iterator: bool = ...,
     compression: CompressionOptions = ...,
-) -> ReaderBase: ...
+) -> SASReader: ...
 
 
 @overload
@@ -79,9 +85,10 @@ def read_sas(
     chunksize: None = ...,
     iterator: bool = ...,
     compression: CompressionOptions = ...,
-) -> DataFrame | ReaderBase: ...
+) -> DataFrame | SASReader: ...
 
 
+@set_module("pandas")
 @doc(decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer")
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],
@@ -92,7 +99,7 @@ def read_sas(
     chunksize: int | None = None,
     iterator: bool = False,
     compression: CompressionOptions = "infer",
-) -> DataFrame | ReaderBase:
+) -> DataFrame | SASReader:
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 
@@ -123,6 +130,14 @@ def read_sas(
         DataFrame if iterator=False and chunksize=None, else SAS7BDATReader
         or XportReader, file format is inferred from file extension.
 
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_spss : Read an SPSS file into a pandas DataFrame.
+    read_orc : Load an ORC object into a pandas DataFrame.
+    read_feather : Load a feather-format object into a pandas DataFrame.
+
     Examples
     --------
     >>> df = pd.read_sas("sas_data.sas7bdat")  # doctest: +SKIP
@@ -145,7 +160,7 @@ def read_sas(
                 f"unable to infer format of SAS file from filename: {fname!r}"
             )
 
-    reader: ReaderBase
+    reader: SASReader
     if format.lower() == "xport":
         from pandas.io.sas.sas_xport import XportReader
 

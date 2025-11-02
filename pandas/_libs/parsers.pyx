@@ -8,9 +8,14 @@ from csv import (
 )
 import warnings
 
+from pandas._config import is_nan_na
+
 from pandas.util._exceptions import find_stack_level
 
-from pandas import StringDtype
+from pandas import (
+    ArrowDtype,
+    StringDtype,
+)
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BooleanArray,
@@ -24,6 +29,7 @@ from cpython.exc cimport (
     PyErr_Fetch,
     PyErr_Occurred,
 )
+from cpython.long cimport PyLong_FromString
 from cpython.object cimport PyObject
 from cpython.ref cimport (
     Py_INCREF,
@@ -43,7 +49,6 @@ from libc.string cimport (
     strncpy,
 )
 
-
 import numpy as np
 
 cimport numpy as cnp
@@ -58,11 +63,6 @@ from numpy cimport (
 cnp.import_array()
 
 from pandas._libs cimport util
-from pandas._libs.util cimport (
-    INT64_MAX,
-    INT64_MIN,
-    UINT64_MAX,
-)
 
 from pandas._libs import lib
 
@@ -144,7 +144,7 @@ cdef extern from "pandas/parser/tokenizer.h":
         SKIP_LINE
         FINISHED
 
-    enum: ERROR_OVERFLOW
+    enum: ERROR_OVERFLOW, ERROR_INVALID_CHARS
 
     ctypedef enum BadLineHandleMethod:
         ERROR,
@@ -276,10 +276,8 @@ cdef extern from "pandas/parser/pd_parser.h":
     int tokenize_all_rows(parser_t *self, const char *encoding_errors) nogil
     int tokenize_nrows(parser_t *self, size_t nrows, const char *encoding_errors) nogil
 
-    int64_t str_to_int64(char *p_item, int64_t int_min,
-                         int64_t int_max, int *error, char tsep) nogil
-    uint64_t str_to_uint64(uint_state *state, char *p_item, int64_t int_max,
-                           uint64_t uint_max, int *error, char tsep) nogil
+    int64_t str_to_int64(char *p_item,  int *error, char tsep) nogil
+    uint64_t str_to_uint64(uint_state *state, char *p_item, int *error, char tsep) nogil
 
     double xstrtod(const char *p, char **q, char decimal,
                    char sci, char tsep, int skip_trailing,
@@ -340,7 +338,7 @@ cdef class TextReader:
     cdef:
         parser_t *parser
         object na_fvalues
-        object true_values, false_values
+        list true_values, false_values
         object handle
         object orig_header
         bint na_filter, keep_default_na, has_usecols, has_mi_columns
@@ -358,7 +356,7 @@ cdef class TextReader:
         int64_t leading_cols, table_width
         object delimiter  # bytes or str
         object converters
-        object na_values
+        object na_values  # dict[hashable, set[str]] | list[str]
         list header  # list[list[non-negative integers]]
         object index_col
         object skiprows
@@ -390,8 +388,8 @@ cdef class TextReader:
                   usecols=None,
                   on_bad_lines=ERROR,
                   bint na_filter=True,
-                  na_values=None,
-                  na_fvalues=None,
+                  na_values=None,       # dict[hashable, set[str]] | set[str]
+                  na_fvalues=None,      # dict[hashable, set[float]] | set[float]
                   bint keep_default_na=True,
                   true_values=None,
                   false_values=None,
@@ -486,9 +484,17 @@ cdef class TextReader:
 
         self.delimiter = delimiter
 
+        # na_fvalues is created from user-provided na_value in _clean_na_values
+        #  which ensures that either
+        #  a) na_values is set[str] and na_fvalues is set[float]
+        #  b) na_values is dict[Hashable, set[str]] and
+        #     na_fvalues is dict[Hashable, set[float]]
+        #     (tests for this case are in test_na_values.py)
+        if not isinstance(na_values, dict):
+            # i.e. it must be a set
+            na_values = list(na_values)
+
         self.na_values = na_values
-        if na_fvalues is None:
-            na_fvalues = set()
         self.na_fvalues = na_fvalues
 
         self.true_values = _maybe_encode(true_values) + _true_values
@@ -929,10 +935,12 @@ cdef class TextReader:
             int nused
             kh_str_starts_t *na_hashset = NULL
             int64_t start, end
-            object name, na_flist, col_dtype = None
+            object name, col_dtype = None
+            set na_fset
             bint na_filter = 0
             int64_t num_cols
             dict results
+            bint is_default_dict_dtype
 
         start = self.parser_start
 
@@ -948,26 +956,7 @@ cdef class TextReader:
                 self.parser.line_fields[i] + \
                 (num_cols >= self.parser.line_fields[i]) * num_cols
 
-        usecols_not_callable_and_exists = not callable(self.usecols) and self.usecols
-        names_larger_num_cols = (self.names and
-                                 len(self.names) - self.leading_cols > num_cols)
-
-        if self.table_width - self.leading_cols > num_cols:
-            if (usecols_not_callable_and_exists
-                    and self.table_width - self.leading_cols < len(self.usecols)
-                    or names_larger_num_cols):
-                raise ParserError(f"Too many columns specified: expected "
-                                  f"{self.table_width - self.leading_cols} "
-                                  f"and found {num_cols}")
-
-        if (usecols_not_callable_and_exists and
-                all(isinstance(u, int) for u in self.usecols)):
-            missing_usecols = [col for col in self.usecols if col >= num_cols]
-            if missing_usecols:
-                raise ParserError(
-                    "Defining usecols with out-of-bounds indices is not allowed. "
-                    f"{missing_usecols} are out of bounds.",
-                )
+        self._validate_usecols_and_names(num_cols)
 
         results = {}
         nused = 0
@@ -995,22 +984,7 @@ cdef class TextReader:
                 nused += 1
 
             conv = self._get_converter(i, name)
-
-            col_dtype = None
-            if self.dtype is not None:
-                if isinstance(self.dtype, dict):
-                    if name in self.dtype:
-                        col_dtype = self.dtype[name]
-                    elif i in self.dtype:
-                        col_dtype = self.dtype[i]
-                    elif is_default_dict_dtype:
-                        col_dtype = self.dtype[name]
-                else:
-                    if self.dtype.names:
-                        # structured array
-                        col_dtype = np.dtype(self.dtype.descr[i][1])
-                    else:
-                        col_dtype = self.dtype
+            col_dtype = self._get_col_dtype(i, is_default_dict_dtype, name)
 
             if conv:
                 if col_dtype is not None:
@@ -1021,18 +995,15 @@ cdef class TextReader:
                 results[i] = _apply_converter(conv, self.parser, i, start, end)
                 continue
 
-            # Collect the list of NaN values associated with the column.
+            # Collect the set of NaN values associated with the column.
             # If we aren't supposed to do that, or none are collected,
             # we set `na_filter` to `0` (`1` otherwise).
-            na_flist = set()
+            na_fset = set()
 
             if self.na_filter:
-                na_list, na_flist = self._get_na_list(i, name)
-                if na_list is None:
-                    na_filter = 0
-                else:
-                    na_filter = 1
-                    na_hashset = kset_from_list(na_list)
+                na_list, na_fset = self._get_na_list(i, name)
+                na_filter = 1
+                na_hashset = kset_from_list(na_list)
             else:
                 na_filter = 0
 
@@ -1041,7 +1012,7 @@ cdef class TextReader:
             try:
                 col_res, na_count = self._convert_tokens(
                     i, start, end, name, na_filter, na_hashset,
-                    na_flist, col_dtype)
+                    na_fset, col_dtype)
             finally:
                 # gh-21353
                 #
@@ -1075,12 +1046,12 @@ cdef class TextReader:
     cdef _convert_tokens(self, Py_ssize_t i, int64_t start,
                          int64_t end, object name, bint na_filter,
                          kh_str_starts_t *na_hashset,
-                         object na_flist, object col_dtype):
+                         set na_fset, object col_dtype):
 
         if col_dtype is not None:
             col_res, na_count = self._convert_with_dtype(
                 col_dtype, i, start, end, na_filter,
-                1, na_hashset, na_flist)
+                1, na_hashset, na_fset, False)
 
             # Fallback on the parse (e.g. we requested int dtype,
             # but its actually a float).
@@ -1091,22 +1062,34 @@ cdef class TextReader:
             return self._string_convert(i, start, end, na_filter, na_hashset)
         else:
             col_res = None
+            maybe_int = True
             for dt in self.dtype_cast_order:
+                if not maybe_int and dt.kind in "iu":
+                    continue
+
                 try:
                     col_res, na_count = self._convert_with_dtype(
-                        dt, i, start, end, na_filter, 0, na_hashset, na_flist)
-                except ValueError:
-                    # This error is raised from trying to convert to uint64,
-                    # and we discover that we cannot convert to any numerical
-                    # dtype successfully. As a result, we leave the data
-                    # column AS IS with object dtype.
-                    col_res, na_count = self._convert_with_dtype(
-                        np.dtype("object"), i, start, end, 0,
-                        0, na_hashset, na_flist)
+                        dt, i, start, end, na_filter, 0, na_hashset, na_fset, True)
+                except ValueError as e:
+                    if str(e) == "Number is not int":
+                        maybe_int = False
+                        continue
+                    else:
+                        # This error is raised from trying to convert to uint64,
+                        # and we discover that we cannot convert to any numerical
+                        # dtype successfully. As a result, we leave the data
+                        # column AS IS with object dtype.
+                        col_res, na_count = self._convert_with_dtype(
+                            np.dtype("object"), i, start, end, 0,
+                            0, na_hashset, na_fset, False)
                 except OverflowError:
-                    col_res, na_count = self._convert_with_dtype(
-                        np.dtype("object"), i, start, end, na_filter,
-                        0, na_hashset, na_flist)
+                    try:
+                        col_res, na_count = _try_pylong(self.parser, i, start,
+                                                        end, na_filter, na_hashset)
+                    except ValueError:
+                        col_res, na_count = self._convert_with_dtype(
+                            np.dtype("object"), i, start, end, 0,
+                            0, na_hashset, na_fset, False)
 
                 if col_res is not None:
                     break
@@ -1154,7 +1137,7 @@ cdef class TextReader:
                              bint na_filter,
                              bint user_dtype,
                              kh_str_starts_t *na_hashset,
-                             object na_flist):
+                             set na_fset, bint raise_on_invalid):
         if isinstance(dtype, CategoricalDtype):
             # TODO: I suspect that _categorical_convert could be
             # optimized when dtype is an instance of CategoricalDtype
@@ -1195,14 +1178,14 @@ cdef class TextReader:
 
         elif dtype.kind in "iu":
             try:
-                result, na_count = _try_int64(self.parser, i, start,
-                                              end, na_filter, na_hashset)
+                result, na_count = _try_int64(self.parser, i, start, end,
+                                              na_filter, na_hashset, raise_on_invalid)
                 if user_dtype and na_count is not None:
                     if na_count > 0:
                         raise ValueError(f"Integer column has NA values in column {i}")
             except OverflowError:
                 result = _try_uint64(self.parser, i, start, end,
-                                     na_filter, na_hashset)
+                                     na_filter, na_hashset, raise_on_invalid)
                 na_count = 0
 
             if result is not None and dtype != "int64":
@@ -1212,7 +1195,7 @@ cdef class TextReader:
 
         elif dtype.kind == "f":
             result, na_count = _try_double(self.parser, i, start, end,
-                                           na_filter, na_hashset, na_flist)
+                                           na_filter, na_hashset, na_fset)
 
             if result is not None and dtype != "float64":
                 result = result.astype(dtype)
@@ -1261,6 +1244,47 @@ cdef class TextReader:
         return _string_box_utf8(self.parser, i, start, end, na_filter,
                                 na_hashset, self.encoding_errors)
 
+    cdef void _validate_usecols_and_names(self, int num_cols):
+        usecols_not_callable_and_exists = not callable(self.usecols) and self.usecols
+        names_larger_num_cols = (self.names and
+                                 len(self.names) - self.leading_cols > num_cols)
+
+        if self.table_width - self.leading_cols > num_cols:
+            if (usecols_not_callable_and_exists
+                    and self.table_width - self.leading_cols < len(self.usecols)
+                    or names_larger_num_cols):
+                raise ParserError(f"Too many columns specified: expected "
+                                  f"{self.table_width - self.leading_cols} "
+                                  f"and found {num_cols}")
+
+        if (usecols_not_callable_and_exists and
+                all(isinstance(u, int) for u in self.usecols)):
+            missing_usecols = [col for col in self.usecols if col >= num_cols]
+            if missing_usecols:
+                raise ParserError(
+                    "Defining usecols with out-of-bounds indices is not allowed. "
+                    f"{missing_usecols} are out of bounds.",
+                )
+
+    # -> DtypeObj
+    cdef object _get_col_dtype(self, int64_t i, bint is_default_dict_dtype, name):
+        col_dtype = None
+        if self.dtype is not None:
+            if isinstance(self.dtype, dict):
+                if name in self.dtype:
+                    col_dtype = self.dtype[name]
+                elif i in self.dtype:
+                    col_dtype = self.dtype[i]
+                elif is_default_dict_dtype:
+                    col_dtype = self.dtype[name]
+            else:
+                if self.dtype.names:
+                    # structured array
+                    col_dtype = np.dtype(self.dtype.descr[i][1])
+                else:
+                    col_dtype = self.dtype
+        return col_dtype
+
     def _get_converter(self, i: int, name):
         if self.converters is None:
             return None
@@ -1272,10 +1296,6 @@ cdef class TextReader:
         return self.converters.get(i)
 
     cdef _get_na_list(self, Py_ssize_t i, name):
-        # Note: updates self.na_values, self.na_fvalues
-        if self.na_values is None:
-            return None, set()
-
         if isinstance(self.na_values, dict):
             key = None
             values = None
@@ -1300,11 +1320,6 @@ cdef class TextReader:
 
             return _ensure_encoded(values), fvalues
         else:
-            if not isinstance(self.na_values, list):
-                self.na_values = list(self.na_values)
-            if not isinstance(self.na_fvalues, set):
-                self.na_fvalues = set(self.na_fvalues)
-
             return _ensure_encoded(self.na_values), self.na_fvalues
 
     cdef _free_na_set(self, kh_str_starts_t *table):
@@ -1333,7 +1348,6 @@ cdef class TextReader:
             else:
                 return None
 
-
 # Factor out code common to TextReader.__dealloc__ and TextReader.close
 # It cannot be a class method, since calling self.close() in __dealloc__
 # which causes a class attribute lookup and violates best practices
@@ -1350,8 +1364,8 @@ cdef _close(TextReader reader):
 
 
 cdef:
-    object _true_values = [b"True", b"TRUE", b"true"]
-    object _false_values = [b"False", b"FALSE", b"false"]
+    list _true_values = [b"True", b"TRUE", b"true"]
+    list _false_values = [b"False", b"FALSE", b"false"]
 
 
 def _ensure_encoded(list lst):
@@ -1447,7 +1461,13 @@ def _maybe_upcast(
 
     elif arr.dtype == np.object_:
         if use_dtype_backend:
-            dtype = StringDtype()
+            if dtype_backend == "pyarrow":
+                # using the StringDtype below would use large_string by default
+                # keep here to pyarrow's default of string
+                import pyarrow as pa
+                dtype = ArrowDtype(pa.string())
+            else:
+                dtype = StringDtype()
             cls = dtype.construct_array_type()
             arr = cls._from_sequence(arr, dtype=dtype)
 
@@ -1456,7 +1476,7 @@ def _maybe_upcast(
         if isinstance(arr, IntegerArray) and arr.isna().all():
             # use null instead of int64 in pyarrow
             arr = arr.to_numpy(na_value=None)
-        arr = ArrowExtensionArray(pa.array(arr, from_pandas=True))
+        arr = ArrowExtensionArray(pa.array(arr, from_pandas=is_nan_na()))
 
     return arr
 
@@ -1622,27 +1642,27 @@ cdef:
 # -> tuple[ndarray[float64_t], int]  | tuple[None, None]
 cdef _try_double(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
-                 bint na_filter, kh_str_starts_t *na_hashset, object na_flist):
+                 bint na_filter, kh_str_starts_t *na_hashset, set na_fset):
     cdef:
         int error, na_count = 0
         Py_ssize_t lines
         float64_t *data
         float64_t NA = na_values[np.float64]
-        kh_float64_t *na_fset
+        kh_float64_t *na_fhashset
         ndarray[float64_t] result
-        bint use_na_flist = len(na_flist) > 0
+        bint use_na_flist = len(na_fset) > 0
 
     lines = line_end - line_start
     result = np.empty(lines, dtype=np.float64)
     data = <float64_t *>result.data
-    na_fset = kset_float64_from_list(na_flist)
+    na_fhashset = kset_float64_from_set(na_fset)
     with nogil:
         error = _try_double_nogil(parser, parser.double_converter,
                                   col, line_start, line_end,
                                   na_filter, na_hashset, use_na_flist,
-                                  na_fset, NA, data, &na_count)
+                                  na_fhashset, NA, data, &na_count)
 
-    kh_destroy_float64(na_fset)
+    kh_destroy_float64(na_fhashset)
     if error != 0:
         return None, None
     return result, na_count
@@ -1655,7 +1675,7 @@ cdef int _try_double_nogil(parser_t *parser,
                            int64_t col, int64_t line_start, int64_t line_end,
                            bint na_filter, kh_str_starts_t *na_hashset,
                            bint use_na_flist,
-                           const kh_float64_t *na_flist,
+                           const kh_float64_t *na_fhashset,
                            float64_t NA, float64_t *data,
                            int *na_count) nogil:
     cdef:
@@ -1694,8 +1714,8 @@ cdef int _try_double_nogil(parser_t *parser,
                     else:
                         return 1
                 if use_na_flist:
-                    k64 = kh_get_float64(na_flist, data[0])
-                    if k64 != na_flist.n_buckets:
+                    k64 = kh_get_float64(na_fhashset, data[0])
+                    if k64 != na_fhashset.n_buckets:
                         na_count[0] += 1
                         data[0] = NA
             data += 1
@@ -1724,7 +1744,8 @@ cdef int _try_double_nogil(parser_t *parser,
 
 cdef _try_uint64(parser_t *parser, int64_t col,
                  int64_t line_start, int64_t line_end,
-                 bint na_filter, kh_str_starts_t *na_hashset):
+                 bint na_filter, kh_str_starts_t *na_hashset,
+                 bint raise_on_invalid):
     cdef:
         int error
         Py_ssize_t lines
@@ -1746,6 +1767,8 @@ cdef _try_uint64(parser_t *parser, int64_t col,
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
+        elif raise_on_invalid and error == ERROR_INVALID_CHARS:
+            raise ValueError("Number is not int")
         return None
 
     if uint64_conflict(&state):
@@ -1779,15 +1802,13 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
                 data[i] = 0
                 continue
 
-            data[i] = str_to_uint64(state, word, INT64_MAX, UINT64_MAX,
-                                    &error, parser.thousands)
+            data[i] = str_to_uint64(state, word, &error, parser.thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_uint64(state, word, INT64_MAX, UINT64_MAX,
-                                    &error, parser.thousands)
+            data[i] = str_to_uint64(state, word, &error, parser.thousands)
             if error != 0:
                 return error
 
@@ -1796,7 +1817,7 @@ cdef int _try_uint64_nogil(parser_t *parser, int64_t col,
 
 cdef _try_int64(parser_t *parser, int64_t col,
                 int64_t line_start, int64_t line_end,
-                bint na_filter, kh_str_starts_t *na_hashset):
+                bint na_filter, kh_str_starts_t *na_hashset, bint raise_on_invalid):
     cdef:
         int error, na_count = 0
         Py_ssize_t lines
@@ -1816,6 +1837,8 @@ cdef _try_int64(parser_t *parser, int64_t col,
         if error == ERROR_OVERFLOW:
             # Can't get the word variable
             raise OverflowError("Overflow")
+        elif raise_on_invalid and error == ERROR_INVALID_CHARS:
+            raise ValueError("Number is not int")
         return None, None
 
     return result, na_count
@@ -1844,19 +1867,47 @@ cdef int _try_int64_nogil(parser_t *parser, int64_t col,
                 data[i] = NA
                 continue
 
-            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
-                                   &error, parser.thousands)
+            data[i] = str_to_int64(word, &error, parser.thousands)
             if error != 0:
                 return error
     else:
         for i in range(lines):
             COLITER_NEXT(it, word)
-            data[i] = str_to_int64(word, INT64_MIN, INT64_MAX,
-                                   &error, parser.thousands)
+            data[i] = str_to_int64(word, &error, parser.thousands)
             if error != 0:
                 return error
 
     return 0
+
+cdef _try_pylong(parser_t *parser, Py_ssize_t col,
+                 int64_t line_start, int64_t line_end,
+                 bint na_filter, kh_str_starts_t *na_hashset):
+    cdef:
+        int na_count = 0
+        Py_ssize_t lines
+        coliter_t it
+        const char *word = NULL
+        ndarray[object] result
+        object NA = na_values[np.object_]
+
+    lines = line_end - line_start
+    result = np.empty(lines, dtype=object)
+    coliter_setup(&it, parser, col, line_start)
+
+    for i in range(lines):
+        COLITER_NEXT(it, word)
+        if na_filter and kh_get_str_starts_item(na_hashset, word):
+            # in the hash table
+            na_count += 1
+            result[i] = NA
+            continue
+
+        py_int = PyLong_FromString(word, NULL, 10)
+        if py_int is None:
+            raise ValueError("Invalid integer ", word)
+        result[i] = py_int
+
+    return result, na_count
 
 
 # -> tuple[ndarray[bool], int]
@@ -1977,7 +2028,7 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
     return table
 
 
-cdef kh_float64_t* kset_float64_from_list(values) except NULL:
+cdef kh_float64_t* kset_float64_from_set(set values) except NULL:
     # caller takes responsibility for freeing the hash table
     cdef:
         kh_float64_t *table

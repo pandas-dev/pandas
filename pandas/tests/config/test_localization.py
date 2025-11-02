@@ -92,7 +92,7 @@ def test_can_set_locale_invalid_get(monkeypatch):
     #  but a subsequent getlocale() raises a ValueError.
 
     def mock_get_locale():
-        raise ValueError()
+        raise ValueError
 
     with monkeypatch.context() as m:
         m.setattr(locale, "getlocale", mock_get_locale)

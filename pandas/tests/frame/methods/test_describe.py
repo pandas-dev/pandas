@@ -371,6 +371,13 @@ class TestDataFrameDescribe:
         with pytest.raises(ValueError, match=msg):
             df.describe(include="all", exclude=exclude)
 
+    def test_describe_when_included_dtypes_not_present(self):
+        # GH#61863
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = "No columns match the specified include or exclude data types"
+        with pytest.raises(ValueError, match=msg):
+            df.describe(include=["datetime"])
+
     def test_describe_with_duplicate_columns(self):
         df = DataFrame(
             [[1, 1, 1], [2, 2, 2], [3, 3, 3]],
@@ -412,4 +419,45 @@ class TestDataFrameDescribe:
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
             dtype=pd.ArrowDtype(pa.float64()),
         )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("percentiles", [None, [], [0.2]])
+    def test_refine_percentiles(self, percentiles):
+        """
+        Test that the percentiles are returned correctly depending on the `percentiles`
+        argument.
+        - The default behavior is to return the 25th, 50th, and 75 percentiles
+        - If `percentiles` is an empty list, no percentiles are returned
+        - If `percentiles` is a non-empty list, only those percentiles are returned
+        """
+        # GH#60550
+        df = DataFrame({"a": np.arange(0, 10, 1)})
+
+        result = df.describe(percentiles=percentiles)
+
+        if percentiles is None:
+            percentiles = [0.25, 0.5, 0.75]
+
+        expected = DataFrame(
+            [
+                len(df.a),
+                df.a.mean(),
+                df.a.std(),
+                df.a.min(),
+                *[df.a.quantile(p) for p in percentiles],
+                df.a.max(),
+            ],
+            index=pd.Index(
+                [
+                    "count",
+                    "mean",
+                    "std",
+                    "min",
+                    *[f"{p:.0%}" for p in percentiles],
+                    "max",
+                ]
+            ),
+            columns=["a"],
+        )
+
         tm.assert_frame_equal(result, expected)

@@ -72,15 +72,18 @@ class MaskedUInt16Engine(MaskedIndexEngine): ...
 class MaskedUInt8Engine(MaskedIndexEngine): ...
 class MaskedBoolEngine(MaskedUInt8Engine): ...
 
+class StringObjectEngine(ObjectEngine):
+    def __init__(self, values: object, na_value) -> None: ...
+
 class BaseMultiIndexCodesEngine:
-    levels: tuple[np.ndarray]
-    offsets: np.ndarray  # ndarray[uint64_t, ndim=1]
+    levels: list[np.ndarray]
+    offsets: np.ndarray  # np.ndarray[..., ndim=1]
 
     def __init__(
         self,
-        levels: tuple[Index, ...],  # all entries hashable
-        labels: tuple[np.ndarray],  # all entries integer-dtyped
-        offsets: np.ndarray,  # np.ndarray[np.uint64, ndim=1]
+        levels: list[Index],  # all entries hashable
+        labels: list[np.ndarray],  # all entries integer-dtyped
+        offsets: np.ndarray,  # np.ndarray[..., ndim=1]
     ) -> None: ...
     def get_indexer(self, target: npt.NDArray[np.object_]) -> npt.NDArray[np.intp]: ...
     def _extract_level_codes(self, target: MultiIndex) -> np.ndarray: ...

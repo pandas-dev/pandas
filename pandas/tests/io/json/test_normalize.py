@@ -172,7 +172,7 @@ class TestJSONNormalize:
     )
     def test_accepted_input(self, data, record_path, exception_type):
         if exception_type is not None:
-            with pytest.raises(exception_type, match=""):
+            with pytest.raises(exception_type, match="^$"):
                 json_normalize(data, record_path=record_path)
         else:
             result = json_normalize(data, record_path=record_path)
@@ -380,6 +380,19 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_record_prefix_no_record_path_series(self):
+        # Ensure record_prefix is applied when record_path is None for Series input
+        s = Series([{"k": f"{i}", "m": "q"} for i in range(3)])
+        result = json_normalize(s, record_prefix="T.")
+        expected = DataFrame(
+            [
+                {"T.k": "0", "T.m": "q"},
+                {"T.k": "1", "T.m": "q"},
+                {"T.k": "2", "T.m": "q"},
+            ]
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_non_ascii_key(self):
         testjson = (
             b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},'
@@ -516,7 +529,7 @@ class TestJSONNormalize:
             ],
             record_path=["info"],
         )
-        expected = DataFrame({"i": 2}, index=[0])
+        expected = DataFrame({"i": 2}, index=range(1))
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("value", ["false", "true", "{}", "1", '"text"'])

@@ -11,7 +11,6 @@ from pandas import (
     HDFStore,
     Index,
     MultiIndex,
-    _testing as tm,
     date_range,
     read_hdf,
 )
@@ -22,7 +21,7 @@ from pandas.io.pytables import (
     _maybe_adjust_name,
 )
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [pytest.mark.single_cpu]
 
 
 def test_pass_spec_to_storer(setup_path):
@@ -45,7 +44,7 @@ def test_pass_spec_to_storer(setup_path):
             "format store. this store must be selected in its entirety"
         )
         with pytest.raises(TypeError, match=msg):
-            store.select("df", where=[("columns=A")])
+            store.select("df", where=["columns=A"])
 
 
 def test_table_index_incompatible_dtypes(setup_path):
@@ -88,9 +87,14 @@ def test_unimplemented_dtypes_table_columns(setup_path):
 
     with ensure_clean_store(setup_path) as store:
         # this fails because we have a date in the object block......
-        msg = re.escape(
-            """Cannot serialize the column [datetime1]
-because its data contents are not [string] but [date] object dtype"""
+        msg = "|".join(
+            [
+                re.escape(
+                    "Cannot serialize the column [datetime1]\nbecause its data "
+                    "contents are not [string] but [date] object dtype"
+                ),
+                re.escape("[date] is not implemented as a table column"),
+            ]
         )
         with pytest.raises(TypeError, match=msg):
             store.append("df_unimplemented", df)
@@ -177,16 +181,16 @@ def test_append_with_diff_col_name_types_raises_value_error(setup_path):
                 store.append(name, d)
 
 
-def test_invalid_complib(setup_path):
+def test_invalid_complib(tmp_path, setup_path):
     df = DataFrame(
         np.random.default_rng(2).random((4, 5)),
         index=list("abcd"),
         columns=list("ABCDE"),
     )
-    with tm.ensure_clean(setup_path) as path:
-        msg = r"complib only supports \[.*\] compression."
-        with pytest.raises(ValueError, match=msg):
-            df.to_hdf(path, key="df", complib="foolib")
+    path = tmp_path / setup_path
+    msg = r"complib only supports \[.*\] compression."
+    with pytest.raises(ValueError, match=msg):
+        df.to_hdf(path, key="df", complib="foolib")
 
 
 @pytest.mark.parametrize(

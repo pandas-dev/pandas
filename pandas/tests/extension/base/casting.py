@@ -30,8 +30,9 @@ class BaseCastingTests:
             blk = result._mgr.blocks[0]
             assert isinstance(blk, NumpyBlock), type(blk)
             assert blk.is_object
-        assert isinstance(result._mgr.arrays[0], np.ndarray)
-        assert result._mgr.arrays[0].dtype == np.dtype(object)
+        arr = result._mgr.blocks[0].values
+        assert isinstance(arr, np.ndarray)
+        assert arr.dtype == np.dtype(object)
 
         # check that we can compare the dtypes
         comp = result.dtypes == df.dtypes
@@ -43,8 +44,8 @@ class BaseCastingTests:
         assert result == expected
 
     def test_astype_str(self, data):
-        result = pd.Series(data[:5]).astype(str)
-        expected = pd.Series([str(x) for x in data[:5]], dtype=str)
+        result = pd.Series(data[:2]).astype(str)
+        expected = pd.Series([str(x) for x in data[:2]], dtype=str)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -56,9 +57,17 @@ class BaseCastingTests:
     )
     def test_astype_string(self, data, nullable_string_dtype):
         # GH-33465, GH#45326 as of 2.0 we decode bytes instead of calling str(obj)
+        def as_str(x):
+            if isinstance(x, bytes):
+                return x.decode()
+            elif x is data.dtype.na_value:
+                return x
+            else:
+                return str(x)
+
         result = pd.Series(data[:5]).astype(nullable_string_dtype)
         expected = pd.Series(
-            [str(x) if not isinstance(x, bytes) else x.decode() for x in data[:5]],
+            [as_str(x) for x in data[:5]],
             dtype=nullable_string_dtype,
         )
         tm.assert_series_equal(result, expected)

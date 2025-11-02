@@ -4,7 +4,6 @@ import dateutil.tz
 from dateutil.tz import gettz
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import timezones
 
@@ -260,11 +259,14 @@ class TestTZConvert:
         [
             "US/Eastern",
             "dateutil/US/Eastern",
-            pytz.timezone("US/Eastern"),
+            "pytz/US/Eastern",
             gettz("US/Eastern"),
         ],
     )
     def test_dti_tz_convert_utc_to_local_no_modify(self, tz):
+        if isinstance(tz, str) and tz.startswith("pytz/"):
+            pytz = pytest.importorskip("pytz")
+            tz = pytz.timezone(tz.removeprefix("pytz/"))
         rng = date_range("3/11/2012", "3/12/2012", freq="h", tz="utc")
         rng_eastern = rng.tz_convert(tz)
 
@@ -281,3 +283,10 @@ class TestTZConvert:
         result = dr[::-1].hour
         exp = dr.hour[::-1]
         tm.assert_almost_equal(result, exp)
+
+    def test_dti_tz_convert_day_freq_not_preserved(self):
+        # GH#51716
+        dti = date_range("2020-3-28", periods=5, freq="D", tz="Europe/London")
+        result = dti.tz_convert("UTC")
+        assert (result == dti).all()
+        assert result.freq is None
