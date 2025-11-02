@@ -385,7 +385,7 @@ def merge(
             validate=validate,
         )
     else:
-        klass = _MergeOperation if how != "leftsemi" else _SemiMergeOperation
+        klass = _MergeOperation if how != "left_semi" else _SemiMergeOperation
         op = klass(
             left_df,
             right_df,
@@ -2038,7 +2038,7 @@ def get_join_indexers(
     left_keys: list[ArrayLike],
     right_keys: list[ArrayLike],
     sort: bool = False,
-    how: JoinHow + Literal["leftsemi"] = "inner",
+    how: JoinHow + Literal["left_semi"] = "inner",
 ) -> tuple[npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
     """
 
@@ -2095,7 +2095,7 @@ def get_join_indexers(
     right = Index(rkey)
 
     if (
-        how != "leftsemi"
+        how != "left_semi"
         and left.is_monotonic_increasing
         and right.is_monotonic_increasing
         and (left.is_unique or right.is_unique)
@@ -2868,7 +2868,7 @@ def _factorize_keys(
         lk = ensure_int64(lk.codes)
         rk = ensure_int64(rk.codes)
 
-    elif how != "leftsemi" and isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
+    elif how != "left_semi" and isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
         if (isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype)) or (
             isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
         ):
@@ -2964,7 +2964,7 @@ def _factorize_keys(
             return lidx, ridx, -1
         else:
             llab = rizer.factorize(lk_data, mask=lk_mask)
-    elif how == "leftsemi":
+    elif how == "left_semi":
         # populate hashtable for right and then do a hash join
         rizer.factorize(rk_data, mask=rk_mask)
         return rizer.hash_inner_join(lk_data, lk_mask)[1], None, -1  # type: ignore[return-value]

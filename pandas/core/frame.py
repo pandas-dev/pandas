@@ -338,7 +338,7 @@ how : {'left', 'right', 'outer', 'inner', 'left_semi',
       join; sort keys lexicographically.
     * inner: use intersection of keys from both frames, similar to a SQL inner
       join; preserve the order of the left keys.
-    * leftsemi: Filter for rows in the left that have a match on the right;
+    * left_semi: Filter for rows in the left that have a match on the right;
       preserve the order of the left keys. Doesn't support `left_index`, `right_index`,
       `indicator` or `validate`.
 
