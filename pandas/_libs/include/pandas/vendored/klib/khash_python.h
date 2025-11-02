@@ -322,12 +322,11 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
   } else if (PyTuple_Check(key)) {
     // hash tuple subclasses as builtin tuples
     hash = tupleobject_hash((PyTupleObject *)key);
-  } else if (PyDict_Check(key) || PyList_Check(key)) {
-    // before GH 57052 was fixed, all exceptions raised from PyObject_Hash were suppressed.
-    // some features rely on this behaviour, e.g. _libs.hashtable.value_count_object via DataFrame.describe,
-    // which counts generic objects using PyObjectHashTable.
-    // using hash = 0 for dict and list objects puts all of them in the same bucket,
-    // which is not optimal for performance but that is what the behaviour was before.
+  } else if (PyDict_Check(key)) {
+    // Before GH 57052 was fixed, all exceptions raised from PyObject_Hash were suppressed.
+    // some features rely on this behaviour, e.g. _libs.hashtable.value_count_object via
+    // DataFrame.describe, which counts generic objects using PyObjectHashTable.
+    // Using hash = 0 puts all objects in the same bucket, which is bad for performance but that is how it worked before.
     hash = 0;
   } else {
     hash = PyObject_Hash(key);
