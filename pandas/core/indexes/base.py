@@ -4433,7 +4433,7 @@ class Index(IndexOpsMixin, PandasObject):
                 "and will raise in a future version. "
                 "Pass Index.join(other.index) instead.",
                 Pandas4Warning,
-                stacklevel=find_stack_level()
+                stacklevel=find_stack_level(),
             )
 
         other = ensure_index(other)

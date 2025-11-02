@@ -525,6 +525,7 @@ def test_to_frame_name_tuple_multiindex():
     expected = pd.DataFrame([1], columns=MultiIndex.from_arrays([[1], [2]]), index=idx)
     tm.assert_frame_equal(result, expected)
 
+
 def test_join_series_deprecated():
     # GH#62897
     idx = pd.Index([1, 2])
