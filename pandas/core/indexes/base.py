@@ -69,7 +69,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
     InvalidIndexError,
-    Pandas4Warning
+    Pandas4Warning,
 )
 from pandas.util._decorators import (
     Appender,
