@@ -720,7 +720,7 @@ def index(request):
         - ...
     """
     # copy to avoid mutation, e.g. setting .name
-    return indices_dict[request.param].copy()
+    return indices_dict[request.param].copy(deep=False)
 
 
 @pytest.fixture(
@@ -733,7 +733,7 @@ def index_flat(request):
     index fixture, but excluding MultiIndex cases.
     """
     key = request.param
-    return indices_dict[key].copy()
+    return indices_dict[key].copy(deep=False)
 
 
 @pytest.fixture(
@@ -756,11 +756,7 @@ def index_with_missing(request):
 
     MultiIndex is excluded because isna() is not defined for MultiIndex.
     """
-
-    # GH 35538. Use deep copy to avoid illusive bug on np-dev
-    # GHA pipeline that writes into indices_dict despite copy
-    ind = indices_dict[request.param].copy(deep=True)
-    vals = ind.values.copy()
+    ind = indices_dict[request.param]
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
@@ -768,6 +764,7 @@ def index_with_missing(request):
         vals[-1] = (None,) + vals[-1][1:]
         return MultiIndex.from_tuples(vals)
     else:
+        vals = ind.values.copy()
         vals[0] = None
         vals[-1] = None
         return type(ind)(vals)
@@ -848,7 +845,7 @@ def index_or_series_obj(request):
     Fixture for tests on indexes, series and series with a narrow dtype
     copy to avoid mutation, e.g. setting .name
     """
-    return _index_or_series_objs[request.param].copy(deep=True)
+    return _index_or_series_objs[request.param].copy(deep=False)
 
 
 _typ_objects_series = {
@@ -871,7 +868,7 @@ def index_or_series_memory_obj(request):
     series with empty objects type
     copy to avoid mutation, e.g. setting .name
     """
-    return _index_or_series_memory_objs[request.param].copy(deep=True)
+    return _index_or_series_memory_objs[request.param].copy(deep=False)
 
 
 # ----------------------------------------------------------------
