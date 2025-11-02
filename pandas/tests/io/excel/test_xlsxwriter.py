@@ -86,17 +86,92 @@ def test_book_and_sheets_consistent(tmp_excel):
         assert writer.sheets == {"test_name": sheet}
 
 
-def test_to_excel(tmp_excel):
-    DataFrame([[1, 2]]).to_excel(tmp_excel)
-
-
 def test_to_excel_autofilter_xlsxwriter(tmp_excel):
-    pytest.importorskip("xlsxwriter")
     openpyxl = pytest.importorskip("openpyxl")
 
     df = DataFrame({"A": [1, 2], "B": [3, 4]})
     # Write with xlsxwriter, verify via openpyxl that an autofilter exists
     df.to_excel(tmp_excel, engine="xlsxwriter", index=False, autofilter=True)
+
+    wb = openpyxl.load_workbook(tmp_excel)
+    try:
+        ws = wb[wb.sheetnames[0]]
+        assert ws.auto_filter is not None
+        assert ws.auto_filter.ref is not None
+        # Verify filter covers all columns (A and B)
+        assert "A" in ws.auto_filter.ref
+        assert "B" in ws.auto_filter.ref
+    finally:
+        wb.close()
+
+
+def test_to_excel_autofilter_startrow_startcol_xlsxwriter(tmp_excel):
+    openpyxl = pytest.importorskip("openpyxl")
+
+    df = DataFrame({"A": [1, 2], "B": [3, 4]})
+    df.to_excel(
+        tmp_excel,
+        engine="xlsxwriter",
+        index=False,
+        autofilter=True,
+        startrow=2,
+        startcol=1,
+    )
+
+    wb = openpyxl.load_workbook(tmp_excel)
+    try:
+        ws = wb[wb.sheetnames[0]]
+        assert ws.auto_filter is not None
+        assert ws.auto_filter.ref is not None
+        # Filter should be offset by startrow=2 and startcol=1 (B3:D5)
+        assert ws.auto_filter.ref.startswith("B")
+        assert "3" in ws.auto_filter.ref
+    finally:
+        wb.close()
+
+
+def test_to_excel_autofilter_multiindex_merge_cells_xlsxwriter(tmp_excel):
+    openpyxl = pytest.importorskip("openpyxl")
+
+    df = DataFrame(
+        [[1, 2, 3, 4], [5, 6, 7, 8]],
+        columns=pd.MultiIndex.from_tuples(
+            [("A", "a"), ("A", "b"), ("B", "a"), ("B", "b")]
+        ),
+    )
+    df.to_excel(
+        tmp_excel,
+        engine="xlsxwriter",
+        index=False,
+        autofilter=True,
+        merge_cells=True,
+    )
+
+    wb = openpyxl.load_workbook(tmp_excel)
+    try:
+        ws = wb[wb.sheetnames[0]]
+        assert ws.auto_filter is not None
+        assert ws.auto_filter.ref is not None
+    finally:
+        wb.close()
+
+
+def test_to_excel_autofilter_multiindex_no_merge_xlsxwriter(tmp_excel):
+    openpyxl = pytest.importorskip("openpyxl")
+
+    df = DataFrame(
+        [[1, 2, 3, 4], [5, 6, 7, 8]],
+        columns=pd.MultiIndex.from_tuples(
+            [("A", "a"), ("A", "b"), ("B", "a"), ("B", "b")]
+        ),
+    )
+    df.to_excel(
+        tmp_excel,
+        engine="xlsxwriter",
+        index=False,
+        autofilter=True,
+        merge_cells=False,
+    )
 
     wb = openpyxl.load_workbook(tmp_excel)
     try:

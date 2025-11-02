@@ -304,8 +304,4 @@ class XlsxWriter(ExcelWriter):
 
         if autofilter and min_r is not None and min_c is not None and max_r is not None and max_c is not None:
             # Apply autofilter over the used range. xlsxwriter uses 0-based indices.
-            try:
-                wks.autofilter(min_r, min_c, max_r, max_c)
-            except Exception:
-                # Be resilient if engine version doesn't support or range invalid
-                pass
+            wks.autofilter(min_r, min_c, max_r, max_c)

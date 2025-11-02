@@ -552,15 +552,12 @@ class OpenpyxlWriter(ExcelWriter):
                                 setattr(xcell, k, v)
 
         if autofilter and min_r is not None and min_c is not None and max_r is not None and max_c is not None:
-            try:
-                # Convert numeric bounds to Excel-style range e.g. A1:D10
-                from openpyxl.utils import get_column_letter
+            # Convert numeric bounds to Excel-style range e.g. A1:D10
+            from openpyxl.utils import get_column_letter
 
-                start_ref = f"{get_column_letter(min_c)}{min_r}"
-                end_ref = f"{get_column_letter(max_c)}{max_r}"
-                wks.auto_filter.ref = f"{start_ref}:{end_ref}"
-            except Exception:
-                pass
+            start_ref = f"{get_column_letter(min_c)}{min_r}"
+            end_ref = f"{get_column_letter(max_c)}{max_r}"
+            wks.auto_filter.ref = f"{start_ref}:{end_ref}"
 
 
 class OpenpyxlReader(BaseExcelReader["Workbook"]):
