@@ -46,7 +46,7 @@ class BooleanDtype(BaseMaskedDtype):
     Extension dtype for boolean data.
 
     This is a pandas Extension dtype for boolean data with support for
-    missing values. BooleanDtype is the dtype companion to :class:`BooleanArray`,
+    missing values. BooleanDtype is the dtype companion to :class:`.BooleanArray`,
     which implements Kleene logic (sometimes called three-value logic) for
     logical operations. See :ref:`boolean.kleene` for more.
 
