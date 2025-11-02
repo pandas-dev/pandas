@@ -526,7 +526,7 @@ def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
 
 
 def test_resample_ohlc(unit):
-    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="Min")
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 2), freq="Min")
     s = Series(range(len(index)), index=index)
     s.index.name = "index"
     s.index = s.index.as_unit(unit)
