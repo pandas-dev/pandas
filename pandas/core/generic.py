@@ -2802,6 +2802,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        hints: dict[str, str] | None = None,
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
@@ -2865,6 +2866,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
+        hints : dict[str, str], optional
+            Dictionary of SQL hints to optimize insertion performance, keyed by
+            database dialect name (e.g., 'oracle', 'mysql', 'postgresql', 'mssql').
+            Each value should be a complete hint string formatted exactly as required
+            by the target database. The user is responsible for providing correctly
+            formatted hint strings.
+
+            Examples: ``{'oracle': '/*+ APPEND PARALLEL(4) */', 'mysql': 'DELAYED'}``
+
+            .. note::
+                - Hints are database-specific and ignored for unsupported dialects.
+                - SQLite raises a ``UserWarning`` (hints not supported).
+                - ADBC connections raise ``NotImplementedError``.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -3048,6 +3064,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             chunksize=chunksize,
             dtype=dtype,
             method=method,
+            hints=hints,
         )
 
     @final
