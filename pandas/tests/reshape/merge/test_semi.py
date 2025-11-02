@@ -36,6 +36,12 @@ def test_left_semi(vals_left, vals_right, dtype):
     result = left.merge(right, how="left_semi")
     tm.assert_frame_equal(result, expected)
 
+    result = left.join(right.set_index("a"), how="left_semi", on="a")
+    tm.assert_frame_equal(result, expected)
+
+    result = left.set_index("a").join(right.set_index("a"), how="left_semi")
+    tm.assert_frame_equal(result, expected.set_index("a"))
+
     result = left.set_index("a").merge(
         right.set_index("a"), how="left_semi", left_index=True, right_index=True
     )
