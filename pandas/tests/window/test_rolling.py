@@ -1463,7 +1463,7 @@ def test_rolling_skew_kurt_numerical_stability(method):
     ],
 )
 def test_rolling_skew_kurt_large_value_range(method, data, values):
-    # GH: 37557
+    # GH: 37557, 47461
     s = Series(data)
     result = getattr(s.rolling(4), method)()
     expected = Series(values)
