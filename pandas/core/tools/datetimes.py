@@ -129,7 +129,9 @@ start_caching_at = 50
 # ---------------------------------------------------------------------
 
 
-def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str | None:
+def _guess_datetime_format_for_array(
+    arr: np.ndarray, dayfirst: bool | None = False
+) -> str | None:
     # Try to guess the format based on the first non-NaN element, return None if can't
     search_start = 0
     allowed_formats = set()
