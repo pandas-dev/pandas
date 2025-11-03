@@ -1520,3 +1520,19 @@ def test_groupby_std_datetimelike():
     exp_ser = Series([td1 * 2, td1, td1, td1, td4], index=np.arange(5))
     expected = DataFrame({"A": exp_ser, "B": exp_ser, "C": exp_ser})
     tm.assert_frame_equal(result, expected)
+
+
+def test_mean_numeric_only_validates_bool():
+    # GH#62778
+
+    df = DataFrame({"A": range(5), "B": range(5)})
+
+    msg = "numeric_only accepts only Boolean values"
+    with pytest.raises(ValueError, match=msg):
+        df.groupby(["A"]).mean(["B"])
+
+    with pytest.raises(ValueError, match=msg):
+        df.groupby(["A"]).mean(numeric_only="True")
+
+    with pytest.raises(ValueError, match=msg):
+        df.groupby(["A"]).mean(numeric_only=1)

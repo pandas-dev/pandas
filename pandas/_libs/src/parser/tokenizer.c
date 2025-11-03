@@ -1620,9 +1620,9 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   }
 
   double number = 0.;
-  int exponent = 0;
-  int num_digits = 0;
-  int num_decimals = 0;
+  long int exponent = 0;
+  long int num_digits = 0;
+  long int num_decimals = 0;
 
   // Process string of digits.
   while (isdigit_ascii(*p)) {
@@ -1671,39 +1671,26 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
     if (maybe_int != NULL)
       *maybe_int = 0;
 
-    // Handle optional sign
-    negative = 0;
-    switch (*++p) {
-    case '-':
-      negative = 1;
-      PD_FALLTHROUGH; // Fall through to increment position.
-    case '+':
-      p++;
-      break;
-    }
+    // move past scientific notation
+    p++;
 
-    // Process string of digits.
-    num_digits = 0;
-    int n = 0;
-    while (num_digits < max_digits && isdigit_ascii(*p)) {
-      n = n * 10 + (*p - '0');
-      num_digits++;
-      p++;
-    }
+    char *tmp_ptr;
+    long int n = strtol(p, &tmp_ptr, 10);
 
-    if (negative)
-      exponent -= n;
-    else
-      exponent += n;
+    if (errno == ERANGE || checked_add(exponent, n, &exponent)) {
+      errno = 0;
+      exponent = n;
+    }
 
     // If no digits after the 'e'/'E', un-consume it.
-    if (num_digits == 0)
+    if (tmp_ptr == p)
       p--;
+    else
+      p = tmp_ptr;
   }
 
   if (exponent > 308) {
-    *error = ERANGE;
-    return HUGE_VAL;
+    number = number == 0 ? 0 : number < 0 ? -HUGE_VAL : HUGE_VAL;
   } else if (exponent > 0) {
     number *= e[exponent];
   } else if (exponent < -308) { // Subnormal
@@ -1717,9 +1704,6 @@ double precise_xstrtod(const char *str, char **endptr, char decimal, char sci,
   } else {
     number /= e[-exponent];
   }
-
-  if (number == HUGE_VAL || number == -HUGE_VAL)
-    *error = ERANGE;
 
   if (skip_trailing) {
     // Skip trailing whitespace.
@@ -1812,8 +1796,6 @@ double round_trip(const char *p, char **q, char decimal, char Py_UNUSED(sci),
     *maybe_int = 0;
   if (PyErr_Occurred() != NULL)
     *error = -1;
-  else if (r == Py_HUGE_VAL)
-    *error = (int)Py_HUGE_VAL;
   PyErr_Clear();
 
   PyGILState_Release(gstate);
@@ -1872,8 +1854,7 @@ static int copy_string_without_char(char output[PROCESSED_WORD_CAPACITY],
   return 0;
 }
 
-int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
-                     int *error, char tsep) {
+int64_t str_to_int64(const char *p_item, int *error, char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1907,8 +1888,8 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   char *endptr;
   int64_t number = strtoll(p, &endptr, 10);
 
-  if (errno == ERANGE || number > int_max || number < int_min) {
-    *error = ERROR_OVERFLOW;
+  if (errno == ERANGE) {
+    *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
     errno = 0;
     return 0;
   }
@@ -1928,8 +1909,8 @@ int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
   return number;
 }
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
-                       uint64_t uint_max, int *error, char tsep) {
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
+                       char tsep) {
   const char *p = p_item;
   // Skip leading spaces.
   while (isspace_ascii(*p)) {
@@ -1967,8 +1948,8 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
   char *endptr;
   uint64_t number = strtoull(p, &endptr, 10);
 
-  if (errno == ERANGE || number > uint_max) {
-    *error = ERROR_OVERFLOW;
+  if (errno == ERANGE) {
+    *error = *endptr ? ERROR_INVALID_CHARS : ERROR_OVERFLOW;
     errno = 0;
     return 0;
   }
@@ -1984,7 +1965,7 @@ uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
     return 0;
   }
 
-  if (number > (uint64_t)int_max) {
+  if (number > (uint64_t)INT64_MAX) {
     state->seen_uint = 1;
   }
 

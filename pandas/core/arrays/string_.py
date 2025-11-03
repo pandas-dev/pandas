@@ -167,21 +167,6 @@ class StringDtype(StorageExtensionDtype):
                 else:
                     storage = "python"
 
-        if storage == "pyarrow_numpy":
-            # TODO: Enforce in 3.0 (#60152)
-            warnings.warn(
-                "The 'pyarrow_numpy' storage option name is deprecated and will be "
-                'removed in pandas 3.0. Use \'pd.StringDtype(storage="pyarrow", '
-                "na_value=np.nan)' to construct the same dtype.\nOr enable the "
-                "'pd.options.future.infer_string = True' option globally and use "
-                'the "str" alias as a shorthand notation to specify a dtype '
-                '(instead of "string[pyarrow_numpy]").',
-                FutureWarning,  # pdlint: ignore[warning_class]
-                stacklevel=find_stack_level(),
-            )
-            storage = "pyarrow"
-            na_value = np.nan
-
         # validate options
         if storage not in {"python", "pyarrow"}:
             raise ValueError(
@@ -280,9 +265,6 @@ class StringDtype(StorageExtensionDtype):
             return cls(storage="python")
         elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
-        elif string == "string[pyarrow_numpy]":
-            # this is deprecated in the dtype __init__, remove this in pandas 3.0
-            return cls(storage="pyarrow_numpy")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
@@ -650,6 +632,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     [True, <NA>, False]
     Length: 3, dtype: boolean
     """
+
+    __module__ = "pandas.arrays"
 
     # undo the NumpyExtensionArray hack
     _typ = "extension"
