@@ -916,11 +916,11 @@ class TestNamedAggregationDataFrame:
         )
         expected = DataFrame(
             {
-                "n_between01": [2, 0],
-                "n_between13": [2, 1],
-                "n_between02": [2, 1],
+                "n_between01": [1, 0, 0, 0],
+                "n_between13": [1, 1, 1, 0],
+                "n_between02": [1, 1, 0, 0],
             },
-            index=Index(["a", "b"], name="A"),
+            index=Index([0, 1, 2, 3], name="A"),
         )
         tm.assert_frame_equal(result, expected)
 
