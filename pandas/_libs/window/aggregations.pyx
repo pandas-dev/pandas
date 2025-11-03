@@ -2,7 +2,6 @@
 
 from libc.math cimport (
     fabs,
-    fma,
     round,
     signbit,
     sqrt,
@@ -549,7 +548,7 @@ cdef void add_skew(float64_t val, int64_t *nobs,
         delta_n = delta / n
         term1 = delta * delta_n * (n - 1.0)
 
-        m3_update = delta_n * fma(term1, n - 2.0, -3.0 * m2[0])
+        m3_update = delta_n * (term1 * (n - 2.0) - 3.0 * m2[0])
         new_m3 = m3[0] + m3_update
         if (fabs(m3_update) + fabs(m3[0])) * InvCondTol > fabs(new_m3):
             # possible catastrophic cancellation
@@ -594,7 +593,7 @@ cdef void remove_skew(float64_t val, int64_t *nobs,
         delta_n = delta / n
         term1 = delta_n * delta * (n + 1.0)
 
-        m3_update = delta_n * fma(term1, n + 2.0, -3.0 * m2[0])
+        m3_update = delta_n * (term1 * (n + 2.0) - 3.0 * m2[0])
         new_m3 = m3[0] - m3_update
 
         if (fabs(m3_update) + fabs(m3[0])) * InvCondTol > fabs(new_m3):
