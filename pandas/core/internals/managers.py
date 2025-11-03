@@ -1651,11 +1651,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # If 2D, we assume that we're operating column-wise
         assert self.ndim == 2
 
-        res_blocks: list[Block] = []
-        for blk in self.blocks:
-            nbs = blk.reduce(func)
-            res_blocks.extend(nbs)
-
+        res_blocks = [blk.reduce(func) for blk in self.blocks]
         index = default_index(1)  # placeholder
         new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr
