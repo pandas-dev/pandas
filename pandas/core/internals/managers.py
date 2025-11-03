@@ -2452,7 +2452,11 @@ def _merge_blocks(blocks: tuple[Block, ...], can_consolidate: bool) -> Generator
         new_values: ArrayLike
 
         if isinstance(blocks[0].dtype, np.dtype):
-            new_values = np.vstack([b.values for b in blocks])
+            # error: List comprehension has incompatible type List[Union[ndarray,
+            # ExtensionArray]]; expected List[Union[complex, generic,
+            # Sequence[Union[int, float, complex, str, bytes, generic]],
+            # Sequence[Sequence[Any]], SupportsArray]]
+            new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
         else:
             bvals = [blk.values for blk in blocks]
             bvals2 = cast(Sequence[NDArrayBackedExtensionArray], bvals)
