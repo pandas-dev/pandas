@@ -19,6 +19,7 @@ from pandas.compat import (
     WASM,
     is_platform_windows,
 )
+from pandas.core.tools.datetimes import _guess_datetime_format_for_array
 import pandas.util._test_decorators as td
 
 # Usually we wouldn't want this import in this test file (which is targeted at
@@ -424,9 +425,6 @@ def test_parse_datetime_string_with_reso_yearfirst(yearfirst, input):
         )
         assert except_out_dateutil == except_in_dateutil
         assert result[0] == expected
-
-
-from pandas.core.tools.datetimes import _guess_datetime_format_for_array
 
 
 @pytest.mark.parametrize(
