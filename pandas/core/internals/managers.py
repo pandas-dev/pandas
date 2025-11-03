@@ -1938,7 +1938,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
     def _consolidate_inplace(self) -> None:
         if not self.is_consolidated():
-            self.blocks = _consolidate(self.blocks)
+            self.blocks = tuple(_consolidate(self.blocks))
             self._is_consolidated = True
             self._known_consolidated = True
             self._rebuild_blknos_and_blklocs()
@@ -2430,30 +2430,21 @@ def _stack_arrays(tuples, dtype: np.dtype):
     return stacked, placement
 
 
-def _consolidate(blocks: tuple[Block, ...]) -> tuple[Block, ...]:
+def _consolidate(blocks: tuple[Block, ...]) -> Generator[Block]:
     """
     Merge blocks having same dtype, exclude non-consolidating blocks
     """
     # sort by _can_consolidate, dtype
     gkey = lambda x: x._consolidate_key
     grouper = itertools.groupby(sorted(blocks, key=gkey), gkey)
-
-    new_blocks: list[Block] = []
-    for (_can_consolidate, dtype), group_blocks in grouper:
-        merged_blocks, _ = _merge_blocks(
-            list(group_blocks), dtype=dtype, can_consolidate=_can_consolidate
-        )
-        new_blocks = extend_blocks(merged_blocks, new_blocks)
-    return tuple(new_blocks)
+    for (_can_consolidate, _), group_blocks in grouper:
+        yield from _merge_blocks(tuple(group_blocks), can_consolidate=_can_consolidate)
 
 
-def _merge_blocks(
-    blocks: list[Block], dtype: DtypeObj, can_consolidate: bool
-) -> tuple[list[Block], bool]:
+def _merge_blocks(blocks: tuple[Block], can_consolidate: bool) -> Generator[Block]:
     if len(blocks) == 1:
-        return blocks, False
-
-    if can_consolidate:
+        yield from blocks
+    elif can_consolidate:
         # TODO: optimization potential in case all mgrs contain slices and
         # combination of those slices is a slice, too.
         new_mgr_locs = np.concatenate([b.mgr_locs.as_array for b in blocks])
@@ -2476,10 +2467,10 @@ def _merge_blocks(
         new_mgr_locs = new_mgr_locs[argsort]
 
         bp = BlockPlacement(new_mgr_locs)
-        return [new_block_2d(new_values, placement=bp)], True
-
-    # can't consolidate --> no merge
-    return blocks, False
+        yield new_block_2d(new_values, placement=bp)
+    else:
+        # can't consolidate --> no merge
+        yield from blocks
 
 
 def _preprocess_slice_or_indexer(
