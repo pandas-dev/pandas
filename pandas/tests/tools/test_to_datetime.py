@@ -1429,10 +1429,7 @@ class TestToDatetime:
         else:
             warn = None
 
-        with tm.assert_produces_warning(
-            warn, match="Could not infer format", raise_on_extra_warnings=False
-        ):
-            res = to_datetime(values, errors="coerce", format=format)
+        res = to_datetime(values, errors="coerce", format=format)
         tm.assert_index_equal(res, DatetimeIndex([NaT] * len(values)))
 
         msg = "|".join(
@@ -1628,13 +1625,10 @@ class TestToDatetime:
             ValueError,
             match=msg,
         ):
-            with tm.assert_produces_warning(
-                UserWarning, match="Could not infer format"
-            ):
-                to_datetime(
-                    ts_strings,
-                    errors="raise",
-                )
+            to_datetime(
+                ts_strings,
+                errors="raise",
+            )
 
     def test_iso_8601_strings_with_same_offset(self):
         # GH 17697, 11736

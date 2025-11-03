@@ -232,10 +232,7 @@ def test_parsers_month_freq(date_str, expected):
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
-    with tm.maybe_produces_warning(
-        UserWarning, fmt is not None and re.search(r"%d.*%m", fmt)
-    ):
-        result = parsing.guess_datetime_format(string)
+    result = parsing.guess_datetime_format(string)
     assert result == fmt
 
 
@@ -292,31 +289,25 @@ def test_guess_datetime_format_wrong_type_inputs(invalid_type_dt):
 
 
 @pytest.mark.parametrize(
-    "string,fmt,dayfirst,warning",
+    "string,fmt,dayfirst",
     [
-        ("2011-1-1", "%Y-%m-%d", False, None),
-        ("2011-1-1", "%Y-%d-%m", True, None),
-        ("1/1/2011", "%m/%d/%Y", False, None),
-        ("1/1/2011", "%d/%m/%Y", True, None),
-        ("30-1-2011", "%d-%m-%Y", False, UserWarning),
-        ("30-1-2011", "%d-%m-%Y", True, None),
-        ("2011-1-1 0:0:0", "%Y-%m-%d %H:%M:%S", False, None),
-        ("2011-1-1 0:0:0", "%Y-%d-%m %H:%M:%S", True, None),
-        ("2011-1-3T00:00:0", "%Y-%m-%dT%H:%M:%S", False, None),
-        ("2011-1-3T00:00:0", "%Y-%d-%mT%H:%M:%S", True, None),
-        ("2011-1-1 00:00:00", "%Y-%m-%d %H:%M:%S", False, None),
-        ("2011-1-1 00:00:00", "%Y-%d-%m %H:%M:%S", True, None),
+        ("2011-1-1", "%Y-%m-%d", False),
+        ("2011-1-1", "%Y-%d-%m", True),
+        ("1/1/2011", "%m/%d/%Y", False),
+        ("1/1/2011", "%d/%m/%Y", True),
+        ("30-1-2011", "%d-%m-%Y", False),
+        ("30-1-2011", "%d-%m-%Y", True),
+        ("2011-1-1 0:0:0", "%Y-%m-%d %H:%M:%S", False),
+        ("2011-1-1 0:0:0", "%Y-%d-%m %H:%M:%S", True),
+        ("2011-1-3T00:00:0", "%Y-%m-%dT%H:%M:%S", False),
+        ("2011-1-3T00:00:0", "%Y-%d-%mT%H:%M:%S", True),
+        ("2011-1-1 00:00:00", "%Y-%m-%d %H:%M:%S", False),
+        ("2011-1-1 00:00:00", "%Y-%d-%m %H:%M:%S", True),
     ],
 )
-def test_guess_datetime_format_no_padding(string, fmt, dayfirst, warning):
+def test_guess_datetime_format_no_padding(string, fmt, dayfirst):
     # see gh-11142
-    msg = (
-        rf"Parsing dates in {fmt} format when dayfirst=False \(the default\) "
-        "was specified. "
-        "Pass `dayfirst=True` or specify a format to silence this warning."
-    )
-    with tm.assert_produces_warning(warning, match=msg):
-        result = parsing.guess_datetime_format(string, dayfirst=dayfirst)
+    result = parsing.guess_datetime_format(string, dayfirst=dayfirst)
     assert result == fmt
 
 
