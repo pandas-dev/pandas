@@ -49,7 +49,6 @@ from pandas.core.dtypes.generic import (
 from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
-from pandas.core.groupby.generic import NamedAgg
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     prepare_function_arguments,
@@ -1752,6 +1751,7 @@ def reconstruct_func(
     >>> reconstruct_func("min")
     (False, 'min', None, None)
     """
+    from pandas.core.groupby.generic import NamedAgg
 
     relabeling = func is None and (
         is_multi_agg_with_relabel(**kwargs)
