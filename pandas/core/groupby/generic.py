@@ -125,7 +125,7 @@ class NamedAgg:
     aggfunc : function or str
         Function to apply to the provided column. If string, the name of a built-in
         pandas function.
-    *args, **kwargs :
+    *args, **kwargs : Any
         Optional positional and keyword arguments passed to ``aggfunc``.
 
     See Also
@@ -163,7 +163,7 @@ class NamedAgg:
 
     column: Hashable
     aggfunc: AggScalar
-    args: tuple[Any, ...] = dataclasses.field(default_factory=tuple)
+    args: tuple[Any, ...] = ()
     kwargs: dict[str, Any] = dataclasses.field(default_factory=dict)
 
     def __init__(

@@ -49,6 +49,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.groupby.generic import NamedAgg
 from pandas.core.util.numba_ import (
     get_jit_arguments,
     prepare_function_arguments,
@@ -1714,7 +1715,12 @@ def reconstruct_func(
     or not and also normalize the keyword to get new order of columns.
 
     If named aggregation is applied, `func` will be None, and kwargs contains the
-    column and aggregation function information to be parsed;
+    column and aggregation function information to be parsed.
+    Each value in kwargs can be either:
+        - a tuple of (column, aggfunc)
+        - or a NamedAgg instance, which may also include additional *args and **kwargs
+          to be passed to the aggregation function.
+
     If named aggregation is not applied, `func` is either string (e.g. 'min') or
     Callable, or list of them (e.g. ['min', np.max]), or the dictionary of column name
     and str/Callable/list of them (e.g. {'A': 'min'}, or {'A': [np.min, lambda x: x]})
@@ -1727,8 +1733,9 @@ def reconstruct_func(
     ----------
     func: agg function (e.g. 'min' or Callable) or list of agg functions
         (e.g. ['min', np.max]) or dictionary (e.g. {'A': ['min', np.max]}).
-    **kwargs: dict, kwargs used in is_multi_agg_with_relabel and
-        normalize_keyword_aggregation function for relabelling
+    **kwargs : dict
+        Keyword arguments used in is_multi_agg_with_relabel and
+        normalize_keyword_aggregation function for relabelling.
 
     Returns
     -------
@@ -1745,7 +1752,6 @@ def reconstruct_func(
     >>> reconstruct_func("min")
     (False, 'min', None, None)
     """
-    from pandas.core.groupby.generic import NamedAgg
 
     relabeling = func is None and (
         is_multi_agg_with_relabel(**kwargs)
@@ -1776,10 +1782,10 @@ def reconstruct_func(
         for key, val in kwargs.items():
             if isinstance(val, NamedAgg):
                 aggfunc = val.aggfunc
-                if getattr(val, "args", ()) or getattr(val, "kwargs", {}):
-                    a = getattr(val, "args", ())
-                    kw = getattr(val, "kwargs", {})
-                    aggfunc = lambda x, func=aggfunc, a=a, kw=kw: func(x, *a, **kw)
+                if val.args or val.kwargs:
+                    aggfunc = lambda x, func=aggfunc, a=val.args, kw=val.kwargs: func(
+                        x, *a, **kw
+                    )
                 converted_kwargs[key] = (val.column, aggfunc)
             else:
                 converted_kwargs[key] = val

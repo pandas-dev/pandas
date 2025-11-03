@@ -156,7 +156,7 @@ All warnings for upcoming changes in pandas will have the base class :class:`pan
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- :class:`pandas.NamedAgg` now forwards any ``*args`` and ``**kwargs``
+- :class:`pandas.NamedAgg` now supports passing ``*args`` and ``**kwargs``
   to calls of ``aggfunc`` (:issue:`58283`)
 - :func:`pandas.merge` propagates the ``attrs`` attribute to the result if all
   inputs have identical ``attrs``, as has so far already been the case for

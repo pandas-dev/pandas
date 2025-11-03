@@ -870,6 +870,7 @@ class TestNamedAggregationDataFrame:
         return ser.between(low, high, **kwargs).sum()
 
     def test_namedagg_args(self):
+        # https://github.com/pandas-dev/pandas/issues/58283
         df = DataFrame({"A": [0, 0, 1, 1], "B": [-1, 0, 1, 2]})
 
         result = df.groupby("A").agg(
@@ -879,6 +880,7 @@ class TestNamedAggregationDataFrame:
         tm.assert_frame_equal(result, expected)
 
     def test_namedagg_kwargs(self):
+        # https://github.com/pandas-dev/pandas/issues/58283
         df = DataFrame({"A": [0, 0, 1, 1], "B": [-1, 0, 1, 2]})
 
         result = df.groupby("A").agg(
@@ -890,6 +892,7 @@ class TestNamedAggregationDataFrame:
         tm.assert_frame_equal(result, expected)
 
     def test_namedagg_args_and_kwargs(self):
+        # https://github.com/pandas-dev/pandas/issues/58283
         df = DataFrame({"A": [0, 0, 1, 1], "B": [-1, 0, 1, 2]})
 
         result = df.groupby("A").agg(
@@ -903,6 +906,7 @@ class TestNamedAggregationDataFrame:
         tm.assert_frame_equal(result, expected)
 
     def test_multiple_named_agg_with_args_and_kwargs(self):
+        # https://github.com/pandas-dev/pandas/issues/58283
         df = DataFrame({"A": [0, 1, 2, 3], "B": [1, 2, 3, 4]})
 
         result = df.groupby("A").agg(
@@ -910,10 +914,13 @@ class TestNamedAggregationDataFrame:
             n_between13=pd.NamedAgg("B", self.n_between, 1, 3),
             n_between02=pd.NamedAgg("B", self.n_between, 0, 2),
         )
-        expected = df.groupby("A").agg(
-            n_between01=("B", lambda x: x.between(0, 1).sum()),
-            n_between13=("B", lambda x: x.between(0, 3).sum()),
-            n_between02=("B", lambda x: x.between(0, 2).sum()),
+        expected = DataFrame(
+            {
+                "n_between01": [2, 0],
+                "n_between13": [2, 1],
+                "n_between02": [2, 1],
+            },
+            index=Index(["a", "b"], name="A"),
         )
         tm.assert_frame_equal(result, expected)
 
