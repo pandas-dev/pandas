@@ -500,7 +500,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if dtype is not None:
                 data = data.astype(dtype=dtype)
             elif copy:
-                data = data.copy()
+                data = data.copy(deep=True)
         else:
             data = sanitize_array(data, index, dtype, copy)
             data = SingleBlockManager.from_array(data, index, refs=refs)

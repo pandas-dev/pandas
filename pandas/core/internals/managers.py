@@ -2184,7 +2184,7 @@ class SingleBlockManager(BaseBlockManager):
         the dtype.
         """
         if not self._has_no_reference(0):
-            self.blocks = (self._block.copy(),)
+            self.blocks = (self._block.copy(deep=True),)
             self._reset_cache()
 
         arr = self.array
