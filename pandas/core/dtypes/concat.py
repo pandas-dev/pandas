@@ -161,6 +161,10 @@ def _get_result_dtype(
                 # coerce to object
                 target_dtype = np.dtype(object)
                 kinds = {"o"}
+    elif "b" in kinds and len(kinds) > 1:
+        # GH#21108, GH#45101
+        target_dtype = np.dtype(object)
+        kinds = {"o"}
     else:
         # error: Argument 1 to "np_find_common_type" has incompatible type
         # "*Set[Union[ExtensionDtype, Any]]"; expected "dtype[Any]"
