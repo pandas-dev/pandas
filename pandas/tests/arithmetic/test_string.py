@@ -257,14 +257,15 @@ def test_add_strings(any_string_dtype, request):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH-28527")
-def test_add_frame(request, dtype):
-    if dtype.storage == "python":
-        # Inconsistent behavior between different versions of the python engine.
-        # Some return correctly, some return but with the wrong dtype
-        # Others just fail, we are blanket failing all
-        mark = pytest.mark.xfail(reason="[XPASS(strict)] GH-28527")
-        request.node.applymarker(mark)
+def test_add_frame(any_string_dtype, request):
+    # Inconsistent behavior between different versions of the python engine.
+    # Environments without PyArrow correctly return the value for python storage
+    # The same does not hold for
+    dtype = any_string_dtype
+    if HAS_PYARROW or getattr(dtype, "storage", None) != "python":
+        marks = pytest.mark.xfail(reason="GH-28527")
+        request.applymarker(marks)
+
     arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
     assert arr.__add__(df) is NotImplemented
