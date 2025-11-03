@@ -12,7 +12,6 @@ from typing import (
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -30,6 +29,7 @@ from pandas._libs.tslibs import (
     timezones as libtimezones,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
+from pandas._libs.missing import NAType
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.parsing import (
     DateParseError,
@@ -42,7 +42,6 @@ from pandas._typing import (
     DateTimeErrorChoices,
 )
 from pandas.util._decorators import set_module
-from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     ensure_object,
@@ -149,7 +148,11 @@ def _guess_datetime_format_for_array(
     # Look through the formats and see if one satisfies each item in the array
     for fmt in list(allowed_formats):
         try:
-            [datetime.strptime(date_string, fmt) for date_string in arr if date_string]
+            [
+                datetime.strptime(date_string, fmt)
+                for date_string in arr
+                if date_string and not isinstance(date_string, NAType)
+            ]
             return fmt
         except ValueError:
             pass
