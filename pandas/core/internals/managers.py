@@ -2441,7 +2441,7 @@ def _consolidate(blocks: tuple[Block, ...]) -> Generator[Block]:
         yield from _merge_blocks(tuple(group_blocks), can_consolidate=_can_consolidate)
 
 
-def _merge_blocks(blocks: tuple[Block], can_consolidate: bool) -> Generator[Block]:
+def _merge_blocks(blocks: tuple[Block, ...], can_consolidate: bool) -> Generator[Block]:
     if len(blocks) == 1:
         yield from blocks
     elif can_consolidate:
@@ -2452,11 +2452,7 @@ def _merge_blocks(blocks: tuple[Block], can_consolidate: bool) -> Generator[Bloc
         new_values: ArrayLike
 
         if isinstance(blocks[0].dtype, np.dtype):
-            # error: List comprehension has incompatible type List[Union[ndarray,
-            # ExtensionArray]]; expected List[Union[complex, generic,
-            # Sequence[Union[int, float, complex, str, bytes, generic]],
-            # Sequence[Sequence[Any]], SupportsArray]]
-            new_values = np.vstack([b.values for b in blocks])  # type: ignore[misc]
+            new_values = np.vstack([b.values for b in blocks])
         else:
             bvals = [blk.values for blk in blocks]
             bvals2 = cast(Sequence[NDArrayBackedExtensionArray], bvals)
