@@ -4429,9 +4429,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if not isinstance(other, Index):
             warnings.warn(
-                f"Passing a Series to {type(self).__name__}.join is deprecated "
+                f"Passing {type(other).__name__} to {type(self).__name__}.join is deprecated "
                 "and will raise in a future version. "
-                "Pass Index.join(other.index) instead.",
+                "Pass an Index instead.",
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
