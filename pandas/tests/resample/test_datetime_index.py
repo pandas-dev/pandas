@@ -2171,6 +2171,17 @@ def test_arrow_timestamp_resample_keep_index_name():
     tm.assert_series_equal(result, expected)
 
 
+def test_resample_unit_second_large_years():
+    # GH#57427
+    index = DatetimeIndex(
+        date_range(start=Timestamp("1950-01-01"), periods=10, freq="1000YS", unit="s")
+    )
+    ser = Series(1, index=index)
+    result = ser.resample("2000YS").sum()
+    expected = Series(2, index=index[::2])
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("freq", ["1A", "2A-MAR"])
 def test_resample_A_raises(freq):
     msg = f"Invalid frequency: {freq[1:]}"
