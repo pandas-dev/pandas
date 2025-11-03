@@ -9430,7 +9430,7 @@ class DataFrame(NDFrame, OpsMixin):
             index. If a dict or Series is passed, the Series or dict VALUES
             will be used to determine the groups (the Series' values are first
             aligned; see ``.align()`` method). If a list or ndarray of length
-            equal to the selected axis is passed (see the `groupby user guide
+            equal to the number of rows is passed (see the `groupby user guide
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
             the values are used as-is to determine the groups. A label or list
             of labels may be passed to group by the columns in ``self``.
