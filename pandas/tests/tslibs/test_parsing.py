@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import (
+    NaT,
     parsing,
     strptime,
 )
@@ -19,7 +20,6 @@ from pandas.compat import (
     WASM,
     is_platform_windows,
 )
-from pandas.core.tools.datetimes import _guess_datetime_format_for_array
 import pandas.util._test_decorators as td
 
 # Usually we wouldn't want this import in this test file (which is targeted at
@@ -30,6 +30,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
+from pandas.core.tools.datetimes import _guess_datetime_format_for_array
 
 
 @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
@@ -453,10 +454,10 @@ def test_parse_datetime_string_with_reso_yearfirst(yearfirst, input):
             np.array(["2025-08-09 14:30:00+0000", "2025-12-01 09:15:00-0500"]),
         ),
         ("%Y-%m-%d", np.array(["2025-08-09", None, "2025-12-01"])),
-        (None, np.array(["2025/13/01", "not-a-date", ""])),
+        (None, np.array(["2025/13/01", "not-a-date", "", NaT])),
         (
             None,
-            np.array(["01/02/2025", "2025-02-01"]),
+            np.array(["01/02/2025", "2025-02-01", np.nan]),
         ),
     ],
 )

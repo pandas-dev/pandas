@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from collections import abc
-from datetime import date, datetime
+from datetime import (
+    date,
+    datetime,
+)
 from functools import partial
 from itertools import islice
 from typing import (
@@ -29,8 +32,8 @@ from pandas._libs.tslibs import (
     timezones as libtimezones,
 )
 from pandas._libs.tslibs.conversion import cast_from_unit_vectorized
-from pandas._libs.missing import NAType
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas._libs.tslibs.nattype import NaTType
 from pandas._libs.tslibs.parsing import (
     DateParseError,
     guess_datetime_format,
@@ -84,7 +87,6 @@ if TYPE_CHECKING:
         Hashable,
     )
 
-    from pandas._libs.tslibs.nattype import NaTType
     from pandas._libs.tslibs.timedeltas import UnitChoices
 
     from pandas import (
@@ -151,7 +153,7 @@ def _guess_datetime_format_for_array(
             [
                 datetime.strptime(date_string, fmt)
                 for date_string in arr
-                if date_string and not isinstance(date_string, NAType)
+                if date_string and not isinstance(date_string, NaTType)
             ]
             return fmt
         except ValueError:

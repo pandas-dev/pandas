@@ -1071,7 +1071,6 @@ cdef str _fill_token(token: str, padding: int):
     return token_filled
 
 
-
 cpdef str get_rule_month(str source):
     """
     Return starting month of given freq, default is December.
