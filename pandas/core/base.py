@@ -1307,9 +1307,10 @@ class IndexOpsMixin(OpsMixin):
                 uniques = self._constructor(uniques)
 
                 # Then replace levels to preserve extension dtypes
-                if len(uniques) > 0:
+                if len(uniques) > 0 and isinstance(uniques, ABCMultiIndex):
                     new_levels = []
-                    for i, (level, orig_level) in enumerate(
+                    # After isinstance check, we know uniques has levels attribute
+                    for i, (level, orig_level) in enumerate(  # pyright: ignore[reportGeneralTypeIssues]
                         zip(uniques.levels, self.levels, strict=False)
                     ):
                         try:
