@@ -67,7 +67,7 @@ cdef:
     # Consider an operation ill-conditioned if
     # it will only have up to 3 significant digits in base 10 remaining.
     # https://en.wikipedia.org/wiki/Condition_number
-    float64_t InvConditionNumber = EpsF64 * 1e3
+    float64_t InvCondTol = EpsF64 * 1e3
 
 cdef bint is_monotonic_increasing_start_end_bounds(
     ndarray[int64_t, ndim=1] start, ndarray[int64_t, ndim=1] end
@@ -551,7 +551,7 @@ cdef void add_skew(float64_t val, int64_t *nobs,
 
         m3_update = delta_n * fma(term1, n - 2.0, -3.0 * m2[0])
         new_m3 = m3[0] + m3_update
-        if (fabs(m3_update) + fabs(m3[0])) * InvConditionNumber > fabs(new_m3):
+        if (fabs(m3_update) + fabs(m3[0])) * InvCondTol > fabs(new_m3):
             # possible catastrophic cancellation
             numerically_unstable[0] = True
 
@@ -597,7 +597,7 @@ cdef void remove_skew(float64_t val, int64_t *nobs,
         m3_update = delta_n * fma(term1, n + 2.0, -3.0 * m2[0])
         new_m3 = m3[0] - m3_update
 
-        if (fabs(m3_update) + fabs(m3[0])) * InvConditionNumber > fabs(new_m3):
+        if (fabs(m3_update) + fabs(m3[0])) * InvCondTol > fabs(new_m3):
             # possible catastrophic cancellation
             numerically_unstable[0] = True
 
