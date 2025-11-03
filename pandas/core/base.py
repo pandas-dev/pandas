@@ -1302,7 +1302,22 @@ class IndexOpsMixin(OpsMixin):
                 # GH#57517
                 uniques = self[:0]
             else:
-                uniques = self._constructor(uniques)
+                # GH#62337: preserve extension dtypes by reconstructing from original
+                if len(uniques) > 0:
+                    # Map back to original positions to preserve dtypes
+                    unique_positions = np.empty(len(uniques), dtype=np.intp)
+                    seen = {}
+                    pos = 0
+                    for i, code in enumerate(codes):
+                        if code not in seen and code != -1:
+                            unique_positions[pos] = i
+                            seen[code] = pos
+                            pos += 1
+
+                    # Reconstruct uniques from original MultiIndex to preserve dtypes
+                    uniques = self[unique_positions]
+                else:
+                    uniques = self[:0]
         else:
             from pandas import Index
 

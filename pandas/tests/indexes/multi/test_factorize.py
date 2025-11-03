@@ -74,7 +74,7 @@ class TestMultiIndexFactorize:
 
         codes, uniques = mi.factorize()
 
-        tm.assert_index_equal(uniques.names, mi.names)
+        tm.assert_index_equal(pd.Index(uniques.names), pd.Index(mi.names))
 
     def test_factorize_extension_dtype_with_sort(self):
         # GH#62337: factorize with sort=True should preserve extension dtypes
