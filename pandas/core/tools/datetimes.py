@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import abc
-from datetime import date
+from datetime import date, datetime
 from functools import partial
 from itertools import islice
 from typing import (
@@ -131,24 +131,26 @@ start_caching_at = 50
 
 def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str | None:
     # Try to guess the format based on the first non-NaN element, return None if can't
-    if (first_non_null := tslib.first_non_null(arr)) != -1:
-        if type(first_non_nan_element := arr[first_non_null]) is str:
-            # GH#32264 np.str_ object
-            guessed_format = guess_datetime_format(
-                first_non_nan_element, dayfirst=dayfirst
-            )
+    search_start = 0
+    allowed_formats = set()
+    while not search_start >= len(arr):
+        non_null_offset = tslib.first_non_null(arr[search_start:])
+        if non_null_offset == -1:
+            break
+        idx = search_start + non_null_offset
+        element = arr[idx]
+        if isinstance(element, str):
+            guessed_format = guess_datetime_format(str(element), dayfirst=dayfirst)
             if guessed_format is not None:
-                return guessed_format
-            # If there are multiple non-null elements, warn about
-            # how parsing might not be consistent
-            if tslib.first_non_null(arr[first_non_null + 1 :]) != -1:
-                warnings.warn(
-                    "Could not infer format, so each element will be parsed "
-                    "individually, falling back to `dateutil`. To ensure parsing is "
-                    "consistent and as-expected, please specify a format.",
-                    UserWarning,
-                    stacklevel=find_stack_level(),
-                )
+                allowed_formats.add(guessed_format)
+        search_start = idx + 1
+    # Look through the formats and see if one satisfies each item in the array
+    for fmt in list(allowed_formats):
+        try:
+            [datetime.strptime(date_string, fmt) for date_string in arr if date_string]
+            return fmt
+        except ValueError:
+            pass
     return None
 
 

@@ -424,3 +424,44 @@ def test_parse_datetime_string_with_reso_yearfirst(yearfirst, input):
         )
         assert except_out_dateutil == except_in_dateutil
         assert result[0] == expected
+
+
+from pandas.core.tools.datetimes import _guess_datetime_format_for_array
+
+
+@pytest.mark.parametrize(
+    "expected_format, array",
+    [
+        ("%d/%m/%Y", np.array(["01/02/2025", "30/07/2025"])),
+        ("%Y-%m-%d", np.array(["2025-08-09", "2025-08-13", None])),
+        ("%m/%d/%Y", np.array(["02/01/2025", "12/31/2025"])),
+        ("%d-%m-%Y", np.array(["01-02-2025", "30-07-2025"])),
+        ("%d.%m.%Y", np.array(["01.02.2025", "30.07.2025"])),
+        ("%Y/%m/%d", np.array(["2025/08/09", "2025/12/01"])),
+        ("%b %d, %Y", np.array(["Feb 01, 2025", "Jul 30, 2025"])),
+        ("%B %d, %Y", np.array(["February 01, 2025", "July 30, 2025"])),
+        ("%d %b %Y", np.array(["01 Feb 2025", "30 Jul 2025"])),
+        ("%d-%b-%Y", np.array(["01-Feb-2025", "30-Jul-2025"])),
+        ("%Y%m%d", np.array(["20250201", "20250730"])),
+        (None, np.array(["02/01/25", "12/31/25"])),
+        ("%Y-%m-%d %H:%M:%S", np.array(["2025-08-09 14:30:00", "2025-12-01 00:00:00"])),
+        ("%Y-%m-%dT%H:%M:%S", np.array(["2025-08-09T14:30:00", "2025-12-01T00:00:00"])),
+        (
+            "%Y-%m-%dT%H:%M:%S.%f",
+            np.array(["2025-08-09T14:30:00.123456", "2025-12-01T00:00:00.5"]),
+        ),
+        (
+            "%Y-%m-%d %H:%M:%S%z",
+            np.array(["2025-08-09 14:30:00+0000", "2025-12-01 09:15:00-0500"]),
+        ),
+        ("%Y-%m-%d", np.array(["2025-08-09", None, "2025-12-01"])),
+        (None, np.array(["2025/13/01", "not-a-date", ""])),
+        (
+            None,
+            np.array(["01/02/2025", "2025-02-01"]),
+        ),
+    ],
+)
+def test_guess_datetime_format_for_array(expected_format: str, array: np.array) -> None:
+    fmt = _guess_datetime_format_for_array(array, dayfirst=False)
+    assert fmt == expected_format, f"{fmt} does not match {expected_format}"
