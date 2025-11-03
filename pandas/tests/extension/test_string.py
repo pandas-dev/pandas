@@ -31,7 +31,7 @@ import pandas._testing as tm
 from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
-from pandas.tests.arrays.string_.test_string import string_dtype_highest_priority
+from pandas.tests.arithmetic.test_string import string_dtype_highest_priority
 from pandas.tests.extension import base
 
 
@@ -116,8 +116,7 @@ class TestStringArray(base.ExtensionTests):
             # only the NA-variant supports parametrized string alias
             assert dtype == f"string[{dtype.storage}]"
         elif dtype.storage == "pyarrow":
-            with tm.assert_produces_warning(FutureWarning):
-                assert dtype == "string[pyarrow_numpy]"
+            assert dtype == "str"
 
     def test_is_not_string_type(self, dtype):
         # Different from BaseDtypeTests.test_is_not_string_type

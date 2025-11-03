@@ -916,6 +916,14 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return the dataframe interchange object implementing the interchange protocol.
 
+        .. deprecated:: 3.0.0
+
+            The Dataframe Interchange Protocol is deprecated.
+            For dataframe-agnostic code, you may want to look into:
+
+            - `Arrow PyCapsule Interface <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`_
+            - `Narwhals <https://github.com/narwhals-dev/narwhals>`_
+
         .. note::
 
            For new development, we highly recommend using the Arrow C Data Interface
@@ -970,7 +978,14 @@ class DataFrame(NDFrame, OpsMixin):
         These methods (``column_names``, ``select_columns_by_name``) should work
         for any dataframe library which implements the interchange protocol.
         """
-
+        warnings.warn(
+            "The Dataframe Interchange Protocol is deprecated.\n"
+            "For dataframe-agnostic code, you may want to look into:\n"
+            "- Arrow PyCapsule Interface: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html\n"
+            "- Narwhals: https://github.com/narwhals-dev/narwhals\n",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         from pandas.core.interchange.dataframe import PandasDataFrameXchg
 
         return PandasDataFrameXchg(self, allow_copy=allow_copy)
@@ -3293,28 +3308,71 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
-        >>> html_string = '''<table border="1" class="dataframe">
-        ...   <thead>
-        ...     <tr style="text-align: right;">
-        ...       <th></th>
-        ...       <th>col1</th>
-        ...       <th>col2</th>
-        ...     </tr>
-        ...   </thead>
-        ...   <tbody>
-        ...     <tr>
-        ...       <th>0</th>
-        ...       <td>1</td>
-        ...       <td>4</td>
-        ...     </tr>
-        ...     <tr>
-        ...       <th>1</th>
-        ...       <td>2</td>
-        ...       <td>3</td>
-        ...     </tr>
-        ...   </tbody>
-        ... </table>'''
-        >>> assert html_string == df.to_html()
+        >>> html_string = df.to_html()
+        >>> print(html_string)
+        <table border="1" class="dataframe">
+          <thead>
+            <tr style="text-align: right;">
+              <th></th>
+              <th>col1</th>
+              <th>col2</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>0</th>
+              <td>1</td>
+              <td>4</td>
+            </tr>
+            <tr>
+              <th>1</th>
+              <td>2</td>
+              <td>3</td>
+            </tr>
+          </tbody>
+        </table>
+
+        HTML output
+
+        +----+-----+-----+
+        |    |col1 |col2 |
+        +====+=====+=====+
+        |0   |1    |4    |
+        +----+-----+-----+
+        |1   |2    |3    |
+        +----+-----+-----+
+
+        >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
+        >>> html_string = df.to_html(index=False)
+        >>> print(html_string)
+        <table border="1" class="dataframe">
+          <thead>
+            <tr style="text-align: right;">
+              <th>col1</th>
+              <th>col2</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>4</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>3</td>
+            </tr>
+          </tbody>
+        </table>
+
+        HTML output
+
+        +-----+-----+
+        |col1 |col2 |
+        +=====+=====+
+        |1    |4    |
+        +-----+-----+
+        |2    |3    |
+        +-----+-----+
         """
         if justify is not None and justify not in fmt.VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
@@ -5236,6 +5294,30 @@ class DataFrame(NDFrame, OpsMixin):
                     return False
 
             return True
+
+        blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
+        if (
+            np.object_ in include
+            and str not in include
+            and str not in exclude
+            and any(
+                isinstance(dtype, StringDtype) and dtype.na_value is np.nan
+                for dtype in blk_dtypes
+            )
+        ):
+            # GH#61916
+            warnings.warn(
+                "For backward compatibility, 'str' dtypes are included by "
+                "select_dtypes when 'object' dtype is specified. "
+                "This behavior is deprecated and will be removed in a future "
+                "version. Explicitly pass 'str' to `include` to select them, "
+                "or to `exclude` to remove them and silence this warning.\nSee "
+                "https://pandas.pydata.org/docs/user_guide/migration-3-strings.html"
+                "#string-migration-select-dtypes for details on how to write code "
+                "that works with pandas 2 and 3.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         mgr = self._mgr._get_data_subset(predicate).copy(deep=False)
         return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)
@@ -8971,16 +9053,6 @@ class DataFrame(NDFrame, OpsMixin):
         0  0 -5.0
         1  0  4.0
 
-        However, if the same element in both dataframes is None, that None
-        is preserved
-
-        >>> df1 = pd.DataFrame({"A": [0, 0], "B": [None, 4]})
-        >>> df2 = pd.DataFrame({"A": [1, 1], "B": [None, 3]})
-        >>> df1.combine(df2, take_smaller, fill_value=-5)
-            A    B
-        0  0 -5.0
-        1  0  3.0
-
         Example that demonstrates the use of `overwrite` and behavior when
         the axis differ between the dataframes.
 
@@ -9039,11 +9111,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         # preserve column order
         new_columns = self.columns.union(other_columns, sort=False)
+        this = this.reindex(new_columns, axis=1)
+        other = other.reindex(new_columns, axis=1)
+
         do_fill = fill_value is not None
         result = {}
-        for col in new_columns:
-            series = this[col]
-            other_series = other[col]
+        for i in range(this.shape[1]):
+            series = this.iloc[:, i]
+            other_series = other.iloc[:, i]
 
             this_dtype = series.dtype
             other_dtype = other_series.dtype
@@ -9054,7 +9129,7 @@ class DataFrame(NDFrame, OpsMixin):
             # don't overwrite columns unnecessarily
             # DO propagate if this column is not in the intersection
             if not overwrite and other_mask.all():
-                result[col] = this[col].copy()
+                result[i] = series.copy()
                 continue
 
             if do_fill:
@@ -9063,7 +9138,7 @@ class DataFrame(NDFrame, OpsMixin):
                 series[this_mask] = fill_value
                 other_series[other_mask] = fill_value
 
-            if col not in self.columns:
+            if new_columns[i] not in self.columns:
                 # If self DataFrame does not have col in other DataFrame,
                 # try to promote series, which is all NaN, as other_dtype.
                 new_dtype = other_dtype
@@ -9088,10 +9163,10 @@ class DataFrame(NDFrame, OpsMixin):
                     arr, new_dtype
                 )
 
-            result[col] = arr
+            result[i] = arr
 
-        # convert_objects just in case
-        frame_result = self._constructor(result, index=new_index, columns=new_columns)
+        frame_result = self._constructor(result, index=new_index)
+        frame_result.columns = new_columns
         return frame_result.__finalize__(self, method="combine")
 
     def combine_first(self, other: DataFrame) -> DataFrame:
@@ -9141,20 +9216,10 @@ class DataFrame(NDFrame, OpsMixin):
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
         """
-        from pandas.core.computation import expressions
 
         def combiner(x: Series, y: Series):
-            mask = x.isna()._values
-
-            x_values = x._values
-            y_values = y._values
-
-            # If the column y in other DataFrame is not in first DataFrame,
-            # just return y_values.
-            if y.name not in self.columns:
-                return y_values
-
-            return expressions.where(mask, y_values, x_values)
+            # GH#60128 The combiner is supposed to preserve EA Dtypes.
+            return y if y.name not in self.columns else y.where(x.isna(), x)
 
         if len(other) == 0:
             combined = self.reindex(
@@ -9165,9 +9230,14 @@ class DataFrame(NDFrame, OpsMixin):
             combined = self.combine(other, combiner, overwrite=False)
 
         dtypes = {
+            # Check for isinstance(..., (np.dtype, ExtensionDtype))
+            #  to prevent raising on non-unique columns see GH#29135.
+            #  Note we will just not-cast in these cases.
             col: find_common_type([self.dtypes[col], other.dtypes[col]])
             for col in self.columns.intersection(other.columns)
-            if combined.dtypes[col] != self.dtypes[col]
+            if isinstance(combined.dtypes[col], (np.dtype, ExtensionDtype))
+            and isinstance(self.dtypes[col], (np.dtype, ExtensionDtype))
+            and combined.dtypes[col] != self.dtypes[col]
         }
 
         if dtypes:
@@ -9375,7 +9445,7 @@ class DataFrame(NDFrame, OpsMixin):
             index. If a dict or Series is passed, the Series or dict VALUES
             will be used to determine the groups (the Series' values are first
             aligned; see ``.align()`` method). If a list or ndarray of length
-            equal to the selected axis is passed (see the `groupby user guide
+            equal to the number of rows is passed (see the `groupby user guide
             <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
             the values are used as-is to determine the groups. A label or list
             of labels may be passed to group by the columns in ``self``.
@@ -11497,6 +11567,15 @@ class DataFrame(NDFrame, OpsMixin):
         def _series_round(ser: Series, decimals: int) -> Series:
             if is_integer_dtype(ser.dtype) or is_float_dtype(ser.dtype):
                 return ser.round(decimals)
+            elif isinstance(ser._values, (DatetimeArray, TimedeltaArray, PeriodArray)):
+                # GH#57781
+                # TODO: also the ArrowDtype analogues?
+                warnings.warn(
+                    "obj.round has no effect with datetime, timedelta, "
+                    "or period dtypes. Use obj.dt.round(...) instead.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
             return ser
 
         nv.validate_round(args, kwargs)
@@ -13754,8 +13833,8 @@ class DataFrame(NDFrame, OpsMixin):
         0.1  1    1
         0.5  3  100
 
-        Specifying `numeric_only=False` will also compute the quantile of
-        datetime and timedelta data.
+        Specifying `numeric_only=False` will compute the quantiles for all
+        columns.
 
         >>> df = pd.DataFrame(
         ...     {

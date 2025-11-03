@@ -88,6 +88,8 @@ class BaseExecutionEngine(abc.ABC):
     simply runs the code with the Python interpreter and pandas.
     """
 
+    __module__ = "pandas.api.executors"
+
     @staticmethod
     @abc.abstractmethod
     def map(
