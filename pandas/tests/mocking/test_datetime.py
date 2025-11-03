@@ -1,9 +1,6 @@
 """
 Unit Testing II - Mocking & Stubbing: DateTime Operations
 Malikarjuna
-Requirement:  Intelligent time-series functionality (resampling, rolling, frequency conversion)
-
-
 """
 
 import pytest
