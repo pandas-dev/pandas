@@ -219,7 +219,7 @@ def _simple_json_normalize(
     sep: str = ".",
 ) -> dict | list[dict] | Any:
     """
-    A optimized basic json_normalize
+    An optimized basic json_normalize
 
     Converts a nested dict into a flat dict ("record"), unlike
     json_normalize and nested_to_record it doesn't do anything clever.
