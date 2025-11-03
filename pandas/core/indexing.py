@@ -956,7 +956,15 @@ class _LocationIndexer(NDFrameIndexerBase):
             and key[0] == slice(None)
         ):
             # This is a `df.loc[:, foo] = bar` call
-            if is_hashable(key[1]) and key[1] in self.obj.columns:
+            if (
+                is_hashable(key[1])
+                and not isinstance(key[1], slice)
+                and not (
+                    isinstance(key[1], tuple)
+                    and any(isinstance(x, slice) for x in key[1])
+                )
+                and key[1] in self.obj.columns
+            ):
                 obj = self.obj[key[1]]
                 if isinstance(obj, ABCSeries) and isinstance(
                     value, (ABCSeries, Index, ExtensionArray, np.ndarray)
