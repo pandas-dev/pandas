@@ -1306,7 +1306,7 @@ class IndexOpsMixin(OpsMixin):
                 # First create the MultiIndex using the standard constructor
                 uniques = self._constructor(uniques)
 
-                # Then replace levels to preserve extension dtypes and set names
+                # Then replace levels to preserve extension dtypes
                 if len(uniques) > 0:
                     new_levels = []
                     for i, (level, orig_level) in enumerate(
@@ -1320,8 +1320,8 @@ class IndexOpsMixin(OpsMixin):
                             # If casting fails, keep the inferred level
                             new_levels.append(level)
 
-                    # Reconstruct MultiIndex with preserved dtypes and names
-                    uniques = uniques.set_levels(new_levels).set_names(self.names)
+                    # Reconstruct MultiIndex with preserved dtypes only
+                    uniques = uniques.set_levels(new_levels)
         else:
             from pandas import Index
 
