@@ -1325,6 +1325,26 @@ class TestMerge:
         result = merge(left, right, on=["a", "b"], validate="1:1")
         tm.assert_frame_equal(result, expected_multi)
 
+    def test_merge_validate_error_message(self):
+        # GH#62742
+        left = DataFrame({"key": [1, 1, 2]})
+        right = DataFrame({"key": [1, 2, 2]})
+
+        with pytest.raises(MergeError, match="Duplicates in left:\n  key\n   1 ...\n"):
+            merge(left, right, validate="1:1")
+        with pytest.raises(MergeError, match="Duplicates in left:\n  key\n   1 ..."):
+            merge(left, right, validate="1:m")
+        with pytest.raises(MergeError, match="Duplicates in right:\n  key\n   2 ..."):
+            merge(left, right, validate="1:1")
+        with pytest.raises(MergeError, match="Duplicates in right:\n  key\n   2 ..."):
+            merge(left, right, validate="m:1")
+
+        right = DataFrame({"key": [1, 2, 3]})
+        with pytest.raises(MergeError, match="Duplicates in left:\n  key\n   1 ..."):
+            merge(left, right, validate="1:1")
+        with pytest.raises(MergeError, match="Duplicates in right:\n  key\n   1 ..."):
+            merge(right, left, validate="1:1")
+
     def test_merge_two_empty_df_no_division_error(self):
         # GH17776, PR #17846
         a = DataFrame({"a": [], "b": [], "c": []})

@@ -144,11 +144,6 @@ def test_int64_overflow(all_parsers, conv, request):
         if parser.engine == "pyarrow":
             mark = pytest.mark.xfail(reason="parses to float64")
             request.applymarker(mark)
-        elif parser.engine == "python":
-            mark = pytest.mark.xfail(
-                reason="TODO: Python engine reads bigint as string"
-            )
-            request.applymarker(mark)
 
         result = parser.read_csv(StringIO(data))
         expected = DataFrame(
@@ -206,9 +201,6 @@ def test_outside_int64_uint64_range(all_parsers, val, request):
     # These numbers fall just outside the int64-uint64
     # range, so they should be parsed as object.
     parser = all_parsers
-    if parser.engine == "python":
-        mark = pytest.mark.xfail(reason="TODO: Python engine reads bigint as string")
-        request.applymarker(mark)
 
     result = parser.read_csv(StringIO(str(val)), header=None)
 
