@@ -1436,7 +1436,7 @@ class MultiIndex(Index):
         return any(f(level.dtype) for level in self.levels)
 
     # Cannot determine type of "memory_usage"
-    @doc(Index.memory_usage)  # type: ignore[has-type]
+    @doc(Index.memory_usage)
     def memory_usage(self, deep: bool = False) -> int:
         # we are overwriting our base class to avoid
         # computing .values here which could materialize
@@ -4030,7 +4030,12 @@ class MultiIndex(Index):
 
         if not has_extension_dtypes:
             # Use parent implementation for performance when no extension dtypes
-            return super().factorize(sort=sort, use_na_sentinel=use_na_sentinel)
+            codes, uniques = super().factorize(
+                sort=sort, use_na_sentinel=use_na_sentinel
+            )
+
+            assert isinstance(uniques, MultiIndex)
+            return codes, uniques
 
         # Custom implementation for extension dtypes (GH#62337)
         return self._factorize_with_extension_dtypes(
