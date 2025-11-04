@@ -369,7 +369,7 @@ class NumpyExtensionArray(
         )
         # See GH#62448.
         if self.dtype.kind in "iub":
-            return type(self)(result, copy=False)
+            return type(self)(result._ndarray, copy=False)
 
         return result
 
