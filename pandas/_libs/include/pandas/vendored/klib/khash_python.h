@@ -191,9 +191,9 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
   return 1;
 }
 
-static inline int _is_pandas_NA_type(PyObject* o) {
+static inline int _is_pandas_NA_type(PyObject *o) {
   // TODO compare PyTypeObject* C_NA, not strings!
-  PyObject* type_name = PyType_GetName(Py_TYPE(o));
+  PyObject *type_name = PyType_GetName(Py_TYPE(o));
   return PyUnicode_CompareWithASCIIString(type_name, "NAType") == 0;
 }
 
@@ -323,8 +323,8 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
     // hash tuple subclasses as builtin tuples
     hash = tupleobject_hash((PyTupleObject *)key);
   } else if (PyDict_Check(key) || PyList_Check(key)) {
-    // Before GH 57052 was fixed, all exceptions raised from PyObject_Hash were suppressed.
-    // Existing code that relies on this behaviour is for example:
+    // Before GH 57052 was fixed, all exceptions raised from PyObject_Hash were
+    // suppressed. Existing code that relies on this behaviour is for example:
     //   * _libs.hashtable.value_count_object via DataFrame.describe
     //   * _libs.hashtable.ismember_object via Series.isin
     // Using hash = 0 puts all dict and list objects in the same bucket,
