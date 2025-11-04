@@ -156,6 +156,8 @@ All warnings for upcoming changes in pandas will have the base class :class:`pan
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
+- :class:`pandas.NamedAgg` now supports passing ``*args`` and ``**kwargs``
+  to calls of ``aggfunc`` (:issue:`58283`)
 - :func:`pandas.merge` propagates the ``attrs`` attribute to the result if all
   inputs have identical ``attrs``, as has so far already been the case for
   :func:`pandas.concat`.
@@ -735,6 +737,7 @@ Other Deprecations
 - Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)
 - Deprecated allowing ``fill_value`` that cannot be held in the original dtype (excepting NA values for integer and bool dtypes) in :meth:`Series.unstack` and :meth:`DataFrame.unstack` (:issue:`12189`, :issue:`53868`)
 - Deprecated allowing ``fill_value`` that cannot be held in the original dtype (excepting NA values for integer and bool dtypes) in :meth:`Series.shift` and :meth:`DataFrame.shift` (:issue:`53802`)
+- Deprecated allowing strings representing full dates in :meth:`DataFrame.at_time` and :meth:`Series.at_time` (:issue:`50839`)
 - Deprecated backward-compatibility behavior for :meth:`DataFrame.select_dtypes` matching "str" dtype when ``np.object_`` is specified (:issue:`61916`)
 - Deprecated option "future.no_silent_downcasting", as it is no longer used. In a future version accessing this option will raise (:issue:`59502`)
 - Deprecated silent casting of non-datetime 'other' to datetime in :meth:`Series.combine_first` (:issue:`62931`)
@@ -1102,6 +1105,7 @@ I/O
 - Bug in :class:`DataFrame` and :class:`Series` ``repr`` of :py:class:`collections.abc.Mapping` elements. (:issue:`57915`)
 - Fix bug in ``on_bad_lines`` callable when returning too many fields: now emits
   ``ParserWarning`` and truncates extra fields regardless of ``index_col`` (:issue:`61837`)
+- Bug in :func:`pandas.json_normalize` inconsistently handling non-dict items in ``data`` when ``max_level`` was set. The function will now raise a ``TypeError`` if ``data`` is a list containing non-dict items (:issue:`62829`)
 - Bug in :meth:`.DataFrame.to_json` when ``"index"`` was a value in the :attr:`DataFrame.column` and :attr:`Index.name` was ``None``. Now, this will fail with a ``ValueError`` (:issue:`58925`)
 - Bug in :meth:`.io.common.is_fsspec_url` not recognizing chained fsspec URLs (:issue:`48978`)
 - Bug in :meth:`DataFrame._repr_html_` which ignored the ``"display.float_format"`` option (:issue:`59876`)
@@ -1122,6 +1126,7 @@ I/O
 - Bug in :meth:`read_csv` for the ``c`` and ``python`` engines where parsing numbers with large exponents caused overflows. Now, numbers with large positive exponents are parsed as ``inf`` or ``-inf`` depending on the sign of the mantissa, while those with large negative exponents are parsed as ``0.0`` (:issue:`62617`, :issue:`38794`, :issue:`62740`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``index_col`` is specified and ``na_values`` is a dict containing the key ``None``. (:issue:`57547`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``nrows`` and ``iterator`` are specified without specifying a ``chunksize``. (:issue:`59079`)
+- Bug in :meth:`read_csv` where it did not appropriately skip a line when instructed, causing Empty Data Error (:issue:`62739`)
 - Bug in :meth:`read_csv` where the order of the ``na_values`` makes an inconsistency when ``na_values`` is a list non-string values. (:issue:`59303`)
 - Bug in :meth:`read_csv` with ``c`` and ``python`` engines reading big integers as strings. Now reads them as python integers. (:issue:`51295`)
 - Bug in :meth:`read_csv` with ``engine="c"`` reading large float numbers with preceding integers as strings. Now reads them as floats. (:issue:`51295`)
@@ -1167,6 +1172,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.Resampler.interpolate` on a :class:`DataFrame` with non-uniform sampling and/or indices not aligning with the resulting resampled index would result in wrong interpolation (:issue:`21351`)
 - Bug in :meth:`.Series.rolling` when used with a :class:`.BaseIndexer` subclass and computing min/max (:issue:`46726`)
 - Bug in :meth:`DataFrame.ewm` and :meth:`Series.ewm` when passed ``times`` and aggregation functions other than mean (:issue:`51695`)
+- Bug in :meth:`DataFrame.resample.asfreq` where fixed-frequency indexes with ``origin`` ignored alignment and returned incorrect values. Now ``origin`` and ``offset`` are respected. (:issue:`62725`)
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` were not keeping the index name when the index had :class:`ArrowDtype` timestamp dtype (:issue:`61222`)
 - Bug in :meth:`DataFrame.resample` changing index type to :class:`MultiIndex` when the dataframe is empty and using an upsample method (:issue:`55572`)
 - Bug in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg` that was returning numpy dtype values when input values are pyarrow dtype values, instead of returning pyarrow dtype values. (:issue:`53030`)
@@ -1275,6 +1281,7 @@ Other
 - Bug in ``divmod`` and ``rdivmod`` with :class:`DataFrame`, :class:`Series`, and :class:`Index` with ``bool`` dtypes failing to raise, which was inconsistent with ``__floordiv__`` behavior (:issue:`46043`)
 - Bug in printing a :class:`DataFrame` with a :class:`DataFrame` stored in :attr:`DataFrame.attrs` raised a ``ValueError`` (:issue:`60455`)
 - Bug in printing a :class:`Series` with a :class:`DataFrame` stored in :attr:`Series.attrs` raised a ``ValueError`` (:issue:`60568`)
+- Bug when calling :py:func:`copy.copy` on a :class:`DataFrame` or :class:`Series` which would return a deep copy instead of a shallow copy (:issue:`62971`)
 - Deprecated the keyword ``check_datetimelike_compat`` in :meth:`testing.assert_frame_equal` and :meth:`testing.assert_series_equal` (:issue:`55638`)
 - Fixed bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when trying to replace :class:`NA` values in a :class:`Float64Dtype` object with ``np.nan``; this now works with ``pd.set_option("mode.nan_is_na", False)`` and is irrelevant otherwise (:issue:`55127`)
 - Fixed bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when trying to replace :class:`np.nan` values in a :class:`Int64Dtype` object with :class:`NA`; this is now a no-op with ``pd.set_option("mode.nan_is_na", False)`` and is irrelevant otherwise (:issue:`51237`)
