@@ -725,8 +725,8 @@ class BaseBlockManager(PandasObject):
         -------
         BlockManager
         """
-        # this preserves the notion of view copying of axes
-        new_axes = [ax.copy(deep=deep) for ax in self.axes]
+        # TODO: Should deep=True be respected for axes?
+        new_axes = [ax.view() for ax in self.axes]
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
