@@ -17,7 +17,10 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -61,6 +64,9 @@ if TYPE_CHECKING:
     )
 
     from pandas.core.generic import NDFrame
+
+
+set_module("pandas")
 
 
 class Grouper:
@@ -252,8 +258,6 @@ class Grouper:
     2000-10-02 00:24:00    24
     Freq: 17min, dtype: int64
     """
-
-    __module__ = "pandas"
 
     sort: bool
     dropna: bool

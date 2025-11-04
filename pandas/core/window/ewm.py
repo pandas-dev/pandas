@@ -9,7 +9,10 @@ import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -129,6 +132,7 @@ def _calculate_deltas(
     return np.diff(_times) / _halflife
 
 
+@set_module("pandas.api.typing")
 class ExponentialMovingWindow(BaseWindow):
     r"""
     Provide exponentially weighted (EW) calculations.
@@ -315,8 +319,6 @@ class ExponentialMovingWindow(BaseWindow):
     3  1.523889
     4  3.233686
     """
-
-    __module__ = "pandas.api.typing"
 
     _attributes = [
         "com",
@@ -904,12 +906,11 @@ class ExponentialMovingWindow(BaseWindow):
         )
 
 
+@set_module("pandas.api.typing")
 class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow):
     """
     Provide an exponential moving window groupby implementation.
     """
-
-    __module__ = "pandas.api.typing"
 
     _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
 

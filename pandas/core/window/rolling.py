@@ -29,6 +29,7 @@ from pandas._libs.tslibs import (
 import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -855,6 +856,7 @@ class BaseWindowGroupby(BaseWindow):
         return super()._gotitem(key, ndim, subset=subset)
 
 
+@set_module("pandas.api.typing")
 class Window(BaseWindow):
     """
     Provide rolling window calculations.
@@ -1110,8 +1112,6 @@ class Window(BaseWindow):
     2020-01-02 2020-01-01  3.0
     2020-01-03 2020-01-02  6.0
     """
-
-    __module__ = "pandas.api.typing"
 
     _attributes = [
         "window",
@@ -1969,8 +1969,8 @@ class RollingAndExpandingMixin(BaseWindow):
         )
 
 
+@set_module("pandas.api.typing")
 class Rolling(RollingAndExpandingMixin):
-    __module__ = "pandas.api.typing"
     _attributes: list[str] = [
         "window",
         "min_periods",
@@ -3532,12 +3532,11 @@ class Rolling(RollingAndExpandingMixin):
 Rolling.__doc__ = Window.__doc__
 
 
+@set_module("pandas.api.typing")
 class RollingGroupby(BaseWindowGroupby, Rolling):
     """
     Provide a rolling groupby implementation.
     """
-
-    __module__ = "pandas.api.typing"
 
     _attributes = Rolling._attributes + BaseWindowGroupby._attributes
 
