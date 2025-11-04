@@ -259,20 +259,21 @@ class TestLoc:
             assert res == exp
 
     @pytest.mark.parametrize(
-        "obj",
+        "data",
         [
-            DataFrame({"A": [datetime(2025, 10, 30)]}),
-            DataFrame({"A": [Timestamp(2025, 10, 30)] * 2}),
-            DataFrame({"A": [Timedelta(1)]}),
-            DataFrame({"A": [Timedelta(1), Timedelta(2)]}),
+            [datetime(2025, 10, 30)],
+            [Timestamp(2025, 10, 30)] * 2,
+            [Timedelta(1)],
+            [Timedelta(1), Timedelta(2)],
         ],
     )
-    def test_loc_empty_slice_assignment_with_datetime(self, obj):
+    def test_loc_empty_slice_assignment_with_datetime(self, data):
         # issue #50942
         # empty slice assignment with datetime or timedelta should not raise exceptions
-        mask = [False] * len(obj)
+        mask = [False] * len(data)
         try:
-            obj.loc[mask] = obj
+            df = DataFrame(data=data, columns=["A"])
+            df.loc[mask] = df
             assert True
         except Exception:
             pytest.fail("loc empty slice assignment raised Exception unexpectedly!")
