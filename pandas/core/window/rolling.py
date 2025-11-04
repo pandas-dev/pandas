@@ -1113,6 +1113,8 @@ class Window(BaseWindow):
     2020-01-03 2020-01-02  6.0
     """
 
+    __module__ = "pandas.api.typing"
+
     _attributes = [
         "window",
         "min_periods",
@@ -1332,7 +1334,7 @@ class Window(BaseWindow):
         to pass the parameter `win_type`.
 
         >>> type(ser.rolling(2, win_type="gaussian"))
-        <class 'pandas.core.window.rolling.Window'>
+        <class 'pandas.api.typing.Window'>
 
         In order to use the `SciPy` Gaussian window we need to provide the parameters
         `M` and `std`. The parameter `M` corresponds to 2 in our example.
@@ -1392,7 +1394,7 @@ class Window(BaseWindow):
         to pass the parameter `win_type`.
 
         >>> type(ser.rolling(2, win_type="gaussian"))
-        <class 'pandas.core.window.rolling.Window'>
+        <class 'pandas.api.typing.Window'>
 
         In order to use the `SciPy` Gaussian window we need to provide the parameters
         `M` and `std`. The parameter `M` corresponds to 2 in our example.
@@ -1454,7 +1456,7 @@ class Window(BaseWindow):
         to pass the parameter `win_type`.
 
         >>> type(ser.rolling(2, win_type="gaussian"))
-        <class 'pandas.core.window.rolling.Window'>
+        <class 'pandas.api.typing.Window'>
 
         In order to use the `SciPy` Gaussian window we need to provide the parameters
         `M` and `std`. The parameter `M` corresponds to 2 in our example.
@@ -1509,7 +1511,7 @@ class Window(BaseWindow):
         to pass the parameter `win_type`.
 
         >>> type(ser.rolling(2, win_type="gaussian"))
-        <class 'pandas.core.window.rolling.Window'>
+        <class 'pandas.api.typing.Window'>
 
         In order to use the `SciPy` Gaussian window we need to provide the parameters
         `M` and `std`. The parameter `M` corresponds to 2 in our example.
@@ -1970,6 +1972,7 @@ class RollingAndExpandingMixin(BaseWindow):
 
 
 class Rolling(RollingAndExpandingMixin):
+    __module__ = "pandas.api.typing"
     _attributes: list[str] = [
         "window",
         "min_periods",
@@ -3535,6 +3538,8 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
     """
     Provide a rolling groupby implementation.
     """
+
+    __module__ = "pandas.api.typing"
 
     _attributes = Rolling._attributes + BaseWindowGroupby._attributes
 
