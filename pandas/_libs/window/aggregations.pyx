@@ -605,7 +605,7 @@ cdef void remove_skew(float64_t val, int64_t *nobs,
         mean[0] -= delta_n
 
 
-def roll_skew(ndarray[float64_t] values, ndarray[int64_t] start,
+def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
