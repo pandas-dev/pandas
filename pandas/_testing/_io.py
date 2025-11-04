@@ -58,7 +58,13 @@ def round_trip_pickle(
     # keeping an open file handle (important on Windows) while still
     # ensuring automatic cleanup.
     with tempfile.TemporaryDirectory() as tmpdir:
-        temp_path = pathlib.Path(tmpdir) / _path
+        # Only join tmpdir with _path when _path is a string or Path-like.
+        # _path may be a ReadPickleBuffer (file-like) in which case it
+        # should be used directly for pickle operations.
+        if isinstance(_path, (str, pathlib.Path)):
+            temp_path = pathlib.Path(tmpdir) / _path
+        else:
+            temp_path = _path
         pd.to_pickle(obj, temp_path)
         return pd.read_pickle(temp_path)
 
