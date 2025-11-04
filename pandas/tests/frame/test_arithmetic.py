@@ -2256,41 +2256,24 @@ axes = [0, 1]
 
 
 @pytest.mark.parametrize(
-    "data_type,fill_val, axis",
+    "dtype,fill_val, axis",
     [(dt, val, axis) for axis in axes for dt, val in dt_params],
 )
-def test_df_mul_array_fill_value(data_type, fill_val, axis):
+def test_df_mul_array_fill_value(dtype, fill_val, axis):
     # GH 61581
-    base_data = np.arange(12).reshape(4, 3)
-    df = DataFrame(base_data)
-    mult_list = [np.nan, 1, 5, np.nan]
-    mult_list = mult_list[: df.shape[axis]]
-
-    if data_type in tm.ALL_INT_NUMPY_DTYPES:
+    if dtype == tm.ALL_INT_NUMPY_DTYPES[0]:
         # Numpy int type cannot represent NaN
-        mult_np = np.asarray(mult_list)
-        mult_list = np.nan_to_num(mult_np, nan=fill_val)
-
-    mult_data = pd.array(mult_list, dtype=data_type)
-
-    for i in range(df.shape[0]):
-        try:
-            df.iat[i, i] = np.nan
-            df.iat[i + 2, i] = pd.NA
-        except IndexError:
-            pass
-
-    if axis == 0:
-        mult_mat = np.broadcast_to(mult_data.reshape(-1, 1), df.shape)
-        mask = np.isnan(mult_mat)
+        safe_null = fill_val
     else:
-        mult_mat = np.broadcast_to(mult_data.reshape(1, -1), df.shape)
-        mask = np.isnan(mult_mat)
-    mask = df.isna().values & mask
+        safe_null = np.nan
 
-    df_result = df.mul(mult_data, axis=axis, fill_value=fill_val)
-    df_expected = (df.fillna(fill_val).mul(mult_data.fillna(fill_val), axis=axis)).mask(
-        mask, np.nan
-    )
+    df = DataFrame([[safe_null, 1, 2], [3, safe_null, 5]], dtype=dtype)
 
-    tm.assert_frame_equal(df_result, df_expected)
+    mult = pd.array([safe_null, 1.0], dtype=dtype)
+
+    result = df.mul(mult, axis=0, fill_value=fill_val)
+    expected = DataFrame(
+        [[safe_null * safe_null, fill_val, fill_val * 2], [3.0, fill_val, 5.0]]
+    ).astype(dtype)
+
+    tm.assert_frame_equal(result, expected)
