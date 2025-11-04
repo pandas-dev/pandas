@@ -8,10 +8,12 @@ import os
 import sys
 
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import set_module
 
 PKG = os.path.dirname(os.path.dirname(__file__))
 
 
+@set_module("pandas")
 def test(extra_args: list[str] | None = None, run_doctests: bool = False) -> None:  # noqa: PT028
     """
     Run the pandas test suite using pytest.

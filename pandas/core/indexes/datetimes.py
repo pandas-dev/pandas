@@ -1133,12 +1133,14 @@ def bdate_range(
         msg = "freq must be specified for bdate_range; use date_range instead"
         raise TypeError(msg)
 
-    if isinstance(freq, str) and freq.startswith("C"):
+    if isinstance(freq, str) and freq.upper().startswith("C"):
+        msg = f"invalid custom frequency string: {freq}"
+        if freq == "CBH":
+            raise ValueError(f"{msg}, did you mean cbh?")
         try:
             weekmask = weekmask or "Mon Tue Wed Thu Fri"
             freq = prefix_mapping[freq](holidays=holidays, weekmask=weekmask)
         except (KeyError, TypeError) as err:
-            msg = f"invalid custom frequency string: {freq}"
             raise ValueError(msg) from err
     elif holidays or weekmask:
         msg = (
