@@ -1963,7 +1963,7 @@ class TestToDatetimeUnit:
             dtype="M8[ns]",
         )
         # GH20455 argument will incur floating point errors but no premature rounding
-        result = result.round("ms")
+        result = result.dt.round("ms")
         tm.assert_series_equal(result, expected)
 
     def test_to_datetime_unit_na_values(self):

@@ -1027,6 +1027,7 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.arm_slow
+    @pytest.mark.slow
     @pytest.mark.parametrize("length, l2", [[900, 100], [900000, 100000]])
     def test_loc_non_unique_memory_error(self, length, l2):
         # GH 4280

@@ -840,7 +840,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
     if (levels is None and isinstance(keys[0], tuple)) or (
         levels is not None and len(levels) > 1
     ):
-        zipped = list(zip(*keys))
+        zipped = list(zip(*keys, strict=True))
         if names is None:
             names = [None] * len(zipped)
 
@@ -866,13 +866,13 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         # things are potentially different sizes, so compute the exact codes
         # for each level and pass those to MultiIndex.from_arrays
 
-        for hlevel, level in zip(zipped, levels):
+        for hlevel, level in zip(zipped, levels, strict=True):
             to_concat = []
             if isinstance(hlevel, Index) and hlevel.equals(level):
                 lens = [len(idx) for idx in indexes]
                 codes_list.append(np.repeat(np.arange(len(hlevel)), lens))
             else:
-                for key, index in zip(hlevel, indexes):
+                for key, index in zip(hlevel, indexes, strict=True):
                     # Find matching codes, include matching nan values as equal.
                     mask = (isna(level) & isna(key)) | (level == key)
                     if not mask.any():
@@ -922,7 +922,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
     # do something a bit more speedy
 
-    for hlevel, level in zip(zipped, levels):
+    for hlevel, level in zip(zipped, levels, strict=True):
         hlevel_index = ensure_index(hlevel)
         mapped = level.get_indexer(hlevel_index)
 

@@ -517,7 +517,7 @@ class Registry:
     """
     Registry for dtype inference.
 
-    The registry allows one to map a string repr of a extension
+    The registry allows one to map a string repr of an extension
     dtype to an extension dtype. The string alias can be used in several
     places, including
 

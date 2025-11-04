@@ -1454,7 +1454,7 @@ class Expanding(RollingAndExpandingMixin):
 
 class ExpandingGroupby(BaseWindowGroupby, Expanding):
     """
-    Provide a expanding groupby implementation.
+    Provide an expanding groupby implementation.
     """
 
     __module__ = "pandas.api.typing"

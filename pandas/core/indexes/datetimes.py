@@ -767,7 +767,37 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if isinstance(time, str):
             from dateutil.parser import parse
 
-            time = parse(time).time()
+            orig = time
+            try:
+                alt = to_time(time)
+            except ValueError:
+                warnings.warn(
+                    # GH#50839
+                    f"The string '{orig}' cannot be parsed using pd.core.tools.to_time "
+                    f"and in a future version will raise. "
+                    "Use an unambiguous time string format or explicitly cast to "
+                    "`datetime.time` before calling.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                time = parse(time).time()
+            else:
+                try:
+                    time = parse(time).time()
+                except ValueError:
+                    # e.g. '23550' raises dateutil.parser._parser.ParserError
+                    time = alt
+                if alt != time:
+                    warnings.warn(
+                        # GH#50839
+                        f"The string '{orig}' is currently parsed as {time} "
+                        f"but in a future version will be parsed as {alt}, consistent"
+                        "with `between_time` behavior. To avoid this warning, "
+                        "use an unambiguous string format or explicitly cast to "
+                        "`datetime.time` before calling.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
 
         if time.tzinfo:
             if self.tz is None:
@@ -1133,12 +1163,14 @@ def bdate_range(
         msg = "freq must be specified for bdate_range; use date_range instead"
         raise TypeError(msg)
 
-    if isinstance(freq, str) and freq.startswith("C"):
+    if isinstance(freq, str) and freq.upper().startswith("C"):
+        msg = f"invalid custom frequency string: {freq}"
+        if freq == "CBH":
+            raise ValueError(f"{msg}, did you mean cbh?")
         try:
             weekmask = weekmask or "Mon Tue Wed Thu Fri"
             freq = prefix_mapping[freq](holidays=holidays, weekmask=weekmask)
         except (KeyError, TypeError) as err:
-            msg = f"invalid custom frequency string: {freq}"
             raise ValueError(msg) from err
     elif holidays or weekmask:
         msg = (

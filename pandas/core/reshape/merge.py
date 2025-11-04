@@ -677,7 +677,9 @@ def merge_asof(
     Perform a merge by key distance.
 
     This is similar to a left-join except that we match on nearest
-    key rather than equal keys. Both DataFrames must be sorted by the key.
+    key rather than equal keys. Both DataFrames must be first sorted by
+    the merge key in ascending order before calling this function.
+    Sorting by any additional 'by' grouping columns is not required.
 
     For each row in the left DataFrame:
 
@@ -700,19 +702,22 @@ def merge_asof(
         Second pandas object to merge.
     on : label
         Field name to join on. Must be found in both DataFrames.
-        The data MUST be ordered. Furthermore this must be a numeric column,
-        such as datetimelike, integer, or float. On or left_on/right_on
-        must be given.
+        The data MUST be in ascending order. Furthermore this must be
+        a numeric column, such as datetimelike, integer, or float. ``on``
+        or ``left_on`` / ``right_on`` must be given.
     left_on : label
-        Field name to join on in left DataFrame.
+        Field name to join on in left DataFrame. If specified, sort the left
+        DataFrame by this column in ascending order before merging.
     right_on : label
-        Field name to join on in right DataFrame.
+        Field name to join on in right DataFrame. If specified, sort the right
+        DataFrame by this column in ascending order before merging.
     left_index : bool
         Use the index of the left DataFrame as the join key.
     right_index : bool
         Use the index of the right DataFrame as the join key.
     by : column name or list of column names
-        Match on these columns before performing merge operation.
+        Match on these columns before performing merge operation. It is not required
+        to sort by these columns.
     left_by : column name
         Field names to match on in the left DataFrame.
     right_by : column name
@@ -736,7 +741,8 @@ def merge_asof(
     Returns
     -------
     DataFrame
-        A DataFrame of the two merged objects.
+        A DataFrame of the two merged objects, containing all rows from the
+        left DataFrame and the nearest matches from the right DataFrame.
 
     See Also
     --------
@@ -1186,8 +1192,8 @@ class _MergeOperation:
                 "Cannot use name of an existing column for indicator column"
             )
 
-        left = left.copy()
-        right = right.copy()
+        left = left.copy(deep=False)
+        right = right.copy(deep=False)
 
         left["_left_indicator"] = 1
         left["_left_indicator"] = left["_left_indicator"].astype("int8")
@@ -1865,11 +1871,11 @@ class _MergeOperation:
             # incompatible dtypes. See GH 16900.
             if name in self.left.columns:
                 typ = cast(Categorical, lk).categories.dtype if lk_is_cat else object
-                self.left = self.left.copy()
+                self.left = self.left.copy(deep=False)
                 self.left[name] = self.left[name].astype(typ)
             if name in self.right.columns:
                 typ = cast(Categorical, rk).categories.dtype if rk_is_cat else object
-                self.right = self.right.copy()
+                self.right = self.right.copy(deep=False)
                 self.right[name] = self.right[name].astype(typ)
 
     def _validate_left_right_on(self, left_on, right_on):

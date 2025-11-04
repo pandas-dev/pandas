@@ -3800,3 +3800,13 @@ def test_cast_pontwise_result_decimal_nan():
 
     pa_type = result.dtype.pyarrow_dtype
     assert pa.types.is_decimal(pa_type)
+
+
+def test_ufunc_retains_missing():
+    # GH#62800
+    ser = pd.Series([0.1, pd.NA], dtype="float64[pyarrow]")
+
+    result = np.sin(ser)
+
+    expected = pd.Series([np.sin(0.1), pd.NA], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)

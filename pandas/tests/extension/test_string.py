@@ -31,7 +31,7 @@ import pandas._testing as tm
 from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
-from pandas.tests.arrays.string_.test_string import string_dtype_highest_priority
+from pandas.tests.arithmetic.test_string import string_dtype_highest_priority
 from pandas.tests.extension import base
 
 
