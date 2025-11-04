@@ -259,6 +259,7 @@ class TestDataFrameCorr:
         self,
         method,
     ):
+        pytest.importorskip("scipy")
         df = DataFrame(
             {
                 "ord_cat": Series(
@@ -540,6 +541,7 @@ class TestDataFrameCorrWith:
         self,
         method,
     ):
+        pytest.importorskip("scipy")
         df1 = DataFrame(
             {
                 "a": Series(
