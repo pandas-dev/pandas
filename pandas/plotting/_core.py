@@ -1600,10 +1600,6 @@ class PlotAccessor(PandasObject):
         by : str or sequence
             Column in the DataFrame to group by.
 
-            .. versionchanged:: 1.4.0
-
-               Previously, `by` is silently ignore and makes no groupings
-
         **kwargs
             Additional keywords are documented in
             :meth:`DataFrame.plot`.
@@ -1634,8 +1630,6 @@ class PlotAccessor(PandasObject):
         You can also generate groupings if you specify the `by` parameter (which
         can take a column name, or a list or tuple of column names):
 
-        .. versionchanged:: 1.4.0
-
         .. plot::
             :context: close-figs
 
@@ -1660,11 +1654,6 @@ class PlotAccessor(PandasObject):
         ----------
         by : str or sequence, optional
             Column in the DataFrame to group by.
-
-            .. versionchanged:: 1.4.0
-
-               Previously, `by` is silently ignore and makes no groupings
-
         bins : int, default 10
             Number of histogram bins to be used.
         **kwargs

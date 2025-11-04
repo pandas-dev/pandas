@@ -406,10 +406,8 @@ When using ``engine='numba'``, there will be no "fall back" behavior internally.
 The group data and group index will be passed as numpy arrays to the JITed
 user defined function, and no alternative execution attempts will be tried.
 
-.. versionchanged:: 1.3.0
-
-    The resulting dtype will reflect the return value of the passed ``func``,
-    see the examples below.
+The resulting dtype will reflect the return value of the passed ``func``,
+see the examples below.
 
 .. versionchanged:: 2.0.0
 
@@ -1518,11 +1516,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Notes
         -----
-
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``,
-            see the examples below.
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
 
         Functions that mutate the passed object can produce unexpected
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
@@ -1562,9 +1557,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         its argument and returns a Series.  `apply` combines the result for
         each group together into a new DataFrame.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``.
+        The resulting dtype will reflect the return value of the passed ``func``.
 
         >>> g1[["B", "C"]].apply(lambda x: x.astype(float).max() - x.min())
              B    C
@@ -5562,10 +5555,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState or np.random.Generator, use as given.
             Default ``None`` results in sampling with the current state of np.random.
-
-            .. versionchanged:: 1.4.0
-
-                np.random.Generator objects now accepted
 
         Returns
         -------

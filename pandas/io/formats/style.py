@@ -130,8 +130,6 @@ class Styler(StylerRenderer):
     precision : int, optional
         Precision to round floats to. If not given defaults to
         ``pandas.options.styler.format.precision``.
-
-        .. versionchanged:: 1.4.0
     table_styles : list-like, default None
         List of {selector: (attr, value)} dicts; see Notes.
     uuid : str, default None
@@ -718,8 +716,6 @@ class Styler(StylerRenderer):
             Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
             {booktabs} LaTeX package.
             Defaults to ``pandas.options.styler.latex.hrules``, which is `False`.
-
-            .. versionchanged:: 1.4.0
         clines : str, optional
             Use to control adding \\cline commands for the index labels separation.
             Possible values are:
@@ -757,8 +753,6 @@ class Styler(StylerRenderer):
             at the top or bottom using the multirow package. If not given defaults to
             ``pandas.options.styler.latex.multirow_align``, which is `"c"`.
             If "naive" is given renders without multirow.
-
-            .. versionchanged:: 1.4.0
         multicol_align : {"r", "c", "l", "naive-l", "naive-r"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right. If not given defaults to
@@ -767,8 +761,6 @@ class Styler(StylerRenderer):
             Pipe decorators can also be added to non-naive values to draw vertical
             rules, e.g. "\|r" will draw a rule on the left side of right aligned merged
             cells.
-
-            .. versionchanged:: 1.4.0
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         environment : str, optional
@@ -776,8 +768,6 @@ class Styler(StylerRenderer):
             If 'longtable' is specified then a more suitable template is
             rendered. If not given defaults to
             ``pandas.options.styler.latex.environment``, which is `None`.
-
-            .. versionadded:: 1.4.0
         encoding : str, optional
             Character encoding setting. Defaults
             to ``pandas.options.styler.render.encoding``, which is "utf-8".
@@ -1961,11 +1951,6 @@ class Styler(StylerRenderer):
             ``func`` should take a DataFrame if ``axis`` is ``None`` and return either
             an ndarray with the same shape or a DataFrame, not necessarily of the same
             shape, with valid index and columns labels considering ``subset``.
-
-            .. versionchanged:: 1.3.0
-
-            .. versionchanged:: 1.4.0
-
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -3239,8 +3224,6 @@ class Styler(StylerRenderer):
         """
         Draw bar chart in the cell backgrounds.
 
-        .. versionchanged:: 1.4.0
-
         Parameters
         ----------
         %(subset)s
@@ -3281,8 +3264,6 @@ class Styler(StylerRenderer):
 
             If a callable should take a 1d or 2d array and return a scalar.
 
-            .. versionchanged:: 1.4.0
-
         vmin : float, optional
             Minimum bar value, defining the left hand limit
             of the bar drawing range, lower values are clipped to `vmin`.
@@ -3294,8 +3275,6 @@ class Styler(StylerRenderer):
         props : str, optional
             The base CSS of the cell that is extended to add the bar chart. Defaults to
             `"width: 10em;"`.
-
-            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -3767,21 +3746,14 @@ class Styler(StylerRenderer):
 
         Uses custom templates and Jinja environment.
 
-        .. versionchanged:: 1.3.0
-
         Parameters
         ----------
         searchpath : str or list
             Path or paths of directories containing the templates.
         html_table : str
             Name of your custom template to replace the html_table template.
-
-            .. versionadded:: 1.3.0
-
         html_style : str
             Name of your custom template to replace the html_style template.
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
