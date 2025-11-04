@@ -15,6 +15,7 @@ from pandas._libs import lib
 from pandas.compat import (
     HAS_PYARROW,
     pa_version_under17p0,
+    pa_version_under21p0,
 )
 
 if HAS_PYARROW:
@@ -172,15 +173,12 @@ class ArrowStringArrayMixin:
             or callable(repl)
             or not case
             or flags
-            or (
-                isinstance(repl, str)
-                and (r"\g<" in repl or re.search(r"\\\d", repl) is not None)
-            )
+            or (isinstance(repl, str) and r"\g<" in repl)
         ):
             raise NotImplementedError(
                 "replace is not supported with a re.Pattern, callable repl, "
                 "case=False, flags!=0, or when the replacement string contains "
-                "named group references (\\g<...>, \\d+)"
+                "named group references (\\g<...>)"
             )
 
         func = pc.replace_substring_regex if regex else pc.replace_substring
@@ -267,6 +265,12 @@ class ArrowStringArrayMixin:
         return self._convert_bool_result(result)
 
     def _str_isdigit(self):
+        if pa_version_under21p0:
+            # https://github.com/pandas-dev/pandas/issues/61466
+            res_list = self._apply_elementwise(str.isdigit)
+            return self._convert_bool_result(
+                pa.chunked_array(res_list, type=pa.bool_())
+            )
         result = pc.utf8_is_digit(self._pa_array)
         return self._convert_bool_result(result)
 

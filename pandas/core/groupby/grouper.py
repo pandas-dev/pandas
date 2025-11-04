@@ -253,6 +253,8 @@ class Grouper:
     Freq: 17min, dtype: int64
     """
 
+    __module__ = "pandas"
+
     sort: bool
     dropna: bool
     _grouper: Index | None
@@ -684,9 +686,9 @@ class Grouping:
 
         r, counts = libalgos.groupsort_indexer(ensure_platform_int(codes), len(uniques))
         counts = ensure_int64(counts).cumsum()
-        _result = (r[start:end] for start, end in zip(counts, counts[1:]))
+        _result = (r[start:end] for start, end in zip(counts, counts[1:], strict=False))
         # map to the label
-        result = {k: self._index.take(v) for k, v in zip(uniques, _result)}
+        result = {k: self._index.take(v) for k, v in zip(uniques, _result, strict=True)}
 
         return PrettyDict(result)
 
@@ -875,7 +877,7 @@ def get_grouper(
             return gpr._mgr.references_same_values(obj_gpr_column._mgr, 0)
         return False
 
-    for gpr, level in zip(keys, levels):
+    for gpr, level in zip(keys, levels, strict=True):
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis = True
             exclusions.add(gpr.name)

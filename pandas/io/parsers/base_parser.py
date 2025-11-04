@@ -237,7 +237,7 @@ class ParserBase:
         def extract(r):
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
-        columns = list(zip(*(extract(r) for r in header)))
+        columns = list(zip(*(extract(r) for r in header), strict=True))
         names = columns.copy()
         for single_ic in sorted(ic):
             names.insert(single_ic, single_ic)
@@ -328,9 +328,11 @@ class ParserBase:
 
         if self.index_names is not None:
             names: Iterable = self.index_names
+            zip_strict = True
         else:
             names = itertools.cycle([None])
-        for i, (arr, name) in enumerate(zip(index, names)):
+            zip_strict = False
+        for i, (arr, name) in enumerate(zip(index, names, strict=zip_strict)):
             if self._should_parse_dates(i):
                 arr = date_converter(
                     arr,
@@ -519,7 +521,11 @@ class ParserBase:
             if values.dtype == np.object_:
                 na_count = parsers.sanitize_objects(values, na_values)
 
-        if result.dtype == np.object_ and try_num_bool:
+        if (
+            result.dtype == np.object_
+            and try_num_bool
+            and (len(result) == 0 or not isinstance(result[0], int))
+        ):
             result, bool_mask = libops.maybe_convert_bool(
                 np.asarray(values),
                 true_values=self.true_values,

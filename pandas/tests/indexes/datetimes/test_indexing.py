@@ -10,6 +10,7 @@ import pytest
 
 from pandas._libs import index as libindex
 from pandas.compat.numpy import np_long
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -118,6 +119,17 @@ class TestGetItem:
 
 
 class TestWhere:
+    @pytest.mark.parametrize("is_td", [True, False])
+    def test_where_freq_invalidation(self, is_td):
+        # GH#24555
+        index = date_range("20130101", periods=3, tz="US/Eastern")
+        if is_td:
+            index = index - index[0]
+        other = Index([pd.NaT, pd.NaT] + index[2:].tolist())
+
+        result = index.where(notna(other), other)
+        assert result.freq is None
+
     def test_where_doesnt_retain_freq(self):
         dti = date_range("20130101", periods=3, freq="D", name="idx")
         cond = [True, True, False]
@@ -654,13 +666,16 @@ class TestGetSliceBounds:
         index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz)
         key = box(year=2000, month=1, day=7)
 
-        if tz is not None:
-            with pytest.raises(TypeError, match="Cannot compare tz-naive"):
-                # GH#36148 we require tzawareness-compat as of 2.0
-                index.get_slice_bound(key, side=side)
-        else:
-            result = index.get_slice_bound(key, side=side)
-            assert result == expected
+        warn = None if box is not date else Pandas4Warning
+        msg = "Slicing with a datetime.date object is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            if tz is not None:
+                with pytest.raises(TypeError, match="Cannot compare tz-naive"):
+                    # GH#36148 we require tzawareness-compat as of 2.0
+                    index.get_slice_bound(key, side=side)
+            else:
+                result = index.get_slice_bound(key, side=side)
+                assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
     @pytest.mark.parametrize("side", ["left", "right"])

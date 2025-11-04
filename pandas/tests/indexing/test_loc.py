@@ -1027,6 +1027,7 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.arm_slow
+    @pytest.mark.slow
     @pytest.mark.parametrize("length, l2", [[900, 100], [900000, 100000]])
     def test_loc_non_unique_memory_error(self, length, l2):
         # GH 4280
@@ -2987,7 +2988,7 @@ def test_loc_getitem_multiindex_tuple_level():
 def test_loc_getitem_nullable_index_with_duplicates():
     # GH#34497
     df = DataFrame(
-        data=np.array([[1, 2, 3, 4], [5, 6, 7, 8], [1, 2, np.nan, np.nan]]).T,
+        data=np.array([[1, 2, 3, 4], [5, 6, 7, 8], [1, 2, pd.NA, pd.NA]]).T,
         columns=["a", "b", "c"],
         dtype="Int64",
     )
