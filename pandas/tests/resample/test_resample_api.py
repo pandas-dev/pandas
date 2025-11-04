@@ -1003,11 +1003,14 @@ def test_asfreq_respects_origin_with_fixed_freq_all_seconds_equal():
 
     result = df.resample("1min", origin="start_day").asfreq()
 
-    # Expected index: match dtype while preserving freq
+    # Expected index: list of Timestamps, matching dtype
     exp_idx = pd.DatetimeIndex(
-        date_range("2025-10-17 17:15:00", periods=3, freq="min").astype(
-            result.index.dtype
-        ),
+        [
+            pd.Timestamp("2025-10-17 17:15:00"),
+            pd.Timestamp("2025-10-17 17:16:00"),
+            pd.Timestamp("2025-10-17 17:17:00"),
+        ],
+        dtype=result.index.dtype,
         freq="min",
     )
 
