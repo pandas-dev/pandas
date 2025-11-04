@@ -496,6 +496,6 @@ class StructAccessor(ArrowAccessor):
         from pandas import concat
 
         pa_type = self._pa_array.type
-        return concat(  # nobug
+        return concat(
             [self.field(i) for i in range(pa_type.num_fields)], axis="columns"
         )

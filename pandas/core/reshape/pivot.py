@@ -263,7 +263,7 @@ def pivot_table(
             pieces.append(_table)
             keys.append(getattr(func, "__name__", func))
 
-        table = concat(pieces, keys=keys, axis=1)  # nobug
+        table = concat(pieces, keys=keys, axis=1)
         return table.__finalize__(data, method="pivot_table")
 
     table = __internal_pivot_table(
@@ -506,7 +506,7 @@ def _add_margins(
         margin_dummy[cols] = margin_dummy[cols].apply(
             maybe_downcast_to_dtype, args=(dtype,)
         )
-    result = concat([result, margin_dummy])  # nobug
+    result = concat([result, margin_dummy])
     result.index.names = row_names
 
     return result
@@ -608,7 +608,7 @@ def _generate_marginal_results(
             # GH 49240
             return table
         else:
-            result = concat(table_pieces, axis=cat_axis)  # nobug
+            result = concat(table_pieces, axis=cat_axis)
 
         if len(rows) == 0:
             return result
@@ -1185,7 +1185,7 @@ def _normalize(
         # Fix Margins
         if normalize == "columns":
             column_margin = column_margin / column_margin.sum()
-            table = concat([table, column_margin], axis=1)  # nobug
+            table = concat([table, column_margin], axis=1)
             table = table.fillna(0)
             table.columns = table_columns
 
@@ -1199,7 +1199,7 @@ def _normalize(
             column_margin = column_margin / column_margin.sum()
             index_margin = index_margin / index_margin.sum()
             index_margin.loc[margins_name] = 1
-            table = concat([table, column_margin], axis=1)  # nobug
+            table = concat([table, column_margin], axis=1)
             table = table._append_internal(index_margin, ignore_index=True)
 
             table = table.fillna(0)

@@ -770,7 +770,7 @@ class BaseWindowGroupby(BaseWindow):
             # from flex_binary_moment to a "transform"-like result
             # per groupby combination
             old_result_len = len(result)
-            result = concat(  # nobug
+            result = concat(
                 [
                     result.take(gb_indices).reindex(result.index)
                     for gb_indices in self._grouper.indices.values()

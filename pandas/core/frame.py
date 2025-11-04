@@ -6137,7 +6137,7 @@ class DataFrame(NDFrame, OpsMixin):
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
                     .add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
                 )
-            return concat(shifted_dataframes, axis=1)  # bug
+            return concat(shifted_dataframes, axis=1, sort=False)
         elif suffix:
             raise ValueError("Cannot specify `suffix` if `periods` is an int.")
         periods = cast(int, periods)
@@ -11166,7 +11166,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         from pandas.core.reshape.concat import concat
 
-        result = concat(  # possible bug
+        result = concat(
             [self, row_df],
             ignore_index=ignore_index,
         )
@@ -11394,7 +11394,7 @@ class DataFrame(NDFrame, OpsMixin):
             # join indexes only using concat
             if can_concat:
                 if how == "left" or how == "right":
-                    res = concat(  # nobug
+                    res = concat(
                         frames, axis=1, join="outer", verify_integrity=True, sort=sort
                     )
                     index = self.index if how == "left" else frames[-1].index
@@ -11405,7 +11405,7 @@ class DataFrame(NDFrame, OpsMixin):
                 else:
                     if how == "outer":
                         sort = True
-                    return concat(  # bug
+                    return concat(
                         frames, axis=1, join=how, verify_integrity=True, sort=sort
                     )
 
@@ -11595,9 +11595,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if new_cols is not None and len(new_cols) > 0:
             return self._constructor(
-                concat(new_cols, axis=1),
-                index=self.index,
-                columns=self.columns,  # nobug
+                concat(new_cols, axis=1), index=self.index, columns=self.columns
             ).__finalize__(self, method="round")
         else:
             return self.copy(deep=False)
@@ -14181,7 +14179,7 @@ class DataFrame(NDFrame, OpsMixin):
             from pandas.core.reshape.concat import concat
 
             values = collections.defaultdict(list, values)
-            result = concat(  # nobug
+            result = concat(
                 (
                     self.iloc[:, [i]].isin(values[col])
                     for i, col in enumerate(self.columns)
