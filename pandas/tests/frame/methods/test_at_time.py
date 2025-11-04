@@ -136,7 +136,7 @@ class TestAtTime:
 
     def test_at_time_ambiguous_format_deprecation(self):
         # GH#50839
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        rng = date_range("1/1/2000", "1/5/2000", freq="125min")
         ts = DataFrame(list(range(len(rng))), index=rng)
 
         msg1 = "The string '.*' cannot be parsed"
