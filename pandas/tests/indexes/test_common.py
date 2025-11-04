@@ -106,7 +106,7 @@ class TestCommon:
 
     def test_set_name_methods(self, index_flat):
         # MultiIndex tested separately
-        index = index_flat.copy(deep=False)
+        index = index_flat
         new_name = "This is the new name for this index"
 
         original_name = index.name

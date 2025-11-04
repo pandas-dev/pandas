@@ -31,7 +31,7 @@ class TestDataFrameToXArray:
         )
 
     def test_to_xarray_index_types(self, index_flat, df, request):
-        index = index_flat.copy(deep=False)
+        index = index_flat
         # MultiIndex is tested in test_to_xarray_with_multiindex
         if len(index) == 0:
             pytest.skip("Test doesn't make sense for empty index")
@@ -84,7 +84,7 @@ class TestDataFrameToXArray:
 class TestSeriesToXArray:
     def test_to_xarray_index_types(self, index_flat, request):
         # MultiIndex is tested in test_to_xarray_with_multiindex
-        index = index_flat.copy(deep=False)
+        index = index_flat
 
         ser = Series(range(len(index)), index=index, dtype="int64")
         ser.index.name = "foo"
