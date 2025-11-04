@@ -59,8 +59,6 @@ def to_pickle(
         Also accepts URL. URL has to be of S3 or GCS.
     {compression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     protocol : int
         Int which indicates which protocol should be used by the pickler,
         default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
@@ -144,8 +142,6 @@ def read_pickle(
         Also accepts URL. URL is not limited to S3 and GCS.
 
     {decompression_options}
-
-        .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
 
