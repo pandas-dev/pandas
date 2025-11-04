@@ -61,6 +61,7 @@ def round_trip_pickle(
         # Only join tmpdir with _path when _path is a string or Path-like.
         # _path may be a ReadPickleBuffer (file-like) in which case it
         # should be used directly for pickle operations.
+        temp_path: pathlib.Path | ReadPickleBuffer
         if isinstance(_path, (str, pathlib.Path)):
             temp_path = pathlib.Path(tmpdir) / _path
         else:
