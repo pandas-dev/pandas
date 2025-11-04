@@ -107,6 +107,8 @@ _T_co = TypeVar("_T_co", covariant=True)
 
 
 class SequenceNotStr(Protocol[_T_co]):
+    __module__: str = "pandas.api.typing.aliases"
+
     @overload
     def __getitem__(self, index: SupportsIndex, /) -> _T_co: ...
 
@@ -278,12 +280,16 @@ class BaseBuffer(Protocol):
 
 
 class ReadBuffer(BaseBuffer, Protocol[AnyStr_co]):
+    __module__: str = "pandas.api.typing.aliases"
+
     def read(self, n: int = ..., /) -> AnyStr_co:
         # for BytesIOWrapper, gzip.GzipFile, bz2.BZ2File
         ...
 
 
 class WriteBuffer(BaseBuffer, Protocol[AnyStr_contra]):
+    __module__: str = "pandas.api.typing.aliases"
+
     def write(self, b: AnyStr_contra, /) -> Any:
         # for gzip.GzipFile, bz2.BZ2File
         ...
@@ -294,14 +300,20 @@ class WriteBuffer(BaseBuffer, Protocol[AnyStr_contra]):
 
 
 class ReadPickleBuffer(ReadBuffer[bytes], Protocol):
+    __module__: str = "pandas.api.typing.aliases"
+
     def readline(self) -> bytes: ...
 
 
 class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
+    __module__: str = "pandas.api.typing.aliases"
+
     def truncate(self, size: int | None = ..., /) -> int: ...
 
 
 class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
+    __module__: str = "pandas.api.typing.aliases"
+
     def __iter__(self) -> Iterator[AnyStr_co]:
         # for engine=python
         ...

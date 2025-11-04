@@ -17,6 +17,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas.util._decorators import set_module
 
 import pandas as pd
 from pandas import (
@@ -218,7 +219,7 @@ def _simple_json_normalize(
     sep: str = ".",
 ) -> dict | list[dict] | Any:
     """
-    A optimized basic json_normalize
+    An optimized basic json_normalize
 
     Converts a nested dict into a flat dict ("record"), unlike
     json_normalize and nested_to_record it doesn't do anything clever.
@@ -266,6 +267,7 @@ def _simple_json_normalize(
     return normalized_json_object
 
 
+@set_module("pandas")
 def json_normalize(
     data: dict | list[dict] | Series,
     record_path: str | list | None = None,
@@ -499,6 +501,13 @@ def json_normalize(
         # GH35923 Fix pd.json_normalize to not skip the first element of a
         # generator input
         data = list(data)
+        for item in data:
+            if not isinstance(item, dict):
+                msg = (
+                    "All items in data must be of type dict, "
+                    f"found {type(item).__name__}"
+                )
+                raise TypeError(msg)
     else:
         raise NotImplementedError
 

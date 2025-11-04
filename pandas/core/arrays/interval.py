@@ -243,6 +243,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     :meth:`IntervalArray.from_breaks`, and :meth:`IntervalArray.from_tuples`.
     """
 
+    __module__ = "pandas.arrays"
+
     can_hold_na = True
     _na_value = _fill_value = np.nan
 
@@ -418,6 +420,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         dtype = IntervalDtype(left.dtype, closed=closed)
 
+        # Check for mismatched signed/unsigned integer dtypes after casting
+        left_dtype = left.dtype
+        right_dtype = right.dtype
+        if (
+            left_dtype.kind in "iu"
+            and right_dtype.kind in "iu"
+            and left_dtype.kind != right_dtype.kind
+        ):
+            raise TypeError(
+                f"Left and right arrays must have matching signedness. "
+                f"Got {left_dtype} and {right_dtype}."
+            )
         return left, right, dtype
 
     @classmethod
@@ -1893,7 +1907,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         >>> idx.to_tuples()
         Index([(0, 1), (1, 2)], dtype='object')
         """
-        tuples = com.asarray_tuplesafe(zip(self._left, self._right))
+        tuples = com.asarray_tuplesafe(zip(self._left, self._right, strict=True))
         if not na_tuple:
             # GH 18756
             tuples = np.where(~self.isna(), tuples, np.nan)
