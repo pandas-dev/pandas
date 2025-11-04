@@ -1715,8 +1715,6 @@ def reconstruct_func(
 
     If named aggregation is applied, `func` will be None, and kwargs contains the
     column and aggregation function information to be parsed;
-
-
     If named aggregation is not applied, `func` is either string (e.g. 'min') or
     Callable, or list of them (e.g. ['min', np.max]), or the dictionary of column name
     and str/Callable/list of them (e.g. {'A': 'min'}, or {'A': [np.min, lambda x: x]})
