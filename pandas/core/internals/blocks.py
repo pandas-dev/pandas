@@ -1514,21 +1514,13 @@ class Block(PandasObject, libinternals.Block):
         """
         if self.dtype == _dtype_obj:
             round_func = functools.partial(round, ndigits=decimals)
-            try:
-                if self.values.ndim == 1:
-                    values = algos.map_array(self.values, round_func)
-                else:
-                    values = algos.map_array(self.values.ravel(), round_func).reshape(
-                        self.values.shape
-                    )
-            except TypeError as err:
-                raise TypeError("Expected numeric entries for dtype object.") from err
-
-            refs = None
-            if values is self.values:
-                refs = self.refs
-
-            return self.make_block_same_class(values, refs=refs)
+            if self.values.ndim == 1:
+                values = algos.map_array(self.values, round_func)
+            else:
+                values = algos.map_array(self.values.ravel(), round_func).reshape(
+                    self.values.shape
+                )
+            return self.make_block_same_class(values, refs=None)
 
         if not self.is_numeric or self.is_bool:
             if isinstance(self.values, (DatetimeArray, TimedeltaArray, PeriodArray)):
