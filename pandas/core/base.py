@@ -1302,27 +1302,7 @@ class IndexOpsMixin(OpsMixin):
                 # GH#57517
                 uniques = self[:0]
             else:
-                # GH#62337: preserve extension dtypes by reconstructing from original
-                # First create the MultiIndex using the standard constructor
                 uniques = self._constructor(uniques)
-
-                # Then replace levels to preserve extension dtypes
-                if len(uniques) > 0 and isinstance(uniques, ABCMultiIndex):
-                    new_levels = []
-                    # After isinstance check, we know uniques has levels attribute
-                    for i, (level, orig_level) in enumerate(  # pyright: ignore[reportGeneralTypeIssues]
-                        zip(uniques.levels, self.levels, strict=False)
-                    ):
-                        try:
-                            # Try to cast to original extension dtype
-                            new_level = level.astype(orig_level.dtype)
-                            new_levels.append(new_level)
-                        except (TypeError, ValueError):
-                            # If casting fails, keep the inferred level
-                            new_levels.append(level)
-
-                    # Reconstruct MultiIndex with preserved dtypes only
-                    uniques = uniques.set_levels(new_levels)
         else:
             from pandas import Index
 
