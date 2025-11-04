@@ -2126,14 +2126,17 @@ def sanitize_objects(ndarray[object] values, set na_values) -> int:
 
     n = len(values)
     onan = np.nan
+    bool_set = {True, False}
 
     for i in range(n):
         val = values[i]
         if val in na_values:
             values[i] = onan
             na_count += 1
-        elif val in [0, 1, True, False]:
-            # Skip memoization, since 1==True and 0==False
+        elif val in bool_set:
+            # GH60088: Skip memoization
+            # since 1 == 1.0 == True == np.True_
+            # and 0 == 0.0 == False == np.False_
             values[i] = val
         elif val in memo:
             values[i] = memo[val]
