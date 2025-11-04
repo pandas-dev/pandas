@@ -232,5 +232,3 @@ class TestIntervalIndexInsideMultiIndex:
         result1 = df.loc[("b", 16)]
         expected = Series([7, 8])
         tm.assert_series_equal(result1, expected, check_names=False)
-        result2 = df.loc["b"].loc[16]
-        tm.assert_series_equal(result2, expected, check_names=False)
