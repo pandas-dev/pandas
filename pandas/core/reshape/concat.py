@@ -840,7 +840,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
     if (levels is None and isinstance(keys[0], tuple)) or (
         levels is not None and len(levels) > 1
     ):
-        zipped = list(zip(*keys))
+        zipped = list(zip(*keys, strict=True))
         if names is None:
             names = [None] * len(zipped)
 
