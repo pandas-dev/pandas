@@ -139,11 +139,6 @@ group_keys : bool, default True
     when the result's index (and column) labels match the inputs, and
     are included otherwise.
 
-    Warns that ``group_keys`` will no longer be ignored when the
-    result from ``apply`` is a like-indexed Series or DataFrame.
-    Specify ``group_keys`` explicitly to include the group keys or
-    not.
-
     .. versionchanged:: 2.0.0
 
        ``group_keys`` now defaults to ``True``.
