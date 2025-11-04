@@ -5571,6 +5571,7 @@ class DataFrame(NDFrame, OpsMixin):
         klass=_shared_doc_kwargs["klass"],
         optional_reindex=_shared_doc_kwargs["optional_reindex"],
     )
+    # error: Cannot determine type of 'reindex'
     def reindex(
         self,
         labels=None,
@@ -6089,6 +6090,7 @@ class DataFrame(NDFrame, OpsMixin):
         return res.__finalize__(self)
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
+    # error: Cannot determine type of 'shift'
     def shift(
         self,
         periods: int | Sequence[int] = 1,
