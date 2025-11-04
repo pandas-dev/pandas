@@ -872,7 +872,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
                 lens = [len(idx) for idx in indexes]
                 codes_list.append(np.repeat(np.arange(len(hlevel)), lens))
             else:
-                for key, index in zip(hlevel, indexes, strict=False):
+                for key, index in zip(hlevel, indexes, strict=True):
                     # Find matching codes, include matching nan values as equal.
                     mask = (isna(level) & isna(key)) | (level == key)
                     if not mask.any():
