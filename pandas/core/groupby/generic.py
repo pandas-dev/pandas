@@ -682,7 +682,7 @@ class SeriesGroupBy(GroupBy[Series]):
         Parameters
         ----------
         func : function, str
-            Function to apply to each group. See the Notes section below for 
+            Function to apply to each group. See the Notes section below for
             requirements.
 
             Accepted inputs are:
@@ -760,7 +760,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         .. versionchanged:: 2.0.0
 
-            When using ``.transform`` on a grouped DataFrame and the transformation 
+            When using ``.transform`` on a grouped DataFrame and the transformation
             function returns a DataFrame, pandas now aligns the result's index
             with the input's index. You can call ``.to_numpy()`` on the
             result of the transformation function to avoid alignment.
@@ -1778,13 +1778,14 @@ class SeriesGroupBy(GroupBy[Series]):
             .. versionadded:: 1.5.0
 
         sharex : bool, default True if ax is None else False
-            In case ``subplots=True``, share x axis and set some x axis 
-            labels to invisible; 
+            In case ``subplots=True``, share x axis and set some x axis
+            labels to invisible;
             defaults to True if ax is None otherwise False if
             an ax is passed in; Be aware, that passing in both an ax and
             ``sharex=True`` will alter all x axis labels for all axis in a figure.
         sharey : bool, default False
-            In case ``subplots=True``, share y axis and set some y axis labels to invisible.
+            In case ``subplots=True``, share y axis and set some y axis
+            labels to invisible.
         layout : tuple, optional
             (rows, columns) for the layout of subplots.
         figsize : a tuple (width, height) in inches
@@ -1819,7 +1820,7 @@ class SeriesGroupBy(GroupBy[Series]):
         ylim : 2-tuple/list
             Set the y limits of the current axes.
         xlabel : label, optional
-            Name to use for the xlabel on x-axis. Default uses index name as xlabel, 
+            Name to use for the xlabel on x-axis. Default uses index name as xlabel,
             or the x-column name for planar plots.
 
             .. versionchanged:: 2.0.0
@@ -1943,7 +1944,7 @@ class SeriesGroupBy(GroupBy[Series]):
             :context: close-figs
             >>> df = pd.DataFrame({"col1": [1, 2, 3, 4], "col2": ["A", "B", "A", "B"]})
             >>> plot = df.groupby("col2").plot(
-            ...  kind="bar", title="DataFrameGroupBy Plot"
+            ...     kind="bar", title="DataFrameGroupBy Plot"
             ... )
         """
         result = GroupByPlot(self)
@@ -2338,14 +2339,14 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
-        Pearson, Kendall and Spearman correlation are currently computed using 
+        Pearson, Kendall and Spearman correlation are currently computed using
         pairwise complete observations.
 
         * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
         * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
         * `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
 
-        Automatic data alignment: as with all pandas operations, automatic data 
+        Automatic data alignment: as with all pandas operations, automatic data
         alignment is performed for this method.
         ``corr()`` automatically considers values with matching indices.
 
@@ -3223,7 +3224,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Parameters
         ----------
         func : function, str
-            Function to apply to each group. See the Notes section below for requirements.
+            Function to apply to each group. See the Notes section
+            below for requirements.
 
             Accepted inputs are:
 
@@ -4239,7 +4241,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             an ax is passed in; Be aware, that passing in both an ax and
             ``sharex=True`` will alter all x axis labels for all axis in a figure.
         sharey : bool, default False
-            In case ``subplots=True``, share y axis and set some y axis 
+            In case ``subplots=True``, share y axis and set some y axis
             labels to invisible.
         layout : tuple, optional
             (rows, columns) for the layout of subplots.
@@ -4402,7 +4404,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
             >>> df = pd.DataFrame({"col1": [1, 2, 3, 4], "col2": ["A", "B", "A", "B"]})
             >>> plot = df.groupby("col2").plot(
-            ... kind="bar", title="DataFrameGroupBy Plot"
+            ...     kind="bar", title="DataFrameGroupBy Plot"
             ... )
         """
         result = GroupByPlot(self)
@@ -4452,14 +4454,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         Notes
         -----
-        Pearson, Kendall and Spearman correlation are currently computed using 
+        Pearson, Kendall and Spearman correlation are currently computed using
         pairwise complete observations.
 
         * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
         * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
         * `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
 
-        Automatic data alignment: as with all pandas operations, 
+        Automatic data alignment: as with all pandas operations,
         automatic data alignment is performed for this method.
         ``corr()`` automatically considers values with matching indices.
 
