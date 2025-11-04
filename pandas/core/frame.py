@@ -554,8 +554,6 @@ class DataFrame(NDFrame, OpsMixin):
         If data is a dict containing one or more Series (possibly of different dtypes),
         ``copy=False`` will ensure that these inputs are not copied.
 
-        .. versionchanged:: 1.3.0
-
     See Also
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
@@ -2686,16 +2684,12 @@ class DataFrame(NDFrame, OpsMixin):
             8 characters and values are repeated.
         {compression_options}
 
-            .. versionchanged:: 1.4.0 Zstandard support.
-
         {storage_options}
 
         value_labels : dict of dicts
             Dictionary containing columns as keys and dictionaries of column value
             to labels as values. Labels for a single variable must be 32,000
             characters or smaller.
-
-            .. versionadded:: 1.4.0
 
         Raises
         ------
@@ -3533,8 +3527,6 @@ class DataFrame(NDFrame, OpsMixin):
             argument requires ``lxml`` to be installed. Only XSLT 1.0
             scripts and not later versions is currently supported.
         {compression_options}
-
-            .. versionchanged:: 1.4.0 Zstandard support.
 
         {storage_options}
 
@@ -9486,13 +9478,6 @@ class DataFrame(NDFrame, OpsMixin):
             index to identify pieces. By default group keys are not included
             when the result's index (and column) labels match the inputs, and
             are included otherwise.
-
-            .. versionchanged:: 1.5.0
-
-               Warns that ``group_keys`` will no longer be ignored when the
-               result from ``apply`` is a like-indexed Series or DataFrame.
-               Specify ``group_keys`` explicitly to include the group keys or
-               not.
 
             .. versionchanged:: 2.0.0
 
