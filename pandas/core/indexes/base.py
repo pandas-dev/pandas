@@ -4429,7 +4429,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if not isinstance(other, Index):
             warnings.warn(
-                f"Passing {type(other).__name__} to {type(self).__name__}.join"
+                f"Passing {type(other).__name__} to {type(self).__name__}.join "
                 "is deprecated and will raise in a future version. "
                 "Pass an Index instead.",
                 Pandas4Warning,
