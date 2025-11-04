@@ -182,6 +182,8 @@ from pandas.core.window import (
     Window,
 )
 
+# Import ExcelFormatter at runtime since it's used in to_excel method
+from pandas.io.formats.excel import ExcelFormatter
 from pandas.io.formats.format import (
     DataFrameFormatter,
     DataFrameRenderer,
@@ -189,8 +191,8 @@ from pandas.io.formats.format import (
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Mapping,
@@ -202,14 +204,16 @@ if TYPE_CHECKING:
 
     from pandas import (
         DataFrame,
-        ExcelWriter,
         HDFStore,
         Series,
     )
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
 
+# Import ExcelWriter at runtime since it's used in to_excel method
 import textwrap
+
+from pandas import ExcelWriter
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -773,6 +777,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         labels = ensure_index(labels)
         self._mgr.set_axis(axis, labels)
+
     @final
     @doc(klass=_shared_doc_kwargs["klass"])
     def droplevel(self, level: IndexLabel, axis: Axis = 0) -> Self:
@@ -1514,6 +1519,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             f"The truth value of a {type(self).__name__} is ambiguous. "
             "Use a.empty, a.bool(), a.item(), a.any() or a.all()."
         )
+
     @final
     def abs(self) -> Self:
         """
@@ -2265,7 +2271,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        >>> df = pd.DataFrame({{"A": [1, 2, 3], "B": [4, 5, 6]}})
         >>> df.to_excel("pandas_simple.xlsx")
         >>> df.to_excel("pandas_simple.xlsx", engine="openpyxl")
         """
@@ -2279,11 +2285,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             excel_writer = ExcelWriter(
                 excel_writer,
                 engine=engine,
-                mode=mode,
-                if_sheet_exists=if_sheet_exists,
                 engine_kwargs=engine_kwargs,
-                date_format=date_format,
-                datetime_format=datetime_format,
                 storage_options=storage_options,
             )
 
@@ -5616,6 +5618,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self.loc(axis=axis)[values]
         else:
             raise TypeError("Must pass either `items`, `like`, or `regex`")
+
     @final
     def head(self, n: int = 5) -> Self:
         """
@@ -6088,7 +6091,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         other : the object from which to get the attributes that we are going
             to propagate. If ``other`` has an ``input_objs`` attribute, then
-            this attribute must contain an iterable of objects, each with an ``attrs`` attribute.
+            this attribute must contain an iterable of objects, each with an
+            ``attrs`` attribute.
         method : str, optional
             A passed method name providing context on where ``__finalize__``
             was called.
@@ -9693,6 +9697,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         left = left.__finalize__(self)
         right = right.__finalize__(other)
         return left, right
+
     @final
     def _align_frame(
         self,
@@ -12811,6 +12816,8 @@ min_count : int, default 0
     The required number of valid values to perform the operation. If fewer than
     ``min_count`` non-NA values are present the result will be NA.
 """
+
+
 def make_doc(name: str, ndim: int) -> str:
     """
     Generate the docstring for a Series/DataFrame reduction.

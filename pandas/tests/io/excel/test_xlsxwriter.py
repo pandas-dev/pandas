@@ -3,6 +3,7 @@ import uuid
 
 import pytest
 
+import pandas as pd
 from pandas import DataFrame
 
 from pandas.io.excel import ExcelWriter
