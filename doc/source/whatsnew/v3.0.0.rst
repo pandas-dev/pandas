@@ -1278,6 +1278,7 @@ Other
 - Bug in ``divmod`` and ``rdivmod`` with :class:`DataFrame`, :class:`Series`, and :class:`Index` with ``bool`` dtypes failing to raise, which was inconsistent with ``__floordiv__`` behavior (:issue:`46043`)
 - Bug in printing a :class:`DataFrame` with a :class:`DataFrame` stored in :attr:`DataFrame.attrs` raised a ``ValueError`` (:issue:`60455`)
 - Bug in printing a :class:`Series` with a :class:`DataFrame` stored in :attr:`Series.attrs` raised a ``ValueError`` (:issue:`60568`)
+- Bug when calling :py:func:`copy.copy` on a :class:`DataFrame` or :class:`Series` which would return a deep copy instead of a shallow copy (:issue:`62971`)
 - Deprecated the keyword ``check_datetimelike_compat`` in :meth:`testing.assert_frame_equal` and :meth:`testing.assert_series_equal` (:issue:`55638`)
 - Fixed bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when trying to replace :class:`NA` values in a :class:`Float64Dtype` object with ``np.nan``; this now works with ``pd.set_option("mode.nan_is_na", False)`` and is irrelevant otherwise (:issue:`55127`)
 - Fixed bug in :meth:`Series.replace` and :meth:`DataFrame.replace` when trying to replace :class:`np.nan` values in a :class:`Int64Dtype` object with :class:`NA`; this is now a no-op with ``pd.set_option("mode.nan_is_na", False)`` and is irrelevant otherwise (:issue:`51237`)
