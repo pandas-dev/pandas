@@ -273,8 +273,9 @@ class TestLoc:
         mask = [False] * len(data)
         try:
             df = DataFrame(data=data, columns=["A"])
-            df.loc[mask] = df
-            assert True
+            res = df.loc[mask]
+            res = df
+            tm.assert_frame_equal(res, df)
         except Exception:
             pytest.fail("loc empty slice assignment raised Exception unexpectedly!")
 
