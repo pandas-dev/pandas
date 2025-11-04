@@ -840,6 +840,6 @@ def test_dtype_conversion_in_sanitization():
         [1, True, 0, False, 1.0, 0.0, np.True_, np.False_], dtype=object
     )
     libparsers.sanitize_objects(values, na_values=set())
-    for v, e in zip(values, expected):
+    for v, e in zip(values, expected, strict=True):
         assert v == e
         assert type(v) == type(e)
