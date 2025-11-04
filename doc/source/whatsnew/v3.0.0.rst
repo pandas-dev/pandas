@@ -1016,6 +1016,7 @@ Timedelta
 - Bug in :class:`Timedelta` constructor failing to raise when passed an invalid keyword (:issue:`53801`)
 - Bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
 - Bug in multiplication operations with ``timedelta64`` dtype failing to raise ``TypeError`` when multiplying by ``bool`` objects or dtypes (:issue:`58054`)
+- Bug in multiplication operations with ``timedelta64`` dtype incorrectly raising when multiplying by numpy-nullable dtypes or pyarrow integer dtypes (:issue:`58054`)
 
 Timezones
 ^^^^^^^^^
