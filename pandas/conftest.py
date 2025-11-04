@@ -2097,6 +2097,11 @@ def using_infer_string() -> bool:
     return pd.options.future.infer_string is True
 
 
+@pytest.fixture
+def using_python_scalars() -> bool:
+    return pd.options.future.python_scalars is True
+
+
 _warsaws: list[Any] = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]
 if pytz is not None:
     _warsaws.append(pytz.timezone("Europe/Warsaw"))
