@@ -719,15 +719,14 @@ class BaseBlockManager(PandasObject):
         Parameters
         ----------
         deep : bool, string or None, default True
-            If False or None, return a shallow copy (do not copy data)
-            If 'all', copy data and a deep copy of the index
+            If False, return a shallow copy (do not copy data)
 
         Returns
         -------
         BlockManager
         """
         # this preserves the notion of view copying of axes
-        new_axes = [ax.view() for ax in self.axes]
+        new_axes = [ax.copy(deep=deep) for ax in self.axes]
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
