@@ -563,7 +563,10 @@ def _take_preprocess_indexer_and_fill_value(
             fill_value = int(fill_value)
         dtype, fill_value = maybe_promote(arr.dtype, fill_value)
         if dtype != arr.dtype:
-            if not (lib.is_float(fill_value) and np.isnan(fill_value)):
+            if not (
+                (lib.is_float(fill_value) and np.isnan(fill_value))
+                or (arr.dtype.kind == "U" and isinstance(fill_value, str))
+            ):
                 # GH#53910
                 warnings.warn(
                     "reindexing with a fill_value that cannot be held by the "
