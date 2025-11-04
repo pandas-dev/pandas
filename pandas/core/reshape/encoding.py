@@ -325,7 +325,7 @@ def _get_dummies_1d(
         codes = codes[mask]
         n_idx = np.arange(N)[mask]
 
-        for ndx, code in zip(n_idx, codes):
+        for ndx, code in zip(n_idx, codes, strict=True):
             sp_indices[code].append(ndx)
 
         if drop_first:
@@ -333,7 +333,7 @@ def _get_dummies_1d(
             # GH12042
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
-        for col, ixs in zip(dummy_cols, sp_indices):
+        for col, ixs in zip(dummy_cols, sp_indices, strict=True):
             sarr = SparseArray(
                 np.ones(len(ixs), dtype=dtype),
                 sparse_index=IntIndex(N, ixs),
