@@ -5688,18 +5688,27 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     cdef:
         int year, month, day
         int days_in_month, dy
+        npy_datetimestruct dts
 
-    dy = (stamp.month + months) // 12
-    month = (stamp.month + months) % 12
+    if isinstance(stamp, _Timestamp):
+        creso = (<_Timestamp>stamp)._creso
+        val = (<_Timestamp>stamp)._value
+        pandas_datetime_to_datetimestruct(val, creso, &dts)
+    else:
+        # Plain datetime/date
+        pydate_to_dtstruct(stamp, &dts)
+
+    dy = (dts.month + months) // 12
+    month = (dts.month + months) % 12
 
     if month == 0:
         month = 12
         dy -= 1
-    year = stamp.year + dy
+    year = dts.year + dy
 
     if day_opt is None:
         days_in_month = get_days_in_month(year, month)
-        day = min(stamp.day, days_in_month)
+        day = min(dts.day, days_in_month)
     elif day_opt == "start":
         day = 1
     elif day_opt == "end":
