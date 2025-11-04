@@ -1714,11 +1714,8 @@ def reconstruct_func(
     or not and also normalize the keyword to get new order of columns.
 
     If named aggregation is applied, `func` will be None, and kwargs contains the
-    column and aggregation function information to be parsed.
-    Each value in kwargs can be either:
-        - a tuple of (column, aggfunc)
-        - or a NamedAgg instance, which may also include additional *args and **kwargs
-          to be passed to the aggregation function.
+    column and aggregation function information to be parsed;
+
 
     If named aggregation is not applied, `func` is either string (e.g. 'min') or
     Callable, or list of them (e.g. ['min', np.max]), or the dictionary of column name
@@ -1732,9 +1729,8 @@ def reconstruct_func(
     ----------
     func: agg function (e.g. 'min' or Callable) or list of agg functions
         (e.g. ['min', np.max]) or dictionary (e.g. {'A': ['min', np.max]}).
-    **kwargs : dict
-        Keyword arguments used in is_multi_agg_with_relabel and
-        normalize_keyword_aggregation function for relabelling.
+    **kwargs: dict, kwargs used in is_multi_agg_with_relabel and
+        normalize_keyword_aggregation function for relabelling
 
     Returns
     -------
