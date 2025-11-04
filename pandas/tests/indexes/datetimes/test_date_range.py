@@ -1216,7 +1216,7 @@ class TestCustomDateRange:
             )
 
     @pytest.mark.parametrize(
-        "freq", [freq for freq in prefix_mapping if freq.startswith("C")]
+        "freq", [freq for freq in prefix_mapping if freq.upper().startswith("C")]
     )
     def test_all_custom_freq(self, freq):
         # should not raise
@@ -1279,6 +1279,39 @@ class TestCustomDateRange:
             dtype=f"M8[{unit}]",
         )
         tm.assert_index_equal(result, expected)
+
+    def test_cdaterange_cbh(self):
+        # GH#62849
+        result = bdate_range(
+            "2009-03-13",
+            "2009-03-15",
+            freq="cbh",
+            weekmask="Mon Wed Fri",
+            holidays=["2009-03-14"],
+        )
+        expected = DatetimeIndex(
+            [
+                "2009-03-13 09:00:00",
+                "2009-03-13 10:00:00",
+                "2009-03-13 11:00:00",
+                "2009-03-13 12:00:00",
+                "2009-03-13 13:00:00",
+                "2009-03-13 14:00:00",
+                "2009-03-13 15:00:00",
+                "2009-03-13 16:00:00",
+            ],
+            dtype="datetime64[ns]",
+            freq="cbh",
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_cdaterange_deprecated_error_CBH(self):
+        # GH#62849
+        msg = "invalid custom frequency string: CBH, did you mean cbh?"
+        with pytest.raises(ValueError, match=msg):
+            bdate_range(
+                START, END, freq="CBH", weekmask="Mon Wed Fri", holidays=["2009-03-14"]
+            )
 
 
 class TestDateRangeNonNano:
