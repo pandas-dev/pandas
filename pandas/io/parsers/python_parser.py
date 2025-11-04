@@ -101,7 +101,9 @@ class PythonParser(ParserBase):
         Workhorse function for processing nested list into DataFrame
         """
         super().__init__(kwds)
-
+        # Only enable cleaning for CSV (file/buffer), not Excel (list)
+        if not isinstance(f, list) and "has_index_names" not in kwds:
+            self._clean_csv_unnamed_columns = True
         self.data: Iterator[list[str]] | list[list[Scalar]] = []
         self.buf: list = []
         self.pos = 0

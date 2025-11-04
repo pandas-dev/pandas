@@ -238,6 +238,11 @@ class ParserBase:
             return tuple(r[i] for i in range(field_count) if i not in sic)
 
         columns = list(zip(*(extract(r) for r in header), strict=True))
+
+        # Clean unnamed placeholders for CSV parsers only (GH#59560)
+        if getattr(self, "_clean_csv_unnamed_columns", False):
+            columns = self._clean_column_levels(columns)
+
         names = columns.copy()
         for single_ic in sorted(ic):
             names.insert(single_ic, single_ic)
@@ -703,6 +708,40 @@ class ParserBase:
                 index_names[i] = None
 
         return index_names, columns, index_col
+
+    @final
+    def _clean_column_levels(
+        self, columns: list[tuple[Hashable, ...]]
+    ) -> list[tuple[Hashable, ...]]:
+        """
+        Clean MultiIndex column level values by normalizing empty strings
+        and automatically generated 'Unnamed: x_level_y' placeholders
+        from header rows.
+        """
+
+        def _is_generated_unnamed(level: str | None) -> bool:
+            # Return True if the value matches pandas auto-generated
+            # placeholder pattern, e.g. 'Unnamed: 2_level_1'
+            if not (isinstance(level, str) and level.startswith("Unnamed: ")):
+                return False
+            if "_level_" not in level:
+                return False
+            tail = level.split("Unnamed: ")[1]
+            return tail.replace("_level_", "").replace("_", "").isdigit()
+
+        return [
+            tuple(
+                ""
+                if (
+                    level is None
+                    or (isinstance(level, str) and level.strip() == "")
+                    or (isinstance(level, str) and _is_generated_unnamed(level))
+                )
+                else level
+                for level in col
+            )
+            for col in columns
+        ]
 
     @final
     def _get_empty_meta(
