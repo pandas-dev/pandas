@@ -835,8 +835,10 @@ def test_read_seek(all_parsers):
 
 def test_dtype_conversion_in_sanitization():
     # GH60088
-    values = np.array([1, True], dtype=object)
-    expected = np.array([1, True], dtype=object)
+    values = np.array([1, True, 0, False, 1.0, 0.0, np.True_, np.False_], dtype=object)
+    expected = np.array(
+        [1, True, 0, False, 1.0, 0.0, np.True_, np.False_], dtype=object
+    )
     libparsers.sanitize_objects(values, na_values=set())
     for v, e in zip(values, expected):
         assert v == e
