@@ -4,6 +4,7 @@ import gzip
 import io
 import pathlib
 import tarfile
+import tempfile
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -14,7 +15,6 @@ import zipfile
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
-from pandas._testing.contexts import ensure_clean
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -54,7 +54,11 @@ def round_trip_pickle(
     _path = path
     if _path is None:
         _path = f"__{uuid.uuid4()}__.pickle"
-    with ensure_clean(_path) as temp_path:
+    # use a temporary directory and create a path inside it. This avoids
+    # keeping an open file handle (important on Windows) while still
+    # ensuring automatic cleanup.
+    with tempfile.TemporaryDirectory() as tmpdir:
+        temp_path = pathlib.Path(tmpdir) / _path
         pd.to_pickle(obj, temp_path)
         return pd.read_pickle(temp_path)
 
@@ -80,9 +84,12 @@ def round_trip_pathlib(writer, reader, path: str | None = None):
     Path = pathlib.Path
     if path is None:
         path = "___pathlib___"
-    with ensure_clean(path) as path:
-        writer(Path(path))
-        obj = reader(Path(path))
+    # Use a temporary directory to host the file so we don't hold an open
+    # file handle while allowing callers to use pathlib.Path semantics.
+    with tempfile.TemporaryDirectory() as tmpdir:
+        p = pathlib.Path(tmpdir) / path
+        writer(Path(p))
+        obj = reader(Path(p))
     return obj
 
 
