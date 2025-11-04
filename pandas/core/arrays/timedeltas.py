@@ -51,7 +51,11 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
@@ -501,6 +505,10 @@ class TimedeltaArray(dtl.TimelikeOps):
                 f"Cannot multiply '{self.dtype}' by bool, explicitly cast to "
                 "integers instead"
             )
+        if isinstance(other.dtype, (ArrowDtype, BaseMaskedDtype)):
+            # GH#58054
+            return NotImplemented
+
         if len(other) != len(self) and not lib.is_np_dtype(other.dtype, "m"):
             # Exclude timedelta64 here so we correctly raise TypeError
             #  for that instead of ValueError
