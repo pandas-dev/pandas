@@ -1954,17 +1954,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-
         names : Hashable or a sequence of the previous or dict-like for MultiIndex
             Name(s) to set.
-
-            .. versionchanged:: 1.3.0
 
         level : int, Hashable or a sequence of the previous, optional
             If the index is a MultiIndex and names is not dict-like, level(s) to set
             (None for all levels). Otherwise level must be None.
-
-            .. versionchanged:: 1.3.0
 
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Index or

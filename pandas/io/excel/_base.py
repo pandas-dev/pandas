@@ -997,12 +997,6 @@ class ExcelWriter(Generic[_WorkbookT]):
         * overlay: Write contents to the existing sheet without first removing,
           but possibly over top of, the existing contents.
 
-        .. versionadded:: 1.3.0
-
-        .. versionchanged:: 1.4.0
-
-           Added ``overlay`` option
-
     engine_kwargs : dict, optional
         Keyword arguments to be passed into the engine. These will be passed to
         the following functions of the respective engines:
@@ -1500,19 +1494,17 @@ class ExcelFile:
         - ``calamine`` supports Excel (.xls, .xlsx, .xlsm, .xlsb)
           and OpenDocument (.ods) file formats.
 
-        .. versionchanged:: 1.2.0
+        The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
+        now only supports old-style ``.xls`` files.
+        When ``engine=None``, the following logic will be
+        used to determine the engine:
 
-           The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
-           now only supports old-style ``.xls`` files.
-           When ``engine=None``, the following logic will be
-           used to determine the engine:
-
-           - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-             then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-           - Otherwise if ``path_or_buffer`` is an xls format,
-             ``xlrd`` will be used.
-           - Otherwise if ``path_or_buffer`` is in xlsb format,
-             `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
+        - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+            then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+        - Otherwise if ``path_or_buffer`` is an xls format,
+            ``xlrd`` will be used.
+        - Otherwise if ``path_or_buffer`` is in xlsb format,
+            `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
         .. versionadded:: 1.3.0
 

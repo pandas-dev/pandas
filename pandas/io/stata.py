@@ -2427,8 +2427,6 @@ class StataWriter(StataParser):
         .. versionadded:: 1.5.0
             Added support for `.tar` files.
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -3415,8 +3413,6 @@ class StataWriter117(StataWriter):
         characters, and either frequently repeated or sparse.
     {compression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     value_labels : dict of dicts
         Dictionary containing columns as keys and dictionaries of column value
         to labels as values. The combined length of all labels for a single
@@ -3808,8 +3804,6 @@ class StataWriterUTF8(StataWriter117):
         the version. 118 is used if data.shape[1] <= 32767, and 119 is used
         for storing larger DataFrames.
     {compression_options}
-
-        .. versionchanged:: 1.4.0 Zstandard support.
 
     value_labels : dict of dicts
         Dictionary containing columns as keys and dictionaries of column value
