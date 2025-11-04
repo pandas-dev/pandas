@@ -169,14 +169,10 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
         values = np.asarray(values)
     else:
         values = np.array(values, copy=copy)
+    inferred_type = None
     if values.dtype == object or is_string_dtype(values.dtype):
-        if is_string_dtype(values.dtype):
-            inferred_type = "string"
-        if (
-            dtype is None
-            and values.dtype == object
-            and lib.is_bool_array(values, skipna=True)
-        ):
+        inferred_type = lib.infer_dtype(values, skipna=True)
+        if inferred_type == "boolean" and dtype is None:
             # object dtype array of bools
             name = dtype_cls.__name__.strip("_")
             raise TypeError(f"{values.dtype} cannot be converted to {name}")
