@@ -542,7 +542,7 @@ z
         to_compression = "infer" if to_infer else compression
         read_compression = "infer" if read_infer else compression
 
-        path_ext = str(temp_file) + "." + compression_to_extension[compression]
+        path_ext = temp_file.with_suffix("." + compression_to_extension[compression])
         df.to_csv(path_ext, compression=to_compression)
         result = pd.read_csv(path_ext, index_col=0, compression=read_compression)
         tm.assert_frame_equal(result, df)
@@ -556,7 +556,7 @@ z
             "zstd": "zst",
         }.get(method, method)
 
-        path = str(temp_file) + "." + extension
+        path = temp_file.with_suffix("." + extension)
         df.to_csv(path, compression={"method": method})
         read_df = pd.read_csv(path, index_col=0)
         tm.assert_frame_equal(read_df, df)
@@ -576,7 +576,7 @@ z
         # GH 26023
         df = DataFrame({"ABC": [1]})
 
-        path = str(temp_file) + ".zip"
+        path = temp_file.with_suffix(".zip")
         df.to_csv(
             path, compression={"method": compression, "archive_name": archive_name}
         )
