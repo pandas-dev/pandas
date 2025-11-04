@@ -3979,6 +3979,116 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
 
+    def factorize(
+        self,
+        sort: bool = False,
+        use_na_sentinel: bool = True,
+    ) -> tuple[npt.NDArray[np.intp], MultiIndex]:
+        """
+        Encode the object as an enumerated type or categorical variable.
+
+        This method preserves extension dtypes (e.g., Int64, boolean, string)
+        in MultiIndex levels during factorization. See GH#62337.
+
+        Parameters
+        ----------
+        sort : bool, default False
+            Sort uniques and shuffle codes to maintain the relationship.
+        use_na_sentinel : bool, default True
+            If True, the sentinel -1 will be used for NaN values. If False,
+            NaN values will be encoded as non-negative integers and will not drop the
+            NaN from the uniques of the values.
+
+        Returns
+        -------
+        codes : np.ndarray
+            An integer ndarray that's an indexer into uniques.
+        uniques : MultiIndex
+            The unique values with extension dtypes preserved when present.
+
+        See Also
+        --------
+        Index.factorize : Encode the object as an enumerated type.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays(
+        ...     [pd.array([1, 2, 1], dtype="Int64"), ["a", "b", "a"]]
+        ... )
+        >>> codes, uniques = mi.factorize()
+        >>> codes
+        array([0, 1, 0])
+        >>> uniques.dtypes
+        level_0      Int64
+        level_1     object
+        dtype: object
+        """
+        # Check if any level has extension dtypes
+        has_extension_dtypes = any(
+            isinstance(level.dtype, ExtensionDtype) for level in self.levels
+        )
+
+        if not has_extension_dtypes:
+            # Use parent implementation for performance when no extension dtypes
+            return super().factorize(sort=sort, use_na_sentinel=use_na_sentinel)
+
+        # Custom implementation for extension dtypes (GH#62337)
+        return self._factorize_with_extension_dtypes(
+            sort=sort, use_na_sentinel=use_na_sentinel
+        )
+
+    def _factorize_with_extension_dtypes(
+        self, sort: bool, use_na_sentinel: bool
+    ) -> tuple[npt.NDArray[np.intp], MultiIndex]:
+        """
+        Factorize MultiIndex while preserving extension dtypes.
+
+        This method uses the base factorize on _values but then reconstructs
+        the MultiIndex with proper extension dtypes preserved.
+        """
+        # Factorize using base algorithm on _values
+        codes, uniques_array = algos.factorize(
+            self._values, sort=sort, use_na_sentinel=use_na_sentinel
+        )
+
+        # Handle empty case
+        if len(uniques_array) == 0:
+            # Create empty levels with preserved dtypes
+            empty_levels = []
+            for original_level in self.levels:
+                # Create empty level with same dtype
+                empty_level = original_level[:0]  # Slice to get empty with same dtype
+                empty_levels.append(empty_level)
+
+            # Create empty MultiIndex with preserved level dtypes
+            result_mi = type(self)(
+                levels=empty_levels,
+                codes=[[] for _ in range(len(empty_levels))],
+            )
+            return codes, result_mi
+
+        # Create MultiIndex from unique tuples
+        result_mi = type(self).from_tuples(uniques_array)
+
+        # Restore extension dtypes
+        new_levels = []
+        for i, original_level in enumerate(self.levels):
+            if isinstance(original_level.dtype, ExtensionDtype):
+                # Preserve extension dtype by casting result level
+                try:
+                    new_level = result_mi.levels[i].astype(original_level.dtype)
+                    new_levels.append(new_level)
+                except (TypeError, ValueError):
+                    # If casting fails, keep the inferred level
+                    new_levels.append(result_mi.levels[i])
+            else:
+                # Keep inferred dtype for regular levels
+                new_levels.append(result_mi.levels[i])
+
+        # Reconstruct with preserved dtypes
+        result_mi = result_mi.set_levels(new_levels)
+        return codes, result_mi
+
     def equals(self, other: object) -> bool:
         """
         Determines if two MultiIndex objects have the same labeling information
