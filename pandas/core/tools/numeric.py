@@ -222,11 +222,8 @@ def to_numeric(
 
     values_dtype = getattr(values, "dtype", None)
     if isinstance(values_dtype, ArrowDtype):
-        if is_numeric_dtype(values_dtype):
-            if is_series:
-                return arg._constructor(values, index=arg.index, name=arg.name)
-            else:
-                return values
+        if is_numeric_dtype(values_dtype) and is_series:
+            return arg._constructor(values, index=arg.index, name=arg.name)
 
         mask = values.isna()
         values = values.dropna().to_numpy()
