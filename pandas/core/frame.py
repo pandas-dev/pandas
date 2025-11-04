@@ -11408,12 +11408,18 @@ class DataFrame(NDFrame, OpsMixin):
 
             # join indexes only using concat
             if can_concat:
-                if how == "left":
+                if how == "left" or how == "right":
                     res = concat(
                         frames, axis=1, join="outer", verify_integrity=True, sort=sort
                     )
-                    return res.reindex(self.index)
+                    index = self.index if how == "left" else frames[-1].index
+                    if sort:
+                        index = index.sort_values()
+                    result = res.reindex(index)
+                    return result
                 else:
+                    if how == "outer":
+                        sort = True
                     return concat(
                         frames, axis=1, join=how, verify_integrity=True, sort=sort
                     )
@@ -11424,6 +11430,7 @@ class DataFrame(NDFrame, OpsMixin):
                 joined = merge(
                     joined,
                     frame,
+                    sort=sort,
                     how=how,
                     left_index=True,
                     right_index=True,
