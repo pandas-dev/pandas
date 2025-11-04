@@ -1413,8 +1413,8 @@ class Index(IndexOpsMixin, PandasObject):
         return new_index
 
     @final
-    def __copy__(self, **kwargs) -> Self:
-        return self.copy(**kwargs)
+    def __copy__(self) -> Self:
+        return self.copy(deep=False)
 
     @final
     def __deepcopy__(self, memo=None) -> Self:
