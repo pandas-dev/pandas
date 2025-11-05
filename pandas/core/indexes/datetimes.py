@@ -589,6 +589,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return start, end
 
     def _parse_with_reso(self, label: str) -> tuple[Timestamp, Resolution]:
+        parsed, reso = super()._parse_with_reso(label)
+
         # GH#58302 - Deprecate non-ISO string formats in .loc indexing
         if isinstance(label, str) and not _is_iso_format_string(label):
             msg = (
@@ -597,8 +599,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 f"Got '{label}'."
             )
             warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
-
-        parsed, reso = super()._parse_with_reso(label)
 
         parsed = Timestamp(parsed)
 
@@ -733,6 +733,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         mask = np.array(True)
         in_index = True
         if start is not None:
+            start_casted = self._maybe_cast_slice_bound(start, "left")
+
             # GH#58302 - Deprecate non-ISO string formats in .loc indexing
             if isinstance(start, str) and not _is_iso_format_string(start):
                 msg = (
@@ -742,11 +744,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 )
                 warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
 
-            start_casted = self._maybe_cast_slice_bound(start, "left")
             mask = start_casted <= self
             in_index &= (start_casted == self).any()
 
         if end is not None:
+            end_casted = self._maybe_cast_slice_bound(end, "right")
+
             # GH#58302 - Deprecate non-ISO string formats in .loc indexing
             if isinstance(end, str) and not _is_iso_format_string(end):
                 msg = (
@@ -756,7 +759,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 )
                 warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
 
-            end_casted = self._maybe_cast_slice_bound(end, "right")
             mask = (self <= end_casted) & mask
             in_index &= (end_casted == self).any()
 
