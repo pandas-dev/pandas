@@ -37,6 +37,10 @@ from pandas.core.indexing import IndexingError
 
 from pandas.tseries.offsets import BDay
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
+
 
 class TestSeriesGetitemScalars:
     def test_getitem_object_index_float_string(self):

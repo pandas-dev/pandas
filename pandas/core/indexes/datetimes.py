@@ -591,15 +591,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def _parse_with_reso(self, label: str) -> tuple[Timestamp, Resolution]:
         parsed, reso = super()._parse_with_reso(label)
 
-        # GH#58302 - Deprecate non-ISO string formats in .loc indexing
-        if isinstance(label, str) and not _is_iso_format_string(label):
-            msg = (
-                "Parsing non-ISO datetime strings in .loc is deprecated and will be "
-                "removed in a future version. Use ISO format (YYYY-MM-DD) instead. "
-                f"Got '{label}'."
-            )
-            warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
-
         parsed = Timestamp(parsed)
 
         if self.tz is not None and parsed.tzinfo is None:
@@ -645,6 +636,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 parsed, reso = self._parse_with_reso(key)
             except ValueError as err:
                 raise KeyError(key) from err
+            # GH#58302 - Deprecate non-ISO string formats in .loc indexing
+            if not _is_iso_format_string(key):
+                msg = (
+                    "Parsing non-ISO datetime strings in .loc is deprecated "
+                    "and will be removed in a future version. Use ISO format "
+                    f"(YYYY-MM-DD) instead. Got '{key}'."
+                )
+                warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
             self._disallow_mismatched_indexing(parsed)
 
             if self._can_partial_date_slice(reso):

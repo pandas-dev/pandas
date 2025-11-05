@@ -44,6 +44,10 @@ from pandas.api.types import is_scalar
 from pandas.core.indexing import _one_ellipsis_message
 from pandas.tests.indexing.common import check_indexing_smoketest_or_raises
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
+
 
 @pytest.mark.parametrize(
     "series, new_series, expected_ser",

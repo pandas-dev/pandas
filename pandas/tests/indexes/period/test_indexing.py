@@ -21,6 +21,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
+
 dti4 = date_range("2016-01-01", periods=4)
 dti = dti4[:-1]
 rng = pd.Index(range(3))

@@ -19,6 +19,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
+
 
 class TestSlicing:
     def test_string_index_series_name_converted(self):

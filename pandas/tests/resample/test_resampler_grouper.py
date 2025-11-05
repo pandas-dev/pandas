@@ -16,6 +16,10 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.indexes.datetimes import date_range
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
+
 
 @pytest.fixture
 def test_frame():

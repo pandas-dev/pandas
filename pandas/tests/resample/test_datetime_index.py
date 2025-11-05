@@ -38,6 +38,10 @@ from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Minute
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
+
 
 @pytest.fixture
 def simple_date_range_series():
