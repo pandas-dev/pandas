@@ -27,6 +27,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
+
 
 def test_fancy_getitem():
     dti = date_range(
