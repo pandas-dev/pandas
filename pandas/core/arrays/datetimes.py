@@ -47,7 +47,6 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas.errors import (
     PerformanceWarning,
-    TimezoneDtypeMismatchError,
 )
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
@@ -2833,7 +2832,7 @@ def _validate_tz_from_dtype(
             # We also need to check for the case where the user passed a
             #  tz-naive dtype (i.e. datetime64[ns])
             if tz is not None and not timezones.tz_compare(tz, dtz):
-                raise TimezoneDtypeMismatchError(
+                raise ValueError(
                     "cannot supply both a tz and a "
                     "timezone-naive dtype (i.e. datetime64[ns])"
                 )

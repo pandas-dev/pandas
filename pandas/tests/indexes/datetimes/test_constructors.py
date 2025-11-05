@@ -19,7 +19,6 @@ from pandas._libs.tslibs import (
     astype_overflowsafe,
     timezones,
 )
-from pandas.errors import TimezoneDtypeMismatchError
 
 import pandas as pd
 from pandas import (
@@ -710,7 +709,7 @@ class TestDatetimeIndex:
             "cannot supply both a tz and a timezone-naive dtype "
             r"\(i\.e\. datetime64\[ns\]\)"
         )
-        with pytest.raises(TimezoneDtypeMismatchError, match=msg):
+        with pytest.raises(ValueError, match=msg):
             DatetimeIndex(idx, dtype="datetime64[ns]")
 
         # this is effectively trying to convert tz's

@@ -1038,30 +1038,6 @@ class InvalidComparison(Exception):
     """
 
 
-class TimezoneDtypeMismatchError(ValueError):
-    """
-    Raised when a tz is supplied with a timezone-naive numpy datetime64 dtype.
-
-    Use case / message:
-        "cannot supply both a tz and a timezone-naive dtype (i.e. datetime64[ns])"
-
-    See Also
-    --------
-    core.dtypes.dtypes.DatetimeTZDtype : Datetime dtype with an associated timezone.
-    core.arrays.datetimes._validate_tz_from_dtype : Validation helper that may
-        raise this error.
-
-    Examples
-    --------
-    >>> from pandas.core.arrays import datetimes  # doctest: +SKIP
-    >>> datetimes._validate_tz_from_dtype("datetime64[ns]", tz="UTC")  # doctest: +SKIP
-    Traceback (most recent call last):
-    ...
-    TimezoneDtypeMismatchError: cannot supply both a tz and a timezone-naive dtype
-    (i.e. datetime64[ns])
-    """
-
-
 __all__ = [
     "AbstractMethodError",
     "AttributeConflictWarning",
@@ -1105,7 +1081,6 @@ __all__ = [
     "PyperclipException",
     "PyperclipWindowsException",
     "SpecificationError",
-    "TimezoneDtypeMismatchError",
     "UndefinedVariableError",
     "UnsortedIndexError",
     "UnsupportedFunctionCall",
