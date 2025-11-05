@@ -407,6 +407,7 @@ either the left or right tables, the values in the joined table will be
     ``right``, ``RIGHT OUTER JOIN``, Use keys from right frame only
     ``outer``, ``FULL OUTER JOIN``, Use union of keys from both frames
     ``inner``, ``INNER JOIN``, Use intersection of keys from both frames
+    ``left_semi``, ``LEFT SEMI JOIN``, Filter rows on left based on occurrences in right.
     ``cross``, ``CROSS JOIN``, Create the cartesian product of rows of both frames
 
 .. ipython:: python
@@ -463,6 +464,18 @@ either the left or right tables, the values in the joined table will be
 .. ipython:: python
 
    result = pd.merge(left, right, how="inner", on=["key1", "key2"])
+   result
+
+.. ipython:: python
+   :suppress:
+
+   @savefig merging_merge_on_key_inner.png
+   p.plot([left, right], result, labels=["left", "right"], vertical=False);
+   plt.close("all");
+
+.. ipython:: python
+
+   result = pd.merge(left, right, how="left_semi", on=["key1", "key2"])
    result
 
 .. ipython:: python

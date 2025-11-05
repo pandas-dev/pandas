@@ -446,7 +446,7 @@ AnyAll: TypeAlias = Literal["any", "all"]
 
 # merge
 MergeHow: TypeAlias = Literal[
-    "left", "right", "inner", "outer", "cross", "left_anti", "right_anti"
+    "left", "right", "inner", "outer", "cross", "left_semi", "left_anti", "right_anti"
 ]
 MergeValidate: TypeAlias = Literal[
     "one_to_one",
