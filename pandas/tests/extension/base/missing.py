@@ -126,7 +126,7 @@ class BaseMissingTests:
         data = data_missing.copy()
         data._readonly = True
 
-        # by default copy=True, then this works fine
+        # by default fillna(copy=True), then this works fine
         result = data.fillna(data_missing[1])
         assert result[0] == data_missing[1]
         tm.assert_extension_array_equal(data, data_missing)
