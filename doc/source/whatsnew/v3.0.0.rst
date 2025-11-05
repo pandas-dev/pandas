@@ -374,6 +374,71 @@ In cases with mixed-resolution inputs, the highest resolution is used:
     In [2]: pd.to_datetime([pd.Timestamp("2024-03-22 11:43:01"), "2024-03-22 11:43:01.002"]).dtype
     Out[2]: dtype('<M8[ns]')
 
+.. _whatsnew_300.api_breaking.concat_datetime_sorting:
+
+:func:`concat` no longer ignores ``sort`` when all objects have a :class:`DatetimeIndex`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When all objects passed to :func:`concat` have a :class:`DatetimeIndex`,
+passing ``sort=False`` will now result in the non-concatenation axis not
+being sorted. Previously, the result would always be sorted along
+the non-concatenation axis even when ``sort=False`` is passed. :issue:`57335`
+
+If you do not specify the ``sort`` argument, pandas will continue to return a
+sorted result but this behavior is deprecated and you will receive a warning.
+In order to make this less noisy for users, pandas checks if not sorting would
+impact the result and only warns when it would. This check can be expensive,
+and users can skip the check by explicitly specifying ``sort=True`` or
+``sort=False``.
+
+This deprecation can also impact pandas' internal usage of :func:`concat`.
+Here cases where :func:`concat` was sorting a :class:`DatetimeIndex` but not
+other indexes are considered bugs and have been fixed as noted below. However
+it is possible some have been missed. In order to be cautious here, pandas has *not*
+added ``sort=False`` to any internal calls where we believe behavior should not change.
+If we have missed something, users will not experience a behavior change but they
+will receive a warning about :func:`concat` even though they are not directly
+calling this function. If this does occur, we ask users to open an issue so that
+we may address any potential behavior changes.
+
+.. ipython:: python
+
+    idx1 = pd.date_range("2025-01-02", periods=3, freq="h")
+    df1 = pd.DataFrame({"a": [1, 2, 3]}, index=idx1)
+    df1
+
+    idx2 = pd.date_range("2025-01-01", periods=3, freq="h")
+    df2 = pd.DataFrame({"b": [1, 2, 3]}, index=idx2)
+    df2
+
+*Old behavior*
+
+.. code-block:: ipython
+
+    In [3]: pd.concat([df1, df2], axis=1, sort=False)
+    Out[3]:
+                           a    b
+    2025-01-01 00:00:00  NaN  1.0
+    2025-01-01 01:00:00  NaN  2.0
+    2025-01-01 02:00:00  NaN  3.0
+    2025-01-02 00:00:00  1.0  NaN
+    2025-01-02 01:00:00  2.0  NaN
+    2025-01-02 02:00:00  3.0  NaN
+
+*New behavior*
+
+.. ipython:: python
+
+    pd.concat([df1, df2], axis=1, sort=False)
+
+Cases where pandas' internal usage of :func:`concat` resulted in inconsistent sorting
+that are now fixed in this release are as follows.
+
+- :meth:`Series.apply` and :meth:`DataFrame.apply` with a list-like or dict-like ``func`` argument.
+- :meth:`Series.shift`, :meth:`DataFrame.shift`, :meth:`.SeriesGroupBy.shift`, :meth:`.DataFrameGroupBy.shift` with the ``periods`` argument a list of length greater than 1.
+- :meth:`DataFrame.join` with ``other`` a list of one or more Series or DataFrames and ``how="inner"``, ``how="left"``, or ``how="right"``.
+- :meth:`Series.str.cat` with ``others`` a Series or DataFrame.
+
 .. _whatsnew_300.api_breaking.value_counts_sorting:
 
 Changed behavior in :meth:`DataFrame.value_counts` and :meth:`DataFrameGroupBy.value_counts` when ``sort=False``
