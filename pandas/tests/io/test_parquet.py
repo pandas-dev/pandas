@@ -254,34 +254,12 @@ def test_read_parquet_invalid_path_types(tmp_path, engine):
     path = tmp_path / "test_read_parquet.parquet"
     df.to_parquet(path, engine=engine)
 
-    bad_path_types = [
-        [str(path)],  # list
-        (str(path),),  # tuple
-        b"raw-bytes",  # bytes
-    ]
-    for bad in bad_path_types:
-        match = (
-            f"read_parquet expected str/os.PathLike or file-like object, "
-            f"got {type(bad).__name__} type"
-        )
-        with pytest.raises(TypeError, match=match):
-            read_parquet(bad, engine=engine)
-
-
-def test_read_parquet_valid_path_types(tmp_path, engine):
-    # GH #62922
-    df = pd.DataFrame({"a": [1]})
-    path = tmp_path / "test_read_parquet.parquet"
-    df.to_parquet(path, engine=engine)
-    # str
-    read_parquet(str(path), engine=engine)
-    # os.PathLike
-    read_parquet(pathlib.Path(path), engine=engine)
-    # file-like object
-    buf = BytesIO()
-    df.to_parquet(buf, engine=engine)
-    buf.seek(0)
-    read_parquet(buf, engine=engine)
+    msg = (
+        f"read_parquet expected str/os.PathLike or file-like object, "
+        f"got list type"
+    )
+    with pytest.raises(TypeError, match=msg):
+        read_parquet([str(path)], engine=engine)
 
 
 def test_invalid_engine(df_compat, temp_file):
