@@ -5231,7 +5231,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return (
             shifted_dataframes[0]
             if len(shifted_dataframes) == 1
-            else concat(shifted_dataframes, axis=1)
+            else concat(shifted_dataframes, axis=1, sort=False)
         )
 
     @final
