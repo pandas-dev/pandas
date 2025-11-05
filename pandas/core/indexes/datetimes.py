@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import operator
+import re
 from typing import (
     TYPE_CHECKING,
     Self,
@@ -108,6 +109,28 @@ def _new_DatetimeIndex(cls, d):
             result = cls.__new__(cls, **d)
 
     return result
+
+
+def _is_iso_format_string(date_str: str) -> bool:
+    """
+    Check if a date string follows ISO8601 format.
+
+    ISO format must start with a 4-digit year (YYYY), optionally followed by
+    month and day with consistent separators.
+
+    Examples of ISO format (True):
+    - 2024-01-10
+    - 2024/01/10
+    - 2024 01 10
+    - 2024-01-10T00:00:00
+
+    Examples of non-ISO format (False):
+    - 01/10/2024 (MM/DD/YYYY)
+    - 10/01/2024 (DD/MM/YYYY)
+    - 01-10-2024 (MM-DD-YYYY)
+    """
+    # ISO format must start with 4-digit year followed by separator (-, /, ., or space)
+    return re.match(r"^\d{4}[-/. ]", date_str) is not None
 
 
 @inherit_names(
@@ -566,6 +589,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return start, end
 
     def _parse_with_reso(self, label: str) -> tuple[Timestamp, Resolution]:
+        # GH#58302 - Deprecate non-ISO string formats in .loc indexing
+        if isinstance(label, str) and not _is_iso_format_string(label):
+            msg = (
+                "Parsing non-ISO datetime strings in .loc is deprecated and will be "
+                "removed in a future version. Use ISO format (YYYY-MM-DD) instead. "
+                f"Got '{label}'."
+            )
+            warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+
         parsed, reso = super()._parse_with_reso(label)
 
         parsed = Timestamp(parsed)
@@ -701,11 +733,29 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         mask = np.array(True)
         in_index = True
         if start is not None:
+            # GH#58302 - Deprecate non-ISO string formats in .loc indexing
+            if isinstance(start, str) and not _is_iso_format_string(start):
+                msg = (
+                    "Parsing non-ISO datetime strings in .loc is deprecated "
+                    "and will be removed in a future version. Use ISO format "
+                    f"(YYYY-MM-DD) instead. Got '{start}'."
+                )
+                warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+
             start_casted = self._maybe_cast_slice_bound(start, "left")
             mask = start_casted <= self
             in_index &= (start_casted == self).any()
 
         if end is not None:
+            # GH#58302 - Deprecate non-ISO string formats in .loc indexing
+            if isinstance(end, str) and not _is_iso_format_string(end):
+                msg = (
+                    "Parsing non-ISO datetime strings in .loc is deprecated "
+                    "and will be removed in a future version. Use ISO format "
+                    f"(YYYY-MM-DD) instead. Got '{end}'."
+                )
+                warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+
             end_casted = self._maybe_cast_slice_bound(end, "right")
             mask = (self <= end_casted) & mask
             in_index &= (end_casted == self).any()

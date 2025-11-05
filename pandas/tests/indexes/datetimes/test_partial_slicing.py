@@ -5,6 +5,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -464,3 +466,96 @@ class TestSlicing:
         )
         result = df.loc["2000", "A"]
         tm.assert_series_equal(result, expected)
+
+
+class TestDatetimeIndexNonISODeprecation:
+    """Tests for deprecation of non-ISO string formats in .loc indexing. GH#58302"""
+
+    @pytest.fixture
+    def ser_daily(self):
+        """Create a Series with daily DatetimeIndex for testing."""
+        return Series(
+            range(15),
+            index=DatetimeIndex(date_range(start="2024-01-01", freq="D", periods=15)),
+        )
+
+    @pytest.mark.parametrize(
+        "date_string",
+        [
+            "1/10/2024",  # MM/DD/YYYY format
+            "01/10/2024",  # MM/DD/YYYY format with leading zero
+        ],
+    )
+    def test_loc_indexing_non_iso_single_key_deprecation(self, ser_daily, date_string):
+        # GH#58302
+        msg = "Parsing non-ISO datetime strings in .loc is deprecated"
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser_daily.loc[date_string]
+            assert result == 9
+
+    @pytest.mark.parametrize(
+        "date_string,expected",
+        [
+            ("2024-01-10", 9),  # YYYY-MM-DD (dash)
+            ("2024/01/10", 9),  # YYYY/MM/DD (slash)
+            ("2024 01 10", 9),  # YYYY MM DD (space)
+        ],
+    )
+    def test_loc_indexing_iso_format_no_warning(self, ser_daily, date_string, expected):
+        # GH#58302 - ISO formats should NOT warn
+        with tm.assert_produces_warning(None):
+            result = ser_daily.loc[date_string]
+            assert result == expected
+
+    @pytest.mark.parametrize(
+        "start_string",
+        [
+            "1/10/2024",  # MM/DD/YYYY format
+            "01/10/2024",  # MM/DD/YYYY format with leading zero
+        ],
+    )
+    def test_loc_slicing_non_iso_start_deprecation(self, ser_daily, start_string):
+        # GH#58302 - Non-ISO start in slice should warn
+        msg = "Parsing non-ISO datetime strings in .loc is deprecated"
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser_daily.loc[start_string:"2024-01-15"]
+            assert len(result) > 0
+
+    @pytest.mark.parametrize(
+        "end_string",
+        [
+            "5-01-2024",  # DD-MM-YYYY format
+            "05-01-2024",  # DD-MM-YYYY format with leading zero
+        ],
+    )
+    def test_loc_slicing_non_iso_end_deprecation(self, ser_daily, end_string):
+        # GH#58302 - Non-ISO end in slice should warn
+        msg = "Parsing non-ISO datetime strings in .loc is deprecated"
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = ser_daily.loc["2024-01-01":end_string]
+            assert len(result) > 0
+
+    def test_loc_slicing_both_non_iso_deprecation(self, ser_daily):
+        # GH#58302 - Both non-ISO should warn (twice)
+        msg = "Parsing non-ISO datetime strings in .loc is deprecated"
+
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=msg, check_stacklevel=False
+        ):
+            result = ser_daily.loc["1/10/2024":"5-01-2024"]
+            assert len(result) > 0
+
+    def test_loc_slicing_iso_formats_no_warning(self, ser_daily):
+        # GH#58302 - ISO slice formats should NOT warn
+        with tm.assert_produces_warning(None):
+            result = ser_daily.loc["2024-01-05":"2024-01-10"]
+            assert len(result) == 6
+
+    def test_loc_non_string_keys_no_warning(self, ser_daily):
+        # GH#58302 - Non-string keys should not warn
+        with tm.assert_produces_warning(None):
+            result = ser_daily.loc[Timestamp("2024-01-10")]
+            assert result == 9
