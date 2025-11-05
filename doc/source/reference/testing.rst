@@ -66,7 +66,6 @@ Exceptions and warnings
    errors.PyperclipException
    errors.PyperclipWindowsException
    errors.SpecificationError
-   errors.TimezoneDtypeMismatchError
    errors.UndefinedVariableError
    errors.UnsortedIndexError
    errors.UnsupportedFunctionCall
