@@ -3,6 +3,7 @@ An exhaustive list of pandas methods exercising NDFrame.__finalize__.
 """
 
 from copy import deepcopy
+from datetime import time
 import operator
 import re
 
@@ -280,12 +281,12 @@ _all_methods = [
     (
         pd.Series,
         (1, pd.date_range("2000", periods=4)),
-        operator.methodcaller("at_time", "12:00"),
+        operator.methodcaller("at_time", time(12)),
     ),
     (
         pd.DataFrame,
         ({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
-        operator.methodcaller("at_time", "12:00"),
+        operator.methodcaller("at_time", time(12)),
     ),
     (
         pd.Series,
