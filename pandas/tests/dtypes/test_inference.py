@@ -453,6 +453,8 @@ def test_is_hashable():
         def __hash__(self):
             raise TypeError("Not hashable")
 
+    # Temporary helper for Python 3.11 compatibility.
+    # This can be removed once support for Python 3.11 is dropped.
     class HashableSlice:
         def __init__(self, start, stop, step=None):
             self.slice = slice(start, stop, step)
