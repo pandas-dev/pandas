@@ -6387,6 +6387,7 @@ To read data from Google Sheets:
     df = pd.read_csv(url)
     
     # Option 2: Using authentication for private sheets
+    # Note: Requires gspread library (pip install gspread)
     from google.colab import auth
     import gspread
     from google.auth import default
