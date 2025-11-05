@@ -7,13 +7,17 @@ that can be mixed into or pinned onto other pandas classes.
 
 from __future__ import annotations
 
+import functools
 from typing import (
     TYPE_CHECKING,
     final,
 )
 import warnings
 
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 if TYPE_CHECKING:
@@ -87,7 +91,7 @@ class PandasDelegate:
         cls
             Class to add the methods/properties to.
         delegate
-            Class to get methods/properties and doc-strings.
+            Class to get methods/properties and docstrings.
         accessors : list of str
             List of accessors to add.
         typ : {'property', 'method'}
@@ -117,11 +121,11 @@ class PandasDelegate:
             )
 
         def _create_delegator_method(name: str):
+            method = getattr(delegate, accessor_mapping(name))
+
+            @functools.wraps(method)
             def f(self, *args, **kwargs):
                 return self._delegate_method(name, *args, **kwargs)
-
-            f.__name__ = name
-            f.__doc__ = getattr(delegate, accessor_mapping(name)).__doc__
 
             return f
 
@@ -158,7 +162,7 @@ def delegate_names(
     Parameters
     ----------
     delegate : object
-        The class to get methods/properties & doc-strings.
+        The class to get methods/properties & docstrings.
     accessors : Sequence[str]
         List of accessor to add.
     typ : {'property', 'method'}
@@ -322,6 +326,7 @@ AttributeError: All columns must contain integer values only.
 dtype: int64"""
 
 
+@set_module("pandas.api.extensions")
 @doc(_register_accessor, klass="DataFrame", examples=_register_df_examples)
 def register_dataframe_accessor(name: str) -> Callable[[TypeT], TypeT]:
     from pandas import DataFrame
@@ -350,9 +355,10 @@ Traceback (most recent call last):
 AttributeError: The series must contain integer data only.
 >>> df = pd.Series([1, 2, 3])
 >>> df.int_accessor.sum()
-6"""
+np.int64(6)"""
 
 
+@set_module("pandas.api.extensions")
 @doc(_register_accessor, klass="Series", examples=_register_series_examples)
 def register_series_accessor(name: str) -> Callable[[TypeT], TypeT]:
     from pandas import Series
@@ -387,6 +393,7 @@ AttributeError: The index must only be an integer value.
 [2, 8]"""
 
 
+@set_module("pandas.api.extensions")
 @doc(_register_accessor, klass="Index", examples=_register_index_examples)
 def register_index_accessor(name: str) -> Callable[[TypeT], TypeT]:
     from pandas import Index

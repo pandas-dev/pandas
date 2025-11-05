@@ -3,8 +3,6 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.errors import (
     PyperclipException,
     PyperclipWindowsException,
@@ -24,10 +22,6 @@ from pandas.io.clipboard import (
     CheckedCall,
     _stringifyText,
     init_qt_clipboard,
-)
-
-pytestmark = pytest.mark.xfail(
-    using_string_dtype(), reason="TODO(infer_string)", strict=False
 )
 
 
@@ -351,16 +345,12 @@ class TestClipboard:
 
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_read_clipboard_dtype_backend(
-        self, clipboard, string_storage, dtype_backend, engine
+        self, clipboard, string_storage, dtype_backend, engine, using_infer_string
     ):
         # GH#50502
         if dtype_backend == "pyarrow":
             pa = pytest.importorskip("pyarrow")
-            if engine == "c" and string_storage == "pyarrow":
-                # TODO avoid this exception?
-                string_dtype = pd.ArrowDtype(pa.large_string())
-            else:
-                string_dtype = pd.ArrowDtype(pa.string())
+            string_dtype = pd.ArrowDtype(pa.string())
         else:
             string_dtype = pd.StringDtype(string_storage)
 
@@ -395,6 +385,11 @@ y,2,5.0,,,,,False,"""
                 }
             )
             expected["g"] = ArrowExtensionArray(pa.array([None, None]))
+
+        if using_infer_string:
+            expected.columns = expected.columns.astype(
+                pd.StringDtype(string_storage, na_value=np.nan)
+            )
 
         tm.assert_frame_equal(result, expected)
 

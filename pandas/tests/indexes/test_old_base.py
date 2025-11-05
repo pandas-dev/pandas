@@ -6,10 +6,8 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.tslibs import Timestamp
-from pandas.compat import HAS_PYARROW
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -28,6 +26,7 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
+    StringDtype,
     TimedeltaIndex,
     isna,
     period_range,
@@ -229,7 +228,6 @@ class TestBase:
             with pytest.raises(TypeError, match=msg):
                 idx.any()
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_repr_roundtrip(self, simple_index):
         if isinstance(simple_index, IntervalIndex):
             pytest.skip(f"Not a valid repr for {type(simple_index).__name__}")
@@ -246,11 +244,6 @@ class TestBase:
             repr(idx)
             assert "..." not in str(idx)
 
-    @pytest.mark.xfail(
-        using_string_dtype() and not HAS_PYARROW,
-        reason="TODO(infer_string)",
-        strict=False,
-    )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_ensure_copied_data(self, index):
         # Check the "copy" argument of each Index.__new__ is honoured
@@ -264,7 +257,7 @@ class TestBase:
                 "RangeIndex cannot be initialized from data, "
                 "MultiIndex and CategoricalIndex are tested separately"
             )
-        elif index.dtype == object and index.inferred_type == "boolean":
+        elif index.dtype == object and index.inferred_type in ["boolean", "string"]:
             init_kwargs["dtype"] = index.dtype
 
         index_type = type(index)
@@ -296,12 +289,17 @@ class TestBase:
                 tm.assert_numpy_array_equal(
                     index._values._mask, result._values._mask, check_same="same"
                 )
-            elif index.dtype == "string[python]":
+            elif (
+                isinstance(index.dtype, StringDtype) and index.dtype.storage == "python"
+            ):
                 assert np.shares_memory(index._values._ndarray, result._values._ndarray)
                 tm.assert_numpy_array_equal(
                     index._values._ndarray, result._values._ndarray, check_same="same"
                 )
-            elif index.dtype in ("string[pyarrow]", "string[pyarrow_numpy]"):
+            elif (
+                isinstance(index.dtype, StringDtype)
+                and index.dtype.storage == "pyarrow"
+            ):
                 assert tm.shares_memory(result._values, index._values)
             else:
                 raise NotImplementedError(index.dtype)
@@ -444,11 +442,7 @@ class TestBase:
         result = trimmed.insert(0, index[0])
         assert index[0:4].equals(result)
 
-    @pytest.mark.skipif(
-        using_string_dtype(),
-        reason="completely different behavior, tested elsewher",
-    )
-    def test_insert_out_of_bounds(self, index):
+    def test_insert_out_of_bounds(self, index, using_infer_string):
         # TypeError/IndexError matches what np.insert raises in these cases
 
         if len(index) > 0:
@@ -460,6 +454,14 @@ class TestBase:
             msg = "index (0|0.5) is out of bounds for axis 0 with size 0"
         else:
             msg = "slice indices must be integers or None or have an __index__ method"
+
+        if using_infer_string:
+            if index.dtype == "string" or index.dtype == "category":
+                msg = "loc must be an integer between"
+            elif index.dtype == "object" and len(index) == 0:
+                msg = "loc must be an integer between"
+                err = TypeError
+
         with pytest.raises(err, match=msg):
             index.insert(0.5, "foo")
 
@@ -559,8 +561,8 @@ class TestBase:
         with pytest.raises(ValueError, match=msg):
             index_a == series_b
 
-        tm.assert_numpy_array_equal(index_a == series_a, expected1)
-        tm.assert_numpy_array_equal(index_a == series_c, expected2)
+        tm.assert_series_equal(index_a == series_a, Series(expected1))
+        tm.assert_series_equal(index_a == series_c, Series(expected2))
 
         # cases where length is 1 for one of them
         with pytest.raises(ValueError, match="Lengths must match"):
@@ -596,7 +598,7 @@ class TestBase:
             pytest.skip(f"Not relevant for Index with {index.dtype}")
         elif isinstance(index, MultiIndex):
             idx = index.copy(deep=True)
-            msg = "isna is not defined for MultiIndex"
+            msg = "fillna is not defined for MultiIndex"
             with pytest.raises(NotImplementedError, match=msg):
                 idx.fillna(idx[0])
         else:
@@ -718,8 +720,11 @@ class TestBase:
 
         # non-standard categories
         dtype = CategoricalDtype(idx.unique().tolist()[:-1], ordered)
-        result = idx.astype(dtype, copy=copy)
-        expected = CategoricalIndex(idx, name=name, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = idx.astype(dtype, copy=copy)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = CategoricalIndex(idx, name=name, dtype=dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
         if ordered is False:

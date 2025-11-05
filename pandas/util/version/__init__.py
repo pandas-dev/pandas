@@ -13,7 +13,7 @@ from typing import (
     Any,
     NamedTuple,
     SupportsInt,
-    Union,
+    TypeAlias,
 )
 
 __all__ = ["VERSION_PATTERN", "InvalidVersion", "Version", "parse"]
@@ -77,14 +77,14 @@ class NegativeInfinityType:
 NegativeInfinity = NegativeInfinityType()
 
 
-LocalType = tuple[Union[int, str], ...]
+LocalType: TypeAlias = tuple[int | str, ...]
 
-CmpPrePostDevType = Union[InfinityType, NegativeInfinityType, tuple[str, int]]
-CmpLocalType = Union[
-    NegativeInfinityType,
-    tuple[Union[tuple[int, str], tuple[NegativeInfinityType, Union[int, str]]], ...],
-]
-CmpKey = tuple[
+CmpPrePostDevType: TypeAlias = InfinityType | NegativeInfinityType | tuple[str, int]
+CmpLocalType: TypeAlias = (
+    NegativeInfinityType
+    | tuple[tuple[int, str] | tuple[NegativeInfinityType, int | str], ...]
+)
+CmpKey: TypeAlias = tuple[
     int,
     tuple[int, ...],
     CmpPrePostDevType,
@@ -92,7 +92,7 @@ CmpKey = tuple[
     CmpPrePostDevType,
     CmpLocalType,
 ]
-VersionComparisonMethod = Callable[[CmpKey, CmpKey], bool]
+VersionComparisonMethod: TypeAlias = Callable[[CmpKey, CmpKey], bool]
 
 
 class _Version(NamedTuple):
@@ -111,8 +111,17 @@ def parse(version: str) -> Version:
 # The docstring is from an older version of the packaging library to avoid
 # errors in the docstring validation.
 class InvalidVersion(ValueError):
+    __module__ = "pandas.errors"
     """
     An invalid version was found, users should refer to PEP 440.
+
+    The ``InvalidVersion`` exception is raised when a version string is
+    improperly formatted. Pandas uses this exception to ensure that all
+    version strings are PEP 440 compliant.
+
+    See Also
+    --------
+    util.version.Version : Class for handling and parsing version strings.
 
     Examples
     --------

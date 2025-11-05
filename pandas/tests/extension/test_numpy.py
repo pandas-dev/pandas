@@ -19,8 +19,6 @@ will never be held in an Index.
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.core.dtypes.dtypes import NumpyEADtype
 
 import pandas as pd
@@ -79,8 +77,8 @@ def allow_in_pandas(monkeypatch):
 @pytest.fixture
 def data(allow_in_pandas, dtype):
     if dtype.numpy_dtype == "object":
-        return pd.Series([(i,) for i in range(100)]).array
-    return NumpyExtensionArray(np.arange(1, 101, dtype=dtype._dtype))
+        return pd.Series([(i,) for i in range(10)]).array
+    return NumpyExtensionArray(np.arange(1, 11, dtype=dtype._dtype))
 
 
 @pytest.fixture
@@ -145,7 +143,7 @@ def data_for_grouping(allow_in_pandas, dtype):
 def data_for_twos(dtype):
     if dtype.kind == "O":
         pytest.skip(f"{dtype} is not a numeric dtype")
-    arr = np.ones(100) * 2
+    arr = np.ones(10) * 2
     return NumpyExtensionArray._from_sequence(arr, dtype=dtype)
 
 
@@ -257,7 +255,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     frame_scalar_exc = None
     series_array_exc = None
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_divmod(self, data):
         divmod_exc = None
         if data.dtype.kind == "O":
@@ -265,7 +262,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         self.divmod_exc = divmod_exc
         super().test_divmod(data)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_divmod_series_array(self, data):
         ser = pd.Series(data)
         exc = None
@@ -274,7 +270,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
             self.divmod_exc = exc
         self._check_divmod_op(ser, divmod, data)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         opname = all_arithmetic_operators
         series_scalar_exc = None
@@ -288,7 +283,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         self.series_scalar_exc = series_scalar_exc
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         opname = all_arithmetic_operators
         series_array_exc = None
@@ -297,7 +291,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         self.series_array_exc = series_array_exc
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         opname = all_arithmetic_operators
         frame_scalar_exc = None
@@ -427,6 +420,12 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data, request):
         super().test_EA_types(engine, data, request)
+
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data, request):
+        if isinstance(data[-1], tuple):
+            mark = pytest.mark.xfail(reason="Unpacks tuple")
+            request.applymarker(mark)
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):

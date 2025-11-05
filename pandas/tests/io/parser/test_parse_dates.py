@@ -13,7 +13,7 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -86,7 +86,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 
 
 @xfail_pyarrow
-def test_nat_parse(all_parsers):
+def test_nat_parse(all_parsers, temp_file):
     # see gh-3062
     parser = all_parsers
     df = DataFrame(
@@ -97,11 +97,11 @@ def test_nat_parse(all_parsers):
     )
     df.iloc[3:6, :] = np.nan
 
-    with tm.ensure_clean("__nat_parse_.csv") as path:
-        df.to_csv(path)
+    path = temp_file
+    df.to_csv(path)
 
-        result = parser.read_csv(path, index_col=0, parse_dates=["B"])
-        tm.assert_frame_equal(result, df)
+    result = parser.read_csv(path, index_col=0, parse_dates=["B"])
+    tm.assert_frame_equal(result, df)
 
 
 @skip_pyarrow
@@ -230,7 +230,7 @@ def test_parse_tz_aware(all_parsers):
 def test_read_with_parse_dates_scalar_non_bool(all_parsers, kwargs):
     # see gh-5636
     parser = all_parsers
-    msg = "Only booleans and lists " "are accepted for the 'parse_dates' parameter"
+    msg = "Only booleans and lists are accepted for the 'parse_dates' parameter"
     data = """A,B,C
     1,2,2003-11-1"""
 
@@ -241,7 +241,7 @@ def test_read_with_parse_dates_scalar_non_bool(all_parsers, kwargs):
 @pytest.mark.parametrize("parse_dates", [(1,), np.array([4, 5]), {1, 3}])
 def test_read_with_parse_dates_invalid_type(all_parsers, parse_dates):
     parser = all_parsers
-    msg = "Only booleans and lists " "are accepted for the 'parse_dates' parameter"
+    msg = "Only booleans and lists are accepted for the 'parse_dates' parameter"
     data = """A,B,C
     1,2,2003-11-1"""
 
@@ -421,7 +421,6 @@ def test_parse_timezone(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 @skip_pyarrow  # pandas.errors.ParserError: CSV parse error
 @pytest.mark.parametrize(
     "date_string",
@@ -429,7 +428,7 @@ def test_parse_timezone(all_parsers):
 )
 def test_invalid_parse_delimited_date(all_parsers, date_string):
     parser = all_parsers
-    expected = DataFrame({0: [date_string]}, dtype="object")
+    expected = DataFrame({0: [date_string]}, dtype="str")
     result = parser.read_csv(
         StringIO(date_string),
         header=None,
@@ -551,8 +550,8 @@ def test_date_parser_and_names(all_parsers):
     data = StringIO("""x,y\n1,2""")
     warn = UserWarning
     if parser.engine == "pyarrow":
-        # DeprecationWarning for passing a Manager object
-        warn = (UserWarning, DeprecationWarning)
+        # Pandas4Warning for passing a Manager object
+        warn = (UserWarning, Pandas4Warning)
     result = parser.read_csv_check_warnings(
         warn,
         "Could not infer format",
@@ -609,7 +608,6 @@ def test_date_parser_usecols_thousands(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_dayfirst_warnings():
     # GH 12585
 
@@ -642,7 +640,7 @@ def test_dayfirst_warnings():
 
     # first in DD/MM/YYYY, second in MM/DD/YYYY
     input = "date\n31/12/2014\n03/30/2011"
-    expected = Index(["31/12/2014", "03/30/2011"], dtype="object", name="date")
+    expected = Index(["31/12/2014", "03/30/2011"], dtype="str", name="date")
 
     # A. use dayfirst=True
     res5 = read_csv(
@@ -752,7 +750,6 @@ def test_parse_dates_and_string_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 def test_parse_dot_separated_dates(all_parsers):
     # https://github.com/pandas-dev/pandas/issues/2586
     parser = all_parsers
@@ -762,7 +759,7 @@ def test_parse_dot_separated_dates(all_parsers):
     if parser.engine == "pyarrow":
         expected_index = Index(
             ["27.03.2003 14:55:00.000", "03.08.2003 15:20:00.000"],
-            dtype="object",
+            dtype="str",
             name="a",
         )
         warn = None

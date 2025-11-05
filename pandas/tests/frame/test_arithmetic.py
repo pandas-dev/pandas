@@ -11,9 +11,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
+from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
 from pandas import (
@@ -28,6 +26,7 @@ from pandas.tests.frame.common import (
     _check_mixed_float,
     _check_mixed_int,
 )
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -834,6 +833,43 @@ class TestFrameFlexArithmetic:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_frame_multiindex_operations_part_align_axis1(self):
+        # GH#61009 Test DataFrame-Series arithmetic operation
+        # with partly aligned MultiIndex and axis = 1
+        df = DataFrame(
+            [[1, 2, 3], [3, 4, 5]],
+            index=[2010, 2020],
+            columns=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+
+        series = Series(
+            [0.4],
+            index=MultiIndex.from_product([["b"], ["a"]], names=["mod", "scen"]),
+        )
+
+        expected = DataFrame(
+            [[1.4, 2.4, np.nan], [3.4, 4.4, np.nan]],
+            index=[2010, 2020],
+            columns=MultiIndex.from_tuples(
+                [
+                    ("a", "b", 0),
+                    ("a", "b", 1),
+                    ("a", "c", 2),
+                ],
+                names=["scen", "mod", "id"],
+            ),
+        )
+        result = df.add(series, axis=1)
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestFrameArithmetic:
     def test_td64_op_nat_casting(self):
@@ -1081,6 +1117,8 @@ class TestFrameArithmetic:
             (operator.mod, "complex128"),
         }
 
+        ne = import_optional_dependency("numexpr", errors="ignore")
+        ne_warns_on_op = ne is not None and Version(ne.__version__) < Version("2.13.1")
         if (op, dtype) in invalid:
             warn = None
             if (dtype == "<M8[ns]" and op == operator.add) or (
@@ -1109,7 +1147,11 @@ class TestFrameArithmetic:
 
         elif (op, dtype) in skip:
             if op in [operator.add, operator.mul]:
-                if expr.USE_NUMEXPR and switch_numexpr_min_elements == 0:
+                if (
+                    expr.USE_NUMEXPR
+                    and switch_numexpr_min_elements == 0
+                    and ne_warns_on_op
+                ):
                     warn = UserWarning
                 else:
                     warn = None
@@ -1544,9 +1586,6 @@ class TestFrameArithmeticUnsorted:
         with pytest.raises(ValueError, match=msg):
             func(simple_frame, simple_frame[:2])
 
-    @pytest.mark.xfail(
-        using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)"
-    )
     def test_strings_to_numbers_comparisons_raises(self, compare_operators_no_eq_ne):
         # GH 11565
         df = DataFrame(
@@ -1554,7 +1593,12 @@ class TestFrameArithmeticUnsorted:
         )
 
         f = getattr(operator, compare_operators_no_eq_ne)
-        msg = "'[<>]=?' not supported between instances of 'str' and 'int'"
+        msg = "|".join(
+            [
+                "'[<>]=?' not supported between instances of 'str' and 'int'",
+                "Invalid comparison between dtype=str and int",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             f(df, 0)
 
@@ -2033,6 +2077,51 @@ def test_arithmetic_multiindex_align():
     tm.assert_frame_equal(result, expected)
 
 
+def test_arithmetic_multiindex_column_align():
+    # GH#60498
+    df1 = DataFrame(
+        data=100,
+        columns=MultiIndex.from_product(
+            [["1A", "1B"], ["2A", "2B"]], names=["Lev1", "Lev2"]
+        ),
+        index=["C1", "C2"],
+    )
+    df2 = DataFrame(
+        data=np.array([[0.1, 0.25], [0.2, 0.45]]),
+        columns=MultiIndex.from_product([["1A", "1B"]], names=["Lev1"]),
+        index=["C1", "C2"],
+    )
+    expected = DataFrame(
+        data=np.array([[10.0, 10.0, 25.0, 25.0], [20.0, 20.0, 45.0, 45.0]]),
+        columns=MultiIndex.from_product(
+            [["1A", "1B"], ["2A", "2B"]], names=["Lev1", "Lev2"]
+        ),
+        index=["C1", "C2"],
+    )
+    result = df1 * df2
+    tm.assert_frame_equal(result, expected)
+
+
+def test_arithmetic_multiindex_column_align_with_fillvalue():
+    # GH#60903
+    df1 = DataFrame(
+        data=[[1.0, 2.0]],
+        columns=MultiIndex.from_tuples([("A", "one"), ("A", "two")]),
+    )
+    df2 = DataFrame(
+        data=[[3.0, 4.0]],
+        columns=MultiIndex.from_tuples([("B", "one"), ("B", "two")]),
+    )
+    expected = DataFrame(
+        data=[[1.0, 2.0, 3.0, 4.0]],
+        columns=MultiIndex.from_tuples(
+            [("A", "one"), ("A", "two"), ("B", "one"), ("B", "two")]
+        ),
+    )
+    result = df1.add(df2, fill_value=0)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_bool_frame_mult_float():
     # GH 18549
     df = DataFrame(True, list("ab"), list("cd"))
@@ -2101,12 +2190,14 @@ def test_enum_column_equality():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-def test_mixed_col_index_dtype():
+def test_mixed_col_index_dtype(string_dtype_no_object):
     # GH 47382
     df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])
     df2 = DataFrame(columns=list("abc"), data=0.0, index=[0])
-    df1.columns = df2.columns.astype("string")
+    df1.columns = df2.columns.astype(string_dtype_no_object)
     result = df1 + df2
     expected = DataFrame(columns=list("abc"), data=1.0, index=[0])
+
+    expected.columns = expected.columns.astype(string_dtype_no_object)
+
     tm.assert_frame_equal(result, expected)

@@ -8,6 +8,7 @@ from collections.abc import (
     Sequence,
 )
 import datetime
+from decimal import Decimal
 from functools import partial
 import os
 from textwrap import fill
@@ -17,6 +18,7 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Self,
     TypeVar,
     Union,
     cast,
@@ -37,12 +39,14 @@ from pandas.errors import EmptyDataError
 from pandas.util._decorators import (
     Appender,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import (
     is_bool,
+    is_decimal,
     is_file_like,
     is_float,
     is_integer,
@@ -80,14 +84,13 @@ if TYPE_CHECKING:
         HashableT,
         IntStrT,
         ReadBuffer,
-        Self,
         SequenceNotStr,
         StorageOptions,
         WriteExcelBuffer,
     )
 _read_excel_doc = (
     """
-Read an Excel file into a ``pandas`` ``DataFrame``.
+Read an Excel file into a ``DataFrame``.
 
 Supports `xls`, `xlsx`, `xlsm`, `xlsb`, `odf`, `ods` and `odt` file extensions
 read from a local filesystem or URL. Supports an option to read
@@ -113,7 +116,7 @@ sheet_name : str, int, list, or None, default 0
     Strings are used for sheet names. Integers are used in zero-indexed
     sheet positions (chart sheets do not count as a sheet position).
     Lists of strings/integers are used to request multiple sheets.
-    Specify ``None`` to get all worksheets.
+    When ``None``, will return a dictionary containing DataFrames for each sheet.
 
     Available cases:
 
@@ -122,7 +125,7 @@ sheet_name : str, int, list, or None, default 0
     * ``"Sheet1"``: Load sheet with name "Sheet1"
     * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
       as a dict of `DataFrame`
-    * ``None``: All worksheets.
+    * ``None``: Returns a dictionary containing DataFrames for each sheet..
 
 header : int, list of int, default 0
     Row (0-indexed) to use for the column labels of the parsed
@@ -195,7 +198,7 @@ skiprows : list-like, int, or callable, optional
     False otherwise. An example of a valid callable argument would be ``lambda
     x: x in [0, 2]``.
 nrows : int, default None
-    Number of rows to parse.
+    Number of rows to parse. Does not include header rows.
 na_values : scalar, str, list-like, or dict, default None
     Additional strings to recognize as NA/NaN. If dict passed, specific
     per-column NA values. By default the following values are interpreted
@@ -432,6 +435,7 @@ def read_excel(
 ) -> dict[IntStrT, DataFrame]: ...
 
 
+@set_module("pandas")
 @doc(storage_options=_shared_docs["storage_options"])
 @Appender(_read_excel_doc)
 def read_excel(
@@ -949,6 +953,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         return output
 
 
+@set_module("pandas")
 @doc(storage_options=_shared_docs["storage_options"])
 class ExcelWriter(Generic[_WorkbookT]):
     """
@@ -991,12 +996,6 @@ class ExcelWriter(Generic[_WorkbookT]):
         * replace: Delete the contents of the sheet before writing to it.
         * overlay: Write contents to the existing sheet without first removing,
           but possibly over top of, the existing contents.
-
-        .. versionadded:: 1.3.0
-
-        .. versionchanged:: 1.4.0
-
-           Added ``overlay`` option
 
     engine_kwargs : dict, optional
         Keyword arguments to be passed into the engine. These will be passed to
@@ -1179,9 +1178,6 @@ class ExcelWriter(Generic[_WorkbookT]):
 
         return object.__new__(cls)
 
-    # declare external properties you can count on
-    _path = None
-
     @property
     def supported_extensions(self) -> tuple[str, ...]:
         """Extensions that writer engine supports."""
@@ -1348,6 +1344,8 @@ class ExcelWriter(Generic[_WorkbookT]):
             val = float(val)
         elif is_bool(val):
             val = bool(val)
+        elif is_decimal(val):
+            val = Decimal(val)
         elif isinstance(val, datetime.datetime):
             fmt = self._datetime_format
         elif isinstance(val, datetime.date):
@@ -1470,6 +1468,7 @@ def inspect_excel_format(
         return "zip"
 
 
+@set_module("pandas")
 @doc(storage_options=_shared_docs["storage_options"])
 class ExcelFile:
     """
@@ -1495,19 +1494,17 @@ class ExcelFile:
         - ``calamine`` supports Excel (.xls, .xlsx, .xlsm, .xlsb)
           and OpenDocument (.ods) file formats.
 
-        .. versionchanged:: 1.2.0
+        The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
+        now only supports old-style ``.xls`` files.
+        When ``engine=None``, the following logic will be
+        used to determine the engine:
 
-           The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
-           now only supports old-style ``.xls`` files.
-           When ``engine=None``, the following logic will be
-           used to determine the engine:
-
-           - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-             then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-           - Otherwise if ``path_or_buffer`` is an xls format,
-             ``xlrd`` will be used.
-           - Otherwise if ``path_or_buffer`` is in xlsb format,
-             `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
+        - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+            then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+        - Otherwise if ``path_or_buffer`` is an xls format,
+            ``xlrd`` will be used.
+        - Otherwise if ``path_or_buffer`` is in xlsb format,
+            `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
 
         .. versionadded:: 1.3.0
 
@@ -1645,7 +1642,8 @@ class ExcelFile:
             Strings are used for sheet names. Integers are used in zero-indexed
             sheet positions (chart sheets do not count as a sheet position).
             Lists of strings/integers are used to request multiple sheets.
-            Specify ``None`` to get all worksheets.
+            When ``None``, will return a dictionary containing DataFrames for
+            each sheet.
         header : int, list of int, default 0
             Row (0-indexed) to use for the column labels of the parsed
             DataFrame. If a list of integers is passed those row positions will

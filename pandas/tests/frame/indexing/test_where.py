@@ -4,10 +4,6 @@ from hypothesis import given
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
-
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -50,7 +46,6 @@ def _safe_add(df):
 
 
 class TestDataFrameIndexingWhere:
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_get(self, where_frame, float_string_frame):
         def _check_get(df, cond, check_dtypes=True):
             other1 = _safe_add(df)
@@ -68,7 +63,10 @@ class TestDataFrameIndexingWhere:
         # check getting
         df = where_frame
         if df is float_string_frame:
-            msg = "'>' not supported between instances of 'str' and 'int'"
+            msg = (
+                "'>' not supported between instances of 'str' and 'int'"
+                "|Invalid comparison"
+            )
             with pytest.raises(TypeError, match=msg):
                 df > 0
             return
@@ -101,7 +99,6 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
@@ -133,7 +130,10 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            msg = "'>' not supported between instances of 'str' and 'int'"
+            msg = (
+                "'>' not supported between instances of 'str' and 'int'"
+                "|Invalid comparison"
+            )
             with pytest.raises(TypeError, match=msg):
                 df > 0
             return
@@ -176,7 +176,6 @@ class TestDataFrameIndexingWhere:
         with pytest.raises(ValueError, match=msg):
             df.mask(0)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_where_set(self, where_frame, float_string_frame, mixed_int_frame):
         # where inplace
 
@@ -198,7 +197,10 @@ class TestDataFrameIndexingWhere:
 
         df = where_frame
         if df is float_string_frame:
-            msg = "'>' not supported between instances of 'str' and 'int'"
+            msg = (
+                "'>' not supported between instances of 'str' and 'int'"
+                "|Invalid comparison"
+            )
             with pytest.raises(TypeError, match=msg):
                 df > 0
             return
@@ -696,22 +698,30 @@ class TestDataFrameIndexingWhere:
         tm.assert_equal(result, expected)
 
     def test_where_ea_other(self):
-        # GH#38729/GH#38742
+        # GH#38729/GH#38742, GH#62038
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         arr = pd.array([7, pd.NA, 9])
         ser = Series(arr)
         mask = np.ones(df.shape, dtype=bool)
         mask[1, :] = False
 
-        # TODO: ideally we would get Int64 instead of object
-        result = df.where(mask, ser, axis=0)
-        expected = DataFrame({"A": [1, np.nan, 3], "B": [4, np.nan, 6]})
-        tm.assert_frame_equal(result, expected)
+        result1 = df.where(mask, ser, axis=0)
+        expected1 = DataFrame({"A": [1, pd.NA, 3], "B": [4, pd.NA, 6]}, dtype="Int64")
+        tm.assert_frame_equal(result1, expected1)
 
         ser2 = Series(arr[:2], index=["A", "B"])
-        expected = DataFrame({"A": [1, 7, 3], "B": [4, np.nan, 6]})
-        result = df.where(mask, ser2, axis=1)
-        tm.assert_frame_equal(result, expected)
+        expected2 = DataFrame({"A": [1, 7, 3], "B": [4, pd.NA, 6]})
+        expected2["B"] = expected2["B"].astype("Int64")
+        result2 = df.where(mask, ser2, axis=1)
+        tm.assert_frame_equal(result2, expected2)
+
+        result3 = df.copy()
+        result3.mask(mask, ser, axis=0, inplace=True)
+        tm.assert_frame_equal(result3, expected1)
+
+        result4 = df.copy()
+        result4.mask(mask, ser2, axis=1, inplace=True)
+        tm.assert_frame_equal(result4, expected2)
 
     def test_where_interval_noop(self):
         # GH#44181
@@ -929,7 +939,7 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
 
     mask = np.array([True, True, False], ndmin=obj.ndim).T
 
-    msg = r"Invalid value '.*' for dtype (U?Int|Float)\d{1,2}"
+    msg = r"Invalid value '.*' for dtype '(U?Int|Float)\d{1,2}'"
 
     for null in tm.NP_NAT_OBJECTS + [pd.NaT]:
         # NaT is an NA value that we should *not* cast to pd.NA dtype
@@ -940,9 +950,7 @@ def test_where_nullable_invalid_na(frame_or_series, any_numeric_ea_dtype):
             obj.mask(mask, null)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
+@pytest.mark.slow
 @given(data=OPTIONAL_ONE_OF_ALL)
 def test_where_inplace_casting(data):
     # GH 22051
@@ -1023,19 +1031,12 @@ def test_where_producing_ea_cond_for_np_dtype():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
-)
 @pytest.mark.parametrize(
     "replacement", [0.001, True, "snake", None, datetime(2022, 5, 4)]
 )
-def test_where_int_overflow(replacement, using_infer_string, request):
+def test_where_int_overflow(replacement):
     # GH 31687
     df = DataFrame([[1.0, 2e25, "nine"], [np.nan, 0.1, None]])
-    if using_infer_string and replacement not in (None, "snake"):
-        request.node.add_marker(
-            pytest.mark.xfail(reason="Can't set non-string into string column")
-        )
     result = df.where(pd.notnull(df), replacement)
     expected = DataFrame([[1.0, 2e25, "nine"], [replacement, 0.1, replacement]])
 

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 import operator
-from typing import TYPE_CHECKING
+from typing import Self
 
 import numba
 from numba import types
@@ -41,9 +41,6 @@ from pandas.core.indexing import _iLocIndexer
 from pandas.core.internals import SingleBlockManager
 from pandas.core.series import Series
 
-if TYPE_CHECKING:
-    from pandas._typing import Self
-
 
 # Helper function to hack around fact that Index casts numpy string dtype to object
 #
@@ -53,7 +50,8 @@ if TYPE_CHECKING:
 @contextmanager
 def set_numba_data(index: Index):
     numba_data = index._data
-    if numba_data.dtype == object:
+    if numba_data.dtype in (object, "string"):
+        numba_data = np.asarray(numba_data)
         if not lib.is_string_array(numba_data):
             raise ValueError(
                 "The numba engine only supports using string or numeric column names"

@@ -11,6 +11,11 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
+from pandas._libs.tslibs import (
+    Timedelta,
+    Timestamp,
+)
+from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
@@ -42,6 +47,7 @@ if TYPE_CHECKING:
     )
 
 
+@set_module("pandas")
 def to_numeric(
     arg,
     errors: DateTimeErrorChoices = "raise",
@@ -51,7 +57,8 @@ def to_numeric(
     """
     Convert argument to a numeric type.
 
-    The default return dtype is `float64` or `int64`
+    If the input is already of a numeric dtype, the dtype will be preserved.
+    For non-numeric inputs, the default return dtype is `float64` or `int64`
     depending on the data supplied. Use the `downcast` parameter
     to obtain other dtypes.
 
@@ -109,6 +116,14 @@ def to_numeric(
     ret
         Numeric if parsing succeeded.
         Return type depends on input.  Series if Series, otherwise ndarray.
+
+    Raises
+    ------
+    ValueError
+        If the input contains non-numeric values and `errors='raise'`.
+    TypeError
+        If the input is not list-like, 1D, or scalar convertible to numeric,
+        such as nested lists or unsupported input types (e.g., dict).
 
     See Also
     --------
@@ -189,6 +204,8 @@ def to_numeric(
             return float(arg)
         if is_number(arg):
             return arg
+        if isinstance(arg, (Timedelta, Timestamp)):
+            return arg._value
         is_scalars = True
         values = np.array([arg], dtype="O")
     elif getattr(arg, "ndim", 1) > 1:
@@ -220,19 +237,18 @@ def to_numeric(
             set(),
             coerce_numeric=coerce_numeric,
             convert_to_masked_nullable=dtype_backend is not lib.no_default
-            or isinstance(values_dtype, StringDtype)
-            and values_dtype.na_value is libmissing.NA,
+            or (
+                isinstance(values_dtype, StringDtype)
+                and values_dtype.na_value is libmissing.NA
+            ),
         )
 
     if new_mask is not None:
         # Remove unnecessary values, is expected later anyway and enables
         # downcasting
         values = values[~new_mask]
-    elif (
-        dtype_backend is not lib.no_default
-        and new_mask is None
-        or isinstance(values_dtype, StringDtype)
-        and values_dtype.na_value is libmissing.NA
+    elif (dtype_backend is not lib.no_default and new_mask is None) or (
+        isinstance(values_dtype, StringDtype) and values_dtype.na_value is libmissing.NA
     ):
         new_mask = np.zeros(values.shape, dtype=np.bool_)
 

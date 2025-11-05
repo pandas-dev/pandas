@@ -54,6 +54,8 @@ I’m interested in the age of the Titanic passengers.
 To select a single column, use square brackets ``[]`` with the column
 name of the column of interest.
 
+For more explanation, see `Brackets in Python and pandas <https://python-public-policy.afeld.me/en/columbia/brackets.html>`__.
+
 .. raw:: html
 
         </li>
@@ -335,7 +337,7 @@ the name ``anonymous`` to the first 3 elements of the fourth column:
 .. ipython:: python
 
     titanic.iloc[0:3, 3] = "anonymous"
-    titanic.head()
+    titanic.iloc[:5, 3]
 
 .. raw:: html
 

@@ -30,10 +30,14 @@ from pandas._libs.tslibs.offsets import (
     to_offset,
 )
 from pandas._libs.tslibs.parsing import get_rule_month
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 
 from pandas.core.dtypes.common import is_numeric_dtype
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     DatetimeTZDtype,
     PeriodDtype,
 )
@@ -83,11 +87,17 @@ def get_period_alias(offset_str: str) -> str | None:
 # Period codes
 
 
+@set_module("pandas")
 def infer_freq(
     index: DatetimeIndex | TimedeltaIndex | Series | DatetimeLikeArrayMixin,
 ) -> str | None:
     """
     Infer the most likely frequency given the input index.
+
+    This method attempts to deduce the most probable frequency (e.g., 'D' for daily,
+    'H' for hourly) from a sequence of datetime-like objects. It is particularly useful
+    when the frequency of a time series is not explicitly set or known but can be
+    inferred from its values.
 
     Parameters
     ----------
@@ -106,6 +116,13 @@ def infer_freq(
     ValueError
         If there are fewer than three values.
 
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
+    timedelta_range : Return a fixed frequency TimedeltaIndex with day as the default.
+    period_range : Return a fixed frequency PeriodIndex.
+    DatetimeIndex.freq : Return the frequency object if it is set, otherwise None.
+
     Examples
     --------
     >>> idx = pd.date_range(start="2020/12/01", end="2020/12/30", periods=30)
@@ -116,6 +133,14 @@ def infer_freq(
 
     if isinstance(index, ABCSeries):
         values = index._values
+
+        if isinstance(index.dtype, ArrowDtype):
+            import pyarrow as pa
+
+            if pa.types.is_timestamp(values.dtype.pyarrow_dtype):
+                # GH#58403
+                values = values._to_datetimearray()
+
         if not (
             lib.is_np_dtype(values.dtype, "mM")
             or isinstance(values.dtype, DatetimeTZDtype)
@@ -133,8 +158,7 @@ def infer_freq(
         pass
     elif isinstance(index.dtype, PeriodDtype):
         raise TypeError(
-            "PeriodIndex given. Check the `freq` attribute "
-            "instead of using infer_freq."
+            "PeriodIndex given. Check the `freq` attribute instead of using infer_freq."
         )
     elif lib.is_np_dtype(index.dtype, "m"):
         # Allow TimedeltaIndex and TimedeltaArray

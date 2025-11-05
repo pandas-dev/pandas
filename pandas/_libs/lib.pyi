@@ -1,14 +1,17 @@
 # TODO(npdtypes): Many types specified here can be made more specific/accurate;
 #  the more specific versions are specified in comments
+from collections.abc import (
+    Callable,
+    Generator,
+    Hashable,
+)
 from decimal import Decimal
 from typing import (
     Any,
-    Callable,
     Final,
-    Generator,
-    Hashable,
     Literal,
     TypeAlias,
+    TypeGuard,
     overload,
 )
 
@@ -17,7 +20,6 @@ import numpy as np
 from pandas._typing import (
     ArrayLike,
     DtypeObj,
-    TypeGuard,
     npt,
 )
 
@@ -58,7 +60,7 @@ def is_time_array(values: np.ndarray, skipna: bool = ...): ...
 def is_date_array(values: np.ndarray, skipna: bool = ...): ...
 def is_datetime_array(values: np.ndarray, skipna: bool = ...): ...
 def is_string_array(values: np.ndarray, skipna: bool = ...): ...
-def is_float_array(values: np.ndarray): ...
+def is_float_array(values: np.ndarray, skipna: bool = ...): ...
 def is_integer_array(values: np.ndarray, skipna: bool = ...): ...
 def is_bool_array(values: np.ndarray, skipna: bool = ...): ...
 def fast_multiget(

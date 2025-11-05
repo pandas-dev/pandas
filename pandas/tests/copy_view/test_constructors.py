@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -209,9 +207,8 @@ def test_dataframe_from_dict_of_series_with_reindex(dtype):
     assert np.shares_memory(arr_before, arr_after)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize(
-    "data, dtype", [([1, 2], None), ([1, 2], "int64"), (["a", "b"], None)]
+    "data, dtype", [([1, 2], None), ([1, 2], "int64"), (["a", "b"], object)]
 )
 def test_dataframe_from_series_or_index(data, dtype, index_or_series):
     obj = index_or_series(data, dtype=dtype)

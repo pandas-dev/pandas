@@ -28,9 +28,9 @@ from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
 
 
-def make_data():
+def make_data(n: int):
     while True:
-        values = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
+        values = np.random.default_rng(2).choice(list(string.ascii_letters), size=n)
         # ensure we meet the requirements
         # 1. first two not null
         # 2. first and second are different
@@ -51,7 +51,7 @@ def data():
     * data[0] and data[1] should both be non missing
     * data[0] and data[1] should not be equal
     """
-    return Categorical(make_data())
+    return Categorical(make_data(10))
 
 
 @pytest.fixture
@@ -140,7 +140,6 @@ class TestCategorical(base.ExtensionTests):
         result = data.map(lambda x: x, na_action=na_action)
         tm.assert_extension_array_equal(result, data)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         # frame & scalar
         op_name = all_arithmetic_operators
@@ -152,7 +151,6 @@ class TestCategorical(base.ExtensionTests):
             )
         super().test_arith_frame_with_scalar(data, op_name)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         op_name = all_arithmetic_operators
         if op_name == "__rmod__":

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Timedelta,
     timedelta_range,
@@ -49,7 +51,7 @@ class TestTimedeltas:
             f"'{depr_unit}' is deprecated and will be removed in a future version."
         )
         expected = to_timedelta(np.arange(5), unit=unit)
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result = to_timedelta(np.arange(5), unit=depr_unit)
             tm.assert_index_equal(result, expected)
 

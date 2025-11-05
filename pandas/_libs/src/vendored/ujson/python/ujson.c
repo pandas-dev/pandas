@@ -40,6 +40,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
 #include "numpy/arrayobject.h"
 

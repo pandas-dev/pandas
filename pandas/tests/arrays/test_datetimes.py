@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import tz_compare
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -92,6 +93,15 @@ class TestNonNano:
         res = dta.normalize()
         tm.assert_extension_array_equal(res, expected)
 
+    def test_normalize_overflow_raises(self):
+        # GH#60583
+        ts = pd.Timestamp.min
+        dta = DatetimeArray._from_sequence([ts], dtype="M8[ns]")
+
+        msg = "Cannot normalize Timestamp without integer overflow"
+        with pytest.raises(ValueError, match=msg):
+            dta.normalize()
+
     def test_simple_new_requires_match(self, unit):
         arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
         dtype = DatetimeTZDtype(unit, "UTC")
@@ -100,7 +110,7 @@ class TestNonNano:
         assert dta.dtype == dtype
 
         wrong = DatetimeTZDtype("ns", "UTC")
-        with pytest.raises(AssertionError, match=""):
+        with pytest.raises(AssertionError, match="^$"):
             DatetimeArray._simple_new(arr, dtype=wrong)
 
     def test_std_non_nano(self, unit):
@@ -134,7 +144,7 @@ class TestNonNano:
     def test_astype_object(self, dta):
         result = dta.astype(object)
         assert all(x._creso == dta._creso for x in result)
-        assert all(x == y for x, y in zip(result, dta))
+        assert all(x == y for x, y in zip(result, dta, strict=True))
 
     def test_to_pydatetime(self, dta_dti):
         dta, dti = dta_dti
@@ -499,7 +509,7 @@ class TestDatetimeArray:
     @pytest.mark.parametrize("method", ["pad", "backfill"])
     def test_fillna_preserves_tz(self, method):
         dti = pd.date_range("2000-01-01", periods=5, freq="D", tz="US/Central")
-        arr = DatetimeArray._from_sequence(dti, copy=True)
+        arr = DatetimeArray._from_sequence(dti, dtype=dti.dtype, copy=True)
         arr[2] = pd.NaT
 
         fill_val = dti[1] if method == "pad" else dti[3]
@@ -665,7 +675,9 @@ class TestDatetimeArray:
         dti = pd.date_range("2016-01-01", periods=3)
 
         dta = dti._data
-        expected = DatetimeArray._from_sequence(np.roll(dta._ndarray, 1))
+        expected = DatetimeArray._from_sequence(
+            np.roll(dta._ndarray, 1), dtype=dti.dtype
+        )
 
         fv = dta[-1]
         for fill_value in [fv, fv.to_pydatetime(), fv.to_datetime64()]:
@@ -731,7 +743,11 @@ class TestDatetimeArray:
         )
         utc_vals *= 1_000_000_000
 
-        dta = DatetimeArray._from_sequence(utc_vals).tz_localize("UTC").tz_convert(tz)
+        dta = (
+            DatetimeArray._from_sequence(utc_vals, dtype=np.dtype("M8[ns]"))
+            .tz_localize("UTC")
+            .tz_convert(tz)
+        )
 
         left = dta[2]
         right = list(dta)[2]
@@ -763,11 +779,13 @@ class TestDatetimeArray:
     @pytest.mark.parametrize("freq_depr", ["2MIN", "2nS", "2Us"])
     def test_date_range_uppercase_frequency_deprecated(self, freq_depr):
         # GH#9586, GH#54939
-        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a "
-        f"future version. Please use '{freq_depr.lower()[1:]}' instead."
+        depr_msg = (
+            f"'{freq_depr[1:]}' is deprecated and will be removed in a "
+            f"future version, please use '{freq_depr.lower()[1:]}' instead."
+        )
 
         expected = pd.date_range("1/1/2000", periods=4, freq=freq_depr.lower())
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
@@ -796,7 +814,7 @@ class TestDatetimeArray:
         depr_msg = "'w' is deprecated and will be removed in a future version"
 
         expected = pd.date_range("1/1/2000", periods=4, freq="2W")
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result = pd.date_range("1/1/2000", periods=4, freq="2w")
         tm.assert_index_equal(result, expected)
 

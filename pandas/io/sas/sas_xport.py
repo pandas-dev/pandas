@@ -33,19 +33,16 @@ if TYPE_CHECKING:
         ReadBuffer,
     )
 _correct_line1 = (
-    "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
-    "000000000000000000000000000000  "
+    "HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!000000000000000000000000000000  "
 )
 _correct_header1 = (
     "HEADER RECORD*******MEMBER  HEADER RECORD!!!!!!!000000000000000001600000000"
 )
 _correct_header2 = (
-    "HEADER RECORD*******DSCRPTR HEADER RECORD!!!!!!!"
-    "000000000000000000000000000000  "
+    "HEADER RECORD*******DSCRPTR HEADER RECORD!!!!!!!000000000000000000000000000000  "
 )
 _correct_obs_header = (
-    "HEADER RECORD*******OBS     HEADER RECORD!!!!!!!"
-    "000000000000000000000000000000  "
+    "HEADER RECORD*******OBS     HEADER RECORD!!!!!!!000000000000000000000000000000  "
 )
 _fieldkeys = [
     "ntype",
@@ -362,7 +359,7 @@ class XportReader(SASReader):
             fieldbytes = fieldbytes.ljust(140)
 
             fieldstruct = struct.unpack(">hhhh8s40s8shhh2s8shhl52s", fieldbytes)
-            field = dict(zip(_fieldkeys, fieldstruct))
+            field = dict(zip(_fieldkeys, fieldstruct, strict=True))
             del field["_"]
             field["ntype"] = types[field["ntype"]]
             fl = field["field_length"]

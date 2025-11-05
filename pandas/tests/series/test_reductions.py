@@ -1,10 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
-
 import pandas as pd
 from pandas import Series
 import pandas._testing as tm
@@ -52,6 +48,29 @@ def test_mode_nullable_dtype(any_numeric_ea_dtype):
 
     result = ser.mode(dropna=False)
     expected = Series([pd.NA], dtype=any_numeric_ea_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_mode_nullable_dtype_edge_case(any_numeric_ea_dtype):
+    # GH##58926
+    ser = Series([1, 2, 3, 1], dtype=any_numeric_ea_dtype)
+    result = ser.mode(dropna=False)
+    expected = Series([1], dtype=any_numeric_ea_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser2 = Series([1, 1, 2, 3, pd.NA], dtype=any_numeric_ea_dtype)
+    result = ser2.mode(dropna=False)
+    expected = Series([1], dtype=any_numeric_ea_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser3 = Series([1, pd.NA, pd.NA], dtype=any_numeric_ea_dtype)
+    result = ser3.mode(dropna=False)
+    expected = Series([pd.NA], dtype=any_numeric_ea_dtype)
+    tm.assert_series_equal(result, expected)
+
+    ser4 = Series([1, 1, pd.NA, pd.NA], dtype=any_numeric_ea_dtype)
+    result = ser4.mode(dropna=False)
+    expected = Series([1, pd.NA], dtype=any_numeric_ea_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -166,60 +185,49 @@ def test_validate_stat_keepdims():
         np.sum(ser, keepdims=True)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
-def test_mean_with_convertible_string_raises(using_infer_string):
+def test_mean_with_convertible_string_raises():
     # GH#44008
     ser = Series(["1", "2"])
-    if using_infer_string:
-        msg = "does not support"
-        with pytest.raises(TypeError, match=msg):
-            ser.sum()
-    else:
-        assert ser.sum() == "12"
-    msg = "Could not convert string '12' to numeric|does not support"
+    assert ser.sum() == "12"
+
+    msg = "Could not convert string '12' to numeric|does not support|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         ser.mean()
 
     df = ser.to_frame()
-    msg = r"Could not convert \['12'\] to numeric|does not support"
+    msg = r"Could not convert \['12'\] to numeric|does not support|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
 def test_mean_dont_convert_j_to_complex():
     # GH#36703
     df = pd.DataFrame([{"db": "J", "numeric": 123}])
-    msg = r"Could not convert \['J'\] to numeric|does not support"
+    msg = r"Could not convert \['J'\] to numeric|does not support|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         df.mean()
 
     with pytest.raises(TypeError, match=msg):
         df.agg("mean")
 
-    msg = "Could not convert string 'J' to numeric|does not support"
+    msg = "Could not convert string 'J' to numeric|does not support|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         df["db"].mean()
-    msg = "Could not convert string 'J' to numeric|ufunc 'divide'"
+    msg = "Could not convert string 'J' to numeric|ufunc 'divide'|Cannot perform"
     with pytest.raises(TypeError, match=msg):
         np.mean(df["db"].astype("string").array)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)"
-)
 def test_median_with_convertible_string_raises():
     # GH#34671 this _could_ return a string "2", but definitely not float 2.0
-    msg = r"Cannot convert \['1' '2' '3'\] to numeric|does not support"
+    msg = r"Cannot convert \['1' '2' '3'\] to numeric|does not support|Cannot perform"
     ser = Series(["1", "2", "3"])
     with pytest.raises(TypeError, match=msg):
         ser.median()
 
-    msg = r"Cannot convert \[\['1' '2' '3'\]\] to numeric|does not support"
+    msg = (
+        r"Cannot convert \[\['1' '2' '3'\]\] to numeric|does not support|Cannot perform"
+    )
     df = ser.to_frame()
     with pytest.raises(TypeError, match=msg):
         df.median()

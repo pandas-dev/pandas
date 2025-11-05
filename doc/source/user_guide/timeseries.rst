@@ -891,6 +891,10 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQE``, "business quarter end"
     :class:`~pandas.tseries.offsets.BQuarterBegin`, ``'BQS'``, "business quarter begin"
     :class:`~pandas.tseries.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
+    :class:`~pandas.tseries.offsets.HalfYearEnd`, ``'HYE'``, "calendar half year end"
+    :class:`~pandas.tseries.offsets.HalfYearBegin`, ``'HYS'``, "calendar half year begin"
+    :class:`~pandas.tseries.offsets.BHalfYearEnd`, ``'BHYE``, "business half year end"
+    :class:`~pandas.tseries.offsets.BHalfYearBegin`, ``'BHYS'``, "business half year begin"
     :class:`~pandas.tseries.offsets.YearEnd`, ``'YE'``, "calendar year end"
     :class:`~pandas.tseries.offsets.YearBegin`, ``'YS'`` or ``'BYS'``,"calendar year begin"
     :class:`~pandas.tseries.offsets.BYearEnd`, ``'BYE'``, "business year end"
@@ -899,7 +903,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.Easter`, None, "Easter holiday"
     :class:`~pandas.tseries.offsets.BusinessHour`, ``'bh'``, "business hour"
     :class:`~pandas.tseries.offsets.CustomBusinessHour`, ``'cbh'``, "custom business hour"
-    :class:`~pandas.tseries.offsets.Day`, ``'D'``, "one absolute day"
+    :class:`~pandas.tseries.offsets.Day`, ``'D'``, "one calendar day"
     :class:`~pandas.tseries.offsets.Hour`, ``'h'``, "one hour"
     :class:`~pandas.tseries.offsets.Minute`, ``'min'``,"one minute"
     :class:`~pandas.tseries.offsets.Second`, ``'s'``, "one second"
@@ -996,7 +1000,7 @@ apply the offset to each element.
    s + pd.DateOffset(months=2)
    s - pd.DateOffset(months=2)
 
-If the offset class maps directly to a ``Timedelta`` (``Day``, ``Hour``,
+If the offset class maps directly to a ``Timedelta`` (``Hour``,
 ``Minute``, ``Second``, ``Micro``, ``Milli``, ``Nano``) it can be
 used exactly like a ``Timedelta`` - see the
 :ref:`Timedelta section<timedeltas.operations>` for more examples.
@@ -1580,7 +1584,7 @@ the pandas objects.
    ts = ts[:5]
    ts.shift(1)
 
-The ``shift`` method accepts an ``freq`` argument which can accept a
+The ``shift`` method accepts a ``freq`` argument which can accept a
 ``DateOffset`` class or other ``timedelta``-like object or also an
 :ref:`offset alias <timeseries.offset_aliases>`.
 
@@ -2454,7 +2458,7 @@ you can use the ``tz_convert`` method.
 
     For ``pytz`` time zones, it is incorrect to pass a time zone object directly into
     the ``datetime.datetime`` constructor
-    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``.
+    (e.g., ``datetime.datetime(2011, 1, 1, tzinfo=pytz.timezone('US/Eastern'))``).
     Instead, the datetime needs to be localized using the ``localize`` method
     on the ``pytz`` time zone object.
 
@@ -2537,7 +2541,7 @@ Fold is supported only for constructing from naive ``datetime.datetime``
 or for constructing from components (see below). Only ``dateutil`` timezones are supported
 (see `dateutil documentation <https://dateutil.readthedocs.io/en/stable/tz.html#dateutil.tz.enfold>`__
 for ``dateutil`` methods that deal with ambiguous datetimes) as ``pytz``
-timezones do not support fold (see `pytz documentation <http://pytz.sourceforge.net/index.html>`__
+timezones do not support fold (see `pytz documentation <https://pythonhosted.org/pytz/>`__
 for details on how ``pytz`` deals with ambiguous datetimes). To localize an ambiguous datetime
 with ``pytz``, please use :meth:`Timestamp.tz_localize`. In general, we recommend to rely
 on :meth:`Timestamp.tz_localize` when localizing ambiguous datetimes if you need direct
@@ -2570,7 +2574,7 @@ because daylight savings time (DST) in a local time zone causes some times to oc
 twice within one day ("clocks fall back"). The following options are available:
 
 * ``'raise'``: Raises a ``ValueError`` (the default behavior)
-* ``'infer'``: Attempt to determine the correct offset base on the monotonicity of the timestamps
+* ``'infer'``: Attempt to determine the correct offset based on the monotonicity of the timestamps
 * ``'NaT'``: Replaces ambiguous times with ``NaT``
 * ``bool``: ``True`` represents a DST time, ``False`` represents non-DST time. An array-like of ``bool`` values is supported for a sequence of times.
 

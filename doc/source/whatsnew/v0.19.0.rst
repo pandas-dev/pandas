@@ -1547,7 +1547,7 @@ Bug fixes
 - Bug in checking for any null objects in a ``TimedeltaIndex``, which always returned ``True`` (:issue:`13603`)
 - Bug in ``Series`` arithmetic raises ``TypeError`` if it contains datetime-like as ``object`` dtype (:issue:`13043`)
 - Bug ``Series.isnull()`` and ``Series.notnull()`` ignore ``Period('NaT')``  (:issue:`13737`)
-- Bug ``Series.fillna()`` and ``Series.dropna()`` don't affect to ``Period('NaT')``  (:issue:`13737`
+- Bug ``Series.fillna()`` and ``Series.dropna()`` don't affect to ``Period('NaT')``  (:issue:`13737`)
 - Bug in ``.fillna(value=np.nan)`` incorrectly raises ``KeyError`` on a ``category`` dtyped ``Series`` (:issue:`14021`)
 - Bug in extension dtype creation where the created types were not is/identical (:issue:`13285`)
 - Bug in ``.resample(..)`` where incorrect warnings were triggered by IPython introspection (:issue:`13618`)

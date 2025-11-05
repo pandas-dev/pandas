@@ -1025,20 +1025,49 @@ Other:
 - :func:`describe` on mixed-types DataFrames is more flexible. Type-based column filtering is now possible via the ``include``/``exclude`` arguments.
   See the :ref:`docs <basics.describe>` (:issue:`8164`).
 
-  .. ipython:: python
+  .. code-block:: python
 
-    df = pd.DataFrame({'catA': ['foo', 'foo', 'bar'] * 8,
-                       'catB': ['a', 'b', 'c', 'd'] * 6,
-                       'numC': np.arange(24),
-                       'numD': np.arange(24.) + .5})
-    df.describe(include=["object"])
-    df.describe(include=["number", "object"], exclude=["float"])
+    >>> df = pd.DataFrame({'catA': ['foo', 'foo', 'bar'] * 8,
+    ...                    'catB': ['a', 'b', 'c', 'd'] * 6,
+    ...                    'numC': np.arange(24),
+    ...                    'numD': np.arange(24.) + .5})
+    >>> df.describe(include=["object"])
+           catA catB
+    count    24   24
+    unique    2    4
+    top     foo    a
+    freq     16    6
+    >>> df.describe(include=["number", "object"], exclude=["float"])
+           catA catB       numC
+    count    24   24  24.000000
+    unique    2    4        NaN
+    top     foo    a        NaN
+    freq     16    6        NaN
+    mean    NaN  NaN  11.500000
+    std     NaN  NaN   7.071068
+    min     NaN  NaN   0.000000
+    25%     NaN  NaN   5.750000
+    50%     NaN  NaN  11.500000
+    75%     NaN  NaN  17.250000
+    max     NaN  NaN  23.000000
 
   Requesting all columns is possible with the shorthand 'all'
 
-  .. ipython:: python
+  .. code-block:: python
 
-    df.describe(include='all')
+    >>> df.describe(include='all')
+           catA catB       numC       numD
+    count    24   24  24.000000  24.000000
+    unique    2    4        NaN        NaN
+    top     foo    a        NaN        NaN
+    freq     16    6        NaN        NaN
+    mean    NaN  NaN  11.500000  12.000000
+    std     NaN  NaN   7.071068   7.071068
+    min     NaN  NaN   0.000000   0.500000
+    25%     NaN  NaN   5.750000   6.250000
+    50%     NaN  NaN  11.500000  12.000000
+    75%     NaN  NaN  17.250000  17.750000
+    max     NaN  NaN  23.000000  23.500000
 
   Without those arguments, ``describe`` will behave as before, including only numerical columns or, if none are, only categorical columns. See also the :ref:`docs <basics.describe>`
 

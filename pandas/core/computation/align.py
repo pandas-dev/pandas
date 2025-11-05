@@ -93,7 +93,7 @@ def _align_core(terms):
 
     from pandas import Series
 
-    ndims = Series(dict(zip(term_index, term_dims)))
+    ndims = Series(dict(zip(term_index, term_dims, strict=True)))
 
     # initial axes are the axes of the largest-axis'd term
     biggest = terms[ndims.idxmax()].value
@@ -116,7 +116,7 @@ def _align_core(terms):
                 axes[ax] = axes[ax].union(itm)
 
     for i, ndim in ndims.items():
-        for axis, items in zip(range(ndim), axes):
+        for axis, items in zip(range(ndim), axes, strict=False):
             ti = terms[i].value
 
             if hasattr(ti, "reindex"):
@@ -213,7 +213,7 @@ def reconstruct_object(typ, obj, axes, dtype, name):
     if hasattr(res_t, "type") and typ == np.bool_ and res_t != np.bool_:
         ret_value = res_t.type(obj)
     else:
-        ret_value = typ(obj).astype(res_t)
+        ret_value = res_t.type(obj)
         # The condition is to distinguish 0-dim array (returned in case of
         # scalar) and 1 element array
         # e.g. np.array(0) and np.array([0])

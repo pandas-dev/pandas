@@ -65,4 +65,3 @@ graft pandas/_libs/include
 
 # Include cibw script in sdist since it's needed for building wheels
 include scripts/cibw_before_build.sh
-include scripts/cibw_before_test.sh

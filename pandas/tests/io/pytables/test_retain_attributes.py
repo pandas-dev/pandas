@@ -3,6 +3,7 @@ import pytest
 from pandas import (
     DataFrame,
     DatetimeIndex,
+    HDFStore,
     Series,
     _testing as tm,
     date_range,
@@ -11,18 +12,17 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_store,
 )
 
 pytestmark = pytest.mark.single_cpu
 
 
-def test_retain_index_attributes(setup_path, unit):
+def test_retain_index_attributes(temp_file, unit):
     # GH 3499, losing frequency info on index recreation
     dti = date_range("2000-1-1", periods=3, freq="h", unit=unit)
     df = DataFrame({"A": Series(range(3), index=dti)})
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         _maybe_remove(store, "data")
         store.put("data", df, format="table")
 
@@ -90,3 +90,16 @@ def test_retain_index_attributes2(tmp_path, setup_path):
         df2.to_hdf(path, key="data", append=True)
 
     assert read_hdf(path, "data").index.name is None
+
+
+def test_retain_datetime_attribute(tmp_path, setup_path):
+    path = tmp_path / setup_path
+    ser = Series(
+        ["2024-08-26 15:13:14", "2024-08-26 15:14:14"],
+        dtype="datetime64[us, UTC]",
+    )
+    dataframe = DataFrame(ser)
+    dataframe.to_hdf(path, key="Annotations", mode="w")
+
+    recovered_dataframe = read_hdf(path, key="Annotations")
+    tm.assert_frame_equal(dataframe, recovered_dataframe)

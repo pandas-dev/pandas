@@ -1,12 +1,12 @@
 import re
+import warnings
 import weakref
 
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
@@ -123,7 +123,9 @@ class TestCategoricalDtype(Base):
 
     dtype1 = CategoricalDtype(["a", "b"], ordered=True)
     dtype2 = CategoricalDtype(["x", "y"], ordered=False)
-    c = Categorical([0, 1], dtype=dtype1)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        c = Categorical([0, 1], dtype=dtype1)
 
     @pytest.mark.parametrize(
         "values, categories, ordered, dtype, expected",
@@ -167,7 +169,7 @@ class TestCategoricalDtype(Base):
 
     def test_basic(self, dtype):
         msg = "is_categorical_dtype is deprecated"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert is_categorical_dtype(dtype)
 
             factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"])
@@ -251,10 +253,14 @@ class TestDatetimeTZDtype(Base):
 
     def test_alias_to_unit_bad_alias_raises(self):
         # 23990
-        with pytest.raises(TypeError, match=""):
+        with pytest.raises(
+            TypeError, match="Cannot construct a 'DatetimeTZDtype' from"
+        ):
             DatetimeTZDtype("this is a bad string")
 
-        with pytest.raises(TypeError, match=""):
+        with pytest.raises(
+            TypeError, match="Cannot construct a 'DatetimeTZDtype' from"
+        ):
             DatetimeTZDtype("datetime64[ns, US/NotATZ]")
 
     def test_hash_vs_equality(self, dtype):
@@ -293,7 +299,7 @@ class TestDatetimeTZDtype(Base):
 
     def test_compat(self, dtype):
         msg = "is_datetime64tz_dtype is deprecated"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             assert is_datetime64tz_dtype(dtype)
             assert is_datetime64tz_dtype("datetime64[ns, US/Eastern]")
         assert is_datetime64_any_dtype(dtype)
@@ -662,8 +668,7 @@ class TestIntervalDtype(Base):
     def test_construction_not_supported(self, subtype):
         # GH 19016
         msg = (
-            "category, object, and string subtypes are not supported "
-            "for IntervalDtype"
+            "category, object, and string subtypes are not supported for IntervalDtype"
         )
         with pytest.raises(TypeError, match=msg):
             IntervalDtype(subtype)
@@ -961,7 +966,6 @@ class TestCategoricalDtypeParametrized:
         c2 = CategoricalDtype(["b", "a"], ordered=True)
         assert c1 is not c2
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     @pytest.mark.parametrize("ordered2", [True, False, None])
     def test_categorical_equality(self, ordered, ordered2):
         # same categories, same order
@@ -1245,4 +1249,13 @@ def test_loc_setitem_empty_labels_no_dtype_conversion():
     df.loc[[]] = 0.1
 
     assert df.a.dtype == "int64"
+    tm.assert_frame_equal(df, expected)
+
+
+def test_categorical_nan_no_dtype_conversion():
+    # GH 43996
+
+    df = pd.DataFrame({"a": Categorical([np.nan], [1]), "b": [1]})
+    expected = pd.DataFrame({"a": Categorical([1], [1]), "b": [1]})
+    df.loc[0, "a"] = np.array([1])
     tm.assert_frame_equal(df, expected)

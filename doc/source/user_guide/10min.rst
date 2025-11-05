@@ -177,12 +177,26 @@ See the indexing documentation :ref:`Indexing and Selecting Data <indexing>` and
 Getitem (``[]``)
 ~~~~~~~~~~~~~~~~
 
-For a :class:`DataFrame`, passing a single label selects a columns and
-yields a :class:`Series` equivalent to ``df.A``:
+For a :class:`DataFrame`, passing a single label selects a column and
+yields a :class:`Series`:
 
 .. ipython:: python
 
    df["A"]
+
+If the label only contains letters, numbers, and underscores, you can
+alternatively use the column name attribute:
+
+.. ipython:: python
+
+   df.A
+
+Passing a list of column labels selects multiple columns, which can be useful
+for getting a subset/rearranging:
+
+.. ipython:: python
+
+   df[["B", "A"]]
 
 For a :class:`DataFrame`, passing a slice ``:`` selects matching rows:
 
@@ -304,7 +318,9 @@ Setting a new column automatically aligns the data by the indexes:
 
 .. ipython:: python
 
-   s1 = pd.Series([1, 2, 3, 4, 5, 6], index=pd.date_range("20130102", periods=6))
+   s1 = pd.Series(
+      [1, 2, 3, 4, 5, 6],
+      index=pd.date_range("20130102", periods=6))
    s1
    df["F"] = s1
 

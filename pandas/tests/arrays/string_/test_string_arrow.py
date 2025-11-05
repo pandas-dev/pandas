@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -14,22 +15,13 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.arrays.string_arrow import (
     ArrowStringArray,
-    ArrowStringArrayNumpySemantics,
 )
 
 
-def test_eq_all_na():
-    pytest.importorskip("pyarrow")
-    a = pd.array([pd.NA, pd.NA], dtype=StringDtype("pyarrow"))
-    result = a == a
-    expected = pd.array([pd.NA, pd.NA], dtype="boolean[pyarrow]")
-    tm.assert_extension_array_equal(result, expected)
-
-
-def test_config(string_storage, using_infer_string):
+def test_config(string_storage):
     # with the default string_storage setting
     # always "python" at the moment
-    assert StringDtype().storage == "python"
+    assert StringDtype().storage == "pyarrow" if HAS_PYARROW else "python"
 
     with pd.option_context("string_storage", string_storage):
         assert StringDtype().storage == string_storage
@@ -91,6 +83,20 @@ def test_constructor_valid_string_type_value_dictionary(string_type, chunked):
     pa = pytest.importorskip("pyarrow")
 
     arr = pa.array(["1", "2", "3"], getattr(pa, string_type)()).dictionary_encode()
+    if chunked:
+        arr = pa.chunked_array(arr)
+
+    arr = ArrowStringArray(arr)
+    # dictionary type get converted to dense large string array
+    assert pa.types.is_large_string(arr._pa_array.type)
+
+
+@pytest.mark.parametrize("chunked", [True, False])
+def test_constructor_valid_string_view(chunked):
+    # requires pyarrow>=18 for casting string_view to string
+    pa = pytest.importorskip("pyarrow", minversion="18")
+
+    arr = pa.array(["1", "2", "3"], pa.string_view())
     if chunked:
         arr = pa.chunked_array(arr)
 
@@ -164,16 +170,13 @@ def test_from_sequence_wrong_dtype_raises(using_infer_string):
 
 @td.skip_if_installed("pyarrow")
 def test_pyarrow_not_installed_raises():
-    msg = re.escape("pyarrow>=10.0.1 is required for PyArrow backed")
+    msg = re.escape("pyarrow>=13.0.0 is required for PyArrow backed")
 
     with pytest.raises(ImportError, match=msg):
         StringDtype(storage="pyarrow")
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray([])
-
-    with pytest.raises(ImportError, match=msg):
-        ArrowStringArrayNumpySemantics([])
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray._from_sequence(["a", None, "b"])
@@ -241,10 +244,11 @@ def test_setitem_invalid_indexer_raises():
         arr[[0, 1]] = ["foo", "bar", "baz"]
 
 
-@pytest.mark.parametrize("dtype", ["string[pyarrow]", "string[pyarrow_numpy]"])
-def test_pickle_roundtrip(dtype):
+@pytest.mark.parametrize("na_value", [pd.NA, np.nan])
+def test_pickle_roundtrip(na_value):
     # GH 42600
     pytest.importorskip("pyarrow")
+    dtype = StringDtype("pyarrow", na_value=na_value)
     expected = pd.Series(range(10), dtype=dtype)
     expected_sliced = expected.head(2)
     full_pickled = pickle.dumps(expected)

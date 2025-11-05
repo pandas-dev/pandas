@@ -107,7 +107,7 @@ Joining logic of the resulting axis
 The ``join`` keyword specifies how to handle axis values that don't exist in the first
 :class:`DataFrame`.
 
-``join='outer'`` takes the union of all axis values
+``join='outer'`` takes the union of all axis values.
 
 .. ipython:: python
 
@@ -130,7 +130,7 @@ The ``join`` keyword specifies how to handle axis values that don't exist in the
    p.plot([df1, df4], result, labels=["df1", "df4"], vertical=False);
    plt.close("all");
 
-``join='inner'`` takes the intersection of the axis values
+``join='inner'`` takes the intersection of the axis values.
 
 .. ipython:: python
 
@@ -296,7 +296,7 @@ the index of the :class:`DataFrame` pieces:
 
    result.index.levels
 
-``levels`` argument allows specifying resulting levels associated with the ``keys``
+``levels`` argument allows specifying resulting levels associated with the ``keys``.
 
 .. ipython:: python
 
@@ -322,7 +322,7 @@ Appending rows to a :class:`DataFrame`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you have a :class:`Series` that you want to append as a single row to a :class:`DataFrame`, you can convert the row into a
-:class:`DataFrame` and use :func:`concat`
+:class:`DataFrame` and use :func:`concat`.
 
 .. ipython:: python
 
@@ -355,7 +355,7 @@ Merge types
   their indexes which must contain unique values.
 * **many-to-one**: joining a unique index to one or
   more columns in a different :class:`DataFrame`.
-* **many-to-many** : joining columns on columns.
+* **many-to-many**: joining columns on columns.
 
 .. note::
 
@@ -485,8 +485,9 @@ either the left or right tables, the values in the joined table will be
    plt.close("all");
 
 You can merge :class:`Series` and a :class:`DataFrame` with a :class:`MultiIndex` if the names of
-the :class:`MultiIndex` correspond to the columns from the :class:`DataFrame`. Transform
-the :class:`Series` to a :class:`DataFrame` using :meth:`Series.reset_index` before merging
+the :class:`MultiIndex` correspond to the columns from the :class:`DataFrame`. You can also
+transform the :class:`Series` to a :class:`DataFrame` using :meth:`Series.reset_index`
+before merging:
 
 .. ipython:: python
 
@@ -504,7 +505,7 @@ the :class:`Series` to a :class:`DataFrame` using :meth:`Series.reset_index` bef
    pd.merge(df, ser.reset_index(), on=["Let", "Num"])
 
 
-Performing an outer join with duplicate join keys in :class:`DataFrame`
+Performing an outer join with duplicate join keys in :class:`DataFrame`:
 
 .. ipython:: python
 
@@ -586,7 +587,7 @@ A string argument to ``indicator`` will use the value as the name for the indica
 Overlapping value columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The merge ``suffixes`` argument takes a tuple of list of strings to append to
+The merge ``suffixes`` argument takes a tuple or list of strings to append to
 overlapping column names in the input :class:`DataFrame` to disambiguate the result
 columns:
 
@@ -906,7 +907,7 @@ resetting indexes.
 Joining multiple :class:`DataFrame`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A list or tuple of ``:class:`DataFrame``` can also be passed to :meth:`~DataFrame.join`
+A list or tuple of :class:`DataFrame` can also be passed to :meth:`~DataFrame.join`
 to join them together on their indexes.
 
 .. ipython:: python
@@ -956,7 +957,7 @@ location.
 :func:`merge_ordered`
 ---------------------
 
-:func:`merge_ordered` combines order data such as numeric or time series data
+:func:`merge_ordered` combines ordered data such as numeric or time series data
 with optional filling of missing data with ``fill_method``.
 
 .. ipython:: python
@@ -979,7 +980,7 @@ nearest key rather than equal keys. For each row in the ``left`` :class:`DataFra
 the last row in the ``right`` :class:`DataFrame` are selected where the ``on`` key is less
 than the left's key. Both :class:`DataFrame` must be sorted by the key.
 
-Optionally an :func:`merge_asof` can perform a group-wise merge by matching the
+Optionally :func:`merge_asof` can perform a group-wise merge by matching the
 ``by`` key in addition to the nearest match on the ``on`` key.
 
 .. ipython:: python
@@ -1082,7 +1083,7 @@ Stack the differences on rows.
 
    df.compare(df2, align_axis=0)
 
-Keep all original rows and columns with ``keep_shape=True``
+Keep all original rows and columns with ``keep_shape=True``.
 
 .. ipython:: python
 

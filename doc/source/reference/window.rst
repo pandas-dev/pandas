@@ -17,7 +17,7 @@ calls: :func:`pandas.DataFrame.ewm` and :func:`pandas.Series.ewm`.
 
 Rolling window functions
 ------------------------
-.. currentmodule:: pandas.core.window.rolling
+.. currentmodule:: pandas.api.typing
 
 .. autosummary::
    :toctree: api/
@@ -30,21 +30,26 @@ Rolling window functions
    Rolling.std
    Rolling.min
    Rolling.max
+   Rolling.first
+   Rolling.last
    Rolling.corr
    Rolling.cov
    Rolling.skew
    Rolling.kurt
    Rolling.apply
+   Rolling.pipe
    Rolling.aggregate
    Rolling.quantile
    Rolling.sem
    Rolling.rank
+   Rolling.nunique
 
 .. _api.functions_window:
 
 Weighted window functions
 -------------------------
-.. currentmodule:: pandas.core.window.rolling
+.. currentmodule:: pandas.api.typing
+
 
 .. autosummary::
    :toctree: api/
@@ -58,7 +63,8 @@ Weighted window functions
 
 Expanding window functions
 --------------------------
-.. currentmodule:: pandas.core.window.expanding
+.. currentmodule:: pandas.api.typing
+
 
 .. autosummary::
    :toctree: api/
@@ -71,21 +77,26 @@ Expanding window functions
    Expanding.std
    Expanding.min
    Expanding.max
+   Expanding.first
+   Expanding.last
    Expanding.corr
    Expanding.cov
    Expanding.skew
    Expanding.kurt
    Expanding.apply
+   Expanding.pipe
    Expanding.aggregate
    Expanding.quantile
    Expanding.sem
    Expanding.rank
+   Expanding.nunique
 
 .. _api.functions_ewm:
 
 Exponentially-weighted window functions
 ---------------------------------------
-.. currentmodule:: pandas.core.window.ewm
+.. currentmodule:: pandas.api.typing
+
 
 .. autosummary::
    :toctree: api/

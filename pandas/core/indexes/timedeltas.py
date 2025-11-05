@@ -13,11 +13,13 @@ from pandas._libs.tslibs import (
     Timedelta,
     to_offset,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays.timedeltas import TimedeltaArray
@@ -31,7 +33,10 @@ from pandas.core.indexes.extension import inherit_names
 
 if TYPE_CHECKING:
     from pandas._libs import NaTType
-    from pandas._typing import DtypeObj
+    from pandas._typing import (
+        DtypeObj,
+        TimeUnit,
+    )
 
 
 @inherit_names(
@@ -50,6 +55,7 @@ if TYPE_CHECKING:
     ],
     TimedeltaArray,
 )
+@set_module("pandas")
 class TimedeltaIndex(DatetimeTimedeltaMixin):
     """
     Immutable Index of timedelta64 data.
@@ -192,6 +198,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         """
         Can we compare values of the given dtype to our own?
         """
+        if isinstance(dtype, ArrowDtype):
+            return dtype.kind == "m"
         return lib.is_np_dtype(dtype, "m")  # aka self._data._is_recognized_dtype
 
     # -------------------------------------------------------------------
@@ -235,6 +243,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         return "timedelta64"
 
 
+@set_module("pandas")
 def timedelta_range(
     start=None,
     end=None,
@@ -243,7 +252,7 @@ def timedelta_range(
     name=None,
     closed=None,
     *,
-    unit: str | None = None,
+    unit: TimeUnit = "ns",
 ) -> TimedeltaIndex:
     """
     Return a fixed frequency TimedeltaIndex with day as the default.
@@ -263,7 +272,7 @@ def timedelta_range(
     closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
-    unit : str, default None
+    unit : {'s', 'ms', 'us', 'ns'}, default 'ns'
         Specify the desired resolution of the result.
 
         .. versionadded:: 2.0.0
@@ -281,9 +290,11 @@ def timedelta_range(
     Notes
     -----
     Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
-    exactly three must be specified. If ``freq`` is omitted, the resulting
-    ``TimedeltaIndex`` will have ``periods`` linearly spaced elements between
-    ``start`` and ``end`` (closed on both sides).
+    a maximum of three can be specified at once. Of the three parameters
+    ``start``, ``end``, and ``periods``, at least two must be specified.
+    If ``freq`` is omitted, the resulting ``DatetimeIndex`` will have
+    ``periods`` linearly spaced elements between ``start`` and ``end``
+    (closed on both sides).
 
     To learn more about the frequency strings, please see
     :ref:`this link<timeseries.offset_aliases>`.

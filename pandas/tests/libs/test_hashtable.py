@@ -149,18 +149,19 @@ class TestHashTable:
     def test_map_locations_mask(self, table_type, dtype, writable):
         if table_type == ht.PyObjectHashTable:
             pytest.skip("Mask not supported for object")
-        N = 3
+        N = 129  # must be > 128 to test GH#58924
         table = table_type(uses_mask=True)
         keys = (np.arange(N) + N).astype(dtype)
         keys.flags.writeable = writable
-        table.map_locations(keys, np.array([False, False, True]))
+        mask = np.concatenate([np.repeat(False, N - 1), [True]], axis=0)
+        table.map_locations(keys, mask)
         for i in range(N - 1):
             assert table.get_item(keys[i]) == i
 
         with pytest.raises(KeyError, match=re.escape(str(keys[N - 1]))):
             table.get_item(keys[N - 1])
 
-        assert table.get_na() == 2
+        assert table.get_na() == N - 1
 
     def test_lookup(self, table_type, dtype, writable):
         N = 3

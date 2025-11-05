@@ -1,10 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -128,7 +124,7 @@ def test_data_frame_value_counts_dropna_true(nulls_fixture):
     expected = pd.Series(
         data=[1, 1],
         index=pd.MultiIndex.from_arrays(
-            [("Beth", "John"), ("Louise", "Smith")], names=["first_name", "middle_name"]
+            [("John", "Beth"), ("Smith", "Louise")], names=["first_name", "middle_name"]
         ),
         name="count",
     )
@@ -136,9 +132,6 @@ def test_data_frame_value_counts_dropna_true(nulls_fixture):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    using_string_dtype() and not HAS_PYARROW, reason="TODO(infer_string)", strict=False
-)
 def test_data_frame_value_counts_dropna_false(nulls_fixture):
     # GH 41334
     df = pd.DataFrame(
@@ -156,7 +149,7 @@ def test_data_frame_value_counts_dropna_false(nulls_fixture):
                 pd.Index(["Anne", "Beth", "John"]),
                 pd.Index(["Louise", "Smith", np.nan]),
             ],
-            codes=[[0, 1, 2, 2], [2, 0, 1, 2]],
+            codes=[[2, 0, 2, 1], [1, 2, 2, 0]],
             names=["first_name", "middle_name"],
         ),
         name="count",

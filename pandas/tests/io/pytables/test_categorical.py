@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas import (
     Categorical,
     DataFrame,
@@ -16,10 +14,7 @@ from pandas.tests.io.pytables.common import (
     ensure_clean_store,
 )
 
-pytestmark = [
-    pytest.mark.single_cpu,
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
-]
+pytestmark = [pytest.mark.single_cpu]
 
 
 def test_categorical(setup_path):

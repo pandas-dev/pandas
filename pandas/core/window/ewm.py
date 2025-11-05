@@ -316,6 +316,8 @@ class ExponentialMovingWindow(BaseWindow):
     4  3.233686
     """
 
+    __module__ = "pandas.api.typing"
+
     _attributes = [
         "com",
         "span",
@@ -490,7 +492,7 @@ class ExponentialMovingWindow(BaseWindow):
         klass="Series/Dataframe",
         axis="",
     )
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
         return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
@@ -907,6 +909,8 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
     Provide an exponential moving window groupby implementation.
     """
 
+    __module__ = "pandas.api.typing"
+
     _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
 
     def __init__(self, obj, *args, _grouper=None, **kwargs) -> None:
@@ -981,7 +985,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         """
         self._mean.reset()
 
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
         raise NotImplementedError("aggregate is not implemented.")
 
     def std(self, bias: bool = False, *args, **kwargs):

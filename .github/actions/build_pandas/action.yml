@@ -4,6 +4,9 @@ inputs:
   editable:
     description: Whether to build pandas in editable mode (default true)
     default: true
+  werror:
+    description: Enable werror flag for build
+    default: true
 runs:
   using: composite
   steps:
@@ -22,20 +25,13 @@ runs:
         fi
       shell: bash -el {0}
 
-    - name: Uninstall nomkl
-      run: |
-        if conda list nomkl | grep nomkl 1>/dev/null; then
-          conda remove nomkl -y
-        fi
-      shell: bash -el {0}
-
     - name: Build Pandas
       run: |
         if [[ ${{ inputs.editable }} == "true" ]]; then
           pip install -e . --no-build-isolation -v --no-deps \
-            -Csetup-args="--werror"
+            ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
         else
           pip install . --no-build-isolation -v --no-deps \
-            -Csetup-args="--werror"
+            ${{ inputs.werror == 'true' && '-Csetup-args="--werror"' || '' }}
         fi
       shell: bash -el {0}

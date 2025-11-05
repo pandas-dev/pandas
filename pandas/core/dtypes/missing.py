@@ -19,6 +19,7 @@ from pandas._libs.tslibs import (
     NaT,
     iNaT,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
@@ -93,6 +94,7 @@ def isna(
 def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 
 
+@set_module("pandas")
 def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
     Detect missing values for an array-like object.
@@ -156,9 +158,9 @@ def isna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
-         0     1    2
-    0  ant   bee  cat
-    1  dog  None  fly
+         0    1    2
+    0  ant  bee  cat
+    1  dog  NaN  fly
     >>> pd.isna(df)
            0      1      2
     0  False  False  False
@@ -307,6 +309,7 @@ def notna(
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame: ...
 
 
+@set_module("pandas")
 def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
     """
     Detect non-missing values for an array-like object.
@@ -370,9 +373,9 @@ def notna(obj: object) -> bool | npt.NDArray[np.bool_] | NDFrame:
 
     >>> df = pd.DataFrame([["ant", "bee", "cat"], ["dog", None, "fly"]])
     >>> df
-         0     1    2
-    0  ant   bee  cat
-    1  dog  None  fly
+         0    1    2
+    0  ant  bee  cat
+    1  dog  NaN  fly
     >>> pd.notna(df)
           0      1     2
     0  True   True  True
@@ -425,9 +428,9 @@ def array_equivalent(
     Examples
     --------
     >>> array_equivalent(np.array([1, 2, np.nan]), np.array([1, 2, np.nan]))
-    True
+    np.True_
     >>> array_equivalent(np.array([1, np.nan, 2]), np.array([1, 2, np.nan]))
-    False
+    np.False_
     """
     left, right = np.asarray(left), np.asarray(right)
 
@@ -511,7 +514,7 @@ def _array_equivalent_object(
         left_remaining = left
         right_remaining = right
 
-    for left_value, right_value in zip(left_remaining, right_remaining):
+    for left_value, right_value in zip(left_remaining, right_remaining, strict=True):
         if left_value is NaT and right_value is not NaT:
             return False
 
@@ -623,7 +626,7 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     >>> na_value_for_dtype(np.dtype("bool"))
     False
     >>> na_value_for_dtype(np.dtype("datetime64[ns]"))
-    numpy.datetime64('NaT')
+    np.datetime64('NaT')
     """
 
     if isinstance(dtype, ExtensionDtype):

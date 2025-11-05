@@ -4,8 +4,6 @@ from tokenize import TokenError
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.errors import (
     NumExprClobberingError,
     UndefinedVariableError,
@@ -160,6 +158,25 @@ class TestDataFrameEval:
         msg = "expr cannot be an empty string"
         with pytest.raises(ValueError, match=msg):
             df.query("")
+
+    def test_query_duplicate_column_name(self, engine, parser):
+        df = DataFrame(
+            {
+                "A": range(3),
+                "B": range(3),
+                "C": range(3)
+            }
+        ).rename(columns={"B": "A"})
+
+        res = df.query("C == 1", engine=engine, parser=parser)
+
+        expect = DataFrame(
+            [[1, 1, 1]],
+            columns=["A", "A", "C"],
+            index=[1]
+        )
+
+        tm.assert_frame_equal(res, expect)
 
     def test_eval_resolvers_as_list(self):
         # GH 14095
@@ -762,7 +779,6 @@ class TestDataFrameQueryNumExprPandas:
         result = df.query(q, engine=engine, parser=parser)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_check_tz_aware_index_query(self, tz_aware_fixture):
         # https://github.com/pandas-dev/pandas/issues/29463
         tz = tz_aware_fixture
@@ -1072,7 +1088,7 @@ class TestDataFrameQueryStrings:
             with pytest.raises(NotImplementedError, match=msg):
                 df.query("a in b and c < d", parser=parser, engine=engine)
 
-    def test_object_array_eq_ne(self, parser, engine, using_infer_string):
+    def test_object_array_eq_ne(self, parser, engine):
         df = DataFrame(
             {
                 "a": list("aaaabbbbcccc"),
@@ -1081,14 +1097,11 @@ class TestDataFrameQueryStrings:
                 "d": np.random.default_rng(2).integers(9, size=12),
             }
         )
-        warning = RuntimeWarning if using_infer_string and engine == "numexpr" else None
-        with tm.assert_produces_warning(warning):
-            res = df.query("a == b", parser=parser, engine=engine)
+        res = df.query("a == b", parser=parser, engine=engine)
         exp = df[df.a == df.b]
         tm.assert_frame_equal(res, exp)
 
-        with tm.assert_produces_warning(warning):
-            res = df.query("a != b", parser=parser, engine=engine)
+        res = df.query("a != b", parser=parser, engine=engine)
         exp = df[df.a != df.b]
         tm.assert_frame_equal(res, exp)
 
@@ -1128,15 +1141,13 @@ class TestDataFrameQueryStrings:
         ],
     )
     def test_query_lex_compare_strings(
-        self, parser, engine, op, func, using_infer_string
+        self, parser, engine, op, func
     ):
         a = Series(np.random.default_rng(2).choice(list("abcde"), 20))
         b = Series(np.arange(a.size))
         df = DataFrame({"X": a, "Y": b})
 
-        warning = RuntimeWarning if using_infer_string and engine == "numexpr" else None
-        with tm.assert_produces_warning(warning):
-            res = df.query(f'X {op} "d"', engine=engine, parser=parser)
+        res = df.query(f'X {op} "d"', engine=engine, parser=parser)
         expected = df[func(df.X, "d")]
         tm.assert_frame_equal(res, expected)
 
@@ -1334,6 +1345,11 @@ class TestDataFrameQueryBacktickQuoting:
         expect = df[" A"] + df["  "]
         tm.assert_series_equal(res, expect)
 
+    def test_ints(self, df):
+        res = df.query("`1` == 7")
+        expect = df[df[1] == 7]
+        tm.assert_frame_equal(res, expect)
+
     def test_lots_of_operators_string(self, df):
         res = df.query("`  &^ :!€$?(} >    <++*''  ` > 4")
         expect = df[df["  &^ :!€$?(} >    <++*''  "] > 4]
@@ -1395,12 +1411,11 @@ class TestDataFrameQueryBacktickQuoting:
     def test_expr_with_column_name_with_backtick(self):
         # GH 59285
         df = DataFrame({"a`b": (1, 2, 3), "ab": (4, 5, 6)})
-        result = df.query("`a``b` < 2")  # noqa
+        result = df.query("`a``b` < 2")
         # Note: Formatting checks may wrongly consider the above ``inline code``.
         expected = df[df["a`b"] < 2]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_expr_with_string_with_backticks(self):
         # GH 59285
         df = DataFrame(("`", "`````", "``````````"), columns=["#backticks"])
@@ -1408,7 +1423,6 @@ class TestDataFrameQueryBacktickQuoting:
         expected = df["```" < df["#backticks"]]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_expr_with_string_with_backticked_substring_same_as_column_name(self):
         # GH 59285
         df = DataFrame(("`", "`````", "``````````"), columns=["#backticks"])
@@ -1439,7 +1453,6 @@ class TestDataFrameQueryBacktickQuoting:
         expected = df[df[col1] < df[col2]]
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_expr_with_no_backticks(self):
         # GH 59285
         df = DataFrame(("aaa", "vvv", "zzz"), columns=["column_name"])
@@ -1483,7 +1496,6 @@ class TestDataFrameQueryBacktickQuoting:
         ):
             df.query("`column-name` < 'It`s that\\'s \"quote\" #hash")
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_expr_with_quote_opened_before_backtick_and_quote_is_matched_at_end(self):
         # GH 59285
         df = DataFrame(("aaa", "vvv", "zzz"), columns=["column-name"])
@@ -1491,7 +1503,6 @@ class TestDataFrameQueryBacktickQuoting:
         expected = df[df["column-name"] < 'It`s that\'s "quote" #hash']
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_expr_with_quote_opened_before_backtick_and_quote_is_matched_in_mid(self):
         # GH 59285
         df = DataFrame(("aaa", "vvv", "zzz"), columns=["column-name"])

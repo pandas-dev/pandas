@@ -469,3 +469,35 @@ class TestFromRecords:
 
         alt = DataFrame(arr)
         tm.assert_frame_equal(alt, expected)
+
+    def test_from_records_structured_array(self):
+        # GH 59717
+        data = np.array(
+            [
+                ("John", 25, "New York", 50000),
+                ("Jane", 30, "San Francisco", 75000),
+                ("Bob", 35, "Chicago", 65000),
+                ("Alice", 28, "Los Angeles", 60000),
+            ],
+            dtype=[("name", "U10"), ("age", "i4"), ("city", "U15"), ("salary", "i4")],
+        )
+
+        actual_result = DataFrame.from_records(data, columns=["name", "salary", "city"])
+
+        modified_data = {
+            "name": ["John", "Jane", "Bob", "Alice"],
+            "salary": np.array([50000, 75000, 65000, 60000], dtype="int32"),
+            "city": ["New York", "San Francisco", "Chicago", "Los Angeles"],
+        }
+        expected_result = DataFrame(modified_data)
+
+        tm.assert_frame_equal(actual_result, expected_result)
+
+    def test_from_records_empty_iterator_with_preserve_columns(self):
+        # GH#61140
+        rows = []
+        result = DataFrame.from_records(
+            iter(rows), index=[0, 1], columns=["col_1", "Col_2"], nrows=0
+        )
+        expected = DataFrame([], index=[0, 1], columns=["col_1", "Col_2"])
+        tm.assert_frame_equal(result, expected)

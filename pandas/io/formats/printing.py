@@ -14,8 +14,8 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
+    TypeAlias,
     TypeVar,
-    Union,
 )
 from unicodedata import east_asian_width
 
@@ -27,7 +27,7 @@ from pandas.io.formats.console import get_console_size
 
 if TYPE_CHECKING:
     from pandas._typing import ListLike
-EscapeChars = Union[Mapping[str, str], Iterable[str]]
+EscapeChars: TypeAlias = Mapping[str, str] | Iterable[str]
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 
@@ -60,7 +60,7 @@ def adjoin(space: int, *lists: list[str], **kwargs: Any) -> str:
         nl = justfunc(lst, lengths[i], mode="left")
         nl = ([" " * lengths[i]] * (maxLen - len(lst))) + nl
         newLists.append(nl)
-    toJoin = zip(*newLists)
+    toJoin = zip(*newLists, strict=True)
     return "\n".join("".join(lines) for lines in toJoin)
 
 
@@ -111,6 +111,8 @@ def _pprint_seq(
     """
     if isinstance(seq, set):
         fmt = "{{{body}}}"
+    elif isinstance(seq, frozenset):
+        fmt = "frozenset({{{body}}})"
     else:
         fmt = "[{body}]" if hasattr(seq, "__setitem__") else "({body})"
 
@@ -203,7 +205,7 @@ def pprint_thing(
     def as_escaped_string(
         thing: Any, escape_chars: EscapeChars | None = escape_chars
     ) -> str:
-        translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r"}
+        translate = {"\t": r"\t", "\n": r"\n", "\r": r"\r", "'": r"\'"}
         if isinstance(escape_chars, Mapping):
             if default_escapes:
                 translate.update(escape_chars)
@@ -336,8 +338,8 @@ def format_object_summary(
 
     if indent_for_name:
         name_len = len(name)
-        space1 = f'\n{(" " * (name_len + 1))}'
-        space2 = f'\n{(" " * (name_len + 2))}'
+        space1 = f"\n{(' ' * (name_len + 1))}"
+        space2 = f"\n{(' ' * (name_len + 2))}"
     else:
         space1 = "\n"
         space2 = "\n "  # space for the opening '['
@@ -495,14 +497,16 @@ def _justify(
     max_length = [0] * len(combined[0])
     for inner_seq in combined:
         length = [len(item) for item in inner_seq]
-        max_length = [max(x, y) for x, y in zip(max_length, length)]
+        max_length = [max(x, y) for x, y in zip(max_length, length, strict=True)]
 
     # justify each item in each list-like in head and tail using max_length
     head_tuples = [
-        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in head
+        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length, strict=True))
+        for seq in head
     ]
     tail_tuples = [
-        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length)) for seq in tail
+        tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length, strict=True))
+        for seq in tail
     ]
     return head_tuples, tail_tuples
 

@@ -3,7 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -34,6 +34,14 @@ def cartesian_product_for_groupers(result, args, names, fill_value=np.nan):
         return a
 
     index = MultiIndex.from_product(map(f, args), names=names)
+    if isinstance(fill_value, dict):
+        # fill_value is a dict mapping column names to fill values
+        # -> reindex column by column (reindex itself does not support this)
+        res = {}
+        for col in result.columns:
+            res[col] = result[col].reindex(index, fill_value=fill_value[col])
+        return DataFrame(res, index=index).sort_index()
+
     return result.reindex(index, fill_value=fill_value).sort_index()
 
 
@@ -63,6 +71,7 @@ _results_for_groupbys_with_missing_categories = {
     "sem": np.nan,
     "size": 0,
     "skew": np.nan,
+    "kurt": np.nan,
     "std": np.nan,
     "sum": 0,
     "var": np.nan,
@@ -129,10 +138,8 @@ def test_basic_string(using_infer_string):
     def f(x):
         return x.drop_duplicates("person_name").iloc[0]
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = g.apply(f)
-    expected = x.iloc[[0, 1]].copy()
+    result = g.apply(f)
+    expected = x[["person_name"]].iloc[[0, 1]]
     expected.index = Index([1, 2], name="person_id")
     dtype = "str" if using_infer_string else object
     expected["person_name"] = expected["person_name"].astype(dtype)
@@ -316,14 +323,11 @@ def test_apply(ordered):
     # but for transform we should still get back the original index
     idx = MultiIndex.from_arrays([missing, dense], names=["missing", "dense"])
     expected = Series(1, index=idx)
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = grouped.apply(lambda x: 1)
+    result = grouped.apply(lambda x: 1)
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
-def test_observed(observed):
+def test_observed(observed, using_infer_string):
     # multiple groupers, don't re-expand the output space
     # of the grouper
     # gh-14942 (implement)
@@ -358,7 +362,10 @@ def test_observed(observed):
     result = gb.sum()
     if not observed:
         expected = cartesian_product_for_groupers(
-            expected, [cat1, cat2], list("AB"), fill_value=0
+            expected,
+            [cat1, cat2],
+            list("AB"),
+            fill_value={"values": 0, "C": ""} if using_infer_string else 0,
         )
 
     tm.assert_frame_equal(result, expected)
@@ -505,6 +512,23 @@ def test_observed_groups(observed):
             "c": Index([1], dtype="int64"),
         }
 
+    tm.assert_dict_equal(result, expected)
+
+
+def test_groups_na_category(dropna, observed):
+    # https://github.com/pandas-dev/pandas/issues/61356
+    df = DataFrame(
+        {"cat": Categorical(["a", np.nan, "a"], categories=list("adb"))},
+        index=list("xyz"),
+    )
+    g = df.groupby("cat", observed=observed, dropna=dropna)
+
+    result = g.groups
+    expected = {"a": Index(["x", "z"])}
+    if not dropna:
+        expected |= {np.nan: Index(["y"])}
+    if not observed:
+        expected |= {"b": Index([]), "d": Index([])}
     tm.assert_dict_equal(result, expected)
 
 
@@ -992,7 +1016,7 @@ def test_sort():
     # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
 
     df = DataFrame({"value": np.random.default_rng(2).integers(0, 10000, 10)})
-    labels = [f"{i} - {i+499}" for i in range(0, 10000, 500)]
+    labels = [f"{i} - {i + 499}" for i in range(0, 10000, 500)]
     cat_labels = Categorical(labels, labels)
 
     df = df.sort_values(by=["value"], ascending=True)
@@ -1356,11 +1380,7 @@ def test_get_nonexistent_category():
     # Accessing a Category that is not in the dataframe
     df = DataFrame({"var": ["a", "a", "b", "b"], "val": range(4)})
     with pytest.raises(KeyError, match="'vau'"):
-        df.groupby("var").apply(
-            lambda rows: DataFrame(
-                {"var": [rows.iloc[-1]["var"]], "val": [rows.iloc[-1]["vau"]]}
-            )
-        )
+        df.groupby("var").apply(lambda rows: DataFrame({"val": [rows.iloc[-1]["vau"]]}))
 
 
 def test_series_groupby_on_2_categoricals_unobserved(reduction_func, observed):
@@ -1477,7 +1497,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_fun
 
     args = get_groupby_method_args(reduction_func, df)
     if reduction_func == "corrwith":
-        warn = FutureWarning
+        warn = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None
@@ -1523,7 +1543,7 @@ def test_dataframe_groupby_on_2_categoricals_when_observed_is_false(
         return
 
     if reduction_func == "corrwith":
-        warn = FutureWarning
+        warn = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None
@@ -1922,7 +1942,7 @@ def test_category_order_reducer(
             getattr(gb, reduction_func)(*args)
         return
     if reduction_func == "corrwith":
-        warn = FutureWarning
+        warn = Pandas4Warning
         warn_msg = "DataFrameGroupBy.corrwith is deprecated"
     else:
         warn = None
@@ -1962,10 +1982,7 @@ def test_category_order_transformer(
         df = df.set_index(keys)
     args = get_groupby_method_args(transformation_func, df)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    warn = FutureWarning if transformation_func == "fillna" else None
-    msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=msg):
-        op_result = getattr(gb, transformation_func)(*args)
+    op_result = getattr(gb, transformation_func)(*args)
     result = op_result.index.get_level_values("a").categories
     expected = Index([1, 4, 3, 2])
     tm.assert_index_equal(result, expected)
@@ -2036,10 +2053,7 @@ def test_category_order_apply(as_index, sort, observed, method, index_kind, orde
         df["a2"] = df["a"]
         df = df.set_index(keys)
     gb = df.groupby(keys, as_index=as_index, sort=sort, observed=observed)
-    warn = DeprecationWarning if method == "apply" and index_kind == "range" else None
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(warn, match=msg):
-        op_result = getattr(gb, method)(lambda x: x.sum(numeric_only=True))
+    op_result = getattr(gb, method)(lambda x: x.sum(numeric_only=True))
     if (method == "transform" or not as_index) and index_kind == "range":
         result = op_result["a"].cat.categories
     else:

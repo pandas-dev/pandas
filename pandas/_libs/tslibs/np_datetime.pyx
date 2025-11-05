@@ -176,6 +176,15 @@ class OutOfBoundsDatetime(ValueError):
     """
     Raised when the datetime is outside the range that can be represented.
 
+    This error occurs when attempting to convert or parse a datetime value
+    that exceeds the bounds supported by pandas' internal datetime
+    representation.
+
+    See Also
+    --------
+    to_datetime : Convert argument to datetime.
+    Timestamp : Pandas replacement for python ``datetime.datetime`` object.
+
     Examples
     --------
     >>> pd.to_datetime("08335394550")
@@ -183,6 +192,7 @@ class OutOfBoundsDatetime(ValueError):
     OutOfBoundsDatetime: Parsing "08335394550" to datetime overflows,
     at position 0
     """
+    __module__ = "pandas.errors"
     pass
 
 
@@ -192,6 +202,10 @@ class OutOfBoundsTimedelta(ValueError):
 
     Representation should be within a timedelta64[ns].
 
+    See Also
+    --------
+    date_range : Return a fixed frequency DatetimeIndex.
+
     Examples
     --------
     >>> pd.date_range(start="1/1/1700", freq="B", periods=100000)
@@ -199,6 +213,7 @@ class OutOfBoundsTimedelta(ValueError):
     OutOfBoundsTimedelta: Cannot cast 139999 days 00:00:00
     to unit='ns' without overflow.
     """
+    __module__ = "pandas.errors"
     # Timedelta analogue to OutOfBoundsDatetime
     pass
 
@@ -331,7 +346,7 @@ cdef int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
-    format: str | None=None,
+    str format=None,
     bint exact=True,
 ) except? -1:
     cdef:

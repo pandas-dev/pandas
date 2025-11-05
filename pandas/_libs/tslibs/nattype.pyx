@@ -372,6 +372,8 @@ class NaTType(_NaT):
     1         NaT
     """
 
+    __module__ = "pandas.api.typing"
+
     def __new__(cls):
         cdef _NaT base
 
@@ -492,6 +494,16 @@ class NaTType(_NaT):
         "total_seconds",
         """
         Total seconds in the duration.
+
+        This method calculates the total duration in seconds by combining
+        the days, seconds, and microseconds of the `Timedelta` object.
+
+        See Also
+        --------
+        to_timedelta : Convert argument to timedelta.
+        Timedelta : Represents a duration, the difference between two dates or times.
+        Timedelta.seconds : Returns the seconds component of the timedelta.
+        Timedelta.microseconds : Returns the microseconds component of the timedelta.
 
         Examples
         --------
@@ -694,7 +706,7 @@ class NaTType(_NaT):
         difference between the current timezone and UTC.
 
         Returns
-        --------
+        -------
         timedelta
             The difference between UTC and the local time as a `timedelta` object.
 
@@ -1859,6 +1871,7 @@ default 'raise'
 
 c_NaT = NaTType()  # C-visible
 NaT = c_NaT        # Python-visible
+NaT.__module__ = "pandas"
 
 
 # ----------------------------------------------------------------------

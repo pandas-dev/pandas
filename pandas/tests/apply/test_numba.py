@@ -1,17 +1,26 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
+from pandas.compat import is_platform_arm
 import pandas.util._test_decorators as td
 
+import pandas as pd
 from pandas import (
     DataFrame,
     Index,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
-pytestmark = [td.skip_if_no("numba"), pytest.mark.single_cpu]
+pytestmark = [td.skip_if_no("numba"), pytest.mark.single_cpu, pytest.mark.skipif()]
+
+numba = pytest.importorskip("numba")
+pytestmark.append(
+    pytest.mark.skipif(
+        Version(numba.__version__) == Version("0.61") and is_platform_arm(),
+        reason=f"Segfaults on ARM platforms with numba {numba.__version__}",
+    )
+)
 
 
 @pytest.fixture(params=[0, 1])
@@ -19,7 +28,6 @@ def apply_axis(request):
     return request.param
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_numba_vs_python_noop(float_frame, apply_axis):
     func = lambda x: x
     result = float_frame.apply(func, engine="numba", axis=apply_axis)
@@ -29,11 +37,10 @@ def test_numba_vs_python_noop(float_frame, apply_axis):
 
 def test_numba_vs_python_string_index():
     # GH#56189
-    pytest.importorskip("pyarrow")
     df = DataFrame(
         1,
-        index=Index(["a", "b"], dtype="string[pyarrow_numpy]"),
-        columns=Index(["x", "y"], dtype="string[pyarrow_numpy]"),
+        index=Index(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
+        columns=Index(["x", "y"], dtype=pd.StringDtype(na_value=np.nan)),
     )
     func = lambda x: x
     result = df.apply(func, engine="numba", axis=0)
@@ -43,7 +50,6 @@ def test_numba_vs_python_string_index():
     )
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_numba_vs_python_indexing():
     frame = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": [7.0, 8.0, 9.0]},

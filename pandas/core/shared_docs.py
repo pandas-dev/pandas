@@ -65,9 +65,9 @@ align_axis : {{0 or 'index', 1 or 'columns'}}, default 1
     Determine which axis to align the comparison on.
 
     * 0, or 'index' : Resulting differences are stacked vertically
-        with rows drawn alternately from self and other.
+      with rows drawn alternately from self and other.
     * 1, or 'columns' : Resulting differences are aligned horizontally
-        with columns drawn alternately from self and other.
+      with columns drawn alternately from self and other.
 
 keep_shape : bool, default False
     If true, all rows and columns are kept.
@@ -138,13 +138,6 @@ group_keys : bool, default True
     index to identify pieces. By default group keys are not included
     when the result's index (and column) labels match the inputs, and
     are included otherwise.
-
-    .. versionchanged:: 1.5.0
-
-       Warns that ``group_keys`` will no longer be ignored when the
-       result from ``apply`` is a like-indexed Series or DataFrame.
-       Specify ``group_keys`` explicitly to include the group keys or
-       not.
 
     .. versionchanged:: 2.0.0
 
@@ -380,7 +373,7 @@ _shared_docs["replace"] = """
               replaced with `value`
             - str: string exactly matching `to_replace` will be replaced
               with `value`
-            - regex: regexs matching `to_replace` will be replaced with
+            - regex: regexes matching `to_replace` will be replaced with
               `value`
 
         * list of str, regex, or numeric:
@@ -388,7 +381,7 @@ _shared_docs["replace"] = """
             - First, if `to_replace` and `value` are both lists, they
               **must** be the same length.
             - Second, if ``regex=True`` then all of the strings in **both**
-              lists will be interpreted as regexs otherwise they will match
+              lists will be interpreted as regexes otherwise they will match
               directly. This doesn't matter much for `value` since there
               are only a few possible substitution regexes you can use.
             - str, regex and numeric rules apply as above.
@@ -620,9 +613,6 @@ _shared_docs["replace"] = """
     4    None
     dtype: object
 
-        .. versionchanged:: 1.4.0
-            Previously the explicit ``None`` was silently ignored.
-
     When ``regex=True``, ``value`` is not ``None`` and `to_replace` is a string,
     the replacement will be applied in all columns of the DataFrame.
 
@@ -648,134 +638,4 @@ _shared_docs["replace"] = """
     2  2  e  e
     3  3  d  e
     4  4  e  e
-"""
-
-_shared_docs["idxmin"] = """
-    Return index of first occurrence of minimum over requested axis.
-
-    NA/null values are excluded.
-
-    Parameters
-    ----------
-    axis : {{0 or 'index', 1 or 'columns'}}, default 0
-        The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-    skipna : bool, default True
-        Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
-        and there is an NA value, this method will raise a ``ValueError``.
-    numeric_only : bool, default {numeric_only_default}
-        Include only `float`, `int` or `boolean` data.
-
-        .. versionadded:: 1.5.0
-
-    Returns
-    -------
-    Series
-        Indexes of minima along the specified axis.
-
-    Raises
-    ------
-    ValueError
-        * If the row/column is empty
-
-    See Also
-    --------
-    Series.idxmin : Return index of the minimum element.
-
-    Notes
-    -----
-    This method is the DataFrame version of ``ndarray.argmin``.
-
-    Examples
-    --------
-    Consider a dataset containing food consumption in Argentina.
-
-    >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                   'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                   index=['Pork', 'Wheat Products', 'Beef'])
-
-    >>> df
-                    consumption  co2_emissions
-    Pork                  10.51         37.20
-    Wheat Products       103.11         19.66
-    Beef                  55.48       1712.00
-
-    By default, it returns the index for the minimum value in each column.
-
-    >>> df.idxmin()
-    consumption                Pork
-    co2_emissions    Wheat Products
-    dtype: object
-
-    To return the index for the minimum value in each row, use ``axis="columns"``.
-
-    >>> df.idxmin(axis="columns")
-    Pork                consumption
-    Wheat Products    co2_emissions
-    Beef                consumption
-    dtype: object
-"""
-
-_shared_docs["idxmax"] = """
-    Return index of first occurrence of maximum over requested axis.
-
-    NA/null values are excluded.
-
-    Parameters
-    ----------
-    axis : {{0 or 'index', 1 or 'columns'}}, default 0
-        The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
-    skipna : bool, default True
-        Exclude NA/null values. If the entire Series is NA, or if ``skipna=False``
-        and there is an NA value, this method will raise a ``ValueError``.
-    numeric_only : bool, default {numeric_only_default}
-        Include only `float`, `int` or `boolean` data.
-
-        .. versionadded:: 1.5.0
-
-    Returns
-    -------
-    Series
-        Indexes of maxima along the specified axis.
-
-    Raises
-    ------
-    ValueError
-        * If the row/column is empty
-
-    See Also
-    --------
-    Series.idxmax : Return index of the maximum element.
-
-    Notes
-    -----
-    This method is the DataFrame version of ``ndarray.argmax``.
-
-    Examples
-    --------
-    Consider a dataset containing food consumption in Argentina.
-
-    >>> df = pd.DataFrame({{'consumption': [10.51, 103.11, 55.48],
-    ...                   'co2_emissions': [37.2, 19.66, 1712]}},
-    ...                   index=['Pork', 'Wheat Products', 'Beef'])
-
-    >>> df
-                    consumption  co2_emissions
-    Pork                  10.51         37.20
-    Wheat Products       103.11         19.66
-    Beef                  55.48       1712.00
-
-    By default, it returns the index for the maximum value in each column.
-
-    >>> df.idxmax()
-    consumption     Wheat Products
-    co2_emissions             Beef
-    dtype: object
-
-    To return the index for the maximum value in each row, use ``axis="columns"``.
-
-    >>> df.idxmax(axis="columns")
-    Pork              co2_emissions
-    Wheat Products     consumption
-    Beef              co2_emissions
-    dtype: object
 """

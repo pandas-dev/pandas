@@ -4,13 +4,17 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Self,
+)
 
 import numpy as np
 
 from pandas._libs import index as libindex
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     NaT,
     Period,
     Resolution,
@@ -20,6 +24,7 @@ from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.common import is_integer
@@ -49,7 +54,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         Dtype,
         DtypeObj,
-        Self,
         npt,
     )
 
@@ -81,6 +85,7 @@ def _new_PeriodIndex(cls, **d):
     wrap=True,
 )
 @inherit_names(["is_leap_year"], PeriodArray)
+@set_module("pandas")
 class PeriodIndex(DatetimeIndexOpsMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.
@@ -365,7 +370,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             of self.freq.  Note IncompatibleFrequency subclasses ValueError.
         """
         if isinstance(other, (timedelta, np.timedelta64, Tick, np.ndarray)):
-            if isinstance(self.freq, Tick):
+            if isinstance(self.freq, (Tick, Day)):
                 # _check_timedeltalike_freq_compat will raise if incompatible
                 delta = self._data._check_timedeltalike_freq_compat(other)
                 return delta
@@ -533,6 +538,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return self + periods
 
 
+@set_module("pandas")
 def period_range(
     start=None,
     end=None,
@@ -563,6 +569,14 @@ def period_range(
     Returns
     -------
     PeriodIndex
+        A PeriodIndex of fixed frequency periods.
+
+    See Also
+    --------
+    date_range : Returns a fixed frequency DatetimeIndex.
+    Period : Represents a period of time.
+    PeriodIndex : Immutable ndarray holding ordinal values indicating regular periods
+        in time.
 
     Notes
     -----

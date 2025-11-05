@@ -8,8 +8,6 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import parsers as libparsers
 from pandas.errors import DtypeWarning
 
@@ -131,7 +129,7 @@ bar2,12,13,14,15
         tm.assert_frame_equal(reader.get_chunk(size=2), expected.iloc[:2])
         tm.assert_frame_equal(reader.get_chunk(size=4), expected.iloc[2:5])
 
-        with pytest.raises(StopIteration, match=""):
+        with pytest.raises(StopIteration, match="^$"):
             reader.get_chunk(size=3)
 
 
@@ -231,8 +229,7 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
     assert result.a.dtype == float
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
-def test_warn_if_chunks_have_mismatched_type(all_parsers):
+def test_warn_if_chunks_have_mismatched_type(all_parsers, using_infer_string):
     warning_type = None
     parser = all_parsers
     size = 10000
@@ -260,8 +257,12 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers):
             "Specify dtype option on import or set low_memory=False.",
             buf,
         )
-
-    assert df.a.dtype == object
+    if parser.engine == "c" and parser.low_memory:
+        assert df.a.dtype == object
+    elif using_infer_string:
+        assert df.a.dtype == "str"
+    else:
+        assert df.a.dtype == object
 
 
 @pytest.mark.parametrize("iterator", [True, False])
@@ -294,29 +295,28 @@ def test_empty_with_nrows_chunksize(all_parsers, iterator):
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_csv_memory_growth_chunksize(all_parsers):
+def test_read_csv_memory_growth_chunksize(temp_file, all_parsers):
     # see gh-24805
     #
     # Let's just make sure that we don't crash
     # as we iteratively process all chunks.
     parser = all_parsers
 
-    with tm.ensure_clean() as path:
-        with open(path, "w", encoding="utf-8") as f:
-            for i in range(1000):
-                f.write(str(i) + "\n")
+    with open(temp_file, "w", encoding="utf-8") as f:
+        for i in range(1000):
+            f.write(str(i) + "\n")
 
-        if parser.engine == "pyarrow":
-            msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
-            with pytest.raises(ValueError, match=msg):
-                with parser.read_csv(path, chunksize=20) as result:
-                    for _ in result:
-                        pass
-            return
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            with parser.read_csv(temp_file, chunksize=20) as result:
+                for _ in result:
+                    pass
+        return
 
-        with parser.read_csv(path, chunksize=20) as result:
-            for _ in result:
-                pass
+    with parser.read_csv(temp_file, chunksize=20) as result:
+        for _ in result:
+            pass
 
 
 def test_chunksize_with_usecols_second_block_shorter(all_parsers):

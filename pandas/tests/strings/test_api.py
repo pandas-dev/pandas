@@ -10,7 +10,6 @@ from pandas import (
     MultiIndex,
     Series,
     _testing as tm,
-    option_context,
 )
 from pandas.core.strings.accessor import StringMethods
 
@@ -122,6 +121,7 @@ def test_api_per_method(
     any_allowed_skipna_inferred_dtype,
     any_string_method,
     request,
+    using_infer_string,
 ):
     # this test does not check correctness of the different methods,
     # just that the methods work on the specified (inferred) dtypes,
@@ -160,6 +160,10 @@ def test_api_per_method(
     t = box(values, dtype=dtype)  # explicit dtype to avoid casting
     method = getattr(t.str, method_name)
 
+    if using_infer_string and dtype == "category":
+        string_allowed = method_name not in ["decode"]
+    else:
+        string_allowed = True
     bytes_allowed = method_name in ["decode", "get", "len", "slice"]
     # as of v0.23.4, all methods except 'cat' are very lenient with the
     # allowed data types, just returning NaN for entries that error.
@@ -168,20 +172,21 @@ def test_api_per_method(
     mixed_allowed = method_name not in ["cat"]
 
     allowed_types = (
-        ["string", "unicode", "empty"]
+        ["empty"]
+        + ["string", "unicode"] * string_allowed
         + ["bytes"] * bytes_allowed
         + ["mixed", "mixed-integer"] * mixed_allowed
     )
 
     if inferred_dtype in allowed_types:
         # xref GH 23555, GH 23556
-        with option_context("future.no_silent_downcasting", True):
-            method(*args, **kwargs)  # works!
+        method(*args, **kwargs)  # works!
     else:
         # GH 23011, GH 23163
         msg = (
             f"Cannot use .str.{method_name} with values of "
             f"inferred dtype {inferred_dtype!r}."
+            "|a bytes-like object is required, not 'str'"
         )
         with pytest.raises(TypeError, match=msg):
             method(*args, **kwargs)

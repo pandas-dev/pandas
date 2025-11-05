@@ -508,12 +508,12 @@ def nanany(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2])
     >>> nanops.nanany(s.values)
-    True
+    np.True_
 
     >>> from pandas.core import nanops
     >>> s = pd.Series([np.nan])
     >>> nanops.nanany(s.values)
-    False
+    np.False_
     """
     if values.dtype.kind in "iub" and mask is None:
         # GH#26032 fastpath
@@ -564,12 +564,12 @@ def nanall(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
     >>> nanops.nanall(s.values)
-    True
+    np.True_
 
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 0])
     >>> nanops.nanall(s.values)
-    False
+    np.False_
     """
     if values.dtype.kind in "iub" and mask is None:
         # GH#26032 fastpath
@@ -603,7 +603,7 @@ def nansum(
     skipna: bool = True,
     min_count: int = 0,
     mask: npt.NDArray[np.bool_] | None = None,
-) -> float:
+) -> npt.NDArray[np.floating] | float | NaTType:
     """
     Sum the elements along an axis ignoring NaNs
 
@@ -625,7 +625,7 @@ def nansum(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
     >>> nanops.nansum(s.values)
-    3.0
+    np.float64(3.0)
     """
     dtype = values.dtype
     values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
@@ -651,9 +651,7 @@ def _mask_datetimelike_result(
         # we need to apply the mask
         result = result.astype("i8").view(orig_values.dtype)
         axis_mask = mask.any(axis=axis)
-        # error: Unsupported target for indexed assignment ("Union[ndarray[Any, Any],
-        # datetime64, timedelta64]")
-        result[axis_mask] = iNaT  # type: ignore[index]
+        result[axis_mask] = iNaT
     else:
         if mask.any():
             return np.int64(iNaT).view(orig_values.dtype)
@@ -691,8 +689,12 @@ def nanmean(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, np.nan])
     >>> nanops.nanmean(s.values)
-    1.5
+    np.float64(1.5)
     """
+    if values.dtype == object and len(values) > 1_000 and mask is None:
+        # GH#54754 if we are going to fail, try to fail-fast
+        nanmean(values[:1000], axis=axis, skipna=skipna)
+
     dtype = values.dtype
     values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
     dtype_sum = _get_dtype_max(dtype)
@@ -726,7 +728,9 @@ def nanmean(
 
 
 @bottleneck_switch()
-def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=None):
+def nanmedian(
+    values: np.ndarray, *, axis: AxisInt | None = None, skipna: bool = True, mask=None
+) -> float | np.ndarray:
     """
     Parameters
     ----------
@@ -738,7 +742,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
 
     Returns
     -------
-    result : float
+    result : float | ndarray
         Unless input is a float array, in which case use the same
         precision as the input array.
 
@@ -758,7 +762,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
     # cases we never need to set NaN to the masked values
     using_nan_sentinel = values.dtype.kind == "f" and mask is None
 
-    def get_median(x, _mask=None):
+    def get_median(x: np.ndarray, _mask=None):
         if _mask is None:
             _mask = notna(x)
         else:
@@ -793,6 +797,8 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
         values[mask] = np.nan
 
     notempty = values.size
+
+    res: float | np.ndarray
 
     # an array from a frame
     if values.ndim > 1 and axis is not None:
@@ -1010,7 +1016,11 @@ def nanvar(
     avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
     if axis is not None:
         avg = np.expand_dims(avg, axis)
-    sqr = _ensure_numeric((avg - values) ** 2)
+    if values.dtype.kind == "c":
+        # Need to use absolute value for complex numbers.
+        sqr = _ensure_numeric(abs(avg - values) ** 2)
+    else:
+        sqr = _ensure_numeric((avg - values) ** 2)
     if mask is not None:
         np.putmask(sqr, mask, 0)
     result = sqr.sum(axis=axis, dtype=np.float64) / d
@@ -1057,7 +1067,7 @@ def nansem(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 2, 3])
     >>> nanops.nansem(s.values)
-     0.5773502691896258
+     np.float64(0.5773502691896258)
     """
     # This checks if non-numeric-like data is passed with numeric_only=False
     # and raises a TypeError otherwise
@@ -1089,11 +1099,14 @@ def _nanminmax(meth, fill_value_typ):
         if values.size == 0:
             return _na_for_min_count(values, axis)
 
+        dtype = values.dtype
         values, mask = _get_values(
             values, skipna, fill_value_typ=fill_value_typ, mask=mask
         )
         result = getattr(values, meth)(axis)
-        result = _maybe_null_out(result, axis, mask, values.shape)
+        result = _maybe_null_out(
+            result, axis, mask, values.shape, datetimelike=dtype.kind in "mM"
+        )
         return result
 
     return reduction
@@ -1129,7 +1142,7 @@ def nanargmax(
     >>> from pandas.core import nanops
     >>> arr = np.array([1, 2, 3, np.nan, 4])
     >>> nanops.nanargmax(arr)
-    4
+    np.int64(4)
 
     >>> arr = np.array(range(12), dtype=np.float64).reshape(4, 3)
     >>> arr[2:, 2] = np.nan
@@ -1175,7 +1188,7 @@ def nanargmin(
     >>> from pandas.core import nanops
     >>> arr = np.array([1, 2, 3, np.nan, 4])
     >>> nanops.nanargmin(arr)
-    0
+    np.int64(0)
 
     >>> arr = np.array(range(12), dtype=np.float64).reshape(4, 3)
     >>> arr[2:, 0] = np.nan
@@ -1230,7 +1243,7 @@ def nanskew(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 2])
     >>> nanops.nanskew(s.values)
-    1.7320508075688787
+    np.float64(1.7320508075688787)
     """
     mask = _maybe_get_mask(values, skipna, mask)
     if values.dtype.kind != "f":
@@ -1258,12 +1271,13 @@ def nanskew(
     m2 = adjusted2.sum(axis, dtype=np.float64)
     m3 = adjusted3.sum(axis, dtype=np.float64)
 
-    # floating point error
-    #
-    # #18044 in _libs/windows.pyx calc_skew follow this behavior
-    # to fix the fperr to treat m2 <1e-14 as zero
-    m2 = _zero_out_fperr(m2)
-    m3 = _zero_out_fperr(m3)
+    # floating point error. See comment in [nankurt]
+    max_abs = np.abs(values).max(axis, initial=0.0)
+    eps = np.finfo(m2.dtype).eps
+    constant_tolerance2 = ((eps * max_abs) ** 2) * count
+    constant_tolerance3 = ((eps * max_abs) ** 3) * count
+    m2 = _zero_out_fperr(m2, constant_tolerance2)
+    m3 = _zero_out_fperr(m3, constant_tolerance3)
 
     with np.errstate(invalid="ignore", divide="ignore"):
         result = (count * (count - 1) ** 0.5 / (count - 2)) * (m3 / m2**1.5)
@@ -1318,7 +1332,7 @@ def nankurt(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, np.nan, 1, 3, 2])
     >>> nanops.nankurt(s.values)
-    -1.2892561983471076
+    np.float64(-1.2892561983471076)
     """
     mask = _maybe_get_mask(values, skipna, mask)
     if values.dtype.kind != "f":
@@ -1346,17 +1360,39 @@ def nankurt(
     m2 = adjusted2.sum(axis, dtype=np.float64)
     m4 = adjusted4.sum(axis, dtype=np.float64)
 
+    # Several floating point errors may occur during the summation due to rounding.
+    # This computation is similar to the one in Scipy
+    # https://github.com/scipy/scipy/blob/04d6d9c460b1fed83f2919ecec3d743cfa2e8317/scipy/stats/_stats_py.py#L1429
+    # With a few modifications, like using the maximum value instead of the averages
+    # and some adaptations because they use the average and we use the sum for `m2`.
+    # We need to estimate an upper bound to the error to consider the data constant.
+    # Let's call:
+    # x: true value in data
+    # y: floating point representation
+    # e: relative approximation error
+    # n: number of observations in array
+    #
+    # We have that:
+    # |x - y|/|x| <= e (See https://en.wikipedia.org/wiki/Machine_epsilon)
+    # (|x - y|/|x|)² <= e²
+    # Σ (|x - y|/|x|)² <= ne²
+    #
+    # Let's say that the fperr upper bound for m2 is constrained by the summation.
+    # |m2 - y|/|m2| <= ne²
+    # |m2 - y| <= n|m2|e²
+    #
+    # We will use max (x²) to estimate |m2|
+    max_abs = np.abs(values).max(axis, initial=0.0)
+    eps = np.finfo(m2.dtype).eps
+    constant_tolerance2 = ((eps * max_abs) ** 2) * count
+    constant_tolerance4 = ((eps * max_abs) ** 4) * count
+    m2 = _zero_out_fperr(m2, constant_tolerance2)
+    m4 = _zero_out_fperr(m4, constant_tolerance4)
+
     with np.errstate(invalid="ignore", divide="ignore"):
         adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
         numerator = count * (count + 1) * (count - 1) * m4
         denominator = (count - 2) * (count - 3) * m2**2
-
-    # floating point error
-    #
-    # #18044 in _libs/windows.pyx calc_kurt follow this behavior
-    # to fix the fperr to treat denom <1e-14 as zero
-    numerator = _zero_out_fperr(numerator)
-    denominator = _zero_out_fperr(denominator)
 
     if not isinstance(denominator, np.ndarray):
         # if ``denom`` is a scalar, check these corner cases first before
@@ -1410,7 +1446,7 @@ def nanprod(
     >>> from pandas.core import nanops
     >>> s = pd.Series([1, 2, 3, np.nan])
     >>> nanops.nanprod(s.values)
-    6.0
+    np.float64(6.0)
     """
     mask = _maybe_get_mask(values, skipna, mask)
 
@@ -1495,6 +1531,7 @@ def _maybe_null_out(
     mask: npt.NDArray[np.bool_] | None,
     shape: tuple[int, ...],
     min_count: int = 1,
+    datetimelike: bool = False,
 ) -> np.ndarray | float | NaTType:
     """
     Returns
@@ -1516,7 +1553,10 @@ def _maybe_null_out(
             null_mask = np.broadcast_to(below_count, new_shape)
 
         if np.any(null_mask):
-            if is_numeric_dtype(result):
+            if datetimelike:
+                # GH#60646 For datetimelike, no need to cast to float
+                result[null_mask] = iNaT
+            elif is_numeric_dtype(result):
                 if np.iscomplexobj(result):
                     result = result.astype("c16")
                 elif not is_float_dtype(result):
@@ -1568,12 +1608,12 @@ def check_below_min_count(
     return False
 
 
-def _zero_out_fperr(arg):
+def _zero_out_fperr(arg, tol: float | np.ndarray):
     # #18044 reference this behavior to fix rolling skew/kurt issue
     if isinstance(arg, np.ndarray):
-        return np.where(np.abs(arg) < 1e-14, 0, arg)
+        return np.where(np.abs(arg) < tol, 0, arg)
     else:
-        return arg.dtype.type(0) if np.abs(arg) < 1e-14 else arg
+        return arg.dtype.type(0) if np.abs(arg) < tol else arg
 
 
 @disallow("M8", "m8")

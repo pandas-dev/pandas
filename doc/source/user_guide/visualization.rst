@@ -326,8 +326,6 @@ The ``by`` keyword can be specified to plot grouped histograms:
 
 In addition, the ``by`` keyword can also be specified in :meth:`DataFrame.plot.hist`.
 
-.. versionchanged:: 1.4.0
-
 .. ipython:: python
 
    data = pd.DataFrame(
@@ -479,8 +477,6 @@ columns:
     plt.close("all")
 
 You could also create groupings with :meth:`DataFrame.plot.box`, for instance:
-
-.. versionchanged:: 1.4.0
 
 .. ipython:: python
    :suppress:
@@ -1209,11 +1205,6 @@ Controlling the labels
 You may set the ``xlabel`` and ``ylabel`` arguments to give the plot custom labels
 for x and y axis. By default, pandas will pick up index name as xlabel, while leaving
 it empty for ylabel.
-
-.. ipython:: python
-   :suppress:
-
-   plt.figure();
 
 .. ipython:: python
 

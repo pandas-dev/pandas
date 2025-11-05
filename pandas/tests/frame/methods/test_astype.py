@@ -3,8 +3,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -168,21 +167,21 @@ class TestAstype:
                 "d": list(map(str, d._values)),
                 "e": list(map(str, e._values)),
             },
-            dtype="object",
+            dtype="str",
         )
 
         tm.assert_frame_equal(result, expected)
 
-    def test_astype_str_float(self):
+    def test_astype_str_float(self, using_infer_string):
         # see GH#11302
         result = DataFrame([np.nan]).astype(str)
-        expected = DataFrame(["nan"], dtype="object")
+        expected = DataFrame([np.nan if using_infer_string else "nan"], dtype="str")
 
         tm.assert_frame_equal(result, expected)
         result = DataFrame([1.12345678901234567890]).astype(str)
 
         val = "1.1234567890123457"
-        expected = DataFrame([val], dtype="object")
+        expected = DataFrame([val], dtype="str")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("dtype_class", [dict, Series])
@@ -284,7 +283,7 @@ class TestAstype:
         result = df.astype(dtypes)
         expected = DataFrame(
             {
-                0: Series(vals[:, 0].astype(str), dtype=object),
+                0: Series(vals[:, 0].astype(str), dtype="str"),
                 1: vals[:, 1],
                 2: pd.array(vals[:, 2], dtype="Float64"),
                 3: vals[:, 3],
@@ -305,6 +304,9 @@ class TestAstype:
             CategoricalDtype(categories=list("edcb"), ordered=True),
         ],
         ids=repr,
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:Constructing a Categorical with a dtype and values"
     )
     def test_astype_categorical(self, dtype):
         # GH#18099
@@ -367,11 +369,21 @@ class TestAstype:
         tm.assert_frame_equal(df.astype("int64").astype(dtype), expected1)
 
     @pytest.mark.parametrize("dtype", ["category", "Int64"])
-    def test_astype_extension_dtypes_duplicate_col(self, dtype):
+    def test_astype_extension_dtypes_duplicate_col(self, dtype, using_nan_is_na):
         # GH#24704
         a1 = Series([0, np.nan, 4], name="a")
         a2 = Series([np.nan, 3, 5], name="a")
         df = concat([a1, a2], axis=1)
+
+        if dtype == "Int64" and not using_nan_is_na:
+            msg = "Cannot cast NaN value to Integer dtype"
+            with pytest.raises(ValueError, match=msg):
+                df.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                a1.astype(dtype)
+            with pytest.raises(ValueError, match=msg):
+                a2.astype(dtype)
+            return
 
         result = df.astype(dtype)
         expected = concat([a1.astype(dtype), a2.astype(dtype)], axis=1)
@@ -647,9 +659,10 @@ class TestAstype:
             # dt64tz->dt64 deprecated
             timezone_frame.astype("datetime64[ns]")
 
-    def test_astype_dt64tz_to_str(self, timezone_frame):
+    def test_astype_dt64tz_to_str(self, timezone_frame, using_infer_string):
         # str formatting
         result = timezone_frame.astype(str)
+        na_value = np.nan if using_infer_string else "NaT"
         expected = DataFrame(
             [
                 [
@@ -657,7 +670,7 @@ class TestAstype:
                     "2013-01-01 00:00:00-05:00",
                     "2013-01-01 00:00:00+01:00",
                 ],
-                ["2013-01-02", "NaT", "NaT"],
+                ["2013-01-02", na_value, na_value],
                 [
                     "2013-01-03",
                     "2013-01-03 00:00:00-05:00",
@@ -665,7 +678,7 @@ class TestAstype:
                 ],
             ],
             columns=timezone_frame.columns,
-            dtype="object",
+            dtype="str",
         )
         tm.assert_frame_equal(result, expected)
 
@@ -719,7 +732,7 @@ class TestAstype:
     def test_astype_tz_conversion(self):
         # GH 35973, GH#58998
         msg = "'d' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             val = {
                 "tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")
             }
@@ -744,10 +757,7 @@ class TestAstype:
         result = result.astype({"tz": "datetime64[ns, Europe/London]"})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_astype_dt64_to_string(
-        self, frame_or_series, tz_naive_fixture, using_infer_string
-    ):
+    def test_astype_dt64_to_string(self, frame_or_series, tz_naive_fixture):
         # GH#41409
         tz = tz_naive_fixture
 
@@ -765,10 +775,7 @@ class TestAstype:
         item = result.iloc[0]
         if frame_or_series is DataFrame:
             item = item.iloc[0]
-        if using_infer_string:
-            assert item is np.nan
-        else:
-            assert item is pd.NA
+        assert item is pd.NA
 
         # For non-NA values, we should match what we get for non-EA str
         alt = obj.astype(str)
@@ -864,8 +871,7 @@ class IntegerArrayNoCopy(pd.core.arrays.IntegerArray):
 class Int16DtypeNoCopy(pd.Int16Dtype):
     # GH 42501
 
-    @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(self):
         return IntegerArrayNoCopy
 
 

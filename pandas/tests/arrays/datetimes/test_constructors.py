@@ -28,10 +28,12 @@ class TestDatetimeArrayConstructor:
         # GH#24569
         arr = np.array([pd.Timestamp("2000"), pd.Timestamp("2000", tz="CET")])
 
-        msg = (
-            "Cannot mix tz-aware with tz-naive values|"
-            "Tz-aware datetime.datetime cannot be converted "
-            "to datetime64 unless utc=True"
+        msg = "|".join(
+            [
+                "Cannot mix tz-aware with tz-naive values",
+                "Tz-aware datetime.datetime cannot be converted "
+                "to datetime64 unless utc=True",
+            ]
         )
 
         for obj in [arr, arr[::-1]]:
@@ -63,10 +65,10 @@ class TestDatetimeArrayConstructor:
 
     def test_copy(self):
         data = np.array([1, 2, 3], dtype="M8[ns]")
-        arr = DatetimeArray._from_sequence(data, copy=False)
+        arr = DatetimeArray._from_sequence(data, dtype=data.dtype, copy=False)
         assert arr._ndarray is data
 
-        arr = DatetimeArray._from_sequence(data, copy=True)
+        arr = DatetimeArray._from_sequence(data, dtype=data.dtype, copy=True)
         assert arr._ndarray is not data
 
     def test_numpy_datetime_unit(self, unit):
@@ -163,7 +165,9 @@ def test_from_arrow_from_empty(unit, tz):
     dtype = DatetimeTZDtype(unit=unit, tz=tz)
 
     result = dtype.__from_arrow__(arr)
-    expected = DatetimeArray._from_sequence(np.array(data, dtype=f"datetime64[{unit}]"))
+    expected = DatetimeArray._from_sequence(
+        np.array(data, dtype=f"datetime64[{unit}]"), dtype=np.dtype(f"M8[{unit}]")
+    )
     expected = expected.tz_localize(tz=tz)
     tm.assert_extension_array_equal(result, expected)
 
@@ -179,7 +183,9 @@ def test_from_arrow_from_integers():
     dtype = DatetimeTZDtype(unit="ns", tz="UTC")
 
     result = dtype.__from_arrow__(arr)
-    expected = DatetimeArray._from_sequence(np.array(data, dtype="datetime64[ns]"))
+    expected = DatetimeArray._from_sequence(
+        np.array(data, dtype="datetime64[ns]"), dtype=np.dtype("M8[ns]")
+    )
     expected = expected.tz_localize("UTC")
     tm.assert_extension_array_equal(result, expected)
 

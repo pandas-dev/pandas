@@ -5,6 +5,7 @@ import numpy as np
 cimport numpy as cnp
 from libc.math cimport log10
 from numpy cimport (
+    PyDatetimeScalarObject,
     float64_t,
     int32_t,
     int64_t,
@@ -137,7 +138,7 @@ def cast_from_unit_vectorized(
 
     out = np.empty(shape, dtype="i8")
     base = np.empty(shape, dtype="i8")
-    frac = np.empty(shape, dtype="f8")
+    frac = np.zeros(shape, dtype="f8")
 
     for i in range(len(values)):
         if is_nan(values[i]):
@@ -149,18 +150,18 @@ def cast_from_unit_vectorized(
     if p:
         frac = np.round(frac, p)
 
-    try:
-        for i in range(len(values)):
+    for i in range(len(values)):
+        try:
             if base[i] == NPY_NAT:
                 out[i] = NPY_NAT
             else:
                 out[i] = <int64_t>(base[i] * m) + <int64_t>(frac[i] * m)
-    except (OverflowError, FloatingPointError) as err:
-        # FloatingPointError can be issued if we have float dtype and have
-        #  set np.errstate(over="raise")
-        raise OutOfBoundsDatetime(
-            f"cannot convert input {values[i]} with the unit '{unit}'"
-        ) from err
+        except (OverflowError, FloatingPointError) as err:
+            # FloatingPointError can be issued if we have float dtype and have
+            #  set np.errstate(over="raise")
+            raise OutOfBoundsDatetime(
+                f"cannot convert input {values[i]} with the unit '{unit}'"
+            ) from err
     return out
 
 
@@ -358,6 +359,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     cdef:
         _TSObject obj
         NPY_DATETIMEUNIT reso
+        int64_t num
 
     obj = _TSObject()
 
@@ -367,6 +369,13 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
     elif cnp.is_datetime64_object(ts):
+        num = (<PyDatetimeScalarObject*>ts).obmeta.num
+        if num != 1:
+            raise ValueError(
+                # GH#25611
+                "np.datetime64 objects with units containing a multiplier are "
+                "not supported"
+            )
         reso = get_supported_reso(get_datetime64_unit(ts))
         obj.creso = reso
         obj.value = get_datetime64_nanos(ts, reso)
@@ -797,7 +806,7 @@ cdef int64_t parse_pydatetime(
     dts : *npy_datetimestruct
         Needed to use in pydatetime_to_dt64, which writes to it.
     creso : NPY_DATETIMEUNIT
-        Resolution to store the the result.
+        Resolution to store the result.
 
     Raises
     ------

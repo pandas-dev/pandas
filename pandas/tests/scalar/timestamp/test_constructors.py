@@ -17,7 +17,11 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
-from pandas.errors import OutOfBoundsDatetime
+from pandas.compat import PY314
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
 
 from pandas import (
     NA,
@@ -45,7 +49,7 @@ class TestTimestampConstructorUnitKeyword:
 
     @pytest.mark.parametrize("typ", [int, float])
     def test_construct_from_int_float_with_unit_out_of_bound_raises(self, typ):
-        # GH#50870  make sure we get a OutOfBoundsDatetime instead of OverflowError
+        # GH#50870  make sure we get an OutOfBoundsDatetime instead of OverflowError
         val = typ(150000000000000)
 
         msg = f"cannot convert input {val} with the unit 'D'"
@@ -218,7 +222,10 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
         with pytest.raises(ValueError, match=msg):
             Timestamp(2000, 13, 1)
 
-        msg = "day is out of range for month"
+        if PY314:
+            msg = "must be in range 1..31 for month 1 in year 2000"
+        else:
+            msg = "day is out of range for month"
         with pytest.raises(ValueError, match=msg):
             Timestamp(2000, 1, 0)
         with pytest.raises(ValueError, match=msg):
@@ -242,7 +249,10 @@ class TestTimestampConstructorPositionalAndKeywordSupport:
         with pytest.raises(ValueError, match=msg):
             Timestamp(year=2000, month=13, day=1)
 
-        msg = "day is out of range for month"
+        if PY314:
+            msg = "must be in range 1..31 for month 1 in year 2000"
+        else:
+            msg = "day is out of range for month"
         with pytest.raises(ValueError, match=msg):
             Timestamp(year=2000, month=1, day=0)
         with pytest.raises(ValueError, match=msg):
@@ -325,13 +335,13 @@ class TestTimestampClassMethodConstructors:
     def test_utcnow_deprecated(self):
         # GH#56680
         msg = "Timestamp.utcnow is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             Timestamp.utcnow()
 
     def test_utcfromtimestamp_deprecated(self):
         # GH#56680
         msg = "Timestamp.utcfromtimestamp is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             Timestamp.utcfromtimestamp(43)
 
     def test_constructor_strptime(self):
@@ -478,6 +488,13 @@ class TestTimestampResolutionInference:
 
 
 class TestTimestampConstructors:
+    def test_disallow_dt64_with_weird_unit(self):
+        # GH#25611
+        dt64 = np.datetime64(1, "500m")
+        msg = "np.datetime64 objects with units containing a multiplier"
+        with pytest.raises(ValueError, match=msg):
+            Timestamp(dt64)
+
     def test_weekday_but_no_day_raises(self):
         # GH#52659
         msg = "Parsing datetimes with weekday but no day information is not supported"
@@ -826,7 +843,6 @@ class TestTimestampConstructors:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp("2262-04-11 23:47:16.854775808")
 
-    @pytest.mark.skip_ubsan
     def test_bounds_with_different_units(self):
         out_of_bounds_dates = ("1677-09-21", "2262-04-12")
 
@@ -1060,7 +1076,9 @@ def test_timestamp_nano_range(nano):
 
 def test_non_nano_value():
     # https://github.com/pandas-dev/pandas/issues/49076
-    result = Timestamp("1800-01-01", unit="s").value
+    msg = "The 'unit' keyword is only used when"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        result = Timestamp("1800-01-01", unit="s").value
     # `.value` shows nanoseconds, even though unit is 's'
     assert result == -5364662400000000000
 

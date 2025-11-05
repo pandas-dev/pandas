@@ -3,8 +3,6 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import is_dtype_equal
 
@@ -32,8 +30,7 @@ class TestDataFrameCombineFirst:
         combined = f.combine_first(g)
         tm.assert_frame_equal(combined, exp)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
-    def test_combine_first(self, float_frame, using_infer_string):
+    def test_combine_first(self, float_frame):
         # disjoint
         head, tail = float_frame[:5], float_frame[5:]
 
@@ -79,9 +76,7 @@ class TestDataFrameCombineFirst:
         tm.assert_series_equal(combined["A"].reindex(g.index), g["A"])
 
         # corner cases
-        warning = FutureWarning if using_infer_string else None
-        with tm.assert_produces_warning(warning, match="empty entries"):
-            comb = float_frame.combine_first(DataFrame())
+        comb = float_frame.combine_first(DataFrame())
         tm.assert_frame_equal(comb, float_frame)
 
         comb = DataFrame().combine_first(float_frame)
@@ -385,7 +380,7 @@ class TestDataFrameCombineFirst:
         df2 = DataFrame({"isBool": [True]})
 
         res = df1.combine_first(df2)
-        exp = DataFrame({"isBool": [True], "isNum": [val]})
+        exp = DataFrame({"isNum": [val], "isBool": [True]})
 
         tm.assert_frame_equal(res, exp)
 
@@ -401,6 +396,33 @@ class TestDataFrameCombineFirst:
         expected = DataFrame(
             {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
         ).set_index(["a", "b"])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "wide_val, dtype",
+        (
+            (1666880195890293744, "UInt64"),
+            (-1666880195890293744, "Int64"),
+        ),
+    )
+    def test_combine_first_preserve_EA_precision(self, wide_val, dtype):
+        # GH#60128
+        df1 = DataFrame({"A": [wide_val, 5]}, dtype=dtype)
+        df2 = DataFrame({"A": [6, 7, wide_val]}, dtype=dtype)
+        result = df1.combine_first(df2)
+        expected = DataFrame({"A": [wide_val, 5, wide_val]}, dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_combine_first_non_unique_columns(self):
+        # GH#29135
+        df1 = DataFrame([[1, np.nan], [3, 4]], columns=["P", "Q"], index=["A", "B"])
+        df2 = DataFrame(
+            [[5, 6, 7], [8, 9, np.nan]], columns=["P", "Q", "Q"], index=["A", "B"]
+        )
+        result = df1.combine_first(df2)
+        expected = DataFrame(
+            [[1, 6.0, 7.0], [3, 4.0, 4.0]], index=["A", "B"], columns=["P", "Q", "Q"]
+        )
         tm.assert_frame_equal(result, expected)
 
 
@@ -559,4 +581,14 @@ def test_combine_first_empty_columns():
     right = DataFrame(columns=["a", "c"])
     result = left.combine_first(right)
     expected = DataFrame(columns=["a", "b", "c"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_combine_first_preserve_column_order():
+    # GH#60427
+    df1 = DataFrame({"B": [1, 2, 3], "A": [4, None, 6]})
+    df2 = DataFrame({"A": [5]}, index=[1])
+
+    result = df1.combine_first(df2)
+    expected = DataFrame({"B": [1, 2, 3], "A": [4.0, 5.0, 6.0]})
     tm.assert_frame_equal(result, expected)

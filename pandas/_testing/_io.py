@@ -81,12 +81,12 @@ def round_trip_pathlib(writer, reader, path: str | None = None):
     if path is None:
         path = "___pathlib___"
     with ensure_clean(path) as path:
-        writer(Path(path))  # type: ignore[arg-type]
-        obj = reader(Path(path))  # type: ignore[arg-type]
+        writer(Path(path))
+        obj = reader(Path(path))
     return obj
 
 
-def write_to_compressed(compression, path, data, dest: str = "test") -> None:
+def write_to_compressed(compression, path: str, data, dest: str = "test") -> None:
     """
     Write data to a compressed file.
 
@@ -138,5 +138,9 @@ def write_to_compressed(compression, path, data, dest: str = "test") -> None:
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
 
-    with compress_method(path, mode=mode) as f:
+    # error: No overload variant of "ZipFile" matches argument types "str", "str"
+    # error: No overload variant of "BZ2File" matches argument types "str", "str"
+    # error: Argument "mode" to "TarFile" has incompatible type "str";
+    #  expected "Literal['r', 'a', 'w', 'x']
+    with compress_method(path, mode=mode) as f:  # type: ignore[call-overload, arg-type]
         getattr(f, method)(*args)

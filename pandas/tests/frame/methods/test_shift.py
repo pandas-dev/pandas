@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     CategoricalIndex,
@@ -24,7 +26,7 @@ class TestDataFrameShift:
         expected = df.T.shift(periods=1, fill_value=12345).T
         tm.assert_frame_equal(res, expected)
 
-        # same but with an 1D ExtensionArray backing it
+        # same but with a 1D ExtensionArray backing it
         df2 = df[[0]].astype("Float64")
         res2 = df2.shift(axis=1, periods=1, fill_value=12345)
         expected2 = DataFrame([12345] * 5, dtype="Float64")
@@ -747,3 +749,62 @@ class TestDataFrameShift:
         df = DataFrame()
         result = df.shift(1, axis=1)
         tm.assert_frame_equal(result, df)
+
+    def test_shift_with_offsets_freq_empty(self):
+        # GH#60102
+        dates = date_range("2020-01-01", periods=3, freq="D")
+        offset = offsets.Day()
+        shifted_dates = dates + offset
+        df = DataFrame(index=dates)
+        df_shifted = DataFrame(index=shifted_dates)
+        result = df.shift(freq=offset)
+        tm.assert_frame_equal(result, df_shifted)
+
+    def test_series_shift_interval_preserves_closed(self):
+        # GH#60389
+        ser = Series(
+            [pd.Interval(1, 2, closed="right"), pd.Interval(2, 3, closed="right")]
+        )
+        result = ser.shift(1)
+        expected = Series([np.nan, pd.Interval(1, 2, closed="right")])
+        tm.assert_series_equal(result, expected)
+
+    def test_shift_invalid_fill_value_deprecation(self):
+        # GH#53802
+        df = DataFrame(
+            {
+                "a": [1, 2, 3],
+                "b": [True, False, True],
+            }
+        )
+
+        msg = "shifting with a fill value that cannot"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.shift(1, fill_value="foo")
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["a"].shift(1, fill_value="foo")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["b"].shift(1, fill_value="foo")
+
+        # An incompatible null value
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.shift(1, fill_value=NaT)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["a"].shift(1, fill_value=NaT)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df["b"].shift(1, fill_value=NaT)
+
+    def test_shift_dt_index_multiple_periods_unsorted(self):
+        # https://github.com/pandas-dev/pandas/pull/62843
+        values = date_range("1/1/2000", periods=4, freq="D")
+        df = DataFrame({"a": [1, 2]}, index=[values[1], values[0]])
+        result = df.shift(periods=[1, 2], freq="D")
+        expected = DataFrame(
+            {
+                "a_1": [1.0, 2.0, np.nan],
+                "a_2": [2.0, np.nan, 1.0],
+            },
+            index=[values[2], values[1], values[3]],
+        )
+        tm.assert_frame_equal(result, expected)

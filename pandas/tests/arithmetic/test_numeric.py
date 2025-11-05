@@ -290,10 +290,16 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
 
-        result = three_days / index
-        tm.assert_equal(result, expected)
+        if isinstance(three_days, pd.offsets.Day):
+            # GH#41943 Day is no longer timedelta-like
+            msg = "unsupported operand type"
+            with pytest.raises(TypeError, match=msg):
+                three_days / index
+        else:
+            result = three_days / index
+            tm.assert_equal(result, expected)
+            msg = "cannot use operands with types dtype"
 
-        msg = "cannot use operands with types dtype"
         with pytest.raises(TypeError, match=msg):
             index / three_days
 
@@ -760,7 +766,7 @@ class TestMultiplicationDivision:
             div, mod = divmod(idx.values, 2)
 
         expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
+        for r, e in zip(result, expected, strict=True):
             tm.assert_index_equal(r, e)
 
     def test_divmod_ndarray(self, numeric_idx):
@@ -772,7 +778,7 @@ class TestMultiplicationDivision:
             div, mod = divmod(idx.values, other)
 
         expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
+        for r, e in zip(result, expected, strict=True):
             tm.assert_index_equal(r, e)
 
     def test_divmod_series(self, numeric_idx):
@@ -784,7 +790,7 @@ class TestMultiplicationDivision:
             div, mod = divmod(idx.values, other)
 
         expected = Series(div), Series(mod)
-        for r, e in zip(result, expected):
+        for r, e in zip(result, expected, strict=True):
             tm.assert_series_equal(r, e)
 
     @pytest.mark.parametrize("other", [np.nan, 7, -23, 2.718, -3.14, np.inf])
@@ -855,6 +861,19 @@ class TestMultiplicationDivision:
             result = 0 % s
             expected = Series([np.nan, 0.0])
             tm.assert_series_equal(result, expected)
+
+    def test_non_1d_ea_raises_notimplementederror(self):
+        # GH#61866
+        ea_array = array([1, 2, 3, 4, 5], dtype="Int64").reshape(5, 1)
+        np_array = np.array([1, 2, 3, 4, 5], dtype=np.int64).reshape(5, 1)
+
+        msg = "can only perform ops with 1-d structures"
+
+        with pytest.raises(NotImplementedError, match=msg):
+            ea_array * np_array
+
+        with pytest.raises(NotImplementedError, match=msg):
+            np_array * ea_array
 
 
 class TestAdditionSubtraction:
@@ -1069,7 +1088,7 @@ class TestAdditionSubtraction:
         with np.errstate(all="ignore"):
             expecteds = divmod(series.values, np.asarray(other_np))
 
-        for result, expected in zip(results, expecteds):
+        for result, expected in zip(results, expecteds, strict=True):
             # check the values, name, and index separately
             tm.assert_almost_equal(np.asarray(result), expected)
 

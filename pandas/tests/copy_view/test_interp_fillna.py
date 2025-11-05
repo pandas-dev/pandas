@@ -1,10 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
-
 from pandas import (
     NA,
     DataFrame,
@@ -114,18 +110,18 @@ def test_interp_fill_functions_inplace(func, dtype):
     assert view._mgr._has_no_reference(0)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_interpolate_cannot_with_object_dtype():
     df = DataFrame({"a": ["a", np.nan, "c"], "b": 1})
+    df["a"] = df["a"].astype(object)
 
     msg = "DataFrame cannot interpolate with object dtype"
     with pytest.raises(TypeError, match=msg):
         df.interpolate()
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_interpolate_object_convert_no_op():
     df = DataFrame({"a": ["a", "b", "c"], "b": 1})
+    df["a"] = df["a"].astype(object)
     arr_a = get_array(df, "a")
 
     # Now CoW makes a copy, it should not!
@@ -138,7 +134,7 @@ def test_interpolate_object_convert_copies():
     arr_a = get_array(df, "a")
     msg = "Can not interpolate with method=pad"
     with pytest.raises(ValueError, match=msg):
-        df.interpolate(method="pad", inplace=True, downcast="infer")
+        df.interpolate(method="pad", inplace=True)
 
     assert df._mgr._has_no_reference(0)
     assert np.shares_memory(arr_a, get_array(df, "a"))
@@ -152,7 +148,7 @@ def test_interpolate_downcast_reference_triggers_copy():
 
     msg = "Can not interpolate with method=pad"
     with pytest.raises(ValueError, match=msg):
-        df.interpolate(method="pad", inplace=True, downcast="infer")
+        df.interpolate(method="pad", inplace=True)
         assert df._mgr._has_no_reference(0)
         assert not np.shares_memory(arr_a, get_array(df, "a"))
 

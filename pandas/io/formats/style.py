@@ -10,6 +10,8 @@ import operator
 import textwrap
 from typing import (
     TYPE_CHECKING,
+    Concatenate,
+    Self,
     overload,
 )
 
@@ -66,7 +68,6 @@ if TYPE_CHECKING:
         Any,
         Axis,
         AxisInt,
-        Concatenate,
         ExcelWriterMergeCells,
         FilePath,
         IndexLabel,
@@ -75,7 +76,6 @@ if TYPE_CHECKING:
         P,
         QuantileInterpolation,
         Scalar,
-        Self,
         StorageOptions,
         T,
         WriteBuffer,
@@ -117,6 +117,12 @@ class Styler(StylerRenderer):
     r"""
     Helps style a DataFrame or Series according to the data with HTML and CSS.
 
+    This class provides methods for styling and formatting a Pandas DataFrame or Series.
+    The styled output can be rendered as HTML or LaTeX, and it supports CSS-based
+    styling, allowing users to control colors, font styles, and other visual aspects of
+    tabular data. It is particularly useful for presenting DataFrame objects in a
+    Jupyter Notebook environment or when exporting styled tables for reports and
+
     Parameters
     ----------
     data : Series or DataFrame
@@ -124,8 +130,6 @@ class Styler(StylerRenderer):
     precision : int, optional
         Precision to round floats to. If not given defaults to
         ``pandas.options.styler.format.precision``.
-
-        .. versionchanged:: 1.4.0
     table_styles : list-like, default None
         List of {selector: (attr, value)} dicts; see Notes.
     uuid : str, default None
@@ -181,6 +185,8 @@ class Styler(StylerRenderer):
 
     Attributes
     ----------
+    index : data.index Index
+    columns : data.columns Index
     env : Jinja2 jinja2.Environment
     template_html : Jinja2 Template
     template_html_table : Jinja2 Template
@@ -222,6 +228,7 @@ class Styler(StylerRenderer):
       * ``level<k>`` where `k` is the level in a MultiIndex
 
     * Column label cells include
+
       * ``col_heading``
       * ``col<n>`` where `n` is the numeric position of the column
       * ``level<k>`` where `k` is the level in a MultiIndex
@@ -231,7 +238,7 @@ class Styler(StylerRenderer):
     * Trimmed cells include ``col_trim`` or ``row_trim``.
 
     Any, or all, or these classes can be renamed by using the ``css_class_names``
-    argument in ``Styler.set_table_classes``, giving a value such as
+    argument in ``Styler.set_table_styles``, giving a value such as
     *{"row": "MY_ROW_CLASS", "col_trim": "", "row_trim": ""}*.
 
     Examples
@@ -709,8 +716,6 @@ class Styler(StylerRenderer):
             Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
             {booktabs} LaTeX package.
             Defaults to ``pandas.options.styler.latex.hrules``, which is `False`.
-
-            .. versionchanged:: 1.4.0
         clines : str, optional
             Use to control adding \\cline commands for the index labels separation.
             Possible values are:
@@ -748,8 +753,6 @@ class Styler(StylerRenderer):
             at the top or bottom using the multirow package. If not given defaults to
             ``pandas.options.styler.latex.multirow_align``, which is `"c"`.
             If "naive" is given renders without multirow.
-
-            .. versionchanged:: 1.4.0
         multicol_align : {"r", "c", "l", "naive-l", "naive-r"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right. If not given defaults to
@@ -758,8 +761,6 @@ class Styler(StylerRenderer):
             Pipe decorators can also be added to non-naive values to draw vertical
             rules, e.g. "\|r" will draw a rule on the left side of right aligned merged
             cells.
-
-            .. versionchanged:: 1.4.0
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         environment : str, optional
@@ -767,8 +768,6 @@ class Styler(StylerRenderer):
             If 'longtable' is specified then a more suitable template is
             rendered. If not given defaults to
             ``pandas.options.styler.latex.environment``, which is `None`.
-
-            .. versionadded:: 1.4.0
         encoding : str, optional
             Character encoding setting. Defaults
             to ``pandas.options.styler.render.encoding``, which is "utf-8".
@@ -1228,6 +1227,111 @@ class Styler(StylerRenderer):
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     @overload
+    def to_typst(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        *,
+        encoding: str | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+    ) -> None: ...
+
+    @overload
+    def to_typst(
+        self,
+        buf: None = ...,
+        *,
+        encoding: str | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+    ) -> str: ...
+
+    @Substitution(buf=buffering_args, encoding=encoding_args)
+    def to_typst(
+        self,
+        buf: FilePath | WriteBuffer[str] | None = None,
+        *,
+        encoding: str | None = None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
+        max_rows: int | None = None,
+        max_columns: int | None = None,
+    ) -> str | None:
+        """
+        Write Styler to a file, buffer or string in Typst format.
+
+        .. versionadded:: 3.0.0
+
+        Parameters
+        ----------
+        %(buf)s
+        %(encoding)s
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+        max_rows : int, optional
+            The maximum number of rows that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_rows``, which is None.
+        max_columns : int, optional
+            The maximum number of columns that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_columns``, which is None.
+
+            Rows and columns may be reduced if the number of total elements is
+            large. This value is set to ``pandas.options.styler.render.max_elements``,
+            which is 262144 (18 bit browser rendering).
+
+        Returns
+        -------
+        str or None
+            If `buf` is None, returns the result as a string. Otherwise returns `None`.
+
+        See Also
+        --------
+        DataFrame.to_typst : Write a DataFrame to a file,
+            buffer or string in Typst format.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        >>> df.style.to_typst()  # doctest: +SKIP
+
+        .. code-block:: typst
+
+            #table(
+              columns: 3,
+              [], [A], [B],
+
+              [0], [1], [3],
+              [1], [2], [4],
+            )
+        """
+        obj = self._copy(deepcopy=True)
+
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+
+        text = obj._render_typst(
+            sparse_columns=sparse_columns,
+            sparse_index=sparse_index,
+            max_rows=max_rows,
+            max_cols=max_columns,
+        )
+        return save_to_buffer(
+            text, buf=buf, encoding=(encoding if buf is not None else None)
+        )
+
+    @overload
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str],
@@ -1643,7 +1747,7 @@ class Styler(StylerRenderer):
         for j in attrs.columns:
             ser = attrs[j]
             for i, c in ser.items():
-                if not c:
+                if not c or pd.isna(c):
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
                 if axis == 0:
@@ -1847,11 +1951,6 @@ class Styler(StylerRenderer):
             ``func`` should take a DataFrame if ``axis`` is ``None`` and return either
             an ndarray with the same shape or a DataFrame, not necessarily of the same
             shape, with valid index and columns labels considering ``subset``.
-
-            .. versionchanged:: 1.3.0
-
-            .. versionchanged:: 1.4.0
-
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -1915,7 +2014,7 @@ class Styler(StylerRenderer):
         more details.
         """
         self._todo.append(
-            (lambda instance: getattr(instance, "_apply"), (func, axis, subset), kwargs)
+            (lambda instance: instance._apply, (func, axis, subset), kwargs)
         )
         return self
 
@@ -2022,7 +2121,7 @@ class Styler(StylerRenderer):
         """
         self._todo.append(
             (
-                lambda instance: getattr(instance, "_apply_index"),
+                lambda instance: instance._apply_index,
                 (func, axis, level, "apply"),
                 kwargs,
             )
@@ -2051,7 +2150,7 @@ class Styler(StylerRenderer):
     ) -> Styler:
         self._todo.append(
             (
-                lambda instance: getattr(instance, "_apply_index"),
+                lambda instance: instance._apply_index,
                 (func, axis, level, "map"),
                 kwargs,
             )
@@ -2124,9 +2223,7 @@ class Styler(StylerRenderer):
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
         """
-        self._todo.append(
-            (lambda instance: getattr(instance, "_map"), (func, subset), kwargs)
-        )
+        self._todo.append((lambda instance: instance._map, (func, subset), kwargs))
         return self
 
     def set_table_attributes(self, attributes: str) -> Styler:
@@ -2482,7 +2579,7 @@ class Styler(StylerRenderer):
                 for i, level in enumerate(levels_):
                     styles.append(
                         {
-                            "selector": f"thead tr:nth-child({level+1}) th",
+                            "selector": f"thead tr:nth-child({level + 1}) th",
                             "props": props
                             + (
                                 f"top:{i * pixel_size}px; height:{pixel_size}px; "
@@ -2493,7 +2590,7 @@ class Styler(StylerRenderer):
                 if not all(name is None for name in self.index.names):
                     styles.append(
                         {
-                            "selector": f"thead tr:nth-child({obj.nlevels+1}) th",
+                            "selector": f"thead tr:nth-child({obj.nlevels + 1}) th",
                             "props": props
                             + (
                                 f"top:{(len(levels_)) * pixel_size}px; "
@@ -2513,7 +2610,7 @@ class Styler(StylerRenderer):
                     styles.extend(
                         [
                             {
-                                "selector": f"thead tr th:nth-child({level+1})",
+                                "selector": f"thead tr th:nth-child({level + 1})",
                                 "props": props_ + "z-index:3 !important;",
                             },
                             {
@@ -3127,8 +3224,6 @@ class Styler(StylerRenderer):
         """
         Draw bar chart in the cell backgrounds.
 
-        .. versionchanged:: 1.4.0
-
         Parameters
         ----------
         %(subset)s
@@ -3169,8 +3264,6 @@ class Styler(StylerRenderer):
 
             If a callable should take a 1d or 2d array and return a scalar.
 
-            .. versionchanged:: 1.4.0
-
         vmin : float, optional
             Minimum bar value, defining the left hand limit
             of the bar drawing range, lower values are clipped to `vmin`.
@@ -3182,8 +3275,6 @@ class Styler(StylerRenderer):
         props : str, optional
             The base CSS of the cell that is extended to add the bar chart. Defaults to
             `"width: 10em;"`.
-
-            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -3655,26 +3746,19 @@ class Styler(StylerRenderer):
 
         Uses custom templates and Jinja environment.
 
-        .. versionchanged:: 1.3.0
-
         Parameters
         ----------
         searchpath : str or list
             Path or paths of directories containing the templates.
         html_table : str
             Name of your custom template to replace the html_table template.
-
-            .. versionadded:: 1.3.0
-
         html_style : str
             Name of your custom template to replace the html_style template.
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
         MyStyler : subclass of Styler
-            Has the correct ``env``,``template_html``, ``template_html_table`` and
+            Has the correct ``env``, ``template_html``, ``template_html_table`` and
             ``template_html_style`` class attributes set.
 
         See Also
@@ -4108,8 +4192,10 @@ def _bar(
         if end > start:
             cell_css += "background: linear-gradient(90deg,"
             if start > 0:
-                cell_css += f" transparent {start*100:.1f}%, {color} {start*100:.1f}%,"
-            cell_css += f" {color} {end*100:.1f}%, transparent {end*100:.1f}%)"
+                cell_css += (
+                    f" transparent {start * 100:.1f}%, {color} {start * 100:.1f}%,"
+                )
+            cell_css += f" {color} {end * 100:.1f}%, transparent {end * 100:.1f}%)"
         return cell_css
 
     def css_calc(x, left: float, right: float, align: str, color: str | list | tuple):

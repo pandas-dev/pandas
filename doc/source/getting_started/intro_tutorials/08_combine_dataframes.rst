@@ -271,7 +271,7 @@ Add the parameters' full description and name, provided by the parameters metada
 
 Compared to the previous example, there is no common column name.
 However, the ``parameter`` column in the ``air_quality`` table and the
-``id`` column in the ``air_quality_parameters_name`` both provide the
+``id`` column in the ``air_quality_parameters`` table both provide the
 measured variable in a common format. The ``left_on`` and ``right_on``
 arguments are used here (instead of just ``on``) to make the link
 between the two tables.

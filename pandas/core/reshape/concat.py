@@ -17,6 +17,8 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -43,7 +45,9 @@ from pandas.core.indexes.api import (
     ensure_index,
     get_objs_combined_axis,
     get_unanimous_names,
+    union_indexes,
 )
+from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
@@ -149,6 +153,7 @@ def concat(
 ) -> DataFrame | Series: ...
 
 
+@set_module("pandas")
 def concat(
     objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
     *,
@@ -159,7 +164,7 @@ def concat(
     levels=None,
     names: list[HashableT] | None = None,
     verify_integrity: bool = False,
-    sort: bool = False,
+    sort: bool | lib.NoDefault = lib.no_default,
     copy: bool | lib.NoDefault = lib.no_default,
 ) -> DataFrame | Series:
     """
@@ -256,7 +261,7 @@ def concat(
     1    b
     0    c
     1    d
-    dtype: object
+    dtype: str
 
     Clear the existing index and reset it in the result
     by setting the ``ignore_index`` option to ``True``.
@@ -266,7 +271,7 @@ def concat(
     1    b
     2    c
     3    d
-    dtype: object
+    dtype: str
 
     Add a hierarchical index at the outermost level of
     the data with the ``keys`` option.
@@ -276,7 +281,7 @@ def concat(
         1    b
     s2  0    c
         1    d
-    dtype: object
+    dtype: str
 
     Label the index keys you create with the ``names`` option.
 
@@ -286,7 +291,7 @@ def concat(
                  1         b
     s2           0         c
                  1         d
-    dtype: object
+    dtype: str
 
     Combine two ``DataFrame`` objects with identical columns.
 
@@ -390,7 +395,7 @@ def concat(
             "version. Copy-on-Write is active in pandas since 3.0 which utilizes "
             "a lazy copy mechanism that defers copies until necessary. Use "
             ".copy() to make an eager copy if necessary.",
-            DeprecationWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
     if join == "outer":
@@ -402,13 +407,40 @@ def concat(
             "Only can inner (intersect) or outer (union) join the other axis"
         )
 
-    if not is_bool(sort):
+    objs, keys, ndims = _clean_keys_and_objs(objs, keys)
+
+    if sort is lib.no_default:
+        if axis == 0:
+            non_concat_axis = [
+                obj.columns if isinstance(obj, ABCDataFrame) else Index([obj.name])
+                for obj in objs
+            ]
+        else:
+            non_concat_axis = [obj.index for obj in objs]
+
+        if (
+            intersect
+            or any(not isinstance(index, DatetimeIndex) for index in non_concat_axis)
+            or all(
+                prev is curr for prev, curr in zip(non_concat_axis, non_concat_axis[1:])
+            )
+            or (
+                all(
+                    prev[-1] <= curr[0] and prev.is_monotonic_increasing
+                    for prev, curr in zip(non_concat_axis, non_concat_axis[1:])
+                    if not prev.empty and not curr.empty
+                )
+                and non_concat_axis[-1].is_monotonic_increasing
+            )
+        ):
+            # Sorting or not will not impact the result.
+            sort = False
+    elif not is_bool(sort):
         raise ValueError(
             f"The 'sort' keyword only accepts boolean values; {sort} was passed."
         )
-    sort = bool(sort)
-
-    objs, keys, ndims = _clean_keys_and_objs(objs, keys)
+    else:
+        sort = bool(sort)
 
     # select an object to be our result reference
     sample, objs = _get_sample_object(objs, ndims, keys, names, levels, intersect)
@@ -433,9 +465,10 @@ def concat(
     if len(ndims) > 1:
         objs = _sanitize_mixed_ndim(objs, sample, ignore_index, bm_axis)
 
+    orig_axis = axis
     axis = 1 - bm_axis if is_frame else 0
     names = names or getattr(keys, "names", None)
-    return _get_result(
+    result = _get_result(
         objs,
         is_series,
         bm_axis,
@@ -448,6 +481,28 @@ def concat(
         names,
         axis,
     )
+
+    if sort is lib.no_default:
+        if orig_axis == 0:
+            non_concat_axis = [
+                obj.columns if isinstance(obj, ABCDataFrame) else Index([obj.name])
+                for obj in objs
+            ]
+        else:
+            non_concat_axis = [obj.index for obj in objs]
+        no_sort_result_index = union_indexes(non_concat_axis, sort=False)
+        orig = result.index if orig_axis == 1 else result.columns
+        if not no_sort_result_index.equals(orig):
+            msg = (
+                "Sorting by default when concatenating all DatetimeIndex is "
+                "deprecated.  In the future, pandas will respect the default "
+                "of `sort=False`. Specify `sort=True` or `sort=False` to "
+                "silence this message. If you see this warnings when not "
+                "directly calling concat, report a bug to pandas."
+            )
+            warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+
+    return result
 
 
 def _sanitize_mixed_ndim(
@@ -475,18 +530,23 @@ def _sanitize_mixed_ndim(
 
         else:
             name = getattr(obj, "name", None)
+            rename_columns = False
             if ignore_index or name is None:
                 if axis == 1:
                     # doing a row-wise concatenation so need everything
                     # to line up
-                    name = 0
+                    if name is None:
+                        name = 0
+                        rename_columns = True
                 else:
                     # doing a column-wise concatenation so need series
                     # to have unique names
-                    name = current_column
-                    current_column += 1
+                    if name is None:
+                        rename_columns = True
+                        name = current_column
+                        current_column += 1
                 obj = sample._constructor(obj, copy=False)
-                if isinstance(obj, ABCDataFrame):
+                if isinstance(obj, ABCDataFrame) and rename_columns:
                     obj.columns = range(name, name + 1, 1)
             else:
                 obj = sample._constructor({name: obj}, copy=False)
@@ -502,7 +562,7 @@ def _get_result(
     bm_axis: AxisInt,
     ignore_index: bool,
     intersect: bool,
-    sort: bool,
+    sort: bool | lib.NoDefault,
     keys: Iterable[Hashable] | None,
     levels,
     verify_integrity: bool,
@@ -543,7 +603,7 @@ def _get_result(
             result = sample._constructor_from_mgr(mgr, axes=mgr.axes)
             result._name = name
             return result.__finalize__(
-                types.SimpleNamespace(objs=objs), method="concat"
+                types.SimpleNamespace(input_objs=objs), method="concat"
             )
 
         # combine as columns in a frame
@@ -564,7 +624,9 @@ def _get_result(
             )
             df = cons(data, index=index, copy=False)
             df.columns = columns
-            return df.__finalize__(types.SimpleNamespace(objs=objs), method="concat")
+            return df.__finalize__(
+                types.SimpleNamespace(input_objs=objs), method="concat"
+            )
 
     # combine block managers
     else:
@@ -603,14 +665,14 @@ def _get_result(
         )
 
         out = sample._constructor_from_mgr(new_data, axes=new_data.axes)
-        return out.__finalize__(types.SimpleNamespace(objs=objs), method="concat")
+        return out.__finalize__(types.SimpleNamespace(input_objs=objs), method="concat")
 
 
 def new_axes(
     objs: list[Series | DataFrame],
     bm_axis: AxisInt,
     intersect: bool,
-    sort: bool,
+    sort: bool | lib.NoDefault,
     keys: Iterable[Hashable] | None,
     names: list[HashableT] | None,
     axis: AxisInt,
@@ -830,7 +892,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
     if (levels is None and isinstance(keys[0], tuple)) or (
         levels is not None and len(levels) > 1
     ):
-        zipped = list(zip(*keys))
+        zipped = list(zip(*keys, strict=True))
         if names is None:
             names = [None] * len(zipped)
 
@@ -856,13 +918,13 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         # things are potentially different sizes, so compute the exact codes
         # for each level and pass those to MultiIndex.from_arrays
 
-        for hlevel, level in zip(zipped, levels):
+        for hlevel, level in zip(zipped, levels, strict=True):
             to_concat = []
             if isinstance(hlevel, Index) and hlevel.equals(level):
                 lens = [len(idx) for idx in indexes]
                 codes_list.append(np.repeat(np.arange(len(hlevel)), lens))
             else:
-                for key, index in zip(hlevel, indexes):
+                for key, index in zip(hlevel, indexes, strict=True):
                     # Find matching codes, include matching nan values as equal.
                     mask = (isna(level) & isna(key)) | (level == key)
                     if not mask.any():
@@ -912,7 +974,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
     # do something a bit more speedy
 
-    for hlevel, level in zip(zipped, levels):
+    for hlevel, level in zip(zipped, levels, strict=True):
         hlevel_index = ensure_index(hlevel)
         mapped = level.get_indexer(hlevel_index)
 

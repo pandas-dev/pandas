@@ -20,7 +20,10 @@ from pandas._libs.tslibs.offsets import (
     MonthEnd,
     prefix_mapping,
 )
-from pandas.errors import OutOfBoundsDatetime
+from pandas.errors import (
+    OutOfBoundsDatetime,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -212,7 +215,7 @@ class TestDateRanges:
         # check that overflows in calculating `addend = periods * stride`
         #  are caught
         with tm.assert_produces_warning(None):
-            # we should _not_ be seeing a overflow RuntimeWarning
+            # we should _not_ be seeing an overflow RuntimeWarning
             dti = date_range(start="1677-09-22", periods=213503, freq="D")
 
         assert dti[0] == Timestamp("1677-09-22")
@@ -802,11 +805,12 @@ class TestDateRanges:
     )
     def test_date_range_depr_lowercase_frequency(self, freq, freq_depr):
         # GH#58998
-        depr_msg = f"'{freq_depr[1:]}' is deprecated and will be removed "
-        "in a future version."
+        depr_msg = (
+            f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
+        )
 
         expected = date_range("1/1/2000", periods=4, freq=freq)
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result = date_range("1/1/2000", periods=4, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
@@ -1212,7 +1216,7 @@ class TestCustomDateRange:
             )
 
     @pytest.mark.parametrize(
-        "freq", [freq for freq in prefix_mapping if freq.startswith("C")]
+        "freq", [freq for freq in prefix_mapping if freq.upper().startswith("C")]
     )
     def test_all_custom_freq(self, freq):
         # should not raise
@@ -1275,6 +1279,39 @@ class TestCustomDateRange:
             dtype=f"M8[{unit}]",
         )
         tm.assert_index_equal(result, expected)
+
+    def test_cdaterange_cbh(self):
+        # GH#62849
+        result = bdate_range(
+            "2009-03-13",
+            "2009-03-15",
+            freq="cbh",
+            weekmask="Mon Wed Fri",
+            holidays=["2009-03-14"],
+        )
+        expected = DatetimeIndex(
+            [
+                "2009-03-13 09:00:00",
+                "2009-03-13 10:00:00",
+                "2009-03-13 11:00:00",
+                "2009-03-13 12:00:00",
+                "2009-03-13 13:00:00",
+                "2009-03-13 14:00:00",
+                "2009-03-13 15:00:00",
+                "2009-03-13 16:00:00",
+            ],
+            dtype="datetime64[ns]",
+            freq="cbh",
+        )
+        tm.assert_index_equal(result, expected)
+
+    def test_cdaterange_deprecated_error_CBH(self):
+        # GH#62849
+        msg = "invalid custom frequency string: CBH, did you mean cbh?"
+        with pytest.raises(ValueError, match=msg):
+            bdate_range(
+                START, END, freq="CBH", weekmask="Mon Wed Fri", holidays=["2009-03-14"]
+            )
 
 
 class TestDateRangeNonNano:
@@ -1736,3 +1773,28 @@ class TestDateRangeNonTickFreq:
             freq="-1YE",
         )
         tm.assert_index_equal(rng, exp)
+
+    def test_date_range_tzaware_endpoints_accept_ambiguous(self):
+        # https://github.com/pandas-dev/pandas/issues/52908
+        start = Timestamp("1916-08-01", tz="Europe/Oslo")
+        end = Timestamp("1916-12-01", tz="Europe/Oslo")
+        res = date_range(start, end, freq="MS", ambiguous=True)
+        exp = date_range(
+            "1916-08-01", "1916-12-01", freq="MS", tz="Europe/Oslo", ambiguous=True
+        )
+        tm.assert_index_equal(res, exp)
+
+    def test_date_range_tzaware_endpoints_accept_nonexistent(self):
+        # Europe/London spring-forward: 2015-03-29 01:30 does not exist.
+        tz = "Europe/London"
+        start = Timestamp("2015-03-28 01:30", tz=tz)
+        end = Timestamp("2015-03-30 01:30", tz=tz)
+
+        result = date_range(start, end, freq="D", nonexistent="shift_forward")
+
+        # Build expected by generating naive daily times, then tz_localize so
+        # the nonexistent handling is applied during localization.
+        expected = date_range(
+            "2015-03-28 01:30", "2015-03-30 01:30", freq="D"
+        ).tz_localize(tz, nonexistent="shift_forward")
+        tm.assert_index_equal(result, expected)

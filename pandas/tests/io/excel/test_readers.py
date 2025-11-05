@@ -17,8 +17,6 @@ from zipfile import BadZipFile
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -587,7 +585,7 @@ class TestReaders:
 
         expected["a"] = expected["a"].astype("float64")
         expected["b"] = expected["b"].astype("float32")
-        expected["c"] = Series(["001", "002", "003", "004"], dtype=object)
+        expected["c"] = Series(["001", "002", "003", "004"], dtype="str")
         tm.assert_frame_equal(actual, expected)
 
         msg = "Unable to convert column d to type int64"
@@ -611,8 +609,8 @@ class TestReaders:
                 {
                     "a": Series([1, 2, 3, 4], dtype="float64"),
                     "b": Series([2.5, 3.5, 4.5, 5.5], dtype="float32"),
-                    "c": Series(["001", "002", "003", "004"], dtype=object),
-                    "d": Series(["1", "2", np.nan, "4"], dtype=object),
+                    "c": Series(["001", "002", "003", "004"], dtype="str"),
+                    "d": Series(["1", "2", np.nan, "4"], dtype="str"),
                 },
             ),
         ],
@@ -625,7 +623,6 @@ class TestReaders:
         expected = DataFrame(expected)
         tm.assert_frame_equal(actual, expected)
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
     def test_dtype_backend(self, read_ext, dtype_backend, engine, tmp_excel):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
@@ -660,6 +657,10 @@ class TestReaders:
                     for col in df.columns
                 }
             )
+
+            # pandas uses large_string by default, but pyarrow infers string
+            expected["d"] = expected["d"].astype(pd.ArrowDtype(pa.string()))
+            expected["h"] = expected["h"].astype(pd.ArrowDtype(pa.string()))
             # pyarrow by default infers timestamp resolution as us, not ns
             expected["i"] = ArrowExtensionArray(
                 expected["i"].array._pa_array.cast(pa.timestamp(unit="us"))
@@ -913,8 +914,7 @@ class TestReaders:
 
             error = XLRDError
             msg = (
-                "Unsupported format, or corrupt file: Expected BOF "
-                "record; found b'foo'"
+                "Unsupported format, or corrupt file: Expected BOF record; found b'foo'"
             )
         elif engine == "calamine":
             from python_calamine import CalamineError
@@ -938,29 +938,27 @@ class TestReaders:
 
     @td.skip_if_not_us_locale
     @pytest.mark.single_cpu
-    def test_read_from_s3_url(self, read_ext, s3_public_bucket, s3so):
-        # Bucket created in tests/io/conftest.py
+    def test_read_from_s3_url(self, read_ext, s3_bucket_public, s3so):
         with open("test1" + read_ext, "rb") as f:
-            s3_public_bucket.put_object(Key="test1" + read_ext, Body=f)
+            s3_bucket_public.put_object(Key="test1" + read_ext, Body=f)
 
-        url = f"s3://{s3_public_bucket.name}/test1" + read_ext
+        url = f"s3://{s3_bucket_public.name}/test1" + read_ext
 
         url_table = pd.read_excel(url, storage_options=s3so)
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.single_cpu
-    def test_read_from_s3_object(self, read_ext, s3_public_bucket, s3so):
+    def test_read_from_s3_object(self, read_ext, s3_bucket_public, s3so):
         # GH 38788
-        # Bucket created in tests/io/conftest.py
         with open("test1" + read_ext, "rb") as f:
-            s3_public_bucket.put_object(Key="test1" + read_ext, Body=f)
+            s3_bucket_public.put_object(Key="test1" + read_ext, Body=f)
 
         import s3fs
 
         s3 = s3fs.S3FileSystem(**s3so)
 
-        with s3.open(f"s3://{s3_public_bucket.name}/test1" + read_ext) as f:
+        with s3.open(f"s3://{s3_bucket_public.name}/test1" + read_ext) as f:
             url_table = pd.read_excel(f)
 
         local_table = pd.read_excel("test1" + read_ext)

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -158,11 +156,11 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_quantile_raises():
     df = DataFrame([["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"])
 
-    with pytest.raises(TypeError, match="cannot be performed against 'object' dtypes"):
+    msg = "dtype '(object|str)' does not support operation 'quantile'"
+    with pytest.raises(TypeError, match=msg):
         df.groupby("key").quantile()
 
 
@@ -241,7 +239,6 @@ def test_groupby_quantile_nullable_array(values, q):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("q", [0.5, [0.0, 0.5, 1.0]])
 @pytest.mark.parametrize("numeric_only", [True, False])
 def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
@@ -251,15 +248,16 @@ def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
         expected = df.groupby("a")[["b"]].quantile(q)
         tm.assert_frame_equal(result, expected)
     else:
-        with pytest.raises(
-            TypeError, match="'quantile' cannot be performed against 'object' dtypes!"
-        ):
+        msg = "dtype '.*' does not support operation 'quantile'"
+        with pytest.raises(TypeError, match=msg):
             df.groupby("a").quantile(q, numeric_only=numeric_only)
 
 
 def test_groupby_quantile_NA_float(any_float_dtype):
     # GH#42849
-    df = DataFrame({"x": [1, 1], "y": [0.2, np.nan]}, dtype=any_float_dtype)
+    dtype = pd.Series([], dtype=any_float_dtype).dtype
+    item = np.nan if isinstance(dtype, np.dtype) else pd.NA
+    df = DataFrame({"x": [1, 1], "y": [0.2, item]}, dtype=any_float_dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     exp_index = Index([1.0], dtype=any_float_dtype, name="x")
 
@@ -357,7 +355,7 @@ def test_groupby_quantile_allNA_column(dtype):
     df = DataFrame({"x": [1, 1], "y": [pd.NA] * 2}, dtype=dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     expected = pd.Series(
-        [np.nan], dtype=dtype, index=Index([1.0], dtype=dtype), name="y"
+        [pd.NA], dtype=dtype, index=Index([1.0], dtype=dtype), name="y"
     )
     expected.index.name = "x"
     tm.assert_series_equal(expected, result)
