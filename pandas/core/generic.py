@@ -280,7 +280,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # make a copy if explicitly requested
         if copy:
-            mgr = mgr.copy()
+            mgr = mgr.copy(deep=True)
         if dtype is not None:
             # avoid further copies if we can
             if (
