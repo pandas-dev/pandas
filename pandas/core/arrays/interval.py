@@ -87,7 +87,10 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    getitem_returns_view,
+)
 from pandas.core.ops import (
     invalid_comparison,
     unpack_zerodim_and_defer,
@@ -843,7 +846,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # ndarray[Any, Any]]"; expected "Union[Union[DatetimeArray, TimedeltaArray],
         # ndarray[Any, Any]]"
         result = self._simple_new(left, right, dtype=self.dtype)  # type: ignore[arg-type]
-        if self._getitem_returns_view(key):
+        if getitem_returns_view(self, key):
             result._readonly = self._readonly
         return result
 

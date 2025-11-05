@@ -41,7 +41,10 @@ from pandas.api.extensions import (
     ExtensionArray,
     ExtensionDtype,
 )
-from pandas.core.indexers import unpack_tuple_and_ellipses
+from pandas.core.indexers import (
+    getitem_returns_view,
+    unpack_tuple_and_ellipses,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -111,7 +114,7 @@ class JSONArray(ExtensionArray):
         elif isinstance(item, slice):
             # slice
             result = type(self)(self.data[item])
-            if self._getitem_returns_view(item):
+            if getitem_returns_view(self, item):
                 result._readonly = self._readonly
             return result
         elif not is_list_like(item):

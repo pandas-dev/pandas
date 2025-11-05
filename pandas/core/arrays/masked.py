@@ -76,7 +76,10 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    getitem_returns_view,
+)
 from pandas.core.ops import invalid_comparison
 from pandas.core.util.hashing import hash_array
 
@@ -214,7 +217,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return self._data[item]
 
         result = self._simple_new(self._data[item], newmask)
-        if self._getitem_returns_view(item):
+        if getitem_returns_view(self, item):
             result._readonly = self._readonly
         return result
 

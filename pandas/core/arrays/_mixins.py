@@ -54,7 +54,10 @@ from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import extract_array
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    getitem_returns_view,
+)
 from pandas.core.sorting import nargminmax
 
 if TYPE_CHECKING:
@@ -287,7 +290,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             if self.ndim == 1:
                 return self._box_func(result)
             result = self._from_backing_data(result)
-            if self._getitem_returns_view(key):
+            if getitem_returns_view(self, key):
                 result._readonly = self._readonly
             return result
 
@@ -300,7 +303,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             return self._box_func(result)
 
         result = self._from_backing_data(result)
-        if self._getitem_returns_view(key):
+        if getitem_returns_view(self, key):
             result._readonly = self._readonly
         return result
 

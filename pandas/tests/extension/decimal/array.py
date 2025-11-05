@@ -30,7 +30,10 @@ from pandas.core.arrays import (
     ExtensionArray,
     ExtensionScalarOpsMixin,
 )
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    getitem_returns_view,
+)
 
 if TYPE_CHECKING:
     from pandas._typing import type_t
@@ -178,7 +181,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
             # array, slice.
             item = pd.api.indexers.check_array_indexer(self, item)
             result = type(self)(self._data[item])
-            if self._getitem_returns_view(item):
+            if getitem_returns_view(self, item):
                 result._readonly = self._readonly
             return result
 

@@ -78,6 +78,7 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_array_indexer,
+    getitem_returns_view,
     unpack_tuple_and_ellipses,
     validate_indices,
 )
@@ -791,7 +792,7 @@ class ArrowExtensionArray(
         value = self._pa_array[item]
         if isinstance(value, pa.ChunkedArray):
             result = self._from_pyarrow_array(value)
-            if self._getitem_returns_view(item):
+            if getitem_returns_view(self, item):
                 result._readonly = self._readonly
             return result
         else:
