@@ -6316,6 +6316,91 @@ More information about the SAV and ZSAV file formats is available here_.
 
 .. _here: https://www.ibm.com/docs/en/spss-statistics/22.0.0
 
+
+.. _io.colab:
+
+Loading Data in Google Colab
+-----------------------------
+
+Google Colab is a popular cloud-based Jupyter notebook environment. pandas works seamlessly in Colab, and there are several ways to load data:
+
+From Google Drive
+~~~~~~~~~~~~~~~~~
+
+To access files stored in your Google Drive:
+
+.. code-block:: python
+
+    from google.colab import drive
+    import pandas as pd
+    
+    # Mount your Google Drive
+    drive.mount('/content/drive')
+    
+    # Read file from Drive
+    df = pd.read_csv('/content/drive/MyDrive/your_file.csv')
+
+From Local Computer
+~~~~~~~~~~~~~~~~~~~
+
+To upload files from your local machine:
+
+.. code-block:: python
+
+    from google.colab import files
+    import pandas as pd
+    import io
+    
+    # Upload file (opens file picker dialog)
+    uploaded = files.upload()
+    
+    # Read the uploaded file
+    for filename in uploaded.keys():
+        df = pd.read_csv(io.BytesIO(uploaded[filename]))
+
+From URL
+~~~~~~~~
+
+Direct URL loading works the same as in standard pandas:
+
+.. code-block:: python
+
+    import pandas as pd
+    
+    # Read from any public URL
+    url = 'https://raw.githubusercontent.com/example/repo/main/data.csv'
+    df = pd.read_csv(url)
+
+From Google Sheets
+~~~~~~~~~~~~~~~~~~
+
+To read data from Google Sheets:
+
+.. code-block:: python
+
+    import pandas as pd
+    
+    # Option 1: Export as CSV (sheet must be publicly accessible)
+    sheet_id = 'your-spreadsheet-id'
+    sheet_name = 'Sheet1'
+    url = f'https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}'
+    df = pd.read_csv(url)
+    
+    # Option 2: Using authentication for private sheets
+    from google.colab import auth
+    import gspread
+    from google.auth import default
+    
+    auth.authenticate_user()
+    creds, _ = default()
+    gc = gspread.authorize(creds)
+    
+    worksheet = gc.open('Your Spreadsheet Name').sheet1
+    data = worksheet.get_all_values()
+    df = pd.DataFrame(data[1:], columns=data[0])
+
+For more details on Colab-specific I/O operations, see the `official Google Colab I/O guide <https://colab.research.google.com/notebooks/io.ipynb>`_.
+
 .. _io.other:
 
 Other file formats
