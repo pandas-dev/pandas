@@ -115,6 +115,8 @@ through the ``str`` accessor will work the same:
    class. The dtype can be constructed as ``pd.StringDtype(na_value=np.nan)``,
    but for general usage we recommend to use the shorter ``"str"`` alias.
 
+.. _string_migration_guide-differences:
+
 Overview of behavior differences and how to address them
 ---------------------------------------------------------
 

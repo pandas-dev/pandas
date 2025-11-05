@@ -320,8 +320,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Separate out macOS 13 and 14, since macOS 14 is arm64 only
-        os: [ubuntu-24.04, macOS-13, macOS-14, windows-2025]
+        os: [ubuntu-24.04, macos-15-intel, macos-15, windows-2025]
 
     timeout-minutes: 90
 

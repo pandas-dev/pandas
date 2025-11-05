@@ -573,9 +573,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
            :meth:`pandas.array` with ``dtype="string"`` for a stable way of
            creating a `StringArray` from any sequence.
 
-        .. versionchanged:: 1.5.0
-
-           StringArray now accepts array-likes containing
+           StringArray accepts array-likes containing
            nan-likes(``None``, ``np.nan``) for the ``values`` parameter
            in addition to strings and :attr:`pandas.NA`
 
