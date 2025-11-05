@@ -3249,14 +3249,14 @@ class TestAsOfMerge:
             )
 
         left = pd.DataFrame(
-            list(zip([0, 5, 10, 15, 20, 25], [0, 1, 2, 3, 4, 5])),
+            list(zip([0, 5, 10, 15, 20, 25], [0, 1, 2, 3, 4, 5], strict=True)),
             columns=["time", "left"],
         )
 
         left["time"] = pd.to_timedelta(left["time"], "ms").astype(f"m8[{unit}]")
 
         right = pd.DataFrame(
-            list(zip([0, 3, 9, 12, 15, 18], [0, 1, 2, 3, 4, 5])),
+            list(zip([0, 3, 9, 12, 15, 18], [0, 1, 2, 3, 4, 5], strict=True)),
             columns=["time", "right"],
         )
 
@@ -3268,6 +3268,7 @@ class TestAsOfMerge:
                     [0, 5, 10, 15, 20, 25],
                     [0, 1, 2, 3, 4, 5],
                     [0, np.nan, 2, 4, np.nan, np.nan],
+                    strict=True,
                 )
             ),
             columns=["time", "left", "right"],

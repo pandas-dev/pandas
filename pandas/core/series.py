@@ -5928,8 +5928,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         inclusive : {"both", "neither", "left", "right"}
             Include boundaries. Whether to set each bound as closed or open.
 
-            .. versionchanged:: 1.3.0
-
         Returns
         -------
         Series
