@@ -989,3 +989,30 @@ def test_resample_empty():
     )
     result = df.resample("8h").mean()
     tm.assert_frame_equal(result, expected)
+
+
+def test_asfreq_respects_origin_with_fixed_freq_all_seconds_equal():
+    # GH#62725: Ensure Resampler.asfreq respects origin="start_day"
+    # when all datetimes share identical seconds values.
+    idx = [
+        datetime(2025, 10, 17, 17, 15, 10),
+        datetime(2025, 10, 17, 17, 16, 10),
+        datetime(2025, 10, 17, 17, 17, 10),
+    ]
+    df = DataFrame({"value": [0, 1, 2]}, index=idx)
+
+    result = df.resample("1min", origin="start_day").asfreq()
+
+    # Expected index: list of Timestamps, matching dtype
+    exp_idx = pd.DatetimeIndex(
+        [
+            pd.Timestamp("2025-10-17 17:15:00"),
+            pd.Timestamp("2025-10-17 17:16:00"),
+            pd.Timestamp("2025-10-17 17:17:00"),
+        ],
+        dtype=result.index.dtype,
+        freq="min",
+    )
+
+    exp = DataFrame({"value": [np.nan, np.nan, np.nan]}, index=exp_idx)
+    tm.assert_frame_equal(result, exp)
