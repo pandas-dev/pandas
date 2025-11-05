@@ -2045,27 +2045,27 @@ class BarPlot(MPLPlot):
         s_edge = self.ax_pos[0] - 0.25 + self.lim_offset
         e_edge = self.ax_pos[-1] + 0.25 + self.bar_width + self.lim_offset
 
-        # GH#1918: Use date formatter for time series indices
+        # GH#1918: Apply date formatter for time series indices
         if self._is_ts_plot():
-            ax.set_xlim((s_edge, e_edge))
-
-            if self.xticks is not None:
-                ax.set_xticks(np.array(self.xticks))
-            else:
-                ax.set_xticks(self.tick_pos)
-
-            if self._get_index_name() is not None and self.use_index:
-                ax.set_xlabel(self._get_index_name())
-
+            decorate_axes(ax, data.index.freq)
             freq = data.index.freq
-            decorate_axes(ax, freq)
 
             index = data.index
             if isinstance(index, ABCDatetimeIndex):
                 index = index.to_period(freq=freq)
 
-            if isinstance(index, (ABCPeriodIndex,)):
+            if isinstance(index, ABCPeriodIndex):
                 format_dateaxis(ax, freq, index)
+
+            ax.set_xlim((s_edge, e_edge))
+            if self.xticks is not None:
+                ax.set_xticks(np.array(self.xticks))
+            else:
+                ax.set_xticks(self.tick_pos)
+
+            index_name = self._get_index_name()
+            if index_name is not None and self.use_index:
+                ax.set_xlabel(index_name)
         else:
             if self.use_index:
                 str_index = [pprint_thing(key) for key in data.index]

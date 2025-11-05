@@ -2155,13 +2155,13 @@ class TestDataFramePlots:
             df = DataFrame(
                 np.random.default_rng(2).standard_normal((10, 4)),
                 columns=Index(list("ABCD"), dtype=object),
-                index=date_range("2000-01-01", periods=10, freq="B"),
+                index=date_range("2000-01-01", periods=10, freq="D"),
             ).abs()
         else:
             df = DataFrame(
                 np.random.default_rng(2).standard_normal((10, 4)),
                 columns=Index(list("ABCD"), dtype=object),
-                index=date_range("2000-01-01", periods=10, freq="B"),
+                index=date_range("2000-01-01", periods=10, freq="D"),
             )
 
         # Use a weakref so we can see if the object gets collected without
