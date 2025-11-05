@@ -532,6 +532,8 @@ class ExcelFormatter:
         Defaults to ``CSSToExcelConverter()``.
         It should have signature css_declarations string -> excel style.
         This is only called for body cells.
+    autofilter : bool, default False
+        If True, add automatic filters to all columns
     """
 
     max_rows = 2**20
@@ -549,6 +551,7 @@ class ExcelFormatter:
         merge_cells: ExcelWriterMergeCells = False,
         inf_rep: str = "inf",
         style_converter: Callable | None = None,
+        autofilter: bool = False,
     ) -> None:
         self.rowcounter = 0
         self.na_rep = na_rep
@@ -584,6 +587,7 @@ class ExcelFormatter:
             raise ValueError(f"Unexpected value for {merge_cells=}.")
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
+        self.autofilter = autofilter
 
     def _format_value(self, val):
         if is_scalar(val) and missing.isna(val):
@@ -873,6 +877,16 @@ class ExcelFormatter:
             cell.val = self._format_value(cell.val)
             yield cell
 
+    def _num2excel(self, index: int) -> str:
+        """
+        Convert 0-based column index to Excel column name.
+        """
+        column_name = ""
+        while index > 0 or not column_name:
+            index, remainder = divmod(index, 26)
+            column_name = chr(65 + remainder) + column_name
+        return column_name
+
     @doc(storage_options=_shared_docs["storage_options"])
     def write(
         self,
@@ -916,6 +930,13 @@ class ExcelFormatter:
                 f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
 
+        if self.autofilter:
+            start = f"{self._num2excel(startcol)}{startrow + 1}"
+            end = f"{self._num2excel(startcol + num_cols)}{startrow + num_rows + 1}"
+            autofilter_range = f"{start}:{end}"
+        else:
+            autofilter_range = None
+
         if engine_kwargs is None:
             engine_kwargs = {}
 
@@ -938,6 +959,7 @@ class ExcelFormatter:
                 startrow=startrow,
                 startcol=startcol,
                 freeze_panes=freeze_panes,
+                autofilter_range=autofilter_range,
             )
         finally:
             # make sure to close opened file handles

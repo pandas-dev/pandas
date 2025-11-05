@@ -350,3 +350,20 @@ def test_format_hierarchical_rows_periodindex(merge_cells):
             assert isinstance(cell.val, Timestamp), (
                 "Period should be converted to Timestamp"
             )
+
+
+@pytest.mark.parametrize("engine", ["xlsxwriter", "openpyxl"])
+def test_autofilter(engine, tmp_excel):
+    # GH 61194
+    df = DataFrame.from_dict([{"A": 1, "B": 2, "C": 3}, {"A": 4, "B": 5, "C": 6}])
+
+    with ExcelWriter(tmp_excel, engine=engine) as writer:
+        df.to_excel(writer, autofilter=True, index=False)
+
+    openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        ws = wb.active
+
+        assert ws.auto_filter.ref is not None
+        print(ws.auto_filter.ref)
+        assert ws.auto_filter.ref == "A1:D3"

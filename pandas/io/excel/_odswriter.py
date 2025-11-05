@@ -99,6 +99,7 @@ class ODSWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        autofilter_range: str | None = None,
     ) -> None:
         """
         Write the frame cells using odf
