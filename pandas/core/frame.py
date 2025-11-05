@@ -554,8 +554,6 @@ class DataFrame(NDFrame, OpsMixin):
         If data is a dict containing one or more Series (possibly of different dtypes),
         ``copy=False`` will ensure that these inputs are not copied.
 
-        .. versionchanged:: 1.3.0
-
     See Also
     --------
     DataFrame.from_records : Constructor from tuples, also record arrays.
@@ -2686,16 +2684,12 @@ class DataFrame(NDFrame, OpsMixin):
             8 characters and values are repeated.
         {compression_options}
 
-            .. versionchanged:: 1.4.0 Zstandard support.
-
         {storage_options}
 
         value_labels : dict of dicts
             Dictionary containing columns as keys and dictionaries of column value
             to labels as values. Labels for a single variable must be 32,000
             characters or smaller.
-
-            .. versionadded:: 1.4.0
 
         Raises
         ------
@@ -3533,8 +3527,6 @@ class DataFrame(NDFrame, OpsMixin):
             argument requires ``lxml`` to be installed. Only XSLT 1.0
             scripts and not later versions is currently supported.
         {compression_options}
-
-            .. versionchanged:: 1.4.0 Zstandard support.
 
         {storage_options}
 
@@ -9487,13 +9479,6 @@ class DataFrame(NDFrame, OpsMixin):
             when the result's index (and column) labels match the inputs, and
             are included otherwise.
 
-            .. versionchanged:: 1.5.0
-
-               Warns that ``group_keys`` will no longer be ignored when the
-               result from ``apply`` is a like-indexed Series or DataFrame.
-               Specify ``group_keys`` explicitly to include the group keys or
-               not.
-
             .. versionchanged:: 2.0.0
 
                ``group_keys`` now defaults to ``True``.
@@ -11408,12 +11393,18 @@ class DataFrame(NDFrame, OpsMixin):
 
             # join indexes only using concat
             if can_concat:
-                if how == "left":
+                if how == "left" or how == "right":
                     res = concat(
                         frames, axis=1, join="outer", verify_integrity=True, sort=sort
                     )
-                    return res.reindex(self.index)
+                    index = self.index if how == "left" else frames[-1].index
+                    if sort:
+                        index = index.sort_values()
+                    result = res.reindex(index)
+                    return result
                 else:
+                    if how == "outer":
+                        sort = True
                     return concat(
                         frames, axis=1, join=how, verify_integrity=True, sort=sort
                     )
@@ -11424,6 +11415,7 @@ class DataFrame(NDFrame, OpsMixin):
                 joined = merge(
                     joined,
                     frame,
+                    sort=sort,
                     how=how,
                     left_index=True,
                     right_index=True,
@@ -12195,6 +12187,7 @@ class DataFrame(NDFrame, OpsMixin):
         #  simple case where we can use BlockManager.reduce
         res = df._mgr.reduce(blk_func)
         out = df._constructor_from_mgr(res, axes=res.axes).iloc[0]
+        out.name = None
         if out_dtype is not None and out.dtype != "boolean":
             out = out.astype(out_dtype)
         elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
