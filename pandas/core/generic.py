@@ -2415,8 +2415,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             list-like.
         {compression_options}
 
-            .. versionchanged:: 1.4.0 Zstandard support.
-
         index : bool or None, default None
             The index is only used when 'orient' is 'split', 'index', 'column',
             or 'table'. Of these, 'index' and 'column' do not support
@@ -3850,12 +3848,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The newline character or character sequence to use in the output
             file. Defaults to `os.linesep`, which depends on the OS in which
             this method is called ('\\n' for linux, '\\r\\n' for Windows, i.e.).
-
-            .. versionchanged:: 1.5.0
-
-                Previously was line_terminator, changed for consistency with
-                read_csv and the standard library 'csv' module.
-
         chunksize : int or None
             Rows to write at a time.
         date_format : str, default None
@@ -5859,11 +5851,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState or np.random.Generator, use as given.
             Default ``None`` results in sampling with the current state of np.random.
-
-            .. versionchanged:: 1.4.0
-
-                np.random.Generator objects now accepted
-
         axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type. For `Series` this parameter is unused and defaults to `None`.
@@ -6680,8 +6667,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def __copy__(self, deep: bool = True) -> Self:
-        return self.copy(deep=deep)
+    def __copy__(self) -> Self:
+        return self.copy(deep=False)
 
     @final
     def __deepcopy__(self, memo=None) -> Self:
