@@ -1686,8 +1686,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
         is used as for logical operations.
 
-        .. versionchanged:: 1.4.0
-
         Parameters
         ----------
         skipna : bool, default True
@@ -1773,8 +1771,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         By default, NAs are skipped. If ``skipna=False`` is specified and
         missing values are present, similar :ref:`Kleene logic <boolean.kleene>`
         is used as for logical operations.
-
-        .. versionchanged:: 1.4.0
 
         Parameters
         ----------
