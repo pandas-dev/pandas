@@ -880,8 +880,26 @@ class ExcelFormatter:
     def _num2excel(self, index: int) -> str:
         """
         Convert 0-based column index to Excel column name.
+
+        Parameters
+        ----------
+        index : int
+            The numeric column index to convert to a Excel column name.
+
+        Returns
+        -------
+        column_name : str
+            The column name corresponding to the index.
+
+        Raises
+        ------
+        ValueError
+            Index is negative
         """
+        if index < 0:
+            raise ValueError(f"Index cannot be negative: {index}")
         column_name = ""
+        # while loop in case column name needs to be longer than 1 character
         while index > 0 or not column_name:
             index, remainder = divmod(index, 26)
             column_name = chr(65 + remainder) + column_name
