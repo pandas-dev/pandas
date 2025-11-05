@@ -182,8 +182,6 @@ from pandas.core.window import (
     Window,
 )
 
-# Import ExcelFormatter at runtime since it's used in to_excel method
-from pandas.io.formats.excel import ExcelFormatter
 from pandas.io.formats.format import (
     DataFrameFormatter,
     DataFrameRenderer,
@@ -204,16 +202,14 @@ if TYPE_CHECKING:
 
     from pandas import (
         DataFrame,
+        ExcelWriter,
         HDFStore,
         Series,
     )
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
 
-# Import ExcelWriter at runtime since it's used in to_excel method
 import textwrap
-
-from pandas import ExcelWriter
 
 # goal is to be able to define the docs close to function, while still being
 # able to share
@@ -2275,6 +2271,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.to_excel("pandas_simple.xlsx")
         >>> df.to_excel("pandas_simple.xlsx", engine="openpyxl")
         """
+        # Import ExcelWriter here to avoid circular import
+        from pandas import ExcelWriter
+
         if isinstance(excel_writer, ExcelWriter):
             if engine is not None:
                 raise ValueError(
@@ -2288,6 +2287,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 engine_kwargs=engine_kwargs,
                 storage_options=storage_options,
             )
+
+        # Import ExcelFormatter here to avoid circular import
+        from pandas.io.formats.excel import ExcelFormatter
 
         formatter = ExcelFormatter(
             self,
