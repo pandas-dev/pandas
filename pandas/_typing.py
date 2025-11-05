@@ -566,7 +566,7 @@ class ArrowStreamExportable(Protocol):
     libraries.
 
     .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
-    .. _Arrow C Data Interface: https://arrow.apache.org/docs/format/CDataInterface.html
+    .. _Arrow C Stream Interface: https://arrow.apache.org/docs/format/CStreamInterface.html
 
     """
 
