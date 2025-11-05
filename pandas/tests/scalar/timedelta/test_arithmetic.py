@@ -1218,6 +1218,7 @@ def test_ops_str_deprecated(box):
             [
                 "ufunc 'divide' cannot use operands",
                 "Invalid dtype object for __floordiv__",
+                r"unsupported operand type\(s\) for /: 'int' and 'str'",
             ]
         )
         with pytest.raises(TypeError, match=msg):
