@@ -1841,7 +1841,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Construct a DataFrame from a tabular Arrow object.
 
-        This function accepts any tabular Arrow object implementing
+        This function accepts any Arrow-compatible tabular object implementing
         the `Arrow PyCapsule Protocol`_ (i.e. having an ``__arrow_c_array__``
         or ``__arrow_c_stream__`` method).
 
