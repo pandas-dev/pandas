@@ -124,8 +124,6 @@ class _XMLFrameParser:
 
     {decompression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     {storage_options}
 
     See also
@@ -962,8 +960,6 @@ def read_xml(
         .. versionadded:: 1.5.0
 
     {decompression_options}
-
-        .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
 

@@ -303,8 +303,6 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``'zstd'
   As an example, the following could be passed for faster compression and to
   create a reproducible gzip archive:
   ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
-
-  .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to ``gzip.open``.
 thousands : str, default ``None``
   Thousands separator.
 decimal : str, default ``'.'``
@@ -1472,7 +1470,7 @@ rather than reading the entire file into memory, such as the following:
    table
 
 
-By specifying a ``chunksize`` to ``read_csv``, the return
+By specifying a ``chunksize`` to :func:`read_csv` as a context manager, the return
 value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
@@ -1481,10 +1479,6 @@ value will be an iterable object of type ``TextFileReader``:
        print(reader)
        for chunk in reader:
            print(chunk)
-
-.. versionchanged:: 1.2
-
-  ``read_csv/json/sas`` return a context-manager when iterating through a file.
 
 Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
