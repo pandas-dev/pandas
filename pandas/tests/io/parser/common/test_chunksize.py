@@ -241,7 +241,8 @@ def test_warn_if_chunks_have_mismatched_type(
     # be coerced using numerical types, then issue warning.
     if parser.engine == "c" and parser.low_memory:
         warning_type = DtypeWarning
-        # Use larger size to hit warning path
+        # Use a size to hit warning path dictated by DEFAULT_BUFFER_HEURISTIC
+        # monkeypatched below
         size = heuristic - 1
 
     integers = [str(i) for i in range(size)]
