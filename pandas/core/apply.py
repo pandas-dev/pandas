@@ -1745,7 +1745,13 @@ def reconstruct_func(
     >>> reconstruct_func("min")
     (False, 'min', None, None)
     """
-    relabeling = func is None and is_multi_agg_with_relabel(**kwargs)
+    from pandas.core.groupby.generic import NamedAgg
+
+    relabeling = func is None and (
+        is_multi_agg_with_relabel(**kwargs)
+        or any(isinstance(v, NamedAgg) for v in kwargs.values())
+    )
+
     columns: tuple[str, ...] | None = None
     order: npt.NDArray[np.intp] | None = None
 
@@ -1766,9 +1772,22 @@ def reconstruct_func(
         # "Callable[..., Any] | str | list[Callable[..., Any] | str] |
         # MutableMapping[Hashable, Callable[..., Any] | str | list[Callable[..., Any] |
         # str]] | None")
+        converted_kwargs = {}
+        for key, val in kwargs.items():
+            if isinstance(val, NamedAgg):
+                aggfunc = val.aggfunc
+                if val.args or val.kwargs:
+                    aggfunc = lambda x, func=aggfunc, a=val.args, kw=val.kwargs: func(
+                        x, *a, **kw
+                    )
+                converted_kwargs[key] = (val.column, aggfunc)
+            else:
+                converted_kwargs[key] = val
+
         func, columns, order = normalize_keyword_aggregation(  # type: ignore[assignment]
-            kwargs
+            converted_kwargs
         )
+
     assert func is not None
 
     return relabeling, func, columns, order
