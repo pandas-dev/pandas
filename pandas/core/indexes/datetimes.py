@@ -26,11 +26,13 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.offsets import prefix_mapping
+from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     cache_readonly,
     doc,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import (
@@ -64,6 +66,7 @@ if TYPE_CHECKING:
         TimeAmbiguous,
         TimeNonexistent,
         npt,
+        TimeUnit,
     )
 
     from pandas.core.api import (
@@ -645,6 +648,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # Pandas supports slicing with dates, treated as datetimes at midnight.
             # https://github.com/pandas-dev/pandas/issues/31501
             label = Timestamp(label).to_pydatetime()
+            warnings.warn(
+                # GH#35830 deprecate last remaining inconsistent date treatment
+                "Slicing with a datetime.date object is deprecated. "
+                "Explicitly cast to Timestamp instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
         label = super()._maybe_cast_slice_bound(label, side)
         self._data._assert_tzawareness_compat(label)
@@ -757,7 +767,37 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if isinstance(time, str):
             from dateutil.parser import parse
 
-            time = parse(time).time()
+            orig = time
+            try:
+                alt = to_time(time)
+            except ValueError:
+                warnings.warn(
+                    # GH#50839
+                    f"The string '{orig}' cannot be parsed using pd.core.tools.to_time "
+                    f"and in a future version will raise. "
+                    "Use an unambiguous time string format or explicitly cast to "
+                    "`datetime.time` before calling.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                time = parse(time).time()
+            else:
+                try:
+                    time = parse(time).time()
+                except ValueError:
+                    # e.g. '23550' raises dateutil.parser._parser.ParserError
+                    time = alt
+                if alt != time:
+                    warnings.warn(
+                        # GH#50839
+                        f"The string '{orig}' is currently parsed as {time} "
+                        f"but in a future version will be parsed as {alt}, consistent"
+                        "with `between_time` behavior. To avoid this warning, "
+                        "use an unambiguous string format or explicitly cast to "
+                        "`datetime.time` before calling.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
 
         if time.tzinfo:
             if self.tz is None:
@@ -843,7 +883,7 @@ def date_range(
     name: Hashable | None = None,
     inclusive: IntervalClosedType = "both",
     *,
-    unit: str | None = None,
+    unit: TimeUnit = "ns",
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -884,7 +924,7 @@ def date_range(
         Include boundaries; Whether to set each bound as closed or open.
 
         .. versionadded:: 1.4.0
-    unit : str, default None
+    unit : {'s', 'ms', 'us', 'ns'}, default 'ns'
         Specify the desired resolution of the result.
 
         .. versionadded:: 2.0.0
@@ -1123,12 +1163,14 @@ def bdate_range(
         msg = "freq must be specified for bdate_range; use date_range instead"
         raise TypeError(msg)
 
-    if isinstance(freq, str) and freq.startswith("C"):
+    if isinstance(freq, str) and freq.upper().startswith("C"):
+        msg = f"invalid custom frequency string: {freq}"
+        if freq == "CBH":
+            raise ValueError(f"{msg}, did you mean cbh?")
         try:
             weekmask = weekmask or "Mon Tue Wed Thu Fri"
             freq = prefix_mapping[freq](holidays=holidays, weekmask=weekmask)
         except (KeyError, TypeError) as err:
-            msg = f"invalid custom frequency string: {freq}"
             raise ValueError(msg) from err
     elif holidays or weekmask:
         msg = (

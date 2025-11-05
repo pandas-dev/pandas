@@ -411,6 +411,22 @@ def test_single_bin(data, length):
 
 
 @pytest.mark.parametrize(
+    "values,threshold",
+    [
+        ([0.1, 0.1, 0.1], 0.001),  # small positive values
+        ([-0.1, -0.1, -0.1], 0.001),  # negative values
+        ([0.01, 0.01, 0.01], 0.0001),  # very small values
+    ],
+)
+def test_single_bin_edge_adjustment(values, threshold):
+    # gh-58517 - edge adjustment mutation when all values are same
+    result, bins = cut(values, 3, retbins=True)
+
+    bin_range = bins[-1] - bins[0]
+    assert bin_range < threshold
+
+
+@pytest.mark.parametrize(
     "array_1_writeable,array_2_writeable", [(True, True), (True, False), (False, False)]
 )
 def test_cut_read_only(array_1_writeable, array_2_writeable):
@@ -656,8 +672,10 @@ def test_cut_incorrect_labels(labels):
 def test_cut_nullable_integer(bins, right, include_lowest):
     a = np.random.default_rng(2).integers(0, 10, size=50).astype(float)
     a[::2] = np.nan
+    b = a.astype(object)
+    b[::2] = pd.NA
     result = cut(
-        pd.array(a, dtype="Int64"), bins, right=right, include_lowest=include_lowest
+        pd.array(b, dtype="Int64"), bins, right=right, include_lowest=include_lowest
     )
     expected = cut(a, bins, right=right, include_lowest=include_lowest)
     tm.assert_categorical_equal(result, expected)

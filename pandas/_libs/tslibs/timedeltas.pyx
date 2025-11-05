@@ -2026,6 +2026,19 @@ class Timedelta(_Timedelta):
                 "milliseconds, microseconds, nanoseconds]"
             )
 
+        if (
+            unit is not None
+            and not (is_float_object(value) or is_integer_object(value))
+        ):
+            # GH#53198
+            warnings.warn(
+                "The 'unit' keyword is only used when the Timedelta input is "
+                f"an integer or float, not {type(value).__name__}. "
+                "To specify the storage unit of the output use `td.as_unit(unit)`",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
+
         if value is _no_input:
             if not len(kwargs):
                 raise ValueError("cannot construct a Timedelta without a "
@@ -2067,6 +2080,9 @@ class Timedelta(_Timedelta):
                 raise OutOfBoundsTimedelta(msg) from err
 
         disallow_ambiguous_unit(unit)
+
+        cdef:
+            int64_t new_value
 
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed

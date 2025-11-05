@@ -350,7 +350,7 @@ class Block(PandasObject, libinternals.Block):
         return self._split_op_result(result)
 
     @final
-    def reduce(self, func) -> list[Block]:
+    def reduce(self, func) -> Block:
         # We will apply the function and reshape the result into a single-row
         #  Block with the same mgr_locs; squeezing will be done at a higher level
         assert self.ndim == 2
@@ -362,8 +362,7 @@ class Block(PandasObject, libinternals.Block):
         else:
             res_values = result.reshape(-1, 1)
 
-        nb = self.make_block(res_values)
-        return [nb]
+        return self.make_block(res_values)
 
     @final
     def _split_op_result(self, result: ArrayLike) -> list[Block]:
@@ -564,7 +563,7 @@ class Block(PandasObject, libinternals.Block):
                 rbs.append(blk.copy(deep=False))
                 continue
 
-            for dtype, b in zip(dtypes, sub_blks):
+            for dtype, b in zip(dtypes, sub_blks, strict=True):
                 rbs.append(b.astype(dtype=dtype, squeeze=b.ndim != 1))
         return rbs
 
@@ -803,7 +802,7 @@ class Block(PandasObject, libinternals.Block):
         # Exclude anything that we know we won't contain
         pairs = [
             (x, y)
-            for x, y in zip(src_list, dest_list)
+            for x, y in zip(src_list, dest_list, strict=True)
             if (self._can_hold_element(x) or (self.dtype == "string" and is_re(x)))
         ]
         if not pairs:
@@ -833,7 +832,7 @@ class Block(PandasObject, libinternals.Block):
         # references when we check again later
         rb = [self]
 
-        for i, ((src, dest), mask) in enumerate(zip(pairs, masks)):
+        for i, ((src, dest), mask) in enumerate(zip(pairs, masks, strict=True)):
             new_rb: list[Block] = []
 
             # GH-39338: _replace_coerce can split a block into
@@ -1514,6 +1513,15 @@ class Block(PandasObject, libinternals.Block):
             Caller is responsible for validating this
         """
         if not self.is_numeric or self.is_bool:
+            if isinstance(self.values, (DatetimeArray, TimedeltaArray, PeriodArray)):
+                # GH#57781
+                # TODO: also the ArrowDtype analogues?
+                warnings.warn(
+                    "obj.round has no effect with datetime, timedelta, "
+                    "or period dtypes. Use obj.dt.round(...) instead.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
             return self.copy(deep=False)
         # TODO: round only defined on BaseMaskedArray
         # Series also does this, so would need to fix both places
@@ -2117,7 +2125,9 @@ class ExtensionBlock(EABackedBlock):
                 BlockPlacement(place),
                 ndim=2,
             )
-            for i, (indices, place) in enumerate(zip(new_values, new_placement))
+            for i, (indices, place) in enumerate(
+                zip(new_values, new_placement, strict=True)
+            )
         ]
         return blocks, mask
 

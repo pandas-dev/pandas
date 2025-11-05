@@ -6,6 +6,8 @@ import re
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -643,7 +645,7 @@ class TestDataFrameReplace:
 
     def test_replace_nullable_int_with_string_doesnt_cast(self):
         # GH#25438 don't cast df['a'] to float64
-        df = DataFrame({"a": [1, 2, 3, np.nan], "b": ["some", "strings", "here", "he"]})
+        df = DataFrame({"a": [1, 2, 3, pd.NA], "b": ["some", "strings", "here", "he"]})
         df["a"] = df["a"].astype("Int64")
 
         res = df.replace("", np.nan)
@@ -681,7 +683,7 @@ class TestDataFrameReplace:
 
     def test_replace_NA_with_None(self):
         # gh-45601
-        df = DataFrame({"value": [42, None]}).astype({"value": "Int64"})
+        df = DataFrame({"value": [42, pd.NA]}, dtype="Int64")
         result = df.replace({pd.NA: None})
         expected = DataFrame({"value": [42, None]}, dtype=object)
         tm.assert_frame_equal(result, expected)
@@ -1429,6 +1431,49 @@ class TestDataFrameReplace:
         expected = DataFrame({"a": ["anything else", pd.NA]}, index=[0, 1])
         result = ser.replace("nil", "anything else")
         tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Float64",
+            pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_replace_na_to_nan_nullable_floats(self, dtype, using_nan_is_na):
+        # GH#55127
+        df = DataFrame({0: [1, np.nan, 1], 1: Series([0, pd.NA, 1], dtype=dtype)})
+
+        result = df.replace(pd.NA, np.nan)
+
+        if using_nan_is_na:
+            expected = result
+        else:
+            expected = DataFrame(
+                {0: [1, np.nan, 1], 1: Series([0, np.nan, 1], dtype=dtype)}
+            )
+            assert np.isnan(expected.loc[1, 1])
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Int64",
+            pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_replace_nan_nullable_ints(self, dtype, using_nan_is_na):
+        # GH#51237 with nan_is_na=False, replacing NaN should be a no-op here
+        ser = Series([1, 2, None], dtype=dtype)
+
+        result = ser.replace(np.nan, -1)
+
+        if using_nan_is_na:
+            # np.nan is equivalent to pd.NA here
+            expected = Series([1, 2, -1], dtype=dtype)
+        else:
+            expected = ser
+        tm.assert_series_equal(result, expected)
 
 
 class TestDataFrameReplaceRegex:

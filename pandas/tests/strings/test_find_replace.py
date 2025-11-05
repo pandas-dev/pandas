@@ -9,6 +9,7 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     Series,
+    StringDtype,
     _testing as tm,
 )
 from pandas.tests.strings import (
@@ -175,17 +176,14 @@ def test_contains_na_kwarg_for_nullable_string_dtype(
 
     values = Series(["a", "b", "c", "a", np.nan], dtype=nullable_string_dtype)
 
-    msg = (
-        "Allowing a non-bool 'na' in obj.str.contains is deprecated and "
-        "will raise in a future version"
-    )
-    warn = None
-    if not pd.isna(na) and not isinstance(na, bool):
-        warn = FutureWarning
-    with tm.assert_produces_warning(warn, match=msg):
+    if na in [0, 3] and na is not False:
+        msg = f"na must be None, pd.NA, np.nan, True, or False; got {na}"
+        with pytest.raises(ValueError, match=msg):
+            values.str.contains("a", na=na, regex=regex)
+    else:
         result = values.str.contains("a", na=na, regex=regex)
-    expected = Series([True, False, False, True, expected], dtype="boolean")
-    tm.assert_series_equal(result, expected)
+        expected = Series([True, False, False, True, expected], dtype="boolean")
+        tm.assert_series_equal(result, expected)
 
 
 def test_contains_moar(any_string_dtype):
@@ -255,19 +253,9 @@ def test_contains_nan(any_string_dtype):
     expected = Series([True, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
-    msg = (
-        "Allowing a non-bool 'na' in obj.str.contains is deprecated and "
-        "will raise in a future version"
-    )
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.str.contains("foo", na="foo")
-    if any_string_dtype == "object":
-        expected = Series(["foo", "foo", "foo"], dtype=np.object_)
-    elif any_string_dtype.na_value is np.nan:
-        expected = Series([True, True, True], dtype=np.bool_)
-    else:
-        expected = Series([True, True, True], dtype="boolean")
-    tm.assert_series_equal(result, expected)
+    msg = "na must be None, pd.NA, np.nan, True, or False; got foo"
+    with pytest.raises(ValueError, match=msg):
+        s.str.contains("foo", na="foo")
 
     result = s.str.contains("foo")
     if any_string_dtype == "str":
@@ -352,12 +340,10 @@ def test_startswith_endswith_validate_na(any_string_dtype):
         ["om", np.nan, "foo_nom", "nom", "bar_foo", np.nan, "foo"],
         dtype=any_string_dtype,
     )
-
-    msg = "Allowing a non-bool 'na' in obj.str.startswith is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    msg = "na must be None, pd.NA, np.nan, True, or False; got baz"
+    with pytest.raises(ValueError, match=msg):
         ser.str.startswith("kapow", na="baz")
-    msg = "Allowing a non-bool 'na' in obj.str.endswith is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with pytest.raises(ValueError, match=msg):
         ser.str.endswith("bar", na="baz")
 
 
@@ -600,6 +586,10 @@ def test_replace_callable_raises(any_string_dtype, repl):
             ["Three Two One", "Baz Bar Foo"],
         ),
         (
+            r"\3 \2 \1",
+            ["Three Two One", "Baz Bar Foo"],
+        ),
+        (
             r"\g<3> \g<2> \g<1>",
             ["Three Two One", "Baz Bar Foo"],
         ),
@@ -614,6 +604,7 @@ def test_replace_callable_raises(any_string_dtype, repl):
     ],
     ids=[
         "named_groups_full_swap",
+        "numbered_groups_no_g_full_swap",
         "numbered_groups_full_swap",
         "single_group_with_literal",
         "mixed_group_reference_with_literal",
@@ -638,20 +629,81 @@ def test_replace_named_groups_regex_swap(
     [
         r"\g<20>",
         r"\20",
+        r"\40",
+        r"\4",
     ],
 )
 @pytest.mark.parametrize("use_compile", [True, False])
 def test_replace_named_groups_regex_swap_expected_fail(
-    any_string_dtype, repl, use_compile
+    any_string_dtype, repl, use_compile, request
 ):
     # GH#57636
+    if (
+        not use_compile
+        and r"\g" not in repl
+        and isinstance(any_string_dtype, StringDtype)
+        and any_string_dtype.storage == "pyarrow"
+    ):
+        # calls pyarrow method directly
+        if repl == r"\20":
+            mark = pytest.mark.xfail(reason="PyArrow interprets as group + literal")
+            request.applymarker(mark)
+
+        pa = pytest.importorskip("pyarrow")
+        error_type = pa.ArrowInvalid
+        error_msg = r"only has \d parenthesized subexpressions"
+    else:
+        error_type = re.error
+        error_msg = "invalid group reference"
+
     pattern = r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)"
     if use_compile:
         pattern = re.compile(pattern)
     ser = Series(["One Two Three", "Foo Bar Baz"], dtype=any_string_dtype)
 
-    with pytest.raises(re.error, match="invalid group reference"):
+    with pytest.raises(error_type, match=error_msg):
         ser.str.replace(pattern, repl, regex=True)
+
+
+@pytest.mark.parametrize(
+    "pattern, repl",
+    [
+        (r"(\w+) (\w+) (\w+)", r"\20"),
+        (r"(?P<one>\w+) (?P<two>\w+) (?P<three>\w+)", r"\20"),
+    ],
+)
+def test_pyarrow_ambiguous_group_references(pyarrow_string_dtype, pattern, repl):
+    # GH#62653
+    ser = Series(["One Two Three", "Foo Bar Baz"], dtype=pyarrow_string_dtype)
+
+    result = ser.str.replace(pattern, repl, regex=True)
+    expected = Series(["Two0", "Bar0"], dtype=pyarrow_string_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "pattern, repl, expected_list",
+    [
+        (
+            r"\[(?P<one>\d+)\]",
+            r"(\1)",
+            ["var.one(0)", "var.two(1)", "var.three(2)"],
+        ),
+        (
+            r"\[(\d+)\]",
+            r"(\1)",
+            ["var.one(0)", "var.two(1)", "var.three(2)"],
+        ),
+    ],
+)
+@td.skip_if_no("pyarrow")
+def test_pyarrow_backend_group_replacement(pattern, repl, expected_list):
+    ser = Series(["var.one[0]", "var.two[1]", "var.three[2]"]).convert_dtypes(
+        dtype_backend="pyarrow"
+    )
+    result = ser.str.replace(pattern, repl, regex=True)
+    expected = Series(expected_list).convert_dtypes(dtype_backend="pyarrow")
+    tm.assert_series_equal(result, expected)
 
 
 def test_replace_callable_named_groups(any_string_dtype):
@@ -973,6 +1025,30 @@ def test_match_compiled_regex(any_string_dtype):
         values.str.match(re.compile("ab"), flags=re.IGNORECASE)
 
 
+@pytest.mark.parametrize(
+    "pat, case, exp",
+    [
+        ["ab", False, [True, False]],
+        ["Ab", True, [False, False]],
+        ["bc", True, [False, False]],
+        ["a[a-z]{1}", False, [True, False]],
+        ["A[a-z]{1}", True, [False, False]],
+        # https://github.com/pandas-dev/pandas/issues/61072
+        ["(bc)|(ab)", True, [True, False]],
+        ["((bc)|(ab))", True, [True, False]],
+    ],
+)
+def test_str_match_extra_cases(any_string_dtype, pat, case, exp):
+    ser = Series(["abc", "Xab"], dtype=any_string_dtype)
+    result = ser.str.match(pat, case=case)
+
+    expected_dtype = (
+        np.bool_ if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+    )
+    expected = Series(exp, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
 # --------------------------------------------------------------------------------------
 # str.fullmatch
 # --------------------------------------------------------------------------------------
@@ -1073,6 +1149,43 @@ def test_fullmatch_compiled_regex(any_string_dtype):
         ValueError, match="cannot process flags argument with a compiled pattern"
     ):
         values.str.fullmatch(re.compile("ab"), flags=re.IGNORECASE)
+
+
+@pytest.mark.parametrize(
+    "pat, case, na, exp",
+    # Note: keep cases in sync with
+    # pandas/tests/extension/test_arrow.py::test_str_fullmatch
+    [
+        ["abc", False, None, [True, False, False, None]],
+        ["Abc", True, None, [False, False, False, None]],
+        ["bc", True, None, [False, False, False, None]],
+        ["ab", False, None, [False, False, False, None]],
+        ["a[a-z]{2}", False, None, [True, False, False, None]],
+        ["A[a-z]{1}", True, None, [False, False, False, None]],
+        # GH Issue: #56652
+        ["abc$", False, None, [True, False, False, None]],
+        ["abc\\$", False, None, [False, True, False, None]],
+        ["Abc$", True, None, [False, False, False, None]],
+        ["Abc\\$", True, None, [False, False, False, None]],
+        # https://github.com/pandas-dev/pandas/issues/61072
+        ["(abc)|(abx)", True, None, [True, False, False, None]],
+        ["((abc)|(abx))", True, None, [True, False, False, None]],
+    ],
+)
+def test_str_fullmatch_extra_cases(any_string_dtype, pat, case, na, exp):
+    ser = Series(["abc", "abc$", "$abc", None], dtype=any_string_dtype)
+    result = ser.str.fullmatch(pat, case=case, na=na)
+
+    if any_string_dtype == "str":
+        # NaN propagates as False
+        exp[-1] = False
+        expected_dtype = bool
+    else:
+        expected_dtype = (
+            "object" if is_object_or_nan_string_dtype(any_string_dtype) else "boolean"
+        )
+    expected = Series(exp, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
 
 
 # --------------------------------------------------------------------------------------

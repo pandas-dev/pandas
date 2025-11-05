@@ -323,8 +323,6 @@ def _get_filepath_or_buffer(
                          or buffer
     {compression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
 
@@ -574,8 +572,6 @@ def infer_compression(
         File path or object.
     {compression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     Returns
     -------
     string or None
@@ -703,8 +699,6 @@ def get_handle(
 
            Passing compression options as keys in dict is
            supported for compression modes 'gzip', 'bz2', 'zstd' and 'zip'.
-
-        .. versionchanged:: 1.4.0 Zstandard support.
 
     memory_map : bool, default False
         See parsers._parser_params for more information. Only used by read_csv.

@@ -49,7 +49,7 @@ class TestTimestampConstructorUnitKeyword:
 
     @pytest.mark.parametrize("typ", [int, float])
     def test_construct_from_int_float_with_unit_out_of_bound_raises(self, typ):
-        # GH#50870  make sure we get a OutOfBoundsDatetime instead of OverflowError
+        # GH#50870  make sure we get an OutOfBoundsDatetime instead of OverflowError
         val = typ(150000000000000)
 
         msg = f"cannot convert input {val} with the unit 'D'"
@@ -843,7 +843,6 @@ class TestTimestampConstructors:
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             Timestamp("2262-04-11 23:47:16.854775808")
 
-    @pytest.mark.skip_ubsan
     def test_bounds_with_different_units(self):
         out_of_bounds_dates = ("1677-09-21", "2262-04-12")
 
@@ -1077,7 +1076,9 @@ def test_timestamp_nano_range(nano):
 
 def test_non_nano_value():
     # https://github.com/pandas-dev/pandas/issues/49076
-    result = Timestamp("1800-01-01", unit="s").value
+    msg = "The 'unit' keyword is only used when"
+    with tm.assert_produces_warning(UserWarning, match=msg):
+        result = Timestamp("1800-01-01", unit="s").value
     # `.value` shows nanoseconds, even though unit is 's'
     assert result == -5364662400000000000
 

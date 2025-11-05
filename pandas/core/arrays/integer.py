@@ -8,6 +8,8 @@ from typing import (
 
 import numpy as np
 
+from pandas.util._decorators import set_module
+
 from pandas.core.dtypes.base import register_extension_dtype
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -140,6 +142,8 @@ class IntegerArray(NumericArray):
     Length: 3, dtype: UInt16
     """
 
+    __module__ = "pandas.arrays"
+
     _dtype_cls = IntegerDtype
 
 
@@ -218,6 +222,7 @@ UInt64Dtype()
 
 
 @register_extension_dtype
+@set_module("pandas")
 class Int8Dtype(IntegerDtype):
     type = np.int8
     name: ClassVar[str] = "Int8"
@@ -225,6 +230,7 @@ class Int8Dtype(IntegerDtype):
 
 
 @register_extension_dtype
+@set_module("pandas")
 class Int16Dtype(IntegerDtype):
     type = np.int16
     name: ClassVar[str] = "Int16"
@@ -232,6 +238,7 @@ class Int16Dtype(IntegerDtype):
 
 
 @register_extension_dtype
+@set_module("pandas")
 class Int32Dtype(IntegerDtype):
     type = np.int32
     name: ClassVar[str] = "Int32"
@@ -239,6 +246,7 @@ class Int32Dtype(IntegerDtype):
 
 
 @register_extension_dtype
+@set_module("pandas")
 class Int64Dtype(IntegerDtype):
     type = np.int64
     name: ClassVar[str] = "Int64"
@@ -246,6 +254,7 @@ class Int64Dtype(IntegerDtype):
 
 
 @register_extension_dtype
+@set_module("pandas")
 class UInt8Dtype(IntegerDtype):
     type = np.uint8
     name: ClassVar[str] = "UInt8"
@@ -253,6 +262,7 @@ class UInt8Dtype(IntegerDtype):
 
 
 @register_extension_dtype
+@set_module("pandas")
 class UInt16Dtype(IntegerDtype):
     type = np.uint16
     name: ClassVar[str] = "UInt16"
@@ -260,6 +270,7 @@ class UInt16Dtype(IntegerDtype):
 
 
 @register_extension_dtype
+@set_module("pandas")
 class UInt32Dtype(IntegerDtype):
     type = np.uint32
     name: ClassVar[str] = "UInt32"
@@ -267,6 +278,7 @@ class UInt32Dtype(IntegerDtype):
 
 
 @register_extension_dtype
+@set_module("pandas")
 class UInt64Dtype(IntegerDtype):
     type = np.uint64
     name: ClassVar[str] = "UInt64"

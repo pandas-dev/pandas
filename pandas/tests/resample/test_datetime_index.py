@@ -169,9 +169,6 @@ def test_resample_basic_grouper(unit):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.filterwarnings(
-    "ignore:The 'convention' keyword in Series.resample:FutureWarning"
-)
 @pytest.mark.parametrize(
     "keyword,value",
     [("label", "righttt"), ("closed", "righttt"), ("convention", "starttt")],
@@ -1014,10 +1011,7 @@ def test_period_with_agg():
     )
 
     expected = s2.to_timestamp().resample("D").mean().to_period()
-    msg = "Resampling with a PeriodIndex is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        rs = s2.resample("D")
-    result = rs.agg(lambda x: x.mean())
+    result = s2.resample("D").agg(lambda x: x.mean())
     tm.assert_series_equal(result, expected)
 
 
@@ -2174,6 +2168,17 @@ def test_arrow_timestamp_resample_keep_index_name():
     expected = Series(np.arange(5, dtype=np.float64), index=idx)
     expected.index.name = "index_name"
     result = expected.resample("1D").mean()
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_unit_second_large_years():
+    # GH#57427
+    index = DatetimeIndex(
+        date_range(start=Timestamp("1950-01-01"), periods=10, freq="1000YS", unit="s")
+    )
+    ser = Series(1, index=index)
+    result = ser.resample("2000YS").sum()
+    expected = Series(2, index=index[::2])
     tm.assert_series_equal(result, expected)
 
 

@@ -12,6 +12,7 @@ import numpy as np
 
 from pandas._libs import missing as libmissing
 from pandas._libs.sparse import IntIndex
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -38,6 +39,7 @@ if TYPE_CHECKING:
     from pandas._typing import NpDtype
 
 
+@set_module("pandas")
 def get_dummies(
     data,
     prefix=None,
@@ -323,7 +325,7 @@ def _get_dummies_1d(
         codes = codes[mask]
         n_idx = np.arange(N)[mask]
 
-        for ndx, code in zip(n_idx, codes):
+        for ndx, code in zip(n_idx, codes, strict=True):
             sp_indices[code].append(ndx)
 
         if drop_first:
@@ -331,7 +333,7 @@ def _get_dummies_1d(
             # GH12042
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
-        for col, ixs in zip(dummy_cols, sp_indices):
+        for col, ixs in zip(dummy_cols, sp_indices, strict=True):
             sarr = SparseArray(
                 np.ones(len(ixs), dtype=dtype),
                 sparse_index=IntIndex(N, ixs),
@@ -359,11 +361,12 @@ def _get_dummies_1d(
 
         if drop_first:
             # remove first GH12042
-            dummy_mat = dummy_mat[:, 1:]  # type: ignore[assignment]
+            dummy_mat = dummy_mat[:, 1:]
             dummy_cols = dummy_cols[1:]
         return DataFrame(dummy_mat, index=index, columns=dummy_cols, dtype=_dtype)
 
 
+@set_module("pandas")
 def from_dummies(
     data: DataFrame,
     sep: None | str = None,
