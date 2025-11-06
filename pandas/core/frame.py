@@ -2927,6 +2927,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
+        filesystem: Any = ...,
         **kwargs,
     ) -> bytes: ...
 
@@ -2940,6 +2941,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
+        filesystem: Any = ...,
         **kwargs,
     ) -> None: ...
 
@@ -2953,6 +2955,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = None,
         partition_cols: list[str] | None = None,
         storage_options: StorageOptions | None = None,
+        filesystem: Any = None,
         **kwargs,
     ) -> bytes | None:
         """
@@ -2991,6 +2994,12 @@ class DataFrame(NDFrame, OpsMixin):
             Columns are partitioned in the order they are given.
             Must be None if path is not a string.
         {storage_options}
+
+        filesystem : fsspec or pyarrow filesystem, default None
+            Filesystem object to use when reading the parquet file. Only implemented
+            for ``engine="pyarrow"``.
+
+            .. versionadded:: 2.1.0
 
         **kwargs
             Additional arguments passed to the parquet library. See
@@ -3053,6 +3062,7 @@ class DataFrame(NDFrame, OpsMixin):
             index=index,
             partition_cols=partition_cols,
             storage_options=storage_options,
+            filesystem=filesystem,
             **kwargs,
         )
 
