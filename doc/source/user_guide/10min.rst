@@ -203,7 +203,7 @@ For a :class:`DataFrame`, passing a slice ``:`` selects matching rows:
 .. ipython:: python
 
    df[0:3]
-   df["20130102":"20130104"]
+   df["2013-01-02":"2013-01-04"]
 
 Selection by label
 ~~~~~~~~~~~~~~~~~~
