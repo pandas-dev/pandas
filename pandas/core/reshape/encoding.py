@@ -212,7 +212,7 @@ def get_dummies(
             with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
 
         for col, pre, sep in zip(
-            data_to_encode.items(), prefix, prefix_sep, strict=True
+            data_to_encode.items(), prefix, prefix_sep, strict=False
         ):
             # col is (column_name, column), use just column data here
             dummy = _get_dummies_1d(
