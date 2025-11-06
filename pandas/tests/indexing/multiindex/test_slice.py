@@ -308,6 +308,9 @@ class TestMultiIndexSlicers:
         ]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+    )
     def test_multiindex_slicers_edges(self):
         # GH 8132
         # various edge cases
