@@ -72,6 +72,9 @@ def seed_df(seed_nans, n, m):
 @pytest.mark.parametrize("bins", [None, [0, 5]], ids=repr)
 @pytest.mark.parametrize("isort", [True, False])
 @pytest.mark.parametrize("normalize, name", [(True, "proportion"), (False, "count")])
+@pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
 def test_series_groupby_value_counts(
     seed_nans,
     num_rows,
