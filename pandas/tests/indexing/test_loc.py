@@ -280,6 +280,9 @@ class TestLoc:
 
 class TestLocBaseIndependent:
     # Tests for loc that do not depend on subclassing Base
+    @pytest.mark.filterwarnings(
+        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+    )
     def test_loc_npstr(self):
         # GH#45580
         df = DataFrame(index=date_range("2021", "2022"))
@@ -1281,6 +1284,9 @@ class TestLocBaseIndependent:
         expected = DataFrame(col_data, columns=["A"], dtype=float)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+    )
     def test_loc_getitem_time_object(self, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
         mask = (rng.hour == 9) & (rng.minute == 30)
@@ -2434,6 +2440,9 @@ class TestPartialStringSlicing:
 
 
 class TestLabelSlicing:
+    @pytest.mark.filterwarnings(
+        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+    )
     def test_loc_getitem_slicing_datetimes_frame(self):
         # GH#7523
 
