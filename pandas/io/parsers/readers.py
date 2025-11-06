@@ -258,7 +258,7 @@ def _validate_names(names: Sequence[Hashable] | None) -> None:
 
 
 def _multi_file_generator(
-    list_of_files: list[FilePath], kwds
+    list_of_files: list[FilePath], kwds: dict[str, Any]
 ) -> Generator[DataFrame] | Generator[TextFileReader]:
     """
     Generator that yields DataFrames or TextFileReaders for each file in the

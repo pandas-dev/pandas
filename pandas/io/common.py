@@ -1366,7 +1366,7 @@ def iterdir(
     storage_options: StorageOptions | None = None,
 ) -> FilePath | list[FilePath] | ReadCsvBuffer[bytes] | ReadCsvBuffer[str]:
     """
-    Yield file paths in a directory (no nesting allowed). File-like objects
+    Return file paths in a directory (no nesting allowed). File-like objects
     and string URLs are returned directly. Remote paths are handled via fsspec.
 
     Supports:
@@ -1379,17 +1379,17 @@ def iterdir(
     path : FilePath
         Path to the directory (local or remote).
     extensions : str or list of str, optional
-        Only yield files with the given extension(s). Case-insensitive.
-        If None, all files are yielded.
+        Only return files with the given extension(s). Case-insensitive.
+        If None, all files are returned.
     glob : str, optional
-        Only yield files matching the given glob pattern.
-        If None, all files are yielded.
+        Only return files matching the given glob pattern.
+        If None, all files are returned.
 
     Returns
-    ------
-    list of str or Path, BaseBuffer
+    -------
+    FilePath or list[FilePath] or ReadCsvBuffer
         If `path` is a file-like object, returns it directly.
-        Otherwise, returns list of file paths in the directory.
+        Otherwise, returns a list of file paths in the directory.
 
     Raises
     ------
@@ -1465,7 +1465,7 @@ def iterdir(
     if fs.isfile(inner_path):
         path_obj = PurePosixPath(inner_path)
         if _match_file(
-            inner_path,
+            path_obj,
             extensions,
             glob,
         ):
