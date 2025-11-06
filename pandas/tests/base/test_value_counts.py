@@ -55,15 +55,15 @@ def test_value_counts(index_or_series_obj):
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_value_counts_null(null_obj, index_or_series_obj):
     orig = index_or_series_obj
-    obj = orig.copy()
 
-    if not allow_na_ops(obj):
+    if not allow_na_ops(orig):
         pytest.skip("type doesn't allow for NA operations")
-    elif len(obj) < 1:
+    elif len(orig) < 1:
         pytest.skip("Test doesn't make sense on empty data")
     elif isinstance(orig, MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
+    obj = orig.copy(deep=True)
     values = obj._values
     values[0:2] = null_obj
 
