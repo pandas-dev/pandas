@@ -226,7 +226,7 @@ For label slicing, both endpoints are *included*:
 
 .. ipython:: python
 
-   df.loc["20130102":"20130104", ["A", "B"]]
+   df.loc["2013-01-02":"2013-01-04", ["A", "B"]]
 
 Selecting a single row and column label returns a scalar:
 
