@@ -5,6 +5,7 @@ from collections.abc import (
     Hashable,
     Iterable,
 )
+import itertools
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -184,7 +185,7 @@ def get_dummies(
         check_len(prefix_sep, "prefix_sep")
 
         if isinstance(prefix, str):
-            prefix = [prefix] * len(data_to_encode.columns)
+            prefix = itertools.repeat(prefix, len(data_to_encode.columns))
         if isinstance(prefix, dict):
             prefix = [prefix[col] for col in data_to_encode.columns]
 
@@ -193,7 +194,7 @@ def get_dummies(
 
         # validate separators
         if isinstance(prefix_sep, str):
-            prefix_sep = [prefix_sep] * len(data_to_encode.columns)
+            prefix_sep = itertools.repeat(prefix_sep, len(data_to_encode.columns))
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
