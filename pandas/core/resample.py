@@ -26,7 +26,10 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._typing import NDFrameT
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    Pandas4Warning,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.dtypes import (
@@ -99,6 +102,7 @@ if TYPE_CHECKING:
         TimedeltaConvertibleTypes,
         TimeGrouperOrigin,
         TimestampConvertibleTypes,
+        TimeUnit,
         npt,
     )
 
@@ -131,6 +135,8 @@ class Resampler(BaseGroupBy, PandasObject):
     -----
     After resampling, see aggregate, apply, and transform functions.
     """
+
+    __module__ = "pandas.api.typing"
 
     _grouper: BinGrouper
     _timegrouper: TimeGrouper
@@ -844,10 +850,8 @@ class Resampler(BaseGroupBy, PandasObject):
         *,
         axis: Axis = 0,
         limit: int | None = None,
-        inplace: bool = False,
         limit_direction: Literal["forward", "backward", "both"] = "forward",
         limit_area=None,
-        downcast=lib.no_default,
         **kwargs,
     ):
         """
@@ -890,8 +894,6 @@ class Resampler(BaseGroupBy, PandasObject):
         limit : int, optional
             Maximum number of consecutive NaNs to fill. Must be greater than
             0.
-        inplace : bool, default False
-            Update the data in place if possible.
         limit_direction : {{'forward', 'backward', 'both'}}, Optional
             Consecutive NaNs will be filled in this direction.
 
@@ -903,11 +905,6 @@ class Resampler(BaseGroupBy, PandasObject):
             * 'inside': Only fill NaNs surrounded by valid values
               (interpolate).
             * 'outside': Only fill NaNs outside valid values (extrapolate).
-
-        downcast : optional, 'infer' or None, defaults to None
-            Downcast dtypes if possible.
-
-            .. deprecated:: 2.1.0
 
         **kwargs : optional
             Keyword arguments to pass on to the interpolating function.
@@ -990,7 +987,19 @@ class Resampler(BaseGroupBy, PandasObject):
         Note that the series correctly decreases between two anchors
         ``07:00:00`` and ``07:00:02``.
         """
-        assert downcast is lib.no_default  # just checking coverage
+        if "inplace" in kwargs:
+            # GH#58690
+            warnings.warn(
+                f"The 'inplace' keyword in {type(self).__name__}.interpolate "
+                "is deprecated and will be removed in a future version. "
+                "resample(...).interpolate is never inplace.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+            inplace = kwargs.pop("inplace")
+            if inplace:
+                raise ValueError("Cannot interpolate inplace on a resampled object.")
+
         result = self._upsample("asfreq")
 
         # If the original data has timestamps which are not aligned with the
@@ -1024,10 +1033,9 @@ class Resampler(BaseGroupBy, PandasObject):
             method=method,
             axis=axis,
             limit=limit,
-            inplace=inplace,
+            inplace=False,
             limit_direction=limit_direction,
             limit_area=limit_area,
-            downcast=downcast,
             **kwargs,
         )
 
@@ -2128,11 +2136,12 @@ class DatetimeIndexResampler(Resampler):
         binner = self.binner
         res_index = self._adjust_binner_for_upsample(binner)
 
-        # if we have the same frequency as our axis, then we are equal sampling
+        # if index exactly matches target grid (same freq & alignment), use fast path
         if (
             limit is None
             and to_offset(ax.inferred_freq) == self.freq
             and len(obj) == len(res_index)
+            and obj.index.equals(res_index)
         ):
             result = obj.copy()
             result.index = res_index
@@ -2171,6 +2180,8 @@ class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
     """
     Provides a resample of a groupby implementation
     """
+
+    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2273,6 +2284,8 @@ class PeriodIndexResamplerGroupby(  # type: ignore[misc]
     Provides a resample of a groupby implementation.
     """
 
+    __module__ = "pandas.api.typing"
+
     @property
     def _resampler_cls(self):
         return PeriodIndexResampler
@@ -2308,6 +2321,8 @@ class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
     """
     Provides a resample of a groupby implementation.
     """
+
+    __module__ = "pandas.api.typing"
 
     @property
     def _resampler_cls(self):
@@ -2355,6 +2370,8 @@ class TimeGrouper(Grouper):
     convention : {'start', 'end', 'e', 's'}
         If axis is PeriodIndex
     """
+
+    __module__ = "pandas.api.typing"
 
     _attributes = Grouper._attributes + (
         "closed",
@@ -2639,7 +2656,7 @@ class TimeGrouper(Grouper):
                 edges_dti = binner.tz_localize(None)
                 edges_dti = (
                     edges_dti
-                    + Timedelta(days=1, unit=edges_dti.unit).as_unit(edges_dti.unit)
+                    + Timedelta(days=1).as_unit(edges_dti.unit)
                     - Timedelta(1, unit=edges_dti.unit).as_unit(edges_dti.unit)
                 )
                 bin_edges = edges_dti.tz_localize(binner.tz).asi8
@@ -2835,7 +2852,7 @@ def _get_timestamp_range_edges(
     first: Timestamp,
     last: Timestamp,
     freq: BaseOffset,
-    unit: str,
+    unit: TimeUnit,
     closed: Literal["right", "left"] = "left",
     origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
@@ -2985,7 +3002,7 @@ def _adjust_dates_anchored(
     closed: Literal["right", "left"] = "right",
     origin: TimeGrouperOrigin = "start_day",
     offset: Timedelta | None = None,
-    unit: str = "ns",
+    unit: TimeUnit = "ns",
 ) -> tuple[Timestamp, Timestamp]:
     # First and last offsets should be calculated from the start day to fix an
     # error cause by resampling across multiple days when a one day period is
@@ -3094,7 +3111,7 @@ def asfreq(
 
         new_obj.index = _asfreq_compat(obj.index, freq)
     else:
-        unit = None
+        unit: TimeUnit = "ns"
         if isinstance(obj.index, DatetimeIndex):
             # TODO: should we disallow non-DatetimeIndex?
             unit = obj.index.unit

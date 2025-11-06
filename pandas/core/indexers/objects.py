@@ -58,6 +58,8 @@ class BaseIndexer:
     4	4.0
     """
 
+    __module__ = "pandas.api.indexers"
+
     def __init__(
         self, index_array: np.ndarray | None = None, window_size: int = 0, **kwargs
     ) -> None:
@@ -271,6 +273,8 @@ class VariableOffsetWindowIndexer(BaseIndexer):
     2020-01-10   9.0
     """
 
+    __module__ = "pandas.api.indexers"
+
     def __init__(
         self,
         index_array: np.ndarray | None = None,
@@ -477,6 +481,8 @@ class FixedForwardWindowIndexer(BaseIndexer):
     3  4.0
     4  4.0
     """
+
+    __module__ = "pandas.api.indexers"
 
     def get_window_bounds(
         self,
