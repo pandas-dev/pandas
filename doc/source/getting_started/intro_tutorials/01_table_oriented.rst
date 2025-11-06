@@ -54,6 +54,10 @@ I want to store passenger data of the Titanic. For a number of passengers, I kno
     )
     df
 
+By default, pandas assigns an index (the row labels) starting from 0.  
+The index uniquely identifies each row in the ``DataFrame`` and is used for selecting and aligning data.
+
+
 To manually store data in a table, create a ``DataFrame``. When using a Python dictionary of lists, the dictionary keys will be used as column headers and
 the values in each list as columns of the ``DataFrame``.
 
@@ -118,8 +122,10 @@ You can create a ``Series`` from scratch as well:
     ages = pd.Series([22, 35, 58], name="Age")
     ages
 
-A pandas ``Series`` has no column labels, as it is just a single column
-of a ``DataFrame``. A Series does have row labels.
+A ``Series`` does not have column labels because it represents a single column, but it does have an index (row labels).  
+The index is a fundamental part of both ``Series`` and ``DataFrame`` objects and is used for selecting, aligning, and manipulating data.  
+See the :ref:`indexing and selecting data <indexing>` section for more details.
+
 
 Do something with a DataFrame or Series
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
