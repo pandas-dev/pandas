@@ -490,6 +490,50 @@ class TestSetitemWithExpansionMultiIndex:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_enlargement_with_none_key(self):
+        # GH#59153
+        # Test that enlarging a MultiIndex DataFrame works when one or more
+        # level keys are None
+        index = MultiIndex.from_tuples(
+            [("A", "a1"), ("A", "a2"), ("B", "b1"), ("B", None)]
+        )
+        df = DataFrame([(0, 6), (1, 5), (2, 4), (3, 7)], index=index)
+
+        # Test 1: Enlarge with a new index entry where second key is None
+        df.loc[("A", None), :] = [12, 13]
+        expected_index = MultiIndex.from_tuples(
+            [
+                ("A", "a1"),
+                ("A", "a2"),
+                ("B", "b1"),
+                ("B", None),
+                ("A", None),
+            ]
+        )
+        expected = DataFrame(
+            [[0, 6], [1, 5], [2, 4], [3, 7], [12, 13]],
+            index=expected_index,
+        )
+        tm.assert_frame_equal(df, expected)
+
+        # Test 2: Enlarge with None in first level key
+        df.loc[(None, "c1"), :] = [14, 15]
+        expected_index = MultiIndex.from_tuples(
+            [
+                ("A", "a1"),
+                ("A", "a2"),
+                ("B", "b1"),
+                ("B", None),
+                ("A", None),
+                (None, "c1"),
+            ]
+        )
+        expected = DataFrame(
+            [[0, 6], [1, 5], [2, 4], [3, 7], [12, 13], [14, 15]],
+            index=expected_index,
+        )
+        tm.assert_frame_equal(df, expected)
+
 
 def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
     # this works because we are modifying the underlying array
