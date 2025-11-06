@@ -811,6 +811,7 @@ Other Deprecations
 - Deprecated slicing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` using a ``datetime.date`` object, explicitly cast to :class:`Timestamp` instead (:issue:`35830`)
 - Deprecated support for the Dataframe Interchange Protocol (:issue:`56732`)
 - Deprecated the 'inplace' keyword from :meth:`Resampler.interpolate`, as passing ``True`` raises ``AttributeError`` (:issue:`58690`)
+- Deprecated the ``verify_integrity`` parameter in :meth:`DataFrame.set_index`; use ``obj.index.is_unique`` to check for duplicate labels instead. (:issue:`62919`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.prior_deprecations:

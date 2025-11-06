@@ -6362,6 +6362,16 @@ class DataFrame(NDFrame, OpsMixin):
         2013    84
         2014    31
         """
+
+        if verify_integrity:
+            warnings.warn(
+                "The verify_integrity keyword in DataFrame.set_index is deprecated "
+                "and will be removed in future version. "
+                "Check uniqueness with obj.index.is_unique instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if not isinstance(keys, list):

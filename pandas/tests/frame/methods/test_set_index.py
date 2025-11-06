@@ -10,6 +10,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -541,6 +543,12 @@ class TestSetIndex:
         tm.assert_index_equal(df.index.get_level_values(0), idx1)
         tm.assert_index_equal(df.index.get_level_values(1), idx2)
         tm.assert_index_equal(df.index.get_level_values(2), idx3)
+
+    def test_set_index_verify_integrity_deprecated(self):
+        # GH#62919
+        df = DataFrame({"A": [1, 2, 3], "B": [10, 20, 30]})
+        with tm.assert_produces_warning(Pandas4Warning, match="verify_integrity"):
+            df.set_index("A", verify_integrity=True)
 
 
 class TestSetIndexInvalid:
