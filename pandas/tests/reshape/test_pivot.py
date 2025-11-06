@@ -2948,13 +2948,13 @@ class TestPivot:
         # GH#62705
 
         dtype = pd.PeriodDtype(freq=freq)
-        df = pd.DataFrame({"index": [], "columns": [], "values": []})
+        df = DataFrame({"index": [], "columns": [], "values": []})
         df = df.astype({"values": dtype})
         result = df.pivot(index="index", columns="columns", values="values")
 
-        expected_index = pd.Index([], name="index", dtype="float64")
-        expected_columns = pd.Index([], name="columns", dtype="float64")
-        expected = pd.DataFrame(
+        expected_index = Index([], name="index", dtype="float64")
+        expected_columns = Index([], name="columns", dtype="float64")
+        expected = DataFrame(
             index=expected_index, columns=expected_columns, dtype=dtype
         )
 
