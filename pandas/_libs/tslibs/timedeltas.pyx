@@ -333,12 +333,8 @@ cdef convert_to_timedelta64(object ts, str unit):
 
     Handle these types of objects:
         - timedelta/Timedelta
-        - timedelta64
-        - an offset
-        - np.int64 (with unit providing a possible modifier)
-        - None/NaT
 
-    Return an ns based int64
+    Return an timedelta64[ns] object
     """
     # Caller is responsible for checking unit not in ["Y", "y", "M"]
     if isinstance(ts, _Timedelta):
@@ -347,42 +343,29 @@ cdef convert_to_timedelta64(object ts, str unit):
             ts = ts.as_unit("ns").asm8
         else:
             ts = np.timedelta64(ts._value, "ns")
-    elif cnp.is_timedelta64_object(ts):
-        ts = ensure_td64ns(ts)
-    elif is_integer_object(ts):
-        if ts == NPY_NAT:
-            return np.timedelta64(NPY_NAT, "ns")
-        else:
-            ts = _maybe_cast_from_unit(ts, unit)
-    elif is_float_object(ts):
-        ts = _maybe_cast_from_unit(ts, unit)
-    elif isinstance(ts, str):
-        if (len(ts) > 0 and ts[0] == "P") or (len(ts) > 1 and ts[:2] == "-P"):
-            ts = parse_iso_format_string(ts)
-        else:
-            ts = parse_timedelta_string(ts)
-        ts = np.timedelta64(ts, "ns")
-    elif is_tick_object(ts):
-        ts = np.timedelta64(ts.nanos, "ns")
 
-    if PyDelta_Check(ts):
+    elif PyDelta_Check(ts):
         ts = np.timedelta64(delta_to_nanoseconds(ts), "ns")
     elif not cnp.is_timedelta64_object(ts):
         raise TypeError(f"Invalid type for timedelta scalar: {type(ts)}")
     return ts.astype("timedelta64[ns]")
 
 
-cdef _maybe_cast_from_unit(ts, str unit):
+cdef _numeric_to_td64ns(object item, str unit):
     # caller is responsible for checking
     #  assert unit not in ["Y", "y", "M"]
+    #  assert is_integer_object(item) or is_float_object(item)
+    if is_integer_object(item) and item == NPY_NAT:
+        return np.timedelta64(NPY_NAT, "ns")
+
     try:
-        ts = cast_from_unit(ts, unit)
+        item = cast_from_unit(item, unit)
     except OutOfBoundsDatetime as err:
         raise OutOfBoundsTimedelta(
-            f"Cannot cast {ts} from {unit} to 'ns' without overflow."
+            f"Cannot cast {item} from {unit} to 'ns' without overflow."
         ) from err
 
-    ts = np.timedelta64(ts, "ns")
+    ts = np.timedelta64(item, "ns")
     return ts
 
 
@@ -436,9 +419,28 @@ def array_to_timedelta64(
         try:
             if checknull_with_nat_and_na(item):
                 ival = NPY_NAT
+            elif cnp.is_timedelta64_object(item):
+                td64ns_obj = ensure_td64ns(item)
+                ival = cnp.get_timedelta64_value(td64ns_obj)
+            elif isinstance(item, str):
+                if (
+                    (len(item) > 0 and item[0] == "P")
+                    or (len(item) > 1 and item[:2] == "-P")
+                ):
+                    item = parse_iso_format_string(item)
+                else:
+                    item = parse_timedelta_string(item)
+                td64ns_obj = np.timedelta64(item, "ns")
+                ival = cnp.get_timedelta64_value(td64ns_obj)
+            elif is_tick_object(item):
+                ival = item.nanos
+            elif is_integer_object(item) or is_float_object(item):
+                td64ns_obj = _numeric_to_td64ns(item, unit)
+                ival = cnp.get_timedelta64_value(td64ns_obj)
             else:
                 td64ns_obj = convert_to_timedelta64(item, parsed_unit)
                 ival = cnp.get_timedelta64_value(td64ns_obj)
+
         except ValueError as err:
             if errors == "coerce":
                 ival = NPY_NAT
@@ -2121,7 +2123,7 @@ class Timedelta(_Timedelta):
         elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
-            value = convert_to_timedelta64(value, unit)
+            value = _numeric_to_td64ns(value, unit)
 
         else:
             raise ValueError(
