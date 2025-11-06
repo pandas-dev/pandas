@@ -546,7 +546,11 @@ class TestSetitemWithExpansionMultiIndex:
         )
         
         result = df.loc[idx[:, None], :]
-        expected = DataFrame([[20]], index=MultiIndex.from_tuples([("B", None)]), columns=["val"])
+        expected = DataFrame(
+            [[20]],
+            index=MultiIndex.from_tuples([("B", None)]),
+            columns=["val"],
+        )
         tm.assert_frame_equal(result, expected)
         
         # Enlarge using IndexSlice with None
