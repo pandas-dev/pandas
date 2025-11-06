@@ -798,7 +798,7 @@ def _binary_op_method_timedeltalike(op, name):
             return NotImplemented
 
         try:
-            other = Timedelta(other)
+            other = _wrapped_to_timedelta(other)
         except ValueError:
             # failed to parse as timedelta
             return NotImplemented
@@ -2341,7 +2341,7 @@ class Timedelta(_Timedelta):
     def __truediv__(self, other):
         if _should_cast_to_timedelta(other):
             # We interpret NaT as timedelta64("NaT")
-            other = Timedelta(other)
+            other = _wrapped_to_timedelta(other)
             if other is NaT:
                 return np.nan
             if other._creso != self._creso:
@@ -2374,7 +2374,7 @@ class Timedelta(_Timedelta):
     def __rtruediv__(self, other):
         if _should_cast_to_timedelta(other):
             # We interpret NaT as timedelta64("NaT")
-            other = Timedelta(other)
+            other = _wrapped_to_timedelta(other)
             if other is NaT:
                 return np.nan
             if self._creso != other._creso:
@@ -2402,7 +2402,7 @@ class Timedelta(_Timedelta):
         # just defer
         if _should_cast_to_timedelta(other):
             # We interpret NaT as timedelta64("NaT")
-            other = Timedelta(other)
+            other = _wrapped_to_timedelta(other)
             if other is NaT:
                 return np.nan
             if self._creso != other._creso:
@@ -2457,7 +2457,7 @@ class Timedelta(_Timedelta):
         # just defer
         if _should_cast_to_timedelta(other):
             # We interpret NaT as timedelta64("NaT")
-            other = Timedelta(other)
+            other = _wrapped_to_timedelta(other)
             if other is NaT:
                 return np.nan
             if self._creso != other._creso:
@@ -2525,6 +2525,7 @@ def truediv_object_array(ndarray left, ndarray right):
         if cnp.get_timedelta64_value(td64) == NPY_NAT:
             # td here should be interpreted as a td64 NaT
             if _should_cast_to_timedelta(obj):
+                _wrapped_to_timedelta(obj)  # deprecate if allowing string
                 res_value = np.nan
             else:
                 # if its a number then let numpy handle division, otherwise
@@ -2554,6 +2555,7 @@ def floordiv_object_array(ndarray left, ndarray right):
         if cnp.get_timedelta64_value(td64) == NPY_NAT:
             # td here should be interpreted as a td64 NaT
             if _should_cast_to_timedelta(obj):
+                _wrapped_to_timedelta(obj)  # deprecate allowing string
                 res_value = np.nan
             else:
                 # if its a number then let numpy handle division, otherwise
@@ -2583,6 +2585,23 @@ cdef bint is_any_td_scalar(object obj):
     return (
         PyDelta_Check(obj) or cnp.is_timedelta64_object(obj) or is_tick_object(obj)
     )
+
+
+cdef inline _wrapped_to_timedelta(object other):
+    # Helper for deprecating cases where we cast str to Timedelta
+    td = Timedelta(other)
+    if isinstance(other, str):
+        from pandas.errors import Pandas4Warning
+        warnings.warn(
+            # GH#59653
+            "Scalar operations between Timedelta and string are "
+            "deprecated and will raise in a future version. "
+            "Explicitly cast to Timedelta first.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        # When this is enforced, remove str from _should_cast_to_timedelta
+    return td
 
 
 cdef bint _should_cast_to_timedelta(object obj):
