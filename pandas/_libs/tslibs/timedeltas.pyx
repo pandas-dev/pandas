@@ -408,10 +408,11 @@ def array_to_timedelta64(
     cdef:
         Py_ssize_t i, n = values.size
         ndarray result = np.empty((<object>values).shape, dtype="m8[ns]")
-        object item
+        object item, td64ns_obj
         int64_t ival
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
         cnp.flatiter it
+        str parsed_unit = parse_timedelta_unit(unit or "ns")
 
     if values.descr.type_num != cnp.NPY_OBJECT:
         # raise here otherwise we segfault below
@@ -431,68 +432,27 @@ def array_to_timedelta64(
                 )
             cnp.PyArray_ITER_NEXT(it)
 
-    # Usually, we have all strings. If so, we hit the fast path.
-    # If this path fails, we try conversion a different way, and
-    # this is where all of the error handling will take place.
-    try:
-        for i in range(n):
-            # Analogous to: item = values[i]
-            item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+    for i in range(n):
+        item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-            ival = _item_to_timedelta64_fastpath(item)
+        try:
+            td64ns_obj = convert_to_timedelta64(item, parsed_unit)
+            ival = cnp.get_timedelta64_value(td64ns_obj)
+        except ValueError as err:
+            if errors == "coerce":
+                ival = NPY_NAT
+            elif "unit abbreviation w/o a number" in str(err):
+                # re-raise with more pertinent message
+                msg = f"Could not convert '{item}' to NumPy timedelta"
+                raise ValueError(msg) from err
+            else:
+                raise
 
-            # Analogous to: iresult[i] = ival
-            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival
+        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival
 
-            cnp.PyArray_MultiIter_NEXT(mi)
-
-    except (TypeError, ValueError):
-        cnp.PyArray_MultiIter_RESET(mi)
-
-        parsed_unit = parse_timedelta_unit(unit or "ns")
-        for i in range(n):
-            item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
-
-            ival = _item_to_timedelta64(item, parsed_unit, errors)
-
-            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival
-
-            cnp.PyArray_MultiIter_NEXT(mi)
+        cnp.PyArray_MultiIter_NEXT(mi)
 
     return result
-
-
-cdef int64_t _item_to_timedelta64_fastpath(object item) except? -1:
-    """
-    See array_to_timedelta64.
-    """
-    if item is NaT:
-        # we allow this check in the fast-path because NaT is a C-object
-        #  so this is an inexpensive check
-        return NPY_NAT
-    else:
-        return parse_timedelta_string(item)
-
-
-cdef int64_t _item_to_timedelta64(
-    object item,
-    str parsed_unit,
-    str errors
-) except? -1:
-    """
-    See array_to_timedelta64.
-    """
-    try:
-        return cnp.get_timedelta64_value(convert_to_timedelta64(item, parsed_unit))
-    except ValueError as err:
-        if errors == "coerce":
-            return NPY_NAT
-        elif "unit abbreviation w/o a number" in str(err):
-            # re-raise with more pertinent message
-            msg = f"Could not convert '{item}' to NumPy timedelta"
-            raise ValueError(msg) from err
-        else:
-            raise
 
 
 @cython.cpow(True)
