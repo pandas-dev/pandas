@@ -365,5 +365,4 @@ def test_autofilter(engine, tmp_excel):
         ws = wb.active
 
         assert ws.auto_filter.ref is not None
-        print(ws.auto_filter.ref)
         assert ws.auto_filter.ref == "A1:D3"
