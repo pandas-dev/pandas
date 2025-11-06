@@ -5193,7 +5193,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         dtype = self.dtype
         if isinstance(dtype, np.dtype) and dtype.kind not in "mM":
-            # return np_can_hold_element(dtype, value)
+            if isinstance(value, tuple) and dtype != object:
+                # GH#54385
+                raise TypeError
             try:
                 return np_can_hold_element(dtype, value)
             except LossySetitemError as err:
@@ -6356,6 +6358,10 @@ class Index(IndexOpsMixin, PandasObject):
         special cases.
         """
         target_dtype, _ = infer_dtype_from(target)
+
+        if isinstance(target, tuple):
+            # GH#54385
+            return np.dtype(object)
 
         if using_string_dtype():
             # special case: if left or right is a zero-length RangeIndex or
