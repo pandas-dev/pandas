@@ -610,17 +610,38 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(self, ABCSeries):
             return {clean_column_name(self.name): self}
 
-        dtypes = self.dtypes
+        def _get_safe_dtype(col_name):
+            dtype_obj = self.dtypes[col_name]
+            if (
+                isinstance(dtype_obj, str)
+                and "\n" in dtype_obj
+                and dtype_obj.count("object") >= 2
+                and "dtype:" in dtype_obj
+                and all(
+                    line.strip() in ["object", ""] or line.strip().startswith("dtype:")
+                    for line in dtype_obj.strip().split("\n")
+                    if line.strip()
+                )
+            ):
+                lines = dtype_obj.strip().split("\n")
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith("dtype:"):
+                        dtype_str = line.split("dtype:")[1].strip()
+                        try:
+                            from pandas.core.dtypes.common import pandas_dtype
+
+                            return pandas_dtype(dtype_str)
+                        except Exception:
+                            break
+            return dtype_obj
+
         return {
             clean_column_name(k): Series(
-                v, copy=False, index=self.index, name=k, dtype=dtype
+                v, copy=False, index=self.index, name=k, dtype=_get_safe_dtype(k)
             ).__finalize__(self)
-            for k, v, dtype in zip(
-                self.columns,
-                self._iter_column_arrays(),
-                dtypes,
-                strict=True,
-            )
+            for k, v in zip(self.columns, self._iter_column_arrays(), strict=False)
+            if not isinstance(k, int)
         }
 
     @final

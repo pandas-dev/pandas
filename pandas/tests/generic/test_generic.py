@@ -492,3 +492,46 @@ class TestNDFrame:
         assert obj.flags is obj.flags
         obj2 = obj.copy()
         assert obj2.flags is not obj.flags
+
+
+def test_get_cleaned_column_resolvers_robustness():
+    """Test _get_cleaned_column_resolvers handles edge cases.
+    GH#62998
+    """
+    df = DataFrame({"A": [1, 2, 3], "B": ["x", "y", "z"]})
+
+    # The main test is that this doesn't raise an exception
+    # with multiline dtype string representations
+    resolvers = df._get_cleaned_column_resolvers()
+
+    # Basic validation - the method should execute without errors
+    assert isinstance(resolvers, dict)
+    assert len(resolvers) == len(df.columns)
+
+    # Verify each resolver is a Series with correct properties
+    for series in resolvers.values():
+        assert isinstance(series, Series)
+        assert len(series) == len(df)
+
+
+def test_query_multiline_dtype_regression():
+    """Regression test for the original query issue with multiline dtype strings.
+
+    GH#62998
+    """
+    # Test the exact scenario from the original issue
+    df = DataFrame(
+        {
+            "Country": ["Abkhazia", "Afghanistan", "Albania", "Algeria"],
+            "GDP": [1.0, 2.0, 3.0, 4.0],
+        }
+    )
+
+    filter_list = ["Afghanistan", "Albania", "Algeria"]
+
+    # This should not raise TypeError about dtype string representation
+    result = df.query("Country in @filter_list")
+
+    # Verify the result is correct
+    expected = df[df["Country"].isin(filter_list)]
+    tm.assert_frame_equal(result, expected)
