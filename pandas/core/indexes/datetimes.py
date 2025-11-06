@@ -720,9 +720,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         def check_str_or_none(point) -> bool:
             return point is not None and not isinstance(point, str)
 
-        # GH#33146 if start and end are combinations of str and None and Index is not
-        # monotonic, we can not use Index.slice_indexer because it does not honor the
-        # actual elements, is only searching for start and end
         # GH#58302 - Deprecate non-ISO string formats in .loc indexing
         if isinstance(start, str) and not _is_iso_format_string(start):
             msg = (
@@ -740,6 +737,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             )
             warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
 
+        # GH#33146 if start and end are combinations of str and None and Index is not
+        # monotonic, we can not use Index.slice_indexer because it does not honor the
+        # actual elements, is only searching for start and end
         if (
             check_str_or_none(start)
             or check_str_or_none(end)
