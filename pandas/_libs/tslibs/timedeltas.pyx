@@ -419,27 +419,39 @@ def array_to_timedelta64(
         try:
             if checknull_with_nat_and_na(item):
                 ival = NPY_NAT
+
             elif cnp.is_timedelta64_object(item):
                 td64ns_obj = ensure_td64ns(item)
                 ival = cnp.get_timedelta64_value(td64ns_obj)
+
+            elif isinstance(item, _Timedelta):
+                if item._creso != NPY_FR_ns:
+                    ival = item.as_unit("ns")._value
+                else:
+                    ival = item._value
+
+            elif PyDelta_Check(item):
+                # i.e. isinstance(item, timedelta)
+                ival = delta_to_nanoseconds(item)
+
             elif isinstance(item, str):
                 if (
                     (len(item) > 0 and item[0] == "P")
                     or (len(item) > 1 and item[:2] == "-P")
                 ):
-                    item = parse_iso_format_string(item)
+                    ival = parse_iso_format_string(item)
                 else:
-                    item = parse_timedelta_string(item)
-                td64ns_obj = np.timedelta64(item, "ns")
-                ival = cnp.get_timedelta64_value(td64ns_obj)
+                    ival = parse_timedelta_string(item)
+
             elif is_tick_object(item):
                 ival = item.nanos
+
             elif is_integer_object(item) or is_float_object(item):
-                td64ns_obj = _numeric_to_td64ns(item, unit)
+                td64ns_obj = _numeric_to_td64ns(item, parsed_unit)
                 ival = cnp.get_timedelta64_value(td64ns_obj)
+
             else:
-                td64ns_obj = convert_to_timedelta64(item, parsed_unit)
-                ival = cnp.get_timedelta64_value(td64ns_obj)
+                raise TypeError(f"Invalid type for timedelta scalar: {type(item)}")
 
         except ValueError as err:
             if errors == "coerce":
