@@ -747,12 +747,14 @@ class TestDataFrameAnalytics:
 
         # works when only those columns are selected
         result = mixed[["A", "B"]].min(axis=1)
-        expected = Series([timedelta(days=-1)] * 3)
+        expected = Series([timedelta(days=-1)] * 3, dtype="m8[ns]")
         tm.assert_series_equal(result, expected)
 
         result = mixed[["A", "B"]].min()
         expected = Series(
-            [timedelta(seconds=5 * 60 + 5), timedelta(days=-1)], index=["A", "B"]
+            [timedelta(seconds=5 * 60 + 5), timedelta(days=-1)],
+            index=["A", "B"],
+            dtype="m8[ns]",
         )
         tm.assert_series_equal(result, expected)
 

@@ -850,7 +850,7 @@ class TestTimedeltaArraylikeAddSubOps:
         assert rs.dtype == "timedelta64[ns]"
 
         df = DataFrame({"A": v1})
-        td = Series([timedelta(days=i) for i in range(3)])
+        td = Series([timedelta(days=i) for i in range(3)], dtype="m8[ns]")
         assert td.dtype == "timedelta64[ns]"
 
         # series on the rhs
@@ -875,7 +875,9 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # datetimes on rhs
         result = df["A"] - datetime(2001, 1, 1)
-        expected = Series([timedelta(days=4017 + i) for i in range(3)], name="A")
+        expected = Series(
+            [timedelta(days=4017 + i) for i in range(3)], name="A", dtype="m8[ns]"
+        )
         tm.assert_series_equal(result, expected)
         assert result.dtype == "m8[ns]"
 
@@ -1559,7 +1561,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
     def test_td64arr_mul_bool_scalar_raises(self, box_with_array):
         # GH#58054
-        ser = Series(np.arange(5) * timedelta(hours=1))
+        ser = Series(np.arange(5) * timedelta(hours=1), dtype="m8[ns]")
         obj = tm.box_expected(ser, box_with_array)
 
         msg = r"Cannot multiply 'timedelta64\[ns\]' by bool"
@@ -1582,7 +1584,7 @@ class TestTimedeltaArraylikeMulDivOps:
     )
     def test_td64arr_mul_bool_raises(self, dtype, box_with_array):
         # GH#58054
-        ser = Series(np.arange(5) * timedelta(hours=1))
+        ser = Series(np.arange(5) * timedelta(hours=1), dtype="m8[ns]")
         obj = tm.box_expected(ser, box_with_array)
 
         other = Series(np.arange(5) < 0.5, dtype=dtype)
@@ -1611,7 +1613,7 @@ class TestTimedeltaArraylikeMulDivOps:
         ],
     )
     def test_td64arr_mul_masked(self, dtype, box_with_array):
-        ser = Series(np.arange(5) * timedelta(hours=1))
+        ser = Series(np.arange(5) * timedelta(hours=1), dtype="m8[ns]")
         obj = tm.box_expected(ser, box_with_array)
 
         other = Series(np.arange(5), dtype=dtype)
