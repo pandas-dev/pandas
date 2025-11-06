@@ -185,7 +185,7 @@ def get_dummies(
         check_len(prefix_sep, "prefix_sep")
 
         if isinstance(prefix, str):
-            prefix = itertools.cycle([prefix])
+            prefix = itertools.repeat(prefix, len(data_to_encode.columns))
         if isinstance(prefix, dict):
             prefix = [prefix[col] for col in data_to_encode.columns]
 
@@ -194,7 +194,7 @@ def get_dummies(
 
         # validate separators
         if isinstance(prefix_sep, str):
-            prefix_sep = itertools.cycle([prefix_sep])
+            prefix_sep = itertools.repeat(prefix_sep, len(data_to_encode.columns))
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
@@ -211,7 +211,9 @@ def get_dummies(
             # columns to prepend to result.
             with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
 
-        for col, pre, sep in zip(data_to_encode.items(), prefix, prefix_sep):
+        for col, pre, sep in zip(
+            data_to_encode.items(), prefix, prefix_sep, strict=True
+        ):
             # col is (column_name, column), use just column data here
             dummy = _get_dummies_1d(
                 col[1],
