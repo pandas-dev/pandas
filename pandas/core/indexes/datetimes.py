@@ -756,7 +756,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         if end is not None:
             end_casted = self._maybe_cast_slice_bound(end, "right")
-
             mask = (self <= end_casted) & mask
             in_index &= (end_casted == self).any()
 
