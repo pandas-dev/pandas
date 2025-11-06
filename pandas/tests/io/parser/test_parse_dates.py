@@ -86,7 +86,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
 
 
 @xfail_pyarrow
-def test_nat_parse(all_parsers):
+def test_nat_parse(all_parsers, temp_file):
     # see gh-3062
     parser = all_parsers
     df = DataFrame(
@@ -97,11 +97,11 @@ def test_nat_parse(all_parsers):
     )
     df.iloc[3:6, :] = np.nan
 
-    with tm.ensure_clean("__nat_parse_.csv") as path:
-        df.to_csv(path)
+    path = temp_file
+    df.to_csv(path)
 
-        result = parser.read_csv(path, index_col=0, parse_dates=["B"])
-        tm.assert_frame_equal(result, df)
+    result = parser.read_csv(path, index_col=0, parse_dates=["B"])
+    tm.assert_frame_equal(result, df)
 
 
 @skip_pyarrow
@@ -265,12 +265,11 @@ def test_bad_date_parse(all_parsers, cache, value):
     )
 
 
-@pytest.mark.parametrize("value", ["0"])
-def test_bad_date_parse_with_warning(all_parsers, cache, value):
+def test_bad_date_parse_with_warning(all_parsers, cache):
     # if we have an invalid date make sure that we handle this with
     # and w/o the cache properly.
     parser = all_parsers
-    s = StringIO((f"{value},\n") * 50000)
+    s = StringIO(("0,\n") * (start_caching_at + 1))
 
     if parser.engine == "pyarrow":
         # pyarrow reads "0" as 0 (of type int64), and so

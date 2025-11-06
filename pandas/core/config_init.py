@@ -28,6 +28,8 @@ from pandas._config.config import (
     is_text,
 )
 
+from pandas.errors import Pandas4Warning
+
 # compute
 
 use_bottleneck_doc = """
@@ -476,12 +478,6 @@ def is_valid_string_storage(value: Any) -> None:
     legal_values = ["auto", "python", "pyarrow"]
     if value not in legal_values:
         msg = "Value must be one of python|pyarrow"
-        if value == "pyarrow_numpy":
-            # TODO: we can remove extra message after 3.0
-            msg += (
-                ". 'pyarrow_numpy' was specified, but this option should be "
-                "enabled using pandas.options.future.infer_string instead"
-            )
         raise ValueError(msg)
 
 
@@ -899,10 +895,10 @@ with cf.config_prefix("future"):
     cf.register_option(
         "no_silent_downcasting",
         False,
-        "Whether to opt-in to the future behavior which will *not* silently "
-        "downcast results from Series and DataFrame `where`, `mask`, and `clip` "
-        "methods. "
-        "Silent downcasting will be removed in pandas 3.0 "
-        "(at which point this option will be deprecated).",
+        "This option is deprecated and will be removed in a future version. "
+        "It has no effect.",
         validator=is_one_of_factory([True, False]),
     )
+
+# GH#59502
+cf.deprecate_option("future.no_silent_downcasting", Pandas4Warning)

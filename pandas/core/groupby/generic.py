@@ -10,13 +10,13 @@ from __future__ import annotations
 
 from collections import abc
 from collections.abc import Callable
+import dataclasses
 from functools import partial
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
-    NamedTuple,
     TypeAlias,
     TypeVar,
     cast,
@@ -113,11 +113,10 @@ ScalarResult = TypeVar("ScalarResult")
 
 
 @set_module("pandas")
-class NamedAgg(NamedTuple):
+@dataclasses.dataclass
+class NamedAgg:
     """
     Helper for column specific aggregation with control over output column names.
-
-    Subclass of typing.NamedTuple.
 
     Parameters
     ----------
@@ -126,6 +125,8 @@ class NamedAgg(NamedTuple):
     aggfunc : function or str
         Function to apply to the provided column. If string, the name of a built-in
         pandas function.
+    *args, **kwargs : Any
+        Optional positional and keyword arguments passed to ``aggfunc``.
 
     See Also
     --------
@@ -137,14 +138,57 @@ class NamedAgg(NamedTuple):
     >>> agg_a = pd.NamedAgg(column="a", aggfunc="min")
     >>> agg_1 = pd.NamedAgg(column=1, aggfunc=lambda x: np.mean(x))
     >>> df.groupby("key").agg(result_a=agg_a, result_1=agg_1)
-         result_a  result_1
+        result_a  result_1
     key
     1          -1      10.5
     2           1      12.0
+
+    >>> def n_between(ser, low, high, **kwargs):
+    ...     return ser.between(low, high, **kwargs).sum()
+
+    >>> agg_between = pd.NamedAgg("a", n_between, 0, 1)
+    >>> df.groupby("key").agg(count_between=agg_between)
+        count_between
+    key
+    1               1
+    2               1
+
+    >>> agg_between_kw = pd.NamedAgg("a", n_between, 0, 1, inclusive="both")
+    >>> df.groupby("key").agg(count_between_kw=agg_between_kw)
+        count_between_kw
+    key
+    1                   1
+    2                   1
     """
 
     column: Hashable
     aggfunc: AggScalar
+    args: tuple[Any, ...] = ()
+    kwargs: dict[str, Any] = dataclasses.field(default_factory=dict)
+
+    def __init__(
+        self,
+        column: Hashable,
+        aggfunc: Callable[..., Any] | str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        self.column = column
+        self.aggfunc = aggfunc
+        self.args = args
+        self.kwargs = kwargs
+
+    def __getitem__(self, key: int) -> Any:
+        """Provide backward-compatible tuple-style access."""
+        if key == 0:
+            return self.column
+        elif key == 1:
+            return self.aggfunc
+        elif key == 2:
+            return self.args
+        elif key == 3:
+            return self.kwargs
+        raise IndexError("index out of range")
 
 
 @set_module("pandas.api.typing")
@@ -207,9 +251,7 @@ class SeriesGroupBy(GroupBy[Series]):
     1        1        2
     2        3        4
 
-    .. versionchanged:: 1.3.0
-
-        The resulting dtype will reflect the return value of the aggregating function.
+    The resulting dtype will reflect the return value of the aggregating function.
 
     >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
     1    1.0
@@ -263,11 +305,8 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Notes
         -----
-
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``,
-            see the examples below.
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
 
         Functions that mutate the passed object can produce unexpected
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
@@ -288,9 +327,7 @@ class SeriesGroupBy(GroupBy[Series]):
         its argument and returns a Series.  `apply` combines the result for
         each group together into a new Series.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``.
+        The resulting dtype will reflect the return value of the passed ``func``.
 
         >>> g1.apply(lambda x: x * 2 if x.name == "a" else x / 2)
         a    0.0
@@ -411,10 +448,8 @@ class SeriesGroupBy(GroupBy[Series]):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``,
-            see the examples below.
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
 
         Examples
         --------
@@ -453,10 +488,8 @@ class SeriesGroupBy(GroupBy[Series]):
         1        1        2
         2        3        4
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the aggregating
-            function.
+        The resulting dtype will reflect the return value of the aggregating
+        function.
 
         >>> s.groupby([1, 1, 2, 2]).agg(lambda x: x.astype(float).min())
         1    1.0
@@ -660,8 +693,6 @@ class SeriesGroupBy(GroupBy[Series]):
     Parrot     25.0
     Parrot     25.0
     Name: Max Speed, dtype: float64
-
-    .. versionchanged:: 1.3.0
 
     The resulting dtype will reflect the return value of the passed ``func``,
     for example:
@@ -1744,9 +1775,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
     See :ref:`groupby.aggregate.named` for more.
 
-    .. versionchanged:: 1.3.0
-
-        The resulting dtype will reflect the return value of the aggregating function.
+    The resulting dtype will reflect the return value of the aggregating function.
 
     >>> df.groupby("A")[["B"]].agg(lambda x: x.astype(float).min())
           B
@@ -1837,10 +1866,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
         for more details.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``,
-            see the examples below.
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
 
         Examples
         --------
@@ -1920,10 +1947,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         See :ref:`groupby.aggregate.named` for more.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the aggregating
-            function.
+        The resulting dtype will reflect the return value of the aggregating
+        function.
 
         >>> df.groupby("A")[["B"]].agg(lambda x: x.astype(float).min())
               B
@@ -2281,8 +2306,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     3  4.000000  5.0
     4  3.666667  4.0
     5  4.000000  5.0
-
-    .. versionchanged:: 1.3.0
 
     The resulting dtype will reflect the return value of the passed ``func``,
     for example:

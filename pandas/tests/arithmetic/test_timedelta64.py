@@ -1602,6 +1602,31 @@ class TestTimedeltaArraylikeMulDivOps:
         with pytest.raises(TypeError, match=msg2):
             other * obj
 
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Int64",
+            "Float64",
+            pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_td64arr_mul_masked(self, dtype, box_with_array):
+        ser = Series(np.arange(5) * timedelta(hours=1))
+        obj = tm.box_expected(ser, box_with_array)
+
+        other = Series(np.arange(5), dtype=dtype)
+        other = tm.box_expected(other, box_with_array)
+
+        expected = Series([Timedelta(hours=n**2) for n in range(5)])
+        expected = tm.box_expected(expected, box_with_array)
+        if dtype == "int64[pyarrow]":
+            expected = expected.astype("duration[ns][pyarrow]")
+
+        result = obj * other
+        tm.assert_equal(result, expected)
+        result = other * obj
+        tm.assert_equal(result, expected)
+
     # ------------------------------------------------------------------
     # __div__, __rdiv__
 
