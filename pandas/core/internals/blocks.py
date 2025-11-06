@@ -350,7 +350,7 @@ class Block(PandasObject, libinternals.Block):
         return self._split_op_result(result)
 
     @final
-    def reduce(self, func) -> list[Block]:
+    def reduce(self, func) -> Block:
         # We will apply the function and reshape the result into a single-row
         #  Block with the same mgr_locs; squeezing will be done at a higher level
         assert self.ndim == 2
@@ -362,8 +362,7 @@ class Block(PandasObject, libinternals.Block):
         else:
             res_values = result.reshape(-1, 1)
 
-        nb = self.make_block(res_values)
-        return [nb]
+        return self.make_block(res_values)
 
     @final
     def _split_op_result(self, result: ArrayLike) -> list[Block]:
@@ -638,7 +637,7 @@ class Block(PandasObject, libinternals.Block):
         return self.make_block(result)
 
     @final
-    def copy(self, deep: bool = True) -> Self:
+    def copy(self, *, deep: bool) -> Self:
         """copy constructor"""
         values = self.values
         refs: BlockValuesRefs | None
@@ -656,7 +655,7 @@ class Block(PandasObject, libinternals.Block):
         if inplace:
             deep = self.refs.has_reference()
             return self.copy(deep=deep)
-        return self.copy()
+        return self.copy(deep=True)
 
     @final
     def _get_refs_and_copy(self, inplace: bool):
@@ -923,10 +922,10 @@ class Block(PandasObject, libinternals.Block):
                     has_ref = self.refs.has_reference()
                     nb = self.astype(np.dtype(object))
                     if not inplace:
-                        nb = nb.copy()
+                        nb = nb.copy(deep=True)
                     elif inplace and has_ref and nb.refs.has_reference():
                         # no copy in astype and we had refs before
-                        nb = nb.copy()
+                        nb = nb.copy(deep=True)
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
                 return [self.copy(deep=False)]

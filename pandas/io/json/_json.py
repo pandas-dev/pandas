@@ -655,8 +655,6 @@ def read_json(
         If this is None, the file will be read into memory all at once.
     {decompression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     nrows : int, optional
         The number of lines from the line-delimited jsonfile that has to be read.
         This can only be passed if `lines=True`.
