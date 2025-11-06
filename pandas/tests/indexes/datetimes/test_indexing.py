@@ -26,10 +26,6 @@ import pandas._testing as tm
 
 from pandas.tseries.frequencies import to_offset
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
-)
-
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
 
@@ -493,6 +489,9 @@ class TestGetLoc:
         with pytest.raises(TypeError, match=msg):
             dti.get_loc(key)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+    )
     def test_get_loc_reasonable_key_error(self):
         # GH#1062
         index = DatetimeIndex(["1/3/2000"])

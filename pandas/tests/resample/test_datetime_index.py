@@ -38,10 +38,6 @@ from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Minute
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
-)
-
 
 @pytest.fixture
 def simple_date_range_series():
@@ -331,6 +327,9 @@ def test_resample_rounding(unit):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
 def test_resample_basic_from_daily(unit):
     # from daily
     dti = date_range(
@@ -555,6 +554,9 @@ def test_resample_ohlc(unit):
     assert xs["close"] == s.iloc[4]
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
 def test_resample_ohlc_result(unit):
     # GH 12332
     index = date_range("1-1-2000", "2-15-2000", freq="h").as_unit(unit)
@@ -666,6 +668,9 @@ def test_resample_timestamp_to_period(
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
 def test_ohlc_5min(unit):
     def _ohlc(group):
         if isna(group).all():
@@ -1580,6 +1585,9 @@ def test_resample_dst_anchor(unit):
     )
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
 def test_resample_dst_anchor2(unit):
     dti = date_range(
         "2013-09-30", "2013-11-02", freq="30Min", tz="Europe/Paris"

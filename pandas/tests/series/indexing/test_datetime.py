@@ -27,11 +27,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
+
+@pytest.mark.filterwarnings(
     "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
 )
-
-
 def test_fancy_getitem():
     dti = date_range(
         freq="WOM-1FRI", start=datetime(2005, 1, 1), end=datetime(2010, 1, 1)
@@ -50,6 +49,9 @@ def test_fancy_getitem():
     )
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
 def test_fancy_setitem():
     dti = date_range(
         freq="WOM-1FRI", start=datetime(2005, 1, 1), end=datetime(2010, 1, 1)

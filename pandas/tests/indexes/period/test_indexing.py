@@ -21,10 +21,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
-)
-
 dti4 = date_range("2016-01-01", periods=4)
 dti = dti4[:-1]
 rng = pd.Index(range(3))
@@ -176,6 +172,9 @@ class TestGetItem:
         tm.assert_series_equal(ts[[Period("2012-01-02", freq="D")]], exp)
 
     @pytest.mark.arm_slow
+    @pytest.mark.filterwarnings(
+        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+    )
     def test_getitem_seconds(self):
         # GH#6716
         didx = date_range(start="2013/01/01 09:00:00", freq="s", periods=4000)
@@ -209,6 +208,9 @@ class TestGetItem:
             date_range,
             period_range,
         ],
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
     )
     def test_getitem_day(self, idx_range):
         # GH#6716

@@ -8,10 +8,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
-)
-
 
 def test_xs_datetimelike_wrapping():
     # GH#31630 a case where we shouldn't wrap datetime64 in Timestamp
@@ -50,6 +46,9 @@ class TestXSWithMultiIndex:
         result = ser.xs("one", level="L2")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+    )
     def test_series_getitem_multiindex_xs(self):
         # GH#6258
         dt = list(date_range("20130903", periods=3))
