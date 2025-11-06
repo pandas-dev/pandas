@@ -28,12 +28,7 @@ import pandas._testing as tm
 from pandas.core.arrays import BooleanArray
 import pandas.core.common as com
 
-pytestmark = [
-    pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning"),
-    pytest.mark.filterwarnings(
-        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
-    ),
-]
+pytestmark = pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 
 
 def test_repr():

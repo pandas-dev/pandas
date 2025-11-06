@@ -116,21 +116,22 @@ def _is_iso_format_string(date_str: str) -> bool:
     Check if a date string follows ISO8601 format.
 
     ISO format must start with a 4-digit year (YYYY), optionally followed by
-    month and day with consistent separators.
+    hyphen-separated month and day or 'T' for time component.
 
     Examples of ISO format (True):
+    - 2024
+    - 2024-01
     - 2024-01-10
-    - 2024/01/10
-    - 2024 01 10
     - 2024-01-10T00:00:00
 
     Examples of non-ISO format (False):
+    - 2024/01/10 (/ separator)
+    - 2024 01 10 (space separator)
     - 01/10/2024 (MM/DD/YYYY)
     - 10/01/2024 (DD/MM/YYYY)
     - 01-10-2024 (MM-DD-YYYY)
     """
-    # ISO format must start with 4-digit year followed by separator (-, /, ., or space)
-    return re.match(r"^\d{4}[-/. ]", date_str) is not None
+    return re.match(r"^\d{4}(?:-|T|$)", date_str) is not None
 
 
 @inherit_names(
@@ -722,6 +723,23 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # GH#33146 if start and end are combinations of str and None and Index is not
         # monotonic, we can not use Index.slice_indexer because it does not honor the
         # actual elements, is only searching for start and end
+        # GH#58302 - Deprecate non-ISO string formats in .loc indexing
+        if isinstance(start, str) and not _is_iso_format_string(start):
+            msg = (
+                "Parsing non-ISO datetime strings in .loc is deprecated "
+                "and will be removed in a future version. Use ISO format "
+                f"(YYYY-MM-DD) instead. Got '{start}'."
+            )
+            warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+
+        if isinstance(end, str) and not _is_iso_format_string(end):
+            msg = (
+                "Parsing non-ISO datetime strings in .loc is deprecated "
+                "and will be removed in a future version. Use ISO format "
+                f"(YYYY-MM-DD) instead. Got '{end}'."
+            )
+            warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+
         if (
             check_str_or_none(start)
             or check_str_or_none(end)
@@ -733,30 +751,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         in_index = True
         if start is not None:
             start_casted = self._maybe_cast_slice_bound(start, "left")
-
-            # GH#58302 - Deprecate non-ISO string formats in .loc indexing
-            if isinstance(start, str) and not _is_iso_format_string(start):
-                msg = (
-                    "Parsing non-ISO datetime strings in .loc is deprecated "
-                    "and will be removed in a future version. Use ISO format "
-                    f"(YYYY-MM-DD) instead. Got '{start}'."
-                )
-                warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
-
             mask = start_casted <= self
             in_index &= (start_casted == self).any()
 
         if end is not None:
             end_casted = self._maybe_cast_slice_bound(end, "right")
-
-            # GH#58302 - Deprecate non-ISO string formats in .loc indexing
-            if isinstance(end, str) and not _is_iso_format_string(end):
-                msg = (
-                    "Parsing non-ISO datetime strings in .loc is deprecated "
-                    "and will be removed in a future version. Use ISO format "
-                    f"(YYYY-MM-DD) instead. Got '{end}'."
-                )
-                warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
 
             mask = (self <= end_casted) & mask
             in_index &= (end_casted == self).any()

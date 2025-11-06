@@ -501,13 +501,11 @@ class TestDatetimeIndexNonISODeprecation:
     @pytest.mark.parametrize(
         "date_string,expected",
         [
-            ("2024-01-10", 9),  # YYYY-MM-DD (dash)
-            ("2024/01/10", 9),  # YYYY/MM/DD (slash)
-            ("2024 01 10", 9),  # YYYY MM DD (space)
+            ("2024-01-10", 9),  # YYYY-MM-DD (ISO format)
         ],
     )
     def test_loc_indexing_iso_format_no_warning(self, ser_daily, date_string, expected):
-        # GH#58302 - ISO formats should NOT warn
+        # GH#58302 - ISO format (YYYY-MM-DD) should NOT warn
         with tm.assert_produces_warning(None):
             result = ser_daily.loc[date_string]
             assert result == expected

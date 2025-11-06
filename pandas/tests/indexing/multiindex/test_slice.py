@@ -19,10 +19,6 @@ from pandas import (
 import pandas._testing as tm
 from pandas.tests.indexing.common import _mklbl
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
-)
-
 
 class TestMultiIndexSlicers:
     def test_per_axis_per_level_getitem(self):
