@@ -2383,7 +2383,24 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
             if obj.freq is not None and all(x.freq == obj.freq for x in to_concat):
                 pairs = zip(to_concat[:-1], to_concat[1:], strict=True)
-                if all(pair[0][-1] + obj.freq == pair[1][0] for pair in pairs):
+                # GH#62915: For timezone-aware datetimes with fixed frequencies,
+                # DST transitions can cause naive addition (pair[0][-1] + freq) to
+                # not equal pair[1][0] even when they're legitimately consecutive.
+                # For Tick frequencies, compare using underlying int64 values.
+                # For non-Tick frequencies, use the original comparison.
+                try:
+                    freq_nanos = obj.freq.nanos
+                    pairs_match = all(
+                        pair[1][0]._value - pair[0][-1]._value == freq_nanos
+                        for pair in pairs
+                    )
+                except (ValueError, AttributeError):
+                    # Non-fixed frequency, fall back to original comparison
+                    pairs_match = all(
+                        pair[0][-1] + obj.freq == pair[1][0] for pair in pairs
+                    )
+
+                if pairs_match:
                     new_freq = obj.freq
                     new_obj._freq = new_freq
         return new_obj

@@ -729,6 +729,20 @@ class TestCustomDatetimeIndex:
         expected = date_range("2021-10-28", periods=6, freq="D", tz="Europe/London")
         tm.assert_index_equal(result, expected)
 
+    def test_union_dst_boundary(self):
+        # GH#62915: index.union fails at DST boundary
+        # When one index ends at DST transition and the other crosses it,
+        # the union should succeed and preserve frequency
+        index1 = date_range("2025-10-25", "2025-10-26", freq="D", tz="Europe/Helsinki")
+        index2 = date_range("2025-10-25", "2025-10-28", freq="D", tz="Europe/Helsinki")
+
+        result = index1.union(index2)
+        expected = date_range(
+            "2025-10-25", "2025-10-28", freq="D", tz="Europe/Helsinki"
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
+
 
 def test_union_non_nano_rangelike():
     # GH 59036
