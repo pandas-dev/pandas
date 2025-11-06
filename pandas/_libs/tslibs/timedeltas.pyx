@@ -341,9 +341,7 @@ cdef convert_to_timedelta64(object ts, str unit):
     Return an ns based int64
     """
     # Caller is responsible for checking unit not in ["Y", "y", "M"]
-    if checknull_with_nat_and_na(ts):
-        return np.timedelta64(NPY_NAT, "ns")
-    elif isinstance(ts, _Timedelta):
+    if isinstance(ts, _Timedelta):
         # already in the proper format
         if ts._creso != NPY_FR_ns:
             ts = ts.as_unit("ns").asm8
@@ -436,8 +434,11 @@ def array_to_timedelta64(
         item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
         try:
-            td64ns_obj = convert_to_timedelta64(item, parsed_unit)
-            ival = cnp.get_timedelta64_value(td64ns_obj)
+            if checknull_with_nat_and_na(item):
+                ival = NPY_NAT
+            else:
+                td64ns_obj = convert_to_timedelta64(item, parsed_unit)
+                ival = cnp.get_timedelta64_value(td64ns_obj)
         except ValueError as err:
             if errors == "coerce":
                 ival = NPY_NAT
@@ -2114,12 +2115,14 @@ class Timedelta(_Timedelta):
             new_value = delta_to_nanoseconds(value, reso=new_reso)
             return cls._from_value_and_reso(new_value, reso=new_reso)
 
+        elif checknull_with_nat_and_na(value):
+            return NaT
+
         elif is_integer_object(value) or is_float_object(value):
             # unit=None is de-facto 'ns'
             unit = parse_timedelta_unit(unit)
             value = convert_to_timedelta64(value, unit)
-        elif checknull_with_nat_and_na(value):
-            return NaT
+
         else:
             raise ValueError(
                 "Value must be Timedelta, string, integer, "
