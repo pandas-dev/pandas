@@ -2942,3 +2942,20 @@ class TestPivot:
         tm.assert_frame_equal(
             df, df_expected, check_dtype=False, check_column_type=False
         )
+
+    @pytest.mark.parametrize("freq", ["D", "M", "Q", "Y"])
+    def test_pivot_empty_dataframe_period_dtype(self, freq):
+        # GH#62705
+
+        dtype = pd.PeriodDtype(freq=freq)
+        df = pd.DataFrame({"index": [], "columns": [], "values": []})
+        df = df.astype({"values": dtype})
+        result = df.pivot(index="index", columns="columns", values="values")
+
+        expected_index = pd.Index([], name="index", dtype="float64")
+        expected_columns = pd.Index([], name="columns", dtype="float64")
+        expected = pd.DataFrame(
+            index=expected_index, columns=expected_columns, dtype=dtype
+        )
+
+        tm.assert_frame_equal(result, expected)
