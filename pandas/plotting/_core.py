@@ -231,8 +231,8 @@ def hist_frame(
 
     Returns
     -------
-    matplotlib.Axes or numpy.ndarray of them
-        Returns a AxesSubplot object a numpy array of AxesSubplot objects.
+    np.ndarray
+        2D NumPy Array of :class:`matplotlib.axes.Axes`.
 
     See Also
     --------
