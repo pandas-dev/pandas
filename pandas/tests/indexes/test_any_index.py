@@ -110,10 +110,12 @@ class TestRoundTrips:
             assert index.equal_levels(result)
 
     def test_pickle_preserves_name(self, index):
-        original_name, index.name = index.name, "foo"
+        if not index._is_multi:
+            original_name, index.name = index.name, "foo"
         unpickled = tm.round_trip_pickle(index)
         assert index.equals(unpickled)
-        index.name = original_name
+        if not index._is_multi:
+            index.name = original_name
 
 
 class TestIndexing:
@@ -165,8 +167,10 @@ class TestIndexing:
 class TestRendering:
     def test_str(self, index):
         # test the string repr
-        index.name = "foo"
-        assert "'foo'" in str(index)
+        if index._is_multi:
+            pytest.skip(reason=".name does not show up in repr")
+        index.name = "my_index_name"
+        assert "'my_index_name'" in str(index)
         assert type(index).__name__ in str(index)
 
 

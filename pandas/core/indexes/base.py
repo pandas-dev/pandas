@@ -1802,6 +1802,15 @@ class Index(IndexOpsMixin, PandasObject):
                 "Cannot set name on a level of a MultiIndex. Use "
                 "'MultiIndex.set_names' instead."
             )
+        if self._is_multi:
+            warnings.warn(
+                # GH#11979
+                "Setting .name on a MultiIndex is deprecated and will "
+                "raise in a future version. Set 'names' instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         maybe_extract_name(value, None, type(self))
         self._name = value
 
@@ -6188,7 +6197,10 @@ class Index(IndexOpsMixin, PandasObject):
         keyarr = self.take(indexer)
         if isinstance(key, Index):
             # GH 42790 - Preserve name from an Index
-            keyarr.name = key.name
+            if keyarr._is_multi:
+                keyarr.names = key.names
+            else:
+                keyarr.name = key.name
         if lib.is_np_dtype(keyarr.dtype, "mM") or isinstance(
             keyarr.dtype, DatetimeTZDtype
         ):
