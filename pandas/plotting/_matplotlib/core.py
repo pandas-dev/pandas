@@ -66,7 +66,6 @@ from pandas.plotting._matplotlib.groupby import reconstruct_data_with_by
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 from pandas.plotting._matplotlib.style import get_standard_colors
 from pandas.plotting._matplotlib.timeseries import (
-    decorate_axes,
     format_dateaxis,
     maybe_convert_index,
     prepare_ts_data,
@@ -2047,8 +2046,12 @@ class BarPlot(MPLPlot):
 
         # GH#1918: Apply date formatter for time series indices
         if self._is_ts_plot():
-            decorate_axes(ax, data.index.freq)
             freq = data.index.freq
+            # Set freq on axis for formatter to use, but don't call decorate_axes
+            # to avoid adding _plot_data attribute (which bar plots shouldn't have)
+            ax.freq = freq  # type: ignore[attr-defined]
+            xaxis = ax.get_xaxis()
+            xaxis.freq = freq  # type: ignore[attr-defined]
 
             index = data.index
             if isinstance(index, ABCDatetimeIndex):
