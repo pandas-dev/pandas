@@ -618,6 +618,7 @@ class TestJSONNormalize:
         }
         expected_columns = ["b", "c", 12, "a"]
         expected = DataFrame(expected_data, columns=expected_columns)
+        expected["a"] = expected["a"].astype(object)
 
         tm.assert_frame_equal(result, expected)
 
