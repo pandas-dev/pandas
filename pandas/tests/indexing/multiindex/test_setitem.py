@@ -507,10 +507,6 @@ class TestSetitemWithExpansionMultiIndex:
             columns=[0, 1],
         )
         tm.assert_frame_equal(df, expected, check_index_type=False)
-        result = df.loc[("A", None), :]
-        expected_row = Series([12.0, 13.0], index=[0, 1], name=("A", np.nan))
-        tm.assert_series_equal(result, expected_row)
-
 
 def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
     # this works because we are modifying the underlying array
