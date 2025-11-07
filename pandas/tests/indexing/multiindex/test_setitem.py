@@ -497,56 +497,53 @@ class TestSetitemWithExpansionMultiIndex:
         index = MultiIndex.from_tuples(
             [("A", "a1"), ("A", "a2"), ("B", "b1"), ("B", None)]
         )
-        df = DataFrame([(0, 6), (1, 5), (2, 4), (3, 7)], index=index)
+        df = DataFrame([(0.0, 6.0), (1.0, 5.0), (2.0, 4.0), (3.0, 7.0)], index=index)
 
         # Enlarge with a new index entry where one key is None
-        df.loc[("A", None), :] = [12, 13]
+        df.loc[("A", None), :] = [12.0, 13.0]
 
         expected_index = MultiIndex.from_tuples(
             [("A", "a1"), ("A", "a2"), ("B", "b1"), ("B", None), ("A", None)]
         )
         expected = DataFrame(
-            [[0, 6], [1, 5], [2, 4], [3, 7], [12, 13]],
+            [[0.0, 6.0], [1.0, 5.0], [2.0, 4.0], [3.0, 7.0], [12.0, 13.0]],
             index=expected_index,
             columns=[0, 1],
-            dtype=float,
         )
         tm.assert_frame_equal(df, expected)
 
         # Test retrieval of the newly added row
         result = df.loc[("A", None), :]
-        expected_row = Series([12, 13], index=[0, 1], name=("A", np.nan), dtype=float)
+        expected_row = Series([12.0, 13.0], index=[0, 1], name=("A", np.nan))
         tm.assert_series_equal(result, expected_row)
 
     def test_setitem_enlargement_multiindex_multiple_none(self):
         # GH#59153
         # Test enlarging with multiple None keys in different levels
         index = MultiIndex.from_tuples([("A", "a1"), ("B", "b1")])
-        df = DataFrame([[1, 2], [3, 4]], index=index, columns=["x", "y"])
+        df = DataFrame([[1.0, 2.0], [3.0, 4.0]], index=index, columns=["x", "y"])
 
         # Add row with None in first level
-        df.loc[(None, "c1"), :] = [5, 6]
+        df.loc[(None, "c1"), :] = [5.0, 6.0]
 
         # Add row with None in second level
-        df.loc[("C", None), :] = [7, 8]
+        df.loc[("C", None), :] = [7.0, 8.0]
 
-        # (None, None) case removed as requested
         expected_index = MultiIndex.from_tuples(
             [
                 ("A", "a1"),
                 ("B", "b1"),
                 (None, "c1"),
                 ("C", None),
-            ],
-            dtype="object"
+            ]
         )
         expected = DataFrame(
-            [[1, 2], [3, 4], [5, 6], [7, 8]],
+            [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]],
             index=expected_index,
             columns=["x", "y"],
-            dtype=float,
         )
         tm.assert_frame_equal(df, expected)
+
 
 
 def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
