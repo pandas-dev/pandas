@@ -341,8 +341,12 @@ how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
       of the left keys.
     * left_anti: use only keys from left frame that are not in right frame, similar
       to SQL left anti join; preserve key order.
+
+      .. versionadded:: 3.0
     * right_anti: use only keys from right frame that are not in left frame, similar
       to SQL right anti join; preserve key order.
+
+      .. versionadded:: 3.0
 on : Hashable or a sequence of the previous
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -553,8 +557,6 @@ class DataFrame(NDFrame, OpsMixin):
         or 2d ndarray input, the default of None behaves like ``copy=False``.
         If data is a dict containing one or more Series (possibly of different dtypes),
         ``copy=False`` will ensure that these inputs are not copied.
-
-        .. versionchanged:: 1.3.0
 
     See Also
     --------
@@ -2686,16 +2688,12 @@ class DataFrame(NDFrame, OpsMixin):
             8 characters and values are repeated.
         {compression_options}
 
-            .. versionchanged:: 1.4.0 Zstandard support.
-
         {storage_options}
 
         value_labels : dict of dicts
             Dictionary containing columns as keys and dictionaries of column value
             to labels as values. Labels for a single variable must be 32,000
             characters or smaller.
-
-            .. versionadded:: 1.4.0
 
         Raises
         ------
@@ -2933,6 +2931,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
+        filesystem: Any = ...,
         **kwargs,
     ) -> bytes: ...
 
@@ -2946,6 +2945,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
+        filesystem: Any = ...,
         **kwargs,
     ) -> None: ...
 
@@ -2959,6 +2959,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = None,
         partition_cols: list[str] | None = None,
         storage_options: StorageOptions | None = None,
+        filesystem: Any = None,
         **kwargs,
     ) -> bytes | None:
         """
@@ -2997,6 +2998,12 @@ class DataFrame(NDFrame, OpsMixin):
             Columns are partitioned in the order they are given.
             Must be None if path is not a string.
         {storage_options}
+
+        filesystem : fsspec or pyarrow filesystem, default None
+            Filesystem object to use when reading the parquet file. Only implemented
+            for ``engine="pyarrow"``.
+
+            .. versionadded:: 2.1.0
 
         **kwargs
             Additional arguments passed to the parquet library. See
@@ -3059,6 +3066,7 @@ class DataFrame(NDFrame, OpsMixin):
             index=index,
             partition_cols=partition_cols,
             storage_options=storage_options,
+            filesystem=filesystem,
             **kwargs,
         )
 
@@ -3533,8 +3541,6 @@ class DataFrame(NDFrame, OpsMixin):
             argument requires ``lxml`` to be installed. Only XSLT 1.0
             scripts and not later versions is currently supported.
         {compression_options}
-
-            .. versionchanged:: 1.4.0 Zstandard support.
 
         {storage_options}
 
@@ -6145,7 +6151,7 @@ class DataFrame(NDFrame, OpsMixin):
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
                     .add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
                 )
-            return concat(shifted_dataframes, axis=1)
+            return concat(shifted_dataframes, axis=1, sort=False)
         elif suffix:
             raise ValueError("Cannot specify `suffix` if `periods` is an int.")
         periods = cast(int, periods)
@@ -9487,13 +9493,6 @@ class DataFrame(NDFrame, OpsMixin):
             when the result's index (and column) labels match the inputs, and
             are included otherwise.
 
-            .. versionchanged:: 1.5.0
-
-               Warns that ``group_keys`` will no longer be ignored when the
-               result from ``apply`` is a like-indexed Series or DataFrame.
-               Specify ``group_keys`` explicitly to include the group keys or
-               not.
-
             .. versionchanged:: 2.0.0
 
                ``group_keys`` now defaults to ``True``.
@@ -11408,12 +11407,18 @@ class DataFrame(NDFrame, OpsMixin):
 
             # join indexes only using concat
             if can_concat:
-                if how == "left":
+                if how == "left" or how == "right":
                     res = concat(
                         frames, axis=1, join="outer", verify_integrity=True, sort=sort
                     )
-                    return res.reindex(self.index)
+                    index = self.index if how == "left" else frames[-1].index
+                    if sort:
+                        index = index.sort_values()
+                    result = res.reindex(index)
+                    return result
                 else:
+                    if how == "outer":
+                        sort = True
                     return concat(
                         frames, axis=1, join=how, verify_integrity=True, sort=sort
                     )
@@ -11424,6 +11429,7 @@ class DataFrame(NDFrame, OpsMixin):
                 joined = merge(
                     joined,
                     frame,
+                    sort=sort,
                     how=how,
                     left_index=True,
                     right_index=True,
