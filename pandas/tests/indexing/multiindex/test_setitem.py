@@ -550,4 +550,3 @@ def test_frame_setitem_partial_multiindex():
     expected = df.copy()
     expected["d"] = 8
     tm.assert_frame_equal(result, expected)
-
