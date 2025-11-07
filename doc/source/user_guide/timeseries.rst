@@ -589,11 +589,11 @@ Dates and strings that parse to timestamps can be passed as indexing parameters:
 
 .. ipython:: python
 
-   ts["1/31/2011"]
+   ts["2011-01-31"]
 
    ts[datetime.datetime(2011, 12, 25):]
 
-   ts["10/31/2011":"12/31/2011"]
+   ts["2011-10-31":"2011-12-31"]
 
 To provide convenience for accessing longer time series, you can also pass in
 the year or year and month as strings:
