@@ -1049,7 +1049,6 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     # rebuild string, capturing any inferred padding
     dt_str = "".join(tokens)
     if parsed_datetime.strftime(guessed_format) == dt_str:
-        _maybe_warn_about_dayfirst(guessed_format, dayfirst)
         return guessed_format
     else:
         return None
@@ -1070,30 +1069,6 @@ cdef str _fill_token(token: str, padding: int):
         nanoseconds = nanoseconds.ljust(9, "0")[:6]
         token_filled = f"{seconds}.{nanoseconds}"
     return token_filled
-
-
-cdef void _maybe_warn_about_dayfirst(format: str, bint dayfirst) noexcept:
-    """Warn if guessed datetime format doesn't respect dayfirst argument."""
-    cdef:
-        int day_index = format.find("%d")
-        int month_index = format.find("%m")
-
-    if (day_index != -1) and (month_index != -1):
-        if (day_index > month_index) and dayfirst:
-            warnings.warn(
-                f"Parsing dates in {format} format when dayfirst=True was specified. "
-                "Pass `dayfirst=False` or specify a format to silence this warning.",
-                UserWarning,
-                stacklevel=find_stack_level(),
-            )
-        if (day_index < month_index) and not dayfirst:
-            warnings.warn(
-                f"Parsing dates in {format} format when dayfirst=False (the default) "
-                "was specified. "
-                "Pass `dayfirst=True` or specify a format to silence this warning.",
-                UserWarning,
-                stacklevel=find_stack_level(),
-            )
 
 
 cpdef str get_rule_month(str source):

@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import (
+    NaT,
     parsing,
     strptime,
 )
@@ -29,6 +30,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
+from pandas.core.tools.datetimes import _guess_datetime_format_for_array
 
 
 @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
@@ -230,10 +232,7 @@ def test_parsers_month_freq(date_str, expected):
     ],
 )
 def test_guess_datetime_format_with_parseable_formats(string, fmt):
-    with tm.maybe_produces_warning(
-        UserWarning, fmt is not None and re.search(r"%d.*%m", fmt)
-    ):
-        result = parsing.guess_datetime_format(string)
+    result = parsing.guess_datetime_format(string)
     assert result == fmt
 
 
@@ -290,31 +289,25 @@ def test_guess_datetime_format_wrong_type_inputs(invalid_type_dt):
 
 
 @pytest.mark.parametrize(
-    "string,fmt,dayfirst,warning",
+    "string,fmt,dayfirst",
     [
-        ("2011-1-1", "%Y-%m-%d", False, None),
-        ("2011-1-1", "%Y-%d-%m", True, None),
-        ("1/1/2011", "%m/%d/%Y", False, None),
-        ("1/1/2011", "%d/%m/%Y", True, None),
-        ("30-1-2011", "%d-%m-%Y", False, UserWarning),
-        ("30-1-2011", "%d-%m-%Y", True, None),
-        ("2011-1-1 0:0:0", "%Y-%m-%d %H:%M:%S", False, None),
-        ("2011-1-1 0:0:0", "%Y-%d-%m %H:%M:%S", True, None),
-        ("2011-1-3T00:00:0", "%Y-%m-%dT%H:%M:%S", False, None),
-        ("2011-1-3T00:00:0", "%Y-%d-%mT%H:%M:%S", True, None),
-        ("2011-1-1 00:00:00", "%Y-%m-%d %H:%M:%S", False, None),
-        ("2011-1-1 00:00:00", "%Y-%d-%m %H:%M:%S", True, None),
+        ("2011-1-1", "%Y-%m-%d", False),
+        ("2011-1-1", "%Y-%d-%m", True),
+        ("1/1/2011", "%m/%d/%Y", False),
+        ("1/1/2011", "%d/%m/%Y", True),
+        ("30-1-2011", "%d-%m-%Y", False),
+        ("30-1-2011", "%d-%m-%Y", True),
+        ("2011-1-1 0:0:0", "%Y-%m-%d %H:%M:%S", False),
+        ("2011-1-1 0:0:0", "%Y-%d-%m %H:%M:%S", True),
+        ("2011-1-3T00:00:0", "%Y-%m-%dT%H:%M:%S", False),
+        ("2011-1-3T00:00:0", "%Y-%d-%mT%H:%M:%S", True),
+        ("2011-1-1 00:00:00", "%Y-%m-%d %H:%M:%S", False),
+        ("2011-1-1 00:00:00", "%Y-%d-%m %H:%M:%S", True),
     ],
 )
-def test_guess_datetime_format_no_padding(string, fmt, dayfirst, warning):
+def test_guess_datetime_format_no_padding(string, fmt, dayfirst):
     # see gh-11142
-    msg = (
-        rf"Parsing dates in {fmt} format when dayfirst=False \(the default\) "
-        "was specified. "
-        "Pass `dayfirst=True` or specify a format to silence this warning."
-    )
-    with tm.assert_produces_warning(warning, match=msg):
-        result = parsing.guess_datetime_format(string, dayfirst=dayfirst)
+    result = parsing.guess_datetime_format(string, dayfirst=dayfirst)
     assert result == fmt
 
 
@@ -424,3 +417,41 @@ def test_parse_datetime_string_with_reso_yearfirst(yearfirst, input):
         )
         assert except_out_dateutil == except_in_dateutil
         assert result[0] == expected
+
+
+@pytest.mark.parametrize(
+    "expected_format, array",
+    [
+        ("%d/%m/%Y", np.array(["01/02/2025", "30/07/2025"])),
+        ("%Y-%m-%d", np.array(["2025-08-09", "2025-08-13", None])),
+        ("%m/%d/%Y", np.array(["02/01/2025", "12/31/2025"])),
+        ("%d-%m-%Y", np.array(["01-02-2025", "30-07-2025"])),
+        ("%d.%m.%Y", np.array(["01.02.2025", "30.07.2025"])),
+        ("%Y/%m/%d", np.array(["2025/08/09", "2025/12/01"])),
+        ("%b %d, %Y", np.array(["Feb 01, 2025", "Jul 30, 2025"])),
+        ("%B %d, %Y", np.array(["February 01, 2025", "July 30, 2025"])),
+        ("%d %b %Y", np.array(["01 Feb 2025", "30 Jul 2025"])),
+        ("%d-%b-%Y", np.array(["01-Feb-2025", "30-Jul-2025"])),
+        ("%Y%m%d", np.array(["20250201", "20250730"])),
+        (None, np.array(["02/01/25", "12/31/25"])),
+        ("%Y-%m-%d %H:%M:%S", np.array(["2025-08-09 14:30:00", "2025-12-01 00:00:00"])),
+        ("%Y-%m-%dT%H:%M:%S", np.array(["2025-08-09T14:30:00", "2025-12-01T00:00:00"])),
+        (
+            "%Y-%m-%dT%H:%M:%S.%f",
+            np.array(["2025-08-09T14:30:00.123456", "2025-12-01T00:00:00.5"]),
+        ),
+        (
+            "%Y-%m-%d %H:%M:%S%z",
+            np.array(["2025-08-09 14:30:00+0000", "2025-12-01 09:15:00-0500"]),
+        ),
+        ("%Y-%m-%d", np.array(["2025-08-09", None, "2025-12-01"])),
+        (None, np.array(["2025/13/01", "not-a-date", "", NaT])),
+        (
+            None,
+            np.array(["01/02/2025", "2025-02-01", np.nan]),
+        ),
+    ],
+)
+def test_guess_datetime_format_for_array(expected_format: str, array: np.array) -> None:
+    fmt = _guess_datetime_format_for_array(array, dayfirst=False)
+    assert fmt == expected_format, f"{fmt} does not match {expected_format}"
