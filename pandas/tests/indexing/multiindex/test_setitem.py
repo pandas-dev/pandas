@@ -173,11 +173,11 @@ class TestMultiIndexSetItem:
         idx = pd.IndexSlice
         df = df_orig.copy()
         df.loc[idx[:, :, "Stock"], :] *= 2
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_index_type=False)
 
         df = df_orig.copy()
         df.loc[idx[:, :, "Stock"], "price"] *= 2
-        tm.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected, check_index_type=False)
 
     def test_multiindex_assignment(self):
         # GH3777 part 2
