@@ -245,7 +245,6 @@ class XlsxWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
-        autofilter: bool = False,
     ) -> None:
         # Write the frame cells using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
@@ -258,11 +257,6 @@ class XlsxWriter(ExcelWriter):
 
         if validate_freeze_panes(freeze_panes):
             wks.freeze_panes(*(freeze_panes))
-
-        min_r = None
-        min_c = None
-        max_r = None
-        max_c = None
 
         for cell in cells:
             val, fmt = self._value_with_fmt(cell.val)
@@ -277,31 +271,14 @@ class XlsxWriter(ExcelWriter):
                 style = self.book.add_format(_XlsxStyler.convert(cell.style, fmt))
                 style_dict[stylekey] = style
 
-            abs_row = startrow + cell.row
-            abs_col = startcol + cell.col
-
-            # track bounds
-            if min_r is None or abs_row < min_r:
-                min_r = abs_row
-            if min_c is None or abs_col < min_c:
-                min_c = abs_col
-            if max_r is None or abs_row > max_r:
-                max_r = abs_row
-            if max_c is None or abs_col > max_c:
-                max_c = abs_col
-
             if cell.mergestart is not None and cell.mergeend is not None:
                 wks.merge_range(
-                    abs_row,
-                    abs_col,
+                    startrow + cell.row,
+                    startcol + cell.col,
                     startrow + cell.mergestart,
                     startcol + cell.mergeend,
                     val,
                     style,
                 )
             else:
-                wks.write(abs_row, abs_col, val, style)
-
-        if autofilter and min_r is not None and min_c is not None and max_r is not None and max_c is not None:
-            # Apply autofilter over the used range. xlsxwriter uses 0-based indices.
-            wks.autofilter(min_r, min_c, max_r, max_c)
+                wks.write(startrow + cell.row, startcol + cell.col, val, style)

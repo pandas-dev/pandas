@@ -99,17 +99,10 @@ class ODSWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
-        autofilter: bool = False,
     ) -> None:
         """
         Write the frame cells using odf
         """
-        if autofilter:
-            raise NotImplementedError(
-                "Autofilter is not supported with the 'odf' engine. "
-                "Please use 'openpyxl' or 'xlsxwriter' engine instead."
-            )
-
         from odf.table import (
             Table,
             TableCell,

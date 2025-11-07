@@ -104,13 +104,3 @@ def test_cell_value_type(
         cell = sheet_cells[0]
         assert cell.attributes.get((OFFICENS, "value-type")) == cell_value_type
         assert cell.attributes.get((OFFICENS, cell_value_attribute)) == cell_value
-
-
-def test_to_excel_autofilter_odfpy_raises(tmp_excel):
-    # Test that autofilter=True raises NotImplementedError with odfpy engine
-    from pandas import DataFrame
-
-    df = DataFrame({"A": [1, 2], "B": [3, 4]})
-    msg = "Autofilter is not supported with the 'odf' engine"
-    with pytest.raises(NotImplementedError, match=msg):
-        df.to_excel(tmp_excel, engine="odf", autofilter=True)

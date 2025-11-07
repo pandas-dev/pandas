@@ -10,6 +10,12 @@ from pandas.io.excel import ExcelWriter
 
 xlsxwriter = pytest.importorskip("xlsxwriter")
 
+# xfail marker for pending autofilter feature; see #62994
+xfail_autofilter = pytest.mark.xfail(
+    reason="Excel header autofilter not yet implemented on main; see #62994",
+    strict=False,
+)
+
 
 @pytest.fixture
 def ext():
@@ -87,6 +93,7 @@ def test_book_and_sheets_consistent(tmp_excel):
         assert writer.sheets == {"test_name": sheet}
 
 
+@xfail_autofilter
 def test_to_excel_autofilter_xlsxwriter(tmp_excel):
     openpyxl = pytest.importorskip("openpyxl")
 
@@ -106,6 +113,7 @@ def test_to_excel_autofilter_xlsxwriter(tmp_excel):
         wb.close()
 
 
+@xfail_autofilter
 def test_to_excel_autofilter_startrow_startcol_xlsxwriter(tmp_excel):
     openpyxl = pytest.importorskip("openpyxl")
 
@@ -131,6 +139,7 @@ def test_to_excel_autofilter_startrow_startcol_xlsxwriter(tmp_excel):
         wb.close()
 
 
+@xfail_autofilter
 def test_to_excel_autofilter_multiindex_merge_cells_xlsxwriter(tmp_excel):
     openpyxl = pytest.importorskip("openpyxl")
 
@@ -157,6 +166,7 @@ def test_to_excel_autofilter_multiindex_merge_cells_xlsxwriter(tmp_excel):
         wb.close()
 
 
+@xfail_autofilter
 def test_to_excel_autofilter_multiindex_no_merge_xlsxwriter(tmp_excel):
     openpyxl = pytest.importorskip("openpyxl")
 
