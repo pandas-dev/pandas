@@ -508,6 +508,7 @@ class TestSetitemWithExpansionMultiIndex:
         )
         tm.assert_frame_equal(df, expected, check_index_type=False)
 
+
 def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
     # this works because we are modifying the underlying array
     # really a no-no
