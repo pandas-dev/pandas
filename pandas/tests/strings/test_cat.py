@@ -1,3 +1,4 @@
+from datetime import datetime
 import re
 
 import numpy as np
@@ -341,6 +342,19 @@ def test_str_cat_align_mixed_inputs(join_type):
     # unindexed object of wrong length in list
     with pytest.raises(ValueError, match=rgx):
         s.str.cat([t, z], join=join_type)
+
+
+def test_str_cat_datetime_index_unsorted(join_type):
+    # https://github.com/pandas-dev/pandas/pull/62843
+    values = [datetime(2024, 1, 1), datetime(2024, 1, 2)]
+    s = Series(["a", "b"], index=[values[1], values[0]])
+    others = Series(["c", "d"], index=[values[0], values[1]])
+    result = s.str.cat(others, join=join_type)
+    if join_type == "outer" or join_type == "right":
+        expected = Series(["bc", "ad"], index=[values[0], values[1]])
+    else:
+        expected = Series(["ad", "bc"], index=[values[1], values[0]])
+    tm.assert_series_equal(result, expected)
 
 
 def test_str_cat_all_na(index_or_series, index_or_series2):

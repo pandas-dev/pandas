@@ -500,7 +500,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if dtype is not None:
                 data = data.astype(dtype=dtype)
             elif copy:
-                data = data.copy()
+                data = data.copy(deep=True)
         else:
             data = sanitize_array(data, index, dtype, copy)
             data = SingleBlockManager.from_array(data, index, refs=refs)
@@ -818,7 +818,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[prop-decorator]
     @property
     def array(self) -> ExtensionArray:
-        return self._mgr.array_values()
+        arr = self._mgr.array_values()
+        arr = arr.view()
+        arr._readonly = True
+        return arr
 
     def __len__(self) -> int:
         """
@@ -1833,9 +1836,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         df = self._constructor_expanddim_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(self, method="to_frame")
 
-    def _set_name(
-        self, name, inplace: bool = False, deep: bool | None = None
-    ) -> Series:
+    def _set_name(self, name, inplace: bool = False) -> Series:
         """
         Set the Series name.
 
@@ -5927,8 +5928,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Right boundary.
         inclusive : {"both", "neither", "left", "right"}
             Include boundaries. Whether to set each bound as closed or open.
-
-            .. versionchanged:: 1.3.0
 
         Returns
         -------

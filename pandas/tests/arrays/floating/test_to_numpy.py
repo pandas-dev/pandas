@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import FloatingArray
@@ -142,3 +144,35 @@ def test_to_numpy_copy():
     result = arr.to_numpy(dtype="float64", copy=True)
     result[0] = 10
     tm.assert_extension_array_equal(arr, pd.array([0.1, 0.2, 0.3], dtype="Float64"))
+
+
+def test_to_numpy_readonly():
+    arr = pd.array([0.1, 0.2, 0.3], dtype="Float64")
+    arr._readonly = True
+    result = arr.to_numpy(dtype="float64")
+    assert not result.flags.writeable
+
+    result = arr.to_numpy(dtype="float64", copy=True)
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="float32")
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="object")
+    assert result.flags.writeable
+
+
+@pytest.mark.skipif(not np_version_gt2, reason="copy keyword introduced in np 2.0")
+@pytest.mark.parametrize("dtype", [None, "float64"])
+def test_asarray_readonly(dtype):
+    arr = pd.array([0.1, 0.2, 0.3], dtype="Float64")
+    arr._readonly = True
+
+    result = np.asarray(arr, dtype=dtype)
+    assert not result.flags.writeable
+
+    result = np.asarray(arr, dtype=dtype, copy=True)
+    assert result.flags.writeable
+
+    result = np.asarray(arr, dtype=dtype, copy=False)
+    assert not result.flags.writeable
