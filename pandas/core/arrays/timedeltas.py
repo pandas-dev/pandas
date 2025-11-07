@@ -1251,7 +1251,7 @@ def _objects_to_td64ns(
     values = np.asarray(data, dtype=np.object_)
 
     result = array_to_timedelta64(values, unit=unit, errors=errors)
-    return result.view("timedelta64[ns]")
+    return result
 
 
 def _validate_td64_dtype(dtype) -> DtypeObj:

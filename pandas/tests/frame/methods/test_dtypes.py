@@ -103,7 +103,7 @@ class TestDataFrameDataTypes:
         )
         result = df.dtypes
         expected = Series(
-            [np.dtype("datetime64[ns]"), np.dtype("timedelta64[ns]")], index=list("AB")
+            [np.dtype("datetime64[ns]"), np.dtype("timedelta64[us]")], index=list("AB")
         )
         tm.assert_series_equal(result, expected)
 
@@ -112,7 +112,7 @@ class TestDataFrameDataTypes:
         expected = Series(
             [
                 np.dtype("datetime64[ns]"),
-                np.dtype("timedelta64[ns]"),
+                np.dtype("timedelta64[us]"),
                 np.dtype("datetime64[ns]"),
             ],
             index=list("ABC"),
@@ -125,7 +125,7 @@ class TestDataFrameDataTypes:
         expected = Series(
             [
                 np.dtype("datetime64[ns]"),
-                np.dtype("timedelta64[ns]"),
+                np.dtype("timedelta64[us]"),
                 np.dtype("datetime64[ns]"),
                 np.dtype("int64"),
             ],
