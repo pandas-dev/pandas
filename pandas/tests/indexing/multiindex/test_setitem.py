@@ -537,7 +537,8 @@ class TestSetitemWithExpansionMultiIndex:
                 ("B", "b1"),
                 (None, "c1"),
                 ("C", None),
-            ]
+            ],
+            dtype="object"
         )
         expected = DataFrame(
             [[1, 2], [3, 4], [5, 6], [7, 8]],
