@@ -280,7 +280,7 @@ def _register_accessor(
 
     Examples
     --------
-    
+
     """
 
     def decorator(accessor: TypeT) -> TypeT:
@@ -374,7 +374,10 @@ def register_dataframe_accessor(name: str) -> Callable[[TypeT], TypeT]:
     >>> @pd.api.extensions.register_dataframe_accessor("int_accessor")
     ... class IntAccessor:
     ...     def __init__(self, pandas_obj):
-    ...         if not all(pandas_obj[col].dtype == 'int64' for col in pandas_obj.columns):
+    ...         if not all(
+    ...             pandas_obj[col].dtype == 'int64'
+    ...             for col in pandas_obj.columns
+    ...         ):
     ...             raise AttributeError("All columns must contain integer values only")
     ...         self._obj = pandas_obj
     ...
