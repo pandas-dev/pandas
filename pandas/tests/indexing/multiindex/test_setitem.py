@@ -515,7 +515,7 @@ class TestSetitemWithExpansionMultiIndex:
 
         # Test retrieval of the newly added row
         result = df.loc[("A", None), :]
-        expected_row = Series([12, 13], index=[0, 1], name=("A", np.nan))
+        expected_row = Series([12, 13], index=[0, 1], name=("A", np.nan), dtype=float)
         tm.assert_series_equal(result, expected_row)
 
     def test_setitem_enlargement_multiindex_multiple_none(self):
