@@ -1174,6 +1174,180 @@ class BaseExcelReader(Generic[_WorkbookT]):
             tuples.append(tuple(mutable))
         return type(index).from_tuples(tuples, names=index.names)
 
+    @staticmethod
+    def _parser_engine(parser):
+        return getattr(parser, "_engine", parser)
+
+    @classmethod
+    def _parser_attr(cls, parser, attribute: str):
+        if hasattr(parser, attribute):
+            return getattr(parser, attribute)
+        engine = cls._parser_engine(parser)
+        if engine is not parser and hasattr(engine, attribute):
+            return getattr(engine, attribute)
+        return None
+
+    def _resolve_text_positions(
+        self, parser, text_formatted_cols: set[int]
+    ) -> set[int]:
+        if not text_formatted_cols:
+            return set()
+
+        orig_names = self._parser_attr(parser, "orig_names") or []
+        col_indices = self._parser_attr(parser, "_col_indices")
+        if col_indices is None:
+            max_pos = len(orig_names)
+            return {idx for idx in text_formatted_cols if idx < max_pos}
+
+        positions: set[int] = set()
+        for idx in text_formatted_cols:
+            pos = bisect_left(col_indices, idx)
+            if pos < len(col_indices) and col_indices[pos] == idx:
+                positions.add(pos)
+        return positions
+
+    def _inject_text_converters(self, parser, text_positions: set[int]) -> None:
+        if not text_positions:
+            return
+
+        target = self._parser_engine(parser)
+        existing_converters = getattr(target, "converters", None)
+        if existing_converters is None:
+            target.converters = {}
+            existing_clean: dict = {}
+        else:
+            target.converters = dict(existing_converters)
+            existing_clean = target._clean_mapping(existing_converters)
+
+        orig_names = self._parser_attr(parser, "orig_names") or []
+
+        for pos in text_positions:
+            if pos >= len(orig_names):
+                continue
+            label = orig_names[pos]
+            if existing_clean and label in existing_clean:
+                continue
+            target.converters[pos] = self._text_format_converter
+
+    def _finalize_text_columns(
+        self,
+        frame: DataFrame,
+        parser,
+        text_positions: set[int],
+    ) -> None:
+        if not text_positions or frame.empty:
+            return
+
+        orig_names = self._parser_attr(parser, "orig_names") or []
+        total_positions = len(orig_names)
+        if total_positions == 0:
+            return
+
+        index_positions = self._resolve_index_positions(parser, total_positions)
+
+        data_position_map: dict[int, int] = {}
+        df_col_index = 0
+        for pos in range(total_positions):
+            if pos in index_positions:
+                continue
+            if df_col_index >= frame.shape[1]:
+                break
+            data_position_map[pos] = df_col_index
+            df_col_index += 1
+
+        for pos in text_positions:
+            if pos in index_positions:
+                continue
+            df_pos = data_position_map.get(pos)
+            if df_pos is None:
+                continue
+            frame.iloc[:, df_pos] = frame.iloc[:, df_pos].map(
+                self._text_format_converter
+            )
+
+        index_levels = self._index_levels_for_positions(
+            index_positions, text_positions, total_positions
+        )
+        if index_levels:
+            frame.index = self._convert_index_labels(frame.index, index_levels)
+
+    def _coerce_text_data(self, data: list, text_formatted_cols: set[int]) -> None:
+        if not text_formatted_cols or not data:
+            return
+
+        for row in data:
+            if not row:
+                continue
+            for col_idx in text_formatted_cols:
+                if col_idx >= len(row):
+                    continue
+                row[col_idx] = self._text_format_converter(row[col_idx])
+
+    def _resolve_index_positions(self, parser, total_positions: int) -> set[int]:
+        index_col = self._parser_attr(parser, "index_col")
+        if index_col is None or index_col is False:
+            return set()
+
+        if is_list_like(index_col) and not isinstance(index_col, (str, bytes)):
+            entries = list(index_col)
+        else:
+            entries = [index_col]
+
+        orig_names = self._parser_attr(parser, "orig_names")
+        positions: set[int] = set()
+        for entry in entries:
+            if isinstance(entry, int):
+                if 0 <= entry < total_positions:
+                    positions.add(entry)
+            elif orig_names is not None:
+                try:
+                    pos = orig_names.index(entry)
+                except ValueError:
+                    continue
+                positions.add(pos)
+        return positions
+
+    def _index_levels_for_positions(
+        self,
+        index_positions: set[int],
+        text_positions: set[int],
+        total_positions: int,
+    ) -> list[int]:
+        if not index_positions:
+            return []
+
+        position_to_level: dict[int, int] = {}
+        level = 0
+        for pos in range(total_positions):
+            if pos in index_positions:
+                position_to_level[pos] = level
+                level += 1
+
+        ordered_levels: list[int] = []
+        for pos in sorted(text_positions):
+            level_idx = position_to_level.get(pos)
+            if level_idx is not None and level_idx not in ordered_levels:
+                ordered_levels.append(level_idx)
+        return ordered_levels
+
+    def _convert_index_labels(self, index, levels_to_convert: list[int]):
+        if not levels_to_convert:
+            return index
+
+        converter = self._text_format_converter
+        if getattr(index, "nlevels", 1) == 1:
+            return index.map(converter)
+
+        levels_set = set(levels_to_convert)
+        tuples = []
+        for value in index.tolist():
+            mutable = list(value)
+            for level in levels_set:
+                if level < len(mutable):
+                    mutable[level] = converter(mutable[level])
+            tuples.append(tuple(mutable))
+        return type(index).from_tuples(tuples, names=index.names)
+
 
 @set_module("pandas")
 @doc(storage_options=_shared_docs["storage_options"])
