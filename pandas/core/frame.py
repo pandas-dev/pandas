@@ -341,8 +341,12 @@ how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
       of the left keys.
     * left_anti: use only keys from left frame that are not in right frame, similar
       to SQL left anti join; preserve key order.
+
+      .. versionadded:: 3.0
     * right_anti: use only keys from right frame that are not in left frame, similar
       to SQL right anti join; preserve key order.
+
+      .. versionadded:: 3.0
 on : Hashable or a sequence of the previous
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -2927,6 +2931,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
+        filesystem: Any = ...,
         **kwargs,
     ) -> bytes: ...
 
@@ -2940,6 +2945,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
+        filesystem: Any = ...,
         **kwargs,
     ) -> None: ...
 
@@ -2953,6 +2959,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = None,
         partition_cols: list[str] | None = None,
         storage_options: StorageOptions | None = None,
+        filesystem: Any = None,
         **kwargs,
     ) -> bytes | None:
         """
@@ -2991,6 +2998,12 @@ class DataFrame(NDFrame, OpsMixin):
             Columns are partitioned in the order they are given.
             Must be None if path is not a string.
         {storage_options}
+
+        filesystem : fsspec or pyarrow filesystem, default None
+            Filesystem object to use when reading the parquet file. Only implemented
+            for ``engine="pyarrow"``.
+
+            .. versionadded:: 2.1.0
 
         **kwargs
             Additional arguments passed to the parquet library. See
@@ -3053,6 +3066,7 @@ class DataFrame(NDFrame, OpsMixin):
             index=index,
             partition_cols=partition_cols,
             storage_options=storage_options,
+            filesystem=filesystem,
             **kwargs,
         )
 
@@ -6137,7 +6151,7 @@ class DataFrame(NDFrame, OpsMixin):
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
                     .add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
                 )
-            return concat(shifted_dataframes, axis=1)
+            return concat(shifted_dataframes, axis=1, sort=False)
         elif suffix:
             raise ValueError("Cannot specify `suffix` if `periods` is an int.")
         periods = cast(int, periods)

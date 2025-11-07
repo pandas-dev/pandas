@@ -374,6 +374,71 @@ In cases with mixed-resolution inputs, the highest resolution is used:
     In [2]: pd.to_datetime([pd.Timestamp("2024-03-22 11:43:01"), "2024-03-22 11:43:01.002"]).dtype
     Out[2]: dtype('<M8[ns]')
 
+.. _whatsnew_300.api_breaking.concat_datetime_sorting:
+
+:func:`concat` no longer ignores ``sort`` when all objects have a :class:`DatetimeIndex`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When all objects passed to :func:`concat` have a :class:`DatetimeIndex`,
+passing ``sort=False`` will now result in the non-concatenation axis not
+being sorted. Previously, the result would always be sorted along
+the non-concatenation axis even when ``sort=False`` is passed. :issue:`57335`
+
+If you do not specify the ``sort`` argument, pandas will continue to return a
+sorted result but this behavior is deprecated and you will receive a warning.
+In order to make this less noisy for users, pandas checks if not sorting would
+impact the result and only warns when it would. This check can be expensive,
+and users can skip the check by explicitly specifying ``sort=True`` or
+``sort=False``.
+
+This deprecation can also impact pandas' internal usage of :func:`concat`.
+Here cases where :func:`concat` was sorting a :class:`DatetimeIndex` but not
+other indexes are considered bugs and have been fixed as noted below. However
+it is possible some have been missed. In order to be cautious here, pandas has *not*
+added ``sort=False`` to any internal calls where we believe behavior should not change.
+If we have missed something, users will not experience a behavior change but they
+will receive a warning about :func:`concat` even though they are not directly
+calling this function. If this does occur, we ask users to open an issue so that
+we may address any potential behavior changes.
+
+.. ipython:: python
+
+    idx1 = pd.date_range("2025-01-02", periods=3, freq="h")
+    df1 = pd.DataFrame({"a": [1, 2, 3]}, index=idx1)
+    df1
+
+    idx2 = pd.date_range("2025-01-01", periods=3, freq="h")
+    df2 = pd.DataFrame({"b": [1, 2, 3]}, index=idx2)
+    df2
+
+*Old behavior*
+
+.. code-block:: ipython
+
+    In [3]: pd.concat([df1, df2], axis=1, sort=False)
+    Out[3]:
+                           a    b
+    2025-01-01 00:00:00  NaN  1.0
+    2025-01-01 01:00:00  NaN  2.0
+    2025-01-01 02:00:00  NaN  3.0
+    2025-01-02 00:00:00  1.0  NaN
+    2025-01-02 01:00:00  2.0  NaN
+    2025-01-02 02:00:00  3.0  NaN
+
+*New behavior*
+
+.. ipython:: python
+
+    pd.concat([df1, df2], axis=1, sort=False)
+
+Cases where pandas' internal usage of :func:`concat` resulted in inconsistent sorting
+that are now fixed in this release are as follows.
+
+- :meth:`Series.apply` and :meth:`DataFrame.apply` with a list-like or dict-like ``func`` argument.
+- :meth:`Series.shift`, :meth:`DataFrame.shift`, :meth:`.SeriesGroupBy.shift`, :meth:`.DataFrameGroupBy.shift` with the ``periods`` argument a list of length greater than 1.
+- :meth:`DataFrame.join` with ``other`` a list of one or more Series or DataFrames and ``how="inner"``, ``how="left"``, or ``how="right"``.
+- :meth:`Series.str.cat` with ``others`` a Series or DataFrame.
+
 .. _whatsnew_300.api_breaking.value_counts_sorting:
 
 Changed behavior in :meth:`DataFrame.value_counts` and :meth:`DataFrameGroupBy.value_counts` when ``sort=False``
@@ -742,6 +807,7 @@ Other Deprecations
 - Deprecated option "future.no_silent_downcasting", as it is no longer used. In a future version accessing this option will raise (:issue:`59502`)
 - Deprecated passing non-Index types to :meth:`Index.join`; explicitly convert to Index first (:issue:`62897`)
 - Deprecated silent casting of non-datetime 'other' to datetime in :meth:`Series.combine_first` (:issue:`62931`)
+- Deprecated silently casting strings to :class:`Timedelta` in binary operations with :class:`Timedelta` (:issue:`59653`)
 - Deprecated slicing on a :class:`Series` or :class:`DataFrame` with a :class:`DatetimeIndex` using a ``datetime.date`` object, explicitly cast to :class:`Timestamp` instead (:issue:`35830`)
 - Deprecated support for the Dataframe Interchange Protocol (:issue:`56732`)
 - Deprecated the 'inplace' keyword from :meth:`Resampler.interpolate`, as passing ``True`` raises ``AttributeError`` (:issue:`58690`)
@@ -1067,6 +1133,7 @@ Indexing
 ^^^^^^^^
 - Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)
 - Bug in :meth:`DataFrame.__getitem__` when slicing a :class:`DataFrame` with many rows raised an ``OverflowError`` (:issue:`59531`)
+- Bug in :meth:`DataFrame.__setitem__` on an empty :class:`DataFrame` with a tuple corrupting the frame (:issue:`54385`)
 - Bug in :meth:`DataFrame.from_records` throwing a ``ValueError`` when passed an empty list in ``index`` (:issue:`58594`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` returning incorrect dtype when selecting from a :class:`DataFrame` with mixed data types. (:issue:`60600`)
 - Bug in :meth:`DataFrame.loc` with inconsistent behavior of loc-set with 2 given indexes to Series (:issue:`59933`)
@@ -1189,6 +1256,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupby.transform` and :meth:`SeriesGroupby.transform` with a reducer and ``observed=False`` that coerces dtype to float when there are unobserved categories. (:issue:`55326`)
 - Bug in :meth:`Rolling.apply` for ``method="table"`` where column order was not being respected due to the columns getting sorted by default. (:issue:`59666`)
 - Bug in :meth:`Rolling.apply` where the applied function could be called on fewer than ``min_period`` periods if ``method="table"``. (:issue:`58868`)
+- Bug in :meth:`Rolling.skew` incorrectly computing skewness for windows following outliers due to numerical instability. The calculation now properly handles catastrophic cancellation by recomputing affected windows (:issue:`47461`)
 - Bug in :meth:`Series.resample` could raise when the date range ended shortly before a non-existent time. (:issue:`58380`)
 - Bug in :meth:`Series.resample` raising error when resampling non-nanosecond resolutions out of bounds for nanosecond precision (:issue:`57427`)
 
