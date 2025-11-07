@@ -76,9 +76,48 @@ class XlrdReader(BaseExcelReader["Book"]):
         self.raise_if_bad_sheet_by_index(index)
         return self.book.sheet_by_index(index)
 
+    @staticmethod
+    def _maybe_mark_text_column(
+        text_columns: set[int],
+        sheet,
+        row_idx: int,
+        col_idx: int,
+        dtype_from_format: bool,
+        format_map,
+        xf_list,
+    ) -> bool:
+        if not dtype_from_format or not xf_list:
+            return False
+
+        try:
+            xf_index = sheet.cell_xf_index(row_idx, col_idx)
+        except AttributeError:
+            return False
+
+        if xf_index is None or xf_index >= len(xf_list):
+            return False
+
+        xf = xf_list[xf_index]
+        format_key = getattr(xf, "format_key", None)
+        if format_key is None:
+            return False
+
+        cell_format = format_map.get(format_key)
+        if cell_format is None:
+            return False
+
+        if getattr(cell_format, "format_str", "") == "@":
+            text_columns.add(col_idx)
+            return True
+        return False
+
     def get_sheet_data(
-        self, sheet, file_rows_needed: int | None = None
-    ) -> list[list[Scalar]]:
+        self,
+        sheet,
+        file_rows_needed: int | None = None,
+        *,
+        dtype_from_format: bool = False,
+    ) -> tuple[list[list[Scalar]], set[int]]:
         from xlrd import (
             XL_CELL_BOOLEAN,
             XL_CELL_DATE,
@@ -88,6 +127,9 @@ class XlrdReader(BaseExcelReader["Book"]):
         )
 
         epoch1904 = self.book.datemode
+        text_formatted_cols: set[int] = set()
+        format_map = getattr(self.book, "format_map", {}) if dtype_from_format else {}
+        xf_list = getattr(self.book, "xf_list", []) if dtype_from_format else []
 
         def _parse_cell(cell_contents, cell_typ):
             """
@@ -131,10 +173,24 @@ class XlrdReader(BaseExcelReader["Book"]):
         nrows = sheet.nrows
         if file_rows_needed is not None:
             nrows = min(nrows, file_rows_needed)
-        return [
-            [
-                _parse_cell(value, typ)
-                for value, typ in zip(sheet.row_values(i), sheet.row_types(i))
-            ]
-            for i in range(nrows)
-        ]
+
+        rows: list[list[Scalar]] = []
+        for i in range(nrows):
+            parsed_row: list[Scalar] = []
+            row_values = sheet.row_values(i)
+            row_types = sheet.row_types(i)
+            for j, (value, typ) in enumerate(zip(row_values, row_types)):
+                if dtype_from_format:
+                    self._maybe_mark_text_column(
+                        text_formatted_cols,
+                        sheet,
+                        i,
+                        j,
+                        dtype_from_format,
+                        format_map,
+                        xf_list,
+                    )
+                parsed_row.append(_parse_cell(value, typ))
+            rows.append(parsed_row)
+
+        return rows, (text_formatted_cols if dtype_from_format else set())
