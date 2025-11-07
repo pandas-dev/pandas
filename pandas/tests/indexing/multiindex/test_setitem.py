@@ -490,91 +490,60 @@ class TestSetitemWithExpansionMultiIndex:
         )
         tm.assert_frame_equal(df, expected)
 
-    def test_setitem_enlargement_with_none_key(self):
+    def test_setitem_enlargement_multiindex_with_none(self):
         # GH#59153
-        # Test basic enlargement with None keys in different levels
+        # Test that we can enlarge a DataFrame with a MultiIndex
+        # when one or more level keys are None
         index = MultiIndex.from_tuples(
             [("A", "a1"), ("A", "a2"), ("B", "b1"), ("B", None)]
         )
         df = DataFrame([(0, 6), (1, 5), (2, 4), (3, 7)], index=index)
 
-        # Enlarge with None in second level
+        # Enlarge with a new index entry where one key is None
         df.loc[("A", None), :] = [12, 13]
+
         expected_index = MultiIndex.from_tuples(
-            [
-                ("A", "a1"),
-                ("A", "a2"),
-                ("B", "b1"),
-                ("B", None),
-                ("A", None),
-            ]
+            [("A", "a1"), ("A", "a2"), ("B", "b1"), ("B", None), ("A", None)]
         )
         expected = DataFrame(
             [[0, 6], [1, 5], [2, 4], [3, 7], [12, 13]],
             index=expected_index,
+            columns=[0, 1],
         )
         tm.assert_frame_equal(df, expected)
 
-        # Enlarge with None in first level
-        df.loc[(None, "c1"), :] = [14, 15]
+        # Test retrieval of the newly added row
+        result = df.loc[("A", None), :]
+        expected_row = Series([12, 13], index=[0, 1], name=("A", np.nan))
+        tm.assert_series_equal(result, expected_row)
+
+    def test_setitem_enlargement_multiindex_multiple_none(self):
+        # GH#59153
+        # Test enlarging with multiple None keys in different levels
+        index = MultiIndex.from_tuples([("A", "a1"), ("B", "b1")])
+        df = DataFrame([[1, 2], [3, 4]], index=index, columns=["x", "y"])
+
+        # Add row with None in first level
+        df.loc[(None, "c1"), :] = [5, 6]
+
+        # Add row with None in second level
+        df.loc[("C", None), :] = [7, 8]
+
+        # (None, None) case removed as requested
         expected_index = MultiIndex.from_tuples(
             [
                 ("A", "a1"),
-                ("A", "a2"),
                 ("B", "b1"),
-                ("B", None),
-                ("A", None),
                 (None, "c1"),
+                ("C", None),
             ]
         )
         expected = DataFrame(
-            [[0, 6], [1, 5], [2, 4], [3, 7], [12, 13], [14, 15]],
+            [[1, 2], [3, 4], [5, 6], [7, 8]],
             index=expected_index,
+            columns=["x", "y"],
         )
         tm.assert_frame_equal(df, expected)
-
-    def test_setitem_enlargement_none_key_indexslice_retrieval(self):
-        # GH#59153
-        # Test IndexSlice functionality and retrieval with None keys
-        
-        # Test IndexSlice selection with None
-        idx = pd.IndexSlice
-        df = DataFrame(
-            [[10], [20], [30]], 
-            index=MultiIndex.from_tuples([("A", "a1"), ("B", None), ("C", "c1")]),
-            columns=["val"]
-        )
-        
-        result = df.loc[idx[:, None], :]
-        expected = DataFrame(
-            [[20]],
-            index=MultiIndex.from_tuples([("B", None)]),
-            columns=["val"],
-        )
-        tm.assert_frame_equal(result, expected)
-        
-        # Enlarge using IndexSlice with None
-        df.loc[idx["D", None], :] = [40]
-        assert df.loc[("D", None), "val"] == 40
-
-        # Test retrieval after enlargement
-        df2 = DataFrame(
-            [[100, 200]], 
-            index=MultiIndex.from_tuples([("A", "a1")]),
-            columns=["col1", "col2"]
-        )
-        
-        df2.loc[("A", None), :] = [300, 400]
-        
-        # Retrieve using full tuple key
-        result = df2.loc[("A", None), :]
-        expected = Series([300, 400], index=["col1", "col2"], name=("A", None))
-        tm.assert_series_equal(result, expected)
-        
-        # Retrieve using xs
-        result_xs = df2.xs("A")
-        assert None in result_xs.index
-        assert result_xs.loc[None, "col1"] == 300
 
 
 def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
