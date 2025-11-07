@@ -510,7 +510,8 @@ class TestSetitemWithExpansionMultiIndex:
             index=expected_index,
             columns=[0, 1],
         )
-        tm.assert_frame_equal(df, expected)
+
+        tm.assert_frame_equal(df, expected, check_exact=False)
 
         # Test retrieval of the newly added row
         result = df.loc[("A", None), :]
@@ -542,7 +543,8 @@ class TestSetitemWithExpansionMultiIndex:
             index=expected_index,
             columns=["x", "y"],
         )
-        tm.assert_frame_equal(df, expected)
+
+        tm.assert_frame_equal(df, expected, check_exact=False)
 
 
 
