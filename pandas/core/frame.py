@@ -6225,7 +6225,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = ...,
         append: bool = ...,
         inplace: Literal[False] = ...,
-        verify_integrity: bool = ...,
+        verify_integrity: bool | lib.NoDefault = ...,
     ) -> DataFrame: ...
 
     @overload
@@ -6236,7 +6236,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = ...,
         append: bool = ...,
         inplace: Literal[True],
-        verify_integrity: bool = ...,
+        verify_integrity: bool | lib.NoDefault = ...,
     ) -> None: ...
 
     def set_index(
@@ -6246,7 +6246,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = True,
         append: bool = False,
         inplace: bool = False,
-        verify_integrity: bool = False,
+        verify_integrity: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Set the DataFrame index using existing columns.
@@ -6275,6 +6275,8 @@ class DataFrame(NDFrame, OpsMixin):
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
             method.
+
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -6362,6 +6364,18 @@ class DataFrame(NDFrame, OpsMixin):
         2013    84
         2014    31
         """
+        if verify_integrity is not lib.no_default:
+            # GH#62919
+            warnings.warn(
+                "The 'verify_integrity' keyword in DataFrame.set_index is "
+                "deprecated and will be removed in a future version. "
+                "Directly check the result.index.is_unique instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            verify_integrity = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if not isinstance(keys, list):
