@@ -100,7 +100,7 @@ def iterable_not_string(obj: object) -> bool:
     >>> iterable_not_string(1)
     False
     """
-    return isinstance(obj, abc.Iterable) and not isinstance(obj, str)
+    return isinstance(obj, abc.Iterable) and not isinstance(obj, (str, np.str_))
 
 
 @set_module("pandas.api.types")
@@ -467,7 +467,7 @@ def is_sequence(obj: object) -> bool:
         iter(obj)  # type: ignore[call-overload]
         # Has a length associated with it.
         len(obj)  # type: ignore[arg-type]
-        return not isinstance(obj, (str, bytes))
+        return not isinstance(obj, (str, bytes, np.str_))
     except (TypeError, AttributeError):
         return False
 
