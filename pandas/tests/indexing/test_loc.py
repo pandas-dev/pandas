@@ -271,13 +271,11 @@ class TestLoc:
         # issue #50942
         # empty slice assignment with datetime or timedelta should not raise exceptions
         mask = [False] * len(data)
-        try:
-            df = DataFrame(data=data, columns=["A"])
-            res = df.loc[mask]
-            res = df
-            tm.assert_frame_equal(res, df)
-        except Exception:
-            pytest.fail("loc empty slice assignment raised Exception unexpectedly!")
+
+        df = DataFrame(data=data, columns=["A"])
+        expected = df.copy()
+        df.loc[mask] = df
+        tm.assert_frame_equal(df, expected)
 
 
 class TestLocBaseIndependent:
