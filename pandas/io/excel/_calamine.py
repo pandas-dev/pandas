@@ -98,8 +98,12 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
         return self.book.get_sheet_by_index(index)
 
     def get_sheet_data(
-        self, sheet: CalamineSheet, file_rows_needed: int | None = None
-    ) -> list[list[Scalar | NaTType | time]]:
+        self,
+        sheet: CalamineSheet,
+        file_rows_needed: int | None = None,
+        *,
+        dtype_from_format: bool = False,
+    ) -> tuple[list[list[Scalar | NaTType | time]], set[int]]:
         def _convert_cell(value: _CellValue) -> Scalar | NaTType | time:
             if isinstance(value, float):
                 val = int(value)
@@ -121,4 +125,4 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
         )
         data = [[_convert_cell(cell) for cell in row] for row in rows]
 
-        return data
+        return data, set()

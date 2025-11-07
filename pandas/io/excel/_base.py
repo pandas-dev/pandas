@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from bisect import bisect_left
 from collections.abc import (
     Callable,
     Hashable,
@@ -29,7 +30,10 @@ import zipfile
 
 from pandas._config import config
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 from pandas._libs.parsers import STR_NA_VALUES
 from pandas.compat._optional import (
     get_version,
@@ -164,6 +168,9 @@ dtype : Type name or dict of column -> type, default None
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
     If you use ``None``, it will infer the dtype of each column based on the data.
+dtype_from_format : bool, default False
+    Preserve cells formatted as ``Text`` in Excel as strings instead of
+    coercing them to numeric dtypes.
 engine : {{'openpyxl', 'calamine', 'odf', 'pyxlsb', 'xlrd'}}, default None
     If io is not a buffer or path, this must be set to identify io.
     Engine compatibility :
@@ -377,6 +384,7 @@ def read_excel(
     | Callable[[HashableT], bool]
     | None = ...,
     dtype: DtypeArg | None = ...,
+    dtype_from_format: bool = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
     converters: dict[str, Callable] | dict[int, Callable] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
@@ -414,6 +422,7 @@ def read_excel(
     | Callable[[HashableT], bool]
     | None = ...,
     dtype: DtypeArg | None = ...,
+    dtype_from_format: bool = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
     converters: dict[str, Callable] | dict[int, Callable] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
@@ -452,6 +461,7 @@ def read_excel(
     | Callable[[HashableT], bool]
     | None = None,
     dtype: DtypeArg | None = None,
+    dtype_from_format: bool = False,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = None,
     converters: dict[str, Callable] | dict[int, Callable] | None = None,
     true_values: Iterable[Hashable] | None = None,
@@ -499,6 +509,7 @@ def read_excel(
             index_col=index_col,
             usecols=usecols,
             dtype=dtype,
+            dtype_from_format=dtype_from_format,
             converters=converters,
             true_values=true_values,
             false_values=false_values,
@@ -591,7 +602,13 @@ class BaseExcelReader(Generic[_WorkbookT]):
     def get_sheet_by_index(self, index: int):
         raise NotImplementedError
 
-    def get_sheet_data(self, sheet, rows: int | None = None):
+    def get_sheet_data(
+        self,
+        sheet,
+        rows: int | None = None,
+        *,
+        dtype_from_format: bool = False,
+    ):
         raise NotImplementedError
 
     def raise_if_bad_sheet_by_index(self, index: int) -> None:
@@ -706,6 +723,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         index_col: int | Sequence[int] | None = None,
         usecols=None,
         dtype: DtypeArg | None = None,
+        dtype_from_format: bool = False,
         true_values: Iterable[Hashable] | None = None,
         false_values: Iterable[Hashable] | None = None,
         skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
@@ -756,7 +774,11 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 sheet = self.get_sheet_by_index(asheetname)
 
             file_rows_needed = self._calc_rows(header, index_col, skiprows, nrows)
-            data = self.get_sheet_data(sheet, file_rows_needed)
+            data, text_formatted_cols = self.get_sheet_data(
+                sheet,
+                file_rows_needed,
+                dtype_from_format=dtype_from_format,
+            )
             if hasattr(sheet, "close"):
                 # pyxlsb opens two TemporaryFiles
                 sheet.close()
@@ -768,6 +790,9 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
             output = self._parse_sheet(
                 data=data,
+                text_formatted_cols=(
+                    text_formatted_cols if dtype_from_format else None
+                ),
                 output=output,
                 asheetname=asheetname,
                 header=header,
@@ -787,6 +812,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 comment=comment,
                 skipfooter=skipfooter,
                 dtype_backend=dtype_backend,
+                dtype_from_format=dtype_from_format,
                 **kwds,
             )
 
@@ -819,11 +845,16 @@ class BaseExcelReader(Generic[_WorkbookT]):
         decimal: str = ".",
         comment: str | None = None,
         skipfooter: int = 0,
+        text_formatted_cols: set[int] | None = None,
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+        dtype_from_format: bool = False,
         **kwds,
     ):
         is_list_header = False
         is_len_one_list_header = False
+        if dtype_from_format and text_formatted_cols:
+            self._coerce_text_data(data, text_formatted_cols)
+
         if is_list_like(header):
             assert isinstance(header, Sequence)
             is_list_header = True
@@ -935,12 +966,23 @@ class BaseExcelReader(Generic[_WorkbookT]):
                 **kwds,
             )
 
+            text_positions: set[int] = set()
+            if dtype_from_format and text_formatted_cols:
+                text_positions = self._resolve_text_positions(
+                    parser, text_formatted_cols
+                )
+                if text_positions:
+                    self._inject_text_converters(parser, text_positions)
+
             output[asheetname] = parser.read(nrows=nrows)
 
             if header_names:
                 output[asheetname].columns = output[asheetname].columns.set_names(
                     header_names
                 )
+
+            if dtype_from_format and text_positions:
+                self._finalize_text_columns(output[asheetname], parser, text_positions)
 
         except EmptyDataError:
             # No Data, return an empty DataFrame
@@ -951,6 +993,186 @@ class BaseExcelReader(Generic[_WorkbookT]):
             raise err
 
         return output
+
+    @staticmethod
+    def _text_format_converter(value):
+        if libmissing.checknull(value):
+            return value
+        return str(value)
+
+    @staticmethod
+    def _parser_engine(parser):
+        return getattr(parser, "_engine", parser)
+
+    @classmethod
+    def _parser_attr(cls, parser, attribute: str):
+        if hasattr(parser, attribute):
+            return getattr(parser, attribute)
+        engine = cls._parser_engine(parser)
+        if engine is not parser and hasattr(engine, attribute):
+            return getattr(engine, attribute)
+        return None
+
+    def _resolve_text_positions(
+        self, parser, text_formatted_cols: set[int]
+    ) -> set[int]:
+        if not text_formatted_cols:
+            return set()
+
+        orig_names = self._parser_attr(parser, "orig_names") or []
+        col_indices = self._parser_attr(parser, "_col_indices")
+        if col_indices is None:
+            max_pos = len(orig_names)
+            return {idx for idx in text_formatted_cols if idx < max_pos}
+
+        positions: set[int] = set()
+        for idx in text_formatted_cols:
+            pos = bisect_left(col_indices, idx)
+            if pos < len(col_indices) and col_indices[pos] == idx:
+                positions.add(pos)
+        return positions
+
+    def _inject_text_converters(self, parser, text_positions: set[int]) -> None:
+        if not text_positions:
+            return
+
+        target = self._parser_engine(parser)
+        existing_converters = getattr(target, "converters", None)
+        if existing_converters is None:
+            target.converters = {}
+            existing_clean: dict = {}
+        else:
+            target.converters = dict(existing_converters)
+            existing_clean = target._clean_mapping(existing_converters)
+
+        orig_names = self._parser_attr(parser, "orig_names") or []
+
+        for pos in text_positions:
+            if pos >= len(orig_names):
+                continue
+            label = orig_names[pos]
+            if existing_clean and label in existing_clean:
+                continue
+            target.converters[pos] = self._text_format_converter
+
+    def _finalize_text_columns(
+        self,
+        frame: DataFrame,
+        parser,
+        text_positions: set[int],
+    ) -> None:
+        if not text_positions or frame.empty:
+            return
+
+        orig_names = self._parser_attr(parser, "orig_names") or []
+        total_positions = len(orig_names)
+        if total_positions == 0:
+            return
+
+        index_positions = self._resolve_index_positions(parser, total_positions)
+
+        data_position_map: dict[int, int] = {}
+        df_col_index = 0
+        for pos in range(total_positions):
+            if pos in index_positions:
+                continue
+            if df_col_index >= frame.shape[1]:
+                break
+            data_position_map[pos] = df_col_index
+            df_col_index += 1
+
+        for pos in text_positions:
+            if pos in index_positions:
+                continue
+            df_pos = data_position_map.get(pos)
+            if df_pos is None:
+                continue
+            frame.iloc[:, df_pos] = frame.iloc[:, df_pos].map(
+                self._text_format_converter
+            )
+
+        index_levels = self._index_levels_for_positions(
+            index_positions, text_positions, total_positions
+        )
+        if index_levels:
+            frame.index = self._convert_index_labels(frame.index, index_levels)
+
+    def _coerce_text_data(self, data: list, text_formatted_cols: set[int]) -> None:
+        if not text_formatted_cols or not data:
+            return
+
+        for row in data:
+            if not row:
+                continue
+            for col_idx in text_formatted_cols:
+                if col_idx >= len(row):
+                    continue
+                row[col_idx] = self._text_format_converter(row[col_idx])
+
+    def _resolve_index_positions(self, parser, total_positions: int) -> set[int]:
+        index_col = self._parser_attr(parser, "index_col")
+        if index_col is None or index_col is False:
+            return set()
+
+        if is_list_like(index_col) and not isinstance(index_col, (str, bytes)):
+            entries = list(index_col)
+        else:
+            entries = [index_col]
+
+        orig_names = self._parser_attr(parser, "orig_names")
+        positions: set[int] = set()
+        for entry in entries:
+            if isinstance(entry, int):
+                if 0 <= entry < total_positions:
+                    positions.add(entry)
+            elif orig_names is not None:
+                try:
+                    pos = orig_names.index(entry)
+                except ValueError:
+                    continue
+                positions.add(pos)
+        return positions
+
+    def _index_levels_for_positions(
+        self,
+        index_positions: set[int],
+        text_positions: set[int],
+        total_positions: int,
+    ) -> list[int]:
+        if not index_positions:
+            return []
+
+        position_to_level: dict[int, int] = {}
+        level = 0
+        for pos in range(total_positions):
+            if pos in index_positions:
+                position_to_level[pos] = level
+                level += 1
+
+        ordered_levels: list[int] = []
+        for pos in sorted(text_positions):
+            level_idx = position_to_level.get(pos)
+            if level_idx is not None and level_idx not in ordered_levels:
+                ordered_levels.append(level_idx)
+        return ordered_levels
+
+    def _convert_index_labels(self, index, levels_to_convert: list[int]):
+        if not levels_to_convert:
+            return index
+
+        converter = self._text_format_converter
+        if getattr(index, "nlevels", 1) == 1:
+            return index.map(converter)
+
+        levels_set = set(levels_to_convert)
+        tuples = []
+        for value in index.tolist():
+            mutable = list(value)
+            for level in levels_set:
+                if level < len(mutable):
+                    mutable[level] = converter(mutable[level])
+            tuples.append(tuple(mutable))
+        return type(index).from_tuples(tuples, names=index.names)
 
 
 @set_module("pandas")
@@ -1617,6 +1839,7 @@ class ExcelFile:
         index_col: int | Sequence[int] | None = None,
         usecols=None,
         converters=None,
+        dtype_from_format: bool = False,
         true_values: Iterable[Hashable] | None = None,
         false_values: Iterable[Hashable] | None = None,
         skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
@@ -1679,6 +1902,9 @@ class ExcelFile:
             either be integers or column labels, values are functions that take one
             input argument, the Excel cell content, and return the transformed
             content.
+        dtype_from_format : bool, default False
+            Preserve cells formatted as ``Text`` in Excel as strings instead of
+            coercing them to numeric dtypes.
         true_values : list, default None
             Values to consider as True.
         false_values : list, default None
@@ -1766,6 +1992,7 @@ class ExcelFile:
             index_col=index_col,
             usecols=usecols,
             converters=converters,
+            dtype_from_format=dtype_from_format,
             true_values=true_values,
             false_values=false_values,
             skiprows=skiprows,

@@ -3327,6 +3327,39 @@ Reading Excel files
 In the most basic use-case, ``read_excel`` takes a path to an Excel
 file, and the ``sheet_name`` indicating which sheet to parse.
 
+Text-formatted cells
+++++++++++++++++++++
+
+Excel workbooks often contain values that are stored as numbers but formatted as
+``Text`` to preserve literal strings such as postal codes or account numbers
+with leading zeros. By default, :func:`~pandas.read_excel` still converts those
+cells to numeric types, which can alter the original representation. Pass
+``dtype_from_format=True`` to maintain the Excel text formatting when parsing
+each sheet. When enabled, pandas forces any columns or index levels that are
+formatted as text in the source workbook to use string dtypes in the resulting
+``Series``/``Index``.
+
+This behavior currently applies to the ``openpyxl`` and ``xlrd`` engines. Other
+engines simply ignore the flag until text format detection is implemented for
+them.
+
+.. ipython:: python
+
+   df = pd.DataFrame({"zip_code": ["00601", "02108", "10118"]})
+   with pd.ExcelWriter("zips.xlsx", engine="openpyxl") as writer:
+      df.to_excel(writer, index=False)
+      for cell in writer.sheets["Sheet1"]["A"]:
+         cell.number_format = "@"  # Excel's Text format
+
+   parsed = pd.read_excel("zips.xlsx", dtype_from_format=True)
+   parsed.dtypes
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove("zips.xlsx")
+
 When using the ``engine_kwargs`` parameter, pandas will pass these arguments to the
 engine. For this, it is important to know which function pandas is
 using internally.
