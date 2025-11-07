@@ -552,7 +552,7 @@ def json_normalize(
     lengths = []
 
     meta_vals: DefaultDict = defaultdict(list)
-    meta_keys = [sep.join(val) for val in _meta]
+    meta_keys = [sep.join(map(str, val)) for val in _meta]
 
     def _recursive_extract(data, path, seen_meta, level: int = 0) -> None:
         if isinstance(data, dict):
