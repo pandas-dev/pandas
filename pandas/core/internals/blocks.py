@@ -2385,7 +2385,9 @@ def external_values(values: ArrayLike) -> ArrayLike:
     if isinstance(values, np.ndarray):
         values = values.view()
         values.flags.writeable = False
-
-    # TODO(CoW) we should also mark our ExtensionArrays as read-only
+    else:
+        # ExtensionArrays
+        values = values.view()
+        values._readonly = True
 
     return values

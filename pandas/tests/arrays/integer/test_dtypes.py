@@ -276,6 +276,22 @@ def test_to_numpy_na_raises(dtype):
         a.to_numpy(dtype=dtype)
 
 
+def test_to_numpy_readonly():
+    arr = pd.array([0, 1], dtype="Int64")
+    arr._readonly = True
+    result = arr.to_numpy()
+    assert not result.flags.writeable
+
+    result = arr.to_numpy(dtype="int64", copy=True)
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="int32")
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="object")
+    assert result.flags.writeable
+
+
 def test_astype_str(using_infer_string):
     a = pd.array([1, 2, None], dtype="Int64")
 
