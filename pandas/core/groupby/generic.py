@@ -405,7 +405,7 @@ class SeriesGroupBy(GroupBy[Series]):
             * ``'cython'`` : Runs the function through C-extensions from cython.
             * ``'numba'`` : Runs the function through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or globally setting
-                ``compute.use_numba``
+                ``compute.use_numba``.
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -694,7 +694,7 @@ class SeriesGroupBy(GroupBy[Series]):
         engine : str, default None
             * ``'cython'`` : Runs the function through C-extensions from cython.
             * ``'numba'`` : Runs the function through JIT compiled code from numba.
-            * ``None`` : Defaults to ``cython`` or global setting ``compute.use_numba``
+            * ``None`` : Defaults to ``cython`` or global setting ``compute.use_numba``.
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -702,7 +702,7 @@ class SeriesGroupBy(GroupBy[Series]):
             and ``parallel`` dictionary keys. The values must either be ``True`` or
             ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
             ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
-            applied to the function
+            applied to the function.
 
         **kwargs
             Keyword arguments to be passed into func.
@@ -770,7 +770,7 @@ class SeriesGroupBy(GroupBy[Series]):
             Parrot   -0.707107
             Name: Max Speed, dtype: float64
 
-        Broadcast result of the transformation
+        Broadcast result of the transformation:
 
         >>> grouped.transform(lambda x: x.max() - x.min())
         Falcon    40.0
@@ -2347,7 +2347,7 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> s1.corr(s2, method=histogram_intersection)
         0.3
 
-        Pandas auto-aligns the values with matching indices
+        Pandas auto-aligns the values with matching indices.
 
         >>> s1 = pd.Series([1, 2, 3], index=[0, 1, 2])
         >>> s2 = pd.Series([1, 2, 3], index=[2, 1, 0])
@@ -2621,7 +2621,7 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
 
-@set_module("pandas.api.typing")
+@set_module("pandas.api.typing") # type: ignore
 class DataFrameGroupBy(GroupBy[DataFrame]):
     _agg_examples_doc = dedent(
         """
