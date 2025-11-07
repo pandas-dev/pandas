@@ -307,7 +307,7 @@ class TestSeriesArithmetic:
         dt.iloc[2] = np.nan
         dt2 = dt[::-1]
 
-        expected = Series([timedelta(0), timedelta(0), pd.NaT])
+        expected = Series([timedelta(0), timedelta(0), pd.NaT], dtype="m8[ns]")
         # name is reset
         result = dt2 - dt
         tm.assert_series_equal(result, expected)

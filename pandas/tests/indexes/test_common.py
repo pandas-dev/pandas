@@ -231,7 +231,7 @@ class TestCommon:
         if not index._can_hold_na:
             pytest.skip("Skip na-check if index cannot hold na")
 
-        vals = index._values[[0] * 5]
+        vals = index._values.copy()[[0] * 5]
         vals[0] = np.nan
 
         vals_unique = vals[:2]
