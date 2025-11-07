@@ -509,6 +509,7 @@ class TestSetitemWithExpansionMultiIndex:
             [[0, 6], [1, 5], [2, 4], [3, 7], [12, 13]],
             index=expected_index,
             columns=[0, 1],
+            dtype=float,
         )
         tm.assert_frame_equal(df, expected)
 
@@ -542,6 +543,7 @@ class TestSetitemWithExpansionMultiIndex:
             [[1, 2], [3, 4], [5, 6], [7, 8]],
             index=expected_index,
             columns=["x", "y"],
+            dtype=float,
         )
         tm.assert_frame_equal(df, expected)
 
