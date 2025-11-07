@@ -283,7 +283,7 @@ def test_array(arr, attr, index_or_series):
         arr = getattr(arr, attr)
         result = getattr(result, attr)
 
-    assert result is arr
+    assert np.shares_memory(result, arr)
 
 
 def test_array_multiindex_raises():

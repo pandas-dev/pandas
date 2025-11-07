@@ -218,6 +218,14 @@ class PythonParser(ParserBase):
 
             if sep is not None:
                 dia.delimiter = sep
+                # Skip rows at file level before csv.reader sees them
+                # prevents CSV parsing errors on lines that will be discarded
+                if self.skiprows is not None:
+                    while self.skipfunc(self.pos):
+                        line = f.readline()
+                        if not line:
+                            break
+                        self.pos += 1
             else:
                 # attempt to sniff the delimiter from the first valid line,
                 # i.e. no comment line and not in skiprows

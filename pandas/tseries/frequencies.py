@@ -37,6 +37,7 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.common import is_numeric_dtype
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     DatetimeTZDtype,
     PeriodDtype,
 )
@@ -132,6 +133,14 @@ def infer_freq(
 
     if isinstance(index, ABCSeries):
         values = index._values
+
+        if isinstance(index.dtype, ArrowDtype):
+            import pyarrow as pa
+
+            if pa.types.is_timestamp(values.dtype.pyarrow_dtype):
+                # GH#58403
+                values = values._to_datetimearray()
+
         if not (
             lib.is_np_dtype(values.dtype, "mM")
             or isinstance(values.dtype, DatetimeTZDtype)
