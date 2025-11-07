@@ -593,6 +593,34 @@ class TestJSONNormalize:
         result = json_normalize(series, "counties")
         tm.assert_index_equal(result.index, idx.repeat([3, 2]))
 
+    def test_json_normalize_int_key_with_record_path(self):
+        # 63019
+        data = [
+            {
+                "a": 1,
+                12: "meta_value_1",
+                "nested": [{"b": 2, "c": 3}],
+            },
+            {
+                "a": 6,
+                12: "meta_value_2",
+                "nested": [{"b": 7, "c": 8}],
+            },
+        ]
+
+        result = json_normalize(data, record_path=["nested"], meta=[12, "a"])
+
+        expected_data = {
+            "b": [2, 7],
+            "c": [3, 8],
+            12: ["meta_value_1", "meta_value_2"],
+            "a": [1, 6],
+        }
+        expected_columns = ["b", "c", 12, "a"]
+        expected = DataFrame(expected_data, columns=expected_columns)
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord:
     def test_flat_stays_flat(self):
