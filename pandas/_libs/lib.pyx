@@ -2712,7 +2712,7 @@ def maybe_convert_objects(ndarray[object] objects,
                 break
         elif PyDateTime_Check(val) or cnp.is_datetime64_object(val):
 
-            # if we have an tz's attached then return the objects
+            # if we have a tz's attached then return the objects
             if convert_non_numeric:
                 if getattr(val, "tzinfo", None) is not None:
                     seen.datetimetz_ = True
