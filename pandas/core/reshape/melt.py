@@ -199,7 +199,7 @@ def melt(
         missing = idx == -1
         if missing.any():
             missing_labels = [
-                lab for lab, not_found in zip(labels, missing) if not_found
+                lab for lab, not_found in zip(labels, missing, strict=True) if not_found
             ]
             raise KeyError(
                 "The following id_vars or value_vars are not present in "

@@ -87,7 +87,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
-    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -501,7 +500,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if dtype is not None:
                 data = data.astype(dtype=dtype)
             elif copy:
-                data = data.copy()
+                data = data.copy(deep=True)
         else:
             data = sanitize_array(data, index, dtype, copy)
             data = SingleBlockManager.from_array(data, index, refs=refs)
@@ -819,7 +818,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[prop-decorator]
     @property
     def array(self) -> ExtensionArray:
-        return self._mgr.array_values()
+        arr = self._mgr.array_values()
+        arr = arr.view()
+        arr._readonly = True
+        return arr
 
     def __len__(self) -> int:
         """
@@ -1834,9 +1836,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         df = self._constructor_expanddim_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(self, method="to_frame")
 
-    def _set_name(
-        self, name, inplace: bool = False, deep: bool | None = None
-    ) -> Series:
+    def _set_name(self, name, inplace: bool = False) -> Series:
         """
         Set the Series name.
 
@@ -2142,7 +2142,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ['2016-01-01 00:00:00-05:00']
         Length: 1, dtype: datetime64[s, US/Eastern]
 
-        An Categorical will return categories in the order of
+        A Categorical will return categories in the order of
         appearance and with the same dtype.
 
         >>> pd.Series(pd.Categorical(list("baabc"))).unique()
@@ -3112,8 +3112,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Combine the Series and `other` using `func` to perform elementwise
         selection for combined Series.
-        `fill_value` is assumed when value is missing at some index
-        from one of the two objects being combined.
+        `fill_value` is assumed when value is not present at some index
+        from one of the two Series being combined.
 
         Parameters
         ----------
@@ -3254,9 +3254,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if self.dtype == other.dtype:
             if self.index.equals(other.index):
                 return self.mask(self.isna(), other)
-            elif self._can_hold_na and not isinstance(self.dtype, SparseDtype):
-                this, other = self.align(other, join="outer")
-                return this.mask(this.isna(), other)
 
         new_index = self.index.union(other.index)
 
@@ -3271,6 +3268,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if this.dtype.kind == "M" and other.dtype.kind != "M":
             # TODO: try to match resos?
             other = to_datetime(other)
+            warnings.warn(
+                # GH#62931
+                "Silently casting non-datetime 'other' to datetime in "
+                "Series.combine_first is deprecated and will be removed "
+                "in a future version. Explicitly cast before calling "
+                "combine_first instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         combined = concat([this, other])
         combined = combined.reindex(new_index)
         return combined.__finalize__(self, method="combine_first")
@@ -5921,8 +5928,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Right boundary.
         inclusive : {"both", "neither", "left", "right"}
             Include boundaries. Whether to set each bound as closed or open.
-
-            .. versionchanged:: 1.3.0
 
         Returns
         -------

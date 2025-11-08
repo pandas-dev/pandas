@@ -277,12 +277,12 @@ class TestBlock:
         assert len(fblock) == len(fblock.values)
 
     def test_copy(self, fblock):
-        cop = fblock.copy()
+        cop = fblock.copy(deep=True)
         assert cop is not fblock
         assert_block_equal(fblock, cop)
 
     def test_delete(self, fblock):
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         locs = newb.mgr_locs
         nb = newb.delete(0)[0]
         assert newb.mgr_locs is locs
@@ -295,7 +295,7 @@ class TestBlock:
         assert not (newb.values[0] == 1).all()
         assert (nb.values[0] == 1).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         locs = newb.mgr_locs
         nb = newb.delete(1)
         assert len(nb) == 2
@@ -310,7 +310,7 @@ class TestBlock:
         assert not (newb.values[1] == 2).all()
         assert (nb[1].values[0] == 2).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         nb = newb.delete(2)
         assert len(nb) == 1
         tm.assert_numpy_array_equal(
@@ -318,7 +318,7 @@ class TestBlock:
         )
         assert (nb[0].values[1] == 1).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
 
         with pytest.raises(IndexError, match=None):
             newb.delete(3)
@@ -1348,7 +1348,7 @@ class TestCanHoldElement:
             ser[: len(elem)] = elem
 
         if inplace:
-            assert ser.array is arr  # i.e. setting was done inplace
+            assert ser._values is arr  # i.e. setting was done inplace
         else:
             assert ser.dtype == object
 
