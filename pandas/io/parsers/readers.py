@@ -508,8 +508,8 @@ def read_csv(
         while the python engine
         is currently more feature-complete. Multithreading
         is currently only supported by
-        the pyarrow engine. The 'pyarrow' engine is  an *experimental* engine,
-        and some features are unsupported, or may not work correctly, with this engine.
+        the pyarrow engine. Some features of the "pyarrow" engine
+        are unsupported or may not work correctly.
     converters : dict of {{Hashable : Callable}}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices.
