@@ -341,8 +341,12 @@ how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
       of the left keys.
     * left_anti: use only keys from left frame that are not in right frame, similar
       to SQL left anti join; preserve key order.
+
+      .. versionadded:: 3.0
     * right_anti: use only keys from right frame that are not in left frame, similar
       to SQL right anti join; preserve key order.
+
+      .. versionadded:: 3.0
 on : Hashable or a sequence of the previous
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -2927,6 +2931,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
+        filesystem: Any = ...,
         **kwargs,
     ) -> bytes: ...
 
@@ -2940,6 +2945,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
+        filesystem: Any = ...,
         **kwargs,
     ) -> None: ...
 
@@ -2953,6 +2959,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = None,
         partition_cols: list[str] | None = None,
         storage_options: StorageOptions | None = None,
+        filesystem: Any = None,
         **kwargs,
     ) -> bytes | None:
         """
@@ -2991,6 +2998,12 @@ class DataFrame(NDFrame, OpsMixin):
             Columns are partitioned in the order they are given.
             Must be None if path is not a string.
         {storage_options}
+
+        filesystem : fsspec or pyarrow filesystem, default None
+            Filesystem object to use when reading the parquet file. Only implemented
+            for ``engine="pyarrow"``.
+
+            .. versionadded:: 2.1.0
 
         **kwargs
             Additional arguments passed to the parquet library. See
@@ -3053,6 +3066,7 @@ class DataFrame(NDFrame, OpsMixin):
             index=index,
             partition_cols=partition_cols,
             storage_options=storage_options,
+            filesystem=filesystem,
             **kwargs,
         )
 
@@ -6211,7 +6225,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = ...,
         append: bool = ...,
         inplace: Literal[False] = ...,
-        verify_integrity: bool = ...,
+        verify_integrity: bool | lib.NoDefault = ...,
     ) -> DataFrame: ...
 
     @overload
@@ -6222,7 +6236,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = ...,
         append: bool = ...,
         inplace: Literal[True],
-        verify_integrity: bool = ...,
+        verify_integrity: bool | lib.NoDefault = ...,
     ) -> None: ...
 
     def set_index(
@@ -6232,7 +6246,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = True,
         append: bool = False,
         inplace: bool = False,
-        verify_integrity: bool = False,
+        verify_integrity: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Set the DataFrame index using existing columns.
@@ -6261,6 +6275,8 @@ class DataFrame(NDFrame, OpsMixin):
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
             method.
+
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -6348,6 +6364,18 @@ class DataFrame(NDFrame, OpsMixin):
         2013    84
         2014    31
         """
+        if verify_integrity is not lib.no_default:
+            # GH#62919
+            warnings.warn(
+                "The 'verify_integrity' keyword in DataFrame.set_index is "
+                "deprecated and will be removed in a future version. "
+                "Directly check the result.index.is_unique instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            verify_integrity = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if not isinstance(keys, list):
