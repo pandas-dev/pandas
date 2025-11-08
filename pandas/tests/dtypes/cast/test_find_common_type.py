@@ -10,6 +10,8 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     Categorical,
     Index,
@@ -165,6 +167,7 @@ def test_interval_dtype(left, right):
         assert result == object
 
 
+@td.skip_if_no("pyarrow")
 @pytest.mark.parametrize("dtype", interval_dtypes)
 def test_interval_dtype_with_categorical(dtype):
     obj = Index([], dtype=dtype)
@@ -175,6 +178,7 @@ def test_interval_dtype_with_categorical(dtype):
     assert result == dtype
 
 
+@td.skip_if_no("pyarrow")
 @pytest.mark.parametrize(
     "dtypes,expected",
     [
@@ -202,6 +206,7 @@ def test_pyarrow_date_dtypes(dtypes, expected):
     assert result == pandas_dtype(expected)
 
 
+@td.skip_if_no("pyarrow")
 @pytest.mark.xfail(
     reason="""
                    Finding common pyarrow dtypes relies on conversion
