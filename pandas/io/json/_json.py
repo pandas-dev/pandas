@@ -641,8 +641,6 @@ def read_json(
         How encoding errors are treated. `List of possible values
         <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
 
-        .. versionadded:: 1.3.0
-
     lines : bool, default False
         Read the file as a json object per line.
 

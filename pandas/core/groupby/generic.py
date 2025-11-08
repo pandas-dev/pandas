@@ -920,8 +920,6 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return a Series or DataFrame containing counts of unique rows.
 
-        .. versionadded:: 1.4.0
-
         Parameters
         ----------
         normalize : bool, default False
@@ -2629,8 +2627,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         DataFrame
@@ -2703,8 +2699,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         DataFrame
@@ -2774,8 +2768,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame | Series:
         """
         Return a Series or DataFrame containing counts of unique rows.
-
-        .. versionadded:: 1.4.0
 
         Parameters
         ----------
@@ -3351,8 +3343,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
                 The default value of ``numeric_only`` is now ``False``.

@@ -931,13 +931,9 @@ def assert_series_equal(
         assertion message.
     check_index : bool, default True
         Whether to check index equivalence. If False, then compare only values.
-
-        .. versionadded:: 1.3.0
     check_like : bool, default False
         If True, ignore the order of the index. Must be False if check_index is False.
         Note: same labels must be with the same data.
-
-        .. versionadded:: 1.5.0
 
     See Also
     --------

@@ -499,27 +499,17 @@ def read_csv(
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
-        of ``dtype`` conversion.
-
-        .. versionadded:: 1.5.0
-
-            Support for ``defaultdict`` was
-            added. Specify a ``defaultdict`` as input where
-            the default determines the ``dtype``
-            of the columns which are not explicitly
-            listed.
+        of ``dtype`` conversion. Specify a ``defaultdict`` as input where
+        the default determines the ``dtype``
+        of the columns which are not explicitly
+        listed.
     engine : {{'c', 'python', 'pyarrow'}}, optional
         Parser engine to use. The C and pyarrow engines are faster,
         while the python engine
         is currently more feature-complete. Multithreading
         is currently only supported by
-        the pyarrow engine.
-
-        .. versionadded:: 1.4.0
-
-            The 'pyarrow' engine was added as an *experimental* engine,
-            and some features
-            are unsupported, or may not work correctly, with this engine.
+        the pyarrow engine. Some features of the "pyarrow" engine
+        are unsupported or may not work correctly.
     converters : dict of {{Hashable : Callable}}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices.
@@ -657,9 +647,6 @@ def read_csv(
         custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
-
     thousands : str (length 1), optional
         Character acting as the thousands separator in numerical values.
     decimal : str (length 1), default '.'
@@ -700,8 +687,6 @@ def read_csv(
     encoding_errors : str, optional, default 'strict'
         How encoding errors are treated. `List of possible values
         <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
-
-        .. versionadded:: 1.3.0
 
     dialect : str or csv.Dialect, optional
         If provided, this parameter will override values (default or not) for the
@@ -1079,27 +1064,16 @@ def read_table(
         Use ``str`` or ``object`` together with suitable ``na_values`` settings
         to preserve and not interpret ``dtype``.
         If ``converters`` are specified, they will be applied INSTEAD
-        of ``dtype`` conversion.
-
-        .. versionadded:: 1.5.0
-
-            Support for ``defaultdict`` was added.
-            Specify a ``defaultdict`` as input where
-            the default determines the ``dtype`` of the columns which
-            are not explicitly
-            listed.
+        of ``dtype`` conversion. Specify a ``defaultdict`` as input where
+        the default determines the ``dtype`` of the columns which
+        are not explicitly listed.
     engine : {{'c', 'python', 'pyarrow'}}, optional
         Parser engine to use. The C and pyarrow engines are faster,
         while the python engine
         is currently more feature-complete. Multithreading is
         currently only supported by
-        the pyarrow engine.
-
-        .. versionadded:: 1.4.0
-
-            The 'pyarrow' engine was added as an *experimental* engine,
-            and some features
-            are unsupported, or may not work correctly, with this engine.
+        the pyarrow engine. The 'pyarrow' engine is an *experimental* engine,
+        and some features are unsupported, or may not work correctly, with this engine.
     converters : dict of {{Hashable : Callable}}, optional
         Functions for converting values in specified columns. Keys can either
         be column labels or column indices.
@@ -1236,9 +1210,6 @@ def read_table(
         custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
-
     thousands : str (length 1), optional
         Character acting as the thousands separator in numerical values.
     decimal : str (length 1), default '.'
@@ -1279,8 +1250,6 @@ def read_table(
     encoding_errors : str, optional, default 'strict'
         How encoding errors are treated. `List of possible values
         <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
-
-        .. versionadded:: 1.3.0
 
     dialect : str or csv.Dialect, optional
         If provided, this parameter will override values (default or not) for the

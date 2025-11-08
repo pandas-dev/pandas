@@ -1277,8 +1277,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             NaN values will be encoded as non-negative integers and will not drop the
             NaN from the uniques of the values.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         codes : ndarray

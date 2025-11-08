@@ -1900,8 +1900,6 @@ class MultiIndex(Index):
         allow_duplicates : bool, optional default False
             Allow duplicate column labels to be created.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         DataFrame

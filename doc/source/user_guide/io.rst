@@ -156,13 +156,9 @@ dtype : Type name or dict of column -> type, default ``None``
   Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
   Use ``str`` or ``object`` together with suitable ``na_values`` settings to preserve
   and not interpret dtype. If converters are specified, they will be applied INSTEAD
-  of dtype conversion.
-
-  .. versionadded:: 1.5.0
-
-     Support for defaultdict was added. Specify a defaultdict as input where
-     the default determines the dtype of the columns which are not explicitly
-     listed.
+  of dtype conversion. Specify a defaultdict as input where
+  the default determines the dtype of the columns which are not explicitly
+  listed.
 
 dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
   Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
@@ -177,12 +173,8 @@ dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFram
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
   is currently more feature-complete. Multithreading is currently only supported by
-  the pyarrow engine.
-
-  .. versionadded:: 1.4.0
-
-     The "pyarrow" engine was added as an *experimental* engine, and some features
-     are unsupported, or may not work correctly, with this engine.
+  the pyarrow engine. Some features of the "pyarrow" engine
+  are unsupported or may not work correctly.
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels.
@@ -354,8 +346,6 @@ on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
     - 'error', raise an ParserError when a bad line is encountered.
     - 'warn', print a warning when a bad line is encountered and skip that line.
     - 'skip', skip bad lines without raising or warning when they are encountered.
-
-    .. versionadded:: 1.3.0
 
 .. _io.dtypes:
 
@@ -935,8 +925,6 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
 Writing CSVs to binary file objects
 +++++++++++++++++++++++++++++++++++
 
-.. versionadded:: 1.2.0
-
 ``df.to_csv(..., mode="wb")`` allows writing a CSV to a file object
 opened binary mode. In most cases, it is not necessary to specify
 ``mode`` as pandas will auto-detect whether the file object is
@@ -1121,8 +1109,6 @@ You can elect to skip bad lines:
 
     data = "a,b,c\n1,2,3\n4,5,6,7\n8,9,10"
     pd.read_csv(StringIO(data), on_bad_lines="skip")
-
-.. versionadded:: 1.4.0
 
 Or pass a callable function to handle the bad line if ``engine="python"``.
 The bad line will be a list of strings that was split by the ``sep``:
@@ -1547,8 +1533,6 @@ functions - the following example shows reading a CSV file:
 
    df = pd.read_csv("https://download.bls.gov/pub/time.series/cu/cu.item", sep="\t")
 
-.. versionadded:: 1.3.0
-
 A custom header can be sent alongside HTTP(s) requests by passing a dictionary
 of header key value mappings to the ``storage_options`` keyword argument as shown below:
 
@@ -1599,8 +1583,6 @@ More sample configurations and documentation can be found at `S3Fs documentation
 
 If you do *not* have S3 credentials, you can still access public
 data by specifying an anonymous connection, such as
-
-.. versionadded:: 1.2.0
 
 .. code-block:: python
 
@@ -2535,8 +2517,6 @@ Links can be extracted from cells along with the text using ``extract_links="all
     df[("GitHub", None)]
     df[("GitHub", None)].str[1]
 
-.. versionadded:: 1.5.0
-
 .. _io.html:
 
 Writing to HTML files
@@ -2726,8 +2706,6 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 LaTeX
 -----
 
-.. versionadded:: 1.3.0
-
 Currently there are no methods to read from LaTeX, only output methods.
 
 Writing to LaTeX files
@@ -2765,8 +2743,6 @@ XML
 
 Reading XML
 '''''''''''
-
-.. versionadded:: 1.3.0
 
 The top-level :func:`~pandas.io.xml.read_xml` function can accept an XML
 string/file/URL and will parse nodes and attributes into a pandas ``DataFrame``.
@@ -3093,8 +3069,6 @@ supports parsing such sizeable files using `lxml's iterparse`_ and `etree's iter
 which are memory-efficient methods to iterate through an XML tree and extract specific elements and attributes.
 without holding entire tree in memory.
 
-.. versionadded:: 1.5.0
-
 .. _`lxml's iterparse`: https://lxml.de/3.2/parsing.html#iterparse-and-iterwalk
 .. _`etree's iterparse`: https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.iterparse
 
@@ -3132,8 +3106,6 @@ of reading in Wikipedia's very large (12 GB+) latest article data dump.
 
 Writing XML
 '''''''''''
-
-.. versionadded:: 1.3.0
 
 ``DataFrame`` objects have an instance method ``to_xml`` which renders the
 contents of the ``DataFrame`` as an XML document.

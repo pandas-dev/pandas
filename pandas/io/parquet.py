@@ -549,8 +549,6 @@ def read_parquet(
         If not None, only these columns will be read from the file.
     {storage_options}
 
-        .. versionadded:: 1.3.0
-
     dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
