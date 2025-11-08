@@ -55,9 +55,23 @@ static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
   out->month = 1;
   out->day = 1;
 
-  out->year = PyLong_AsLong(PyObject_GetAttrString(obj, "year"));
-  out->month = PyLong_AsLong(PyObject_GetAttrString(obj, "month"));
-  out->day = PyLong_AsLong(PyObject_GetAttrString(obj, "day"));
+  tmp = PyObject_GetAttrString(obj, "year");
+  if (tmp == NULL)
+    return -1;
+  out->year = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
+
+  tmp = PyObject_GetAttrString(obj, "month");
+  if (tmp == NULL)
+    return -1;
+  out->month = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
+
+  tmp = PyObject_GetAttrString(obj, "day");
+  if (tmp == NULL)
+    return -1;
+  out->day = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
 
   // TODO(anyone): If we can get PyDateTime_IMPORT to work, we could use
   // PyDateTime_Check here, and less verbose attribute lookups.
@@ -70,10 +84,29 @@ static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
     return 0;
   }
 
-  out->hour = PyLong_AsLong(PyObject_GetAttrString(obj, "hour"));
-  out->min = PyLong_AsLong(PyObject_GetAttrString(obj, "minute"));
-  out->sec = PyLong_AsLong(PyObject_GetAttrString(obj, "second"));
-  out->us = PyLong_AsLong(PyObject_GetAttrString(obj, "microsecond"));
+  tmp = PyObject_GetAttrString(obj, "hour");
+  if (tmp == NULL)
+    return -1;
+  out->hour = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
+
+  tmp = PyObject_GetAttrString(obj, "minute");
+  if (tmp == NULL)
+    return -1;
+  out->min = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
+
+  tmp = PyObject_GetAttrString(obj, "second");
+  if (tmp == NULL)
+    return -1;
+  out->sec = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
+
+  tmp = PyObject_GetAttrString(obj, "microsecond");
+  if (tmp == NULL)
+    return -1;
+  out->us = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
 
   if (PyObject_HasAttrString(obj, "tzinfo")) {
     PyObject *offset = extract_utc_offset(obj);

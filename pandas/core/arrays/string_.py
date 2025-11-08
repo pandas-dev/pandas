@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import partial
 import operator
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -49,6 +50,7 @@ from pandas.core import (
     missing,
     nanops,
     ops,
+    roperator,
 )
 from pandas.core.algorithms import isin
 from pandas.core.array_algos import masked_reductions
@@ -195,8 +197,8 @@ class StringDtype(StorageExtensionDtype):
         if self._na_value is libmissing.NA:
             return f"{self.name}[{self.storage}]"
         else:
-            # TODO add more informative repr
-            return self.name
+            storage = "" if self.storage == "pyarrow" else "storage='python', "
+            return f"<StringDtype({storage}na_value={self._na_value})>"
 
     def __eq__(self, other: object) -> bool:
         # we need to override the base class __eq__ because na_value (NA or NaN)
@@ -384,6 +386,26 @@ class BaseStringArray(ExtensionArray):
     """
 
     dtype: StringDtype
+
+    # TODO(4.0): Once the deprecation here is enforced, this method can be
+    #  removed and we use the parent class method instead.
+    def _logical_method(self, other, op):
+        if (
+            op in (roperator.ror_, roperator.rand_, roperator.rxor)
+            and isinstance(other, np.ndarray)
+            and other.dtype == bool
+        ):
+            # GH#60234 backward compatibility for the move to StringDtype in 3.0
+            op_name = op.__name__[1:].strip("_")
+            warnings.warn(
+                f"'{op_name}' operations between boolean dtype and {self.dtype} are "
+                "deprecated and will raise in a future version. Explicitly "
+                "cast the strings to a boolean dtype before operating instead.",
+                DeprecationWarning,
+                stacklevel=find_stack_level(),
+            )
+            return op(other, self.astype(bool))
+        return NotImplemented
 
     @doc(ExtensionArray.tolist)
     def tolist(self):
@@ -1052,7 +1074,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         mask = isna(self) | isna(other)
         valid = ~mask
 
-        if not lib.is_scalar(other):
+        if lib.is_list_like(other):
             if len(other) != len(self):
                 # prevent improper broadcasting when other is 2D
                 raise ValueError(
@@ -1068,6 +1090,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             result = np.empty_like(self._ndarray, dtype="object")
             result[mask] = self.dtype.na_value
             result[valid] = op(self._ndarray[valid], other)
+            if isinstance(other, Path):
+                # GH#61940
+                return result
             return self._from_backing_data(result)
         else:
             # logical

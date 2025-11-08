@@ -3,6 +3,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.compat import WARNING_CHECK_DISABLED
 from pandas.errors import ChainedAssignmentError
 import pandas.util._test_decorators as td
 
@@ -391,7 +392,10 @@ class TestDataFrameInterpolate:
             assert return_value is None
             tm.assert_frame_equal(result, expected_cow)
         else:
-            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            with tm.assert_produces_warning(
+                FutureWarning if not WARNING_CHECK_DISABLED else None,
+                match="inplace method",
+            ):
                 return_value = result["a"].interpolate(inplace=True)
             assert return_value is None
             tm.assert_frame_equal(result, expected)

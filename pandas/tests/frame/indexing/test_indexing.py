@@ -538,6 +538,16 @@ class TestDataFrameIndexing:
         result.loc[result.b.isna(), "a"] = result.a.copy()
         tm.assert_frame_equal(result, df)
 
+    def test_getitem_slice_empty(self):
+        df = DataFrame([[1]], columns=MultiIndex.from_product([["A"], ["a"]]))
+        result = df[:]
+
+        expected = DataFrame([[1]], columns=MultiIndex.from_product([["A"], ["a"]]))
+
+        tm.assert_frame_equal(result, expected)
+        # Ensure df[:] returns a view of df, not the same object
+        assert result is not df
+
     def test_getitem_fancy_slice_integers_step(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
 
@@ -1500,13 +1510,18 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
+    @pytest.mark.parametrize("has_ref", [True, False])
     @pytest.mark.parametrize("col", [{}, {"name": "a"}])
-    def test_loc_setitem_reordering_with_all_true_indexer(self, col):
+    def test_loc_setitem_reordering_with_all_true_indexer(self, col, has_ref):
         # GH#48701
         n = 17
         df = DataFrame({**col, "x": range(n), "y": range(n)})
+        value = df[["x", "y"]].copy()
         expected = df.copy()
-        df.loc[n * [True], ["x", "y"]] = df[["x", "y"]]
+        if has_ref:
+            view = df[:]  # noqa: F841
+        df.loc[n * [True], ["x", "y"]] = value
         tm.assert_frame_equal(df, expected)
 
     def test_loc_rhs_empty_warning(self):

@@ -1353,8 +1353,8 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        pat : str
-            Character sequence.
+        pat : str or compiled regex
+            Character sequence or regular expression.
         case : bool, default True
             If True, case sensitive.
         flags : int, default 0 (no flags)

@@ -7,6 +7,7 @@ import itertools
 import numpy as np
 import pytest
 
+from pandas.compat import WARNING_CHECK_DISABLED
 from pandas.errors import PerformanceWarning
 import pandas.util._test_decorators as td
 
@@ -411,7 +412,10 @@ def test_update_inplace_sets_valid_block_values(using_copy_on_write):
         with tm.raises_chained_assignment_error():
             df["a"].fillna(1, inplace=True)
     else:
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(
+            FutureWarning if not WARNING_CHECK_DISABLED else None,
+            match="inplace method",
+        ):
             df["a"].fillna(1, inplace=True)
 
     # check we haven't put a Series into any block.values

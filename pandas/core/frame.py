@@ -54,7 +54,10 @@ from pandas._libs import (
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
-from pandas.compat._constants import REF_COUNT
+from pandas.compat._constants import (
+    REF_COUNT,
+    WARNING_CHECK_DISABLED,
+)
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -141,6 +144,7 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     sanitize_array,
@@ -2545,8 +2549,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         manager = _get_option("mode.data_manager", silent=True)
         mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
-
-        return cls._from_mgr(mgr, axes=mgr.axes)
+        df = DataFrame._from_mgr(mgr, axes=mgr.axes)
+        if cls is not DataFrame:
+            return cls(df, copy=False)
+        return df
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
@@ -4069,8 +4075,10 @@ class DataFrame(NDFrame, OpsMixin):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        if is_hashable(key) and not is_iterator(key):
+        if is_hashable(key) and not is_iterator(key) and not isinstance(key, slice):
             # is_iterator to exclude generator e.g. test_getitem_listlike
+            # As of Python 3.12, slice is hashable which breaks MultiIndex (GH#57500)
+
             # shortcut if the key is in columns
             is_mi = isinstance(self.columns, MultiIndex)
             # GH#45316 Return view if key is not duplicated
@@ -4274,12 +4282,12 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
+        if not PYPY and not WARNING_CHECK_DISABLED and using_copy_on_write():
             if sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
-        elif not PYPY and not using_copy_on_write():
+        elif not PYPY and not WARNING_CHECK_DISABLED and not using_copy_on_write():
             if sys.getrefcount(self) <= 3 and (
                 warn_copy_on_write()
                 or (
@@ -5077,10 +5085,19 @@ class DataFrame(NDFrame, OpsMixin):
         def dtype_predicate(dtype: DtypeObj, dtypes_set) -> bool:
             # GH 46870: BooleanDtype._is_numeric == True but should be excluded
             dtype = dtype if not isinstance(dtype, ArrowDtype) else dtype.numpy_dtype
-            return issubclass(dtype.type, tuple(dtypes_set)) or (
-                np.number in dtypes_set
-                and getattr(dtype, "_is_numeric", False)
-                and not is_bool_dtype(dtype)
+            return (
+                issubclass(dtype.type, tuple(dtypes_set))
+                or (
+                    np.number in dtypes_set
+                    and getattr(dtype, "_is_numeric", False)
+                    and not is_bool_dtype(dtype)
+                )
+                # backwards compat for the default `str` dtype being selected by object
+                or (
+                    isinstance(dtype, StringDtype)
+                    and dtype.na_value is np.nan
+                    and np.object_ in dtypes_set
+                )
             )
 
         def predicate(arr: ArrayLike) -> bool:
@@ -8983,14 +9000,19 @@ class DataFrame(NDFrame, OpsMixin):
         2  3    6.0
         """
 
-        if not PYPY and using_copy_on_write():
+        if not PYPY and not WARNING_CHECK_DISABLED and using_copy_on_write():
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
                     stacklevel=2,
                 )
-        elif not PYPY and not using_copy_on_write() and self._is_view_after_cow_rules():
+        elif (
+            not PYPY
+            and not WARNING_CHECK_DISABLED
+            and not using_copy_on_write()
+            and self._is_view_after_cow_rules()
+        ):
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_warning_method_msg,

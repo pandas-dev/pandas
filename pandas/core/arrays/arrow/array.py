@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import operator
+from pathlib import Path
 import re
 import textwrap
 from typing import (
@@ -237,7 +238,7 @@ def to_pyarrow_type(
     return None
 
 
-class ArrowExtensionArray(
+class ArrowExtensionArray(  # type: ignore[misc]
     OpsMixin,
     ExtensionArraySupportsAnyAll,
     ArrowStringArrayMixin,
@@ -726,12 +727,18 @@ class ArrowExtensionArray(
         pc_func = ARROW_CMP_FUNCS[op.__name__]
         if isinstance(other, (ExtensionArray, np.ndarray, list)):
             try:
-                result = pc_func(self._pa_array, self._box_pa(other))
-            except pa.ArrowNotImplementedError:
-                # TODO: could this be wrong if other is object dtype?
-                #  in which case we need to operate pointwise?
-                result = ops.invalid_comparison(self, other, op)
-                result = pa.array(result, type=pa.bool_())
+                boxed = self._box_pa(other)
+            except pa.lib.ArrowInvalid:
+                # e.g. GH#60228 [1, "b"] we have to operate pointwise
+                res_values = [op(x, y) for x, y in zip(self, other)]
+                result = pa.array(res_values, type=pa.bool_(), from_pandas=True)
+            else:
+                try:
+                    result = pc_func(self._pa_array, boxed)
+                except pa.ArrowNotImplementedError:
+                    result = ops.invalid_comparison(self, other, op)
+                    result = pa.array(result, type=pa.bool_())
+
         elif is_scalar(other):
             try:
                 result = pc_func(self._pa_array, self._box_pa(other))
@@ -829,10 +836,45 @@ class ArrowExtensionArray(
         # integer types. Otherwise these are boolean ops.
         if pa.types.is_integer(self._pa_array.type):
             return self._evaluate_op_method(other, op, ARROW_BIT_WISE_FUNCS)
+        elif (
+            (
+                pa.types.is_string(self._pa_array.type)
+                or pa.types.is_large_string(self._pa_array.type)
+            )
+            and op in (roperator.ror_, roperator.rand_, roperator.rxor)
+            and isinstance(other, np.ndarray)
+            and other.dtype == bool
+        ):
+            # GH#60234 backward compatibility for the move to StringDtype in 3.0
+            op_name = op.__name__[1:].strip("_")
+            warnings.warn(
+                f"'{op_name}' operations between boolean dtype and {self.dtype} are "
+                "deprecated and will raise in a future version. Explicitly "
+                "cast the strings to a boolean dtype before operating instead.",
+                DeprecationWarning,
+                stacklevel=find_stack_level(),
+            )
+            return op(other, self.astype(bool))
         else:
             return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
-    def _arith_method(self, other, op):
+    def _arith_method(self, other, op) -> Self | npt.NDArray[np.object_]:
+        if (
+            op in [operator.truediv, roperator.rtruediv]
+            and isinstance(other, Path)
+            and (
+                pa.types.is_string(self._pa_array.type)
+                or pa.types.is_large_string(self._pa_array.type)
+            )
+        ):
+            # GH#61940
+            return np.array(
+                [
+                    op(x, other) if isinstance(x, str) else self.dtype.na_value
+                    for x in self
+                ],
+                dtype=object,
+            )
         return self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
 
     def equals(self, other) -> bool:

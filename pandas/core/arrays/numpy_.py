@@ -209,6 +209,14 @@ class NumpyExtensionArray(  # type: ignore[misc]
             # e.g. test_np_max_nested_tuples
             return result
         else:
+            if self.dtype.type is str:  # type: ignore[comparison-overlap]
+                # StringDtype
+                try:
+                    return type(self)(result)
+                except ValueError:
+                    # if validation of input fails (no strings)
+                    # -> fallback to returning raw numpy array
+                    return result
             # one return value; re-box array-like results
             return type(self)(result)
 

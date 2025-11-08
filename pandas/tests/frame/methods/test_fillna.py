@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.compat import WARNING_CHECK_DISABLED
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -58,7 +59,10 @@ class TestFillNA:
                 df[0].fillna(-1, inplace=True)
             assert np.isnan(arr[:, 0]).all()
         else:
-            with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+            with tm.assert_produces_warning(
+                FutureWarning if not WARNING_CHECK_DISABLED else None,
+                match="inplace method",
+            ):
                 df[0].fillna(-1, inplace=True)
             assert (arr[:, 0] == -1).all()
 

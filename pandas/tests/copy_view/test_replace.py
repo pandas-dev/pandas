@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import WARNING_CHECK_DISABLED
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -450,7 +452,10 @@ def test_replace_chained_assignment(using_copy_on_write):
             with option_context("mode.chained_assignment", None):
                 df[df.a > 5].replace(1, 100, inplace=True)
 
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(
+            FutureWarning if not WARNING_CHECK_DISABLED else None,
+            match="inplace method",
+        ):
             df["a"].replace(1, 100, inplace=True)
 
 

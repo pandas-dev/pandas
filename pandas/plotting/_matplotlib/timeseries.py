@@ -86,12 +86,9 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
             )
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
-            # Resampling with PeriodDtype is deprecated, so we convert to
-            #  DatetimeIndex, resample, then convert back.
-            ser_ts = series.to_timestamp()
-            ser_d = ser_ts.resample("D").last().dropna()
-            ser_freq = ser_d.resample(ax_freq).last().dropna()
-            series = ser_freq.to_period(ax_freq)
+            how = "last"
+            series = getattr(series.resample("D"), how)().dropna()
+            series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
         elif is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)

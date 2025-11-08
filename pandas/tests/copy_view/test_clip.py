@@ -1,5 +1,7 @@
 import numpy as np
 
+from pandas.compat import WARNING_CHECK_DISABLED
+
 from pandas import (
     DataFrame,
     option_context,
@@ -89,7 +91,10 @@ def test_clip_chained_inplace(using_copy_on_write):
             df[["a"]].clip(1, 2, inplace=True)
         tm.assert_frame_equal(df, df_orig)
     else:
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(
+            FutureWarning if not WARNING_CHECK_DISABLED else None,
+            match="inplace method",
+        ):
             df["a"].clip(1, 2, inplace=True)
 
         with tm.assert_produces_warning(None):

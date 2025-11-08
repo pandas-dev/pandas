@@ -275,3 +275,19 @@ def test_searchsorted_with_na_raises(data_for_sorting, as_series):
     )
     with pytest.raises(ValueError, match=msg):
         arr.searchsorted(b)
+
+
+def test_mixed_object_comparison(dtype):
+    # GH#60228
+    ser = pd.Series(["a", "b"], dtype=dtype)
+
+    mixed = pd.Series([1, "b"], dtype=object)
+
+    result = ser == mixed
+    expected = pd.Series([False, True], dtype=bool)
+    if dtype.storage == "python" and dtype.na_value is pd.NA:
+        expected = expected.astype("boolean")
+    elif dtype.storage == "pyarrow" and dtype.na_value is pd.NA:
+        expected = expected.astype("bool[pyarrow]")
+
+    tm.assert_series_equal(result, expected)

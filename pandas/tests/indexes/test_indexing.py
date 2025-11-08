@@ -17,6 +17,7 @@ contain tests for the corresponding methods specific to those Index subclasses.
 import numpy as np
 import pytest
 
+from pandas.compat import PY314
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import (
@@ -160,13 +161,19 @@ class TestContains:
         with pytest.raises(TypeError, match=msg):
             [] in index
 
+        if PY314:
+            container_or_iterable = "a container or iterable"
+        else:
+            container_or_iterable = "iterable"
+
         msg = "|".join(
             [
                 r"unhashable type: 'dict'",
                 r"must be real number, not dict",
                 r"an integer is required",
                 r"\{\}",
-                r"pandas\._libs\.interval\.IntervalTree' is not iterable",
+                r"pandas\._libs\.interval\.IntervalTree' is not "
+                f"{container_or_iterable}",
             ]
         )
         with pytest.raises(TypeError, match=msg):

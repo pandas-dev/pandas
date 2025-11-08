@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import codecs
 import json
 import locale
 import os
@@ -139,7 +138,7 @@ def show_versions(as_json: str | bool = False) -> None:
             sys.stdout.writelines(json.dumps(j, indent=2))
         else:
             assert isinstance(as_json, str)  # needed for mypy
-            with codecs.open(as_json, "wb", encoding="utf8") as f:
+            with open(as_json, "w", encoding="utf-8") as f:
                 json.dump(j, f, indent=2)
 
     else:

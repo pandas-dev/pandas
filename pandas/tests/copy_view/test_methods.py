@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas.compat import HAS_PYARROW
+from pandas.compat import (
+    HAS_PYARROW,
+    WARNING_CHECK_DISABLED,
+)
 from pandas.errors import SettingWithCopyWarning
 
 import pandas as pd
@@ -18,6 +21,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
+from pandas.util.version import Version
 
 
 def test_copy(using_copy_on_write):
@@ -1199,8 +1203,9 @@ def test_round(using_copy_on_write, warn_copy_on_write, decimals):
     if using_copy_on_write:
         assert tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
         # TODO: Make inplace by using out parameter of ndarray.round?
-        if decimals >= 0:
+        if decimals >= 0 and Version(np.__version__) < Version("2.4.0.dev0"):
             # Ensure lazy copy if no-op
+            # TODO: Cannot rely on Numpy returning view after version 2.3
             assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
         else:
             assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -1583,7 +1588,10 @@ def test_chained_where_mask(using_copy_on_write, func):
             getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
         tm.assert_frame_equal(df, df_orig)
     else:
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(
+            FutureWarning if not WARNING_CHECK_DISABLED else None,
+            match="inplace method",
+        ):
             getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
 
         with tm.assert_produces_warning(None):
@@ -1862,7 +1870,10 @@ def test_update_chained_assignment(using_copy_on_write):
             df[["a"]].update(ser2.to_frame())
         tm.assert_frame_equal(df, df_orig)
     else:
-        with tm.assert_produces_warning(FutureWarning, match="inplace method"):
+        with tm.assert_produces_warning(
+            FutureWarning if not WARNING_CHECK_DISABLED else None,
+            match="inplace method",
+        ):
             df["a"].update(ser2)
 
         with tm.assert_produces_warning(None):
