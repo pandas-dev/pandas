@@ -260,7 +260,8 @@ def _register_accessor(
 
     Notes
     -----
-    This function allows you to register a custom-defined accessor class for pandas objects (DataFrame, Series, or Index).
+    This function allows you to register a custom-defined accessor class
+    for pandas objects (DataFrame, Series, or Index).
     The requirements for the accessor class are as follows:
 
     * Must contain an init method that:
