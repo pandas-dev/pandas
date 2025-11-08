@@ -2576,42 +2576,80 @@ class TimeGrouper(Grouper):
             )
 
         if len(ax) == 0:
-            binner = labels = DatetimeIndex(
-                data=[], freq=self.freq, name=ax.name, dtype=ax.dtype
+            empty = DatetimeIndex(data=[], freq=self.freq, name=ax.name, dtype=ax.dtype)
+            return empty, [], empty
+
+        if ax.tz is not None:
+            try:
+                first, last = _get_timestamp_range_edges(
+                    ax.min(),
+                    ax.max(),
+                    self.freq,
+                    unit=ax.unit,
+                    closed=self.closed,
+                    origin=self.origin,
+                    offset=self.offset,
+                )
+                binner = labels = date_range(
+                    freq=self.freq,
+                    start=first,
+                    end=last,
+                    tz=ax.tz,
+                    name=ax.name,
+                    ambiguous=True,
+                    nonexistent="shift_forward",
+                    unit=ax.unit,
+                )
+            except Exception as e:
+                if "nonexistent" not in str(e).lower():
+                    raise
+
+                ax_utc = ax.tz_convert("UTC")
+
+                first_utc, last_utc = _get_timestamp_range_edges(
+                    ax_utc.min(),
+                    ax_utc.max(),
+                    self.freq,
+                    unit=ax.unit,
+                    closed=self.closed,
+                    origin=self.origin,
+                    offset=self.offset,
+                )
+
+                binner_utc = date_range(
+                    start=first_utc,
+                    end=last_utc,
+                    freq=self.freq,
+                    tz="UTC",
+                    name=ax.name,
+                    unit=ax.unit,
+                )
+
+                binner = labels = binner_utc.tz_convert(ax.tz)
+
+        else:
+            first, last = _get_timestamp_range_edges(
+                ax.min(),
+                ax.max(),
+                self.freq,
+                unit=ax.unit,
+                closed=self.closed,
+                origin=self.origin,
+                offset=self.offset,
             )
-            return binner, [], labels
-
-        first, last = _get_timestamp_range_edges(
-            ax.min(),
-            ax.max(),
-            self.freq,
-            unit=ax.unit,
-            closed=self.closed,
-            origin=self.origin,
-            offset=self.offset,
-        )
-        # GH #12037
-        # use first/last directly instead of call replace() on them
-        # because replace() will swallow the nanosecond part
-        # thus last bin maybe slightly before the end if the end contains
-        # nanosecond part and lead to `Values falls after last bin` error
-        # GH 25758: If DST lands at midnight (e.g. 'America/Havana'), user feedback
-        # has noted that ambiguous=True provides the most sensible result
-        binner = labels = date_range(
-            freq=self.freq,
-            start=first,
-            end=last,
-            tz=ax.tz,
-            name=ax.name,
-            ambiguous=True,
-            nonexistent="shift_forward",
-            unit=ax.unit,
-        )
-
+            binner = labels = date_range(
+                freq=self.freq,
+                start=first,
+                end=last,
+                tz=ax.tz,
+                name=ax.name,
+                ambiguous=True,
+                nonexistent="shift_forward",
+                unit=ax.unit,
+            )
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
-        # general version, knowing nothing about relative frequencies
         bins = lib.generate_bins_dt64(
             ax_values, bin_edges, self.closed, hasnans=ax.hasnans
         )
@@ -2627,9 +2665,6 @@ class TimeGrouper(Grouper):
             binner = binner.insert(0, NaT)
             labels = labels.insert(0, NaT)
 
-        # if we end up with more labels than bins
-        # adjust the labels
-        # GH4076
         if len(bins) < len(labels):
             labels = labels[: len(bins)]
 
