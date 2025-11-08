@@ -655,16 +655,17 @@ def is_range_indexer(const int6432_t[:] left, Py_ssize_t n) -> bool:
     """
     cdef:
         Py_ssize_t i
+        bint ret = True
 
     if left.size != n:
         return False
 
-    for i in range(n):
-
-        if left[i] != i:
-            return False
-
-    return True
+    with nogil:
+        for i in range(n):
+            if left[i] != i:
+                ret = False
+                break
+    return ret
 
 
 @cython.wraparound(False)
@@ -676,6 +677,7 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     cdef:
         Py_ssize_t i, n = len(sequence)
         int6432_t first_element
+        bint ret = True
 
     if step == 0:
         return False
@@ -683,10 +685,12 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
         return True
 
     first_element = sequence[0]
-    for i in range(1, n):
-        if sequence[i] != first_element + i * step:
-            return False
-    return True
+    with nogil:
+        for i in range(1, n):
+            if sequence[i] != first_element + i * step:
+                ret = False
+                break
+    return ret
 
 
 ctypedef fused ndarr_object:
