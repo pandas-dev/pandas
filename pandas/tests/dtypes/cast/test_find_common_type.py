@@ -238,5 +238,4 @@ def test_pyarrow_date_dtypes(dtypes, expected):
 def test_pyarrow_date64_dtype(dtypes, expected):
     source_dtypes = [pandas_dtype(dtype) for dtype in dtypes]
     result = find_common_type(source_dtypes)
-    print(f'{source_dtypes}: {result}')
     assert result == pandas_dtype(expected)
