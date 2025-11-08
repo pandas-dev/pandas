@@ -201,7 +201,9 @@ def test_pyarrow_date_dtypes(dtypes, expected):
     result = find_common_type(source_dtypes)
     assert result == pandas_dtype(expected)
 
-@pytest.mark.xfail(reason="""
+
+@pytest.mark.xfail(
+    reason="""
                    Finding common pyarrow dtypes relies on conversion
                    to numpy dtypes and then back to pyarrow dtypes.
 
@@ -221,7 +223,8 @@ def test_pyarrow_date_dtypes(dtypes, expected):
 
                    Hence, some date64-related common type computations
                    end up becoming cast to timestamps rather than date64.
-                   """)
+                   """
+)
 @pytest.mark.parametrize(
     "dtypes,expected",
     [
