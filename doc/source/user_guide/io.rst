@@ -156,7 +156,7 @@ dtype : Type name or dict of column -> type, default ``None``
   Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
   Use ``str`` or ``object`` together with suitable ``na_values`` settings to preserve
   and not interpret dtype. If converters are specified, they will be applied INSTEAD
-  of dtype conversion.Specify a defaultdict as input where
+  of dtype conversion. Specify a defaultdict as input where
   the default determines the dtype of the columns which are not explicitly
   listed.
 
