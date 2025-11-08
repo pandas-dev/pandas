@@ -182,10 +182,30 @@ def test_interval_dtype_with_categorical(dtype):
             ["date32[pyarrow]", "null[pyarrow]"],
             "date32[day][pyarrow]",
         ),
+        (
+            ["date32[pyarrow]", "date32[pyarrow]"],
+            "date32[day][pyarrow]",
+        ),
+        (
+            ["date64[pyarrow]", "null[pyarrow]"],
+            "date64[ms][pyarrow]", # timestamp[ms][pyarrow]
+        ),
+        (
+            ["date64[pyarrow]", "date64[pyarrow]"],
+            "date64[ms][pyarrow]",
+        ),
+        (
+            ["date32[pyarrow]", "date64[pyarrow]"],
+            "date64[ms][pyarrow]", # timestamp[ms][pyarrow]
+        ),
+        (
+            ["date32[pyarrow]", "date64[pyarrow]", "datetime64[ms]"],
+            "timestamp[ms][pyarrow]",
+        ),
     ],
 )
-def test_pyarrow_dtypes(dtypes, expected):
-    """Test finding common types with pyarrow dtypes not in numpy."""
+def test_pyarrow_date_dtypes(dtypes, expected):
     source_dtypes = [pandas_dtype(dtype) for dtype in dtypes]
     result = find_common_type(source_dtypes)
+    print(f'{source_dtypes}: {result}')
     assert result == pandas_dtype(expected)
