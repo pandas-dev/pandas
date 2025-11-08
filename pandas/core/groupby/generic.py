@@ -2913,7 +2913,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns
         -------
         DataFrame
-            An DataFrame containing the elements taken from each group.
+            A DataFrame containing the elements taken from each group.
 
         See Also
         --------

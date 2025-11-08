@@ -126,7 +126,7 @@ def check_setitem_lengths(indexer, value, values) -> bool:
     """
     Validate that value and indexer are the same length.
 
-    An special-case is allowed for when the indexer is a boolean array
+    A special-case is allowed for when the indexer is a boolean array
     and the number of true values equals the length of ``value``. In
     this case, no exception is raised.
 

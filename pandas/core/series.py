@@ -2142,7 +2142,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ['2016-01-01 00:00:00-05:00']
         Length: 1, dtype: datetime64[s, US/Eastern]
 
-        An Categorical will return categories in the order of
+        A Categorical will return categories in the order of
         appearance and with the same dtype.
 
         >>> pd.Series(pd.Categorical(list("baabc"))).unique()
