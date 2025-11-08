@@ -211,9 +211,8 @@ def test_pyarrow_date_dtypes(dtypes, expected):
                    >>> pa.from_numpy_dtype(np.dtype('datetime64[ms]'))
                    TimestampType(timestamp[ms])
 
-                   To fix this test, we would need to have
-                   >>> pa.from_numpy_dtype(np.dtype('datetime64[ms]'))
-                   DataType(date64[ms])
+                   To fix this test, we would need to have an exception
+                   that makes datetime64[ms] convert to date64[ms].
 
                    But date64 isn't the same as datetime64[ms]. date64
                    is meant to represent a date (without time) only,
