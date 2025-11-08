@@ -818,7 +818,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[prop-decorator]
     @property
     def array(self) -> ExtensionArray:
-        return self._mgr.array_values()
+        arr = self._mgr.array_values()
+        arr = arr.view()
+        arr._readonly = True
+        return arr
 
     def __len__(self) -> int:
         """
@@ -2139,7 +2142,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ['2016-01-01 00:00:00-05:00']
         Length: 1, dtype: datetime64[s, US/Eastern]
 
-        An Categorical will return categories in the order of
+        A Categorical will return categories in the order of
         appearance and with the same dtype.
 
         >>> pd.Series(pd.Categorical(list("baabc"))).unique()
