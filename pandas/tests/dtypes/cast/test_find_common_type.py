@@ -204,7 +204,7 @@ def test_pyarrow_date_dtypes(dtypes, expected):
 @pytest.mark.xfail(reason="""
                    Finding common pyarrow dtypes relies on conversion
                    to numpy dtypes and then back to pyarrow dtypes.
-                   
+
                    We have:
                    >>> pa.from_numpy_dtype(np.dtype('datetime64[D]'))
                    DataType(date32[day])
