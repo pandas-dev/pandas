@@ -251,13 +251,13 @@ def use_dynamic_x(ax: Axes, index: Index) -> bool:
             return index[:1].is_normalized
         period = Period(index[0], freq_str)
         assert isinstance(period, Period)
+        period_naive = period.to_timestamp()
         if index.tz is not None:
             # Compare naive local times directly
-            period_naive = period.to_timestamp()
-            index_naive = index[0].tz_localize(None)  # Strips tz, keeps local time
-            return period_naive == index_naive
+            tz_naive = index[0].tz_localize(None)  # Strips tz, keeps local time
+            return period_naive == tz_naive
         else:
-            return period.to_timestamp() == index[0]
+            return period_naive == index[0]
 
     return True
 
