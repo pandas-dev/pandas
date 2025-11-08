@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from collections import abc
-from datetime import datetime
+from datetime import (
+    date,
+    datetime,
+)
 import functools
 from itertools import zip_longest
 import operator
@@ -6288,6 +6291,18 @@ class Index(IndexOpsMixin, PandasObject):
             #  respectively.
             return False
 
+        # GH#62158
+        if (
+            self.dtype.kind == "M"
+            and isinstance(other, Index)
+            and other.dtype == _dtype_obj
+            and all(
+                isinstance(x, date) and not isinstance(x, datetime)
+                for x in other._values
+            )
+        ):
+            return False
+
         dtype = _unpack_nested_dtype(other)
         return (
             self._is_comparable_dtype(dtype)
@@ -6304,13 +6319,21 @@ class Index(IndexOpsMixin, PandasObject):
         elif is_numeric_dtype(self.dtype):
             return is_numeric_dtype(dtype)
         # GH#62158
-        elif self.dtype.kind == "M" and dtype == object:
-            return False
         elif isinstance(dtype, ArrowDtype):
             import pyarrow as pa
 
             pa_dtype = dtype.pyarrow_dtype
-            if self.dtype.kind != "M" or dtype.kind != "M":
+            if dtype.kind != "M":
+                if self.dtype.kind == "b":
+                    return dtype.kind == "b"
+                if is_numeric_dtype(self.dtype):
+                    return pa.types.is_integer(pa_dtype) or pa.types.is_floating(
+                        pa_dtype
+                    )
+                if self.dtype.kind == "m" and pa.types.is_duration(pa_dtype):
+                    return True
+                return False
+            if self.dtype.kind != "M":
                 return False
             if pa.types.is_date(pa_dtype):
                 return False
