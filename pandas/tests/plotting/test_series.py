@@ -1007,15 +1007,14 @@ class TestSeriesPlots:
     def test_tseries_plot_dst_transition(self):
         """
         Test that plotting tz-aware timeseries works during DST fall-back transition.
-        #62936
         """
-        tind = pd.date_range(
+        # GH62936
+        tind = date_range(
             "2025-10-26T00:00:00Z",
             "2025-10-26T03:00:00Z",
             freq="5min",
             tz="utc",
         ).tz_convert("MET")[12:]
-        
+
         myts = DataFrame({"a": 1}, index=tind)
         _check_plot_works(myts.plot)
-
