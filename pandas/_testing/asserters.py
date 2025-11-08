@@ -17,7 +17,10 @@ from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
 from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
 from pandas.errors import Pandas4Warning
-from pandas.util._decorators import deprecate_kwarg
+from pandas.util._decorators import (
+    deprecate_kwarg,
+    set_module,
+)
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -181,6 +184,7 @@ def assert_dict_equal(left, right, compare_keys: bool = True) -> None:
     _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
+@set_module("pandas.testing")
 def assert_index_equal(
     left: Index,
     right: Index,
@@ -675,7 +679,7 @@ def assert_numpy_array_equal(
                 )
 
             diff = 0
-            for left_arr, right_arr in zip(left, right):
+            for left_arr, right_arr in zip(left, right, strict=True):
                 # count up differences
                 if not array_equivalent(left_arr, right_arr, strict_nan=strict_nan):
                     diff += 1
@@ -695,6 +699,7 @@ def assert_numpy_array_equal(
             assert_attr_equal("dtype", left, right, obj=obj)
 
 
+@set_module("pandas.testing")
 def assert_extension_array_equal(
     left,
     right,
@@ -850,6 +855,7 @@ def assert_extension_array_equal(
 
 
 # This could be refactored to use the NDFrame.equals method
+@set_module("pandas.testing")
 @deprecate_kwarg(Pandas4Warning, "check_datetimelike_compat", new_arg_name=None)
 def assert_series_equal(
     left,
@@ -1143,6 +1149,7 @@ def assert_series_equal(
 
 
 # This could be refactored to use the NDFrame.equals method
+@set_module("pandas.testing")
 @deprecate_kwarg(Pandas4Warning, "check_datetimelike_compat", new_arg_name=None)
 def assert_frame_equal(
     left,
@@ -1447,7 +1454,7 @@ def assert_copy(iter1, iter2, **eql_kwargs) -> None:
     the same object. (Does not check that items
     in sequences are also not the same object)
     """
-    for elem1, elem2 in zip(iter1, iter2):
+    for elem1, elem2 in zip(iter1, iter2, strict=True):
         assert_almost_equal(elem1, elem2, **eql_kwargs)
         msg = (
             f"Expected object {type(elem1)!r} and object {type(elem2)!r} to be "

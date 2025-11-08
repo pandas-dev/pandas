@@ -341,8 +341,12 @@ how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
       of the left keys.
     * left_anti: use only keys from left frame that are not in right frame, similar
       to SQL left anti join; preserve key order.
+
+      .. versionadded:: 3.0
     * right_anti: use only keys from right frame that are not in left frame, similar
       to SQL right anti join; preserve key order.
+
+      .. versionadded:: 3.0
 on : Hashable or a sequence of the previous
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -553,8 +557,6 @@ class DataFrame(NDFrame, OpsMixin):
         or 2d ndarray input, the default of None behaves like ``copy=False``.
         If data is a dict containing one or more Series (possibly of different dtypes),
         ``copy=False`` will ensure that these inputs are not copied.
-
-        .. versionchanged:: 1.3.0
 
     See Also
     --------
@@ -916,6 +918,14 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Return the dataframe interchange object implementing the interchange protocol.
 
+        .. deprecated:: 3.0.0
+
+            The Dataframe Interchange Protocol is deprecated.
+            For dataframe-agnostic code, you may want to look into:
+
+            - `Arrow PyCapsule Interface <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`_
+            - `Narwhals <https://github.com/narwhals-dev/narwhals>`_
+
         .. note::
 
            For new development, we highly recommend using the Arrow C Data Interface
@@ -970,7 +980,14 @@ class DataFrame(NDFrame, OpsMixin):
         These methods (``column_names``, ``select_columns_by_name``) should work
         for any dataframe library which implements the interchange protocol.
         """
-
+        warnings.warn(
+            "The Dataframe Interchange Protocol is deprecated.\n"
+            "For dataframe-agnostic code, you may want to look into:\n"
+            "- Arrow PyCapsule Interface: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html\n"
+            "- Narwhals: https://github.com/narwhals-dev/narwhals\n",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         from pandas.core.interchange.dataframe import PandasDataFrameXchg
 
         return PandasDataFrameXchg(self, allow_copy=allow_copy)
@@ -2671,16 +2688,12 @@ class DataFrame(NDFrame, OpsMixin):
             8 characters and values are repeated.
         {compression_options}
 
-            .. versionchanged:: 1.4.0 Zstandard support.
-
         {storage_options}
 
         value_labels : dict of dicts
             Dictionary containing columns as keys and dictionaries of column value
             to labels as values. Labels for a single variable must be 32,000
             characters or smaller.
-
-            .. versionadded:: 1.4.0
 
         Raises
         ------
@@ -2918,6 +2931,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
+        filesystem: Any = ...,
         **kwargs,
     ) -> bytes: ...
 
@@ -2931,6 +2945,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
+        filesystem: Any = ...,
         **kwargs,
     ) -> None: ...
 
@@ -2944,6 +2959,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = None,
         partition_cols: list[str] | None = None,
         storage_options: StorageOptions | None = None,
+        filesystem: Any = None,
         **kwargs,
     ) -> bytes | None:
         """
@@ -2982,6 +2998,12 @@ class DataFrame(NDFrame, OpsMixin):
             Columns are partitioned in the order they are given.
             Must be None if path is not a string.
         {storage_options}
+
+        filesystem : fsspec or pyarrow filesystem, default None
+            Filesystem object to use when reading the parquet file. Only implemented
+            for ``engine="pyarrow"``.
+
+            .. versionadded:: 2.1.0
 
         **kwargs
             Additional arguments passed to the parquet library. See
@@ -3044,6 +3066,7 @@ class DataFrame(NDFrame, OpsMixin):
             index=index,
             partition_cols=partition_cols,
             storage_options=storage_options,
+            filesystem=filesystem,
             **kwargs,
         )
 
@@ -3293,28 +3316,71 @@ class DataFrame(NDFrame, OpsMixin):
         Examples
         --------
         >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
-        >>> html_string = '''<table border="1" class="dataframe">
-        ...   <thead>
-        ...     <tr style="text-align: right;">
-        ...       <th></th>
-        ...       <th>col1</th>
-        ...       <th>col2</th>
-        ...     </tr>
-        ...   </thead>
-        ...   <tbody>
-        ...     <tr>
-        ...       <th>0</th>
-        ...       <td>1</td>
-        ...       <td>4</td>
-        ...     </tr>
-        ...     <tr>
-        ...       <th>1</th>
-        ...       <td>2</td>
-        ...       <td>3</td>
-        ...     </tr>
-        ...   </tbody>
-        ... </table>'''
-        >>> assert html_string == df.to_html()
+        >>> html_string = df.to_html()
+        >>> print(html_string)
+        <table border="1" class="dataframe">
+          <thead>
+            <tr style="text-align: right;">
+              <th></th>
+              <th>col1</th>
+              <th>col2</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>0</th>
+              <td>1</td>
+              <td>4</td>
+            </tr>
+            <tr>
+              <th>1</th>
+              <td>2</td>
+              <td>3</td>
+            </tr>
+          </tbody>
+        </table>
+
+        HTML output
+
+        +----+-----+-----+
+        |    |col1 |col2 |
+        +====+=====+=====+
+        |0   |1    |4    |
+        +----+-----+-----+
+        |1   |2    |3    |
+        +----+-----+-----+
+
+        >>> df = pd.DataFrame(data={"col1": [1, 2], "col2": [4, 3]})
+        >>> html_string = df.to_html(index=False)
+        >>> print(html_string)
+        <table border="1" class="dataframe">
+          <thead>
+            <tr style="text-align: right;">
+              <th>col1</th>
+              <th>col2</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>4</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>3</td>
+            </tr>
+          </tbody>
+        </table>
+
+        HTML output
+
+        +-----+-----+
+        |col1 |col2 |
+        +=====+=====+
+        |1    |4    |
+        +-----+-----+
+        |2    |3    |
+        +-----+-----+
         """
         if justify is not None and justify not in fmt.VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
@@ -3475,8 +3541,6 @@ class DataFrame(NDFrame, OpsMixin):
             argument requires ``lxml`` to be installed. Only XSLT 1.0
             scripts and not later versions is currently supported.
         {compression_options}
-
-            .. versionchanged:: 1.4.0 Zstandard support.
 
         {storage_options}
 
@@ -5237,6 +5301,30 @@ class DataFrame(NDFrame, OpsMixin):
 
             return True
 
+        blk_dtypes = [blk.dtype for blk in self._mgr.blocks]
+        if (
+            np.object_ in include
+            and str not in include
+            and str not in exclude
+            and any(
+                isinstance(dtype, StringDtype) and dtype.na_value is np.nan
+                for dtype in blk_dtypes
+            )
+        ):
+            # GH#61916
+            warnings.warn(
+                "For backward compatibility, 'str' dtypes are included by "
+                "select_dtypes when 'object' dtype is specified. "
+                "This behavior is deprecated and will be removed in a future "
+                "version. Explicitly pass 'str' to `include` to select them, "
+                "or to `exclude` to remove them and silence this warning.\nSee "
+                "https://pandas.pydata.org/docs/user_guide/migration-3-strings.html"
+                "#string-migration-select-dtypes for details on how to write code "
+                "that works with pandas 2 and 3.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         mgr = self._mgr._get_data_subset(predicate).copy(deep=False)
         return self._constructor_from_mgr(mgr, axes=mgr.axes).__finalize__(self)
 
@@ -6063,7 +6151,7 @@ class DataFrame(NDFrame, OpsMixin):
                     .shift(periods=period, freq=freq, axis=axis, fill_value=fill_value)
                     .add_suffix(f"{suffix}_{period}" if suffix else f"_{period}")
                 )
-            return concat(shifted_dataframes, axis=1)
+            return concat(shifted_dataframes, axis=1, sort=False)
         elif suffix:
             raise ValueError("Cannot specify `suffix` if `periods` is an int.")
         periods = cast(int, periods)
@@ -6137,7 +6225,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = ...,
         append: bool = ...,
         inplace: Literal[False] = ...,
-        verify_integrity: bool = ...,
+        verify_integrity: bool | lib.NoDefault = ...,
     ) -> DataFrame: ...
 
     @overload
@@ -6148,7 +6236,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = ...,
         append: bool = ...,
         inplace: Literal[True],
-        verify_integrity: bool = ...,
+        verify_integrity: bool | lib.NoDefault = ...,
     ) -> None: ...
 
     def set_index(
@@ -6158,7 +6246,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = True,
         append: bool = False,
         inplace: bool = False,
-        verify_integrity: bool = False,
+        verify_integrity: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Set the DataFrame index using existing columns.
@@ -6187,6 +6275,8 @@ class DataFrame(NDFrame, OpsMixin):
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
             method.
+
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -6274,6 +6364,18 @@ class DataFrame(NDFrame, OpsMixin):
         2013    84
         2014    31
         """
+        if verify_integrity is not lib.no_default:
+            # GH#62919
+            warnings.warn(
+                "The 'verify_integrity' keyword in DataFrame.set_index is "
+                "deprecated and will be removed in a future version. "
+                "Directly check the result.index.is_unique instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            verify_integrity = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if not isinstance(keys, list):
@@ -8971,16 +9073,6 @@ class DataFrame(NDFrame, OpsMixin):
         0  0 -5.0
         1  0  4.0
 
-        However, if the same element in both dataframes is None, that None
-        is preserved
-
-        >>> df1 = pd.DataFrame({"A": [0, 0], "B": [None, 4]})
-        >>> df2 = pd.DataFrame({"A": [1, 1], "B": [None, 3]})
-        >>> df1.combine(df2, take_smaller, fill_value=-5)
-            A    B
-        0  0 -5.0
-        1  0  3.0
-
         Example that demonstrates the use of `overwrite` and behavior when
         the axis differ between the dataframes.
 
@@ -9039,11 +9131,14 @@ class DataFrame(NDFrame, OpsMixin):
 
         # preserve column order
         new_columns = self.columns.union(other_columns, sort=False)
+        this = this.reindex(new_columns, axis=1)
+        other = other.reindex(new_columns, axis=1)
+
         do_fill = fill_value is not None
         result = {}
-        for col in new_columns:
-            series = this[col]
-            other_series = other[col]
+        for i in range(this.shape[1]):
+            series = this.iloc[:, i]
+            other_series = other.iloc[:, i]
 
             this_dtype = series.dtype
             other_dtype = other_series.dtype
@@ -9054,7 +9149,7 @@ class DataFrame(NDFrame, OpsMixin):
             # don't overwrite columns unnecessarily
             # DO propagate if this column is not in the intersection
             if not overwrite and other_mask.all():
-                result[col] = this[col].copy()
+                result[i] = series.copy()
                 continue
 
             if do_fill:
@@ -9063,7 +9158,7 @@ class DataFrame(NDFrame, OpsMixin):
                 series[this_mask] = fill_value
                 other_series[other_mask] = fill_value
 
-            if col not in self.columns:
+            if new_columns[i] not in self.columns:
                 # If self DataFrame does not have col in other DataFrame,
                 # try to promote series, which is all NaN, as other_dtype.
                 new_dtype = other_dtype
@@ -9088,10 +9183,10 @@ class DataFrame(NDFrame, OpsMixin):
                     arr, new_dtype
                 )
 
-            result[col] = arr
+            result[i] = arr
 
-        # convert_objects just in case
-        frame_result = self._constructor(result, index=new_index, columns=new_columns)
+        frame_result = self._constructor(result, index=new_index)
+        frame_result.columns = new_columns
         return frame_result.__finalize__(self, method="combine")
 
     def combine_first(self, other: DataFrame) -> DataFrame:
@@ -9141,20 +9236,10 @@ class DataFrame(NDFrame, OpsMixin):
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
         """
-        from pandas.core.computation import expressions
 
         def combiner(x: Series, y: Series):
-            mask = x.isna()._values
-
-            x_values = x._values
-            y_values = y._values
-
-            # If the column y in other DataFrame is not in first DataFrame,
-            # just return y_values.
-            if y.name not in self.columns:
-                return y_values
-
-            return expressions.where(mask, y_values, x_values)
+            # GH#60128 The combiner is supposed to preserve EA Dtypes.
+            return y if y.name not in self.columns else y.where(x.isna(), x)
 
         if len(other) == 0:
             combined = self.reindex(
@@ -9165,9 +9250,14 @@ class DataFrame(NDFrame, OpsMixin):
             combined = self.combine(other, combiner, overwrite=False)
 
         dtypes = {
+            # Check for isinstance(..., (np.dtype, ExtensionDtype))
+            #  to prevent raising on non-unique columns see GH#29135.
+            #  Note we will just not-cast in these cases.
             col: find_common_type([self.dtypes[col], other.dtypes[col]])
             for col in self.columns.intersection(other.columns)
-            if combined.dtypes[col] != self.dtypes[col]
+            if isinstance(combined.dtypes[col], (np.dtype, ExtensionDtype))
+            and isinstance(self.dtypes[col], (np.dtype, ExtensionDtype))
+            and combined.dtypes[col] != self.dtypes[col]
         }
 
         if dtypes:
@@ -9346,21 +9436,133 @@ class DataFrame(NDFrame, OpsMixin):
 
     # ----------------------------------------------------------------------
     # Data reshaping
-    @Appender(
-        dedent(
-            """
+    @deprecate_nonkeyword_arguments(
+        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
+    )
+    def groupby(
+        self,
+        by=None,
+        level: IndexLabel | None = None,
+        as_index: bool = True,
+        sort: bool = True,
+        group_keys: bool = True,
+        observed: bool = True,
+        dropna: bool = True,
+    ) -> DataFrameGroupBy:
+        """
+        Group DataFrame using a mapper or by a Series of columns.
+
+        A groupby operation involves some combination of splitting the
+        object, applying a function, and combining the results. This can be
+        used to group large amounts of data and compute operations on these
+        groups.
+
+        Parameters
+        ----------
+        by : mapping, function, label, pd.Grouper or list of such
+            Used to determine the groups for the groupby.
+            If ``by`` is a function, it's called on each value of the object's
+            index. If a dict or Series is passed, the Series or dict VALUES
+            will be used to determine the groups (the Series' values are first
+            aligned; see ``.align()`` method). If a list or ndarray of length
+            equal to the number of rows is passed (see the `groupby user guide
+            <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
+            the values are used as-is to determine the groups. A label or list
+            of labels may be passed to group by the columns in ``self``.
+            Notice that a tuple is interpreted as a (single) key.
+        level : int, level name, or sequence of such, default None
+            If the axis is a MultiIndex (hierarchical), group by a particular
+            level or levels. Do not specify both ``by`` and ``level``.
+        as_index : bool, default True
+            Return object with group labels as the
+            index. Only relevant for DataFrame input. as_index=False is
+            effectively "SQL-style" grouped output. This argument has no effect
+            on filtrations (see the `filtrations in the user guide
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+            such as ``head()``, ``tail()``, ``nth()`` and in transformations
+            (see the `transformations in the user guide
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
+        sort : bool, default True
+            Sort group keys. Get better performance by turning this off.
+            Note this does not influence the order of observations within each
+            group. Groupby preserves the order of rows within each group. If False,
+            the groups will appear in the same order as they did in the original
+            DataFrame.
+            This argument has no effect on filtrations (see the `filtrations
+            in the user guide
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
+            such as ``head()``, ``tail()``, ``nth()`` and in transformations
+            (see the `transformations in the user guide
+            <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#transformation>`_).
+
+            .. versionchanged:: 2.0.0
+
+                Specifying ``sort=False`` with an ordered categorical grouper will no
+                longer sort the values.
+
+        group_keys : bool, default True
+            When calling apply and the ``by`` argument produces a like-indexed
+            (i.e. :ref:`a transform <groupby.transform>`) result, add group keys to
+            index to identify pieces. By default group keys are not included
+            when the result's index (and column) labels match the inputs, and
+            are included otherwise.
+
+            .. versionchanged:: 2.0.0
+
+               ``group_keys`` now defaults to ``True``.
+
+        observed : bool, default True
+            This only applies if any of the groupers are Categoricals.
+            If True: only show observed values for categorical groupers.
+            If False: show all values for categorical groupers.
+
+            .. versionchanged:: 3.0.0
+
+                The default value is now ``True``.
+
+        dropna : bool, default True
+            If True, and if group keys contain NA values, NA values together
+            with row/column will be dropped.
+            If False, NA values will also be treated as the key in groups.
+
+        Returns
+        -------
+        pandas.api.typing.DataFrameGroupBy
+            Returns a groupby object that contains information about the groups.
+
+        See Also
+        --------
+        resample : Convenience method for frequency conversion and resampling
+            of time series.
+
+        Notes
+        -----
+        See the `user guide
+        <https://pandas.pydata.org/pandas-docs/stable/groupby.html>`__ for more
+        detailed usage and examples, including splitting an object into groups,
+        iterating through groups, selecting a group, aggregation, and more.
+
+        The implementation of groupby is hash-based, meaning in particular that
+        objects that compare as equal will be considered to be in the same group.
+        An exception to this is that pandas has special handling of NA values:
+        any NA values will be collapsed to a single group, regardless of how
+        they compare. See the user guide linked above for more details.
+
         Examples
         --------
-        >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
-        ...                               'Parrot', 'Parrot'],
-        ...                    'Max Speed': [380., 370., 24., 26.]})
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Animal": ["Falcon", "Falcon", "Parrot", "Parrot"],
+        ...         "Max Speed": [380.0, 370.0, 24.0, 26.0],
+        ...     }
+        ... )
         >>> df
            Animal  Max Speed
         0  Falcon      380.0
         1  Falcon      370.0
         2  Parrot       24.0
         3  Parrot       26.0
-        >>> df.groupby(['Animal']).mean()
+        >>> df.groupby(["Animal"]).mean()
                 Max Speed
         Animal
         Falcon      375.0
@@ -9371,11 +9573,12 @@ class DataFrame(NDFrame, OpsMixin):
         We can groupby different levels of a hierarchical index
         using the `level` parameter:
 
-        >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
-        ...           ['Captive', 'Wild', 'Captive', 'Wild']]
-        >>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
-        >>> df = pd.DataFrame({'Max Speed': [390., 350., 30., 20.]},
-        ...                   index=index)
+        >>> arrays = [
+        ...     ["Falcon", "Falcon", "Parrot", "Parrot"],
+        ...     ["Captive", "Wild", "Captive", "Wild"],
+        ... ]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=("Animal", "Type"))
+        >>> df = pd.DataFrame({"Max Speed": [390.0, 350.0, 30.0, 20.0]}, index=index)
         >>> df
                         Max Speed
         Animal Type
@@ -9413,7 +9616,7 @@ class DataFrame(NDFrame, OpsMixin):
         2.0 2   5
         NaN 1   4
 
-        >>> arr = [["a", 12, 12], [None, 12.3, 33.], ["b", 12.3, 123], ["a", 1, 1]]
+        >>> arr = [["a", 12, 12], [None, 12.3, 33.0], ["b", 12.3, 123], ["a", 1, 1]]
         >>> df = pd.DataFrame(arr, columns=["a", "b", "c"])
 
         >>> df.groupby(by="a").sum()
@@ -9432,10 +9635,13 @@ class DataFrame(NDFrame, OpsMixin):
         When using ``.apply()``, use ``group_keys`` to include or exclude the
         group keys. The ``group_keys`` argument defaults to ``True`` (include).
 
-        >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
-        ...                               'Parrot', 'Parrot'],
-        ...                    'Max Speed': [380., 370., 24., 26.]})
-        >>> df.groupby("Animal", group_keys=True)[['Max Speed']].apply(lambda x: x)
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Animal": ["Falcon", "Falcon", "Parrot", "Parrot"],
+        ...         "Max Speed": [380.0, 370.0, 24.0, 26.0],
+        ...     }
+        ... )
+        >>> df.groupby("Animal", group_keys=True)[["Max Speed"]].apply(lambda x: x)
                   Max Speed
         Animal
         Falcon 0      380.0
@@ -9443,29 +9649,13 @@ class DataFrame(NDFrame, OpsMixin):
         Parrot 2       24.0
                3       26.0
 
-        >>> df.groupby("Animal", group_keys=False)[['Max Speed']].apply(lambda x: x)
+        >>> df.groupby("Animal", group_keys=False)[["Max Speed"]].apply(lambda x: x)
            Max Speed
         0      380.0
         1      370.0
         2       24.0
         3       26.0
         """
-        )
-    )
-    @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
-    @deprecate_nonkeyword_arguments(
-        Pandas4Warning, allowed_args=["self", "by", "level"], name="groupby"
-    )
-    def groupby(
-        self,
-        by=None,
-        level: IndexLabel | None = None,
-        as_index: bool = True,
-        sort: bool = True,
-        group_keys: bool = True,
-        observed: bool = True,
-        dropna: bool = True,
-    ) -> DataFrameGroupBy:
         from pandas.core.groupby.generic import DataFrameGroupBy
 
         if level is None and by is None:
@@ -11231,12 +11421,18 @@ class DataFrame(NDFrame, OpsMixin):
 
             # join indexes only using concat
             if can_concat:
-                if how == "left":
+                if how == "left" or how == "right":
                     res = concat(
                         frames, axis=1, join="outer", verify_integrity=True, sort=sort
                     )
-                    return res.reindex(self.index)
+                    index = self.index if how == "left" else frames[-1].index
+                    if sort:
+                        index = index.sort_values()
+                    result = res.reindex(index)
+                    return result
                 else:
+                    if how == "outer":
+                        sort = True
                     return concat(
                         frames, axis=1, join=how, verify_integrity=True, sort=sort
                     )
@@ -11247,6 +11443,7 @@ class DataFrame(NDFrame, OpsMixin):
                 joined = merge(
                     joined,
                     frame,
+                    sort=sort,
                     how=how,
                     left_index=True,
                     right_index=True,
@@ -11390,6 +11587,15 @@ class DataFrame(NDFrame, OpsMixin):
         def _series_round(ser: Series, decimals: int) -> Series:
             if is_integer_dtype(ser.dtype) or is_float_dtype(ser.dtype):
                 return ser.round(decimals)
+            elif isinstance(ser._values, (DatetimeArray, TimedeltaArray, PeriodArray)):
+                # GH#57781
+                # TODO: also the ArrowDtype analogues?
+                warnings.warn(
+                    "obj.round has no effect with datetime, timedelta, "
+                    "or period dtypes. Use obj.dt.round(...) instead.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
             return ser
 
         nv.validate_round(args, kwargs)
@@ -12009,6 +12215,7 @@ class DataFrame(NDFrame, OpsMixin):
         #  simple case where we can use BlockManager.reduce
         res = df._mgr.reduce(blk_func)
         out = df._constructor_from_mgr(res, axes=res.axes).iloc[0]
+        out.name = None
         if out_dtype is not None and out.dtype != "boolean":
             out = out.astype(out_dtype)
         elif (df._mgr.get_dtypes() == object).any() and name not in ["any", "all"]:
@@ -13647,8 +13854,8 @@ class DataFrame(NDFrame, OpsMixin):
         0.1  1    1
         0.5  3  100
 
-        Specifying `numeric_only=False` will also compute the quantile of
-        datetime and timedelta data.
+        Specifying `numeric_only=False` will compute the quantiles for all
+        columns.
 
         >>> df = pd.DataFrame(
         ...     {
