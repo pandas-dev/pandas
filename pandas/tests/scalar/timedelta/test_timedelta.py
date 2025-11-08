@@ -83,7 +83,7 @@ class TestNonNano:
 
     def test_cmp_cross_reso(self, td):
         # numpy gets this wrong because of silent overflow
-        other = Timedelta(days=106751, unit="ns")
+        other = Timedelta(days=106751)
         assert other < td
         assert td > other
         assert not other == td
