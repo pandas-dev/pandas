@@ -1703,7 +1703,7 @@ def map_array(
             ]
         else:
             # Dictionary does not have a default. Thus it's safe to
-            # convert to an Series for efficiency.
+            # convert to a Series for efficiency.
             # we specify the keys here to handle the
             # possibility that they are tuples
 
