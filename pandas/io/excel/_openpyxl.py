@@ -610,8 +610,6 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
     def get_sheet_data(
         self, sheet, file_rows_needed: int | None = None
     ) -> list[list[Scalar]]:
-   #     if self.book.read_only:
-#        sheet.reset_dimensions()
 
         data: list[list[Scalar]] = []
         last_row_with_data = -1
