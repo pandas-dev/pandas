@@ -555,8 +555,12 @@ def json_normalize(
     meta_keys = []
     for val in _meta:
         if len(val) == 1:
+            # Simple path: [12] -> 12 (preserves int type for consistency)
+            # Use the key directly, avoiding sep.join
             meta_keys.append(val[0])
         else:
+            # Nested path: ['info', 'governor'] -> "info.governor"
+            # Must join, converting all parts to str to avoid TypeError
             meta_keys.append(sep.join(str(x) for x in val))
 
     def _recursive_extract(data, path, seen_meta, level: int = 0) -> None:
