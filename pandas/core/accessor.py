@@ -239,7 +239,7 @@ def _register_accessor(
     name: str, cls: type[NDFrame | Index]
 ) -> Callable[[TypeT], TypeT]:
     """
-    Register a custom accessor on  objects.
+    Register a custom accessor on objects.
 
     Parameters
     ----------
@@ -260,14 +260,14 @@ def _register_accessor(
 
     Notes
     -----
-    This function allows you to register a custom-defined accessor class for .
+    This function allows you to register a custom-defined accessor class for pandas objects (DataFrame, Series, or Index).
     The requirements for the accessor class are as follows:
 
     * Must contain an init method that:
 
-      * accepts a single  object
+      * accepts a single object
 
-      * raises an AttributeError if the  object does not have correctly
+      * raises an AttributeError if the object does not have correctly
         matching inputs for the accessor
 
     * Must contain a method for each access pattern.
@@ -276,9 +276,6 @@ def _register_accessor(
 
       * Accessible using the @property decorator if no additional arguments are
         needed.
-
-    Examples
-    --------
 
     """
 
