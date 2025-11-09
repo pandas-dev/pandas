@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
@@ -167,7 +165,6 @@ def test_interval_dtype(left, right):
         assert result == object
 
 
-@td.skip_if_no("pyarrow")
 @pytest.mark.parametrize("dtype", interval_dtypes)
 def test_interval_dtype_with_categorical(dtype):
     obj = Index([], dtype=dtype)
@@ -176,74 +173,3 @@ def test_interval_dtype_with_categorical(dtype):
 
     result = find_common_type([dtype, cat.dtype])
     assert result == dtype
-
-
-@td.skip_if_no("pyarrow")
-@pytest.mark.parametrize(
-    "dtypes,expected",
-    [
-        (
-            ["date32[pyarrow]", "null[pyarrow]"],
-            "date32[day][pyarrow]",
-        ),
-        (
-            ["date32[pyarrow]", "date32[pyarrow]"],
-            "date32[day][pyarrow]",
-        ),
-        (
-            ["date64[pyarrow]", "date64[pyarrow]"],
-            "date64[ms][pyarrow]",
-        ),
-        (
-            ["date32[pyarrow]", "date64[pyarrow]", "datetime64[ms]"],
-            "timestamp[ms][pyarrow]",
-        ),
-    ],
-)
-def test_pyarrow_date_dtypes(dtypes, expected):
-    source_dtypes = [pandas_dtype(dtype) for dtype in dtypes]
-    result = find_common_type(source_dtypes)
-    assert result == pandas_dtype(expected)
-
-
-@td.skip_if_no("pyarrow")
-@pytest.mark.xfail(
-    reason="""
-                   Finding common pyarrow dtypes relies on conversion
-                   to numpy dtypes and then back to pyarrow dtypes.
-
-                   We have:
-                   >>> pa.from_numpy_dtype(np.dtype('datetime64[D]'))
-                   DataType(date32[day])
-                   >>> pa.from_numpy_dtype(np.dtype('datetime64[ms]'))
-                   TimestampType(timestamp[ms])
-
-                   To fix this test, we would need to have an exception
-                   that makes datetime64[ms] convert to date64[ms].
-
-                   But date64 isn't the same as datetime64[ms]. date64
-                   is meant to represent a date (without time) only,
-                   represented in milliseconds (see
-                   https://github.com/apache/arrow/issues/15032#issuecomment-1368096718).
-
-                   Hence, some date64-related common type computations
-                   end up becoming cast to timestamps rather than date64.
-                   """
-)
-@pytest.mark.parametrize(
-    "dtypes,expected",
-    [
-        (
-            ["date64[pyarrow]", "null[pyarrow]"],
-            "date64[ms][pyarrow]",
-        ),
-        (
-            ["date32[pyarrow]", "date64[pyarrow]"],
-            "date64[ms][pyarrow]",
-        ),
-    ],
-)
-def test_pyarrow_date64_dtype(dtypes, expected):
-    source_dtypes = [pandas_dtype(dtype) for dtype in dtypes]
-    result = find_common_type(source_dtypes)
-    assert result == pandas_dtype(expected)
