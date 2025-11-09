@@ -17,7 +17,10 @@ from pandas.errors import (
     AbstractMethodError,
     ParserError,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -92,18 +95,12 @@ class _XMLFrameParser:
         Data type for data or columns. E.g. {{'a': np.float64,
         'b': np.int32, 'c': 'Int64'}}
 
-        .. versionadded:: 1.5.0
-
     converters : dict, optional
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels.
 
-        .. versionadded:: 1.5.0
-
     parse_dates : bool or list of int or names or list of lists or dict
         Converts either index or select columns to datetimes
-
-        .. versionadded:: 1.5.0
 
     encoding : str
         Encoding of xml object or document.
@@ -117,11 +114,7 @@ class _XMLFrameParser:
         and/or attributes as value to be retrieved in iterparsing of
         XML document.
 
-        .. versionadded:: 1.5.0
-
     {decompression_options}
-
-        .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
 
@@ -222,7 +215,7 @@ class _XMLFrameParser:
                         ),
                         **{
                             nm: ch.text if ch.text else None
-                            for nm, ch in zip(self.names, el.findall("*"))
+                            for nm, ch in zip(self.names, el.findall("*"), strict=True)
                         },
                     }
                     for el in elems
@@ -245,7 +238,7 @@ class _XMLFrameParser:
                     **({el.tag: el.text} if el.text and not el.text.isspace() else {}),
                     **{
                         nm: ch.text if ch.text else None
-                        for nm, ch in zip(self.names, el.findall("*"))
+                        for nm, ch in zip(self.names, el.findall("*"), strict=False)
                     },
                 }
                 for el in elems
@@ -269,7 +262,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [dict(zip(self.names, d.values())) for d in dicts]
+            dicts = [dict(zip(self.names, d.values(), strict=True)) for d in dicts]
 
         return dicts
 
@@ -339,7 +332,9 @@ class _XMLFrameParser:
 
             if row is not None:
                 if self.names and iterparse_repeats:
-                    for col, nm in zip(self.iterparse[row_node], self.names):
+                    for col, nm in zip(
+                        self.iterparse[row_node], self.names, strict=True
+                    ):
                         if curr_elem == col:
                             elem_val = elem.text if elem.text else None
                             if elem_val not in row.values() and nm not in row:
@@ -374,7 +369,7 @@ class _XMLFrameParser:
         dicts = [{k: d[k] if k in d.keys() else None for k in keys} for d in dicts]
 
         if self.names:
-            dicts = [dict(zip(self.names, d.values())) for d in dicts]
+            dicts = [dict(zip(self.names, d.values(), strict=True)) for d in dicts]
 
         return dicts
 
@@ -827,6 +822,7 @@ def _parse(
     )
 
 
+@set_module("pandas")
 @doc(
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "path_or_buffer",
@@ -853,8 +849,6 @@ def read_xml(
 ) -> DataFrame:
     r"""
     Read XML document into a :class:`~pandas.DataFrame` object.
-
-    .. versionadded:: 1.3.0
 
     Parameters
     ----------
@@ -905,13 +899,9 @@ def read_xml(
         If converters are specified, they will be applied INSTEAD
         of dtype conversion.
 
-        .. versionadded:: 1.5.0
-
     converters : dict, optional
         Dict of functions for converting values in certain columns. Keys can either
         be integers or column labels.
-
-        .. versionadded:: 1.5.0
 
     parse_dates : bool or list of int or names or list of lists or dict, default False
         Identifiers to parse index or columns to datetime. The behavior is as follows:
@@ -923,8 +913,6 @@ def read_xml(
           a single date column.
         * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
           result 'foo'
-
-        .. versionadded:: 1.5.0
 
     encoding : str, optional, default 'utf-8'
         Encoding of XML document.
@@ -953,11 +941,7 @@ def read_xml(
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
         For example, ``{{"row_element": ["child_elem", "attr", "grandchild_elem"]}}``.
 
-        .. versionadded:: 1.5.0
-
     {decompression_options}
-
-        .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
 

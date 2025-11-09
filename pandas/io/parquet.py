@@ -21,7 +21,10 @@ from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas import (
@@ -500,6 +503,7 @@ def to_parquet(
         return None
 
 
+@set_module("pandas")
 @doc(storage_options=_shared_docs["storage_options"])
 def read_parquet(
     path: FilePath | ReadBuffer[bytes],
@@ -544,8 +548,6 @@ def read_parquet(
     columns : list, default=None
         If not None, only these columns will be read from the file.
     {storage_options}
-
-        .. versionadded:: 1.3.0
 
     dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`

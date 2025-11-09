@@ -12,7 +12,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -334,7 +334,7 @@ class StringMethods(NoNewAttributesMixin):
                 )
                 result = {
                     label: ArrowExtensionArray(pa.array(res))
-                    for label, res in zip(name, result.T)
+                    for label, res in zip(name, result.T, strict=True)
                 }
             elif is_object_dtype(result):
 
@@ -684,7 +684,8 @@ class StringMethods(NoNewAttributesMixin):
         elif na_rep is not None and union_mask.any():
             # fill NaNs with na_rep in case there are actually any NaNs
             all_cols = [
-                np.where(nm, na_rep, col) for nm, col in zip(na_masks, all_cols)
+                np.where(nm, na_rep, col)
+                for nm, col in zip(na_masks, all_cols, strict=True)
             ]
             result = cat_safe(all_cols, sep)
         else:
@@ -1912,8 +1913,8 @@ class StringMethods(NoNewAttributesMixin):
         if not is_integer(width):
             msg = f"width must be of integer type, not {type(width).__name__}"
             raise TypeError(msg)
-        f = lambda x: x.zfill(width)
-        result = self._data.array._str_map(f)
+
+        result = self._data.array._str_zfill(width)
         return self._wrap_result(result)
 
     def slice(self, start=None, stop=None, step=None):
@@ -2122,7 +2123,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         if dtype is not None and not is_string_dtype(dtype):
             raise ValueError(f"dtype must be string or object, got {dtype=}")
-        if dtype is None and get_option("future.infer_string"):
+        if dtype is None and using_string_dtype():
             dtype = "str"
         # TODO: Add a similar _bytes interface.
         if encoding in _cpython_optimized_decoders:

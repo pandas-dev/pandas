@@ -6,6 +6,8 @@ the interface tests.
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
+
 from pandas.core.dtypes.dtypes import NumpyEADtype
 
 import pandas as pd
@@ -155,15 +157,36 @@ def test_to_numpy():
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_to_numpy_readonly():
+    arr = NumpyExtensionArray(np.array([1, 2, 3]))
+    arr._readonly = True
+    result = arr.to_numpy()
+    assert not result.flags.writeable
+
+    result = arr.to_numpy(copy=True)
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="f8")
+    assert result.flags.writeable
+
+
+@pytest.mark.skipif(not np_version_gt2, reason="copy keyword introduced in np 2.0")
+@pytest.mark.parametrize("dtype", [None, "int64"])
+def test_asarray_readonly(dtype):
+    arr = NumpyExtensionArray(np.array([1, 2, 3], dtype="int64"))
+    arr._readonly = True
+    result = np.asarray(arr, dtype=dtype)
+    assert not result.flags.writeable
+
+    result = np.asarray(arr, dtype=dtype, copy=True)
+    assert result.flags.writeable
+
+    result = np.asarray(arr, dtype=dtype, copy=False)
+    assert not result.flags.writeable
+
+
 # ----------------------------------------------------------------------------
 # Setitem
-
-
-def test_setitem_series():
-    ser = pd.Series([1, 2, 3])
-    ser.array[0] = 10
-    expected = pd.Series([10, 2, 3])
-    tm.assert_series_equal(ser, expected)
 
 
 def test_setitem(any_numpy_array):

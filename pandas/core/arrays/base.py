@@ -37,6 +37,7 @@ from pandas.util._validators import (
     validate_insert_loc,
 )
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
@@ -256,6 +257,8 @@ class ExtensionArray:
     https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/list/array.py
     """
 
+    __module__ = "pandas.api.extensions"
+
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = "extension"
@@ -265,6 +268,8 @@ class ExtensionArray:
     #  subclass takes priority. If overriding, the value should always be
     #  strictly less than 2000 to be below Index.__pandas_priority__.
     __pandas_priority__ = 1000
+
+    _readonly = False
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -452,6 +457,11 @@ class ExtensionArray:
         Returns
         -------
         None
+
+        Raises
+        ------
+        ValueError
+            If the array is readonly and modification is attempted.
         """
         # Some notes to the ExtensionArray implementer who may have ended up
         # here. While this method is not required for the interface, if you
@@ -471,6 +481,10 @@ class ExtensionArray:
         #   __init__ method coerces that value, then so should __setitem__
         # Note, also, that Series/DataFrame.where internally use __setitem__
         # on a copy of the data.
+        # Check if the array is readonly
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         raise NotImplementedError(f"{type(self)} does not implement __setitem__.")
 
     def __len__(self) -> int:
@@ -565,8 +579,14 @@ class ExtensionArray:
         result = np.asarray(self, dtype=dtype)
         if copy or na_value is not lib.no_default:
             result = result.copy()
+        elif self._readonly and astype_is_view(self.dtype, result.dtype):
+            # If the ExtensionArray is readonly, make the numpy array readonly too
+            result = result.view()
+            result.flags.writeable = False
+
         if na_value is not lib.no_default:
             result[self.isna()] = na_value  # type: ignore[index]
+
         return result
 
     # ------------------------------------------------------------------------
@@ -1572,8 +1592,6 @@ class ExtensionArray:
             NaN values will be encoded as non-negative integers and will not drop the
             NaN from the uniques of the values.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         codes : ndarray
@@ -1806,7 +1824,7 @@ class ExtensionArray:
         .. code-block:: python
 
            def take(self, indices, allow_fill=False, fill_value=None):
-               from pandas.core.algorithms import take
+               from pandas.api.extensions import take
 
                # If the ExtensionArray is backed by an ndarray, then
                # just pass that here instead of coercing to object.
@@ -2812,6 +2830,8 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
        with NumPy arrays.
     """
 
+    __module__ = "pandas.api.extensions"
+
     @classmethod
     def _create_method(cls, op, coerce_to_dtype: bool = True, result_dtype=None):
         """
@@ -2869,7 +2889,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
             # If the operator is not defined for the underlying objects,
             # a TypeError should be raised
-            res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
+            res = [op(a, b) for (a, b) in zip(lvalues, rvalues, strict=True)]
 
             def _maybe_convert(arr):
                 if coerce_to_dtype:
@@ -2885,7 +2905,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                 return res
 
             if op.__name__ in {"divmod", "rdivmod"}:
-                a, b = zip(*res)
+                a, b = zip(*res, strict=True)
                 return _maybe_convert(a), _maybe_convert(b)
 
             return _maybe_convert(res)
