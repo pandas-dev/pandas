@@ -112,7 +112,7 @@ index from the PyPI registry of anaconda.org. You can install it by running.
 
 .. code-block:: shell
 
-    pip install --pre --extra-index https://pypi.anaconda.org/scientific-python-nightly-wheels/simple pandas
+    pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple pandas
 
 .. note::
     You might be required to uninstall an existing version of pandas to install the development version.

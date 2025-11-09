@@ -5,6 +5,8 @@ import dateutil
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -69,7 +71,9 @@ class TestDatetimeConcat:
 
         idx3 = date_range("2011-01-01", periods=3, freq="h", tz="Asia/Tokyo")
         df3 = DataFrame({"b": [1, 2, 3]}, index=idx3)
-        result = concat([df1, df3], axis=1)
+        msg = "Sorting by default when concatenating all DatetimeIndex"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = concat([df1, df3], axis=1)
 
         exp_idx = DatetimeIndex(
             [

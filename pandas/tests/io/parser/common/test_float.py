@@ -8,15 +8,12 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_linux
-
 from pandas import DataFrame
 import pandas._testing as tm
 
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
@@ -42,40 +39,34 @@ def test_scientific_no_exponent(all_parsers_all_precisions):
 
 
 @pytest.mark.parametrize(
-    "neg_exp",
+    "value, expected_value",
     [
-        -617,
-        -100000,
-        -99999999999999999,
+        ("0E-617", 0.0),
+        ("0E99999999", 0.0),
+        ("-0E99999999", 0.0),
+        ("-0E-99999999", 0.0),
+        ("10E-617", 0.0),
+        ("10E-100000", 0.0),
+        ("-10E-100000", 0.0),
+        ("10e-99999999999", 0.0),
+        ("10e-999999999999", 0.0),
+        ("10e-9999999999999", 0.0),
+        ("10E999", np.inf),
+        ("-10e99999999999", -np.inf),
+        ("10e99999999999", np.inf),
+        ("10e999999999999", np.inf),
+        ("10e9999999999999", np.inf),
+        ("50060e8007123400", np.inf),
+        ("-50060e8007123400", -np.inf),
     ],
 )
-def test_very_negative_exponent(all_parsers_all_precisions, neg_exp):
-    # GH#38753
+def test_large_exponent(all_parsers_all_precisions, value, expected_value):
+    # GH#38753; GH#38794; GH#62740
     parser, precision = all_parsers_all_precisions
 
-    data = f"data\n10E{neg_exp}"
+    data = f"data\n{value}"
     result = parser.read_csv(StringIO(data), float_precision=precision)
-    expected = DataFrame({"data": [0.0]})
-    tm.assert_frame_equal(result, expected)
-
-
-@xfail_pyarrow  # AssertionError: Attributes of DataFrame.iloc[:, 0] are different
-@pytest.mark.parametrize("exp", [999999999999999999, -999999999999999999])
-def test_too_many_exponent_digits(all_parsers_all_precisions, exp, request):
-    # GH#38753
-    parser, precision = all_parsers_all_precisions
-    data = f"data\n10E{exp}"
-    result = parser.read_csv(StringIO(data), float_precision=precision)
-    if precision == "round_trip":
-        if exp == 999999999999999999 and is_platform_linux():
-            mark = pytest.mark.xfail(reason="GH38794, on Linux gives object result")
-            request.applymarker(mark)
-
-        value = np.inf if exp > 0 else 0.0
-        expected = DataFrame({"data": [value]})
-    else:
-        expected = DataFrame({"data": [f"10E{exp}"]})
-
+    expected = DataFrame({"data": [expected_value]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -103,4 +94,17 @@ def test_small_int_followed_by_float(
     result = parser.read_csv(StringIO(data), float_precision=precision)
     expected = DataFrame({"data": [42.0, expected_value]})
 
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value", ["81e31d04049863b72", "d81e31d04049863b72", "81e3104049863b72"]
+)
+def test_invalid_float_number(all_parsers_all_precisions, value):
+    # GH#62617
+    parser, precision = all_parsers_all_precisions
+    data = f"h1,h2,h3\ndata1,{value},data3"
+
+    result = parser.read_csv(StringIO(data), float_precision=precision)
+    expected = DataFrame({"h1": ["data1"], "h2": [value], "h3": "data3"})
     tm.assert_frame_equal(result, expected)

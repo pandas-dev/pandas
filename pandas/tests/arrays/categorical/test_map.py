@@ -130,7 +130,7 @@ def test_map_with_dict_or_series(na_action):
     expected = Categorical(new_values, categories=[3.0, 2, "one"])
     tm.assert_categorical_equal(result, expected)
 
-    mapper = dict(zip(orig_values[:-1], new_values[:-1]))
+    mapper = dict(zip(orig_values[:-1], new_values[:-1], strict=True))
     result = cat.map(mapper, na_action=na_action)
     # Order of categories in result can be different
     tm.assert_categorical_equal(result, expected)

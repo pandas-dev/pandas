@@ -393,7 +393,7 @@ class NAType(C_NAType):
     >>> True | pd.NA
     True
     """
-    __module__ = "pandas"
+    __module__ = "pandas.api.typing"
 
     _instance = None
 
@@ -546,3 +546,4 @@ class NAType(C_NAType):
 
 C_NA = NAType()   # C-visible
 NA = C_NA         # Python-visible
+NA.__module__ = "pandas"

@@ -115,6 +115,8 @@ through the ``str`` accessor will work the same:
    class. The dtype can be constructed as ``pd.StringDtype(na_value=np.nan)``,
    but for general usage we recommend to use the shorter ``"str"`` alias.
 
+.. _string_migration_guide-differences:
+
 Overview of behavior differences and how to address them
 ---------------------------------------------------------
 
@@ -194,6 +196,8 @@ This is actually compatible with pandas 2.x as well, since in pandas < 3,
    specifying it as the dtype in :meth:`~Series.astype` runs into the issue
    of also stringifying missing values in pandas 2.x. See the section
    :ref:`string_migration_guide-astype_str` for more details.
+
+.. _string_migration.select_dtypes:
 
 For selecting string columns with :meth:`~DataFrame.select_dtypes` in a pandas
 2.x and 3.x compatible way, it is not possible to use ``"str"``. While this

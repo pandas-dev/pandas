@@ -356,18 +356,25 @@ class TestJSONArray(base.ExtensionTests):
             request.applymarker(mark)
         super().test_setitem_integer_array(data, idx, box_in_series)
 
-    @pytest.mark.xfail(reason="list indices must be integers or slices, not NAType")
     @pytest.mark.parametrize(
-        "idx, box_in_series",
+        "idx",
         [
-            ([0, 1, 2, pd.NA], False),
-            pytest.param(
-                [0, 1, 2, pd.NA], True, marks=pytest.mark.xfail(reason="GH-31948")
-            ),
-            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
-            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), True),
+            [0, 1, 2, pd.NA],
+            pd.array([0, 1, 2, pd.NA], dtype="Int64"),
         ],
-        ids=["list-False", "list-True", "integer-array-False", "integer-array-True"],
+        ids=["list", "integer-array"],
+    )
+    @pytest.mark.parametrize(
+        "box_in_series",
+        [
+            True,
+            pytest.param(
+                False,
+                marks=pytest.mark.xfail(
+                    reason="list indices must be integers or slices, not NAType"
+                ),
+            ),
+        ],
     )
     def test_setitem_integer_with_missing_raises(self, data, idx, box_in_series):
         super().test_setitem_integer_with_missing_raises(data, idx, box_in_series)
@@ -414,6 +421,12 @@ class TestJSONArray(base.ExtensionTests):
     @pytest.mark.xfail(reason="Fail to raise")
     def test_setitem_invalid(self, data, invalid_scalar):
         super().test_setitem_invalid(data, invalid_scalar)
+
+    @pytest.mark.xfail(
+        reason="result readonly flag is incorrect and does not support na_value"
+    )
+    def test_readonly_propagates_to_numpy_array_method(self, data):
+        super().test_readonly_propagates_to_numpy_array_method(data)
 
     @pytest.mark.xfail(reason="only integer scalar arrays can be converted")
     def test_setitem_2d_values(self, data):

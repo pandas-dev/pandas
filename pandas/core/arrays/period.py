@@ -177,6 +177,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     Length: 2, dtype: period[D]
     """
 
+    __module__ = "pandas.arrays"
+
     # array priority higher than numpy scalars
     __array_priority__ = 1000
     _typ = "periodarray"  # ABCPeriodArray
@@ -395,7 +397,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             # For NumPy 1.x compatibility we cannot use copy=None.  And
             # `copy=False` has the meaning of `copy=None` here:
             if not copy:
-                return np.asarray(self.asi8, dtype=dtype)
+                result = np.asarray(self.asi8, dtype=dtype)
+                if self._readonly:
+                    result = result.view()
+                    result.flags.writeable = False
+                return result
             else:
                 return np.array(self.asi8, dtype=dtype)
 
@@ -962,7 +968,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             # GH#45038 match PeriodIndex behavior.
             tz = getattr(dtype, "tz", None)
             unit = dtl.dtype_to_unit(dtype)
-            return self.to_timestamp().tz_localize(tz).as_unit(unit)
+            # error: Argument 1 to "as_unit" of "TimelikeOps" has incompatible
+            # type "str"; expected "Literal['s', 'ms', 'us', 'ns']"  [arg-type]
+            return self.to_timestamp().tz_localize(tz).as_unit(unit)  # type: ignore[arg-type]
 
         return super().astype(dtype, copy=copy)
 
@@ -1327,7 +1335,7 @@ def dt64arr_to_periodarr(
     data, freq, tz=None
 ) -> tuple[npt.NDArray[np.int64], BaseOffset]:
     """
-    Convert an datetime-like array to values Period ordinals.
+    Convert a datetime-like array to values Period ordinals.
 
     Parameters
     ----------

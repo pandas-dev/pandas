@@ -77,8 +77,10 @@ def allow_in_pandas(monkeypatch):
 @pytest.fixture
 def data(allow_in_pandas, dtype):
     if dtype.numpy_dtype == "object":
-        return pd.Series([(i,) for i in range(10)]).array
-    return NumpyExtensionArray(np.arange(1, 11, dtype=dtype._dtype))
+        arr = pd.Series([(i,) for i in range(10)])._values
+    else:
+        arr = np.arange(1, 11, dtype=dtype._dtype)
+    return NumpyExtensionArray(arr)
 
 
 @pytest.fixture
@@ -339,6 +341,11 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     def test_fillna_frame(self, data_missing):
         # Non-scalar "scalar" values.
         super().test_fillna_frame(data_missing)
+
+    @skip_nested
+    def test_fillna_readonly(self, data_missing):
+        # Non-scalar "scalar" values.
+        super().test_fillna_readonly(data_missing)
 
     @skip_nested
     def test_setitem_invalid(self, data, invalid_scalar):

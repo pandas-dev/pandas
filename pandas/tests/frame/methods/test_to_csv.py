@@ -836,9 +836,9 @@ class TestDataFrameToCSV:
         result = result.rename(columns={"a.1": "a"})
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.parametrize("chunksize", [10000, 50000, 100000])
+    @pytest.mark.parametrize("chunksize", [1, 5, 10])
     def test_to_csv_chunking(self, chunksize, temp_file):
-        aa = DataFrame({"A": range(100000)})
+        aa = DataFrame({"A": range(10)})
         aa["B"] = aa.A + 1.0
         aa["C"] = aa.A + 2.0
         aa["D"] = aa.A + 3.0

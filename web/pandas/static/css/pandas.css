@@ -135,3 +135,66 @@ h2:hover a.headerlink, h3:hover a.headerlink {
     opacity: 1;
     transition: opacity 0.5s;
 }
+
+
+/** Copied from the pydata-sphinx-theme **/
+ div.admonition, .admonition {
+	 margin: 1.5625em auto;
+	 padding: 0 0.6rem 0.8rem;
+	 overflow: hidden;
+     box-shadow: 0 .2rem .5rem rgba(0,0,0,0.1),0 0 .0625rem rgba(0,0,0,0.1) !important;
+	/* break-inside has replaced page-break-inside and is widely usable since 2019 */
+	 page-break-inside: avoid;
+	 break-inside: avoid;
+	 border-left: 0.2rem solid;
+	 border-color: #276be9;
+	 border-radius: 0.25rem;
+	 background-color: #fff;
+	/** * Special-case for a `sidebar` class that makes the admonition float to * the right like the {
+		sidebar
+	}
+	 directive. */
+}
+ div.admonition *:last-child, .admonition *:last-child {
+	 margin-bottom: 0;
+}
+ div.admonition p.admonition-title ~ *, .admonition p.admonition-title ~ * {
+	 margin-left: 1.4rem;
+	 margin-right: 1.4rem;
+}
+ div.admonition > ol, .admonition > ol, div.admonition > ul, .admonition > ul {
+	 margin-left: 1em;
+}
+ div.admonition > .admonition-title, .admonition > .admonition-title {
+	 margin: 0 -0.6rem;
+	 padding: 0.4rem 0.6rem 0.4rem 2rem;
+	 /* font-weight: var(--pst-admonition-font-weight-heading); */
+	 position: relative;
+	 background-color: #dce7fc;
+	 z-index: 1;
+}
+ div.admonition > .admonition-title::after, .admonition > .admonition-title::after {
+	 position: absolute;
+	 left: 0.5rem;
+	 width: 1rem;
+	 height: 1rem;
+	 /* color: var(--pst-color-info); */
+	 /* font: var(--fa-font-solid); */
+	 line-height: inherit;
+	 /* content: "\f05a"; */
+	 opacity: 1;
+}
+ div.admonition > .admonition-title + *, .admonition > .admonition-title + * {
+	 margin-top: 0.4em;
+}
+
+ div.admonition.note, .admonition.note {
+	 border-color: #276be9;
+}
+ div.admonition.note > .admonition-title, .admonition.note > .admonition-title {
+	 background-color: #dce7fc;
+}
+ div.admonition.note > .admonition-title::after, .admonition.note > .admonition-title::after {
+	 color: #276be9;
+	 /* content: "\f05a"; */
+}

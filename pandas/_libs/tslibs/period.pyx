@@ -1631,6 +1631,7 @@ class IncompatibleFrequency(TypeError):
     Raised when trying to compare or operate between Periods with different
     frequencies.
     """
+    __module__ = "pandas.errors"
     pass
 
 

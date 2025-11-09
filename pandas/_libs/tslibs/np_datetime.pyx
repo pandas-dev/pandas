@@ -192,6 +192,7 @@ class OutOfBoundsDatetime(ValueError):
     OutOfBoundsDatetime: Parsing "08335394550" to datetime overflows,
     at position 0
     """
+    __module__ = "pandas.errors"
     pass
 
 
@@ -212,6 +213,7 @@ class OutOfBoundsTimedelta(ValueError):
     OutOfBoundsTimedelta: Cannot cast 139999 days 00:00:00
     to unit='ns' without overflow.
     """
+    __module__ = "pandas.errors"
     # Timedelta analogue to OutOfBoundsDatetime
     pass
 

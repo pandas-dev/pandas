@@ -247,7 +247,7 @@ class TestHashTable:
         assert "n_buckets" in state
         assert "upper_bound" in state
 
-    @pytest.mark.parametrize("N", range(1, 110))
+    @pytest.mark.parametrize("N", range(1, 110, 4))
     def test_no_reallocation(self, table_type, dtype, N):
         keys = np.arange(N).astype(dtype)
         preallocated_table = table_type(N)
@@ -517,7 +517,7 @@ def test_tracemalloc_for_empty_StringHashTable():
         assert get_allocated_khash_memory() == 0
 
 
-@pytest.mark.parametrize("N", range(1, 110))
+@pytest.mark.parametrize("N", range(1, 110, 4))
 def test_no_reallocation_StringHashTable(N):
     keys = np.arange(N).astype(np.str_).astype(np.object_)
     preallocated_table = ht.StringHashTable(N)

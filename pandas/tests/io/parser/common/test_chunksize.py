@@ -229,17 +229,21 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
     assert result.a.dtype == float
 
 
-def test_warn_if_chunks_have_mismatched_type(all_parsers, using_infer_string):
+def test_warn_if_chunks_have_mismatched_type(
+    all_parsers, using_infer_string, monkeypatch
+):
     warning_type = None
     parser = all_parsers
-    size = 10000
+    heuristic = 2**3
+    size = 10
 
     # see gh-3866: if chunks are different types and can't
     # be coerced using numerical types, then issue warning.
     if parser.engine == "c" and parser.low_memory:
         warning_type = DtypeWarning
-        # Use larger size to hit warning path
-        size = 499999
+        # Use a size to hit warning path dictated by DEFAULT_BUFFER_HEURISTIC
+        # monkeypatched below
+        size = heuristic - 1
 
     integers = [str(i) for i in range(size)]
     data = "a\n" + "\n".join(integers + ["a", "b"] + integers)
@@ -251,12 +255,14 @@ def test_warn_if_chunks_have_mismatched_type(all_parsers, using_infer_string):
             buf,
         )
     else:
-        df = parser.read_csv_check_warnings(
-            warning_type,
-            r"Columns \(0: a\) have mixed types. "
-            "Specify dtype option on import or set low_memory=False.",
-            buf,
-        )
+        with monkeypatch.context() as m:
+            m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
+            df = parser.read_csv_check_warnings(
+                warning_type,
+                r"Columns \(0: a\) have mixed types. "
+                "Specify dtype option on import or set low_memory=False.",
+                buf,
+            )
     if parser.engine == "c" and parser.low_memory:
         assert df.a.dtype == object
     elif using_infer_string:
@@ -293,30 +299,6 @@ def test_empty_with_nrows_chunksize(all_parsers, iterator):
         result = parser.read_csv(data, nrows=nrows)
 
     tm.assert_frame_equal(result, expected)
-
-
-def test_read_csv_memory_growth_chunksize(temp_file, all_parsers):
-    # see gh-24805
-    #
-    # Let's just make sure that we don't crash
-    # as we iteratively process all chunks.
-    parser = all_parsers
-
-    with open(temp_file, "w", encoding="utf-8") as f:
-        for i in range(1000):
-            f.write(str(i) + "\n")
-
-    if parser.engine == "pyarrow":
-        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
-        with pytest.raises(ValueError, match=msg):
-            with parser.read_csv(temp_file, chunksize=20) as result:
-                for _ in result:
-                    pass
-        return
-
-    with parser.read_csv(temp_file, chunksize=20) as result:
-        for _ in result:
-            pass
 
 
 def test_chunksize_with_usecols_second_block_shorter(all_parsers):

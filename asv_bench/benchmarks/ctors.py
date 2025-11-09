@@ -23,7 +23,7 @@ def gen_of_str(arr):
 
 
 def arr_dict(arr):
-    return dict(zip(range(len(arr)), arr))
+    return dict(zip(range(len(arr)), arr, strict=True))
 
 
 def list_of_tuples(arr):
