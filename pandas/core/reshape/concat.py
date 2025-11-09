@@ -990,9 +990,8 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         new_levels.extend(new_index.levels)
         new_codes.extend(np.tile(lab, kpieces) for lab in new_index.codes)
     else:
-        levels_for_index = new_index.unique().dropna()
-        new_levels.append(levels_for_index)
-        single_codes = levels_for_index.get_indexer(new_index)
+        new_levels.append(new_index.unique())
+        single_codes = new_index.unique().get_indexer(new_index)
         new_codes.append(np.tile(single_codes, kpieces))
 
     if len(new_names) < len(new_levels):
