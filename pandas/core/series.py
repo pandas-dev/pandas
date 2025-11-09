@@ -1309,8 +1309,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         Series or DataFrame or None
@@ -2142,7 +2140,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ['2016-01-01 00:00:00-05:00']
         Length: 1, dtype: datetime64[s, US/Eastern]
 
-        An Categorical will return categories in the order of
+        A Categorical will return categories in the order of
         appearance and with the same dtype.
 
         >>> pd.Series(pd.Categorical(list("baabc"))).unique()
@@ -3030,8 +3028,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         result_names : tuple, default ('self', 'other')
             Set the dataframes names in the comparison.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -5662,8 +5658,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         This method prints information about a Series including
         the index dtype, non-NA values and memory usage.
-
-        .. versionadded:: 1.4.0
 
         Parameters
         ----------
