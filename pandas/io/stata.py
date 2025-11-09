@@ -2158,9 +2158,6 @@ def read_stata(
         As an example, the following could be passed for Zstandard decompression using a
         custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
-
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -2423,10 +2420,6 @@ class StataWriter(StataParser):
         As an example, the following could be passed for faster compression and to
         create a reproducible gzip archive:
         ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
-
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
-
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -2441,8 +2434,6 @@ class StataWriter(StataParser):
         Dictionary containing columns as keys and dictionaries of column value
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
-
-        .. versionadded:: 1.4.0
 
     Returns
     -------
@@ -3418,8 +3409,6 @@ class StataWriter117(StataWriter):
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
 
-        .. versionadded:: 1.4.0
-
     Returns
     -------
     writer : StataWriter117 instance
@@ -3809,8 +3798,6 @@ class StataWriterUTF8(StataWriter117):
         Dictionary containing columns as keys and dictionaries of column value
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
-
-        .. versionadded:: 1.4.0
 
     Returns
     -------
