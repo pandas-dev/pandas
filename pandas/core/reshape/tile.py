@@ -317,6 +317,11 @@ def qcut(
         Used as labels for the resulting bins. Must be of the same length as
         the resulting bins. If False, return only integer indicators of the
         bins. If True, raises an error.
+    right : bool, default True
+        Indicates whether `bins` includes the rightmost edge or not. If
+        ``right == True`` (the default), then the `bins` ``[1, 2, 3, 4]``
+        indicate (1,2], (2,3], (3,4]. This argument is ignored when
+        `bins` is an IntervalIndex.
     retbins : bool, optional
         Whether to return the (bins, labels) or not. Can be useful if bins
         is given as a scalar.
@@ -324,11 +329,6 @@ def qcut(
         The precision at which to store and display the bins labels.
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
-    right : bool, default True
-        Indicates whether `bins` includes the rightmost edge or not. If
-        ``right == True`` (the default), then the `bins` ``[1, 2, 3, 4]``
-        indicate (1,2], (2,3], (3,4]. This argument is ignored when
-        `bins` is an IntervalIndex.
 
     Returns
     -------
