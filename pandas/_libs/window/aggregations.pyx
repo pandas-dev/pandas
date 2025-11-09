@@ -359,10 +359,12 @@ cdef void add_var(
     float64_t *compensation,
     int64_t *num_consecutive_same_value,
     float64_t *prev_value,
+    bint *numerically_unstable,
 ) noexcept nogil:
     """ add a value from the var calc """
     cdef:
         float64_t delta, prev_mean, y, t
+        float64_t prev_m2 = ssqdm_x[0]
 
     # GH#21813, if msvc 2017 bug is resolved, we should be OK with != instead of `isnan`
     if val != val:
@@ -392,17 +394,23 @@ cdef void add_var(
         mean_x[0] = 0
     ssqdm_x[0] = ssqdm_x[0] + (val - prev_mean) * (val - mean_x[0])
 
+    if prev_m2 * InvCondTol > ssqdm_x[0]:
+        # possible catastrophic cancellation
+        numerically_unstable[0] = True
+
 
 cdef void remove_var(
     float64_t val,
     float64_t *nobs,
     float64_t *mean_x,
     float64_t *ssqdm_x,
-    float64_t *compensation
+    float64_t *compensation,
+    bint *numerically_unstable,
 ) noexcept nogil:
     """ remove a value from the var calc """
     cdef:
         float64_t delta, prev_mean, y, t
+        float64_t prev_m2 = ssqdm_x[0]
     if val == val:
         nobs[0] = nobs[0] - 1
         if nobs[0]:
@@ -416,9 +424,14 @@ cdef void remove_var(
             delta = t
             mean_x[0] = mean_x[0] - delta / nobs[0]
             ssqdm_x[0] = ssqdm_x[0] - (val - prev_mean) * (val - mean_x[0])
+
+            if prev_m2 * InvCondTol > ssqdm_x[0]:
+                # possible catastrophic cancellation
+                numerically_unstable[0] = True
         else:
             mean_x[0] = 0
             ssqdm_x[0] = 0
+            numerically_unstable[0] = False
 
 
 def roll_var(const float64_t[:] values, ndarray[int64_t] start,
@@ -433,6 +446,7 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
         Py_ssize_t i, j, N = len(start)
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
+        bint requires_recompute, numerically_unstable
 
     minp = max(minp, 1)
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
@@ -449,7 +463,28 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
 
             # Over the first window, observations can only be added
             # never removed
-            if i == 0 or not is_monotonic_increasing_bounds or s < end[i]:
+            requires_recompute = (
+                i == 0
+                or not is_monotonic_increasing_bounds
+                or s >= end[i - 1]
+            )
+
+            if not requires_recompute:
+                # After the first window, observations can both be added
+                # and removed
+
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    remove_var(values[j], &nobs, &mean_x, &ssqdm_x,
+                               &compensation_remove, &numerically_unstable)
+
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
+                            &num_consecutive_same_value, &prev_value,
+                            &numerically_unstable)
+
+            if requires_recompute or numerically_unstable:
 
                 prev_value = values[s]
                 num_consecutive_same_value = 0
@@ -457,22 +492,9 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
                 mean_x = ssqdm_x = nobs = compensation_add = compensation_remove = 0
                 for j in range(s, e):
                     add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
-                            &num_consecutive_same_value, &prev_value)
-
-            else:
-
-                # After the first window, observations can both be added
-                # and removed
-
-                # calculate deletes
-                for j in range(start[i - 1], s):
-                    remove_var(values[j], &nobs, &mean_x, &ssqdm_x,
-                               &compensation_remove)
-
-                # calculate adds
-                for j in range(end[i - 1], e):
-                    add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
-                            &num_consecutive_same_value, &prev_value)
+                            &num_consecutive_same_value, &prev_value,
+                            &numerically_unstable)
+                numerically_unstable = False
 
             output[i] = calc_var(minp, ddof, nobs, ssqdm_x, num_consecutive_same_value)
 
