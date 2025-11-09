@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 
 pa = pytest.importorskip("pyarrow")
 
@@ -30,6 +31,6 @@ def test_parquet_sparse_roundtrip(tmp_path, subtype, fill_value, data):
 
     assert isinstance(df2["s"].dtype, pd.SparseDtype)
     assert df2["s"].dtype.fill_value == fill_value
-    pd.testing.assert_series_equal(
+    tm.assert_series_equal(
         df2["s"].sparse.to_dense(), s.sparse.to_dense(), check_dtype=False
     )
