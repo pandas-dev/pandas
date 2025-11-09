@@ -24,11 +24,11 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
-import pandas as pd
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -135,7 +135,10 @@ class NumericDtype(BaseMaskedDtype):
         raise AbstractMethodError(cls)
 
 
-def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericDtype]):
+def _coerce_to_data_and_mask(
+    values, dtype, copy: bool, dtype_cls: type[NumericDtype], default_dtype: np.dtype
+):
+    values = extract_array(values, extract_numpy=True)
     checker = dtype_cls._checker
     default_dtype = dtype_cls._default_np_dtype
 
@@ -226,17 +229,16 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
             values = np.ones(values.shape, dtype=dtype)
         else:
             idx = np.nanargmax(values)
-            if not (pd.isna(values[idx]) or pd.isna(original[idx])):
-                if int(values[idx]) != original[idx]:
-                    # We have ints that lost precision during the cast.
-                    inferred_type = lib.infer_dtype(original, skipna=True)
-                    if (
-                        inferred_type not in ["floating", "mixed-integer-float"]
-                        and not mask.any()
-                    ):
-                        values = np.asarray(original, dtype=dtype)
-                    else:
-                        values = np.asarray(original, dtype="object")
+            if int(values[idx]) != original[idx]:
+                # We have ints that lost precision during the cast.
+                inferred_type = lib.infer_dtype(original, skipna=True)
+                if (
+                    inferred_type not in ["floating", "mixed-integer-float"]
+                    and not mask.any()
+                ):
+                    values = np.asarray(original, dtype=dtype)
+                else:
+                    values = np.asarray(original, dtype="object")
 
     # we copy as need to coerce here
     if mask.any():
