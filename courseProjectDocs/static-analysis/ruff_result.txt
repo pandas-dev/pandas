@@ -1,0 +1,1125 @@
+D205 1 blank line required between summary line and description
+ --> pandas/util/_validators.py:1:1
+  |
+1 | / """Module that contains many useful utilities
+2 | | for validating data or function arguments
+3 | | """
+  | |___^
+4 |
+5 |   from __future__ import annotations
+  |
+help: Insert single blank line
+
+D400 First line should end with a period
+ --> pandas/util/_validators.py:1:1
+  |
+1 | / """Module that contains many useful utilities
+2 | | for validating data or function arguments
+3 | | """
+  | |___^
+4 |
+5 |   from __future__ import annotations
+  |
+help: Add period
+
+D415 First line should end with a period, question mark, or exclamation point
+ --> pandas/util/_validators.py:1:1
+  |
+1 | / """Module that contains many useful utilities
+2 | | for validating data or function arguments
+3 | | """
+  | |___^
+4 |
+5 |   from __future__ import annotations
+  |
+help: Add closing punctuation
+
+ANN001 Missing type annotation for function argument `fname`
+  --> pandas/util/_validators.py:29:23
+   |
+29 | def _check_arg_length(fname, args, max_fname_arg_count, compat_args) -> None:
+   |                       ^^^^^
+30 |     """Checks whether 'args' has length of at most 'compat_args'. Raises
+31 |     a TypeError if that is not the case, similar to in Python when a
+   |
+
+ANN001 Missing type annotation for function argument `args`
+  --> pandas/util/_validators.py:29:30
+   |
+29 | def _check_arg_length(fname, args, max_fname_arg_count, compat_args) -> None:
+   |                              ^^^^
+30 |     """Checks whether 'args' has length of at most 'compat_args'. Raises
+31 |     a TypeError if that is not the case, similar to in Python when a
+   |
+
+ANN001 Missing type annotation for function argument `max_fname_arg_count`
+  --> pandas/util/_validators.py:29:36
+   |
+29 | def _check_arg_length(fname, args, max_fname_arg_count, compat_args) -> None:
+   |                                    ^^^^^^^^^^^^^^^^^^^
+30 |     """Checks whether 'args' has length of at most 'compat_args'. Raises
+31 |     a TypeError if that is not the case, similar to in Python when a
+   |
+
+ANN001 Missing type annotation for function argument `compat_args`
+  --> pandas/util/_validators.py:29:57
+   |
+29 | def _check_arg_length(fname, args, max_fname_arg_count, compat_args) -> None:
+   |                                                         ^^^^^^^^^^^
+30 |     """Checks whether 'args' has length of at most 'compat_args'. Raises
+31 |     a TypeError if that is not the case, similar to in Python when a
+   |
+
+D205 1 blank line required between summary line and description
+  --> pandas/util/_validators.py:30:5
+   |
+29 |   def _check_arg_length(fname, args, max_fname_arg_count, compat_args) -> None:
+30 | /     """Checks whether 'args' has length of at most 'compat_args'. Raises
+31 | |     a TypeError if that is not the case, similar to in Python when a
+32 | |     function is called with too many arguments.
+33 | |     """
+   | |_______^
+34 |       if max_fname_arg_count < 0:
+35 |           raise ValueError("'max_fname_arg_count' must be non-negative")
+   |
+help: Insert single blank line
+
+D401 First line of docstring should be in imperative mood: "Checks whether 'args' has length of at most 'compat_args'. Raises"
+  --> pandas/util/_validators.py:30:5
+   |
+29 |   def _check_arg_length(fname, args, max_fname_arg_count, compat_args) -> None:
+30 | /     """Checks whether 'args' has length of at most 'compat_args'. Raises
+31 | |     a TypeError if that is not the case, similar to in Python when a
+32 | |     function is called with too many arguments.
+33 | |     """
+   | |_______^
+34 |       if max_fname_arg_count < 0:
+35 |           raise ValueError("'max_fname_arg_count' must be non-negative")
+   |
+
+TRY003 Avoid specifying long messages outside the exception class
+  --> pandas/util/_validators.py:35:15
+   |
+33 |     """
+34 |     if max_fname_arg_count < 0:
+35 |         raise ValueError("'max_fname_arg_count' must be non-negative")
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+36 |
+37 |     if len(args) > len(compat_args):
+   |
+
+EM101 Exception must not use a string literal, assign to variable first
+  --> pandas/util/_validators.py:35:26
+   |
+33 |     """
+34 |     if max_fname_arg_count < 0:
+35 |         raise ValueError("'max_fname_arg_count' must be non-negative")
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+36 |
+37 |     if len(args) > len(compat_args):
+   |
+help: Assign to variable; remove string literal
+
+TRY003 Avoid specifying long messages outside the exception class
+  --> pandas/util/_validators.py:42:15
+   |
+40 |           argument = "argument" if max_arg_count == 1 else "arguments"
+41 |
+42 |           raise TypeError(
+   |  _______________^
+43 | |             f"{fname}() takes at most {max_arg_count} {argument} "
+44 | |             f"({actual_arg_count} given)",
+45 | |         )
+   | |_________^
+   |
+
+EM102 Exception must not use an f-string literal, assign to variable first
+  --> pandas/util/_validators.py:43:13
+   |
+42 |           raise TypeError(
+43 | /             f"{fname}() takes at most {max_arg_count} {argument} "
+44 | |             f"({actual_arg_count} given)",
+   | |_________________________________________^
+45 |           )
+   |
+help: Assign to variable; remove f-string literal
+
+ANN001 Missing type annotation for function argument `fname`
+  --> pandas/util/_validators.py:48:31
+   |
+48 | def _check_for_default_values(fname, arg_val_dict, compat_args) -> None:
+   |                               ^^^^^
+49 |     """Check that the keys in `arg_val_dict` are mapped to their
+50 |     default values as specified in `compat_args`.
+   |
+
+ANN001 Missing type annotation for function argument `arg_val_dict`
+  --> pandas/util/_validators.py:48:38
+   |
+48 | def _check_for_default_values(fname, arg_val_dict, compat_args) -> None:
+   |                                      ^^^^^^^^^^^^
+49 |     """Check that the keys in `arg_val_dict` are mapped to their
+50 |     default values as specified in `compat_args`.
+   |
+
+ANN001 Missing type annotation for function argument `compat_args`
+  --> pandas/util/_validators.py:48:52
+   |
+48 | def _check_for_default_values(fname, arg_val_dict, compat_args) -> None:
+   |                                                    ^^^^^^^^^^^
+49 |     """Check that the keys in `arg_val_dict` are mapped to their
+50 |     default values as specified in `compat_args`.
+   |
+
+D205 1 blank line required between summary line and description
+  --> pandas/util/_validators.py:49:5
+   |
+48 |   def _check_for_default_values(fname, arg_val_dict, compat_args) -> None:
+49 | /     """Check that the keys in `arg_val_dict` are mapped to their
+50 | |     default values as specified in `compat_args`.
+51 | |
+52 | |     Note that this function is to be called only when it has been
+53 | |     checked that arg_val_dict.keys() is a subset of compat_args
+54 | |     """
+   | |_______^
+55 |       for key in arg_val_dict:
+56 |           # try checking equality directly with '=' operator,
+   |
+help: Insert single blank line
+
+TRY301 Abstract `raise` to an inner function
+  --> pandas/util/_validators.py:71:17
+   |
+70 |             if not is_bool(match):
+71 |                 raise ValueError("'match' is not a boolean")
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+72 |
+73 |         # could not compare them directly, so try comparison
+   |
+
+TRY003 Avoid specifying long messages outside the exception class
+  --> pandas/util/_validators.py:71:23
+   |
+70 |             if not is_bool(match):
+71 |                 raise ValueError("'match' is not a boolean")
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+72 |
+73 |         # could not compare them directly, so try comparison
+   |
+
+EM101 Exception must not use a string literal, assign to variable first
+  --> pandas/util/_validators.py:71:34
+   |
+70 |             if not is_bool(match):
+71 |                 raise ValueError("'match' is not a boolean")
+   |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+72 |
+73 |         # could not compare them directly, so try comparison
+   |
+help: Assign to variable; remove string literal
+
+TRY003 Avoid specifying long messages outside the exception class
+  --> pandas/util/_validators.py:79:19
+   |
+78 |           if not match:
+79 |               raise ValueError(
+   |  ___________________^
+80 | |                 f"the '{key}' parameter is not supported in "
+81 | |                 f"the pandas implementation of {fname}()",
+82 | |             )
+   | |_____________^
+   |
+
+EM102 Exception must not use an f-string literal, assign to variable first
+  --> pandas/util/_validators.py:80:17
+   |
+78 |           if not match:
+79 |               raise ValueError(
+80 | /                 f"the '{key}' parameter is not supported in "
+81 | |                 f"the pandas implementation of {fname}()",
+   | |_________________________________________________________^
+82 |               )
+   |
+help: Assign to variable; remove f-string literal
+
+ANN001 Missing type annotation for function argument `fname`
+  --> pandas/util/_validators.py:85:19
+   |
+85 | def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
+   |                   ^^^^^
+86 |     """Checks whether the length of the `*args` argument passed into a function
+87 |     has at most `len(compat_args)` arguments and whether or not all of these
+   |
+
+ANN001 Missing type annotation for function argument `args`
+  --> pandas/util/_validators.py:85:26
+   |
+85 | def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
+   |                          ^^^^
+86 |     """Checks whether the length of the `*args` argument passed into a function
+87 |     has at most `len(compat_args)` arguments and whether or not all of these
+   |
+
+ANN001 Missing type annotation for function argument `max_fname_arg_count`
+  --> pandas/util/_validators.py:85:32
+   |
+85 | def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
+   |                                ^^^^^^^^^^^^^^^^^^^
+86 |     """Checks whether the length of the `*args` argument passed into a function
+87 |     has at most `len(compat_args)` arguments and whether or not all of these
+   |
+
+ANN001 Missing type annotation for function argument `compat_args`
+  --> pandas/util/_validators.py:85:53
+   |
+85 | def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
+   |                                                     ^^^^^^^^^^^
+86 |     """Checks whether the length of the `*args` argument passed into a function
+87 |     has at most `len(compat_args)` arguments and whether or not all of these
+   |
+
+D205 1 blank line required between summary line and description
+   --> pandas/util/_validators.py:86:5
+    |
+ 85 |   def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
+ 86 | /     """Checks whether the length of the `*args` argument passed into a function
+ 87 | |     has at most `len(compat_args)` arguments and whether or not all of these
+ 88 | |     elements in `args` are set to their default values.
+ 89 | |
+ 90 | |     Parameters
+ 91 | |     ----------
+ 92 | |     fname : str
+ 93 | |         The name of the function being passed the `*args` parameter
+ 94 | |     args : tuple
+ 95 | |         The `*args` parameter passed into a function
+ 96 | |     max_fname_arg_count : int
+ 97 | |         The maximum number of arguments that the function `fname`
+ 98 | |         can accept, excluding those in `args`. Used for displaying
+ 99 | |         appropriate error messages. Must be non-negative.
+100 | |     compat_args : dict
+101 | |         A dictionary of keys and their associated default values.
+102 | |         In order to accommodate buggy behaviour in some versions of `numpy`,
+103 | |         where a signature displayed keyword arguments but then passed those
+104 | |         arguments **positionally** internally when calling downstream
+105 | |         implementations, a dict ensures that the original
+106 | |         order of the keyword arguments is enforced.
+107 | |
+108 | |     Raises
+109 | |     ------
+110 | |     TypeError
+111 | |         If `args` contains more values than there are `compat_args`
+112 | |     ValueError
+113 | |         If `args` contains values that do not correspond to those
+114 | |         of the default values specified in `compat_args`
+115 | |
+116 | |     """
+    | |_______^
+117 |       _check_arg_length(fname, args, max_fname_arg_count, compat_args)
+    |
+help: Insert single blank line
+
+D401 First line of docstring should be in imperative mood: "Checks whether the length of the `*args` argument passed into a function"
+   --> pandas/util/_validators.py:86:5
+    |
+ 85 |   def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
+ 86 | /     """Checks whether the length of the `*args` argument passed into a function
+ 87 | |     has at most `len(compat_args)` arguments and whether or not all of these
+ 88 | |     elements in `args` are set to their default values.
+ 89 | |
+ 90 | |     Parameters
+ 91 | |     ----------
+ 92 | |     fname : str
+ 93 | |         The name of the function being passed the `*args` parameter
+ 94 | |     args : tuple
+ 95 | |         The `*args` parameter passed into a function
+ 96 | |     max_fname_arg_count : int
+ 97 | |         The maximum number of arguments that the function `fname`
+ 98 | |         can accept, excluding those in `args`. Used for displaying
+ 99 | |         appropriate error messages. Must be non-negative.
+100 | |     compat_args : dict
+101 | |         A dictionary of keys and their associated default values.
+102 | |         In order to accommodate buggy behaviour in some versions of `numpy`,
+103 | |         where a signature displayed keyword arguments but then passed those
+104 | |         arguments **positionally** internally when calling downstream
+105 | |         implementations, a dict ensures that the original
+106 | |         order of the keyword arguments is enforced.
+107 | |
+108 | |     Raises
+109 | |     ------
+110 | |     TypeError
+111 | |         If `args` contains more values than there are `compat_args`
+112 | |     ValueError
+113 | |         If `args` contains values that do not correspond to those
+114 | |         of the default values specified in `compat_args`
+115 | |
+116 | |     """
+    | |_______^
+117 |       _check_arg_length(fname, args, max_fname_arg_count, compat_args)
+    |
+
+ANN001 Missing type annotation for function argument `fname`
+   --> pandas/util/_validators.py:126:29
+    |
+126 | def _check_for_invalid_keys(fname, kwargs, compat_args) -> None:
+    |                             ^^^^^
+127 |     """Checks whether 'kwargs' contains any keys that are not
+128 |     in 'compat_args' and raises a TypeError if there is one.
+    |
+
+ANN001 Missing type annotation for function argument `kwargs`
+   --> pandas/util/_validators.py:126:36
+    |
+126 | def _check_for_invalid_keys(fname, kwargs, compat_args) -> None:
+    |                                    ^^^^^^
+127 |     """Checks whether 'kwargs' contains any keys that are not
+128 |     in 'compat_args' and raises a TypeError if there is one.
+    |
+
+ANN001 Missing type annotation for function argument `compat_args`
+   --> pandas/util/_validators.py:126:44
+    |
+126 | def _check_for_invalid_keys(fname, kwargs, compat_args) -> None:
+    |                                            ^^^^^^^^^^^
+127 |     """Checks whether 'kwargs' contains any keys that are not
+128 |     in 'compat_args' and raises a TypeError if there is one.
+    |
+
+D205 1 blank line required between summary line and description
+   --> pandas/util/_validators.py:127:5
+    |
+126 |   def _check_for_invalid_keys(fname, kwargs, compat_args) -> None:
+127 | /     """Checks whether 'kwargs' contains any keys that are not
+128 | |     in 'compat_args' and raises a TypeError if there is one.
+129 | |     """
+    | |_______^
+130 |       # set(dict) --> set of the dictionary's keys
+131 |       diff = set(kwargs) - set(compat_args)
+    |
+help: Insert single blank line
+
+D401 First line of docstring should be in imperative mood: "Checks whether 'kwargs' contains any keys that are not"
+   --> pandas/util/_validators.py:127:5
+    |
+126 |   def _check_for_invalid_keys(fname, kwargs, compat_args) -> None:
+127 | /     """Checks whether 'kwargs' contains any keys that are not
+128 | |     in 'compat_args' and raises a TypeError if there is one.
+129 | |     """
+    | |_______^
+130 |       # set(dict) --> set of the dictionary's keys
+131 |       diff = set(kwargs) - set(compat_args)
+    |
+
+TRY003 Avoid specifying long messages outside the exception class
+   --> pandas/util/_validators.py:135:15
+    |
+133 |     if diff:
+134 |         bad_arg = next(iter(diff))
+135 |         raise TypeError(f"{fname}() got an unexpected keyword argument '{bad_arg}'")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+
+EM102 Exception must not use an f-string literal, assign to variable first
+   --> pandas/util/_validators.py:135:25
+    |
+133 |     if diff:
+134 |         bad_arg = next(iter(diff))
+135 |         raise TypeError(f"{fname}() got an unexpected keyword argument '{bad_arg}'")
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Assign to variable; remove f-string literal
+
+ANN001 Missing type annotation for function argument `fname`
+   --> pandas/util/_validators.py:138:21
+    |
+138 | def validate_kwargs(fname, kwargs, compat_args) -> None:
+    |                     ^^^^^
+139 |     """Checks whether parameters passed to the **kwargs argument in a
+140 |     function `fname` are valid parameters as specified in `*compat_args`
+    |
+
+ANN001 Missing type annotation for function argument `kwargs`
+   --> pandas/util/_validators.py:138:28
+    |
+138 | def validate_kwargs(fname, kwargs, compat_args) -> None:
+    |                            ^^^^^^
+139 |     """Checks whether parameters passed to the **kwargs argument in a
+140 |     function `fname` are valid parameters as specified in `*compat_args`
+    |
+
+ANN001 Missing type annotation for function argument `compat_args`
+   --> pandas/util/_validators.py:138:36
+    |
+138 | def validate_kwargs(fname, kwargs, compat_args) -> None:
+    |                                    ^^^^^^^^^^^
+139 |     """Checks whether parameters passed to the **kwargs argument in a
+140 |     function `fname` are valid parameters as specified in `*compat_args`
+    |
+
+D205 1 blank line required between summary line and description
+   --> pandas/util/_validators.py:139:5
+    |
+138 |   def validate_kwargs(fname, kwargs, compat_args) -> None:
+139 | /     """Checks whether parameters passed to the **kwargs argument in a
+140 | |     function `fname` are valid parameters as specified in `*compat_args`
+141 | |     and whether or not they are set to their default values.
+142 | |
+143 | |     Parameters
+144 | |     ----------
+145 | |     fname : str
+146 | |         The name of the function being passed the `**kwargs` parameter
+147 | |     kwargs : dict
+148 | |         The `**kwargs` parameter passed into `fname`
+149 | |     compat_args: dict
+150 | |         A dictionary of keys that `kwargs` is allowed to have and their
+151 | |         associated default values
+152 | |
+153 | |     Raises
+154 | |     ------
+155 | |     TypeError if `kwargs` contains keys not in `compat_args`
+156 | |     ValueError if `kwargs` contains keys in `compat_args` that do not
+157 | |     map to the default values specified in `compat_args`
+158 | |
+159 | |     """
+    | |_______^
+160 |       kwds = kwargs.copy()
+161 |       _check_for_invalid_keys(fname, kwargs, compat_args)
+    |
+help: Insert single blank line
+
+D401 First line of docstring should be in imperative mood: "Checks whether parameters passed to the **kwargs argument in a"
+   --> pandas/util/_validators.py:139:5
+    |
+138 |   def validate_kwargs(fname, kwargs, compat_args) -> None:
+139 | /     """Checks whether parameters passed to the **kwargs argument in a
+140 | |     function `fname` are valid parameters as specified in `*compat_args`
+141 | |     and whether or not they are set to their default values.
+142 | |
+143 | |     Parameters
+144 | |     ----------
+145 | |     fname : str
+146 | |         The name of the function being passed the `**kwargs` parameter
+147 | |     kwargs : dict
+148 | |         The `**kwargs` parameter passed into `fname`
+149 | |     compat_args: dict
+150 | |         A dictionary of keys that `kwargs` is allowed to have and their
+151 | |         associated default values
+152 | |
+153 | |     Raises
+154 | |     ------
+155 | |     TypeError if `kwargs` contains keys not in `compat_args`
+156 | |     ValueError if `kwargs` contains keys in `compat_args` that do not
+157 | |     map to the default values specified in `compat_args`
+158 | |
+159 | |     """
+    | |_______^
+160 |       kwds = kwargs.copy()
+161 |       _check_for_invalid_keys(fname, kwargs, compat_args)
+    |
+
+ANN001 Missing type annotation for function argument `fname`
+   --> pandas/util/_validators.py:166:5
+    |
+165 | def validate_args_and_kwargs(
+166 |     fname, args, kwargs, max_fname_arg_count, compat_args,
+    |     ^^^^^
+167 | ) -> None:
+168 |     """Checks whether parameters passed to the *args and **kwargs argument in a
+    |
+
+ANN001 Missing type annotation for function argument `args`
+   --> pandas/util/_validators.py:166:12
+    |
+165 | def validate_args_and_kwargs(
+166 |     fname, args, kwargs, max_fname_arg_count, compat_args,
+    |            ^^^^
+167 | ) -> None:
+168 |     """Checks whether parameters passed to the *args and **kwargs argument in a
+    |
+
+ANN001 Missing type annotation for function argument `kwargs`
+   --> pandas/util/_validators.py:166:18
+    |
+165 | def validate_args_and_kwargs(
+166 |     fname, args, kwargs, max_fname_arg_count, compat_args,
+    |                  ^^^^^^
+167 | ) -> None:
+168 |     """Checks whether parameters passed to the *args and **kwargs argument in a
+    |
+
+ANN001 Missing type annotation for function argument `max_fname_arg_count`
+   --> pandas/util/_validators.py:166:26
+    |
+165 | def validate_args_and_kwargs(
+166 |     fname, args, kwargs, max_fname_arg_count, compat_args,
+    |                          ^^^^^^^^^^^^^^^^^^^
+167 | ) -> None:
+168 |     """Checks whether parameters passed to the *args and **kwargs argument in a
+    |
+
+ANN001 Missing type annotation for function argument `compat_args`
+   --> pandas/util/_validators.py:166:47
+    |
+165 | def validate_args_and_kwargs(
+166 |     fname, args, kwargs, max_fname_arg_count, compat_args,
+    |                                               ^^^^^^^^^^^
+167 | ) -> None:
+168 |     """Checks whether parameters passed to the *args and **kwargs argument in a
+    |
+
+D205 1 blank line required between summary line and description
+   --> pandas/util/_validators.py:168:5
+    |
+166 |       fname, args, kwargs, max_fname_arg_count, compat_args,
+167 |   ) -> None:
+168 | /     """Checks whether parameters passed to the *args and **kwargs argument in a
+169 | |     function `fname` are valid parameters as specified in `*compat_args`
+170 | |     and whether or not they are set to their default values.
+171 | |
+172 | |     Parameters
+173 | |     ----------
+174 | |     fname: str
+175 | |         The name of the function being passed the `**kwargs` parameter
+176 | |     args: tuple
+177 | |         The `*args` parameter passed into a function
+178 | |     kwargs: dict
+179 | |         The `**kwargs` parameter passed into `fname`
+180 | |     max_fname_arg_count: int
+181 | |         The minimum number of arguments that the function `fname`
+182 | |         requires, excluding those in `args`. Used for displaying
+183 | |         appropriate error messages. Must be non-negative.
+184 | |     compat_args: dict
+185 | |         A dictionary of keys that `kwargs` is allowed to
+186 | |         have and their associated default values.
+187 | |
+188 | |     Raises
+189 | |     ------
+190 | |     TypeError if `args` contains more values than there are
+191 | |     `compat_args` OR `kwargs` contains keys not in `compat_args`
+192 | |     ValueError if `args` contains values not at the default value (`None`)
+193 | |     `kwargs` contains keys in `compat_args` that do not map to the default
+194 | |     value as specified in `compat_args`
+195 | |
+196 | |     See Also
+197 | |     --------
+198 | |     validate_args : Purely args validation.
+199 | |     validate_kwargs : Purely kwargs validation.
+200 | |
+201 | |     """
+    | |_______^
+202 |       # Check that the total number of arguments passed in (i.e.
+203 |       # args and kwargs) does not exceed the length of compat_args
+    |
+help: Insert single blank line
+
+D401 First line of docstring should be in imperative mood: "Checks whether parameters passed to the *args and **kwargs argument in a"
+   --> pandas/util/_validators.py:168:5
+    |
+166 |       fname, args, kwargs, max_fname_arg_count, compat_args,
+167 |   ) -> None:
+168 | /     """Checks whether parameters passed to the *args and **kwargs argument in a
+169 | |     function `fname` are valid parameters as specified in `*compat_args`
+170 | |     and whether or not they are set to their default values.
+171 | |
+172 | |     Parameters
+173 | |     ----------
+174 | |     fname: str
+175 | |         The name of the function being passed the `**kwargs` parameter
+176 | |     args: tuple
+177 | |         The `*args` parameter passed into a function
+178 | |     kwargs: dict
+179 | |         The `**kwargs` parameter passed into `fname`
+180 | |     max_fname_arg_count: int
+181 | |         The minimum number of arguments that the function `fname`
+182 | |         requires, excluding those in `args`. Used for displaying
+183 | |         appropriate error messages. Must be non-negative.
+184 | |     compat_args: dict
+185 | |         A dictionary of keys that `kwargs` is allowed to
+186 | |         have and their associated default values.
+187 | |
+188 | |     Raises
+189 | |     ------
+190 | |     TypeError if `args` contains more values than there are
+191 | |     `compat_args` OR `kwargs` contains keys not in `compat_args`
+192 | |     ValueError if `args` contains values not at the default value (`None`)
+193 | |     `kwargs` contains keys in `compat_args` that do not map to the default
+194 | |     value as specified in `compat_args`
+195 | |
+196 | |     See Also
+197 | |     --------
+198 | |     validate_args : Purely args validation.
+199 | |     validate_kwargs : Purely kwargs validation.
+200 | |
+201 | |     """
+    | |_______^
+202 |       # Check that the total number of arguments passed in (i.e.
+203 |       # args and kwargs) does not exceed the length of compat_args
+    |
+
+TRY003 Avoid specifying long messages outside the exception class
+   --> pandas/util/_validators.py:214:19
+    |
+212 |       for key in args_dict:
+213 |           if key in kwargs:
+214 |               raise TypeError(
+    |  ___________________^
+215 | |                 f"{fname}() got multiple values for keyword argument '{key}'",
+216 | |             )
+    | |_____________^
+217 |
+218 |       kwargs.update(args_dict)
+    |
+
+EM102 Exception must not use an f-string literal, assign to variable first
+   --> pandas/util/_validators.py:215:17
+    |
+213 |         if key in kwargs:
+214 |             raise TypeError(
+215 |                 f"{fname}() got multiple values for keyword argument '{key}'",
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+216 |             )
+    |
+help: Assign to variable; remove f-string literal
+
+FBT001 Boolean-typed positional argument in function definition
+   --> pandas/util/_validators.py:225:5
+    |
+223 |     value: BoolishNoneT,
+224 |     arg_name: str,
+225 |     none_allowed: bool = True,
+    |     ^^^^^^^^^^^^
+226 |     int_allowed: bool = False,
+227 | ) -> BoolishNoneT:
+    |
+
+FBT002 Boolean default positional argument in function definition
+   --> pandas/util/_validators.py:225:5
+    |
+223 |     value: BoolishNoneT,
+224 |     arg_name: str,
+225 |     none_allowed: bool = True,
+    |     ^^^^^^^^^^^^
+226 |     int_allowed: bool = False,
+227 | ) -> BoolishNoneT:
+    |
+
+FBT001 Boolean-typed positional argument in function definition
+   --> pandas/util/_validators.py:226:5
+    |
+224 |     arg_name: str,
+225 |     none_allowed: bool = True,
+226 |     int_allowed: bool = False,
+    |     ^^^^^^^^^^^
+227 | ) -> BoolishNoneT:
+228 |     """Ensure that argument passed in arg_name can be interpreted as boolean.
+    |
+
+FBT002 Boolean default positional argument in function definition
+   --> pandas/util/_validators.py:226:5
+    |
+224 |     arg_name: str,
+225 |     none_allowed: bool = True,
+226 |     int_allowed: bool = False,
+    |     ^^^^^^^^^^^
+227 | ) -> BoolishNoneT:
+228 |     """Ensure that argument passed in arg_name can be interpreted as boolean.
+    |
+
+TRY003 Avoid specifying long messages outside the exception class
+   --> pandas/util/_validators.py:260:15
+    |
+259 |       if not good_value:
+260 |           raise ValueError(
+    |  _______________^
+261 | |             f'For argument "{arg_name}" expected type bool, received '
+262 | |             f"type {type(value).__name__}.",
+263 | |         )
+    | |_________^
+264 |       return value
+    |
+
+EM102 Exception must not use an f-string literal, assign to variable first
+   --> pandas/util/_validators.py:261:13
+    |
+259 |       if not good_value:
+260 |           raise ValueError(
+261 | /             f'For argument "{arg_name}" expected type bool, received '
+262 | |             f"type {type(value).__name__}.",
+    | |___________________________________________^
+263 |           )
+264 |       return value
+    |
+help: Assign to variable; remove f-string literal
+
+ANN202 Missing return type annotation for private function `validate_na_arg`
+   --> pandas/util/_validators.py:267:5
+    |
+267 | def validate_na_arg(value, name: str):
+    |     ^^^^^^^^^^^^^^^
+268 |     """Validate na arguments.
+    |
+help: Add return type annotation: `None`
+
+ANN001 Missing type annotation for function argument `value`
+   --> pandas/util/_validators.py:267:21
+    |
+267 | def validate_na_arg(value, name: str):
+    |                     ^^^^^
+268 |     """Validate na arguments.
+    |
+
+TRY003 Avoid specifying long messages outside the exception class
+   --> pandas/util/_validators.py:292:11
+    |
+290 |     ):
+291 |         return
+292 |     raise ValueError(f"{name} must be None, pd.NA, np.nan, True, or False; got {value}")
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+
+EM102 Exception must not use an f-string literal, assign to variable first
+   --> pandas/util/_validators.py:292:22
+    |
+290 |     ):
+291 |         return
+292 |     raise ValueError(f"{name} must be None, pd.NA, np.nan, True, or False; got {value}")
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: Assign to variable; remove f-string literal
+
+ANN202 Missing return type annotation for private function `validate_fillna_kwargs`
+   --> pandas/util/_validators.py:295:5
+    |
+295 | def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
+    |     ^^^^^^^^^^^^^^^^^^^^^^
+296 |     """Validate the keyword arguments to 'fillna'.
+    |
+help: Add return type annotation
+
+ANN001 Missing type annotation for function argument `value`
+   --> pandas/util/_validators.py:295:28
+    |
+295 | def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
+    |                            ^^^^^
+296 |     """Validate the keyword arguments to 'fillna'.
+    |
+
+ANN001 Missing type annotation for function argument `method`
+   --> pandas/util/_validators.py:295:35
+    |
+295 | def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
+    |                                   ^^^^^^
+296 |     """Validate the keyword arguments to 'fillna'.
+    |
+
+FBT001 Boolean-typed positional argument in function definition
+   --> pandas/util/_validators.py:295:43
+    |
+295 | def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
+    |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+296 |     """Validate the keyword arguments to 'fillna'.
+    |
+
+FBT002 Boolean default positional argument in function definition
+   --> pandas/util/_validators.py:295:43
+    |
+295 | def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
+    |                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+296 |     """Validate the keyword arguments to 'fillna'.
+    |
+
+PLC0415 `import` should be at the top-level of a file
+   --> pandas/util/_validators.py:314:5
+    |
+313 |     """
+314 |     from pandas.core.missing import clean_fill_method
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+315 |
+316 |     if value is None and method is None:
+    |
+
+TRY003 Avoid specifying long messages outside the exception class
+   --> pandas/util/_validators.py:317:15
+    |
+316 |     if value is None and method is None:
+317 |         raise ValueError("Must specify a fill 'value' or 'method'.")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+318 |     if value is None and method is not None:
+319 |         method = clean_fill_method(method)
+    |
+
+EM101 Exception must not use a string literal, assign to variable first
+   --> pandas/util/_validators.py:317:26
+    |
+316 |     if value is None and method is None:
+317 |         raise ValueError("Must specify a fill 'value' or 'method'.")
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+318 |     if value is None and method is not None:
+319 |         method = clean_fill_method(method)
+    |
+help: Assign to variable; remove string literal
+
+TRY003 Avoid specifying long messages outside the exception class
+   --> pandas/util/_validators.py:323:19
+    |
+321 |       elif value is not None and method is None:
+322 |           if validate_scalar_dict_value and isinstance(value, (list, tuple)):
+323 |               raise TypeError(
+    |  ___________________^
+324 | |                 '"value" parameter must be a scalar or dict, but '
+325 | |                 f'you passed a "{type(value).__name__}"',
+326 | |             )
+    | |_____________^
+327 |
+328 |       elif value is not None and method is not None:
+    |
+
+EM102 Exception must not use an f-string literal, assign to variable first
+   --> pandas/util/_validators.py:324:17
+    |
+322 |           if validate_scalar_dict_value and isinstance(value, (list, tuple)):
+323 |               raise TypeError(
+324 | /                 '"value" parameter must be a scalar or dict, but '
+325 | |                 f'you passed a "{type(value).__name__}"',
+    | |________________________________________________________^
+326 |               )
+    |
+help: Assign to variable; remove f-string literal
+
+TRY003 Avoid specifying long messages outside the exception class
+   --> pandas/util/_validators.py:329:15
+    |
+328 |     elif value is not None and method is not None:
+329 |         raise ValueError("Cannot specify both 'value' and 'method'.")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+330 |
+331 |     return value, method
+    |
+
+EM101 Exception must not use a string literal, assign to variable first
+   --> pandas/util/_validators.py:329:26
+    |
+328 |     elif value is not None and method is not None:
+329 |         raise ValueError("Cannot specify both 'value' and 'method'.")
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+330 |
+331 |     return value, method
+    |
+help: Assign to variable; remove string literal
+
+FBT001 Boolean-typed positional argument in function definition
+   --> pandas/util/_validators.py:376:5
+    |
+375 | def validate_ascending(
+376 |     ascending: bool | int | Sequence[BoolishT],
+    |     ^^^^^^^^^
+377 | ) -> bool | int | list[BoolishT]:
+378 |     """Validate ``ascending`` kwargs for ``sort_index`` method."""
+    |
+
+D417 Missing argument description in the docstring for `validate_endpoints`: `closed`
+   --> pandas/util/_validators.py:386:5
+    |
+386 | def validate_endpoints(closed: str | None) -> tuple[bool, bool]:
+    |     ^^^^^^^^^^^^^^^^^^
+387 |     """Check that the `closed` argument is among [None, "left", "right"]
+    |
+
+D400 First line should end with a period
+   --> pandas/util/_validators.py:387:5
+    |
+386 |   def validate_endpoints(closed: str | None) -> tuple[bool, bool]:
+387 | /     """Check that the `closed` argument is among [None, "left", "right"]
+388 | |
+389 | |     Parameters
+390 | |     ----------
+391 | |     closed : {None, "left", "right"}
+392 | |
+393 | |     Returns
+394 | |     -------
+395 | |     left_closed : bool
+396 | |     right_closed : bool
+397 | |
+398 | |     Raises
+399 | |     ------
+400 | |     ValueError : if argument is not among valid values
+401 | |
+402 | |     """
+    | |_______^
+403 |       left_closed = False
+404 |       right_closed = False
+    |
+help: Add period
+
+D415 First line should end with a period, question mark, or exclamation point
+   --> pandas/util/_validators.py:387:5
+    |
+386 |   def validate_endpoints(closed: str | None) -> tuple[bool, bool]:
+387 | /     """Check that the `closed` argument is among [None, "left", "right"]
+388 | |
+389 | |     Parameters
+390 | |     ----------
+391 | |     closed : {None, "left", "right"}
+392 | |
+393 | |     Returns
+394 | |     -------
+395 | |     left_closed : bool
+396 | |     right_closed : bool
+397 | |
+398 | |     Raises
+399 | |     ------
+400 | |     ValueError : if argument is not among valid values
+401 | |
+402 | |     """
+    | |_______^
+403 |       left_closed = False
+404 |       right_closed = False
+    |
+help: Add closing punctuation
+
+TRY003 Avoid specifying long messages outside the exception class
+   --> pandas/util/_validators.py:414:15
+    |
+412 |         right_closed = True
+413 |     else:
+414 |         raise ValueError("Closed has to be either 'left', 'right' or None")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+415 |
+416 |     return left_closed, right_closed
+    |
+
+EM101 Exception must not use a string literal, assign to variable first
+   --> pandas/util/_validators.py:414:26
+    |
+412 |         right_closed = True
+413 |     else:
+414 |         raise ValueError("Closed has to be either 'left', 'right' or None")
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+415 |
+416 |     return left_closed, right_closed
+    |
+help: Assign to variable; remove string literal
+
+D417 Missing argument description in the docstring for `validate_inclusive`: `inclusive`
+   --> pandas/util/_validators.py:419:5
+    |
+419 | def validate_inclusive(inclusive: str | None) -> tuple[bool, bool]:
+    |     ^^^^^^^^^^^^^^^^^^
+420 |     """Check that the `inclusive` argument is among {"both", "neither", "left", "right"}.
+    |
+
+TRY003 Avoid specifying long messages outside the exception class
+   --> pandas/util/_validators.py:446:15
+    |
+445 |       if left_right_inclusive is None:
+446 |           raise ValueError(
+    |  _______________^
+447 | |             "Inclusive has to be either 'both', 'neither', 'left' or 'right'",
+448 | |         )
+    | |_________^
+449 |
+450 |       return left_right_inclusive
+    |
+
+EM101 Exception must not use a string literal, assign to variable first
+   --> pandas/util/_validators.py:447:13
+    |
+445 |     if left_right_inclusive is None:
+446 |         raise ValueError(
+447 |             "Inclusive has to be either 'both', 'neither', 'left' or 'right'",
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+448 |         )
+    |
+help: Assign to variable; remove string literal
+
+TRY003 Avoid specifying long messages outside the exception class
+   --> pandas/util/_validators.py:461:15
+    |
+459 |     """
+460 |     if not is_integer(loc):
+461 |         raise TypeError(f"loc must be an integer between -{length} and {length}")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+462 |
+463 |     if loc < 0:
+    |
+
+EM102 Exception must not use an f-string literal, assign to variable first
+   --> pandas/util/_validators.py:461:25
+    |
+459 |     """
+460 |     if not is_integer(loc):
+461 |         raise TypeError(f"loc must be an integer between -{length} and {length}")
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+462 |
+463 |     if loc < 0:
+    |
+help: Assign to variable; remove f-string literal
+
+TRY003 Avoid specifying long messages outside the exception class
+   --> pandas/util/_validators.py:466:15
+    |
+464 |         loc += length
+465 |     if not 0 <= loc <= length:
+466 |         raise IndexError(f"loc must be an integer between -{length} and {length}")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+467 |     return loc  # pyright: ignore[reportReturnType]
+    |
+
+EM102 Exception must not use an f-string literal, assign to variable first
+   --> pandas/util/_validators.py:466:26
+    |
+464 |         loc += length
+465 |     if not 0 <= loc <= length:
+466 |         raise IndexError(f"loc must be an integer between -{length} and {length}")
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+467 |     return loc  # pyright: ignore[reportReturnType]
+    |
+help: Assign to variable; remove f-string literal
+
+ANN001 Missing type annotation for function argument `dtype_backend`
+   --> pandas/util/_validators.py:470:25
+    |
+470 | def check_dtype_backend(dtype_backend) -> None:
+    |                         ^^^^^^^^^^^^^
+471 |     if dtype_backend is not lib.no_default:
+472 |         if dtype_backend not in ["numpy_nullable", "pyarrow"]:
+    |
+
+SIM102 Use a single `if` statement instead of nested `if` statements
+   --> pandas/util/_validators.py:471:5
+    |
+470 |   def check_dtype_backend(dtype_backend) -> None:
+471 | /     if dtype_backend is not lib.no_default:
+472 | |         if dtype_backend not in ["numpy_nullable", "pyarrow"]:
+    | |______________________________________________________________^
+473 |               raise ValueError(
+474 |                   f"dtype_backend {dtype_backend} is invalid, only 'numpy_nullable' and "
+    |
+help: Combine `if` statements using `and`
+
+TRY003 Avoid specifying long messages outside the exception class
+   --> pandas/util/_validators.py:473:19
+    |
+471 |       if dtype_backend is not lib.no_default:
+472 |           if dtype_backend not in ["numpy_nullable", "pyarrow"]:
+473 |               raise ValueError(
+    |  ___________________^
+474 | |                 f"dtype_backend {dtype_backend} is invalid, only 'numpy_nullable' and "
+475 | |                 f"'pyarrow' are allowed.",
+476 | |             )
+    | |_____________^
+    |
+
+EM102 Exception must not use an f-string literal, assign to variable first
+   --> pandas/util/_validators.py:474:17
+    |
+472 |           if dtype_backend not in ["numpy_nullable", "pyarrow"]:
+473 |               raise ValueError(
+474 | /                 f"dtype_backend {dtype_backend} is invalid, only 'numpy_nullable' and "
+475 | |                 f"'pyarrow' are allowed.",
+    | |_________________________________________^
+476 |               )
+    |
+help: Assign to variable; remove f-string literal
+
+Found 120 errors (32 fixed, 88 remaining).
+No fixes available (21 hidden fixes can be enabled with the `--unsafe-fixes` option).

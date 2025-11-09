@@ -1,5 +1,4 @@
-"""
-Module that contains many useful utilities
+"""Module that contains many useful utilities
 for validating data or function arguments
 """
 
@@ -18,19 +17,18 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.missing import NA
-
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer,
 )
+from pandas.core.missing import clean_fill_method
 
 BoolishT = TypeVar("BoolishT", bool, int)
 BoolishNoneT = TypeVar("BoolishNoneT", bool, int, None)
 
 
 def _check_arg_length(fname, args, max_fname_arg_count, compat_args) -> None:
-    """
-    Checks whether 'args' has length of at most 'compat_args'. Raises
+    """Checks whether 'args' has length of at most 'compat_args'. Raises
     a TypeError if that is not the case, similar to in Python when a
     function is called with too many arguments.
     """
@@ -44,13 +42,12 @@ def _check_arg_length(fname, args, max_fname_arg_count, compat_args) -> None:
 
         raise TypeError(
             f"{fname}() takes at most {max_arg_count} {argument} "
-            f"({actual_arg_count} given)"
+            f"({actual_arg_count} given)",
         )
 
 
 def _check_for_default_values(fname, arg_val_dict, compat_args) -> None:
-    """
-    Check that the keys in `arg_val_dict` are mapped to their
+    """Check that the keys in `arg_val_dict` are mapped to their
     default values as specified in `compat_args`.
 
     Note that this function is to be called only when it has been
@@ -82,13 +79,12 @@ def _check_for_default_values(fname, arg_val_dict, compat_args) -> None:
         if not match:
             raise ValueError(
                 f"the '{key}' parameter is not supported in "
-                f"the pandas implementation of {fname}()"
+                f"the pandas implementation of {fname}()",
             )
 
 
 def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
-    """
-    Checks whether the length of the `*args` argument passed into a function
+    """Checks whether the length of the `*args` argument passed into a function
     has at most `len(compat_args)` arguments and whether or not all of these
     elements in `args` are set to their default values.
 
@@ -117,6 +113,7 @@ def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
     ValueError
         If `args` contains values that do not correspond to those
         of the default values specified in `compat_args`
+
     """
     _check_arg_length(fname, args, max_fname_arg_count, compat_args)
 
@@ -128,8 +125,7 @@ def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
 
 
 def _check_for_invalid_keys(fname, kwargs, compat_args) -> None:
-    """
-    Checks whether 'kwargs' contains any keys that are not
+    """Checks whether 'kwargs' contains any keys that are not
     in 'compat_args' and raises a TypeError if there is one.
     """
     # set(dict) --> set of the dictionary's keys
@@ -141,8 +137,7 @@ def _check_for_invalid_keys(fname, kwargs, compat_args) -> None:
 
 
 def validate_kwargs(fname, kwargs, compat_args) -> None:
-    """
-    Checks whether parameters passed to the **kwargs argument in a
+    """Checks whether parameters passed to the **kwargs argument in a
     function `fname` are valid parameters as specified in `*compat_args`
     and whether or not they are set to their default values.
 
@@ -161,6 +156,7 @@ def validate_kwargs(fname, kwargs, compat_args) -> None:
     TypeError if `kwargs` contains keys not in `compat_args`
     ValueError if `kwargs` contains keys in `compat_args` that do not
     map to the default values specified in `compat_args`
+
     """
     kwds = kwargs.copy()
     _check_for_invalid_keys(fname, kwargs, compat_args)
@@ -168,10 +164,9 @@ def validate_kwargs(fname, kwargs, compat_args) -> None:
 
 
 def validate_args_and_kwargs(
-    fname, args, kwargs, max_fname_arg_count, compat_args
+    fname, args, kwargs, max_fname_arg_count, compat_args,
 ) -> None:
-    """
-    Checks whether parameters passed to the *args and **kwargs argument in a
+    """Checks whether parameters passed to the *args and **kwargs argument in a
     function `fname` are valid parameters as specified in `*compat_args`
     and whether or not they are set to their default values.
 
@@ -208,7 +203,7 @@ def validate_args_and_kwargs(
     # Check that the total number of arguments passed in (i.e.
     # args and kwargs) does not exceed the length of compat_args
     _check_arg_length(
-        fname, args + tuple(kwargs.values()), max_fname_arg_count, compat_args
+        fname, args + tuple(kwargs.values()), max_fname_arg_count, compat_args,
     )
 
     # Check there is no overlap with the positional and keyword
@@ -218,7 +213,7 @@ def validate_args_and_kwargs(
     for key in args_dict:
         if key in kwargs:
             raise TypeError(
-                f"{fname}() got multiple values for keyword argument '{key}'"
+                f"{fname}() got multiple values for keyword argument '{key}'",
             )
 
     kwargs.update(args_dict)
@@ -231,8 +226,7 @@ def validate_bool_kwarg(
     none_allowed: bool = True,
     int_allowed: bool = False,
 ) -> BoolishNoneT:
-    """
-    Ensure that argument passed in arg_name can be interpreted as boolean.
+    """Ensure that argument passed in arg_name can be interpreted as boolean.
 
     Parameters
     ----------
@@ -254,6 +248,7 @@ def validate_bool_kwarg(
     ------
     ValueError
         If the value is not a valid boolean.
+
     """
     good_value = is_bool(value)
     if none_allowed:
@@ -265,14 +260,13 @@ def validate_bool_kwarg(
     if not good_value:
         raise ValueError(
             f'For argument "{arg_name}" expected type bool, received '
-            f"type {type(value).__name__}."
+            f"type {type(value).__name__}.",
         )
     return value
 
 
 def validate_na_arg(value, name: str):
-    """
-    Validate na arguments.
+    """Validate na arguments.
 
     Parameters
     ----------
@@ -282,9 +276,11 @@ def validate_na_arg(value, name: str):
         Name of the argument, used to raise an informative error message.
 
     Raises
+    ------
     ______
     ValueError
         When ``value`` is determined to be invalid.
+
     """
     if (
         value is lib.no_default
@@ -298,8 +294,7 @@ def validate_na_arg(value, name: str):
 
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
-    """
-    Validate the keyword arguments to 'fillna'.
+    """Validate the keyword arguments to 'fillna'.
 
     This checks that exactly one of 'value' and 'method' is specified.
     If 'method' is specified, this validates that it's a valid method.
@@ -315,9 +310,8 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = Tru
     Returns
     -------
     value, method : object
-    """
-    from pandas.core.missing import clean_fill_method
 
+    """
     if value is None and method is None:
         raise ValueError("Must specify a fill 'value' or 'method'.")
     if value is None and method is not None:
@@ -327,7 +321,7 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = Tru
         if validate_scalar_dict_value and isinstance(value, (list, tuple)):
             raise TypeError(
                 '"value" parameter must be a scalar or dict, but '
-                f'you passed a "{type(value).__name__}"'
+                f'you passed a "{type(value).__name__}"',
             )
 
     elif value is not None and method is not None:
@@ -337,8 +331,7 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = Tru
 
 
 def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
-    """
-    Validate percentiles (used by describe and quantile).
+    """Validate percentiles (used by describe and quantile).
 
     This function checks if the given float or iterable of floats is a valid percentile
     otherwise raises a ValueError.
@@ -356,6 +349,7 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     Raises
     ------
     ValueError if percentiles are not in given interval([0, 1]).
+
     """
     q_arr = np.asarray(q)
     # Don't change this to an f-string. The string formatting
@@ -389,8 +383,7 @@ def validate_ascending(
 
 
 def validate_endpoints(closed: str | None) -> tuple[bool, bool]:
-    """
-    Check that the `closed` argument is among [None, "left", "right"]
+    """Check that the `closed` argument is among [None, "left", "right"]
 
     Parameters
     ----------
@@ -404,6 +397,7 @@ def validate_endpoints(closed: str | None) -> tuple[bool, bool]:
     Raises
     ------
     ValueError : if argument is not among valid values
+
     """
     left_closed = False
     right_closed = False
@@ -422,8 +416,7 @@ def validate_endpoints(closed: str | None) -> tuple[bool, bool]:
 
 
 def validate_inclusive(inclusive: str | None) -> tuple[bool, bool]:
-    """
-    Check that the `inclusive` argument is among {"both", "neither", "left", "right"}.
+    """Check that the `inclusive` argument is among {"both", "neither", "left", "right"}.
 
     Parameters
     ----------
@@ -436,6 +429,7 @@ def validate_inclusive(inclusive: str | None) -> tuple[bool, bool]:
     Raises
     ------
     ValueError : if argument is not among valid values
+
     """
     left_right_inclusive: tuple[bool, bool] | None = None
 
@@ -449,15 +443,14 @@ def validate_inclusive(inclusive: str | None) -> tuple[bool, bool]:
 
     if left_right_inclusive is None:
         raise ValueError(
-            "Inclusive has to be either 'both', 'neither', 'left' or 'right'"
+            "Inclusive has to be either 'both', 'neither', 'left' or 'right'",
         )
 
     return left_right_inclusive
 
 
 def validate_insert_loc(loc: int, length: int) -> int:
-    """
-    Check that we have an integer between -length and length, inclusive.
+    """Check that we have an integer between -length and length, inclusive.
 
     Standardize negative loc to within [0, length].
 
