@@ -650,8 +650,7 @@ class TestArrowArray(base.ExtensionTests):
     def test_get_common_dtype(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
         if (
-            pa.types.is_date(pa_dtype)
-            or pa.types.is_time(pa_dtype)
+            pa.types.is_time(pa_dtype)
             or (pa.types.is_timestamp(pa_dtype) and pa_dtype.tz is not None)
             or pa.types.is_binary(pa_dtype)
             or pa.types.is_decimal(pa_dtype)
