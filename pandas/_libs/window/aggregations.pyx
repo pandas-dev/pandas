@@ -332,19 +332,13 @@ cdef float64_t calc_var(
     int ddof,
     float64_t nobs,
     float64_t ssqdm_x,
-    int64_t num_consecutive_same_value
 ) noexcept nogil:
     cdef:
         float64_t result
 
     # Variance is unchanged if no observation is added or removed
     if (nobs >= minp) and (nobs > ddof):
-
-        # pathological case & repeatedly same values case
-        if nobs == 1 or num_consecutive_same_value >= nobs:
-            result = 0
-        else:
-            result = ssqdm_x / (nobs - <float64_t>ddof)
+        result = ssqdm_x / (nobs - <float64_t>ddof)
     else:
         result = NaN
 
@@ -357,8 +351,6 @@ cdef void add_var(
     float64_t *mean_x,
     float64_t *ssqdm_x,
     float64_t *compensation,
-    int64_t *num_consecutive_same_value,
-    float64_t *prev_value,
     bint *numerically_unstable,
 ) noexcept nogil:
     """ add a value from the var calc """
@@ -371,14 +363,6 @@ cdef void add_var(
         return
 
     nobs[0] = nobs[0] + 1
-
-    # GH#42064, record num of same values to remove floating point artifacts
-    if val == prev_value[0]:
-        num_consecutive_same_value[0] += 1
-    else:
-        # reset to 1 (include current value itself)
-        num_consecutive_same_value[0] = 1
-    prev_value[0] = val
 
     # Welford's method for the online variance-calculation
     # using Kahan summation
@@ -441,8 +425,8 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
     """
     cdef:
         float64_t mean_x, ssqdm_x, nobs, compensation_add,
-        float64_t compensation_remove, prev_value
-        int64_t s, e, num_consecutive_same_value
+        float64_t compensation_remove
+        int64_t s, e
         Py_ssize_t i, j, N = len(start)
         ndarray[float64_t] output
         bint is_monotonic_increasing_bounds
@@ -481,22 +465,17 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
                 # calculate adds
                 for j in range(end[i - 1], e):
                     add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
-                            &num_consecutive_same_value, &prev_value,
                             &numerically_unstable)
 
             if requires_recompute or numerically_unstable:
 
-                prev_value = values[s]
-                num_consecutive_same_value = 0
-
                 mean_x = ssqdm_x = nobs = compensation_add = compensation_remove = 0
                 for j in range(s, e):
                     add_var(values[j], &nobs, &mean_x, &ssqdm_x, &compensation_add,
-                            &num_consecutive_same_value, &prev_value,
                             &numerically_unstable)
                 numerically_unstable = False
 
-            output[i] = calc_var(minp, ddof, nobs, ssqdm_x, num_consecutive_same_value)
+            output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0.0
