@@ -1423,6 +1423,9 @@ def interval_range(
                 isinstance(start, (float, np.float16))
                 or isinstance(end, (float, np.float16))
                 or isinstance(freq, (float, np.float16))
+                or isinstance(start, (float, np.float32))
+                or isinstance(end, (float, np.float32))
+                or isinstance(freq, (float, np.float32))
             ):
                 dtype = np.dtype("float64")
             elif (
