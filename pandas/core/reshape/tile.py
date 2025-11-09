@@ -324,6 +324,11 @@ def qcut(
         The precision at which to store and display the bins labels.
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
+    right : bool, default True
+        Indicates whether `bins` includes the rightmost edge or not. If
+        ``right == True`` (the default), then the `bins` ``[1, 2, 3, 4]``
+        indicate (1,2], (2,3], (3,4]. This argument is ignored when
+        `bins` is an IntervalIndex.
 
     Returns
     -------
