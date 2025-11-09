@@ -225,7 +225,7 @@ class TestIntervalRange:
         [
             (np.int8(1), np.int8(10), np.dtype("int8")),
             (np.int8(1), np.float16(10), np.dtype("float64")),
-            (np.float32(1), np.float32(10), np.dtype("float32")),
+            (np.float32(1), np.float32(10), np.dtype("float64")),
             (1, 10, np.dtype("int64")),
             (1, 10.0, np.dtype("float64")),
         ],
@@ -380,3 +380,13 @@ class TestIntervalRange:
         result = interval_range(0, 1, freq=0.6)
         expected = IntervalIndex.from_breaks([0, 0.6])
         tm.assert_index_equal(result, expected)
+
+    def test_interval_range_float32_start_int_freq(self):
+        # GH 58964
+        from pandas.testing import assert_index_equal
+
+        result = interval_range(start=np.float32(0), end=2, freq=1)
+        expected = IntervalIndex.from_tuples(
+            [(0.0, 1.0), (1.0, 2.0)], dtype="interval[float64, right]"
+        )
+        assert_index_equal(result, expected)
