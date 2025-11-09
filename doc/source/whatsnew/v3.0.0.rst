@@ -1132,6 +1132,7 @@ Interval
 
 Indexing
 ^^^^^^^^
+- Bug in :func:`pandas.concat` incorrectly constructing the :class:`MultiIndex` when an inner level contained :obj:`pandas.NA` with :class:`pandas.Int64Dtype`, causing a :exc:`KeyError` on lookup (:issue:`62903`)
 - Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)
 - Bug in :meth:`DataFrame.__getitem__` when slicing a :class:`DataFrame` with many rows raised an ``OverflowError`` (:issue:`59531`)
 - Bug in :meth:`DataFrame.__setitem__` on an empty :class:`DataFrame` with a tuple corrupting the frame (:issue:`54385`)

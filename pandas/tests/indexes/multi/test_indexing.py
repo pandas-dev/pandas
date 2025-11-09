@@ -710,6 +710,14 @@ class TestGetLoc:
         idx = MultiIndex.from_product(levels)
         assert idx.get_loc(tuple(key)) == 3
 
+    def test_multiindex_at_lookup_with_na_key(self):
+        index = MultiIndex(levels=[[1, 2], [2, pd.NA]], codes=[[0, 1], [0, 1]])
+        df = DataFrame({"a": [1, 2]}, index=index)
+        result = df.at[(2, pd.NA), "a"]
+        assert result == 2
+        loc_result = df.loc[(2, pd.NA), "a"]
+        assert loc_result == 2
+
     def test_get_loc_missing_nan(self):
         # GH 8569
         idx = MultiIndex.from_arrays([[1.0, 2.0], [3.0, 4.0]])
