@@ -343,24 +343,24 @@ def test_from_arrays_respects_none_names():
 
     tm.assert_index_equal(result, expected)
 
+
 def test_concat_int64dtype_na_multiindex_lookup():
-    levels1 = ['a', 'b']
-    levels2 = pd.Series([1, 2, pd.NA], dtype=pd.Int64Dtype())
-    index1 = MultiIndex.from_product([levels1, levels2], names=['one', 'two'])
-    series1 = pd.Series([f'{i1}-{i2}' for i1, i2 in index1], index=index1)
+    levels1 = ["a", "b"]
+    levels2 = Series([1, 2, pd.NA], dtype=pd.Int64Dtype())
+    index1 = MultiIndex.from_product([levels1, levels2], names=["one", "two"])
+    series1 = Series([f"{i1}-{i2}" for i1, i2 in index1], index=index1)
     series2 = pd.concat(
-        [series1.loc[i1] for i1 in levels1], 
-        keys=levels1, 
-        names=['one']
+        [series1.loc[i1] for i1 in levels1], keys=levels1, names=["one"]
     )
-    lookup_key = ('a', pd.NA) 
+    lookup_key = ("a", pd.NA)
     result = series2.at[lookup_key]
-    assert result == 'a-<NA>'
+    assert result == "a-<NA>"
     level_two = series2.index.levels[1]
     codes_two = series2.index.codes[1]
     assert level_two.hasnans is False
     assert codes_two[2] == -1
     assert codes_two[5] == -1
+
 
 # ----------------------------------------------------------------------------
 # from_tuples
