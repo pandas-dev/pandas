@@ -289,9 +289,9 @@ def validate_na_arg(value, name: str):
         or value is NA
         or (lib.is_float(value) and np.isnan(value))
     ):
-        return
-    raise ValueError(f"{name} must be None, pd.NA, np.nan, True, or False; got {value}")
-
+         return
+    msg = f"{name} must be None, pd.NA, np.nan, True, or False; got {value}"
+    raise ValueError(msg)
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
     """Validate the keyword arguments to 'fillna'.
