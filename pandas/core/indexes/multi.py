@@ -3325,6 +3325,12 @@ class MultiIndex(Index):
             try:
                 return self._engine.get_loc(key)
             except KeyError as err:
+                if any(isna(k) for k in key):
+                    loc, _ = self.get_loc_level(
+                        key, range(self.nlevels), drop_level=False
+                    )
+                    if lib.is_integer(loc):
+                        return loc
                 raise KeyError(key) from err
             except TypeError:
                 # e.g. test_partial_slicing_with_multiindex partial string slicing
