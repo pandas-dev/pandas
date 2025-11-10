@@ -935,6 +935,6 @@ class TestNestedToRecord:
         data_list = [{"a": 1, 12: "meta_value", "nested": [{"b": 2}]}]
 
         result = json_normalize(data_list, record_path=["nested"], meta=[12])
-        expected = DataFrame({"b": [2], 12: ["meta_value"]})
+        expected = DataFrame({"b": [2], "12": ["meta_value"]})
 
         tm.assert_frame_equal(result, expected)
