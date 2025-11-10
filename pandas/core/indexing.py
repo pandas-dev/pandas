@@ -1126,14 +1126,6 @@ class _LocationIndexer(NDFrameIndexerBase):
         # we have a nested tuple so have at least 1 multi-index level
         # we should be able to match up the dimensionality here
 
-        def _contains_slice(x: object) -> bool:
-            # Check if object is a slice or a tuple containing a slice
-            if isinstance(x, tuple):
-                return any(isinstance(v, slice) for v in x)
-            elif isinstance(x, slice):
-                return True
-            return False
-
         for key in tup:
             check_dict_or_set_indexers(key)
 
