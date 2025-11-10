@@ -474,8 +474,6 @@ def read_sql_query(
     dtype : Type name or dict of columns
         Data type for data or columns. E.g. np.float64 or
         {'a': np.float64, 'b': np.int32, 'c': 'Int64'}.
-
-        .. versionadded:: 1.3.0
     dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). If not specified, the default behavior
@@ -834,8 +832,6 @@ def to_sql(
         ``io.sql.engine`` is used. The default ``io.sql.engine``
         behavior is 'sqlalchemy'
 
-        .. versionadded:: 1.3.0
-
     **engine_kwargs
         Any additional kwargs are passed to the engine.
 
@@ -844,8 +840,6 @@ def to_sql(
     None or int
         Number of rows affected by to_sql. None is returned if the callable
         passed into ``method`` does not return an integer number of rows.
-
-        .. versionadded:: 1.4.0
 
     Notes
     -----
@@ -1840,6 +1834,47 @@ class SQLDatabase(PandasSQL):
     ) -> DataFrame | Iterator[DataFrame]:
         """
         Read SQL query into a DataFrame.
+
+        Parameters
+        ----------
+        sql : str
+            SQL query to be executed.
+        index_col : string, optional, default: None
+            Column name to use as index for the returned DataFrame object.
+        coerce_float : bool, default True
+            Attempt to convert values of non-string, non-numeric objects (like
+            decimal.Decimal) to floating point, useful for SQL result sets.
+        params : list, tuple or dict, optional, default: None
+            List of parameters to pass to execute method.  The syntax used
+            to pass parameters is database driver dependent. Check your
+            database driver documentation for which of the five syntax styles,
+            described in PEP 249's paramstyle, is supported.
+            Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
+        parse_dates : list or dict, default: None
+            - List of column names to parse as dates.
+            - Dict of ``{column_name: format string}`` where format string is
+              strftime compatible in case of parsing string times, or is one of
+              (D, s, ns, ms, us) in case of parsing integer timestamps.
+            - Dict of ``{column_name: arg dict}``, where the arg dict
+              corresponds to the keyword arguments of
+              :func:`pandas.to_datetime` Especially useful with databases
+              without native Datetime support, such as SQLite.
+        chunksize : int, default None
+            If specified, return an iterator where `chunksize` is the number
+            of rows to include in each chunk.
+        dtype : Type name or dict of columns
+            Data type for data or columns. E.g. np.float64 or
+            {'a': np.float64, 'b': np.int32, 'c': 'Int64'}
+
+        Returns
+        -------
+        DataFrame
+
+        See Also
+        --------
+        read_sql_table : Read SQL database table into a DataFrame.
+        read_sql
+
         """
         stmt = _sa_text_if_string(sql)
         result = self.execute(stmt, params)
@@ -2008,8 +2043,6 @@ class SQLDatabase(PandasSQL):
             SQL engine library to use. If 'auto', then the option
             ``io.sql.engine`` is used. The default ``io.sql.engine``
             behavior is 'sqlalchemy'
-
-            .. versionadded:: 1.3.0
 
         **engine_kwargs
             Any additional kwargs are passed to the engine.
@@ -2280,8 +2313,6 @@ class ADBCDatabase(PandasSQL):
         dtype : Type name or dict of columns
             Data type for data or columns. E.g. np.float64 or
             {'a': np.float64, 'b': np.int32, 'c': 'Int64'}
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
