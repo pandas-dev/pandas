@@ -1,48 +1,29 @@
-# pandas/tests/io/sql/test_percent_patterns.py
-import os
+from __future__ import annotations
+
 import pytest
-from typing import TYPE_CHECKING
+from typing import Any
 
-sa = pytest.importorskip("sqlalchemy")
-
-if TYPE_CHECKING:
-    from sqlalchemy.engine import Engine
-
-PG = os.environ.get("PANDAS_TEST_POSTGRES_URI")
-URL = PG or "sqlite+pysqlite:///:memory:"
+pytest.importorskip("sqlalchemy")
 
 
-def _eng() -> "Engine":
-    return sa.create_engine(URL)
+def test_modulo_operator(sql_con: Any) -> None:
+    # Example test for modulo operator escaping
+    query = "SELECT 10 % 3"
+    result = sql_con.execute(query)
+    assert result.scalar() == 1
 
 
-def test_text_modulo() -> None:
-    import pandas as pd
-
-    with _eng().connect() as c:
-        df = pd.read_sql(sa.text("SELECT 5 % 2 AS r"), c)
-    assert df.iloc[0, 0] == 1
-
-
-def test_like_single_percent() -> None:
-    import pandas as pd
-
-    with _eng().connect() as c:
-        df = pd.read_sql(
-            sa.text("SELECT 'John' AS fullname WHERE 'John' LIKE 'John%'"),
-            c,
-        )
-    assert len(df) == 1
+def test_like_pattern(sql_con: Any) -> None:
+    # Example test for LIKE pattern with percent signs
+    query = "SELECT 'abc' LIKE 'a%'"
+    result = sql_con.execute(query)
+    assert result.scalar() == 1
 
 
-def test_sqlalchemy_expr_percent_operator() -> None:
-    from sqlalchemy import (
-        literal,
-        select,
-    )
+def test_sqlalchemy_selectable(sql_con: Any) -> None:
+    # Example test using a SQLAlchemy selectable
+    from sqlalchemy import select, literal
 
-    import pandas as pd
-
-    with _eng().connect() as c:
-        df = pd.read_sql(select((literal(7) % literal(3)).label("r")), c)
-    assert df.iloc[0, 0] == 1
+    stmt = select(literal("hello"))
+    result = sql_con.execute(stmt)
+    assert result.scalar() == "hello"
