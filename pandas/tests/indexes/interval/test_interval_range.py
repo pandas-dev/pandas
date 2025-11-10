@@ -383,7 +383,6 @@ class TestIntervalRange:
 
     def test_interval_range_float32_start_int_freq(self):
         # GH 58964
-
         result = interval_range(start=np.float32(0), end=2, freq=1)
         expected = IntervalIndex.from_tuples(
             [(0.0, 1.0), (1.0, 2.0)], dtype="interval[float64, right]"
