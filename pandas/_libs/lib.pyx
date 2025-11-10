@@ -2725,6 +2725,7 @@ def maybe_convert_objects(ndarray[object] objects,
                         # e.g. test_out_of_s_bounds_datetime64
                         seen.object_ = True
                         break
+                    break
             else:
                 seen.object_ = True
                 break
