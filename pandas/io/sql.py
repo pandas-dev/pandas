@@ -98,16 +98,30 @@ if TYPE_CHECKING:
 # -- Helper functions
 
 
-def _sa_text_if_string(stmt):
-    """Wrap plain SQL strings in sqlalchemy.text()."""
+def _sa_text_if_string(stmt: Any) -> Any:
+    """
+    Wrap plain SQL strings with sqlalchemy.text() if SQLAlchemy is available.
+
+    Parameters
+    ----------
+    stmt : Any
+        The SQL statement or object.
+
+    Returns
+    -------
+    Any
+        `sqlalchemy.sql.elements.TextClause` if wrapping occurred,
+        otherwise the original statement.
+    """
     try:
-        import sqlalchemy as sa
-    except Exception:
+        import sqlalchemy as sa  # lazy import; keep SA optional
+    except ImportError:
         return stmt
     return sa.text(stmt) if isinstance(stmt, str) else stmt
 
 
 def _process_parse_dates_argument(parse_dates):
+
     """Process parse_dates argument for read_sql functions"""
     # handle non-list entries for parse_dates gracefully
     if parse_dates is True or parse_dates is None or parse_dates is False:
@@ -1826,53 +1840,9 @@ class SQLDatabase(PandasSQL):
     ) -> DataFrame | Iterator[DataFrame]:
         """
         Read SQL query into a DataFrame.
-
-        Parameters
-        ----------
-        sql : str
-            SQL query to be executed.
-        index_col : string, optional, default: None
-            Column name to use as index for the returned DataFrame object.
-        coerce_float : bool, default True
-            Attempt to convert values of non-string, non-numeric objects (like
-            decimal.Decimal) to floating point, useful for SQL result sets.
-        params : list, tuple or dict, optional, default: None
-            List of parameters to pass to execute method.  The syntax used
-            to pass parameters is database driver dependent. Check your
-            database driver documentation for which of the five syntax styles,
-            described in PEP 249's paramstyle, is supported.
-            Eg. for psycopg2, uses %(name)s so use params={'name' : 'value'}
-        parse_dates : list or dict, default: None
-            - List of column names to parse as dates.
-            - Dict of ``{column_name: format string}`` where format string is
-              strftime compatible in case of parsing string times, or is one of
-              (D, s, ns, ms, us) in case of parsing integer timestamps.
-            - Dict of ``{column_name: arg dict}``, where the arg dict
-              corresponds to the keyword arguments of
-              :func:`pandas.to_datetime` Especially useful with databases
-              without native Datetime support, such as SQLite.
-        chunksize : int, default None
-            If specified, return an iterator where `chunksize` is the number
-            of rows to include in each chunk.
-        dtype : Type name or dict of columns
-            Data type for data or columns. E.g. np.float64 or
-            {'a': np.float64, 'b': np.int32, 'c': 'Int64'}
-
-            .. versionadded:: 1.3.0
-
-        Returns
-        -------
-        DataFrame
-
-        See Also
-        --------
-        read_sql_table : Read SQL database table into a DataFrame.
-        read_sql
-
-
         """
-        sql = _sa_text_if_string(sql)
-        result = self.execute(sql, params)
+        stmt = _sa_text_if_string(sql)
+        result = self.execute(stmt, params)
         columns = result.keys()
 
         if chunksize is not None:
@@ -1900,6 +1870,7 @@ class SQLDatabase(PandasSQL):
                 dtype_backend=dtype_backend,
             )
             return frame
+
 
     read_sql = read_query
 
