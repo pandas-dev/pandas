@@ -68,7 +68,7 @@ def test_qcut_no_right():
 
     lefts = labels.categories.left.values
     assert np.allclose(lefts, ex_bins[:-1], atol=1e-2)
-    
+
     rights = labels.categories.right.values
     assert np.allclose(rights, ex_bins[1:], atol=1e-2)
 
