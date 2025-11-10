@@ -6374,7 +6374,7 @@ Using the ``update`` method by default clears the sheet and writes the dateframe
 
     sheet.update(df)
 
-The ``clear`` parameter controls wether or not the sheet is cleared before updating. The ``location`` parameter controls where the data is written.
+The ``clear`` parameter controls whether or not the sheet is cleared before updating. The ``location`` parameter controls where the data is written.
 
 .. code-block:: python
 
