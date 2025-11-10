@@ -1011,7 +1011,9 @@ class TestDatetime64Arithmetic:
 
         ser = tm.box_expected(ser, box_with_array)
 
-        delta_series = Series([np.timedelta64(0, "D"), np.timedelta64(1, "D")])
+        delta_series = Series(
+            [np.timedelta64(0, "D"), np.timedelta64(1, "D")], dtype="m8[ns]"
+        )
         expected = tm.box_expected(delta_series, box_with_array)
 
         tm.assert_equal(ser - ts, expected)

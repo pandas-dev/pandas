@@ -530,9 +530,9 @@ class TestSeriesConstructors:
         # so this WILL change values
         cat = Categorical(["a", "b", "c", "a"])
         s = Series(cat, copy=False)
-        assert s.values is cat
+        assert s._values is cat
         s = s.cat.rename_categories([1, 2, 3])
-        assert s.values is not cat
+        assert s._values is not cat
         exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
         tm.assert_numpy_array_equal(s.__array__(), exp_s)
 

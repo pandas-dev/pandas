@@ -41,16 +41,13 @@ pytestmark = [pytest.mark.single_cpu]
 tables = pytest.importorskip("tables")
 
 
-def test_context(tmp_path):
-    path1 = tmp_path / "test1.h5"
+def test_context(setup_path, tmp_path):
     try:
-        with HDFStore(path1) as tbl:
+        with HDFStore(tmp_path / setup_path) as tbl:
             raise ValueError("blah")
     except ValueError:
         pass
-
-    path2 = tmp_path / "test2.h5"
-    with HDFStore(path2) as tbl:
+    with HDFStore(tmp_path / setup_path) as tbl:
         tbl["a"] = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD"), dtype=object),
@@ -979,11 +976,10 @@ def test_copy(propindexes, temp_file):
         index=Index([f"i-{i}" for i in range(30)]),
     )
 
-    path = temp_file
-    with HDFStore(path) as st:
+    with HDFStore(temp_file) as st:
         st.append("df", df, data_columns=["A"])
     with tempfile.NamedTemporaryFile() as new_f:
-        with HDFStore(path) as store:
+        with HDFStore(temp_file) as store:
             with contextlib.closing(
                 store.copy(new_f.name, keys=None, propindexes=propindexes)
             ) as tstore:
