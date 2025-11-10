@@ -304,6 +304,9 @@ def array(
         raise ValueError(msg)
     elif isinstance(data, ABCDataFrame):
         raise TypeError("Cannot pass DataFrame to 'pandas.array'")
+    elif isinstance(data, np.ndarray):
+        if data.ndim != 1:
+            raise TypeError("values must be a 1D list-like")
 
     if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ExtensionArray)):
         # Note: we exclude np.ndarray here, will do type inference on it
