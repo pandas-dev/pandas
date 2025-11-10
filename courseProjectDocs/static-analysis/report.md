@@ -101,3 +101,51 @@ def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = Tru
 **Rationale:** Module-level imports are executed once at module load time rather than every function call, improving performance. It also makes dependencies more visible and follows PEP 8 conventions.
 
 ---
+
+
+### Fix #3: Nested If Statements (SIM102)
+**Assigned to:** Mallikarjuna  
+**Location:** Lines 471-472 in `pandas/util/_validators.py`  
+**Issue:** Unnecessary nested if statements can be combined with `and`
+
+**Before:**
+```python
+def check_dtype_backend(dtype_backend) -> None:
+    if dtype_backend is not lib.no_default:
+        if dtype_backend not in ["numpy_nullable", "pyarrow"]:
+            raise ValueError(
+                f"dtype_backend {dtype_backend} is invalid, only 'numpy_nullable' and "
+                f"'pyarrow' are allowed.",
+            )
+```
+
+**After:**
+```python
+def check_dtype_backend(dtype_backend) -> None:
+    if dtype_backend is not lib.no_default and dtype_backend not in ["numpy_nullable", "pyarrow"]:
+        raise ValueError(
+            f"dtype_backend {dtype_backend} is invalid, only 'numpy_nullable' and "
+            f"'pyarrow' are allowed.",
+        )
+```
+
+**Rationale:** Combining related conditions into a single if statement reduces nesting depth, improves readability, and makes the code more concise without losing clarity.
+
+---
+
+## Group Contributions
+
+**Sandeep Ramavath:**
+- Identified and fixed EM102 code smell (f-string in exception)
+- Refactored exception handling to use variable assignment
+- Impact: Improved exception handling best practices
+
+**Nithikesh Bobbili:**
+- Identified and fixed PLC0415 code smell (import location)
+- Moved import statement to module level
+- Impact: Better performance and code organization
+
+**Mallikarjuna:**
+- Identified and fixed SIM102 code smell (nested if statements)
+- Simplified conditional logic by combining conditions
+- Impact: Reduced code complexity and improved readability
