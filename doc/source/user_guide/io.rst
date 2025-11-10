@@ -6612,5 +6612,3 @@ The files ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the 
     24009288 Oct 10 06:43 test_fixed_compress.hdf
     24458940 Oct 10 06:44 test_table.hdf
     24458940 Oct 10 06:44 test_table_compress.hdf
-
-
