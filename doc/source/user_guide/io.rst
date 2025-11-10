@@ -6290,6 +6290,64 @@ More information about the SAV and ZSAV file formats is available here_.
 
 .. _io.other:
 
+Google Sheets(via Colab)
+--------------------------------
+
+Google Colab provides a utility class to read from and write to Google Sheets.
+
+Opening and reading from a sheet
+''''''''''''''''''''''''''''''''
+We can open existing sheets by initializing ``sheets.InteractiveSheet`` with either:
+
+* the ``url`` parameter, for example https://docs.google.com/spreadsheets/d/1MaOZNCUIe-NzhZ1aI3PgnBcs2TqNTB-AWBSNNcS15KI
+* the ``sheet_id`` parameter for example 1MaOZNCUIe-NzhZ1aI3PgnBcs2TqNTB-AWBSNNcS15KI
+
+By default the left-most worksheets will be used, this can be changed by providing either ``worksheet_id`` or ``worksheet_name``.
+
+The first time in each session that we use the ``InteractiveSheet`` method we will need to give Colab permission to edit our drive assets on our behalf.
+
+.. code-block:: python
+
+    import pandas as pd
+    from google.colab import sheets
+
+    url = "https://docs.google.com/spreadsheets/d/1MaOZNCUIe-NzhZ1aI3PgnBcs2TqNTB-AWBSNNcS15KI"
+    sheet = sheets.InteractiveSheet(url=url,backend="pandas", display=False)
+
+    df = sheet.as_df()
+
+Creating a new sheet
+''''''''''''''''''''''''''''''''''
+
+When you don't provide the source of the spreadsheet one will be created for you. The ``title`` parameter can specify the title of the spreadsheet.
+
+.. code-block:: python
+
+    sheet = sheets.InteractiveSheet(title='colab pandas',backend='pandas',display=False)
+
+Writing to a sheet
+''''''''''''''''''''''''''''''''''
+When opening a spreadsheet you can pass your dataframe as the ``df`` parameter to write immediately.
+
+.. code-block:: python
+
+    df = pd.DataFrame({"a": [1,2,3], "b": ["a", "b", "c"]})
+    sheet = sheets.InteractiveSheet(df=df, title="colab pandas", backend="pandas")
+
+Using the ``update`` method by default clears the sheet and writes the dateframe starting from the topleft corner.
+
+.. code-block:: python
+
+    sheet.update(df)
+
+The ``clear`` parameter controls whether or not the sheet is cleared before updating. The ``location`` parameter controls where the data is written.
+
+.. code-block:: python
+
+    sheet.update(df,location="B2")
+    sheet.update(df,location=(1,1))
+    sheet.update(df,clear=False)
+
 Other file formats
 ------------------
 
