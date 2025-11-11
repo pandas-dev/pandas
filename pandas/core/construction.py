@@ -304,9 +304,6 @@ def array(
         raise ValueError(msg)
     elif isinstance(data, ABCDataFrame):
         raise TypeError("Cannot pass DataFrame to 'pandas.array'")
-    elif isinstance(data, np.ndarray):
-        if data.ndim != 1:
-            raise ValueError("NumpyExtensionArray must be 1-dimensional")
 
     if dtype is None and isinstance(data, (ABCSeries, ABCIndex, ExtensionArray)):
         # Note: we exclude np.ndarray here, will do type inference on it
@@ -363,6 +360,8 @@ def array(
             # StringArray/ArrowStringArray depending on pd.options.mode.string_storage
             dtype = StringDtype()
             cls = dtype.construct_array_type()
+            if data.ndim != 1:
+                raise ValueError("NumpyExtensionArray must be 1-dimensional")
             return cls._from_sequence(data, dtype=dtype, copy=copy)
 
         elif data.dtype.kind in "iu":
