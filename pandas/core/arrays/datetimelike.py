@@ -81,8 +81,6 @@ from pandas.errors import (
     PerformanceWarning,
 )
 from pandas.util._decorators import (
-    Appender,
-    Substitution,
     cache_readonly,
 )
 from pandas.util._exceptions import find_stack_level
@@ -1774,10 +1772,6 @@ class DatelikeOps(DatetimeLikeArrayMixin):
     Common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex.
     """
 
-    @Substitution(
-        URL="https://docs.python.org/3/library/datetime.html"
-        "#strftime-and-strptime-behavior"
-    )
     def strftime(self, date_format: str) -> npt.NDArray[np.object_]:
         """
         Convert to Index using specified date_format.
@@ -1785,7 +1779,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         Return an Index of formatted strings specified by date_format, which
         supports the same string format as the python standard library. Details
         of the string format can be found in `python string format
-        doc <%(URL)s>`__.
+        doc <https://docs.python.org/3/library/datetime.html>`__.
 
         Formats supported by the C `strftime` API but not by the python string format
         doc (such as `"%%R"`, `"%%r"`) are not officially supported and should be
@@ -2258,7 +2252,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         result = result.view(self._ndarray.dtype)
         return self._simple_new(result, dtype=self.dtype)
 
-    @Appender((_round_doc + _round_example).format(op="round"))
     def round(
         self,
         freq,
@@ -2363,7 +2356,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         """
         return self._round(freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent)
 
-    @Appender((_round_doc + _floor_example).format(op="floor"))
     def floor(
         self,
         freq,
@@ -2468,7 +2460,6 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
-    @Appender((_round_doc + _ceil_example).format(op="ceil"))
     def ceil(
         self,
         freq,
