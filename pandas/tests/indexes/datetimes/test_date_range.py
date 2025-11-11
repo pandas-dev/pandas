@@ -814,6 +814,22 @@ class TestDateRanges:
             result = date_range("1/1/2000", periods=4, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "freq_removed,freq",
+        [
+            ("100A", "Y"),
+            ("2A-DEC", "Y-DEC"),
+            ("100AS", "YS"),
+            ("2AS-MAY", "YS-MAY"),
+        ],
+    )
+    def test_error_message_for_removed_year_yearbegin_frequencies(
+        self, freq, freq_removed
+    ):
+        msg = f"Did you mean {freq}"
+        with pytest.raises(ValueError, match=msg):
+            date_range("1/1/2000", periods=2, freq=freq_removed)
+
 
 class TestDateRangeTZ:
     """Tests for date_range with timezones"""
