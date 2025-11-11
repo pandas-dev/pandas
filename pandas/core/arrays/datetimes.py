@@ -824,12 +824,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 "s",
             ]
             res_unit = self.unit
-            if hasattr(offset, "offset"):
+            if hasattr(offset, "offset") and offset.offset is not None:
                 offset_td = Timedelta(offset.offset)
-                offset_unit = offset_td.unit
-                idx_self = units.index(self.unit)
-                idx_offset = units.index(offset_unit)
-                res_unit = units[min(idx_self, idx_offset)]
+                if offset_td.value != 0:
+                    offset_unit = offset_td.unit
+                    idx_self = units.index(self.unit)
+                    idx_offset = units.index(offset_unit)
+                    res_unit = units[min(idx_self, idx_offset)]
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
             result = result.as_unit(res_unit)
 
