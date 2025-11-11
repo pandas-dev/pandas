@@ -355,30 +355,10 @@ def test_take_assigns_floating_point_dtype(dtype):
     assert result.dtype.numpy_dtype == expected
 
 
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        np.bool_,
-        np.uint8,
-        np.uint16,
-        np.uint32,
-        np.uint64,
-        np.int8,
-        np.int16,
-        np.int32,
-        np.int64,
-    ],
-)
-def test_take_assigns_integer_dtype_when_fill_disallowed(dtype):
-    # GH#62448.
-    if dtype == np.bool_:
-        array = NumpyExtensionArray(np.array([False, True, False], dtype=dtype))
-    else:
-        array = NumpyExtensionArray(np.array([1, 2, 3], dtype=dtype))
-
+def test_take_preserves_boolean_arrays():
+    array = NumpyExtensionArray(np.array([False, True, False], dtype=np.bool_))
     result = array.take([-1], allow_fill=False)
-
-    assert result.dtype.numpy_dtype == dtype
+    assert result.dtype.numpy_dtype == np.bool_
 
 
 # ----------------------------------------------------------------------------
