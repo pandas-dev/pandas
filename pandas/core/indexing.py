@@ -1088,37 +1088,53 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         tup = self._validate_key_length(tup)
 
-        # Reverse tuple so that we are indexing along columns before rows
+        # For scalar row + slice columns, process by first getting the column slice
+        # to preserve dtypes, then extracting the row
+        # Otherwise, reverse tuple so that we are indexing along columns before rows
         # and avoid unintended dtype inference. # GH60600
-        for i, key in zip(range(len(tup) - 1, -1, -1), reversed(tup), strict=True):
-            if is_label_like(key) or is_list_like(key):
-                # We don't need to check for tuples here because those are
-                #  caught by the _is_nested_tuple_indexer check above.
-                section = self._getitem_axis(key, axis=i)
+        if (len(tup) == 2 and is_scalar(tup[0]) and isinstance(tup[1], slice)):
+            # Handle scalar row + slice columns case to preserve dtypes
+            row_key, col_slice = tup[0], tup[1]
+            # First, get the column slice to create sub-DataFrame with preserved column dtypes
+            col_section = self._getitem_axis(col_slice, axis=1)
+            # Then get the specific row from this sub-DataFrame using appropriate indexer
+            if self.name == "iloc":
+                result = col_section.iloc[row_key]
+            else:
+                result = col_section.loc[row_key]
+            return result
+        else:
+            # Reverse tuple so that we are indexing along columns before rows
+            # and avoid unintended dtype inference. # GH60600
+            for i, key in zip(range(len(tup) - 1, -1, -1), reversed(tup), strict=True):
+                if is_label_like(key) or is_list_like(key):
+                    # We don't need to check for tuples here because those are
+                    #  caught by the _is_nested_tuple_indexer check above.
+                    section = self._getitem_axis(key, axis=i)
 
-                # We should never have a scalar section here, because
-                #  _getitem_lowerdim is only called after a check for
-                #  is_scalar_access, which that would be.
-                if section.ndim == self.ndim:
-                    # we're in the middle of slicing through a MultiIndex
-                    # revise the key wrt to `section` by inserting an _NS
-                    new_key = tup[:i] + (_NS,) + tup[i + 1 :]
+                    # We should never have a scalar section here, because
+                    #  _getitem_lowerdim is only called after a check for
+                    #  is_scalar_access, which that would be.
+                    if section.ndim == self.ndim:
+                        # we're in the middle of slicing through a MultiIndex
+                        # revise the key wrt to `section` by inserting an _NS
+                        new_key = tup[:i] + (_NS,) + tup[i + 1 :]
 
-                else:
-                    # Note: the section.ndim == self.ndim check above
-                    #  rules out having DataFrame here, so we dont need to worry
-                    #  about transposing.
-                    new_key = tup[:i] + tup[i + 1 :]
+                    else:
+                        # Note: the section.ndim == self.ndim check above
+                        #  rules out having DataFrame here, so we dont need to worry
+                        #  about transposing.
+                        new_key = tup[:i] + tup[i + 1 :]
 
-                    if len(new_key) == 1:
-                        new_key = new_key[0]
+                        if len(new_key) == 1:
+                            new_key = new_key[0]
 
-                # Slices should return views, but calling iloc/loc with a null
-                # slice returns a new object.
-                if com.is_null_slice(new_key):
-                    return section
-                # This is an elided recursive call to iloc/loc
-                return getattr(section, self.name)[new_key]
+                    # Slices should return views, but calling iloc/loc with a null
+                    # slice returns a new object.
+                    if com.is_null_slice(new_key):
+                        return section
+                    # This is an elided recursive call to iloc/loc
+                    return getattr(section, self.name)[new_key]
 
         raise IndexingError("not applicable")
 
