@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import abc
 from datetime import (
-    date,
     datetime,
 )
 import functools
@@ -6289,18 +6288,6 @@ class Index(IndexOpsMixin, PandasObject):
             # GH#16877 Treat boolean labels passed to a numeric index as not
             #  found. Without this fix False and True would be treated as 0 and 1
             #  respectively.
-            return False
-
-        # GH#62158
-        if (
-            self.dtype.kind == "M"
-            and isinstance(other, Index)
-            and other.dtype == _dtype_obj
-            and all(
-                isinstance(x, date) and not isinstance(x, datetime)
-                for x in other._values
-            )
-        ):
             return False
 
         dtype = _unpack_nested_dtype(other)
