@@ -107,10 +107,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     See Also
     --------
     :func:`array`
-        The recommended function for creating a ArrowStringArray.
+        The recommended function for creating an ArrowStringArray.
     Series.str
         The string methods are available on Series backed by
-        a ArrowStringArray.
+        an ArrowStringArray.
 
     Notes
     -----
