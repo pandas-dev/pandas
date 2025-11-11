@@ -818,7 +818,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[prop-decorator]
     @property
     def array(self) -> ExtensionArray:
-        return self._mgr.array_values()
+        arr = self._mgr.array_values()
+        arr = arr.view()
+        arr._readonly = True
+        return arr
 
     def __len__(self) -> int:
         """
@@ -1305,8 +1308,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Modify the Series in place (do not create a new object).
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -2139,7 +2140,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ['2016-01-01 00:00:00-05:00']
         Length: 1, dtype: datetime64[s, US/Eastern]
 
-        An Categorical will return categories in the order of
+        A Categorical will return categories in the order of
         appearance and with the same dtype.
 
         >>> pd.Series(pd.Categorical(list("baabc"))).unique()
@@ -3027,8 +3028,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         result_names : tuple, default ('self', 'other')
             Set the dataframes names in the comparison.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -5659,8 +5658,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         This method prints information about a Series including
         the index dtype, non-NA values and memory usage.
-
-        .. versionadded:: 1.4.0
 
         Parameters
         ----------
