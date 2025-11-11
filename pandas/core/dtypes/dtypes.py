@@ -1387,7 +1387,7 @@ class IntervalDtype(PandasExtensionDtype):
             return cls(string)
 
         msg = (
-            f"Cannot construct a 'IntervalDtype' from '{string}'.\n\n"
+            f"Cannot construct an 'IntervalDtype' from '{string}'.\n\n"
             "Incorrectly formatted string passed to constructor. "
             "Valid formats include Interval or Interval[dtype] "
             "where dtype is numeric, datetime, or timedelta"
