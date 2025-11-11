@@ -318,7 +318,7 @@ def test_item_from_zerodim_for_subclasses():
 
         def __array_finalize__(self, obj) -> None:
             self._is_test_array = True
-    
+
     # Define test data
     val_0_dim = 1
     val_1_dim = [1, 2, 3]
