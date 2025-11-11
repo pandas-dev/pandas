@@ -10,6 +10,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -547,11 +549,14 @@ class TestSetIndexInvalid:
     def test_set_index_verify_integrity(self, frame_of_index_cols):
         df = frame_of_index_cols
 
+        msg = "The 'verify_integrity' keyword in DataFrame.set_index"
         with pytest.raises(ValueError, match="Index has duplicate keys"):
-            df.set_index("A", verify_integrity=True)
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                df.set_index("A", verify_integrity=True)
         # with MultiIndex
         with pytest.raises(ValueError, match="Index has duplicate keys"):
-            df.set_index([df["A"], df["A"]], verify_integrity=True)
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                df.set_index([df["A"], df["A"]], verify_integrity=True)
 
     @pytest.mark.parametrize("append", [True, False])
     @pytest.mark.parametrize("drop", [True, False])
