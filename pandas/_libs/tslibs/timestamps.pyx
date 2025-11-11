@@ -3492,7 +3492,7 @@ default 'raise'
             year -= 1
             month += 12
         return (day +
-                np.fix((153 * month - 457) / 5) +
+                np.trunc((153 * month - 457) / 5) +
                 365 * year +
                 np.floor(year / 4) -
                 np.floor(year / 100) +
