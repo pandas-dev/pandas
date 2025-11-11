@@ -422,6 +422,12 @@ class TestJSONArray(base.ExtensionTests):
     def test_setitem_invalid(self, data, invalid_scalar):
         super().test_setitem_invalid(data, invalid_scalar)
 
+    @pytest.mark.xfail(
+        reason="result readonly flag is incorrect and does not support na_value"
+    )
+    def test_readonly_propagates_to_numpy_array_method(self, data):
+        super().test_readonly_propagates_to_numpy_array_method(data)
+
     @pytest.mark.xfail(reason="only integer scalar arrays can be converted")
     def test_setitem_2d_values(self, data):
         super().test_setitem_2d_values(data)

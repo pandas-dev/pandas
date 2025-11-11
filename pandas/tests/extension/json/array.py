@@ -41,7 +41,10 @@ from pandas.api.extensions import (
     ExtensionArray,
     ExtensionDtype,
 )
-from pandas.core.indexers import unpack_tuple_and_ellipses
+from pandas.core.indexers import (
+    getitem_returns_view,
+    unpack_tuple_and_ellipses,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -105,10 +108,15 @@ class JSONArray(ExtensionArray):
             return self.data[item]
         elif isinstance(item, slice) and item == slice(None):
             # Make sure we get a view
-            return type(self)(self.data)
+            result = type(self)(self.data)
+            result._readonly = self._readonly
+            return result
         elif isinstance(item, slice):
             # slice
-            return type(self)(self.data[item])
+            result = type(self)(self.data[item])
+            if getitem_returns_view(self, item):
+                result._readonly = self._readonly
+            return result
         elif not is_list_like(item):
             # e.g. "foo" or 2.5
             # exception message copied from numpy
@@ -126,6 +134,9 @@ class JSONArray(ExtensionArray):
             return type(self)([self.data[i] for i in item])
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         if isinstance(key, numbers.Integral):
             self.data[key] = value
         else:
@@ -158,7 +169,6 @@ class JSONArray(ExtensionArray):
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
             )
-
         if dtype is None:
             dtype = object
         if dtype == object:
