@@ -5,7 +5,7 @@
 *****************************
 Group by: split-apply-combine
 *****************************
-
+The groupby() function allows you to divide your dataset into groups based on one or more keys, apply an operation to each group independently (such as calculating a sum or mean), and then combine the results back into a new DataFrame
 By "group by" we are referring to a process involving one or more of the following
 steps:
 
