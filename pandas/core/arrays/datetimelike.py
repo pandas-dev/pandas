@@ -1779,7 +1779,8 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         Return an Index of formatted strings specified by date_format, which
         supports the same string format as the python standard library. Details
         of the string format can be found in `python string format
-        doc <https://docs.python.org/3/library/datetime.html>`__.
+        doc <https://docs.python.org/3/library/datetime.html
+        #strftime-and-strptime-behavior>`__.
 
         Formats supported by the C `strftime` API but not by the python string format
         doc (such as `"%%R"`, `"%%r"`) are not officially supported and should be
