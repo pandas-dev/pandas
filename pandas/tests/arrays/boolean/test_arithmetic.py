@@ -132,3 +132,61 @@ def test_error_invalid_values(data, all_arithmetic_operators):
         )
         with pytest.raises(TypeError, match=msg):
             ops(pd.Series("foo", index=s.index))
+
+# Tests for BooleanArray logical and comparison operations
+# -------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "opname, expected",[
+        ("and_", [True, False, None, False, False, None, None, None, None]),
+        ("or_", [True, True, None, True, False, None, None, None, None]),
+        ("xor", [False, True, None, True, False, None, None, None, None]),
+    ],ids=["and", "or", "xor"],
+)
+
+def test_logical_ops(left_array, right_array, opname, expected):
+    """Test bitwise logical operations (&, |, ^) for BooleanArray."""
+    op = getattr(operator, opname)
+    result = op(left_array, right_array)
+    expected = pd.array(expected, dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+def test_invert(left_array):
+    """Test inversion (~) for BooleanArray."""
+    result = operator.invert(left_array)
+    expected = pd.array(
+        [False, False, False, True, True, True, None, None, None],
+        dtype="boolean",
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+@pytest.mark.parametrize(
+    "opname, expected",[
+        ("eq", [True, False, None, False, True, None, None, None, None]),
+        ("ne", [False, True, None, True, False, None, None, None, None]),
+        ("gt", [False, True, None, False, False, None, None, None, None]),
+        ("lt", [False, False, None, False, False, None, None, None, None]),
+        ("ge", [True, False, None, True, True, None, None, None, None]),
+        ("le", [True, True, None, False, True, None, None, None, None]),
+    ],ids=["==", "!=", ">", "<", ">=", "<="],
+)
+def test_comparison_ops(left_array, right_array, opname, expected):
+    """Test comparison operators (==, !=, >, <, >=, <=) for BooleanArray."""
+    op = getattr(operator, opname)
+    result = op(left_array, right_array)
+    expected = pd.array(expected, dtype="boolean")
+    tm.assert_extension_array_equal(result, expected)
+
+def test_logical_with_scalar(left_array):
+    """Test logical ops with scalar values (True/False/NA)."""
+    result_true = left_array & True
+    result_false = left_array | False
+    result_na = left_array ^ pd.NA
+
+    expected_true = left_array  # '&' True→Same
+    expected_false = left_array  # '|' False→same
+    expected_na = pd.array([None] * len(left_array), dtype="boolean")  # XOR NA→All NA
+
+    tm.assert_extension_array_equal(result_true, expected_true)
+    tm.assert_extension_array_equal(result_false, expected_false)
+    tm.assert_extension_array_equal(result_na, expected_na)
