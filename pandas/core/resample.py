@@ -2571,7 +2571,7 @@ class TimeGrouper(Grouper):
     def _get_time_bins(self, ax: DatetimeIndex):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError(
-                "axis must be a DatetimeIndex, but got "
+                "axis must be a DatetimeIndex, but got"
                 f"an instance of {type(ax).__name__}"
             )
 
@@ -2579,55 +2579,7 @@ class TimeGrouper(Grouper):
             empty = DatetimeIndex(data=[], freq=self.freq, name=ax.name, dtype=ax.dtype)
             return empty, [], empty
 
-        if ax.tz is not None:
-            try:
-                first, last = _get_timestamp_range_edges(
-                    ax.min(),
-                    ax.max(),
-                    self.freq,
-                    unit=ax.unit,
-                    closed=self.closed,
-                    origin=self.origin,
-                    offset=self.offset,
-                )
-                binner = labels = date_range(
-                    freq=self.freq,
-                    start=first,
-                    end=last,
-                    tz=ax.tz,
-                    name=ax.name,
-                    ambiguous=True,
-                    nonexistent="shift_forward",
-                    unit=ax.unit,
-                )
-            except Exception as e:
-                if "nonexistent" not in str(e).lower():
-                    raise
-
-                ax_utc = ax.tz_convert("UTC")
-
-                first_utc, last_utc = _get_timestamp_range_edges(
-                    ax_utc.min(),
-                    ax_utc.max(),
-                    self.freq,
-                    unit=ax.unit,
-                    closed=self.closed,
-                    origin=self.origin,
-                    offset=self.offset,
-                )
-
-                binner_utc = date_range(
-                    start=first_utc,
-                    end=last_utc,
-                    freq=self.freq,
-                    tz="UTC",
-                    name=ax.name,
-                    unit=ax.unit,
-                )
-
-                binner = labels = binner_utc.tz_convert(ax.tz)
-
-        else:
+        try:
             first, last = _get_timestamp_range_edges(
                 ax.min(),
                 ax.max(),
@@ -2647,9 +2599,34 @@ class TimeGrouper(Grouper):
                 nonexistent="shift_forward",
                 unit=ax.unit,
             )
+        except Exception:
+            # Fallback to UTC calculation for timezone-aware data
+            # to handle DST transition
+            # 62601
+            ax_utc = ax.tz_convert("UTC")
+            first_utc, last_utc = _get_timestamp_range_edges(
+                ax_utc.min(),
+                ax_utc.max(),
+                self.freq,
+                unit=ax.unit,
+                closed=self.closed,
+                origin=self.origin,
+                offset=self.offset,
+            )
+            binner_utc = date_range(
+                freq=self.freq,
+                start=first_utc,
+                end=last_utc,
+                tz="UTC",
+                name=ax.name,
+                unit=ax.unit,
+            )
+            binner = labels = binner_utc.tz_convert(ax.tz)
+
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
 
+        # general version, knowing nothing about relative frequencies
         bins = lib.generate_bins_dt64(
             ax_values, bin_edges, self.closed, hasnans=ax.hasnans
         )
@@ -2665,6 +2642,9 @@ class TimeGrouper(Grouper):
             binner = binner.insert(0, NaT)
             labels = labels.insert(0, NaT)
 
+        # if we end up with more labels than bins
+        # adjust the labels
+        # GH4076
         if len(bins) < len(labels):
             labels = labels[: len(bins)]
 
