@@ -172,22 +172,19 @@ class TestGetItem:
         tm.assert_series_equal(ts[[Period("2012-01-02", freq="D")]], exp)
 
     @pytest.mark.arm_slow
-    @pytest.mark.filterwarnings(
-        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
-    )
     def test_getitem_seconds(self):
         # GH#6716
-        didx = date_range(start="2013/01/01 09:00:00", freq="s", periods=4000)
-        pidx = period_range(start="2013/01/01 09:00:00", freq="s", periods=4000)
+        didx = date_range(start="2013-01-01 09:00:00", freq="s", periods=4000)
+        pidx = period_range(start="2013-01-01 09:00:00", freq="s", periods=4000)
 
         for idx in [didx, pidx]:
             # getitem against index should raise ValueError
             values = [
                 "2014",
-                "2013/02",
-                "2013/01/02",
-                "2013/02/01 9h",
-                "2013/02/01 09:00",
+                "2013-02",
+                "2013-01-02",
+                "2013-02-01 9h",
+                "2013-02-01 09:00",
             ]
             for val in values:
                 # GH7116
@@ -197,9 +194,9 @@ class TestGetItem:
                     idx[val]
 
             ser = Series(np.random.default_rng(2).random(len(idx)), index=idx)
-            tm.assert_series_equal(ser["2013/01/01 10:00"], ser[3600:3660])
-            tm.assert_series_equal(ser["2013/01/01 9h"], ser[:3600])
-            for d in ["2013/01/01", "2013/01", "2013"]:
+            tm.assert_series_equal(ser["2013-01-01 10:00"], ser[3600:3660])
+            tm.assert_series_equal(ser["2013-01-01 9h"], ser[:3600])
+            for d in ["2013-01-01", "2013-01", "2013"]:
                 tm.assert_series_equal(ser[d], ser)
 
     @pytest.mark.parametrize(

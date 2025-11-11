@@ -489,14 +489,11 @@ class TestGetLoc:
         with pytest.raises(TypeError, match=msg):
             dti.get_loc(key)
 
-    @pytest.mark.filterwarnings(
-        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
-    )
     def test_get_loc_reasonable_key_error(self):
         # GH#1062
-        index = DatetimeIndex(["1/3/2000"])
+        index = DatetimeIndex(["2000-01-03"])
         with pytest.raises(KeyError, match="2000"):
-            index.get_loc("1/1/2000")
+            index.get_loc("2000-01-01")
 
     def test_get_loc_year_str(self):
         rng = date_range("1/1/2000", "1/1/2010")

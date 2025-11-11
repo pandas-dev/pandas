@@ -115,12 +115,13 @@ def _is_iso_format_string(date_str: str) -> bool:
     """
     Check if a date string follows ISO8601 format.
 
-    ISO format must start with a 4-digit year (YYYY), optionally followed by
-    hyphen-separated month and day or 'T' for time component.
+    Uses date.fromisoformat() to validate full ISO dates, with fallback to regex
+    for reduced precision dates (YYYY or YYYY-MM) which are not supported by
+    fromisoformat().
 
     Examples of ISO format (True):
-    - 2024
-    - 2024-01
+    - 2024 (reduced precision)
+    - 2024-01 (reduced precision)
     - 2024-01-10
     - 2024-01-10T00:00:00
 
@@ -131,7 +132,19 @@ def _is_iso_format_string(date_str: str) -> bool:
     - 10/01/2024 (DD/MM/YYYY)
     - 01-10-2024 (MM-DD-YYYY)
     """
-    return re.match(r"^\d{4}(?:-|T|$)", date_str) is not None
+    try:
+        # Standard library validates full ISO dates (YYYY-MM-DD format)
+        dt.date.fromisoformat(date_str)
+        return True
+    except (ValueError, TypeError):
+        # Fallback regex for reduced precision dates not supported by fromisoformat()
+        # Checks if string starts with ISO pattern (YYYY, YYYY-MM, YYYY-MM-DD, etc.)
+        # Pattern: ^\d{4}(?:-|T|$)
+        # - Requires exactly 4 digits at start (year)
+        # - Followed by: hyphen (YYYY-), T (YYYY-T...), or end (YYYY)
+        # Examples that match: "2024", "2024-01", "2024-01-10", "2024-01-10T00:00:00"
+        # Examples that don't: "01/10/2024", "2024 01 10", "1/1/2024"
+        return re.match(r"^\d{4}(?:-|T|$)", date_str) is not None
 
 
 @inherit_names(
