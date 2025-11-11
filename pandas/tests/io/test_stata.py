@@ -2626,3 +2626,13 @@ def test_ascii_error(temp_file, version):
     df.to_stata(temp_file, write_index=0, version=version)
     df_input = read_stata(temp_file)
     tm.assert_frame_equal(df, df_input)
+
+
+def test_stata_v117_prefix_with_unsupported_version_raises_version_error():
+    # _read_new_header reads 27 bytes, then the next 3 are the release digits
+    buf = io.BytesIO(b"<stata_dta><header><release>999</release>" + b"\x00" * 64)
+    with pytest.raises(
+        ValueError,
+        match=(r"either not a valid Stata dataset|does not support.*999"),
+    ):
+        read_stata(buf)
