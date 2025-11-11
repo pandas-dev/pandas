@@ -181,7 +181,7 @@ def rec_array_to_mgr(
     mgr = arrays_to_mgr(arrays, columns, index, dtype=dtype)
 
     if copy:
-        mgr = mgr.copy()
+        mgr = mgr.copy(deep=True)
     return mgr
 
 

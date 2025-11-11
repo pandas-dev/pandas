@@ -639,6 +639,7 @@ class Apply(metaclass=abc.ABCMeta):
                 results,
                 axis=axis,
                 keys=keys_to_use,
+                sort=False,
             )
         elif any(is_ndframe):
             # There is a mix of NDFrames and scalars
