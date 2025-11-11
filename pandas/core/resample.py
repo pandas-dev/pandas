@@ -2573,49 +2573,45 @@ class TimeGrouper(Grouper):
             empty = DatetimeIndex(data=[], freq=self.freq, name=ax.name, dtype=ax.dtype)
             return empty, [], empty
 
-        try:
+        def _calculate_bins_in_timezone(ax_to_use, tz):
+            """Calculate time bins in specified timezone"""
             first, last = _get_timestamp_range_edges(
-                ax.min(),
-                ax.max(),
+                ax_to_use.min(),
+                ax_to_use.max(),
                 self.freq,
                 unit=ax.unit,
                 closed=self.closed,
                 origin=self.origin,
                 offset=self.offset,
             )
-            binner = labels = date_range(
+            return date_range(
                 freq=self.freq,
                 start=first,
                 end=last,
-                tz=ax.tz,
+                tz=tz,
                 name=ax.name,
                 ambiguous=True,
                 nonexistent="shift_forward",
                 unit=ax.unit,
             )
-        except Exception:
-            # Fallback to UTC calculation for timezone-aware data
-            # to handle DST transition
-            # 62601
-            ax_utc = ax.tz_convert("UTC")
-            first_utc, last_utc = _get_timestamp_range_edges(
-                ax_utc.min(),
-                ax_utc.max(),
-                self.freq,
-                unit=ax.unit,
-                closed=self.closed,
-                origin=self.origin,
-                offset=self.offset,
-            )
-            binner_utc = date_range(
-                freq=self.freq,
-                start=first_utc,
-                end=last_utc,
-                tz="UTC",
-                name=ax.name,
-                unit=ax.unit,
-            )
-            binner = labels = binner_utc.tz_convert(ax.tz)
+
+        if ax.tz is not None:
+            try:
+                # normal way
+                binner = labels = _calculate_bins_in_timezone(ax, ax.tz)
+            except Exception as e:
+                if "nonexistent" in str(e).lower() or "ambiguous" in str(e).lower():
+                    # Fallback to UTC calculation for timezone-aware data
+                    # to handle DST transitions
+                    # 62601
+                    ax_utc = ax.tz_convert("UTC")
+                    binner_utc = _calculate_bins_in_timezone(ax_utc, "UTC")
+                    binner = labels = binner_utc.tz_convert(ax.tz)
+                else:
+                    raise
+        else:
+            # no time zone
+            binner = labels = _calculate_bins_in_timezone(ax, None)
 
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
