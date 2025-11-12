@@ -9,6 +9,15 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
 
+# Probe whether np.fix works with Series without raising due to read-only out
+# This avoids relying solely on is_numpy_dev, which may not reflect CI pinning.
+try:
+    _ser = pd.Series([-1.5, -0.5])
+    _probe_result = np.fix(_ser)
+    _NP_FIX_WORKS = True
+except Exception:  # pragma: no cover - best-effort environment probe
+    _NP_FIX_WORKS = False
+
 
 @pytest.fixture(params=[np.add, np.logaddexp])
 def ufunc(request):
@@ -238,6 +247,12 @@ def test_object_series_ok():
         def __add__(self, other):
             return self.value + other.value
 
+        def __eq__(self, other) -> bool:
+            return type(other) is Dummy and self.value == other.value
+
+        def __repr__(self) -> str:
+            return f"Dummy({self.value})"
+
     arr = np.array([Dummy(0), Dummy(1)])
     ser = pd.Series(arr)
     tm.assert_series_equal(np.add(ser, ser), pd.Series(np.add(ser, arr)))
@@ -457,7 +472,11 @@ def test_array_ufuncs_for_many_arguments():
         ufunc(ser, ser, df)
 
 
-@pytest.mark.xfail(reason="see https://github.com/pandas-dev/pandas/pull/51082")
+@pytest.mark.xfail(
+    condition=not _NP_FIX_WORKS,
+    reason="see https://github.com/pandas-dev/pandas/pull/51082",
+    strict=True,
+)
 def test_np_fix():
     # np.fix is not a ufunc but is composed of several ufunc calls under the hood
     # with `out` and `where` keywords
