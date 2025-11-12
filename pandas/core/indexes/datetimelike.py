@@ -736,22 +736,36 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # For tz-aware DatetimeIndex, perform union in UTC to avoid
             # local-time irregularities across DST transitions, then convert back.
             tz = getattr(self.dtype, "tz", None)
-            if tz is not None:
+            other_tz = getattr(other.dtype, "tz", None)
+            if tz is not None and tz == other_tz:
                 # Narrow to DatetimeArray to access tz_convert without mypy errors
                 if isinstance(self._data, DatetimeArray) and isinstance(
                     other._data, DatetimeArray
                 ):
-                    left_utc_arr = self._data.tz_convert("UTC")
-                    right_utc_arr = other._data.tz_convert("UTC")
-                    left_utc = type(self)._simple_new(left_utc_arr, name=self.name)
-                    right_utc = type(other)._simple_new(right_utc_arr, name=other.name)
-                    res_utc = super(type(left_utc), left_utc)._union(right_utc, sort)
-                    # res_utc is DatetimeIndex; convert its underlying array back to tz
-                    res_arr = cast(DatetimeArray, res_utc._data).tz_convert(tz)
-                    res = type(self)._simple_new(res_arr, name=res_utc.name)
+                    # Convert both to UTC, then drop tz to avoid re-entering
+                    # tz-aware path
+                    left_utc_naive = self._data.tz_convert("UTC").tz_localize(None)
+                    right_utc_naive = other._data.tz_convert("UTC").tz_localize(None)
+                    left_naive = type(self)._simple_new(left_utc_naive, name=self.name)
+                    right_naive = type(other)._simple_new(
+                        right_utc_naive, name=other.name
+                    )
+                    # Perform base union on tz-naive indices to avoid DST complications
+                    res_naive = super(type(left_naive), left_naive)._union(
+                        right_naive, sort
+                    )
+                    # Localize back to UTC and then convert to original tz
+                    if isinstance(res_naive, DatetimeArray):
+                        base_arr = res_naive
+                        name = self.name
+                    else:
+                        base_arr = cast(DatetimeArray, res_naive._data)
+                        name = res_naive.name
+                    res_arr = base_arr.tz_localize("UTC").tz_convert(tz)
+                    res = type(self)._simple_new(res_arr, name=name)
                     return res._with_freq("infer")
                 # Defensive fallback if types are unexpected
-                return super()._union(other, sort)._with_freq("infer")
+                return super()._union(other, sort)
             return super()._union(other, sort)._with_freq("infer")
 
     # --------------------------------------------------------------------
