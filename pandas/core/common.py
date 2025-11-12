@@ -639,8 +639,6 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
     """
     If a name is missing then replace it by level_n, where n is the count
 
-    .. versionadded:: 1.4.0
-
     Parameters
     ----------
     names : list-like
