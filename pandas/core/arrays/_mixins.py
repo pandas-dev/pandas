@@ -30,7 +30,6 @@ from pandas._typing import (
     npt,
 )
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import doc
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_insert_loc,
