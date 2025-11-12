@@ -2024,7 +2024,7 @@ class _iLocIndexer(_LocationIndexer):
                 )
 
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
-                # We get here in one case via .loc with a all-False mask
+                # We get here in one case via .loc with an all-False mask
                 pass
 
             elif self._is_scalar_access(indexer) and is_object_dtype(

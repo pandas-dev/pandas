@@ -526,7 +526,7 @@ def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
 
 
 def test_resample_ohlc(unit):
-    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="Min")
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 2), freq="Min")
     s = Series(range(len(index)), index=index)
     s.index.name = "index"
     s.index = s.index.as_unit(unit)
@@ -1842,7 +1842,7 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
     # GH 24127
     n1_ = n1 * k
     n2_ = n2 * k
-    dti = date_range("1991-09-05", "1991-09-12", freq=freq1).as_unit(unit)
+    dti = date_range("1991-09-05", "1991-09-06", freq=freq1).as_unit(unit)
     ser = Series(range(len(dti)), index=dti)
 
     result1 = ser.resample(str(n1_) + freq1).mean()
