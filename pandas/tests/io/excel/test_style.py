@@ -405,6 +405,7 @@ def test_autofilter_with_multiindex(engine, tmp_excel):
             "name": ("Blacky", "Wendy", "Rufus", "Catchy"),
         }
     )
+    # setup hierarchical index
     mi_df = df.set_index(["animal", "color of fur"])
     with ExcelWriter(tmp_excel, engine=engine) as writer:
         mi_df.to_excel(writer, autofilter=True, index=True, merge_cells=False)
@@ -426,6 +427,7 @@ def test_autofilter_with_multiindex_and_merge_cells_shows_warning(tmp_excel):
             "name": ("Blacky", "Wendy", "Rufus", "Catchy"),
         }
     )
+    # setup hierarchical index
     mi_df = df.set_index(["animal", "color of fur"])
     with ExcelWriter(tmp_excel, engine="openpyxl") as writer:
         with tm.assert_produces_warning(
