@@ -376,7 +376,7 @@ In cases with mixed-resolution inputs, the highest resolution is used:
     In [2]: pd.to_datetime([pd.Timestamp("2024-03-22 11:43:01"), "2024-03-22 11:43:01.002"]).dtype
     Out[2]: dtype('<M8[ns]')
 
-Many users will now get "M8[us]" dtype  data in cases when they used to get "M8[ns]". For most use cases they should not notice a difference. One big exception is converting to integers, which will give integers 1000x smaller.
+.. warning:: Many users will now get "M8[us]" dtype data in cases when they used to get "M8[ns]". For most use cases they should not notice a difference. One big exception is converting to integers, which will give integers 1000x smaller.
 
 .. _whatsnew_300.api_breaking.concat_datetime_sorting:
 
