@@ -121,7 +121,6 @@ def _sa_text_if_string(stmt: Any) -> Any:
 
 
 def _process_parse_dates_argument(parse_dates):
-
     """Process parse_dates argument for read_sql functions"""
     # handle non-list entries for parse_dates gracefully
     if parse_dates is True or parse_dates is None or parse_dates is False:
@@ -1905,7 +1904,6 @@ class SQLDatabase(PandasSQL):
                 dtype_backend=dtype_backend,
             )
             return frame
-
 
     read_sql = read_query
 

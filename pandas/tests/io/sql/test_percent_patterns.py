@@ -20,7 +20,10 @@ def test_like_pattern(sql_con: Any) -> None:
 
 
 def test_sqlalchemy_selectable(sql_con: Any) -> None:
-    from sqlalchemy import literal, select
+    from sqlalchemy import (
+        literal,
+        select,
+    )
 
     stmt = select(literal("hello"))
     result = sql_con.execute(stmt)
