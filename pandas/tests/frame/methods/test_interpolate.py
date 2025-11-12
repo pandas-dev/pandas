@@ -310,7 +310,7 @@ class TestDataFrameInterpolate:
         expected = df.copy()
         result = df.copy()
 
-        with tm.raises_chained_assignment_error():
+        with tm.raises_chained_assignment_error(inplace_method=True):
             return_value = result["a"].interpolate(inplace=True)
         assert return_value is None
         tm.assert_frame_equal(result, expected)
