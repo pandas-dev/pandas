@@ -929,12 +929,11 @@ class TestNestedToRecord:
         tm.assert_frame_equal(result, expected)
 
     def test_json_normalize_non_str_keys(self):
+        # see gh-63019
         # Test that json_normalize handles non-string meta
         # keys correctly when record_path is used
 
-        data_list = [{"a": 1, 12: "meta_value", "nested": [{"b": 2}]}]
-
-        result = json_normalize(data_list, record_path=["nested"], meta=[12])
+        data = [{"a": 1, 12: "meta_value", "nested": [{"b": 2}]}]
+        result = json_normalize(data, record_path=["nested"], meta=[12])
         expected = DataFrame({"b": [2], "12": ["meta_value"]})
-
         tm.assert_frame_equal(result, expected)
