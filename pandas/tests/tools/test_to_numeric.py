@@ -16,6 +16,25 @@ from pandas import (
     to_numeric,
 )
 import pandas._testing as tm
+from pandas.core.arrays.floating import (
+    Float32Dtype,
+    Float64Dtype,
+)
+from pandas.core.arrays.integer import (
+    Int8Dtype,
+    Int16Dtype,
+    Int32Dtype,
+    Int64Dtype,
+    UInt8Dtype,
+    UInt16Dtype,
+    UInt32Dtype,
+    UInt64Dtype,
+)
+
+try:
+    import pyarrow as pa
+except ImportError:
+    pa = None
 
 
 @pytest.fixture(params=[None, "raise", "coerce"])
@@ -905,17 +924,78 @@ def test_coerce_pyarrow_backend():
 
 
 @pytest.mark.parametrize(
-    "dtype",
+    "pyarrow_dtype",
     [
-        "ArrowDtype",
+        pytest.param(
+            pa.int8(), marks=pytest.mark.skipif(not pa, reason="pyarrow required")
+        ),
+        pytest.param(
+            pa.int16(), marks=pytest.mark.skipif(not pa, reason="pyarrow required")
+        ),
+        pytest.param(
+            pa.int32(), marks=pytest.mark.skipif(not pa, reason="pyarrow required")
+        ),
+        pytest.param(
+            pa.int64(), marks=pytest.mark.skipif(not pa, reason="pyarrow required")
+        ),
+        pytest.param(
+            pa.uint8(), marks=pytest.mark.skipif(not pa, reason="pyarrow required")
+        ),
+        pytest.param(
+            pa.uint16(), marks=pytest.mark.skipif(not pa, reason="pyarrow required")
+        ),
+        pytest.param(
+            pa.uint32(), marks=pytest.mark.skipif(not pa, reason="pyarrow required")
+        ),
+        pytest.param(
+            pa.uint64(), marks=pytest.mark.skipif(not pa, reason="pyarrow required")
+        ),
+        pytest.param(
+            pa.float16(), marks=pytest.mark.skipif(not pa, reason="pyarrow required")
+        ),
+        pytest.param(
+            pa.float32(), marks=pytest.mark.skipif(not pa, reason="pyarrow required")
+        ),
+        pytest.param(
+            pa.float64(), marks=pytest.mark.skipif(not pa, reason="pyarrow required")
+        ),
+        pytest.param(
+            pa.decimal128(10, 2),
+            marks=pytest.mark.skipif(not pa, reason="pyarrow required"),
+        ),
+        pytest.param(
+            pa.decimal256(10, 2),
+            marks=pytest.mark.skipif(not pa, reason="pyarrow required"),
+        ),
     ],
 )
-def test_to_numeric_arrow_decimal_with_na(dtype):
+def test_to_numeric_arrow_decimal_with_na(pyarrow_dtype):
     # GH 61641
-    pa = pytest.importorskip("pyarrow")
-    target_class = globals()[dtype]
-    decimal_type = target_class(pa.decimal128(3, scale=2))
-    series = Series([1, None], dtype=decimal_type)
+    numeric_type = ArrowDtype(pyarrow_dtype)
+    series = Series([1, None], dtype=numeric_type)
+    result = to_numeric(series, errors="coerce")
+
+    tm.assert_series_equal(result, series)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        Int8Dtype,
+        Int16Dtype,
+        Int32Dtype,
+        Int64Dtype,
+        UInt8Dtype,
+        UInt16Dtype,
+        UInt32Dtype,
+        UInt64Dtype,
+        Float32Dtype,
+        Float64Dtype,
+    ],
+)
+def test_to_numeric_decimal_with_na(dtype):
+    # GH 61641
+    series = Series([1, None], dtype=dtype())
     result = to_numeric(series, errors="coerce")
 
     tm.assert_series_equal(result, series)
