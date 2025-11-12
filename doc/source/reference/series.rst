@@ -637,6 +637,6 @@ Serialization / IO / conversion
    Series.to_latex
    Series.to_markdown
 
-See Also
+See also
 --------
 For detailed explanations and examples on using pandas Series, refer to the :ref:`basics.series` section of the User Guide.

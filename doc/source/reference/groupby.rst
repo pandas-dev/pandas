@@ -183,6 +183,6 @@ Plotting and visualization
    DataFrameGroupBy.plot
    SeriesGroupBy.plot
 
-See Also
+See also
 --------
 For detailed explanations, examples, and advanced usage, refer to the :ref:`groupby` section of the User Guide.
