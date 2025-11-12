@@ -46,6 +46,7 @@ def test_unique_null(null_obj, index_or_series_obj, using_nan_is_na):
     ):
         pytest.skip("NaN is not a valid NA for this dtype.")
 
+    obj = obj.copy(deep=True)
     values = obj._values
     values[0:2] = null_obj
 
@@ -87,6 +88,7 @@ def test_nunique_null(null_obj, index_or_series_obj):
     elif isinstance(obj, pd.MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
 
+    obj = obj.copy(deep=True)
     values = obj._values
     values[0:2] = null_obj
 

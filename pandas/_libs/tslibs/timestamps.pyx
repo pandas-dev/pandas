@@ -1869,7 +1869,7 @@ class Timestamp(_Timestamp):
     @classmethod
     def fromordinal(cls, ordinal, tz=None):
         """
-        Construct a timestamp from a a proleptic Gregorian ordinal.
+        Construct a timestamp from a proleptic Gregorian ordinal.
 
         This method creates a `Timestamp` object corresponding to the given
         proleptic Gregorian ordinal, which is a count of days from January 1,
@@ -3492,7 +3492,7 @@ default 'raise'
             year -= 1
             month += 12
         return (day +
-                np.fix((153 * month - 457) / 5) +
+                np.trunc((153 * month - 457) / 5) +
                 365 * year +
                 np.floor(year / 4) -
                 np.floor(year / 100) +

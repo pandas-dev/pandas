@@ -368,7 +368,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if copy is True:
             return np.array(self._ndarray, dtype=dtype)
-        return self._ndarray
+
+        result = self._ndarray
+        if self._readonly:
+            result = result.view()
+            result.flags.writeable = False
+        return result
 
     @overload
     def __getitem__(self, key: ScalarIndexer) -> DTScalarOrNaT: ...

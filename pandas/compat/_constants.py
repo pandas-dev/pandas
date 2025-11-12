@@ -19,7 +19,8 @@ PYPY = platform.python_implementation() == "PyPy"
 WASM = (sys.platform == "emscripten") or (platform.machine() in ["wasm32", "wasm64"])
 ISMUSL = "musl" in (sysconfig.get_config_var("HOST_GNU_TYPE") or "")
 REF_COUNT = 2
-WARNING_CHECK_DISABLED = PY314
+CHAINED_WARNING_DISABLED = PYPY or (PY314 and not sys._is_gil_enabled())  # type: ignore[attr-defined]
+CHAINED_WARNING_DISABLED_INPLACE_METHOD = PYPY or PY314
 
 
 __all__ = [
