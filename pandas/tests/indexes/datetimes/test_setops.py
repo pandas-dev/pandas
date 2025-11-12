@@ -63,7 +63,8 @@ class TestDatetimeIndexSetOps:
 
 @pytest.mark.xfail(reason="see GH#62915: union across DST boundary", strict=False)
 def test_union_across_dst_boundary_xfail():
-    # US/Eastern DST spring-forward on 2021-03-14 at 02:00 (02:00-02:59 local time does not exist)
+    # US/Eastern DST spring-forward on 2021-03-14 at 02:00
+    # (02:00-02:59 local time does not exist)
     tz = "US/Eastern"
     # Left side spans up to the missing hour window
     left = date_range("2021-03-14 00:00", periods=3, freq="H", tz=tz)
