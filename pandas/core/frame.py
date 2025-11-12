@@ -1881,9 +1881,11 @@ class DataFrame(NDFrame, OpsMixin):
                     "'_arrow_c_array__' or '__arrow_c_stream__' method), got "
                     f"'{type(data).__name__}' instead."
                 )
-            data = pa.table(data)
+            pa_table = pa.table(data)
+        else:
+            pa_table = data
 
-        df = data.to_pandas()
+        df = pa_table.to_pandas()
         return df
 
     @classmethod
