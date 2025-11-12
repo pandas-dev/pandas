@@ -949,8 +949,26 @@ class ExcelFormatter:
             )
 
         if self.autofilter:
+            if num_cols == 0:
+                indexoffset = 0
+            elif self.index:
+                if isinstance(self.df.index, MultiIndex):
+                    indexoffset = self.df.index.nlevels - 1
+                    if self.merge_cells:
+                        warnings.warn(
+                            "Excel filters merged cells by showing only the first row."
+                            "'autofiler' and 'merge_cells' should not "
+                            "be used simultaneously.",
+                            UserWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                else:
+                    indexoffset = 0
+            else:
+                indexoffset = -1
             start = f"{self._num2excel(startcol)}{startrow + 1}"
-            end = f"{self._num2excel(startcol + num_cols)}{startrow + num_rows + 1}"
+            autofilter_end_column = self._num2excel(startcol + num_cols + indexoffset)
+            end = f"{autofilter_end_column}{startrow + num_rows + 1}"
             autofilter_range = f"{start}:{end}"
         else:
             autofilter_range = None

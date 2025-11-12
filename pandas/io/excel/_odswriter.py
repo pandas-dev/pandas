@@ -104,6 +104,10 @@ class ODSWriter(ExcelWriter):
         """
         Write the frame cells using odf
         """
+
+        if autofilter_range:
+            raise ValueError("Autofilter is not supported with odf!")
+
         from odf.table import (
             Table,
             TableCell,
