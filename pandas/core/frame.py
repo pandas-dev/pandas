@@ -343,8 +343,12 @@ how : {'left', 'right', 'outer', 'inner', 'cross', 'left_anti', 'right_anti'},
       of the left keys.
     * left_anti: use only keys from left frame that are not in right frame, similar
       to SQL left anti join; preserve key order.
+
+      .. versionadded:: 3.0
     * right_anti: use only keys from right frame that are not in left frame, similar
       to SQL right anti join; preserve key order.
+
+      .. versionadded:: 3.0
 on : Hashable or a sequence of the previous
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -1907,9 +1911,6 @@ class DataFrame(NDFrame, OpsMixin):
             If 'tight', assume a dict with keys ['index', 'columns', 'data',
             'index_names', 'column_names'].
 
-            .. versionadded:: 1.4.0
-               'tight' as an allowed value for the ``orient`` argument
-
         dtype : dtype, default None
             Data type to force after DataFrame construction, otherwise infer.
         columns : list, default None
@@ -2147,9 +2148,6 @@ class DataFrame(NDFrame, OpsMixin):
             - 'records' : list like
               [{column -> value}, ... , {column -> value}]
             - 'index' : dict like {index -> {column -> value}}
-
-            .. versionadded:: 1.4.0
-                'tight' as an allowed value for the ``orient`` argument
 
         into : class, default dict
             The collections.abc.MutableMapping subclass used for all Mappings
@@ -2977,6 +2975,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
+        filesystem: Any = ...,
         **kwargs,
     ) -> bytes: ...
 
@@ -2990,6 +2989,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = ...,
         partition_cols: list[str] | None = ...,
         storage_options: StorageOptions = ...,
+        filesystem: Any = ...,
         **kwargs,
     ) -> None: ...
 
@@ -3003,6 +3003,7 @@ class DataFrame(NDFrame, OpsMixin):
         index: bool | None = None,
         partition_cols: list[str] | None = None,
         storage_options: StorageOptions | None = None,
+        filesystem: Any = None,
         **kwargs,
     ) -> bytes | None:
         """
@@ -3041,6 +3042,12 @@ class DataFrame(NDFrame, OpsMixin):
             Columns are partitioned in the order they are given.
             Must be None if path is not a string.
         {storage_options}
+
+        filesystem : fsspec or pyarrow filesystem, default None
+            Filesystem object to use when reading the parquet file. Only implemented
+            for ``engine="pyarrow"``.
+
+            .. versionadded:: 2.1.0
 
         **kwargs
             Additional arguments passed to the parquet library. See
@@ -3103,6 +3110,7 @@ class DataFrame(NDFrame, OpsMixin):
             index=index,
             partition_cols=partition_cols,
             storage_options=storage_options,
+            filesystem=filesystem,
             **kwargs,
         )
 
@@ -3146,8 +3154,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> bytes | None:
         """
         Write a DataFrame to the Optimized Row Columnar (ORC) format.
-
-        .. versionadded:: 1.5.0
 
         Parameters
         ----------
@@ -3521,8 +3527,6 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> str | None:
         """
         Render a DataFrame to an XML document.
-
-        .. versionadded:: 1.3.0
 
         Parameters
         ----------
@@ -6261,7 +6265,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = ...,
         append: bool = ...,
         inplace: Literal[False] = ...,
-        verify_integrity: bool = ...,
+        verify_integrity: bool | lib.NoDefault = ...,
     ) -> DataFrame: ...
 
     @overload
@@ -6272,7 +6276,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = ...,
         append: bool = ...,
         inplace: Literal[True],
-        verify_integrity: bool = ...,
+        verify_integrity: bool | lib.NoDefault = ...,
     ) -> None: ...
 
     def set_index(
@@ -6282,7 +6286,7 @@ class DataFrame(NDFrame, OpsMixin):
         drop: bool = True,
         append: bool = False,
         inplace: bool = False,
-        verify_integrity: bool = False,
+        verify_integrity: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame | None:
         """
         Set the DataFrame index using existing columns.
@@ -6311,6 +6315,8 @@ class DataFrame(NDFrame, OpsMixin):
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
             method.
+
+            .. deprecated:: 3.0.0
 
         Returns
         -------
@@ -6398,6 +6404,18 @@ class DataFrame(NDFrame, OpsMixin):
         2013    84
         2014    31
         """
+        if verify_integrity is not lib.no_default:
+            # GH#62919
+            warnings.warn(
+                "The 'verify_integrity' keyword in DataFrame.set_index is "
+                "deprecated and will be removed in a future version. "
+                "Directly check the result.index.is_unique instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            verify_integrity = False
+
         inplace = validate_bool_kwarg(inplace, "inplace")
         self._check_inplace_and_allows_duplicate_labels(inplace)
         if not isinstance(keys, list):
@@ -6579,15 +6597,10 @@ class DataFrame(NDFrame, OpsMixin):
             levels are named. If None then the index name is repeated.
         allow_duplicates : bool, optional, default lib.no_default
             Allow duplicate column labels to be created.
-
-            .. versionadded:: 1.5.0
-
         names : int, str or 1-dimensional list, default None
             Using the given string, rename the DataFrame column which contains the
             index data. If the DataFrame has a MultiIndex, this has to be a list
             with length equal to the number of levels.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -7765,8 +7778,6 @@ class DataFrame(NDFrame, OpsMixin):
             Sort in ascending order.
         dropna : bool, default True
             Do not include counts of rows that contain NA values.
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -9895,12 +9906,8 @@ class DataFrame(NDFrame, OpsMixin):
         sort : bool, default True
             Specifies if the result should be sorted.
 
-            .. versionadded:: 1.3.0
-
         **kwargs : dict
             Optional keyword arguments to pass to ``aggfunc``.
-
-            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -10249,9 +10256,6 @@ class DataFrame(NDFrame, OpsMixin):
             For multiple columns, specify a non-empty list with each element
             be str or tuple, and all specified columns their list-like data
             on same row of the frame must have matching length.
-
-            .. versionadded:: 1.3.0
-                Multi-column explode
 
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
@@ -11284,8 +11288,6 @@ class DataFrame(NDFrame, OpsMixin):
             * "many_to_one" or "m:1": check if join keys are unique in right dataset.
             * "many_to_many" or "m:m": allowed, but does not result in checks.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         DataFrame
@@ -11681,8 +11683,6 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
-            .. versionadded:: 1.5.0
-
             .. versionchanged:: 2.0.0
                 The default value of ``numeric_only`` is now ``False``.
 
@@ -11807,8 +11807,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
                 The default value of ``numeric_only`` is now ``False``.
@@ -11947,8 +11945,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         min_periods : int, optional
             Minimum number of observations needed to have a valid result.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
                 The default value of ``numeric_only`` is now ``False``.
@@ -13470,8 +13466,6 @@ class DataFrame(NDFrame, OpsMixin):
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         Series
@@ -13574,8 +13568,6 @@ class DataFrame(NDFrame, OpsMixin):
             will raise a ``ValueError``.
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
