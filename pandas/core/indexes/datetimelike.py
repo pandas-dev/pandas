@@ -737,11 +737,21 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # local-time irregularities across DST transitions, then convert back.
             tz = getattr(self.dtype, "tz", None)
             if tz is not None:
-                left_utc = self.tz_convert("UTC")
-                right_utc = other.tz_convert("UTC")
-                res_utc = super(type(left_utc), left_utc)._union(right_utc, sort)
-                res = res_utc.tz_convert(tz)
-                return res._with_freq("infer")
+                # Narrow to DatetimeArray to access tz_convert without mypy errors
+                if isinstance(self._data, DatetimeArray) and isinstance(
+                    other._data, DatetimeArray
+                ):
+                    left_utc_arr = self._data.tz_convert("UTC")
+                    right_utc_arr = other._data.tz_convert("UTC")
+                    left_utc = type(self)._simple_new(left_utc_arr, name=self.name)
+                    right_utc = type(other)._simple_new(right_utc_arr, name=other.name)
+                    res_utc = super(type(left_utc), left_utc)._union(right_utc, sort)
+                    # res_utc is DatetimeIndex; convert its underlying array back to tz
+                    res_arr = cast(DatetimeArray, res_utc._data).tz_convert(tz)
+                    res = type(self)._simple_new(res_arr, name=res_utc.name)
+                    return res._with_freq("infer")
+                # Defensive fallback if types are unexpected
+                return super()._union(other, sort)._with_freq("infer")
             return super()._union(other, sort)._with_freq("infer")
 
     # --------------------------------------------------------------------
