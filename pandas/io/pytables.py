@@ -2278,7 +2278,7 @@ class IndexCol:
         except UnicodeEncodeError as err:
             if (
                 errors == "surrogatepass"
-                and get_option("future.infer_string")
+                and using_string_dtype()
                 and str(err).endswith("surrogates not allowed")
                 and HAS_PYARROW
             ):
@@ -3214,7 +3214,7 @@ class GenericFixed(Fixed):
             except UnicodeEncodeError as err:
                 if (
                     self.errors == "surrogatepass"
-                    and get_option("future.infer_string")
+                    and using_string_dtype()
                     and str(err).endswith("surrogates not allowed")
                     and HAS_PYARROW
                 ):
@@ -3365,7 +3365,7 @@ class SeriesFixed(GenericFixed):
         except UnicodeEncodeError as err:
             if (
                 self.errors == "surrogatepass"
-                and get_option("future.infer_string")
+                and using_string_dtype()
                 and str(err).endswith("surrogates not allowed")
                 and HAS_PYARROW
             ):
@@ -4829,7 +4829,7 @@ class AppendableFrameTable(AppendableTable):
                 except UnicodeEncodeError as err:
                     if (
                         self.errors == "surrogatepass"
-                        and get_option("future.infer_string")
+                        and using_string_dtype()
                         and str(err).endswith("surrogates not allowed")
                         and HAS_PYARROW
                     ):

@@ -697,8 +697,6 @@ def factorize(
         If True, the sentinel -1 will be used for NaN values. If False,
         NaN values will be encoded as non-negative integers and will not drop the
         NaN from the uniques of the values.
-
-        .. versionadded:: 1.5.0
     {size_hint}\
 
     Returns
@@ -1703,7 +1701,7 @@ def map_array(
             ]
         else:
             # Dictionary does not have a default. Thus it's safe to
-            # convert to an Series for efficiency.
+            # convert to a Series for efficiency.
             # we specify the keys here to handle the
             # possibility that they are tuples
 

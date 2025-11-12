@@ -766,7 +766,7 @@ class TestMultiplicationDivision:
             div, mod = divmod(idx.values, 2)
 
         expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
+        for r, e in zip(result, expected, strict=True):
             tm.assert_index_equal(r, e)
 
     def test_divmod_ndarray(self, numeric_idx):
@@ -778,7 +778,7 @@ class TestMultiplicationDivision:
             div, mod = divmod(idx.values, other)
 
         expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
+        for r, e in zip(result, expected, strict=True):
             tm.assert_index_equal(r, e)
 
     def test_divmod_series(self, numeric_idx):
@@ -790,7 +790,7 @@ class TestMultiplicationDivision:
             div, mod = divmod(idx.values, other)
 
         expected = Series(div), Series(mod)
-        for r, e in zip(result, expected):
+        for r, e in zip(result, expected, strict=True):
             tm.assert_series_equal(r, e)
 
     @pytest.mark.parametrize("other", [np.nan, 7, -23, 2.718, -3.14, np.inf])
@@ -1088,7 +1088,7 @@ class TestAdditionSubtraction:
         with np.errstate(all="ignore"):
             expecteds = divmod(series.values, np.asarray(other_np))
 
-        for result, expected in zip(results, expecteds):
+        for result, expected in zip(results, expecteds, strict=True):
             # check the values, name, and index separately
             tm.assert_almost_equal(np.asarray(result), expected)
 

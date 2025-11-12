@@ -1131,7 +1131,7 @@ class TestPandasContainer:
     def test_timedelta(self):
         converter = lambda x: pd.to_timedelta(x, unit="ms")
 
-        ser = Series([timedelta(23), timedelta(seconds=5)])
+        ser = Series([timedelta(23), timedelta(seconds=5)], dtype="m8[ns]")
         assert ser.dtype == "timedelta64[ns]"
 
         msg = (
@@ -1148,7 +1148,7 @@ class TestPandasContainer:
             result = read_json(StringIO(ser.to_json()), typ="series").apply(converter)
         tm.assert_series_equal(result, ser)
 
-        frame = DataFrame([timedelta(23), timedelta(seconds=5)])
+        frame = DataFrame([timedelta(23), timedelta(seconds=5)], dtype="m8[ns]")
         assert frame[0].dtype == "timedelta64[ns]"
 
         with tm.assert_produces_warning(Pandas4Warning, match=msg):

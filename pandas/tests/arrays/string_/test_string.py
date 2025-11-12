@@ -487,6 +487,16 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_to_numpy_readonly(dtype):
+    arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
+    arr._readonly = True
+    result = arr.to_numpy()
+    if dtype.storage == "python":
+        assert not result.flags.writeable
+    else:
+        assert result.flags.writeable
+
+
 def test_isin(dtype, fixed_now_ts):
     s = pd.Series(["a", "b", None], dtype=dtype)
 

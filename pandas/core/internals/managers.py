@@ -598,7 +598,7 @@ class BaseBlockManager(PandasObject):
                     return self
             # No need to split if we either set all columns or on a single block
             # manager
-            self = self.copy()
+            self = self.copy(deep=True)
 
         return self.apply("setitem", indexer=indexer, value=value)
 
@@ -712,30 +712,21 @@ class BaseBlockManager(PandasObject):
     def nblocks(self) -> int:
         return len(self.blocks)
 
-    def copy(self, deep: bool | Literal["all"] = True) -> Self:
+    def copy(self, *, deep: bool) -> Self:
         """
         Make deep or shallow copy of BlockManager
 
         Parameters
         ----------
         deep : bool, string or None, default True
-            If False or None, return a shallow copy (do not copy data)
-            If 'all', copy data and a deep copy of the index
+            If False, return a shallow copy (do not copy data)
 
         Returns
         -------
         BlockManager
         """
-        # this preserves the notion of view copying of axes
-        if deep:
-            # hit in e.g. tests.io.json.test_pandas
-
-            def copy_func(ax):
-                return ax.copy(deep=True) if deep == "all" else ax.view()
-
-            new_axes = [copy_func(ax) for ax in self.axes]
-        else:
-            new_axes = [ax.view() for ax in self.axes]
+        # TODO: Should deep=True be respected for axes?
+        new_axes = [ax.view() for ax in self.axes]
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
@@ -2188,7 +2179,7 @@ class SingleBlockManager(BaseBlockManager):
         the dtype.
         """
         if not self._has_no_reference(0):
-            self.blocks = (self._block.copy(),)
+            self.blocks = (self._block.copy(deep=True),)
             self._reset_cache()
 
         arr = self.array

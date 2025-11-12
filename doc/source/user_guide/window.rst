@@ -77,8 +77,6 @@ which will first group the data by the specified keys and then perform a windowi
     to compute the rolling sums to preserve accuracy as much as possible.
 
 
-.. versionadded:: 1.3.0
-
 Some windowing operations also support the ``method='table'`` option in the constructor which
 performs the windowing operation over an entire :class:`DataFrame` instead of a single column at a time.
 This can provide a useful performance benefit for a :class:`DataFrame` with many columns
@@ -99,8 +97,6 @@ be calculated with :meth:`~Rolling.apply` by specifying a separate column of wei
 
    df = pd.DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
    df.rolling(2, method="table", min_periods=0).apply(weighted_mean, raw=True, engine="numba")  # noqa: E501
-
-.. versionadded:: 1.3
 
 Some windowing operations also support an ``online`` method after constructing a windowing object
 which returns a new object that supports passing in new :class:`DataFrame` or :class:`Series` objects
@@ -181,8 +177,6 @@ By default the labels are set to the right edge of the window, but a
 
 
 This can also be applied to datetime-like indices.
-
-.. versionadded:: 1.3.0
 
 .. ipython:: python
 
@@ -364,8 +358,6 @@ The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be
 `numba.jit decorator <https://numba.readthedocs.io/en/stable/user/jit.html>`__.
 These keyword arguments will be applied to *both* the passed function (if a standard Python function)
 and the apply for loop over each window.
-
-.. versionadded:: 1.3.0
 
 ``mean``, ``median``, ``max``, ``min``, and ``sum`` also support the ``engine`` and ``engine_kwargs`` arguments.
 

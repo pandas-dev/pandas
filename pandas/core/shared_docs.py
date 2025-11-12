@@ -79,8 +79,6 @@ keep_equal : bool, default False
 
 result_names : tuple, default ('self', 'other')
     Set the dataframes names in the comparison.
-
-    .. versionadded:: 1.5.0
 """
 
 _shared_docs["groupby"] = """

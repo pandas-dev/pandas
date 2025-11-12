@@ -490,6 +490,24 @@ class TestSetitemWithExpansionMultiIndex:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_enlargement_multiindex_with_none(self):
+        # GH#59153
+        # enlarging a DataFrame with a MultiIndex containing None values
+        index = MultiIndex.from_tuples(
+            [("A", "a1"), ("A", "a2"), ("B", "b1"), ("B", None)]
+        )
+        df = DataFrame([(0.0, 6.0), (1.0, 5.0), (2.0, 4.0), (3.0, 7.0)], index=index)
+        df.loc[("A", None), :] = [12.0, 13.0]
+        expected_index = MultiIndex.from_tuples(
+            [("A", "a1"), ("A", "a2"), ("B", "b1"), ("B", None), ("A", None)]
+        )
+        expected = DataFrame(
+            [[0.0, 6.0], [1.0, 5.0], [2.0, 4.0], [3.0, 7.0], [12.0, 13.0]],
+            index=expected_index,
+            columns=[0, 1],
+        )
+        tm.assert_frame_equal(df, expected, check_index_type=False)
+
 
 def test_frame_setitem_view_direct(multiindex_dataframe_random_data):
     # this works because we are modifying the underlying array

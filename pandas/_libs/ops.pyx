@@ -177,7 +177,7 @@ def vec_compare(ndarray[object] left, ndarray[object] right, object op) -> ndarr
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def scalar_binop(object[:] values, object val, object op) -> ndarray:
+def scalar_binop(ndarray[object] values, object val, object op) -> ndarray:
     """
     Apply the given binary operator `op` between each element of the array
     `values` and the scalar `val`.
@@ -214,7 +214,7 @@ def scalar_binop(object[:] values, object val, object op) -> ndarray:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def vec_binop(object[:] left, object[:] right, object op) -> ndarray:
+def vec_binop(ndarray[object] left, ndarray[object] right, object op) -> ndarray:
     """
     Apply the given binary operator `op` pointwise to the elements of
     arrays `left` and `right`.

@@ -265,12 +265,11 @@ def test_bad_date_parse(all_parsers, cache, value):
     )
 
 
-@pytest.mark.parametrize("value", ["0"])
-def test_bad_date_parse_with_warning(all_parsers, cache, value):
+def test_bad_date_parse_with_warning(all_parsers, cache):
     # if we have an invalid date make sure that we handle this with
     # and w/o the cache properly.
     parser = all_parsers
-    s = StringIO((f"{value},\n") * 50000)
+    s = StringIO(("0,\n") * (start_caching_at + 1))
 
     if parser.engine == "pyarrow":
         # pyarrow reads "0" as 0 (of type int64), and so

@@ -64,7 +64,7 @@ def get_objs_combined_axis(
     objs,
     intersect: bool = False,
     axis: Axis = 0,
-    sort: bool = True,
+    sort: bool | lib.NoDefault = True,
 ) -> Index:
     """
     Extract combined index: return intersection or union (depending on the
@@ -81,7 +81,8 @@ def get_objs_combined_axis(
     axis : {0 or 'index', 1 or 'outer'}, default 0
         The axis to extract indexes from.
     sort : bool, default True
-        Whether the result index should come out sorted or not.
+        Whether the result index should come out sorted or not. NoDefault
+        use for deprecation in GH#57335.
 
     Returns
     -------
@@ -108,7 +109,7 @@ def _get_distinct_objs(objs: list[Index]) -> list[Index]:
 def _get_combined_index(
     indexes: list[Index],
     intersect: bool = False,
-    sort: bool = False,
+    sort: bool | lib.NoDefault = False,
 ) -> Index:
     """
     Return the union or intersection of indexes.
@@ -121,7 +122,8 @@ def _get_combined_index(
         If True, calculate the intersection between indexes. Otherwise,
         calculate the union.
     sort : bool, default False
-        Whether the result index should come out sorted or not.
+        Whether the result index should come out sorted or not. NoDefault
+        used for deprecation of GH#57335
 
     Returns
     -------
@@ -138,10 +140,10 @@ def _get_combined_index(
         for other in indexes[1:]:
             index = index.intersection(other)
     else:
-        index = union_indexes(indexes, sort=False)
+        index = union_indexes(indexes, sort=sort if sort is lib.no_default else False)
         index = ensure_index(index)
 
-    if sort:
+    if sort and sort is not lib.no_default:
         index = safe_sort_index(index)
     return index
 
@@ -180,7 +182,7 @@ def safe_sort_index(index: Index) -> Index:
     return index
 
 
-def union_indexes(indexes, sort: bool | None = True) -> Index:
+def union_indexes(indexes, sort: bool | lib.NoDefault = True) -> Index:
     """
     Return the union of indexes.
 
@@ -190,7 +192,8 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
     ----------
     indexes : list of Index or list objects
     sort : bool, default True
-        Whether the result index should come out sorted or not.
+        Whether the result index should come out sorted or not. NoDefault
+        used for deprecation of GH#57335.
 
     Returns
     -------
@@ -201,7 +204,7 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
     if len(indexes) == 1:
         result = indexes[0]
         if isinstance(result, list):
-            if not sort:
+            if not sort or sort is lib.no_default:
                 result = Index(result)
             else:
                 result = Index(sorted(result))
@@ -227,7 +230,8 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
             raise TypeError("Cannot join tz-naive with tz-aware DatetimeIndex")
 
         if num_dtis == len(indexes):
-            sort = True
+            if sort is lib.no_default:
+                sort = True
             result = indexes[0]
 
         elif num_dtis > 1:
