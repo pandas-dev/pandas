@@ -12054,25 +12054,25 @@ class DataFrame(NDFrame, OpsMixin):
         if len(categ.columns) == 0:
             return self
 
+        data = self.copy(deep=False)
         cols_convert = categ.loc[:, categ.agg(lambda x: x.cat.ordered)].columns.unique()
-        single_cols = [col for col in cols_convert if isinstance(categ[col], Series)]
+        single_cols = [col for col in cols_convert if isinstance(data[col], Series)]
         duplicated_cols = [
-            col for col in cols_convert if isinstance(categ[col], DataFrame)
+            col for col in cols_convert if isinstance(data[col], DataFrame)
         ]
 
         if not single_cols and not duplicated_cols:
             return self
 
-        data = self.copy(deep=False)
         if single_cols:
-            data[single_cols] = data[single_cols].transform(
+            data[single_cols] = data[single_cols].apply(
                 lambda x: x.cat.codes.replace(-1, np.nan)
             )
 
         if duplicated_cols:
             data[duplicated_cols] = data[duplicated_cols].apply(
                 lambda x: x.cat.codes.replace(-1, np.nan)
-                if isinstance(x, CategoricalDtype) and bool(x.ordered)
+                if isinstance(x.dtype, CategoricalDtype) and bool(x.dtype.ordered)
                 else x
             )
 
