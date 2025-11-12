@@ -61,15 +61,14 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="see GH#62915: union across DST boundary", strict=False)
-def test_union_across_dst_boundary_xfail():
+def test_union_across_dst_boundary():
     # US/Eastern DST spring-forward on 2021-03-14 at 02:00
     # (02:00-02:59 local time does not exist)
     tz = "US/Eastern"
     # Left side spans up to the missing hour window
-    left = date_range("2021-03-14 00:00", periods=3, freq="H", tz=tz)
+    left = date_range("2021-03-14 00:00", periods=3, freq="h", tz=tz)
     # right side continues from the first valid post-DST hour
-    right = date_range("2021-03-14 03:00", periods=3, freq="H", tz=tz)
+    right = date_range("2021-03-14 03:00", periods=3, freq="h", tz=tz)
 
     # Expect a union that preserves tz and includes valid hours without duplicates
     expected = DatetimeIndex(
@@ -80,7 +79,7 @@ def test_union_across_dst_boundary_xfail():
             Timestamp("2021-03-14 04:00", tz=tz),
             Timestamp("2021-03-14 05:00", tz=tz),
         ]
-    )
+    ).as_unit(left.unit)
 
     result = left.union(right)
     tm.assert_index_equal(result, expected)

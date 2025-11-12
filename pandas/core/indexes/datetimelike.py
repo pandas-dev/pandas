@@ -541,7 +541,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         return RangeIndex(rng)
 
     def _can_range_setop(self, other) -> bool:
-        return isinstance(self.freq, Tick) and isinstance(other.freq, Tick)
+        # Only allow range-based setops when both objects are tick-based AND
+        # not timezone-aware. For tz-aware DatetimeIndex, constant i8 stepping
+        # does not hold across DST transitions in local time, so avoid range path.
+        if not (isinstance(self.freq, Tick) and isinstance(other.freq, Tick)):
+            return False
+        self_tz = getattr(self.dtype, "tz", None)
+        other_tz = getattr(other.dtype, "tz", None)
+        return self_tz is None and other_tz is None
 
     def _wrap_range_setop(self, other, res_i8) -> Self:
         new_freq = None
@@ -726,6 +733,15 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             #  that result.freq == self.freq
             return result
         else:
+            # For tz-aware DatetimeIndex, perform union in UTC to avoid
+            # local-time irregularities across DST transitions, then convert back.
+            tz = getattr(self.dtype, "tz", None)
+            if tz is not None:
+                left_utc = self.tz_convert("UTC")
+                right_utc = other.tz_convert("UTC")
+                res_utc = super(type(left_utc), left_utc)._union(right_utc, sort)
+                res = res_utc.tz_convert(tz)
+                return res._with_freq("infer")
             return super()._union(other, sort)._with_freq("infer")
 
     # --------------------------------------------------------------------
