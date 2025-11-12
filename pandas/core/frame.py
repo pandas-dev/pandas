@@ -115,6 +115,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
+    CategoricalDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -12053,15 +12054,29 @@ class DataFrame(NDFrame, OpsMixin):
         if len(categ.columns) == 0:
             return self
 
-        cols_convert = categ.loc[:, categ.agg(lambda x: x.cat.ordered)].columns
+        cols_convert = categ.loc[:, categ.agg(lambda x: x.cat.ordered)].columns.unique()
+        single_cols = [col for col in cols_convert if isinstance(categ[col], Series)]
+        duplicated_cols = [
+            col for col in cols_convert if isinstance(categ[col], DataFrame)
+        ]
 
-        if len(cols_convert) > 0:
-            data = self.copy(deep=False)
-            data[cols_convert] = data[cols_convert].transform(
+        if not single_cols and not duplicated_cols:
+            return self
+
+        data = self.copy(deep=False)
+        if single_cols:
+            data[single_cols] = data[single_cols].transform(
                 lambda x: x.cat.codes.replace(-1, np.nan)
             )
-            return data
-        return self
+
+        if duplicated_cols:
+            data[duplicated_cols] = data[duplicated_cols].apply(
+                lambda x: x.cat.codes.replace(-1, np.nan)
+                if isinstance(x, CategoricalDtype) and bool(x.ordered)
+                else x
+            )
+
+        return data
 
     # ----------------------------------------------------------------------
     # ndarray-like stats methods

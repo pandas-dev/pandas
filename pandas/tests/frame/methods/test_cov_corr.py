@@ -255,11 +255,11 @@ class TestDataFrameCorr:
                 df.corr(meth, numeric_only=numeric_only)
 
     @pytest.mark.parametrize("method", ["kendall", "spearman"])
+    @td.skip_if_no("scipy")
     def test_corr_rank_ordered_categorical(
         self,
         method,
     ):
-        pytest.importorskip("scipy")
         df = DataFrame(
             {
                 "ord_cat": Series(
