@@ -5985,12 +5985,31 @@ class DataFrame(NDFrame, OpsMixin):
         1  2  5
         2  3  6
 
-        >>> df.rename({1: 2, 2: 4}, axis="index")
-           A  B
-        0  1  4
-        2  2  5
-        4  3  6
-        """
+          >>> df.rename({1: 2, 2: 4}, axis="index")
+              A  B
+          0  1  4
+          2  2  5
+          4  3  6
+
+          **Additional practical example showing index and columns rename:**
+
+          >>> df = pd.DataFrame({"X": [1, 2, 3], "Y": [4, 5, 6]}, index=["a", "b", "c"])
+          >>> df.rename(columns={"X": "new_X", "Y": "new_Y"},
+          ...           index={"a": "row1", "b": "row2", "c": "row3"})
+                  new_X  new_Y
+          row1      1      4
+          row2      2      5
+          row3      3      6
+
+          **Using a function to transform column names:**
+
+          >>> df = pd.DataFrame({"X": [1, 2, 3], "Y": [4, 5, 6]}, index=["a", "b", "c"])
+          >>> df.rename(columns=str.lower, index=lambda x: x.upper())
+              x  y
+          A  1  4
+          B  2  5
+          C  3  6
+          """
         self._check_copy_deprecation(copy)
         return super()._rename(
             mapper=mapper,
