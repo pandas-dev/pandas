@@ -1788,9 +1788,9 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         #strftime-and-strptime-behavior>`__.
 
         Formats supported by the C `strftime` API but not by the python string format
-        doc (such as `"%%R"`, `"%%r"`) are not officially supported and should be
-        preferably replaced with their supported equivalents (such as `"%%H:%%M"`,
-        `"%%I:%%M:%%S %%p"`).
+        doc (such as `"%R"`, `"%r"`) are not officially supported and should be
+        preferably replaced with their supported equivalents (such as `"%H:%M"`,
+        `"%I:%M:%S %p"`).
 
         Note that `PeriodIndex` support additional directives, detailed in
         `Period.strftime`.
@@ -1817,7 +1817,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         Examples
         --------
         >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"), periods=3, freq="s")
-        >>> rng.strftime("%%B %%d, %%Y, %%r")
+        >>> rng.strftime("%B %d, %Y, %r")
         Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
                'March 10, 2018, 09:00:02 AM'],
               dtype='str')
