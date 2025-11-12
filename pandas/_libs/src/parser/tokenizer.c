@@ -1510,8 +1510,14 @@ double xstrtod(const char *str, char **endptr, char decimal, char sci,
     // Process string of digits.
     num_digits = 0;
     int n = 0;
+    // Prevent integer overflow by capping exponent value
+    // DBL_MAX_EXP is typically 1024, so we use a safe upper bound
+    const int MAX_EXPONENT_DIGITS = 4;  // Allows up to 9999
     while (isdigit_ascii(*p)) {
-      n = n * 10 + (*p - '0');
+      if (num_digits < MAX_EXPONENT_DIGITS) {
+        n = n * 10 + (*p - '0');
+      }
+      // Continue consuming digits even after cap to maintain correct parsing position
       num_digits++;
       p++;
     }
