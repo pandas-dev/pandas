@@ -1286,7 +1286,6 @@ class NaTType(_NaT):
         >>> pd.Timestamp.now('Brazil/East')
         Timestamp('2025-11-11 22:17:59.609943-03:00)
 
-
         Analogous for ``pd.NaT``:
 
         >>> pd.NaT.now()
