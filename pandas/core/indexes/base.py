@@ -3715,6 +3715,7 @@ class Index(IndexOpsMixin, PandasObject):
         method = clean_reindex_fill_method(method)
         orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
+        target, self = target._maybe_downcast_for_indexing(self)
 
         self._check_indexing_method(method, limit, tolerance)
 
