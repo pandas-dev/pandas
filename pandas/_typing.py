@@ -574,4 +574,3 @@ class ArrowStreamExportable(Protocol):
 
 
 __all__ = ["type_t"]
-4
