@@ -71,6 +71,8 @@ import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import (
+    BusinessHour,
+    CustomBusinessDay,
     Day,
     Tick,
 )
@@ -825,12 +827,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             ]
             res_unit = self.unit
             if hasattr(offset, "offset") and offset.offset is not None:
-                offset_td = Timedelta(offset.offset)
-                if offset_td.value != 0:
-                    offset_unit = offset_td.unit
-                    idx_self = units.index(self.unit)
-                    idx_offset = units.index(offset_unit)
-                    res_unit = units[min(idx_self, idx_offset)]
+                if isinstance(offset, (CustomBusinessDay, BusinessHour)):
+                    offset_td = Timedelta(offset.offset)
+                    if offset_td.value != 0:
+                        offset_unit = offset_td.unit
+                        idx_self = units.index(self.unit)
+                        idx_offset = units.index(offset_unit)
+                        res_unit = units[min(idx_self, idx_offset)]
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
             result = result.as_unit(res_unit)
 
