@@ -5,6 +5,8 @@ import string
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import is_numpy_dev
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.arrays import SparseArray
@@ -457,7 +459,10 @@ def test_array_ufuncs_for_many_arguments():
         ufunc(ser, ser, df)
 
 
-@pytest.mark.xfail(reason="see https://github.com/pandas-dev/pandas/pull/51082")
+@pytest.mark.xfail(
+    condition=not is_numpy_dev,
+    reason="see https://github.com/pandas-dev/pandas/pull/51082",
+)
 def test_np_fix():
     # np.fix is not a ufunc but is composed of several ufunc calls under the hood
     # with `out` and `where` keywords
