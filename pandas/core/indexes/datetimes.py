@@ -767,7 +767,37 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if isinstance(time, str):
             from dateutil.parser import parse
 
-            time = parse(time).time()
+            orig = time
+            try:
+                alt = to_time(time)
+            except ValueError:
+                warnings.warn(
+                    # GH#50839
+                    f"The string '{orig}' cannot be parsed using pd.core.tools.to_time "
+                    f"and in a future version will raise. "
+                    "Use an unambiguous time string format or explicitly cast to "
+                    "`datetime.time` before calling.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+                time = parse(time).time()
+            else:
+                try:
+                    time = parse(time).time()
+                except ValueError:
+                    # e.g. '23550' raises dateutil.parser._parser.ParserError
+                    time = alt
+                if alt != time:
+                    warnings.warn(
+                        # GH#50839
+                        f"The string '{orig}' is currently parsed as {time} "
+                        f"but in a future version will be parsed as {alt}, consistent"
+                        "with `between_time` behavior. To avoid this warning, "
+                        "use an unambiguous string format or explicitly cast to "
+                        "`datetime.time` before calling.",
+                        Pandas4Warning,
+                        stacklevel=find_stack_level(),
+                    )
 
         if time.tzinfo:
             if self.tz is None:
@@ -892,8 +922,6 @@ def date_range(
         Name of the resulting DatetimeIndex.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
-
-        .. versionadded:: 1.4.0
     unit : {'s', 'ms', 'us', 'ns'}, default 'ns'
         Specify the desired resolution of the result.
 
@@ -1094,8 +1122,6 @@ def bdate_range(
         are passed.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
-
-        .. versionadded:: 1.4.0
     **kwargs
         For compatibility. Has no effect on the result.
 

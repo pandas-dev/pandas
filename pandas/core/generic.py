@@ -82,10 +82,9 @@ from pandas._typing import (
     WriteExcelBuffer,
     npt,
 )
-from pandas.compat import PYPY
 from pandas.compat._constants import (
+    CHAINED_WARNING_DISABLED_INPLACE_METHOD,
     REF_COUNT,
-    WARNING_CHECK_DISABLED,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -280,7 +279,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # make a copy if explicitly requested
         if copy:
-            mgr = mgr.copy()
+            mgr = mgr.copy(deep=True)
         if dtype is not None:
             # avoid further copies if we can
             if (
@@ -2075,7 +2074,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             **meta,
         }
 
-    @final
     def __setstate__(self, state) -> None:
         if isinstance(state, BlockManager):
             self._mgr = state
@@ -2414,8 +2412,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             throw ValueError if incorrect 'orient' since others are not
             list-like.
         {compression_options}
-
-            .. versionchanged:: 1.4.0 Zstandard support.
 
         index : bool or None, default None
             The index is only used when 'orient' is 'split', 'index', 'column',
@@ -2877,8 +2873,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             reflect the exact number of written rows as stipulated in the
             `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
             `SQLAlchemy <https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.CursorResult.rowcount>`__.
-
-            .. versionadded:: 1.4.0
 
         Raises
         ------
@@ -3850,12 +3844,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             The newline character or character sequence to use in the output
             file. Defaults to `os.linesep`, which depends on the OS in which
             this method is called ('\\n' for linux, '\\r\\n' for Windows, i.e.).
-
-            .. versionchanged:: 1.5.0
-
-                Previously was line_terminator, changed for consistency with
-                read_csv and the standard library 'csv' module.
-
         chunksize : int or None
             Rows to write at a time.
         date_format : str, default None
@@ -4271,8 +4259,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         result = result.__finalize__(self)
         return result
 
+    # def __delitem__() is implemented in SetitemMixin and dispatches to this method
     @final
-    def __delitem__(self, key) -> None:
+    def _delitem(self, key) -> None:
         """
         Delete item
         """
@@ -5859,18 +5848,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState or np.random.Generator, use as given.
             Default ``None`` results in sampling with the current state of np.random.
-
-            .. versionchanged:: 1.4.0
-
-                np.random.Generator objects now accepted
-
         axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to sample. Accepts axis number or name. Default is stat axis
             for given data type. For `Series` this parameter is unused and defaults to `None`.
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -6680,8 +6662,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
-    def __copy__(self, deep: bool = True) -> Self:
-        return self.copy(deep=deep)
+    def __copy__(self) -> Self:
+        return self.copy(deep=False)
 
     @final
     def __deepcopy__(self, memo=None) -> Self:
@@ -7094,7 +7076,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
+            if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
                 if sys.getrefcount(self) <= REF_COUNT:
                     warnings.warn(
                         _chained_assignment_method_msg,
@@ -7341,7 +7323,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
+            if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
                 if sys.getrefcount(self) <= REF_COUNT:
                     warnings.warn(
                         _chained_assignment_method_msg,
@@ -7481,7 +7463,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
+            if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
                 if sys.getrefcount(self) <= REF_COUNT:
                     warnings.warn(
                         _chained_assignment_method_msg,
@@ -7566,7 +7548,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
+            if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
                 if sys.getrefcount(self) <= REF_COUNT:
                     warnings.warn(
                         _chained_assignment_method_msg,
@@ -7929,7 +7911,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
+            if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
                 if sys.getrefcount(self) <= REF_COUNT:
                     warnings.warn(
                         _chained_assignment_method_msg,
@@ -8584,7 +8566,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
+            if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
                 if sys.getrefcount(self) <= REF_COUNT:
                     warnings.warn(
                         _chained_assignment_method_msg,
@@ -8967,8 +8949,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - 'end': `origin` is the last value of the timeseries
             - 'end_day': `origin` is the ceiling midnight of the last day
 
-            .. versionadded:: 1.3.0
-
             .. note::
 
                 Only takes effect for Tick-frequencies (i.e. fixed frequencies like
@@ -8979,12 +8959,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         group_keys : bool, default False
             Whether to include the group keys in the result index when using
             ``.apply()`` on the resampled object.
-
-            .. versionadded:: 1.5.0
-
-                Not specifying ``group_keys`` will retain values-dependent behavior
-                from pandas 1.4 and earlier (see :ref:`pandas 1.5.0 Release notes
-                <whatsnew_150.enhancements.resample_group_keys>` for examples).
 
             .. versionchanged:: 2.0.0
 
@@ -10227,7 +10201,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
+            if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
                 if sys.getrefcount(self) <= REF_COUNT:
                     warnings.warn(
                         _chained_assignment_method_msg,
@@ -10291,7 +10265,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None:
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
+            if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
                 if sys.getrefcount(self) <= REF_COUNT:
                     warnings.warn(
                         _chained_assignment_method_msg,

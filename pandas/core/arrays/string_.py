@@ -573,9 +573,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
            :meth:`pandas.array` with ``dtype="string"`` for a stable way of
            creating a `StringArray` from any sequence.
 
-        .. versionchanged:: 1.5.0
-
-           StringArray now accepts array-likes containing
+           StringArray accepts array-likes containing
            nan-likes(``None``, ``np.nan``) for the ``values`` parameter
            in addition to strings and :attr:`pandas.NA`
 
@@ -804,6 +802,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return value
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         value = self._maybe_convert_setitem_value(value)
 
         key = check_array_indexer(self, key)

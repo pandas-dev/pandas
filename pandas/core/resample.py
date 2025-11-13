@@ -1545,8 +1545,6 @@ class Resampler(BaseGroupBy, PandasObject):
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
-            .. versionadded:: 1.5.0
-
             .. versionchanged:: 2.0.0
 
                 numeric_only now defaults to ``False``.
@@ -1603,8 +1601,6 @@ class Resampler(BaseGroupBy, PandasObject):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
 
@@ -1669,8 +1665,6 @@ class Resampler(BaseGroupBy, PandasObject):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
 
@@ -2136,11 +2130,12 @@ class DatetimeIndexResampler(Resampler):
         binner = self.binner
         res_index = self._adjust_binner_for_upsample(binner)
 
-        # if we have the same frequency as our axis, then we are equal sampling
+        # if index exactly matches target grid (same freq & alignment), use fast path
         if (
             limit is None
             and to_offset(ax.inferred_freq) == self.freq
             and len(obj) == len(res_index)
+            and obj.index.equals(res_index)
         ):
             result = obj.copy()
             result.index = res_index
