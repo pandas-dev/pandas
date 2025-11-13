@@ -1940,8 +1940,9 @@ class Timestamp(_Timestamp):
 
         If you want a specific timezone, in this case 'Brazil/East':
 
-        >>> pd.Timestamp.now('Brazil/East') # doctest: +SKIP
+        >>> pd.Timestamp.now('Brazil/East')
         Timestamp('2025-11-11 22:17:59.609943-03:00)
+
 
         Analogous for ``pd.NaT``:
 

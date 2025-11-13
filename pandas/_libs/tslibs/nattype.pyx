@@ -1072,13 +1072,8 @@ class NaTType(_NaT):
 
         Examples
         --------
-        >>> pd.Timestamp.now()  # doctest: +SKIP
-        Timestamp('2020-11-16 22:06:16.378782')
-
-        If you want a specific timezone, in this case 'Brazil/East':
-
-        >>> pd.Timestamp.now('Brazil/East') # doctest: +SKIP
-        Timestamp('2025-11-11 22:17:59.609943-03:00)
+        >>> pd.Timestamp.utcnow()   # doctest: +SKIP
+        Timestamp('2020-11-16 22:50:18.092888+0000', tz='UTC')
         """,
     )
 
