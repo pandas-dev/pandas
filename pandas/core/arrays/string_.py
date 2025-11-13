@@ -119,7 +119,8 @@ class StringDtype(StorageExtensionDtype):
 
     Attributes
     ----------
-    None
+    storage
+    na_value
 
     Methods
     -------
@@ -149,7 +150,23 @@ class StringDtype(StorageExtensionDtype):
     # follows NumPy semantics, which uses nan.
     @property
     def na_value(self) -> libmissing.NAType | float:  # type: ignore[override]
+        """
+        The missing value representation for this dtype.
+
+        This value indicates which missing value semantics are used by this dtype.
+        Returns ``np.nan`` for the default string dtype with NumPy semantics,
+        and ``pd.NA`` for the opt-in string dtype with pandas NA semantics.
+        """
         return self._na_value
+
+    @property
+    def storage(self) -> str:
+        """
+        The storage backend for this dtype.
+
+        Can be either "pyarrow" or "python".
+        """
+        return self._storage
 
     _metadata = ("storage", "_na_value")  # type: ignore[assignment]
 
@@ -185,7 +202,7 @@ class StringDtype(StorageExtensionDtype):
         elif na_value is not libmissing.NA:
             raise ValueError(f"'na_value' must be np.nan or pd.NA, got {na_value}")
 
-        self.storage = cast(str, storage)
+        self._storage = cast(str, storage)
         self._na_value = na_value
 
     def __repr__(self) -> str:
