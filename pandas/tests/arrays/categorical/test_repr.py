@@ -546,8 +546,8 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         expected = "[1, '2', 3, 4]\nCategories (4, object): [1, 3, 4, '2']"
         assert result == expected
 
-    def test_categorical_with_pandas_series(self, string_dtype_no_object):
-        # GH 63045
+    def test_categorical_with_string_dtype(self, string_dtype_no_object):
+        # GH 63045 - ensure categories are quoted for string dtypes
         s = Series(
             ["apple", "banana", "cherry", "cherry"], dtype=string_dtype_no_object
         )
