@@ -1353,7 +1353,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def match(
         self,
-        pat: str,
+        pat: str | re.Pattern,
         case: bool | lib.NoDefault = lib.no_default,
         flags: int | lib.NoDefault = lib.no_default,
         na=lib.no_default,
