@@ -3819,3 +3819,33 @@ def test_to_datetime_lxml_elementunicoderesult_with_format(cache):
 
     out = to_datetime(Series([val]), format="%Y-%m-%d %H:%M:%S", cache=cache)
     assert out.iloc[0] == Timestamp(s)
+
+
+class TestForIncreasedRobustness:
+    def test_parse_with_no_malformed_components(self):
+        res = to_datetime(
+            "2018-10-01 12:00:00.0000000011", format="%Y-%m-%d %H:%M:%S.%f"
+        )
+        expected = Timestamp("2018-10-01 12:00:00.0000000011")
+        assert res == expected
+
+    def test_parse_with_malformed_day(self):
+        res = to_datetime(
+            "2018-10-. 12:00:00.0000000011", format="%Y-%m-%d %H:%M:%S.%f"
+        )
+        expected = NaT
+        assert res == expected
+
+    def test_parse_with_malformed_day_iso(self):
+        res = to_datetime("2018-10-.", format="ISO8601")
+        expected = NaT
+        assert res == expected
+
+    def test_parse_with_half_malformed_components(self):
+        res = to_datetime("2018-10-. 12:.:.", format="%Y-%m-%d %H:%M:%S")
+        expected = NaT
+        assert res == expected
+
+    def test_parse_with_too_many_malformed_components(self):
+        with pytest.raises(ValueError, match="^time data *"):
+            to_datetime("2018-.-. 12:.:.", format="%Y-%m-%d %H:%M:%S")
