@@ -228,7 +228,7 @@ class StringDtype(StorageExtensionDtype):
 
     def __setstate__(self, state: MutableMapping[str, Any]) -> None:
         # back-compat for pandas < 2.3, where na_value did not yet exist
-        self.storage = state.pop("storage", "python")
+        self._storage = state.pop("storage", "python")
         self._na_value = state.pop("_na_value", libmissing.NA)
 
     def __hash__(self) -> int:
@@ -323,7 +323,7 @@ class StringDtype(StorageExtensionDtype):
             # if both python and pyarrow storage -> priority to pyarrow
             storage = "pyarrow"
         else:
-            storage = next(iter(storages))  # type: ignore[assignment]
+            storage = next(iter(storages))
 
         na_value: libmissing.NAType | float
         if len(na_values) == 2:
