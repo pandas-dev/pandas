@@ -62,6 +62,22 @@ class TestiLoc:
         # array of ints (GH5006), make sure that a single indexer is returning
         # the correct type
 
+    @pytest.mark.parametrize(
+        "original_type, new_type",
+        [
+            (np.uint16, np.uint8),
+            (np.int32, np.int16),
+            (np.int64, np.uint64),
+            (np.int64, np.int16),
+        ],
+    )
+    def test_iloc_assign_preserve_dtype(self, original_type, new_type):
+        s = Series([10, 20, 30], index=list("abc"), dtype=original_type)
+        s.iloc[0:2] = np.array([100, 200], dtype=new_type)
+
+        expected = original_type
+        assert s.dtype == expected
+
 
 class TestiLocBaseIndependent:
     """Tests Independent Of Base Class"""
