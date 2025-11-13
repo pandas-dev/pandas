@@ -459,7 +459,7 @@ class StorageExtensionDtype(ExtensionDtype):
     _metadata = ("storage",)
 
     def __init__(self, storage: str | None = None) -> None:
-        self.storage = storage
+        self._storage = storage
 
     def __repr__(self) -> str:
         return f"{self.name}[{self.storage}]"
@@ -479,6 +479,10 @@ class StorageExtensionDtype(ExtensionDtype):
     @property
     def na_value(self) -> libmissing.NAType:
         return libmissing.NA
+
+    @property
+    def storage(self) -> str:
+        return self._storage
 
 
 @set_module("pandas.api.extensions")
