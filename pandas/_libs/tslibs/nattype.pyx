@@ -1256,7 +1256,7 @@ class NaTType(_NaT):
 
     now = _make_nat_func(
         "now",
-"""
+        """
         Return new Timestamp object representing current time local to tz.
 
         This method returns a new `Timestamp` object that represents the current time.
@@ -1288,34 +1288,7 @@ class NaTType(_NaT):
 
 
         Analogous for ``pd.NaT``:
-        """
-        Return new Timestamp object representing current time local to tz.
 
-        This method returns a new `Timestamp` object that represents the current time.
-        If a timezone is provided, the current time will be localized to that timezone.
-        Otherwise, it returns the current local time.
-
-        Parameters
-        ----------
-        tz : str or timezone object, default None
-            Timezone to localize to.
-
-        See Also
-        --------
-        to_datetime : Convert argument to datetime.
-        Timestamp.utcnow : Return a new Timestamp representing UTC day and time.
-        Timestamp.today : Return the current time in the local timezone.
-
-        Examples
-        --------
-        >>> pd.Timestamp.now()  # doctest: +SKIP
-        Timestamp("2020-11-16 22:06:16.378782")
-
-        Analogous for ``pd.NaT``:
-
-        >>> pd.NaT.now()
-        NaT
-        """
         >>> pd.NaT.now()
         NaT
         """,
