@@ -48,7 +48,6 @@ from pandas._libs.tslibs import (
     tzconversion,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
-from pandas._libs.tslibs.offsets import DateOffset
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -78,6 +77,7 @@ import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import (
+    DateOffset as TSeriesDateOffset,
     Day,
     Tick,
 )
@@ -873,7 +873,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             ]
             res_unit = self.unit
             if hasattr(offset, "offset") and offset.offset is not None:
-                if not isinstance(offset, DateOffset):
+                if not isinstance(offset, TSeriesDateOffset):
                     offset_td = Timedelta(offset.offset)
                     if offset_td.value != 0:
                         offset_unit = offset_td.unit
