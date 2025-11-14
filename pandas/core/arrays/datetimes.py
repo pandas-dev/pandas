@@ -825,14 +825,17 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 "s",
             ]
             res_unit = self.unit
-            if hasattr(offset, "offset") and offset.offset is not None:
-                if not isinstance(offset, TSeriesDateOffset):
-                    offset_td = Timedelta(offset.offset)
-                    if offset_td.value != 0:
-                        offset_unit = offset_td.unit
-                        idx_self = units.index(self.unit)
-                        idx_offset = units.index(offset_unit)
-                        res_unit = units[min(idx_self, idx_offset)]
+            if isinstance(offset, TSeriesDateOffset):
+                micro = offset.kwds.get("microseconds", 0)
+                if micro and self.unit != "ns":
+                    res_unit = "us"
+            elif hasattr(offset, "offset") and offset.offset is not None:
+                offset_td = Timedelta(offset.offset)
+                if offset_td.value != 0:
+                    offset_unit = offset_td.unit
+                    idx_self = units.index(self.unit)
+                    idx_offset = units.index(offset_unit)
+                    res_unit = units[min(idx_self, idx_offset)]
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
             result = result.as_unit(res_unit)
 
