@@ -636,9 +636,9 @@ class TestDateOffset:
 
     @pytest.mark.parametrize(
         "arithmatic_offset_type, expected",
-            zip(
-                _ARITHMETIC_DATE_OFFSET,
-                [
+        zip(
+            _ARITHMETIC_DATE_OFFSET,
+            [
                 "2009-01-02",
                 "2008-02-02",
                 "2008-01-09",
@@ -658,9 +658,9 @@ class TestDateOffset:
 
     @pytest.mark.parametrize(
         "arithmatic_offset_type, expected",
-            zip(
-                _ARITHMETIC_DATE_OFFSET,
-                [
+        zip(
+            _ARITHMETIC_DATE_OFFSET,
+            [
                 "2007-01-02",
                 "2007-12-02",
                 "2007-12-26",
