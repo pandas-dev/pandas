@@ -48,11 +48,11 @@ from pandas._libs import (
     properties,
 )
 from pandas._libs.hashtable import duplicated
+from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
-from pandas.compat import PYPY
 from pandas.compat._constants import (
+    CHAINED_WARNING_DISABLED_INPLACE_METHOD,
     REF_COUNT,
-    WARNING_CHECK_DISABLED,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -63,7 +63,6 @@ from pandas.errors import (
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
-    _chained_assignment_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -521,7 +520,7 @@ ValueError: columns overlap but no suffix specified:
 
 
 @set_module("pandas")
-class DataFrame(NDFrame, OpsMixin):
+class DataFrame(SetitemMixin, NDFrame, OpsMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
 
@@ -667,6 +666,11 @@ class DataFrame(NDFrame, OpsMixin):
     # similar to __array_priority__, positions DataFrame before Series, Index,
     #  and ExtensionArray.  Should NOT be overridden by subclasses.
     __pandas_priority__ = 4000
+
+    # override those to avoid inheriting from SetitemMixin (cython generates
+    # them by default)
+    __reduce__ = object.__reduce__
+    __setstate__ = NDFrame.__setstate__
 
     @property
     def _constructor(self) -> type[DataFrame]:
@@ -4321,7 +4325,8 @@ class DataFrame(NDFrame, OpsMixin):
         arraylike, refs = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
-    def __setitem__(self, key, value) -> None:
+    # def __setitem__() is implemented in SetitemMixin and dispatches to this method
+    def _setitem(self, key, value) -> None:
         """
         Set item(s) in DataFrame by key.
 
@@ -4405,12 +4410,6 @@ class DataFrame(NDFrame, OpsMixin):
         z  3  50
         # Values for 'a' and 'b' are completely ignored!
         """
-        if not PYPY and not WARNING_CHECK_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT + 1:
-                warnings.warn(
-                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
-                )
-
         key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows
@@ -9363,7 +9362,7 @@ class DataFrame(NDFrame, OpsMixin):
         1  2  500.0
         2  3    6.0
         """
-        if not PYPY and not WARNING_CHECK_DISABLED:
+        if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
