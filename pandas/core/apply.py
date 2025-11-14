@@ -1311,17 +1311,18 @@ class FrameRowApply(FrameApply):
             res.index = res_index
             return res
 
+        # Pre-validate before attempting construction
+        if self._has_ragged_arrays(results):
+            # e.g. result = [[2, 3], [1.5], ['foo', 'bar']]
+            #  see test_agg_listlike_result GH#29587
+            res = self.obj._constructor_sliced(results)
+            res.index = res_index
+            return res
+
         try:
             result = self.obj._constructor(data=results)
-        except ValueError as err:
-            if "All arrays must be of the same length" in str(err):
-                # e.g. result = [[2, 3], [1.5], ['foo', 'bar']]
-                #  see test_agg_listlike_result GH#29587
-                res = self.obj._constructor_sliced(results)
-                res.index = res_index
-                return res
-            else:
-                raise
+        except ValueError:
+            raise
 
         if not isinstance(results[0], ABCSeries):
             if len(result.index) == len(self.res_columns):
@@ -1331,6 +1332,33 @@ class FrameRowApply(FrameApply):
             result.columns = res_index
 
         return result
+
+    def _has_ragged_arrays(self, results: ResType) -> bool:
+        """
+        Check if results contain arrays/sequences of different lengths.
+
+        Returns
+        -------
+        bool
+            True if any arrays have inconsistent lengths, False otherwise.
+
+        Examples
+        --------
+        >>> results = {0: [1, 2], 1: [3], 2: [4, 5, 6]}
+        >>> self._has_ragged_arrays(results)
+        True
+        """
+        if not results or len(results) <= 1:
+            return False
+
+        lengths = set()
+        for val in results.values():
+            if isinstance(val, (list, np.ndarray, ABCSeries)):
+                lengths.add(len(val))
+            elif is_list_like(val) and getattr(val, "ndim", 1) == 1:
+                lengths.add(len(val))
+
+        return len(lengths) > 1
 
 
 class FrameColumnApply(FrameApply):
