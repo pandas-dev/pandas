@@ -1055,7 +1055,7 @@ class SQLTable(PandasObject):
         data = [dict(zip(keys, row, strict=False)) for row in data_iter]
 
         if hint_str:
-            stmt = self.table.insert().prefix_with(hint_str)
+            stmt = self.table.insert().with_statement_hint(hint_str)
         else:
             stmt = self.table.insert()
 
@@ -1082,7 +1082,7 @@ class SQLTable(PandasObject):
         data = [dict(zip(keys, row, strict=False)) for row in data_iter]
 
         if hint_str:
-            stmt = insert(self.table).values(data).prefix_with(hint_str)
+            stmt = insert(self.table).values(data).with_statement_hint(hint_str)
         else:
             stmt = insert(self.table).values(data)
 
