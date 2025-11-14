@@ -322,7 +322,7 @@ def item_from_zerodim(val: object) -> object:
     >>> item_from_zerodim(np.array([1]))
     array([1])
     """
-    if cnp.PyArray_IsZeroDim(val):
+    if cnp.PyArray_IsZeroDim(val) and cnp.PyArray_CheckExact(val):
         return cnp.PyArray_ToScalar(cnp.PyArray_DATA(val), val)
     return val
 
