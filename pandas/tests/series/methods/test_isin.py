@@ -267,3 +267,12 @@ def test_isin_filtering_on_iterable(data, isin):
     expected_result = Series([True, True, False])
 
     tm.assert_series_equal(result, expected_result)
+
+
+def test_isin_int64_vs_uint64_mismatch():
+    ser = Series([1378774140726870442], dtype=np.int64)
+    vals = [np.uint64(1378774140726870528)]
+
+    res = ser.isin(vals)
+    expected = Series([False])
+    tm.assert_series_equal(res, expected)
