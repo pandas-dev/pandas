@@ -63,8 +63,13 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
 
     Parameters
     ----------
-    df : DataFrameXchg
+    df : DataFrame
         Object supporting the interchange protocol, i.e. `__dataframe__` method.
+
+        .. deprecated:: 3.0
+            The ``DataFrameXchg`` type hint is deprecated.
+            Use ``DataFrame`` from the interchange protocol instead.
+
     allow_copy : bool, default: True
         Whether to allow copying the memory to perform the conversion
         (if false then zero-copy approach is requested).
@@ -142,8 +147,12 @@ def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True) -> pd.DataFrame:
 
     Parameters
     ----------
-    df : DataFrameXchg
+    df : DataFrame
         Object supporting the interchange protocol, i.e. `__dataframe__` method.
+
+        .. deprecated:: 3.0
+            The ``DataFrameXchg`` type hint is deprecated.
+
     allow_copy : bool, default: True
         Whether to allow copying the memory to perform the conversion
         (if false then zero-copy approach is requested).
