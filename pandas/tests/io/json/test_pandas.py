@@ -128,7 +128,10 @@ class TestPandasContainer:
             [["a", "b"], ["c", "d"]],
             [[1.5, 2.5], [3.5, 4.5]],
             [[1, 2.5], [3, 4.5]],
-            [[Timestamp("20130101"), 3.5], [Timestamp("20130102"), 4.5]],
+            [
+                [Timestamp("20130101").as_unit("s"), 3.5],
+                [Timestamp("20130102").as_unit("s"), 4.5],
+            ],
         ],
     )
     def test_frame_non_unique_columns(self, orient, data, request):
