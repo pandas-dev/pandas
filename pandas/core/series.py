@@ -72,6 +72,7 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from,
     maybe_box_native,
+    maybe_unbox_numpy_scalar,
 )
 from pandas.core.dtypes.common import (
     is_dict_like,
@@ -2014,7 +2015,7 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.count()
         2
         """
-        return notna(self._values).sum().astype("int64")
+        return maybe_unbox_numpy_scalar(notna(self._values).sum().astype("int64"))
 
     def mode(self, dropna: bool = True) -> Series:
         """
@@ -7352,7 +7353,7 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(delegate, ExtensionArray):
             # dispatch to ExtensionArray interface
-            return delegate._reduce(name, skipna=skipna, **kwds)
+            result = delegate._reduce(name, skipna=skipna, **kwds)
 
         else:
             # dispatch to numpy arrays
@@ -7366,7 +7367,10 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     f"Series.{name} does not allow {kwd_name}={numeric_only} "
                     "with non-numeric dtypes."
                 )
-            return op(delegate, skipna=skipna, **kwds)
+            result = op(delegate, skipna=skipna, **kwds)
+
+        result = maybe_unbox_numpy_scalar(result)
+        return result
 
     @Appender(make_doc("any", ndim=1))
     # error: Signature of "any" incompatible with supertype "NDFrame"
