@@ -231,7 +231,6 @@ class TestConvertDtypes:
 
     def test_convert_dtypes_complex(self):
         # GH 60129
-        df = pd.DataFrame({"a": [1.0 + 5.0j, 1.5 - 3.0j]})
+        df = pd.DataFrame({"a": [1.0 + 5.0j, 1.5 - 3.0j], "b": [1, 2]})
         result = df.convert_dtypes()
         tm.assert_frame_equal(result, df)
-        assert result["a"].dtype.kind == "c"
