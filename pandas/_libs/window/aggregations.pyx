@@ -699,7 +699,7 @@ cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
 
             # Relative cutoff as introduced in #62405
             # See the comment in nanops.nankurt for further explanation
-            variance_cutoff = ((EpsF64 * B) ** 2) * dnobs
+            variance_cutoff = EpsF64 * EpsF64 * A * A * dnobs
 
             # #18044: with uniform distribution, floating issue will
             #         cause B != 0. and cause the result is a very
