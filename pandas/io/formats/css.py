@@ -19,6 +19,7 @@ if TYPE_CHECKING:
         Iterator,
     )
 
+
 def _lowercase_outside_quotes(value: str) -> str:
     parts = re.split(r'(".*?")', value)
     new_parts = []
@@ -27,7 +28,7 @@ def _lowercase_outside_quotes(value: str) -> str:
             new_parts.append(part)  # preserve case
         else:
             new_parts.append(part.lower())
-    return ''.join(new_parts)
+    return "".join(new_parts)
 
 
 def _side_expander(prop_fmt: str) -> Callable:
