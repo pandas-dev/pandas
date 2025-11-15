@@ -18,6 +18,12 @@ from pandas.io.excel._openpyxl import OpenpyxlReader
 
 openpyxl = pytest.importorskip("openpyxl")
 
+# xfail marker for pending autofilter feature; see #62994
+xfail_autofilter = pytest.mark.xfail(
+    reason="Excel header autofilter not yet implemented on main; see #62994",
+    strict=False,
+)
+
 
 @pytest.fixture
 def ext():
@@ -153,6 +159,90 @@ def test_engine_kwargs_append_data_only(tmp_excel, data_only, expected):
         ).iloc[0, 1]
         == expected
     )
+
+
+@xfail_autofilter
+def test_to_excel_autofilter_openpyxl(tmp_excel):
+    # Ensure that writing with autofilter=True sets auto_filter.ref
+    df = DataFrame({"A": [1, 2], "B": [3, 4]})
+    df.to_excel(tmp_excel, engine="openpyxl", index=False, autofilter=True)
+
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        ws = wb[wb.sheetnames[0]]
+        # Expect filter over the full range, e.g. A1:B3 (header + 2 rows)
+        assert ws.auto_filter is not None
+        assert ws.auto_filter.ref is not None
+        # Verify filter covers all columns (A and B)
+        assert "A" in ws.auto_filter.ref
+        assert "B" in ws.auto_filter.ref
+
+
+@xfail_autofilter
+def test_to_excel_autofilter_startrow_startcol_openpyxl(tmp_excel):
+    # Test autofilter with nonzero startrow and startcol
+    df = DataFrame({"A": [1, 2], "B": [3, 4]})
+    df.to_excel(
+        tmp_excel,
+        engine="openpyxl",
+        index=False,
+        autofilter=True,
+        startrow=2,
+        startcol=1,
+    )
+
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        ws = wb[wb.sheetnames[0]]
+        assert ws.auto_filter is not None
+        assert ws.auto_filter.ref is not None
+        # Filter should be offset by startrow=2 and startcol=1 (B3:D5)
+        assert ws.auto_filter.ref.startswith("B")
+        assert "3" in ws.auto_filter.ref
+
+
+@xfail_autofilter
+def test_to_excel_autofilter_multiindex_merge_cells_openpyxl(tmp_excel):
+    # Test autofilter with MultiIndex columns and merge_cells=True
+    df = DataFrame(
+        [[1, 2, 3, 4], [5, 6, 7, 8]],
+        columns=pd.MultiIndex.from_tuples(
+            [("A", "a"), ("A", "b"), ("B", "a"), ("B", "b")]
+        ),
+    )
+    df.to_excel(
+        tmp_excel,
+        engine="openpyxl",
+        index=False,
+        autofilter=True,
+        merge_cells=True,
+    )
+
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        ws = wb[wb.sheetnames[0]]
+        assert ws.auto_filter is not None
+        assert ws.auto_filter.ref is not None
+
+
+@xfail_autofilter
+def test_to_excel_autofilter_multiindex_no_merge_openpyxl(tmp_excel):
+    # Test autofilter with MultiIndex columns and merge_cells=False
+    df = DataFrame(
+        [[1, 2, 3, 4], [5, 6, 7, 8]],
+        columns=pd.MultiIndex.from_tuples(
+            [("A", "a"), ("A", "b"), ("B", "a"), ("B", "b")]
+        ),
+    )
+    df.to_excel(
+        tmp_excel,
+        engine="openpyxl",
+        index=False,
+        autofilter=True,
+        merge_cells=False,
+    )
+
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        ws = wb[wb.sheetnames[0]]
+        assert ws.auto_filter is not None
+        assert ws.auto_filter.ref is not None
 
 
 @pytest.mark.parametrize("kwarg_name", ["read_only", "data_only"])
