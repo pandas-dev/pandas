@@ -114,6 +114,7 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
+    escape_forward_slashes: Literal[True, False] = ...,
 ) -> None: ...
 
 
@@ -133,6 +134,7 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
+    escape_forward_slashes: Literal[True, False] = ...,
 ) -> str: ...
 
 
@@ -151,6 +153,7 @@ def to_json(
     indent: int = 0,
     storage_options: StorageOptions | None = None,
     mode: Literal["a", "w"] = "w",
+    escape_forward_slashes: Literal[True, False] = True,
 ) -> str | None:
     if orient in ["records", "values"] and index is True:
         raise ValueError(
@@ -218,6 +221,23 @@ def to_json(
         ) as handles:
             handles.handle.write(s)
     else:
+        if not escape_forward_slashes:
+            pattern = r"\/"
+            i = 1
+            new_s = ""
+            skip = False
+            for letter in s:
+                if skip is False:
+                    if letter + s[i] == pattern:
+                        new_s = new_s + r"/"
+                        skip = True
+                    else:
+                        new_s = new_s + letter
+                else:
+                    skip = False
+                if i < len(s) - 1:
+                    i = i + 1
+            return new_s
         return s
     return None
 
