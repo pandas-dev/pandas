@@ -494,15 +494,11 @@ cdef float64_t calc_skew(int64_t minp, int64_t nobs,
                          int64_t num_consecutive_same_value
                          ) noexcept nogil:
     cdef:
-        float64_t result, dnobs, m2_cutoff
+        float64_t result, dnobs
         float64_t moments_ratio, correction
 
     if nobs >= minp:
         dnobs = <float64_t>nobs
-
-        # Relative cutoff as introduced in #62405
-        # See the comment in nanops.nankurt for further explanation
-        m2_cutoff = ((EpsF64 * mean) ** 2) * dnobs
 
         if nobs < 3:
             result = NaN
@@ -510,18 +506,6 @@ cdef float64_t calc_skew(int64_t minp, int64_t nobs,
         # uniform case, force result to be 0
         elif num_consecutive_same_value >= nobs:
             result = 0.0
-        # #18044: with degenerate distribution, floating issue will
-        #         cause m2 != 0. and cause the result is a very
-        #         large number.
-        #
-        #         in core/nanops.py nanskew/nankurt call the function
-        #         _zero_out_fperr(m2) to fix floating error.
-        #         if the variance is less than a relative cutoff value
-        #         it could be treated as zero, here we follow the original
-        #         skew/kurt behaviour to check
-        #         m2 <= ((float64_machine_eps * mean) ** 2) * observations
-        elif m2 <= m2_cutoff:
-            result = NaN
         else:
             moments_ratio = m3 / (m2 * sqrt(m2))
             correction = dnobs * sqrt((dnobs - 1)) / (dnobs - 2)
