@@ -7,7 +7,6 @@ from pandas.compat import PY312
 import pandas as pd
 from pandas import (
     DataFrame,
-    HDFStore,
     Index,
     MultiIndex,
     Series,
@@ -20,7 +19,6 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_store,
 )
 
 from pandas.io.pytables import Term
@@ -28,7 +26,7 @@ from pandas.io.pytables import Term
 pytestmark = [pytest.mark.single_cpu]
 
 
-def test_select_columns_in_where(setup_path):
+def test_select_columns_in_where(tmp_path):
     # GH 6169
     # recreate multi-indexes when columns is passed
     # in the `where` argument
@@ -44,8 +42,8 @@ def test_select_columns_in_where(setup_path):
         index=index,
         columns=["A", "B", "C"],
     )
-
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h5"
+    with pd.HDFStore(path) as store:
         store.put("df", df, format="table")
         expected = df[["A"]]
 
@@ -55,19 +53,21 @@ def test_select_columns_in_where(setup_path):
 
     # With a Series
     s = Series(np.random.default_rng(2).standard_normal(10), index=index, name="A")
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h6"
+    with pd.HDFStore(path) as store:
         store.put("s", s, format="table")
         tm.assert_series_equal(store.select("s", where="columns=['A']"), s)
 
 
-def test_select_with_dups(setup_path):
+def test_select_with_dups(tmp_path):
     # single dtypes
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "A", "B", "B"]
     )
     df.index = date_range("20130101 9:30", periods=10, freq="min")
 
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h7"
+    with pd.HDFStore(path) as store:
         store.append("df", df)
 
         result = store.select("df")
@@ -97,8 +97,8 @@ def test_select_with_dups(setup_path):
         axis=1,
     )
     df.index = date_range("20130101 9:30", periods=10, freq="min")
-
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h8"
+    with pd.HDFStore(path) as store:
         store.append("df", df)
 
         result = store.select("df")
@@ -118,7 +118,8 @@ def test_select_with_dups(setup_path):
         tm.assert_frame_equal(result, expected, by_blocks=True)
 
     # duplicates on both index and columns
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h9"
+    with pd.HDFStore(path) as store:
         store.append("df", df)
         store.append("df", df)
 
@@ -128,8 +129,9 @@ def test_select_with_dups(setup_path):
         tm.assert_frame_equal(result, expected, by_blocks=True)
 
 
-def test_select(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_select(tmp_path):
+    path = tmp_path / "file.h10"
+    with pd.HDFStore(path) as store:
         # select with columns=
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
@@ -169,8 +171,9 @@ def test_select(setup_path):
         tm.assert_frame_equal(expected, result)
 
 
-def test_select_dtypes(setup_path, request):
-    with ensure_clean_store(setup_path) as store:
+def test_select_dtypes(tmp_path, request):
+    path = tmp_path / "file.h11"
+    with pd.HDFStore(path) as store:
         # with a Timestamp data column (GH #2637)
         df = DataFrame(
             {
@@ -232,7 +235,8 @@ def test_select_dtypes(setup_path, request):
         expected = df.reindex(index=list(df.index)[0:10], columns=["A"])
         tm.assert_frame_equal(expected, result)
 
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h12"
+    with pd.HDFStore(path) as store:
         # floats w/o NaN
         df = DataFrame({"cols": range(11), "values": range(11)}, dtype="float64")
         df["cols"] = (df["cols"] + 10).apply(str)
@@ -270,7 +274,8 @@ def test_select_dtypes(setup_path, request):
 
     # test selection with comparison against numpy scalar
     # GH 11283
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h13"
+    with pd.HDFStore(path) as store:
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD")),
@@ -292,8 +297,9 @@ def test_select_dtypes(setup_path, request):
         tm.assert_frame_equal(expected, result)
 
 
-def test_select_with_many_inputs(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_select_with_many_inputs(tmp_path):
+    path = tmp_path / "file.h14"
+    with pd.HDFStore(path) as store:
         df = DataFrame(
             {
                 "ts": bdate_range("2012-01-01", periods=300),
@@ -340,9 +346,10 @@ def test_select_with_many_inputs(setup_path):
         assert len(result) == 100
 
 
-def test_select_iterator(tmp_path, setup_path):
+def test_select_iterator(tmp_path):
     # single table
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h15"
+    with pd.HDFStore(path) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
@@ -366,7 +373,7 @@ def test_select_iterator(tmp_path, setup_path):
         result = concat(results)
         tm.assert_frame_equal(result, expected)
 
-    path = tmp_path / setup_path
+    path = tmp_path / "file.h15"
 
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
@@ -382,7 +389,7 @@ def test_select_iterator(tmp_path, setup_path):
     with pytest.raises(TypeError, match=msg):
         read_hdf(path, "df_non_table", iterator=True)
 
-    path = tmp_path / setup_path
+    path = tmp_path / "file.h15"
 
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
@@ -400,7 +407,8 @@ def test_select_iterator(tmp_path, setup_path):
 
     # multiple
 
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h16"
+    with pd.HDFStore(path) as store:
         df1 = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
@@ -422,13 +430,14 @@ def test_select_iterator(tmp_path, setup_path):
         tm.assert_frame_equal(expected, result)
 
 
-def test_select_iterator_complete_8014(setup_path):
+def test_select_iterator_complete_8014(tmp_path):
     # GH 8014
     # using iterator and where clause
     chunksize = 1e4
 
     # no iterator
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h17"
+    with pd.HDFStore(path) as store:
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
             columns=Index(list("ABCD")),
@@ -463,7 +472,8 @@ def test_select_iterator_complete_8014(setup_path):
         tm.assert_frame_equal(expected, result)
 
     # with iterator, full range
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h18"
+    with pd.HDFStore(path) as store:
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
             columns=Index(list("ABCD")),
@@ -499,13 +509,14 @@ def test_select_iterator_complete_8014(setup_path):
         tm.assert_frame_equal(expected, result)
 
 
-def test_select_iterator_non_complete_8014(setup_path):
+def test_select_iterator_non_complete_8014(tmp_path):
     # GH 8014
     # using iterator and where clause
     chunksize = 1e4
 
     # with iterator, non complete range
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h19"
+    with pd.HDFStore(path) as store:
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
             columns=Index(list("ABCD")),
@@ -539,7 +550,8 @@ def test_select_iterator_non_complete_8014(setup_path):
         tm.assert_frame_equal(rexpected, result)
 
     # with iterator, empty where
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h20"
+    with pd.HDFStore(path) as store:
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
             columns=Index(list("ABCD")),
@@ -556,14 +568,15 @@ def test_select_iterator_non_complete_8014(setup_path):
         assert 0 == len(results)
 
 
-def test_select_iterator_many_empty_frames(setup_path):
+def test_select_iterator_many_empty_frames(tmp_path):
     # GH 8014
     # using iterator and where clause can return many empty
     # frames.
     chunksize = 10_000
 
     # with iterator, range limited to the first chunk
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h21"
+    with pd.HDFStore(path) as store:
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
             columns=Index(list("ABCD")),
@@ -615,14 +628,15 @@ def test_select_iterator_many_empty_frames(setup_path):
         assert len(results) == 0
 
 
-def test_frame_select(setup_path, request):
+def test_frame_select(tmp_path, request):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h22"
+    with pd.HDFStore(path) as store:
         store.put("frame", df, format="table")
         date = df.index[len(df) // 2]
 
@@ -664,7 +678,7 @@ def test_frame_select(setup_path, request):
         #     store.select('frame', [crit1, crit2])
 
 
-def test_frame_select_complex(setup_path):
+def test_frame_select_complex(tmp_path):
     # select via complex criteria
 
     df = DataFrame(
@@ -675,7 +689,8 @@ def test_frame_select_complex(setup_path):
     df["string"] = "foo"
     df.loc[df.index[0:4], "string"] = "bar"
 
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h23"
+    with pd.HDFStore(path) as store:
         store.put("df", df, format="table", data_columns=["string"])
 
         # empty
@@ -745,7 +760,7 @@ def test_frame_select_complex2(tmp_path):
 
     # scope with list like
     l0 = selection.index.tolist()  # noqa: F841
-    with HDFStore(hh) as store:
+    with pd.HDFStore(hh) as store:
         result = store.select("df", where="l1=l0")
         tm.assert_frame_equal(result, expected)
 
@@ -767,7 +782,7 @@ def test_frame_select_complex2(tmp_path):
     tm.assert_frame_equal(result, expected)
 
     # scope with index
-    with HDFStore(hh) as store:
+    with pd.HDFStore(hh) as store:
         result = store.select("df", where="l1=index")
         tm.assert_frame_equal(result, expected)
 
@@ -781,7 +796,7 @@ def test_frame_select_complex2(tmp_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_invalid_filtering(setup_path):
+def test_invalid_filtering(tmp_path):
     # can't use more than one filter (atm)
 
     df = DataFrame(
@@ -790,7 +805,8 @@ def test_invalid_filtering(setup_path):
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h24"
+    with pd.HDFStore(path) as store:
         store.put("df", df, format="table")
 
         msg = "unable to collapse Joint Filters"
@@ -803,9 +819,10 @@ def test_invalid_filtering(setup_path):
             store.select("df", "columns=['A','B'] & columns=['C']")
 
 
-def test_string_select(setup_path):
+def test_string_select(tmp_path):
     # GH 2973
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h25"
+    with pd.HDFStore(path) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
@@ -849,7 +866,7 @@ def test_string_select(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_select_as_multiple(setup_path):
+def test_select_as_multiple(tmp_path):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
@@ -858,7 +875,8 @@ def test_select_as_multiple(setup_path):
     df2 = df1.copy().rename(columns="{}_2".format)
     df2["foo"] = "bar"
 
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h26"
+    with pd.HDFStore(path) as store:
         msg = "keys must be a list/tuple"
         # no tables stored
         with pytest.raises(TypeError, match=msg):
@@ -924,8 +942,9 @@ def test_select_as_multiple(setup_path):
             )
 
 
-def test_nan_selection_bug_4858(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_nan_selection_bug_4858(tmp_path):
+    path = tmp_path / "file.h27"
+    with pd.HDFStore(path) as store:
         df = DataFrame({"cols": range(6), "values": range(6)}, dtype="float64")
         df["cols"] = (df["cols"] + 10).apply(str)
         df.iloc[0] = np.nan
@@ -941,7 +960,7 @@ def test_nan_selection_bug_4858(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_query_with_nested_special_character(setup_path):
+def test_query_with_nested_special_character(tmp_path):
     df = DataFrame(
         {
             "a": ["a", "a", "c", "b", "test & test", "c", "b", "e"],
@@ -949,17 +968,19 @@ def test_query_with_nested_special_character(setup_path):
         }
     )
     expected = df[df.a == "test & test"]
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h28"
+    with pd.HDFStore(path) as store:
         store.append("test", df, format="table", data_columns=True)
         result = store.select("test", 'a = "test & test"')
     tm.assert_frame_equal(expected, result)
 
 
-def test_query_long_float_literal(setup_path):
+def test_query_long_float_literal(tmp_path):
     # GH 14241
     df = DataFrame({"A": [1000000000.0009, 1000000000.0011, 1000000000.0015]})
 
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h29"
+    with pd.HDFStore(path) as store:
         store.append("test", df, format="table", data_columns=True)
 
         cutoff = 1000000000.0006
@@ -977,7 +998,7 @@ def test_query_long_float_literal(setup_path):
         tm.assert_frame_equal(expected, result)
 
 
-def test_query_compare_column_type(setup_path):
+def test_query_compare_column_type(tmp_path):
     # GH 15492
     df = DataFrame(
         {
@@ -989,7 +1010,8 @@ def test_query_compare_column_type(setup_path):
         columns=["date", "real_date", "float", "int"],
     )
 
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "file.h30"
+    with pd.HDFStore(path) as store:
         store.append("test", df, format="table", data_columns=True)
 
         ts = Timestamp("2014-01-01")  # noqa: F841
@@ -1037,7 +1059,7 @@ def test_select_empty_where(tmp_path, where):
 
     df = DataFrame([1, 2, 3])
     path = tmp_path / "empty_where.h5"
-    with HDFStore(path) as store:
+    with pd.HDFStore(path) as store:
         store.put("df", df, "t")
         result = read_hdf(store, "df", where=where)
         tm.assert_frame_equal(result, df)
@@ -1053,7 +1075,7 @@ def test_select_large_integer(tmp_path):
         ),
         columns=["x", "y"],
     )
-    with HDFStore(path) as s:
+    with pd.HDFStore(path) as s:
         s.append("data", df, data_columns=True, index=False)
         result = s.select("data", where="y==-9223372036854775801").get("y").get(0)
     expected = df["y"][0]
