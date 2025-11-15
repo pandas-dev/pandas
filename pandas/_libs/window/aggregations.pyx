@@ -494,11 +494,15 @@ cdef float64_t calc_skew(int64_t minp, int64_t nobs,
                          int64_t num_consecutive_same_value
                          ) noexcept nogil:
     cdef:
-        float64_t result, dnobs
+        float64_t result, dnobs, m2_cutoff
         float64_t moments_ratio, correction
 
     if nobs >= minp:
         dnobs = <float64_t>nobs
+
+        # Relative cutoff as introduced in #62405
+        # See the comment in nanops.nankurt for further explanation
+        m2_cutoff = ((EpsF64 * mean) ** 2) * dnobs
 
         if nobs < 3:
             result = NaN
@@ -512,10 +516,11 @@ cdef float64_t calc_skew(int64_t minp, int64_t nobs,
         #
         #         in core/nanops.py nanskew/nankurt call the function
         #         _zero_out_fperr(m2) to fix floating error.
-        #         if the variance is less than 1e-14, it could be
-        #         treat as zero, here we follow the original
-        #         skew/kurt behaviour to check m2 <= n * 1e-14
-        elif m2 <= dnobs * 1e-14:
+        #         if the variance is less than a relative cutoff value
+        #         it could be treated as zero, here we follow the original
+        #         skew/kurt behaviour to check
+        #         m2 <= ((float64_machine_eps * mean) ** 2) * observations
+        elif m2 <= m2_cutoff:
             result = NaN
         else:
             moments_ratio = m3 / (m2 * sqrt(m2))
@@ -688,7 +693,7 @@ cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
                          int64_t num_consecutive_same_value,
                          ) noexcept nogil:
     cdef:
-        float64_t result, dnobs
+        float64_t result, dnobs, variance_cutoff
         float64_t A, B, C, D, R, K
 
     if nobs >= minp:
@@ -708,16 +713,21 @@ cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
             R = R * A
             D = xxxx / dnobs - R - 6 * B * A * A - 4 * C * A
 
+            # Relative cutoff as introduced in #62405
+            # See the comment in nanops.nankurt for further explanation
+            variance_cutoff = ((EpsF64 * B) ** 2) * dnobs
+
             # #18044: with uniform distribution, floating issue will
             #         cause B != 0. and cause the result is a very
             #         large number.
             #
             #         in core/nanops.py nanskew/nankurt call the function
             #         _zero_out_fperr(m2) to fix floating error.
-            #         if the variance is less than 1e-14, it could be
-            #         treat as zero, here we follow the original
-            #         skew/kurt behaviour to check B <= 1e-14
-            if B <= 1e-14:
+            #         if the variance is less than a relative cutoff value
+            #         it could be treated as zero, here we follow the original
+            #         skew/kurt behaviour to check
+            #         m2 <= ((float64_machine_eps * mean) ** 2) * observations
+            if B <= variance_cutoff:
                 result = NaN
             else:
                 K = (dnobs * dnobs - 1.) * D / (B * B) - 3 * ((dnobs - 1.) ** 2)
