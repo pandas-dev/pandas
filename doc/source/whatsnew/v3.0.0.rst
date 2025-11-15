@@ -1260,6 +1260,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Series.resample` could raise when the date range ended shortly before a non-existent time. (:issue:`58380`)
 - Bug in :meth:`Series.resample` raising error when resampling non-nanosecond resolutions out of bounds for nanosecond precision (:issue:`57427`)
 - Bug in :meth:`Series.rolling.var` and :meth:`Series.rolling.std` computing incorrect results due to numerical instability. (:issue:`47721`, :issue:`52407`, :issue:`54518`, :issue:`55343`)
+- Bug in :meth:`Rolling.skew` and :meth:`Rolling.kurt` produced ``NaN`` for low-variance inputs due to an absolute numerical instability check. This check was removed/turned into a relative check depending on the numerical stability of the calculation (:issue:`62946`)
 
 Reshaping
 ^^^^^^^^^
