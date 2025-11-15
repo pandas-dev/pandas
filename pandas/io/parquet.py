@@ -481,6 +481,11 @@ def to_parquet(
     """
     if isinstance(partition_cols, str):
         partition_cols = [partition_cols]
+    # accept and ignore optional no-op flag for draft feature
+    # (do not forward to engines)
+    if "preserve_sparse" in kwargs:
+        kwargs.pop("preserve_sparse")
+
     impl = get_engine(engine)
 
     path_or_buf: FilePath | WriteBuffer[bytes] = io.BytesIO() if path is None else path
