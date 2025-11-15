@@ -108,6 +108,7 @@ def series():
     series = Series(arr, index=bdate_range(datetime(2009, 1, 1), periods=100))
     return series
 
+
 @pytest.fixture
 def low_variance_series():
     """Make a mocked low variance series as a fixture"""
@@ -116,6 +117,7 @@ def low_variance_series():
     arr[locs] = np.nan
     series = Series(arr, index=bdate_range(datetime(2009, 1, 1), periods=100))
     return series
+
 
 @pytest.fixture
 def frame():
