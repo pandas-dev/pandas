@@ -96,6 +96,7 @@ shared_style_params = [
     ("font-style: italic;", ["font", "i"], True),
     ("text-decoration: underline;", ["font", "u"], "single"),
     ("number-format: $??,???.00;", ["number_format"], "$??,???.00"),
+    ("number-format: #,,"'"M";', ["number_format"], '#,,"M"'),
     ("text-align: left;", ["alignment", "horizontal"], "left"),
     (
         "vertical-align: bottom;",
