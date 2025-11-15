@@ -4461,7 +4461,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
 
             if isinstance(value, DataFrame):
                 check_key_length(self.columns, key, value)
-                for k1, k2 in zip(key, value.columns, strict=False):
+                for k1, k2 in zip(key, value.columns, strict=True):
                     self[k1] = value[k2]
 
             elif not is_list_like(value):
