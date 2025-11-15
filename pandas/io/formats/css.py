@@ -19,6 +19,16 @@ if TYPE_CHECKING:
         Iterator,
     )
 
+def _lowercase_outside_quotes(value: str) -> str:
+    parts = re.split(r'(".*?")', value)
+    new_parts = []
+    for part in parts:
+        if part.startswith('"') and part.endswith('"'):
+            new_parts.append(part)  # preserve case
+        else:
+            new_parts.append(part.lower())
+    return ''.join(new_parts)
+
 
 def _side_expander(prop_fmt: str) -> Callable:
     """
@@ -391,7 +401,7 @@ class CSSResolver:
     def atomize(self, declarations: Iterable) -> Generator[tuple[str, str]]:
         for prop, value in declarations:
             prop = prop.lower()
-            value = value.lower()
+            value = _lowercase_outside_quotes(value)
             if prop in self.CSS_EXPANSIONS:
                 expand = self.CSS_EXPANSIONS[prop]
                 yield from expand(self, prop, value)
@@ -414,7 +424,8 @@ class CSSResolver:
             prop, sep, val = decl.partition(":")
             prop = prop.strip().lower()
             # TODO: don't lowercase case sensitive parts of values (strings)
-            val = val.strip().lower()
+            raw_val = val.strip()
+            val = _lowercase_outside_quotes(raw_val)
             if sep:
                 yield prop, val
             else:
