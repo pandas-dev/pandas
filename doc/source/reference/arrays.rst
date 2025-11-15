@@ -637,6 +637,8 @@ with a bool :class:`numpy.ndarray`.
       DatetimeTZDtype.tz
       PeriodDtype.freq
       IntervalDtype.subtype
+      StringDtype.storage
+      StringDtype.na_value
 
 *********
 Utilities
