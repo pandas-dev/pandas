@@ -232,5 +232,11 @@ class TestConvertDtypes:
     def test_convert_dtypes_complex(self):
         # GH 60129
         df = pd.DataFrame({"a": [1.0 + 5.0j, 1.5 - 3.0j], "b": [1, 2]})
+        expected = pd.DataFrame(
+            {
+                "a": pd.array([1.0 + 5.0j, 1.5 - 3.0j], dtype="complex128"),
+                "b": pd.array([1, 2], dtype="Int64"),
+            }
+        )
         result = df.convert_dtypes()
-        tm.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, expected)
