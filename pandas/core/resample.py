@@ -2565,42 +2565,53 @@ class TimeGrouper(Grouper):
     def _get_time_bins(self, ax: DatetimeIndex):
         if not isinstance(ax, DatetimeIndex):
             raise TypeError(
-                "axis must be a DatetimeIndex, but got "
+                "axis must be a DatetimeIndex, but got"
                 f"an instance of {type(ax).__name__}"
             )
 
         if len(ax) == 0:
-            binner = labels = DatetimeIndex(
-                data=[], freq=self.freq, name=ax.name, dtype=ax.dtype
-            )
-            return binner, [], labels
+            empty = DatetimeIndex(data=[], freq=self.freq, name=ax.name, dtype=ax.dtype)
+            return empty, [], empty
 
-        first, last = _get_timestamp_range_edges(
-            ax.min(),
-            ax.max(),
-            self.freq,
-            unit=ax.unit,
-            closed=self.closed,
-            origin=self.origin,
-            offset=self.offset,
-        )
-        # GH #12037
-        # use first/last directly instead of call replace() on them
-        # because replace() will swallow the nanosecond part
-        # thus last bin maybe slightly before the end if the end contains
-        # nanosecond part and lead to `Values falls after last bin` error
-        # GH 25758: If DST lands at midnight (e.g. 'America/Havana'), user feedback
-        # has noted that ambiguous=True provides the most sensible result
-        binner = labels = date_range(
-            freq=self.freq,
-            start=first,
-            end=last,
-            tz=ax.tz,
-            name=ax.name,
-            ambiguous=True,
-            nonexistent="shift_forward",
-            unit=ax.unit,
-        )
+        def _calculate_bins_in_timezone(ax_to_use, tz):
+            """Calculate time bins in specified timezone"""
+            first, last = _get_timestamp_range_edges(
+                ax_to_use.min(),
+                ax_to_use.max(),
+                self.freq,
+                unit=ax.unit,
+                closed=self.closed,
+                origin=self.origin,
+                offset=self.offset,
+            )
+            return date_range(
+                freq=self.freq,
+                start=first,
+                end=last,
+                tz=tz,
+                name=ax.name,
+                ambiguous=True,
+                nonexistent="shift_forward",
+                unit=ax.unit,
+            )
+
+        if ax.tz is not None:
+            try:
+                # normal way
+                binner = labels = _calculate_bins_in_timezone(ax, ax.tz)
+            except Exception as e:
+                if "nonexistent" in str(e).lower() or "ambiguous" in str(e).lower():
+                    # Fallback to UTC calculation for timezone-aware data
+                    # to handle DST transitions
+                    # 62601
+                    ax_utc = ax.tz_convert("UTC")
+                    binner_utc = _calculate_bins_in_timezone(ax_utc, "UTC")
+                    binner = labels = binner_utc.tz_convert(ax.tz)
+                else:
+                    raise
+        else:
+            # no time zone
+            binner = labels = _calculate_bins_in_timezone(ax, None)
 
         ax_values = ax.asi8
         binner, bin_edges = self._adjust_bin_edges(binner, ax_values)
