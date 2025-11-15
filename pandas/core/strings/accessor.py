@@ -1423,8 +1423,7 @@ class StringMethods(NoNewAttributesMixin):
 
         if case is lib.no_default:
             if is_re(pat):
-                implicit_case = not bool(pat.flags & re.IGNORECASE)
-                case = True
+                case = not bool(pat.flags & re.IGNORECASE)
             else:
                 # Case-sensitive default
                 case = True
