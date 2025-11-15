@@ -391,7 +391,10 @@ class CSSResolver:
     def atomize(self, declarations: Iterable) -> Generator[tuple[str, str]]:
         for prop, value in declarations:
             prop = prop.lower()
-            value = value.lower()
+            if prop == "number-format":
+                value = value.strip()
+            else:
+                value = value.lower()
             if prop in self.CSS_EXPANSIONS:
                 expand = self.CSS_EXPANSIONS[prop]
                 yield from expand(self, prop, value)
@@ -414,7 +417,10 @@ class CSSResolver:
             prop, sep, val = decl.partition(":")
             prop = prop.strip().lower()
             # TODO: don't lowercase case sensitive parts of values (strings)
-            val = val.strip().lower()
+            if prop == "number-format":
+                val = val.strip()
+            else:
+                val = val.strip().lower()
             if sep:
                 yield prop, val
             else:
