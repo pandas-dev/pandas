@@ -140,6 +140,7 @@ class ArrowParserWrapper(ParserBase):
             ]
 
         self.read_options = {
+            "column_names": [] if self.header is None else self.kwds["names"],
             "autogenerate_column_names": self.header is None,
             "skip_rows": self.header
             if self.header is not None
