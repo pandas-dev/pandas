@@ -14,13 +14,13 @@ class TimedeltaConstructor:
     def setup(self):
         self.nptimedelta64 = np.timedelta64(3600)
         self.dttimedelta = datetime.timedelta(seconds=3600)
-        self.td = Timedelta(3600, unit="s")
+        self.td = Timedelta(3600, input_unit="s")
 
     def time_from_int(self):
         Timedelta(123456789)
 
     def time_from_unit(self):
-        Timedelta(1, unit="D")
+        Timedelta(1, input_unit="D")
 
     def time_from_components(self):
         Timedelta(

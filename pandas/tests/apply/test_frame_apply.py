@@ -179,7 +179,7 @@ def test_apply_mixed_datetimelike():
     expected = DataFrame(
         {
             "A": date_range("20130101", periods=3),
-            "B": pd.to_timedelta(np.arange(3), unit="s"),
+            "B": pd.to_timedelta(np.arange(3), input_unit="s"),
         }
     )
     result = expected.apply(lambda x: x, axis=1)

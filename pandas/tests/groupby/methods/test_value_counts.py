@@ -132,7 +132,7 @@ def test_series_groupby_value_counts_with_grouper(utc):
         }
     ).drop([3])
 
-    df["Datetime"] = to_datetime(df["Timestamp"], utc=utc, unit="s")
+    df["Datetime"] = to_datetime(df["Timestamp"], utc=utc, input_unit="s")
     dfg = df.groupby(Grouper(freq="1D", key="Datetime"))
 
     # have to sort on index because of unstable sort on values xref GH9212
@@ -1127,7 +1127,9 @@ def test_value_counts_time_grouper(utc, unit):
         }
     ).drop([3])
 
-    df["Datetime"] = to_datetime(df["Timestamp"], utc=utc, unit="s").dt.as_unit(unit)
+    df["Datetime"] = to_datetime(df["Timestamp"], utc=utc, input_unit="s").dt.as_unit(
+        unit
+    )
     gb = df.groupby(Grouper(freq="1D", key="Datetime"))
     result = gb.value_counts()
     dates = to_datetime(

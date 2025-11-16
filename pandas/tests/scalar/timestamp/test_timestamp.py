@@ -869,7 +869,7 @@ class TestNonNano:
 
     def test_out_of_ns_bounds(self):
         # https://github.com/pandas-dev/pandas/issues/51060
-        result = Timestamp(-52700112000, unit="s")
+        result = Timestamp(-52700112000, input_unit="s")
         assert result == Timestamp("0300-01-01")
         assert result.to_numpy() == np.datetime64("0300-01-01T00:00:00", "s")
 
