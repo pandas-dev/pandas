@@ -16,8 +16,12 @@ objects. To get started, import NumPy and load pandas into your namespace:
    import numpy as np
    import pandas as pd
 
-Fundamentally, **data alignment is intrinsic**. The link
-between labels and data will not be broken unless done so explicitly by you.
+A fundamental feature in pandas is **automatic data alignment**. This means 
+that pandas keeps your data attached to its labels (the index). When you 
+perform an operation, like adding two Series (columns), pandas will match them 
+by their labels, not by their position. The link between data and labels will 
+not be broken unless you explicitly change them yourself.
+
 
 We'll give a brief intro to the data structures, then consider all of the broad
 categories of functionality and methods in separate sections.
