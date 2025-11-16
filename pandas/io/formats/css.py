@@ -19,13 +19,8 @@ if TYPE_CHECKING:
         Iterator,
     )
 
-def _normalize_number_format_value(value: str) -> str:
-    """
-    Lowercase number-format value except for text inside double quotes.
 
-    This preserves case for string literals (e.g. "M") while still
-    normalizing things like [Red] -> [red].
-    """
+def _normalize_number_format_value(value: str) -> str:
     value = value.strip()
     out: list[str] = []
     in_string = False
@@ -34,11 +29,10 @@ def _normalize_number_format_value(value: str) -> str:
         if ch == '"':
             out.append(ch)
             in_string = not in_string
+        elif in_string:
+            out.append(ch)  # preserve case inside string literals
         else:
-            if in_string:
-                out.append(ch)       # preserve case inside string literals
-            else:
-                out.append(ch.lower())  # normalize outside literals
+            out.append(ch.lower())  # normalize outside literals
     return "".join(out)
 
 

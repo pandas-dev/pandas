@@ -287,6 +287,7 @@ def test_css_relative_font_size(size, relative_to, resolved):
         inherited = {"font-size": relative_to}
     assert_resolves(f"font-size: {size}", {"font-size": resolved}, inherited=inherited)
 
+
 def test_css_atomize_preserves_number_format_case():
     resolver = CSSResolver()
     declarations = [("NUMBER-FORMAT", '#,,"M"')]
@@ -295,6 +296,7 @@ def test_css_atomize_preserves_number_format_case():
 
     assert "number-format" in props
     assert props["number-format"] == '#,,"M"'
+
 
 def test_css_parse_preserves_number_format_case():
     resolver = CSSResolver()
