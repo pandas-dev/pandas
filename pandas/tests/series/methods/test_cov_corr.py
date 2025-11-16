@@ -186,75 +186,58 @@ class TestSeriesCorr:
         tm.assert_almost_equal(df.transpose().corr(method=my_corr), expected)
 
     @pytest.mark.parametrize("method", ["kendall", "spearman"])
+    @pytest.mark.parametrize(
+        "ord_cat_series",
+        [
+            Series(  # ordered categorical series
+                pd.Categorical(
+                    ["low", "med", "high", "very_high"],
+                    categories=["low", "med", "high", "very_high"],
+                    ordered=True,
+                )
+            ),
+            Series(  # ordered categorical series with nan and a different ranking
+                pd.Categorical(
+                    ["h", "low", "vh", None],
+                    categories=["low", "m", "h", "vh"],
+                    ordered=True,
+                )
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "other_series",
+        [
+            Series(  # int series against which tord cat series is correlated
+                [0, 1, 2, 3]
+            ),
+            Series(  # float series against which ord cat series is correlated
+                [2.0, 3.0, 4.5, 6.5]
+            ),
+            Series(  # other ord cat series against which ord cat series is correlated
+                pd.Categorical(
+                    ["high", "low", "very_high", "med"],
+                    categories=["low", "med", "high", "very_high"],
+                    ordered=True,
+                )
+            ),
+        ],
+    )
     def test_corr_rank_ordered_categorical(
         self,
         method,
+        ord_cat_series,
+        other_series,
     ):
         stats = pytest.importorskip("scipy.stats")
         method_scipy_func = {"kendall": stats.kendalltau, "spearman": stats.spearmanr}
-        ser_ord_cat = Series(
-            pd.Categorical(
-                ["low", "med", "high", "very_high"],
-                categories=["low", "med", "high", "very_high"],
-                ordered=True,
-            )
-        )
-        ser_ord_cat_codes = ser_ord_cat.cat.codes.replace(-1, np.nan)
-        ser_ord_int = Series([0, 1, 2, 3])
-        ser_ord_float = Series([2.0, 3.0, 4.5, 6.5])
+        ord_ser_cat_codes = ord_cat_series.cat.codes.replace(-1, np.nan)
 
-        corr_calc = ser_ord_cat.corr(ser_ord_int, method=method)
+        if other_series.dtype == "category" and other_series.cat.ordered:
+            other_series = other_series.cat.codes.replace(-1, np.nan)
+
+        corr_calc = ord_cat_series.corr(other_series, method=method)
         corr_expected = method_scipy_func[method](
-            ser_ord_cat_codes, ser_ord_int, nan_policy="omit"
-        )[0]
-        tm.assert_almost_equal(corr_calc, corr_expected)
-
-        corr_calc = ser_ord_cat.corr(ser_ord_float, method=method)
-        corr_expected = method_scipy_func[method](
-            ser_ord_cat_codes, ser_ord_float, nan_policy="omit"
-        )[0]
-        tm.assert_almost_equal(corr_calc, corr_expected)
-
-        corr_calc = ser_ord_cat.corr(ser_ord_cat, method=method)
-        corr_expected = method_scipy_func[method](
-            ser_ord_cat_codes, ser_ord_cat_codes, nan_policy="omit"
-        )[0]
-        tm.assert_almost_equal(corr_calc, corr_expected)
-
-        ser_ord_cat_shuff = Series(
-            pd.Categorical(
-                ["high", "low", "very_high", "med"],
-                categories=["low", "med", "high", "very_high"],
-                ordered=True,
-            )
-        )
-        ser_ord_cat_shuff_codes = ser_ord_cat_shuff.cat.codes.replace(-1, np.nan)
-
-        corr_calc = ser_ord_cat_shuff.corr(ser_ord_cat, method=method)
-        corr_expected = method_scipy_func[method](
-            ser_ord_cat_shuff_codes, ser_ord_cat_codes, nan_policy="omit"
-        )[0]
-        tm.assert_almost_equal(corr_calc, corr_expected)
-
-        corr_calc = ser_ord_cat_shuff.corr(ser_ord_cat_shuff, method=method)
-        corr_expected = method_scipy_func[method](
-            ser_ord_cat_shuff_codes, ser_ord_cat_shuff_codes, nan_policy="omit"
-        )[0]
-        tm.assert_almost_equal(corr_calc, corr_expected)
-
-        ser_ord_cat_with_nan = Series(
-            pd.Categorical(
-                ["h", "low", "vh", None, "m"],
-                categories=["low", "m", "h", "vh"],
-                ordered=True,
-            )
-        )
-        ser_ord_cat_shuff_with_nan_codes = ser_ord_cat_with_nan.cat.codes.replace(
-            -1, np.nan
-        )
-        ser_ord_int = Series([2, 0, 1, 3, None])
-        corr_calc = ser_ord_cat_with_nan.corr(ser_ord_int, method=method)
-        corr_expected = method_scipy_func[method](
-            ser_ord_cat_shuff_with_nan_codes, ser_ord_int, nan_policy="omit"
+            ord_ser_cat_codes, other_series, nan_policy="omit"
         )[0]
         tm.assert_almost_equal(corr_calc, corr_expected)

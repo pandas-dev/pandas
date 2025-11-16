@@ -294,6 +294,39 @@ class TestDataFrameCorr:
             corr_expected = df[col1].corr(df[col2], method=method)
             tm.assert_almost_equal(corr_calc[col1][col2], corr_expected)
 
+    @pytest.mark.parametrize("method", ["kendall", "spearman"])
+    @td.skip_if_no("scipy")
+    def test_corr_rank_ordered_categorical_duplicate_columns(
+        self,
+        method,
+    ):
+        df = DataFrame(
+            {
+                "a": [1, 2, 3, 4],
+                "b": [4, 3, 2, 1],
+                "c": [4, 3, 2, 1],
+                "d": [10, 20, 30, 40],
+                "e": [100, 200, 300, 400],
+            }
+        )
+        df["a"] = (
+            df["a"].astype("category").cat.set_categories([4, 3, 2, 1], ordered=True)
+        )
+        df["b"] = (
+            df["b"].astype("category").cat.set_categories([4, 3, 2, 1], ordered=True)
+        )
+        df["c"] = (
+            df["c"].astype("category").cat.set_categories([4, 3, 2, 1], ordered=True)
+        )
+        df.columns = ["a", "a", "c", "c", "e"]
+
+        corr_calc = df.corr(method=method)
+        for col1_idx, col2_idx in combinations(range(len(df.columns)), r=2):
+            corr_expected = df.iloc[:, col1_idx].corr(
+                df.iloc[:, col2_idx], method=method
+            )
+            tm.assert_almost_equal(corr_calc.iloc[col1_idx, col2_idx], corr_expected)
+
 
 class TestDataFrameCorrWith:
     @pytest.mark.parametrize(
