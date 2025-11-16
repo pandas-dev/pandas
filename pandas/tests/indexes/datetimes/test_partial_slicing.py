@@ -247,8 +247,16 @@ class TestSlicing:
         tm.assert_series_equal(s["2005-1-1 00:01:00"], s.iloc[10:])
 
         assert s[Timestamp("2005-1-1 00:00:59.999990")] == s.iloc[0]
-        with pytest.raises(KeyError, match="2005-1-1 00:00:00"):
-            s["2005-1-1 00:00:00"]
+        tm.assert_series_equal(s["2005-1-1 00:00:00"], s.iloc[0:0])
+
+    def test_partial_slice_higher_precision_empty(self):
+        # GH25803
+        s = Series(
+            [1, 2, 3],
+            DatetimeIndex(["2018-01-01T01:01", "2018-02-02T01:01", "2018-02-02T02:02"]),
+        )
+        tm.assert_series_equal(s.loc["2018-03-03"], s.iloc[0:0])
+        assert s.loc["2018-03-03"].size == 0
 
     def test_partial_slicing_dataframe(self):
         # GH14856

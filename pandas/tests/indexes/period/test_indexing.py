@@ -112,8 +112,8 @@ class TestGetItem:
         rng = period_range("2007-01", periods=50, freq="M")
         ts = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
 
-        with pytest.raises(KeyError, match=r"^'2006'$"):
-            ts["2006"]
+        # GH 25803
+        assert len(ts["2006"]) == 0
 
         result = ts["2008"]
         assert (result.index.year == 2008).all()
