@@ -8,6 +8,7 @@ from collections.abc import (
     Iterable,
     Sequence,
 )
+import datetime
 from functools import wraps
 from itertools import zip_longest
 from sys import getsizeof
@@ -3458,6 +3459,23 @@ class MultiIndex(Index):
 
             return new_index
 
+        # type-check key against level(s), raise error if mismatch
+        if isinstance(key, tuple):
+            for i, k in enumerate(key):
+                if not self._is_key_type_compatible(k, i):
+                    raise TypeError(
+                        f"Type mismatch at index level {i}: "
+                        f"expected {type(self.levels[i][0]).__name__}, "
+                        f"got {type(k).__name__}"
+                    )
+        else:
+            if not self._is_key_type_compatible(key, level):
+                raise TypeError(
+                    f"Type mismatch at index level {level}: "
+                    f"expected {type(self.levels[level][0]).__name__}, "
+                    f"got {type(key).__name__}"
+                )
+
         if isinstance(level, (tuple, list)):
             if len(key) != len(level):
                 raise AssertionError(
@@ -3588,6 +3606,49 @@ class MultiIndex(Index):
                 result_index = self[indexer]
 
             return indexer, result_index
+
+    def _is_key_type_compatible(self, key, level):
+        """
+        Return True if the key type is compatible with the type of the level's values.
+
+        Compatible types:
+        - int ↔ np.integer
+        - float ↔ np.floating
+        - str ↔ np.str_
+        - datetime.date ↔ datetime.datetime
+        - slices (for partial indexing)
+        """
+        if len(self.levels[level]) == 0:
+            return True  # nothing to compare
+
+        level_val = self.levels[level][0]
+        level_type = type(level_val)
+
+        # Same type
+        if isinstance(key, level_type):
+            return True
+
+        # NumPy integer / float / string compatibility
+        if isinstance(level_val, np.integer) and isinstance(key, int):
+            return True
+        if isinstance(level_val, np.floating) and isinstance(key, float):
+            return True
+        if isinstance(level_val, np.str_) and isinstance(key, str):
+            return True
+
+        # Allow subclasses of datetime.date for datetime levels
+        if isinstance(level_val, datetime.date) and isinstance(key, datetime.date):
+            return True
+
+        # Allow slices (used internally for partial selection)
+        if isinstance(key, slice):
+            return True
+
+        # Allow any NumPy generic types for flexibility
+        if isinstance(key, np.generic):
+            return True
+
+        return False
 
     def _get_level_indexer(
         self, key, level: int = 0, indexer: npt.NDArray[np.bool_] | None = None
