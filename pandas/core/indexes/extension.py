@@ -115,7 +115,7 @@ def inherit_names(
     names: list[str], delegate: type, cache: bool = False, wrap: bool = False
 ) -> Callable[[type[_ExtensionIndexT]], type[_ExtensionIndexT]]:
     """
-    Class decorator to pin attributes from an ExtensionArray to a Index subclass.
+    Class decorator to pin attributes from an ExtensionArray to an Index subclass.
 
     Parameters
     ----------
