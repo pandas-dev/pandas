@@ -348,6 +348,42 @@ def test_factorize_unsigned():
     tm.assert_extension_array_equal(res_unique, NumpyExtensionArray(exp_unique))
 
 
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        np.bool_,
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.uint64,
+        np.int8,
+        np.int16,
+        np.int32,
+        np.int64,
+    ],
+)
+def test_take_assigns_floating_point_dtype(dtype):
+    # GH#62448.
+    if dtype == np.bool_:
+        array = NumpyExtensionArray(np.array([False, True, False], dtype=dtype))
+        expected = np.dtype(object)
+    else:
+        array = NumpyExtensionArray(np.array([1, 2, 3], dtype=dtype))
+        expected = np.float64
+
+    result = array.take([-1], allow_fill=True)
+    assert result.dtype.numpy_dtype == expected
+
+    result = array.take([-1], allow_fill=True, fill_value=5.0)
+    assert result.dtype.numpy_dtype == expected
+
+
+def test_take_preserves_boolean_arrays():
+    array = NumpyExtensionArray(np.array([False, True, False], dtype=np.bool_))
+    result = array.take([-1], allow_fill=False)
+    assert result.dtype.numpy_dtype == np.bool_
+
+
 # ----------------------------------------------------------------------------
 # Output formatting
 
