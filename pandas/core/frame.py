@@ -114,6 +114,7 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
+    CategoricalDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -11679,6 +11680,10 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
         idx = cols.copy()
+
+        if method in ("spearman", "kendall"):
+            data = data._transform_ord_cat_cols_to_coded_cols()
+
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
@@ -11968,6 +11973,8 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
             correl = num / dom
 
         elif method in ["kendall", "spearman"] or callable(method):
+            left = left._transform_ord_cat_cols_to_coded_cols()
+            right = right._transform_ord_cat_cols_to_coded_cols()
 
             def c(x):
                 return nanops.nancorr(x[0], x[1], method=method)
@@ -11998,6 +12005,39 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
                 )
 
         return correl
+
+    def _transform_ord_cat_cols_to_coded_cols(self) -> DataFrame:
+        """
+        any ordered categorical columns are transformed to the respective
+        categorical codes while other columns remain untouched
+        """
+        categ = self.select_dtypes("category")
+        if len(categ.columns) == 0:
+            return self
+
+        data = self.copy(deep=False)
+        cols_convert = categ.loc[:, categ.agg(lambda x: x.cat.ordered)].columns.unique()
+        single_cols = [col for col in cols_convert if isinstance(data[col], Series)]
+        duplicated_cols = [
+            col for col in cols_convert if isinstance(data[col], DataFrame)
+        ]
+
+        if not single_cols and not duplicated_cols:
+            return self
+
+        if single_cols:
+            data[single_cols] = data[single_cols].apply(
+                lambda x: x.cat.codes.replace(-1, np.nan)
+            )
+
+        if duplicated_cols:
+            data[duplicated_cols] = data[duplicated_cols].apply(
+                lambda x: x.cat.codes.replace(-1, np.nan)
+                if isinstance(x.dtype, CategoricalDtype) and bool(x.dtype.ordered)
+                else x
+            )
+
+        return data
 
     # ----------------------------------------------------------------------
     # ndarray-like stats methods
