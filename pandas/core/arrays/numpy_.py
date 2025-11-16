@@ -122,6 +122,9 @@ class NumpyExtensionArray(
             # Technically we support 2, but do not advertise that fact.
             raise ValueError("NumpyExtensionArray must be 1-dimensional.")
 
+        if (values.dtype == object and values.ndim != 1):
+            raise ValueError("NumpyExtensionArray must be 1-dimensional.")      
+
         if copy:
             values = values.copy()
 
