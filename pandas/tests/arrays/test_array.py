@@ -451,7 +451,13 @@ def test_array_inference_fails(data):
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.parametrize("data,dtype", [(np.array(0),"int64"),(np.array([[1, 2], ["a", "b"]]),object)])
+@pytest.mark.parametrize(
+    "data,dtype",
+    [
+        (np.array(0), "int64"),
+        (np.array([[1, 2], ["a", "b"]]), object),
+    ],
+)
 def test_nd_raises(data, dtype):
     with pytest.raises(ValueError, match="NumpyExtensionArray must be 1-dimensional"):
         pd.array(data, dtype=dtype)

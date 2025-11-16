@@ -118,8 +118,7 @@ class NumpyExtensionArray(
                 f"'values' must be a NumPy array, not {type(values).__name__}"
             )
 
-        if values.ndim == 0:
-            # Technically we support 2, but do not advertise that fact.
+        if values.ndim != 1:
             raise ValueError("NumpyExtensionArray must be 1-dimensional.")
 
         if copy:
