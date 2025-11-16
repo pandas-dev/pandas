@@ -19,6 +19,28 @@ if TYPE_CHECKING:
         Iterator,
     )
 
+def _normalize_number_format_value(value: str) -> str:
+    """
+    Lowercase number-format value except for text inside double quotes.
+
+    This preserves case for string literals (e.g. "M") while still
+    normalizing things like [Red] -> [red].
+    """
+    value = value.strip()
+    out: list[str] = []
+    in_string = False
+
+    for ch in value:
+        if ch == '"':
+            out.append(ch)
+            in_string = not in_string
+        else:
+            if in_string:
+                out.append(ch)       # preserve case inside string literals
+            else:
+                out.append(ch.lower())  # normalize outside literals
+    return "".join(out)
+
 
 def _side_expander(prop_fmt: str) -> Callable:
     """
@@ -392,7 +414,7 @@ class CSSResolver:
         for prop, value in declarations:
             prop = prop.lower()
             if prop == "number-format":
-                value = value.strip()
+                value = _normalize_number_format_value(value)
             else:
                 value = value.lower()
             if prop in self.CSS_EXPANSIONS:
@@ -418,7 +440,7 @@ class CSSResolver:
             prop = prop.strip().lower()
             # TODO: don't lowercase case sensitive parts of values (strings)
             if prop == "number-format":
-                val = val.strip()
+                val = _normalize_number_format_value(val)
             else:
                 val = val.strip().lower()
             if sep:
