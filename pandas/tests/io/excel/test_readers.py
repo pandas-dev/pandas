@@ -157,6 +157,66 @@ def xfail_datetimes_with_pyxlsb(engine, request):
         )
 
 
+@td.skip_if_no("openpyxl")
+def test_dtype_from_format_openpyxl(tmp_path):
+    from openpyxl import Workbook
+
+    path = tmp_path / "text_format.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sheet1"
+    ws.append(["id", "value"])
+    ws.append([123, 1])
+    ws.append([456, 2])
+
+    for cell in ws["A"]:
+        cell.number_format = "@"
+
+    wb.save(path)
+
+    df_default = pd.read_excel(path, engine="openpyxl")
+    assert df_default["id"].tolist() == [123, 456]
+
+    df_text = pd.read_excel(path, engine="openpyxl", dtype_from_format=True)
+    assert df_text["id"].tolist() == ["123", "456"]
+
+    df_index = pd.read_excel(
+        path, engine="openpyxl", dtype_from_format=True, index_col="id"
+    )
+    assert df_index.index.tolist() == ["123", "456"]
+
+
+@td.skip_if_no("xlrd")
+@td.skip_if_no("xlwt")
+def test_dtype_from_format_xlrd(tmp_path):
+    import xlwt
+
+    path = tmp_path / "text_format.xls"
+    wb = xlwt.Workbook()
+    ws = wb.add_sheet("Sheet1")
+    text_style = xlwt.easyxf(num_format_str="@")
+
+    ws.write(0, 0, "id")
+    ws.write(0, 1, "value")
+    ws.write(1, 0, 123, text_style)
+    ws.write(1, 1, 1)
+    ws.write(2, 0, 456, text_style)
+    ws.write(2, 1, 2)
+
+    wb.save(str(path))
+
+    df_default = pd.read_excel(path, engine="xlrd")
+    assert df_default["id"].tolist() == [123, 456]
+
+    df_text = pd.read_excel(path, engine="xlrd", dtype_from_format=True)
+    assert df_text["id"].tolist() == ["123", "456"]
+
+    df_index = pd.read_excel(
+        path, engine="xlrd", dtype_from_format=True, index_col="id"
+    )
+    assert df_index.index.tolist() == ["123", "456"]
+
+
 class TestReaders:
     @pytest.mark.parametrize("col", [[True, None, False], [True], [True, False]])
     def test_read_excel_type_check(self, col, tmp_excel, read_ext):

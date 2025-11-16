@@ -589,6 +589,15 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
         self.raise_if_bad_sheet_by_index(index)
         return self.book.worksheets[index]
 
+    @staticmethod
+    def _cell_is_text_formatted(cell) -> bool:
+        number_format = getattr(cell, "number_format", None)
+        if number_format == "@":
+            return True
+
+        format_id = getattr(cell, "number_format_id", None)
+        return format_id == 49
+
     def _convert_cell(self, cell) -> Scalar:
         from openpyxl.cell.cell import (
             TYPE_ERROR,
@@ -608,15 +617,24 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
         return cell.value
 
     def get_sheet_data(
-        self, sheet, file_rows_needed: int | None = None
-    ) -> list[list[Scalar]]:
+        self,
+        sheet,
+        file_rows_needed: int | None = None,
+        *,
+        dtype_from_format: bool = False,
+    ) -> tuple[list[list[Scalar]], set[int]]:
         if self.book.read_only:
             sheet.reset_dimensions()
 
         data: list[list[Scalar]] = []
+        text_formatted_cols: set[int] = set()
         last_row_with_data = -1
         for row_number, row in enumerate(sheet.rows):
-            converted_row = [self._convert_cell(cell) for cell in row]
+            converted_row: list[Scalar] = []
+            for col_idx, cell in enumerate(row):
+                if dtype_from_format and self._cell_is_text_formatted(cell):
+                    text_formatted_cols.add(col_idx)
+                converted_row.append(self._convert_cell(cell))
             while converted_row and converted_row[-1] == "":
                 # trim trailing empty elements
                 converted_row.pop()
@@ -639,4 +657,4 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
                     for data_row in data
                 ]
 
-        return data
+        return data, (text_formatted_cols if dtype_from_format else set())
