@@ -9860,9 +9860,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(cond, NDFrame):
             # CoW: Make sure reference is not kept alive
             if cond.ndim == 1 and self.ndim == 2:
-                cond = cond._constructor_expanddim(
-                    dict.fromkeys(range(len(self.columns)), cond),
-                    copy=False,
+                orient = "index" if axis == 1 else "columns"
+                cond = cond._constructor_expanddim.from_dict(
+                    dict.fromkeys(range(len(self.columns)), cond), orient=orient
                 )
                 cond.columns = self.columns
             cond = cond.align(self, join="right")[0]
@@ -9981,10 +9981,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 other = self._constructor(
                     other, **self._construct_axes_dict(), copy=False
                 )
-
         if axis is None:
             axis = 0
-
         if self.ndim == getattr(other, "ndim", 0):
             align = True
         else:
