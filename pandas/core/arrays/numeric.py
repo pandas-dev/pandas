@@ -28,6 +28,7 @@ from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -139,7 +140,10 @@ class NumericDtype(BaseMaskedDtype):
         raise AbstractMethodError(cls)
 
 
-def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericDtype]):
+def _coerce_to_data_and_mask(
+    values, dtype, copy: bool, dtype_cls: type[NumericDtype], default_dtype: np.dtype
+):
+    values = extract_array(values, extract_numpy=True)
     checker = dtype_cls._checker
     default_dtype = dtype_cls._default_np_dtype
 
