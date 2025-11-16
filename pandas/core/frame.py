@@ -12056,21 +12056,23 @@ class DataFrame(NDFrame, OpsMixin):
 
         data = self.copy(deep=False)
         cols_convert = categ.loc[:, categ.agg(lambda x: x.cat.ordered)].columns.unique()
-        single_cols = [col for col in cols_convert if isinstance(data[col], Series)]
-        duplicated_cols = [
+        ser_generating_cols = [
+            col for col in cols_convert if isinstance(data[col], Series)
+        ]
+        df_generating_cols = [
             col for col in cols_convert if isinstance(data[col], DataFrame)
         ]
 
-        if not single_cols and not duplicated_cols:
+        if not ser_generating_cols and not df_generating_cols:
             return self
 
-        if single_cols:
-            data[single_cols] = data[single_cols].apply(
+        if ser_generating_cols:
+            data[ser_generating_cols] = data[ser_generating_cols].apply(
                 lambda x: x.cat.codes.replace(-1, np.nan)
             )
 
-        if duplicated_cols:
-            data[duplicated_cols] = data[duplicated_cols].apply(
+        for df_col in df_generating_cols:
+            data[df_col] = data[df_col].apply(
                 lambda x: x.cat.codes.replace(-1, np.nan)
                 if isinstance(x.dtype, CategoricalDtype) and bool(x.dtype.ordered)
                 else x
