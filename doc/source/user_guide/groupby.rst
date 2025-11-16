@@ -1264,8 +1264,6 @@ with
 Numba accelerated routines
 --------------------------
 
-.. versionadded:: 1.1
-
 If `Numba <https://numba.pydata.org/>`__ is installed as an optional dependency, the ``transform`` and
 ``aggregate`` methods support ``engine='numba'`` and ``engine_kwargs`` arguments.
 See :ref:`enhancing performance with Numba <enhancingperf.numba>` for general usage of the arguments
