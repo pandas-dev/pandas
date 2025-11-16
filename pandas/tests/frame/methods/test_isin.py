@@ -225,3 +225,65 @@ class TestDataFrameIsIn:
         result = df.isin([val])
         expected = DataFrame({"a": [True], "b": [False]})
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "values_df,expected",
+        [
+            # Case 1: Same values, different order
+            (
+                DataFrame({"A": [2, 1], "B": [0, 2]}),
+                DataFrame({"A": [True, True], "B": [True, True]}),
+            ),
+            # Case 2: Subset of values
+            (
+                DataFrame({"A": [1], "B": [0]}),
+                DataFrame({"A": [True, False], "B": [True, False]}),
+            ),
+            # Case 3: No matching values
+            (
+                DataFrame({"A": [5, 6], "B": [7, 8]}),
+                DataFrame({"A": [False, False], "B": [False, False]}),
+            ),
+            # Case 4: Missing column
+            pytest.param(
+                DataFrame({"A": [1, 2]}),
+                DataFrame({"A": [True, True], "B": [False, False]}),
+                id="missing_column",
+            ),
+        ],
+    )
+    def test_isin_ignore_index(self, values_df, expected):
+        """
+        Test DataFrame.isin() with ignore_index=True for various scenarios.
+
+        GH#62620
+        """
+        df = DataFrame({"A": [1, 2], "B": [0, 2]})
+        result = df.isin(values_df, ignore_index=True)
+        tm.assert_frame_equal(result, expected)
+
+    def test_isin_ignore_index_with_duplicates(self):
+        """
+        Test that ignore_index=True works correctly with duplicate values.
+
+        GH#62620
+        """
+        df = DataFrame({"A": [1, 2, 3], "B": [0, 0, 0]})
+        values = DataFrame({"A": [1, 1, 2], "B": [0, 0, 0]})
+        result = df.isin(values, ignore_index=True)
+        expected = DataFrame({"A": [True, True, False], "B": [True, True, True]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_isin_ignore_index_diff_indexes(self):
+        """
+        Test that ignore_index=True correctly ignores index values.
+
+        GH#62620
+        """
+        df = DataFrame({"A": [1, 2], "B": [0, 2]}, index=["row1", "row2"])
+        values = DataFrame({"A": [2, 1], "B": [2, 0]}, index=["x", "y"])
+        result = df.isin(values, ignore_index=True)
+        expected = DataFrame(
+            {"A": [True, True], "B": [True, True]}, index=["row1", "row2"]
+        )
+        tm.assert_frame_equal(result, expected)
