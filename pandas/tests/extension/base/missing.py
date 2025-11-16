@@ -6,6 +6,8 @@ import pandas._testing as tm
 
 
 class BaseMissingTests:
+    _supports_fillna_copy_false = True
+
     def test_isna(self, data_missing):
         expected = np.array([True, False])
 
@@ -179,3 +181,9 @@ class BaseMissingTests:
         expected = pd.DataFrame({"A": data, "B": [0.0] * len(result)})
 
         tm.assert_frame_equal(result, expected)
+
+    def test_fillna_readonly(self, data_missing):
+        fill_value = data_missing[1]
+        result = data_missing.fillna(fill_value, copy=False)
+        expected = data_missing.fillna(fill_value, copy=True)
+        tm.assert_extension_array_equal(result, expected)
