@@ -53,7 +53,10 @@ from pandas.core.dtypes.missing import (
 
 from pandas.core import roperator
 from pandas.core.computation import expressions
-from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.construction import (
+    ensure_wrapped_if_datetimelike,
+    sanitize_array,
+)
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import should_extension_dispatch
 from pandas.core.ops.invalid import invalid_comparison
@@ -261,6 +264,10 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     #  and `maybe_prepare_scalar_for_op` has already been called on `right`
     # We need to special-case datetime64/timedelta64 dtypes (e.g. because numpy
     # casts integer dtypes to timedelta64 when operating with timedelta64 - GH#22390)
+    if isinstance(right, list):
+        # GH#62423
+        right = sanitize_array(right, None)
+    right = ensure_wrapped_if_datetimelike(right)
 
     if (
         should_extension_dispatch(left, right)
@@ -310,7 +317,8 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     if isinstance(rvalues, list):
         # We don't catch tuple here bc we may be comparing e.g. MultiIndex
         #  to a tuple that represents a single entry, see test_compare_tuple_strs
-        rvalues = np.asarray(rvalues)
+        rvalues = sanitize_array(rvalues, None)
+    rvalues = ensure_wrapped_if_datetimelike(rvalues)
 
     if isinstance(rvalues, (np.ndarray, ABCExtensionArray)):
         # TODO: make this treatment consistent across ops and classes.

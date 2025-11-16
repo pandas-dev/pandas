@@ -326,9 +326,10 @@ class TestCategoricalIndex2:
         cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
         msg = "|".join(
             [
-                f"cannot perform {op_name} with this index type: CategoricalIndex",
-                "can only concatenate list",
                 rf"unsupported operand type\(s\) for [\+-]: {cat_or_list}",
+                "Object with dtype category cannot perform the numpy op (add|subtract)",
+                "operation 'r?(add|sub)' not supported for dtype 'str' "
+                "with dtype 'category'",
             ]
         )
         with pytest.raises(TypeError, match=msg):
