@@ -1516,3 +1516,32 @@ def test_nonreducer_nonstransform():
     ).set_index(["cat1", "cat2"])["rank"]
     result = df.groupby("cat1").apply(f)
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_apply_store_copy():
+    # GH40673
+    rng = np.random.default_rng(seed=42)
+
+    df = DataFrame(
+        {
+            "A": rng.normal(10, 12, size=(4,)),
+            "B": [1, 2, 1, 2],
+        }
+    )
+
+    # Empty dict to hold the chunks
+    store = {}
+
+    def addstore(x):
+        store[len(store)] = x.copy()
+
+    df.groupby("B").apply(addstore)
+
+    # Output boolean mask
+    out_mask = {0: [True, False, True, False], 1: [False, True, False, True]}
+
+    # The expected output in store dict
+    expected_out = {0: df[out_mask[0]], 1: df[out_mask[1]]}
+
+    tm.assert_frame_equal(store[0], expected_out[0].drop("B", axis=1))
+    tm.assert_frame_equal(store[1], expected_out[1].drop("B", axis=1))
