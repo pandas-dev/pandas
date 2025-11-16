@@ -322,7 +322,7 @@ def item_from_zerodim(val: object) -> object:
     >>> item_from_zerodim(np.array([1]))
     array([1])
     """
-    if cnp.PyArray_IsZeroDim(val):
+    if cnp.PyArray_IsZeroDim(val) and cnp.PyArray_CheckExact(val):
         return cnp.PyArray_ToScalar(cnp.PyArray_DATA(val), val)
     return val
 
@@ -2593,7 +2593,7 @@ def maybe_convert_objects(ndarray[object] objects,
         Whether to convert numeric entries.
     convert_to_nullable_dtype : bool, default False
         If an array-like object contains only integer or boolean values (and NaN) is
-        encountered, whether to convert and return an Boolean/IntegerArray.
+        encountered, whether to convert and return a Boolean/IntegerArray.
     convert_non_numeric : bool, default False
         Whether to convert datetime, timedelta, period, interval types.
     dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None

@@ -278,11 +278,11 @@ def test_fillna_inplace_ea_noop_shares_memory(any_numeric_ea_and_arrow_dtype):
 def test_fillna_chained_assignment():
     df = DataFrame({"a": [1, np.nan, 2], "b": 1})
     df_orig = df.copy()
-    with tm.raises_chained_assignment_error():
+    with tm.raises_chained_assignment_error(inplace_method=True):
         df["a"].fillna(100, inplace=True)
     tm.assert_frame_equal(df, df_orig)
 
-    with tm.raises_chained_assignment_error():
+    with tm.raises_chained_assignment_error(inplace_method=True):
         df[["a"]].fillna(100, inplace=True)
     tm.assert_frame_equal(df, df_orig)
 
@@ -291,10 +291,10 @@ def test_fillna_chained_assignment():
 def test_interpolate_chained_assignment(func):
     df = DataFrame({"a": [1, np.nan, 2], "b": 1})
     df_orig = df.copy()
-    with tm.raises_chained_assignment_error():
+    with tm.raises_chained_assignment_error(inplace_method=True):
         getattr(df["a"], func)(inplace=True)
     tm.assert_frame_equal(df, df_orig)
 
-    with tm.raises_chained_assignment_error():
+    with tm.raises_chained_assignment_error(inplace_method=True):
         getattr(df[["a"]], func)(inplace=True)
     tm.assert_frame_equal(df, df_orig)

@@ -682,7 +682,7 @@ def test_extractall_same_as_extract(any_string_dtype):
 
 
 def test_extractall_same_as_extract_subject_index(any_string_dtype):
-    # same as above tests, but s has an MultiIndex.
+    # same as above tests, but s has a MultiIndex.
     mi = MultiIndex.from_tuples(
         [("A", "first"), ("B", "second"), ("C", "third")],
         names=("capital", "ordinal"),

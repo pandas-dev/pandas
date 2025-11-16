@@ -28,7 +28,7 @@ def test_detect_chained_assignment():
     multiind = MultiIndex.from_tuples(tuples, names=["part", "side"])
     zed = DataFrame(events, index=["a", "b"], columns=multiind)
 
-    with tm.raises_chained_assignment_error():
+    with tm.raises_chained_assignment_error(inplace_method=True):
         zed["eyes"]["right"].fillna(value=555, inplace=True)
 
 

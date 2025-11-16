@@ -1,5 +1,8 @@
 from collections.abc import Iterator
-from io import StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 from pathlib import Path
 
 import numpy as np
@@ -121,10 +124,15 @@ def test_to_jsonl_count_new_lines():
 
 
 @pytest.mark.parametrize("chunksize", [1, 1.0])
-def test_readjson_chunks(request, lines_json_df, chunksize, engine):
+@pytest.mark.parametrize("buffer", [BytesIO, StringIO])
+def test_readjson_chunks(request, lines_json_df, chunksize, buffer, engine):
     # Basic test that read_json(chunks=True) gives the same result as
     # read_json(chunks=False)
     # GH17048: memory usage when lines=True
+    # GH#28906: read binary json lines in chunks
+
+    if buffer == BytesIO:
+        lines_json_df = lines_json_df.encode()
 
     if engine == "pyarrow":
         # GH 48893
@@ -134,10 +142,11 @@ def test_readjson_chunks(request, lines_json_df, chunksize, engine):
         )
         request.applymarker(pytest.mark.xfail(reason=reason, raises=ValueError))
 
-    unchunked = read_json(StringIO(lines_json_df), lines=True)
-    with read_json(
-        StringIO(lines_json_df), lines=True, chunksize=chunksize, engine=engine
-    ) as reader:
+    unchunked = read_json(buffer(lines_json_df), lines=True)
+    with (
+        buffer(lines_json_df) as buf,
+        read_json(buf, lines=True, chunksize=chunksize, engine=engine) as reader,
+    ):
         chunked = pd.concat(reader)
 
     tm.assert_frame_equal(chunked, unchunked)

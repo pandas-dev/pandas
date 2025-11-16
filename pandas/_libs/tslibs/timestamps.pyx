@@ -1717,7 +1717,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def to_period(self, freq=None):
         """
-        Return an period of which this timestamp is an observation.
+        Return a period of which this timestamp is an observation.
 
         This method converts the given Timestamp to a Period object,
         which represents a span of time,such as a year, month, etc.,
