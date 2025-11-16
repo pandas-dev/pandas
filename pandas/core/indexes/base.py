@@ -40,7 +40,6 @@ from pandas._libs.lib import (
     no_default,
 )
 from pandas._libs.tslibs import (
-    OutOfBoundsDatetime,
     Timestamp,
     tz_compare,
 )
@@ -6323,11 +6322,6 @@ class Index(IndexOpsMixin, PandasObject):
                 # standardize on UTC
                 return self.tz_convert("UTC"), other.tz_convert("UTC")
 
-        elif self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
-            try:
-                return type(other)(self), other
-            except OutOfBoundsDatetime:
-                return self, other
         elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
             # TODO: we dont have tests that get here
             return type(other)(self), other
