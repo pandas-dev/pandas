@@ -18,6 +18,7 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
     pa_version_under16p0,
 )
+from pandas.util._decorators import set_module
 from pandas.util._validators import validate_na_arg
 
 from pandas.core.dtypes.common import (
@@ -80,6 +81,7 @@ def _is_string_view(typ):
 # fallback for the ones that pyarrow doesn't yet support
 
 
+@set_module("pandas.arrays")
 class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringArray):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
@@ -123,8 +125,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     ['This is', 'some text', <NA>, 'data.']
     Length: 4, dtype: string
     """
-
-    __module__ = "pandas.arrays"
 
     # error: Incompatible types in assignment (expression has type "StringDtype",
     # base class "ArrowExtensionArray" defined the type as "ArrowDtype")

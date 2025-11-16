@@ -26,6 +26,7 @@ from pandas._libs import (
 from pandas._libs.arrays import NDArrayBacked
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
 
@@ -245,6 +246,7 @@ def contains(cat, key, container) -> bool:
         return any(loc_ in container for loc_ in loc)
 
 
+@set_module("pandas")
 class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMixin):
     """
     Represent a categorical variable in classic R / S-plus fashion.
@@ -360,8 +362,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     >>> c.min()
     'c'
     """
-
-    __module__ = "pandas"
 
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise

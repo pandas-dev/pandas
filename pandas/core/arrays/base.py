@@ -31,6 +31,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     cache_readonly,
+    set_module,
 )
 from pandas.util._validators import (
     validate_bool_kwarg,
@@ -106,6 +107,7 @@ if TYPE_CHECKING:
 _extension_array_shared_docs: dict[str, str] = {}
 
 
+@set_module("pandas.api.extensions")
 class ExtensionArray:
     """
     Abstract base class for custom 1-D array types.
@@ -256,8 +258,6 @@ class ExtensionArray:
 
     https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/list/array.py
     """
-
-    __module__ = "pandas.api.extensions"
 
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
@@ -2804,6 +2804,7 @@ class ExtensionOpsMixin:
         setattr(cls, "__rxor__", cls._create_logical_method(roperator.rxor))
 
 
+@set_module("pandas.api.extensions")
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
     A mixin for defining ops on an ExtensionArray.
@@ -2829,8 +2830,6 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
        implementation to be called when involved in binary operations
        with NumPy arrays.
     """
-
-    __module__ = "pandas.api.extensions"
 
     @classmethod
     def _create_method(cls, op, coerce_to_dtype: bool = True, result_dtype=None):

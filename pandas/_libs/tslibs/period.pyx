@@ -1626,12 +1626,12 @@ DIFFERENT_FREQ = ("Input has different freq={other_freq} "
                   "from {cls}(freq={own_freq})")
 
 
+@set_module("pandas.errors")
 class IncompatibleFrequency(TypeError):
     """
     Raised when trying to compare or operate between Periods with different
     frequencies.
     """
-    __module__ = "pandas.errors"
     pass
 
 
