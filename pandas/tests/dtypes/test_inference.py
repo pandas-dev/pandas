@@ -808,7 +808,7 @@ class TestInference:
         tm.assert_numpy_array_equal(out, exp)
 
         arr = np.array([pd.NaT, np.timedelta64(1, "s")], dtype=object)
-        exp = np.array([np.timedelta64("NaT"), np.timedelta64(1, "s")], dtype="m8[ns]")
+        exp = np.array([np.timedelta64("NaT"), np.timedelta64(1, "s")], dtype="m8[s]")
         out = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(out, exp)
 
@@ -863,7 +863,7 @@ class TestInference:
         if dtype == "datetime64[ns]":
             expected = np.array(["2363-10-04"], dtype="M8[us]")
         else:
-            expected = arr
+            expected = arr.astype("m8[us]")
         tm.assert_numpy_array_equal(out, expected)
 
     def test_maybe_convert_objects_mixed_datetimes(self):

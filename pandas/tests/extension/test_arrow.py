@@ -591,14 +591,6 @@ class TestArrowArray(base.ExtensionTests):
             if data.dtype._is_numeric:
                 mark = pytest.mark.xfail(reason="skew not implemented")
                 request.applymarker(mark)
-        elif (
-            op_name in ["std", "sem"]
-            and pa.types.is_date64(data._pa_array.type)
-            and skipna
-        ):
-            # overflow
-            mark = pytest.mark.xfail(reason="Cannot cast")
-            request.applymarker(mark)
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
     @pytest.mark.parametrize("typ", ["int64", "uint64", "float64"])
