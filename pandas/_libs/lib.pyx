@@ -2593,7 +2593,7 @@ def maybe_convert_objects(ndarray[object] objects,
         Whether to convert numeric entries.
     convert_to_nullable_dtype : bool, default False
         If an array-like object contains only integer or boolean values (and NaN) is
-        encountered, whether to convert and return an Boolean/IntegerArray.
+        encountered, whether to convert and return a Boolean/IntegerArray.
     convert_non_numeric : bool, default False
         Whether to convert datetime, timedelta, period, interval types.
     dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None
