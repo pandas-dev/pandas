@@ -21,18 +21,21 @@ if TYPE_CHECKING:
 
 
 def _normalize_number_format_value(value: str) -> str:
-    value = value.strip()
-    out: list[str] = []
-    in_string = False
+    out = []
+    in_single = False
+    in_double = False
 
-    for ch in value:
-        if ch == '"':
+    for ch in value.strip():
+        if ch == "'" and not in_double:
+            in_single = not in_single
             out.append(ch)
-            in_string = not in_string
-        elif in_string:
-            out.append(ch)  # preserve case inside string literals
+        elif ch == '"' and not in_single:
+            in_double = not in_double
+            out.append(ch)
+        elif in_single or in_double:
+            out.append(ch)
         else:
-            out.append(ch.lower())  # normalize outside literals
+            out.append(ch.lower())
     return "".join(out)
 
 
