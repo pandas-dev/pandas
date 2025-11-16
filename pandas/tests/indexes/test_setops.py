@@ -848,10 +848,12 @@ class TestSetOpsUnsorted:
     def test_difference_empty_arg(self, index, sort):
         first = index.copy()
         first = first[5:20]
-        first.name = "name"
+        if not first._is_multi:
+            first.name = "name"
         result = first.difference([], sort)
         expected = index[5:20].unique()
-        expected.name = "name"
+        if not index._is_multi:
+            expected.name = "name"
         tm.assert_index_equal(result, expected)
 
     def test_difference_should_not_compare(self):
