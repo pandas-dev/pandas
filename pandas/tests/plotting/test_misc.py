@@ -5,6 +5,7 @@ import os
 import numpy as np
 import pytest
 
+from pandas.errors import PandasFutureWarning
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -864,3 +865,45 @@ def test_plot_bar_label_count_expected_success():
         [(30, 10, 10, 10), (20, 20, 20, 20), (10, 30, 30, 10)], columns=list("ABCD")
     )
     df.plot(subplots=[("A", "B", "D")], kind="bar", title=["A&B&D", "C"])
+
+
+def test_change_scatter_markersize_future_warning():
+    # GH 54204
+    # Will raise FutureWarning if s not provided to df.plot.scatter
+    df = DataFrame(data={"x": [1, 2, 3], "y": [1, 2, 3]})
+    with tm.assert_produces_warning(PandasFutureWarning):
+        pandas_default_without_rcparams = df.plot.scatter(
+            x="x", y="y", title="pandas scatter, default rc marker size"
+        )
+    # Verify that pandas still defaults to 20
+    assert pandas_default_without_rcparams.collections[0].get_sizes()[0] == 20
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The default of s=20 will be changed:pandas.errors.PandasFutureWarning"
+)
+def test_scatter_markersize_same_default_with_rcparams():
+    # GH 54204
+    # Ensure default markersize is still 20 if no rcparams
+    df = DataFrame(data={"x": [1, 2, 3], "y": [1, 2, 3]})
+    with mpl.rc_context({"lines.markersize": 10}):
+        pandas_default_with_rcparams = df.plot.scatter(
+            x="x", y="y", title="pandas scatter, changed rc marker size"
+        )
+    # Verify that pandas default markersize is still 20 with rc_params
+    assert pandas_default_with_rcparams.collections[0].get_sizes()[0] == 20
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The default of s=20 will be changed:pandas.errors.PandasFutureWarning"
+)
+def test_scatter_markersize_same_default_without_rcparams():
+    # GH 54204
+    # Ensure default markersize is still 20 if no rcparams
+    df = DataFrame(data={"x": [1, 2, 3], "y": [1, 2, 3]})
+
+    pandas_default_with_rcparams = df.plot.scatter(
+        x="x", y="y", title="pandas scatter, changed rc marker size"
+    )
+    # Verify that pandas default markersize is still 20 without rc_params
+    assert pandas_default_with_rcparams.collections[0].get_sizes()[0] == 20

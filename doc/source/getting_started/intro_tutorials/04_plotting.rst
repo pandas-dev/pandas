@@ -108,7 +108,7 @@ I want to visually compare the :math:`NO_2` values measured in London versus Par
    :okwarning:
 
     @savefig 04_airqual_scatter.png
-    air_quality.plot.scatter(x="station_london", y="station_paris", alpha=0.5)
+    air_quality.plot.scatter(x="station_london", y="station_paris", s = 20, alpha=0.5)
     plt.show()
 
 .. raw:: html
@@ -121,6 +121,7 @@ number of alternatives are available to plot data. Let’s use some
 standard Python to get an overview of the available plot methods:
 
 .. ipython:: python
+    :okwarning:
 
     [
         method_name
