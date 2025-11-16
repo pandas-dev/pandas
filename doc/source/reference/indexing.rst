@@ -6,9 +6,11 @@
 Index objects
 =============
 
+.. note::
+
+   Looking for a beginner-friendly introduction? See the :doc:`../user_guide/indexing` user guide for indexing and selecting data.
 Index
 -----
-.. currentmodule:: pandas
 
 **Many of these methods or variants thereof are available on the objects
 that contain an index (Series/DataFrame) and those should most likely be
@@ -177,37 +179,36 @@ Numeric Index
 .. _api.categoricalindex:
 
 CategoricalIndex
-----------------
 .. autosummary::
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
-   CategoricalIndex
+   pandas.CategoricalIndex
 
 Categorical components
 ~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
 
-   CategoricalIndex.codes
-   CategoricalIndex.categories
-   CategoricalIndex.ordered
-   CategoricalIndex.rename_categories
-   CategoricalIndex.reorder_categories
-   CategoricalIndex.add_categories
-   CategoricalIndex.remove_categories
-   CategoricalIndex.remove_unused_categories
-   CategoricalIndex.set_categories
-   CategoricalIndex.as_ordered
-   CategoricalIndex.as_unordered
+   pandas.CategoricalIndex.codes
+   pandas.CategoricalIndex.categories
+   pandas.CategoricalIndex.ordered
+   pandas.CategoricalIndex.rename_categories
+   pandas.CategoricalIndex.reorder_categories
+   pandas.CategoricalIndex.add_categories
+   pandas.CategoricalIndex.remove_categories
+   pandas.CategoricalIndex.remove_unused_categories
+   pandas.CategoricalIndex.set_categories
+   pandas.CategoricalIndex.as_ordered
+   pandas.CategoricalIndex.as_unordered
 
 Modifying and computations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
    :toctree: api/
 
-   CategoricalIndex.map
-   CategoricalIndex.equals
+   pandas.CategoricalIndex.map
+   pandas.CategoricalIndex.equals
 
 .. _api.intervalindex:
 
