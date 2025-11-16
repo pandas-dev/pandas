@@ -787,6 +787,27 @@ class TestSeriesReductions:
         assert ser.var(ddof=1) == 1.0
         assert ser.std(ddof=1) == 1.0
 
+    @pytest.mark.parametrize(
+        "values,ddof,expected",
+        [
+            ([1 + 2j, 2 + 3j, 3 + 4j], 1, 2.0),
+            ([1 + 2j, 2 + 3j, 3 + 4j], 0, 4 / 3),
+            ([1 + 2j, 2 + 3j, 3 + 4j, np.nan + 0j], 1, 2.0),
+        ],
+    )
+    def test_var_complex_values(self, values, ddof, expected):
+        # GH#62421
+        ser = Series(values, dtype=np.complex128)
+        result = ser.var(ddof=ddof)
+        tm.assert_almost_equal(result, expected)
+
+    def test_var_complex_dtype_preserved(self):
+        # GH#62421
+        ser = Series([1 + 2j, 2 + 3j, 3 + 4j], dtype=np.complex128)
+        mean = ser.mean()
+        assert isinstance(mean, complex)
+        assert mean == 2 + 3j
+
     @pytest.mark.parametrize("dtype", ("m8[ns]", "M8[ns]", "M8[ns, UTC]"))
     def test_empty_timeseries_reductions_return_nat(self, dtype, skipna):
         # covers GH#11245
