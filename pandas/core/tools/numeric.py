@@ -204,8 +204,12 @@ def to_numeric(
             return float(arg)
         if is_number(arg):
             return arg
-        if isinstance(arg, (Timedelta, Timestamp)):
+        if isinstance(arg, Timedelta):
             return arg._value
+        if isinstance(arg, Timestamp):
+            if arg.tzinfo:
+                arg = arg.tz_convert("UTC").replace(tzinfo=None)
+
         is_scalars = True
         values = np.array([arg], dtype="O")
     elif getattr(arg, "ndim", 1) > 1:
@@ -227,8 +231,6 @@ def to_numeric(
     new_mask: np.ndarray | None = None
     if is_numeric_dtype(values_dtype):
         pass
-    elif lib.is_np_dtype(values_dtype, "mM"):
-        values = values.view(np.int64)
     else:
         values = ensure_object(values)
         coerce_numeric = errors != "raise"

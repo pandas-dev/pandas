@@ -490,6 +490,7 @@ class ParserBase:
                     values,
                     na_values,
                     False,
+                    convert_datetime=False,
                     convert_to_masked_nullable=non_default_dtype_backend,  # type: ignore[arg-type]
                 )
             except (ValueError, TypeError):
