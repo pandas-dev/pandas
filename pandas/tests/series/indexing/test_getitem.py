@@ -147,6 +147,9 @@ class TestSeriesGetitemScalars:
         assert ts[time_pandas] == ts[time_datetime]
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
+    @pytest.mark.filterwarnings(
+        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+    )
     def test_string_index_alias_tz_aware(self, tz):
         rng = date_range("1/1/2000", periods=10, tz=tz)
         ser = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
@@ -233,6 +236,9 @@ class TestSeriesGetitemSlices:
 
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+    )
     def test_getitem_slice_strings_with_datetimeindex(self):
         idx = DatetimeIndex(
             ["1/1/2000", "1/2/2000", "1/2/2000", "1/3/2000", "1/4/2000"]
