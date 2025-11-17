@@ -405,6 +405,11 @@ def array_strptime(
                 if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
                     continue
+                elif type(val) is not str:
+                    # GH#60933: normalize string subclasses
+                    # (e.g. lxml.etree._ElementUnicodeResult). The downstream Cython
+                    # path expects an exact `str`, so ensure we pass a plain str
+                    val = str(val)
             elif checknull_with_nat_and_na(val):
                 iresult[i] = NPY_NAT
                 continue
@@ -443,6 +448,9 @@ def array_strptime(
                 continue
             else:
                 val = str(val)
+
+            out_local = 0
+            out_tzoffset = 0
 
             if fmt == "ISO8601":
                 string_to_dts_succeeded = not string_to_dts(
@@ -924,6 +932,13 @@ cdef (int, int) _calc_julian_from_V(int iso_year, int iso_week, int iso_weekday)
 
     correction = date(iso_year, 1, 4).isoweekday() + 3
     ordinal = (iso_week * 7) + iso_weekday - correction
+
+    if iso_week == 53:
+        now = date.fromordinal(date(iso_year, 1, 1).toordinal() + ordinal - iso_weekday)
+        jan_4th = date(iso_year+1, 1, 4)
+        if (jan_4th - now).days < 7:
+            raise ValueError(f"Week 53 does not exist in ISO year {iso_year}.")
+
     # ordinal may be negative or 0 now, which means the date is in the previous
     # calendar year
     if ordinal < 1:

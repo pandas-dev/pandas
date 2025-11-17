@@ -32,6 +32,8 @@ cnp.import_array()
 
 # TODO: formalize having _libs.properties "above" tslibs in the dependency structure
 
+from typing import ClassVar
+
 from pandas._libs.properties import cache_readonly
 
 from pandas._libs.tslibs cimport util
@@ -690,6 +692,9 @@ cdef class BaseOffset:
             Rolled timestamp if not on offset, otherwise unchanged timestamp.
         """
         dt = Timestamp(dt)
+        if self.normalize and (dt - dt.normalize())._value != 0:
+            # GH#32616
+            dt = dt.normalize()
         if not self.is_on_offset(dt):
             dt = dt - type(self)(1, normalize=self.normalize, **self.kwds)
         return dt
@@ -720,10 +725,23 @@ cdef class BaseOffset:
         """
         Return boolean whether a timestamp intersects with this frequency.
 
+        This method determines if a given timestamp aligns with the start
+        of a custom business month, as defined by this offset. It accounts
+        for custom rules, such as skipping weekends or other non-business days,
+        and checks whether the provided datetime falls on a valid business day
+        that marks the beginning of the custom business month.
+
         Parameters
         ----------
         dt : datetime.datetime
             Timestamp to check intersections with frequency.
+
+        See Also
+        --------
+        tseries.offsets.CustomBusinessMonthBegin : Represents the start of a custom
+            business month.
+        tseries.offsets.CustomBusinessMonthEnd : Represents the end of a custom
+            business month.
 
         Examples
         --------
@@ -809,7 +827,7 @@ cdef class BaseOffset:
     @property
     def nanos(self):
         """
-        Returns a integer of the total number of nanoseconds for fixed frequencies.
+        Returns an integer of the total number of nanoseconds for fixed frequencies.
 
         Raises
         ------
@@ -1008,8 +1026,6 @@ cdef class Tick(SingleConstructorOffset):
     # Note: Without making this cpdef, we get AttributeError when calling
     #  from __mul__
     cpdef Tick _next_higher_resolution(Tick self):
-        if type(self) is Day:
-            return Hour(self.n * 24)
         if type(self) is Hour:
             return Minute(self.n * 60)
         if type(self) is Minute:
@@ -1158,7 +1174,7 @@ cdef class Tick(SingleConstructorOffset):
         self.normalize = False
 
 
-cdef class Day(Tick):
+cdef class Day(SingleConstructorOffset):
     """
     Offset ``n`` days.
 
@@ -1188,10 +1204,72 @@ cdef class Day(Tick):
     >>> ts + Day(-4)
     Timestamp('2022-12-05 15:00:00')
     """
+    _adjust_dst = True
+    _attributes = tuple(["n", "normalize"])
     _nanos_inc = 24 * 3600 * 1_000_000_000
     _prefix = "D"
     _period_dtype_code = PeriodDtypeCode.D
     _creso = NPY_DATETIMEUNIT.NPY_FR_D
+
+    def __init__(self, n=1, normalize=False):
+        BaseOffset.__init__(self, n)
+        if normalize:
+            # GH#21427
+            raise ValueError(
+                "Day offset with `normalize=True` are not allowed."
+            )
+
+    def is_on_offset(self, dt) -> bool:
+        return True
+
+    @apply_wraps
+    def _apply(self, other):
+        if isinstance(other, Day):
+            # TODO: why isn't this handled in __add__?
+            return Day(self.n + other.n)
+        return other + np.timedelta64(self.n, "D")
+
+    def _apply_array(self, dtarr):
+        return dtarr + np.timedelta64(self.n, "D")
+
+    @cache_readonly
+    def freqstr(self) -> str:
+        """
+        Return a string representing the frequency.
+
+        Examples
+        --------
+        >>> pd.Day(5).freqstr
+        '5D'
+
+        >>> pd.offsets.Day(1).freqstr
+        'D'
+        """
+        if self.n != 1:
+            return str(self.n) + "D"
+        return "D"
+
+    # Having this here isn't strictly-correct post-GH#61985
+    #  but this gets called in timedelta.get_unit_for_round in cases where
+    #  Day unambiguously means 24h.
+    @property
+    def nanos(self) -> int64_t:
+        """
+        Returns an integer of the total number of nanoseconds.
+
+        See Also
+        --------
+        tseries.offsets.Hour.nanos :
+            Returns an integer of the total number of nanoseconds.
+        tseries.offsets.Day.nanos :
+            Returns an integer of the total number of nanoseconds.
+
+        Examples
+        --------
+        >>> pd.offsets.Hour(5).nanos
+        18000000000000
+        """
+        return self.n * self._nanos_inc
 
 
 cdef class Hour(Tick):
@@ -1416,16 +1494,13 @@ cdef class Nano(Tick):
 def delta_to_tick(delta: timedelta) -> Tick:
     if delta.microseconds == 0 and getattr(delta, "nanoseconds", 0) == 0:
         # nanoseconds only for pd.Timedelta
-        if delta.seconds == 0:
-            return Day(delta.days)
+        seconds = delta.days * 86400 + delta.seconds
+        if seconds % 3600 == 0:
+            return Hour(seconds / 3600)
+        elif seconds % 60 == 0:
+            return Minute(seconds / 60)
         else:
-            seconds = delta.days * 86400 + delta.seconds
-            if seconds % 3600 == 0:
-                return Hour(seconds / 3600)
-            elif seconds % 60 == 0:
-                return Minute(seconds / 60)
-            else:
-                return Second(seconds)
+            return Second(seconds)
     else:
         nanos = delta_to_nanoseconds(delta)
         if nanos % 1_000_000 == 0:
@@ -1728,7 +1803,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     See Also
     --------
     dateutil.relativedelta.relativedelta : The relativedelta type is designed
-        to be applied to an existing datetime an can replace specific components of
+        to be applied to an existing datetime and can replace specific components of
         that datetime, or represents an interval of time.
 
     Examples
@@ -1747,6 +1822,8 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     >>> ts + pd.DateOffset(hour=8)
     Timestamp('2017-01-01 08:10:11')
     """
+    __module__ = "pandas"
+
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
 
@@ -2145,7 +2222,7 @@ cdef class BusinessHour(BusinessMixin):
         # Use python string formatting to be faster than strftime
         hours = ",".join(
             f"{st.hour:02d}:{st.minute:02d}-{en.hour:02d}:{en.minute:02d}"
-            for st, en in zip(self.start, self.end)
+            for st, en in zip(self.start, self.end, strict=True)
         )
         attrs = [f"{self._prefix}={hours}"]
         out += ": " + ", ".join(attrs)
@@ -2342,7 +2419,7 @@ cdef class BusinessHour(BusinessMixin):
         # get total business hours by sec in one business day
         businesshours = sum(
             self._get_business_hours_by_sec(st, en)
-            for st, en in zip(self.start, self.end)
+            for st, en in zip(self.start, self.end, strict=True)
         )
 
         bd, r = divmod(abs(n * 60), businesshours // 60)
@@ -2511,8 +2588,7 @@ cdef class YearOffset(SingleConstructorOffset):
     """
     _attributes = tuple(["n", "normalize", "month"])
 
-    # FIXME(cython#4446): python annotation here gives compile-time errors
-    # _default_month: int
+    _default_month: ClassVar[int]
 
     cdef readonly:
         int month
@@ -2666,14 +2742,31 @@ cdef class BYearBegin(YearOffset):
     _prefix = "BYS"
     _day_opt = "business_start"
 
+# The pair of classes `_YearEnd` and `YearEnd` exist because of
+# https://github.com/cython/cython/issues/3873
 
-cdef class YearEnd(YearOffset):
+cdef class _YearEnd(YearOffset):
+    _default_month = 12
+    _prefix = "YE"
+    _day_opt = "end"
+
+    cdef readonly:
+        int _period_dtype_code
+
+    def __init__(self, n=1, normalize=False, month=None):
+        # Because YearEnd can be the freq for a Period, define its
+        #  _period_dtype_code at construction for performance
+        YearOffset.__init__(self, n, normalize, month)
+        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
+
+
+class YearEnd(_YearEnd):
     """
     DateOffset increments between calendar year end dates.
 
     YearEnd goes to the next date which is the end of the year.
 
-    Attributes
+    Parameters
     ----------
     n : int, default 1
         The number of years represented.
@@ -2707,18 +2800,8 @@ cdef class YearEnd(YearOffset):
     Timestamp('2022-12-31 00:00:00')
     """
 
-    _default_month = 12
-    _prefix = "YE"
-    _day_opt = "end"
-
-    cdef readonly:
-        int _period_dtype_code
-
-    def __init__(self, n=1, normalize=False, month=None):
-        # Because YearEnd can be the freq for a Period, define its
-        #  _period_dtype_code at construction for performance
-        YearOffset.__init__(self, n, normalize, month)
-        self._period_dtype_code = PeriodDtypeCode.A + self.month % 12
+    def __new__(cls, n=1, normalize=False, month=None):
+        return _YearEnd.__new__(cls, n, normalize, month)
 
 
 cdef class YearBegin(YearOffset):
@@ -2775,9 +2858,8 @@ cdef class QuarterOffset(SingleConstructorOffset):
     #       point.  Also apply_index, is_on_offset, rule_code if
     #       startingMonth vs month attr names are resolved
 
-    # FIXME(cython#4446): python annotation here gives compile-time errors
-    # _default_starting_month: int
-    # _from_name_starting_month: int
+    _default_starting_month: ClassVar[int]
+    _from_name_starting_month: ClassVar[int]
 
     cdef readonly:
         int startingMonth
@@ -2995,6 +3077,227 @@ cdef class QuarterBegin(QuarterOffset):
     _default_starting_month = 3
     _from_name_starting_month = 1
     _prefix = "QS"
+    _day_opt = "start"
+
+
+# ----------------------------------------------------------------------
+# HalfYear-Based Offset Classes
+
+cdef class HalfYearOffset(SingleConstructorOffset):
+    _attributes = tuple(["n", "normalize", "startingMonth"])
+    # TODO: Consider combining HalfYearOffset, QuarterOffset and YearOffset
+
+    _default_starting_month: ClassVar[int]
+    _from_name_starting_month: ClassVar[int]
+
+    cdef readonly:
+        int startingMonth
+
+    def __init__(self, n=1, normalize=False, startingMonth=None):
+        BaseOffset.__init__(self, n, normalize)
+
+        if startingMonth is None:
+            startingMonth = self._default_starting_month
+        self.startingMonth = startingMonth
+
+    cpdef __setstate__(self, state):
+        self.startingMonth = state.pop("startingMonth")
+        self.n = state.pop("n")
+        self.normalize = state.pop("normalize")
+
+    @classmethod
+    def _from_name(cls, suffix=None):
+        kwargs = {}
+        if suffix:
+            kwargs["startingMonth"] = MONTH_TO_CAL_NUM[suffix]
+        else:
+            if cls._from_name_starting_month is not None:
+                kwargs["startingMonth"] = cls._from_name_starting_month
+        return cls(**kwargs)
+
+    @property
+    def rule_code(self) -> str:
+        month = MONTH_ALIASES[self.startingMonth]
+        return f"{self._prefix}-{month}"
+
+    def is_on_offset(self, dt: datetime) -> bool:
+        if self.normalize and not _is_normalized(dt):
+            return False
+        mod_month = (dt.month - self.startingMonth) % 6
+        return mod_month == 0 and dt.day == self._get_offset_day(dt)
+
+    @apply_wraps
+    def _apply(self, other: datetime) -> datetime:
+        # months_since: find the calendar half containing other.month,
+        # e.g. if other.month == 8, the calendar half is [Jul, Aug, Sep, ..., Dec].
+        # Then find the month in that half containing an is_on_offset date for
+        # self.  `months_since` is the number of months to shift other.month
+        # to get to this on-offset month.
+        months_since = other.month % 6 - self.startingMonth % 6
+        hlvs = roll_qtrday(
+            other, self.n, self.startingMonth, day_opt=self._day_opt, modby=6
+        )
+        months = hlvs * 6 - months_since
+        return shift_month(other, months, self._day_opt)
+
+    def _apply_array(self, dtarr: np.ndarray) -> np.ndarray:
+        reso = get_unit_from_dtype(dtarr.dtype)
+        shifted = shift_quarters(
+            dtarr.view("i8"),
+            self.n,
+            self.startingMonth,
+            self._day_opt,
+            modby=6,
+            reso=reso,
+        )
+        return shifted
+
+
+cdef class BHalfYearEnd(HalfYearOffset):
+    """
+    DateOffset increments between the last business day of each half-year.
+
+    startingMonth = 1 corresponds to dates like 1/31/2007, 7/31/2007, ...
+    startingMonth = 2 corresponds to dates like 2/28/2007, 8/31/2007, ...
+    startingMonth = 6 corresponds to dates like 6/30/2007, 12/31/2007, ...
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of half-years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 6
+        A specific integer for the month of the year from which we start half-years.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import BHalfYearEnd
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BHalfYearEnd()
+    Timestamp('2020-06-30 05:01:15')
+    >>> ts + BHalfYearEnd(2)
+    Timestamp('2020-12-31 05:01:15')
+    >>> ts + BHalfYearEnd(1, startingMonth=2)
+    Timestamp('2020-08-31 05:01:15')
+    >>> ts + BHalfYearEnd(startingMonth=2)
+    Timestamp('2020-08-31 05:01:15')
+    """
+    _output_name = "BusinessHalfYearEnd"
+    _default_starting_month = 6
+    _from_name_starting_month = 12
+    _prefix = "BHYE"
+    _day_opt = "business_end"
+
+
+cdef class BHalfYearBegin(HalfYearOffset):
+    """
+    DateOffset increments between the first business day of each half-year.
+
+    startingMonth = 1 corresponds to dates like 1/01/2007, 7/01/2007, ...
+    startingMonth = 2 corresponds to dates like 2/01/2007, 8/01/2007, ...
+    startingMonth = 3 corresponds to dates like 3/01/2007, 9/01/2007, ...
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of half-years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 1
+        A specific integer for the month of the year from which we start half-years.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    >>> from pandas.tseries.offsets import BHalfYearBegin
+    >>> ts = pd.Timestamp('2020-05-24 05:01:15')
+    >>> ts + BHalfYearBegin()
+    Timestamp('2020-07-01 05:01:15')
+    >>> ts + BHalfYearBegin(2)
+    Timestamp('2021-01-01 05:01:15')
+    >>> ts + BHalfYearBegin(startingMonth=2)
+    Timestamp('2020-08-03 05:01:15')
+    >>> ts + BHalfYearBegin(-1)
+    Timestamp('2020-01-01 05:01:15')
+    """
+    _output_name = "BusinessHalfYearBegin"
+    _default_starting_month = 1
+    _from_name_starting_month = 1
+    _prefix = "BHYS"
+    _day_opt = "business_start"
+
+
+cdef class HalfYearEnd(HalfYearOffset):
+    """
+    DateOffset increments between half-year end dates.
+
+    startingMonth = 1 corresponds to dates like 1/31/2007, 7/31/2007, ...
+    startingMonth = 2 corresponds to dates like 2/28/2007, 8/31/2007, ...
+    startingMonth = 6 corresponds to dates like 6/30/2007, 12/31/2007, ...
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of half-years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 6
+        A specific integer for the month of the year from which we start half-years.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    >>> ts = pd.Timestamp(2022, 1, 1)
+    >>> ts + pd.offsets.HalfYearEnd()
+    Timestamp('2022-06-30 00:00:00')
+    """
+    _default_starting_month = 6
+    _from_name_starting_month = 12
+    _prefix = "HYE"
+    _day_opt = "end"
+
+
+cdef class HalfYearBegin(HalfYearOffset):
+    """
+    DateOffset increments between half-year start dates.
+
+    startingMonth = 1 corresponds to dates like 1/01/2007, 7/01/2007, ...
+    startingMonth = 2 corresponds to dates like 2/01/2007, 8/01/2007, ...
+    startingMonth = 3 corresponds to dates like 3/01/2007, 9/01/2007, ...
+
+    Attributes
+    ----------
+    n : int, default 1
+        The number of half-years represented.
+    normalize : bool, default False
+        Normalize start/end dates to midnight before generating date range.
+    startingMonth : int, default 1
+        A specific integer for the month of the year from which we start half-years.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    >>> ts = pd.Timestamp(2022, 2, 1)
+    >>> ts + pd.offsets.HalfYearBegin()
+    Timestamp('2022-07-01 00:00:00')
+    """
+    _default_starting_month = 1
+    _from_name_starting_month = 1
+    _prefix = "HYS"
     _day_opt = "start"
 
 
@@ -3371,6 +3674,10 @@ cdef class SemiMonthBegin(SemiMonthOffset):
     """
     Two DateOffset's per month repeating on the first day of the month & day_of_month.
 
+    This offset moves dates to the first day of the month and an additional specified
+    day (typically the 15th by default), useful in scenarios where bi-monthly processing
+    occurs on set days.
+
     Attributes
     ----------
     n : int, default 1
@@ -3379,6 +3686,13 @@ cdef class SemiMonthBegin(SemiMonthOffset):
         Normalize start/end dates to midnight before generating date range.
     day_of_month : int, {1, 3,...,27}, default 15
         A specific integer for the day of the month.
+
+    See Also
+    --------
+    tseries.offsets.SemiMonthEnd : Two DateOffset's per month repeating on the last day
+        of the month & day_of_month.
+    tseries.offsets.MonthEnd : Offset to the last calendar day of the month.
+    tseries.offsets.MonthBegin : Offset to the first calendar day of the month.
 
     Examples
     --------
@@ -3698,6 +4012,15 @@ cdef class LastWeekOfMonth(WeekOfMonthMixin):
         - 4 is Friday
         - 5 is Saturday
         - 6 is Sunday.
+
+    See Also
+    --------
+    tseries.offsets.WeekOfMonth :
+        Date offset for a specific weekday in a month.
+    tseries.offsets.MonthEnd :
+        Date offset for the end of the month.
+    tseries.offsets.BMonthEnd :
+        Date offset for the last business day of the month.
 
     Examples
     --------
@@ -4266,6 +4589,12 @@ cdef class Easter(SingleConstructorOffset):
         The number of years represented.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
+    method : int, default 3
+        The method used to calculate the date of Easter. Valid options are:
+        - 1 (EASTER_JULIAN): Original calculation in Julian calendar
+        - 2 (EASTER_ORTHODOX): Original method, date converted to Gregorian calendar
+        - 3 (EASTER_WESTERN): Revised method, in Gregorian calendar
+        These constants are defined in the `dateutil.easter` module.
 
     See Also
     --------
@@ -4278,15 +4607,32 @@ cdef class Easter(SingleConstructorOffset):
     Timestamp('2022-04-17 00:00:00')
     """
 
+    _attributes = tuple(["n", "normalize", "method"])
+
+    cdef readonly:
+        int method
+
+    from dateutil.easter import EASTER_WESTERN
+
+    def __init__(self, n=1, normalize=False, method=EASTER_WESTERN):
+        BaseOffset.__init__(self, n, normalize)
+
+        self.method = method
+
+        if method < 1 or method > 3:
+            raise ValueError(f"Method must be 1<=method<=3, got {method}")
+
     cpdef __setstate__(self, state):
+        from dateutil.easter import EASTER_WESTERN
         self.n = state.pop("n")
         self.normalize = state.pop("normalize")
+        self.method = state.pop("method", EASTER_WESTERN)
 
     @apply_wraps
     def _apply(self, other: datetime) -> datetime:
         from dateutil.easter import easter
 
-        current_easter = easter(other.year)
+        current_easter = easter(other.year, method=self.method)
         current_easter = datetime(
             current_easter.year, current_easter.month, current_easter.day
         )
@@ -4301,7 +4647,7 @@ cdef class Easter(SingleConstructorOffset):
 
         # NOTE: easter returns a datetime.date so we have to convert to type of
         # other
-        new = easter(other.year + n)
+        new = easter(other.year + n, method=self.method)
         new = datetime(
             new.year,
             new.month,
@@ -4319,7 +4665,7 @@ cdef class Easter(SingleConstructorOffset):
 
         from dateutil.easter import easter
 
-        return date(dt.year, dt.month, dt.day) == easter(dt.year)
+        return date(dt.year, dt.month, dt.day) == easter(dt.year, method=self.method)
 
 
 # ----------------------------------------------------------------------
@@ -4790,6 +5136,8 @@ prefix_mapping = {
         BusinessMonthEnd,  # 'BME'
         BQuarterEnd,  # 'BQE'
         BQuarterBegin,  # 'BQS'
+        BHalfYearEnd,  # 'BHYE'
+        BHalfYearBegin,  # 'BHYS'
         BusinessHour,  # 'bh'
         CustomBusinessDay,  # 'C'
         CustomBusinessMonthEnd,  # 'CBME'
@@ -4806,6 +5154,8 @@ prefix_mapping = {
         Micro,  # 'us'
         QuarterEnd,  # 'QE'
         QuarterBegin,  # 'QS'
+        HalfYearEnd,  # 'HYE'
+        HalfYearBegin,  # 'HYS'
         Milli,  # 'ms'
         Hour,  # 'h'
         Day,  # 'D'
@@ -4843,16 +5193,66 @@ INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 _offset_map = {}
 
 
+deprec_to_valid_alias = {
+    "H": "h",
+    "BH": "bh",
+    "CBH": "cbh",
+    "T": "min",
+    "S": "s",
+    "L": "ms",
+    "U": "us",
+    "N": "ns",
+    "AS": "YS",
+    "AS-JAN": "YS-JAN",
+    "AS-FEB": "YS-FEB",
+    "AS-MAR": "YS-MAR",
+    "AS-APR": "YS-APR",
+    "AS-MAY": "YS-MAY",
+    "AS-JUN": "YS-JUN",
+    "AS-JUL": "YS-JUL",
+    "AS-AUG": "YS-AUG",
+    "AS-SEP": "YS-SEP",
+    "AS-OCT": "YS-OCT",
+    "AS-NOV": "YS-NOV",
+    "AS-DEC": "YS-DEC",
+    "A": "Y",
+    "A-JAN": "Y-JAN",
+    "A-FEB": "Y-FEB",
+    "A-MAR": "Y-MAR",
+    "A-APR": "Y-APR",
+    "A-MAY": "Y-MAY",
+    "A-JUN": "Y-JUN",
+    "A-JUL": "Y-JUL",
+    "A-AUG": "Y-AUG",
+    "A-SEP": "Y-SEP",
+    "A-OCT": "Y-OCT",
+    "A-NOV": "Y-NOV",
+    "A-DEC": "Y-DEC",
+}
+
+
+def raise_invalid_freq(freq: str, extra_message: str | None = None) -> None:
+    msg = f"Invalid frequency: {freq}."
+    if extra_message is not None:
+        msg += f" {extra_message}"
+    if freq in deprec_to_valid_alias:
+        msg += f" Did you mean {deprec_to_valid_alias[freq]}?"
+    raise ValueError(msg)
+
+
 def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
     if name in _lite_rule_alias:
         return name
     if name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR:
+        from pandas.errors import Pandas4Warning
+
+        # https://github.com/pandas-dev/pandas/pull/59240
         warnings.warn(
             f"\'{name}\' is deprecated and will be removed "
             f"in a future version, please use "
             f"\'{c_PERIOD_AND_OFFSET_DEPR_FREQSTR.get(name)}\' "
-            f" instead.",
-            FutureWarning,
+            f"instead.",
+            Pandas4Warning,
             stacklevel=find_stack_level(),
             )
         return c_PERIOD_AND_OFFSET_DEPR_FREQSTR[name]
@@ -4861,12 +5261,15 @@ def _warn_about_deprecated_aliases(name: str, is_period: bool) -> str:
         if name == _name:
             continue
         if _name in c_PERIOD_AND_OFFSET_DEPR_FREQSTR.values():
+            from pandas.errors import Pandas4Warning
+
+            # https://github.com/pandas-dev/pandas/pull/59240
             warnings.warn(
                 f"\'{name}\' is deprecated and will be removed "
                 f"in a future version, please use "
                 f"\'{_name}\' "
-                f" instead.",
-                FutureWarning,
+                f"instead.",
+                Pandas4Warning,
                 stacklevel=find_stack_level(),
                 )
             return _name
@@ -4885,7 +5288,7 @@ def _validate_to_offset_alias(alias: str, is_period: bool) -> None:
         if (alias.upper() != alias and
                 alias.lower() not in {"s", "ms", "us", "ns"} and
                 alias.upper().split("-")[0].endswith(("S", "E"))):
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(alias))
+            raise ValueError(raise_invalid_freq(freq=alias))
     if (
         is_period and
         alias in c_OFFSET_TO_PERIOD_FREQSTR and
@@ -4916,8 +5319,9 @@ def _get_offset(name: str) -> BaseOffset:
             offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError) as err:
             # bad prefix or suffix
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(
-                f"{name}, failed to parse with error message: {repr(err)}")
+            raise_invalid_freq(
+                freq=name,
+                extra_message=f"Failed to parse with error message: {repr(err)}."
             )
         # cache
         _offset_map[name] = offset
@@ -5006,7 +5410,7 @@ cpdef to_offset(freq, bint is_period=False):
                 # the last element must be blank
                 raise ValueError("last element must be blank")
 
-            tups = zip(split[0::4], split[1::4], split[2::4])
+            tups = zip(split[0::4], split[1::4], split[2::4], strict=False)
             for n, (sep, stride, name) in enumerate(tups):
                 name = _warn_about_deprecated_aliases(name, is_period)
                 _validate_to_offset_alias(name, is_period)
@@ -5048,14 +5452,26 @@ cpdef to_offset(freq, bint is_period=False):
                 else:
                     result = result + offset
         except (ValueError, TypeError) as err:
-            raise ValueError(INVALID_FREQ_ERR_MSG.format(
-                f"{freq}, failed to parse with error message: {repr(err)}")
-            ) from err
+            raise_invalid_freq(
+                freq=freq,
+                extra_message=f"Failed to parse with error message: {repr(err)}"
+            )
+
+        # TODO(3.0?) once deprecation of "d" is enforced, the check for it here
+        #  can be removed
+        if (
+                isinstance(result, Hour)
+                and result.n % 24 == 0
+                and ("d" in freq or "D" in freq)
+        ):
+            # Since Day is no longer a Tick, delta_to_tick returns Hour above,
+            #  so we convert back here.
+            result = Day(result.n // 24)
     else:
         result = None
 
     if result is None:
-        raise ValueError(INVALID_FREQ_ERR_MSG.format(freq))
+        raise_invalid_freq(freq=freq)
 
     try:
         has_period_dtype_code = hasattr(result, "_period_dtype_code")
@@ -5298,18 +5714,27 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     cdef:
         int year, month, day
         int days_in_month, dy
+        npy_datetimestruct dts
 
-    dy = (stamp.month + months) // 12
-    month = (stamp.month + months) % 12
+    if isinstance(stamp, _Timestamp):
+        creso = (<_Timestamp>stamp)._creso
+        val = (<_Timestamp>stamp)._value
+        pandas_datetime_to_datetimestruct(val, creso, &dts)
+    else:
+        # Plain datetime/date
+        pydate_to_dtstruct(stamp, &dts)
+
+    dy = (dts.month + months) // 12
+    month = (dts.month + months) % 12
 
     if month == 0:
         month = 12
         dy -= 1
-    year = stamp.year + dy
+    year = dts.year + dy
 
     if day_opt is None:
         days_in_month = get_days_in_month(year, month)
-        day = min(stamp.day, days_in_month)
+        day = min(dts.day, days_in_month)
     elif day_opt == "start":
         day = 1
     elif day_opt == "end":

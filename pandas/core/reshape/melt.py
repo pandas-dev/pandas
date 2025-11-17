@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from pandas.util._decorators import set_module
+
 from pandas.core.dtypes.common import (
     is_iterator,
     is_list_like,
@@ -39,6 +41,7 @@ def ensure_list_vars(arg_vars, variable: str, columns) -> list:
         return []
 
 
+@set_module("pandas")
 def melt(
     frame: DataFrame,
     id_vars=None,
@@ -51,9 +54,9 @@ def melt(
     """
     Unpivot a DataFrame from wide to long format, optionally leaving identifiers set.
 
-    This function is useful to massage a DataFrame into a format where one
+    This function is useful to reshape a DataFrame into a format where one
     or more columns are identifier variables (`id_vars`), while all other
-    columns, considered measured variables (`value_vars`), are "unpivoted" to
+    columns are considered measured variables (`value_vars`), and are "unpivoted" to
     the row axis, leaving just two non-identifier columns, 'variable' and
     'value'.
 
@@ -182,6 +185,10 @@ def melt(
     value_vars_was_not_none = value_vars is not None
     value_vars = ensure_list_vars(value_vars, "value_vars", frame.columns)
 
+    # GH61475 - prevent AttributeError when duplicate column in id_vars
+    if len(frame.columns.get_indexer_for(id_vars)) > len(id_vars):
+        raise ValueError("id_vars cannot contain duplicate columns.")
+
     if id_vars or value_vars:
         if col_level is not None:
             level = frame.columns.get_level_values(col_level)
@@ -192,7 +199,7 @@ def melt(
         missing = idx == -1
         if missing.any():
             missing_labels = [
-                lab for lab, not_found in zip(labels, missing) if not_found
+                lab for lab, not_found in zip(labels, missing, strict=True) if not_found
             ]
             raise KeyError(
                 "The following id_vars or value_vars are not present in "
@@ -271,6 +278,7 @@ def melt(
     return result
 
 
+@set_module("pandas")
 def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
     """
     Reshape wide-format data to long. Generalized inverse of DataFrame.pivot.
@@ -357,6 +365,7 @@ def lreshape(data: DataFrame, groups: dict, dropna: bool = True) -> DataFrame:
     return data._constructor(mdata, columns=id_cols + pivot_cols)
 
 
+@set_module("pandas")
 def wide_to_long(
     df: DataFrame, stubnames, i, j, sep: str = "", suffix: str = r"\d+"
 ) -> DataFrame:

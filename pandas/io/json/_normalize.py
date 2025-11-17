@@ -17,6 +17,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs.writers import convert_json_to_lines
+from pandas.util._decorators import set_module
 
 import pandas as pd
 from pandas import (
@@ -147,7 +148,7 @@ def nested_to_record(
     return new_ds
 
 
-def _normalise_json(
+def _normalize_json(
     data: Any,
     key_string: str,
     normalized_dict: dict[str, Any],
@@ -177,7 +178,7 @@ def _normalise_json(
             if not key_string:
                 new_key = new_key.removeprefix(separator)
 
-            _normalise_json(
+            _normalize_json(
                 data=value,
                 key_string=new_key,
                 normalized_dict=normalized_dict,
@@ -188,7 +189,7 @@ def _normalise_json(
     return normalized_dict
 
 
-def _normalise_json_ordered(data: dict[str, Any], separator: str) -> dict[str, Any]:
+def _normalize_json_ordered(data: dict[str, Any], separator: str) -> dict[str, Any]:
     """
     Order the top level keys and then recursively go to depth
 
@@ -201,10 +202,10 @@ def _normalise_json_ordered(data: dict[str, Any], separator: str) -> dict[str, A
 
     Returns
     -------
-    dict or list of dicts, matching `normalised_json_object`
+    dict or list of dicts, matching `normalized_json_object`
     """
     top_dict_ = {k: v for k, v in data.items() if not isinstance(v, dict)}
-    nested_dict_ = _normalise_json(
+    nested_dict_ = _normalize_json(
         data={k: v for k, v in data.items() if isinstance(v, dict)},
         key_string="",
         normalized_dict={},
@@ -218,7 +219,7 @@ def _simple_json_normalize(
     sep: str = ".",
 ) -> dict | list[dict] | Any:
     """
-    A optimized basic json_normalize
+    An optimized basic json_normalize
 
     Converts a nested dict into a flat dict ("record"), unlike
     json_normalize and nested_to_record it doesn't do anything clever.
@@ -235,7 +236,7 @@ def _simple_json_normalize(
     Returns
     -------
     frame : DataFrame
-    d - dict or list of dicts, matching `normalised_json_object`
+    d - dict or list of dicts, matching `normalized_json_object`
 
     Examples
     --------
@@ -256,14 +257,14 @@ def _simple_json_normalize(
 }
 
     """
-    normalised_json_object = {}
+    normalized_json_object = {}
     # expect a dictionary, as most jsons are. However, lists are perfectly valid
     if isinstance(ds, dict):
-        normalised_json_object = _normalise_json_ordered(data=ds, separator=sep)
+        normalized_json_object = _normalize_json_ordered(data=ds, separator=sep)
     elif isinstance(ds, list):
-        normalised_json_list = [_simple_json_normalize(row, sep=sep) for row in ds]
-        return normalised_json_list
-    return normalised_json_object
+        normalized_json_list = [_simple_json_normalize(row, sep=sep) for row in ds]
+        return normalized_json_list
+    return normalized_json_object
 
 
 def _validate_meta(meta: list) -> None:
@@ -288,6 +289,7 @@ def _validate_meta(meta: list) -> None:
             )
 
 
+@set_module("pandas")
 def json_normalize(
     data: dict | list[dict] | Series,
     record_path: str | list | None = None,
@@ -300,6 +302,10 @@ def json_normalize(
 ) -> DataFrame:
     """
     Normalize semi-structured JSON data into a flat table.
+
+    This method is designed to transform semi-structured JSON data, such as nested
+    dictionaries or lists, into a flat table. This is particularly useful when
+    handling JSON-like data structures that contain deeply nested fields.
 
     Parameters
     ----------
@@ -332,8 +338,13 @@ def json_normalize(
 
     Returns
     -------
-    frame : DataFrame
-    Normalize semi-structured JSON data into a flat table.
+    DataFrame
+        The normalized data, represented as a pandas DataFrame.
+
+    See Also
+    --------
+    DataFrame : Two-dimensional, size-mutable, potentially heterogeneous tabular data.
+    Series : One-dimensional ndarray with axis labels (including time series).
 
     Examples
     --------
@@ -515,6 +526,13 @@ def json_normalize(
         # GH35923 Fix pd.json_normalize to not skip the first element of a
         # generator input
         data = list(data)
+        for item in data:
+            if not isinstance(item, dict):
+                msg = (
+                    "All items in data must be of type dict, "
+                    f"found {type(item).__name__}"
+                )
+                raise TypeError(msg)
     else:
         raise NotImplementedError
 
@@ -540,7 +558,10 @@ def json_normalize(
             # TODO: handle record value which are lists, at least error
             #       reasonably
             data = nested_to_record(data, sep=sep, max_level=max_level)
-        return DataFrame(data, index=index)
+        result = DataFrame(data, index=index)
+        if record_prefix is not None:
+            result = result.rename(columns=lambda x: f"{record_prefix}{x}")
+        return result
     elif not isinstance(record_path, list):
         record_path = [record_path]
 
@@ -563,7 +584,7 @@ def json_normalize(
             data = [data]
         if len(path) > 1:
             for obj in data:
-                for val, key in zip(_meta, meta_keys):
+                for val, key in zip(_meta, meta_keys, strict=True):
                     if level + 1 == len(val):
                         seen_meta[key] = _pull_field(obj, val[-1])
 
@@ -580,7 +601,7 @@ def json_normalize(
 
                 # For repeating the metadata later
                 lengths.append(len(recs))
-                for val, key in zip(_meta, meta_keys):
+                for val, key in zip(_meta, meta_keys, strict=True):
                     if level + 1 > len(val):
                         meta_val = seen_meta[key]
                     else:

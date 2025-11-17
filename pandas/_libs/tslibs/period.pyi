@@ -15,7 +15,7 @@ from pandas._typing import (
 INVALID_FREQ_ERR_MSG: str
 DIFFERENT_FREQ: str
 
-class IncompatibleFrequency(ValueError): ...
+class IncompatibleFrequency(TypeError): ...
 
 def periodarr_to_dt64arr(
     periodarr: npt.NDArray[np.int64],  # const int64_t[:]

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas._libs.parsers import (
     _maybe_upcast,
     na_values,
@@ -16,7 +14,6 @@ from pandas.core.arrays import (
     BooleanArray,
     FloatingArray,
     IntegerArray,
-    StringArray,
 )
 
 
@@ -86,7 +83,6 @@ def test_maybe_upcaste_all_nan():
     tm.assert_extension_array_equal(result, expected)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False)
 @pytest.mark.parametrize("val", [na_values[np.object_], "c"])
 def test_maybe_upcast_object(val, string_storage):
     # GH#36712
@@ -98,7 +94,7 @@ def test_maybe_upcast_object(val, string_storage):
 
         if string_storage == "python":
             exp_val = "c" if val == "c" else NA
-            expected = StringArray(np.array(["a", "b", exp_val], dtype=np.object_))
+            expected = pd.array(["a", "b", exp_val], dtype=pd.StringDtype())
         else:
             exp_val = "c" if val == "c" else None
             expected = ArrowStringArray(pa.array(["a", "b", exp_val]))

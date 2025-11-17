@@ -5,6 +5,7 @@ import pytest
 
 import pandas as pd
 from pandas import (
+    ArrowDtype,
     DataFrame,
     MultiIndex,
     Series,
@@ -294,6 +295,57 @@ class TestMultiLevel:
         df = DataFrame([0], columns=[["A"], ["B"]])
         df[na, "B"] = 1
         tm.assert_frame_equal(df[na], DataFrame([1], columns=["B"]))
+
+    def test_multiindex_dt_with_nan(self):
+        # GH#60388
+        df = DataFrame(
+            [
+                [1, np.nan, 5, np.nan],
+                [2, np.nan, 6, np.nan],
+                [np.nan, 3, np.nan, 7],
+                [np.nan, 4, np.nan, 8],
+            ],
+            index=Series(["a", "b", "c", "d"], dtype=object, name="sub"),
+            columns=MultiIndex.from_product(
+                [
+                    ["value1", "value2"],
+                    [datetime.datetime(2024, 11, 1), datetime.datetime(2024, 11, 2)],
+                ],
+                names=[None, "Date"],
+            ),
+        )
+        df = df.reset_index()
+        result = df[df.columns[0]]
+        expected = Series(["a", "b", "c", "d"], name=("sub", np.nan))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
+    def test_multiindex_with_pyarrow_categorical(self):
+        # GH#53051
+        pa = pytest.importorskip("pyarrow")
+
+        df = DataFrame(
+            {"string_column": ["A", "B", "C"], "number_column": [1, 2, 3]}
+        ).astype(
+            {
+                "string_column": ArrowDtype(pa.dictionary(pa.int32(), pa.string())),
+                "number_column": "float[pyarrow]",
+            }
+        )
+
+        df = df.set_index(["string_column", "number_column"])
+
+        df_expected = DataFrame(
+            index=MultiIndex.from_arrays(
+                [["A", "B", "C"], [1, 2, 3]], names=["string_column", "number_column"]
+            )
+        )
+        tm.assert_frame_equal(
+            df,
+            df_expected,
+            check_index_type=False,
+            check_column_type=False,
+        )
 
 
 class TestSorted:

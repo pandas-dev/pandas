@@ -91,8 +91,6 @@ class _BaseXMLFormatter:
 
     {compression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     {storage_options}
 
     See also
@@ -260,7 +258,7 @@ class _BaseXMLFormatter:
         nmsp_dict: dict[str, str] = {}
         if self.namespaces:
             nmsp_dict = {
-                f"xmlns{p if p=='' else f':{p}'}": n
+                f"xmlns{p if p == '' else f':{p}'}": n
                 for p, n in self.namespaces.items()
                 if n != self.prefix_uri[1:-1]
             }
@@ -404,7 +402,7 @@ class EtreeXMLFormatter(_BaseXMLFormatter):
                         f"{self.prefix} is not included in namespaces"
                     ) from err
             elif "" in self.namespaces:
-                uri = f'{{{self.namespaces[""]}}}'
+                uri = f"{{{self.namespaces['']}}}"
             else:
                 uri = ""
 
@@ -502,7 +500,7 @@ class LxmlXMLFormatter(_BaseXMLFormatter):
                         f"{self.prefix} is not included in namespaces"
                     ) from err
             elif "" in self.namespaces:
-                uri = f'{{{self.namespaces[""]}}}'
+                uri = f"{{{self.namespaces['']}}}"
             else:
                 uri = ""
 

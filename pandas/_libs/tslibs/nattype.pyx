@@ -372,6 +372,8 @@ class NaTType(_NaT):
     1         NaT
     """
 
+    __module__ = "pandas.api.typing"
+
     def __new__(cls):
         cdef _NaT base
 
@@ -704,7 +706,7 @@ class NaTType(_NaT):
         difference between the current timezone and UTC.
 
         Returns
-        --------
+        -------
         timedelta
             The difference between UTC and the local time as a `timedelta` object.
 
@@ -1166,7 +1168,7 @@ class NaTType(_NaT):
     fromordinal = _make_error_func(
         "fromordinal",
         """
-        Construct a timestamp from a a proleptic Gregorian ordinal.
+        Construct a timestamp from a proleptic Gregorian ordinal.
 
         This method creates a `Timestamp` object corresponding to the given
         proleptic Gregorian ordinal, which is a count of days from January 1,
@@ -1869,6 +1871,7 @@ default 'raise'
 
 c_NaT = NaTType()  # C-visible
 NaT = c_NaT        # Python-visible
+NaT.__module__ = "pandas"
 
 
 # ----------------------------------------------------------------------

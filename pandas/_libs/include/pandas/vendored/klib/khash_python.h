@@ -34,11 +34,9 @@ static void *traced_calloc(size_t num, size_t size) {
 }
 
 static void *traced_realloc(void *old_ptr, size_t size) {
+  PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)old_ptr);
   void *ptr = realloc(old_ptr, size);
   if (ptr != NULL) {
-    if (old_ptr != ptr) {
-      PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)old_ptr);
-    }
     PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
   }
   return ptr;
@@ -224,15 +222,11 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
 }
 
 static inline Py_hash_t _Pandas_HashDouble(double val) {
-  // Since Python3.10, nan is no longer has hash 0
+  // nan no longer has hash 0
   if (isnan(val)) {
     return 0;
   }
-#if PY_VERSION_HEX < 0x030A0000
-  return _Py_HashDouble(val);
-#else
   return _Py_HashDouble(NULL, val);
-#endif
 }
 
 static inline Py_hash_t floatobject_hash(PyFloatObject *key) {

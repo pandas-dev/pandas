@@ -10,6 +10,7 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Self,
     cast,
     final,
     overload,
@@ -23,7 +24,6 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     NDFrameT,
-    Self,
     Shape,
     npt,
 )
@@ -44,6 +44,7 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
+    ABCMultiIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
@@ -89,7 +90,7 @@ _shared_docs: dict[str, str] = {}
 
 class PandasObject(DirNamesMixin):
     """
-    Baseclass for various pandas objects.
+    Base class for various pandas objects.
     """
 
     # results from calls to methods decorated with cache_readonly get added to _cache
@@ -322,12 +323,12 @@ class IndexOpsMixin(OpsMixin):
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
         >>> s.T
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
 
         For Index:
 
@@ -360,8 +361,11 @@ class IndexOpsMixin(OpsMixin):
         # We need this defined here for mypy
         raise AbstractMethodError(self)
 
+    # Temporarily avoid using `-> Literal[1]:` because of an IPython (jedi) bug
+    # https://github.com/ipython/ipython/issues/14412
+    # https://github.com/davidhalter/jedi/issues/1990
     @property
-    def ndim(self) -> Literal[1]:
+    def ndim(self) -> int:
         """
         Number of dimensions of the underlying data, by definition 1.
 
@@ -379,7 +383,7 @@ class IndexOpsMixin(OpsMixin):
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
         >>> s.ndim
         1
 
@@ -448,9 +452,9 @@ class IndexOpsMixin(OpsMixin):
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
         >>> s.nbytes
-        24
+        34
 
         For Index:
 
@@ -483,7 +487,7 @@ class IndexOpsMixin(OpsMixin):
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
         >>> s.size
         3
 
@@ -501,6 +505,11 @@ class IndexOpsMixin(OpsMixin):
     def array(self) -> ExtensionArray:
         """
         The ExtensionArray of the data backing this Series or Index.
+
+        This property provides direct access to the underlying array data of a
+        Series or Index without requiring conversion to a NumPy array. It
+        returns an ExtensionArray, which is the native storage format for
+        pandas extension dtypes.
 
         Returns
         -------
@@ -558,7 +567,7 @@ class IndexOpsMixin(OpsMixin):
         >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
         >>> ser.array
         ['a', 'b', 'a']
-        Categories (2, object): ['a', 'b']
+        Categories (2, str): ['a', 'b']
         """
         raise AbstractMethodError(self)
 
@@ -795,9 +804,9 @@ class IndexOpsMixin(OpsMixin):
         dtype: float64
 
         >>> s.argmax()
-        2
+        np.int64(2)
         >>> s.argmin()
-        0
+        np.int64(0)
 
         The maximum cereal calories is the third element and
         the minimum cereal calories is the first element,
@@ -1067,7 +1076,7 @@ class IndexOpsMixin(OpsMixin):
 
         >>> df.dtypes
         a    category
-        b      object
+        b      str
         c    category
         d    category
         dtype: object
@@ -1075,7 +1084,7 @@ class IndexOpsMixin(OpsMixin):
         >>> df.dtypes.value_counts()
         category    2
         category    1
-        object      1
+        str         1
         Name: count, dtype: int64
         """
         return algorithms.value_counts_internal(
@@ -1093,7 +1102,7 @@ class IndexOpsMixin(OpsMixin):
             # i.e. ExtensionArray
             result = values.unique()
         else:
-            result = algorithms.unique1d(values)
+            result = algorithms.unique1d(values)  # type: ignore[assignment]
         return result
 
     @final
@@ -1111,7 +1120,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         int
-            A integer indicating the number of unique elements in the object.
+            An integer indicating the number of unique elements in the object.
 
         See Also
         --------
@@ -1287,13 +1296,22 @@ class IndexOpsMixin(OpsMixin):
         if uniques.dtype == np.float16:
             uniques = uniques.astype(np.float32)
 
-        if isinstance(self, ABCIndex):
-            # preserve e.g. MultiIndex
-            uniques = self._constructor(uniques)
+        if isinstance(self, ABCMultiIndex):
+            # preserve MultiIndex
+            if len(self) == 0:
+                # GH#57517
+                uniques = self[:0]
+            else:
+                uniques = self._constructor(uniques)
         else:
             from pandas import Index
 
-            uniques = Index(uniques)
+            try:
+                uniques = Index(uniques, dtype=self.dtype)
+            except NotImplementedError:
+                # not all dtypes are supported in Index that are allowed for Series
+                # e.g. float16 or bytes
+                uniques = Index(uniques)
         return codes, uniques
 
     _shared_docs["searchsorted"] = """
@@ -1346,7 +1364,7 @@ class IndexOpsMixin(OpsMixin):
         dtype: int64
 
         >>> ser.searchsorted(4)
-        3
+        np.int64(3)
 
         >>> ser.searchsorted([0, 4])
         array([0, 3])
@@ -1365,17 +1383,17 @@ class IndexOpsMixin(OpsMixin):
         dtype: datetime64[s]
 
         >>> ser.searchsorted('3/14/2000')
-        3
+        np.int64(3)
 
         >>> ser = pd.Categorical(
         ...     ['apple', 'bread', 'bread', 'cheese', 'milk'], ordered=True
         ... )
         >>> ser
         ['apple', 'bread', 'bread', 'cheese', 'milk']
-        Categories (4, object): ['apple' < 'bread' < 'cheese' < 'milk']
+        Categories (4, str): ['apple' < 'bread' < 'cheese' < 'milk']
 
         >>> ser.searchsorted('bread')
-        1
+        np.int64(1)
 
         >>> ser.searchsorted(['bread'], side='right')
         array([3])
@@ -1466,9 +1484,9 @@ class IndexOpsMixin(OpsMixin):
         with np.errstate(all="ignore"):
             result = ops.arithmetic_op(lvalues, rvalues, op)
 
-        return self._construct_result(result, name=res_name)
+        return self._construct_result(result, name=res_name, other=other)
 
-    def _construct_result(self, result, name):
+    def _construct_result(self, result, name, other):
         """
         Construct an appropriately-wrapped result from the ArrayLike result
         of an arithmetic-like operation.

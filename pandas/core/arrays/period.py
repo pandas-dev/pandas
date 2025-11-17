@@ -6,6 +6,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     TypeVar,
     cast,
     overload,
@@ -21,6 +22,7 @@ from pandas._libs import (
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     NaT,
     NaTType,
     Timedelta,
@@ -82,11 +84,11 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
         Dtype,
+        DtypeObj,
         FillnaOptions,
         NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
-        Self,
         npt,
     )
 
@@ -175,12 +177,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     Length: 2, dtype: period[D]
     """
 
+    __module__ = "pandas.arrays"
+
     # array priority higher than numpy scalars
     __array_priority__ = 1000
     _typ = "periodarray"  # ABCPeriodArray
     _internal_fill_value = np.int64(iNaT)
     _recognized_scalars = (Period,)
-    _is_recognized_dtype = lambda x: isinstance(
+    _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: isinstance(
         x, PeriodDtype
     )  # check_compatible_with checks freq match
     _infer_matches = ("period",)
@@ -375,8 +379,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         return self._dtype
 
     # error: Cannot override writeable attribute with read-only property
-    @property  # type: ignore[override]
-    def freq(self) -> BaseOffset:
+    @property
+    def freq(self) -> BaseOffset:  # type: ignore[override]
         """
         Return the frequency object for this PeriodArray.
         """
@@ -390,8 +394,23 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
         if dtype == "i8":
-            return self.asi8
-        elif dtype == bool:
+            # For NumPy 1.x compatibility we cannot use copy=None.  And
+            # `copy=False` has the meaning of `copy=None` here:
+            if not copy:
+                result = np.asarray(self.asi8, dtype=dtype)
+                if self._readonly:
+                    result = result.view()
+                    result.flags.writeable = False
+                return result
+            else:
+                return np.array(self.asi8, dtype=dtype)
+
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
+        if dtype == bool:
             return ~self._isnan
 
         # This will raise TypeError for non-object dtypes
@@ -827,7 +846,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 # TODO: other cases?
             return dta
         else:
-            return dta._with_freq("infer")
+            dta = dta._with_freq("infer")
+            if freq is not None:
+                freq = to_offset(freq)
+                if (
+                    isinstance(dta.freq, Day)
+                    and not isinstance(freq, Day)
+                    and Timedelta(freq) == Timedelta(days=dta.freq.n)
+                ):
+                    dta._freq = freq
+            return dta
 
     # --------------------------------------------------------------------
 
@@ -940,7 +968,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             # GH#45038 match PeriodIndex behavior.
             tz = getattr(dtype, "tz", None)
             unit = dtl.dtype_to_unit(dtype)
-            return self.to_timestamp().tz_localize(tz).as_unit(unit)
+            # error: Argument 1 to "as_unit" of "TimelikeOps" has incompatible
+            # type "str"; expected "Literal['s', 'ms', 'us', 'ns']"  [arg-type]
+            return self.to_timestamp().tz_localize(tz).as_unit(unit)  # type: ignore[arg-type]
 
         return super().astype(dtype, copy=copy)
 
@@ -1003,6 +1033,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def _add_offset(self, other: BaseOffset):
         assert not isinstance(other, Tick)
 
+        if isinstance(other, Day):
+            return self + np.timedelta64(other.n, "D")
+
         self._require_matching_freq(other, base=True)
         return self._addsub_int_array_or_scalar(other.n, operator.add)
 
@@ -1017,7 +1050,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         -------
         PeriodArray
         """
-        if not isinstance(self.freq, Tick):
+        if not isinstance(self.freq, (Tick, Day)):
             # We cannot add timedelta-like to non-tick PeriodArray
             raise raise_on_incompatible(self, other)
 
@@ -1025,7 +1058,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             # i.e. np.timedelta64("NaT")
             return super()._add_timedeltalike_scalar(other)
 
-        td = np.asarray(Timedelta(other).asm8)
+        if isinstance(other, Day):
+            td = np.asarray(Timedelta(days=other.n).asm8)
+        else:
+            td = np.asarray(Timedelta(other).asm8)
         return self._add_timedelta_arraylike(td)
 
     def _add_timedelta_arraylike(
@@ -1299,7 +1335,7 @@ def dt64arr_to_periodarr(
     data, freq, tz=None
 ) -> tuple[npt.NDArray[np.int64], BaseOffset]:
     """
-    Convert an datetime-like array to values Period ordinals.
+    Convert a datetime-like array to values Period ordinals.
 
     Parameters
     ----------
@@ -1408,16 +1444,16 @@ def _range_from_fields(
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q", is_period=True)
-            base = FreqGroup.FR_QTR.value
+            base = cast(int, FreqGroup.FR_QTR.value)
         else:
             freq = to_offset(freq, is_period=True)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != FreqGroup.FR_QTR.value:
+            if base != cast(int, FreqGroup.FR_QTR.value):
                 raise AssertionError("base must equal FR_QTR")
 
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
-        for y, q in zip(year, quarter):
+        for y, q in zip(year, quarter, strict=True):
             calendar_year, calendar_month = parsing.quarter_to_myear(y, q, freqstr)
             val = libperiod.period_ordinal(
                 calendar_year, calendar_month, 1, 1, 1, 1, 0, 0, base
@@ -1427,7 +1463,7 @@ def _range_from_fields(
         freq = to_offset(freq, is_period=True)
         base = libperiod.freq_to_dtype_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
-        for y, mth, d, h, mn, s in zip(*arrays):
+        for y, mth, d, h, mn, s in zip(*arrays, strict=True):
             ordinals.append(libperiod.period_ordinal(y, mth, d, h, mn, s, 0, 0, base))
 
     return np.array(ordinals, dtype=np.int64), freq
@@ -1446,8 +1482,10 @@ def _make_field_arrays(*fields) -> list[np.ndarray]:
     # "Union[Union[int, integer[Any]], Union[bool, bool_], ndarray, Sequence[Union[int,
     # integer[Any]]], Sequence[Union[bool, bool_]], Sequence[Sequence[Any]]]"
     return [
-        np.asarray(x)
-        if isinstance(x, (np.ndarray, list, ABCSeries))
-        else np.repeat(x, length)  # type: ignore[arg-type]
+        (
+            np.asarray(x)
+            if isinstance(x, (np.ndarray, list, ABCSeries))
+            else np.repeat(x, length)  # type: ignore[arg-type]
+        )
         for x in fields
     ]

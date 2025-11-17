@@ -241,6 +241,7 @@ class HTMLFormatter:
         use_mathjax = get_option("display.html.use_mathjax")
         if not use_mathjax:
             _classes.append("tex2jax_ignore")
+            _classes.append("mathjax_ignore")
         if self.classes is not None:
             if isinstance(self.classes, str):
                 self.classes = self.classes.split()
@@ -288,7 +289,9 @@ class HTMLFormatter:
             levels = self.columns._format_multi(sparsify=sentinel, include_names=False)
             level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
-            for lnum, (records, values) in enumerate(zip(level_lengths, levels)):
+            for lnum, (records, values) in enumerate(
+                zip(level_lengths, levels, strict=True)
+            ):
                 if is_truncated_horizontally:
                     # modify the header lines
                     ins_col = self.fmt.tr_col_num
@@ -485,7 +488,7 @@ class HTMLFormatter:
 
         assert isinstance(frame.index, MultiIndex)
         idx_values = frame.index._format_multi(sparsify=False, include_names=False)
-        idx_values = list(zip(*idx_values))
+        idx_values = list(zip(*idx_values, strict=True))
 
         if self.fmt.sparsify:
             # GH3547
@@ -546,7 +549,7 @@ class HTMLFormatter:
 
                 sparse_offset = 0
                 j = 0
-                for records, v in zip(level_lengths, idx_values[i]):
+                for records, v in zip(level_lengths, idx_values[i], strict=True):
                     if i in records:
                         if records[i] > 1:
                             tags[j] = template.format(span=records[i])
@@ -583,7 +586,10 @@ class HTMLFormatter:
                     )
 
                 idx_values = list(
-                    zip(*frame.index._format_multi(sparsify=False, include_names=False))
+                    zip(
+                        *frame.index._format_multi(sparsify=False, include_names=False),
+                        strict=True,
+                    )
                 )
                 row = []
                 row.extend(idx_values[i])

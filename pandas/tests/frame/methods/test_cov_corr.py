@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -209,20 +207,6 @@ class TestDataFrameCorr:
         expected = DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_corr_item_cache(self):
-        # Check that corr does not lead to incorrect entries in item_cache
-
-        df = DataFrame({"A": range(10)})
-        df["B"] = range(10)[::-1]
-
-        ser = df["A"]  # populate item_cache
-        assert len(df._mgr.blocks) == 2
-
-        _ = df.corr(numeric_only=True)
-
-        ser.iloc[0] = 99
-        assert df.loc[0, "A"] == 0
-
     @pytest.mark.parametrize("length", [2, 20, 200, 2000])
     def test_corr_for_constant_columns(self, length):
         # GH: 37448
@@ -320,7 +304,6 @@ class TestDataFrameCorrWith:
         for row in index[:4]:
             tm.assert_almost_equal(correls[row], df1.loc[row].corr(df2.loc[row]))
 
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_corrwith_with_objects(self, using_infer_string):
         df1 = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
@@ -334,9 +317,8 @@ class TestDataFrameCorrWith:
         df2["obj"] = "bar"
 
         if using_infer_string:
-            import pyarrow as pa
-
-            with pytest.raises(pa.lib.ArrowNotImplementedError, match="has no kernel"):
+            msg = "Cannot perform reduction 'mean' with string dtype"
+            with pytest.raises(TypeError, match=msg):
                 df1.corrwith(df2)
         else:
             with pytest.raises(TypeError, match="Could not convert"):
@@ -489,3 +471,25 @@ class TestDataFrameCorrWith:
         result = df_bool.corrwith(ser_bool, min_periods=3)
         expected = Series([0.57735, 0.57735], index=["A", "B"])
         tm.assert_series_equal(result, expected)
+
+    def test_corr_within_bounds(self):
+        df1 = DataFrame({"x": [0, 1], "y": [1.35951, 1.3595100000000007]})
+        result1 = df1.corr().max().max()
+        expected1 = 1.0
+        tm.assert_equal(result1, expected1)
+
+        rng = np.random.default_rng(seed=42)
+        df2 = DataFrame(rng.random((100, 4)))
+        corr_matrix = df2.corr()
+        assert corr_matrix.min().min() >= -1.0
+        assert corr_matrix.max().max() <= 1.0
+
+    def test_cov_with_missing_values(self):
+        df = DataFrame({"A": [1, 2, None, 4], "B": [2, 4, None, 9]})
+        expected = DataFrame(
+            {"A": [2.333333, 5.500000], "B": [5.5, 13.0]}, index=["A", "B"]
+        )
+        result1 = df.cov()
+        result2 = df.dropna().cov()
+        tm.assert_frame_equal(result1, expected)
+        tm.assert_frame_equal(result2, expected)

@@ -3,11 +3,6 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
-from pandas.compat import HAS_PYARROW
-from pandas.compat.numpy import np_version_gte1p25
-
 import pandas as pd
 import pandas._testing as tm
 
@@ -122,20 +117,14 @@ class TestDataFrameUnaryOperators:
         tm.assert_frame_equal(+df, df)
         tm.assert_series_equal(+df["a"], df["a"])
 
-    @pytest.mark.xfail(
-        using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)"
-    )
     @pytest.mark.filterwarnings("ignore:Applying:DeprecationWarning")
     def test_pos_object_raises(self):
         # GH#21380
         df = pd.DataFrame({"a": ["a", "b"]})
-        if np_version_gte1p25:
-            with pytest.raises(
-                TypeError, match=r"^bad operand type for unary \+: \'str\'$"
-            ):
-                tm.assert_frame_equal(+df, df)
-        else:
-            tm.assert_series_equal(+df["a"], df["a"])
+        with pytest.raises(
+            TypeError, match=r"^bad operand type for unary \+: \'str\'$"
+        ):
+            tm.assert_frame_equal(+df, df)
 
     def test_pos_raises(self):
         df = pd.DataFrame({"a": pd.to_datetime(["2017-01-22", "1970-01-01"])})

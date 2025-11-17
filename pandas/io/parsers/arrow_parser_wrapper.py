@@ -3,30 +3,31 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import warnings
 
-from pandas._config import using_string_dtype
-
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
+    Pandas4Warning,
     ParserError,
     ParserWarning,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+)
 
-from pandas.core.dtypes.common import pandas_dtype
+from pandas.core.dtypes.common import (
+    pandas_dtype,
+)
 from pandas.core.dtypes.inference import is_integer
 
-import pandas as pd
-from pandas import DataFrame
-
-from pandas.io._util import (
-    _arrow_dtype_mapping,
-    arrow_string_types_mapper,
-)
+from pandas.io._util import arrow_table_to_pandas
 from pandas.io.parsers.base_parser import ParserBase
 
 if TYPE_CHECKING:
+    import pyarrow as pa
+
     from pandas._typing import ReadBuffer
+
+    from pandas import DataFrame
 
 
 class ArrowParserWrapper(ParserBase):
@@ -146,36 +147,45 @@ class ArrowParserWrapper(ParserBase):
             "encoding": self.encoding,
         }
 
-    def _finalize_pandas_output(self, frame: DataFrame) -> DataFrame:
-        """
-        Processes data read in based on kwargs.
+    def _get_convert_options(self):
+        pyarrow_csv = import_optional_dependency("pyarrow.csv")
 
-        Parameters
-        ----------
-        frame: DataFrame
-            The DataFrame to process.
+        try:
+            convert_options = pyarrow_csv.ConvertOptions(**self.convert_options)
+        except TypeError as err:
+            include = self.convert_options.get("include_columns", None)
+            if include is not None:
+                self._validate_usecols(include)
 
-        Returns
-        -------
-        DataFrame
-            The processed DataFrame.
-        """
-        num_cols = len(frame.columns)
+            nulls = self.convert_options.get("null_values", set())
+            if not lib.is_list_like(nulls) or not all(
+                isinstance(x, str) for x in nulls
+            ):
+                raise TypeError(
+                    "The 'pyarrow' engine requires all na_values to be strings"
+                ) from err
+
+            raise
+
+        return convert_options
+
+    def _adjust_column_names(self, table: pa.Table) -> bool:
+        num_cols = len(table.columns)
         multi_index_named = True
         if self.header is None:
             if self.names is None:
-                if self.header is None:
-                    self.names = range(num_cols)
+                self.names = range(num_cols)
             if len(self.names) != num_cols:
                 # usecols is passed through to pyarrow, we only handle index col here
                 # The only way self.names is not the same length as number of cols is
                 # if we have int index_col. We should just pad the names(they will get
                 # removed anyways) to expected length then.
-                self.names = list(range(num_cols - len(self.names))) + self.names
+                columns_prefix = [str(x) for x in range(num_cols - len(self.names))]
+                self.names = columns_prefix + self.names
                 multi_index_named = False
-            frame.columns = self.names
+        return multi_index_named
 
-        frame = self._do_date_conversions(frame.columns, frame)
+    def _finalize_index(self, frame: DataFrame, multi_index_named: bool) -> DataFrame:
         if self.index_col is not None:
             index_to_set = self.index_col.copy()
             for i, item in enumerate(self.index_col):
@@ -201,6 +211,9 @@ class ArrowParserWrapper(ParserBase):
             if self.header is None and not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)
 
+        return frame
+
+    def _finalize_dtype(self, frame: DataFrame) -> DataFrame:
         if self.dtype is not None:
             # Ignore non-existent columns from dtype mapping
             # like other parsers do
@@ -217,6 +230,28 @@ class ArrowParserWrapper(ParserBase):
             except TypeError as err:
                 # GH#44901 reraise to keep api consistent
                 raise ValueError(str(err)) from err
+        return frame
+
+    def _finalize_pandas_output(
+        self, frame: DataFrame, multi_index_named: bool
+    ) -> DataFrame:
+        """
+        Processes data read in based on kwargs.
+
+        Parameters
+        ----------
+        frame : DataFrame
+            The DataFrame to process.
+        multi_index_named : bool
+
+        Returns
+        -------
+        DataFrame
+            The processed DataFrame.
+        """
+        frame = self._do_date_conversions(frame.columns, frame)
+        frame = self._finalize_index(frame, multi_index_named)
+        frame = self._finalize_dtype(frame)
         return frame
 
     def _validate_usecols(self, usecols) -> None:
@@ -244,23 +279,7 @@ class ArrowParserWrapper(ParserBase):
         pa = import_optional_dependency("pyarrow")
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
-
-        try:
-            convert_options = pyarrow_csv.ConvertOptions(**self.convert_options)
-        except TypeError as err:
-            include = self.convert_options.get("include_columns", None)
-            if include is not None:
-                self._validate_usecols(include)
-
-            nulls = self.convert_options.get("null_values", set())
-            if not lib.is_list_like(nulls) or not all(
-                isinstance(x, str) for x in nulls
-            ):
-                raise TypeError(
-                    "The 'pyarrow' engine requires all na_values to be strings"
-                ) from err
-
-            raise
+        convert_options = self._get_convert_options()
 
         try:
             table = pyarrow_csv.read_csv(
@@ -287,23 +306,23 @@ class ArrowParserWrapper(ParserBase):
 
             table = table.cast(new_schema)
 
+        multi_index_named = self._adjust_column_names(table)
+
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
                 "make_block is deprecated",
-                DeprecationWarning,
+                Pandas4Warning,
             )
-            if dtype_backend == "pyarrow":
-                frame = table.to_pandas(types_mapper=pd.ArrowDtype)
-            elif dtype_backend == "numpy_nullable":
-                # Modify the default mapping to also
-                # map null to Int64 (to match other engines)
-                dtype_mapping = _arrow_dtype_mapping()
-                dtype_mapping[pa.null()] = pd.Int64Dtype()
-                frame = table.to_pandas(types_mapper=dtype_mapping.get)
-            elif using_string_dtype():
-                frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
+            frame = arrow_table_to_pandas(
+                table,
+                dtype_backend=dtype_backend,
+                null_to_int64=True,
+                dtype=self.dtype,
+                names=self.names,
+            )
 
-            else:
-                frame = table.to_pandas()
-        return self._finalize_pandas_output(frame)
+        if self.header is None:
+            frame.columns = self.names
+
+        return self._finalize_pandas_output(frame, multi_index_named)

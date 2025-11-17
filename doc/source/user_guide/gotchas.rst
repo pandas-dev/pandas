@@ -121,7 +121,7 @@ Below is how to check if any of the values are ``True``:
     if pd.Series([False, True, False]).any():
         print("I am any")
 
-Bitwise boolean
+Bitwise Boolean
 ~~~~~~~~~~~~~~~
 
 Bitwise boolean operators like ``==`` and ``!=`` return a boolean :class:`Series`
@@ -372,5 +372,5 @@ constructors using something similar to the following:
    s = pd.Series(newx)
 
 See `the NumPy documentation on byte order
-<https://numpy.org/doc/stable/user/basics.byteswapping.html>`__ for more
+<https://numpy.org/doc/stable/user/byteswapping.html>`__ for more
 details.

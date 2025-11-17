@@ -4,6 +4,7 @@ Testing that we work in the downstream packages
 
 import array
 from functools import partial
+import importlib
 import subprocess
 import sys
 
@@ -20,6 +21,7 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -101,7 +103,7 @@ def test_xarray_cftimeindex_nearest():
     cftime = pytest.importorskip("cftime")
     xarray = pytest.importorskip("xarray")
 
-    times = xarray.cftime_range("0001", periods=2)
+    times = xarray.date_range("0001", periods=2, use_cftime=True)
     key = cftime.DatetimeGregorian(2000, 1, 1)
     result = times.get_indexer([key], method="nearest")
     expected = 1
@@ -160,7 +162,10 @@ def test_seaborn(mpl_cleanup):
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
+@pytest.mark.xfail(reason="pandas_datareader uses old variant of deprecate_kwarg")
 def test_pandas_datareader():
+    # https://github.com/pandas-dev/pandas/pull/61468
+    # https://github.com/pydata/pandas-datareader/issues/1005
     pytest.importorskip("pandas_datareader")
 
 
@@ -185,44 +190,24 @@ def test_yaml_dump(df):
     tm.assert_frame_equal(df, loaded2)
 
 
-@pytest.mark.single_cpu
-def test_missing_required_dependency():
-    # GH 23868
-    # To ensure proper isolation, we pass these flags
-    # -S : disable site-packages
-    # -s : disable user site-packages
-    # -E : disable PYTHON* env vars, especially PYTHONPATH
-    # https://github.com/MacPython/pandas-wheels/pull/50
+@pytest.mark.parametrize("dependency", ["numpy", "dateutil", "tzdata"])
+def test_missing_required_dependency(monkeypatch, dependency):
+    # GH#61030, GH61273
+    original_import = __import__
+    mock_error = ImportError(f"Mock error for {dependency}")
 
-    pyexe = sys.executable.replace("\\", "/")
+    def mock_import(name, *args, **kwargs):
+        if name == dependency:
+            raise mock_error
+        return original_import(name, *args, **kwargs)
 
-    # We skip this test if pandas is installed as a site package. We first
-    # import the package normally and check the path to the module before
-    # executing the test which imports pandas with site packages disabled.
-    call = [pyexe, "-c", "import pandas;print(pandas.__file__)"]
-    output = subprocess.check_output(call).decode()
-    if "site-packages" in output:
-        pytest.skip("pandas installed as site package")
+    monkeypatch.setattr("builtins.__import__", mock_import)
 
-    # This test will fail if pandas is installed as a site package. The flags
-    # prevent pandas being imported and the test will report Failed: DID NOT
-    # RAISE <class 'subprocess.CalledProcessError'>
-    call = [pyexe, "-sSE", "-c", "import pandas"]
-
-    msg = (
-        rf"Command '\['{pyexe}', '-sSE', '-c', 'import pandas'\]' "
-        "returned non-zero exit status 1."
-    )
-
-    with pytest.raises(subprocess.CalledProcessError, match=msg) as exc:
-        subprocess.check_output(call, stderr=subprocess.STDOUT)
-
-    output = exc.value.stdout.decode()
-    for name in ["numpy", "dateutil"]:
-        assert name in output
+    with pytest.raises(ImportError, match=dependency):
+        importlib.reload(importlib.import_module("pandas"))
 
 
-def test_frame_setitem_dask_array_into_new_col():
+def test_frame_setitem_dask_array_into_new_col(request):
     # GH#47128
 
     # dask sets "compute.use_numexpr" to False, so catch the current value
@@ -230,7 +215,14 @@ def test_frame_setitem_dask_array_into_new_col():
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
+        dask = pytest.importorskip("dask")
         da = pytest.importorskip("dask.array")
+        if Version(dask.__version__) <= Version("2025.1.0") and Version(
+            np.__version__
+        ) >= Version("2.1"):
+            request.applymarker(
+                pytest.mark.xfail(reason="loc.__setitem__ incorrectly mutated column c")
+            )
 
         dda = da.array([1, 2])
         df = DataFrame({"a": ["a", "b"]})
@@ -280,13 +272,10 @@ def test_from_obscure_array(dtype, box):
     else:
         data = box(arr)
 
-    if not isinstance(data, memoryview):
-        # FIXME(GH#44431) these raise on memoryview and attempted fix
-        #  fails on py3.10
-        func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
-        result = func(arr).array
-        expected = func(data).array
-        tm.assert_equal(result, expected)
+    func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
+    result = func(arr).array
+    expected = func(data).array
+    tm.assert_equal(result, expected)
 
     # Let's check the Indexes while we're here
     idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]

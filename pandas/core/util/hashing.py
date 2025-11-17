@@ -188,7 +188,7 @@ def hash_tuples(
     hash_key: str = _default_hash_key,
 ) -> npt.NDArray[np.uint64]:
     """
-    Hash an MultiIndex / listlike-of-tuples efficiently.
+    Hash a MultiIndex / listlike-of-tuples efficiently.
 
     Parameters
     ----------
@@ -261,7 +261,7 @@ def hash_array(
     See Also
     --------
     util.hash_pandas_object : Return a data hash of the Index/Series/DataFrame.
-    util.hash_tuples : Hash an MultiIndex / listlike-of-tuples efficiently.
+    util.hash_tuples : Hash a MultiIndex / listlike-of-tuples efficiently.
 
     Examples
     --------
@@ -324,8 +324,8 @@ def _hash_ndarray(
             )
 
             codes, categories = factorize(vals, sort=False)
-            dtype = CategoricalDtype(categories=Index(categories), ordered=False)
-            cat = Categorical._simple_new(codes, dtype)
+            tdtype = CategoricalDtype(categories=Index(categories), ordered=False)
+            cat = Categorical._simple_new(codes, tdtype)
             return cat._hash_pandas_object(
                 encoding=encoding, hash_key=hash_key, categorize=False
             )
@@ -344,4 +344,7 @@ def _hash_ndarray(
     vals ^= vals >> 27
     vals *= np.uint64(0x94D049BB133111EB)
     vals ^= vals >> 31
-    return vals
+    # error: Incompatible return value type (got "Any | ndarray[tuple[int, ...],
+    # dtype[signedinteger[Any]]]", expected "ndarray[tuple[int, ...],
+    # dtype[unsignedinteger[_64Bit]]]")
+    return vals  # type: ignore[return-value]

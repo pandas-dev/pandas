@@ -209,6 +209,12 @@ cdef class IntervalMixin:
         """
         Indicates if an interval is empty, meaning it contains no points.
 
+        An interval is considered empty if its `left` and `right` endpoints
+        are equal, and it is not closed on both sides. This means that the
+        interval does not include any real points. In the case of an
+        :class:`pandas.arrays.IntervalArray` or :class:`IntervalIndex`, the
+        property returns a boolean array indicating the emptiness of each interval.
+
         Returns
         -------
         bool or ndarray
@@ -376,6 +382,7 @@ cdef class Interval(IntervalMixin):
     >>> year_2017.length
     Timedelta('365 days 00:00:00')
     """
+    __module__ = "pandas"
     _typ = "interval"
     __array_priority__ = 1000
 
@@ -438,6 +445,7 @@ cdef class Interval(IntervalMixin):
     >>> interval.closed
     'left'
     """
+    __module__ = "pandas"
 
     def __init__(self, left, right, str closed="right"):
         # note: it is faster to just do these checks than to use a special

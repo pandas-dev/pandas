@@ -40,27 +40,7 @@ def unstack(const numeric_object_t[:, :] values, const uint8_t[:] mask,
     cdef:
         Py_ssize_t i, j, w, nulls, s, offset
 
-    if numeric_object_t is not object:
-        # evaluated at compile-time
-        with nogil:
-            for i in range(stride):
-
-                nulls = 0
-                for j in range(length):
-
-                    for w in range(width):
-
-                        offset = j * width + w
-
-                        if mask[offset]:
-                            s = i * width + w
-                            new_values[j, s] = values[offset - nulls, i]
-                            new_mask[j, s] = 1
-                        else:
-                            nulls += 1
-
-    else:
-        # object-dtype, identical to above but we cannot use nogil
+    with nogil(numeric_object_t is not object):
         for i in range(stride):
 
             nulls = 0

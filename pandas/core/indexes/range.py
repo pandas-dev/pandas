@@ -12,6 +12,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    Self,
     cast,
     overload,
 )
@@ -26,7 +27,7 @@ from pandas._libs.lib import no_default
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     cache_readonly,
-    doc,
+    set_module,
 )
 
 from pandas.core.dtypes.base import ExtensionDtype
@@ -58,7 +59,6 @@ if TYPE_CHECKING:
         JoinHow,
         NaPosition,
         NumpySorter,
-        Self,
         npt,
     )
 
@@ -74,6 +74,7 @@ def min_fitting_element(start: int, step: int, lower_limit: int) -> int:
     return start + abs(step) * no_steps
 
 
+@set_module("pandas")
 class RangeIndex(Index):
     """
     Immutable Index implementing a monotonic integer range.
@@ -87,13 +88,13 @@ class RangeIndex(Index):
 
     Parameters
     ----------
-    start : int (default: 0), range, or other RangeIndex instance
+    start : int, range, or other RangeIndex instance, default None
         If int and "stop" is not given, interpreted as "stop" instead.
-    stop : int (default: 0)
+    stop : int, default None
         The end value of the range (exclusive).
-    step : int (default: 1)
+    step : int, default None
         The step size of the range.
-    dtype : np.int64
+    dtype : np.int64, default None
         Unused, accepted for homogeneity with other index types.
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
@@ -134,6 +135,8 @@ class RangeIndex(Index):
     >>> list(pd.RangeIndex(1, 0))
     []
     """
+
+    __module__ = "pandas"
 
     _typ = "rangeindex"
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
@@ -188,9 +191,30 @@ class RangeIndex(Index):
         """
         Create :class:`pandas.RangeIndex` from a ``range`` object.
 
+        This method provides a way to create a :class:`pandas.RangeIndex` directly
+        from a Python ``range`` object. The resulting :class:`RangeIndex` will have
+        the same start, stop, and step values as the input ``range`` object.
+        It is particularly useful for constructing indices in an efficient and
+        memory-friendly manner.
+
+        Parameters
+        ----------
+        data : range
+            The range object to be converted into a RangeIndex.
+        name : str, default None
+            Name to be stored in the index.
+        dtype : Dtype or None
+            Data type for the RangeIndex. If None, the default integer type will
+            be used.
+
         Returns
         -------
         RangeIndex
+
+        See Also
+        --------
+        RangeIndex : Immutable Index implementing a monotonic integer range.
+        Index : Immutable sequence used for indexing and alignment.
 
         Examples
         --------
@@ -448,8 +472,51 @@ class RangeIndex(Index):
     # --------------------------------------------------------------------
     # Indexing Methods
 
-    @doc(Index.get_loc)
     def get_loc(self, key) -> int:
+        """
+        Get integer location for requested label.
+
+        Parameters
+        ----------
+        key : int or float
+            Label to locate. Integer-like floats (e.g. 3.0) are accepted and
+            treated as the corresponding integer. Non-integer floats and other
+            non-integer labels are not valid and will raise KeyError or
+            InvalidIndexError.
+
+        Returns
+        -------
+        int
+            Integer location of the label within the RangeIndex.
+
+        Raises
+        ------
+        KeyError
+            If the label is not present in the RangeIndex or the label is a
+            non-integer value.
+        InvalidIndexError
+            If the label is of an invalid type for the RangeIndex.
+
+        See Also
+        --------
+        RangeIndex.get_slice_bound : Calculate slice bound that corresponds to
+            given label.
+        RangeIndex.get_indexer : Computes indexer and mask for new index given
+            the current index.
+        RangeIndex.get_non_unique : Returns indexer and masks for new index given
+            the current index.
+        RangeIndex.get_indexer_for : Returns an indexer even when non-unique.
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.get_loc(3)
+        3
+
+        >>> idx = pd.RangeIndex(2, 10, 2)  # values [2, 4, 6, 8]
+        >>> idx.get_loc(6)
+        2
+        """
         if is_integer(key) or (is_float(key) and key.is_integer()):
             new_key = int(key)
             try:
@@ -503,12 +570,39 @@ class RangeIndex(Index):
     def tolist(self) -> list[int]:
         return list(self._range)
 
-    @doc(Index.__iter__)
     def __iter__(self) -> Iterator[int]:
+        """
+        Return an iterator of the values.
+
+        Returns
+        -------
+        iterator
+            An iterator yielding ints from the RangeIndex.
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(3)
+        >>> for x in idx:
+        ...     print(x)
+        0
+        1
+        2
+        """
         yield from self._range
 
-    @doc(Index._shallow_copy)
     def _shallow_copy(self, values, name: Hashable = no_default):
+        """
+        Create a new RangeIndex with the same class as the caller, don't copy the
+        data, use the same object attributes with passed in attributes taking
+        precedence.
+
+        *this is an internal non-public method*
+
+        Parameters
+        ----------
+        values : the values to create the new RangeIndex, optional
+        name : Label, defaults to self.name
+        """
         name = self._name if name is no_default else name
 
         if values.dtype.kind == "f":
@@ -535,8 +629,42 @@ class RangeIndex(Index):
             target = self._shallow_copy(target._values, name=target.name)
         return super()._wrap_reindex_result(target, indexer, preserve_names)
 
-    @doc(Index.copy)
     def copy(self, name: Hashable | None = None, deep: bool = False) -> Self:
+        """
+        Make a copy of this object.
+
+        Name is set on the new object.
+
+        Parameters
+        ----------
+        name : Label, optional
+            Set name for new object.
+        deep : bool, default False
+            If True attempts to make a deep copy of the RangeIndex.
+                Else makes a shallow copy.
+
+        Returns
+        -------
+        RangeIndex
+            RangeIndex refer to new object which is a copy of this object.
+
+        See Also
+        --------
+        RangeIndex.delete: Make new RangeIndex with passed location(-s) deleted.
+        RangeIndex.drop: Make new RangeIndex with passed list of labels deleted.
+
+        Notes
+        -----
+        In most cases, there should be no functional difference from using
+        ``deep``, but if ``deep`` is passed it will attempt to deepcopy.
+
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(3)
+        >>> new_idx = idx.copy()
+        >>> idx is new_idx
+        False
+        """
         name = self._validate_names(name=name, deep=deep)[0]
         new_index = self._rename(name=name)
         return new_index
@@ -1152,6 +1280,7 @@ class RangeIndex(Index):
         """
         Conserve RangeIndex type for scalar and slice keys.
         """
+        key = lib.item_from_zerodim(key)
         if key is Ellipsis:
             key = slice(None)
         if isinstance(key, slice):
@@ -1193,7 +1322,7 @@ class RangeIndex(Index):
     @unpack_zerodim_and_defer("__floordiv__")
     def __floordiv__(self, other):
         if is_integer(other) and other != 0:
-            if len(self) == 0 or self.start % other == 0 and self.step % other == 0:
+            if len(self) == 0 or (self.start % other == 0 and self.step % other == 0):
                 start = self.start // other
                 step = self.step // other
                 stop = start + len(self) * step

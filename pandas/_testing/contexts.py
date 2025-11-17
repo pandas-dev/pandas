@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import os
 from pathlib import Path
+import sys
 import tempfile
 from typing import (
     IO,
@@ -11,7 +12,10 @@ from typing import (
 )
 import uuid
 
-from pandas.compat import PYPY
+from pandas.compat import (
+    CHAINED_WARNING_DISABLED,
+    CHAINED_WARNING_DISABLED_INPLACE_METHOD,
+)
 from pandas.errors import ChainedAssignmentError
 
 from pandas.io.common import get_handle
@@ -81,7 +85,9 @@ def set_timezone(tz: str) -> Generator[None]:
                     pass
             else:
                 os.environ["TZ"] = tz
-                time.tzset()
+                # Next line allows typing checks to pass on Windows
+                if sys.platform != "win32":
+                    time.tzset()
 
     orig_tz = os.environ.get("TZ")
     setTZ(tz)
@@ -157,10 +163,18 @@ def with_csv_dialect(name: str, **kwargs) -> Generator[None]:
         csv.unregister_dialect(name)
 
 
-def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
+def raises_chained_assignment_error(
+    extra_warnings=(), extra_match=(), inplace_method=False
+):
     from pandas._testing import assert_produces_warning
 
-    if PYPY:
+    WARNING_DISABLED = (
+        CHAINED_WARNING_DISABLED_INPLACE_METHOD
+        if inplace_method
+        else CHAINED_WARNING_DISABLED
+    )
+
+    if WARNING_DISABLED:
         if not extra_warnings:
             from contextlib import nullcontext
 

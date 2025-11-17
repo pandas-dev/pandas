@@ -36,16 +36,14 @@ and `good first issue
 <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22+no%3Aassignee>`_
 are typically good for newer contributors.
 
-Once you've found an interesting issue, it's a good idea to assign the issue to yourself,
-so nobody else duplicates the work on it. On the Github issue, a comment with the exact
-text ``take`` to automatically assign you the issue
-(this will take seconds and may require refreshing the page to see it).
+Once you've found an interesting issue, leave a comment with your intention
+to start working on it. If somebody else has
+already commented on issue but they have shown a lack of activity in the issue
+or a pull request in the past 2-3 weeks, you may take it over.
 
 If for whatever reason you are not able to continue working with the issue, please
-unassign it, so other people know it's available again. You can check the list of
-assigned issues, since people may not be working in them anymore. If you want to work on one
-that is assigned, feel free to kindly ask the current assignee if you can take it
-(please allow at least a week of inactivity before considering work in the issue discontinued).
+leave a comment on an issue, so other people know it's available again. You can check the list of
+assigned issues, since people may not be working in them anymore.
 
 We have several :ref:`contributor community <community>` communication channels, which you are
 welcome to join, and ask questions as you figure things out. Among them are regular meetings for
@@ -234,14 +232,14 @@ and merged into project to appear the in the next release. To submit a pull requ
 #. Write a descriptive title that includes prefixes. pandas uses a convention for title
    prefixes. Here are some common ones along with general guidelines for when to use them:
 
-    * ENH: Enhancement, new functionality
-    * BUG: Bug fix
-    * DOC: Additions/updates to documentation
-    * TST: Additions/updates to tests
-    * BLD: Updates to the build process/scripts
-    * PERF: Performance improvement
-    * TYP: Type annotations
-    * CLN: Code cleanup
+   * ENH: Enhancement, new functionality
+   * BUG: Bug fix
+   * DOC: Additions/updates to documentation
+   * TST: Additions/updates to tests
+   * BLD: Updates to the build process/scripts
+   * PERF: Performance improvement
+   * TYP: Type annotations
+   * CLN: Code cleanup
 
 #. Write a description of your changes in the ``Preview Discussion`` tab
 #. Click ``Send Pull Request``.

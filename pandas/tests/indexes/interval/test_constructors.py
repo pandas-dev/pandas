@@ -154,8 +154,7 @@ class ConstructorTests:
     def test_constructor_string(self, constructor, breaks):
         # GH 19016
         msg = (
-            "category, object, and string subtypes are not supported "
-            "for IntervalIndex"
+            "category, object, and string subtypes are not supported for IntervalIndex"
         )
         with pytest.raises(TypeError, match=msg):
             constructor(**self.get_kwargs_from_breaks(breaks))
@@ -224,8 +223,7 @@ class TestFromArrays(ConstructorTests):
         # GH 19016: categorical data
         data = Categorical(list("01234abcde"), ordered=True)
         msg = (
-            "category, object, and string subtypes are not supported "
-            "for IntervalIndex"
+            "category, object, and string subtypes are not supported for IntervalIndex"
         )
         with pytest.raises(TypeError, match=msg):
             IntervalIndex.from_arrays(data[:-1], data[1:])
@@ -297,8 +295,7 @@ class TestFromBreaks(ConstructorTests):
         # GH 19016: categorical data
         data = Categorical(list("01234abcde"), ordered=True)
         msg = (
-            "category, object, and string subtypes are not supported "
-            "for IntervalIndex"
+            "category, object, and string subtypes are not supported for IntervalIndex"
         )
         with pytest.raises(TypeError, match=msg):
             IntervalIndex.from_breaks(data)

@@ -326,7 +326,7 @@ This case is handled identically to a dict of arrays.
 
 .. ipython:: python
 
-   data = np.zeros((2,), dtype=[("A", "i4"), ("B", "f4"), ("C", "a10")])
+   data = np.zeros((2,), dtype=[("A", "i4"), ("B", "f4"), ("C", "S10")])
    data[:] = [(1, 2.0, "Hello"), (2, 3.0, "World")]
 
    pd.DataFrame(data)
@@ -552,6 +552,12 @@ a function of one argument to be evaluated on the DataFrame being assigned to.
 .. ipython:: python
 
    iris.assign(sepal_ratio=lambda x: (x["SepalWidth"] / x["SepalLength"])).head()
+
+or, using :meth:`pandas.col`:
+
+.. ipython:: python
+
+   iris.assign(sepal_ratio=pd.col("SepalWidth") / pd.col("SepalLength")).head()
 
 :meth:`~pandas.DataFrame.assign` **always** returns a copy of the data, leaving the original
 DataFrame untouched.

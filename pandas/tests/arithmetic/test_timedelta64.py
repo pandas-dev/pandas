@@ -8,8 +8,10 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs import timezones
 from pandas.compat import WASM
 from pandas.errors import OutOfBoundsDatetime
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -320,7 +322,7 @@ class TestTimedelta64ArithmeticUnsorted:
         with pytest.raises(TypeError, match=msg):
             td - dt
 
-        msg = "(bad|unsupported) operand type for unary"
+        msg = "cannot subtract DatetimeArray from Timedelta"
         with pytest.raises(TypeError, match=msg):
             td - dti
 
@@ -848,7 +850,7 @@ class TestTimedeltaArraylikeAddSubOps:
         assert rs.dtype == "timedelta64[ns]"
 
         df = DataFrame({"A": v1})
-        td = Series([timedelta(days=i) for i in range(3)])
+        td = Series([timedelta(days=i) for i in range(3)], dtype="m8[ns]")
         assert td.dtype == "timedelta64[ns]"
 
         # series on the rhs
@@ -873,7 +875,9 @@ class TestTimedeltaArraylikeAddSubOps:
 
         # datetimes on rhs
         result = df["A"] - datetime(2001, 1, 1)
-        expected = Series([timedelta(days=4017 + i) for i in range(3)], name="A")
+        expected = Series(
+            [timedelta(days=4017 + i) for i in range(3)], name="A", dtype="m8[ns]"
+        )
         tm.assert_series_equal(result, expected)
         assert result.dtype == "m8[ns]"
 
@@ -1001,13 +1005,17 @@ class TestTimedeltaArraylikeAddSubOps:
             ts = dt_scalar.to_pydatetime()
         elif cls is np.datetime64:
             if tz_naive_fixture is not None:
-                pytest.skip(f"{cls} doesn support {tz_naive_fixture}")
+                pytest.skip(f"{cls} doesn't support {tz_naive_fixture}")
             ts = dt_scalar.to_datetime64()
         else:
             ts = dt_scalar
 
         tdi = timedelta_range("1 day", periods=3)
         expected = pd.date_range("2012-01-02", periods=3, tz=tz)
+        if tz is not None and not timezones.is_utc(expected.tz):
+            # Day is no longer preserved by timedelta add/sub in pandas3 because
+            #  it represents Calendar-Day instead of 24h
+            expected = expected._with_freq(None)
 
         tdarr = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1016,6 +1024,10 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_equal(tdarr + ts, expected)
 
         expected2 = pd.date_range("2011-12-31", periods=3, freq="-1D", tz=tz)
+        if tz is not None and not timezones.is_utc(expected2.tz):
+            # Day is no longer preserved by timedelta add/sub in pandas3 because
+            #  it represents Calendar-Day instead of 24h
+            expected2 = expected2._with_freq(None)
         expected2 = tm.box_expected(expected2, box_with_array)
 
         tm.assert_equal(ts - tdarr, expected2)
@@ -1547,6 +1559,76 @@ class TestTimedeltaArraylikeMulDivOps:
         commute = tdi * other
         tm.assert_equal(commute, expected)
 
+    def test_td64arr_mul_bool_scalar_raises(self, box_with_array):
+        # GH#58054
+        ser = Series(np.arange(5) * timedelta(hours=1), dtype="m8[ns]")
+        obj = tm.box_expected(ser, box_with_array)
+
+        msg = r"Cannot multiply 'timedelta64\[ns\]' by bool"
+        with pytest.raises(TypeError, match=msg):
+            True * obj
+        with pytest.raises(TypeError, match=msg):
+            obj * True
+        with pytest.raises(TypeError, match=msg):
+            np.True_ * obj
+        with pytest.raises(TypeError, match=msg):
+            obj * np.True_
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            bool,
+            "boolean",
+            pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_td64arr_mul_bool_raises(self, dtype, box_with_array):
+        # GH#58054
+        ser = Series(np.arange(5) * timedelta(hours=1), dtype="m8[ns]")
+        obj = tm.box_expected(ser, box_with_array)
+
+        other = Series(np.arange(5) < 0.5, dtype=dtype)
+        other = tm.box_expected(other, box_with_array)
+
+        msg = r"Cannot multiply 'timedelta64\[ns\]' by bool"
+        with pytest.raises(TypeError, match=msg):
+            obj * other
+
+        msg2 = msg.replace("rmul", "mul")
+        if dtype == "bool[pyarrow]":
+            # We go through ArrowEA.__mul__ which gives a different message
+            msg2 = (
+                r"operation 'mul' not supported for dtype 'bool\[pyarrow\]' "
+                r"with dtype 'timedelta64\[ns\]'"
+            )
+        with pytest.raises(TypeError, match=msg2):
+            other * obj
+
+    @pytest.mark.parametrize(
+        "dtype",
+        [
+            "Int64",
+            "Float64",
+            pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        ],
+    )
+    def test_td64arr_mul_masked(self, dtype, box_with_array):
+        ser = Series(np.arange(5) * timedelta(hours=1), dtype="m8[ns]")
+        obj = tm.box_expected(ser, box_with_array)
+
+        other = Series(np.arange(5), dtype=dtype)
+        other = tm.box_expected(other, box_with_array)
+
+        expected = Series([Timedelta(hours=n**2) for n in range(5)])
+        expected = tm.box_expected(expected, box_with_array)
+        if dtype == "int64[pyarrow]":
+            expected = expected.astype("duration[ns][pyarrow]")
+
+        result = obj * other
+        tm.assert_equal(result, expected)
+        result = other * obj
+        tm.assert_equal(result, expected)
+
     # ------------------------------------------------------------------
     # __div__, __rdiv__
 
@@ -1828,6 +1910,16 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = TimedeltaIndex(["1 Day", "2 Days", "0 Days"] * 3)
         expected = tm.box_expected(expected, box_with_array)
 
+        if isinstance(three_days, offsets.Day):
+            msg = "unsupported operand type"
+            with pytest.raises(TypeError, match=msg):
+                tdarr % three_days
+            with pytest.raises(TypeError, match=msg):
+                divmod(tdarr, three_days)
+            with pytest.raises(TypeError, match=msg):
+                tdarr // three_days
+            return
+
         result = tdarr % three_days
         tm.assert_equal(result, expected)
 
@@ -1870,6 +1962,12 @@ class TestTimedeltaArraylikeMulDivOps:
         expected = ["0 Days", "1 Day", "0 Days"] + ["3 Days"] * 6
         expected = TimedeltaIndex(expected)
         expected = tm.box_expected(expected, box_with_array)
+
+        if isinstance(three_days, offsets.Day):
+            msg = "Cannot divide Day by TimedeltaArray"
+            with pytest.raises(TypeError, match=msg):
+                three_days % tdarr
+            return
 
         result = three_days % tdarr
         tm.assert_equal(result, expected)

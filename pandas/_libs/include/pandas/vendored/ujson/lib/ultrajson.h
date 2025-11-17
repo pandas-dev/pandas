@@ -170,8 +170,8 @@ typedef void (*JSPFN_ITERBEGIN)(JSOBJ obj, JSONTypeContext *tc);
 typedef int (*JSPFN_ITERNEXT)(JSOBJ obj, JSONTypeContext *tc);
 typedef void (*JSPFN_ITEREND)(JSOBJ obj, JSONTypeContext *tc);
 typedef JSOBJ (*JSPFN_ITERGETVALUE)(JSOBJ obj, JSONTypeContext *tc);
-typedef char *(*JSPFN_ITERGETNAME)(JSOBJ obj, JSONTypeContext *tc,
-                                   size_t *outLen);
+typedef const char *(*JSPFN_ITERGETNAME)(JSOBJ obj, JSONTypeContext *tc,
+                                         size_t *outLen);
 typedef void *(*JSPFN_MALLOC)(size_t size);
 typedef void (*JSPFN_FREE)(void *pptr);
 typedef void *(*JSPFN_REALLOC)(void *base, size_t size);

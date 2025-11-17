@@ -6,8 +6,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.errors import IndexingError
 
 from pandas import (
@@ -119,8 +117,8 @@ def test_getitem_with_duplicates_indices(result_1, duplicate_item, expected_1):
     # GH 17610
     result_1 = Series(result_1)
     duplicate_item = Series(duplicate_item)
-    result = result_1._append(duplicate_item)
-    expected = expected_1._append(duplicate_item)
+    result = result_1._append_internal(duplicate_item)
+    expected = expected_1._append_internal(duplicate_item)
     tm.assert_series_equal(result[1], expected)
     assert result[2] == result_1[2]
 
@@ -251,18 +249,21 @@ def test_slice(string_series, object_series):
     tm.assert_series_equal(string_series, original)
 
 
-@pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
 def test_timedelta_assignment():
     # GH 8209
     s = Series([], dtype=object)
     s.loc["B"] = timedelta(1)
-    tm.assert_series_equal(s, Series(Timedelta("1 days"), index=["B"]))
+    expected = Series(Timedelta("1 days"), dtype="timedelta64[ns]", index=["B"])
+    tm.assert_series_equal(s, expected)
 
     s = s.reindex(s.index.insert(0, "A"))
-    tm.assert_series_equal(s, Series([np.nan, Timedelta("1 days")], index=["A", "B"]))
+    expected = Series(
+        [np.nan, Timedelta("1 days")], dtype="timedelta64[ns]", index=["A", "B"]
+    )
+    tm.assert_series_equal(s, expected)
 
     s.loc["A"] = timedelta(1)
-    expected = Series(Timedelta("1 days"), index=["A", "B"])
+    expected = Series(Timedelta("1 days"), dtype="timedelta64[ns]", index=["A", "B"])
     tm.assert_series_equal(s, expected)
 
 
@@ -276,7 +277,7 @@ def test_underlying_data_conversion():
     df_original = df.copy()
     df
 
-    with tm.raises_chained_assignment_error():
+    with tm.raises_chained_assignment_error(inplace_method=True):
         df["val"].update(s)
     expected = df_original
     tm.assert_frame_equal(df, expected)

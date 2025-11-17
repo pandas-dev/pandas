@@ -140,7 +140,7 @@ class Scope:
     temps : dict
     """
 
-    __slots__ = ["level", "scope", "target", "resolvers", "temps"]
+    __slots__ = ["level", "resolvers", "scope", "target", "temps"]
     level: int
     scope: DeepChainMap
     resolvers: DeepChainMap

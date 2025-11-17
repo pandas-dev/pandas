@@ -3,11 +3,7 @@ import os
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import (
-    PY311,
-    is_ci_environment,
     is_platform_linux,
     is_platform_little_endian,
     is_platform_mac,
@@ -35,14 +31,11 @@ from pandas.tests.io.pytables.common import (
 from pandas.io import pytables
 from pandas.io.pytables import Term
 
-pytestmark = [
-    pytest.mark.single_cpu,
-    pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)", strict=False),
-]
+pytestmark = [pytest.mark.single_cpu]
 
 
 @pytest.mark.parametrize("mode", ["r", "r+", "a", "w"])
-def test_mode(setup_path, tmp_path, mode):
+def test_mode(setup_path, tmp_path, mode, using_infer_string):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD"), dtype=object),
@@ -91,10 +84,12 @@ def test_mode(setup_path, tmp_path, mode):
             read_hdf(path, "df", mode=mode)
     else:
         result = read_hdf(path, "df", mode=mode)
+        if using_infer_string:
+            df.columns = df.columns.astype("str")
         tm.assert_frame_equal(result, df)
 
 
-def test_default_mode(tmp_path, setup_path):
+def test_default_mode(tmp_path, setup_path, using_infer_string):
     # read_hdf uses default mode
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
@@ -104,7 +99,10 @@ def test_default_mode(tmp_path, setup_path):
     path = tmp_path / setup_path
     df.to_hdf(path, key="df", mode="w")
     result = read_hdf(path, "df")
-    tm.assert_frame_equal(result, df)
+    expected = df.copy()
+    if using_infer_string:
+        expected.columns = expected.columns.astype("str")
+    tm.assert_frame_equal(result, expected)
 
 
 def test_reopen_handle(tmp_path, setup_path):
@@ -163,25 +161,28 @@ def test_reopen_handle(tmp_path, setup_path):
     assert not store.is_open
 
 
-def test_open_args(setup_path):
-    with tm.ensure_clean(setup_path) as path:
-        df = DataFrame(
-            1.1 * np.arange(120).reshape((30, 4)),
-            columns=Index(list("ABCD"), dtype=object),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
-        )
+def test_open_args(tmp_path, setup_path, using_infer_string):
+    path = tmp_path / setup_path
+    df = DataFrame(
+        1.1 * np.arange(120).reshape((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=Index([f"i-{i}" for i in range(30)], dtype=object),
+    )
 
-        # create an in memory store
-        store = HDFStore(
-            path, mode="a", driver="H5FD_CORE", driver_core_backing_store=0
-        )
-        store["df"] = df
-        store.append("df2", df)
+    # create an in memory store
+    store = HDFStore(path, mode="a", driver="H5FD_CORE", driver_core_backing_store=0)
+    store["df"] = df
+    store.append("df2", df)
 
-        tm.assert_frame_equal(store["df"], df)
-        tm.assert_frame_equal(store["df2"], df)
+    expected = df.copy()
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
 
-        store.close()
+    tm.assert_frame_equal(store["df"], expected)
+    tm.assert_frame_equal(store["df2"], expected)
+
+    store.close()
 
     # the file should not have actually been written
     assert not os.path.exists(path)
@@ -194,7 +195,7 @@ def test_flush(setup_path):
         store.flush(fsync=True)
 
 
-def test_complibs_default_settings(tmp_path, setup_path):
+def test_complibs_default_settings(tmp_path, setup_path, using_infer_string):
     # GH15943
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
@@ -207,7 +208,11 @@ def test_complibs_default_settings(tmp_path, setup_path):
     tmpfile = tmp_path / setup_path
     df.to_hdf(tmpfile, key="df", complevel=9)
     result = read_hdf(tmpfile, "df")
-    tm.assert_frame_equal(result, df)
+    expected = df.copy()
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
+    tm.assert_frame_equal(result, expected)
 
     with tables.open_file(tmpfile, mode="r") as h5file:
         for node in h5file.walk_nodes(where="/df", classname="Leaf"):
@@ -218,7 +223,11 @@ def test_complibs_default_settings(tmp_path, setup_path):
     tmpfile = tmp_path / setup_path
     df.to_hdf(tmpfile, key="df", complib="zlib")
     result = read_hdf(tmpfile, "df")
-    tm.assert_frame_equal(result, df)
+    expected = df.copy()
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
+    tm.assert_frame_equal(result, expected)
 
     with tables.open_file(tmpfile, mode="r") as h5file:
         for node in h5file.walk_nodes(where="/df", classname="Leaf"):
@@ -229,7 +238,11 @@ def test_complibs_default_settings(tmp_path, setup_path):
     tmpfile = tmp_path / setup_path
     df.to_hdf(tmpfile, key="df")
     result = read_hdf(tmpfile, "df")
-    tm.assert_frame_equal(result, df)
+    expected = df.copy()
+    if using_infer_string:
+        expected.index = expected.index.astype("str")
+        expected.columns = expected.columns.astype("str")
+    tm.assert_frame_equal(result, expected)
 
     with tables.open_file(tmpfile, mode="r") as h5file:
         for node in h5file.walk_nodes(where="/df", classname="Leaf"):
@@ -262,18 +275,10 @@ def test_complibs_default_settings_override(tmp_path, setup_path):
 @pytest.mark.parametrize("lvl", range(10))
 @pytest.mark.parametrize("lib", tables.filters.all_complibs)
 @pytest.mark.filterwarnings("ignore:object name is not a valid")
-@pytest.mark.skipif(
-    not PY311 and is_ci_environment() and is_platform_linux(),
-    reason="Segfaulting in a CI environment",
-    # with xfail, would sometimes raise UnicodeDecodeError
-    # invalid state byte
-)
 def test_complibs(tmp_path, lvl, lib, request):
     # GH14478
-    if PY311 and is_platform_linux() and lib == "blosc2" and lvl != 0:
-        request.applymarker(
-            pytest.mark.xfail(reason=f"Fails for {lib} on Linux and PY > 3.11")
-        )
+    if is_platform_linux() and lib == "blosc2" and lvl != 0:
+        request.applymarker(pytest.mark.xfail(reason=f"Fails for {lib} on Linux"))
     df = DataFrame(
         np.ones((30, 4)), columns=list("ABCD"), index=np.arange(30).astype(np.str_)
     )
@@ -339,7 +344,7 @@ def test_encoding(setup_path):
         [b"A\xf8\xfc", np.nan, b"", b"b", b"c"],
     ],
 )
-@pytest.mark.parametrize("dtype", ["category", object])
+@pytest.mark.parametrize("dtype", ["category", None])
 def test_latin_encoding(tmp_path, setup_path, dtype, val):
     enc = "latin-1"
     nan_rep = ""
@@ -500,7 +505,7 @@ def test_multiple_open_close(tmp_path, setup_path):
         store.df
 
 
-def test_fspath():
-    with tm.ensure_clean("foo.h5") as path:
-        with HDFStore(path) as store:
-            assert os.fspath(store) == str(path)
+def test_fspath(tmp_path):
+    path = tmp_path / "foo.h5"
+    with HDFStore(path) as store:
+        assert os.fspath(store) == str(path)

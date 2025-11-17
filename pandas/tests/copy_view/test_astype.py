@@ -3,10 +3,7 @@ import pickle
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas.compat import HAS_PYARROW
-from pandas.compat.pyarrow import pa_version_under12p0
 
 from pandas import (
     DataFrame,
@@ -85,7 +82,7 @@ def test_astype_numpy_to_ea():
 
 
 @pytest.mark.parametrize(
-    "dtype, new_dtype", [("object", "string"), ("string", "object")]
+    "dtype, new_dtype", [("object", "string[python]"), ("string[python]", "object")]
 )
 def test_astype_string_and_object(dtype, new_dtype):
     df = DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
@@ -98,7 +95,7 @@ def test_astype_string_and_object(dtype, new_dtype):
 
 
 @pytest.mark.parametrize(
-    "dtype, new_dtype", [("object", "string"), ("string", "object")]
+    "dtype, new_dtype", [("object", "string[python]"), ("string[python]", "object")]
 )
 def test_astype_string_and_object_update_original(dtype, new_dtype):
     df = DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
@@ -198,15 +195,9 @@ def test_astype_arrow_timestamp():
     )
     result = df.astype("timestamp[ns][pyarrow]")
     assert not result._mgr._has_no_reference(0)
-    if pa_version_under12p0:
-        assert not np.shares_memory(
-            get_array(df, "a"), get_array(result, "a")._pa_array
-        )
-    else:
-        assert np.shares_memory(get_array(df, "a"), get_array(result, "a")._pa_array)
+    assert np.shares_memory(get_array(df, "a"), get_array(result, "a")._pa_array)
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 def test_convert_dtypes_infer_objects():
     ser = Series(["a", "b", "c"])
     ser_orig = ser.copy()
@@ -217,20 +208,23 @@ def test_convert_dtypes_infer_objects():
         convert_string=False,
     )
 
-    assert np.shares_memory(get_array(ser), get_array(result))
+    assert tm.shares_memory(get_array(ser), get_array(result))
     result.iloc[0] = "x"
     tm.assert_series_equal(ser, ser_orig)
 
 
-@pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
-def test_convert_dtypes():
+def test_convert_dtypes(using_infer_string):
     df = DataFrame({"a": ["a", "b"], "b": [1, 2], "c": [1.5, 2.5], "d": [True, False]})
     df_orig = df.copy()
     df2 = df.convert_dtypes()
 
-    assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    assert np.shares_memory(get_array(df2, "d"), get_array(df, "d"))
-    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
-    assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    if HAS_PYARROW:
+        assert not tm.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    else:
+        assert tm.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    assert tm.shares_memory(get_array(df2, "d"), get_array(df, "d"))
+    assert tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    assert tm.shares_memory(get_array(df2, "c"), get_array(df, "c"))
     df2.iloc[0, 0] = "x"
+    df2.iloc[0, 1] = 10
     tm.assert_frame_equal(df, df_orig)

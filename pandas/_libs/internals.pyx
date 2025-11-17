@@ -1,13 +1,13 @@
 from collections import defaultdict
+import sys
+import warnings
 
 cimport cython
+from cpython cimport PY_VERSION_HEX
 from cpython.object cimport PyObject
 from cpython.pyport cimport PY_SSIZE_T_MAX
 from cpython.slice cimport PySlice_GetIndicesEx
-from cpython.weakref cimport (
-    PyWeakref_GetObject,
-    PyWeakref_NewRef,
-)
+from cpython.weakref cimport PyWeakref_NewRef
 from cython cimport Py_ssize_t
 
 import numpy as np
@@ -23,11 +23,22 @@ from numpy cimport (
 cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
+from pandas.compat import CHAINED_WARNING_DISABLED
+from pandas.errors import ChainedAssignmentError
+from pandas.errors.cow import _chained_assignment_msg
 
 from pandas._libs.util cimport (
     is_array,
     is_integer_object,
 )
+
+include "free_threading_config.pxi"
+
+IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
+    from cpython.ref cimport Py_DECREF
+    from cpython.weakref cimport PyWeakref_GetRef
+ELSE:
+    from cpython.weakref cimport PyWeakref_GetObject
 
 
 cdef extern from "Python.h":
@@ -502,7 +513,7 @@ def get_concat_blkno_indexers(list blknos_list not None):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def get_blkno_indexers(
-    int64_t[:] blknos, bint group=True
+    const int64_t[:] blknos, bint group=True
 ) -> list[tuple[int, slice | np.ndarray]]:
     """
     Enumerate contiguous runs of integers in ndarray.
@@ -596,8 +607,8 @@ def get_blkno_placements(blknos, group: bool = True):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef update_blklocs_and_blknos(
-    ndarray[intp_t, ndim=1] blklocs,
-    ndarray[intp_t, ndim=1] blknos,
+    const intp_t[:] blklocs,
+    const intp_t[:] blknos,
     Py_ssize_t loc,
     intp_t nblocks,
 ):
@@ -704,9 +715,9 @@ cdef class Block:
             self.ndim = state[2]
         else:
             # older pickle
-            from pandas.core.internals.api import maybe_infer_ndim
+            from pandas.core.internals.api import _maybe_infer_ndim
 
-            ndim = maybe_infer_ndim(self.values, self.mgr_locs)
+            ndim = _maybe_infer_ndim(self.values, self.mgr_locs)
             self.ndim = ndim
 
     cpdef Block slice_block_rows(self, slice slicer):
@@ -908,16 +919,36 @@ cdef class BlockValuesRefs:
         # if force=False. Clearing for every insertion causes slowdowns if
         # all these objects stay alive, e.g. df.items() for wide DataFrames
         # see GH#55245 and GH#55008
+        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
+            cdef PyObject* pobj
+            cdef bint status
+
         if force or len(self.referenced_blocks) > self.clear_counter:
-            self.referenced_blocks = [
-                ref for ref in self.referenced_blocks
-                if PyWeakref_GetObject(ref) != Py_None
-            ]
+            IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
+                new_referenced_blocks = []
+                for ref in self.referenced_blocks:
+                    status = PyWeakref_GetRef(ref, &pobj)
+                    if status == -1:
+                        return
+                    elif status == 1:
+                        new_referenced_blocks.append(ref)
+                        Py_DECREF(<object>pobj)
+                self.referenced_blocks = new_referenced_blocks
+            ELSE:
+                self.referenced_blocks = [
+                    ref for ref in self.referenced_blocks
+                    if PyWeakref_GetObject(ref) != Py_None
+                ]
+
             nr_of_refs = len(self.referenced_blocks)
             if nr_of_refs < self.clear_counter // 2:
                 self.clear_counter = max(self.clear_counter // 2, 500)
             elif nr_of_refs > self.clear_counter:
                 self.clear_counter = max(self.clear_counter * 2, nr_of_refs)
+
+    cpdef _add_reference_maybe_locked(self, Block blk):
+        self._clear_dead_references()
+        self.referenced_blocks.append(PyWeakref_NewRef(blk, None))
 
     cpdef add_reference(self, Block blk):
         """Adds a new reference to our reference collection.
@@ -927,8 +958,15 @@ cdef class BlockValuesRefs:
         blk : Block
             The block that the new references should point to.
         """
+        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
+            with cython.critical_section(self):
+                self._add_reference_maybe_locked(blk)
+        ELSE:
+            self._add_reference_maybe_locked(blk)
+
+    def _add_index_reference_maybe_locked(self, index: object) -> None:
         self._clear_dead_references()
-        self.referenced_blocks.append(PyWeakref_NewRef(blk, None))
+        self.referenced_blocks.append(PyWeakref_NewRef(index, None))
 
     def add_index_reference(self, index: object) -> None:
         """Adds a new reference to our reference collection when creating an index.
@@ -938,8 +976,16 @@ cdef class BlockValuesRefs:
         index : Index
             The index that the new reference should point to.
         """
-        self._clear_dead_references()
-        self.referenced_blocks.append(PyWeakref_NewRef(index, None))
+        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
+            with cython.critical_section(self):
+                self._add_index_reference_maybe_locked(index)
+        ELSE:
+            self._add_index_reference_maybe_locked(index)
+
+    def _has_reference_maybe_locked(self) -> bool:
+        self._clear_dead_references(force=True)
+        # Checking for more references than block pointing to itself
+        return len(self.referenced_blocks) > 1
 
     def has_reference(self) -> bool:
         """Checks if block has foreign references.
@@ -951,6 +997,48 @@ cdef class BlockValuesRefs:
         -------
         bool
         """
-        self._clear_dead_references(force=True)
-        # Checking for more references than block pointing to itself
-        return len(self.referenced_blocks) > 1
+        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
+            with cython.critical_section(self):
+                return self._has_reference_maybe_locked()
+        ELSE:
+            return self._has_reference_maybe_locked()
+
+
+cdef extern from "Python.h":
+    """
+    #if PY_VERSION_HEX < 0x030E0000
+    int __Pyx_PyUnstable_Object_IsUniqueReferencedTemporary(PyObject *ref);
+    #else
+    #define __Pyx_PyUnstable_Object_IsUniqueReferencedTemporary \
+        PyUnstable_Object_IsUniqueReferencedTemporary
+    #endif
+    """
+    int PyUnstable_Object_IsUniqueReferencedTemporary\
+        "__Pyx_PyUnstable_Object_IsUniqueReferencedTemporary"(object o) except -1
+
+
+# Python version compatibility for PyUnstable_Object_IsUniqueReferencedTemporary
+cdef inline bint _is_unique_referenced_temporary(object obj) except -1:
+    if PY_VERSION_HEX >= 0x030E0000:
+        # Python 3.14+ has PyUnstable_Object_IsUniqueReferencedTemporary
+        return PyUnstable_Object_IsUniqueReferencedTemporary(obj)
+    else:
+        # Fallback for older Python versions using sys.getrefcount
+        return sys.getrefcount(obj) <= 1
+
+
+cdef class SetitemMixin:
+    # class used in DataFrame and Series for checking for chained assignment
+
+    def __setitem__(self, key, value) -> None:
+        cdef bint is_unique = 0
+        if not CHAINED_WARNING_DISABLED:
+            is_unique = _is_unique_referenced_temporary(self)
+            if is_unique:
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=1
+                )
+        self._setitem(key, value)
+
+    def __delitem__(self, key) -> None:
+        self._delitem(key)

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 from pandas import (
     DataFrame,
     Series,
@@ -19,7 +17,6 @@ pytest.importorskip("tables")
 
 class TestHDFStoreSubclass:
     # GH 33748
-    @pytest.mark.xfail(using_string_dtype(), reason="TODO(infer_string)")
     def test_supported_for_subclass_dataframe(self, tmp_path):
         data = {"a": [1, 2], "b": [3, 4]}
         sdf = tm.SubclassedDataFrame(data, dtype=np.intp)

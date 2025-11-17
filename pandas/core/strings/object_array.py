@@ -9,19 +9,16 @@ from typing import (
     cast,
 )
 import unicodedata
-import warnings
 
 import numpy as np
 
 from pandas._libs import lib
 import pandas._libs.missing as libmissing
 import pandas._libs.ops as libops
-from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_na_arg
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.missing import isna
-
-from pandas.core.strings.base import BaseStringArrayMethods
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -35,7 +32,7 @@ if TYPE_CHECKING:
     )
 
 
-class ObjectStringArrayMixin(BaseStringArrayMethods):
+class ObjectStringArrayMixin:
     """
     String Methods operating on object-dtype ndarrays.
     """
@@ -43,6 +40,12 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
     def __len__(self) -> int:
         # For typing, _str_map relies on the object being sized.
         raise NotImplementedError
+
+    def _str_getitem(self, key):
+        if isinstance(key, slice):
+            return self._str_slice(start=key.start, stop=key.stop, step=key.step)
+        else:
+            return self._str_get(key)
 
     def _str_map(
         self,
@@ -141,6 +144,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         na=lib.no_default,
         regex: bool = True,
     ):
+        validate_na_arg(na, name="na")
         if regex:
             if not case:
                 flags |= re.IGNORECASE
@@ -154,38 +158,16 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             else:
                 upper_pat = pat.upper()
                 f = lambda x: upper_pat in x.upper()
-        if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
-            # GH#59561
-            warnings.warn(
-                "Allowing a non-bool 'na' in obj.str.contains is deprecated "
-                "and will raise in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
         return self._str_map(f, na, dtype=np.dtype("bool"))
 
     def _str_startswith(self, pat, na=lib.no_default):
+        validate_na_arg(na, name="na")
         f = lambda x: x.startswith(pat)
-        if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
-            # GH#59561
-            warnings.warn(
-                "Allowing a non-bool 'na' in obj.str.startswith is deprecated "
-                "and will raise in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_endswith(self, pat, na=lib.no_default):
+        validate_na_arg(na, name="na")
         f = lambda x: x.endswith(pat)
-        if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
-            # GH#59561
-            warnings.warn(
-                "Allowing a non-bool 'na' in obj.str.endswith is deprecated "
-                "and will raise in a future version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_replace(
@@ -248,7 +230,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_match(
         self,
-        pat: str,
+        pat: str | re.Pattern,
         case: bool = True,
         flags: int = 0,
         na: Scalar | lib.NoDefault = lib.no_default,
@@ -434,7 +416,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             dummies_dtype = _dtype
         else:
             dummies_dtype = np.bool_
-        dummies = np.empty((len(arr), len(tags2)), dtype=dummies_dtype)
+        dummies = np.empty((len(arr), len(tags2)), dtype=dummies_dtype, order="F")
 
         def _isin(test_elements: str, element: str) -> bool:
             return element in test_elements
@@ -454,6 +436,9 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
 
     def _str_isalpha(self):
         return self._str_map(str.isalpha, dtype="bool")
+
+    def _str_isascii(self):
+        return self._str_map(str.isascii, dtype="bool")
 
     def _str_isdecimal(self):
         return self._str_map(str.isdecimal, dtype="bool")
@@ -534,3 +519,6 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 return empty_row
 
         return [f(val) for val in np.asarray(self)]
+
+    def _str_zfill(self, width: int):
+        return self._str_map(lambda x: x.zfill(width))

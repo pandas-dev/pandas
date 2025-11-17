@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     Index,
@@ -49,7 +50,7 @@ class TestTimedeltaConstructorUnitKeyword:
         msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
 
         expected = Timedelta(1, unit=unit)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = Timedelta(1, unit=unit_depr)
         tm.assert_equal(result, expected)
 
@@ -192,11 +193,15 @@ def test_construct_from_td64_with_unit():
     #  results, and in non-overflow cases is irrelevant GH#46827
     obj = np.timedelta64(123456789000000000, "h")
 
-    with pytest.raises(OutOfBoundsTimedelta, match="123456789000000000 hours"):
-        Timedelta(obj, unit="ps")
+    msg = "The 'unit' keyword is only used when the Timedelta input is"
 
     with pytest.raises(OutOfBoundsTimedelta, match="123456789000000000 hours"):
-        Timedelta(obj, unit="ns")
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            Timedelta(obj, unit="ps")
+
+    with pytest.raises(OutOfBoundsTimedelta, match="123456789000000000 hours"):
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            Timedelta(obj, unit="ns")
 
     with pytest.raises(OutOfBoundsTimedelta, match="123456789000000000 hours"):
         Timedelta(obj)
@@ -253,7 +258,13 @@ def test_from_tick_reso():
     assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_s.value
 
     tick = offsets.Day()
-    assert Timedelta(tick)._creso == NpyDatetimeUnit.NPY_FR_s.value
+    msg = (
+        "Value must be Timedelta, string, integer, float, timedelta "
+        "or convertible, not Day"
+    )
+    with pytest.raises(ValueError, match=msg):
+        # GH#41943 Day is no longer a Tick
+        Timedelta(tick)
 
 
 def test_construction():
@@ -353,8 +364,7 @@ def test_construction():
         Timedelta("foo")
 
     msg = (
-        "cannot construct a Timedelta from "
-        "the passed arguments, allowed keywords are "
+        "cannot construct a Timedelta from the passed arguments, allowed keywords are "
     )
     with pytest.raises(ValueError, match=msg):
         Timedelta(day=10)
@@ -627,6 +637,9 @@ def test_timedelta_pass_td_and_kwargs_raises():
         Timedelta(td, days=2)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'unit' keyword is only used when the Timedelta input:UserWarning"
+)
 @pytest.mark.parametrize(
     "constructor, value, unit",
     [

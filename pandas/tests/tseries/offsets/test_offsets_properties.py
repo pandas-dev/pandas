@@ -8,11 +8,15 @@ You may wish to consult the previous version for inspiration on further
 tests, or when trying to pin down the bugs exposed by the tests below.
 """
 
+import zoneinfo
+
 from hypothesis import (
     assume,
     given,
 )
 import pytest
+
+from pandas.compat import WASM
 
 import pandas as pd
 from pandas._testing._hypothesis import (
@@ -24,10 +28,20 @@ from pandas._testing._hypothesis import (
 # Offset-specific behaviour tests
 
 
+@pytest.mark.slow
 @pytest.mark.arm_slow
 @given(DATETIME_JAN_1_1900_OPTIONAL_TZ, YQM_OFFSET)
 def test_on_offset_implementations(dt, offset):
     assume(not offset.normalize)
+    # This case is flaky in CI 2024-11-04
+    assume(
+        not (
+            WASM
+            and isinstance(dt.tzinfo, zoneinfo.ZoneInfo)
+            and dt.tzinfo.key == "Indian/Cocos"
+            and isinstance(offset, pd.offsets.MonthBegin)
+        )
+    )
     # check that the class-specific implementations of is_on_offset match
     # the general case definition:
     #   (dt + offset) - offset == dt
@@ -44,6 +58,7 @@ def test_on_offset_implementations(dt, offset):
     assert offset.is_on_offset(dt) == (compare == dt)
 
 
+@pytest.mark.slow
 @given(YQM_OFFSET)
 def test_shift_across_dst(offset):
     # GH#18319 check that 1) timezone is correctly normalized and

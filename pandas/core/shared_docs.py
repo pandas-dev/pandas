@@ -79,8 +79,6 @@ keep_equal : bool, default False
 
 result_names : tuple, default ('self', 'other')
     Set the dataframes names in the comparison.
-
-    .. versionadded:: 1.5.0
 """
 
 _shared_docs["groupby"] = """
@@ -138,13 +136,6 @@ group_keys : bool, default True
     index to identify pieces. By default group keys are not included
     when the result's index (and column) labels match the inputs, and
     are included otherwise.
-
-    .. versionchanged:: 1.5.0
-
-       Warns that ``group_keys`` will no longer be ignored when the
-       result from ``apply`` is a like-indexed Series or DataFrame.
-       Specify ``group_keys`` explicitly to include the group keys or
-       not.
 
     .. versionchanged:: 2.0.0
 
@@ -380,7 +371,7 @@ _shared_docs["replace"] = """
               replaced with `value`
             - str: string exactly matching `to_replace` will be replaced
               with `value`
-            - regex: regexs matching `to_replace` will be replaced with
+            - regex: regexes matching `to_replace` will be replaced with
               `value`
 
         * list of str, regex, or numeric:
@@ -388,7 +379,7 @@ _shared_docs["replace"] = """
             - First, if `to_replace` and `value` are both lists, they
               **must** be the same length.
             - Second, if ``regex=True`` then all of the strings in **both**
-              lists will be interpreted as regexs otherwise they will match
+              lists will be interpreted as regexes otherwise they will match
               directly. This doesn't matter much for `value` since there
               are only a few possible substitution regexes you can use.
             - str, regex and numeric rules apply as above.
@@ -619,9 +610,6 @@ _shared_docs["replace"] = """
     3       b
     4    None
     dtype: object
-
-        .. versionchanged:: 1.4.0
-            Previously the explicit ``None`` was silently ignored.
 
     When ``regex=True``, ``value`` is not ``None`` and `to_replace` is a string,
     the replacement will be applied in all columns of the DataFrame.

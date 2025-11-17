@@ -246,7 +246,7 @@ class ODSWriter(ExcelWriter):
     def _process_style(self, style: None) -> None: ...
 
     def _process_style(self, style: dict[str, Any] | None) -> str | None:
-        """Convert a style dictionary to a OpenDocument style sheet
+        """Convert a style dictionary to an OpenDocument style sheet
 
         Parameters
         ----------
@@ -270,7 +270,7 @@ class ODSWriter(ExcelWriter):
         style_key = json.dumps(style)
         if style_key in self._style_dict:
             return self._style_dict[style_key]
-        name = f"pd{len(self._style_dict)+1}"
+        name = f"pd{len(self._style_dict) + 1}"
         self._style_dict[style_key] = name
         odf_style = Style(name=name, family="table-cell")
         if "font" in style:

@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import PY312
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     NumExprClobberingError,
     PerformanceWarning,
@@ -53,6 +54,9 @@ from pandas.core.computation.ops import (
     _unary_math_ops,
 )
 from pandas.core.computation.scope import DEFAULT_GLOBALS
+from pandas.util.version import Version
+
+numexpr = import_optional_dependency("numexpr", errors="ignore")
 
 
 @pytest.fixture(
@@ -100,17 +104,21 @@ def _eval_single_bin(lhs, cmp1, rhs, engine):
     ids=["DataFrame", "Series", "SeriesNaN", "DataFrameNaN", "float"],
 )
 def lhs(request):
-    nan_df1 = DataFrame(np.random.default_rng(2).standard_normal((10, 5)))
-    nan_df1[nan_df1 > 0.5] = np.nan
-
-    opts = (
-        DataFrame(np.random.default_rng(2).standard_normal((10, 5))),
-        Series(np.random.default_rng(2).standard_normal(5)),
-        Series([1, 2, np.nan, np.nan, 5]),
-        nan_df1,
-        np.random.default_rng(2).standard_normal(),
-    )
-    return opts[request.param]
+    rng = np.random.default_rng(2)
+    if request.param == 0:
+        return DataFrame(rng.standard_normal((10, 5)))
+    elif request.param == 1:
+        return Series(rng.standard_normal(5))
+    elif request.param == 2:
+        return Series([1, 2, np.nan, np.nan, 5])
+    elif request.param == 3:
+        nan_df1 = DataFrame(rng.standard_normal((10, 5)))
+        nan_df1[nan_df1 > 0.5] = np.nan
+        return nan_df1
+    elif request.param == 4:
+        return rng.standard_normal()
+    else:
+        raise ValueError(f"{request.param}")
 
 
 rhs = lhs
@@ -320,7 +328,9 @@ class TestEval:
     def test_floor_division(self, lhs, rhs, engine, parser):
         ex = "lhs // rhs"
 
-        if engine == "python":
+        if engine == "python" or (
+            engine == "numexpr" and Version(numexpr.__version__) >= Version("2.13.0")
+        ):
             res = pd.eval(ex, engine=engine, parser=parser)
             expected = lhs // rhs
             tm.assert_equal(res, expected)
@@ -391,7 +401,7 @@ class TestEval:
 
         # int raises on numexpr
         lhs = DataFrame(np.random.default_rng(2).integers(5, size=(5, 2)))
-        if engine == "numexpr":
+        if engine == "numexpr" and Version(numexpr.__version__) < Version("2.13.0"):
             msg = "couldn't find matching opcode for 'invert"
             with pytest.raises(NotImplementedError, match=msg):
                 pd.eval(expr, engine=engine, parser=parser)
@@ -436,7 +446,7 @@ class TestEval:
 
         # int raises on numexpr
         lhs = Series(np.random.default_rng(2).integers(5, size=5))
-        if engine == "numexpr":
+        if engine == "numexpr" and Version(numexpr.__version__) < Version("2.13.0"):
             msg = "couldn't find matching opcode for 'invert"
             with pytest.raises(NotImplementedError, match=msg):
                 pd.eval(expr, engine=engine, parser=parser)
@@ -2006,3 +2016,24 @@ def test_eval_float_div_numexpr():
     result = pd.eval("1 / 2", engine="numexpr")
     expected = 0.5
     assert result == expected
+
+
+def test_method_calls_on_binop():
+    # GH 61175
+    x = Series([1, 2, 3, 5])
+    y = Series([2, 3, 4])
+
+    # Method call on binary operation result
+    result = pd.eval("(x + y).dropna()")
+    expected = (x + y).dropna()
+    tm.assert_series_equal(result, expected)
+
+    # Test with other binary operations
+    result = pd.eval("(x * y).dropna()")
+    expected = (x * y).dropna()
+    tm.assert_series_equal(result, expected)
+
+    # Test with method chaining
+    result = pd.eval("(x + y).dropna().reset_index(drop=True)")
+    expected = (x + y).dropna().reset_index(drop=True)
+    tm.assert_series_equal(result, expected)

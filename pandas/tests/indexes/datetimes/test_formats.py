@@ -205,12 +205,7 @@ class TestDatetimeIndexRendering:
 
         exp3 = "0   2011-01-01\n1   2011-01-02\ndtype: datetime64[ns]"
 
-        exp4 = (
-            "0   2011-01-01\n"
-            "1   2011-01-02\n"
-            "2   2011-01-03\n"
-            "dtype: datetime64[ns]"
-        )
+        exp4 = "0   2011-01-01\n1   2011-01-02\n2   2011-01-03\ndtype: datetime64[ns]"
 
         exp5 = (
             "0   2011-01-01 09:00:00+09:00\n"
@@ -226,11 +221,7 @@ class TestDatetimeIndexRendering:
             "dtype: datetime64[ns, US/Eastern]"
         )
 
-        exp7 = (
-            "0   2011-01-01 09:00:00\n"
-            "1   2011-01-02 10:15:00\n"
-            "dtype: datetime64[ns]"
-        )
+        exp7 = "0   2011-01-01 09:00:00\n1   2011-01-02 10:15:00\ndtype: datetime64[ns]"
 
         with pd.option_context("display.width", 300):
             for idx, expected in zip(

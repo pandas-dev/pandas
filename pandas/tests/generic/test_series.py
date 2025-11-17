@@ -97,7 +97,7 @@ class TestSeries:
                     value = "+".join(
                         [
                             getattr(obj, name)
-                            for obj in other.objs
+                            for obj in other.input_objs
                             if getattr(obj, name, None)
                         ]
                     )

@@ -8,6 +8,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import PY314
+
 from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_dtype,
@@ -581,7 +583,7 @@ class TestMerge:
     @pytest.mark.parametrize(
         "series_of_dtype_all_na",
         [
-            Series([np.nan], dtype="Int64"),
+            Series([pd.NA], dtype="Int64"),
             Series([np.nan], dtype="float"),
             Series([np.nan], dtype="object"),
             Series([pd.NaT]),
@@ -1323,6 +1325,26 @@ class TestMerge:
         result = merge(left, right, on=["a", "b"], validate="1:1")
         tm.assert_frame_equal(result, expected_multi)
 
+    def test_merge_validate_error_message(self):
+        # GH#62742
+        left = DataFrame({"key": [1, 1, 2]})
+        right = DataFrame({"key": [1, 2, 2]})
+
+        with pytest.raises(MergeError, match="Duplicates in left:\n  key\n   1 ...\n"):
+            merge(left, right, validate="1:1")
+        with pytest.raises(MergeError, match="Duplicates in left:\n  key\n   1 ..."):
+            merge(left, right, validate="1:m")
+        with pytest.raises(MergeError, match="Duplicates in right:\n  key\n   2 ..."):
+            merge(left, right, validate="1:1")
+        with pytest.raises(MergeError, match="Duplicates in right:\n  key\n   2 ..."):
+            merge(left, right, validate="m:1")
+
+        right = DataFrame({"key": [1, 2, 3]})
+        with pytest.raises(MergeError, match="Duplicates in left:\n  key\n   1 ..."):
+            merge(left, right, validate="1:1")
+        with pytest.raises(MergeError, match="Duplicates in right:\n  key\n   1 ..."):
+            merge(right, left, validate="1:1")
+
     def test_merge_two_empty_df_no_division_error(self):
         # GH17776, PR #17846
         a = DataFrame({"a": [], "b": [], "c": []})
@@ -1376,6 +1398,9 @@ class TestMerge:
         # GH 24212
         # pd.merge gets [0, 1, 2, -1, -1, -1] as left_indexer, ensure that
         # -1 is interpreted as a missing value instead of the last element
+        if index.dtype == "float32" and expected_index.dtype == "float64":
+            # GH#41626
+            expected_index = expected_index.astype("float32")
         df1 = DataFrame({"a": [0, 1, 2], "key": [0, 1, 2]}, index=index)
         df2 = DataFrame({"b": [0, 1, 2, 3, 4, 5]})
         result = df1.merge(df2, left_on="key", right_index=True, how=how)
@@ -1464,7 +1489,10 @@ class TestMerge:
         data2 = DataFrame(
             np.arange(20).reshape((5, 4)) + 1, columns=["a", "b", "x", "y"]
         )
-        msg = "'full' is not a valid Merge type: left, right, inner, outer, cross, asof"
+        msg = (
+            "'full' is not a valid Merge type: left, right, inner, outer, "
+            "left_anti, right_anti, cross, asof"
+        )
         with pytest.raises(ValueError, match=re.escape(msg)):
             data1.merge(data2, how="full")
 
@@ -1843,6 +1871,41 @@ class TestMergeDtypes:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_merge_with_uintc_columns(self):
+        df1 = DataFrame({"a": ["foo", "bar"], "b": np.array([1, 2], dtype=np.uintc)})
+        df2 = DataFrame({"a": ["foo", "baz"], "b": np.array([3, 4], dtype=np.uintc)})
+        result = df1.merge(df2, how="outer")
+        expected = DataFrame(
+            {
+                "a": ["bar", "baz", "foo", "foo"],
+                "b": np.array([2, 4, 1, 3], dtype=np.uintc),
+            }
+        )
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
+    def test_merge_with_intc_columns(self):
+        df1 = DataFrame({"a": ["foo", "bar"], "b": np.array([1, 2], dtype=np.intc)})
+        df2 = DataFrame({"a": ["foo", "baz"], "b": np.array([3, 4], dtype=np.intc)})
+        result = df1.merge(df2, how="outer")
+        expected = DataFrame(
+            {
+                "a": ["bar", "baz", "foo", "foo"],
+                "b": np.array([2, 4, 1, 3], dtype=np.intc),
+            }
+        )
+        tm.assert_frame_equal(result.reset_index(drop=True), expected)
+
+    def test_merge_intc_non_monotonic(self):
+        df = DataFrame({"join_key": Series([0, 2, 1], dtype=np.intc)})
+        df_details = DataFrame(
+            {"join_key": Series([0, 1, 2], dtype=np.intc), "value": ["a", "b", "c"]}
+        )
+        merged = df.merge(df_details, on="join_key", how="left")
+        expected = DataFrame(
+            {"join_key": np.array([0, 2, 1], dtype=np.intc), "value": ["a", "c", "b"]}
+        )
+        tm.assert_frame_equal(merged.reset_index(drop=True), expected)
+
 
 @pytest.fixture
 def left():
@@ -2136,10 +2199,10 @@ class TestMergeCategorical:
 
     def test_merge_on_int_array(self):
         # GH 23020
-        df = DataFrame({"A": Series([1, 2, np.nan], dtype="Int64"), "B": 1})
+        df = DataFrame({"A": Series([1, 2, pd.NA], dtype="Int64"), "B": 1})
         result = merge(df, df, on="A")
         expected = DataFrame(
-            {"A": Series([1, 2, np.nan], dtype="Int64"), "B_x": 1, "B_y": 1}
+            {"A": Series([1, 2, pd.NA], dtype="Int64"), "B_x": 1, "B_y": 1}
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2382,10 +2445,18 @@ def test_merge_suffix_raises(suffixes):
         merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 
 
+TWO_GOT_THREE = "2, got 3" if PY314 else "2"
+
+
 @pytest.mark.parametrize(
     "col1, col2, suffixes, msg",
     [
-        ("a", "a", ("a", "b", "c"), r"too many values to unpack \(expected 2\)"),
+        (
+            "a",
+            "a",
+            ("a", "b", "c"),
+            (rf"too many values to unpack \(expected {TWO_GOT_THREE}\)"),
+        ),
         ("a", "a", tuple("a"), r"not enough values to unpack \(expected 2, got 1\)"),
     ],
 )
@@ -2743,14 +2814,15 @@ def test_merge_on_left_categoricalindex():
 @pytest.mark.parametrize("dtype", [None, "Int64"])
 def test_merge_outer_with_NaN(dtype):
     # GH#43550
+    item = np.nan if dtype is None else pd.NA
     left = DataFrame({"key": [1, 2], "col1": [1, 2]}, dtype=dtype)
-    right = DataFrame({"key": [np.nan, np.nan], "col2": [3, 4]}, dtype=dtype)
+    right = DataFrame({"key": [item, item], "col2": [3, 4]}, dtype=dtype)
     result = merge(left, right, on="key", how="outer")
     expected = DataFrame(
         {
-            "key": [1, 2, np.nan, np.nan],
-            "col1": [1, 2, np.nan, np.nan],
-            "col2": [np.nan, np.nan, 3, 4],
+            "key": [1, 2, item, item],
+            "col1": [1, 2, item, item],
+            "col2": [item, item, 3, 4],
         },
         dtype=dtype,
     )
@@ -2760,9 +2832,9 @@ def test_merge_outer_with_NaN(dtype):
     result = merge(right, left, on="key", how="outer")
     expected = DataFrame(
         {
-            "key": [1, 2, np.nan, np.nan],
-            "col2": [np.nan, np.nan, 3, 4],
-            "col1": [1, 2, np.nan, np.nan],
+            "key": [1, 2, item, item],
+            "col2": [item, item, 3, 4],
+            "col1": [1, 2, item, item],
         },
         dtype=dtype,
     )
@@ -2936,7 +3008,7 @@ def test_merge_combinations(
 
 def test_merge_ea_int_and_float_numpy():
     # GH#46178
-    df1 = DataFrame([1.0, np.nan], dtype=pd.Int64Dtype())
+    df1 = DataFrame([1.0, pd.NA], dtype=pd.Int64Dtype())
     df2 = DataFrame([1.5])
     expected = DataFrame(columns=[0], dtype="Int64")
 
@@ -3021,4 +3093,51 @@ def test_merge_on_all_nan_column():
     expected = DataFrame(
         {"x": [1, 2, 3], "y": [np.nan, np.nan, np.nan], "z": [4, 5, 6], "zz": [4, 5, 6]}
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("suffixes", [("_dup", ""), ("", "_dup")])
+def test_merge_for_suffix_collisions(suffixes):
+    # GH#61402
+    df1 = DataFrame({"col1": [1], "col2": [2]})
+    df2 = DataFrame({"col1": [1], "col2": [2], "col2_dup": [3]})
+    with pytest.raises(MergeError, match="duplicate columns"):
+        merge(df1, df2, on="col1", suffixes=suffixes)
+
+
+def test_merge_categorical_key_recursion():
+    # GH#56376
+    lt = CategoricalDtype(categories=np.asarray([1, 2, 3], dtype="int64"))
+    rt = CategoricalDtype(categories=np.asarray([1, 2, 3], dtype="float64"))
+    left = DataFrame({"key": Series([1, 2], dtype=lt)})
+    right = DataFrame({"key": Series([1, 3], dtype=rt)})
+
+    result = left.merge(right, on="key", how="outer")
+    expected = left.astype("int64").merge(
+        right.astype("float64"), on="key", how="outer"
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_pyarrow_datetime_duplicates():
+    # GH#61926
+    pytest.importorskip("pyarrow")
+
+    t = pd.date_range("2025-07-06", periods=3, freq="h")
+    df1 = DataFrame({"time": t, "val1": [1, 2, 3]})
+    df1 = df1.convert_dtypes(dtype_backend="pyarrow")
+
+    df2 = DataFrame({"time": t.repeat(2), "val2": [10, 20, 30, 40, 50, 60]})
+    df2 = df2.convert_dtypes(dtype_backend="pyarrow")
+
+    result = merge(df1, df2, on="time", how="left")
+
+    expected = DataFrame(
+        {
+            "time": t.repeat(2),
+            "val1": [1, 1, 2, 2, 3, 3],
+            "val2": [10, 20, 30, 40, 50, 60],
+        }
+    )
+    expected = expected.convert_dtypes(dtype_backend="pyarrow")
     tm.assert_frame_equal(result, expected)

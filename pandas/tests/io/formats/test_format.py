@@ -11,8 +11,6 @@ from shutil import get_terminal_size
 import numpy as np
 import pytest
 
-from pandas._config import using_string_dtype
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -128,6 +126,20 @@ class TestDataFrameFormatting:
         df = DataFrame({"a": [pd.NA for _ in range(10)]})
         with option_context("display.max_rows", 2, "display.show_dimensions", False):
             assert repr(df) == "       a\n0   <NA>\n..   ...\n9   <NA>"
+
+    def test_repr_truncation_dataframe_attrs(self):
+        # GH#60455
+        df = DataFrame([[0] * 10])
+        df.attrs["b"] = DataFrame([])
+        with option_context("display.max_columns", 2, "display.show_dimensions", False):
+            assert repr(df) == "   0  ...  9\n0  0  ...  0"
+
+    def test_repr_truncation_series_with_dataframe_attrs(self):
+        # GH#60568
+        ser = Series([0] * 10)
+        ser.attrs["b"] = DataFrame([])
+        with option_context("display.max_rows", 2, "display.show_dimensions", False):
+            assert repr(ser) == "0    0\n    ..\n9    0\ndtype: int64"
 
     def test_max_colwidth_negative_int_raises(self):
         # Deprecation enforced from:
@@ -1381,8 +1393,7 @@ class TestSeriesFormatting:
         sf = fmt.SeriesFormatter(s, name="\u05e2\u05d1\u05e8\u05d9\u05ea")
         sf._get_footer()  # should not raise exception
 
-    @pytest.mark.xfail(using_string_dtype(), reason="Fixup when arrow is default")
-    def test_east_asian_unicode_series(self):
+    def test_east_asian_unicode_series(self, using_infer_string):
         # not aligned properly because of east asian width
 
         # unicode index
@@ -1395,6 +1406,8 @@ class TestSeriesFormatting:
                 "ええええ      D\ndtype: object",
             ]
         )
+        if using_infer_string:
+            expected = expected.replace("dtype: object", "dtype: str")
         assert repr(s) == expected
 
         # unicode values
@@ -1408,7 +1421,8 @@ class TestSeriesFormatting:
                 "dtype: object",
             ]
         )
-
+        if using_infer_string:
+            expected = expected.replace("dtype: object", "dtype: str")
         assert repr(s) == expected
 
         # both
@@ -1425,7 +1439,8 @@ class TestSeriesFormatting:
                 "dtype: object",
             ]
         )
-
+        if using_infer_string:
+            expected = expected.replace("dtype: object", "dtype: str")
         assert repr(s) == expected
 
         # unicode footer
@@ -1438,6 +1453,8 @@ class TestSeriesFormatting:
             "ああ         あ\nいいいい      いい\nう        ううう\n"
             "えええ     ええええ\nName: おおおおおおお, dtype: object"
         )
+        if using_infer_string:
+            expected = expected.replace("dtype: object", "dtype: str")
         assert repr(s) == expected
 
         # MultiIndex
@@ -1481,6 +1498,8 @@ class TestSeriesFormatting:
                 "3    ええええ\n"
                 "Name: おおおおおおお, Length: 4, dtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
 
             s.index = ["ああ", "いいいい", "う", "えええ"]
@@ -1489,6 +1508,8 @@ class TestSeriesFormatting:
                 "えええ    ええええ\n"
                 "Name: おおおおおおお, Length: 4, dtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
 
         # Enable Unicode option -----------------------------------------
@@ -1502,6 +1523,8 @@ class TestSeriesFormatting:
                 "あ            a\nいい         bb\nううう      CCC\n"
                 "ええええ      D\ndtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
 
             # unicode values
@@ -1513,6 +1536,8 @@ class TestSeriesFormatting:
                 "a            あ\nbb         いい\nc        ううう\n"
                 "ddd    ええええ\ndtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
             # both
             s = Series(
@@ -1525,6 +1550,8 @@ class TestSeriesFormatting:
                 "う            ううう\n"
                 "えええ      ええええ\ndtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
 
             # unicode footer
@@ -1540,6 +1567,8 @@ class TestSeriesFormatting:
                 "えええ      ええええ\n"
                 "Name: おおおおおおお, dtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
 
             # MultiIndex
@@ -1585,6 +1614,8 @@ class TestSeriesFormatting:
                     "3    ええええ\n"
                     "Name: おおおおおおお, Length: 4, dtype: object"
                 )
+                if using_infer_string:
+                    expected = expected.replace("dtype: object", "dtype: str")
                 assert repr(s) == expected
 
                 s.index = ["ああ", "いいいい", "う", "えええ"]
@@ -1594,6 +1625,8 @@ class TestSeriesFormatting:
                     "えええ    ええええ\n"
                     "Name: おおおおおおお, Length: 4, dtype: object"
                 )
+                if using_infer_string:
+                    expected = expected.replace("dtype: object", "dtype: str")
                 assert repr(s) == expected
 
             # ambiguous unicode
@@ -1607,6 +1640,8 @@ class TestSeriesFormatting:
                 "¡¡            ううう\n"
                 "えええ      ええええ\ndtype: object"
             )
+            if using_infer_string:
+                expected = expected.replace("dtype: object", "dtype: str")
             assert repr(s) == expected
 
     def test_float_trim_zeros(self):
@@ -1756,27 +1791,34 @@ class TestSeriesFormatting:
         ncolsizes = len({len(line.strip()) for line in lines})
         assert ncolsizes == 1
 
-    @pytest.mark.xfail(using_string_dtype(), reason="change when arrow is default")
-    def test_format_explicit(self):
+    def test_format_explicit(self, using_infer_string):
         test_sers = gen_series_formatting()
         with option_context("display.max_rows", 4, "display.show_dimensions", False):
             res = repr(test_sers["onel"])
             exp = "0     a\n1     a\n     ..\n98    a\n99    a\ndtype: object"
+            if using_infer_string:
+                exp = exp.replace("dtype: object", "dtype: str")
             assert exp == res
             res = repr(test_sers["twol"])
             exp = "0     ab\n1     ab\n      ..\n98    ab\n99    ab\ndtype: object"
+            if using_infer_string:
+                exp = exp.replace("dtype: object", "dtype: str")
             assert exp == res
             res = repr(test_sers["asc"])
             exp = (
                 "0         a\n1        ab\n      ...  \n4     abcde\n5    "
                 "abcdef\ndtype: object"
             )
+            if using_infer_string:
+                exp = exp.replace("dtype: object", "dtype: str")
             assert exp == res
             res = repr(test_sers["desc"])
             exp = (
                 "5    abcdef\n4     abcde\n      ...  \n1        ab\n0         "
                 "a\ndtype: object"
             )
+            if using_infer_string:
+                exp = exp.replace("dtype: object", "dtype: str")
             assert exp == res
 
     def test_ncols(self):
@@ -1879,37 +1921,6 @@ class TestGenericArrayFormatter:
         assert len(res) == 2
         assert res[0] == " [[True, True], [False, False]]"
         assert res[1] == " [[False, True], [True, False]]"
-
-    def test_2d_extension_type(self):
-        # GH 33770
-
-        # Define a stub extension type with just enough code to run Series.__repr__()
-        class DtypeStub(pd.api.extensions.ExtensionDtype):
-            @property
-            def type(self):
-                return np.ndarray
-
-            @property
-            def name(self):
-                return "DtypeStub"
-
-        class ExtTypeStub(pd.api.extensions.ExtensionArray):
-            def __len__(self) -> int:
-                return 2
-
-            def __getitem__(self, ix):
-                return [ix == 1, ix == 0]
-
-            @property
-            def dtype(self):
-                return DtypeStub()
-
-        series = Series(ExtTypeStub(), copy=False)
-        res = repr(series)  # This line crashed before #33770 was fixed.
-        expected = "\n".join(
-            ["0    [False True]", "1    [True False]", "dtype: DtypeStub"]
-        )
-        assert res == expected
 
 
 def _three_digit_exp():

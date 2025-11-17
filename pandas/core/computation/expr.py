@@ -168,7 +168,10 @@ def _preparse(
     the ``tokenize`` module and ``tokval`` is a string.
     """
     assert callable(f), "f must be callable"
-    return tokenize.untokenize(f(x) for x in tokenize_string(source))  # pyright: ignore[reportArgumentType]
+    return tokenize.untokenize(
+        f(x)
+        for x in tokenize_string(source)  # pyright: ignore[reportArgumentType]
+    )
 
 
 def _is_type(t):
@@ -380,11 +383,11 @@ class BaseExprVisitor(ast.NodeVisitor):
         "FloorDiv",
         "Mod",
     )
-    binary_op_nodes_map = dict(zip(binary_ops, binary_op_nodes))
+    binary_op_nodes_map = dict(zip(binary_ops, binary_op_nodes, strict=True))
 
     unary_ops = UNARY_OPS_SYMS
     unary_op_nodes = "UAdd", "USub", "Invert", "Not"
-    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes))
+    unary_op_nodes_map = dict(zip(unary_ops, unary_op_nodes, strict=True))
 
     rewrite_map = {
         ast.Eq: ast.In,
@@ -512,8 +515,7 @@ class BaseExprVisitor(ast.NodeVisitor):
             )
 
         if self.engine != "pytables" and (
-            res.op in CMP_OPS_SYMS
-            and getattr(lhs, "is_datetime", False)
+            (res.op in CMP_OPS_SYMS and getattr(lhs, "is_datetime", False))
             or getattr(rhs, "is_datetime", False)
         ):
             # all date ops must be done in python bc numexpr doesn't work
@@ -645,7 +647,11 @@ class BaseExprVisitor(ast.NodeVisitor):
         ctx = node.ctx
         if isinstance(ctx, ast.Load):
             # resolve the value
-            resolved = self.visit(value).value
+            visited_value = self.visit(value)
+            if hasattr(visited_value, "value"):
+                resolved = visited_value.value
+            else:
+                resolved = visited_value(self.env)
             try:
                 v = getattr(resolved, attr)
                 name = self.env.add_tmp(v)
@@ -677,7 +683,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         if res is None:
             # error: "expr" has no attribute "id"
             raise ValueError(
-                f"Invalid function call {node.func.id}"  # type: ignore[attr-defined]
+                f"Invalid function call {node.func.id}"  # type: ignore[union-attr]
             )
         if hasattr(res, "value"):
             res = res.value
@@ -697,9 +703,10 @@ class BaseExprVisitor(ast.NodeVisitor):
 
             for key in node.keywords:
                 if not isinstance(key, ast.keyword):
-                    # error: "expr" has no attribute "id"
+                    # error: Item "Attribute" of "Attribute | Name" has no
+                    # attribute "id"
                     raise ValueError(
-                        "keyword error in function call " f"'{node.func.id}'"  # type: ignore[attr-defined]
+                        f"keyword error in function call '{node.func.id}'"  # type: ignore[union-attr]
                     )
 
                 if key.arg:
@@ -724,7 +731,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         # recursive case: we have a chained comparison, a CMP b CMP c, etc.
         left = node.left
         values = []
-        for op, comp in zip(ops, comps):
+        for op, comp in zip(ops, comps, strict=True):
             new_node = self.visit(
                 ast.Compare(comparators=[comp], left=left, ops=[self.translate_In(op)])
             )

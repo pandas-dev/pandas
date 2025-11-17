@@ -1,6 +1,9 @@
-from typing import (
+from collections.abc import (
     Iterator,
     Sequence,
+)
+from typing import (
+    Self,
     final,
     overload,
 )
@@ -10,7 +13,6 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
-    Self,
     npt,
 )
 
@@ -92,3 +94,7 @@ class BlockValuesRefs:
     def add_reference(self, blk: Block) -> None: ...
     def add_index_reference(self, index: Index) -> None: ...
     def has_reference(self) -> bool: ...
+
+class SetitemMixin:
+    def __setitem__(self, key, value) -> None: ...
+    def __delitem__(self, key) -> None: ...

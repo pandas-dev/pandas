@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas._libs.tslibs import Day
 
 import pandas as pd
 from pandas import (
@@ -76,9 +77,7 @@ def test_groupby_resample_api():
     )
     index = pd.MultiIndex.from_arrays([[1] * 8 + [2] * 8, i], names=["group", "date"])
     expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
+    result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
     tm.assert_frame_equal(result, expected)
 
 
@@ -187,7 +186,7 @@ def test_api_compat_before_use(attr):
     getattr(rs, attr)
 
 
-def tests_raises_on_nuisance(test_frame):
+def tests_raises_on_nuisance(test_frame, using_infer_string):
     df = test_frame
     df["D"] = "foo"
     r = df.resample("h")
@@ -197,6 +196,8 @@ def tests_raises_on_nuisance(test_frame):
 
     expected = r[["A", "B", "C"]].mean()
     msg = re.escape("agg function failed [how->mean,dtype->")
+    if using_infer_string:
+        msg = "dtype 'str' does not support operation 'mean'"
     with pytest.raises(TypeError, match=msg):
         r.mean()
     result = r.mean(numeric_only=True)
@@ -751,6 +752,7 @@ def test_resample_agg_readonly():
     rs = ser.resample("1D")
 
     expected = Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
+    expected.index.freq = Day(1)  # GH#41943 no longer equivalent to 24h
 
     result = rs.agg("last")
     tm.assert_series_equal(result, expected)
@@ -881,7 +883,9 @@ def test_end_and_end_day_origin(
         ("sem", lib.no_default, "could not convert string to float"),
     ],
 )
-def test_frame_downsample_method(method, numeric_only, expected_data):
+def test_frame_downsample_method(
+    method, numeric_only, expected_data, using_infer_string
+):
     # GH#46442 test if `numeric_only` behave as expected for DataFrameGroupBy
 
     index = date_range("2018-01-01", periods=2, freq="D")
@@ -898,6 +902,11 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
         if method in ("var", "mean", "median", "prod"):
             klass = TypeError
             msg = re.escape(f"agg function failed [how->{method},dtype->")
+            if using_infer_string:
+                msg = f"dtype 'str' does not support operation '{method}'"
+        elif method in ["sum", "std", "sem"] and using_infer_string:
+            klass = TypeError
+            msg = f"dtype 'str' does not support operation '{method}'"
         else:
             klass = ValueError
             msg = expected_data
@@ -932,7 +941,9 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
         ("last", lib.no_default, ["cat_2"]),
     ],
 )
-def test_series_downsample_method(method, numeric_only, expected_data):
+def test_series_downsample_method(
+    method, numeric_only, expected_data, using_infer_string
+):
     # GH#46442 test if `numeric_only` behave as expected for SeriesGroupBy
 
     index = date_range("2018-01-01", periods=2, freq="D")
@@ -948,8 +959,11 @@ def test_series_downsample_method(method, numeric_only, expected_data):
             func(**kwargs)
     elif method == "prod":
         msg = re.escape("agg function failed [how->prod,dtype->")
+        if using_infer_string:
+            msg = "dtype 'str' does not support operation 'prod'"
         with pytest.raises(TypeError, match=msg):
             func(**kwargs)
+
     else:
         result = func(**kwargs)
         expected = Series(expected_data, index=expected_index)
@@ -975,3 +989,30 @@ def test_resample_empty():
     )
     result = df.resample("8h").mean()
     tm.assert_frame_equal(result, expected)
+
+
+def test_asfreq_respects_origin_with_fixed_freq_all_seconds_equal():
+    # GH#62725: Ensure Resampler.asfreq respects origin="start_day"
+    # when all datetimes share identical seconds values.
+    idx = [
+        datetime(2025, 10, 17, 17, 15, 10),
+        datetime(2025, 10, 17, 17, 16, 10),
+        datetime(2025, 10, 17, 17, 17, 10),
+    ]
+    df = DataFrame({"value": [0, 1, 2]}, index=idx)
+
+    result = df.resample("1min", origin="start_day").asfreq()
+
+    # Expected index: list of Timestamps, matching dtype
+    exp_idx = pd.DatetimeIndex(
+        [
+            pd.Timestamp("2025-10-17 17:15:00"),
+            pd.Timestamp("2025-10-17 17:16:00"),
+            pd.Timestamp("2025-10-17 17:17:00"),
+        ],
+        dtype=result.index.dtype,
+        freq="min",
+    )
+
+    exp = DataFrame({"value": [np.nan, np.nan, np.nan]}, index=exp_idx)
+    tm.assert_frame_equal(result, exp)

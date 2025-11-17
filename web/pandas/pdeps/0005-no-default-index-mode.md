@@ -6,6 +6,8 @@
 - Author: [Marco Gorelli](https://github.com/MarcoGorelli)
 - Revision: 2
 
+[TOC]
+
 ## Abstract
 
 The suggestion is to add a ``NoRowIndex`` class. Internally, it would act a bit like

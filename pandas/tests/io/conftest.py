@@ -1,6 +1,3 @@
-import shlex
-import subprocess
-import time
 import uuid
 
 import pytest
@@ -50,122 +47,68 @@ def xml_file(datapath):
     return datapath("io", "data", "xml", "books.xml")
 
 
-@pytest.fixture
-def s3_base(worker_id, monkeypatch):
-    """
-    Fixture for mocking S3 interaction.
+@pytest.fixture(scope="session")
+def aws_credentials(monkeysession):
+    """Mocked AWS Credentials for moto."""
+    monkeysession.setenv("AWS_ACCESS_KEY_ID", "testing")
+    monkeysession.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+    monkeysession.setenv("AWS_SECURITY_TOKEN", "testing")
+    monkeysession.setenv("AWS_SESSION_AWS_SESSION_TOKEN", "testing")
+    monkeysession.setenv("AWS_DEFAULT_REGION", "us-east-1")
 
-    Sets up moto server in separate process locally
-    Return url for motoserver/moto CI service
-    """
-    pytest.importorskip("s3fs")
-    pytest.importorskip("boto3")
 
-    # temporary workaround as moto fails for botocore >= 1.11 otherwise,
-    # see https://github.com/spulec/moto/issues/1924 & 1952
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "foobar_key")
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "foobar_secret")
-    if is_ci_environment():
-        if is_platform_arm() or is_platform_mac() or is_platform_windows():
-            # NOT RUN on Windows/macOS/ARM, only Ubuntu
-            # - subprocess in CI can cause timeouts
-            # - GitHub Actions do not support
-            #   container services for the above OSs
-            # - CircleCI will probably hit the Docker rate pull limit
-            pytest.skip(
-                "S3 tests do not have a corresponding service in "
-                "Windows, macOS or ARM platforms"
-            )
-        else:
-            # set in .github/workflows/unit-tests.yml
-            yield "http://localhost:5000"
+@pytest.fixture(scope="session")
+def moto_server(aws_credentials):
+    # use service container for Linux on GitHub Actions
+    if is_ci_environment() and not (
+        is_platform_mac() or is_platform_arm() or is_platform_windows()
+    ):
+        yield "http://localhost:5000"
     else:
-        requests = pytest.importorskip("requests")
-        pytest.importorskip("moto")
-        pytest.importorskip("flask")  # server mode needs flask too
-
-        # Launching moto in server mode, i.e., as a separate process
-        # with an S3 endpoint on localhost
-
-        worker_id = "5" if worker_id == "master" else worker_id.lstrip("gw")
-        endpoint_port = f"555{worker_id}"
-        endpoint_uri = f"http://127.0.0.1:{endpoint_port}/"
-
-        # pipe to null to avoid logging in terminal
-        with subprocess.Popen(
-            shlex.split(f"moto_server s3 -p {endpoint_port}"),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        ) as proc:
-            timeout = 5
-            while timeout > 0:
-                try:
-                    # OK to go once server is accepting connections
-                    r = requests.get(endpoint_uri)
-                    if r.ok:
-                        break
-                except Exception:
-                    pass
-                timeout -= 0.1
-                time.sleep(0.1)
-            yield endpoint_uri
-
-            proc.terminate()
+        moto_server = pytest.importorskip("moto.server")
+        server = moto_server.ThreadedMotoServer(port=0)
+        server.start()
+        host, port = server.get_host_and_port()
+        yield f"http://{host}:{port}"
+        server.stop()
 
 
 @pytest.fixture
-def s3so(s3_base):
-    return {"client_kwargs": {"endpoint_url": s3_base}}
-
-
-@pytest.fixture
-def s3_resource(s3_base):
-    import boto3
-
-    s3 = boto3.resource("s3", endpoint_url=s3_base)
+def moto_s3_resource(moto_server):
+    boto3 = pytest.importorskip("boto3")
+    s3 = boto3.resource("s3", endpoint_url=moto_server)
     return s3
 
 
+@pytest.fixture(scope="session")
+def s3so(moto_server):
+    return {
+        "client_kwargs": {
+            "endpoint_url": moto_server,
+        }
+    }
+
+
 @pytest.fixture
-def s3_public_bucket(s3_resource):
-    bucket = s3_resource.Bucket(f"pandas-test-{uuid.uuid4()}")
-    bucket.create()
+def s3_bucket_public(moto_s3_resource):
+    """
+    Create a public S3 bucket using moto.
+    """
+    bucket_name = f"pandas-test-{uuid.uuid4()}"
+    bucket = moto_s3_resource.Bucket(bucket_name)
+    bucket.create(ACL="public-read")
     yield bucket
     bucket.objects.delete()
     bucket.delete()
 
 
 @pytest.fixture
-def s3_public_bucket_with_data(
-    s3_public_bucket, tips_file, jsonl_file, feather_file, xml_file
-):
+def s3_bucket_private(moto_s3_resource):
     """
-    The following datasets
-    are loaded.
-
-    - tips.csv
-    - tips.csv.gz
-    - tips.csv.bz2
-    - items.jsonl
+    Create a private S3 bucket using moto.
     """
-    test_s3_files = [
-        ("tips#1.csv", tips_file),
-        ("tips.csv", tips_file),
-        ("tips.csv.gz", tips_file + ".gz"),
-        ("tips.csv.bz2", tips_file + ".bz2"),
-        ("items.jsonl", jsonl_file),
-        ("simple_dataset.feather", feather_file),
-        ("books.xml", xml_file),
-    ]
-    for s3_key, file_name in test_s3_files:
-        with open(file_name, "rb") as f:
-            s3_public_bucket.put_object(Key=s3_key, Body=f)
-    return s3_public_bucket
-
-
-@pytest.fixture
-def s3_private_bucket(s3_resource):
-    bucket = s3_resource.Bucket(f"cant_get_it-{uuid.uuid4()}")
+    bucket_name = f"cant_get_it-{uuid.uuid4()}"
+    bucket = moto_s3_resource.Bucket(bucket_name)
     bucket.create(ACL="private")
     yield bucket
     bucket.objects.delete()
@@ -173,8 +116,8 @@ def s3_private_bucket(s3_resource):
 
 
 @pytest.fixture
-def s3_private_bucket_with_data(
-    s3_private_bucket, tips_file, jsonl_file, feather_file, xml_file
+def s3_bucket_public_with_data(
+    s3_bucket_public, tips_file, jsonl_file, feather_file, xml_file
 ):
     """
     The following datasets
@@ -196,8 +139,36 @@ def s3_private_bucket_with_data(
     ]
     for s3_key, file_name in test_s3_files:
         with open(file_name, "rb") as f:
-            s3_private_bucket.put_object(Key=s3_key, Body=f)
-    return s3_private_bucket
+            s3_bucket_public.put_object(Key=s3_key, Body=f)
+    return s3_bucket_public
+
+
+@pytest.fixture
+def s3_bucket_private_with_data(
+    s3_bucket_private, tips_file, jsonl_file, feather_file, xml_file
+):
+    """
+    The following datasets
+    are loaded.
+
+    - tips.csv
+    - tips.csv.gz
+    - tips.csv.bz2
+    - items.jsonl
+    """
+    test_s3_files = [
+        ("tips#1.csv", tips_file),
+        ("tips.csv", tips_file),
+        ("tips.csv.gz", tips_file + ".gz"),
+        ("tips.csv.bz2", tips_file + ".bz2"),
+        ("items.jsonl", jsonl_file),
+        ("simple_dataset.feather", feather_file),
+        ("books.xml", xml_file),
+    ]
+    for s3_key, file_name in test_s3_files:
+        with open(file_name, "rb") as f:
+            s3_bucket_private.put_object(Key=s3_key, Body=f)
+    return s3_bucket_private
 
 
 _compression_formats_params = [

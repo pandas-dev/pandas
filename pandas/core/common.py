@@ -25,16 +25,15 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
+    Concatenate,
     TypeVar,
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat.numpy import np_version_gte1p24
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -53,7 +52,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
-        Concatenate,
         NpDtype,
         P,
         RandomState,
@@ -93,8 +91,10 @@ def consensus_name_attr(objs):
         try:
             if obj.name != name:
                 name = None
+                break
         except ValueError:
             name = None
+            break
     return name
 
 
@@ -243,11 +243,7 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
         return construct_1d_object_array_from_listlike(values)
 
     try:
-        with warnings.catch_warnings():
-            # Can remove warning filter once NumPy 1.24 is min version
-            if not np_version_gte1p24:
-                warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
-            result = np.asarray(values, dtype=dtype)
+        result = np.asarray(values, dtype=dtype)
     except ValueError:
         # Using try/except since it's more performant than checking is_list_like
         # over each element
@@ -290,9 +286,9 @@ def index_labels_to_array(
         except TypeError:  # non-iterable
             labels = [labels]
 
-    labels = asarray_tuplesafe(labels, dtype=dtype)
+    rlabels = asarray_tuplesafe(labels, dtype=dtype)
 
-    return labels
+    return rlabels
 
 
 def maybe_make_list(obj):
@@ -359,7 +355,7 @@ def is_full_slice(obj, line: int) -> bool:
 def get_callable_name(obj):
     # typical case has name
     if hasattr(obj, "__name__"):
-        return getattr(obj, "__name__")
+        return obj.__name__
     # some objects don't; could recurse
     if isinstance(obj, partial):
         return get_callable_name(obj.func)
@@ -642,8 +638,6 @@ def get_cython_func(arg: Callable) -> str | None:
 def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
     """
     If a name is missing then replace it by level_n, where n is the count
-
-    .. versionadded:: 1.4.0
 
     Parameters
     ----------
