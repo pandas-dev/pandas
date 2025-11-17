@@ -12,7 +12,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import using_string_dtype
 
 from pandas._libs import lib
 from pandas._typing import (
@@ -2123,7 +2123,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         if dtype is not None and not is_string_dtype(dtype):
             raise ValueError(f"dtype must be string or object, got {dtype=}")
-        if dtype is None and get_option("future.infer_string"):
+        if dtype is None and using_string_dtype():
             dtype = "str"
         # TODO: Add a similar _bytes interface.
         if encoding in _cpython_optimized_decoders:

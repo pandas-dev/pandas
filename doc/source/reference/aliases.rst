@@ -65,7 +65,7 @@ Alias                                Meaning
 :py:type:`NaPosition`                Argument type for ``na_position`` in :meth:`sort_index` and :meth:`sort_values`
 :py:type:`NsmallestNlargestKeep`     Argument type for ``keep`` in :meth:`nlargest` and :meth:`nsmallest`
 :py:type:`OpenFileErrors`            Argument type for ``errors`` in :meth:`to_hdf` and :meth:`to_csv`
-:py:type:`Ordered`                   Return type for :py:attr:`ordered`` in :class:`CategoricalDtype` and :class:`Categorical`
+:py:type:`Ordered`                   Return type for :py:attr:`ordered` in :class:`CategoricalDtype` and :class:`Categorical`
 :py:type:`ParquetCompressionOptions` Argument type for ``compression`` in :meth:`DataFrame.to_parquet`
 :py:type:`QuantileInterpolation`     Argument type for ``interpolation`` in :meth:`quantile`
 :py:type:`ReadBuffer`                Additional argument type corresponding to buffers for various file reading methods
@@ -89,7 +89,7 @@ Alias                                Meaning
 :py:type:`ToTimestampHow`            Argument type for ``how`` in :meth:`to_timestamp` and ``convention`` in :meth:`resample`
 :py:type:`UpdateJoin`                Argument type for ``join`` in :meth:`DataFrame.update`
 :py:type:`UsecolsArgType`            Argument type for ``usecols`` in :meth:`pandas.read_clipboard`, :meth:`pandas.read_csv` and :meth:`pandas.read_excel`
-:py:type:`WindowingRankType`         Argument type for ``method`` in :meth:`rank`` in rolling and expanding window operations
+:py:type:`WindowingRankType`         Argument type for ``method`` in :meth:`rank` in rolling and expanding window operations
 :py:type:`WriteBuffer`               Additional argument type corresponding to buffers for various file output methods
 :py:type:`WriteExcelBuffer`          Additional argument type corresponding to buffers for :meth:`to_excel`
 :py:type:`XMLParsers`                Argument type for ``parser`` in :meth:`DataFrame.to_xml` and :meth:`pandas.read_xml`

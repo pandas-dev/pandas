@@ -16,7 +16,7 @@ class SeriesConstructor:
         self.idx = date_range(
             start=datetime(2015, 10, 26), end=datetime(2016, 1, 1), freq="50s"
         )
-        self.data = dict(zip(self.idx, range(len(self.idx))))
+        self.data = dict(zip(self.idx, range(len(self.idx)), strict=True))
         self.array = np.array([1, 2, 3])
         self.idx2 = Index(["a", "b", "c"])
 
@@ -407,7 +407,9 @@ class Replace:
         self.to_replace_list = np.random.choice(self.arr, num_to_replace)
         self.values_list = np.random.choice(self.arr1, num_to_replace)
 
-        self.replace_dict = dict(zip(self.to_replace_list, self.values_list))
+        self.replace_dict = dict(
+            zip(self.to_replace_list, self.values_list, strict=True)
+        )
 
     def time_replace_dict(self, num_to_replace):
         self.ser.replace(self.replace_dict)

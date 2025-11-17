@@ -347,6 +347,10 @@ def test_against_frame_and_seriesgroupby(
             index_frame = expected.index.to_frame(index=False)
             index_frame["gender"] = index_frame["both"].str.split("-").str.get(0)
             index_frame["education"] = index_frame["both"].str.split("-").str.get(1)
+            both_dtype = index_frame["both"].dtype
+            index_frame = index_frame.astype(
+                {"gender": both_dtype, "education": both_dtype}
+            )
             del index_frame["both"]
             index_frame2 = index_frame.rename({0: None}, axis=1)
             expected.index = MultiIndex.from_frame(index_frame2)

@@ -246,7 +246,7 @@ class ODSWriter(ExcelWriter):
     def _process_style(self, style: None) -> None: ...
 
     def _process_style(self, style: dict[str, Any] | None) -> str | None:
-        """Convert a style dictionary to a OpenDocument style sheet
+        """Convert a style dictionary to an OpenDocument style sheet
 
         Parameters
         ----------

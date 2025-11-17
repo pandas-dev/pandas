@@ -19,7 +19,6 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_store,
 )
 
 from pandas.io.pytables import TableIterator
@@ -70,14 +69,14 @@ def test_read_missing_key_opened_store(tmp_path, setup_path):
         read_hdf(store, "k1")
 
 
-def test_read_column(setup_path):
+def test_read_column(temp_file):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         _maybe_remove(store, "df")
 
         # GH 17912
@@ -153,7 +152,7 @@ def test_read_column(setup_path):
 
 
 def test_pytables_native_read(datapath):
-    with ensure_clean_store(
+    with HDFStore(
         datapath("io", "data", "legacy_hdf/pytables_native.h5"), mode="r"
     ) as store:
         d2 = store["detector/readout"]
@@ -162,7 +161,7 @@ def test_pytables_native_read(datapath):
 
 @pytest.mark.skipif(is_platform_windows(), reason="native2 read fails oddly on windows")
 def test_pytables_native2_read(datapath):
-    with ensure_clean_store(
+    with HDFStore(
         datapath("io", "data", "legacy_hdf", "pytables_native2.h5"), mode="r"
     ) as store:
         str(store)

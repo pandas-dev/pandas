@@ -62,7 +62,9 @@ class TestTimedeltas:
 
     def test_to_timedelta_series(self):
         # Series
-        expected = Series([timedelta(days=1), timedelta(days=1, seconds=1)])
+        expected = Series(
+            [timedelta(days=1), timedelta(days=1, seconds=1)], dtype="m8[ns]"
+        )
 
         msg = "'d' is deprecated and will be removed in a future version."
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -185,7 +187,7 @@ class TestTimedeltas:
 
     def test_to_timedelta_via_apply(self):
         # GH 5458
-        expected = Series([np.timedelta64(1, "s")])
+        expected = Series([np.timedelta64(1, "s")], dtype="m8[ns]")
         result = Series(["00:00:01"]).apply(to_timedelta)
         tm.assert_series_equal(result, expected)
 
@@ -247,7 +249,7 @@ class TestTimedeltas:
     )
     def test_to_timedelta_nullable_int64_dtype(self, expected_val, result_val):
         # GH 35574
-        expected = Series([timedelta(days=1), expected_val])
+        expected = Series([timedelta(days=1), expected_val], dtype="m8[ns]")
         result = to_timedelta(Series([1, result_val], dtype="Int64"), unit="days")
 
         tm.assert_series_equal(result, expected)

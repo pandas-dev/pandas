@@ -2278,7 +2278,7 @@ class IndexCol:
         except UnicodeEncodeError as err:
             if (
                 errors == "surrogatepass"
-                and get_option("future.infer_string")
+                and using_string_dtype()
                 and str(err).endswith("surrogates not allowed")
                 and HAS_PYARROW
             ):
@@ -3214,7 +3214,7 @@ class GenericFixed(Fixed):
             except UnicodeEncodeError as err:
                 if (
                     self.errors == "surrogatepass"
-                    and get_option("future.infer_string")
+                    and using_string_dtype()
                     and str(err).endswith("surrogates not allowed")
                     and HAS_PYARROW
                 ):
@@ -3365,7 +3365,7 @@ class SeriesFixed(GenericFixed):
         except UnicodeEncodeError as err:
             if (
                 self.errors == "surrogatepass"
-                and get_option("future.infer_string")
+                and using_string_dtype()
                 and str(err).endswith("surrogates not allowed")
                 and HAS_PYARROW
             ):
@@ -4829,7 +4829,7 @@ class AppendableFrameTable(AppendableTable):
                 except UnicodeEncodeError as err:
                     if (
                         self.errors == "surrogatepass"
-                        and get_option("future.infer_string")
+                        and using_string_dtype()
                         and str(err).endswith("surrogates not allowed")
                         and HAS_PYARROW
                     ):
@@ -4999,7 +4999,7 @@ class GenericTable(AppendableFrameTable):
 
     # error: Signature of "write" incompatible with supertype "AppendableTable"
     def write(self, **kwargs) -> None:  # type: ignore[override]
-        raise NotImplementedError("cannot write on an generic table")
+        raise NotImplementedError("cannot write on a generic table")
 
 
 class AppendableMultiFrameTable(AppendableFrameTable):
@@ -5371,7 +5371,7 @@ def _need_convert(kind: str) -> bool:
 
 def _maybe_adjust_name(name: str, version: Sequence[int]) -> str:
     """
-    Prior to 0.10.1, we named values blocks like: values_block_0 an the
+    Prior to 0.10.1, we named values blocks like: values_block_0 and the
     name values_0, adjust the given name if necessary.
 
     Parameters

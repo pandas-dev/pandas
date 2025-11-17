@@ -139,7 +139,7 @@ class TestPeriodIndex:
         "values_constructor", [list, np.array, PeriodIndex, PeriodArray._from_sequence]
     )
     def test_index_object_dtype(self, values_constructor):
-        # Index(periods, dtype=object) is an Index (not an PeriodIndex)
+        # Index(periods, dtype=object) is an Index (not a PeriodIndex)
         periods = [
             Period("2011-01", freq="M"),
             NaT,

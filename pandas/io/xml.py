@@ -95,18 +95,12 @@ class _XMLFrameParser:
         Data type for data or columns. E.g. {{'a': np.float64,
         'b': np.int32, 'c': 'Int64'}}
 
-        .. versionadded:: 1.5.0
-
     converters : dict, optional
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels.
 
-        .. versionadded:: 1.5.0
-
     parse_dates : bool or list of int or names or list of lists or dict
         Converts either index or select columns to datetimes
-
-        .. versionadded:: 1.5.0
 
     encoding : str
         Encoding of xml object or document.
@@ -120,11 +114,7 @@ class _XMLFrameParser:
         and/or attributes as value to be retrieved in iterparsing of
         XML document.
 
-        .. versionadded:: 1.5.0
-
     {decompression_options}
-
-        .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
 
@@ -860,8 +850,6 @@ def read_xml(
     r"""
     Read XML document into a :class:`~pandas.DataFrame` object.
 
-    .. versionadded:: 1.3.0
-
     Parameters
     ----------
     path_or_buffer : str, path object, or file-like object
@@ -911,13 +899,9 @@ def read_xml(
         If converters are specified, they will be applied INSTEAD
         of dtype conversion.
 
-        .. versionadded:: 1.5.0
-
     converters : dict, optional
         Dict of functions for converting values in certain columns. Keys can either
         be integers or column labels.
-
-        .. versionadded:: 1.5.0
 
     parse_dates : bool or list of int or names or list of lists or dict, default False
         Identifiers to parse index or columns to datetime. The behavior is as follows:
@@ -929,8 +913,6 @@ def read_xml(
           a single date column.
         * dict, e.g. {{'foo' : [1, 3]}} -> parse columns 1, 3 as date and call
           result 'foo'
-
-        .. versionadded:: 1.5.0
 
     encoding : str, optional, default 'utf-8'
         Encoding of XML document.
@@ -959,11 +941,7 @@ def read_xml(
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
         For example, ``{{"row_element": ["child_elem", "attr", "grandchild_elem"]}}``.
 
-        .. versionadded:: 1.5.0
-
     {decompression_options}
-
-        .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
 

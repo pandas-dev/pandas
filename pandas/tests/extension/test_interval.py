@@ -100,6 +100,10 @@ class TestIntervalArray(base.ExtensionTests):
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 
+    @pytest.mark.xfail(reason="copy=False is not Implemented")
+    def test_fillna_readonly(self, data_missing):
+        super().test_fillna_readonly(data_missing)
+
     @pytest.mark.filterwarnings(
         "ignore:invalid value encountered in cast:RuntimeWarning"
     )

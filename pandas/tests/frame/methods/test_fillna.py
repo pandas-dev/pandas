@@ -42,7 +42,7 @@ class TestFillNA:
         arr = np.full((40, 50), np.nan)
         df = DataFrame(arr, copy=False)
 
-        with tm.raises_chained_assignment_error():
+        with tm.raises_chained_assignment_error(inplace_method=True):
             df[0].fillna(-1, inplace=True)
         assert np.isnan(arr[:, 0]).all()
 

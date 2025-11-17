@@ -71,6 +71,7 @@ def b(df, cols):
     return df.drop_duplicates(subset=cols[:-1])
 
 
+@pytest.mark.slow
 @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
 @pytest.mark.parametrize("lexsort_depth", list(range(5)))
 @pytest.mark.parametrize("frame_fixture", ["a", "b"])

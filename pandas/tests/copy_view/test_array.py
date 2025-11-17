@@ -19,10 +19,11 @@ from pandas.tests.copy_view.util import get_array
     "method",
     [
         lambda ser: ser.values,
+        lambda ser: np.asarray(ser.array),
         lambda ser: np.asarray(ser),
         lambda ser: np.array(ser, copy=False),
     ],
-    ids=["values", "asarray", "array"],
+    ids=["values", "array", "np.asarray", "np.array"],
 )
 def test_series_values(method):
     ser = Series([1, 2, 3], name="name")
@@ -105,24 +106,38 @@ def test_series_to_numpy():
     assert arr.flags.writeable is True
 
 
-def test_series_array_ea_dtypes():
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda ser: np.asarray(ser.array),
+        lambda ser: np.asarray(ser),
+        lambda ser: np.asarray(ser, dtype="int64"),
+        lambda ser: np.array(ser, copy=False),
+    ],
+    ids=["array", "np.asarray", "np.asarray-dtype", "np.array"],
+)
+def test_series_values_ea_dtypes(method):
     ser = Series([1, 2, 3], dtype="Int64")
-    arr = np.asarray(ser, dtype="int64")
+    arr = method(ser)
+
     assert np.shares_memory(arr, get_array(ser))
     assert arr.flags.writeable is False
 
-    arr = np.asarray(ser)
-    assert np.shares_memory(arr, get_array(ser))
-    assert arr.flags.writeable is False
 
-
-def test_dataframe_array_ea_dtypes():
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda df: df.values,
+        lambda df: np.asarray(df),
+        lambda df: np.asarray(df, dtype="int64"),
+        lambda df: np.array(df, copy=False),
+    ],
+    ids=["values", "np.asarray", "np.asarray-dtype", "np.array"],
+)
+def test_dataframe_array_ea_dtypes(method):
     df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
-    arr = np.asarray(df, dtype="int64")
-    assert np.shares_memory(arr, get_array(df, "a"))
-    assert arr.flags.writeable is False
+    arr = method(df)
 
-    arr = np.asarray(df)
     assert np.shares_memory(arr, get_array(df, "a"))
     assert arr.flags.writeable is False
 

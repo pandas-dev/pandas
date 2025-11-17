@@ -117,6 +117,8 @@ class OptionError(AttributeError, KeyError):
     OptionError: No such option
     """
 
+    __module__ = "pandas.errors"
+
 
 #
 # User API
@@ -441,6 +443,8 @@ class DictWrapper:
 
 
 options = DictWrapper(_global_config)
+# DictWrapper defines a custom setattr
+object.__setattr__(options, "__module__", "pandas")
 
 #
 # Functions for use by pandas developers, in addition to User - api
@@ -503,6 +507,7 @@ def option_context(*args) -> Generator[None]:
         )
 
     ops = tuple(zip(args[::2], args[1::2], strict=True))
+    undo: tuple[tuple[Any, Any], ...] = ()
     try:
         undo = tuple((pat, get_option(pat)) for pat, val in ops)
         for pat, val in ops:
@@ -939,3 +944,11 @@ def is_callable(obj: object) -> bool:
     if not callable(obj):
         raise ValueError("Value must be a callable")
     return True
+
+
+# import set_module here would cause circular import
+get_option.__module__ = "pandas"
+set_option.__module__ = "pandas"
+describe_option.__module__ = "pandas"
+reset_option.__module__ = "pandas"
+option_context.__module__ = "pandas"

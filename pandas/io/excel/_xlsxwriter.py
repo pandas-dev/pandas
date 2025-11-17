@@ -102,7 +102,7 @@ class _XlsxStyler:
         style_dict : style dictionary to convert
         num_format_str : optional number format string
         """
-        # Create a XlsxWriter format object.
+        # Create an XlsxWriter format object.
         props = {}
 
         if num_format_str is not None:
@@ -213,7 +213,7 @@ class XlsxWriter(ExcelWriter):
         )
 
         try:
-            self._book = Workbook(self._handles.handle, **engine_kwargs)  # type: ignore[arg-type]
+            self._book = Workbook(self._handles.handle, **engine_kwargs)
         except TypeError:
             self._handles.handle.close()
             raise

@@ -208,10 +208,9 @@ void uint_state_init(uint_state *self);
 
 int uint64_conflict(uint_state *self);
 
-uint64_t str_to_uint64(uint_state *state, const char *p_item, int64_t int_max,
-                       uint64_t uint_max, int *error, char tsep);
-int64_t str_to_int64(const char *p_item, int64_t int_min, int64_t int_max,
-                     int *error, char tsep);
+uint64_t str_to_uint64(uint_state *state, const char *p_item, int *error,
+                       char tsep);
+int64_t str_to_int64(const char *p_item, int *error, char tsep);
 double xstrtod(const char *p, char **q, char decimal, char sci, char tsep,
                int skip_trailing, int *error, int *maybe_int);
 double precise_xstrtod(const char *p, char **q, char decimal, char sci,

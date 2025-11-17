@@ -14,6 +14,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._decorators import set_module
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
@@ -35,6 +36,7 @@ is_list_like = lib.is_list_like
 is_iterator = lib.is_iterator
 
 
+@set_module("pandas.api.types")
 def is_number(obj: object) -> TypeGuard[Number | np.number]:
     """
     Check if the object is a number.
@@ -101,6 +103,7 @@ def iterable_not_string(obj: object) -> bool:
     return isinstance(obj, abc.Iterable) and not isinstance(obj, str)
 
 
+@set_module("pandas.api.types")
 def is_file_like(obj: object) -> bool:
     """
     Check if the object is a file-like object.
@@ -148,6 +151,7 @@ def is_file_like(obj: object) -> bool:
     return bool(hasattr(obj, "__iter__"))
 
 
+@set_module("pandas.api.types")
 def is_re(obj: object) -> TypeGuard[Pattern]:
     """
     Check if the object is a regex pattern instance.
@@ -184,6 +188,7 @@ def is_re(obj: object) -> TypeGuard[Pattern]:
     return isinstance(obj, Pattern)
 
 
+@set_module("pandas.api.types")
 def is_re_compilable(obj: object) -> bool:
     """
     Check if the object can be compiled into a regex pattern instance.
@@ -218,6 +223,7 @@ def is_re_compilable(obj: object) -> bool:
         return True
 
 
+@set_module("pandas.api.types")
 def is_array_like(obj: object) -> bool:
     """
     Check if the object is array-like.
@@ -297,6 +303,7 @@ def is_nested_list_like(obj: object) -> bool:
     )
 
 
+@set_module("pandas.api.types")
 def is_dict_like(obj: object) -> bool:
     """
     Check if the object is dict-like.
@@ -339,6 +346,7 @@ def is_dict_like(obj: object) -> bool:
     )
 
 
+@set_module("pandas.api.types")
 def is_named_tuple(obj: object) -> bool:
     """
     Check if the object is a named tuple.
@@ -376,6 +384,7 @@ def is_named_tuple(obj: object) -> bool:
     return isinstance(obj, abc.Sequence) and hasattr(obj, "_fields")
 
 
+@set_module("pandas.api.types")
 def is_hashable(obj: object) -> TypeGuard[Hashable]:
     """
     Return True if hash(obj) will succeed, False otherwise.

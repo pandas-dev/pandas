@@ -198,6 +198,8 @@ def check_round_trip(
     repeat: int, optional
         How many times to repeat the test
     """
+    if not isinstance(temp_file, pathlib.Path):
+        raise ValueError("temp_file must be a pathlib.Path")
     write_kwargs = write_kwargs or {"compression": None}
     read_kwargs = read_kwargs or {}
 
@@ -396,9 +398,11 @@ class TestBasic(Base):
         check_round_trip(df, temp_file, engine)
 
     @pytest.mark.parametrize("compression", [None, "gzip", "snappy", "brotli"])
-    def test_compression(self, engine, compression):
+    def test_compression(self, engine, compression, temp_file):
         df = pd.DataFrame({"A": [1, 2, 3]})
-        check_round_trip(df, engine, write_kwargs={"compression": compression})
+        check_round_trip(
+            df, temp_file, engine, write_kwargs={"compression": compression}
+        )
 
     def test_read_columns(self, engine, temp_file):
         # GH18154
@@ -424,8 +428,8 @@ class TestBasic(Base):
         expected = pd.DataFrame({"int": [0, 1]})
         check_round_trip(
             df,
+            tmp_path,
             engine,
-            path=tmp_path,
             expected=expected,
             write_kwargs={"partition_cols": ["part"]},
             read_kwargs={"filters": [("part", "==", "a")], "columns": ["int"]},

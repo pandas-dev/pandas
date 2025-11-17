@@ -10,7 +10,10 @@ import itertools
 import numpy as np
 import pytest
 
-from pandas.errors import InvalidIndexError
+from pandas.errors import (
+    InvalidIndexError,
+    Pandas4Warning,
+)
 
 import pandas as pd
 from pandas import (
@@ -434,7 +437,9 @@ class TestConcatenate:
         # to join with union
         # these two are of different length!
         left = concat([ts1, ts2], join="outer", axis=1)
-        right = concat([ts2, ts1], join="outer", axis=1)
+        msg = "Sorting by default when concatenating all DatetimeIndex is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            right = concat([ts2, ts1], join="outer", axis=1)
 
         assert len(left) == len(right)
 
