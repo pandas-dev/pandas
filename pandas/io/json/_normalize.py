@@ -266,6 +266,28 @@ def _simple_json_normalize(
     return normalised_json_object
 
 
+def _validate_meta(meta: list) -> None:
+    """
+    Validate that meta parameter contains only strings.
+
+    Parameters
+    ----------
+    meta : list
+        The meta parameter to validate.
+
+    Raises
+    ------
+    TypeError
+        If meta contains non-string elements.
+    """
+    for item in meta:
+        if not isinstance(item, str):
+            raise TypeError(
+                "All elements in 'meta' must be strings. "
+                f"Found {type(item).__name__}: {item!r}"
+            )
+
+
 def json_normalize(
     data: dict | list[dict] | Series,
     record_path: str | list | None = None,
@@ -426,6 +448,9 @@ def json_normalize(
 
     Returns normalized data with columns prefixed with the given string.
     """
+    if meta is not None:
+        _validate_meta(meta)
+
 
     def _pull_field(
         js: dict[str, Any], spec: list | str, extract_record: bool = False
