@@ -67,6 +67,7 @@ from pandas._libs.tslibs.dtypes cimport (
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
+    is_float_object,
     is_integer_object,
 )
 
@@ -1716,7 +1717,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def to_period(self, freq=None):
         """
-        Return an period of which this timestamp is an observation.
+        Return a period of which this timestamp is an observation.
 
         This method converts the given Timestamp to a Period object,
         which represents a span of time,such as a year, month, etc.,
@@ -1868,7 +1869,7 @@ class Timestamp(_Timestamp):
     @classmethod
     def fromordinal(cls, ordinal, tz=None):
         """
-        Construct a timestamp from a a proleptic Gregorian ordinal.
+        Construct a timestamp from a proleptic Gregorian ordinal.
 
         This method creates a `Timestamp` object corresponding to the given
         proleptic Gregorian ordinal, which is a count of days from January 1,
@@ -2653,6 +2654,19 @@ class Timestamp(_Timestamp):
 
             if hasattr(ts_input, "fold"):
                 ts_input = ts_input.replace(fold=fold)
+
+        if (
+            unit is not None
+            and not (is_float_object(ts_input) or is_integer_object(ts_input))
+        ):
+            # GH#53198
+            warnings.warn(
+                "The 'unit' keyword is only used when the Timestamp input is "
+                f"an integer or float, not {type(ts_input).__name__}. "
+                "To specify the storage unit of the output use `ts.as_unit(unit)`",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
 
         # GH 30543 if pd.Timestamp already passed, return it
         # check that only ts_input is passed
@@ -3478,7 +3492,7 @@ default 'raise'
             year -= 1
             month += 12
         return (day +
-                np.fix((153 * month - 457) / 5) +
+                np.trunc((153 * month - 457) / 5) +
                 365 * year +
                 np.floor(year / 4) -
                 np.floor(year / 100) +

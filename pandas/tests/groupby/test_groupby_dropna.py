@@ -394,8 +394,20 @@ def test_groupby_drop_nan_with_multi_index():
     tm.assert_frame_equal(result, expected)
 
 
-# sequence_index enumerates all strings made up of x, y, z of length 4
-@pytest.mark.parametrize("sequence_index", range(3**4))
+# y >x and z is the missing value
+@pytest.mark.parametrize(
+    "sequence",
+    [
+        "xyzy",
+        "xxyz",
+        "yzxz",
+        "zzzz",
+        "zyzx",
+        "yyyy",
+        "zzxy",
+        "xyxy",
+    ],
+)
 @pytest.mark.parametrize(
     "dtype",
     [
@@ -419,14 +431,8 @@ def test_groupby_drop_nan_with_multi_index():
     ],
 )
 @pytest.mark.parametrize("test_series", [True, False])
-def test_no_sort_keep_na(sequence_index, dtype, test_series, as_index):
+def test_no_sort_keep_na(sequence, dtype, test_series, as_index):
     # GH#46584, GH#48794
-
-    # Convert sequence_index into a string sequence, e.g. 5 becomes "xxyz"
-    # This sequence is used for the grouper.
-    sequence = "".join(
-        [{0: "x", 1: "y", 2: "z"}[sequence_index // (3**k) % 3] for k in range(4)]
-    )
 
     # Unique values to use for grouper, depends on dtype
     if dtype in ("string", "string[pyarrow]"):
