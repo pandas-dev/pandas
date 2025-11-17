@@ -119,10 +119,8 @@ class TestDataFrameSetAxis(SharedSetAxisTests):
         )
 
         result = df.set_axis(labels=["x", "y"], axis=0)
-        expected = DataFrame(
-            [[1, 2], [3, 4]], index=["x", "y"], columns=["a", "b"]
-        ).set_flags(allows_duplicate_labels=False)
-        tm.assert_frame_equal(result, expected)
+        expected = DataFrame([[1, 2], [3, 4]], index=["x", "y"], columns=["a", "b"])
+        tm.assert_frame_equal(result, expected, check_flags=False)
 
 
 class TestSeriesSetAxis(SharedSetAxisTests):

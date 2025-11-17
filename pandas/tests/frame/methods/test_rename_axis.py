@@ -37,8 +37,8 @@ class TestDataFrameRenameAxis:
         result = df.rename_axis("idx", axis=0)
         expected = DataFrame(
             [[1, 2], [3, 4]], index=Index([0, 1], name="idx"), columns=["a", "b"]
-        ).set_flags(allows_duplicate_labels=False)
-        tm.assert_frame_equal(result, expected)
+        )
+        tm.assert_frame_equal(result, expected, check_flags=False)
 
     def test_rename_axis_raises(self):
         # GH#17833
