@@ -928,7 +928,7 @@ class TestNestedToRecord:
         )
         tm.assert_frame_equal(result, expected)
 
-def test_json_normalize_meta_string_validation(self):
+    def test_json_normalize_meta_string_validation(self):
         # GH 63019
         data = [{"a": 1, 12: "meta_value", "nested": [{"b": 2}]}]
 
