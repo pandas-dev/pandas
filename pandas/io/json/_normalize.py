@@ -267,13 +267,13 @@ def _simple_json_normalize(
     return normalized_json_object
 
 
-def _validate_meta(meta: list) -> None:
+def _validate_meta(meta: str | list[str | list[str]]) -> None:
     """
     Validate that meta parameter contains only strings or lists of strings.
 
     Parameters
     ----------
-    meta : list
+    meta : str or list of str or list of list of str
         The meta parameter to validate.
 
     Raises
@@ -281,6 +281,8 @@ def _validate_meta(meta: list) -> None:
     TypeError
         If meta contains elements that are not strings or lists of strings.
     """
+    if isinstance(meta, str):
+        return
     for item in meta:
         if isinstance(item, list):
             for subitem in item:
