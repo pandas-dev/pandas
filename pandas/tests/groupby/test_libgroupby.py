@@ -337,20 +337,28 @@ def test_cython_group_sum_Inf_at_beginning_and_end(values, out):
         (np.finfo(np.float64).max, [[np.inf]]),
         (np.finfo(np.float64).min, [[-np.inf]]),
         (
-            np.complex128(np.finfo(np.float64).min, np.finfo(np.float64).max),
-            [[np.complex128(-np.inf, np.inf)]],
+            np.complex128(np.finfo(np.float64).min + np.finfo(np.float64).max * 1j),
+            [[complex(-np.inf, np.inf)]],
         ),
         (
-            np.complex128(np.finfo(np.float64).max, np.finfo(np.float64).min),
-            [[np.complex128(np.inf, -np.inf)]],
+            np.complex128(np.finfo(np.float64).max + np.finfo(np.float64).min * 1j),
+            [[complex(np.inf, -np.inf)]],
         ),
         (
-            np.complex128(np.finfo(np.float64).max, np.finfo(np.float64).max),
-            [[np.complex128(np.inf, np.inf)]],
+            np.complex128(np.finfo(np.float64).max + np.finfo(np.float64).max * 1j),
+            [[complex(np.inf, np.inf)]],
         ),
         (
-            np.complex128(np.finfo(np.float64).min, np.finfo(np.float64).min),
-            [[np.complex128(-np.inf, -np.inf)]],
+            np.complex128(np.finfo(np.float64).min + np.finfo(np.float64).min * 1j),
+            [[complex(-np.inf, -np.inf)]],
+        ),
+        (
+            np.complex128(3.0 + np.finfo(np.float64).min * 1j),
+            [[complex(9.0, -np.inf)]],
+        ),
+        (
+            np.complex128(np.finfo(np.float64).max + 3 * 1j),
+            [[complex(np.inf, 9.0)]],
         ),
     ],
 )
