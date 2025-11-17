@@ -1166,7 +1166,7 @@ def _normalize(
     elif margins is True:
         # keep index and column of pivoted table
         if table.empty:
-            raise ValueError("Can't get margins since the result dataframe is empty ")
+            raise ValueError("Can't get margins since the result dataframe is empty")
 
         table_index = table.index
         table_columns = table.columns
