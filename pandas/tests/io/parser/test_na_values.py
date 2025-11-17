@@ -502,7 +502,7 @@ def test_na_values_scalar(all_parsers, na_values, row_data):
         msg = "The pyarrow engine doesn't support passing a dict for na_values"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(StringIO(data), names=names, na_values=na_values)
-        return 
+        return
     elif parser.engine == "pyarrow":
         msg = "The 'pyarrow' engine requires all na_values to be strings"
         with pytest.raises(TypeError, match=msg):
