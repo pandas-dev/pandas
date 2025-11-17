@@ -31,7 +31,7 @@ import pandas._testing as tm
 from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
-from pandas.tests.arrays.string_.test_string import string_dtype_highest_priority
+from pandas.tests.arithmetic.test_string import string_dtype_highest_priority
 from pandas.tests.extension import base
 
 
@@ -168,6 +168,25 @@ class TestStringArray(base.ExtensionTests):
         result = data.fillna(valid)
         assert result is not data
         tm.assert_extension_array_equal(result, data)
+
+    def test_fillna_readonly(self, data_missing):
+        data = data_missing.copy()
+        data._readonly = True
+
+        # by default fillna(copy=True), then this works fine
+        result = data.fillna(data_missing[1])
+        assert result[0] == data_missing[1]
+        tm.assert_extension_array_equal(data, data_missing)
+
+        # fillna(copy=False) is generally not honored by Arrow-backed array,
+        # but always returns new data -> same result as above
+        if data.dtype.storage == "pyarrow":
+            result = data.fillna(data_missing[1])
+            assert result[0] == data_missing[1]
+        else:
+            with pytest.raises(ValueError, match="Cannot modify read-only array"):
+                data.fillna(data_missing[1], copy=False)
+        tm.assert_extension_array_equal(data, data_missing)
 
     def _get_expected_exception(
         self, op_name: str, obj, other

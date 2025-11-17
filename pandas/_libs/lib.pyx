@@ -322,7 +322,7 @@ def item_from_zerodim(val: object) -> object:
     >>> item_from_zerodim(np.array([1]))
     array([1])
     """
-    if cnp.PyArray_IsZeroDim(val):
+    if cnp.PyArray_IsZeroDim(val) and cnp.PyArray_CheckExact(val):
         return cnp.PyArray_ToScalar(cnp.PyArray_DATA(val), val)
     return val
 
@@ -655,16 +655,17 @@ def is_range_indexer(const int6432_t[:] left, Py_ssize_t n) -> bool:
     """
     cdef:
         Py_ssize_t i
+        bint ret = True
 
     if left.size != n:
         return False
 
-    for i in range(n):
-
-        if left[i] != i:
-            return False
-
-    return True
+    with nogil:
+        for i in range(n):
+            if left[i] != i:
+                ret = False
+                break
+    return ret
 
 
 @cython.wraparound(False)
@@ -676,6 +677,7 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     cdef:
         Py_ssize_t i, n = len(sequence)
         int6432_t first_element
+        bint ret = True
 
     if step == 0:
         return False
@@ -683,10 +685,12 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
         return True
 
     first_element = sequence[0]
-    for i in range(1, n):
-        if sequence[i] != first_element + i * step:
-            return False
-    return True
+    with nogil:
+        for i in range(1, n):
+            if sequence[i] != first_element + i * step:
+                ret = False
+                break
+    return ret
 
 
 ctypedef fused ndarr_object:
@@ -1386,6 +1390,7 @@ cdef class Seen:
         bint nan_             # seen_np.nan
         bint uint_            # seen_uint (unsigned integer)
         bint sint_            # seen_sint (signed integer)
+        bint overflow_        # seen_overflow
         bint float_           # seen_float
         bint object_          # seen_object
         bint complex_         # seen_complex
@@ -1414,6 +1419,7 @@ cdef class Seen:
         self.nan_ = False
         self.uint_ = False
         self.sint_ = False
+        self.overflow_ = False
         self.float_ = False
         self.object_ = False
         self.complex_ = False
@@ -2379,6 +2385,9 @@ def maybe_convert_numeric(
         ndarray[uint64_t, ndim=1] uints = cnp.PyArray_EMPTY(
             1, values.shape, cnp.NPY_UINT64, 0
         )
+        ndarray[object, ndim=1] pyints = cnp.PyArray_EMPTY(
+            1, values.shape, cnp.NPY_OBJECT, 0
+        )
         ndarray[uint8_t, ndim=1] bools = cnp.PyArray_EMPTY(
             1, values.shape, cnp.NPY_UINT8, 0
         )
@@ -2421,18 +2430,24 @@ def maybe_convert_numeric(
 
             val = int(val)
             seen.saw_int(val)
+            pyints[i] = val
 
             if val >= 0:
                 if val <= oUINT64_MAX:
                     uints[i] = val
-                else:
+                elif seen.coerce_numeric:
                     seen.float_ = True
+                else:
+                    seen.overflow_ = True
 
             if oINT64_MIN <= val <= oINT64_MAX:
                 ints[i] = val
 
             if val < oINT64_MIN or (seen.sint_ and seen.uint_):
-                seen.float_ = True
+                if seen.coerce_numeric:
+                    seen.float_ = True
+                else:
+                    seen.overflow_ = True
 
         elif util.is_bool_object(val):
             floats[i] = uints[i] = ints[i] = bools[i] = val
@@ -2476,6 +2491,7 @@ def maybe_convert_numeric(
 
                 if maybe_int:
                     as_int = int(val)
+                    pyints[i] = as_int
 
                     if as_int in na_values:
                         mask[i] = 1
@@ -2490,7 +2506,7 @@ def maybe_convert_numeric(
                             if seen.coerce_numeric:
                                 seen.float_ = True
                             else:
-                                raise ValueError("Integer out of range.")
+                                seen.overflow_ = True
                         else:
                             if as_int >= 0:
                                 uints[i] = as_int
@@ -2529,11 +2545,15 @@ def maybe_convert_numeric(
         return (floats, None)
     elif seen.int_:
         if seen.null_ and convert_to_masked_nullable:
-            if seen.uint_:
+            if seen.overflow_:
+                return (pyints, mask.view(np.bool_))
+            elif seen.uint_:
                 return (uints, mask.view(np.bool_))
             else:
                 return (ints, mask.view(np.bool_))
-        if seen.uint_:
+        if seen.overflow_:
+            return (pyints, None)
+        elif seen.uint_:
             return (uints, None)
         else:
             return (ints, None)
@@ -2573,7 +2593,7 @@ def maybe_convert_objects(ndarray[object] objects,
         Whether to convert numeric entries.
     convert_to_nullable_dtype : bool, default False
         If an array-like object contains only integer or boolean values (and NaN) is
-        encountered, whether to convert and return an Boolean/IntegerArray.
+        encountered, whether to convert and return a Boolean/IntegerArray.
     convert_non_numeric : bool, default False
         Whether to convert datetime, timedelta, period, interval types.
     dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None
@@ -2692,11 +2712,10 @@ def maybe_convert_objects(ndarray[object] objects,
                 break
         elif PyDateTime_Check(val) or cnp.is_datetime64_object(val):
 
-            # if we have an tz's attached then return the objects
+            # if we have a tz's attached then return the objects
             if convert_non_numeric:
                 if getattr(val, "tzinfo", None) is not None:
                     seen.datetimetz_ = True
-                    break
                 else:
                     seen.datetime_ = True
                     try:
@@ -2704,10 +2723,9 @@ def maybe_convert_objects(ndarray[object] objects,
                     except OutOfBoundsDatetime:
                         # e.g. test_out_of_s_bounds_datetime64
                         seen.object_ = True
-                        break
             else:
                 seen.object_ = True
-                break
+            break
         elif is_period_object(val):
             if convert_non_numeric:
                 seen.period_ = True

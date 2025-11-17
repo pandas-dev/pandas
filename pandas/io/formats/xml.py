@@ -91,8 +91,6 @@ class _BaseXMLFormatter:
 
     {compression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     {storage_options}
 
     See also
