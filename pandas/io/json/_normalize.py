@@ -462,7 +462,6 @@ def json_normalize(
     if meta is not None:
         _validate_meta(meta)
 
-
     def _pull_field(
         js: dict[str, Any], spec: list | str, extract_record: bool = False
     ) -> Scalar | Iterable:
