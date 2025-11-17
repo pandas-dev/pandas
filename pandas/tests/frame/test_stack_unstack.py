@@ -2779,3 +2779,56 @@ def test_stack_preserves_na(dtype, na_value, test_multiindex):
         )
     expected = Series(1, index=expected_index)
     tm.assert_series_equal(result, expected)
+
+
+def test_unstack_no_fill_complete_data():
+    df = DataFrame(
+        {"value": [1, 2, 3, 4]},
+        index=MultiIndex.from_product([["A", "B"], ["x", "y"]]),
+    )
+
+    result = df.unstack(level=-1, no_fill=True)
+    expected = DataFrame(
+        [[1, 2], [3, 4]],
+        index=["A", "B"],
+        columns=MultiIndex.from_tuples([("value", "x"), ("value", "y")]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_no_fill_incomplete_data():
+    df = DataFrame(
+        {"value": [1, 2, 3]},
+        index=MultiIndex.from_tuples([("A", "x"), ("A", "y"), ("B", "x")]),
+    )
+
+    # Should raise ValueError when no_fill=True and filling is required
+    msg = "Cannot unstack with no_fill=True because filling is required"
+    with pytest.raises(ValueError, match=msg):
+        df.unstack(level=-1, no_fill=True)
+
+
+def test_unstack_no_fill_default_behavior():
+    df = DataFrame(
+        {"value": [1, 2, 3]},
+        index=MultiIndex.from_tuples([("A", "x"), ("A", "y"), ("B", "x")]),
+    )
+
+    result = df.unstack(level=-1, no_fill=False)
+    expected = DataFrame(
+        [[1.0, 2.0], [3.0, np.nan]],
+        index=["A", "B"],
+        columns=MultiIndex.from_tuples([("value", "x"), ("value", "y")]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_no_fill_with_fill_value():
+    df = DataFrame(
+        {"value": [1, 2, 3]},
+        index=MultiIndex.from_tuples([("A", "x"), ("A", "y"), ("B", "x")]),
+    )
+
+    msg = "Cannot unstack with no_fill=True because filling is required"
+    with pytest.raises(ValueError, match=msg):
+        df.unstack(level=-1, fill_value=0, no_fill=True)
