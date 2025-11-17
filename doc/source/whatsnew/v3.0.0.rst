@@ -1032,13 +1032,13 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 - Bug in :class:`Categorical` where constructing from a pandas :class:`Series` or :class:`Index` with ``dtype='object'`` did not preserve the categories' dtype as ``object``; now the ``categories.dtype`` is preserved as ``object`` for these cases, while numpy arrays and Python sequences with ``dtype='object'`` continue to infer the most specific dtype (for example, ``str`` if all elements are strings) (:issue:`61778`)
+- Bug in :class:`pandas.Categorical` displaying string categories without quotes when using "string" dtype (:issue:`63045`)
 - Bug in :func:`Series.apply` where ``nan`` was ignored for :class:`CategoricalDtype` (:issue:`59938`)
 - Bug in :func:`bdate_range` raising ``ValueError`` with frequency ``freq="cbh"`` (:issue:`62849`)
 - Bug in :func:`testing.assert_index_equal` raising ``TypeError`` instead of ``AssertionError`` for incomparable ``CategoricalIndex`` when ``check_categorical=True`` and ``exact=False`` (:issue:`61935`)
 - Bug in :meth:`Categorical.astype` where ``copy=False`` would still trigger a copy of the codes (:issue:`62000`)
 - Bug in :meth:`DataFrame.pivot` and :meth:`DataFrame.set_index` raising an ``ArrowNotImplementedError`` for columns with pyarrow dictionary dtype (:issue:`53051`)
 - Bug in :meth:`Series.convert_dtypes` with ``dtype_backend="pyarrow"`` where empty :class:`CategoricalDtype` :class:`Series` raised an error or got converted to ``null[pyarrow]`` (:issue:`59934`)
--
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -1132,7 +1132,6 @@ Interval
 
 Indexing
 ^^^^^^^^
-- Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)
 - Bug in :meth:`DataFrame.__getitem__` when slicing a :class:`DataFrame` with many rows raised an ``OverflowError`` (:issue:`59531`)
 - Bug in :meth:`DataFrame.__setitem__` on an empty :class:`DataFrame` with a tuple corrupting the frame (:issue:`54385`)
 - Bug in :meth:`DataFrame.from_records` throwing a ``ValueError`` when passed an empty list in ``index`` (:issue:`58594`)
@@ -1260,6 +1259,7 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.skew` incorrectly computing skewness for windows following outliers due to numerical instability. The calculation now properly handles catastrophic cancellation by recomputing affected windows (:issue:`47461`)
 - Bug in :meth:`Series.resample` could raise when the date range ended shortly before a non-existent time. (:issue:`58380`)
 - Bug in :meth:`Series.resample` raising error when resampling non-nanosecond resolutions out of bounds for nanosecond precision (:issue:`57427`)
+- Bug in :meth:`Series.rolling.var` and :meth:`Series.rolling.std` computing incorrect results due to numerical instability. (:issue:`47721`, :issue:`52407`, :issue:`54518`, :issue:`55343`)
 
 Reshaping
 ^^^^^^^^^
@@ -1299,6 +1299,7 @@ ExtensionArray
 - Bug in :class:`Categorical` when constructing with an :class:`Index` with :class:`ArrowDtype` (:issue:`60563`)
 - Bug in :meth:`.arrays.ArrowExtensionArray.__setitem__` which caused wrong behavior when using an integer array with repeated values as a key (:issue:`58530`)
 - Bug in :meth:`ArrowExtensionArray.factorize` where NA values were dropped when input was dictionary-encoded even when dropna was set to False(:issue:`60567`)
+- Bug in :meth:`NDArrayBackedExtensionArray.take` which produced arrays whose dtypes didn't match their underlying data, when called with integer arrays (:issue:`62448`)
 - Bug in :meth:`api.types.is_datetime64_any_dtype` where a custom :class:`ExtensionDtype` would return ``False`` for array-likes (:issue:`57055`)
 - Bug in comparison between object with :class:`ArrowDtype` and incompatible-dtyped (e.g. string vs bool) incorrectly raising instead of returning all-``False`` (for ``==``) or all-``True`` (for ``!=``) (:issue:`59505`)
 - Bug in constructing pandas data structures when passing into ``dtype`` a string of the type followed by ``[pyarrow]`` while PyArrow is not installed would raise ``NameError`` rather than ``ImportError`` (:issue:`57928`)

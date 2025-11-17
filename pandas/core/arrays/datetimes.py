@@ -1205,7 +1205,7 @@ default 'raise'
         ----------
         freq : str or Period, optional
             One of pandas' :ref:`period aliases <timeseries.period_aliases>`
-            or an Period object. Will be inferred by default.
+            or a Period object. Will be inferred by default.
 
         Returns
         -------
@@ -2287,7 +2287,7 @@ default 'raise'
         month[testarr] += 12
         return (
             day
-            + np.fix((153 * month - 457) / 5)
+            + np.trunc((153 * month - 457) / 5)
             + 365 * year
             + np.floor(year / 4)
             - np.floor(year / 100)
