@@ -114,12 +114,10 @@ class TestDataFrameSetAxis(SharedSetAxisTests):
 
     def test_set_axis_with_allows_duplicate_labels_false(self):
         # GH#44958
-        # Test that set_axis() works correctly when allows_duplicate_labels=False
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"]).set_flags(
             allows_duplicate_labels=False
         )
 
-        # Test setting index with allows_duplicate_labels=False
         result = df.set_axis(labels=["x", "y"], axis=0)
         expected = DataFrame(
             [[1, 2], [3, 4]], index=["x", "y"], columns=["a", "b"]

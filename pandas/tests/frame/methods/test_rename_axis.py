@@ -30,12 +30,10 @@ class TestDataFrameRenameAxis:
 
     def test_rename_axis_with_allows_duplicate_labels_false(self):
         # GH#44958
-        # Test that rename_axis() works correctly when allows_duplicate_labels=False
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"]).set_flags(
             allows_duplicate_labels=False
         )
 
-        # Test renaming index (axis=0) with allows_duplicate_labels=False
         result = df.rename_axis("idx", axis=0)
         expected = DataFrame(
             [[1, 2], [3, 4]], index=Index([0, 1], name="idx"), columns=["a", "b"]
