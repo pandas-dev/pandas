@@ -291,7 +291,7 @@ class NumericArray(BaseMaskedArray):
 
     @classmethod
     def _coerce_to_array(
-        cls, value, *, dtype: DtypeObj, copy: bool = False
+        cls, value, dtype: DtypeObj, copy: bool = False
     ) -> tuple[np.ndarray, np.ndarray]:
         dtype_cls = cls._dtype_cls
         values, mask = _coerce_to_data_and_mask(value, dtype, copy, dtype_cls)
