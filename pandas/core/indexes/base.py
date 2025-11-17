@@ -2868,7 +2868,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        Generate an pandas.Index with duplicate values.
+        Generate a pandas.Index with duplicate values.
 
         >>> idx = pd.Index(["llama", "cow", "llama", "beetle", "llama", "hippo"])
 
