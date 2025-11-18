@@ -16,8 +16,7 @@ if TYPE_CHECKING:
 
 def transform_ord_cat_cols_to_coded_cols(df: DataFrame) -> DataFrame:
     """
-    any ordered categorical columns are transformed to the respective
-    categorical codes while other columns remain untouched
+    Replace ordered categoricals with their codes, making a shallow copy if necessary.
     """
 
     result = df

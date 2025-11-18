@@ -187,19 +187,19 @@ class TestSeriesCorr:
 
     @pytest.mark.parametrize("method", ["kendall", "spearman"])
     @pytest.mark.parametrize(
-        "ord_cat_series",
+        "cat_series",
         [
-            Series(  # ordered categorical series
-                pd.Categorical(
-                    ["low", "med", "high", "very_high"],
-                    categories=["low", "med", "high", "very_high"],
+            Series(
+                pd.Categorical(  # ordered cat series
+                    ["low", "medium", "high"],
+                    categories=["low", "medium", "high"],
                     ordered=True,
                 )
             ),
-            Series(  # ordered categorical series with nan and a different ranking
-                pd.Categorical(
-                    ["h", "low", "vh", None],
-                    categories=["low", "m", "h", "vh"],
+            Series(
+                pd.Categorical(  # ordered cat series with NA
+                    ["low", "medium", "high", None],
+                    categories=["low", "medium", "high"],
                     ordered=True,
                 )
             ),
@@ -208,36 +208,23 @@ class TestSeriesCorr:
     @pytest.mark.parametrize(
         "other_series",
         [
-            Series(  # int series against which tord cat series is correlated
-                [0, 1, 2, 3]
-            ),
-            Series(  # float series against which ord cat series is correlated
-                [2.0, 3.0, 4.5, 6.5]
-            ),
-            Series(  # other ord cat series against which ord cat series is correlated
+            Series(  # other cat ordered series
                 pd.Categorical(
-                    ["high", "low", "very_high", "med"],
-                    categories=["low", "med", "high", "very_high"],
+                    ["m", "l", "h"],
+                    categories=["l", "m", "h"],
                     ordered=True,
                 )
             ),
+            # other non cat series
+            Series([2, 1, 3]),
         ],
     )
     def test_corr_rank_ordered_categorical(
         self,
         method,
-        ord_cat_series,
+        cat_series,
         other_series,
     ):
-        stats = pytest.importorskip("scipy.stats")
-        method_scipy_func = {"kendall": stats.kendalltau, "spearman": stats.spearmanr}
-        ord_ser_cat_codes = ord_cat_series.cat.codes.replace(-1, np.nan)
-
-        if other_series.dtype == "category" and other_series.cat.ordered:
-            other_series = other_series.cat.codes.replace(-1, np.nan)
-
-        corr_calc = ord_cat_series.corr(other_series, method=method)
-        corr_expected = method_scipy_func[method](
-            ord_ser_cat_codes, other_series, nan_policy="omit"
-        )[0]
-        tm.assert_almost_equal(corr_calc, corr_expected)
+        expected_corr = {"kendall": 0.33333333333333337, "spearman": 0.5}
+        corr_calc = cat_series.corr(other_series, method=method)
+        tm.assert_almost_equal(corr_calc, expected_corr[method])

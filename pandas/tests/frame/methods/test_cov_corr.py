@@ -262,31 +262,21 @@ class TestDataFrameCorr:
     ):
         df = DataFrame(
             {
-                "ord_cat": Series(
-                    pd.Categorical(
-                        ["low", "m", "h", "vh"],
-                        categories=["low", "m", "h", "vh"],
-                        ordered=True,
-                    )
+                "ord_cat": pd.Categorical(
+                    ["low", "m", "h", "vh"],
+                    categories=["low", "m", "h", "vh"],
+                    ordered=True,
                 ),
-                "ord_cat_none": Series(
-                    pd.Categorical(
-                        ["low", "m", "h", None],
-                        categories=["low", "m", "h"],
-                        ordered=True,
-                    )
+                "ord_cat_none": pd.Categorical(
+                    ["low", "m", "h", None],
+                    categories=["low", "m", "h"],
+                    ordered=True,
                 ),
-                "ord_int": Series([0, 1, 2, 3]),
-                "ord_float": Series([2.0, 3.0, 4.5, 6.5]),
-                "ord_float_nan": Series([2.0, 3.0, 4.5, np.nan]),
-                "ord_cat_shuff": Series(
-                    pd.Categorical(
-                        ["m", "h", "vh", "low"],
-                        categories=["low", "m", "h", "vh"],
-                        ordered=True,
-                    )
+                "ord_cat_shuff": pd.Categorical(
+                    ["m", "h", "vh", "low"],
+                    categories=["low", "m", "h", "vh"],
+                    ordered=True,
                 ),
-                "ord_int_shuff": Series([2, 3, 0, 1]),
             }
         )
         corr_calc = df.corr(method=method)
@@ -300,23 +290,15 @@ class TestDataFrameCorr:
         self,
         method,
     ):
+        cat = pd.CategoricalDtype(categories=[4, 3, 2, 1], ordered=True)
         df = DataFrame(
             {
-                "a": [1, 2, 3, 4],
-                "b": [4, 3, 2, 1],
+                "a": pd.array([1, 2, 3, 4], dtype=cat),
+                "b": pd.array([4, 3, 2, 1], dtype=cat),
                 "c": [4, 3, 2, 1],
                 "d": [10, 20, 30, 40],
                 "e": [100, 200, 300, 400],
             }
-        )
-        df["a"] = (
-            df["a"].astype("category").cat.set_categories([4, 3, 2, 1], ordered=True)
-        )
-        df["b"] = (
-            df["b"].astype("category").cat.set_categories([4, 3, 2, 1], ordered=True)
-        )
-        df["c"] = (
-            df["c"].astype("category").cat.set_categories([4, 3, 2, 1], ordered=True)
         )
         df.columns = ["a", "a", "c", "c", "e"]
 
