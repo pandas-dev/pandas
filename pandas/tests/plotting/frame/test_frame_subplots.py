@@ -130,9 +130,9 @@ class TestDataFramePlotsSubplots:
         data = {
             "numeric": np.array([1, 2, 5]),
             "timedelta": [
-                pd.Timedelta(-10, unit="s"),
-                pd.Timedelta(10, unit="m"),
-                pd.Timedelta(10, unit="h"),
+                pd.Timedelta(-10, input_unit="s"),
+                pd.Timedelta(10, input_unit="m"),
+                pd.Timedelta(10, input_unit="h"),
             ],
             "datetime_no_tz": [
                 pd.to_datetime("2017-08-01 00:00:00"),

@@ -502,7 +502,7 @@ def test_groupby_resample_empty_sum_string(
     result = gbrs.sum(min_count=min_count)
 
     index = pd.MultiIndex(
-        levels=[[1, 2, 3], [pd.to_datetime("2000-01-01", unit="ns")]],
+        levels=[[1, 2, 3], [pd.to_datetime("2000-01-01", input_unit="ns")]],
         codes=[[0, 1, 2], [0, 0, 0]],
         names=["A", None],
     )
