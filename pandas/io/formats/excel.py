@@ -949,26 +949,41 @@ class ExcelFormatter:
             )
 
         if self.autofilter:
+            # default offset for header row
+            startrowsoffset = 1
+            endrowsoffset = 1
+
             if num_cols == 0:
                 indexoffset = 0
             elif self.index:
+                indexoffset = 0
                 if isinstance(self.df.index, MultiIndex):
-                    indexoffset = self.df.index.nlevels - 1
                     if self.merge_cells:
-                        warnings.warn(
-                            "Excel filters merged cells by showing only the first row."
-                            "'autofiler' and 'merge_cells' should not "
-                            "be used simultaneously.",
-                            UserWarning,
-                            stacklevel=find_stack_level(),
+                        raise ValueError(
+                            "Excel filters merged cells by showing only the first row. "
+                            "'autofilter' and 'merge_cells' cannot "
+                            "be used simultaneously."
                         )
-                else:
-                    indexoffset = 0
+                    else:
+                        indexoffset = self.df.index.nlevels - 1
+
+                if isinstance(self.columns, MultiIndex):
+                    if self.merge_cells:
+                        raise ValueError(
+                            "Excel filters merged cells by showing only the first row. "
+                            "'autofilter' and 'merge_cells' cannot "
+                            "be used simultaneously."
+                        )
+                    else:
+                        startrowsoffset = self.columns.nlevels
+                        # multindex columns add a blank row between header and data
+                        endrowsoffset = self.columns.nlevels + 1
             else:
+                # no index column
                 indexoffset = -1
-            start = f"{self._num2excel(startcol)}{startrow + 1}"
+            start = f"{self._num2excel(startcol)}{startrow + startrowsoffset}"
             autofilter_end_column = self._num2excel(startcol + num_cols + indexoffset)
-            end = f"{autofilter_end_column}{startrow + num_rows + 1}"
+            end = f"{autofilter_end_column}{startrow + num_rows + endrowsoffset}"
             autofilter_range = f"{start}:{end}"
         else:
             autofilter_range = None
