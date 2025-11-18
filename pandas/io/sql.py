@@ -751,6 +751,7 @@ def to_sql(
     dtype: DtypeArg | None = None,
     method: Literal["multi"] | Callable | None = None,
     engine: str = "auto",
+    nullable: dict[str, bool] | None = None,
     **engine_kwargs,
 ) -> int | None:
     """
@@ -808,6 +809,25 @@ def to_sql(
         SQL engine library to use. If 'auto', then the option
         ``io.sql.engine`` is used. The default ``io.sql.engine``
         behavior is 'sqlalchemy'
+    nullable : dict, optional
+        Specifies whether columns should allow NULL values. If a dictionary is used,
+        the keys should be the column names and the values should be boolean values.
+        ``True`` indicates the column is nullable (can contain NULL),
+        ``False`` indicates the column is NOT NULL.
+
+        For SQLAlchemy connections: If a column is not specified in the dictionary,
+        the default behavior is typically nullable=True.
+
+        For ADBC connections: The PyArrow table schema is modified to set the
+        nullability constraint. If data contains NULL values for a column marked
+        as ``nullable=False``, a ValueError will be raised.
+
+        This parameter only applies when creating a new table or replacing an existing
+        table (i.e., when ``if_exists='fail'`` and table doesn't exist, ``if_exists='replace'``).
+        When ``if_exists='append'``, this parameter is ignored as the table schema
+        already exists.
+
+        .. versionadded:: 3.0.0
 
     **engine_kwargs
         Any additional kwargs are passed to the engine.
@@ -849,6 +869,7 @@ def to_sql(
             dtype=dtype,
             method=method,
             engine=engine,
+            nullable=nullable,
             **engine_kwargs,
         )
 
@@ -944,6 +965,7 @@ class SQLTable(PandasObject):
         schema=None,
         keys=None,
         dtype: DtypeArg | None = None,
+        nullable: dict[str, bool] | None = None,
     ) -> None:
         self.name = name
         self.pd_sql = pandas_sql_engine
@@ -954,6 +976,7 @@ class SQLTable(PandasObject):
         self.if_exists = if_exists
         self.keys = keys
         self.dtype = dtype
+        self.nullable = nullable
 
         if frame is not None:
             # We want to initialize based on a dataframe
@@ -1267,10 +1290,15 @@ class SQLTable(PandasObject):
 
         column_names_and_types = self._get_column_names_and_types(self._sqlalchemy_type)
 
-        columns: list[Any] = [
-            Column(name, typ, index=is_index)
-            for name, typ, is_index in column_names_and_types
-        ]
+        columns: list[Any] = []
+        for name, typ, is_index in column_names_and_types:
+            if self.nullable is not None and name in self.nullable:
+                nullable_value = self.nullable[name]
+                columns.append(
+                    Column(name, typ, index=is_index, nullable=nullable_value)
+                )
+            else:
+                columns.append(Column(name, typ, index=is_index))
 
         if self.keys is not None:
             if not is_list_like(self.keys):
@@ -1504,6 +1532,7 @@ class PandasSQL(PandasObject, ABC):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
+        nullable: dict[str, bool] | None = None,
         **engine_kwargs,
     ) -> int | None:
         pass
@@ -1893,6 +1922,7 @@ class SQLDatabase(PandasSQL):
         index_label=None,
         schema=None,
         dtype: DtypeArg | None = None,
+        nullable: dict[str, bool] | None = None,
     ) -> SQLTable:
         """
         Prepares table in the database for data insertion. Creates it if needed, etc.
@@ -1928,6 +1958,7 @@ class SQLDatabase(PandasSQL):
             index_label=index_label,
             schema=schema,
             dtype=dtype,
+            nullable=nullable,
         )
         table.create()
         return table
@@ -1973,6 +2004,7 @@ class SQLDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
+        nullable: dict[str, bool] | None = None,
         **engine_kwargs,
     ) -> int | None:
         """
@@ -2032,6 +2064,7 @@ class SQLDatabase(PandasSQL):
             index_label=index_label,
             schema=schema,
             dtype=dtype,
+            nullable=nullable,
         )
 
         total_inserted = sql_engine.insert_records(
@@ -2333,6 +2366,7 @@ class ADBCDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
+        nullable: dict[str, bool] | None = None,
         **engine_kwargs,
     ) -> int | None:
         """
@@ -2362,6 +2396,15 @@ class ADBCDatabase(PandasSQL):
             Raises NotImplementedError
         method : {None', 'multi', callable}, default None
             Raises NotImplementedError
+        nullable : dict, optional
+            Specifies whether columns should allow NULL values. If a dictionary is used,
+            the keys should be column names and the values should be boolean values.
+            ``True`` indicates the column is nullable (can contain NULL),
+            ``False`` indicates the column is NOT NULL.
+            Only applies when creating or replacing tables (``if_exists='fail'`` or
+            ``if_exists='replace'``). When ``if_exists='append'``, this parameter is
+            ignored. If the data contains NULL values for a column marked as
+            ``nullable=False``, a ValueError will be raised.
         engine : {'auto', 'sqlalchemy'}, default 'auto'
             Raises NotImplementedError if not set to 'auto'
         """
@@ -2409,6 +2452,27 @@ class ADBCDatabase(PandasSQL):
             tbl = pa.Table.from_pandas(frame, preserve_index=index)
         except pa.ArrowNotImplementedError as exc:
             raise ValueError("datatypes not supported") from exc
+
+        if nullable and mode == "create":
+            current_schema = tbl.schema
+            new_fields = []
+
+            for field in current_schema:
+                if field.name in nullable:
+                    if not nullable[field.name]:
+                        col_data = tbl.column(field.name)
+                        if col_data.null_count > 0:
+                            raise ValueError(
+                                f"Column '{field.name}' contains {col_data.null_count} "
+                                f"null value(s) but nullable=False was specified"
+                            )
+                    new_field = field.with_nullable(nullable[field.name])
+                    new_fields.append(new_field)
+                else:
+                    new_fields.append(field)
+
+            new_schema = pa.schema(new_fields, metadata=current_schema.metadata)
+            tbl = tbl.cast(new_schema)
 
         with self.con.cursor() as cur:
             try:
@@ -2588,9 +2652,13 @@ class SQLiteTable(SQLTable):
         column_names_and_types = self._get_column_names_and_types(self._sql_type_name)
         escape = _get_valid_sqlite_name
 
-        create_tbl_stmts = [
-            escape(cname) + " " + ctype for cname, ctype, _ in column_names_and_types
-        ]
+        create_tbl_stmts = []
+        for cname, ctype, _ in column_names_and_types:
+            col_def = escape(cname) + " " + ctype
+            if self.nullable is not None and cname in self.nullable:
+                if not self.nullable[cname]:
+                    col_def += " NOT NULL"
+            create_tbl_stmts.append(col_def)
 
         if self.keys is not None and len(self.keys):
             if not is_list_like(self.keys):
@@ -2810,6 +2878,7 @@ class SQLiteDatabase(PandasSQL):
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
         engine: str = "auto",
+        nullable: dict[str, bool] | None = None,
         **engine_kwargs,
     ) -> int | None:
         """
@@ -2875,6 +2944,7 @@ class SQLiteDatabase(PandasSQL):
             if_exists=if_exists,
             index_label=index_label,
             dtype=dtype,
+            nullable=nullable,
         )
         table.create()
         return table.insert(chunksize, method)

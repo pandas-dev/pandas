@@ -4398,3 +4398,141 @@ def test_xsqlite_if_exists(sqlite_buildin):
         (5, "E"),
     ]
     drop_table(table_name, sqlite_buildin)
+
+
+@pytest.mark.parametrize("conn", ["sqlite_engine"])
+def test_nullable_column(conn, request):
+    pytest.importorskip("sqlalchemy")
+    from sqlalchemy import text
+
+    conn = request.getfixturevalue(conn)
+
+    df = DataFrame({"A": [1, 2, 3], "B": ["a", "b", "c"], "C": [1.1, 2.2, 3.3]})
+
+    nullable = {"A": False, "B": True}
+
+    df.to_sql(
+        "test_nullable", conn, if_exists="replace", index=False, nullable=nullable
+    )
+
+    result = pd.read_sql(text("PRAGMA table_info(test_nullable)"), conn)
+    a_nullable = result[result["name"] == "A"]["notnull"].iloc[0]
+    b_nullable = result[result["name"] == "B"]["notnull"].iloc[0]
+    c_nullable = result[result["name"] == "C"]["notnull"].iloc[0]
+
+    assert a_nullable == 1  # NOT NULL
+    assert b_nullable == 0  # NULL allowed
+    assert c_nullable == 0  # NULL allowed (default)
+
+    drop_table("test_nullable", conn)
+
+
+@pytest.mark.parametrize("conn", ["sqlite_engine"])
+def test_nullable_with_index(conn, request):
+    pytest.importorskip("sqlalchemy")
+    conn = request.getfixturevalue(conn)
+
+    df = DataFrame(
+        {"A": [1, 2, 3], "B": ["a", "b", "c"]},
+        index=Index([10, 20, 30], name="idx"),
+    )
+
+    nullable = {"idx": False, "A": False}
+
+    df.to_sql(
+        "test_nullable_idx", conn, if_exists="replace", index=True, nullable=nullable
+    )
+
+    result = pd.read_sql("SELECT * FROM test_nullable_idx", conn)
+
+    assert "idx" in result.columns
+    assert "A" in result.columns
+    assert "B" in result.columns
+    assert len(result) == 3
+
+    drop_table("test_nullable_idx", conn)
+
+
+def test_nullable_sqlite_builtin(sqlite_buildin):
+    df = DataFrame({"A": [1, 2, 3], "B": ["x", "y", "z"]})
+    nullable = {"A": False}
+
+    df.to_sql(
+        "test_nullable_sqlite",
+        sqlite_buildin,
+        if_exists="replace",
+        index=False,
+        nullable=nullable,
+    )
+
+    result = pd.read_sql("PRAGMA table_info(test_nullable_sqlite)", sqlite_buildin)
+    a_nullable = result[result["name"] == "A"]["notnull"].iloc[0]
+    b_nullable = result[result["name"] == "B"]["notnull"].iloc[0]
+
+    assert a_nullable == 1  # NOT NULL
+    assert b_nullable == 0  # NULL allowed
+
+    drop_table("test_nullable_sqlite", sqlite_buildin)
+
+
+@pytest.mark.parametrize("conn", adbc_connectable)
+def test_nullable_adbc(conn, request):
+    pytest.importorskip("pyarrow")
+    pytest.importorskip("adbc_driver_manager")
+
+    conn = request.getfixturevalue(conn)
+
+    df = DataFrame({"A": [1, 2, 3], "B": ["x", "y", "z"]})
+    nullable = {"A": False, "B": True}
+
+    df.to_sql(
+        "test_nullable_adbc", conn, if_exists="replace", index=False, nullable=nullable
+    )
+
+    result = pd.read_sql("SELECT * FROM test_nullable_adbc", conn)
+    assert len(result) == 3
+    assert list(result.columns) == ["A", "B"]
+
+    drop_table("test_nullable_adbc", conn)
+
+
+@pytest.mark.parametrize("conn", adbc_connectable)
+def test_nullable_adbc_with_nulls_raises(conn, request):
+    pytest.importorskip("pyarrow")
+    pytest.importorskip("adbc_driver_manager")
+
+    conn = request.getfixturevalue(conn)
+
+    df = DataFrame({"A": [1, None, 3], "B": ["x", "y", "z"]})
+    nullable = {"A": False}  # A has nulls but we say it shouldn't
+
+    msg = "Column 'A' contains 1 null value\\(s\\) but nullable=False was specified"
+    with pytest.raises(ValueError, match=msg):
+        df.to_sql(
+            "test_table", conn, if_exists="replace", index=False, nullable=nullable
+        )
+
+
+@pytest.mark.parametrize("conn", adbc_connectable)
+def test_nullable_adbc_append_ignored(conn, request):
+    pytest.importorskip("pyarrow")
+    pytest.importorskip("adbc_driver_manager")
+
+    conn = request.getfixturevalue(conn)
+
+    df1 = DataFrame({"A": [1, 2], "B": ["x", "y"]})
+    df1.to_sql("test_nullable_append", conn, if_exists="replace", index=False)
+
+    df2 = DataFrame({"A": [3, 4], "B": ["z", "w"]})
+    df2.to_sql(
+        "test_nullable_append",
+        conn,
+        if_exists="append",
+        index=False,
+        nullable={"A": False},
+    )
+
+    result = pd.read_sql("SELECT * FROM test_nullable_append", conn)
+    assert len(result) == 4
+
+    drop_table("test_nullable_append", conn)
