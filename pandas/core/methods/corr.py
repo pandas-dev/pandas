@@ -1,6 +1,15 @@
+"""
+Module for correlation related implementation
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 
-from pandas import DataFrame
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 def transform_ord_cat_cols_to_coded_cols(df: DataFrame) -> DataFrame:
