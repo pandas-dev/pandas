@@ -115,7 +115,6 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
-    CategoricalDtype,
     ExtensionDtype,
 )
 from pandas.core.dtypes.generic import (
@@ -186,6 +185,7 @@ from pandas.core.internals.construction import (
     treat_as_nested,
 )
 from pandas.core.methods import selectn
+from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
@@ -11721,7 +11721,7 @@ class DataFrame(NDFrame, OpsMixin):
         idx = cols.copy()
 
         if method in ("spearman", "kendall"):
-            data = data._transform_ord_cat_cols_to_coded_cols()
+            data = transform_ord_cat_cols_to_coded_cols(data)
 
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
@@ -12012,8 +12012,8 @@ class DataFrame(NDFrame, OpsMixin):
             correl = num / dom
 
         elif method in ["kendall", "spearman"] or callable(method):
-            left = left._transform_ord_cat_cols_to_coded_cols()
-            right = right._transform_ord_cat_cols_to_coded_cols()
+            left = transform_ord_cat_cols_to_coded_cols(left)
+            right = transform_ord_cat_cols_to_coded_cols(right)
 
             def c(x):
                 return nanops.nancorr(x[0], x[1], method=method)
@@ -12044,41 +12044,6 @@ class DataFrame(NDFrame, OpsMixin):
                 )
 
         return correl
-
-    def _transform_ord_cat_cols_to_coded_cols(self) -> DataFrame:
-        """
-        any ordered categorical columns are transformed to the respective
-        categorical codes while other columns remain untouched
-        """
-        categ = self.select_dtypes("category")
-        if len(categ.columns) == 0:
-            return self
-
-        data = self.copy(deep=False)
-        cols_convert = categ.loc[:, categ.agg(lambda x: x.cat.ordered)].columns.unique()
-        ser_generating_cols = [
-            col for col in cols_convert if isinstance(data[col], Series)
-        ]
-        df_generating_cols = [
-            col for col in cols_convert if isinstance(data[col], DataFrame)
-        ]
-
-        if not ser_generating_cols and not df_generating_cols:
-            return self
-
-        if ser_generating_cols:
-            data[ser_generating_cols] = data[ser_generating_cols].apply(
-                lambda x: x.cat.codes.replace(-1, np.nan)
-            )
-
-        for df_col in df_generating_cols:
-            data[df_col] = data[df_col].apply(
-                lambda x: x.cat.codes.replace(-1, np.nan)
-                if isinstance(x.dtype, CategoricalDtype) and bool(x.dtype.ordered)
-                else x
-            )
-
-        return data
 
     # ----------------------------------------------------------------------
     # ndarray-like stats methods
