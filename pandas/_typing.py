@@ -533,4 +533,44 @@ SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])
 
 SliceType: TypeAlias = Hashable | None
 
+
+# Arrow PyCapsule Interface
+# from https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html#protocol-typehints
+
+
+class ArrowArrayExportable(Protocol):
+    """
+    An object with an ``__arrow_c_array__`` method.
+
+    This method indicates the object is an Arrow-compatible object implementing
+    the `Arrow PyCapsule Protocol`_ (exposing the `Arrow C Data Interface`_ in
+    Python), enabling zero-copy Arrow data interchange across libraries.
+
+    .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
+    .. _Arrow C Data Interface: https://arrow.apache.org/docs/format/CDataInterface.html
+
+    """
+
+    def __arrow_c_array__(
+        self, requested_schema: object | None = None
+    ) -> tuple[object, object]: ...
+
+
+class ArrowStreamExportable(Protocol):
+    """
+    An object with an ``__arrow_c_stream__`` method.
+
+    This method indicates the object is an Arrow-compatible object implementing
+    the `Arrow PyCapsule Protocol`_ (exposing the `Arrow C Data Interface`_
+    for streams in Python), enabling zero-copy Arrow data interchange across
+    libraries.
+
+    .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
+    .. _Arrow C Stream Interface: https://arrow.apache.org/docs/format/CStreamInterface.html
+
+    """
+
+    def __arrow_c_stream__(self, requested_schema: object | None = None) -> object: ...
+
+
 __all__ = ["type_t"]
