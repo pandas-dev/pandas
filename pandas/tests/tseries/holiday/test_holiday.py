@@ -440,7 +440,7 @@ def test_holiday_with_multiple_exclusions():
             Timestamp("2064-01-01"),
             Timestamp("2065-01-01"),
         ],
-        dtype="datetime64[ns]",
+        dtype="datetime64[s]",
     )
     tm.assert_index_equal(result, expected)
 

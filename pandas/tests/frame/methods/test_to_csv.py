@@ -1194,7 +1194,7 @@ class TestDataFrameToCSV:
     )
     def test_to_csv_with_dst_transitions_with_pickle(self, start, end, temp_file):
         # GH11619
-        idx = date_range(start, end, freq="h", tz="Europe/Paris")
+        idx = date_range(start, end, freq="h", tz="Europe/Paris", unit="ns")
         idx = idx._with_freq(None)  # freq does not round-trip
         idx._data._freq = None  # otherwise there is trouble on unpickle
         df = DataFrame({"values": 1, "idx": idx}, index=idx)

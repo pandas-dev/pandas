@@ -25,6 +25,7 @@ from pandas._libs.tslibs import (
     timezones,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.offsets import prefix_mapping
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
@@ -883,7 +884,7 @@ def date_range(
     name: Hashable | None = None,
     inclusive: IntervalClosedType = "both",
     *,
-    unit: TimeUnit = "ns",
+    unit: TimeUnit | None = None,
     **kwargs,
 ) -> DatetimeIndex:
     """
@@ -922,8 +923,9 @@ def date_range(
         Name of the resulting DatetimeIndex.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
-    unit : {'s', 'ms', 'us', 'ns'}, default 'ns'
+    unit : {'s', 'ms', 'us', 'ns', None}, default None
         Specify the desired resolution of the result.
+        If not specified, this is inferred from the 'start', 'end', and 'freq'
 
         .. versionadded:: 2.0.0
     **kwargs
@@ -1062,6 +1064,37 @@ def date_range(
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
+
+    if unit is None:
+        # Infer the unit based on the inputs
+
+        if start is not None and end is not None:
+            start = Timestamp(start)
+            end = Timestamp(end)
+            if abbrev_to_npy_unit(start.unit) > abbrev_to_npy_unit(end.unit):
+                unit = start.unit
+            else:
+                unit = end.unit
+        elif start is not None:
+            start = Timestamp(start)
+            unit = start.unit
+        else:
+            end = Timestamp(end)
+            unit = end.unit
+
+        # Last we need to watch out for cases where the 'freq' implies a higher
+        #  unit than either start or end
+        if freq is not None:
+            freq = to_offset(freq)
+            creso = abbrev_to_npy_unit(unit)
+            if isinstance(freq, Tick):
+                if freq._creso > creso:
+                    unit = freq.base.freqstr
+            elif hasattr(freq, "offset") and freq.offset is not None:
+                # e.g. BDay with an offset
+                td = Timedelta(freq.offset)
+                if abbrev_to_npy_unit(td.unit) > creso:
+                    unit = td.unit
 
     dtarr = DatetimeArray._generate_range(
         start=start,

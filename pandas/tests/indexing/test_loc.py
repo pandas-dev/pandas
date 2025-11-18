@@ -868,7 +868,7 @@ class TestLocBaseIndependent:
         # multiple setting with frame on rhs (with M8)
         df = DataFrame(
             {
-                "date": date_range("2000-01-01", "2000-01-5"),
+                "date": date_range("2000-01-01", "2000-01-5", unit="ns"),
                 "val": Series(range(5), dtype=np.int64),
             }
         )
@@ -1844,7 +1844,7 @@ class TestLocWithMultiIndex:
         # GH 16710
         df = DataFrame(
             {"a": range(10), "b": range(10)},
-            index=date_range("2010-01-01", "2010-01-10"),
+            index=date_range("2010-01-01", "2010-01-10", unit="ns"),
         )
         result = df.loc[["2010-01-01", "2010-01-05"], ["a", "b"]]
         expected = DataFrame(

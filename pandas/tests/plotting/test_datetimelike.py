@@ -673,7 +673,7 @@ class TestTSPlot:
         assert not hasattr(ax2, "right_ax")
 
     def test_secondary_y_ts(self):
-        idx = date_range("1/1/2000", periods=10)
+        idx = date_range("1/1/2000", periods=10, unit="ns")
         ser = Series(np.random.default_rng(2).standard_normal(10), idx)
         fig, _ = mpl.pyplot.subplots()
         ax = ser.plot(secondary_y=True)
