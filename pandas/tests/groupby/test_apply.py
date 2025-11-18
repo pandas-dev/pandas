@@ -1536,8 +1536,8 @@ def test_groupby_apply_store_copy():
 
     df.groupby("B").apply(addstore)
 
-    expected_out_0 = df.iloc[[0, 2], 0]
-    expected_out_1 = df.iloc[[1, 3], 0]
+    expected_out_0 = df.iloc[[0, 2], [0]]
+    expected_out_1 = df.iloc[[1, 3], [0]]
 
-    tm.assert_series_equal(store[0]["A"], expected_out_0)
-    tm.assert_series_equal(store[1]["A"], expected_out_1)
+    tm.assert_frame_equal(store[0], expected_out_0)
+    tm.assert_frame_equal(store[1], expected_out_1)
