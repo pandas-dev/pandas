@@ -783,7 +783,7 @@ class TestJoin:
         # GH 40991: As of 2.0 causes duplicate columns
         with pytest.raises(
             pd.errors.MergeError,
-            match="Passing 'suffixes' which cause duplicate columns",
+            match="Passing 'suffixes' or/and 'prefixes' which cause duplicate columns",
         ):
             dta.merge(w, left_index=True, right_index=True)
 
