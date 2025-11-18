@@ -21,7 +21,7 @@ def transform_ord_cat_cols_to_coded_cols(df: DataFrame) -> DataFrame:
     result = df
     made_copy = False
     for idx, dtype in enumerate(df.dtypes):
-        if not dtype == "category" or not dtype.ordered:
+        if not dtype == "category" or not dtype.ordered: # type: ignore[attr-defined]
             continue
         col = result._ixs(idx, axis=1)
         if not made_copy:
