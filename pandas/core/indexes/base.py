@@ -6289,6 +6289,8 @@ class Index(IndexOpsMixin, PandasObject):
             #  found. Without this fix False and True would be treated as 0 and 1
             #  respectively.
             return False
+        if self.dtype.kind == "M" and other.inferred_type == "date":
+            return False
 
         dtype = _unpack_nested_dtype(other)
         return (
