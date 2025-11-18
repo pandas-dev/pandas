@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from pandas.core.dtypes.dtypes import CategoricalDtype
+
 if TYPE_CHECKING:
     from pandas import DataFrame
 
@@ -21,7 +23,7 @@ def transform_ord_cat_cols_to_coded_cols(df: DataFrame) -> DataFrame:
     result = df
     made_copy = False
     for idx, dtype in enumerate(df.dtypes):
-        if not dtype == "category" or not dtype.ordered: # type: ignore[attr-defined]
+        if not isinstance(dtype, CategoricalDtype) or not dtype.ordered:
             continue
         col = result._ixs(idx, axis=1)
         if not made_copy:
