@@ -53,9 +53,7 @@ from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
                             ordered=True,
                         )
                     ),
-                    "unordered": Series(
-                        Categorical(["x", "y", "x"], ordered=False)
-                    ),
+                    "unordered": Series(Categorical(["x", "y", "x"], ordered=False)),
                     "num": Series([10, 20, 30]),
                     "text": Series(["u", "v", "w"]),
                 }
@@ -65,9 +63,7 @@ from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
                     # codes: a=0, c=2, b=1
                     "ordered": Series([0, 2, 1], dtype="int8"),
                     # unordered categorical should be untouched (still categorical)
-                    "unordered": Series(
-                        Categorical(["x", "y", "x"], ordered=False)
-                    ),
+                    "unordered": Series(Categorical(["x", "y", "x"], ordered=False)),
                     "num": Series([10, 20, 30]),
                     "text": Series(["u", "v", "w"]),
                 }
@@ -75,7 +71,8 @@ from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
             id="mixed-types-only-ordered-changes",
         ),
         pytest.param(
-            # 3 Duplicate column names: first 'dup' is ordered categorical, second 'dup' is non-categorical
+            # 3 Duplicate column names: first 'dup' is ordered categorical,
+            # second 'dup' is non-categorical
             DataFrame(
                 {
                     "dup": Series(
@@ -99,7 +96,8 @@ from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
             id="duplicate-names-ordered-first",
         ),
         pytest.param(
-            # 4 Duplicate column names: first 'dup' is non-categorical, second 'dup' is ordered categorical, third 'dup' is ordered categorical
+            # 4 Duplicate column names: first 'dup' is non-categorical,
+            # second 'dup' is ordered categorical, third 'dup' is ordered categorical
             DataFrame(
                 {
                     "dup": Series(["a", "b", "c"]),  # non-categorical (object)
@@ -121,7 +119,8 @@ from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
             ),
             DataFrame(
                 {
-                    # First stays object; second turns into codes [0,1,NaN] and third changes into codes [0, 1, 2] as well
+                    # First stays object; second turns into codes [0, 1, NaN]
+                    # and third changes into codes [0, 1, 2]
                     "dup": Series(["a", "b", "c"]),
                     "dup": Series([0.0, 1.0, np.nan]),
                     "dup": Series([0, 1, 2], dtype="int8"),
