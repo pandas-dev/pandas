@@ -2395,6 +2395,160 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
 
 
 @pytest.mark.parametrize(
+    "col1, col2, kwargs, expected_cols",
+    [
+        (
+            0,
+            0,
+            {"prefixes": ("", "dup_"), "suffixes": ("", "_dup"), "diff_option": "both"},
+            ["0", "dup_0_dup"],
+        ),
+        (
+            0,
+            0,
+            {
+                "prefixes": (None, "dup_"),
+                "suffixes": (None, "_dup"),
+                "diff_option": "both",
+            },
+            [0, "dup_0_dup"],
+        ),
+        (
+            0,
+            0,
+            {"prefixes": ("x_", "y_"), "suffixes": ("_x", "_y"), "diff_option": "both"},
+            ["x_0_x", "y_0_y"],
+        ),
+        (
+            0,
+            0,
+            {"prefixes": ["x_", "y_"], "suffixes": ["_x", "_y"], "diff_option": "both"},
+            ["x_0_x", "y_0_y"],
+        ),
+        (
+            "a",
+            0,
+            {"prefixes": (None, "y_"), "suffixes": (None, "_y"), "diff_option": "both"},
+            ["a", 0],
+        ),
+        (
+            0.0,
+            0.0,
+            {"prefixes": ("x_", None), "suffixes": ("_x", None), "diff_option": "both"},
+            ["x_0.0_x", 0.0],
+        ),
+        (
+            "b",
+            "b",
+            {"prefixes": (None, "y_"), "suffixes": (None, "_y"), "diff_option": "both"},
+            ["b", "y_b_y"],
+        ),
+        (
+            "a",
+            "a",
+            {"prefixes": ("x_", None), "suffixes": ("_x", None), "diff_option": "both"},
+            ["x_a_x", "a"],
+        ),
+        (
+            "a",
+            "b",
+            {"prefixes": ("x_", None), "suffixes": ("_x", None), "diff_option": "both"},
+            ["a", "b"],
+        ),
+        (
+            "a",
+            "a",
+            {"prefixes": (None, "x_"), "suffixes": (None, "_x"), "diff_option": "both"},
+            ["a", "x_a_x"],
+        ),
+        (
+            0,
+            0,
+            {"prefixes": ("a_", None), "suffixes": ("_a", None), "diff_option": "both"},
+            ["a_0_a", 0],
+        ),
+        ("a", "a", {"diff_option": "both"}, ["a_a_x", "b_a_y"]),
+        (0, 0, {"diff_option": "both"}, ["a_0_x", "b_0_y"]),
+        (0.0, 0.0, {"diff_option": "both"}, ["a_0.0_x", "b_0.0_y"]),
+    ],
+)
+def test_merge_both(col1, col2, kwargs, expected_cols):
+    # issue: 24782
+    a = DataFrame({col1: [1, 2, 3]})
+    b = DataFrame({col2: [4, 5, 6]})
+
+    expected = DataFrame([[1, 4], [2, 5], [3, 6]], columns=expected_cols)
+
+    result = a.merge(b, left_index=True, right_index=True, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+    result = merge(a, b, left_index=True, right_index=True, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "col1, col2, kwargs, expected_cols",
+    [
+        (0, 0, {"prefixes": ("", "dup_"), "diff_option": "prefix"}, ["0", "dup_0"]),
+        (0, 0, {"prefixes": (None, "dup_"), "diff_option": "prefix"}, [0, "dup_0"]),
+        (0, 0, {"prefixes": ("x_", "y_"), "diff_option": "prefix"}, ["x_0", "y_0"]),
+        (0, 0, {"prefixes": ["x_", "y_"], "diff_option": "prefix"}, ["x_0", "y_0"]),
+        ("a", 0, {"prefixes": (None, "y_"), "diff_option": "prefix"}, ["a", 0]),
+        (0.0, 0.0, {"prefixes": ("x_", None), "diff_option": "prefix"}, ["x_0.0", 0.0]),
+        ("b", "b", {"prefixes": (None, "y_"), "diff_option": "prefix"}, ["b", "y_b"]),
+        ("a", "a", {"prefixes": ("x_", None), "diff_option": "prefix"}, ["x_a", "a"]),
+        ("a", "b", {"prefixes": ("x_", None), "diff_option": "prefix"}, ["a", "b"]),
+        ("a", "a", {"prefixes": (None, "x_"), "diff_option": "prefix"}, ["a", "x_a"]),
+        (0, 0, {"prefixes": ("a_", None), "diff_option": "prefix"}, ["a_0", 0]),
+        ("a", "a", {"diff_option": "prefix"}, ["a_a", "b_a"]),
+        (0, 0, {"diff_option": "prefix"}, ["a_0", "b_0"]),
+        (0.0, 0.0, {"diff_option": "prefix"}, ["a_0.0", "b_0.0"]),
+    ],
+)
+def test_merge_prefix(col1, col2, kwargs, expected_cols):
+    # issue: 24782
+    a = DataFrame({col1: [1, 2, 3]})
+    b = DataFrame({col2: [4, 5, 6]})
+
+    expected = DataFrame([[1, 4], [2, 5], [3, 6]], columns=expected_cols)
+
+    result = a.merge(b, left_index=True, right_index=True, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+    result = merge(a, b, left_index=True, right_index=True, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "how,expected",
+    [
+        (
+            "right",
+            {"A": [100, 200, 300], "B1": [60, 70, np.nan], "B2": [600, 700, 800]},
+        ),
+        (
+            "outer",
+            {
+                "A": [1, 100, 200, 300],
+                "B1": [80, 60, 70, np.nan],
+                "B2": [np.nan, 600, 700, 800],
+            },
+        ),
+    ],
+)
+def test_merge_duplicate_prefix(how, expected):
+    left_df = DataFrame({"A": [100, 200, 1], "B": [60, 70, 80]})
+    right_df = DataFrame({"A": [100, 200, 300], "B": [600, 700, 800]})
+    result = merge(
+        left_df, right_df, on="A", how=how, prefixes=("x_", "x_"), diff_option="prefix"
+    )
+    expected = DataFrame(expected)
+    expected.columns = ["A", "x_B", "x_B"]
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "how,expected",
     [
         (
@@ -2431,9 +2585,60 @@ def test_merge_suffix_error(col1, col2, suffixes):
     b = DataFrame({col2: [3, 4, 5]})
 
     # TODO: might reconsider current raise behaviour, see issue 24782
-    msg = "columns overlap but no suffix specified"
+    msg = "columns overlap but no suffix or prefix specified"
     with pytest.raises(ValueError, match=msg):
         merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
+
+
+@pytest.mark.parametrize(
+    "col1, col2, prefixes",
+    [("a", "a", (None, None)), ("a", "a", ("", None)), (0, 0, (None, ""))],
+)
+def test_merge_prefix_error(col1, col2, prefixes):
+    # issue: 24782
+    a = DataFrame({col1: [1, 2, 3]})
+    b = DataFrame({col2: [3, 4, 5]})
+
+    # TODO: might reconsider current raise behaviour, see issue 24782
+    msg = "columns overlap but no suffix or prefix specified"
+    with pytest.raises(ValueError, match=msg):
+        merge(
+            a,
+            b,
+            left_index=True,
+            right_index=True,
+            prefixes=prefixes,
+            diff_option="prefix",
+        )
+
+
+@pytest.mark.parametrize(
+    "col1, col2, prefixes, suffixes",
+    [
+        ("a", "a", (None, None), (None, None)),
+        ("a", "a", ("", None), ("", None)),
+        (0, 0, (None, ""), (None, "")),
+        ("a", "a", ("", None), (None, "")),
+        (0, 0, (None, ""), ("", None)),
+    ],
+)
+def test_merge_both_error(col1, col2, prefixes, suffixes):
+    # issue: 24782
+    a = DataFrame({col1: [1, 2, 3]})
+    b = DataFrame({col2: [3, 4, 5]})
+
+    # TODO: might reconsider current raise behaviour, see issue 24782
+    msg = "columns overlap but no suffix or prefix specified"
+    with pytest.raises(ValueError, match=msg):
+        merge(
+            a,
+            b,
+            left_index=True,
+            right_index=True,
+            prefixes=prefixes,
+            suffixes=suffixes,
+            diff_option="both",
+        )
 
 
 @pytest.mark.parametrize("suffixes", [{"left", "right"}, {"left": 0, "right": 0}])
@@ -2443,6 +2648,22 @@ def test_merge_suffix_raises(suffixes):
 
     with pytest.raises(TypeError, match="Passing 'suffixes' as a"):
         merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
+
+
+@pytest.mark.parametrize("prefixes", [{"left", "right"}, {"left": 0, "right": 0}])
+def test_merge_prefix_raises(prefixes):
+    a = DataFrame({"a": [1, 2, 3]})
+    b = DataFrame({"b": [3, 4, 5]})
+
+    with pytest.raises(TypeError, match="Passing 'prefixes' as a"):
+        merge(
+            a,
+            b,
+            left_index=True,
+            right_index=True,
+            prefixes=prefixes,
+            diff_option="prefix",
+        )
 
 
 TWO_GOT_THREE = "2, got 3" if PY314 else "2"
@@ -2466,6 +2687,33 @@ def test_merge_suffix_length_error(col1, col2, suffixes, msg):
 
     with pytest.raises(ValueError, match=msg):
         merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
+
+
+@pytest.mark.parametrize(
+    "col1, col2, prefixes, msg",
+    [
+        (
+            "a",
+            "a",
+            ("a", "b", "c"),
+            (rf"too many values to unpack \(expected {TWO_GOT_THREE}\)"),
+        ),
+        ("a", "a", tuple("a"), r"not enough values to unpack \(expected 2, got 1\)"),
+    ],
+)
+def test_merge_prefix_length_error(col1, col2, prefixes, msg):
+    a = DataFrame({col1: [1, 2, 3]})
+    b = DataFrame({col2: [3, 4, 5]})
+
+    with pytest.raises(ValueError, match=msg):
+        merge(
+            a,
+            b,
+            left_index=True,
+            right_index=True,
+            prefixes=prefixes,
+            diff_option="prefix",
+        )
 
 
 @pytest.mark.parametrize("cat_dtype", ["one", "two"])
@@ -2754,11 +3002,54 @@ def test_merge_suffixes_produce_dup_columns_raises():
     left = DataFrame({"a": [1, 2, 3], "b": 1, "b_x": 2})
     right = DataFrame({"a": [1, 2, 3], "b": 2})
 
-    with pytest.raises(MergeError, match="Passing 'suffixes' which cause duplicate"):
+    with pytest.raises(
+        MergeError, match="Passing 'suffixes' or/and 'prefixes' which cause duplicate"
+    ):
         merge(left, right, on="a")
 
-    with pytest.raises(MergeError, match="Passing 'suffixes' which cause duplicate"):
+    with pytest.raises(
+        MergeError, match="Passing 'suffixes' or/and 'prefixes' which cause duplicate"
+    ):
         merge(right, left, on="a", suffixes=("_y", "_x"))
+
+
+def test_merge_prefixes_produce_dup_columns_raises():
+    # GH#22818; Enforced in 2.0
+    left = DataFrame({"a": [1, 2, 3], "b": 1, "a_b": 2})
+    right = DataFrame({"a": [1, 2, 3], "b": 2})
+
+    with pytest.raises(
+        MergeError, match="Passing 'suffixes' or/and 'prefixes' which cause duplicate"
+    ):
+        merge(left, right, on="a", diff_option="prefix")
+
+    with pytest.raises(
+        MergeError, match="Passing 'suffixes' or/and 'prefixes' which cause duplicate"
+    ):
+        merge(right, left, on="a", prefixes=("b_", "a_"), diff_option="prefix")
+
+
+def test_merge_both_produce_dup_columns_raises():
+    # GH#22818; Enforced in 2.0
+    left = DataFrame({"a": [1, 2, 3], "b": 1, "a_b_x": 2})
+    right = DataFrame({"a": [1, 2, 3], "b": 2})
+
+    with pytest.raises(
+        MergeError, match="Passing 'suffixes' or/and 'prefixes' which cause duplicate"
+    ):
+        merge(left, right, on="a", diff_option="both")
+
+    with pytest.raises(
+        MergeError, match="Passing 'suffixes' or/and 'prefixes' which cause duplicate"
+    ):
+        merge(
+            right,
+            left,
+            on="a",
+            prefixes=("", "a_"),
+            suffixes=("", "_x"),
+            diff_option="both",
+        )
 
 
 def test_merge_duplicate_columns_with_suffix_no_warning():
@@ -2771,13 +3062,57 @@ def test_merge_duplicate_columns_with_suffix_no_warning():
     tm.assert_frame_equal(result, expected)
 
 
+def test_merge_duplicate_columns_with_prefix_no_warning():
+    # GH#22818
+    # Do not raise warning when duplicates are caused by duplicates in origin
+    left = DataFrame([[1, 1, 1], [2, 2, 2]], columns=["a", "b", "b"])
+    right = DataFrame({"a": [1, 3], "b": 2})
+    result = merge(left, right, on="a", diff_option="prefix")
+    expected = DataFrame([[1, 1, 1, 2]], columns=["a", "a_b", "a_b", "b_b"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_duplicate_columns_with_both_no_warning():
+    # GH#22818
+    # Do not raise warning when duplicates are caused by duplicates in origin
+    left = DataFrame([[1, 1, 1], [2, 2, 2]], columns=["a", "b", "b"])
+    right = DataFrame({"a": [1, 3], "b": 2})
+    result = merge(left, right, on="a", diff_option="both")
+    expected = DataFrame([[1, 1, 1, 2]], columns=["a", "a_b_x", "a_b_x", "b_b_y"])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_merge_duplicate_columns_with_suffix_causing_another_duplicate_raises():
     # GH#22818, Enforced in 2.0
     # This should raise warning because suffixes cause another collision
     left = DataFrame([[1, 1, 1, 1], [2, 2, 2, 2]], columns=["a", "b", "b", "b_x"])
     right = DataFrame({"a": [1, 3], "b": 2})
-    with pytest.raises(MergeError, match="Passing 'suffixes' which cause duplicate"):
+    with pytest.raises(
+        MergeError, match="Passing 'suffixes' or/and 'prefixes' which cause duplicate"
+    ):
         merge(left, right, on="a")
+
+
+def test_merge_duplicate_columns_with_prefix_causing_another_duplicate_raises():
+    # GH#22818, Enforced in 2.0
+    # This should raise warning because suffixes cause another collision
+    left = DataFrame([[1, 1, 1, 1], [2, 2, 2, 2]], columns=["a", "b", "b", "a_b"])
+    right = DataFrame({"a": [1, 3], "b": 2})
+    with pytest.raises(
+        MergeError, match="Passing 'suffixes' or/and 'prefixes' which cause duplicate"
+    ):
+        merge(left, right, on="a", diff_option="prefix")
+
+
+def test_merge_duplicate_columns_with_both_causing_another_duplicate_raises():
+    # GH#22818, Enforced in 2.0
+    # This should raise warning because suffixes cause another collision
+    left = DataFrame([[1, 1, 1, 1], [2, 2, 2, 2]], columns=["a", "b", "b", "a_b_x"])
+    right = DataFrame({"a": [1, 3], "b": 2})
+    with pytest.raises(
+        MergeError, match="Passing 'suffixes' or/and 'prefixes' which cause duplicate"
+    ):
+        merge(left, right, on="a", diff_option="both")
 
 
 def test_merge_string_float_column_result():
@@ -3103,6 +3438,15 @@ def test_merge_for_suffix_collisions(suffixes):
     df2 = DataFrame({"col1": [1], "col2": [2], "col2_dup": [3]})
     with pytest.raises(MergeError, match="duplicate columns"):
         merge(df1, df2, on="col1", suffixes=suffixes)
+
+
+@pytest.mark.parametrize("prefixes", [("dup_", ""), ("", "dup_")])
+def test_merge_for_prefix_collisions(prefixes):
+    # GH#61402
+    df1 = DataFrame({"col1": [1], "col2": [2]})
+    df2 = DataFrame({"col1": [1], "col2": [2], "dup_col2": [3]})
+    with pytest.raises(MergeError, match="duplicate columns"):
+        merge(df1, df2, on="col1", prefixes=prefixes, diff_option="prefix")
 
 
 def test_merge_categorical_key_recursion():

@@ -153,7 +153,11 @@ def merge(
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
+    diff_option: Literal[
+        "prefix", "suffix", "both"
+    ] = "suffix",  # add new parameter prefixes diff_option
     suffixes: Suffixes = ("_x", "_y"),
+    prefixes: Sequence[str | None] = ("a_", "b_"),  # add new parameter prefixes
     copy: bool | lib.NoDefault = lib.no_default,
     indicator: str | bool = False,
     validate: str | None = None,
@@ -370,6 +374,13 @@ def merge(
     left_df = _validate_operand(left)
     left._check_copy_deprecation(copy)
     right_df = _validate_operand(right)
+
+    if diff_option != "prefix" and diff_option != "suffix" and diff_option != "both":
+        raise ValueError(
+            "Parameter 'diff_option' is wrong, please choose from 'prefix'"
+            ", 'suffix' and 'both'."
+        )
+
     if how == "cross":
         return _cross_merge(
             left_df,
@@ -380,7 +391,9 @@ def merge(
             left_index=left_index,
             right_index=right_index,
             sort=sort,
+            diff_option=diff_option,
             suffixes=suffixes,
+            prefixes=prefixes,
             indicator=indicator,
             validate=validate,
         )
@@ -395,7 +408,9 @@ def merge(
             left_index=left_index,
             right_index=right_index,
             sort=sort,
+            diff_option=diff_option,
             suffixes=suffixes,
+            prefixes=prefixes,
             indicator=indicator,
             validate=validate,
         )
@@ -411,7 +426,11 @@ def _cross_merge(
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
+    diff_option: Literal[
+        "prefix", "suffix", "both"
+    ] = "suffix",  # add new parameter prefixes diff_option
     suffixes: Suffixes = ("_x", "_y"),
+    prefixes: Sequence[str | None] = ("a_", "b_"),  # add new parameter prefixes
     indicator: str | bool = False,
     validate: str | None = None,
 ) -> DataFrame:
@@ -447,7 +466,9 @@ def _cross_merge(
         left_index=left_index,
         right_index=right_index,
         sort=sort,
+        diff_option=diff_option,
         suffixes=suffixes,
+        prefixes=prefixes,
         indicator=indicator,
         validate=validate,
     )
@@ -954,7 +975,9 @@ class _MergeOperation:
     left_index: bool
     right_index: bool
     sort: bool
+    diff_option: Literal["prefix", "suffix", "both"]
     suffixes: Suffixes
+    prefixes: Sequence[str | None]
     indicator: str | bool
     validate: str | None
     join_names: list[Hashable]
@@ -972,7 +995,11 @@ class _MergeOperation:
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = True,
+        diff_option: Literal[
+            "prefix", "suffix", "both"
+        ] = "suffix",  # add new parameter prefixes diff_option
         suffixes: Suffixes = ("_x", "_y"),
+        prefixes: Sequence[str | None] = ("a_", "b_"),  # add new parameter prefixes
         indicator: str | bool = False,
         validate: str | None = None,
     ) -> None:
@@ -985,6 +1012,8 @@ class _MergeOperation:
         self.on = com.maybe_make_list(on)
 
         self.suffixes = suffixes
+        self.prefixes = prefixes
+        self.diff_option = diff_option
         self.sort = sort or how == "outer"
 
         self.left_index = left_index
@@ -1094,8 +1123,12 @@ class _MergeOperation:
         left = self.left[:]
         right = self.right[:]
 
-        llabels, rlabels = _items_overlap_with_suffix(
-            self.left._info_axis, self.right._info_axis, self.suffixes
+        llabels, rlabels = _items_overlap_with_suffix_or_prefix(
+            self.left._info_axis,
+            self.right._info_axis,
+            self.suffixes,
+            self.prefixes,
+            self.diff_option,
         )
 
         if left_indexer is not None and not is_range_indexer(left_indexer, len(left)):
@@ -3059,54 +3092,84 @@ def _validate_operand(obj: DataFrame | Series) -> DataFrame:
         )
 
 
-def _items_overlap_with_suffix(
-    left: Index, right: Index, suffixes: Suffixes
+def _items_overlap_with_suffix_or_prefix(
+    left: Index,
+    right: Index,
+    suffixes: Suffixes,
+    prefixes: Sequence[str | None],
+    diff_option: Literal["prefix", "suffix", "both"],
 ) -> tuple[Index, Index]:
     """
-    Suffixes type validation.
+    Suffixes and Prefixes type validation.
 
-    If two indices overlap, add suffixes to overlapping entries.
+    If two indices overlap, add suffixes and prefixes to overlapping entries.
 
-    If corresponding suffix is empty, the entry is simply converted to string.
+    If corresponding suffix and prefix are empty,
+    the entry is simply converted to string.
 
     """
-    if not is_list_like(suffixes, allow_sets=False) or isinstance(suffixes, dict):
+    if (diff_option == "both" or diff_option == "suffix") and (
+        not is_list_like(suffixes, allow_sets=False) or isinstance(suffixes, dict)
+    ):
         raise TypeError(
             f"Passing 'suffixes' as a {type(suffixes)}, is not supported. "
             "Provide 'suffixes' as a tuple instead."
+        )
+    if (diff_option == "both" or diff_option == "prefix") and (
+        not is_list_like(prefixes, allow_sets=False) or isinstance(prefixes, dict)
+    ):
+        raise TypeError(
+            f"Passing 'prefixes' as a {type(prefixes)}, is not supported. "
+            "Provide 'prefixes' as a tuple instead."
         )
 
     to_rename = left.intersection(right)
     if len(to_rename) == 0:
         return left, right
 
-    lsuffix, rsuffix = suffixes
+    if diff_option == "both" or diff_option == "suffix":
+        lsuffix, rsuffix = suffixes
+    else:
+        lsuffix, rsuffix = None, None
 
-    if not lsuffix and not rsuffix:
-        raise ValueError(f"columns overlap but no suffix specified: {to_rename}")
+    if diff_option == "both" or diff_option == "prefix":
+        lprefix, rprefix = prefixes
+    else:
+        lprefix, rprefix = None, None
 
-    def renamer(x, suffix: str | None):
+    if not lsuffix and not rsuffix and not lprefix and not rprefix:
+        raise ValueError(
+            f"columns overlap but no suffix or prefix specified: {to_rename}"
+        )
+
+    def renamer(x, suffix: str | None, prefix: str | None):
         """
         Rename the left and right indices.
 
-        If there is overlap, and suffix is not None, add
-        suffix, otherwise, leave it as-is.
+        If there is overlap, and suffix or prefix is not None, add
+        suffix or prefix(or both if both are provided), otherwise, leave it as-is.
 
         Parameters
         ----------
         x : original column name
         suffix : str or None
+        prefix : str or None
 
         Returns
         -------
         x : renamed column name
         """
-        if x in to_rename and suffix is not None:
-            return f"{x}{suffix}"
+        ret = x
+        if x in to_rename:
+            if suffix is not None:
+                ret = f"{ret}{suffix}"
+            if prefix is not None:
+                ret = f"{prefix}{ret}"
+            return ret
         return x
 
-    lrenamer = partial(renamer, suffix=lsuffix)
-    rrenamer = partial(renamer, suffix=rsuffix)
+    lrenamer = partial(renamer, suffix=lsuffix, prefix=lprefix)
+    rrenamer = partial(renamer, suffix=rsuffix, prefix=rprefix)
 
     llabels = left._transform_index(lrenamer)
     rlabels = right._transform_index(rrenamer)
@@ -3123,7 +3186,8 @@ def _items_overlap_with_suffix(
     dups.extend(rlabels.intersection(left.difference(to_rename)).tolist())
     if dups:
         raise MergeError(
-            f"Passing 'suffixes' which cause duplicate columns {set(dups)} is "
+            f"Passing 'suffixes' or/and 'prefixes' "
+            f"which cause duplicate columns {set(dups)} is "
             "not allowed.",
         )
 
