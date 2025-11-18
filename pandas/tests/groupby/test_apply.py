@@ -1529,18 +1529,14 @@ def test_groupby_apply_store_copy():
         }
     )
 
-    # Empty dict to hold the chunks
     store = {}
 
     def addstore(x):
         store[len(store)] = x.copy()
 
     df.groupby("B").apply(addstore)
-
-    # Output boolean mask
     out_mask = {0: [True, False, True, False], 1: [False, True, False, True]}
 
-    # The expected output in store dict
     expected_out = {0: df[out_mask[0]], 1: df[out_mask[1]]}
 
     tm.assert_frame_equal(store[0], expected_out[0].drop("B", axis=1))
