@@ -533,7 +533,7 @@ class ExcelFormatter:
         It should have signature css_declarations string -> excel style.
         This is only called for body cells.
     autofilter : bool, default False
-        If True, add automatic filters to all columns
+        If True, add automatic filters to all columns.
     """
 
     max_rows = 2**20
