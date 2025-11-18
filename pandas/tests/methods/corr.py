@@ -2,9 +2,14 @@
 Tests for core/methods/corr.py
 """
 
-import pytest
 import numpy as np
-from pandas import DataFrame, Series, Categorical
+import pytest
+
+from pandas import (
+    Categorical,
+    DataFrame,
+    Series,
+)
 import pandas._testing as tm
 from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
 
@@ -75,22 +80,22 @@ from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
             # second 'dup' is non-categorical
             DataFrame(
                 {
-                    "dup": Series(
+                    "dup_1": Series(
                         Categorical(
                             ["low", "m", "h"],
                             categories=["low", "m", "h"],
                             ordered=True,
                         )
                     ),
-                    "dup": Series([5, 6, 7]),  # duplicate name, later column
+                    "dup_2": Series([5, 6, 7]),  # duplicate name, later column
                 }
             ),
             DataFrame(
                 {
                     # After transform: position 0 (ordered cat) becomes codes [0,1,2],
                     # position 1 remains untouched numbers [5,6,7].
-                    "dup": Series([0, 1, 2], dtype="int8"),
-                    "dup": Series([5, 6, 7]),
+                    "dup_1": Series([0, 1, 2], dtype="int8"),
+                    "dup_2": Series([5, 6, 7]),
                 }
             ),
             id="duplicate-names-ordered-first",
@@ -100,15 +105,15 @@ from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
             # second 'dup' is ordered categorical, third 'dup' is ordered categorical
             DataFrame(
                 {
-                    "dup": Series(["a", "b", "c"]),  # non-categorical (object)
-                    "dup": Series(
+                    "dup_1": Series(["a", "b", "c"]),  # non-categorical (object)
+                    "dup_2": Series(
                         Categorical(
                             ["p", "q", None],
                             categories=["p", "q"],
                             ordered=True,
                         )
                     ),
-                    "dup": Series(
+                    "dup_3": Series(
                         Categorical(
                             ["low", "m", "h"],
                             categories=["low", "m", "h"],
@@ -121,9 +126,9 @@ from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
                 {
                     # First stays object; second turns into codes [0, 1, NaN]
                     # and third changes into codes [0, 1, 2]
-                    "dup": Series(["a", "b", "c"]),
-                    "dup": Series([0.0, 1.0, np.nan]),
-                    "dup": Series([0, 1, 2], dtype="int8"),
+                    "dup_1": Series(["a", "b", "c"]),
+                    "dup_2": Series([0.0, 1.0, np.nan]),
+                    "dup_3": Series([0, 1, 2], dtype="int8"),
                 }
             ),
             id="duplicate-names-ordered-and-non-categorical-and-none",
@@ -131,6 +136,11 @@ from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
     ],
 )
 def test_transform_ord_cat_cols_to_coded_cols(input_df, expected_df):
+    # duplicate columns creation for dup columns
+    if "dup_1" in input_df.columns:
+        input_df.columns = ["dup" for _ in range(len(input_df.columns))]
+        expected_df.columns = ["dup" for _ in range(len(expected_df.columns))]
+
     out_df = transform_ord_cat_cols_to_coded_cols(input_df)
     assert list(out_df.columns) == list(expected_df.columns)
     for i, col in enumerate(out_df.columns):
