@@ -6310,7 +6310,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.dtypes
         float              float64
         int                  int64
-        datetime    datetime64[s]
+        datetime    datetime64[us]
         string              str
         dtype: object
         """
