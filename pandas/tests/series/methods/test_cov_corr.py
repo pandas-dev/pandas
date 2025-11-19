@@ -3,6 +3,8 @@ import math
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Series,
@@ -185,6 +187,7 @@ class TestSeriesCorr:
         expected = pd.DataFrame([{0: 1.0, 1: 0}, {0: 0, 1: 1.0}])
         tm.assert_almost_equal(df.transpose().corr(method=my_corr), expected)
 
+    @td.skip_if_no("scipy")
     @pytest.mark.parametrize("method", ["kendall", "spearman"])
     @pytest.mark.parametrize(
         "cat_series",
