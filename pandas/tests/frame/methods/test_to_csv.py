@@ -50,7 +50,7 @@ class TestDataFrameToCSV:
         datetime_frame.to_csv(path)
         recons = self.read_csv(path, parse_dates=True)
         expected = datetime_frame.copy()
-        expected.index = expected.index.as_unit("s")
+        expected.index = expected.index.as_unit("us")
         tm.assert_frame_equal(expected, recons)
 
         datetime_frame.to_csv(path, index_label="index")
@@ -240,8 +240,8 @@ class TestDataFrameToCSV:
         result = self.read_csv(path).apply(to_datetime)
 
         expected = df[:]
-        expected["a"] = expected["a"].astype("M8[s]")
-        expected["b"] = expected["b"].astype("M8[s]")
+        expected["a"] = expected["a"].astype("M8[us]")
+        expected["b"] = expected["b"].astype("M8[us]")
         tm.assert_frame_equal(result, expected, check_names=False)
 
     def _return_result_expected(
@@ -585,7 +585,7 @@ class TestDataFrameToCSV:
 
         # TODO to_csv drops column name
         expected = tsframe.copy()
-        expected.index = MultiIndex.from_arrays([old_index.as_unit("s"), new_index[1]])
+        expected.index = MultiIndex.from_arrays([old_index.as_unit("us"), new_index[1]])
         tm.assert_frame_equal(recons, expected, check_names=False)
 
         # do not load index

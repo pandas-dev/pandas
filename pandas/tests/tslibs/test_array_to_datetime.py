@@ -111,7 +111,7 @@ class TestArrayToDatetimeWithTZResolutionInference:
         tz = tzoffset("custom", 3600)
         vals = np.array(["2016-01-01 02:03:04.567", NaT], dtype=object)
         res = tslib.array_to_datetime_with_tz(vals, tz, False, False, creso_infer)
-        assert res.dtype == "M8[ms]"
+        assert res.dtype == "M8[us]"
 
         vals2 = np.array([datetime(2016, 1, 1, 2, 3, 4), NaT], dtype=object)
         res2 = tslib.array_to_datetime_with_tz(vals2, tz, False, False, creso_infer)
@@ -155,7 +155,7 @@ def test_parsing_valid_dates(data, expected):
     arr = np.array(data, dtype=object)
     result, _ = tslib.array_to_datetime(arr)
 
-    expected = np.array(expected, dtype="M8[s]")
+    expected = np.array(expected, dtype="M8[us]")
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -211,8 +211,8 @@ def test_parsing_different_timezone_offsets():
     [
         (date(1000, 1, 1), "s"),
         (datetime(1000, 1, 1), "us"),
-        ("1000-01-01", "s"),
-        ("Jan 1, 1000", "s"),
+        ("1000-01-01", "us"),
+        ("Jan 1, 1000", "us"),
         (np.datetime64("1000-01-01"), "s"),
     ],
 )
@@ -235,7 +235,7 @@ def test_coerce_outside_ns_bounds_one_valid():
     result, _ = tslib.array_to_datetime(arr, errors="coerce")
 
     expected = ["1000-01-01T00:00:00.000000000", "2000-01-01T00:00:00.000000000"]
-    expected = np.array(expected, dtype="M8[s]")
+    expected = np.array(expected, dtype="M8[us]")
 
     tm.assert_numpy_array_equal(result, expected)
 
@@ -245,13 +245,13 @@ def test_coerce_of_invalid_datetimes():
     # With coercing, the invalid dates becomes iNaT
     result, _ = tslib.array_to_datetime(arr, errors="coerce")
     expected = ["2013-01-01T00:00:00.000000000", iNaT, iNaT]
-    tm.assert_numpy_array_equal(result, np.array(expected, dtype="M8[s]"))
+    tm.assert_numpy_array_equal(result, np.array(expected, dtype="M8[us]"))
 
     # With coercing, the invalid dates becomes iNaT
     result, _ = tslib.array_to_datetime(arr, errors="coerce")
     expected = ["2013-01-01T00:00:00.000000000", iNaT, iNaT]
 
-    tm.assert_numpy_array_equal(result, np.array(expected, dtype="M8[s]"))
+    tm.assert_numpy_array_equal(result, np.array(expected, dtype="M8[us]"))
 
 
 def test_to_datetime_barely_out_of_bounds():

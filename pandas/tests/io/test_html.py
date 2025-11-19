@@ -1065,7 +1065,7 @@ class TestReadHtml:
         df = DataFrame({"date": date_range("1/1/2001", periods=10)})
 
         expected = df[:]
-        expected["date"] = expected["date"].dt.as_unit("s")
+        expected["date"] = expected["date"].dt.as_unit("us")
 
         str_df = df.to_html()
         res = flavor_read_html(StringIO(str_df), parse_dates=[1], index_col=0)

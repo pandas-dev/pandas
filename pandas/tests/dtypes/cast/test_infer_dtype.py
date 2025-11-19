@@ -155,8 +155,8 @@ def test_infer_dtype_from_scalar_errors():
         (1, np.int64),
         (1.5, np.float64),
         (np.datetime64("2016-01-01"), np.dtype("M8[s]")),
-        (Timestamp("20160101"), np.dtype("M8[s]")),
-        (Timestamp("20160101", tz="UTC"), "datetime64[s, UTC]"),
+        (Timestamp("20160101").as_unit("s"), np.dtype("M8[s]")),
+        (Timestamp("20160101", tz="UTC").as_unit("s"), "datetime64[s, UTC]"),
     ],
 )
 def test_infer_dtype_from_scalar(value, expected, using_infer_string):

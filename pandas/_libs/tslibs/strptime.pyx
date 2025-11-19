@@ -466,6 +466,8 @@ def array_strptime(
                 # No error reported by string_to_dts, pick back up
                 # where we left off
                 item_reso = get_supported_reso(out_bestunit)
+                if item_reso < NPY_DATETIMEUNIT.NPY_FR_us:
+                    item_reso = NPY_DATETIMEUNIT.NPY_FR_us
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso
@@ -510,6 +512,8 @@ def array_strptime(
                 val, fmt, exact, format_regex, locale_time, &dts, &item_reso
             )
 
+            if item_reso < NPY_DATETIMEUNIT.NPY_FR_us:
+                item_reso = NPY_DATETIMEUNIT.NPY_FR_us
             state.update_creso(item_reso)
             if infer_reso:
                 creso = state.creso
