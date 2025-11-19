@@ -6520,3 +6520,28 @@ The files ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the 
     24009288 Oct 10 06:43 test_fixed_compress.hdf
     24458940 Oct 10 06:44 test_table.hdf
     24458940 Oct 10 06:44 test_table_compress.hdf
+Loading data in Google Colab
+----------------------------
+
+Google Colab provides two simple ways to load files into pandas: uploading
+files manually or mounting Google Drive.
+
+**Option 1: Upload a file**
+
+.. code-block:: python
+
+    from google.colab import files
+    uploaded = files.upload()
+
+    import pandas as pd
+    df = pd.read_csv(list(uploaded.keys())[0])
+
+**Option 2: Load from Google Drive**
+
+.. code-block:: python
+
+    from google.colab import drive
+    drive.mount('/content/drive')
+
+    import pandas as pd
+    df = pd.read_csv('/content/drive/MyDrive/filename.csv')
