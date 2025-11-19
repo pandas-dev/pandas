@@ -26,7 +26,10 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
-from pandas._libs.tslibs.offsets import prefix_mapping
+from pandas._libs.tslibs.offsets import (
+    DateOffset,
+    prefix_mapping,
+)
 from pandas.errors import Pandas4Warning
 from pandas.util._decorators import (
     cache_readonly,
@@ -1064,6 +1067,12 @@ def date_range(
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
+    if freq is not None:
+        freq = to_offset(freq)
+
+    if start is NaT or end is NaT:
+        # This check needs to come before the `unit = start.unit` line below
+        raise ValueError("Neither `start` nor `end` can be NaT")
 
     if unit is None:
         # Infer the unit based on the inputs
@@ -1078,14 +1087,18 @@ def date_range(
         elif start is not None:
             start = Timestamp(start)
             unit = start.unit
-        else:
+        elif end is not None:
             end = Timestamp(end)
             unit = end.unit
+        else:
+            raise ValueError(
+                "Of the four parameters: start, end, periods, "
+                "and freq, exactly three must be specified"
+            )
 
         # Last we need to watch out for cases where the 'freq' implies a higher
         #  unit than either start or end
         if freq is not None:
-            freq = to_offset(freq)
             creso = abbrev_to_npy_unit(unit)
             if isinstance(freq, Tick):
                 if freq._creso > creso:
@@ -1095,6 +1108,9 @@ def date_range(
                 td = Timedelta(freq.offset)
                 if abbrev_to_npy_unit(td.unit) > creso:
                     unit = td.unit
+            elif type(freq) is DateOffset and getattr(freq, "nanoseconds", 0) != 0:
+                # e.g. test_freq_dateoffset_with_relateivedelta_nanos
+                unit = "ns"
 
     dtarr = DatetimeArray._generate_range(
         start=start,
