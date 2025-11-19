@@ -36,9 +36,7 @@ from pandas.errors import (
     NullFrequencyError,
 )
 from pandas.util._decorators import (
-    Appender,
     cache_readonly,
-    doc,
 )
 
 from pandas.core.dtypes.common import (
@@ -57,12 +55,10 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
-    _index_shared_docs,
 )
 from pandas.core.indexes.extension import NDArrayBackedExtensionIndex
 from pandas.core.indexes.range import RangeIndex
@@ -115,11 +111,11 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
         Examples
         --------
-        >>> idx = pd.date_range('2023-01-01', periods=3)
+        >>> idx = pd.date_range("2023-01-01", periods=3)
         >>> idx.mean()
         Timestamp('2023-01-02 00:00:00')
 
-        >>> idx = pd.to_timedelta([1, 2, 3], unit='D')
+        >>> idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> idx.mean()
         Timedelta('2 days 00:00:00')
         """
@@ -177,7 +173,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
         Examples
         --------
-        >>> idx = pd.date_range('2023-01-01', periods=3, freq='D')
+        >>> idx = pd.date_range("2023-01-01", periods=3, freq="D")
         >>> idx.freqstr
         'D'
         """
@@ -630,7 +626,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
         Examples
         --------
-        >>> idx = pd.DatetimeIndex(['2018-01-01', '2018-01-03', '2018-01-05'])
+        >>> idx = pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"])
         >>> idx.inferred_freq
         '2D'
         """
