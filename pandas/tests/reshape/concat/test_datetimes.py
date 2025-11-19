@@ -278,6 +278,31 @@ class TestDatetimeConcat:
         result = concat([first, second])
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_ns_and_s_preserves_datetime64(self):
+        # ensure concatenating a datetime64[ns] column and a copy cast to M8[s]
+        # yields a datetime64 dtype (finest unit should be ns)
+        df = pd.DataFrame(
+            {"ints": range(2), "dates": pd.date_range("2000", periods=2, freq="min")}
+        )
+        df2 = df.copy()
+        df2["dates"] = df2["dates"].astype("M8[s]")
+
+        combined = pd.concat([df, df2], ignore_index=True)
+
+        # dtype is a datetime64 type
+        assert pd.api.types.is_datetime64_any_dtype(combined["dates"].dtype)
+
+        # unit should be the finest (ns) when mixing ns and s
+        unit = np.datetime_data(combined["dates"].dtype)[0]
+        assert unit == "ns"
+
+        # values preserved (compare as ns)
+        exp = pd.to_datetime(list(df["dates"]) + list(df2["dates"]))
+        tm.assert_series_equal(
+            combined["dates"].astype("datetime64[ns]").reset_index(drop=True),
+            pd.Series(exp.astype("datetime64[ns]"), name="dates").reset_index(drop=True),
+        )
+
 
 class TestTimezoneConcat:
     def test_concat_tz_series(self):
@@ -591,3 +616,25 @@ def test_concat_float_datetime64():
 
     result = concat([df_time, df_float.iloc[:0]])
     tm.assert_frame_equal(result, expected)
+
+@pytest.mark.parametrize("order", [[0, 1], [1, 0]])
+def test_concat_ns_and_s_order_invariance(order):
+    df = pd.DataFrame(
+        {"ints": range(2), "dates": pd.date_range("2000", periods=2, freq="min")}
+    )
+    df2 = df.copy()
+    df2["dates"] = df2["dates"].astype("M8[s]")
+
+    parts = [df, df2]
+    combined = pd.concat([parts[i] for i in order], ignore_index=True)
+
+    assert pd.api.types.is_datetime64_any_dtype(combined["dates"].dtype)
+
+
+def test_concat_ns_and_s_with_all_nat_and_empty():
+    # mixing a ns datetime column with an all-NaT seconds-typed column
+    df = pd.DataFrame({"dates": pd.date_range("2000", periods=2, freq="min")})
+    df2 = pd.DataFrame({"dates": [pd.NaT, pd.NaT]}).astype({"dates": "datetime64[s]"})
+
+    combined = pd.concat([df, df2], ignore_index=True)
+    assert pd.api.types.is_datetime64_any_dtype(combined["dates"].dtype)
