@@ -36,9 +36,7 @@ from pandas.errors import (
     NullFrequencyError,
 )
 from pandas.util._decorators import (
-    Appender,
     cache_readonly,
-    doc,
 )
 
 from pandas.core.dtypes.common import (
@@ -57,12 +55,10 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
-    _index_shared_docs,
 )
 from pandas.core.indexes.extension import NDArrayBackedExtensionIndex
 from pandas.core.indexes.range import RangeIndex
@@ -92,8 +88,22 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
 
-    @doc(DatetimeLikeArrayMixin.mean)
     def mean(self, *, skipna: bool = True, axis: int | None = 0):
+        """
+        Return the mean value of the Array.
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Whether to ignore any NaT elements.
+        axis : int, optional, default 0
+            Axis along which to compute the mean.
+
+        Returns
+        -------
+        scalar
+            Timestamp or Timedelta.
+        """
         return self._data.mean(skipna=skipna, axis=axis)
 
     @property
@@ -136,8 +146,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         return self._data.asi8
 
     @property
-    @doc(DatetimeLikeArrayMixin.freqstr)
     def freqstr(self) -> str:
+        """
+        Return the frequency string if it is set, otherwise None.
+        """
         from pandas import PeriodIndex
 
         if self._data.freqstr is not None and isinstance(
@@ -153,8 +165,15 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     def _resolution_obj(self) -> Resolution: ...
 
     @cache_readonly
-    @doc(DatetimeLikeArrayMixin.resolution)
     def resolution(self) -> str:
+        """
+        Return the resolution of the array.
+
+        Returns
+        -------
+        str
+            The resolution of the array.
+        """
         return self._data.resolution
 
     # ------------------------------------------------------------------------
@@ -199,8 +218,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
         return np.array_equal(self.asi8, other.asi8)
 
-    @Appender(Index.__contains__.__doc__)
     def __contains__(self, key: Any) -> bool:
+        """
+        Return True if the key is in the Index.
+        """
         hash(key)
         try:
             self.get_loc(key)
@@ -243,8 +264,10 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                 attrs.append(("freq", freq))
         return attrs
 
-    @Appender(Index._summary.__doc__)
     def _summary(self, name=None) -> str:
+        """
+        Return a summary of the Index.
+        """
         result = super()._summary(name=name)
         if self.freq:
             result += f"\nFreq: {self.freqstr}"
@@ -405,8 +428,20 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     # --------------------------------------------------------------------
 
-    @doc(Index._maybe_cast_listlike_indexer)
     def _maybe_cast_listlike_indexer(self, keyarr):
+        """
+        Ensure that the list-like indexer is of the correct type.
+
+        Parameters
+        ----------
+        keyarr : list-like
+            The list-like indexer to check.
+
+        Returns
+        -------
+        list-like
+            The list-like indexer of the correct type.
+        """
         try:
             res = self._data._validate_listlike(keyarr, allow_object=True)
         except (ValueError, TypeError):
@@ -497,8 +532,33 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         data.flags.writeable = False
         return data
 
-    @doc(DatetimeIndexOpsMixin.shift)
     def shift(self, periods: int = 1, freq=None) -> Self:
+        """
+        Shift index by desired number of time frequency increments.
+
+        This method is for shifting the values of datetime-like indexes
+        by a specified time increment a given number of times.
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+        freq : pandas.DateOffset, pandas.Timedelta or string, optional
+            Frequency increment to shift by.
+            If None, the index is shifted by its own `freq` attribute.
+            Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
+
+        Returns
+        -------
+        pandas.DatetimeIndex
+            Shifted index.
+
+        See Also
+        --------
+        Index.shift : Shift values of Index.
+        PeriodIndex.shift : Shift values of PeriodIndex.
+        """
         if freq is not None and freq != self.freq:
             if isinstance(freq, str):
                 freq = to_offset(freq)
@@ -524,8 +584,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         return type(self)._simple_new(result, name=self.name)
 
     @cache_readonly
-    @doc(DatetimeLikeArrayMixin.inferred_freq)
     def inferred_freq(self) -> str | None:
+        """
+        Tries to return a string representing a frequency guess generated by infer_freq.
+
+        Returns
+        -------
+        str or None
+        """
         return self._data.inferred_freq
 
     # --------------------------------------------------------------------
@@ -816,14 +882,41 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                     freq = self.freq
         return freq
 
-    @doc(NDArrayBackedExtensionIndex.delete)
     def delete(self, loc) -> Self:
+        """
+        Make new Index with passed location(-s) deleted.
+
+        Parameters
+        ----------
+        loc : int or list of int
+            Location of item(-s) to delete. Use a list of locations to delete
+            multiple items. If a slice is provided, the step must be 1.
+
+        Returns
+        -------
+        Index
+            Will be same type as self, except for RangeIndex.
+        """
         result = super().delete(loc)
         result._data._freq = self._get_delete_freq(loc)
         return result
 
-    @doc(NDArrayBackedExtensionIndex.insert)
     def insert(self, loc: int, item):
+        """
+        Make new Index inserting new item at location.
+
+        Follows Python list.insert semantics for negative values.  Only at
+        least one of the index/item pairs must be specified.
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+
+        Returns
+        -------
+        Index
+        """
         result = super().insert(loc, item)
         if isinstance(result, type(self)):
             # i.e. parent class method did not cast
@@ -833,7 +926,6 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     # --------------------------------------------------------------------
     # NDArray-Like Methods
 
-    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
         self,
         indices,
@@ -842,6 +934,32 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         fill_value=None,
         **kwargs,
     ) -> Self:
+        """
+        Return a new Index of the values selected by the indices.
+
+        For internal compatibility with numpy arrays.
+
+        Parameters
+        ----------
+        indices : array-like
+            Indices to be taken.
+        axis : int, optional
+            The axis over which to select values. Always 0.
+        allow_fill : bool, default True
+        fill_value : scalar, default None
+            If allow_fill=True and fill_value is not None, this value is used
+            instead of raising if the index is out of bounds.
+
+        Returns
+        -------
+        Index
+            An element of same type as self.
+
+        See Also
+        --------
+        numpy.ndarray.take : Return an array formed from the elements of a
+            at the given indices.
+        """
         nv.validate_take((), kwargs)
         indices = np.asarray(indices, dtype=np.intp)
 
