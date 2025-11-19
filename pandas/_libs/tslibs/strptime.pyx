@@ -355,6 +355,7 @@ def array_strptime(
     errors="raise",
     bint utc=False,
     NPY_DATETIMEUNIT creso=NPY_DATETIMEUNIT.NPY_FR_GENERIC,
+    double threshold = 1.0,
 ):
     """
     Calculates the datetime structs represented by the passed array of strings
@@ -367,6 +368,23 @@ def array_strptime(
     errors : string specifying error handling, {'raise', 'coerce'}
     creso : NPY_DATETIMEUNIT, default NPY_FR_GENERIC
         Set to NPY_FR_GENERIC to infer a resolution.
+
+    /// INSERT DOCUMENTATION UPDATE HERE ///
+    ########################
+        ########################
+            ########################
+                ########################
+                    ########################
+                        ########################
+                            ########################
+                                ########################
+                            ########################
+                        ########################
+                    ########################
+                ########################
+            ########################
+        ########################
+    ########################
     """
 
     cdef:
@@ -453,15 +471,23 @@ def array_strptime(
             out_tzoffset = 0
 
             if fmt == "ISO8601":
-                string_to_dts_succeeded = not string_to_dts(
+                res = string_to_dts(
                     val, &dts, &out_bestunit, &out_local,
-                    &out_tzoffset, False, None, False
+                    &out_tzoffset, False, None, False, threshold
                 )
+                if res == -2:  # sentinel for NaT
+                    iresult[i] = NPY_NAT
+                    continue
+                string_to_dts_succeeded = not res
             elif iso_format:
-                string_to_dts_succeeded = not string_to_dts(
+                res = string_to_dts(
                     val, &dts, &out_bestunit, &out_local,
-                    &out_tzoffset, False, fmt, exact
+                    &out_tzoffset, False, fmt, exact, threshold
                 )
+                string_to_dts_succeeded = not res
+                if res == -2:  # sentinel for NaT
+                    iresult[i] = NPY_NAT
+                    continue
             if string_to_dts_succeeded:
                 # No error reported by string_to_dts, pick back up
                 # where we left off

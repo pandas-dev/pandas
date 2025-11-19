@@ -65,7 +65,7 @@ cdef extern from "pandas/datetime/pd_datetime.h":
                                 NPY_DATETIMEUNIT *out_bestunit,
                                 int *out_local, int *out_tzoffset,
                                 const char *format, int format_len,
-                                FormatRequirement exact)
+                                FormatRequirement exact, double threshold)
 
 # ----------------------------------------------------------------------
 # numpy object inspection
@@ -348,6 +348,7 @@ cdef int string_to_dts(
     bint want_exc,
     str format=None,
     bint exact=True,
+    double threshold = 1.0,
 ) except? -1:
     cdef:
         Py_ssize_t length
@@ -367,7 +368,7 @@ cdef int string_to_dts(
     return parse_iso_8601_datetime(buf, length, want_exc,
                                    dts, out_bestunit, out_local, out_tzoffset,
                                    format_buf, format_length,
-                                   format_requirement)
+                                   format_requirement, threshold)
 
 
 cpdef ndarray astype_overflowsafe(

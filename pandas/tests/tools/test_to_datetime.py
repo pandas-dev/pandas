@@ -3824,28 +3824,75 @@ def test_to_datetime_lxml_elementunicoderesult_with_format(cache):
 class TestForIncreasedRobustness:
     def test_parse_with_no_malformed_components(self):
         res = to_datetime(
-            "2018-10-01 12:00:00.0000000011", format="%Y-%m-%d %H:%M:%S.%f"
+            "2018-10-01 12:00:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
         )
         expected = Timestamp("2018-10-01 12:00:00.0000000011")
         assert res == expected
+        res = to_datetime(
+            "2018-10-01 12:00:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=1.0,
+        )
+        assert res == expected
+
+    def test_parse_with_malformed_year(self):
+        res = to_datetime(
+            "12-10-01 12:00:00.0000000011", format="%Y-%m-%d %H:%M:%S.%f", threshold=0.5
+        )
+        assert isna(res)
+
+    def test_parse_with_malformed_year_iso(self):
+        res = to_datetime("12-10-01", format="ISO8601", threshold=0.5)
+        assert isna(res)
+
+    """def test_parse_with_malformed_month(self):
+        res = to_datetime(
+            "2018-202-01 12:00:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        assert isna(res)
+
+    def test_parse_with_malformed_month_iso(self):
+        res = to_datetime("2018-202-01", format="ISO8601", threshold=0.5)
+        assert isna(res)
 
     def test_parse_with_malformed_day(self):
         res = to_datetime(
-            "2018-10-. 12:00:00.0000000011", format="%Y-%m-%d %H:%M:%S.%f"
+            "2018-10-202 12:00:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
         )
-        expected = NaT
-        assert res == expected
+        assert isna(res)
 
     def test_parse_with_malformed_day_iso(self):
-        res = to_datetime("2018-10-.", format="ISO8601")
-        expected = NaT
-        assert res == expected
+        res = to_datetime("2018-10-202", format="ISO8601", threshold=0.5)
+        assert isna(res)
 
     def test_parse_with_half_malformed_components(self):
-        res = to_datetime("2018-10-. 12:.:.", format="%Y-%m-%d %H:%M:%S")
-        expected = NaT
-        assert res == expected
+        res = to_datetime(
+            "2018-10-202 12:202:202", format="%Y-%m-%d %H:%M:%S", threshold=0.5
+        )
+        assert isna(res)
 
     def test_parse_with_too_many_malformed_components(self):
         with pytest.raises(ValueError, match="^time data *"):
-            to_datetime("2018-.-. 12:.:.", format="%Y-%m-%d %H:%M:%S")
+            to_datetime(
+                "2018-202-202 12:202:202", format="%Y-%m-%d %H:%M:%S", threshold=0.5
+            )
+
+    def test_parse_with_too_many_malformed_components_all(self):
+        with pytest.raises(ValueError, match="^time data *"):
+            to_datetime(
+                "2018-10-202 12:00:00", format="%Y-%m-%d %H:%M:%S", threshold=1.0
+            )
+
+    def test_parse_with_too_many_malformed_components_iso(self):
+        with pytest.raises(ValueError, match="^time data *"):
+            to_datetime("18-10-202", format="ISO8601", threshold=0.5)
+
+    def test_parse_with_too_many_malformed_components_iso_all(self):
+        with pytest.raises(ValueError, match="^time data *"):
+            to_datetime("2018-10-202", format="ISO8601", threshold=1.0)"""

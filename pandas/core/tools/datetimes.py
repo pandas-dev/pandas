@@ -328,6 +328,7 @@ def _convert_listlike_datetimes(
     dayfirst: bool | None = None,
     yearfirst: bool | None = None,
     exact: bool = True,
+    threshold: float = 1.0,
 ):
     """
     Helper function for to_datetime. Performs the conversions of 1D listlike
@@ -351,6 +352,23 @@ def _convert_listlike_datetimes(
         yearfirst parsing behavior from to_datetime
     exact : bool, default True
         exact format matching behavior from to_datetime
+
+    /// INSERT DOCUMENTATION UPDATE HERE ///
+    ########################
+        ########################
+            ########################
+                ########################
+                    ########################
+                        ########################
+                            ########################
+                                ########################
+                            ########################
+                        ########################
+                    ########################
+                ########################
+            ########################
+        ########################
+    ########################
 
     Returns
     -------
@@ -433,7 +451,9 @@ def _convert_listlike_datetimes(
 
     # `format` could be inferred, or user didn't ask for mixed-format parsing.
     if format is not None and format != "mixed":
-        return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+        return _array_strptime_with_fallback(
+            arg, name, utc, format, exact, errors, threshold
+        )
 
     result, tz_parsed = objects_to_datetime64(
         arg,
@@ -464,11 +484,14 @@ def _array_strptime_with_fallback(
     fmt: str,
     exact: bool,
     errors: str,
+    threshold: float = 1.0,
 ) -> Index:
     """
     Call array_strptime, with fallback behavior depending on 'errors'.
     """
-    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+    result, tz_out = array_strptime(
+        arg, fmt, exact=exact, errors=errors, utc=utc, threshold=threshold
+    )
     if tz_out is not None:
         unit = np.datetime_data(result.dtype)[0]
         unit = cast("TimeUnit", unit)
@@ -686,6 +709,7 @@ def to_datetime(
     unit: str | None = None,
     origin: str = "unix",
     cache: bool = True,
+    threshold: float = 1.0,
 ) -> DatetimeIndex | Series | DatetimeScalar | NaTType:
     """
     Convert argument to datetime.
@@ -794,6 +818,23 @@ def to_datetime(
         is only used when there are at least 50 values. The presence of
         out-of-bounds values will render the cache unusable and may slow down
         parsing.
+
+    /// INSERT DOCUMENTATION UPDATE HERE ///
+    ########################
+        ########################
+            ########################
+                ########################
+                    ########################
+                        ########################
+                            ########################
+                                ########################
+                            ########################
+                        ########################
+                    ########################
+                ########################
+            ########################
+        ########################
+    ########################
 
     Returns
     -------
@@ -1012,6 +1053,7 @@ def to_datetime(
         yearfirst=yearfirst,
         errors=errors,
         exact=exact,  # type: ignore[arg-type]
+        threshold=threshold,
     )
     result: Timestamp | NaTType | Series | Index
 
