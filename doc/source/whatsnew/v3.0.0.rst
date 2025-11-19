@@ -1022,7 +1022,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.astype` when converting to extension floating dtypes, e.g. "Float64" (:issue:`60066`)
 - Performance improvement in :meth:`DataFrame.stack` when using ``future_stack=True`` and the DataFrame does not have a :class:`MultiIndex` (:issue:`58391`)
 - Performance improvement in :meth:`DataFrame.where` when ``cond`` is a :class:`DataFrame` with many columns (:issue:`61010`)
-- Performance improvement in :meth:`merge` and ``DataFrame.merge``.Now user can use prefixes or both of suffixes and prefixes to differentiate duplicated columns.(:issue:`63014`)
+- Performance improvement in :meth:`merge` and ``DataFrame.merge``.Now user can use prefixes or both of suffixes and prefixes to differentiate duplicated columns. (:issue:`63014`)
 - Performance improvement in :meth:`to_hdf` avoid unnecessary reopenings of the HDF5 file to speedup data addition to files with a very large number of groups . (:issue:`58248`)
 - Performance improvement in ``DataFrameGroupBy.__len__`` and ``SeriesGroupBy.__len__`` (:issue:`57595`)
 - Performance improvement in indexing operations for string dtypes (:issue:`56997`)
