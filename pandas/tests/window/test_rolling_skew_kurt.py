@@ -1,3 +1,4 @@
+from datetime import datetime
 from functools import partial
 
 import numpy as np
@@ -6,6 +7,7 @@ import pytest
 from pandas import (
     DataFrame,
     Series,
+    bdate_range,
     concat,
     isna,
     notna,
@@ -23,6 +25,24 @@ def test_series(series, sp_func, roll_func):
     result = getattr(series.rolling(50), roll_func)()
     assert isinstance(result, Series)
     tm.assert_almost_equal(result.iloc[-1], compare_func(series[-50:]))
+
+
+@pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
+def test_low_variance_series(sp_func, roll_func):
+    sp_stats = pytest.importorskip("scipy.stats")
+
+    arr = np.random.default_rng(505).normal(loc=0e0, scale=1e-16, size=100)
+    locs = np.arange(20, 40)
+    arr[locs] = np.nan
+    low_variance_series = Series(
+        arr, index=bdate_range(datetime(2009, 1, 1), periods=100)
+    )
+
+    compare_func = partial(getattr(sp_stats, sp_func), bias=False)
+    window = low_variance_series.rolling(50)
+    result = getattr(window, roll_func)()
+    expected = window.apply(compare_func)
+    tm.assert_almost_equal(result, expected)
 
 
 @pytest.mark.parametrize("sp_func, roll_func", [["kurtosis", "kurt"], ["skew", "skew"]])
