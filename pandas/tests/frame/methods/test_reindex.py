@@ -140,7 +140,7 @@ class TestDataFrameSelectReindex:
         # GH#52586
         df = DataFrame([[1]])
 
-        ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific")
+        ts = pd.Timestamp("2023-04-10 17:32", tz="US/Pacific").as_unit("s")
         res = df.reindex([0, 1], axis=1, fill_value=ts)
         assert res.dtypes[1] == pd.DatetimeTZDtype(unit="s", tz="US/Pacific")
         expected = DataFrame({0: [1], 1: [ts]})

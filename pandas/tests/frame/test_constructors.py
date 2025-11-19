@@ -879,9 +879,10 @@ class TestDataFrameConstructors:
         )
 
         result_datetime64 = DataFrame(data_datetime64)
+        assert result_datetime64.index.unit == "s"
+        result_datetime64.index = result_datetime64.index.as_unit("us")
         result_datetime = DataFrame(data_datetime)
         assert result_datetime.index.unit == "us"
-        result_datetime.index = result_datetime.index.as_unit("s")
         result_Timestamp = DataFrame(data_Timestamp)
         tm.assert_frame_equal(result_datetime64, expected)
         tm.assert_frame_equal(result_datetime, expected)
@@ -944,7 +945,7 @@ class TestDataFrameConstructors:
             (Period("2020-01"), PeriodDtype("M")),
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
-                Timestamp("2011-01-01", tz="US/Eastern"),
+                Timestamp("2011-01-01", tz="US/Eastern").as_unit("s"),
                 DatetimeTZDtype(unit="s", tz="US/Eastern"),
             ),
         ],
@@ -1849,7 +1850,7 @@ class TestDataFrameConstructors:
                 "A": 1,
                 "B": "foo",
                 "C": "bar",
-                "D": Timestamp("20010101"),
+                "D": Timestamp("20010101").as_unit("s"),
                 "E": datetime(2001, 1, 2, 0, 0),
             },
             index=np.arange(10),
@@ -3076,9 +3077,9 @@ class TestDataFrameConstructorWithDatetimeTZ:
         res = DataFrame(arr, columns=["A", "B", "C"])
 
         expected_dtypes = [
-            "datetime64[s]",
-            "datetime64[s, US/Eastern]",
-            "datetime64[s, CET]",
+            "datetime64[us]",
+            "datetime64[us, US/Eastern]",
+            "datetime64[us, CET]",
         ]
         assert (res.dtypes == expected_dtypes).all()
 

@@ -55,11 +55,15 @@ class TestToNumpy:
 
         df = DataFrame(
             {
-                "a": [Timestamp("1970-01-01"), Timestamp("1970-01-02"), NaT],
+                "a": [
+                    Timestamp("1970-01-01").as_unit("s"),
+                    Timestamp("1970-01-02").as_unit("s"),
+                    NaT,
+                ],
                 "b": [
-                    Timestamp("1970-01-01"),
+                    Timestamp("1970-01-01").as_unit("s"),
                     np.nan,
-                    Timestamp("1970-01-02"),
+                    Timestamp("1970-01-02").as_unit("s"),
                 ],
                 "c": [
                     1,

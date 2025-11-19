@@ -445,9 +445,9 @@ def test_to_numpy_dtype(as_series):
     [
         ([1, 2, None], "float64", 0, [1.0, 2.0, 0.0]),
         (
-            [Timestamp("2000"), Timestamp("2000"), pd.NaT],
+            [Timestamp("2000").as_unit("s"), Timestamp("2000").as_unit("s"), pd.NaT],
             None,
-            Timestamp("2000"),
+            Timestamp("2000").as_unit("s"),
             [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
@@ -486,10 +486,14 @@ def test_to_numpy_na_value_numpy_dtype(
             [1, 2, 0, 4],
         ),
         (
-            [Timestamp("2000"), Timestamp("2000"), pd.NaT],
-            [(0, Timestamp("2021")), (0, Timestamp("2022")), (1, Timestamp("2000"))],
+            [Timestamp("2000").as_unit("s"), Timestamp("2000").as_unit("s"), pd.NaT],
+            [
+                (0, Timestamp("2021").as_unit("s")),
+                (0, Timestamp("2022").as_unit("s")),
+                (1, Timestamp("2000").as_unit("s")),
+            ],
             None,
-            Timestamp("2000"),
+            Timestamp("2000").as_unit("s"),
             [np.datetime64("2000-01-01T00:00:00", "s")] * 3,
         ),
     ],
