@@ -524,7 +524,7 @@ class TestDatetimeIndex:
                 Timestamp("2011-01-01 10:00", tz="Asia/Tokyo"),
                 Timestamp("2011-01-02 10:00", tz="US/Eastern"),
             ],
-            dtype="M8[s, US/Eastern]",
+            dtype="M8[us, US/Eastern]",
             name="idx",
         )
         tm.assert_index_equal(dti, expected)
@@ -602,7 +602,7 @@ class TestDatetimeIndex:
         expected = DatetimeIndex(strings.astype("O"))
         tm.assert_index_equal(result, expected)
 
-        from_ints = DatetimeIndex(expected.as_unit("ns").asi8).as_unit("s")
+        from_ints = DatetimeIndex(expected.as_unit("ns").asi8).as_unit("us")
         tm.assert_index_equal(from_ints, expected)
 
         # string with NaT
@@ -611,7 +611,7 @@ class TestDatetimeIndex:
         expected = DatetimeIndex(strings.astype("O"))
         tm.assert_index_equal(result, expected)
 
-        from_ints = DatetimeIndex(expected.as_unit("ns").asi8).as_unit("s")
+        from_ints = DatetimeIndex(expected.as_unit("ns").asi8).as_unit("us")
         tm.assert_index_equal(from_ints, expected)
 
         # non-conforming
@@ -940,11 +940,11 @@ class TestDatetimeIndex:
 
         idx1 = to_datetime(arr).tz_localize(tzstr)
         idx2 = date_range(
-            start="2005-11-10 08:00:00", freq="h", periods=2, tz=tzstr, unit="s"
+            start="2005-11-10 08:00:00", freq="h", periods=2, tz=tzstr, unit="us"
         )
         idx2 = idx2._with_freq(None)  # the others all have freq=None
-        idx3 = DatetimeIndex(arr, tz=tzstr).as_unit("s")
-        idx4 = DatetimeIndex(np.array(arr), tz=tzstr).as_unit("s")
+        idx3 = DatetimeIndex(arr, tz=tzstr)
+        idx4 = DatetimeIndex(np.array(arr), tz=tzstr)
 
         tm.assert_index_equal(idx1, idx2)
         tm.assert_index_equal(idx1, idx3)
@@ -1198,9 +1198,9 @@ class TestTimeSeries:
         yfirst = Timestamp(2005, 10, 16, tz="US/Pacific")
 
         result1 = DatetimeIndex([val], tz="US/Pacific", dayfirst=True)
-        expected1 = DatetimeIndex([dfirst]).as_unit("s")
+        expected1 = DatetimeIndex([dfirst])
         tm.assert_index_equal(result1, expected1)
 
         result2 = DatetimeIndex([val], tz="US/Pacific", yearfirst=True)
-        expected2 = DatetimeIndex([yfirst]).as_unit("s")
+        expected2 = DatetimeIndex([yfirst])
         tm.assert_index_equal(result2, expected2)

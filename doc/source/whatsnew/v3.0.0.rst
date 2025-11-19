@@ -202,6 +202,7 @@ Other enhancements
 - :class:`Holiday` has gained the constructor argument and field ``exclude_dates`` to exclude specific datetimes from a custom holiday calendar (:issue:`54382`)
 - :class:`Rolling` and :class:`Expanding` now support ``nunique`` (:issue:`26958`)
 - :class:`Rolling` and :class:`Expanding` now support aggregations ``first`` and ``last`` (:issue:`33155`)
+- :func:`DataFrame.to_excel` has a new ``autofilter`` parameter to add automatic filters to all columns  (:issue:`61194`)
 - :func:`read_parquet` accepts ``to_pandas_kwargs`` which are forwarded to :meth:`pyarrow.Table.to_pandas` which enables passing additional keywords to customize the conversion to pandas, such as ``maps_as_pydicts`` to read the Parquet map data type as python dictionaries (:issue:`56842`)
 - :func:`to_numeric` on big integers converts to ``object`` datatype with python integers when not coercing. (:issue:`51295`)
 - :meth:`.DataFrameGroupBy.transform`, :meth:`.SeriesGroupBy.transform`, :meth:`.DataFrameGroupBy.agg`, :meth:`.SeriesGroupBy.agg`, :meth:`.SeriesGroupBy.apply`, :meth:`.DataFrameGroupBy.apply` now support ``kurt`` (:issue:`40139`)
@@ -232,7 +233,6 @@ Other enhancements
 - Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
 - Switched wheel upload to **PyPI Trusted Publishing** (OIDC) for release-tag pushes in ``wheels.yml``. (:issue:`61718`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
@@ -358,7 +358,7 @@ When passing strings, the resolution will depend on the precision of the string,
     In [5]: pd.to_datetime(["2024-03-22 11:43:01.002003004"]).dtype
     Out[5]: dtype('<M8[ns]')
 
-The inferred resolution now matches that of the input strings:
+The inferred resolution now matches that of the input strings for nanosecond-precision strings, otherwise defaulting to microseconds:
 
 .. ipython:: python
 
@@ -367,12 +367,16 @@ The inferred resolution now matches that of the input strings:
     In [4]: pd.to_datetime(["2024-03-22 11:43:01.002003"]).dtype
     In [5]: pd.to_datetime(["2024-03-22 11:43:01.002003004"]).dtype
 
+This is also a change for the :class:`Timestamp` constructor with a string input, which in version 2.x.y could give second or millisecond unit, which users generally disliked (:issue:`52653`)
+
 In cases with mixed-resolution inputs, the highest resolution is used:
 
 .. code-block:: ipython
 
     In [2]: pd.to_datetime([pd.Timestamp("2024-03-22 11:43:01"), "2024-03-22 11:43:01.002"]).dtype
     Out[2]: dtype('<M8[ns]')
+
+.. warning:: Many users will now get "M8[us]" dtype data in cases when they used to get "M8[ns]". For most use cases they should not notice a difference. One big exception is converting to integers, which will give integers 1000x smaller.
 
 .. _whatsnew_300.api_breaking.concat_datetime_sorting:
 
@@ -1118,6 +1122,7 @@ Conversion
 
 Strings
 ^^^^^^^
+- Bug in :meth:`Series.str.match` failing to raise when given a compiled ``re.Pattern`` object and conflicting ``case`` or ``flags`` arguments (:issue:`62240`)
 - Bug in :meth:`Series.str.replace` raising an error on valid group references (``\1``, ``\2``, etc.) on series converted to PyArrow backend dtype (:issue:`62653`)
 - Bug in :meth:`Series.str.zfill` raising ``AttributeError`` for :class:`ArrowDtype` (:issue:`61485`)
 - Bug in :meth:`Series.value_counts` would not respect ``sort=False`` for series having ``string`` dtype (:issue:`55224`)
