@@ -1261,10 +1261,10 @@ def test_categorical_nan_no_dtype_conversion():
 
 
 def test_dt_to_pydatetime_conversion():
-    expected = "datetime"
+    expected = "datetime64[us]"
 
     df = pd.DataFrame({"ts": [pd.Timestamp("2024-01-01 12:00:00").as_unit("ns")]})
-    df["ts"] = df.ts.dt.to_pydatetime()
+    df["ts"] = np.array(df.ts.dt.to_pydatetime())
     assert df["ts"].dtype == expected, f"actual={df['ts'].dtype}, expected={expected}"
 
     buffer = io.StringIO()
