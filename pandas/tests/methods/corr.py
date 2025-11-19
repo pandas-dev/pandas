@@ -135,7 +135,7 @@ from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
         ),
     ],
 )
-def test_transform_ord_cat_cols_to_coded_cols(input_df, expected_df):
+def test_transform_ord_cat_cols_to_coded_cols(input_df: DataFrame, expected_df: DataFrame):
     # duplicate columns creation for dup columns
     if "dup_1" in input_df.columns:
         input_df.columns = ["dup" for _ in range(len(input_df.columns))]
