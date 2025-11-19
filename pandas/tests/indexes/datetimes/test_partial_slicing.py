@@ -561,3 +561,8 @@ class TestDatetimeIndexNonISODeprecation:
         with tm.assert_produces_warning(None):
             result = ser_daily.loc[Timestamp("2024-01-10")]
             assert result == 9
+
+    def test_loc_indexing_invalid_iso_pattern_raises_keyerror(self, ser_daily):
+        # GH#58302 - Malformed date strings fail at parsing, before ISO check
+        with pytest.raises(KeyError, match="2025-ANYTHING-GOES"):
+            ser_daily.loc["2025-ANYTHING-GOES"]

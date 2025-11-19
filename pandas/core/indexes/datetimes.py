@@ -137,14 +137,10 @@ def _is_iso_format_string(date_str: str) -> bool:
         dt.date.fromisoformat(date_str)
         return True
     except (ValueError, TypeError):
-        # Fallback regex for reduced precision dates not supported by fromisoformat()
-        # Checks if string starts with ISO pattern (YYYY, YYYY-MM, YYYY-MM-DD, etc.)
-        # Pattern: ^\d{4}(?:-|T|$)
-        # - Requires exactly 4 digits at start (year)
-        # - Followed by: hyphen (YYYY-), T (YYYY-T...), or end (YYYY)
-        # Examples that match: "2024", "2024-01", "2024-01-10", "2024-01-10T00:00:00"
-        # Examples that don't: "01/10/2024", "2024 01 10", "1/1/2024"
-        return re.match(r"^\d{4}(?:-|T|$)", date_str) is not None
+        # Fallback for reduced precision dates not supported by fromisoformat()
+        # Match YYYY, YYYY-MM, YYYY-MM-DD with optional time component
+        pattern = r"\d{4}(?:-\d{2})?(?:-\d{2})?(?:T.*)?"
+        return re.fullmatch(pattern, date_str) is not None
 
 
 @inherit_names(
