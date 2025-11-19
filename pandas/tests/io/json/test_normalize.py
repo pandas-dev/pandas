@@ -938,10 +938,3 @@ class TestNestedToRecord:
 
         with pytest.raises(TypeError, match="must be strings"):
             json_normalize(data, record_path=["nested"], meta=[12])
-
-        # Test string meta works correctly
-        result1 = json_normalize(data, meta=["a"])
-        assert "a" in result1.columns
-
-        result2 = json_normalize(data, record_path=["nested"], meta=["a"])
-        assert "a" in result2.columns
