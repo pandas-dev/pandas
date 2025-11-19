@@ -88,6 +88,7 @@ def test_dup_labels_output_shape(groupby_func, idx):
 
 def test_not_c_contiguous_mask(groupby_func):
     if groupby_func == "corrwith":
+        # corrwith is deprecated
         return
     df = DataFrame({"a": [1, 1, 2], "b": [3, 4, 5]}, dtype="Int64")
     reversed = DataFrame(
