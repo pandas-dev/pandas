@@ -25,7 +25,7 @@ class TestGetNumericData:
         objectname = np.dtype(np.object_).name
 
         df = DataFrame(
-            {"a": 1.0, "b": 2, "c": "foo", "f": Timestamp("20010102")},
+            {"a": 1.0, "b": 2, "c": "foo", "f": Timestamp("20010102").as_unit("s")},
             index=np.arange(10),
         )
         result = df.dtypes

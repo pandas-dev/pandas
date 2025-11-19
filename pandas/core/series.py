@@ -2130,14 +2130,14 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> pd.Series([pd.Timestamp("2016-01-01") for _ in range(3)]).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00']
-        Length: 1, dtype: datetime64[s]
+        Length: 1, dtype: datetime64[us]
 
         >>> pd.Series(
         ...     [pd.Timestamp("2016-01-01", tz="US/Eastern") for _ in range(3)]
         ... ).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00-05:00']
-        Length: 1, dtype: datetime64[s, US/Eastern]
+        Length: 1, dtype: datetime64[us, US/Eastern]
 
         A Categorical will return categories in the order of
         appearance and with the same dtype.

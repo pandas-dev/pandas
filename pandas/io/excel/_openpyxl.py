@@ -449,6 +449,7 @@ class OpenpyxlWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        autofilter_range: str | None = None,
     ) -> None:
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
@@ -531,6 +532,9 @@ class OpenpyxlWriter(ExcelWriter):
                             xcell = wks.cell(column=col, row=row)
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
+
+        if autofilter_range:
+            wks.auto_filter.ref = autofilter_range
 
 
 class OpenpyxlReader(BaseExcelReader["Workbook"]):

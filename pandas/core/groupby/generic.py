@@ -1473,7 +1473,7 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmin()
         a   2023-01-01
         b   2023-02-01
-        dtype: datetime64[s]
+        dtype: datetime64[us]
         """
         return self._idxmax_idxmin("idxmin", skipna=skipna)
 
@@ -1534,7 +1534,7 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmax()
         a   2023-01-15
         b   2023-02-15
-        dtype: datetime64[s]
+        dtype: datetime64[us]
         """
         return self._idxmax_idxmin("idxmax", skipna=skipna)
 

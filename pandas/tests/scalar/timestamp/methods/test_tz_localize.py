@@ -67,7 +67,7 @@ class TestTimestampTZLocalize:
         assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
     def test_tz_localize_ambiguous(self):
-        ts = Timestamp("2014-11-02 01:00")
+        ts = Timestamp("2014-11-02 01:00").as_unit("s")
         ts_dst = ts.tz_localize("US/Eastern", ambiguous=True)
         ts_no_dst = ts.tz_localize("US/Eastern", ambiguous=False)
 
@@ -114,25 +114,25 @@ class TestTimestampTZLocalize:
                 "2015-03-29 02:00:00",
                 "Europe/Warsaw",
                 "2015-03-29 03:00:00",
-                "2015-03-29 01:59:59",
+                "2015-03-29 01:59:59.999999",
             ),  # utc+1 -> utc+2
             (
                 "2023-03-12 02:00:00",
                 "America/Los_Angeles",
                 "2023-03-12 03:00:00",
-                "2023-03-12 01:59:59",
+                "2023-03-12 01:59:59.999999",
             ),  # utc-8 -> utc-7
             (
                 "2023-03-26 01:00:00",
                 "Europe/London",
                 "2023-03-26 02:00:00",
-                "2023-03-26 00:59:59",
+                "2023-03-26 00:59:59.999999",
             ),  # utc+0 -> utc+1
             (
                 "2023-03-26 00:00:00",
                 "Atlantic/Azores",
                 "2023-03-26 01:00:00",
-                "2023-03-25 23:59:59",
+                "2023-03-25 23:59:59.999999",
             ),  # utc-1 -> utc+0
         ],
     )
@@ -191,13 +191,14 @@ class TestTimestampTZLocalize:
         # when the transition happens
         pytz = pytest.importorskip("pytz")
         naive = Timestamp("2013-10-27 01:00:00")
+        assert naive.unit == "us"
 
         pytz_zone = pytz.timezone("Europe/London")
         dateutil_zone = "dateutil/Europe/London"
         result_pytz = naive.tz_localize(pytz_zone, ambiguous=False)
         result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=False)
         assert result_pytz._value == result_dateutil._value
-        assert result_pytz._value == 1382835600
+        assert result_pytz._value == 1_382_835_600 * 10**6
 
         # fixed ambiguous behavior
         # see gh-14621, GH#45087
@@ -209,7 +210,7 @@ class TestTimestampTZLocalize:
         result_pytz = naive.tz_localize(pytz_zone, ambiguous=True)
         result_dateutil = naive.tz_localize(dateutil_zone, ambiguous=True)
         assert result_pytz._value == result_dateutil._value
-        assert result_pytz._value == 1382832000
+        assert result_pytz._value == 1_382_832_000 * 10**6
 
         # see gh-14621
         assert str(result_pytz) == str(result_dateutil)
