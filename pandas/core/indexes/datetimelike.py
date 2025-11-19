@@ -622,7 +622,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         See Also
         --------
         DatetimeIndex.freq : Return the frequency object if it is set, otherwise None.
-        DatetimeIndex.freqstr : Return the frequency string if it is set, otherwise None.
+        DatetimeIndex.freqstr : 
+            Return the frequency string if it is set, otherwise None.
 
         Examples
         --------
