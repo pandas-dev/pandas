@@ -46,6 +46,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas.errors import PerformanceWarning
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
 
@@ -171,6 +172,7 @@ def _field_accessor(name: str, field: str, docstring: str | None = None):
     return property(f)
 
 
+@set_module("pandas.arrays")
 class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     """
     Pandas ExtensionArray for tz-naive or tz-aware datetime data.
@@ -222,8 +224,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     ['2023-01-01 00:00:00', '2023-01-02 00:00:00']
     Length: 2, dtype: datetime64[us]
     """
-
-    __module__ = "pandas.arrays"
 
     _typ = "datetimearray"
     _internal_fill_value = np.datetime64("NaT", "ns")
