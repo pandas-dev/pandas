@@ -1102,12 +1102,12 @@ def date_range(
             creso = abbrev_to_npy_unit(unit)
             if isinstance(freq, Tick):
                 if freq._creso > creso:
-                    unit = freq.base.freqstr
+                    unit = freq.base.freqstr  # type: ignore[assignment]
             elif hasattr(freq, "offset") and freq.offset is not None:
                 # e.g. BDay with an offset
                 td = Timedelta(freq.offset)
                 if abbrev_to_npy_unit(td.unit) > creso:
-                    unit = td.unit
+                    unit = td.unit  # type: ignore[assignment]
             elif type(freq) is DateOffset and getattr(freq, "nanoseconds", 0) != 0:
                 # e.g. test_freq_dateoffset_with_relateivedelta_nanos
                 unit = "ns"
