@@ -37,6 +37,10 @@ from pandas.core.indexes.extension import inherit_names
 
 if TYPE_CHECKING:
     from pandas._libs import NaTType
+    from pandas._libs.tslibs import (
+        Day,
+        Tick,
+    )
     from pandas._typing import (
         DtypeObj,
         TimeUnit,
@@ -358,22 +362,23 @@ def timedelta_range(
             start = Timedelta(start)
             end = Timedelta(end)
             if abbrev_to_npy_unit(start.unit) > abbrev_to_npy_unit(end.unit):
-                unit = start.unit
+                unit = cast("TimeUnit", start.unit)
             else:
-                unit = end.unit
+                unit = cast("TimeUnit", end.unit)
         elif start is not None:
             start = Timedelta(start)
-            unit = start.unit
+            unit = cast("TimeUnit", start.unit)
         else:
             end = Timedelta(end)
-            unit = end.unit
+            unit = cast("TimeUnit", end.unit)
 
         # Last we need to watch out for cases where the 'freq' implies a higher
         #  unit than either start or end
         if freq is not None:
+            freq = cast("Tick | Day", freq)
             creso = abbrev_to_npy_unit(unit)
             if freq._creso > creso:
-                unit = freq.base.freqstr
+                unit = cast("TimeUnit", freq.base.freqstr)
 
     tdarr = TimedeltaArray._generate_range(
         start, end, periods, freq, closed=closed, unit=cast("TimeUnit", unit)
