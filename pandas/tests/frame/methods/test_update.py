@@ -197,6 +197,7 @@ class TestDataFrameUpdate:
                 np.datetime64("2000-01-02T00:00:00"),
                 np.dtype("datetime64[ns]"),
             ),
+            (1, 2, pd.Int64Dtype()),
         ],
     )
     def test_update_preserve_dtype(self, value_df, value_other, dtype):
