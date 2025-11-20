@@ -370,7 +370,7 @@ def unique(values):
     array([2, 1])
 
     >>> pd.unique(pd.Series([pd.Timestamp("20160101"), pd.Timestamp("20160101")]))
-    array(['2016-01-01T00:00:00'], dtype='datetime64[s]')
+    array(['2016-01-01T00:00:00.000000'], dtype='datetime64[us]')
 
     >>> pd.unique(
     ...     pd.Series(

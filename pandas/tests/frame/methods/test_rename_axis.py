@@ -28,6 +28,18 @@ class TestDataFrameRenameAxis:
         assert no_return is None
         tm.assert_frame_equal(result, expected)
 
+    def test_rename_axis_with_allows_duplicate_labels_false(self):
+        # GH#44958
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"]).set_flags(
+            allows_duplicate_labels=False
+        )
+
+        result = df.rename_axis("idx", axis=0)
+        expected = DataFrame(
+            [[1, 2], [3, 4]], index=Index([0, 1], name="idx"), columns=["a", "b"]
+        )
+        tm.assert_frame_equal(result, expected, check_flags=False)
+
     def test_rename_axis_raises(self):
         # GH#17833
         df = DataFrame({"A": [1, 2], "B": [1, 2]})
