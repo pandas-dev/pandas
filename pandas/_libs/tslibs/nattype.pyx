@@ -371,6 +371,7 @@ class NaTType(_NaT):
     0  2023-01-01
     1         NaT
     """
+
     __module__ = "pandas.api.typing"
 
     def __new__(cls):

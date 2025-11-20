@@ -394,6 +394,7 @@ class NAType(C_NAType):
     True
     """
     __module__ = "pandas.api.typing"
+
     _instance = None
 
     def __new__(cls, *args, **kwargs):
