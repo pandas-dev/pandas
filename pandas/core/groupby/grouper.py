@@ -66,9 +66,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
-set_module("pandas")
-
-
+@set_module("pandas")
 class Grouper:
     """
     A Grouper allows the user to specify a groupby instruction for an object.
