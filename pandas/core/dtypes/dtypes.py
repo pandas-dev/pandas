@@ -2049,7 +2049,7 @@ class SparseDtype(ExtensionDtype):
         Examples
         --------
         >>> SparseDtype(int, 0).update_dtype(float)
-        Sparse[float64, 0.0]
+        Sparse[float64, np.float64(0.0)]
 
         >>> SparseDtype(int, 1).update_dtype(SparseDtype(float, np.nan))
         Sparse[float64, nan]

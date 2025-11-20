@@ -12998,7 +12998,7 @@ def make_doc(name: str, ndim: int) -> str:
             Examples
             --------
             >>> s = pd.Series([1, 2, 3])
-            >>> s.sem().round(6)
+            >>> round(s.sem(), 6)
             0.57735
 
             With a DataFrame

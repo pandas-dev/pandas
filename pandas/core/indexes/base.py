@@ -1019,7 +1019,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> s = pd.Series([1, 2, 3], index=["a", "b", "c"])
         >>> s.index.ravel()
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
         """
         return self[:]
 
@@ -1349,11 +1349,11 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
         >>> idx.repeat(2)
-        Index(['a', 'a', 'b', 'b', 'c', 'c'], dtype='object')
+        Index(['a', 'a', 'b', 'b', 'c', 'c'], dtype='str')
         >>> idx.repeat([1, 2, 3])
-        Index(['a', 'b', 'b', 'c', 'c', 'c'], dtype='object')
+        Index(['a', 'b', 'b', 'c', 'c', 'c'], dtype='str')
         """
         repeats = ensure_platform_int(repeats)
         nv.validate_repeat((), {"axis": axis})
@@ -1674,7 +1674,7 @@ class Index(IndexOpsMixin, PandasObject):
         Ant      Ant
         Bear    Bear
         Cow      Cow
-        Name: animal, dtype: object
+        Name: animal, dtype: str
 
         To enforce a new index, specify new labels to ``index``:
 
@@ -1682,7 +1682,7 @@ class Index(IndexOpsMixin, PandasObject):
         0     Ant
         1    Bear
         2     Cow
-        Name: animal, dtype: object
+        Name: animal, dtype: str
 
         To override the name of the resulting column, specify ``name``:
 
@@ -1691,7 +1691,7 @@ class Index(IndexOpsMixin, PandasObject):
         Ant      Ant
         Bear    Bear
         Cow      Cow
-        Name: zoo, dtype: object
+        Name: zoo, dtype: str
         """
         from pandas import Series
 
@@ -2080,7 +2080,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["A", "C", "A", "B"], name="score")
         >>> idx.rename("grade")
-        Index(['A', 'C', 'A', 'B'], dtype='object', name='grade')
+        Index(['A', 'C', 'A', 'B'], dtype='str', name='grade')
 
         >>> idx = pd.MultiIndex.from_product(
         ...     [["python", "cobra"], [2018, 2019]], names=["kind", "year"]
@@ -2222,12 +2222,12 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(list("abc"))
         >>> idx
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
 
         Get level values by supplying `level` as integer:
 
         >>> idx.get_level_values(0)
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
         """
         self._validate_index_level(level)
         return self
@@ -2668,7 +2668,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index(["black", "", "red", None])
         >>> idx
-        Index(['black', '', 'red', None], dtype='object')
+        Index(['black', '', 'red', nan], dtype='str')
         >>> idx.isna()
         array([False, False, False,  True])
 
@@ -2679,7 +2679,7 @@ class Index(IndexOpsMixin, PandasObject):
         ... )
         >>> idx
         DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
-                      dtype='datetime64[s]', freq=None)
+                      dtype='datetime64[us]', freq=None)
         >>> idx.isna()
         array([False,  True,  True,  True])
         """
@@ -2725,7 +2725,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index(["black", "", "red", None])
         >>> idx
-        Index(['black', '', 'red', None], dtype='object')
+        Index(['black', '', 'red', nan], dtype='str')
         >>> idx.notna()
         array([ True,  True,  True, False])
         """
@@ -2878,18 +2878,18 @@ class Index(IndexOpsMixin, PandasObject):
         set of duplicated entries. The default value of keep is 'first'.
 
         >>> idx.drop_duplicates(keep="first")
-        Index(['llama', 'cow', 'beetle', 'hippo'], dtype='object')
+        Index(['llama', 'cow', 'beetle', 'hippo'], dtype='str')
 
         The value 'last' keeps the last occurrence for each set of duplicated
         entries.
 
         >>> idx.drop_duplicates(keep="last")
-        Index(['cow', 'beetle', 'llama', 'hippo'], dtype='object')
+        Index(['cow', 'beetle', 'llama', 'hippo'], dtype='str')
 
         The value ``False`` discards all sets of duplicated entries.
 
         >>> idx.drop_duplicates(keep=False)
-        Index(['cow', 'beetle', 'hippo'], dtype='object')
+        Index(['cow', 'beetle', 'hippo'], dtype='str')
         """
         if self.is_unique:
             return self._view()
@@ -4201,9 +4201,9 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["car", "bike", "train", "tractor"])
         >>> idx
-        Index(['car', 'bike', 'train', 'tractor'], dtype='object')
+        Index(['car', 'bike', 'train', 'tractor'], dtype='str')
         >>> idx.reindex(["car", "bike"])
-        (Index(['car', 'bike'], dtype='object'), array([0, 1]))
+        (Index(['car', 'bike'], dtype='str'), array([0, 1]))
         """
         # GH6552: preserve names when reindexing to non-named target
         # (i.e. neither Index nor Series).
@@ -5161,9 +5161,9 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["car", "bike", "train", "tractor"])
         >>> idx
-        Index(['car', 'bike', 'train', 'tractor'], dtype='object')
+        Index(['car', 'bike', 'train', 'tractor'], dtype='str')
         >>> idx.where(idx.isin(["car", "train"]), "other")
-        Index(['car', 'other', 'train', 'other'], dtype='object')
+        Index(['car', 'other', 'train', 'other'], dtype='str')
         """
         if isinstance(self, ABCMultiIndex):
             raise NotImplementedError(
@@ -5506,7 +5506,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx2 = pd.Index(["1", "2", "3"])
         >>> idx2
-        Index(['1', '2', '3'], dtype='object')
+        Index(['1', '2', '3'], dtype='str')
 
         >>> idx1.equals(idx2)
         False
@@ -5961,14 +5961,14 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["b", "a", "d", "c"])
         >>> idx
-        Index(['b', 'a', 'd', 'c'], dtype='object')
+        Index(['b', 'a', 'd', 'c'], dtype='str')
 
         >>> order = idx.argsort()
         >>> order
         array([1, 0, 3, 2])
 
         >>> idx[order]
-        Index(['a', 'b', 'c', 'd'], dtype='object')
+        Index(['a', 'b', 'c', 'd'], dtype='str')
         """
         # This works for either ndarray or EA, is overridden
         #  by RangeIndex, MultIIndex
@@ -6491,17 +6491,17 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index([1, 2, 3])
         >>> idx.map({1: "a", 2: "b", 3: "c"})
-        Index(['a', 'b', 'c'], dtype='object')
+        Index(['a', 'b', 'c'], dtype='str')
 
         Using `map` with a function:
 
         >>> idx = pd.Index([1, 2, 3])
         >>> idx.map("I am a {}".format)
-        Index(['I am a 1', 'I am a 2', 'I am a 3'], dtype='object')
+        Index(['I am a 1', 'I am a 2', 'I am a 3'], dtype='str')
 
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.map(lambda x: x.upper())
-        Index(['A', 'B', 'C'], dtype='object')
+        Index(['A', 'B', 'C'], dtype='str')
         """
         from pandas.core.indexes.multi import MultiIndex
 
@@ -7137,7 +7137,7 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.drop(["a"])
-        Index(['b', 'c'], dtype='object')
+        Index(['b', 'c'], dtype='str')
         """
         if not isinstance(labels, Index):
             # avoid materializing e.g. RangeIndex
@@ -7175,7 +7175,7 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> pd.Index(["a", 1]).infer_objects()
-        Index(['a', '1'], dtype='object')
+        Index(['a', 1], dtype='object')
         >>> pd.Index([1, 2], dtype="object").infer_objects()
         Index([1, 2], dtype='int64')
         """

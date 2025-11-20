@@ -1739,25 +1739,25 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         skips NAs):
 
         >>> pd.array([True, False, True]).any()
-        np.True_
+        True
         >>> pd.array([True, False, pd.NA]).any()
-        np.True_
+        True
         >>> pd.array([False, False, pd.NA]).any()
-        np.False_
+        False
         >>> pd.array([], dtype="boolean").any()
-        np.False_
+        False
         >>> pd.array([pd.NA], dtype="boolean").any()
-        np.False_
+        False
         >>> pd.array([pd.NA], dtype="Float64").any()
-        np.False_
+        False
 
         With ``skipna=False``, the result can be NA if this is logically
         required (whether ``pd.NA`` is True or False influences the result):
 
         >>> pd.array([True, False, pd.NA]).any(skipna=False)
-        np.True_
+        True
         >>> pd.array([1, 0, pd.NA]).any(skipna=False)
-        np.True_
+        True
         >>> pd.array([False, False, pd.NA]).any(skipna=False)
         <NA>
         >>> pd.array([0, 0, pd.NA]).any(skipna=False)
@@ -1825,17 +1825,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         skips NAs):
 
         >>> pd.array([True, True, pd.NA]).all()
-        np.True_
+        True
         >>> pd.array([1, 1, pd.NA]).all()
-        np.True_
+        True
         >>> pd.array([True, False, pd.NA]).all()
-        np.False_
+        False
         >>> pd.array([], dtype="boolean").all()
-        np.True_
+        True
         >>> pd.array([pd.NA], dtype="boolean").all()
-        np.True_
+        True
         >>> pd.array([pd.NA], dtype="Float64").all()
-        np.True_
+        True
 
         With ``skipna=False``, the result can be NA if this is logically
         required (whether ``pd.NA`` is True or False influences the result):
@@ -1845,9 +1845,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> pd.array([1, 1, pd.NA]).all(skipna=False)
         <NA>
         >>> pd.array([True, False, pd.NA]).all(skipna=False)
-        np.False_
+        False
         >>> pd.array([1, 0, pd.NA]).all(skipna=False)
-        np.False_
+        False
         """
         nv.validate_all((), kwargs)
 

@@ -78,10 +78,10 @@ frame_examples_sub = dedent(
      #   Column     Non-Null Count  Dtype
     ---  ------     --------------  -----
      0   int_col    5 non-null      int64
-     1   text_col   5 non-null      object
+     1   text_col   5 non-null      str
      2   float_col  5 non-null      float64
-    dtypes: float64(1), int64(1), object(1)
-    memory usage: 248.0+ bytes
+    dtypes: float64(1), int64(1), str(1)
+    memory usage: 278.0 bytes
 
     Prints a summary of columns count and its dtypes but not per column
     information:
