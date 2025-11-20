@@ -85,6 +85,7 @@ if TYPE_CHECKING:
         IntervalClosedType,
         Ordered,
         Scalar,
+        TimeUnit,
         npt,
         type_t,
     )
@@ -820,7 +821,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return abbrev_to_npy_unit(self.unit)
 
     @property
-    def unit(self) -> str_type:
+    def unit(self) -> TimeUnit:
         """
         The precision of the datetime data.
 
