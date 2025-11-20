@@ -58,6 +58,8 @@ class BaseIndexer:
     4	4.0
     """
 
+    __module__ = "pandas.api.indexers"
+
     def __init__(
         self, index_array: np.ndarray | None = None, window_size: int = 0, **kwargs
     ) -> None:
@@ -92,7 +94,6 @@ class BaseIndexer:
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -132,7 +133,6 @@ class FixedWindowIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -187,7 +187,6 @@ class VariableWindowIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -271,6 +270,8 @@ class VariableOffsetWindowIndexer(BaseIndexer):
     2020-01-10   9.0
     """
 
+    __module__ = "pandas.api.indexers"
+
     def __init__(
         self,
         index_array: np.ndarray | None = None,
@@ -312,7 +313,6 @@ class VariableOffsetWindowIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -418,7 +418,6 @@ class ExpandingIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -478,6 +477,8 @@ class FixedForwardWindowIndexer(BaseIndexer):
     4  4.0
     """
 
+    __module__ = "pandas.api.indexers"
+
     def get_window_bounds(
         self,
         num_values: int = 0,
@@ -503,7 +504,6 @@ class FixedForwardWindowIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -593,7 +593,6 @@ class GroupbyIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -675,7 +674,6 @@ class ExponentialMovingWindowIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 

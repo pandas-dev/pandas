@@ -687,6 +687,21 @@ class TestArrowArray(base.ExtensionTests):
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
+    def test_fillna_readonly(self, data_missing):
+        data = data_missing.copy()
+        data._readonly = True
+
+        # by default fillna(copy=True), then this works fine
+        result = data.fillna(data_missing[1])
+        assert result[0] == data_missing[1]
+        tm.assert_extension_array_equal(data, data_missing)
+
+        # fillna(copy=False) is generally not honored by Arrow-backed array,
+        # but always returns new data -> same result as above
+        result = data.fillna(data_missing[1])
+        assert result[0] == data_missing[1]
+        tm.assert_extension_array_equal(data, data_missing)
+
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
     )
@@ -3470,9 +3485,9 @@ def test_string_to_datetime_parsing_cast():
     # GH 56266
     string_dates = ["2020-01-01 04:30:00", "2020-01-02 00:00:00", "2020-01-03 00:00:00"]
     result = pd.Series(string_dates, dtype="timestamp[s][pyarrow]")
-    expected = pd.Series(
-        ArrowExtensionArray(pa.array(pd.to_datetime(string_dates), from_pandas=True))
-    )
+
+    pd_res = pd.to_datetime(string_dates).as_unit("s")
+    expected = pd.Series(ArrowExtensionArray(pa.array(pd_res, from_pandas=True)))
     tm.assert_series_equal(result, expected)
 
 
@@ -3699,4 +3714,114 @@ def test_pow_with_all_na_float():
     s = pd.Series([None, None], dtype="float64[pyarrow]")
     result = s.pow(2)
     expected = pd.Series([pd.NA, pd.NA], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_mul_numpy_nullable_with_pyarrow_float():
+    # GH#58602
+    left = pd.Series(range(5), dtype="Float64")
+    right = pd.Series(range(5), dtype="float64[pyarrow]")
+
+    expected = pd.Series([0, 1, 4, 9, 16], dtype="float64[pyarrow]")
+
+    result = left * right
+    tm.assert_series_equal(result, expected)
+
+    result2 = right * left
+    tm.assert_series_equal(result2, expected)
+
+    # while we're here, let's check __eq__
+    result3 = left == right
+    expected3 = pd.Series([True] * 5, dtype="bool[pyarrow]")
+    tm.assert_series_equal(result3, expected3)
+
+    result4 = right == left
+    tm.assert_series_equal(result4, expected3)
+
+
+@pytest.mark.parametrize(
+    "type_name, expected_size",
+    [
+        # Integer types
+        ("int8", 1),
+        ("int16", 2),
+        ("int32", 4),
+        ("int64", 8),
+        ("uint8", 1),
+        ("uint16", 2),
+        ("uint32", 4),
+        ("uint64", 8),
+        # Floating point types
+        ("float16", 2),
+        ("float32", 4),
+        ("float64", 8),
+        # Boolean
+        ("bool_", 1),
+        # Date and timestamp types
+        ("date32", 4),
+        ("date64", 8),
+        ("timestamp", 8),
+        # Time types
+        ("time32", 4),
+        ("time64", 8),
+        # Decimal types
+        ("decimal128", 16),
+        ("decimal256", 32),
+    ],
+)
+def test_arrow_dtype_itemsize_fixed_width(type_name, expected_size):
+    # GH 57948
+
+    parametric_type_map = {
+        "timestamp": pa.timestamp("ns"),
+        "time32": pa.time32("s"),
+        "time64": pa.time64("ns"),
+        "decimal128": pa.decimal128(38, 10),
+        "decimal256": pa.decimal256(76, 10),
+    }
+
+    if type_name in parametric_type_map:
+        arrow_type = parametric_type_map.get(type_name)
+    else:
+        arrow_type = getattr(pa, type_name)()
+    dtype = ArrowDtype(arrow_type)
+
+    if type_name == "bool_":
+        expected_size = dtype.numpy_dtype.itemsize
+
+    assert dtype.itemsize == expected_size, (
+        f"{type_name} expected {expected_size}, got {dtype.itemsize} "
+        f"(bit_width={getattr(dtype.pyarrow_dtype, 'bit_width', 'N/A')})"
+    )
+
+
+@pytest.mark.parametrize("type_name", ["string", "binary", "large_string"])
+def test_arrow_dtype_itemsize_variable_width(type_name):
+    # GH 57948
+
+    arrow_type = getattr(pa, type_name)()
+    dtype = ArrowDtype(arrow_type)
+
+    assert dtype.itemsize == dtype.numpy_dtype.itemsize
+
+
+def test_cast_pontwise_result_decimal_nan():
+    # GH#62522 we don't want to get back null[pyarrow] here
+    ser = pd.Series([], dtype="float64[pyarrow]")
+    arr = ser.array
+    item = Decimal("NaN")
+
+    result = arr._cast_pointwise_result([item])
+
+    pa_type = result.dtype.pyarrow_dtype
+    assert pa.types.is_decimal(pa_type)
+
+
+def test_ufunc_retains_missing():
+    # GH#62800
+    ser = pd.Series([0.1, pd.NA], dtype="float64[pyarrow]")
+
+    result = np.sin(ser)
+
+    expected = pd.Series([np.sin(0.1), pd.NA], dtype="float64[pyarrow]")
     tm.assert_series_equal(result, expected)

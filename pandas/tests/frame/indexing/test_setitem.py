@@ -259,7 +259,7 @@ class TestDataFrameSetItem:
             (Period("2020-01"), PeriodDtype("M")),
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
-                Timestamp("2011-01-01", tz="US/Eastern"),
+                Timestamp("2011-01-01", tz="US/Eastern").as_unit("s"),
                 DatetimeTZDtype(unit="s", tz="US/Eastern"),
             ),
         ],
@@ -1001,6 +1001,15 @@ class TestDataFrameSetItemWithExpansion:
             columns=(["a", "b", "c"]),
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_setitem_tuple_key_in_empty_frame(self):
+        # GH#54385
+        df = DataFrame()
+        df[(0, 0)] = [1, 2, 3]
+
+        cols = Index([(0, 0)], tupleize_cols=False)
+        expected = DataFrame({(0, 0): [1, 2, 3]}, columns=cols)
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameSetItemSlicing:

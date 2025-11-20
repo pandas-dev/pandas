@@ -156,13 +156,9 @@ dtype : Type name or dict of column -> type, default ``None``
   Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
   Use ``str`` or ``object`` together with suitable ``na_values`` settings to preserve
   and not interpret dtype. If converters are specified, they will be applied INSTEAD
-  of dtype conversion.
-
-  .. versionadded:: 1.5.0
-
-     Support for defaultdict was added. Specify a defaultdict as input where
-     the default determines the dtype of the columns which are not explicitly
-     listed.
+  of dtype conversion. Specify a defaultdict as input where
+  the default determines the dtype of the columns which are not explicitly
+  listed.
 
 dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
   Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
@@ -177,12 +173,8 @@ dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFram
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
   is currently more feature-complete. Multithreading is currently only supported by
-  the pyarrow engine.
-
-  .. versionadded:: 1.4.0
-
-     The "pyarrow" engine was added as an *experimental* engine, and some features
-     are unsupported, or may not work correctly, with this engine.
+  the pyarrow engine. Some features of the "pyarrow" engine
+  are unsupported or may not work correctly.
 converters : dict, default ``None``
   Dict of functions for converting values in certain columns. Keys can either be
   integers or column labels.
@@ -303,8 +295,6 @@ compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``'zstd'
   As an example, the following could be passed for faster compression and to
   create a reproducible gzip archive:
   ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
-
-  .. versionchanged:: 1.2.0 Previous versions forwarded dict entries for 'gzip' to ``gzip.open``.
 thousands : str, default ``None``
   Thousands separator.
 decimal : str, default ``'.'``
@@ -353,11 +343,9 @@ on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
     Specifies what to do upon encountering a bad line (a line with too many fields).
     Allowed values are :
 
-    - 'error', raise an ParserError when a bad line is encountered.
+    - 'error', raise a ParserError when a bad line is encountered.
     - 'warn', print a warning when a bad line is encountered and skip that line.
     - 'skip', skip bad lines without raising or warning when they are encountered.
-
-    .. versionadded:: 1.3.0
 
 .. _io.dtypes:
 
@@ -937,8 +925,6 @@ DD/MM/YYYY instead. For convenience, a ``dayfirst`` keyword is provided:
 Writing CSVs to binary file objects
 +++++++++++++++++++++++++++++++++++
 
-.. versionadded:: 1.2.0
-
 ``df.to_csv(..., mode="wb")`` allows writing a CSV to a file object
 opened binary mode. In most cases, it is not necessary to specify
 ``mode`` as pandas will auto-detect whether the file object is
@@ -1123,8 +1109,6 @@ You can elect to skip bad lines:
 
     data = "a,b,c\n1,2,3\n4,5,6,7\n8,9,10"
     pd.read_csv(StringIO(data), on_bad_lines="skip")
-
-.. versionadded:: 1.4.0
 
 Or pass a callable function to handle the bad line if ``engine="python"``.
 The bad line will be a list of strings that was split by the ``sep``:
@@ -1472,7 +1456,7 @@ rather than reading the entire file into memory, such as the following:
    table
 
 
-By specifying a ``chunksize`` to ``read_csv``, the return
+By specifying a ``chunksize`` to :func:`read_csv` as a context manager, the return
 value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
@@ -1481,10 +1465,6 @@ value will be an iterable object of type ``TextFileReader``:
        print(reader)
        for chunk in reader:
            print(chunk)
-
-.. versionchanged:: 1.2
-
-  ``read_csv/json/sas`` return a context-manager when iterating through a file.
 
 Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
@@ -1553,8 +1533,6 @@ functions - the following example shows reading a CSV file:
 
    df = pd.read_csv("https://download.bls.gov/pub/time.series/cu/cu.item", sep="\t")
 
-.. versionadded:: 1.3.0
-
 A custom header can be sent alongside HTTP(s) requests by passing a dictionary
 of header key value mappings to the ``storage_options`` keyword argument as shown below:
 
@@ -1605,8 +1583,6 @@ More sample configurations and documentation can be found at `S3Fs documentation
 
 If you do *not* have S3 credentials, you can still access public
 data by specifying an anonymous connection, such as
-
-.. versionadded:: 1.2.0
 
 .. code-block:: python
 
@@ -2366,52 +2342,7 @@ Read a URL with no options:
 
    The data from the above URL changes every Monday so the resulting data above may be slightly different.
 
-Read a URL while passing headers alongside the HTTP request:
-
-.. code-block:: ipython
-
-   In [322]: url = 'https://www.sump.org/notes/request/' # HTTP request reflector
-
-   In [323]: pd.read_html(url)
-   Out[323]:
-   [                   0                    1
-    0     Remote Socket:  51.15.105.256:51760
-    1  Protocol Version:             HTTP/1.1
-    2    Request Method:                  GET
-    3       Request URI:      /notes/request/
-    4     Request Query:                  NaN,
-    0   Accept-Encoding:             identity
-    1              Host:         www.sump.org
-    2        User-Agent:    Python-urllib/3.8
-    3        Connection:                close]
-
-   In [324]: headers = {
-      .....:    'User-Agent':'Mozilla Firefox v14.0',
-      .....:    'Accept':'application/json',
-      .....:    'Connection':'keep-alive',
-      .....:    'Auth':'Bearer 2*/f3+fe68df*4'
-      .....: }
-
-   In [325]: pd.read_html(url, storage_options=headers)
-   Out[325]:
-   [                   0                    1
-    0     Remote Socket:  51.15.105.256:51760
-    1  Protocol Version:             HTTP/1.1
-    2    Request Method:                  GET
-    3       Request URI:      /notes/request/
-    4     Request Query:                  NaN,
-    0        User-Agent: Mozilla Firefox v14.0
-    1    AcceptEncoding:   gzip,  deflate,  br
-    2            Accept:      application/json
-    3        Connection:             keep-alive
-    4              Auth:  Bearer 2*/f3+fe68df*4]
-
-.. note::
-
-   We see above that the headers we passed are reflected in the HTTP request.
-
-Read in the content of the file from the above URL and pass it to ``read_html``
-as a string:
+Read in HTML content from a file using ``read_html``:
 
 .. ipython:: python
 
@@ -2585,8 +2516,6 @@ Links can be extracted from cells along with the text using ``extract_links="all
     df
     df[("GitHub", None)]
     df[("GitHub", None)].str[1]
-
-.. versionadded:: 1.5.0
 
 .. _io.html:
 
@@ -2777,8 +2706,6 @@ parse HTML tables in the top-level pandas io function ``read_html``.
 LaTeX
 -----
 
-.. versionadded:: 1.3.0
-
 Currently there are no methods to read from LaTeX, only output methods.
 
 Writing to LaTeX files
@@ -2816,8 +2743,6 @@ XML
 
 Reading XML
 '''''''''''
-
-.. versionadded:: 1.3.0
 
 The top-level :func:`~pandas.io.xml.read_xml` function can accept an XML
 string/file/URL and will parse nodes and attributes into a pandas ``DataFrame``.
@@ -3144,8 +3069,6 @@ supports parsing such sizeable files using `lxml's iterparse`_ and `etree's iter
 which are memory-efficient methods to iterate through an XML tree and extract specific elements and attributes.
 without holding entire tree in memory.
 
-.. versionadded:: 1.5.0
-
 .. _`lxml's iterparse`: https://lxml.de/3.2/parsing.html#iterparse-and-iterwalk
 .. _`etree's iterparse`: https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.iterparse
 
@@ -3183,8 +3106,6 @@ of reading in Wikipedia's very large (12 GB+) latest article data dump.
 
 Writing XML
 '''''''''''
-
-.. versionadded:: 1.3.0
 
 ``DataFrame`` objects have an instance method ``to_xml`` which renders the
 contents of the ``DataFrame`` as an XML document.
@@ -3796,6 +3717,7 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 
 * ``float_format`` : Format string for floating point numbers (default ``None``).
 * ``freeze_panes`` : A tuple of two integers representing the bottommost row and rightmost column to freeze. Each of these parameters is one-based, so (1, 1) will freeze the first row and first column (default ``None``).
+* ``autofilter`` : A boolean indicating whether to add automatic filters to all columns (default ``False``).
 
 .. note::
 

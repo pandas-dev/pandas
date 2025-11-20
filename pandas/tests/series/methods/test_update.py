@@ -29,7 +29,7 @@ class TestUpdate:
         df["c"] = df["c"].astype(object)
         df_orig = df.copy()
 
-        with tm.raises_chained_assignment_error():
+        with tm.raises_chained_assignment_error(inplace_method=True):
             df["c"].update(Series(["foo"], index=[0]))
         expected = df_orig
         tm.assert_frame_equal(df, expected)

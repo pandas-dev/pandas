@@ -215,8 +215,6 @@ class ExponentialMovingWindow(BaseWindow):
         If 1-D array like, a sequence with the same shape as the observations.
 
     method : str {'single', 'table'}, default 'single'
-        .. versionadded:: 1.4.0
-
         Execute the rolling operation per single column or row (``'single'``)
         or over the entire object (``'table'``).
 
@@ -315,6 +313,8 @@ class ExponentialMovingWindow(BaseWindow):
     3  1.523889
     4  3.233686
     """
+
+    __module__ = "pandas.api.typing"
 
     _attributes = [
         "com",
@@ -423,8 +423,6 @@ class ExponentialMovingWindow(BaseWindow):
         """
         Return an ``OnlineExponentialMovingWindow`` object to calculate
         exponentially moving window aggregations in an online method.
-
-        .. versionadded:: 1.3.0
 
         Parameters
         ----------
@@ -906,6 +904,8 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
     """
     Provide an exponential moving window groupby implementation.
     """
+
+    __module__ = "pandas.api.typing"
 
     _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
 
