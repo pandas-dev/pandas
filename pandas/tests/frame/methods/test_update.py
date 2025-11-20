@@ -228,3 +228,19 @@ class TestDataFrameUpdate:
         expected = DataFrame({"a": [2, 2, 3]}, index=[1, 1, 2], dtype=np.dtype("intc"))
         df.update(other)
         tm.assert_frame_equal(df, expected)
+
+    def test_update_preserve_mixed_dtypes(self):
+        # GH#44104
+        dtype1 = pd.Int64Dtype()
+        dtype2 = pd.StringDtype()
+        df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
+        df = df.astype({"a": dtype1, "b": dtype2})
+
+        other = pd.DataFrame({"a": [4, 5], "b": ["a", "b"]})
+        other = other.astype({"a": dtype1, "b": dtype2})
+
+        expected = pd.DataFrame({"a": [4, 5, 3], "b": ["a", "b", "z"]})
+        expected = expected.astype({"a": dtype1, "b": dtype2})
+
+        df.update(other)
+        tm.assert_frame_equal(df, expected)
