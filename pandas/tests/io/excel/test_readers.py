@@ -136,7 +136,9 @@ def df_ref(datapath):
 
 def get_exp_unit(read_ext: str, engine: str | None) -> str:
     unit = "us"
-    if (read_ext == ".ods") ^ (engine == "calamine"):
+    if read_ext == ".ods" and engine == "odf":
+        pass
+    elif (read_ext == ".ods") ^ (engine == "calamine"):
         unit = "s"
     return unit
 
