@@ -4,6 +4,7 @@ import pytest
 from pandas import (
     Categorical,
     DataFrame,
+    HDFStore,
     Series,
     _testing as tm,
     concat,
@@ -11,14 +12,14 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_store,
 )
 
 pytestmark = [pytest.mark.single_cpu]
 
 
-def test_categorical(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_categorical(tmp_path):
+    path = tmp_path / "test_categorical.h5"
+    with HDFStore(path) as store:
         # Basic
         _maybe_remove(store, "s")
         s = Series(

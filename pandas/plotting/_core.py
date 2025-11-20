@@ -231,8 +231,8 @@ def hist_frame(
 
     Returns
     -------
-    matplotlib.Axes or numpy.ndarray of them
-        Returns a AxesSubplot object a numpy array of AxesSubplot objects.
+    np.ndarray
+        2D NumPy Array of :class:`matplotlib.axes.Axes`.
 
     See Also
     --------
@@ -815,8 +815,6 @@ class PlotAccessor(PandasObject):
           create 2 subplots: one with columns 'a' and 'c', and one
           with columns 'b' and 'd'. Remaining columns that aren't specified
           will be plotted in additional subplots (one per column).
-
-          .. versionadded:: 1.5.0
 
     sharex : bool, default True if ax is None else False
         In case ``subplots=True``, share x axis and set some x axis labels
@@ -1599,10 +1597,6 @@ class PlotAccessor(PandasObject):
         by : str or sequence
             Column in the DataFrame to group by.
 
-            .. versionchanged:: 1.4.0
-
-               Previously, `by` is silently ignore and makes no groupings
-
         **kwargs
             Additional keywords are documented in
             :meth:`DataFrame.plot`.
@@ -1633,8 +1627,6 @@ class PlotAccessor(PandasObject):
         You can also generate groupings if you specify the `by` parameter (which
         can take a column name, or a list or tuple of column names):
 
-        .. versionchanged:: 1.4.0
-
         .. plot::
             :context: close-figs
 
@@ -1659,11 +1651,6 @@ class PlotAccessor(PandasObject):
         ----------
         by : str or sequence, optional
             Column in the DataFrame to group by.
-
-            .. versionchanged:: 1.4.0
-
-               Previously, `by` is silently ignore and makes no groupings
-
         bins : int, default 10
             Number of histogram bins to be used.
         **kwargs

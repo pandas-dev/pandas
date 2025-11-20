@@ -20,6 +20,7 @@ import numpy as np
 
 from pandas._config import (
     is_nan_na,
+    using_python_scalars,
     using_string_dtype,
 )
 
@@ -934,6 +935,9 @@ def convert_dtypes(
     if (
         convert_string or convert_integer or convert_boolean or convert_floating
     ) and isinstance(input_array, np.ndarray):
+        if input_array.dtype.kind == "c":
+            return input_array.dtype
+
         if input_array.dtype == object:
             inferred_dtype = lib.infer_dtype(input_array)
         else:
@@ -954,7 +958,7 @@ def convert_dtypes(
                 inferred_dtype = NUMPY_INT_TO_DTYPE.get(
                     input_array.dtype, target_int_dtype
                 )
-            elif input_array.dtype.kind in "fcb":
+            elif input_array.dtype.kind in "fb":
                 # TODO: de-dup with maybe_cast_to_integer_array?
                 arr = input_array[notna(input_array)]
                 if len(arr) < len(input_array) and not is_nan_na():
@@ -972,7 +976,7 @@ def convert_dtypes(
                 inferred_dtype = target_int_dtype
 
         if convert_floating:
-            if input_array.dtype.kind in "fcb":
+            if input_array.dtype.kind in "fb":
                 # i.e. numeric but not integer
                 from pandas.core.arrays.floating import NUMPY_FLOAT_TO_DTYPE
 
@@ -1028,11 +1032,11 @@ def convert_dtypes(
 
         if (
             (convert_integer and inferred_dtype.kind in "iu")
-            or (convert_floating and inferred_dtype.kind in "fc")
+            or (convert_floating and inferred_dtype.kind in "f")
             or (convert_boolean and inferred_dtype.kind == "b")
             or (convert_string and isinstance(inferred_dtype, StringDtype))
             or (
-                inferred_dtype.kind not in "iufcb"
+                inferred_dtype.kind not in "iufb"
                 and not isinstance(inferred_dtype, StringDtype)
                 and not isinstance(inferred_dtype, CategoricalDtype)
             )
@@ -1432,6 +1436,16 @@ def construct_1d_arraylike_from_scalar(
         subarr.fill(value)
 
     return subarr
+
+
+def maybe_unbox_numpy_scalar(value):
+    result = value
+    if using_python_scalars() and isinstance(value, np.generic):
+        if isinstance(result, np.longdouble):
+            result = float(result)
+        else:
+            result = value.item()
+    return result
 
 
 def _maybe_box_and_unbox_datetimelike(value: Scalar, dtype: DtypeObj):

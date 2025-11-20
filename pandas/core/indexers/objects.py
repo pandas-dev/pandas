@@ -94,7 +94,6 @@ class BaseIndexer:
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -134,7 +133,6 @@ class FixedWindowIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -189,7 +187,6 @@ class VariableWindowIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -315,7 +312,6 @@ class VariableOffsetWindowIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -421,7 +417,6 @@ class ExpandingIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -507,7 +502,6 @@ class FixedForwardWindowIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -597,7 +591,6 @@ class GroupbyIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 
@@ -679,7 +672,6 @@ class ExponentialMovingWindowIndexer(BaseIndexer):
             closed passed from the top level rolling API
         step : int, default None
             step passed from the top level rolling API
-            .. versionadded:: 1.5
         win_type : str, default None
             win_type passed from the top level rolling API
 

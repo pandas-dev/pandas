@@ -60,8 +60,6 @@ class Expanding(RollingAndExpandingMixin):
         This argument is only implemented when specifying ``engine='numba'``
         in the method call.
 
-        .. versionadded:: 1.3.0
-
     Returns
     -------
     pandas.api.typing.Expanding
@@ -215,8 +213,6 @@ class Expanding(RollingAndExpandingMixin):
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -437,15 +433,11 @@ class Expanding(RollingAndExpandingMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
-            .. versionadded:: 1.5.0
-
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or globally setting
               ``compute.use_numba``
-
-            .. versionadded:: 1.3.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -453,8 +445,6 @@ class Expanding(RollingAndExpandingMixin):
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{'nopython': True, 'nogil': False, 'parallel': False}``
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -503,15 +493,11 @@ class Expanding(RollingAndExpandingMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
-            .. versionadded:: 1.5.0
-
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or globally setting
               ``compute.use_numba``
-
-            .. versionadded:: 1.3.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -519,8 +505,6 @@ class Expanding(RollingAndExpandingMixin):
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{'nopython': True, 'nogil': False, 'parallel': False}``
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -569,15 +553,11 @@ class Expanding(RollingAndExpandingMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
-            .. versionadded:: 1.5.0
-
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or globally setting
               ``compute.use_numba``
-
-            .. versionadded:: 1.3.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -585,8 +565,6 @@ class Expanding(RollingAndExpandingMixin):
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{'nopython': True, 'nogil': False, 'parallel': False}``
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -635,15 +613,11 @@ class Expanding(RollingAndExpandingMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
-            .. versionadded:: 1.5.0
-
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or globally setting
               ``compute.use_numba``
-
-            .. versionadded:: 1.3.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -651,8 +625,6 @@ class Expanding(RollingAndExpandingMixin):
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{'nopython': True, 'nogil': False, 'parallel': False}``
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -701,15 +673,11 @@ class Expanding(RollingAndExpandingMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
-            .. versionadded:: 1.5.0
-
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or globally setting
               ``compute.use_numba``
-
-            .. versionadded:: 1.3.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -717,8 +685,6 @@ class Expanding(RollingAndExpandingMixin):
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{'nopython': True, 'nogil': False, 'parallel': False}``
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -772,15 +738,11 @@ class Expanding(RollingAndExpandingMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
-            .. versionadded:: 1.5.0
-
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or globally setting
               ``compute.use_numba``
-
-            .. versionadded:: 1.4.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -788,8 +750,6 @@ class Expanding(RollingAndExpandingMixin):
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{'nopython': True, 'nogil': False, 'parallel': False}``
-
-            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -851,15 +811,11 @@ class Expanding(RollingAndExpandingMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
-            .. versionadded:: 1.5.0
-
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or globally setting
               ``compute.use_numba``
-
-            .. versionadded:: 1.4.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -867,8 +823,6 @@ class Expanding(RollingAndExpandingMixin):
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{'nopython': True, 'nogil': False, 'parallel': False}``
-
-            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -924,8 +878,6 @@ class Expanding(RollingAndExpandingMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         Series or DataFrame
@@ -963,8 +915,6 @@ class Expanding(RollingAndExpandingMixin):
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1004,8 +954,6 @@ class Expanding(RollingAndExpandingMixin):
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1055,8 +1003,6 @@ class Expanding(RollingAndExpandingMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         Series or DataFrame
@@ -1091,8 +1037,6 @@ class Expanding(RollingAndExpandingMixin):
         ----------
         numeric_only : bool, default False
             Include only float, int, boolean columns.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1150,8 +1094,6 @@ class Expanding(RollingAndExpandingMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         Series or DataFrame
@@ -1192,8 +1134,6 @@ class Expanding(RollingAndExpandingMixin):
         """
         Calculate the expanding rank.
 
-        .. versionadded:: 1.4.0
-
         Parameters
         ----------
         method : {'average', 'min', 'max'}, default 'average'
@@ -1210,8 +1150,6 @@ class Expanding(RollingAndExpandingMixin):
             form.
         numeric_only : bool, default False
             Include only float, int, boolean columns.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1276,8 +1214,6 @@ class Expanding(RollingAndExpandingMixin):
         numeric_only : bool, default False
             Include only float, int, boolean columns.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         Series or DataFrame
@@ -1333,8 +1269,6 @@ class Expanding(RollingAndExpandingMixin):
             is ``N - ddof``, where ``N`` represents the number of elements.
         numeric_only : bool, default False
             Include only float, int, boolean columns.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1394,8 +1328,6 @@ class Expanding(RollingAndExpandingMixin):
 
         numeric_only : bool, default False
             Include only float, int, boolean columns.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
