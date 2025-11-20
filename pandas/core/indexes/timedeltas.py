@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 from pandas._libs import (
     index as libindex,
@@ -373,6 +376,6 @@ def timedelta_range(
                 unit = freq.base.freqstr
 
     tdarr = TimedeltaArray._generate_range(
-        start, end, periods, freq, closed=closed, unit=unit
+        start, end, periods, freq, closed=closed, unit=cast("TimeUnit", unit)
     )
     return TimedeltaIndex._simple_new(tdarr, name=name)
