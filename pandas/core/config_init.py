@@ -900,5 +900,13 @@ with cf.config_prefix("future"):
         validator=is_one_of_factory([True, False]),
     )
 
+    cf.register_option(
+        "python_scalars",
+        False if os.environ.get("PANDAS_FUTURE_PYTHON_SCALARS", "0") == "0" else True,
+        "Whether to return Python scalars instead of NumPy or PyArrow scalars. "
+        "Currently experimental, setting to True is not recommended for end users.",
+        validator=is_one_of_factory([True, False]),
+    )
+
 # GH#59502
 cf.deprecate_option("future.no_silent_downcasting", Pandas4Warning)
