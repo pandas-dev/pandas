@@ -87,6 +87,7 @@ def test_dup_labels_output_shape(groupby_func, idx):
 
 
 def test_not_c_contiguous_mask(groupby_func):
+    # https://github.com/pandas-dev/pandas/issues/61031
     if groupby_func == "corrwith":
         # corrwith is deprecated
         return
