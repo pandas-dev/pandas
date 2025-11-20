@@ -89,6 +89,7 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_downcast_to_dtype,
+    maybe_unbox_numpy_scalar,
 )
 from pandas.core.dtypes.common import (
     infer_dtype_from_object,
@@ -3822,7 +3823,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         many repeated values.
 
         >>> df["object"].astype("category").memory_usage(deep=True)
-        5136
+        5140
         """
         result = self._constructor_sliced(
             [c.memory_usage(index=False, deep=deep) for col, c in self.items()],
@@ -4392,11 +4393,11 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         >>> s = pd.Series([100, 200], index=["b", "d"])
         >>> df["B"] = s
         >>> df
-            A    B
-        a  1  NaN
-        b  2  100
-        c  3  NaN
-        d  4  200
+           A      B
+        a  1    NaN
+        b  2  100.0
+        c  3    NaN
+        d  4  200.0
 
         Series index labels NOT in DataFrame, ignored:
 
@@ -4408,7 +4409,6 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         x  1  10
         y  2  20
         z  3  50
-        # Values for 'a' and 'b' are completely ignored!
         """
         key = com.apply_if_callable(key, self)
 
@@ -5121,6 +5121,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         2     6
         3     8
         4    10
+        Name: A, dtype: int64
         """
         from pandas.core.computation.eval import eval as _eval
 
@@ -7810,10 +7811,10 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
 
         >>> df.value_counts(dropna=False)
         first_name  middle_name
-        Anne        NaN            1
-        Beth        Louise         1
         John        Smith          1
-                    NaN            1
+        Anne        NaN            1
+        John        NaN            1
+        Beth        Louise         1
         Name: count, dtype: int64
 
         >>> df.value_counts("first_name")
@@ -9095,10 +9096,10 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         2  3.0  NaN NaN
 
         >>> df2.combine(df1, take_smaller, overwrite=False)
-             A    B   C
-        0  0.0  NaN NaN
-        1  0.0  3.0 1.0
-        2  NaN  3.0 1.0
+             B    C   A
+        0  NaN  NaN 0.0
+        1  3.0  1.0 0.0
+        2  3.0  1.0 NaN
         """
         other_idxlen = len(other.index)  # save for compare
         other_columns = other.columns
@@ -10954,8 +10955,8 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         ``apply`` has type stability (variables in the function do not change their
         type during the execution).
 
-        >>> import bodo
-        >>> df.apply(lambda x: x.A + x.B, axis=1, engine=bodo.jit)
+        >>> import bodo  # doctest: +SKIP
+        >>> df.apply(lambda x: x.A + x.B, axis=1, engine=bodo.jit)  # doctest: +SKIP
 
         Note that JIT compilation is only recommended for functions that take a
         significant amount of time to run. Fast functions are unlikely to run faster
@@ -12131,7 +12132,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
                 df = df.astype(dtype)
                 arr = concat_compat(list(df._iter_column_arrays()))
                 return arr._reduce(name, skipna=skipna, keepdims=False, **kwds)
-            return func(df.values)
+            return maybe_unbox_numpy_scalar(func(df.values))
         elif axis == 1:
             if len(df.index) == 0:
                 # Taking a transpose would result in no columns, losing the dtype.
@@ -13283,8 +13284,8 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
 
         With axis=None
 
-        >>> df.kurt(axis=None).round(6)
-        -0.988693
+        >>> df.kurt(axis=None)
+        -0.9886927196984727
 
         Using axis=1
 
@@ -13465,7 +13466,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         Pork                consumption
         Wheat Products    co2_emissions
         Beef                consumption
-        dtype: object
+        dtype: str
         """
         axis = self._get_axis_number(axis)
 
