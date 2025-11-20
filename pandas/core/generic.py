@@ -6692,7 +6692,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Parameters
         ----------
-        copy : bool, default False
+        copy : bool or lib.NoDefault, default lib.no_default
             Whether to make a copy for non-object or non-inferable columns
             or Series.
 
