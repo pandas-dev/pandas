@@ -109,6 +109,20 @@ def pytest_addoption(parser) -> None:
     )
 
 
+def pytest_sessionstart(session):
+    import doctest
+    import inspect
+
+    orig = doctest.DocTestFinder._from_module
+
+    def _from_module(self, module, object):
+        if inspect.isfunction(object) and "." in object.__qualname__:
+            return True
+        return orig(self, module, object)
+
+    doctest.DocTestFinder._from_module = _from_module
+
+
 def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
     """Ignore doctest warning.
 

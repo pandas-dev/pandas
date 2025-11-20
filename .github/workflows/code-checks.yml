@@ -57,8 +57,6 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
 
     - name: Run doctests
-      env:
-        PANDAS_SET_MODULE_DUNDER: 0
       run: cd ci && ./code_checks.sh doctests
       if: ${{ steps.build.outcome == 'success' && always() }}
 

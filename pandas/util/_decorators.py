@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from functools import wraps
 import inspect
-import os
 from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
@@ -524,15 +523,10 @@ def set_module(module) -> Callable[[F], F]:
 
         assert example.__module__ == "pandas"
     """
-    if os.environ.get("PANDAS_SET_MODULE_DUNDER", "1") == "0":
 
-        def decorator(func: F) -> F:
-            return func
-    else:
-
-        def decorator(func: F) -> F:
-            if module is not None:
-                func.__module__ = module
-            return func
+    def decorator(func: F) -> F:
+        if module is not None:
+            func.__module__ = module
+        return func
 
     return decorator
