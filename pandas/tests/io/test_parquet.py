@@ -709,7 +709,6 @@ class TestBasic(Base):
 
 
 class TestParquetPyArrow(Base):
-    @pytest.mark.xfail(reason="datetime_with_nat unit doesn't round-trip")
     def test_basic(self, pa, df_full, temp_file):
         df = df_full
         pytest.importorskip("pyarrow", "11.0.0")
@@ -747,7 +746,7 @@ class TestParquetPyArrow(Base):
 
         expected = df_full.copy()
         expected.loc[1, "string_with_nan"] = None
-        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype("M8[ms]")
+        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype("M8[us]")
         tm.assert_frame_equal(res, expected)
 
     def test_duplicate_columns(self, pa, temp_file):
@@ -1060,7 +1059,7 @@ class TestParquetPyArrow(Base):
         pa_table = pyarrow.Table.from_pandas(df)
         expected = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
         expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
-            "timestamp[ms][pyarrow]"
+            "timestamp[us][pyarrow]"
         )
 
         check_round_trip(

@@ -362,7 +362,7 @@ class TestTimezoneConcat:
 
         result = concat([Series(x), Series(y)], ignore_index=True)
         tm.assert_series_equal(result, Series(x + y))
-        assert result.dtype == "datetime64[s, tzlocal()]"
+        assert result.dtype == "datetime64[us, tzlocal()]"
 
     def test_concat_tz_series_with_datetimelike(self):
         # see gh-12620: tz and timedelta
