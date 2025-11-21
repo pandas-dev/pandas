@@ -245,6 +245,7 @@ class XlsxWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        autofilter_range: str | None = None,
     ) -> None:
         # Write the frame cells using xlsxwriter.
         sheet_name = self._get_sheet_name(sheet_name)
@@ -282,3 +283,6 @@ class XlsxWriter(ExcelWriter):
                 )
             else:
                 wks.write(startrow + cell.row, startcol + cell.col, val, style)
+
+        if autofilter_range:
+            wks.autofilter(autofilter_range)
