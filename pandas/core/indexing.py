@@ -1095,9 +1095,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         if (len(tup) == 2 and is_scalar(tup[0]) and isinstance(tup[1], slice)):
             # Handle scalar row + slice columns case to preserve dtypes
             row_key, col_slice = tup[0], tup[1]
-            # First, get the column slice to create sub-DataFrame with preserved column dtypes
+            # First, get the column slice to preserve dtypes
             col_section = self._getitem_axis(col_slice, axis=1)
-            # Then get the specific row from this sub-DataFrame using appropriate indexer
+            # Then get the specific row from this sub-DataFrame
             if self.name == "iloc":
                 result = col_section.iloc[row_key]
             else:
