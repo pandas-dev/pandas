@@ -1276,7 +1276,7 @@ class TestSeriesReductions:
         if using_python_scalars:
             assert isinstance(result, int)
         else:
-            assert result.dtype == "uint64"
+            assert isinstance(result, np.uint64)
 
 
 class TestDatetime64SeriesReductions:

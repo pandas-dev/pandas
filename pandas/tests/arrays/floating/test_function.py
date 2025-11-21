@@ -183,7 +183,7 @@ def test_preserve_dtypes(op, using_python_scalars):
     # op
     result = getattr(df.C, op)()
     if using_python_scalars:
-        assert isinstance(result, float)
+        assert type(result) == float
     else:
         assert isinstance(result, np.float64)
 
