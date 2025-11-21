@@ -95,7 +95,10 @@ def _get_literal_string_prefix_len(token_string: str) -> int:
         return 0
 
 
-PRIVATE_FUNCTIONS_ALLOWED = {"sys._getframe"}  # no known alternative
+PRIVATE_FUNCTIONS_ALLOWED = {
+    "sys._getframe",
+    "sys._is_gil_enabled",
+}  # no known alternative
 
 
 def private_function_across_module(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
