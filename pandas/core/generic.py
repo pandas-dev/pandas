@@ -6446,7 +6446,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0   2020-01-01
         1   2020-01-02
         2   2020-01-03
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         """
         self._check_copy_deprecation(copy)
         if is_dict_like(dtype):
