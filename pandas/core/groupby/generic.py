@@ -1158,8 +1158,6 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Return a Series or DataFrame containing counts of unique rows.
 
-        .. versionadded:: 1.4.0
-
         Parameters
         ----------
         normalize : bool, default False
@@ -1713,7 +1711,7 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmin()
         a   2023-01-01
         b   2023-02-01
-        dtype: datetime64[s]
+        dtype: datetime64[us]
         """
         return self._idxmax_idxmin("idxmin", skipna=skipna)
 
@@ -1774,7 +1772,7 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmax()
         a   2023-01-15
         b   2023-02-15
-        dtype: datetime64[s]
+        dtype: datetime64[us]
         """
         return self._idxmax_idxmin("idxmax", skipna=skipna)
 
@@ -2867,8 +2865,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         DataFrame
@@ -2941,8 +2937,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         DataFrame
@@ -3012,8 +3006,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame | Series:
         """
         Return a Series or DataFrame containing counts of unique rows.
-
-        .. versionadded:: 1.4.0
 
         Parameters
         ----------
@@ -3151,7 +3143,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Returns
         -------
         DataFrame
-            An DataFrame containing the elements taken from each group.
+            A DataFrame containing the elements taken from each group.
 
         See Also
         --------
@@ -3589,8 +3581,6 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
                 The default value of ``numeric_only`` is now ``False``.

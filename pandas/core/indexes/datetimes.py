@@ -252,7 +252,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
     >>> idx
     DatetimeIndex(['2020-01-01 10:00:00+00:00', '2020-02-01 11:00:00+00:00'],
-    dtype='datetime64[s, UTC]', freq=None)
+    dtype='datetime64[us, UTC]', freq=None)
     """
 
     _typ = "datetimeindex"
@@ -922,8 +922,6 @@ def date_range(
         Name of the resulting DatetimeIndex.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
-
-        .. versionadded:: 1.4.0
     unit : {'s', 'ms', 'us', 'ns'}, default 'ns'
         Specify the desired resolution of the result.
 
@@ -1124,8 +1122,6 @@ def bdate_range(
         are passed.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
-
-        .. versionadded:: 1.4.0
     **kwargs
         For compatibility. Has no effect on the result.
 
