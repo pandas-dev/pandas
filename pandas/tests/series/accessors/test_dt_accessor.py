@@ -364,9 +364,11 @@ class TestSeriesDatetimeValues:
     )
     def test_dt_round_tz_nonexistent(self, method, ts_str, freq):
         # GH 23324 round near "spring forward" DST
-        ser = Series([pd.Timestamp(ts_str, tz="America/Chicago")])
+        ser = Series([pd.Timestamp(ts_str, tz="America/Chicago").as_unit("s")])
         result = getattr(ser.dt, method)(freq, nonexistent="shift_forward")
-        expected = Series([pd.Timestamp("2018-03-11 03:00:00", tz="America/Chicago")])
+        expected = Series(
+            [pd.Timestamp("2018-03-11 03:00:00", tz="America/Chicago").as_unit("s")]
+        )
         tm.assert_series_equal(result, expected)
 
         result = getattr(ser.dt, method)(freq, nonexistent="NaT")

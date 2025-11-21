@@ -532,6 +532,8 @@ class ExcelFormatter:
         Defaults to ``CSSToExcelConverter()``.
         It should have signature css_declarations string -> excel style.
         This is only called for body cells.
+    autofilter : bool, default False
+        If True, add automatic filters to all columns.
     """
 
     max_rows = 2**20
@@ -549,6 +551,7 @@ class ExcelFormatter:
         merge_cells: ExcelWriterMergeCells = False,
         inf_rep: str = "inf",
         style_converter: Callable | None = None,
+        autofilter: bool = False,
     ) -> None:
         self.rowcounter = 0
         self.na_rep = na_rep
@@ -584,6 +587,7 @@ class ExcelFormatter:
             raise ValueError(f"Unexpected value for {merge_cells=}.")
         self.merge_cells = merge_cells
         self.inf_rep = inf_rep
+        self.autofilter = autofilter
 
     def _format_value(self, val):
         if is_scalar(val) and missing.isna(val):
@@ -873,6 +877,34 @@ class ExcelFormatter:
             cell.val = self._format_value(cell.val)
             yield cell
 
+    def _num2excel(self, index: int) -> str:
+        """
+        Convert 0-based column index to Excel column name.
+
+        Parameters
+        ----------
+        index : int
+            The numeric column index to convert to a Excel column name.
+
+        Returns
+        -------
+        column_name : str
+            The column name corresponding to the index.
+
+        Raises
+        ------
+        ValueError
+            Index is negative
+        """
+        if index < 0:
+            raise ValueError(f"Index cannot be negative: {index}")
+        column_name = ""
+        # while loop in case column name needs to be longer than 1 character
+        while index > 0 or not column_name:
+            index, remainder = divmod(index, 26)
+            column_name = chr(65 + remainder) + column_name
+        return column_name
+
     @doc(storage_options=_shared_docs["storage_options"])
     def write(
         self,
@@ -916,6 +948,46 @@ class ExcelFormatter:
                 f"Max sheet size is: {self.max_rows}, {self.max_cols}"
             )
 
+        if self.autofilter:
+            # default offset for header row
+            startrowsoffset = 1
+            endrowsoffset = 1
+
+            if num_cols == 0:
+                indexoffset = 0
+            elif self.index:
+                indexoffset = 0
+                if isinstance(self.df.index, MultiIndex):
+                    if self.merge_cells:
+                        raise ValueError(
+                            "Excel filters merged cells by showing only the first row. "
+                            "'autofilter' and 'merge_cells' cannot "
+                            "be used simultaneously."
+                        )
+                    else:
+                        indexoffset = self.df.index.nlevels - 1
+
+                if isinstance(self.columns, MultiIndex):
+                    if self.merge_cells:
+                        raise ValueError(
+                            "Excel filters merged cells by showing only the first row. "
+                            "'autofilter' and 'merge_cells' cannot "
+                            "be used simultaneously."
+                        )
+                    else:
+                        startrowsoffset = self.columns.nlevels
+                        # multindex columns add a blank row between header and data
+                        endrowsoffset = self.columns.nlevels + 1
+            else:
+                # no index column
+                indexoffset = -1
+            start = f"{self._num2excel(startcol)}{startrow + startrowsoffset}"
+            autofilter_end_column = self._num2excel(startcol + num_cols + indexoffset)
+            end = f"{autofilter_end_column}{startrow + num_rows + endrowsoffset}"
+            autofilter_range = f"{start}:{end}"
+        else:
+            autofilter_range = None
+
         if engine_kwargs is None:
             engine_kwargs = {}
 
@@ -938,6 +1010,7 @@ class ExcelFormatter:
                 startrow=startrow,
                 startcol=startcol,
                 freeze_panes=freeze_panes,
+                autofilter_range=autofilter_range,
             )
         finally:
             # make sure to close opened file handles
