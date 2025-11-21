@@ -114,7 +114,6 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                             int format_len,
                             FormatRequirement format_requirement,
                             double threshold) {
-  printf("Start %s\n", str);
   if (len < 0 || format_len < 0)
     goto parse_error;
   int year_leap = 0;
@@ -312,7 +311,6 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   }
 
 year_sep:
-  printf("Now %s\n", substr);
   /* Negate the year if necessary */
   if (str[0] == '-') {
     out->year = -out->year;
@@ -612,14 +610,7 @@ day:
 
     /* Invalidates the component if there is more than 2 digits */
     if (sublen > 0) {
-      int still_more = 1;
-      for (i = 0; i < valid_ymd_sep_len; ++i) {
-        if (*substr == valid_ymd_sep[i]) {
-          still_more = 0;
-          break;
-        }
-      }
-      if (still_more) {
+      if (isdigit(substr[0])) {
         invalid_components++;
         while (sublen > 0 && isdigit(substr[0])) {
           substr++;
