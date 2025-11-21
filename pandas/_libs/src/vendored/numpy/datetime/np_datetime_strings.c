@@ -174,7 +174,6 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   }
 
   /* PARSE THE YEAR (4 digits) */
-  printf("Start: %s\n", str);
   comparison =
       compare_format(&format, &format_len, "%Y", 2, format_requirement);
 
@@ -182,7 +181,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
 
   if (comparison == COMPARISON_ERROR) {
     invalid_components++;
-    while (sublen > 0 && !isdigit(*substr + 1)) {
+    while (sublen > 1 && !isdigit(substr[1])) {
       substr++;
       sublen--;
     }
@@ -219,6 +218,12 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
       to_month = 1;
       goto find_sep;
     }
+  } else if (sublen == 3 && isdigit(substr[0]) && isdigit(substr[1]) &&
+             isdigit(substr[2])) {
+    invalid_components++;
+    substr += 3;
+    sublen -= 3;
+    goto finish;
   } else if (sublen >= 3 && isdigit(substr[0]) && isdigit(substr[1]) &&
              !isdigit(substr[2])) {
     int valid_sep = 0;
@@ -235,6 +240,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
       goto find_sep;
     }
     goto find_sep;
+  } else if (sublen == 2 && isdigit(substr[0]) && isdigit(substr[1])) {
+    invalid_components++;
+    substr += 2;
+    sublen -= 2;
+    goto finish;
   } else if (sublen >= 2 && isdigit(substr[0]) && !isdigit(substr[1])) {
     int valid_sep = 0;
     for (i = 0; i < valid_ymd_sep_len; ++i) {
@@ -249,6 +259,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
       to_month = 1;
       goto find_sep;
     }
+  } else if (sublen == 1 && isdigit(substr[0])) {
+    invalid_components++;
+    substr++;
+    sublen--;
+    goto finish;
   } else if (sublen >= 1 && !isdigit(substr[0])) {
     int valid_sep = 0;
     for (i = 0; i < valid_ymd_sep_len; ++i) {
@@ -264,7 +279,37 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
   }
 
   /* Invalidates the component if there is more than 4 digits */
-  int still_more = 1;
+  int has_sep = 0;
+  int j = 0;
+  for (j = 0; j < (sublen > 4 ? 4 : sublen); ++j) {
+    char c = substr[j];
+    for (i = 0; i < valid_ymd_sep_len; ++i) {
+      if (c == valid_ymd_sep[i]) {
+        has_sep = 1;
+        break;
+      }
+    }
+    if (has_sep || !isdigit(c)) {
+      break;
+    }
+  }
+  if (has_sep && j != 0) {
+    invalid_components++;
+    substr += j;
+    sublen -= j;
+    if (sublen == 0) {
+      goto finish;
+    }
+    to_month = 1;
+    goto find_sep;
+  }
+  if (!has_sep && sublen < 4) {
+    invalid_components++;
+    substr += sublen;
+    sublen = 0;
+    goto finish;
+  }
+  /*int still_more = 1;
   for (i = 0; i < valid_ymd_sep_len; ++i) {
     if (*substr == valid_ymd_sep[i]) {
       still_more = 0;
@@ -282,7 +327,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
     to_month = 1;
     goto find_sep;
-  }
+  }*/
 
   /* Negate the year if necessary */
   if (str[0] == '-') {
@@ -298,7 +343,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     }
     if (format_len) {
       invalid_components++;
-      while (sublen > 0 && !isdigit(*substr + 1)) {
+      while (sublen > 1 && !isdigit(substr[1])) {
         substr++;
         sublen--;
       }
@@ -380,8 +425,6 @@ find_sep:
 
   /* PARSE THE MONTH */
 month:
-  printf("\nI-V after year-parsing: %d-%d\n", invalid_components,
-         valid_components);
   comparison =
       compare_format(&format, &format_len, "%m", 2, format_requirement);
 
@@ -414,26 +457,35 @@ month:
 
     /* Invalidates the component if there is more than 2 digits */
     if (sublen > 0) {
-      int still_more = 1;
-      for (i = 0; i < valid_ymd_sep_len; ++i) {
-        if (*substr == valid_ymd_sep[i]) {
-          still_more = 0;
+      int has_sep = 0;
+      int j = 0;
+      for (j = 0; j < (sublen > 2 ? 2 : sublen); ++j) {
+        char c = substr[j];
+        for (i = 0; i < valid_ymd_sep_len; ++i) {
+          if (c == valid_ymd_sep[i]) {
+            has_sep = 1;
+            break;
+          }
+        }
+        if (has_sep || !isdigit(c)) {
           break;
         }
       }
-      if (still_more) {
+      if (has_sep && j != 0) {
         invalid_components++;
-        while (sublen > 0 && isdigit(substr[0])) {
-          substr++;
-          sublen--;
-        }
+        substr += j;
+        sublen -= j;
         if (sublen == 0) {
           goto finish;
         }
         to_month = 1;
-        comparison = compare_format(&format, &format_len, &ymd_sep, 1,
-                                    format_requirement);
-        goto month_sep;
+        goto find_sep;
+      }
+      if (!has_sep && sublen < 2) {
+        invalid_components++;
+        substr += sublen;
+        sublen = 0;
+        goto finish;
       }
     }
   } else if (!has_ymd_sep) {
@@ -537,8 +589,6 @@ month_sep:
 
   /* PARSE THE DAY */
 day:
-  printf("\nI-V after month-parsing: %d-%d\n", invalid_components,
-         valid_components);
   comparison =
       compare_format(&format, &format_len, "%d", 2, format_requirement);
   if (comparison == COMPARISON_ERROR) {
@@ -594,7 +644,6 @@ day:
         if (sublen == 0) {
           goto finish;
         }
-        to_month = 1;
         comparison = compare_format(&format, &format_len, &ymd_sep, 1,
                                     format_requirement);
         goto day_sep;
@@ -677,8 +726,6 @@ day_sep:
 
   /* PARSE THE HOURS */
 hour:
-  printf("\nI-V after day-parsing: %d-%d\n", invalid_components,
-         valid_components);
   comparison =
       compare_format(&format, &format_len, "%H", 2, format_requirement);
   if (comparison == COMPARISON_ERROR) {
@@ -733,7 +780,6 @@ hour:
         if (sublen == 0) {
           goto finish;
         }
-        to_month = 1;
         goto hour_sep;
       }
     }
@@ -834,8 +880,6 @@ hour_sep:
 
   /* PARSE THE MINUTES */
 minute:
-  printf("\nI-V after hour-parsing: %d-%d\n", invalid_components,
-         valid_components);
   comparison =
       compare_format(&format, &format_len, "%M", 2, format_requirement);
   if (comparison == COMPARISON_ERROR) {
@@ -878,7 +922,6 @@ minute:
         if (sublen == 0) {
           goto finish;
         }
-        to_month = 1;
         goto minute_sep;
       }
     }
@@ -966,8 +1009,6 @@ minute_sep:
 
   /* PARSE THE SECONDS */
 second:
-  printf("\nI-V after minute-parsing: %d-%d\n", invalid_components,
-         valid_components);
   comparison =
       compare_format(&format, &format_len, "%S", 2, format_requirement);
   if (comparison == COMPARISON_ERROR) {
@@ -1009,7 +1050,6 @@ second:
         if (sublen == 0) {
           goto finish;
         }
-        to_month = 1;
         goto second_sep;
       }
     }
@@ -1064,8 +1104,6 @@ second_sep:
 
   /* PARSE THE MICROSECONDS (0 to 6 digits) */
 microsecond:
-  printf("\nI-V after second-parsing: %d-%d\n", invalid_components,
-         valid_components);
   comparison =
       compare_format(&format, &format_len, "%f", 2, format_requirement);
   if (comparison == COMPARISON_ERROR) {
@@ -1286,7 +1324,6 @@ parse_timezone:
   }
 
 finish:
-  printf("\nI-V at end: %d-%d\n", invalid_components, valid_components);
   if (invalid_components > 0 &&
       (double)valid_components / (valid_components + invalid_components) >=
           threshold) {
