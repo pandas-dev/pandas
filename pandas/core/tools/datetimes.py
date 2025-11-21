@@ -352,23 +352,8 @@ def _convert_listlike_datetimes(
         yearfirst parsing behavior from to_datetime
     exact : bool, default True
         exact format matching behavior from to_datetime
-
-    /// INSERT DOCUMENTATION UPDATE HERE ///
-    ########################
-        ########################
-            ########################
-                ########################
-                    ########################
-                        ########################
-                            ########################
-                                ########################
-                            ########################
-                        ########################
-                    ########################
-                ########################
-            ########################
-        ########################
-    ########################
+    threshold : float
+        Minimum fraction of valid datetime components required
 
     Returns
     -------
@@ -664,6 +649,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
+    threshold: float = ...,
 ) -> Timestamp: ...
 
 
@@ -679,6 +665,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
+    threshold: float = ...,
 ) -> Series: ...
 
 
@@ -694,6 +681,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
+    threshold: float = ...,
 ) -> DatetimeIndex: ...
 
 
@@ -818,24 +806,19 @@ def to_datetime(
         is only used when there are at least 50 values. The presence of
         out-of-bounds values will render the cache unusable and may slow down
         parsing.
+    threshold : float
+        Minimum fraction of valid datetime components required to consider parsing
+        successful. Components include year, month, day, hour, minute, and second
+        if present in the input. An invalid component has too many or too few digits
+        or a number outside the possible range (e.g., month outside [1, 12]). Behavior
+        depends on the threshold:
 
-    /// INSERT DOCUMENTATION UPDATE HERE ///
-    ########################
-        ########################
-            ########################
-                ########################
-                    ########################
-                        ########################
-                            ########################
-                                ########################
-                            ########################
-                        ########################
-                    ########################
-                ########################
-            ########################
-        ########################
-    ########################
-
+        - 1.0 (default): all components must be valid, else raises error (unless
+        ``errors='coerce'``).
+        - 0.0: any invalid component produces NaT, else returns a valid datetime.
+        - Values between 0 and 1: if all components are valid, returns a valid
+          datetime; if the fraction of valid components >= threshold, returns NaT;
+          otherwise raises error.
     Returns
     -------
     datetime
@@ -1036,6 +1019,14 @@ def to_datetime(
     >>> pd.to_datetime(["2018-10-26 12:00", datetime(2020, 1, 1, 18)], utc=True)
     DatetimeIndex(['2018-10-26 12:00:00+00:00', '2020-01-01 18:00:00+00:00'],
                   dtype='datetime64[us, UTC]', freq=None)
+
+    - Input string with one invalid component returns NaT if threshold allows
+      partial validity
+
+    >>> pd.to_datetime(
+    ...     "2018-100-26 12:00:00", format="%Y-%m-%d %H:%M:%S", threshold=0.5
+    ... )
+    NaT
     """
     if exact is not lib.no_default and format in {"mixed", "ISO8601"}:
         raise ValueError("Cannot use 'exact' when 'format' is 'mixed' or 'ISO8601'")

@@ -441,7 +441,7 @@ month:
     if (sublen > 0) {
       int has_sep = 0;
       int j = 0;
-      for (j = 0; j < (sublen > 2 ? 2 : sublen); ++j) {
+      for (j = 0; j < (sublen > 2 && !has_ymd_sep ? 2 : sublen); ++j) {
         char c = substr[j];
         for (i = 0; i < valid_ymd_sep_len; ++i) {
           if (c == valid_ymd_sep[i]) {

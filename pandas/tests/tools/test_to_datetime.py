@@ -4147,3 +4147,11 @@ class TestForIncreasedRobustness:
         result = to_datetime(series, format="mixed", threshold=0.5, errors="coerce")
         expected = Series([Timestamp("2020-01-01"), Timestamp("2021-01-02"), NaT])
         tm.assert_series_equal(result, expected)
+
+    def test_example(self):
+        result = to_datetime(
+            "2018-100-26 12:00:00",
+            format="%Y-%m-%d %H:%M:%S",
+            threshold=0.5,
+        )
+        assert isna(result)

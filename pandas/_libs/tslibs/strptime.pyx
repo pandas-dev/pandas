@@ -368,23 +368,7 @@ def array_strptime(
     errors : string specifying error handling, {'raise', 'coerce'}
     creso : NPY_DATETIMEUNIT, default NPY_FR_GENERIC
         Set to NPY_FR_GENERIC to infer a resolution.
-
-    /// INSERT DOCUMENTATION UPDATE HERE ///
-    ########################
-        ########################
-            ########################
-                ########################
-                    ########################
-                        ########################
-                            ########################
-                                ########################
-                            ########################
-                        ########################
-                    ########################
-                ########################
-            ########################
-        ########################
-    ########################
+    threshold : minimum fraction of valid datetime components required
     """
 
     cdef:
