@@ -3830,6 +3830,7 @@ class TestForIncreasedRobustness:
         )
         expected = Timestamp("2018-10-01 12:00:00.0000000011")
         assert res == expected
+
         res = to_datetime(
             "2018-10-01 12:00:00.0000000011",
             format="%Y-%m-%d %H:%M:%S.%f",
@@ -3837,17 +3838,51 @@ class TestForIncreasedRobustness:
         )
         assert res == expected
 
-    def test_parse_with_malformed_year(self):
+    def test_parse_with_five_digit_year(self):
+        res = to_datetime(
+            "20012-10-01 12:00:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        assert isna(res)
+
+    def test_parse_with_three_digit_year(self):
+        res = to_datetime(
+            "212-10-01 12:00:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        assert isna(res)
+
+    def test_parse_with_two_digit_year(self):
         res = to_datetime(
             "12-10-01 12:00:00.0000000011", format="%Y-%m-%d %H:%M:%S.%f", threshold=0.5
         )
         assert isna(res)
 
-    def test_parse_with_malformed_year_iso(self):
+    def test_parse_with_one_digit_year(self):
+        res = to_datetime(
+            "1-10-01 12:00:00.0000000011", format="%Y-%m-%d %H:%M:%S.%f", threshold=0.5
+        )
+        assert isna(res)
+
+    def test_parse_with_five_digit_year_iso(self):
+        res = to_datetime("20012-10-01", format="ISO8601", threshold=0.5)
+        assert isna(res)
+
+    def test_parse_with_three_digit_year_iso(self):
+        res = to_datetime("201-10-01", format="ISO8601", threshold=0.5)
+        assert isna(res)
+
+    def test_parse_with_two_digit_year_iso(self):
         res = to_datetime("12-10-01", format="ISO8601", threshold=0.5)
         assert isna(res)
 
-    """def test_parse_with_malformed_month(self):
+    def test_parse_with_one_digit_year_iso(self):
+        res = to_datetime("1-10-01", format="ISO8601", threshold=0.5)
+        assert isna(res)
+
+    def test_parse_with_three_digit_month(self):
         res = to_datetime(
             "2018-202-01 12:00:00.0000000011",
             format="%Y-%m-%d %H:%M:%S.%f",
@@ -3855,11 +3890,35 @@ class TestForIncreasedRobustness:
         )
         assert isna(res)
 
-    def test_parse_with_malformed_month_iso(self):
+    def test_parse_with_one_digit_month(self):
+        res = to_datetime(
+            "2018-0-01 12:00:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        assert isna(res)
+
+        res = to_datetime(
+            "2018-2-01 12:00:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        expected = Timestamp("2018-02-01 12:00:00.0000000011")
+        assert res == expected
+
+    def test_parse_with_three_digit_month_iso(self):
         res = to_datetime("2018-202-01", format="ISO8601", threshold=0.5)
         assert isna(res)
 
-    def test_parse_with_malformed_day(self):
+    def test_parse_with_one_digit_month_iso(self):
+        res = to_datetime("2018-0-01", format="ISO8601", threshold=0.5)
+        assert isna(res)
+
+        res = to_datetime("2018-2-01", format="ISO8601", threshold=0.5)
+        expected = Timestamp("2018-02-01")
+        assert res == expected
+
+    def test_parse_with_three_digit_day(self):
         res = to_datetime(
             "2018-10-202 12:00:00.0000000011",
             format="%Y-%m-%d %H:%M:%S.%f",
@@ -3867,9 +3926,105 @@ class TestForIncreasedRobustness:
         )
         assert isna(res)
 
-    def test_parse_with_malformed_day_iso(self):
+    def test_parse_with_one_digit_day(self):
+        res = to_datetime(
+            "2018-10-0 12:00:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        assert isna(res)
+
+        res = to_datetime(
+            "2018-02-1 12:00:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        expected = Timestamp("2018-02-01 12:00:00.0000000011")
+        assert res == expected
+
+    def test_parse_with_three_digit_day_iso(self):
         res = to_datetime("2018-10-202", format="ISO8601", threshold=0.5)
         assert isna(res)
+
+    def test_parse_with_one_digit_day_iso(self):
+        res = to_datetime("2018-10-0", format="ISO8601", threshold=0.5)
+        assert isna(res)
+
+        res = to_datetime("2018-02-1", format="ISO8601", threshold=0.5)
+        expected = Timestamp("2018-02-01")
+        assert res == expected
+
+    def test_parse_with_three_digit_hour(self):
+        res = to_datetime(
+            "2018-07-01 121:00:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        assert isna(res)
+
+    def test_parse_with_one_digit_hour(self):
+        res = to_datetime(
+            "2018-10-01 24:00:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        assert isna(res)
+
+        res = to_datetime(
+            "2018-02-01 1:00:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        expected = Timestamp("2018-02-01 01:00:00.0000000011")
+        assert res == expected
+
+    def test_parse_with_three_digit_minute(self):
+        res = to_datetime(
+            "2018-07-01 12:121:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        assert isna(res)
+
+    def test_parse_with_one_digit_minute(self):
+        res = to_datetime(
+            "2018-10-01 23:60:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        assert isna(res)
+
+        res = to_datetime(
+            "2018-02-01 10:1:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        expected = Timestamp("2018-02-01 10:01:00.0000000011")
+        assert res == expected
+
+    def test_parse_with_three_digit_second(self):
+        res = to_datetime(
+            "2018-07-01 12:12:121.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        assert isna(res)
+
+    def test_parse_with_one_digit_second(self):
+        res = to_datetime(
+            "2018-10-01 23:00:60.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        assert isna(res)
+
+        res = to_datetime(
+            "2018-02-01 10:00:1.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        expected = Timestamp("2018-02-01 10:00:01.0000000011")
+        assert res == expected
 
     def test_parse_with_half_malformed_components(self):
         res = to_datetime(
@@ -3877,22 +4032,118 @@ class TestForIncreasedRobustness:
         )
         assert isna(res)
 
-    def test_parse_with_too_many_malformed_components(self):
+        res = to_datetime(
+            "20118-101-01 23:60:00.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        assert isna(res)
+
         with pytest.raises(ValueError, match="^time data *"):
-            to_datetime(
+            _ = to_datetime(
+                "20118-101-01 23:60:100.0000000011",
+                format="%Y-%m-%d %H:%M:%S.%f",
+                threshold=0.5,
+            )
+
+    def test_parse_with_too_many_malformed_components(self):
+        res = to_datetime(
+            "2018-111-111 10:00:01.0000000011",
+            format="%Y-%m-%d %H:%M:%S.%f",
+            threshold=0.5,
+        )
+        assert isna(res)
+
+        with pytest.raises(ValueError, match="^time data *"):
+            _ = to_datetime(
                 "2018-202-202 12:202:202", format="%Y-%m-%d %H:%M:%S", threshold=0.5
             )
 
     def test_parse_with_too_many_malformed_components_all(self):
         with pytest.raises(ValueError, match="^time data *"):
-            to_datetime(
+            _ = to_datetime(
                 "2018-10-202 12:00:00", format="%Y-%m-%d %H:%M:%S", threshold=1.0
             )
 
     def test_parse_with_too_many_malformed_components_iso(self):
-        with pytest.raises(ValueError, match="^time data *"):
-            to_datetime("18-10-202", format="ISO8601", threshold=0.5)
+        res = to_datetime("2018-10-111", format="ISO8601", threshold=0.5)
+        assert isna(res)
+
+        with pytest.raises(
+            ValueError, match="^Time data 18-10-202 is not ISO8601 format"
+        ):
+            _ = to_datetime("18-10-202", format="ISO8601", threshold=0.5)
 
     def test_parse_with_too_many_malformed_components_iso_all(self):
+        with pytest.raises(
+            ValueError, match="^Time data 2018-100-202 is not ISO8601 format"
+        ):
+            _ = to_datetime("2018-100-202", format="ISO8601", threshold=1.0)
+
+    def test_parse_with_all_malformed_components(self):
         with pytest.raises(ValueError, match="^time data *"):
-            to_datetime("2018-10-202", format="ISO8601", threshold=1.0)"""
+            _ = to_datetime(
+                "201-202-202 121:202:202", format="%Y-%m-%d %H:%M:%S", threshold=0.5
+            )
+
+        res = to_datetime(
+            "201-202-202 121:202:202", format="%Y-%m-%d %H:%M:%S", threshold=0.0
+        )
+        assert isna(res)
+
+    def test_series(self):
+        series = Series(["2020", "1999", "2011"])
+        result = to_datetime(series, format="%Y")
+        expected = Series(
+            [
+                Timestamp("2020-01-01"),
+                Timestamp("1999-01-01"),
+                Timestamp("2011-01-01"),
+            ]
+        )
+        tm.assert_series_equal(result, expected)
+
+        series = Series(["199"])
+        result = to_datetime(series, format="%Y", threshold=0.0)
+        assert isna(result[0])
+
+        series = Series(["2020-01-101", "1999-101-01", "211-10-11", "2020-01-01"])
+        result = to_datetime(series, format="ISO8601", threshold=0.5)
+        assert isna(result[0])
+        assert isna(result[1])
+        assert isna(result[2])
+        assert not isna(result[3])
+
+        series = Series(["2020-01-101", "1999-101-01", "2011-101-101"])
+        with pytest.raises(
+            ValueError, match="^Time data 2011-101-101 is not ISO8601 format"
+        ):
+            _ = to_datetime(series, format="ISO8601", threshold=0.5)
+
+    def test_errors_is_coerce(self):
+        series = Series(["2020", "20xx"])
+        result = to_datetime(series, format="%Y", errors="coerce", threshold=1.0)
+        expected = Series([Timestamp("2020-01-01"), NaT])
+        tm.assert_series_equal(result, expected)
+
+    def test_iso_and_format_have_same_threshold_behavior(self):
+        assert isna(to_datetime("2018-202-01", format="ISO8601", threshold=0.5))
+        assert isna(to_datetime("2018-202-01", format="%Y-%m-%d", threshold=0.5))
+
+    def test_microseconds_does_not_count(self):
+        with pytest.raises(ValueError, match="^time data *"):
+            _ = to_datetime(
+                "20181-021-011 111:010:010.0000000011",
+                format="%Y-%m-%d %H:%M:%S.%f",
+                threshold=0.01,
+            )
+
+    def test_one_component(self):
+        res = to_datetime("20181", format="%Y", threshold=0.0)
+        assert isna(res)
+
+    def test_parse_mixed_format_threshold(self):
+        series = Series(["2020-01-01", "01/02/2021", "2021-13-01"])
+        result = to_datetime(series, format="mixed", threshold=0.5, errors="coerce")
+        expected = Series([Timestamp("2020-01-01"), Timestamp("2021-01-02"), NaT])
+        tm.assert_series_equal(result, expected)
