@@ -360,7 +360,7 @@ class DatetimeProperties(Properties):
         >>> s
         0   2018-03-10 00:00:00.000000000
         1   2018-03-10 00:00:00.000000001
-        dtype: datetime64[us]
+        dtype: datetime64[ns]
 
         >>> s.dt.to_pydatetime()
         0    2018-03-10 00:00:00
