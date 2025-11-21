@@ -114,6 +114,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                             int format_len,
                             FormatRequirement format_requirement,
                             double threshold) {
+  printf("Start %s\n", str);
   if (len < 0 || format_len < 0)
     goto parse_error;
   int year_leap = 0;
@@ -189,7 +190,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
       goto finish;
     }
     to_month = 1;
-    goto find_sep;
+    goto year_sep;
   } else if (comparison == COMPLETED_PARTIAL_MATCH) {
     valid_components++;
     goto finish;
@@ -216,7 +217,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
       substr += 3;
       sublen -= 3;
       to_month = 1;
-      goto find_sep;
+      goto year_sep;
     }
   } else if (sublen == 3 && isdigit(substr[0]) && isdigit(substr[1]) &&
              isdigit(substr[2])) {
@@ -237,9 +238,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
       substr += 2;
       sublen -= 2;
       to_month = 1;
-      goto find_sep;
+      goto year_sep;
     }
-    goto find_sep;
+    goto year_sep;
   } else if (sublen == 2 && isdigit(substr[0]) && isdigit(substr[1])) {
     invalid_components++;
     substr += 2;
@@ -257,7 +258,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
       substr += 1;
       sublen -= 1;
       to_month = 1;
-      goto find_sep;
+      goto year_sep;
     }
   } else if (sublen == 1 && isdigit(substr[0])) {
     invalid_components++;
@@ -274,7 +275,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     if (valid_sep) {
       invalid_components++;
       to_month = 1;
-      goto find_sep;
+      goto year_sep;
     }
   }
 
@@ -301,7 +302,7 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
       goto finish;
     }
     to_month = 1;
-    goto find_sep;
+    goto year_sep;
   }
   if (!has_sep && sublen < 4) {
     invalid_components++;
@@ -309,26 +310,9 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
     sublen = 0;
     goto finish;
   }
-  /*int still_more = 1;
-  for (i = 0; i < valid_ymd_sep_len; ++i) {
-    if (*substr == valid_ymd_sep[i]) {
-      still_more = 0;
-      break;
-    }
-  }
-  if (still_more) {
-    invalid_components++;
-    while (sublen > 0 && isdigit(substr[0])) {
-      substr++;
-      sublen--;
-    }
-    if (sublen == 0) {
-      goto finish;
-    }
-    to_month = 1;
-    goto find_sep;
-  }*/
 
+year_sep:
+  printf("Now %s\n", substr);
   /* Negate the year if necessary */
   if (str[0] == '-') {
     out->year = -out->year;
@@ -342,7 +326,8 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
       *out_local = 0;
     }
     if (format_len) {
-      invalid_components++;
+      if (invalid_components + valid_components < 1)
+        invalid_components++;
       while (sublen > 1 && !isdigit(substr[1])) {
         substr++;
         sublen--;
@@ -351,14 +336,13 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
         goto finish;
       }
       to_month = 1;
-      goto find_sep;
     }
     bestunit = NPY_FR_Y;
-    valid_components++;
+    if (invalid_components + valid_components < 1)
+      valid_components++;
     goto finish;
   }
 
-find_sep:
   if (!isdigit(*substr)) {
     for (i = 0; i < valid_ymd_sep_len; ++i) {
       if (*substr == valid_ymd_sep[i]) {
@@ -479,7 +463,7 @@ month:
           goto finish;
         }
         to_month = 1;
-        goto find_sep;
+        goto month_sep;
       }
       if (!has_sep && sublen < 2) {
         invalid_components++;
