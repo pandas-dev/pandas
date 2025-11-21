@@ -2315,8 +2315,8 @@ class Timedelta(_Timedelta):
         elif is_bool_object(other):
             # GH#62316
             raise TypeError(
-                "Cannot multiply Timedelta by bools. "
-                "Explicitly cast to integers instead."
+                "Cannot multiply Timedelta by bool. "
+                "Explicitly cast to integer instead."
             )
 
         return NotImplemented
