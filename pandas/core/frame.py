@@ -368,7 +368,7 @@ right_index : bool, default False
 sort : bool, default False
     Sort the join keys lexicographically in the result DataFrame. If False,
     the order of the join keys depends on the join type (how keyword).
-diff_option : Literal str
+diff_option : Literal
     The allowed values are "suffix"、"prefix"、"both",default "suffix".
     If the value is "suffix", the duplicated columns will be differentiated
     using the suffixes provided by parameter "suffixes".
@@ -384,7 +384,7 @@ suffixes : list-like, default is ("_x", "_y")
     of a string to indicate that the column name from `left` or
     `right` should be left as-is, with no suffix. At least one of the
     values must not be None.
-prefixes : list-like, default is ("a_", "b_")
+prefixes : list-like, default is (``"a_"``, ``"b_"``)
     A length-2 sequence where each element is optionally a string
     indicating the prefix to add to overlapping column names in
     `left` and `right` respectively. Pass a value of `None` instead

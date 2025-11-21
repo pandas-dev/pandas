@@ -241,7 +241,7 @@ def merge(
         of a string to indicate that the column name from `left` or
         `right` should be left as-is, with no suffix. At least one of the
         values must not be None.
-    prefixes : list-like, default is ("a_", "b_")
+    prefixes : list-like, default is (``"a_"``, ``"b_"``)
         A length-2 sequence where each element is optionally a string
         indicating the prefix to add to overlapping column names in
         `left` and `right` respectively. Pass a value of `None` instead
