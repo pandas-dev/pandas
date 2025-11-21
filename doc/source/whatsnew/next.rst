@@ -1,0 +1,1 @@
+- Consolidated contributor-facing code-style and contribution guidance into doc/source/development/code_guidelines.rst (Phase 1) — see GH issue 33851.
