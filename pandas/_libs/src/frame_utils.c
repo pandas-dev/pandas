@@ -30,15 +30,22 @@ int is_local_in_caller_frame_impl(PyObject *object) {
   }
 
   int result = 0;
-  PyObject *key, *value;
   Py_ssize_t pos = 0;
-  while (PyDict_Next(locals_dict, &pos, &key, &value)) {
-    if (object == value) {
+  PyObject *values = PyMapping_Values(locals_dict);
+  if (values == NULL) {
+    Py_DECREF(locals_dict);
+    Py_DECREF(caller_frame);
+    return 0;
+  }
+  Py_ssize_t num_values = PyList_Size(values);
+  for (Py_ssize_t i = 0; i < num_values; i++) {
+    if (PyList_GetItem(values, i) == object) {
       result = 1;
       break;
     }
   }
 
+  Py_DECREF(values);
   Py_DECREF(locals_dict);
   Py_DECREF(caller_frame);
   return result;
