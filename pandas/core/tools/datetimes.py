@@ -808,10 +808,10 @@ def to_datetime(
         parsing.
     threshold : float
         Minimum fraction of valid datetime components required to consider parsing
-        successful. Components include year, month, day, hour, minute, and second
-        if present in the input. An invalid component has too many or too few digits
-        or a number outside the possible range (e.g., month outside [1, 12]). Behavior
-        depends on the threshold:
+        successful. Must be between 0.0 and 1.0. Components include year, month,
+        day, hour, minute, and second if present in the input. An invalid component
+        has too many or too few digits or a number outside the possible range
+        (e.g., month outside [1, 12]). Behavior depends on the threshold:
 
         - 1.0 (default): all components must be valid, else raises error (unless
         ``errors='coerce'``).
