@@ -829,7 +829,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 micro = offset.kwds.get("microseconds", 0)
                 if micro and self.unit != "ns":
                     res_unit = "us"
-            elif hasattr(offset, "offset") and offset.offset is not None:
+            if (
+                hasattr(offset, "offset")
+                and offset.offset is not None
+                and not isinstance(offset, Tick)
+            ):
                 offset_td = Timedelta(offset.offset)
                 if offset_td.value != 0:
                     offset_unit = offset_td.unit
