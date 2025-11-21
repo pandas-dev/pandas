@@ -1033,6 +1033,9 @@ def to_datetime(
     if arg is None:
         return NaT
 
+    if not (0.0 <= threshold <= 1.0):
+        raise ValueError(f"`threshold` must be between 0.0 and 1.0, got {threshold}")
+
     if origin != "unix":
         arg = _adjust_to_origin(arg, origin, unit)
 

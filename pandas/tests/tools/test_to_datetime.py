@@ -4155,3 +4155,22 @@ class TestForIncreasedRobustness:
             threshold=0.5,
         )
         assert isna(result)
+
+    def test_bad_threshold(self):
+        with pytest.raises(
+            ValueError, match="`threshold` must be between 0.0 and 1.0, got -0.5"
+        ):
+            _ = to_datetime(
+                "2020-01-01 12:20:20",
+                format="%Y-%m-%d %H:%M:%S",
+                threshold=-0.5,
+            )
+
+        with pytest.raises(
+            ValueError, match="`threshold` must be between 0.0 and 1.0, got 2.0"
+        ):
+            _ = to_datetime(
+                "2020-01-01 12:20:20",
+                format="%Y-%m-%d %H:%M:%S",
+                threshold=2.0,
+            )
