@@ -1092,7 +1092,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         # to preserve dtypes, then extracting the row
         # Otherwise, reverse tuple so that we are indexing along columns before rows
         # and avoid unintended dtype inference. # GH60600
-        if (len(tup) == 2 and is_scalar(tup[0]) and isinstance(tup[1], slice)):
+        if len(tup) == 2 and is_scalar(tup[0]) and isinstance(tup[1], slice):
             # Handle scalar row + slice columns case to preserve dtypes
             row_key, col_slice = tup[0], tup[1]
             # First, get the column slice to preserve dtypes
