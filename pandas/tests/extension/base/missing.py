@@ -125,18 +125,24 @@ class BaseMissingTests:
         tm.assert_extension_array_equal(result, data)
 
     def test_fillna_readonly(self, data_missing):
+        fill_value = data_missing[1]
         data = data_missing.copy()
         data._readonly = True
 
         # by default fillna(copy=True), then this works fine
-        result = data.fillna(data_missing[1])
-        assert result[0] == data_missing[1]
+        res_copy = data.fillna(fill_value, copy=True)
+        assert res_copy[0] == fill_value
         tm.assert_extension_array_equal(data, data_missing)
-
-        # but with copy=False, this raises for EAs that respect the copy keyword
-        with pytest.raises(ValueError, match="Cannot modify read-only array"):
-            data.fillna(data_missing[1], copy=False)
-        tm.assert_extension_array_equal(data, data_missing)
+        
+        if self._supports_fillna_copy_false:
+            # but with copy=False, this raises for EAs that respect the copy keyword
+            with pytest.raises(ValueError, match="Cannot modify read-only array"):
+                data.fillna(fill_value, copy=False)
+            tm.assert_extension_array_equal(data, data_missing)
+        else:
+            res_no_copy = data.fillna(fill_value, copy=False)
+            tm.assert_extension_array_equal(res_no_copy, res_copy)
+            tm.assert_extension_array_equal(data, data_missing)
 
     def test_fillna_series(self, data_missing):
         fill_value = data_missing[1]
@@ -196,8 +202,3 @@ class BaseMissingTests:
 
         tm.assert_frame_equal(result, expected)
 
-    def test_fillna_readonly(self, data_missing):
-        fill_value = data_missing[1]
-        result = data_missing.fillna(fill_value, copy=False)
-        expected = data_missing.fillna(fill_value, copy=True)
-        tm.assert_extension_array_equal(result, expected)
