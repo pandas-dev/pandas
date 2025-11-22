@@ -322,6 +322,10 @@ def array(
         return data
 
     if isinstance(dtype, ExtensionDtype):
+        if dtype == StringDtype() and isinstance(data, (list, tuple)):
+            for i in data:
+                if isinstance(i, (list, tuple, np.ndarray)):
+                    raise TypeError("Values must be a 1D list-like")
         cls = dtype.construct_array_type()
         return cls._from_sequence(data, dtype=dtype, copy=copy)
 
