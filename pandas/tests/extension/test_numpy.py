@@ -169,8 +169,6 @@ skip_nested = pytest.mark.usefixtures("skip_numpy_object")
 
 
 class TestNumpyExtensionArray(base.ExtensionTests):
-    _supports_fillna_copy_false = False
-
     @pytest.mark.skip(reason="We don't register our dtype")
     # We don't want to register. This test should probably be split in two.
     def test_from_dtype(self, data):
