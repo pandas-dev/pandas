@@ -129,11 +129,15 @@ class BaseMissingTests:
         data = data_missing.copy()
         data._readonly = True
 
+        expected = data_missing._from_sequence(
+            [fill_value, fill_value], dtype=data_missing.dtype
+        )
+
         # by default fillna(copy=True), then this works fine
         res_copy = data.fillna(fill_value, copy=True)
-        assert res_copy[0] == fill_value
+        tm.assert_extension_array_equal(res_copy, expected)
         tm.assert_extension_array_equal(data, data_missing)
-        
+
         if self._supports_fillna_copy_false:
             # but with copy=False, this raises for EAs that respect the copy keyword
             with pytest.raises(ValueError, match="Cannot modify read-only array"):
@@ -201,4 +205,3 @@ class BaseMissingTests:
         expected = pd.DataFrame({"A": data, "B": [0.0] * len(result)})
 
         tm.assert_frame_equal(result, expected)
-
