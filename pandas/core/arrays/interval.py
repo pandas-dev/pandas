@@ -2080,7 +2080,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
             if self.dtype == values.dtype:
                 # GH#38353 instead of casting to object, operating on a
-                #  complex128 ndarray is much more performant.
                 left = self._combined
                 right = values._combined
                 return np.isin(left, right).ravel()
@@ -2102,6 +2101,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if needs_i8_conversion(left.dtype):
             # error: Item "ndarray[Any, Any]" of "Any | ndarray[Any, Any]" has
             # no attribute "_concat_same_type"
+            # complex128 ndarray is much more performant.
             comb = left._concat_same_type(  # type: ignore[union-attr]
                 [left, right], axis=1
             )
