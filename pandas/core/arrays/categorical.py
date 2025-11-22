@@ -269,7 +269,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         categories are assumed to be the unique values of `values` (sorted, if
         possible, otherwise in the order in which they appear).
     ordered : bool, default False
-        Whether or not this categorical is treated as a ordered categorical.
+        Whether or not this categorical is treated as an ordered categorical.
         If True, the resulting categorical will be ordered.
         An ordered categorical respects, when sorted, the order of its
         `categories` attribute (which in turn is the `categories` argument, if
@@ -1103,7 +1103,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         new_categories : Index-like
            The categories in new order.
         ordered : bool, default None
-           Whether or not the categorical is treated as a ordered categorical.
+           Whether or not the categorical is treated as an ordered categorical.
            If not given, do not change the ordered information.
         rename : bool, default False
            Whether or not the new_categories should be considered as a rename
@@ -1277,7 +1277,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         new_categories : Index-like
            The categories in new order.
         ordered : bool, optional
-           Whether or not the categorical is treated as a ordered categorical.
+           Whether or not the categorical is treated as an ordered categorical.
            If not given, do not change the ordered information.
 
         Returns
@@ -2280,7 +2280,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         from pandas.io.formats import format as fmt
 
         formatter = None
-        if self.categories.dtype == "str":
+        if self.categories.dtype == "str" or self.categories.dtype == "string":
             # the extension array formatter defaults to boxed=True in format_array
             # override here to boxed=False to be consistent with QUOTE_NONNUMERIC
             formatter = cast(ExtensionArray, self.categories._values)._formatter(
@@ -2544,10 +2544,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         Return the ``Categorical`` which ``categories`` and ``codes`` are
         unique.
-
-        .. versionchanged:: 1.3.0
-
-            Previously, unused categories were dropped from the new categories.
 
         Returns
         -------

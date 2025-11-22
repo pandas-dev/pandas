@@ -87,7 +87,10 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
 )
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    getitem_returns_view,
+)
 from pandas.core.ops import (
     invalid_comparison,
     unpack_zerodim_and_defer,
@@ -420,6 +423,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         dtype = IntervalDtype(left.dtype, closed=closed)
 
+        # Check for mismatched signed/unsigned integer dtypes after casting
+        left_dtype = left.dtype
+        right_dtype = right.dtype
+        if (
+            left_dtype.kind in "iu"
+            and right_dtype.kind in "iu"
+            and left_dtype.kind != right_dtype.kind
+        ):
+            raise TypeError(
+                f"Left and right arrays must have matching signedness. "
+                f"Got {left_dtype} and {right_dtype}."
+            )
         return left, right, dtype
 
     @classmethod
@@ -830,9 +845,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # "Union[Period, Timestamp, Timedelta, NaTType, DatetimeArray, TimedeltaArray,
         # ndarray[Any, Any]]"; expected "Union[Union[DatetimeArray, TimedeltaArray],
         # ndarray[Any, Any]]"
-        return self._simple_new(left, right, dtype=self.dtype)  # type: ignore[arg-type]
+        result = self._simple_new(left, right, dtype=self.dtype)  # type: ignore[arg-type]
+        if getitem_returns_view(self, key):
+            result._readonly = self._readonly
+        return result
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         value_left, value_right = self._validate_setitem_value(value)
         key = check_array_indexer(self, key)
 

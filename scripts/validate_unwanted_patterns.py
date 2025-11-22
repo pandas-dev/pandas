@@ -95,7 +95,10 @@ def _get_literal_string_prefix_len(token_string: str) -> int:
         return 0
 
 
-PRIVATE_FUNCTIONS_ALLOWED = {"sys._getframe"}  # no known alternative
+PRIVATE_FUNCTIONS_ALLOWED = {
+    "sys._getframe",
+    "sys._is_gil_enabled",
+}  # no known alternative
 
 
 def private_function_across_module(file_obj: IO[str]) -> Iterable[tuple[int, str]]:
@@ -266,7 +269,9 @@ def strings_with_wrong_placed_whitespace(
 
     tokens: list = list(tokenize.generate_tokens(file_obj.readline))
 
-    for first_token, second_token, third_token in zip(tokens, tokens[1:], tokens[2:]):
+    for first_token, second_token, third_token in zip(
+        tokens, tokens[1:], tokens[2:], strict=False
+    ):
         # Checking if we are in a block of concated string
         if (
             first_token.type == third_token.type == token.STRING

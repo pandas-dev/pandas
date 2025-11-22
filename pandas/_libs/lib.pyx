@@ -322,7 +322,7 @@ def item_from_zerodim(val: object) -> object:
     >>> item_from_zerodim(np.array([1]))
     array([1])
     """
-    if cnp.PyArray_IsZeroDim(val):
+    if cnp.PyArray_IsZeroDim(val) and cnp.PyArray_CheckExact(val):
         return cnp.PyArray_ToScalar(cnp.PyArray_DATA(val), val)
     return val
 
@@ -655,16 +655,17 @@ def is_range_indexer(const int6432_t[:] left, Py_ssize_t n) -> bool:
     """
     cdef:
         Py_ssize_t i
+        bint ret = True
 
     if left.size != n:
         return False
 
-    for i in range(n):
-
-        if left[i] != i:
-            return False
-
-    return True
+    with nogil:
+        for i in range(n):
+            if left[i] != i:
+                ret = False
+                break
+    return ret
 
 
 @cython.wraparound(False)
@@ -676,6 +677,7 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
     cdef:
         Py_ssize_t i, n = len(sequence)
         int6432_t first_element
+        bint ret = True
 
     if step == 0:
         return False
@@ -683,10 +685,12 @@ def is_sequence_range(const int6432_t[:] sequence, int64_t step) -> bool:
         return True
 
     first_element = sequence[0]
-    for i in range(1, n):
-        if sequence[i] != first_element + i * step:
-            return False
-    return True
+    with nogil:
+        for i in range(1, n):
+            if sequence[i] != first_element + i * step:
+                ret = False
+                break
+    return ret
 
 
 ctypedef fused ndarr_object:
@@ -2589,7 +2593,7 @@ def maybe_convert_objects(ndarray[object] objects,
         Whether to convert numeric entries.
     convert_to_nullable_dtype : bool, default False
         If an array-like object contains only integer or boolean values (and NaN) is
-        encountered, whether to convert and return an Boolean/IntegerArray.
+        encountered, whether to convert and return a Boolean/IntegerArray.
     convert_non_numeric : bool, default False
         Whether to convert datetime, timedelta, period, interval types.
     dtype_if_all_nat : np.dtype, ExtensionDtype, or None, default None
@@ -2708,11 +2712,10 @@ def maybe_convert_objects(ndarray[object] objects,
                 break
         elif PyDateTime_Check(val) or cnp.is_datetime64_object(val):
 
-            # if we have an tz's attached then return the objects
+            # if we have a tz's attached then return the objects
             if convert_non_numeric:
                 if getattr(val, "tzinfo", None) is not None:
                     seen.datetimetz_ = True
-                    break
                 else:
                     seen.datetime_ = True
                     try:
@@ -2720,10 +2723,9 @@ def maybe_convert_objects(ndarray[object] objects,
                     except OutOfBoundsDatetime:
                         # e.g. test_out_of_s_bounds_datetime64
                         seen.object_ = True
-                        break
             else:
                 seen.object_ = True
-                break
+            break
         elif is_period_object(val):
             if convert_non_numeric:
                 seen.period_ = True

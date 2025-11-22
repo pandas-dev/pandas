@@ -140,9 +140,7 @@ class TestMethods:
 class TestSetitem:
     def test_set_na(self, left_right_dtypes):
         left, right = left_right_dtypes
-        left = left.copy(deep=True)
-        right = right.copy(deep=True)
-        result = IntervalArray.from_arrays(left, right)
+        result = IntervalArray.from_arrays(left, right, copy=True)
 
         if result.dtype.subtype.kind not in ["m", "M"]:
             msg = "'value' should be an interval type, got <.*NaTType'> instead."
@@ -193,8 +191,6 @@ class TestSetitem:
 class TestReductions:
     def test_min_max_invalid_axis(self, left_right_dtypes):
         left, right = left_right_dtypes
-        left = left.copy(deep=True)
-        right = right.copy(deep=True)
         arr = IntervalArray.from_arrays(left, right)
 
         msg = "`axis` must be fewer than the number of dimensions"
@@ -213,8 +209,6 @@ class TestReductions:
     def test_min_max(self, left_right_dtypes, index_or_series_or_array):
         # GH#44746
         left, right = left_right_dtypes
-        left = left.copy(deep=True)
-        right = right.copy(deep=True)
         arr = IntervalArray.from_arrays(left, right)
 
         # The expected results below are only valid if monotonic

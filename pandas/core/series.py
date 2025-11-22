@@ -33,11 +33,11 @@ from pandas._libs import (
     properties,
     reshape,
 )
+from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
-from pandas.compat import PYPY
 from pandas.compat._constants import (
+    CHAINED_WARNING_DISABLED_INPLACE_METHOD,
     REF_COUNT,
-    WARNING_CHECK_DISABLED,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -48,7 +48,6 @@ from pandas.errors import (
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
-    _chained_assignment_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -87,7 +86,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
-    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -233,7 +231,7 @@ axis : int or str, optional
 # class "NDFrame")
 # definition in base class "NDFrame"
 @set_module("pandas")
-class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
+class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -358,6 +356,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         doc=base.IndexOpsMixin.hasnans.__doc__,
     )
     _mgr: SingleBlockManager
+
+    # override those to avoid inheriting from SetitemMixin (cython generates
+    # them by default)
+    __reduce__ = object.__reduce__
+    __setstate__ = NDFrame.__setstate__
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -501,7 +504,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if dtype is not None:
                 data = data.astype(dtype=dtype)
             elif copy:
-                data = data.copy()
+                data = data.copy(deep=True)
         else:
             data = sanitize_array(data, index, dtype, copy)
             data = SingleBlockManager.from_array(data, index, refs=refs)
@@ -819,7 +822,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[prop-decorator]
     @property
     def array(self) -> ExtensionArray:
-        return self._mgr.array_values()
+        arr = self._mgr.array_values()
+        arr = arr.view()
+        arr._readonly = True
+        return arr
 
     def __len__(self) -> int:
         """
@@ -1055,13 +1061,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             return self.iloc[loc]
 
-    def __setitem__(self, key, value) -> None:
-        if not PYPY and not WARNING_CHECK_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT + 1:
-                warnings.warn(
-                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
-                )
-
+    # def __setitem__() is implemented in SetitemMixin and dispatches to this method
+    def _setitem(self, key, value) -> None:
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
 
@@ -1306,8 +1307,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Modify the Series in place (do not create a new object).
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1834,9 +1833,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         df = self._constructor_expanddim_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(self, method="to_frame")
 
-    def _set_name(
-        self, name, inplace: bool = False, deep: bool | None = None
-    ) -> Series:
+    def _set_name(self, name, inplace: bool = False) -> Series:
         """
         Set the Series name.
 
@@ -2133,16 +2130,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> pd.Series([pd.Timestamp("2016-01-01") for _ in range(3)]).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00']
-        Length: 1, dtype: datetime64[s]
+        Length: 1, dtype: datetime64[us]
 
         >>> pd.Series(
         ...     [pd.Timestamp("2016-01-01", tz="US/Eastern") for _ in range(3)]
         ... ).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00-05:00']
-        Length: 1, dtype: datetime64[s, US/Eastern]
+        Length: 1, dtype: datetime64[us, US/Eastern]
 
-        An Categorical will return categories in the order of
+        A Categorical will return categories in the order of
         appearance and with the same dtype.
 
         >>> pd.Series(pd.Categorical(list("baabc"))).unique()
@@ -3031,8 +3028,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result_names : tuple, default ('self', 'other')
             Set the dataframes names in the comparison.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         Series or DataFrame
@@ -3112,8 +3107,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Combine the Series and `other` using `func` to perform elementwise
         selection for combined Series.
-        `fill_value` is assumed when value is missing at some index
-        from one of the two objects being combined.
+        `fill_value` is assumed when value is not present at some index
+        from one of the two Series being combined.
 
         Parameters
         ----------
@@ -3254,9 +3249,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if self.dtype == other.dtype:
             if self.index.equals(other.index):
                 return self.mask(self.isna(), other)
-            elif self._can_hold_na and not isinstance(self.dtype, SparseDtype):
-                this, other = self.align(other, join="outer")
-                return this.mask(this.isna(), other)
 
         new_index = self.index.union(other.index)
 
@@ -3271,6 +3263,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if this.dtype.kind == "M" and other.dtype.kind != "M":
             # TODO: try to match resos?
             other = to_datetime(other)
+            warnings.warn(
+                # GH#62931
+                "Silently casting non-datetime 'other' to datetime in "
+                "Series.combine_first is deprecated and will be removed "
+                "in a future version. Explicitly cast before calling "
+                "combine_first instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         combined = concat([this, other])
         combined = combined.reindex(new_index)
         return combined.__finalize__(self, method="combine_first")
@@ -3349,7 +3351,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        if not PYPY and not WARNING_CHECK_DISABLED:
+        if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
             if sys.getrefcount(self) <= REF_COUNT:
                 warnings.warn(
                     _chained_assignment_method_msg,
@@ -5656,8 +5658,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         This method prints information about a Series including
         the index dtype, non-NA values and memory usage.
 
-        .. versionadded:: 1.4.0
-
         Parameters
         ----------
         verbose : bool, optional
@@ -5922,8 +5922,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         inclusive : {"both", "neither", "left", "right"}
             Include boundaries. Whether to set each bound as closed or open.
 
-            .. versionchanged:: 1.3.0
-
         Returns
         -------
         Series
@@ -6183,7 +6181,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return NDFrame.isna(self)
 
     # error: Cannot determine type of 'isna'
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
     def isnull(self) -> Series:
         """
         Series.isnull is an alias for Series.isna.
@@ -6260,7 +6258,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return super().notna()
 
     # error: Cannot determine type of 'notna'
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])  # type: ignore[has-type]
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
     def notnull(self) -> Series:
         """
         Series.notnull is an alias for Series.notna.

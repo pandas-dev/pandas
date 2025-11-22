@@ -98,9 +98,9 @@ def test_asfreq_fill_value(index):
 @pytest.mark.parametrize(
     "index",
     [
-        timedelta_range("1 day", "10 day", freq="D"),
-        date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D"),
-        period_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D"),
+        timedelta_range("1 day", "3 day", freq="D"),
+        date_range(datetime(2005, 1, 1), datetime(2005, 1, 3), freq="D"),
+        period_range(datetime(2005, 1, 1), datetime(2005, 1, 3), freq="D"),
     ],
 )
 def test_resample_interpolate(index):
@@ -250,7 +250,7 @@ def test_resample_empty_sum_string(string_dtype_no_object, min_count):
     result = rs.sum(min_count=min_count)
 
     value = "" if min_count == 0 else pd.NA
-    index = date_range(start="2000-01-01", freq="20s", periods=2, unit="s")
+    index = date_range(start="2000-01-01", freq="20s", periods=2, unit="us")
     expected = Series(value, index=index, dtype=dtype)
     tm.assert_series_equal(result, expected)
 

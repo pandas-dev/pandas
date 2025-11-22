@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import numpy as np
 import pytest
 
@@ -411,6 +409,22 @@ def test_single_bin(data, length):
 
 
 @pytest.mark.parametrize(
+    "values,threshold",
+    [
+        ([0.1, 0.1, 0.1], 0.001),  # small positive values
+        ([-0.1, -0.1, -0.1], 0.001),  # negative values
+        ([0.01, 0.01, 0.01], 0.0001),  # very small values
+    ],
+)
+def test_single_bin_edge_adjustment(values, threshold):
+    # gh-58517 - edge adjustment mutation when all values are same
+    result, bins = cut(values, 3, retbins=True)
+
+    bin_range = bins[-1] - bins[0]
+    assert bin_range < threshold
+
+
+@pytest.mark.parametrize(
     "array_1_writeable,array_2_writeable", [(True, True), (True, False), (False, False)]
 )
 def test_cut_read_only(array_1_writeable, array_2_writeable):
@@ -452,9 +466,9 @@ def test_datetime_bin(conv):
     bins = [conv(v) for v in bin_data]
     result = Series(cut(data, bins=bins))
 
-    if type(bins[0]) is datetime:
+    if type(bins[0]) is np.datetime64:
         # The bins have microsecond dtype -> so does result
-        expected = expected.astype("interval[datetime64[us]]")
+        expected = expected.astype("interval[datetime64[s]]")
 
     expected = expected.astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
