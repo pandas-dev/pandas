@@ -815,12 +815,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     stacklevel=find_stack_level(),
                 )
             res_values = self.astype("O") + offset
-            res_values = [
-                Timestamp(x)
-                if isinstance(x, datetime) and not isinstance(x, Timestamp)
-                else x
-                for x in res_values
-            ]
             result = type(self)._from_sequence(res_values, dtype=self.dtype)
 
         else:
