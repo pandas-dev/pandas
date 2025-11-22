@@ -847,8 +847,7 @@ def test_factorize_sort_without_freq():
 
 
 @pytest.mark.filterwarnings(
-    "ignore:Non-vectorized DateOffset being applied to Series or DatetimeIndex:"
-    "PerformanceWarning"
+    "ignore:Non-vectorized DateOffset being applied to Series or DatetimeIndex"
 )
 def test_dt64_non_nano_offset_no_rounding():
     # GH#56586
