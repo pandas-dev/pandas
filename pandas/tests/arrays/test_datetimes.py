@@ -846,6 +846,10 @@ def test_factorize_sort_without_freq():
         tda.factorize(sort=True)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Non-vectorized DateOffset being applied to Series or DatetimeIndex:"
+    "PerformanceWarning"
+)
 def test_dt64_non_nano_offset_no_rounding():
     # GH#56586
     dti = pd.date_range("2016-01-01", periods=3, unit="s")
