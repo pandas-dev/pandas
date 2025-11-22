@@ -71,7 +71,8 @@ import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import (
-    DateOffset as TSeriesDateOffset,
+    BusinessDay,
+    DateOffset,
     Day,
     Tick,
 )
@@ -825,14 +826,18 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 "s",
             ]
             res_unit = self.unit
-            if isinstance(offset, TSeriesDateOffset):
+            if type(offset) is DateOffset:
+                nano = offset.kwds.get("nanoseconds", 0)
                 micro = offset.kwds.get("microseconds", 0)
-                if micro and self.unit != "ns":
+                if nano:
+                    res_unit = "ns"
+                elif micro and self.unit != "ns":
                     res_unit = "us"
             if (
                 hasattr(offset, "offset")
                 and offset.offset is not None
                 and not isinstance(offset, Tick)
+                and type(offset) is not BusinessDay
             ):
                 offset_td = Timedelta(offset.offset)
                 if offset_td.value != 0:
