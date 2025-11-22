@@ -129,9 +129,7 @@ class BaseMissingTests:
         data = data_missing.copy()
         data._readonly = True
 
-        expected = data_missing._from_sequence(
-            [fill_value, fill_value], dtype=data_missing.dtype
-        )
+        expected = data_missing.fillna(fill_value, copy=True)
 
         # by default fillna(copy=True), then this works fine
         res_copy = data.fillna(fill_value, copy=True)
