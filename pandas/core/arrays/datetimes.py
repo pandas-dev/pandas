@@ -77,9 +77,6 @@ import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import (
-    BusinessDay,
-    BusinessHour,
-    CustomBusinessHour,
     DateOffset,
     Day,
     Tick,
@@ -886,9 +883,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 hasattr(offset, "offset")
                 and offset.offset is not None
                 and not isinstance(offset, Tick)
-                and type(offset) is not BusinessDay
-                and type(offset) is not BusinessHour
-                and type(offset) is not CustomBusinessHour
             ):
                 offset_td = Timedelta(offset.offset)
                 if offset_td.value != 0:
