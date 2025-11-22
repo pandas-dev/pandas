@@ -727,7 +727,7 @@ class TestSetOpsUnsorted:
 
         # Corner cases
         inter = first.intersection(first, sort=sort)
-        assert inter is first
+        assert inter is not first
 
     @pytest.mark.parametrize(
         "index2_name,keeps_name",
@@ -812,16 +812,16 @@ class TestSetOpsUnsorted:
         first = index[5:20]
 
         union = first.union(first, sort=sort)
-        # i.e. identity is not preserved when sort is True
-        assert (union is first) is (not sort)
+        # GH#63169 - identity is never preserved now
+        assert union is not first
 
         # This should no longer be the same object, since [] is not consistent,
         # both objects will be recast to dtype('O')
         union = first.union(Index([], dtype=first.dtype), sort=sort)
-        assert (union is first) is (not sort)
+        assert union is not first
 
         union = Index([], dtype=first.dtype).union(first, sort=sort)
-        assert (union is first) is (not sort)
+        assert union is not first
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     @pytest.mark.parametrize("second_name,expected", [(None, None), ("name", "name")])
@@ -984,3 +984,58 @@ class TestSetOpsUnsorted:
         res = left.union(right)
         expected = Index(["2020-01-01", "2020-01-02"], dtype=left.dtype)
         tm.assert_index_equal(res, expected)
+
+
+class TestSetOpsMutation:
+    def test_intersection_mutation_safety(self):
+        # GH#63169
+        index1 = Index([0, 1], name="original")
+        index2 = Index([0, 1], name="original")
+
+        result = index1.intersection(index2)
+
+        assert result is not index1
+        assert result is not index2
+
+        tm.assert_index_equal(result, index1)
+        assert result.name == "original"
+
+        index1.name = "changed"
+
+        assert result.name == "original"
+        assert index1.name == "changed"
+
+    def test_union_mutation_safety(self):
+        # GH#63169
+        index1 = Index([0, 1], name="original")
+        index2 = Index([0, 1], name="original")
+
+        result = index1.union(index2)
+
+        assert result is not index1
+        assert result is not index2
+
+        tm.assert_index_equal(result, index1)
+        assert result.name == "original"
+
+        index1.name = "changed"
+
+        assert result.name == "original"
+        assert index1.name == "changed"
+
+    def test_union_mutation_safety_other(self):
+        # GH#63169
+        index1 = Index([], name="original")
+        index2 = Index([0, 1], name="original")
+
+        result = index1.union(index2)
+
+        assert result is not index2
+
+        tm.assert_index_equal(result, index2)
+        assert result.name == "original"
+
+        index2.name = "changed"
+
+        assert result.name == "original"
+        assert index2.name == "changed"
