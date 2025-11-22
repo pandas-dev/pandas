@@ -820,7 +820,7 @@ class TestDataFrameIndexing:
             columns=["foo", "bar", "baz"],
         )
 
-        df["timestamp"] = Timestamp("20010102")
+        df["timestamp"] = Timestamp("20010102").as_unit("s")
 
         # check our dtypes
         result = df.dtypes
