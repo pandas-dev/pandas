@@ -136,8 +136,6 @@ class RangeIndex(Index):
     []
     """
 
-    __module__ = "pandas"
-
     _typ = "rangeindex"
     _dtype_validation_metadata = (is_signed_integer_dtype, "signed integer")
     _range: range

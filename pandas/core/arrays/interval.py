@@ -39,6 +39,7 @@ from pandas._typing import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import IntCastingNaNError
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.cast import (
     LossySetitemError,
@@ -179,6 +180,7 @@ for more.
 """
 
 
+@set_module("pandas.arrays")
 class IntervalArray(IntervalMixin, ExtensionArray):
     """
     Pandas array for interval data that are closed on the same side.
@@ -245,8 +247,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     methods: :meth:`IntervalArray.from_arrays`,
     :meth:`IntervalArray.from_breaks`, and :meth:`IntervalArray.from_tuples`.
     """
-
-    __module__ = "pandas.arrays"
 
     can_hold_na = True
     _na_value = _fill_value = np.nan

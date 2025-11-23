@@ -40,6 +40,7 @@ from pandas._libs.tslibs.timedeltas import (
     truediv_object_array,
 )
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import set_module
 from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.common import (
@@ -107,6 +108,7 @@ def _field_accessor(name: str, alias: str, docstring: str):
     return property(f)
 
 
+@set_module("pandas.arrays")
 class TimedeltaArray(dtl.TimelikeOps):
     """
     Pandas ExtensionArray for timedelta data.
@@ -150,8 +152,6 @@ class TimedeltaArray(dtl.TimelikeOps):
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
     """
-
-    __module__ = "pandas.arrays"
 
     _typ = "timedeltaarray"
     _internal_fill_value = np.timedelta64("NaT", "ns")
