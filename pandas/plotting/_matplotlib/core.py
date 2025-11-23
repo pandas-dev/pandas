@@ -23,7 +23,10 @@ import matplotlib as mpl
 import numpy as np
 
 from pandas._libs import lib
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    PandasFutureWarning,
+)
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
@@ -1325,8 +1328,17 @@ class ScatterPlot(PlanePlot):
         **kwargs,
     ) -> None:
         if s is None:
-            # hide the matplotlib default for size, in case we want to change
-            # the handling of this argument later
+            # The default size of the elements in a scatter plot
+            # is 20, but this will change in a future version.
+            # In the future the value will be derived from
+            # mpl.rcParams["lines.markersize"] if not provided
+            warnings.warn(
+                "The default of s=20 will be changed to use "
+                "mpl.rcParams['lines.markersize'] in the future. "
+                "Specify `s` to suppress this warning",
+                PandasFutureWarning,
+                stacklevel=find_stack_level(),
+            )
             s = 20
         elif is_hashable(s) and s in data.columns:
             s = data[s]
