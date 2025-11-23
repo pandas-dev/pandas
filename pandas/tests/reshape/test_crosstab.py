@@ -877,3 +877,38 @@ def test_categoricals(a_dtype, b_dtype):
         expected = expected.loc[[0, 2, "All"]]
         expected["All"] = expected["All"].astype("int64")
     tm.assert_frame_equal(result, expected)
+
+
+def test_crosstab_empty_result_with_normalize():
+    # https://github.com/pandas-dev/pandas/issues/60768
+    index = ["index1", "index2", "index3"]
+    columns = ["col1", "col2", "col3"]
+    values = [1, 2, 3]
+
+    with pytest.raises(IndexError, match="Can't get margins"):
+        # Raise error when margins=True
+        crosstab(
+            index,
+            columns,
+            values=values,
+            normalize=1,
+            margins=True,
+            dropna=True,
+            aggfunc="skew",
+        )
+
+    # No error when margins=False, just return empty DataFrame
+    result = crosstab(
+        index,
+        columns,
+        values=values,
+        normalize=1,
+        margins=False,
+        dropna=True,
+        aggfunc="skew",
+    )
+    expected = DataFrame(
+        index=Index([], dtype="str", name="row_0"),
+        columns=Index([], dtype="str", name="col_0"),
+    )
+    tm.assert_frame_equal(result, expected)
