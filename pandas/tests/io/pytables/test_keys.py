@@ -8,16 +8,14 @@ from pandas import (
     Series,
     date_range,
 )
-from pandas.tests.io.pytables.common import (
-    ensure_clean_store,
-    tables,
-)
+from pandas.tests.io.pytables.common import tables
 
 pytestmark = [pytest.mark.single_cpu]
 
 
-def test_keys(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_keys(tmp_path):
+    path = tmp_path / "test_keys.h5"
+    with HDFStore(path) as store:
         store["a"] = Series(
             np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
         )
@@ -62,8 +60,9 @@ def test_non_pandas_keys(tmp_path, setup_path):
             assert len(df.columns) == 1
 
 
-def test_keys_illegal_include_keyword_value(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_keys_illegal_include_keyword_value(tmp_path):
+    path = tmp_path / "test_keys_illegal_include_keyword_value.h5"
+    with HDFStore(path) as store:
         with pytest.raises(
             ValueError,
             match="`include` should be either 'pandas' or 'native' but is 'illegal'",
@@ -71,11 +70,11 @@ def test_keys_illegal_include_keyword_value(setup_path):
             store.keys(include="illegal")
 
 
-def test_keys_ignore_hdf_softlink(setup_path):
+def test_keys_ignore_hdf_softlink(tmp_path):
     # GH 20523
     # Puts a softlink into HDF file and rereads
-
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / "test_keys_ignore_hdf_softlink.h5"
+    with HDFStore(path) as store:
         df = DataFrame({"A": range(5), "B": range(5)})
         store.put("df", df)
 
