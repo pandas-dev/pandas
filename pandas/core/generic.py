@@ -2349,6 +2349,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         indent: int | None = None,
         storage_options: StorageOptions | None = None,
         mode: Literal["a", "w"] = "w",
+        escape_forward_slashes: bool = True,
     ) -> str | None:
         """
         Convert the object to a JSON string.
@@ -2433,6 +2434,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Specify the IO mode for output when supplying a path_or_buf.
             Accepted args are 'w' (writing) and 'a' (append) only.
             mode='a' is only supported when lines is True and orient is 'records'.
+
+        escape_forward_slashes : bool, optional, default True
+            Remove backward slashes that get added in conversion to json.
 
         Returns
         -------
@@ -2634,6 +2638,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             indent=indent,
             storage_options=storage_options,
             mode=mode,
+            escape_forward_slashes=escape_forward_slashes,
         )
 
     @final

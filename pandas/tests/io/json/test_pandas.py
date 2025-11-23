@@ -2289,6 +2289,25 @@ def test_to_json_ea_null():
     assert result == expected
 
 
+def test_to_json_escape_forward_slashes():
+    df = DataFrame(
+        {
+            "path1": Series(["/escape/three/slashes"], dtype="str"),
+            "path2": Series(["/"], dtype="str"),
+            "path3": Series(["ending/"], dtype="str"),
+            "path4": Series(["/beginning"], dtype="str"),
+            "path5": Series(["/multiples//multiple"], dtype="str"),
+            "path6": Series(["//"], dtype="str"),
+        }
+    )
+    result = df.to_json(orient="records", escape_forward_slashes=False)
+    expected1 = '[{"path1":"/escape/three/slashes","path2":"/","path3":"ending/"'
+    expected2 = ',"path4":"/beginning","path5":"/multiples//multiple","path6":"//"}]'
+    expected = expected1 + expected2
+
+    assert result == expected
+
+
 def test_read_json_lines_rangeindex():
     # GH 57429
     data = """
