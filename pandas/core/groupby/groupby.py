@@ -650,6 +650,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 return lambda key: Timestamp(key)
             elif isinstance(s, np.datetime64):
                 return lambda key: Timestamp(key).asm8
+            elif isna(s):
+                return lambda key: np.nan
             else:
                 return lambda key: key
 
@@ -684,11 +686,17 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                 for name in names
             )
 
+        elif any(isna(k) for k in self.indices.keys()):
+            converters = [get_converter(name) for name in names]
+            names = (converter(name) for converter, name in zip(converters, names))
+
         else:
             converter = get_converter(index_sample)
             names = (converter(name) for name in names)
 
-        return [self.indices.get(name, []) for name in names]
+        indices = {np.nan if isna(k) else k: v for k, v in self.indices.items()}
+
+        return [indices.get(name, []) for name in names]
 
     @final
     def _get_index(self, name):
