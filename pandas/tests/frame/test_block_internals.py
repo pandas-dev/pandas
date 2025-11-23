@@ -194,7 +194,7 @@ class TestDataFrameBlockInternals:
 
         expected = DataFrame(
             {
-                "dt1": Timestamp("20130101"),
+                "dt1": Timestamp("20130101").as_unit("s"),
                 "dt2": date_range("20130101", periods=3).astype("M8[s]"),
                 # 'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
                 # FIXME: don't leave commented-out
@@ -378,7 +378,7 @@ def test_update_inplace_sets_valid_block_values():
     df = DataFrame({"a": Series([1, 2, None], dtype="category")})
 
     # inplace update of a single column
-    with tm.raises_chained_assignment_error():
+    with tm.raises_chained_assignment_error(inplace_method=True):
         df["a"].fillna(1, inplace=True)
 
     # check we haven't put a Series into any block.values

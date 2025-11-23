@@ -22,6 +22,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.generic import NDFrame
 from pandas.core.internals import BlockManager
 
 if TYPE_CHECKING:
@@ -89,6 +90,10 @@ class Unpickler(pickle._Unpickler):
             elif args and issubclass(args[0], PeriodArray):
                 cls = args[0]
                 stack[-1] = NDArrayBacked.__new__(*args)
+                return
+            elif args and issubclass(args[0], NDFrame):
+                cls = args[0]
+                stack[-1] = cls.__new__(cls)
                 return
             raise
 

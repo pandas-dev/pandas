@@ -19,6 +19,7 @@ main:
     - meta
     - footnotes
     - codehilite
+    - admonition
 static:
   logo: static/img/pandas_white.svg
   css:

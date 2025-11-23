@@ -130,8 +130,6 @@ class Styler(StylerRenderer):
     precision : int, optional
         Precision to round floats to. If not given defaults to
         ``pandas.options.styler.format.precision``.
-
-        .. versionchanged:: 1.4.0
     table_styles : list-like, default None
         List of {selector: (attr, value)} dicts; see Notes.
     uuid : str, default None
@@ -157,15 +155,9 @@ class Styler(StylerRenderer):
     decimal : str, optional
         Character used as decimal separator for floats, complex and integers. If not
         given uses ``pandas.options.styler.format.decimal``.
-
-        .. versionadded:: 1.3.0
-
     thousands : str, optional, default None
         Character used as thousands separator for floats, complex and integers. If not
         given uses ``pandas.options.styler.format.thousands``.
-
-        .. versionadded:: 1.3.0
-
     escape : str, optional
         Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
         in cell display string with HTML-safe sequences.
@@ -177,13 +169,9 @@ class Styler(StylerRenderer):
         which either are surrounded by two characters ``$`` or start with
         the character ``\(`` and end with ``\)``.
         If not given uses ``pandas.options.styler.format.escape``.
-
-        .. versionadded:: 1.3.0
     formatter : str, callable, dict, optional
         Object to define how values are displayed. See ``Styler.format``. If not given
         uses ``pandas.options.styler.format.formatter``.
-
-        .. versionadded:: 1.4.0
 
     Attributes
     ----------
@@ -303,8 +291,6 @@ class Styler(StylerRenderer):
     def concat(self, other: Styler) -> Styler:
         """
         Append another Styler to combine the output into a single table.
-
-        .. versionadded:: 1.5.0
 
         Parameters
         ----------
@@ -439,8 +425,6 @@ class Styler(StylerRenderer):
 
         These string based tooltips are only applicable to ``<td>`` HTML elements,
         and cannot be used for column or index headers.
-
-        .. versionadded:: 1.3.0
 
         Parameters
         ----------
@@ -595,6 +579,7 @@ class Styler(StylerRenderer):
         verbose: bool = True,
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions | None = None,
+        autofilter: bool = False,
     ) -> None:
         from pandas.io.formats.excel import ExcelFormatter
 
@@ -608,6 +593,7 @@ class Styler(StylerRenderer):
             index_label=index_label,
             merge_cells=merge_cells,
             inf_rep=inf_rep,
+            autofilter=autofilter,
         )
         formatter.write(
             excel_writer,
@@ -686,8 +672,6 @@ class Styler(StylerRenderer):
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
 
-        .. versionadded:: 1.3.0
-
         Parameters
         ----------
         buf : str, path object, file-like object, or None, default None
@@ -718,8 +702,6 @@ class Styler(StylerRenderer):
             Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
             {booktabs} LaTeX package.
             Defaults to ``pandas.options.styler.latex.hrules``, which is `False`.
-
-            .. versionchanged:: 1.4.0
         clines : str, optional
             Use to control adding \\cline commands for the index labels separation.
             Possible values are:
@@ -735,7 +717,6 @@ class Styler(StylerRenderer):
               - `"skip-last;index"`: as above with lines extending only the width of the
                 index entries.
 
-            .. versionadded:: 1.4.0
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
             This is used with \\ref{<label>} in the main .tex file.
@@ -757,8 +738,6 @@ class Styler(StylerRenderer):
             at the top or bottom using the multirow package. If not given defaults to
             ``pandas.options.styler.latex.multirow_align``, which is `"c"`.
             If "naive" is given renders without multirow.
-
-            .. versionchanged:: 1.4.0
         multicol_align : {"r", "c", "l", "naive-l", "naive-r"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right. If not given defaults to
@@ -767,8 +746,6 @@ class Styler(StylerRenderer):
             Pipe decorators can also be added to non-naive values to draw vertical
             rules, e.g. "\|r" will draw a rule on the left side of right aligned merged
             cells.
-
-            .. versionchanged:: 1.4.0
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         environment : str, optional
@@ -776,8 +753,6 @@ class Styler(StylerRenderer):
             If 'longtable' is specified then a more suitable template is
             rendered. If not given defaults to
             ``pandas.options.styler.latex.environment``, which is `None`.
-
-            .. versionadded:: 1.4.0
         encoding : str, optional
             Character encoding setting. Defaults
             to ``pandas.options.styler.render.encoding``, which is "utf-8".
@@ -1400,8 +1375,6 @@ class Styler(StylerRenderer):
         """
         Write Styler to a file, buffer or string in HTML-CSS format.
 
-        .. versionadded:: 1.3.0
-
         Parameters
         ----------
         %(buf)s
@@ -1421,27 +1394,17 @@ class Styler(StylerRenderer):
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
             Defaults to ``pandas.options.styler.sparse.index`` value.
-
-            .. versionadded:: 1.4.0
         sparse_columns : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each
             column. Defaults to ``pandas.options.styler.sparse.columns`` value.
-
-            .. versionadded:: 1.4.0
         bold_headers : bool, optional
             Adds "font-weight: bold;" as a CSS property to table style header cells.
-
-            .. versionadded:: 1.4.0
         caption : str, optional
             Set, or overwrite, the caption on Styler before rendering.
-
-            .. versionadded:: 1.4.0
         max_rows : int, optional
             The maximum number of rows that will be rendered. Defaults to
             ``pandas.options.styler.render.max_rows/max_columns``.
-
-            .. versionadded:: 1.4.0
         max_columns : int, optional
             The maximum number of columns that will be rendered. Defaults to
             ``pandas.options.styler.render.max_columns``, which is None.
@@ -1450,7 +1413,6 @@ class Styler(StylerRenderer):
             large. This value is set to ``pandas.options.styler.render.max_elements``,
             which is 262144 (18 bit browser rendering).
 
-            .. versionadded:: 1.4.0
         %(encoding)s
         doctype_html : bool, default False
             Whether to output a fully structured HTML file including all
@@ -1565,8 +1527,6 @@ class Styler(StylerRenderer):
     ) -> str | None:
         """
         Write Styler to a file, buffer or string in text format.
-
-        .. versionadded:: 1.5.0
 
         Parameters
         ----------
@@ -1961,11 +1921,6 @@ class Styler(StylerRenderer):
             ``func`` should take a DataFrame if ``axis`` is ``None`` and return either
             an ndarray with the same shape or a DataFrame, not necessarily of the same
             shape, with valid index and columns labels considering ``subset``.
-
-            .. versionchanged:: 1.3.0
-
-            .. versionchanged:: 1.4.0
-
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -2078,8 +2033,6 @@ class Styler(StylerRenderer):
         Apply a CSS-styling function to the index or column headers, {wise}.
 
         Updates the HTML representation with the result.
-
-        .. versionadded:: 1.4.0
 
         .. versionadded:: 2.1.0
            Styler.applymap_index was deprecated and renamed to Styler.map_index.
@@ -2676,8 +2629,6 @@ class Styler(StylerRenderer):
         css_class_names : dict, optional
             A dict of strings used to replace the default CSS classes described below.
 
-            .. versionadded:: 1.4.0
-
         Returns
         -------
         Styler
@@ -2792,8 +2743,6 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Hide the entire index / column headers, or specific rows / columns from display.
-
-        .. versionadded:: 1.4.0
 
         Parameters
         ----------
@@ -3053,8 +3002,6 @@ class Styler(StylerRenderer):
             If supplied, ``vmin`` and ``vmax`` should be given relative to this
             gradient map.
 
-            .. versionadded:: 1.3.0
-
         Returns
         -------
         Styler
@@ -3239,8 +3186,6 @@ class Styler(StylerRenderer):
         """
         Draw bar chart in the cell backgrounds.
 
-        .. versionchanged:: 1.4.0
-
         Parameters
         ----------
         %(subset)s
@@ -3256,15 +3201,11 @@ class Styler(StylerRenderer):
         cmap : str, matplotlib.cm.ColorMap
             A string name of a matplotlib Colormap, or a Colormap object. Cannot be
             used together with ``color``.
-
-            .. versionadded:: 1.4.0
         width : float, default 100
             The percentage of the cell, measured from the left, in which to draw the
             bars, in [0, 100].
         height : float, default 100
             The percentage height of the bar in the cell, centrally aligned, in [0,100].
-
-            .. versionadded:: 1.4.0
         align : str, int, float, callable, default 'mid'
             How to align the bars within the cells relative to a width adjusted center.
             If string must be one of:
@@ -3281,8 +3222,6 @@ class Styler(StylerRenderer):
 
             If a callable should take a 1d or 2d array and return a scalar.
 
-            .. versionchanged:: 1.4.0
-
         vmin : float, optional
             Minimum bar value, defining the left hand limit
             of the bar drawing range, lower values are clipped to `vmin`.
@@ -3294,8 +3233,6 @@ class Styler(StylerRenderer):
         props : str, optional
             The base CSS of the cell that is extended to add the bar chart. Defaults to
             `"width: 10em;"`.
-
-            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -3374,13 +3311,9 @@ class Styler(StylerRenderer):
         ----------
         %(color)s
 
-            .. versionadded:: 1.5.0
-
         %(subset)s
 
         %(props)s
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -3434,8 +3367,6 @@ class Styler(StylerRenderer):
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
             with ``axis=None``.
         %(props)s
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -3492,8 +3423,6 @@ class Styler(StylerRenderer):
             with ``axis=None``.
         %(props)s
 
-            .. versionadded:: 1.3.0
-
         Returns
         -------
         Styler
@@ -3541,8 +3470,6 @@ class Styler(StylerRenderer):
     ) -> Styler:
         """
         Highlight a defined range with a style.
-
-        .. versionadded:: 1.3.0
 
         Parameters
         ----------
@@ -3660,8 +3587,6 @@ class Styler(StylerRenderer):
         """
         Highlight values defined by a quantile with a style.
 
-        .. versionadded:: 1.3.0
-
         Parameters
         ----------
         %(subset)s
@@ -3767,21 +3692,14 @@ class Styler(StylerRenderer):
 
         Uses custom templates and Jinja environment.
 
-        .. versionchanged:: 1.3.0
-
         Parameters
         ----------
         searchpath : str or list
             Path or paths of directories containing the templates.
         html_table : str
             Name of your custom template to replace the html_table template.
-
-            .. versionadded:: 1.3.0
-
         html_style : str
             Name of your custom template to replace the html_style template.
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------

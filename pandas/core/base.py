@@ -1120,7 +1120,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         int
-            A integer indicating the number of unique elements in the object.
+            An integer indicating the number of unique elements in the object.
 
         See Also
         --------
@@ -1380,7 +1380,7 @@ class IndexOpsMixin(OpsMixin):
         0   2000-03-11
         1   2000-03-12
         2   2000-03-13
-        dtype: datetime64[s]
+        dtype: datetime64[us]
 
         >>> ser.searchsorted('3/14/2000')
         np.int64(3)

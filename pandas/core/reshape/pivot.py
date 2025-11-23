@@ -124,8 +124,6 @@ def pivot_table(
     sort : bool, default True
         Specifies if the result should be sorted.
 
-        .. versionadded:: 1.3.0
-
     **kwargs : dict
         Optional keyword arguments to pass to ``aggfunc``.
 
@@ -1098,8 +1096,8 @@ def crosstab(
     from pandas import DataFrame
 
     data = {
-        **dict(zip(unique_rownames, index)),
-        **dict(zip(unique_colnames, columns)),
+        **dict(zip(unique_rownames, index, strict=True)),
+        **dict(zip(unique_colnames, columns, strict=True)),
     }
     df = DataFrame(data, index=common_idx)
 

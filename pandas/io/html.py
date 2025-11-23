@@ -173,8 +173,6 @@ class _HtmlFrameParser:
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
-        .. versionadded:: 1.5.0
-
     Attributes
     ----------
     io : str or file-like
@@ -196,8 +194,6 @@ class _HtmlFrameParser:
     extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
-
-        .. versionadded:: 1.5.0
 
     Notes
     -----
@@ -1150,8 +1146,6 @@ def read_html(
     extract_links : {{None, "all", "header", "body", "footer"}}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
-
-        .. versionadded:: 1.5.0
 
     dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`

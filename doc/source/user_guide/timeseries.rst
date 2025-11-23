@@ -241,6 +241,19 @@ inferred frequency upon creation:
 
     pd.DatetimeIndex(["2018-01-01", "2018-01-03", "2018-01-05"], freq="infer")
 
+In most cases, parsing strings to datetimes (with any of :func:`to_datetime`, :class:`DatetimeIndex`, or :class:`Timestamp`) will produce objects with microsecond ("us") unit. The exception to this rule is if your strings have nanosecond precision, in which case the result will have "ns" unit:
+
+.. ipython:: python
+
+   pd.to_datetime(["2016-01-01 02:03:04"]).unit
+   pd.to_datetime(["2016-01-01 02:03:04.123"]).unit
+   pd.to_datetime(["2016-01-01 02:03:04.123456"]).unit
+   pd.to_datetime(["2016-01-01 02:03:04.123456789"]).unit
+
+.. versionchanged:: 3.0.0
+
+        Previously, :func:`to_datetime` and :class:`DatetimeIndex` would always parse strings to "ns" unit. During pandas 2.x, :class:`Timestamp` could give any of "s", "ms", "us", or "ns" depending on the specificity of the input string.
+
 .. _timeseries.converting.format:
 
 Providing a format argument
@@ -378,6 +391,16 @@ We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by
 .. ipython:: python
 
    (stamps - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")
+
+Another common way to perform this conversion is to convert directly to an integer dtype. Note that the exact integers this produces will depend on the specific unit
+or resolution of the datetime64 dtype:
+
+.. ipython:: python
+
+   stamps.astype(np.int64)
+   stamps.astype("datetime64[s]").astype(np.int64)
+   stamps.astype("datetime64[ms]").astype(np.int64)
+
 
 .. _timeseries.origin:
 
@@ -1963,8 +1986,6 @@ Note the use of ``'start'`` for ``origin`` on the last example. In that case, ``
 
 Backward resample
 ~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 1.3.0
 
 Instead of adjusting the beginning of bins, sometimes we need to fix the end of the bins to make a backward resample with a given ``freq``. The backward resample sets ``closed`` to ``'right'`` by default since the last value should be considered as the edge point for the last bin.
 

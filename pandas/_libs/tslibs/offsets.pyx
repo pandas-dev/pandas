@@ -827,7 +827,7 @@ cdef class BaseOffset:
     @property
     def nanos(self):
         """
-        Returns a integer of the total number of nanoseconds for fixed frequencies.
+        Returns an integer of the total number of nanoseconds for fixed frequencies.
 
         Raises
         ------
@@ -1803,7 +1803,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     See Also
     --------
     dateutil.relativedelta.relativedelta : The relativedelta type is designed
-        to be applied to an existing datetime an can replace specific components of
+        to be applied to an existing datetime and can replace specific components of
         that datetime, or represents an interval of time.
 
     Examples
@@ -5202,6 +5202,32 @@ deprec_to_valid_alias = {
     "L": "ms",
     "U": "us",
     "N": "ns",
+    "AS": "YS",
+    "AS-JAN": "YS-JAN",
+    "AS-FEB": "YS-FEB",
+    "AS-MAR": "YS-MAR",
+    "AS-APR": "YS-APR",
+    "AS-MAY": "YS-MAY",
+    "AS-JUN": "YS-JUN",
+    "AS-JUL": "YS-JUL",
+    "AS-AUG": "YS-AUG",
+    "AS-SEP": "YS-SEP",
+    "AS-OCT": "YS-OCT",
+    "AS-NOV": "YS-NOV",
+    "AS-DEC": "YS-DEC",
+    "A": "Y",
+    "A-JAN": "Y-JAN",
+    "A-FEB": "Y-FEB",
+    "A-MAR": "Y-MAR",
+    "A-APR": "Y-APR",
+    "A-MAY": "Y-MAY",
+    "A-JUN": "Y-JUN",
+    "A-JUL": "Y-JUL",
+    "A-AUG": "Y-AUG",
+    "A-SEP": "Y-SEP",
+    "A-OCT": "Y-OCT",
+    "A-NOV": "Y-NOV",
+    "A-DEC": "Y-DEC",
 }
 
 
@@ -5688,18 +5714,27 @@ def shift_month(stamp: datetime, months: int, day_opt: object = None) -> datetim
     cdef:
         int year, month, day
         int days_in_month, dy
+        npy_datetimestruct dts
 
-    dy = (stamp.month + months) // 12
-    month = (stamp.month + months) % 12
+    if isinstance(stamp, _Timestamp):
+        creso = (<_Timestamp>stamp)._creso
+        val = (<_Timestamp>stamp)._value
+        pandas_datetime_to_datetimestruct(val, creso, &dts)
+    else:
+        # Plain datetime/date
+        pydate_to_dtstruct(stamp, &dts)
+
+    dy = (dts.month + months) // 12
+    month = (dts.month + months) % 12
 
     if month == 0:
         month = 12
         dy -= 1
-    year = stamp.year + dy
+    year = dts.year + dy
 
     if day_opt is None:
         days_in_month = get_days_in_month(year, month)
-        day = min(stamp.day, days_in_month)
+        day = min(dts.day, days_in_month)
     elif day_opt == "start":
         day = 1
     elif day_opt == "end":

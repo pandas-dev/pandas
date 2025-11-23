@@ -380,3 +380,11 @@ class TestIntervalRange:
         result = interval_range(0, 1, freq=0.6)
         expected = IntervalIndex.from_breaks([0, 0.6])
         tm.assert_index_equal(result, expected)
+
+    def test_interval_range_float32_start_int_freq(self):
+        # GH 58964
+        result = interval_range(start=np.float32(0), end=2, freq=1)
+        expected = IntervalIndex.from_tuples(
+            [(0.0, 1.0), (1.0, 2.0)], dtype="interval[float64, right]"
+        )
+        tm.assert_index_equal(result, expected)

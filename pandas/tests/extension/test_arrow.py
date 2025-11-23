@@ -687,6 +687,21 @@ class TestArrowArray(base.ExtensionTests):
         assert result is not data
         tm.assert_extension_array_equal(result, data)
 
+    def test_fillna_readonly(self, data_missing):
+        data = data_missing.copy()
+        data._readonly = True
+
+        # by default fillna(copy=True), then this works fine
+        result = data.fillna(data_missing[1])
+        assert result[0] == data_missing[1]
+        tm.assert_extension_array_equal(data, data_missing)
+
+        # fillna(copy=False) is generally not honored by Arrow-backed array,
+        # but always returns new data -> same result as above
+        result = data.fillna(data_missing[1])
+        assert result[0] == data_missing[1]
+        tm.assert_extension_array_equal(data, data_missing)
+
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
     )
@@ -3470,9 +3485,9 @@ def test_string_to_datetime_parsing_cast():
     # GH 56266
     string_dates = ["2020-01-01 04:30:00", "2020-01-02 00:00:00", "2020-01-03 00:00:00"]
     result = pd.Series(string_dates, dtype="timestamp[s][pyarrow]")
-    expected = pd.Series(
-        ArrowExtensionArray(pa.array(pd.to_datetime(string_dates), from_pandas=True))
-    )
+
+    pd_res = pd.to_datetime(string_dates).as_unit("s")
+    expected = pd.Series(ArrowExtensionArray(pa.array(pd_res, from_pandas=True)))
     tm.assert_series_equal(result, expected)
 
 

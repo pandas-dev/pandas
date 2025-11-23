@@ -258,6 +258,25 @@ class TestLoc:
         else:
             assert res == exp
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [datetime(2025, 10, 30)],
+            [Timestamp(2025, 10, 30)] * 2,
+            [Timedelta(1)],
+            [Timedelta(1), Timedelta(2)],
+        ],
+    )
+    def test_loc_empty_slice_assignment_with_datetime(self, data):
+        # issue #50942
+        # empty slice assignment with datetime or timedelta should not raise exceptions
+        mask = [False] * len(data)
+
+        df = DataFrame(data=data, columns=["A"])
+        expected = df.copy()
+        df.loc[mask] = df
+        tm.assert_frame_equal(df, expected)
+
 
 class TestLocBaseIndependent:
     # Tests for loc that do not depend on subclassing Base
@@ -702,7 +721,7 @@ class TestLocBaseIndependent:
             {"date": [1485264372711, 1485265925110, 1540215845888, 1540282121025]}
         )
 
-        df["date_dt"] = to_datetime(df["date"], unit="ms", cache=True).dt.as_unit("ms")
+        df["date_dt"] = to_datetime(df["date"], unit="ms", cache=True).dt.as_unit("us")
 
         df.loc[:, "date_dt_cp"] = df.loc[:, "date_dt"]
         df.loc[[2, 3], "date_dt_cp"] = df.loc[[2, 3], "date_dt"]

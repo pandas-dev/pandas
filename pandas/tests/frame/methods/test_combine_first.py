@@ -195,14 +195,15 @@ class TestDataFrameCombineFirst:
 
     def test_combine_first_align_nan(self):
         # GH 7509 (not fixed)
-        dfa = DataFrame([[pd.Timestamp("2011-01-01"), 2]], columns=["a", "b"])
+        ts = pd.Timestamp("2011-01-01").as_unit("s")
+        dfa = DataFrame([[ts, 2]], columns=["a", "b"])
         dfb = DataFrame([[4], [5]], columns=["b"])
         assert dfa["a"].dtype == "datetime64[s]"
         assert dfa["b"].dtype == "int64"
 
         res = dfa.combine_first(dfb)
         exp = DataFrame(
-            {"a": [pd.Timestamp("2011-01-01"), pd.NaT], "b": [2, 5]},
+            {"a": [ts, pd.NaT], "b": [2, 5]},
             columns=["a", "b"],
         )
         tm.assert_frame_equal(res, exp)
@@ -411,6 +412,18 @@ class TestDataFrameCombineFirst:
         df2 = DataFrame({"A": [6, 7, wide_val]}, dtype=dtype)
         result = df1.combine_first(df2)
         expected = DataFrame({"A": [wide_val, 5, wide_val]}, dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_combine_first_non_unique_columns(self):
+        # GH#29135
+        df1 = DataFrame([[1, np.nan], [3, 4]], columns=["P", "Q"], index=["A", "B"])
+        df2 = DataFrame(
+            [[5, 6, 7], [8, 9, np.nan]], columns=["P", "Q", "Q"], index=["A", "B"]
+        )
+        result = df1.combine_first(df2)
+        expected = DataFrame(
+            [[1, 6.0, 7.0], [3, 4.0, 4.0]], index=["A", "B"], columns=["P", "Q", "Q"]
+        )
         tm.assert_frame_equal(result, expected)
 
 

@@ -22,7 +22,7 @@ class TestTimedeltaIndexRendering:
 
     @pytest.mark.parametrize("method", ["__repr__", "__str__"])
     def test_representation(self, method):
-        idx1 = TimedeltaIndex([], freq="D")
+        idx1 = TimedeltaIndex([], freq="D", dtype="m8[ns]")
         idx2 = TimedeltaIndex(["1 days"], freq="D")
         idx3 = TimedeltaIndex(["1 days", "2 days"], freq="D")
         idx4 = TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
@@ -53,7 +53,7 @@ class TestTimedeltaIndexRendering:
 
     # TODO: this is a Series.__repr__ test
     def test_representation_to_series(self):
-        idx1 = TimedeltaIndex([], freq="D")
+        idx1 = TimedeltaIndex([], freq="D", dtype="m8[ns]")
         idx2 = TimedeltaIndex(["1 days"], freq="D")
         idx3 = TimedeltaIndex(["1 days", "2 days"], freq="D")
         idx4 = TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")
@@ -83,7 +83,7 @@ class TestTimedeltaIndexRendering:
 
     def test_summary(self):
         # GH#9116
-        idx1 = TimedeltaIndex([], freq="D")
+        idx1 = TimedeltaIndex([], freq="D", dtype="m8[ns]")
         idx2 = TimedeltaIndex(["1 days"], freq="D")
         idx3 = TimedeltaIndex(["1 days", "2 days"], freq="D")
         idx4 = TimedeltaIndex(["1 days", "2 days", "3 days"], freq="D")

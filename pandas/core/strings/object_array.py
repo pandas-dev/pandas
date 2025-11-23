@@ -238,7 +238,17 @@ class ObjectStringArrayMixin:
         if not case:
             flags |= re.IGNORECASE
 
-        regex = re.compile(pat, flags=flags)
+        if isinstance(pat, re.Pattern):
+            # We need to check that flags matches pat.flags.
+            # pat.flags will have re.U regardless, so we need to add it here
+            # before checking for a match
+            flags = flags | re.U
+
+            if flags != pat.flags:
+                raise ValueError("Cannot pass flags that do not match pat.flags")
+            regex = pat
+        else:
+            regex = re.compile(pat, flags=flags)
 
         f = lambda x: regex.match(x) is not None
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))

@@ -39,6 +39,7 @@ jobs:
     if: >-
       (github.event_name == 'schedule') ||
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'release' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
@@ -84,6 +85,7 @@ jobs:
     if: >-
       (github.event_name == 'schedule') ||
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'release' ||
       (github.event_name == 'pull_request' &&
       contains(github.event.pull_request.labels.*.name, 'Build')) ||
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))

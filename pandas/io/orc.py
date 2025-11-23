@@ -147,8 +147,6 @@ def to_orc(
     """
     Write a DataFrame to the ORC format.
 
-    .. versionadded:: 1.5.0
-
     Parameters
     ----------
     df : DataFrame

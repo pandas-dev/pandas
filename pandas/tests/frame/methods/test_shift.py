@@ -794,3 +794,17 @@ class TestDataFrameShift:
             df["a"].shift(1, fill_value=NaT)
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             df["b"].shift(1, fill_value=NaT)
+
+    def test_shift_dt_index_multiple_periods_unsorted(self):
+        # https://github.com/pandas-dev/pandas/pull/62843
+        values = date_range("1/1/2000", periods=4, freq="D")
+        df = DataFrame({"a": [1, 2]}, index=[values[1], values[0]])
+        result = df.shift(periods=[1, 2], freq="D")
+        expected = DataFrame(
+            {
+                "a_1": [1.0, 2.0, np.nan],
+                "a_2": [2.0, np.nan, 1.0],
+            },
+            index=[values[2], values[1], values[3]],
+        )
+        tm.assert_frame_equal(result, expected)

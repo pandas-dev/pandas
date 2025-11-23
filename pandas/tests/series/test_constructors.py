@@ -530,9 +530,9 @@ class TestSeriesConstructors:
         # so this WILL change values
         cat = Categorical(["a", "b", "c", "a"])
         s = Series(cat, copy=False)
-        assert s.values is cat
+        assert s._values is cat
         s = s.cat.rename_categories([1, 2, 3])
-        assert s.values is not cat
+        assert s._values is not cat
         exp_s = np.array([1, 2, 3, 1], dtype=np.int64)
         tm.assert_numpy_array_equal(s.__array__(), exp_s)
 
@@ -1164,8 +1164,8 @@ class TestSeriesConstructors:
         # inference
         ser = Series(
             [
-                Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific"),
-                Timestamp("2013-01-02 14:00:00-0800", tz="US/Pacific"),
+                Timestamp("2013-01-01 13:00:00-0800", tz="US/Pacific").as_unit("s"),
+                Timestamp("2013-01-02 14:00:00-0800", tz="US/Pacific").as_unit("s"),
             ]
         )
         assert ser.dtype == "datetime64[s, US/Pacific]"
@@ -1413,10 +1413,10 @@ class TestSeriesConstructors:
         result_datetime = Series(data_datetime)
         result_Timestamp = Series(data_Timestamp)
 
-        tm.assert_series_equal(result_datetime64, expected)
         tm.assert_series_equal(
-            result_datetime, expected.set_axis(expected.index.as_unit("us"))
+            result_datetime64, expected.set_axis(expected.index.as_unit("s"))
         )
+        tm.assert_series_equal(result_datetime, expected)
         tm.assert_series_equal(result_Timestamp, expected)
 
     def test_constructor_dict_tuple_indexer(self):

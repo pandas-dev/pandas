@@ -16,13 +16,11 @@ locally before pushing your changes. It's recommended to also install the :ref:`
     :maxdepth: 2
     :hidden:
 
-    contributing_gitpod.rst
 
 Step 1: install a C compiler
 ----------------------------
 
-How to do this will depend on your platform. If you choose to use ``Docker`` or ``GitPod``
-in the next step, then you can skip this step.
+How to do this will depend on your platform.
 
 **Windows**
 
@@ -162,51 +160,6 @@ should already exist.
 
    # Install the build dependencies
    python -m pip install -r requirements-dev.txt
-
-Option 3: using Docker
-~~~~~~~~~~~~~~~~~~~~~~
-
-pandas provides a ``DockerFile`` in the root directory to build a Docker image
-with a full pandas development environment.
-
-**Docker Commands**
-
-Build the Docker image::
-
-    # Build the image
-    docker build -t pandas-dev .
-
-Run Container::
-
-    # Run a container and bind your local repo to the container
-    # This command assumes you are running from your local repo
-    # but if not alter ${PWD} to match your local repo path
-    docker run -it --rm -v ${PWD}:/home/pandas pandas-dev
-
-*Even easier, you can integrate Docker with the following IDEs:*
-
-**Visual Studio Code**
-
-You can use the DockerFile to launch a remote session with Visual Studio Code,
-a popular free IDE, using the ``.devcontainer.json`` file.
-See https://code.visualstudio.com/docs/remote/containers for details.
-
-**PyCharm (Professional)**
-
-Enable Docker support and use the Services tool window to build and manage images as well as
-run and interact with containers.
-See https://www.jetbrains.com/help/pycharm/docker.html for details.
-
-Option 4: using Gitpod
-~~~~~~~~~~~~~~~~~~~~~~
-
-Gitpod is an open-source platform that automatically creates the correct development
-environment right in your browser, reducing the need to install local development
-environments and deal with incompatible dependencies.
-
-If you are a Windows user, unfamiliar with using the command line or building pandas
-for the first time, it is often faster to build with Gitpod. Here are the in-depth instructions
-for :ref:`building pandas with GitPod <contributing-gitpod>`.
 
 Step 3: build and install pandas
 --------------------------------

@@ -370,7 +370,7 @@ def unique(values):
     array([2, 1])
 
     >>> pd.unique(pd.Series([pd.Timestamp("20160101"), pd.Timestamp("20160101")]))
-    array(['2016-01-01T00:00:00'], dtype='datetime64[s]')
+    array(['2016-01-01T00:00:00.000000'], dtype='datetime64[us]')
 
     >>> pd.unique(
     ...     pd.Series(
@@ -697,8 +697,6 @@ def factorize(
         If True, the sentinel -1 will be used for NaN values. If False,
         NaN values will be encoded as non-negative integers and will not drop the
         NaN from the uniques of the values.
-
-        .. versionadded:: 1.5.0
     {size_hint}\
 
     Returns
@@ -1703,7 +1701,7 @@ def map_array(
             ]
         else:
             # Dictionary does not have a default. Thus it's safe to
-            # convert to an Series for efficiency.
+            # convert to a Series for efficiency.
             # we specify the keys here to handle the
             # possibility that they are tuples
 
