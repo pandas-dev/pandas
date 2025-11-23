@@ -717,6 +717,35 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         assert isinstance(other, type(self))
         assert self.dtype == other.dtype
 
+        # For tz-aware DatetimeIndex, perform union in UTC to avoid
+        # local-time irregularities across DST transitions, then convert back.
+        tz = getattr(self.dtype, "tz", None)
+        if tz is not None:
+            other_tz = getattr(other.dtype, "tz", None)
+            if (
+                other_tz == tz
+                and isinstance(self._data, DatetimeArray)
+                and isinstance(other._data, DatetimeArray)
+            ):
+                left_utc_naive = self._data.tz_convert("UTC").tz_localize(None)
+                right_utc_naive = other._data.tz_convert("UTC").tz_localize(None)
+                left_naive = type(self)._simple_new(left_utc_naive, name=self.name)
+                right_naive = type(other)._simple_new(right_utc_naive, name=other.name)
+                res_naive = super(type(left_naive), left_naive)._union(
+                    right_naive, sort
+                )
+
+                if isinstance(res_naive, DatetimeArray):
+                    base_arr = res_naive
+                    name = self.name
+                else:
+                    base_arr = cast(DatetimeArray, res_naive._data)
+                    name = res_naive.name
+
+                res_arr = base_arr.tz_localize("UTC").tz_convert(tz)
+                res = type(self)._simple_new(res_arr, name=name)
+                return res._with_freq("infer")
+
         if self._can_range_setop(other):
             return self._range_union(other, sort=sort)
 
