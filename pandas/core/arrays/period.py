@@ -240,7 +240,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         if isinstance(values, type(self)):
             if dtype is not None and dtype != values.dtype:
-                raise raise_on_incompatible(values, dtype.freq)
+                raise raise_on_incompatible(values, dtype.unit)
             values, dtype = values._ndarray, values.dtype
 
         if not copy:
@@ -275,7 +275,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         if dtype is not None:
             dtype = pandas_dtype(dtype)
         if dtype and isinstance(dtype, PeriodDtype):
-            freq = dtype.freq
+            freq = dtype.unit
         else:
             freq = None
 
@@ -384,7 +384,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         Return the frequency object for this PeriodArray.
         """
-        return self.dtype.freq
+        return self.dtype.unit
 
     @property
     def freqstr(self) -> str:
@@ -962,7 +962,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             else:
                 return self.copy()
         if isinstance(dtype, PeriodDtype):
-            return self.asfreq(dtype.freq)
+            return self.asfreq(dtype.unit)
 
         if lib.is_np_dtype(dtype, "M") or isinstance(dtype, DatetimeTZDtype):
             # GH#45038 match PeriodIndex behavior.
@@ -1252,7 +1252,7 @@ def period_array(
     if isinstance(data_dtype, PeriodDtype):
         out = PeriodArray(data)
         if freq is not None:
-            if freq == data_dtype.freq:
+            if freq == data_dtype.unit:
                 return out
             return out.asfreq(freq)
         return out
@@ -1323,8 +1323,8 @@ def validate_dtype_freq(
         if not isinstance(dtype, PeriodDtype):
             raise ValueError("dtype must be PeriodDtype")
         if freq is None:
-            freq = dtype.freq
-        elif freq != dtype.freq:
+            freq = dtype.unit
+        elif freq != dtype.unit:
             raise IncompatibleFrequency("specified freq and dtype are different")
     # error: Incompatible return value type (got "Union[BaseOffset, Any, None]",
     # expected "BaseOffset")
