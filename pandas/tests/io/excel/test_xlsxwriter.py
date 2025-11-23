@@ -3,11 +3,18 @@ import uuid
 
 import pytest
 
+import pandas as pd
 from pandas import DataFrame
 
 from pandas.io.excel import ExcelWriter
 
 xlsxwriter = pytest.importorskip("xlsxwriter")
+
+# xfail marker for pending autofilter feature; see #62994
+xfail_autofilter = pytest.mark.xfail(
+    reason="Excel header autofilter not yet implemented on main; see #62994",
+    strict=False,
+)
 
 
 @pytest.fixture
@@ -84,3 +91,160 @@ def test_book_and_sheets_consistent(tmp_excel):
         assert writer.sheets == {}
         sheet = writer.book.add_worksheet("test_name")
         assert writer.sheets == {"test_name": sheet}
+
+
+def test_autofilter_empty_dataframe(tmp_excel):
+    # GH 61194 - Edge case: empty DataFrame with autofilter
+    openpyxl = pytest.importorskip("openpyxl")
+    df = DataFrame()
+    df.to_excel(tmp_excel, engine="xlsxwriter", autofilter=True)
+
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        ws = wb.active
+        # Empty DataFrame should still set autofilter (even if range is just header)
+        assert ws.auto_filter.ref is not None
+
+
+def test_autofilter_single_row(tmp_excel):
+    # GH 61194 - Edge case: single row DataFrame
+    openpyxl = pytest.importorskip("openpyxl")
+    df = DataFrame({"A": [1], "B": [2]})
+    df.to_excel(tmp_excel, engine="xlsxwriter", autofilter=True, index=False)
+
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        ws = wb.active
+        assert ws.auto_filter.ref is not None
+        # Should cover header + 1 row: A1:B2
+        assert ws.auto_filter.ref == "A1:B2"
+
+
+def test_autofilter_single_column(tmp_excel):
+    # GH 61194 - Edge case: single column DataFrame
+    openpyxl = pytest.importorskip("openpyxl")
+    df = DataFrame({"A": [1, 2, 3]})
+    df.to_excel(tmp_excel, engine="xlsxwriter", autofilter=True, index=False)
+
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        ws = wb.active
+        assert ws.auto_filter.ref is not None
+        # Should cover header + 3 rows: A1:A4
+        assert ws.auto_filter.ref == "A1:A4"
+
+
+def test_autofilter_no_header(tmp_excel):
+    # GH 61194 - Edge case: autofilter with header=False
+    openpyxl = pytest.importorskip("openpyxl")
+    df = DataFrame([[1, 2], [3, 4]])
+    df.to_excel(
+        tmp_excel,
+        engine="xlsxwriter",
+        autofilter=True,
+        header=False,
+        index=False,
+    )
+
+    with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+        ws = wb.active
+        assert ws.auto_filter.ref is not None
+        # Without header, filter should start at first row: A1:B2
+        assert ws.auto_filter.ref == "A1:B2"
+
+
+@xfail_autofilter
+def test_to_excel_autofilter_xlsxwriter(tmp_excel):
+    openpyxl = pytest.importorskip("openpyxl")
+
+    df = DataFrame({"A": [1, 2], "B": [3, 4]})
+    # Write with xlsxwriter, verify via openpyxl that an autofilter exists
+    df.to_excel(tmp_excel, engine="xlsxwriter", index=False, autofilter=True)
+
+    wb = openpyxl.load_workbook(tmp_excel)
+    try:
+        ws = wb[wb.sheetnames[0]]
+        assert ws.auto_filter is not None
+        assert ws.auto_filter.ref is not None
+        # Verify filter covers all columns (A and B)
+        assert "A" in ws.auto_filter.ref
+        assert "B" in ws.auto_filter.ref
+    finally:
+        wb.close()
+
+
+@xfail_autofilter
+def test_to_excel_autofilter_startrow_startcol_xlsxwriter(tmp_excel):
+    openpyxl = pytest.importorskip("openpyxl")
+
+    df = DataFrame({"A": [1, 2], "B": [3, 4]})
+    df.to_excel(
+        tmp_excel,
+        engine="xlsxwriter",
+        index=False,
+        autofilter=True,
+        startrow=2,
+        startcol=1,
+    )
+
+    wb = openpyxl.load_workbook(tmp_excel)
+    try:
+        ws = wb[wb.sheetnames[0]]
+        assert ws.auto_filter is not None
+        assert ws.auto_filter.ref is not None
+        # Filter should be offset by startrow=2 and startcol=1 (B3:D5)
+        assert ws.auto_filter.ref.startswith("B")
+        assert "3" in ws.auto_filter.ref
+    finally:
+        wb.close()
+
+
+@xfail_autofilter
+def test_to_excel_autofilter_multiindex_merge_cells_xlsxwriter(tmp_excel):
+    openpyxl = pytest.importorskip("openpyxl")
+
+    df = DataFrame(
+        [[1, 2, 3, 4], [5, 6, 7, 8]],
+        columns=pd.MultiIndex.from_tuples(
+            [("A", "a"), ("A", "b"), ("B", "a"), ("B", "b")]
+        ),
+    )
+    df.to_excel(
+        tmp_excel,
+        engine="xlsxwriter",
+        index=False,
+        autofilter=True,
+        merge_cells=True,
+    )
+
+    wb = openpyxl.load_workbook(tmp_excel)
+    try:
+        ws = wb[wb.sheetnames[0]]
+        assert ws.auto_filter is not None
+        assert ws.auto_filter.ref is not None
+    finally:
+        wb.close()
+
+
+@xfail_autofilter
+def test_to_excel_autofilter_multiindex_no_merge_xlsxwriter(tmp_excel):
+    openpyxl = pytest.importorskip("openpyxl")
+
+    df = DataFrame(
+        [[1, 2, 3, 4], [5, 6, 7, 8]],
+        columns=pd.MultiIndex.from_tuples(
+            [("A", "a"), ("A", "b"), ("B", "a"), ("B", "b")]
+        ),
+    )
+    df.to_excel(
+        tmp_excel,
+        engine="xlsxwriter",
+        index=False,
+        autofilter=True,
+        merge_cells=False,
+    )
+
+    wb = openpyxl.load_workbook(tmp_excel)
+    try:
+        ws = wb[wb.sheetnames[0]]
+        assert ws.auto_filter is not None
+        assert ws.auto_filter.ref is not None
+    finally:
+        wb.close()
