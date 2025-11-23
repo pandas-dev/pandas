@@ -48,7 +48,7 @@ typedef struct {
   PyArray_DatetimeMetaData (*get_datetime_metadata_from_dtype)(PyArray_Descr *);
   int (*parse_iso_8601_datetime)(const char *, int, int, npy_datetimestruct *,
                                  NPY_DATETIMEUNIT *, int *, int *, const char *,
-                                 int, FormatRequirement);
+                                 int, FormatRequirement, double);
   int (*get_datetime_iso_8601_strlen)(int, NPY_DATETIMEUNIT);
   int (*make_iso_8601_datetime)(npy_datetimestruct *, char *, size_t, int,
                                 NPY_DATETIMEUNIT);
@@ -94,10 +94,11 @@ static PandasDateTime_CAPI *PandasDateTimeAPI = NULL;
   PandasDateTimeAPI->get_datetime_metadata_from_dtype((dtype))
 #define parse_iso_8601_datetime(str, len, want_exc, out, out_bestunit,         \
                                 out_local, out_tzoffset, format, format_len,   \
-                                format_requirement)                            \
+                                format_requirement, threshold)                 \
   PandasDateTimeAPI->parse_iso_8601_datetime(                                  \
       (str), (len), (want_exc), (out), (out_bestunit), (out_local),            \
-      (out_tzoffset), (format), (format_len), (format_requirement))
+      (out_tzoffset), (format), (format_len), (format_requirement),            \
+      (threshold))
 #define get_datetime_iso_8601_strlen(local, base)                              \
   PandasDateTimeAPI->get_datetime_iso_8601_strlen((local), (base))
 #define make_iso_8601_datetime(dts, outstr, outlen, utc, base)                 \

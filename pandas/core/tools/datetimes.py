@@ -327,6 +327,7 @@ def _convert_listlike_datetimes(
     dayfirst: bool | None = None,
     yearfirst: bool | None = None,
     exact: bool = True,
+    threshold: float = 1.0,
 ):
     """
     Helper function for to_datetime. Performs the conversions of 1D listlike
@@ -350,6 +351,8 @@ def _convert_listlike_datetimes(
         yearfirst parsing behavior from to_datetime
     exact : bool, default True
         exact format matching behavior from to_datetime
+    threshold : float
+        Minimum fraction of valid datetime components required
 
     Returns
     -------
@@ -432,7 +435,9 @@ def _convert_listlike_datetimes(
 
     # `format` could be inferred, or user didn't ask for mixed-format parsing.
     if format is not None and format != "mixed":
-        return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
+        return _array_strptime_with_fallback(
+            arg, name, utc, format, exact, errors, threshold
+        )
 
     result, tz_parsed = objects_to_datetime64(
         arg,
@@ -462,11 +467,14 @@ def _array_strptime_with_fallback(
     fmt: str,
     exact: bool,
     errors: str,
+    threshold: float = 1.0,
 ) -> Index:
     """
     Call array_strptime, with fallback behavior depending on 'errors'.
     """
-    result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+    result, tz_out = array_strptime(
+        arg, fmt, exact=exact, errors=errors, utc=utc, threshold=threshold
+    )
     if tz_out is not None:
         unit = np.datetime_data(result.dtype)[0]
         dtype = DatetimeTZDtype(tz=tz_out, unit=unit)
@@ -637,6 +645,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
+    threshold: float = ...,
 ) -> Timestamp: ...
 
 
@@ -652,6 +661,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
+    threshold: float = ...,
 ) -> Series: ...
 
 
@@ -667,6 +677,7 @@ def to_datetime(
     unit: str | None = ...,
     origin=...,
     cache: bool = ...,
+    threshold: float = ...,
 ) -> DatetimeIndex: ...
 
 
@@ -682,6 +693,7 @@ def to_datetime(
     unit: str | None = None,
     origin: str = "unix",
     cache: bool = True,
+    threshold: float = 1.0,
 ) -> DatetimeIndex | Series | DatetimeScalar | NaTType:
     """
     Convert argument to datetime.
@@ -790,7 +802,19 @@ def to_datetime(
         is only used when there are at least 50 values. The presence of
         out-of-bounds values will render the cache unusable and may slow down
         parsing.
+    threshold : float
+        Minimum fraction of valid datetime components required to consider parsing
+        successful. Must be between 0.0 and 1.0. Components include year, month,
+        day, hour, minute, and second if present in the input. An invalid component
+        has too many or too few digits or a number outside the possible range
+        (e.g., month outside [1, 12]). Behavior depends on the threshold:
 
+        - 1.0 (default): all components must be valid, else raises error (unless
+        ``errors='coerce'``).
+        - 0.0: any invalid component produces NaT, else returns a valid datetime.
+        - Values between 0 and 1: if all components are valid, returns a valid
+          datetime; if the fraction of valid components >= threshold, returns NaT;
+          otherwise raises error.
     Returns
     -------
     datetime
@@ -991,11 +1015,22 @@ def to_datetime(
     >>> pd.to_datetime(["2018-10-26 12:00", datetime(2020, 1, 1, 18)], utc=True)
     DatetimeIndex(['2018-10-26 12:00:00+00:00', '2020-01-01 18:00:00+00:00'],
                   dtype='datetime64[us, UTC]', freq=None)
+
+    - Input string with one invalid component returns NaT if threshold allows
+      partial validity
+
+    >>> pd.to_datetime(
+    ...     "2018-100-26 12:00:00", format="%Y-%m-%d %H:%M:%S", threshold=0.5
+    ... )
+    NaT
     """
     if exact is not lib.no_default and format in {"mixed", "ISO8601"}:
         raise ValueError("Cannot use 'exact' when 'format' is 'mixed' or 'ISO8601'")
     if arg is None:
         return NaT
+
+    if not (0.0 <= threshold <= 1.0):
+        raise ValueError(f"`threshold` must be between 0.0 and 1.0, got {threshold}")
 
     if origin != "unix":
         arg = _adjust_to_origin(arg, origin, unit)
@@ -1008,6 +1043,7 @@ def to_datetime(
         yearfirst=yearfirst,
         errors=errors,
         exact=exact,  # type: ignore[arg-type]
+        threshold=threshold,
     )
     result: Timestamp | NaTType | Series | Index
 
