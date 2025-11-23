@@ -184,6 +184,7 @@ from pandas.core.internals.construction import (
     treat_as_nested,
 )
 from pandas.core.methods import selectn
+from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
 from pandas.core.shared_docs import _shared_docs
@@ -11679,6 +11680,10 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
         idx = cols.copy()
+
+        if method in ("spearman", "kendall"):
+            data = transform_ord_cat_cols_to_coded_cols(data)
+
         mat = data.to_numpy(dtype=float, na_value=np.nan, copy=False)
 
         if method == "pearson":
@@ -11968,6 +11973,8 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
             correl = num / dom
 
         elif method in ["kendall", "spearman"] or callable(method):
+            left = transform_ord_cat_cols_to_coded_cols(left)
+            right = transform_ord_cat_cols_to_coded_cols(right)
 
             def c(x):
                 return nanops.nancorr(x[0], x[1], method=method)
