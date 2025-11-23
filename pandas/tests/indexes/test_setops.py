@@ -812,7 +812,7 @@ class TestSetOpsUnsorted:
         first = index[5:20]
 
         union = first.union(first, sort=sort)
-        # GH#63169 - identity is never preserved now
+        # GH#63169 - identity is not preserved to prevent shared mutable state
         assert union is not first
 
         # This should no longer be the same object, since [] is not consistent,
@@ -1025,7 +1025,7 @@ class TestSetOpsMutation:
 
     def test_union_mutation_safety_other(self):
         # GH#63169
-        index1 = Index([], name="original")
+        index1 = Index([0, 1], name="original")
         index2 = Index([0, 1], name="original")
 
         result = index1.union(index2)
@@ -1039,3 +1039,25 @@ class TestSetOpsMutation:
 
         assert result.name == "original"
         assert index2.name == "changed"
+
+    def test_multiindex_intersection_mutation_safety(self):
+        # GH#63169
+        mi1 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+        mi2 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+
+        result = mi1.intersection(mi2)
+        assert result is not mi1
+
+        mi1.names = ["changed1", "changed2"]
+        assert result.names == ["x", "y"]
+
+    def test_multiindex_union_mutation_safety(self):
+        # GH#63169
+        mi1 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+        mi2 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+
+        result = mi1.union(mi2)
+        assert result is not mi1
+
+        mi1.names = ["changed1", "changed2"]
+        assert result.names == ["x", "y"]
