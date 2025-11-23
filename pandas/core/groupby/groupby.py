@@ -2218,6 +2218,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return True if all values in the group are truthful, else False.
 
+        Test change.
+
         Parameters
         ----------
         skipna : bool, default True
