@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Index,
     Series,
@@ -97,3 +99,12 @@ def test_drop_index_ea_dtype(any_numeric_ea_dtype):
     result = df.drop(idx)
     expected = Series(100, index=Index([1], dtype=any_numeric_ea_dtype))
     tm.assert_series_equal(result, expected)
+
+
+def test_drop_series_columns_deprecated():
+    # GH#39509
+    ser = Series({"a": 1, "b": 3})
+
+    msg = "the 'columns' keyword is deprecated and will be removed"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser.drop(columns=["a"])
