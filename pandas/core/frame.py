@@ -1934,7 +1934,11 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
             if len(data) > 0:
                 # TODO speed up Series case
                 if isinstance(next(iter(data.values())), (Series, dict)):
+                    original_keys = list(data.keys())
                     data = _from_nested_dict(data)
+                    if not data and columns is None:
+                        columns = []
+                        index = original_keys
                 else:
                     index = list(data.keys())
                     # error: Incompatible types in assignment (expression has type
@@ -14406,13 +14410,26 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
 
 def _from_nested_dict(
     data: Mapping[HashableT, Mapping[HashableT2, T]],
-) -> collections.defaultdict[HashableT2, dict[HashableT, T]]:
-    new_data: collections.defaultdict[HashableT2, dict[HashableT, T]] = (
+) -> collections.defaultdict[HashableT2, dict[HashableT, Any]]:
+    new_data: collections.defaultdict[HashableT2, dict[HashableT, Any]] = (
         collections.defaultdict(dict)
     )
+    all_cols_dict = {}
+    for s in data.values():
+        if isinstance(s, (dict, ABCSeries)):
+            all_cols_dict.update(dict.fromkeys(s.keys()))
+    all_cols_list = list(all_cols_dict.keys())
+    if not all_cols_list:
+        return new_data
     for index, s in data.items():
-        for col, v in s.items():
-            new_data[col][index] = v
+        if isinstance(s, (dict, ABCSeries)):
+            for col in all_cols_list:
+                new_data[col][index] = s.get(col, None)
+        elif s is None or is_scalar(s):
+            for col in all_cols_list:
+                new_data[col][index] = s
+        else:
+            raise TypeError(f"Value at index {index} is not a dict/Series/scalar/None")
     return new_data
 
 
