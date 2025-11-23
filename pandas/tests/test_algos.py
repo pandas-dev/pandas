@@ -1450,8 +1450,13 @@ class TestValueCounts:
         # GH 63155
         arr = np.random.default_rng(2).integers(0, 128, 8192)
         result = algos.value_counts_internal(arr, sort=True)
-        expected = Series(arr).value_counts(sort=False).sort_values(ascending=False, kind="stable")
+        expected = (
+            Series(arr)
+            .value_counts(sort=False)
+            .sort_values(ascending=False, kind="stable")
+        )
         tm.assert_series_equal(result, expected)
+
 
 class TestDuplicated:
     def test_duplicated_with_nas(self):
