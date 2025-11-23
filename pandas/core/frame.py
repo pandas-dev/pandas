@@ -133,7 +133,10 @@ from pandas.core import (
     roperator,
 )
 from pandas.core.accessor import Accessor
-from pandas.core.apply import reconstruct_and_relabel_result
+from pandas.core.apply import (
+    NumbaExecutionEngine,
+    reconstruct_and_relabel_result,
+)
 from pandas.core.array_algos.take import take_2d_multi
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
@@ -10960,13 +10963,16 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         significant amount of time to run. Fast functions are unlikely to run faster
         with JIT compilation.
         """
+        if engine == "numba":
+            numba = import_optional_dependency("numba")
+            numba_jit = numba.jit(**engine_kwargs or {})
+            numba_jit.__pandas_udf__ = NumbaExecutionEngine
+            engine = numba_jit
+
         if engine is None or isinstance(engine, str):
             from pandas.core.apply import frame_apply
 
-            if engine is None:
-                engine = "python"
-
-            if engine not in ["python", "numba"]:
+            if engine not in ["python", None]:
                 raise ValueError(f"Unknown engine '{engine}'")
 
             op = frame_apply(
@@ -10976,12 +10982,11 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
                 raw=raw,
                 result_type=result_type,
                 by_row=by_row,
-                engine=engine,
-                engine_kwargs=engine_kwargs,
                 args=args,
                 kwargs=kwargs,
             )
             return op.apply().__finalize__(self, method="apply")
+
         elif hasattr(engine, "__pandas_udf__"):
             if result_type is not None:
                 raise NotImplementedError(
