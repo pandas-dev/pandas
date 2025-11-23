@@ -3286,6 +3286,11 @@ class Index(IndexOpsMixin, PandasObject):
                 result = self.unique()._get_reconciled_name_object(other)
             else:
                 result = self._get_reconciled_name_object(other)
+
+                # Always return a new instance on equality
+                if result is self:
+                    result = self.copy()
+
             if sort is True:
                 result = result.sort_values()
             return result
