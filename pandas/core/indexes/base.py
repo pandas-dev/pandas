@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from collections import abc
-from datetime import datetime
+from datetime import (
+    datetime,
+)
 import functools
 from itertools import zip_longest
 import operator
@@ -40,7 +42,6 @@ from pandas._libs.lib import (
     no_default,
 )
 from pandas._libs.tslibs import (
-    OutOfBoundsDatetime,
     Timestamp,
     tz_compare,
 )
@@ -6323,11 +6324,6 @@ class Index(IndexOpsMixin, PandasObject):
                 # standardize on UTC
                 return self.tz_convert("UTC"), other.tz_convert("UTC")
 
-        elif self.inferred_type == "date" and isinstance(other, ABCDatetimeIndex):
-            try:
-                return type(other)(self), other
-            except OutOfBoundsDatetime:
-                return self, other
         elif self.inferred_type == "timedelta" and isinstance(other, ABCTimedeltaIndex):
             # TODO: we dont have tests that get here
             return type(other)(self), other
@@ -6432,6 +6428,29 @@ class Index(IndexOpsMixin, PandasObject):
             return dtype.kind == "b"
         elif is_numeric_dtype(self.dtype):
             return is_numeric_dtype(dtype)
+        # GH#62158
+        elif isinstance(dtype, ArrowDtype):
+            import pyarrow as pa
+
+            pa_dtype = dtype.pyarrow_dtype
+            if dtype.kind != "M":
+                if self.dtype.kind == "b":
+                    return dtype.kind == "b"
+                if is_numeric_dtype(self.dtype):
+                    return pa.types.is_integer(pa_dtype) or pa.types.is_floating(
+                        pa_dtype
+                    )
+                if self.dtype.kind == "m" and pa.types.is_duration(pa_dtype):
+                    return True
+                return False
+            if self.dtype.kind != "M":
+                return False
+            if pa.types.is_date(pa_dtype):
+                return False
+            if pa.types.is_timestamp(pa_dtype):
+                if (pa_dtype.tz is None) ^ (getattr(self, "tz", None) is None):
+                    return False
+            return True
         # TODO: this was written assuming we only get here with object-dtype,
         #  which is no longer correct. Can we specialize for EA?
         return True
