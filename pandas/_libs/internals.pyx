@@ -1006,8 +1006,12 @@ cdef class BlockValuesRefs:
 
 cdef extern from "Python.h":
     """
+    // python version < 3.14
     #if PY_VERSION_HEX < 0x030E0000
-    int __Pyx_PyUnstable_Object_IsUniqueReferencedTemporary(PyObject *ref);
+    // This function is unused and is declared to avoid a build warning
+    int __Pyx_PyUnstable_Object_IsUniqueReferencedTemporary(PyObject *ref) {
+        return Py_REFCNT(ref) == 1;
+    }
     #else
     #define __Pyx_PyUnstable_Object_IsUniqueReferencedTemporary \
         PyUnstable_Object_IsUniqueReferencedTemporary
