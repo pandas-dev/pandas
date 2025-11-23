@@ -38,28 +38,36 @@ jobs:
           })
           linkedPRs = linkedPRs["data"];
           console.log(linkedPRs);
-          if (linkedPRs.length > 0) {
-            console.log("Found linked PR");
-            linkedPR = linkedPRs[0]
-            isDeprecation = false
-            for (label of linkedPR["labels"]) {
-              if (label["name"] == "Deprecate") {
-                isDeprecation = true;
-                break;
+          try {
+            if (linkedPRs.length > 0) {
+              console.log("Found linked PR");
+              linkedPR = linkedPRs[0]
+              isDeprecation = false
+              for (label of linkedPR["labels"]) {
+                if (label["name"] == "Deprecate") {
+                  isDeprecation = true;
+                  break;
+                }
+              }
+
+              PR_NUMBER = linkedPR["number"];
+
+              body += ("\n- [ ] #" + PR_NUMBER);
+              if (isDeprecation) {
+                console.log("PR is a deprecation PR. Printing new body of issue");
+                console.log(body);
+                github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: ${{ env.DEPRECATION_TRACKER_ISSUE }},
+                  body: body
+                })
               }
             }
-
-            PR_NUMBER = linkedPR["number"];
-
-            body += ("\n- [ ] #" + PR_NUMBER);
-            if (isDeprecation) {
-              console.log("PR is a deprecation PR. Printing new body of issue");
-              console.log(body);
-              github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: ${{ env.DEPRECATION_TRACKER_ISSUE }},
-                body: body
-              })
+          } catch (error) {
+            if (error.status === 404) {
+              core.warning('Resource not found. Please check issue/repo references.');
+            } else {
+              throw error;
             }
           }
