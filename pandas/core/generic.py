@@ -2803,6 +2803,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
         method: Literal["multi"] | Callable | None = None,
+        nullable: dict[str, bool] | None = None,
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
@@ -2866,6 +2867,25 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             Details and a sample callable implementation can be found in the
             section :ref:`insert method <io.sql.method>`.
+        nullable : dict, optional
+            Specifies whether columns should allow NULL values. If a dictionary is used,
+            the keys should be the column names and the values should be boolean values.
+            ``True`` indicates the column is nullable (can contain NULL),
+            ``False`` indicates the column is NOT NULL.
+
+            For SQLAlchemy connections: If a column is not specified in the dictionary,
+            the default behavior is typically nullable=True.
+
+            For ADBC connections: The PyArrow table schema is modified to set the
+            nullability constraint. If data contains NULL values for a column marked
+            as ``nullable=False``, a ValueError will be raised.
+
+            This parameter only applies when creating a new table or replacing an existing
+            table (i.e., when ``if_exists='fail'`` and table doesn't exist, ``if_exists='replace'``).
+            When ``if_exists='append'``, this parameter is ignored as the table schema
+            already exists.
+
+            .. versionadded:: 3.0.0
 
         Returns
         -------
@@ -3018,6 +3038,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...     conn.execute(text("SELECT * FROM integers")).fetchall()
         [(1,), (None,), (2,)]
 
+        Specify nullable constraints when creating a table. This is useful for
+        enforcing NOT NULL constraints based on data dictionaries or schemas.
+
+        >>> df = pd.DataFrame({'id': [1, 2, 3], 'name': ['Alice', 'Bob', 'Charlie']})
+        >>> df.to_sql(name='users_with_constraints', con=engine, if_exists='replace',
+        ...           index=False, nullable={'id': False, 'name': False})
+        3
+
+        The table is created with NOT NULL constraints on id and name columns:
+
+        >>> with engine.connect() as conn:
+        ...     result = conn.execute(text(
+        ...         "SELECT sql FROM sqlite_master WHERE name='users_with_constraints'"
+        ...     )).fetchone()  # doctest:+SKIP
+        ...     print(result[0])  # doctest:+SKIP
+        CREATE TABLE users_with_constraints (
+            id BIGINT NOT NULL,
+            name TEXT NOT NULL
+        )
+
         .. versionadded:: 2.2.0
 
            pandas now supports writing via ADBC drivers
@@ -3047,6 +3087,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             chunksize=chunksize,
             dtype=dtype,
             method=method,
+            nullable=nullable,
         )
 
     @final
