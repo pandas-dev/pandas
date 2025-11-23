@@ -9399,16 +9399,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
 
-        def ranker(data):
-            if data.ndim == 2:
-                # i.e. DataFrame, we cast to ndarray
-                values = data.values
-            else:
-                # i.e. Series, can dispatch to EA
-                values = data._values
-
-            if isinstance(values, ExtensionArray):
-                ranks = values._rank(
+        def ranker(blk_values):
+            if axis_int == 0:
+                blk_values = blk_values.T
+            if isinstance(blk_values, ExtensionArray):
+                ranks = blk_values._rank(
                     axis=axis_int,
                     method=method,
                     ascending=ascending,
@@ -9417,16 +9412,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 )
             else:
                 ranks = algos.rank(
-                    values,
+                    blk_values,
                     axis=axis_int,
                     method=method,
                     ascending=ascending,
                     na_option=na_option,
                     pct=pct,
                 )
-
-            ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
-            return ranks_obj.__finalize__(self, method="rank")
+            if axis_int == 0:
+                ranks = ranks.T
+            return ranks
 
         if numeric_only:
             if self.ndim == 1 and not is_numeric_dtype(self.dtype):
@@ -9439,7 +9434,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             data = self
 
-        return ranker(data)
+        should_transpose = axis_int == 1
+
+        if should_transpose:
+            data = data.T
+        applied = data._mgr.apply(ranker)
+        result = self._constructor_from_mgr(applied, axes=applied.axes)
+        if should_transpose:
+            result = result.T
+
+        return result.__finalize__(self, method="rank")
 
     @doc(_shared_docs["compare"], klass=_shared_doc_kwargs["klass"])
     def compare(
