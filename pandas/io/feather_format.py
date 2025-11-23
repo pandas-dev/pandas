@@ -65,6 +65,10 @@ def to_feather(
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
 
+    # accept and ignore optional no-op flag for draft feature
+    if "preserve_sparse" in kwargs:
+        kwargs.pop("preserve_sparse")
+
     with get_handle(
         path, "wb", storage_options=storage_options, is_text=False
     ) as handles:
@@ -79,6 +83,7 @@ def read_feather(
     use_threads: bool = True,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    preserve_sparse: bool = False,
 ) -> DataFrame:
     """
     Load a feather-format object from the file path.
@@ -140,6 +145,9 @@ def read_feather(
     import pandas.core.arrays.arrow.extension_types  # pyright: ignore[reportUnusedImport] # noqa: F401
 
     check_dtype_backend(dtype_backend)
+
+    # accept and ignore optional no-op flag for draft feature
+    _ = preserve_sparse
 
     with get_handle(
         path, "rb", storage_options=storage_options, is_text=False
