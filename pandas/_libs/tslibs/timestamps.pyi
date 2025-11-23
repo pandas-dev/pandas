@@ -191,7 +191,11 @@ class Timestamp(datetime):
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
-    def normalize(self) -> Self: ...
+    def normalize(
+        self,
+        ambiguous: bool | Literal["raise", "NaT"] = ...,
+        nonexistent: TimestampNonexistent = ...,
+    ) -> Self: ...
     # TODO: round/floor/ceil could return NaT?
     def round(
         self,
