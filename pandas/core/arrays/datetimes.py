@@ -106,15 +106,15 @@ _ITER_CHUNKSIZE = 10_000
 
 
 @overload
-def tz_to_dtype(tz: tzinfo, unit: str = ...) -> DatetimeTZDtype: ...
+def tz_to_dtype(tz: tzinfo, unit: TimeUnit = ...) -> DatetimeTZDtype: ...
 
 
 @overload
-def tz_to_dtype(tz: None, unit: str = ...) -> np.dtype[np.datetime64]: ...
+def tz_to_dtype(tz: None, unit: TimeUnit = ...) -> np.dtype[np.datetime64]: ...
 
 
 def tz_to_dtype(
-    tz: tzinfo | None, unit: str = "ns"
+    tz: tzinfo | None, unit: TimeUnit = "ns"
 ) -> np.dtype[np.datetime64] | DatetimeTZDtype:
     """
     Return a datetime64[ns] dtype appropriate for the given timezone.
@@ -393,6 +393,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             )
 
         data_unit = np.datetime_data(subarr.dtype)[0]
+        data_unit = cast("TimeUnit", data_unit)
         data_dtype = tz_to_dtype(tz, data_unit)
         result = cls._simple_new(subarr, freq=inferred_freq, dtype=data_dtype)
         if unit is not None and unit != result.unit:
@@ -2935,7 +2936,7 @@ def _generate_range(
     periods: int | None,
     offset: BaseOffset,
     *,
-    unit: str,
+    unit: TimeUnit,
 ) -> Generator[Timestamp]:
     """
     Generates a sequence of dates corresponding to the specified time
