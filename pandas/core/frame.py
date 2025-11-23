@@ -11438,6 +11438,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         right_index: bool = False,
         sort: bool = False,
         suffixes: Suffixes = ("_x", "_y"),
+        force_suffixes: bool = False,
         copy: bool | lib.NoDefault = lib.no_default,
         indicator: str | bool = False,
         validate: MergeValidate | None = None,
@@ -11457,6 +11458,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
             right_index=right_index,
             sort=sort,
             suffixes=suffixes,
+            force_suffixes=force_suffixes,
             indicator=indicator,
             validate=validate,
         )
