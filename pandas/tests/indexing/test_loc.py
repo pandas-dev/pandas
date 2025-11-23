@@ -69,6 +69,14 @@ def test_loc_dtype():
     tm.assert_series_equal(result, expected)
 
 
+def test_loc_scalar_row_slice_columns_dtype():
+    # GH 63071
+    df = DataFrame([["a", 1.0, 2.0], ["b", 3.0, 4.0]])
+    result = df.loc[0, 1:]
+    expected = Series([1.0, 2.0], index=[1, 2], dtype=float, name=0)
+    tm.assert_series_equal(result, expected)
+
+
 class TestLoc:
     def test_none_values_on_string_columns(self, using_infer_string):
         # Issue #32218
