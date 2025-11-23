@@ -82,6 +82,22 @@ class TestCustomBusinessDay:
         dt = datetime(2014, 1, 17)
         assert_offset_equal(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
 
+    def test_calendar_validation(self):
+        """Test CustomBusinessDay calendar parameter validation (GH#60647)"""
+        # Valid numpy.busdaycalendar should work
+        calendar = np.busdaycalendar(weekmask="1111100")  # Monday-Friday
+        cbd = CDay(calendar=calendar)
+        assert cbd.calendar is calendar
+
+        # Test error message for pandas_market_calendars scenario
+        class pandas_market_calendars:
+            def __init__(self):
+                self.name = "pandas_market_calendars"
+
+        mock_calendar = pandas_market_calendars()
+        with pytest.raises(TypeError):
+            CDay(calendar=mock_calendar)
+
     def test_roundtrip_pickle(self, offset, offset2):
         def _check_roundtrip(obj):
             unpickled = tm.round_trip_pickle(obj)

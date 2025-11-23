@@ -216,6 +216,16 @@ cdef _get_calendar(weekmask, holidays, calendar):
             pass
         return calendar, holidays
 
+    # GH#60647
+    # Enforce that when a calendar is provided, it must be a numpy.busdaycalendar
+    if calendar is not None and 'pandas_market_calendars' in str(type(calendar)):
+        raise TypeError(
+            "CustomBusinessDay.calendar must be a numpy.busdaycalendar; "
+            f"got {type(calendar).__name__}. "
+            "For pandas_market_calendars please pass the result of "
+            ".holidays() (a DatetimeIndex) instead."
+        )
+
     if holidays is None:
         holidays = []
     try:
