@@ -151,6 +151,23 @@ class TestNumericComparisons:
 
 
 class TestNumericArraylikeArithmeticWithDatetimeLike:
+    def test_mul_timedelta_list(self, box_with_array):
+        # GH#62524
+        box = box_with_array
+        left = np.array([3, 4])
+        left = tm.box_expected(left, box)
+
+        right = [Timedelta(days=1), Timedelta(days=2)]
+
+        result = left * right
+
+        expected = TimedeltaIndex([Timedelta(days=3), Timedelta(days=8)])
+        expected = tm.box_expected(expected, box)
+        tm.assert_equal(result, expected)
+
+        result2 = right * left
+        tm.assert_equal(result2, expected)
+
     @pytest.mark.parametrize("box_cls", [np.array, Index, Series])
     @pytest.mark.parametrize(
         "left", lefts, ids=lambda x: type(x).__name__ + str(x.dtype)
