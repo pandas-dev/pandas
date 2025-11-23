@@ -6,6 +6,7 @@ from typing import (
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -13,6 +14,8 @@ from pandas._libs import (
     algos as libalgos,
     lib,
 )
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
@@ -94,6 +97,15 @@ def take_nd(
         fill_value = na_value_for_dtype(arr.dtype, compat=False)
     elif lib.is_np_dtype(arr.dtype, "mM"):
         dtype, fill_value = maybe_promote(arr.dtype, fill_value)
+        if dtype != arr.dtype:
+            # GH#53910
+            warnings.warn(
+                "reindexing with a fill_value that cannot be held by the "
+                "original dtype is deprecated. Explicitly cast to a common "
+                f"dtype (in this case {dtype}) instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         if arr.dtype != dtype:
             # EA.take is strict about returning a new object of the same type
             # so for that case cast upfront
@@ -185,6 +197,10 @@ def take_2d_multi(
     indexer = row_idx, col_idx
     mask_info = None
 
+    if lib.is_float(fill_value) and fill_value.is_integer():
+        # Avoid warning if possible
+        fill_value = int(fill_value)
+
     # check for promotion based on types only (do this first because
     # it's faster than computing a mask)
     dtype, fill_value = maybe_promote(arr.dtype, fill_value)
@@ -201,6 +217,20 @@ def take_2d_multi(
             # (it won't be used but we don't want the cython code
             # to crash when trying to cast it to dtype)
             dtype, fill_value = arr.dtype, arr.dtype.type()
+
+        if dtype != arr.dtype and not (
+            arr.dtype.kind in "iub"
+            and lib.is_float(fill_value)
+            and np.isnan(fill_value)
+        ):
+            # GH#53910
+            warnings.warn(
+                "reindexing with a fill_value that cannot be held by the "
+                "original dtype is deprecated. Explicitly cast to a common "
+                f"dtype (in this case {dtype}) instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
     # at this point, it's guaranteed that dtype can hold both the arr values
     # and the fill_value
@@ -528,8 +558,23 @@ def _take_preprocess_indexer_and_fill_value(
     else:
         # check for promotion based on types only (do this first because
         # it's faster than computing a mask)
+        if lib.is_float(fill_value) and fill_value.is_integer():
+            # Avoid warning if possible
+            fill_value = int(fill_value)
         dtype, fill_value = maybe_promote(arr.dtype, fill_value)
         if dtype != arr.dtype:
+            if not (
+                (lib.is_float(fill_value) and np.isnan(fill_value))
+                or (arr.dtype.kind == "U" and isinstance(fill_value, str))
+            ):
+                # GH#53910
+                warnings.warn(
+                    "reindexing with a fill_value that cannot be held by the "
+                    "original dtype is deprecated. Explicitly cast to a common "
+                    f"dtype (in this case {dtype}) instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
             # check if promotion is actually required based on indexer
             if mask is not None:
                 needs_masking = True
