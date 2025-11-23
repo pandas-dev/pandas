@@ -28,6 +28,7 @@ from pandas._libs.tslibs import (
     NaT,
     NaTType,
     Resolution,
+    Timedelta,
     Timestamp,
     astype_overflowsafe,
     fields,
@@ -70,6 +71,7 @@ import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
 from pandas.tseries.offsets import (
+    DateOffset,
     Day,
     Tick,
 )
@@ -94,7 +96,6 @@ if TYPE_CHECKING:
 
     from pandas import (
         DataFrame,
-        Timedelta,
     )
     from pandas.core.arrays import PeriodArray
 
@@ -828,7 +829,34 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             result = type(self)._from_sequence(res_values, dtype=self.dtype)
 
         else:
+            units = [
+                "ns",
+                "us",
+                "ms",
+                "s",
+            ]
+            res_unit = self.unit
+            if type(offset) is DateOffset:
+                nano = offset.kwds.get("nanoseconds", 0)
+                micro = offset.kwds.get("microseconds", 0)
+                if nano:
+                    res_unit = "ns"
+                elif micro and self.unit != "ns":
+                    res_unit = "us"
+            if (
+                hasattr(offset, "offset")
+                and offset.offset is not None
+                and not isinstance(offset, Tick)
+            ):
+                offset_td = Timedelta(offset.offset)
+                if offset_td.value != 0:
+                    offset_unit = offset_td.unit
+                    idx_self = units.index(self.unit)
+                    idx_offset = units.index(offset_unit)
+                    res_unit = units[min(idx_self, idx_offset)]
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
+            result = result.as_unit(res_unit)
+
             if offset.normalize:
                 result = result.normalize()
                 result._freq = None
