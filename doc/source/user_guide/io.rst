@@ -1651,6 +1651,86 @@ Writing a formatted string
 ++++++++++++++++++++++++++
 
 .. _io.formatting:
+.. _colab-loading:
+
+Loading data in Google Colab
+----------------------------
+
+Google Colab is a common environment for pandas users. Below are simple and practical ways to load files into pandas when working in Colab.
+
+1. Upload a local file interactively
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use the Colab upload widget:
+
+.. code-block:: python
+
+    from google.colab import files
+    import pandas as pd
+
+    uploaded = files.upload()   # opens a file chooser
+    df = pd.read_csv(list(uploaded.keys())[0])
+
+Notes:
+- Uploaded files are stored temporarily in ``/content/``.
+- Only persists for the session.
+
+2. Load files from Google Drive
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mount Google Drive to access stored files:
+
+.. code-block:: python
+
+    from google.colab import drive
+    drive.mount('/content/drive')
+
+    import pandas as pd
+    df = pd.read_csv('/content/drive/MyDrive/path/to/file.csv')
+
+3. Read files directly from URLs or GitHub
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If your dataset is online, read it directly:
+
+.. code-block:: python
+
+    import pandas as pd
+    df = pd.read_csv('https://raw.githubusercontent.com/user/repo/main/data.csv')
+
+4. Use gdown for Google Drive shareable links
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For large datasets with Drive share links:
+
+.. code-block:: python
+
+    !pip install -q gdown
+    import gdown
+
+    url = 'https://drive.google.com/uc?id=FILE_ID'
+    gdown.download(url, 'file.csv', quiet=False)
+
+    import pandas as pd
+    df = pd.read_csv('file.csv')
+
+5. Read data from Google Sheets
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can export a Google Sheet as CSV:
+
+.. code-block:: python
+
+    sheet_url = "https://docs.google.com/spreadsheets/d/SHEET_ID/export?format=csv"
+    df = pd.read_csv(sheet_url)
+
+Quick tips
+~~~~~~~~~~~~
+
+- Use ``df.head()`` to preview data.  
+- Prefer GitHub raw links for reproducibility.  
+- Files placed in the Colab sidebar appear inside ``/content/``.
+
 
 The ``DataFrame`` object has an instance method ``to_string`` which allows control
 over the string representation of the object. All arguments are optional:
