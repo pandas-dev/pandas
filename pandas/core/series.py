@@ -8024,3 +8024,7 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @doc(make_doc("cumprod", 1))
     def cumprod(self, axis: Axis = 0, skipna: bool = True, *args, **kwargs) -> Self:
         return NDFrame.cumprod(self, axis, skipna, *args, **kwargs)
+
+# at bottom of pandas/core/series.py (after class Series ...)
+from pandas.core.ops.docstrings import _doc_series_invert
+Series.__invert__.__doc__ = _doc_series_invert
