@@ -18,7 +18,7 @@ import pandas._testing as tm
 class TestToTimestamp:
     def test_to_timestamp_non_contiguous(self):
         # GH#44100
-        dti = date_range("2021-10-18", periods=9, freq="D")
+        dti = date_range("2021-10-18", periods=9, freq="D", unit="ns")
         pi = dti.to_period()
 
         result = pi[::2].to_timestamp()
@@ -49,7 +49,7 @@ class TestToTimestamp:
     def test_to_timestamp_freq(self):
         idx = period_range("2017", periods=12, freq="Y-DEC")
         result = idx.to_timestamp()
-        expected = date_range("2017", periods=12, freq="YS-JAN")
+        expected = date_range("2017", periods=12, freq="YS-JAN", unit="ns")
         tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_pi_nat(self):

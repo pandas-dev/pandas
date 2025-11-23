@@ -229,7 +229,9 @@ class TestDatetimeIndexOps:
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     def test_dti_fields(self, tz):
         # GH#13303
-        dti = date_range(freq="D", start=datetime(1998, 1, 1), periods=365, tz=tz)
+        dti = date_range(
+            freq="D", start=datetime(1998, 1, 1), periods=365, tz=tz, unit="ns"
+        )
         assert dti.year[0] == 1998
         assert dti.month[0] == 1
         assert dti.day[0] == 1

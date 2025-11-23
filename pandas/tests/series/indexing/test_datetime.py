@@ -101,7 +101,7 @@ def test_getitem_setitem_datetime_tz(tz_source):
 def test_getitem_setitem_datetimeindex():
     N = 50
     # testing with timezone, GH #2785
-    rng = date_range("1/1/1990", periods=N, freq="h", tz="US/Eastern")
+    rng = date_range("1/1/1990", periods=N, freq="h", tz="US/Eastern", unit="ns")
     ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
 
     result = ts["1990-01-01 04:00:00"]

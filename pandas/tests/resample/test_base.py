@@ -540,7 +540,7 @@ def test_first_last_skipna(any_real_nullable_dtype, skipna, how):
             "b": [na_value, 3.0, na_value, 4.0],
             "c": [na_value, 3.0, na_value, 4.0],
         },
-        index=date_range("2020-01-01", periods=4, freq="D"),
+        index=date_range("2020-01-01", periods=4, freq="D", unit="ns"),
         dtype=any_real_nullable_dtype,
     )
     rs = df.resample("ME")

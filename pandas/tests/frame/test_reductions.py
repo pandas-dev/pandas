@@ -687,8 +687,8 @@ class TestDataFrameAnalytics:
     def test_operators_timedelta64(self):
         df = DataFrame(
             {
-                "A": date_range("2012-1-1", periods=3, freq="D"),
-                "B": date_range("2012-1-2", periods=3, freq="D"),
+                "A": date_range("2012-1-1", periods=3, freq="D", unit="ns"),
+                "B": date_range("2012-1-2", periods=3, freq="D", unit="ns"),
                 "C": Timestamp("20120101") - timedelta(minutes=5, seconds=5),
             }
         )
@@ -761,8 +761,8 @@ class TestDataFrameAnalytics:
         # GH 3106
         df = DataFrame(
             {
-                "time": date_range("20130102", periods=5),
-                "time2": date_range("20130105", periods=5),
+                "time": date_range("20130102", periods=5, unit="ns"),
+                "time2": date_range("20130105", periods=5, unit="ns"),
             }
         )
         df["off1"] = df["time2"] - df["time"]

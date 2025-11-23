@@ -359,7 +359,7 @@ class TestDataFrameToCSV:
             columns=Index(list("abcd"), dtype=object),
         )
         result, expected = self._return_result_expected(df, 1000, temp_file, "dt", "s")
-        expected.index = expected.index.astype("M8[ns]")
+        expected.index = expected.index.astype("M8[us]")
         tm.assert_frame_equal(result, expected, check_names=False)
 
     @pytest.mark.slow
@@ -390,9 +390,13 @@ class TestDataFrameToCSV:
             r_idx_type,
             c_idx_type,
         )
-        if r_idx_type in ["dt", "p"]:
+        if r_idx_type == "dt":
+            expected.index = expected.index.astype("M8[us]")
+        elif r_idx_type == "p":
             expected.index = expected.index.astype("M8[ns]")
-        if c_idx_type in ["dt", "p"]:
+        if c_idx_type == "dt":
+            expected.columns = expected.columns.astype("M8[us]")
+        elif c_idx_type == "p":
             expected.columns = expected.columns.astype("M8[ns]")
         tm.assert_frame_equal(result, expected, check_names=False)
 
@@ -1194,7 +1198,7 @@ class TestDataFrameToCSV:
     )
     def test_to_csv_with_dst_transitions_with_pickle(self, start, end, temp_file):
         # GH11619
-        idx = date_range(start, end, freq="h", tz="Europe/Paris")
+        idx = date_range(start, end, freq="h", tz="Europe/Paris", unit="ns")
         idx = idx._with_freq(None)  # freq does not round-trip
         idx._data._freq = None  # otherwise there is trouble on unpickle
         df = DataFrame({"values": 1, "idx": idx}, index=idx)

@@ -142,8 +142,8 @@ class TestCatAccessor:
     @pytest.mark.parametrize(
         "idx",
         [
-            date_range("1/1/2015", periods=5),
-            date_range("1/1/2015", periods=5, tz="MET"),
+            date_range("1/1/2015", periods=5, unit="ns"),
+            date_range("1/1/2015", periods=5, tz="MET", unit="ns"),
             period_range("1/1/2015", freq="D", periods=5),
             timedelta_range("1 days", "10 days"),
         ],

@@ -67,7 +67,7 @@ class TestConvertDtypes:
                 "b": pd.Series(["x", "y", None], dtype=np.dtype("O")),
                 "c": pd.Series([True, False, None], dtype=np.dtype("O")),
                 "d": pd.Series([np.nan, 100.5, 200], dtype=np.dtype("float")),
-                "e": pd.Series(pd.date_range("2022", periods=3)),
+                "e": pd.Series(pd.date_range("2022", periods=3, unit="ns")),
                 "f": pd.Series(pd.date_range("2022", periods=3, tz="UTC").as_unit("s")),
                 "g": pd.Series(pd.timedelta_range("1D", periods=3)),
             }

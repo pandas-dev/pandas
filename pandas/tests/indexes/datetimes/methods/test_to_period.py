@@ -118,11 +118,11 @@ class TestToPeriod:
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_period_dt64_round_trip(self):
-        dti = date_range("1/1/2000", "1/7/2002", freq="B")
+        dti = date_range("1/1/2000", "1/7/2002", freq="B", unit="ns")
         pi = dti.to_period()
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
-        dti = date_range("1/1/2000", "1/7/2002", freq="B")
+        dti = date_range("1/1/2000", "1/7/2002", freq="B", unit="ns")
         pi = dti.to_period(freq="h")
         tm.assert_index_equal(pi.to_timestamp(), dti)
 

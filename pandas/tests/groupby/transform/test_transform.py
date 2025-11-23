@@ -111,7 +111,7 @@ def test_transform_fast2():
         {
             "grouping": [0, 1, 1, 3],
             "f": [1.1, 2.1, 3.1, 4.5],
-            "d": date_range("2014-1-1", "2014-1-4"),
+            "d": date_range("2014-1-1", "2014-1-4", unit="ns"),
             "i": [1, 2, 3, 4],
         },
         columns=["grouping", "f", "i", "d"],
@@ -401,7 +401,10 @@ def test_transform_function_aliases(df):
 def test_series_fast_transform_date():
     # GH 13191
     df = DataFrame(
-        {"grouping": [np.nan, 1, 1, 3], "d": date_range("2014-1-1", "2014-1-4")}
+        {
+            "grouping": [np.nan, 1, 1, 3],
+            "d": date_range("2014-1-1", "2014-1-4", unit="ns"),
+        }
     )
     result = df.groupby("grouping")["d"].transform("first")
     dates = [
@@ -1010,7 +1013,7 @@ def test_groupby_transform_timezone_column(func):
 )
 def test_groupby_transform_with_datetimes(func, values):
     # GH 15306
-    dates = date_range("1/1/2011", periods=10, freq="D")
+    dates = date_range("1/1/2011", periods=10, freq="D", unit="ns")
 
     stocks = DataFrame({"price": np.arange(10.0)}, index=dates)
     stocks["week_id"] = dates.isocalendar().week

@@ -32,7 +32,11 @@ class TestDatetimeIndexArithmetic:
         #  is not preserved by subtraction.  Ticks offsets like "24h"
         #  are still preserved
         dti = date_range(
-            "2016-01-01", periods=12, tz=tz_naive_fixture, freq=offsets.Hour(24)
+            "2016-01-01",
+            periods=12,
+            tz=tz_naive_fixture,
+            freq=offsets.Hour(24),
+            unit="ns",
         )
 
         res = dti - dti[0]
@@ -43,7 +47,7 @@ class TestDatetimeIndexArithmetic:
     def test_sub_datetime_preserves_freq_across_dst(self):
         # GH#48818
         ts = Timestamp("2016-03-11", tz="US/Pacific")
-        dti = date_range(ts, periods=4)
+        dti = date_range(ts, periods=4, unit="ns")
 
         res = dti - dti[0]
         expected = TimedeltaIndex(
