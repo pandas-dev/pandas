@@ -12148,8 +12148,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
                 result.index = df.index
                 return result
 
-            # kurtosis excluded since groupby does not implement it
-            if df.shape[1] and name != "kurt":
+            if df.shape[1]:
                 dtype = find_common_type(
                     [block.values.dtype for block in df._mgr.blocks]
                 )
