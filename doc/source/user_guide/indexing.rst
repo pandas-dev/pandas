@@ -314,7 +314,7 @@ Selection by label
 
   .. ipython:: python
 
-     dfl.loc['20130102':'20130104']
+     dfl.loc['2013-01-02':'2013-01-04']
 
 pandas provides a suite of methods in order to have **purely label based indexing**. This is a strict inclusion based protocol.
 Every label asked for must be in the index, or a ``KeyError`` will be raised.
