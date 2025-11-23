@@ -4282,6 +4282,7 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level: IndexLabel = -1,
         fill_value: Hashable | None = None,
         sort: bool = True,
+        no_fill: bool = False,
     ) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
@@ -4294,6 +4295,10 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Value to use when replacing NaN values.
         sort : bool, default True
             Sort the level(s) in the resulting MultiIndex columns.
+        no_fill : bool, default False
+            If True, raise a ValueError if any missing values would need to be filled.
+            This is useful to ensure data integrity when you expect a complete
+            1:1 mapping between stacked and unstacked representations.
 
         Returns
         -------
@@ -4333,7 +4338,7 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         from pandas.core.reshape.reshape import unstack
 
-        return unstack(self, level, fill_value, sort)
+        return unstack(self, level, fill_value, sort, no_fill)
 
     # ----------------------------------------------------------------------
     # function application

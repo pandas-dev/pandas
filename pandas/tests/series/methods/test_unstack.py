@@ -167,3 +167,38 @@ def test_unstack_mixed_level_names():
         index=MultiIndex.from_tuples([(1, "red"), (2, "blue")], names=[0, "y"]),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_no_fill_complete_data():
+    index = MultiIndex.from_product([["one", "two"], ["a", "b"]])
+    ser = Series(np.arange(1.0, 5.0), index=index)
+
+    result = ser.unstack(level=-1, no_fill=True)
+    expected = DataFrame(
+        [[1.0, 2.0], [3.0, 4.0]],
+        index=["one", "two"],
+        columns=["a", "b"],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_no_fill_incomplete_data():
+    index = MultiIndex.from_tuples([("one", "a"), ("one", "b"), ("two", "a")])
+    ser = Series([1, 2, 3], index=index)
+
+    msg = "Cannot unstack with no_fill=True because filling is required"
+    with pytest.raises(ValueError, match=msg):
+        ser.unstack(level=-1, no_fill=True)
+
+
+def test_unstack_no_fill_default_behavior():
+    index = MultiIndex.from_tuples([("one", "a"), ("one", "b"), ("two", "a")])
+    ser = Series([1, 2, 3], index=index)
+
+    result = ser.unstack(level=-1, no_fill=False)
+    expected = DataFrame(
+        [[1.0, 2.0], [3.0, np.nan]],
+        index=["one", "two"],
+        columns=["a", "b"],
+    )
+    tm.assert_frame_equal(result, expected)
