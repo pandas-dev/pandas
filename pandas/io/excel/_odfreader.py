@@ -100,8 +100,12 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         raise ValueError(f"sheet {name} not found")
 
     def get_sheet_data(
-        self, sheet, file_rows_needed: int | None = None
-    ) -> list[list[Scalar | NaTType]]:
+        self,
+        sheet,
+        file_rows_needed: int | None = None,
+        *,
+        dtype_from_format: bool = False,
+    ) -> tuple[list[list[Scalar | NaTType]], set[int]]:
         """
         Parse an ODF Table into a list of lists
         """
@@ -161,7 +165,7 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
             if len(row) < max_row_len:
                 row.extend([self.empty_value] * (max_row_len - len(row)))
 
-        return table
+        return table, set()
 
     def _get_row_repeat(self, row) -> int:
         """

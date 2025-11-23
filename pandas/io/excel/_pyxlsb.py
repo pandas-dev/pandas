@@ -98,7 +98,9 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
         self,
         sheet,
         file_rows_needed: int | None = None,
-    ) -> list[list[Scalar]]:
+        *,
+        dtype_from_format: bool = False,
+    ) -> tuple[list[list[Scalar]], set[int]]:
         data: list[list[Scalar]] = []
         previous_row_number = -1
         # When sparse=True the rows can have different lengths and empty rows are
@@ -124,4 +126,4 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
                     data_row + (max_width - len(data_row)) * empty_cell
                     for data_row in data
                 ]
-        return data
+        return data, set()
