@@ -23,7 +23,11 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
 )
-from pandas._typing import TimestampNonexistent
+from pandas._typing import (
+    TimeAmbiguous,
+    TimeNonexistent,
+    TimestampNonexistent,
+)
 
 _TimeZones: TypeAlias = str | _tzinfo | None | int
 
@@ -191,7 +195,11 @@ class Timestamp(datetime):
         ambiguous: bool | Literal["raise", "NaT"] = ...,
         nonexistent: TimestampNonexistent = ...,
     ) -> Self: ...
-    def normalize(self) -> Self: ...
+    def normalize(
+        self,
+        ambiguous: TimeAmbiguous = ...,
+        nonexistent: TimeNonexistent = ...,
+    ) -> Self: ...
     # TODO: round/floor/ceil could return NaT?
     def round(
         self,
