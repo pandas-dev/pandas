@@ -1039,3 +1039,27 @@ class TestSetOpsMutation:
 
         assert result.name == "original"
         assert index2.name == "changed"
+
+    def test_multiindex_intersection_mutation_safety(self):
+        # GH#63169
+        mi1 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+        mi2 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+
+        result = mi1.intersection(mi2)
+        assert result is not mi1
+
+        mi1.names = ["changed1", "changed2"]
+        assert result.names == ["x", "y"]
+
+    def test_multiindex_union_mutation_safety(self):
+        # GH#63169
+        mi1 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+        mi2 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+
+        result = mi1.union(mi2)
+        assert result is not mi1
+
+        mi1.names = ["changed1", "changed2"]
+        assert result.names == ["x", "y"]
+
+
