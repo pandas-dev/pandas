@@ -614,10 +614,10 @@ def sanitize_array(
             # GH#61026: special-case 2D+ object ndarrays when dtype is None.
             if data.dtype == object and data.ndim > 1:
                 if data.ndim == 2 and data.shape[1] == 1:
-                    # allow assigning a (n, 1) object array to a single column, flatten it:
+                    # allow assigning a (n, 1) object array to a single column.
                     data = data[:, 0]
                 elif data.ndim == 2:
-                    # More than one column but caller is behaving as if this is a single-column assignment.
+                    # more than 1 column, now allowed.
                     raise ValueError(
                         "Setting a DataFrame column with a 2D object array "
                         f"requires shape (n, 1); got shape {data.shape}."
@@ -628,7 +628,7 @@ def sanitize_array(
                         f"Setting a DataFrame column with ndim {data.ndim} "
                         "object array is not supported."
                     )
-            
+
             subarr = data
             if data.dtype == object and infer_object:
                 subarr = lib.maybe_convert_objects(
