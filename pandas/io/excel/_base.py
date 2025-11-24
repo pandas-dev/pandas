@@ -11,7 +11,6 @@ import datetime
 from decimal import Decimal
 from functools import partial
 import os
-from textwrap import fill
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -30,13 +29,12 @@ import zipfile
 from pandas._config import config
 
 from pandas._libs import lib
-from pandas._libs.parsers import STR_NA_VALUES
 from pandas.compat._optional import (
     get_version,
     import_optional_dependency,
 )
 from pandas.errors import EmptyDataError
-from pandas.util._decorators import (set_module)
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
@@ -50,7 +48,6 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas.core.frame import DataFrame
-from pandas.core.shared_docs import _shared_docs
 from pandas.util.version import Version
 
 from pandas.io.common import (
@@ -254,13 +251,13 @@ def read_excel(
     usecols : str, list-like, or callable, default None
         * If None, then parse all columns.
         * If str, then indicates comma separated list of Excel column letters
-        and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
-        both sides.
+            and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
+            both sides.
         * If list of int, then indicates list of column numbers to be parsed
         (0-indexed).
         * If list of string, then indicates list of column names to be parsed.
         * If callable, then evaluate each column name against it and parse the
-        column if the callable returns ``True``.
+            column if the callable returns ``True``.
 
         Returns a subset of the columns according to behavior above.
     dtype : Type name or dict of column -> type, default None
@@ -318,11 +315,11 @@ def read_excel(
         * If ``keep_default_na`` is True, and ``na_values`` are specified,
         ``na_values`` is appended to the default NaN values used for parsing.
         * If ``keep_default_na`` is True, and ``na_values`` are not specified, only
-        the default NaN values are used for parsing.
+            the default NaN values are used for parsing.
         * If ``keep_default_na`` is False, and ``na_values`` are specified, only
-        the NaN values specified ``na_values`` are used for parsing.
+            the NaN values specified ``na_values`` are used for parsing.
         * If ``keep_default_na`` is False, and ``na_values`` are not specified, no
-        strings will be parsed as NaN.
+            strings will be parsed as NaN.
 
         Note that if `na_filter` is passed in as False, the ``keep_default_na`` and
         ``na_values`` parameters will be ignored.
@@ -436,14 +433,13 @@ def read_excel(
     --------
     The file can be read using the file name as string or an open file object:
 
-    >>> pd.read_excel('tmp.xlsx', index_col=0)  # doctest: +SKIP
+    >>> pd.read_excel("tmp.xlsx", index_col=0)  # doctest: +SKIP
         Name  Value
     0   string1      1
     1   string2      2
     2  #Comment      3
 
-    >>> pd.read_excel(open('tmp.xlsx', 'rb'),
-    ...               sheet_name='Sheet3')  # doctest: +SKIP
+    >>> pd.read_excel(open("tmp.xlsx", "rb"), sheet_name="Sheet3")  # doctest: +SKIP
     Unnamed: 0      Name  Value
     0           0   string1      1
     1           1   string2      2
@@ -451,7 +447,7 @@ def read_excel(
 
     Index and header can be specified via the `index_col` and `header` arguments
 
-    >>> pd.read_excel('tmp.xlsx', index_col=None, header=None)  # doctest: +SKIP
+    >>> pd.read_excel("tmp.xlsx", index_col=None, header=None)  # doctest: +SKIP
         0         1      2
     0  NaN      Name  Value
     1  0.0   string1      1
@@ -460,8 +456,9 @@ def read_excel(
 
     Column types are inferred but can be explicitly specified
 
-    >>> pd.read_excel('tmp.xlsx', index_col=0,
-    ...               dtype={'Name': str, 'Value': float})  # doctest: +SKIP
+    >>> pd.read_excel(
+    ...     "tmp.xlsx", index_col=0, dtype={"Name": str, "Value": float}
+    ... )  # doctest: +SKIP
         Name  Value
     0   string1    1.0
     1   string2    2.0
@@ -471,8 +468,9 @@ def read_excel(
     but can be explicitly specified, too. Supply the values you would like
     as strings or lists of strings!
 
-    >>> pd.read_excel('tmp.xlsx', index_col=0,
-    ...               na_values=['string1', 'string2'])  # doctest: +SKIP
+    >>> pd.read_excel(
+    ...     "tmp.xlsx", index_col=0, na_values=["string1", "string2"]
+    ... )  # doctest: +SKIP
         Name  Value
     0       NaN      1
     1       NaN      2
@@ -481,7 +479,7 @@ def read_excel(
     Comment lines in the excel input file can be skipped using the
     ``comment`` kwarg.
 
-    >>> pd.read_excel('tmp.xlsx', index_col=0, comment='#')  # doctest: +SKIP
+    >>> pd.read_excel("tmp.xlsx", index_col=0, comment="#")  # doctest: +SKIP
         Name  Value
     0  string1    1.0
     1  string2    2.0
