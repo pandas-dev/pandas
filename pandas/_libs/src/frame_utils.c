@@ -30,7 +30,6 @@ int is_local_in_caller_frame_impl(PyObject *object) {
   }
 
   int result = 0;
-  Py_ssize_t pos = 0;
   PyObject *values = PyMapping_Values(locals_dict);
   if (values == NULL) {
     Py_DECREF(locals_dict);
