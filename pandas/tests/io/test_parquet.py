@@ -198,6 +198,8 @@ def check_round_trip(
     repeat: int, optional
         How many times to repeat the test
     """
+    if not isinstance(temp_file, pathlib.Path):
+        raise ValueError("temp_file must be a pathlib.Path")
     write_kwargs = write_kwargs or {"compression": None}
     read_kwargs = read_kwargs or {}
 
@@ -396,9 +398,11 @@ class TestBasic(Base):
         check_round_trip(df, temp_file, engine)
 
     @pytest.mark.parametrize("compression", [None, "gzip", "snappy", "brotli"])
-    def test_compression(self, engine, compression):
+    def test_compression(self, engine, compression, temp_file):
         df = pd.DataFrame({"A": [1, 2, 3]})
-        check_round_trip(df, engine, write_kwargs={"compression": compression})
+        check_round_trip(
+            df, temp_file, engine, write_kwargs={"compression": compression}
+        )
 
     def test_read_columns(self, engine, temp_file):
         # GH18154
@@ -424,8 +428,8 @@ class TestBasic(Base):
         expected = pd.DataFrame({"int": [0, 1]})
         check_round_trip(
             df,
+            tmp_path,
             engine,
-            path=tmp_path,
             expected=expected,
             write_kwargs={"partition_cols": ["part"]},
             read_kwargs={"filters": [("part", "==", "a")], "columns": ["int"]},
@@ -705,7 +709,6 @@ class TestBasic(Base):
 
 
 class TestParquetPyArrow(Base):
-    @pytest.mark.xfail(reason="datetime_with_nat unit doesn't round-trip")
     def test_basic(self, pa, df_full, temp_file):
         df = df_full
         pytest.importorskip("pyarrow", "11.0.0")
@@ -743,7 +746,7 @@ class TestParquetPyArrow(Base):
 
         expected = df_full.copy()
         expected.loc[1, "string_with_nan"] = None
-        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype("M8[ms]")
+        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype("M8[us]")
         tm.assert_frame_equal(res, expected)
 
     def test_duplicate_columns(self, pa, temp_file):
@@ -1056,7 +1059,7 @@ class TestParquetPyArrow(Base):
         pa_table = pyarrow.Table.from_pandas(df)
         expected = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
         expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
-            "timestamp[ms][pyarrow]"
+            "timestamp[us][pyarrow]"
         )
 
         check_round_trip(

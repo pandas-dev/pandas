@@ -22,14 +22,14 @@ import pandas._testing as tm
             "category": Categorical(["X", "Y", "Z"]),
             "object": ["a", "b", "c"],
             "datetime64[s]": [
-                pd.Timestamp("2011-01-01"),
-                pd.Timestamp("2011-01-02"),
-                pd.Timestamp("2011-01-03"),
+                pd.Timestamp("2011-01-01").as_unit("s"),
+                pd.Timestamp("2011-01-02").as_unit("s"),
+                pd.Timestamp("2011-01-03").as_unit("s"),
             ],
             "datetime64[s, US/Eastern]": [
-                pd.Timestamp("2011-01-01", tz="US/Eastern"),
-                pd.Timestamp("2011-01-02", tz="US/Eastern"),
-                pd.Timestamp("2011-01-03", tz="US/Eastern"),
+                pd.Timestamp("2011-01-01", tz="US/Eastern").as_unit("s"),
+                pd.Timestamp("2011-01-02", tz="US/Eastern").as_unit("s"),
+                pd.Timestamp("2011-01-03", tz="US/Eastern").as_unit("s"),
             ],
             "timedelta64[ns]": [
                 pd.Timedelta("1 days"),

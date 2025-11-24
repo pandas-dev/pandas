@@ -88,6 +88,7 @@ if TYPE_CHECKING:
         IntervalClosedType,
         TimeAmbiguous,
         TimeNonexistent,
+        TimeUnit,
         npt,
     )
 
@@ -219,8 +220,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     ... )
     <DatetimeArray>
     ['2023-01-01 00:00:00', '2023-01-02 00:00:00']
-    Length: 2, dtype: datetime64[s]
+    Length: 2, dtype: datetime64[us]
     """
+
+    __module__ = "pandas.arrays"
 
     _typ = "datetimearray"
     _internal_fill_value = np.datetime64("NaT", "ns")
@@ -394,7 +397,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         result = cls._simple_new(subarr, freq=inferred_freq, dtype=data_dtype)
         if unit is not None and unit != result.unit:
             # If unit was specified in user-passed dtype, cast to it here
-            result = result.as_unit(unit)
+            # error: Argument 1 to "as_unit" of "TimelikeOps" has
+            # incompatible type "str"; expected "Literal['s', 'ms', 'us', 'ns']"
+            # [arg-type]
+            result = result.as_unit(unit)  # type: ignore[arg-type]
 
         validate_kwds = {"ambiguous": ambiguous}
         result._maybe_pin_freq(freq, validate_kwds)
@@ -413,7 +419,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         nonexistent: TimeNonexistent = "raise",
         inclusive: IntervalClosedType = "both",
         *,
-        unit: str | None = None,
+        unit: TimeUnit = "ns",
     ) -> Self:
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -534,7 +540,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             raise ValueError("'value' should be a Timestamp.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.datetime64(value._value, self.unit)  # type: ignore[call-overload]
+            return np.datetime64(value._value, self.unit)
         else:
             return value.as_unit(self.unit, round_ok=False).asm8
 
@@ -606,7 +612,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.tz
         datetime.timezone.utc
 
@@ -1199,7 +1205,7 @@ default 'raise'
         ----------
         freq : str or Period, optional
             One of pandas' :ref:`period aliases <timeseries.period_aliases>`
-            or an Period object. Will be inferred by default.
+            or a Period object. Will be inferred by default.
 
         Returns
         -------
@@ -1435,7 +1441,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.time
         0    10:00:00
         1    11:00:00
@@ -1478,7 +1484,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.timetz
         0    10:00:00+00:00
         1    11:00:00+00:00
@@ -1520,7 +1526,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.date
         0    2020-01-01
         1    2020-02-01
@@ -1869,7 +1875,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.dayofyear
         0    1
         1   32
@@ -1905,7 +1911,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-04-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.quarter
         0    1
         1    2
@@ -1941,7 +1947,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[s, UTC]
+        dtype: datetime64[us, UTC]
         >>> s.dt.daysinmonth
         0    31
         1    29
@@ -2281,7 +2287,7 @@ default 'raise'
         month[testarr] += 12
         return (
             day
-            + np.fix((153 * month - 457) / 5)
+            + np.trunc((153 * month - 457) / 5)
             + 365 * year
             + np.floor(year / 4)
             - np.floor(year / 100)

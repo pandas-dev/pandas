@@ -167,21 +167,6 @@ class StringDtype(StorageExtensionDtype):
                 else:
                     storage = "python"
 
-        if storage == "pyarrow_numpy":
-            # TODO: Enforce in 3.0 (#60152)
-            warnings.warn(
-                "The 'pyarrow_numpy' storage option name is deprecated and will be "
-                'removed in pandas 3.0. Use \'pd.StringDtype(storage="pyarrow", '
-                "na_value=np.nan)' to construct the same dtype.\nOr enable the "
-                "'pd.options.future.infer_string = True' option globally and use "
-                'the "str" alias as a shorthand notation to specify a dtype '
-                '(instead of "string[pyarrow_numpy]").',
-                FutureWarning,  # pdlint: ignore[warning_class]
-                stacklevel=find_stack_level(),
-            )
-            storage = "pyarrow"
-            na_value = np.nan
-
         # validate options
         if storage not in {"python", "pyarrow"}:
             raise ValueError(
@@ -280,9 +265,6 @@ class StringDtype(StorageExtensionDtype):
             return cls(storage="python")
         elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
-        elif string == "string[pyarrow_numpy]":
-            # this is deprecated in the dtype __init__, remove this in pandas 3.0
-            return cls(storage="pyarrow_numpy")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
@@ -591,9 +573,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
            :meth:`pandas.array` with ``dtype="string"`` for a stable way of
            creating a `StringArray` from any sequence.
 
-        .. versionchanged:: 1.5.0
-
-           StringArray now accepts array-likes containing
+           StringArray accepts array-likes containing
            nan-likes(``None``, ``np.nan``) for the ``values`` parameter
            in addition to strings and :attr:`pandas.NA`
 
@@ -650,6 +630,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     [True, <NA>, False]
     Length: 3, dtype: boolean
     """
+
+    __module__ = "pandas.arrays"
 
     # undo the NumpyExtensionArray hack
     _typ = "extension"
@@ -820,6 +802,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return value
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         value = self._maybe_convert_setitem_value(value)
 
         key = check_array_indexer(self, key)
@@ -1112,6 +1097,16 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             if not is_array_like(other):
                 other = np.asarray(other)
             other = other[valid]
+
+        other_dtype = getattr(other, "dtype", None)
+        if op.__name__.strip("_") in ["mul", "rmul"] and (
+            lib.is_bool(other) or lib.is_np_dtype(other_dtype, "b")
+        ):
+            # GH#62595
+            raise TypeError(
+                "Cannot multiply StringArray by bools. "
+                "Explicitly cast to integers instead."
+            )
 
         if op.__name__ in ops.ARITHMETIC_BINOPS:
             result = np.empty_like(self._ndarray, dtype="object")

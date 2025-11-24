@@ -35,7 +35,10 @@ from pandas._typing import (
     TakeIndexer,
     npt,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -325,6 +328,7 @@ def unique(values: T) -> T: ...
 def unique(values: np.ndarray | Series) -> np.ndarray: ...
 
 
+@set_module("pandas")
 def unique(values):
     """
     Return unique values based on a hash table.
@@ -366,7 +370,7 @@ def unique(values):
     array([2, 1])
 
     >>> pd.unique(pd.Series([pd.Timestamp("20160101"), pd.Timestamp("20160101")]))
-    array(['2016-01-01T00:00:00'], dtype='datetime64[s]')
+    array(['2016-01-01T00:00:00.000000'], dtype='datetime64[us]')
 
     >>> pd.unique(
     ...     pd.Series(
@@ -649,6 +653,7 @@ def factorize_array(
     return codes, uniques
 
 
+@set_module("pandas")
 @doc(
     values=dedent(
         """\
@@ -692,8 +697,6 @@ def factorize(
         If True, the sentinel -1 will be used for NaN values. If False,
         NaN values will be encoded as non-negative integers and will not drop the
         NaN from the uniques of the values.
-
-        .. versionadded:: 1.5.0
     {size_hint}\
 
     Returns
@@ -863,8 +866,10 @@ def value_counts_internal(
     dropna: bool = True,
 ) -> Series:
     from pandas import (
+        DatetimeIndex,
         Index,
         Series,
+        TimedeltaIndex,
     )
 
     index_name = getattr(values, "name", None)
@@ -929,6 +934,17 @@ def value_counts_internal(
             # Starting in 3.0, we no longer perform dtype inference on the
             #  Index object we construct here, xref GH#56161
             idx = Index(keys, dtype=keys.dtype, name=index_name)
+
+            if (
+                bins is None
+                and not sort
+                and isinstance(values, (DatetimeIndex, TimedeltaIndex))
+                and idx.equals(values)
+                and values.inferred_freq is not None
+            ):
+                # Preserve freq of original index
+                idx.freq = values.inferred_freq  # type: ignore[attr-defined]
+
             result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
@@ -1111,6 +1127,7 @@ def rank(
 # ---- #
 
 
+@set_module("pandas.api.extensions")
 def take(
     arr,
     indices: TakeIndexer,
@@ -1684,7 +1701,7 @@ def map_array(
             ]
         else:
             # Dictionary does not have a default. Thus it's safe to
-            # convert to an Series for efficiency.
+            # convert to a Series for efficiency.
             # we specify the keys here to handle the
             # possibility that they are tuples
 
