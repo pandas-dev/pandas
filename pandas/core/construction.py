@@ -617,7 +617,7 @@ def sanitize_array(
                     # allow assigning a (n, 1) object array to a single column.
                     data = data[:, 0]
                 elif data.ndim == 2:
-                    # more than 1 column, now allowed.
+                    # more than 1 column, not allowed.
                     raise ValueError(
                         "Setting a DataFrame column with a 2D object array "
                         f"requires shape (n, 1); got shape {data.shape}."
