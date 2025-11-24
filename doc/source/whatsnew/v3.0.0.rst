@@ -378,6 +378,8 @@ In cases with mixed-resolution inputs, the highest resolution is used:
 
 .. warning:: Many users will now get "M8[us]" dtype data in cases when they used to get "M8[ns]". For most use cases they should not notice a difference. One big exception is converting to integers, which will give integers 1000x smaller.
 
+Similarly, the :class:`Timedelta` constructor and :func:`to_timedelta` with a string input now defaults to a microsecond unit, using nanosecond unit only in cases that actually have nanosecond precision.
+
 .. _whatsnew_300.api_breaking.concat_datetime_sorting:
 
 :func:`concat` no longer ignores ``sort`` when all objects have a :class:`DatetimeIndex`

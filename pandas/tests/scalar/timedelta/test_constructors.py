@@ -271,12 +271,12 @@ def test_construction():
     expected = np.timedelta64(10, "D").astype("m8[ns]").view("i8")
     assert Timedelta(10, unit="D")._value == expected
     assert Timedelta(10.0, unit="D")._value == expected
-    assert Timedelta("10 days")._value == expected
+    assert Timedelta("10 days")._value == expected // 1000
     assert Timedelta(days=10)._value == expected
     assert Timedelta(days=10.0)._value == expected
 
     expected += np.timedelta64(10, "s").astype("m8[ns]").view("i8")
-    assert Timedelta("10 days 00:00:10")._value == expected
+    assert Timedelta("10 days 00:00:10")._value == expected // 1000
     assert Timedelta(days=10, seconds=10)._value == expected
     assert Timedelta(days=10, milliseconds=10 * 1000)._value == expected
     assert Timedelta(days=10, microseconds=10 * 1000 * 1000)._value == expected
@@ -434,7 +434,7 @@ def test_td_construction_with_np_dtypes(npdtype, item):
 def test_td_from_repr_roundtrip(val):
     # round-trip both for string and value
     td = Timedelta(val)
-    assert Timedelta(td._value) == td
+    assert Timedelta(td.value) == td
 
     assert Timedelta(str(td)) == td
     assert Timedelta(td._repr_base(format="all")) == td
@@ -443,7 +443,7 @@ def test_td_from_repr_roundtrip(val):
 
 def test_overflow_on_construction():
     # GH#3374
-    value = Timedelta("1day")._value * 20169940
+    value = Timedelta("1day").as_unit("ns")._value * 20169940
     msg = "Cannot cast 1742682816000000000000 from ns to 'ns' without overflow"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         Timedelta(value)
@@ -705,3 +705,17 @@ def test_non_nano_value():
     # check that the suggested workaround actually works
     result = td.asm8.view("i8")
     assert result == 86400000000
+
+
+def test_parsed_unit():
+    td = Timedelta("1 Day")
+    assert td.unit == "us"
+
+    td = Timedelta("1 Day 2 hours 3 minutes 4 ns")
+    assert td.unit == "ns"
+
+    td = Timedelta("1 Day 2:03:04.012345")
+    assert td.unit == "us"
+
+    td = Timedelta("1 Day 2:03:04.012345123")
+    assert td.unit == "ns"

@@ -440,7 +440,7 @@ class TestTimedeltaMultiplicationDivision:
 
         msg = (
             "ufunc '?multiply'? cannot use operands with types "
-            rf"dtype\('{tm.ENDIAN}m8\[ns\]'\) and dtype\('{tm.ENDIAN}m8\[ns\]'\)"
+            rf"dtype\('{tm.ENDIAN}m8\[us\]'\) and dtype\('{tm.ENDIAN}m8\[us\]'\)"
         )
         with pytest.raises(TypeError, match=msg):
             td * other
