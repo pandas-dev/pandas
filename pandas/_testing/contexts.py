@@ -13,8 +13,8 @@ from typing import (
 import uuid
 
 from pandas.compat import (
-    CHAINED_WARNING_DISABLED,
-    CHAINED_WARNING_DISABLED_INPLACE_METHOD,
+    PYPY,
+    WARNING_CHECK_DISABLED,
 )
 from pandas.errors import ChainedAssignmentError
 
@@ -163,18 +163,10 @@ def with_csv_dialect(name: str, **kwargs) -> Generator[None]:
         csv.unregister_dialect(name)
 
 
-def raises_chained_assignment_error(
-    extra_warnings=(), extra_match=(), inplace_method=False
-):
+def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
     from pandas._testing import assert_produces_warning
 
-    WARNING_DISABLED = (
-        CHAINED_WARNING_DISABLED_INPLACE_METHOD
-        if inplace_method
-        else CHAINED_WARNING_DISABLED
-    )
-
-    if WARNING_DISABLED:
+    if PYPY or WARNING_CHECK_DISABLED:
         if not extra_warnings:
             from contextlib import nullcontext
 
