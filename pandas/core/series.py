@@ -37,6 +37,7 @@ from pandas._libs.lib import is_range_indexer
 from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
     REF_COUNT,
+    REF_COUNT_METHOD,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -3354,9 +3355,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: int64
         """
         if not CHAINED_WARNING_DISABLED:
-            if sys.getrefcount(self) < REF_COUNT and not lib.is_local_in_caller_frame(
+            if sys.getrefcount(
                 self
-            ):
+            ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,

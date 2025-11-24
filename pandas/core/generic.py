@@ -84,7 +84,7 @@ from pandas._typing import (
 )
 from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
-    REF_COUNT,
+    REF_COUNT_METHOD,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -7084,7 +7084,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7333,7 +7333,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7475,7 +7475,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7562,7 +7562,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7927,7 +7927,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -8584,7 +8584,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -10221,7 +10221,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -10287,7 +10287,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) < REF_COUNT and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
