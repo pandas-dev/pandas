@@ -1059,7 +1059,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def __setitem__(self, key, value) -> None:
         if not CHAINED_WARNING_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT and not lib.is_local_in_caller_frame(
+            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
                 self
             ):
                 warnings.warn(
@@ -3357,7 +3357,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if not CHAINED_WARNING_DISABLED:
             if sys.getrefcount(
                 self
-            ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
+            ) <= REF_COUNT_METHOD and not com.is_local_in_caller_frame(self):
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,

@@ -7084,7 +7084,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7333,7 +7333,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7475,7 +7475,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7562,7 +7562,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7927,7 +7927,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -8584,7 +8584,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -10221,7 +10221,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -10287,7 +10287,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not CHAINED_WARNING_DISABLED:
                 if sys.getrefcount(
                     self
-                ) <= REF_COUNT_METHOD and not lib.is_local_in_caller_frame(self):
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
