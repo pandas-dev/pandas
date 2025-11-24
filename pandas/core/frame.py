@@ -5501,7 +5501,28 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
             return _reindex_for_setitem(value, self.index)
 
         if is_list_like(value):
+            # GH#61026: this method is only used for *single-column* assignment.
+            # Reject 2D/3D arrays here, except the (n, 1) case which we treat as 1D.
+            if isinstance(value, np.ndarray) and value.ndim > 1:
+                if value.ndim == 2:
+                    if value.shape[1] == 1:
+                        # (n, 1) → length-n 1D array
+                        value = value[:, 0]
+                    else:
+                        # More than one column: users should use df[[...]] = value
+                        raise ValueError(
+                            "Setting a DataFrame column with a 2D array requires "
+                            f"shape (n, 1); got shape {value.shape}."
+                        )
+                else:
+                    # ndim >= 3
+                    raise ValueError(
+                        f"Setting a DataFrame column with ndim {value.ndim} "
+                        "array is not supported."
+                    )
+
             com.require_length_match(value, self.index)
+
         return sanitize_array(value, self.index, copy=True, allow_2d=True), None
 
     @property

@@ -566,14 +566,6 @@ def sanitize_array(
     # extract ndarray or ExtensionArray, ensure we have no NumpyExtensionArray
     data = extract_array(data, extract_numpy=True, extract_range=True)
 
-    # GH#61026: when 2D input is allowed (e.g. DataFrame column assignment),
-    # treat a (n, 1) numpy array as a 1D array of length n so downstream code
-    # (including pyarrow-backed StringArray) always sees 1D.
-    if allow_2d and isinstance(data, np.ndarray) and data.ndim == 2:
-        rows, cols = data.shape
-        if cols == 1:
-            data = data[:, 0]
-
     if isinstance(data, np.ndarray) and data.ndim == 0:
         if dtype is None:
             dtype = data.dtype
@@ -619,24 +611,6 @@ def sanitize_array(
             data = data.A
 
         if dtype is None:
-            # GH#61026: special-case 2D+ object ndarrays when dtype is None.
-            if allow_2d and data.dtype == object and data.ndim > 1:
-                if data.ndim == 2 and data.shape[1] == 1:
-                    # allow assigning a (n, 1) object array to a single column.
-                    data = data[:, 0]
-                elif data.ndim == 2:
-                    # more than 1 column, not allowed.
-                    raise ValueError(
-                        "Setting a DataFrame column with a 2D object array "
-                        f"requires shape (n, 1); got shape {data.shape}."
-                    )
-                else:
-                    # ndim >= 3
-                    raise ValueError(
-                        f"Setting a DataFrame column with ndim {data.ndim} "
-                        "object array is not supported."
-                    )
-
             subarr = data
             if data.dtype == object and infer_object:
                 subarr = lib.maybe_convert_objects(
