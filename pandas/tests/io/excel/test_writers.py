@@ -1524,6 +1524,7 @@ class TestExcelWriter:
             result = pd.read_excel(reader, index_col=0, header=[0, 1])
 
         tm.assert_numpy_array_equal(result.to_numpy(), df.to_numpy())
+
     @pytest.mark.parametrize("with_index", [True, False])
     def test_autofilter(self, engine, with_index, tmp_excel):
         # GH 61194
