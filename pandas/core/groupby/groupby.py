@@ -642,6 +642,11 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Safe get multiple indices, translate keys for
         datelike to underlying repr.
         """
+        assert len(names) == 1
+        if isna(names[0]):
+            return [self.indices.get(np.nan, [])]
+        if isinstance(names[0], tuple):
+            names[0] = tuple(np.nan if isna(comp) else comp for comp in names[0])
 
         def get_converter(s):
             # possibly convert to the actual key types
