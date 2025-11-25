@@ -31,7 +31,10 @@ from pandas._libs.sparse import (
 from pandas._libs.tslibs import NaT
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
@@ -289,6 +292,7 @@ def _wrap_result(
     )
 
 
+@set_module("pandas.arrays")
 class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
     An ExtensionArray for storing sparse data.
@@ -369,8 +373,6 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     IntIndex
     Indices: array([2, 3], dtype=int32)
     """
-
-    __module__ = "pandas.arrays"
 
     _subtyp = "sparse_array"  # register ABCSparseArray
     _hidden_attrs = PandasObject._hidden_attrs | frozenset([])
@@ -1286,7 +1288,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         IntIndex
         Indices: array([2, 3], dtype=int32)
 
-        >>> arr.astype(SparseDtype(np.dtype("int32")))
+        >>> arr.astype(pd.SparseDtype(np.dtype("int32")))
         [0, 0, 1, 2]
         Fill: 0
         IntIndex
@@ -1295,7 +1297,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         Using a NumPy dtype with a different kind (e.g. float) will coerce
         just ``self.sp_values``.
 
-        >>> arr.astype(SparseDtype(np.dtype("float64")))
+        >>> arr.astype(pd.SparseDtype(np.dtype("float64")))
         ... # doctest: +NORMALIZE_WHITESPACE
         [nan, nan, 1.0, 2.0]
         Fill: nan
@@ -1304,7 +1306,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         Using a SparseDtype, you can also change the fill value as well.
 
-        >>> arr.astype(SparseDtype("float64", fill_value=0.0))
+        >>> arr.astype(pd.SparseDtype("float64", fill_value=0.0))
         ... # doctest: +NORMALIZE_WHITESPACE
         [0.0, 0.0, 1.0, 2.0]
         Fill: 0.0

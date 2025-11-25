@@ -12,7 +12,10 @@ import warnings
 
 import numpy as np
 
-from pandas._config import is_nan_na
+from pandas._config import (
+    is_nan_na,
+    using_python_scalars,
+)
 
 from pandas._libs import (
     algos as libalgos,
@@ -28,7 +31,10 @@ from pandas.errors import AbstractMethodError
 
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    maybe_downcast_to_dtype,
+    maybe_unbox_numpy_scalar,
+)
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer_dtype,
@@ -1534,7 +1540,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if isna(result):
                 return self._wrap_na_result(name=name, axis=0, mask_size=(1,))
             else:
-                result = result.reshape(1)
+                if using_python_scalars():
+                    result = np.array([result])
+                else:
+                    result = result.reshape(1)
                 mask = np.zeros(1, dtype=bool)
                 return self._maybe_mask_result(result, mask)
 
@@ -1730,25 +1739,25 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         skips NAs):
 
         >>> pd.array([True, False, True]).any()
-        np.True_
+        True
         >>> pd.array([True, False, pd.NA]).any()
-        np.True_
+        True
         >>> pd.array([False, False, pd.NA]).any()
-        np.False_
+        False
         >>> pd.array([], dtype="boolean").any()
-        np.False_
+        False
         >>> pd.array([pd.NA], dtype="boolean").any()
-        np.False_
+        False
         >>> pd.array([pd.NA], dtype="Float64").any()
-        np.False_
+        False
 
         With ``skipna=False``, the result can be NA if this is logically
         required (whether ``pd.NA`` is True or False influences the result):
 
         >>> pd.array([True, False, pd.NA]).any(skipna=False)
-        np.True_
+        True
         >>> pd.array([1, 0, pd.NA]).any(skipna=False)
-        np.True_
+        True
         >>> pd.array([False, False, pd.NA]).any(skipna=False)
         <NA>
         >>> pd.array([0, 0, pd.NA]).any(skipna=False)
@@ -1758,7 +1767,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         values = self._data.copy()
         np.putmask(values, self._mask, self.dtype._falsey_value)
-        result = values.any()
+        result = maybe_unbox_numpy_scalar(values.any())
         if skipna:
             return result
         else:
@@ -1816,17 +1825,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         skips NAs):
 
         >>> pd.array([True, True, pd.NA]).all()
-        np.True_
+        True
         >>> pd.array([1, 1, pd.NA]).all()
-        np.True_
+        True
         >>> pd.array([True, False, pd.NA]).all()
-        np.False_
+        False
         >>> pd.array([], dtype="boolean").all()
-        np.True_
+        True
         >>> pd.array([pd.NA], dtype="boolean").all()
-        np.True_
+        True
         >>> pd.array([pd.NA], dtype="Float64").all()
-        np.True_
+        True
 
         With ``skipna=False``, the result can be NA if this is logically
         required (whether ``pd.NA`` is True or False influences the result):
@@ -1836,21 +1845,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> pd.array([1, 1, pd.NA]).all(skipna=False)
         <NA>
         >>> pd.array([True, False, pd.NA]).all(skipna=False)
-        np.False_
+        False
         >>> pd.array([1, 0, pd.NA]).all(skipna=False)
-        np.False_
+        False
         """
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
         np.putmask(values, self._mask, self.dtype._truthy_value)
-        result = values.all(axis=axis)
+        result = maybe_unbox_numpy_scalar(values.all(axis=axis))
 
         if skipna:
-            return result  # type: ignore[return-value]
+            return result
         else:
             if not result or len(self) == 0 or not self._mask.any():
-                return result  # type: ignore[return-value]
+                return result
             else:
                 return self.dtype.na_value
 

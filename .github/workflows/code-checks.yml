@@ -57,7 +57,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
 
     - name: Run doctests
-      run: cd ci && ./code_checks.sh doctests
+      run: cd ci && PANDAS_FUTURE_PYTHON_SCALARS="1" ./code_checks.sh doctests
       if: ${{ steps.build.outcome == 'success' && always() }}
 
     - name: Install pandas in editable mode

@@ -58,7 +58,10 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import coerce_indexer_dtype
+from pandas.core.dtypes.cast import (
+    coerce_indexer_dtype,
+    maybe_unbox_numpy_scalar,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -1851,9 +1854,9 @@ class MultiIndex(Index):
         Get level values by supplying level as either integer or name:
 
         >>> mi.get_level_values(0)
-        Index(['a', 'b', 'c'], dtype='object', name='level_1')
+        Index(['a', 'b', 'c'], dtype='str', name='level_1')
         >>> mi.get_level_values("level_2")
-        Index(['d', 'e', 'f'], dtype='object', name='level_2')
+        Index(['d', 'e', 'f'], dtype='str', name='level_2')
 
         If a level contains missing values, the return type of the level
         may be cast to ``float``.
@@ -2481,7 +2484,9 @@ class MultiIndex(Index):
         --------
         >>> midx = pd.MultiIndex.from_arrays([[3, 2], ["e", "c"]])
         >>> midx
-        MultiIndex([(3, 'e'), (2, 'c')])
+        MultiIndex([(3, 'e'),
+                    (2, 'c')],
+                   )
 
         >>> order = midx.argsort()
         >>> order
@@ -3113,7 +3118,9 @@ class MultiIndex(Index):
         """
         if not isinstance(label, tuple):
             label = (label,)
-        return self._partial_tup_index(label, side=side)
+        result = self._partial_tup_index(label, side=side)
+        result = maybe_unbox_numpy_scalar(result)
+        return result
 
     def slice_locs(self, start=None, end=None, step=None) -> tuple[int, int]:
         """
@@ -3418,10 +3425,10 @@ class MultiIndex(Index):
         >>> mi = pd.MultiIndex.from_arrays([list("abb"), list("def")], names=["A", "B"])
 
         >>> mi.get_loc_level("b")
-        (slice(1, 3, None), Index(['e', 'f'], dtype='object', name='B'))
+        (slice(1, 3, None), Index(['e', 'f'], dtype='str', name='B'))
 
         >>> mi.get_loc_level("e", level="B")
-        (array([False,  True, False]), Index(['b'], dtype='object', name='A'))
+        (array([False,  True, False]), Index(['b'], dtype='str', name='A'))
 
         >>> mi.get_loc_level(["b", "e"])
         (1, None)
@@ -3700,7 +3707,7 @@ class MultiIndex(Index):
             if start == end:
                 # The label is present in self.levels[level] but unused:
                 raise KeyError(key)
-            return slice(start, end)
+            return slice(maybe_unbox_numpy_scalar(start), maybe_unbox_numpy_scalar(end))
 
     def get_locs(self, seq) -> npt.NDArray[np.intp]:
         """
