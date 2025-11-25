@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    cast,
 )
 
 import numpy as np
@@ -49,6 +50,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeObj,
         IntervalLeftRight,
+        TimeUnit,
     )
 
 
@@ -412,7 +414,7 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
             # error: Argument 1 to "dtype_to_unit" has incompatible type
             # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
             unit = dtype_to_unit(x_idx.dtype)  # type: ignore[arg-type]
-            td = Timedelta(seconds=1).as_unit(unit)
+            td = Timedelta(seconds=1).as_unit(cast("TimeUnit", unit))
             # Use DatetimeArray/TimedeltaArray method instead of linspace
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
             # has no attribute "_generate_range"
@@ -595,6 +597,7 @@ def _format_labels(
         # error: Argument 1 to "dtype_to_unit" has incompatible type
         # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
         unit = dtype_to_unit(bins.dtype)  # type: ignore[arg-type]
+        unit = cast("TimeUnit", unit)
         formatter = lambda x: x
         adjust = lambda x: x - Timedelta(1, unit=unit).as_unit(unit)
     else:
