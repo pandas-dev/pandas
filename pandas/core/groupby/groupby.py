@@ -679,21 +679,32 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                     )
                     raise ValueError(msg) from err
 
-            converters = (get_converter(s) for s in index_sample)
+            has_nan = any(isna(n) for n in name_sample)
+
+            sample = name_sample if has_nan else index_sample
+            converters = (get_converter(s) for s in sample)
+
             names = (
                 tuple(f(n) for f, n in zip(converters, name, strict=True))
                 for name in names
             )
 
-        elif any(isna(k) for k in self.indices.keys()):
-            converters = [get_converter(name) for name in names]
-            names = (converter(name) for converter, name in zip(converters, names))
-
+            indices = self.indices
+            if not self.dropna and has_nan:
+                indices = {}
+                for k, v in self.indices.items():
+                    k = tuple(np.nan if isna(e) else e for e in k)
+                    indices[k] = v
         else:
-            converter = get_converter(index_sample)
+            has_nan = isna(name_sample)
+
+            convert_sample = name_sample if has_nan else index_sample
+            converter = get_converter(convert_sample)
             names = (converter(name) for name in names)
 
-        indices = {np.nan if isna(k) else k: v for k, v in self.indices.items()}
+            indices = self.indices
+            if not self.dropna and has_nan:
+                indices = {np.nan if isna(k) else k: v for k, v in indices.items()}
 
         return [indices.get(name, []) for name in names]
 
