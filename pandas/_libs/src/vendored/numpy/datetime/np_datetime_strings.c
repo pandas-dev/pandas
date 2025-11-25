@@ -742,6 +742,8 @@ hour:
 
     /* Invalidates the component if there is more than 2 digits */
     if (sublen > 0) {
+      if (substr[0] == 'Z')
+        goto parse_timezone;
       int has_sep = 0;
       int j = 0;
       for (j = 0; j < (sublen > 2 ? 2 : sublen); ++j) {
@@ -894,6 +896,8 @@ minute:
 
     /* Invalidates the component if there is more than 2 digits */
     if (sublen > 0) {
+      if (substr[0] == 'Z')
+        goto parse_timezone;
       int has_sep = 0;
       int j = 0;
       for (j = 0; j < (sublen > 2 ? 2 : sublen); ++j) {
