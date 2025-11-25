@@ -36,7 +36,6 @@ from pandas.errors import (
     NullFrequencyError,
 )
 from pandas.util._decorators import (
-    Appender,
     cache_readonly,
     doc,
 )
@@ -62,7 +61,6 @@ import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
-    _index_shared_docs,
 )
 from pandas.core.indexes.extension import NDArrayBackedExtensionIndex
 from pandas.core.indexes.range import RangeIndex
