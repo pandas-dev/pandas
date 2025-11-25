@@ -14,7 +14,6 @@ from pandas import (
     date_range,
     read_hdf,
 )
-from pandas.tests.io.pytables.common import ensure_clean_store
 
 from pandas.io.pytables import (
     Term,
@@ -24,14 +23,14 @@ from pandas.io.pytables import (
 pytestmark = [pytest.mark.single_cpu]
 
 
-def test_pass_spec_to_storer(setup_path):
+def test_pass_spec_to_storer(tmp_path, setup_path):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD"), dtype=object),
         index=Index([f"i-{i}" for i in range(30)], dtype=object),
     )
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(tmp_path / setup_path) as store:
         store.put("df", df)
         msg = (
             "cannot pass a column specification when reading a Fixed format "
@@ -47,19 +46,19 @@ def test_pass_spec_to_storer(setup_path):
             store.select("df", where=["columns=A"])
 
 
-def test_table_index_incompatible_dtypes(setup_path):
+def test_table_index_incompatible_dtypes(tmp_path, setup_path):
     df1 = DataFrame({"a": [1, 2, 3]})
     df2 = DataFrame({"a": [4, 5, 6]}, index=date_range("1/1/2000", periods=3))
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(tmp_path / setup_path) as store:
         store.put("frame", df1, format="table")
         msg = re.escape("incompatible kind in col [integer - datetime64[ns]]")
         with pytest.raises(TypeError, match=msg):
             store.put("frame", df2, format="table", append=True)
 
 
-def test_unimplemented_dtypes_table_columns(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_unimplemented_dtypes_table_columns(tmp_path, setup_path):
+    with HDFStore(tmp_path / setup_path) as store:
         dtypes = [("date", datetime.date(2001, 1, 2))]
 
         # currently not supported dtypes ####
@@ -85,7 +84,7 @@ def test_unimplemented_dtypes_table_columns(setup_path):
     df["datetime1"] = datetime.date(2001, 1, 2)
     df = df._consolidate()
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(tmp_path / setup_path) as store:
         # this fails because we have a date in the object block......
         msg = "|".join(
             [
@@ -101,7 +100,7 @@ def test_unimplemented_dtypes_table_columns(setup_path):
 
 
 def test_invalid_terms(tmp_path, setup_path):
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(tmp_path / setup_path) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD"), dtype=object),
@@ -162,14 +161,14 @@ def test_invalid_terms(tmp_path, setup_path):
         read_hdf(path, "dfq", where="A>0 or C>0")
 
 
-def test_append_with_diff_col_name_types_raises_value_error(setup_path):
+def test_append_with_diff_col_name_types_raises_value_error(tmp_path, setup_path):
     df = DataFrame(np.random.default_rng(2).standard_normal((10, 1)))
     df2 = DataFrame({"a": np.random.default_rng(2).standard_normal(10)})
     df3 = DataFrame({(1, 2): np.random.default_rng(2).standard_normal(10)})
     df4 = DataFrame({("1", 2): np.random.default_rng(2).standard_normal(10)})
     df5 = DataFrame({("1", 2, object): np.random.default_rng(2).standard_normal(10)})
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(tmp_path / setup_path) as store:
         name = "df_diff_valerror"
         store.append(name, df)
 
