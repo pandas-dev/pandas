@@ -662,7 +662,7 @@ class BaseGrouper:
                 result = {
                     np.nan if isna(key) else key: value for key, value in result.items()
                 }
-            else:
+            elif has_mi:
                 # MultiIndex has no efficient way to tell if there are NAs
                 result = {
                     tuple(np.nan if isna(comp) else comp for comp in key): value
