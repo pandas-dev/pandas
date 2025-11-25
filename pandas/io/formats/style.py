@@ -579,6 +579,7 @@ class Styler(StylerRenderer):
         verbose: bool = True,
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions | None = None,
+        autofilter: bool = False,
     ) -> None:
         from pandas.io.formats.excel import ExcelFormatter
 
@@ -592,6 +593,7 @@ class Styler(StylerRenderer):
             index_label=index_label,
             merge_cells=merge_cells,
             inf_rep=inf_rep,
+            autofilter=autofilter,
         )
         formatter.write(
             excel_writer,
