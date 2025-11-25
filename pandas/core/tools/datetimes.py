@@ -814,11 +814,12 @@ def to_datetime(
         (e.g., month outside [1, 12]). Behavior depends on the threshold:
 
         - 1.0 (default): all components must be valid, else raises error (unless
-        ``errors='coerce'``).
+          ``errors='coerce'``).
         - 0.0: any invalid component produces NaT, else returns a valid datetime.
         - Values between 0 and 1: if all components are valid, returns a valid
           datetime; if the fraction of valid components >= threshold, returns NaT;
           otherwise raises error.
+
     Returns
     -------
     datetime
