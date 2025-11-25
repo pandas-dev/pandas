@@ -9836,7 +9836,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         Series or DataFrame
             When applied to a Series, the function will return a Series,
-            and when applied to a DataFrame, it will return a DataFrame;
+            and when applied to a DataFrame, it will return a DataFrame.
 
         See Also
         --------
