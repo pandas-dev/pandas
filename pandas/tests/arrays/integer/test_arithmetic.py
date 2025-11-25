@@ -287,7 +287,7 @@ def test_reduce_to_float(op):
 
     # op
     result = getattr(df.C, op)()
-    assert isinstance(result, float)
+    assert type(result) == float
 
     # groupby
     result = getattr(df.groupby("A"), op)()

@@ -1,24 +1,16 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_python_scalars
-
 from pandas import Series
 import pandas._testing as tm
 
 
 def no_nans(x):
-    if using_python_scalars() and isinstance(x, Series):
-        return x.notna().all()
-    else:
-        return x.notna().all().all()
+    return x.notna().all(axis=None)
 
 
 def all_na(x):
-    if using_python_scalars() and isinstance(x, Series):
-        return x.isnull().all()
-    else:
-        return x.isnull().all().all()
+    return x.isnull().all(axis=None)
 
 
 @pytest.fixture(params=[(1, 0), (5, 1)])

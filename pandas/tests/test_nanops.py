@@ -1283,7 +1283,7 @@ def test_nanmean_overflow(disable_bottleneck, val, using_python_scalars):
     result = ser.mean()
     assert result == val
     if using_python_scalars:
-        assert isinstance(result, float)
+        assert type(result) == float
     else:
         np_result = ser.values.mean()
         assert result == np_result
@@ -1312,7 +1312,7 @@ def test_returned_dtype(disable_bottleneck, dtype, method, using_python_scalars)
         if is_integer_dtype(dtype) and method in ["min", "max"]:
             assert isinstance(result, int)
         else:
-            assert isinstance(result, float)
+            assert type(result) == float
     elif is_integer_dtype(dtype) and method not in ["min", "max"]:
         assert result.dtype == np.float64
     else:
