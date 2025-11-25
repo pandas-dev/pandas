@@ -2100,7 +2100,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 return np.zeros(self.shape, dtype=bool)
 
             if self.dtype == values.dtype:
-                # GH#38353 instead of casting to object, operating on a
                 left = self._combined
                 right = values._combined
                 return np.isin(left, right).ravel()
@@ -2119,10 +2118,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # has no attribute "reshape"  [union-attr]
         left = self.left._values.reshape(-1, 1)  # type: ignore[union-attr]
         right = self.right._values.reshape(-1, 1)  # type: ignore[union-attr]
+        # GH#38353 instead of casting to object, operating on a
+        # complex128 ndarray is much more performant.
         if needs_i8_conversion(left.dtype):
             # error: Item "ndarray[Any, Any]" of "Any | ndarray[Any, Any]" has
             # no attribute "_concat_same_type"
-            # complex128 ndarray is much more performant.
             comb = left._concat_same_type(  # type: ignore[union-attr]
                 [left, right], axis=1
             )
