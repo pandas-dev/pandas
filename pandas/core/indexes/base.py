@@ -69,6 +69,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
     InvalidIndexError,
+    Pandas4Warning,
 )
 from pandas.util._decorators import (
     Appender,
@@ -1413,8 +1414,8 @@ class Index(IndexOpsMixin, PandasObject):
         return new_index
 
     @final
-    def __copy__(self, **kwargs) -> Self:
-        return self.copy(**kwargs)
+    def __copy__(self) -> Self:
+        return self.copy(deep=False)
 
     @final
     def __deepcopy__(self, memo=None) -> Self:
@@ -1953,17 +1954,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-
         names : Hashable or a sequence of the previous or dict-like for MultiIndex
             Name(s) to set.
-
-            .. versionchanged:: 1.3.0
 
         level : int, Hashable or a sequence of the previous, optional
             If the index is a MultiIndex and names is not dict-like, level(s) to set
             (None for all levels). Otherwise level must be None.
-
-            .. versionchanged:: 1.3.0
 
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Index or
@@ -2872,7 +2868,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        Generate an pandas.Index with duplicate values.
+        Generate a pandas.Index with duplicate values.
 
         >>> idx = pd.Index(["llama", "cow", "llama", "beetle", "llama", "hippo"])
 
@@ -4426,6 +4422,15 @@ class Index(IndexOpsMixin, PandasObject):
         (Index([1, 2, 3, 4, 5, 6], dtype='int64'),
         array([ 0,  1,  2, -1, -1, -1]), array([-1, -1, -1,  0,  1,  2]))
         """
+        if not isinstance(other, Index):
+            warnings.warn(
+                f"Passing {type(other).__name__} to {type(self).__name__}.join "
+                "is deprecated and will raise in a future version. "
+                "Pass an Index instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         other = ensure_index(other)
         sort = sort or how == "outer"
 
@@ -5018,6 +5023,8 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas.core.arrays.numpy_ import NumpyExtensionArray
 
             array = NumpyExtensionArray(array)
+        array = array.view()
+        array._readonly = True
         return array
 
     @property
@@ -5188,7 +5195,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         dtype = self.dtype
         if isinstance(dtype, np.dtype) and dtype.kind not in "mM":
-            # return np_can_hold_element(dtype, value)
+            if isinstance(value, tuple) and dtype != object:
+                # GH#54385
+                raise TypeError
             try:
                 return np_can_hold_element(dtype, value)
             except LossySetitemError as err:
@@ -6351,6 +6360,10 @@ class Index(IndexOpsMixin, PandasObject):
         special cases.
         """
         target_dtype, _ = infer_dtype_from(target)
+
+        if isinstance(target, tuple):
+            # GH#54385
+            return np.dtype(object)
 
         if using_string_dtype():
             # special case: if left or right is a zero-length RangeIndex or
