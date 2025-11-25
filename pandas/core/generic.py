@@ -7112,6 +7112,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         f"{value} not a suitable type to fill into {frame_dtype}"
                     )
                 result = result.T.fillna(value=value).T
+                if inplace:
+                    self._update_inplace(result)
+                    result = self
             else:
                 for k, v in value.items():
                     if k not in result:
