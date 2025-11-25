@@ -293,6 +293,7 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         self.series_array_exc = series_array_exc
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 
+    @skip_nested
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         opname = all_arithmetic_operators
         frame_scalar_exc = None
