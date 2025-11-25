@@ -792,7 +792,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
         [
             # Not all indices can accept None values.
             Index(new_lev, dtype=lev.dtype) if None not in new_lev else new_lev
-            for new_lev, lev in zip(new_levs, columns.levels[:-1], strict=True)
+            for new_lev, lev in zip(new_levs, columns.levels)
         ],
         names=columns.names[:-1],
     )
