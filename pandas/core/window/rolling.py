@@ -15,6 +15,7 @@ from typing import (
     Concatenate,
     Literal,
     Self,
+    cast,
     final,
     overload,
 )
@@ -96,6 +97,7 @@ if TYPE_CHECKING:
         NDFrameT,
         QuantileInterpolation,
         P,
+        TimeUnit,
         T,
         WindowingRankType,
         npt,
@@ -2001,6 +2003,7 @@ class Rolling(RollingAndExpandingMixin):
                 except TypeError:
                     # if not a datetime dtype, eg for empty dataframes
                     unit = "ns"
+                unit = cast("TimeUnit", unit)
                 self._win_freq_i8 = Timedelta(freq.nanos).as_unit(unit)._value
 
             # min_periods must be an integer
