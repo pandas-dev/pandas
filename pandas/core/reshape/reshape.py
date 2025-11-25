@@ -778,7 +778,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
 
     levs = (
         [lev[c] if c >= 0 else None for c in codes]
-        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1])
+        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1], strict=True)
     )
 
     # Remove duplicate tuples in the MultiIndex.
