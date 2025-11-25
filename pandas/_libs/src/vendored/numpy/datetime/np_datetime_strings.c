@@ -114,11 +114,11 @@ int parse_iso_8601_datetime(const char *str, int len, int want_exc,
                             int format_len,
                             FormatRequirement format_requirement,
                             double threshold) {
+  const char *substr = NULL;
   if (len < 0 || format_len < 0)
     goto parse_error;
   int year_leap = 0;
   int i, numdigits;
-  const char *substr;
   int sublen;
   NPY_DATETIMEUNIT bestunit = NPY_FR_GENERIC;
   DatetimePartParseResult comparison;
@@ -742,27 +742,37 @@ hour:
 
     /* Invalidates the component if there is more than 2 digits */
     if (sublen > 0) {
-      int still_more = 1;
-      if (!isdigit(substr[0])) {
-        still_more = 0;
-      }
-      if (still_more) {
-        invalid_components++;
-        while (sublen > 0 && isdigit(substr[0])) {
-          substr++;
-          sublen--;
+      int has_sep = 0;
+      int j = 0;
+      for (j = 0; j < (sublen > 2 ? 2 : sublen); ++j) {
+        char c = substr[j];
+        if (c == ':') {
+          has_sep = 1;
         }
+        if (has_sep || !isdigit(c)) {
+          break;
+        }
+      }
+      if (has_sep && j != 0) {
+        invalid_components++;
+        substr += j;
+        sublen -= j;
         if (sublen == 0) {
           goto finish;
         }
         goto hour_sep;
       }
+      if (!has_sep && sublen < 4) {
+        invalid_components++;
+        substr += sublen;
+        sublen = 0;
+        goto finish;
+      }
     }
-
-    if (out->hour >= 24) {
-      invalid_components++;
-      goto hour_sep;
-    }
+  }
+  if (out->hour >= 24) {
+    invalid_components++;
+    goto hour_sep;
   }
 
 hour_sep:
@@ -884,20 +894,31 @@ minute:
 
     /* Invalidates the component if there is more than 2 digits */
     if (sublen > 0) {
-      int still_more = 1;
-      if (!isdigit(substr[0])) {
-        still_more = 0;
-      }
-      if (still_more) {
-        invalid_components++;
-        while (sublen > 0 && isdigit(substr[0])) {
-          substr++;
-          sublen--;
+      int has_sep = 0;
+      int j = 0;
+      for (j = 0; j < (sublen > 2 ? 2 : sublen); ++j) {
+        char c = substr[j];
+        if (c == ':') {
+          has_sep = 1;
         }
+        if (has_sep || !isdigit(c)) {
+          break;
+        }
+      }
+      if (has_sep && j != 0) {
+        invalid_components++;
+        substr += j;
+        sublen -= j;
         if (sublen == 0) {
           goto finish;
         }
         goto minute_sep;
+      }
+      if (!has_sep && sublen < 2) {
+        invalid_components++;
+        substr += sublen;
+        sublen = 0;
+        goto finish;
       }
     }
 
