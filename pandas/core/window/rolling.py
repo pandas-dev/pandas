@@ -1779,8 +1779,8 @@ class RollingAndExpandingMixin(BaseWindow):
     def sem(self, ddof: int = 1, numeric_only: bool = False):
         # Raise here so error message says sem instead of std
         self._validate_numeric_only("sem", numeric_only)
-        return self.std(numeric_only=numeric_only) / (
-            self.count(numeric_only=numeric_only) - ddof
+        return self.std(numeric_only=numeric_only, ddof=ddof) / (
+            self.count(numeric_only=numeric_only)
         ).pow(0.5)
 
     def kurt(self, numeric_only: bool = False):
@@ -2941,16 +2941,16 @@ class Rolling(RollingAndExpandingMixin):
         --------
         >>> s = pd.Series([0, 1, 2, 3])
         >>> s.rolling(2, min_periods=1).sem()
-        0         NaN
-        1    0.707107
-        2    0.707107
-        3    0.707107
+        0    NaN
+        1    0.5
+        2    0.5
+        3    0.5
         dtype: float64
         """
         # Raise here so error message says sem instead of std
         self._validate_numeric_only("sem", numeric_only)
-        return self.std(numeric_only=numeric_only) / (
-            self.count(numeric_only) - ddof
+        return self.std(numeric_only=numeric_only, ddof=ddof) / (
+            self.count(numeric_only)
         ).pow(0.5)
 
     def kurt(self, numeric_only: bool = False):
