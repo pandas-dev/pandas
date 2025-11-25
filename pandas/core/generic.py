@@ -6948,7 +6948,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         axis: Axis | None = None,
         inplace: bool = False,
         limit: int | None = None,
-    ) -> Self | None:
+    ) -> Self:
         """
         Fill NA/NaN values with `value`.
 
@@ -8216,10 +8216,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if lower is not None:
             cond = mask | (self >= lower)
-            result = result.where(cond, lower, inplace=inplace)  # type: ignore[assignment]
+            result = result.where(cond, lower, inplace=inplace)
         if upper is not None:
             cond = mask | (self <= upper)
-            result = result.where(cond, upper, inplace=inplace)  # type: ignore[assignment]
+            result = result.where(cond, upper, inplace=inplace)
 
         return result
 
