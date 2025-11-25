@@ -1814,3 +1814,40 @@ class TestDateRangeNonTickFreq:
             "2015-03-28 01:30", "2015-03-30 01:30", freq="D"
         ).tz_localize(tz, nonexistent="shift_forward")
         tm.assert_index_equal(result, expected)
+
+
+class TestDateRangeUnitInference:
+    def test_date_range_unit_inference_matching_unit(self, unit):
+        start = Timestamp("2025-11-25").as_unit(unit)
+        end = Timestamp("2025-11-26").as_unit(unit)
+
+        dti = date_range(start, end, freq="D")
+        assert dti.unit == unit
+
+    def test_date_range_unit_inference_mismatched_unit(self, unit):
+        start = Timestamp("2025-11-25").as_unit(unit)
+        end = Timestamp("2025-11-26").as_unit("s")
+
+        dti = date_range(start, end, freq="D")
+        assert dti.unit == unit
+
+        dti = date_range(start, end.as_unit("ns"), freq="D")
+        assert dti.unit == "ns"
+
+    def test_date_range_unit_inference_tick(self):
+        start = Timestamp("2025-11-25").as_unit("ms")
+        end = Timestamp("2025-11-26").as_unit("s")
+
+        dti = date_range(start, end, freq="2000000us")
+        assert dti.unit == "us"
+
+        dti = date_range(start, end.as_unit("ns"), freq="2000000us")
+        assert dti.unit == "ns"
+
+    def test_date_range_unit_inference_dateoffset_freq(self):
+        off = DateOffset(microseconds=2_000_000)
+
+        start = Timestamp("2025-11-25").as_unit("ms")
+        end = Timestamp("2025-11-26").as_unit("s")
+        dti = date_range(start, end, freq=off)
+        assert dti.unit == "us"

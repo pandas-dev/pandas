@@ -1108,9 +1108,14 @@ def date_range(
                 td = Timedelta(freq.offset)
                 if abbrev_to_npy_unit(td.unit) > creso:
                     unit = td.unit  # type: ignore[assignment]
-            elif type(freq) is DateOffset and getattr(freq, "nanoseconds", 0) != 0:
-                # e.g. test_freq_dateoffset_with_relateivedelta_nanos
-                unit = "ns"
+            elif type(freq) is DateOffset:
+                if getattr(freq, "nanoseconds", 0) != 0:
+                    # e.g. test_freq_dateoffset_with_relateivedelta_nanos
+                    unit = "ns"
+                elif getattr(freq, "microseconds", 0) != 0 and unit != "ns":
+                    unit = "us"
+                elif getattr(freq, "milliseconds", 0) != 0 and unit not in ["ns", "us"]:
+                    unit = "ms"
 
     dtarr = DatetimeArray._generate_range(
         start=start,
