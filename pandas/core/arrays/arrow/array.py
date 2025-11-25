@@ -2148,7 +2148,11 @@ class ArrowExtensionArray(
         if pc.is_null(pa_result).as_py():
             return self.dtype.na_value
         elif isinstance(pa_result, pa.Scalar):
-            return pa_result.as_py()
+            result = pa_result.as_py()
+            # verify duration always returns pd.Timedelta
+            if pa.types.is_duration(pa_result.type) and isinstance(result, timedelta):
+                return pd.Timedelta(result)
+            return result
         else:
             return pa_result
 
