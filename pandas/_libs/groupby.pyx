@@ -5,6 +5,7 @@ from cython cimport (
 )
 from libc.math cimport (
     NAN,
+    isfinite,
     sqrt,
 )
 from libc.stdlib cimport (
@@ -778,9 +779,9 @@ def group_sum(
                 if not isna_entry:
                     nobs[lab, j] += 1
 
-                    if sum_t is object:
+                    if sum_t is object or sum_t is int64_t or sum_t is uint64_t:
                         # NB: this does not use 'compensation' like the non-object
-                        #  track does.
+                        #  and non-integer track does.
                         if nobs[lab, j] == 1:
                             # i.e. we haven't added anything yet; avoid TypeError
                             #  if e.g. val is a str and sumx[lab, j] is 0
@@ -793,13 +794,29 @@ def group_sum(
                         y = val - compensation[lab, j]
                         t = sumx[lab, j] + y
                         compensation[lab, j] = t - sumx[lab, j] - y
-                        if compensation[lab, j] != compensation[lab, j]:
-                            # GH#53606
+
+                        # Handle float overflow
+                        if (
+                            sum_t is float32_t or sum_t is float64_t
+                        ) and not isfinite(compensation[lab, j]):
+                            # GH#53606; GH#60303
                             # If val is +/- infinity compensation is NaN
                             # which would lead to results being NaN instead
                             # of +/- infinity. We cannot use util.is_nan
                             # because of no gil
                             compensation[lab, j] = 0
+
+                        # Handle complex overflow
+                        if (
+                            sum_t is complex64_t or sum_t is complex128_t
+                        ) and not isfinite(compensation[lab, j].real):
+                            compensation[lab, j].real = 0
+
+                        if (
+                            sum_t is complex64_t or sum_t is complex128_t
+                        ) and not isfinite(compensation[lab, j].imag):
+                            compensation[lab, j].imag = 0
+
                         sumx[lab, j] = t
                 elif not skipna:
                     if uses_mask:
