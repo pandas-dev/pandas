@@ -213,6 +213,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         elif isinstance(scalars, (pa.Array, pa.ChunkedArray)):
             pa_arr = pc.cast(scalars, pa.large_string())
         else:
+            ndarr = np.array(scalars)
+            if ndarr.ndim != 1:
+                raise TypeError("Values must be a 1D list-like")
             # convert non-na-likes to str
             result = lib.ensure_string_array(scalars, copy=copy)
             pa_arr = pa.array(result, type=pa.large_string(), from_pandas=True)
