@@ -135,12 +135,6 @@ class TestPandasContainer:
         ],
     )
     def test_frame_non_unique_columns(self, orient, data, request):
-        if isinstance(data[0][0], Timestamp) and orient == "split":
-            mark = pytest.mark.xfail(
-                reason="GH#55827 non-nanosecond dt64 fails to round-trip"
-            )
-            request.applymarker(mark)
-
         df = DataFrame(data, index=[1, 2], columns=["x", "x"])
 
         expected_warning = None
@@ -162,10 +156,14 @@ class TestPandasContainer:
                 # in milliseconds; these are internally stored in nanosecond,
                 # so divide to get where we need
                 # TODO: a to_epoch method would also solve; see GH 14772
-                expected.isetitem(0, expected.iloc[:, 0].astype(np.int64) // 1000000)
+                dta = expected.iloc[:, 0]._values
+                dta = dta.as_unit("ns")  # GH#55827
+                expected.isetitem(0, dta.astype(np.int64) // 1_000_000)
         elif orient == "split":
             expected = df
             expected.columns = ["x", "x.1"]
+            if expected["x"].dtype.kind == "M":
+                expected["x"] = expected["x"].astype("M8[ns]")  # GH#55827
 
         tm.assert_frame_equal(result, expected)
 
