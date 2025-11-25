@@ -10,6 +10,8 @@ from typing import (
     overload,
 )
 
+from pandas.util._decorators import set_module
+
 from pandas.core.indexers.objects import (
     BaseIndexer,
     ExpandingIndexer,
@@ -37,6 +39,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
+@set_module("pandas.api.typing")
 class Expanding(RollingAndExpandingMixin):
     """
     Provide expanding window calculations.
@@ -103,8 +106,6 @@ class Expanding(RollingAndExpandingMixin):
     3  3.0
     4  7.0
     """
-
-    __module__ = "pandas.api.typing"
 
     _attributes: list[str] = ["min_periods", "method"]
 
@@ -1384,12 +1385,11 @@ class Expanding(RollingAndExpandingMixin):
         )
 
 
+@set_module("pandas.api.typing")
 class ExpandingGroupby(BaseWindowGroupby, Expanding):
     """
     Provide an expanding groupby implementation.
     """
-
-    __module__ = "pandas.api.typing"
 
     _attributes = Expanding._attributes + BaseWindowGroupby._attributes
 
