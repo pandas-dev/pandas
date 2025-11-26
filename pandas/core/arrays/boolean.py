@@ -262,6 +262,7 @@ def coerce_to_array(
     return values, mask
 
 
+@set_module("pandas.arrays")
 class BooleanArray(BaseMaskedArray):
     """
     Array of boolean (True/False) data with missing values.
@@ -273,7 +274,7 @@ class BooleanArray(BaseMaskedArray):
     BooleanArray implements Kleene logic (sometimes called three-value
     logic) for logical operations. See :ref:`boolean.kleene` for more.
 
-    To construct an BooleanArray from generic array-like input, use
+    To construct a BooleanArray from generic array-like input, use
     :func:`pandas.array` specifying ``dtype="boolean"`` (see examples
     below).
 
@@ -313,15 +314,13 @@ class BooleanArray(BaseMaskedArray):
 
     Examples
     --------
-    Create an BooleanArray with :func:`pandas.array`:
+    Create a BooleanArray with :func:`pandas.array`:
 
     >>> pd.array([True, False, None], dtype="boolean")
     <BooleanArray>
     [True, False, <NA>]
     Length: 3, dtype: boolean
     """
-
-    __module__ = "pandas.arrays"
 
     _TRUE_VALUES = {"True", "TRUE", "true", "1", "1.0"}
     _FALSE_VALUES = {"False", "FALSE", "false", "0", "0.0"}

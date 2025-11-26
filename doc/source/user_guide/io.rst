@@ -343,7 +343,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
     Specifies what to do upon encountering a bad line (a line with too many fields).
     Allowed values are :
 
-    - 'error', raise an ParserError when a bad line is encountered.
+    - 'error', raise a ParserError when a bad line is encountered.
     - 'warn', print a warning when a bad line is encountered and skip that line.
     - 'skip', skip bad lines without raising or warning when they are encountered.
 
@@ -3717,6 +3717,7 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 
 * ``float_format`` : Format string for floating point numbers (default ``None``).
 * ``freeze_panes`` : A tuple of two integers representing the bottommost row and rightmost column to freeze. Each of these parameters is one-based, so (1, 1) will freeze the first row and first column (default ``None``).
+* ``autofilter`` : A boolean indicating whether to add automatic filters to all columns (default ``False``).
 
 .. note::
 

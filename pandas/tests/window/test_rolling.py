@@ -225,15 +225,10 @@ def test_datetimelike_centered_selections(
         index=date_range("2020", periods=5),
     )
 
-    if func_name == "sem":
-        kwargs = {"ddof": 0}
-    else:
-        kwargs = {}
-
     result = getattr(
         df_time.rolling("2D", closed=closed, min_periods=1, center=True),
         func_name,
-    )(**kwargs)
+    )()
 
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -1078,7 +1073,7 @@ def test_rolling_sem(frame_or_series):
     result = obj.rolling(2, min_periods=1).sem()
     if isinstance(result, DataFrame):
         result = Series(result[0].values)
-    expected = Series([np.nan] + [0.7071067811865476] * 2)
+    expected = Series([np.nan] + [0.5] * 2)
     tm.assert_series_equal(result, expected)
 
 
