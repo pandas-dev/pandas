@@ -85,6 +85,7 @@ if TYPE_CHECKING:
         IntervalClosedType,
         Ordered,
         Scalar,
+        TimeUnit,
         npt,
         type_t,
     )
@@ -780,10 +781,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def str(self) -> str:  # type: ignore[override]
         return f"|M8[{self.unit}]"
 
-    def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None) -> None:
+    def __init__(self, unit: TimeUnit | DatetimeTZDtype = "ns", tz=None) -> None:
         if isinstance(unit, DatetimeTZDtype):
             # error: "str" has no attribute "tz"
-            unit, tz = unit.unit, unit.tz  # type: ignore[attr-defined]
+            unit, tz = unit.unit, unit.tz  # type: ignore[union-attr]
 
         if unit != "ns":
             if isinstance(unit, str) and tz is None:
@@ -820,7 +821,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return abbrev_to_npy_unit(self.unit)
 
     @property
-    def unit(self) -> str_type:
+    def unit(self) -> TimeUnit:
         """
         The precision of the datetime data.
 
@@ -894,7 +895,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
         if match:
             d = match.groupdict()
             try:
-                return cls(unit=d["unit"], tz=d["tz"])
+                unit = cast("TimeUnit", d["unit"])
+                return cls(unit=unit, tz=d["tz"])
             except (KeyError, TypeError, ValueError) as err:
                 # KeyError if maybe_get_tz tries and fails to get a
                 #  zoneinfo timezone (actually zoneinfo.ZoneInfoNotFoundError).
@@ -971,6 +973,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         if all(isinstance(t, DatetimeTZDtype) and t.tz == self.tz for t in dtypes):
             np_dtype = np.max([cast(DatetimeTZDtype, t).base for t in [self, *dtypes]])
             unit = np.datetime_data(np_dtype)[0]
+            unit = cast("TimeUnit", unit)
             return type(self)(unit=unit, tz=self.tz)
         return super()._get_common_dtype(dtypes)
 

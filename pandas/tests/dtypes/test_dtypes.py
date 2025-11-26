@@ -294,7 +294,6 @@ class TestDatetimeTZDtype(Base):
         a = DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]")
         b = DatetimeTZDtype.construct_from_string("datetime64[ns, CET]")
 
-        assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
 
     def test_compat(self, dtype):
@@ -466,7 +465,6 @@ class TestPeriodDtype(Base):
         a = PeriodDtype("period[D]")
         b = PeriodDtype("period[3D]")
 
-        assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
 
     def test_identity(self):
@@ -721,7 +719,6 @@ class TestIntervalDtype(Base):
         a = IntervalDtype("interval[int64, right]")
         b = IntervalDtype("interval[int64, right]")
 
-        assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
 
     def test_is_dtype(self, dtype):

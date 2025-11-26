@@ -36,7 +36,10 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
 )
 from pandas.errors import Pandas4Warning
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -242,6 +245,7 @@ def to_pyarrow_type(
     return None
 
 
+@set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
     ExtensionArraySupportsAnyAll,
@@ -296,8 +300,6 @@ class ArrowExtensionArray(
     [1, 1, <NA>]
     Length: 3, dtype: int64[pyarrow]
     """  # noqa: E501 (http link too long)
-
-    __module__ = "pandas.arrays"
 
     _pa_array: pa.ChunkedArray
     _dtype: ArrowDtype
