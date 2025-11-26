@@ -2387,7 +2387,8 @@ def external_values(values: ArrayLike) -> ArrayLike:
         values.flags.writeable = False
     else:
         # ExtensionArrays
-        values = values.view()
-        values._readonly = True
+        # values = values.view()
+        # values._readonly = True
+        pass
 
     return values
