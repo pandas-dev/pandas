@@ -283,6 +283,8 @@ def timedelta_range(
     unit : {'s', 'ms', 'us', 'ns', None}, default None
         Specify the desired resolution of the result.
         If not specified, this is inferred from the 'start', 'end', and 'freq'
+        using the same inference as :class:`Timedelta` taking the highest
+        resolution of the three that are provided.
 
         .. versionadded:: 2.0.0
 
