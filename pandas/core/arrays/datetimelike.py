@@ -2334,7 +2334,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                        '2018-01-01 12:01:00'],
                       dtype='datetime64[ns]', freq='min')
 
-        >>> rng.round("h")
+        >>> rng.round('h')
         DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:00:00'],
                       dtype='datetime64[ns]', freq=None)
@@ -2353,12 +2353,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
 
         >>> rng_tz.floor("2h", ambiguous=False)
-        DatetimeIndex(['2021-10-31 02:00:00+01:00'],dtype=(
-            'datetime64[s, Europe/Amsterdam]'), freq=None)
+        DatetimeIndex(['2021-10-31 02:00:00+01:00'],
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
 
         >>> rng_tz.floor("2h", ambiguous=True)
-        DatetimeIndex(['2021-10-31 02:00:00+02:00'],dtype=(
-            'datetime64[s, Europe/Amsterdam]'), freq=None)
+        DatetimeIndex(['2021-10-31 02:00:00+02:00'],
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
         """
         return self._round(freq, RoundTo.NEAREST_HALF_EVEN, ambiguous, nonexistent)
 
@@ -2438,12 +2438,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                        '2018-01-01 12:01:00'],
                       dtype='datetime64[ns]', freq='min')
 
-        >>> rng.floor("h")
+        >>> rng.floor('h')
         DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:00:00'],
                       dtype='datetime64[ns]', freq=None)
 
-            **Series**
+        **Series**
 
         >>> pd.Series(rng).dt.floor("h")
         0   2018-01-01 11:00:00
@@ -2456,13 +2456,13 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
 
-        >>> rng_tz.floor("2h", ambiguous=False)  # doctest: +NORMALIZE_WHITESPACE
+        >>> rng_tz.floor("2h", ambiguous=False)
         DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                     dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+                     dtype='datetime64[us, Europe/Amsterdam]', freq=None)
 
-        >>> rng_tz.floor("2h", ambiguous=True)  # doctest: +NORMALIZE_WHITESPACE
+        >>> rng_tz.floor("2h", ambiguous=True)
         DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                      dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
 
@@ -2542,7 +2542,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                        '2018-01-01 12:01:00'],
                       dtype='datetime64[ns]', freq='min')
 
-        >>> rng.ceil("h")
+        >>> rng.ceil('h')
         DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 13:00:00'],
                       dtype='datetime64[ns]', freq=None)
@@ -2562,11 +2562,11 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         >>> rng_tz.ceil("h", ambiguous=False)
         DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                      dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
 
         >>> rng_tz.ceil("h", ambiguous=True)
         DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                      dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+                      dtype='datetime64[us, Europe/Amsterdam]', freq=None)
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)
 
