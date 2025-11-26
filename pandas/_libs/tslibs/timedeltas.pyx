@@ -82,6 +82,7 @@ from pandas._libs.tslibs.offsets import Day
 
 from pandas._libs.tslibs.util cimport (
     is_array,
+    is_bool_object,
     is_float_object,
     is_integer_object,
 )
@@ -2351,6 +2352,13 @@ class Timedelta(_Timedelta):
                 item = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other), other)
                 return self.__mul__(item)
             return other * self.to_timedelta64()
+
+        elif is_bool_object(other):
+            # GH#62316
+            raise TypeError(
+                "Cannot multiply Timedelta by bool. "
+                "Explicitly cast to integer instead."
+            )
 
         return NotImplemented
 

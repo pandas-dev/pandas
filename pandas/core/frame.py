@@ -48,11 +48,11 @@ from pandas._libs import (
     properties,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
-    CHAINED_WARNING_DISABLED_INPLACE_METHOD,
     REF_COUNT,
+    REF_COUNT_METHOD,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -63,6 +63,7 @@ from pandas.errors import (
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
+    _chained_assignment_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -214,6 +215,8 @@ if TYPE_CHECKING:
         AnyAll,
         AnyArrayLike,
         ArrayLike,
+        ArrowArrayExportable,
+        ArrowStreamExportable,
         Axes,
         Axis,
         AxisInt,
@@ -520,7 +523,7 @@ ValueError: columns overlap but no suffix specified:
 
 
 @set_module("pandas")
-class DataFrame(SetitemMixin, NDFrame, OpsMixin):
+class DataFrame(NDFrame, OpsMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
 
@@ -666,11 +669,6 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
     # similar to __array_priority__, positions DataFrame before Series, Index,
     #  and ExtensionArray.  Should NOT be overridden by subclasses.
     __pandas_priority__ = 4000
-
-    # override those to avoid inheriting from SetitemMixin (cython generates
-    # them by default)
-    __reduce__ = object.__reduce__
-    __setstate__ = NDFrame.__setstate__
 
     @property
     def _constructor(self) -> type[DataFrame]:
@@ -1839,6 +1837,56 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)
+
+    @classmethod
+    def from_arrow(
+        cls, data: ArrowArrayExportable | ArrowStreamExportable
+    ) -> DataFrame:
+        """
+        Construct a DataFrame from a tabular Arrow object.
+
+        This function accepts any Arrow-compatible tabular object implementing
+        the `Arrow PyCapsule Protocol`_ (i.e. having an ``__arrow_c_array__``
+        or ``__arrow_c_stream__`` method).
+
+        This function currently relies on ``pyarrow`` to convert the tabular
+        object in Arrow format to pandas.
+
+        .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        data : pyarrow.Table or Arrow-compatible table
+            Any tabular object implementing the Arrow PyCapsule Protocol
+            (i.e. has an ``__arrow_c_array__`` or ``__arrow_c_stream__``
+            method).
+
+        Returns
+        -------
+        DataFrame
+
+        """
+        pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        if not isinstance(data, pa.Table):
+            if not (
+                hasattr(data, "__arrow_c_array__")
+                or hasattr(data, "__arrow_c_stream__")
+            ):
+                # explicitly test this, because otherwise we would accept variour other
+                # input types through the pa.table(..) call
+                raise TypeError(
+                    "Expected an Arrow-compatible tabular object (i.e. having an "
+                    "'_arrow_c_array__' or '__arrow_c_stream__' method), got "
+                    f"'{type(data).__name__}' instead."
+                )
+            pa_table = pa.table(data)
+        else:
+            pa_table = data
+
+        df = pa_table.to_pandas()
+        return df
 
     @classmethod
     def from_dict(
@@ -4325,8 +4373,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         arraylike, refs = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
-    # def __setitem__() is implemented in SetitemMixin and dispatches to this method
-    def _setitem(self, key, value) -> None:
+    def __setitem__(self, key, value) -> None:
         """
         Set item(s) in DataFrame by key.
 
@@ -4410,6 +4457,14 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         z  3  50
         # Values for 'a' and 'b' are completely ignored!
         """
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
+                self
+            ):
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
+
         key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows
@@ -9362,8 +9417,10 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         1  2  500.0
         2  3    6.0
         """
-        if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
-            if sys.getrefcount(self) <= REF_COUNT:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(
+                self
+            ) <= REF_COUNT_METHOD and not com.is_local_in_caller_frame(self):
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
