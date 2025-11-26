@@ -134,6 +134,7 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeArg,
         FilePath,
+        TimeUnit,
         npt,
     )
 
@@ -5093,6 +5094,9 @@ def _set_tz(
     # Argument "tz" to "tz_to_dtype" has incompatible type "str | tzinfo | None";
     # expected "tzinfo"
     unit, _ = np.datetime_data(datetime64_dtype)  # parsing dtype: unit, count
+    unit = cast("TimeUnit", unit)
+    # error: Argument "tz" to "tz_to_dtype" has incompatible type
+    #  "str | tzinfo | None"; expected "tzinfo"
     dtype = tz_to_dtype(tz=tz, unit=unit)  # type: ignore[arg-type]
     dta = DatetimeArray._from_sequence(values, dtype=dtype)
     return dta
