@@ -447,6 +447,35 @@ _canonical_nans = {
     type(np.nan): np.nan,
 }
 
+def maybe_align_dt64_units(arrs: list) -> list:
+    """
+    Align datetime64 arrays to the same unit *without* forcing conversion
+    to nanoseconds.
+    """
+    from pandas.core.dtypes.common import is_datetime64_dtype
+
+    if not any(is_datetime64_dtype(a.dtype) for a in arrs):
+        return arrs
+
+    def extract_unit(dtype):
+        name = dtype.name
+        if name.startswith("datetime64["):
+            return name[name.find("[")+1:-1]
+        return "ns"
+
+    units = [extract_unit(a.dtype) for a in arrs]
+
+    order = ["s", "ms", "us", "ns"]
+    target_unit = max(units, key=lambda u: order.index(u))
+
+    aligned = []
+    for arr in arrs:
+        if extract_unit(arr.dtype) != target_unit:
+            aligned.append(arr.astype(f"datetime64[{target_unit}]"))
+        else:
+            aligned.append(arr)
+
+    return aligned
 
 def maybe_promote(dtype: np.dtype, fill_value=np.nan):
     """

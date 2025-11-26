@@ -124,6 +124,10 @@ def concat_compat(
     else:
         to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
         result = np.concatenate(to_concat_arrs, axis=axis)
+        # PR FIX: preserve datetime64/timedelta64 units during concat
+        from pandas.core.dtypes.cast import maybe_align_dt64_units
+        result = maybe_align_dt64_units(result, to_concat_arrs)
+
 
         if not any_ea and "b" in kinds and result.dtype.kind in "iuf":
             # GH#39817 cast to object instead of casting bools to numeric
