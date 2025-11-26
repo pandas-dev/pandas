@@ -100,6 +100,7 @@ if TYPE_CHECKING:
         DtypeObj,
         NumpyIndexT,
         Scalar,
+        TimeUnit,
     )
 
     from pandas import Index
@@ -567,6 +568,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             # different unit, e.g. passed np.timedelta64(24, "h") with dtype=m8[ns]
             # see if we can losslessly cast it to our dtype
             unit = np.datetime_data(dtype)[0]
+            unit = cast("TimeUnit", unit)
             try:
                 td = Timedelta(fill_value).as_unit(unit, round_ok=False)
             except OutOfBoundsTimedelta:

@@ -1123,7 +1123,6 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`Series.str.match` failing to raise when given a compiled ``re.Pattern`` object and conflicting ``case`` or ``flags`` arguments (:issue:`62240`)
-- Bug in :meth:`Series.str.replace` raising an error on valid group references (``\1``, ``\2``, etc.) on series converted to PyArrow backend dtype (:issue:`62653`)
 - Bug in :meth:`Series.str.zfill` raising ``AttributeError`` for :class:`ArrowDtype` (:issue:`61485`)
 - Bug in :meth:`Series.value_counts` would not respect ``sort=False`` for series having ``string`` dtype (:issue:`55224`)
 - Bug in multiplication with a :class:`StringDtype` incorrectly allowing multiplying by bools; explicitly cast to integers instead (:issue:`62595`)
@@ -1245,6 +1244,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.groups` and :meth:`.SeriesGroupby.groups` that would not respect groupby argument ``dropna`` (:issue:`55919`)
 - Bug in :meth:`.DataFrameGroupBy.median` where nat values gave an incorrect result. (:issue:`57926`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` when ``interpolation="nearest"`` is inconsistent with :meth:`DataFrame.quantile` (:issue:`47942`)
+- Bug in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupby.groups` returning ``NaN`` on overflow. These methods now returns ``inf`` or ``-inf`` on overflow. (:issue:`60303`)
 - Bug in :meth:`.DataFrameGroupBy` reductions where non-Boolean values were allowed for the ``numeric_only`` argument; passing a non-Boolean value will now raise (:issue:`62778`)
 - Bug in :meth:`.Resampler.interpolate` on a :class:`DataFrame` with non-uniform sampling and/or indices not aligning with the resulting resampled index would result in wrong interpolation (:issue:`21351`)
 - Bug in :meth:`.Series.rolling` when used with a :class:`.BaseIndexer` subclass and computing min/max (:issue:`46726`)
@@ -1264,6 +1264,7 @@ Groupby/resample/rolling
 - Bug in :meth:`DataFrameGroupby.transform` and :meth:`SeriesGroupby.transform` with a reducer and ``observed=False`` that coerces dtype to float when there are unobserved categories. (:issue:`55326`)
 - Bug in :meth:`Rolling.apply` for ``method="table"`` where column order was not being respected due to the columns getting sorted by default. (:issue:`59666`)
 - Bug in :meth:`Rolling.apply` where the applied function could be called on fewer than ``min_period`` periods if ``method="table"``. (:issue:`58868`)
+- Bug in :meth:`Rolling.sem` computing incorrect results because it divided by ``sqrt((n - 1) * (n - ddof))`` instead of ``sqrt(n * (n - ddof))``. (:issue:`63180`)
 - Bug in :meth:`Rolling.skew` incorrectly computing skewness for windows following outliers due to numerical instability. The calculation now properly handles catastrophic cancellation by recomputing affected windows (:issue:`47461`)
 - Bug in :meth:`Series.resample` could raise when the date range ended shortly before a non-existent time. (:issue:`58380`)
 - Bug in :meth:`Series.resample` raising error when resampling non-nanosecond resolutions out of bounds for nanosecond precision (:issue:`57427`)

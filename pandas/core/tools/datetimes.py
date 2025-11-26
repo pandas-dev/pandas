@@ -87,6 +87,7 @@ if TYPE_CHECKING:
 
     from pandas._libs.tslibs.nattype import NaTType
     from pandas._libs.tslibs.timedeltas import UnitChoices
+    from pandas._typing import TimeUnit
 
     from pandas import (
         DataFrame,
@@ -447,6 +448,7 @@ def _convert_listlike_datetimes(
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
         out_unit = np.datetime_data(result.dtype)[0]
+        out_unit = cast("TimeUnit", out_unit)
         dtype = tz_to_dtype(tz_parsed, out_unit)
         dt64_values = result.view(f"M8[{dtype.unit}]")
         dta = DatetimeArray._simple_new(dt64_values, dtype=dtype)
@@ -469,6 +471,7 @@ def _array_strptime_with_fallback(
     result, tz_out = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
     if tz_out is not None:
         unit = np.datetime_data(result.dtype)[0]
+        unit = cast("TimeUnit", unit)
         dtype = DatetimeTZDtype(tz=tz_out, unit=unit)
         dta = DatetimeArray._simple_new(result, dtype=dtype)
         if utc:
@@ -476,6 +479,7 @@ def _array_strptime_with_fallback(
         return Index(dta, name=name)
     elif result.dtype != object and utc:
         unit = np.datetime_data(result.dtype)[0]
+        unit = cast("TimeUnit", unit)
         res = Index(result, dtype=f"M8[{unit}, UTC]", name=name)
         return res
     return Index(result, dtype=result.dtype, name=name)
