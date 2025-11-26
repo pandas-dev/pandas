@@ -1204,6 +1204,7 @@ class ExcelWriter(Generic[_WorkbookT]):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        autofilter_range: str | None = None,
     ) -> None:
         """
         Write given formatted cells into Excel an excel sheet
@@ -1218,6 +1219,8 @@ class ExcelWriter(Generic[_WorkbookT]):
         startcol : upper left cell column to dump data frame
         freeze_panes: int tuple of length 2
             contains the bottom-most row and right-most column to freeze
+        autofilter_range: str, default None
+            column ranges to add automatic filters to, for example "A1:D5"
         """
         raise NotImplementedError
 
