@@ -334,7 +334,7 @@ cdef convert_to_timedelta64(object ts, str unit):
     Handle these types of objects:
         - timedelta/Timedelta
 
-    Return an timedelta64[ns] object
+    Return a timedelta64[ns] object
     """
     # Caller is responsible for checking unit not in ["Y", "y", "M"]
     if isinstance(ts, _Timedelta):
