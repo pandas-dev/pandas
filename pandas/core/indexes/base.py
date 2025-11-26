@@ -5406,9 +5406,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        mask : np.ndarray[bool]
-            Array of booleans denoting where values in the original
-            data are not ``NA``.
+        mask : array-like of bool
+            Array of booleans denoting where values should be replaced.
         value : scalar
             Scalar value to use to fill holes (e.g. 0).
             This value cannot be a list-likes.
