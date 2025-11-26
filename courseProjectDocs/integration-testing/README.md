@@ -29,3 +29,6 @@ collected 6 items
 pandas/tests/util/test_integration.py::TestSandeepIntegration::test_series_to_dataframe_dtype_preservation PASSED
 pandas/tests/util/test_integration.py::TestSandeepIntegration::test_dataframe_from_dict_mixed_series_dtypes PASSED
 pandas/tests/util/test_integration.
+py::TestNithikeshIntegration::test_validate_fillna_with_clean_method PASSED
+pandas/tests/util/test_integration.py::TestNithikeshIntegration::test_series_fillna_integration PASSED
+pandas/tests/util/test_integration.
