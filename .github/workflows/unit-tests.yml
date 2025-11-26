@@ -139,7 +139,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -198,7 +198,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -216,7 +216,7 @@ jobs:
   Linux-32-bit:
     runs-on: ubuntu-24.04
     container:
-      image: quay.io/pypa/manylinux2014_i686
+      image: quay.io/pypa/manylinux_2_28_i686
       options: --platform linux/386
     steps:
       - name: Checkout pandas Repo
@@ -336,7 +336,7 @@ jobs:
       PYTEST_TARGET: pandas
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -373,7 +373,7 @@ jobs:
       cancel-in-progress: true
     steps:
       - name: Checkout pandas Repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
