@@ -13,6 +13,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.astype import (
     astype_array,
@@ -48,6 +49,7 @@ if TYPE_CHECKING:
         InterpolateOptions,
         NpDtype,
         Scalar,
+        TakeIndexer,
         npt,
     )
 
@@ -55,12 +57,12 @@ if TYPE_CHECKING:
     from pandas.arrays import StringArray
 
 
+@set_module("pandas.arrays")
 class NumpyExtensionArray(
     OpsMixin,
     NDArrayBackedExtensionArray,
     ObjectStringArrayMixin,
 ):
-    __module__ = "pandas.arrays"
     """
     A pandas ExtensionArray for NumPy data.
 
@@ -364,6 +366,27 @@ class NumpyExtensionArray(
         if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
+
+    def take(
+        self,
+        indices: TakeIndexer,
+        *,
+        allow_fill: bool = False,
+        fill_value: Any = None,
+        axis: AxisInt = 0,
+    ) -> Self:
+        """
+        Take entries from this array at each index in a list of indices,
+        producing an array containing only those entries.
+        """
+        result = super().take(
+            indices, allow_fill=allow_fill, fill_value=fill_value, axis=axis
+        )
+        # See GH#62448.
+        if self.dtype.kind in "iub":
+            return type(self)(result._ndarray, copy=False)
+
+        return result
 
     # ------------------------------------------------------------------------
     # Reductions

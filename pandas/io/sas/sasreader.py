@@ -37,12 +37,11 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
+@set_module("pandas.api.typing")
 class SASReader(Iterator["DataFrame"], ABC):
     """
     Abstract class for XportReader and SAS7BDATReader.
     """
-
-    __module__ = "pandas.api.typing"
 
     @abstractmethod
     def read(self, nrows: int | None = None) -> DataFrame: ...

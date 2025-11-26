@@ -1717,7 +1717,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def to_period(self, freq=None):
         """
-        Return an period of which this timestamp is an observation.
+        Return a period of which this timestamp is an observation.
 
         This method converts the given Timestamp to a Period object,
         which represents a span of time,such as a year, month, etc.,
@@ -3492,7 +3492,7 @@ default 'raise'
             year -= 1
             month += 12
         return (day +
-                np.fix((153 * month - 457) / 5) +
+                np.trunc((153 * month - 457) / 5) +
                 365 * year +
                 np.floor(year / 4) -
                 np.floor(year / 100) +

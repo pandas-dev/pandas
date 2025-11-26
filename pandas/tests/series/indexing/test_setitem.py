@@ -1483,7 +1483,7 @@ class TestCoercionDatetime64HigherReso(CoercionTest):
     def obj(self, exp_dtype):
         idx = date_range("2011-01-01", freq="D", periods=4, unit="s")
         if exp_dtype == "m8[ms]":
-            idx = idx - Timestamp("1970-01-01")
+            idx = idx - Timestamp("1970-01-01").as_unit("s")
             assert idx.dtype == "m8[s]"
         elif exp_dtype == "M8[ms, UTC]":
             idx = idx.tz_localize("UTC")
@@ -1493,7 +1493,7 @@ class TestCoercionDatetime64HigherReso(CoercionTest):
     def val(self, exp_dtype):
         ts = Timestamp("2011-01-02 03:04:05.678").as_unit("ms")
         if exp_dtype == "m8[ms]":
-            return ts - Timestamp("1970-01-01")
+            return ts - Timestamp("1970-01-01").as_unit("s")
         elif exp_dtype == "M8[ms, UTC]":
             return ts.tz_localize("UTC")
         return ts

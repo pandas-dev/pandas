@@ -134,6 +134,7 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeArg,
         FilePath,
+        TimeUnit,
         npt,
     )
 
@@ -4999,7 +5000,7 @@ class GenericTable(AppendableFrameTable):
 
     # error: Signature of "write" incompatible with supertype "AppendableTable"
     def write(self, **kwargs) -> None:  # type: ignore[override]
-        raise NotImplementedError("cannot write on an generic table")
+        raise NotImplementedError("cannot write on a generic table")
 
 
 class AppendableMultiFrameTable(AppendableFrameTable):
@@ -5093,6 +5094,9 @@ def _set_tz(
     # Argument "tz" to "tz_to_dtype" has incompatible type "str | tzinfo | None";
     # expected "tzinfo"
     unit, _ = np.datetime_data(datetime64_dtype)  # parsing dtype: unit, count
+    unit = cast("TimeUnit", unit)
+    # error: Argument "tz" to "tz_to_dtype" has incompatible type
+    #  "str | tzinfo | None"; expected "tzinfo"
     dtype = tz_to_dtype(tz=tz, unit=unit)  # type: ignore[arg-type]
     dta = DatetimeArray._from_sequence(values, dtype=dtype)
     return dta
@@ -5371,7 +5375,7 @@ def _need_convert(kind: str) -> bool:
 
 def _maybe_adjust_name(name: str, version: Sequence[int]) -> str:
     """
-    Prior to 0.10.1, we named values blocks like: values_block_0 an the
+    Prior to 0.10.1, we named values blocks like: values_block_0 and the
     name values_0, adjust the given name if necessary.
 
     Parameters
