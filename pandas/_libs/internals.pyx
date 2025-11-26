@@ -1,9 +1,6 @@
 from collections import defaultdict
-import sys
-import warnings
 
 cimport cython
-from cpython cimport PY_VERSION_HEX
 from cpython.object cimport PyObject
 from cpython.pyport cimport PY_SSIZE_T_MAX
 from cpython.slice cimport PySlice_GetIndicesEx
@@ -23,9 +20,6 @@ from numpy cimport (
 cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
-from pandas.compat import CHAINED_WARNING_DISABLED
-from pandas.errors import ChainedAssignmentError
-from pandas.errors.cow import _chained_assignment_msg
 
 from pandas._libs.util cimport (
     is_array,
@@ -1002,47 +996,3 @@ cdef class BlockValuesRefs:
                 return self._has_reference_maybe_locked()
         ELSE:
             return self._has_reference_maybe_locked()
-
-
-cdef extern from "Python.h":
-    """
-    // python version < 3.14
-    #if PY_VERSION_HEX < 0x030E0000
-    // This function is unused and is declared to avoid a build warning
-    int __Pyx_PyUnstable_Object_IsUniqueReferencedTemporary(PyObject *ref) {
-        return Py_REFCNT(ref) == 1;
-    }
-    #else
-    #define __Pyx_PyUnstable_Object_IsUniqueReferencedTemporary \
-        PyUnstable_Object_IsUniqueReferencedTemporary
-    #endif
-    """
-    int PyUnstable_Object_IsUniqueReferencedTemporary\
-        "__Pyx_PyUnstable_Object_IsUniqueReferencedTemporary"(object o) except -1
-
-
-# Python version compatibility for PyUnstable_Object_IsUniqueReferencedTemporary
-cdef inline bint _is_unique_referenced_temporary(object obj) except -1:
-    if PY_VERSION_HEX >= 0x030E0000:
-        # Python 3.14+ has PyUnstable_Object_IsUniqueReferencedTemporary
-        return PyUnstable_Object_IsUniqueReferencedTemporary(obj)
-    else:
-        # Fallback for older Python versions using sys.getrefcount
-        return sys.getrefcount(obj) <= 1
-
-
-cdef class SetitemMixin:
-    # class used in DataFrame and Series for checking for chained assignment
-
-    def __setitem__(self, key, value) -> None:
-        cdef bint is_unique = 0
-        if not CHAINED_WARNING_DISABLED:
-            is_unique = _is_unique_referenced_temporary(self)
-            if is_unique:
-                warnings.warn(
-                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=1
-                )
-        self._setitem(key, value)
-
-    def __delitem__(self, key) -> None:
-        self._delitem(key)
