@@ -653,9 +653,7 @@ def test_apply_dict(df, dicts):
 
 def test_apply_non_numpy_dtype():
     # GH 12244
-    df = DataFrame(
-        {"dt": date_range("2015-01-01", periods=3, tz="Europe/Brussels", unit="ns")}
-    )
+    df = DataFrame({"dt": date_range("2015-01-01", periods=3, tz="Europe/Brussels")})
     result = df.apply(lambda x: x)
     tm.assert_frame_equal(result, df)
 
@@ -1427,7 +1425,7 @@ def test_nuiscance_columns():
             "A": [1, 2, 3],
             "B": [1.0, 2.0, 3.0],
             "C": ["foo", "bar", "baz"],
-            "D": date_range("20130101", periods=3, unit="ns"),
+            "D": date_range("20130101", periods=3),
         }
     )
 
@@ -1437,7 +1435,7 @@ def test_nuiscance_columns():
 
     result = df.agg(["min"])
     expected = DataFrame(
-        [[1, 1.0, "bar", Timestamp("20130101").as_unit("ns")]],
+        [[1, 1.0, "bar", Timestamp("20130101")]],
         index=["min"],
         columns=df.columns,
     )

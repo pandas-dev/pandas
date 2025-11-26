@@ -1845,9 +1845,18 @@ class TestDateRangeUnitInference:
         assert dti.unit == "ns"
 
     def test_date_range_unit_inference_dateoffset_freq(self):
-        off = DateOffset(microseconds=2_000_000)
+        start = Timestamp("2025-11-25 09:00:00").as_unit("s")
+        end = Timestamp("2025-11-25 09:00:02").as_unit("s")
 
-        start = Timestamp("2025-11-25").as_unit("ms")
-        end = Timestamp("2025-11-26").as_unit("s")
+        off = DateOffset(microseconds=2_000_000)
         dti = date_range(start, end, freq=off)
         assert dti.unit == "us"
+
+        off = DateOffset(milliseconds=2)
+        dti = date_range(start, end, freq=off)
+        assert dti.unit == "ms"
+
+        end2 = start + Timedelta(microseconds=2).as_unit("us")
+        off = DateOffset(nanoseconds=2)
+        dti = date_range(start, end2, freq=off)
+        assert dti.unit == "ns"
