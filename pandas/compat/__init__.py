@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING
 
 from pandas.compat._constants import (
     CHAINED_WARNING_DISABLED,
-    CHAINED_WARNING_DISABLED_INPLACE_METHOD,
     IS64,
     ISMUSL,
     PY312,
@@ -154,7 +153,6 @@ def is_ci_environment() -> bool:
 
 __all__ = [
     "CHAINED_WARNING_DISABLED",
-    "CHAINED_WARNING_DISABLED_INPLACE_METHOD",
     "HAS_PYARROW",
     "IS64",
     "ISMUSL",
