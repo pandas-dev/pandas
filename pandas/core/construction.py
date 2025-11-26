@@ -321,6 +321,12 @@ def array(
             return data.copy()
         return data
 
+    # to avoid returning an array of string representation of objects.
+    if dtype == StringDtype():
+        ndarr = np.array(data)
+        if ndarr.ndim != 1:
+            raise TypeError("Values must be a 1D list-like")
+
     if isinstance(dtype, ExtensionDtype):
         cls = dtype.construct_array_type()
         return cls._from_sequence(data, dtype=dtype, copy=copy)
