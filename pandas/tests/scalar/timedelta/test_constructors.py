@@ -272,14 +272,14 @@ def test_construction():
     assert Timedelta(10, unit="D")._value == expected
     assert Timedelta(10.0, unit="D")._value == expected
     assert Timedelta("10 days")._value == expected
-    assert Timedelta(days=10)._value == expected
-    assert Timedelta(days=10.0)._value == expected
+    assert Timedelta(days=10)._value == expected // 1000
+    assert Timedelta(days=10.0)._value == expected // 1000
 
     expected += np.timedelta64(10, "s").astype("m8[ns]").view("i8")
     assert Timedelta("10 days 00:00:10")._value == expected
-    assert Timedelta(days=10, seconds=10)._value == expected
-    assert Timedelta(days=10, milliseconds=10 * 1000)._value == expected
-    assert Timedelta(days=10, microseconds=10 * 1000 * 1000)._value == expected
+    assert Timedelta(days=10, seconds=10)._value == expected // 1000
+    assert Timedelta(days=10, milliseconds=10 * 1000)._value == expected // 1000
+    assert Timedelta(days=10, microseconds=10 * 1000 * 1000)._value == expected // 1000
 
     # rounding cases
     assert Timedelta(82739999850000)._value == 82739999850000
@@ -411,7 +411,7 @@ def test_construction():
 def test_td_construction_with_np_dtypes(npdtype, item):
     # GH#8757: test construction with np dtypes
     pykwarg, npkwarg = item
-    expected = np.timedelta64(1, npkwarg).astype("m8[ns]").view("i8")
+    expected = np.timedelta64(1, npkwarg).astype("m8[us]").view("i8")
     assert Timedelta(**{pykwarg: npdtype(1)})._value == expected
 
 

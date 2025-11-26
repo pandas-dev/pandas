@@ -359,7 +359,7 @@ def test_value_counts_object_inference_deprecated():
                 + [Timestamp("2016-01-02")]
                 + [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(1, 5)]
             ),
-            DatetimeIndex(pd.date_range("2016-01-01", periods=5, freq="D")),
+            DatetimeIndex(pd.date_range("2016-01-01", periods=5, freq="D", unit="us")),
         ],
         [
             TimedeltaIndex(

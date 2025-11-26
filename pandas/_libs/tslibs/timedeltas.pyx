@@ -2045,7 +2045,7 @@ class Timedelta(_Timedelta):
                     int(ns)
                     + int(us * 1_000)
                     + int(ms * 1_000_000)
-                    + seconds
+                    + seconds, "ns"
                 )
             except OverflowError as err:
                 # GH#55503
@@ -2054,6 +2054,13 @@ class Timedelta(_Timedelta):
                     f"microseconds={us}, nanoseconds={ns}"
                 )
                 raise OutOfBoundsTimedelta(msg) from err
+
+            if (
+                "nanoseconds" not in kwargs
+                and cnp.get_timedelta64_value(value) % 1000 == 0
+            ):
+                # If possible, give a microsecond unit
+                value = value.astype("m8[us]")
 
         disallow_ambiguous_unit(unit)
 

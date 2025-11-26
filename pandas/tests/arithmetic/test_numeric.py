@@ -223,8 +223,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "scalar_td",
         [
-            Timedelta(days=1),
-            Timedelta(days=1).to_timedelta64(),
+            Timedelta(days=1).as_unit("ns"),
+            Timedelta(days=1).as_unit("ns").to_timedelta64(),
             Timedelta(days=1).to_pytimedelta(),
             Timedelta(days=1).to_timedelta64().astype("timedelta64[s]"),
             Timedelta(days=1).to_timedelta64().astype("timedelta64[ms]"),
@@ -254,9 +254,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "scalar_td",
         [
-            Timedelta(days=1),
-            Timedelta(days=1).to_timedelta64(),
-            Timedelta(days=1).to_pytimedelta(),
+            Timedelta(days=1).as_unit("ns"),
+            Timedelta(days=1).as_unit("ns").to_timedelta64(),
+            Timedelta(days=1).as_unit("ns").to_pytimedelta(),
         ],
         ids=lambda x: type(x).__name__,
     )

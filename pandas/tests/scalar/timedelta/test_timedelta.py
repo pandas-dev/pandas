@@ -664,7 +664,7 @@ class TestTimedeltas:
         # GH#21344
         td = Timedelta(days=4, hours=3)
         result = td.resolution
-        assert result == Timedelta(nanoseconds=1)
+        assert result == Timedelta(microseconds=1)
 
         # Check that the attribute is available on the class, mirroring
         #  the stdlib timedelta behavior
