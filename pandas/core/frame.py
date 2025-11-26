@@ -214,6 +214,8 @@ if TYPE_CHECKING:
         AnyAll,
         AnyArrayLike,
         ArrayLike,
+        ArrowArrayExportable,
+        ArrowStreamExportable,
         Axes,
         Axis,
         AxisInt,
@@ -1839,6 +1841,56 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)
+
+    @classmethod
+    def from_arrow(
+        cls, data: ArrowArrayExportable | ArrowStreamExportable
+    ) -> DataFrame:
+        """
+        Construct a DataFrame from a tabular Arrow object.
+
+        This function accepts any Arrow-compatible tabular object implementing
+        the `Arrow PyCapsule Protocol`_ (i.e. having an ``__arrow_c_array__``
+        or ``__arrow_c_stream__`` method).
+
+        This function currently relies on ``pyarrow`` to convert the tabular
+        object in Arrow format to pandas.
+
+        .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        data : pyarrow.Table or Arrow-compatible table
+            Any tabular object implementing the Arrow PyCapsule Protocol
+            (i.e. has an ``__arrow_c_array__`` or ``__arrow_c_stream__``
+            method).
+
+        Returns
+        -------
+        DataFrame
+
+        """
+        pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        if not isinstance(data, pa.Table):
+            if not (
+                hasattr(data, "__arrow_c_array__")
+                or hasattr(data, "__arrow_c_stream__")
+            ):
+                # explicitly test this, because otherwise we would accept variour other
+                # input types through the pa.table(..) call
+                raise TypeError(
+                    "Expected an Arrow-compatible tabular object (i.e. having an "
+                    "'_arrow_c_array__' or '__arrow_c_stream__' method), got "
+                    f"'{type(data).__name__}' instead."
+                )
+            pa_table = pa.table(data)
+        else:
+            pa_table = data
+
+        df = pa_table.to_pandas()
+        return df
 
     @classmethod
     def from_dict(
@@ -12148,8 +12200,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
                 result.index = df.index
                 return result
 
-            # kurtosis excluded since groupby does not implement it
-            if df.shape[1] and name != "kurt":
+            if df.shape[1]:
                 dtype = find_common_type(
                     [block.values.dtype for block in df._mgr.blocks]
                 )

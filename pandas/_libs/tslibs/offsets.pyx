@@ -47,6 +47,7 @@ from pandas._libs.tslibs.ccalendar import (
     int_to_weekday,
     weekday_to_int,
 )
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.ccalendar cimport (
@@ -1695,6 +1696,7 @@ class OffsetMeta(type):
 
 
 # TODO: figure out a way to use a metaclass with a cdef class
+@set_module("pandas")
 class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     """
     Standard kind of date increment used for a date range.
@@ -1822,8 +1824,6 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     >>> ts + pd.DateOffset(hour=8)
     Timestamp('2017-01-01 08:10:11')
     """
-    __module__ = "pandas"
-
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
 
