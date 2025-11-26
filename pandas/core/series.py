@@ -168,6 +168,8 @@ if TYPE_CHECKING:
         AnyAll,
         AnyArrayLike,
         ArrayLike,
+        ArrowArrayExportable,
+        ArrowStreamExportable,
         Axis,
         AxisInt,
         CorrelationMethod,
@@ -1832,6 +1834,55 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         mgr = self._mgr.to_2d_mgr(columns)
         df = self._constructor_expanddim_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(self, method="to_frame")
+
+    @classmethod
+    def from_arrow(cls, data: ArrowArrayExportable | ArrowStreamExportable) -> Series:
+        """
+        Construct a Series from an array-like Arrow object.
+
+        This function accepts any Arrow-compatible array-like object implementing
+        the `Arrow PyCapsule Protocol`_ (i.e. having an ``__arrow_c_array__``
+        or ``__arrow_c_stream__`` method).
+
+        This function currently relies on ``pyarrow`` to convert the object
+        in Arrow format to pandas.
+
+        .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        data : pyarrow.Array or Arrow-compatible object
+            Any array-like object implementing the Arrow PyCapsule Protocol
+            (i.e. has an ``__arrow_c_array__`` or ``__arrow_c_stream__``
+            method).
+
+        Returns
+        -------
+        Series
+
+        """
+        pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        if not isinstance(data, (pa.Array, pa.ChunkedArray)):
+            if not (
+                hasattr(data, "__arrow_c_array__")
+                or hasattr(data, "__arrow_c_stream__")
+            ):
+                # explicitly test this, because otherwise we would accept variour other
+                # input types through the pa.chunked_array(..) call
+                raise TypeError(
+                    "Expected an Arrow-compatible array-like object (i.e. having an "
+                    "'_arrow_c_array__' or '__arrow_c_stream__' method), got "
+                    f"'{type(data).__name__}' instead."
+                )
+            # using chunked_array() as it works for both arrays and streams
+            pa_array = pa.chunked_array(data)
+        else:
+            pa_array = data
+
+        ser = pa_array.to_pandas()
+        return ser
 
     def _set_name(self, name, inplace: bool = False) -> Series:
         """
