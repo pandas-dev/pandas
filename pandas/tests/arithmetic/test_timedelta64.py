@@ -274,6 +274,23 @@ class TestTimedelta64ArithmeticUnsorted:
     # Tests moved from type-specific test files but not
     #  yet sorted/parametrized/de-duplicated
 
+    def test_td64_op_with_list(self, box_with_array):
+        # GH#62353
+        box = box_with_array
+
+        left = TimedeltaIndex(["2D", "4D"])
+        left = tm.box_expected(left, box)
+
+        right = [Timestamp("2016-01-01"), Timestamp("2016-02-01")]
+
+        result = left + right
+        expected = DatetimeIndex(["2016-01-03", "2016-02-05"], dtype="M8[ns]")
+        expected = tm.box_expected(expected, box)
+        tm.assert_equal(result, expected)
+
+        result2 = right + left
+        tm.assert_equal(result2, expected)
+
     def test_ufunc_coercions(self):
         # normal ops are also tested in tseries/test_timedeltas.py
         idx = TimedeltaIndex(["2h", "4h", "6h", "8h", "10h"], freq="2h", name="x")
