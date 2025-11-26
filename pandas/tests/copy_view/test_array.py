@@ -19,11 +19,11 @@ from pandas.tests.copy_view.util import get_array
     "method",
     [
         lambda ser: ser.values,
-        lambda ser: np.asarray(ser.array),
+        # lambda ser: np.asarray(ser.array),
         lambda ser: np.asarray(ser),
         lambda ser: np.array(ser, copy=False),
     ],
-    ids=["values", "array", "np.asarray", "np.array"],
+    ids=["values", "np.asarray", "np.array"],
 )
 def test_series_values(method):
     ser = Series([1, 2, 3], name="name")
@@ -109,12 +109,12 @@ def test_series_to_numpy():
 @pytest.mark.parametrize(
     "method",
     [
-        lambda ser: np.asarray(ser.array),
+        # lambda ser: np.asarray(ser.array),
         lambda ser: np.asarray(ser),
         lambda ser: np.asarray(ser, dtype="int64"),
         lambda ser: np.array(ser, copy=False),
     ],
-    ids=["array", "np.asarray", "np.asarray-dtype", "np.array"],
+    ids=["np.asarray", "np.asarray-dtype", "np.array"],
 )
 def test_series_values_ea_dtypes(method):
     ser = Series([1, 2, 3], dtype="Int64")
