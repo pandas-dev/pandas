@@ -311,7 +311,7 @@ class TestDataFrameInterpolate:
         df_orig = df.copy()
         expected = df.copy().interpolate()
 
-        with tm.raises_chained_assignment_error(inplace_method=True):
+        with tm.raises_chained_assignment_error():
             result = df["a"].interpolate(inplace=True)
         tm.assert_series_equal(result, expected["a"])
         tm.assert_frame_equal(df, df_orig)
