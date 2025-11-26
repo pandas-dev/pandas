@@ -844,30 +844,47 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         **kwargs,
     ) -> Self:
         """
-        Return a new Index of the values selected by the indices.
-
         For internal compatibility with numpy arrays.
 
         Parameters
         ----------
         indices : array-like
             Indices to be taken.
-        axis : int, optional
-            The axis over which to select values. Always 0.
+        axis : {0 or 'index'}, optional
+            The axis over which to select values, always 0 or 'index'.
         allow_fill : bool, default True
+            How to handle negative values in `indices`.
+        
+            * False: negative values in `indices` indicate positional indices
+                from the right (the default). This is similar to
+                :func:`numpy.take`.
+        
+            * True: negative values in `indices` indicate
+                missing values. These values are set to `fill_value`. Any other
+                other negative values raise a ``ValueError``.
+        
         fill_value : scalar, default None
-            If allow_fill=True and fill_value is not None, this value is used
-            instead of raising if the index is out of bounds.
-
+            If allow_fill=True and fill_value is not None, indices specified by
+            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+        **kwargs
+            Required for compatibility with numpy.
+        
         Returns
         -------
         Index
-            An element of same type as self.
-
+            An index formed of elements at the given indices. Will be the same
+            type as self, except for RangeIndex.
+        
         See Also
         --------
-        numpy.ndarray.take : Return an array formed from the elements of a
-            at the given indices.
+        numpy.ndarray.take: Return an array formed from the
+            elements of a at the given indices.
+        
+        Examples
+        --------
+        >>> idx = pd.Index(['a', 'b', 'c'])
+        >>> idx.take([2, 2, 1, 2])
+        Index(['c', 'c', 'b', 'c'], dtype='str')
         """
         nv.validate_take((), kwargs)
         indices = np.asarray(indices, dtype=np.intp)
