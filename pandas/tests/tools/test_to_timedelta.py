@@ -27,6 +27,14 @@ from pandas.core.arrays import TimedeltaArray
 
 
 class TestTimedeltas:
+    def test_to_timedelta_all_nat_unit(self):
+        # With all-NaT entries, we get "s" unit
+        result = to_timedelta([None])
+        assert result.unit == "s"
+
+        result = TimedeltaIndex([None])
+        assert result.unit == "s"
+
     def test_to_timedelta_month_raises(self):
         obj = np.timedelta64(1, "M")
 

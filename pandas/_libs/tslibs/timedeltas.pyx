@@ -497,7 +497,7 @@ def array_to_timedelta64(
                 errors=errors,
                 creso=state.creso,
             )
-        elif state.creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        elif creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
             # i.e. we never encountered anything non-NaT, default to "s". This
             # ensures that insert and concat-like operations with NaT
             # do not upcast units
@@ -507,9 +507,10 @@ def array_to_timedelta64(
             #  a second pass.
             abbrev = npy_unit_to_abbrev(state.creso)
             result = iresult.view(f"m8[{abbrev}]")
-
-    abbrev = npy_unit_to_abbrev(creso)
-    return result.view(f"m8[{abbrev}]")
+    else:
+        abbrev = npy_unit_to_abbrev(creso)
+        result = result.view(f"m8[{abbrev}]")
+    return result
 
 
 @cython.cpow(True)
