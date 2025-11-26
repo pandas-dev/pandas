@@ -5,7 +5,9 @@ These tests verify interactions between multiple modules/components:
 - pandas.core.series (Series construction)
 - pandas.core.frame (DataFrame construction)
 - pandas.core.dtypes (dtype handling)
-
+- pandas.core.internals (internal data management)
+- pandas.util._validators (validation utilities)
+- pandas.core.missing (missing data handling)
 """
 import numpy as np
 import pytest
@@ -69,4 +71,50 @@ class TestSandeepIntegration:
         assert df["col3"].dtype == np.dtype("object")
         assert len(df) == 3
 
+
+class TestNithikeshIntegration:
+    """Integration tests by Nithikesh Bobbili covering validation-missing data interactions."""
+    
+    def test_validate_fillna_with_clean_method(self):
+        """Test validate_fillna_kwargs delegates to clean_fill_method.
+        
+        This exercises interaction between:
+        - pandas.util._validators.validate_fillna_kwargs
+        - pandas.core.missing.clean_fill_method
+        - method normalization and validation
+        """
+        # Test method normalization through validate_fillna_kwargs
+        value, method = validate_fillna_kwargs(None, "pad")
+        assert value is None
+        assert method == clean_fill_method("pad")
+        
+        # Test alternate method names
+        value, method = validate_fillna_kwargs(None, "ffill")
+        assert method == clean_fill_method("ffill")
+        
+        # Both None should raise
+        with pytest.raises(ValueError, match="Must specify a fill"):
+            validate_fillna_kwargs(None, None)
+    
+    def test_series_fillna_integration(self):
+        """Test Series.fillna() and ffill() use validation and missing data modules.
+        
+        This exercises interaction between:
+        - pandas.core.series.Series.fillna() / ffill()
+        - pandas.util._validators.validate_fillna_kwargs (internally)
+        - pandas.core.missing (fill methods)
+        - pandas.core.internals (data modification)
+        """
+        # Create Series with missing values
+        s = Series([1.0, np.nan, 3.0, np.nan, 5.0])
+        
+        # ffill uses forward fill method - interacts with missing data module
+        result = s.ffill()
+        expected = Series([1.0, 1.0, 3.0, 3.0, 5.0])
+        pd.testing.assert_series_equal(result, expected)
+        
+        # fillna with value - validation ensures value is acceptable
+        result = s.fillna(value=0.0)
+        expected = Series([1.0, 0.0, 3.0, 0.0, 5.0])
+        pd.testing.assert_series_equal(result, expected)
 
