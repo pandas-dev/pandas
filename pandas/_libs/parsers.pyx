@@ -937,6 +937,11 @@ cdef class TextReader:
             int64_t num_cols
             dict results
             bint is_default_dict_dtype
+            set bad_rows
+            dict failed_columns_dtypes
+
+        bad_rows = set()
+        failed_columns_dtypes = {}
 
         start = self.parser_start
 
@@ -1009,6 +1014,26 @@ cdef class TextReader:
                 col_res, na_count = self._convert_tokens(
                     i, start, end, name, na_filter, na_hashset,
                     na_fset, col_dtype)
+            except (ValueError, TypeError, OverflowError) as e:
+                # GH#63168: Handle dtype conversion failures based on on_bad_lines
+                if self.parser.on_bad_lines == SKIP or self.parser.on_bad_lines == WARN:
+                    # Fall back to string conversion
+                    col_res, na_count = self._string_convert(
+                        i, start, end, na_filter, na_hashset)
+
+                    # Track this column's intended dtype for later bad row detection
+                    if col_dtype is not None:
+                        failed_columns_dtypes[i] = col_dtype
+
+                    if self.parser.on_bad_lines == WARN:
+                        warnings.warn(
+                            f"Could not convert column {name} to dtype {col_dtype}: "
+                            f"{e}. Rows with unconvertible values will be skipped.",
+                            ParserWarning,
+                            stacklevel=find_stack_level()
+                        )
+                else:
+                    raise
             finally:
                 # gh-21353
                 #
@@ -1033,6 +1058,32 @@ cdef class TextReader:
                 raise ParserError(f"Unable to parse column {i}")
 
             results[i] = col_res
+
+        # GH#63168: Filter out bad rows if on_bad_lines is SKIP or WARN
+        if failed_columns_dtypes:
+            # Identify bad rows from columns that failed dtype conversion
+            for col_idx, target_dtype in failed_columns_dtypes.items():
+                col_values = results[col_idx]
+                bad_row_indices = _identify_bad_rows(col_values, target_dtype)
+                bad_rows.update(bad_row_indices)
+
+            if bad_rows:
+                num_rows = end - start
+                good_mask = np.ones(num_rows, dtype=np.bool_)
+                for bad_idx in bad_rows:
+                    good_mask[bad_idx] = False
+
+                # Filter all columns to keep only good rows
+                for col_idx in results:
+                    results[col_idx] = results[col_idx][good_mask]
+
+                if self.parser.on_bad_lines == WARN:
+                    warnings.warn(
+                        f"Skipped {len(bad_rows)} line(s) due to dtype "
+                        f"conversion errors.",
+                        ParserWarning,
+                        stacklevel=find_stack_level()
+                    )
 
         self.parser_start += end - start
 
@@ -1402,6 +1453,51 @@ STR_NA_VALUES = {
     "None",
 }
 _NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
+
+
+def _identify_bad_rows(values, dtype):
+    """
+    Identify row indices where values cannot be converted to the target dtype.
+
+    GH#63168: Used to find rows that should be skipped when on_bad_lines='skip'.
+
+    Parameters
+    ----------
+    values : ndarray
+        Array of values (typically strings/objects) to check.
+    dtype : numpy dtype
+        Target dtype to check conversion against.
+
+    Returns
+    -------
+    set
+        Set of row indices (0-based) that cannot be converted.
+    """
+    bad_indices = set()
+
+    for idx in range(len(values)):
+        val = values[idx]
+
+        # Skip None/NaN values - they're handled separately
+        if val is None:
+            continue
+        if isinstance(val, float) and np.isnan(val):
+            continue
+        if isinstance(val, str) and val.strip() == "":
+            continue
+
+        try:
+            if dtype.kind in "iu":  # integer types
+                int(val)
+            elif dtype.kind == "f":  # float types
+                float(val)
+            elif dtype.kind == "b":  # boolean
+                # Boolean conversion is more complex, skip for now
+                pass
+        except (ValueError, TypeError):
+            bad_indices.add(idx)
+
+    return bad_indices
 
 
 def _maybe_upcast(
