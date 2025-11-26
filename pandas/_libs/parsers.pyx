@@ -1015,13 +1015,13 @@ cdef class TextReader:
                     i, start, end, name, na_filter, na_hashset,
                     na_fset, col_dtype)
             except (ValueError, TypeError, OverflowError) as e:
-                # GH#63168: Handle dtype conversion failures based on on_bad_lines
+                # Handle dtype conversion failure based on on_bad_lines
                 if self.parser.on_bad_lines == SKIP or self.parser.on_bad_lines == WARN:
                     # Fall back to string conversion
                     col_res, na_count = self._string_convert(
                         i, start, end, na_filter, na_hashset)
 
-                    # Track this column's intended dtype for later bad row detection
+                    # Track the columns intended dtype for bad row detection lateron
                     if col_dtype is not None:
                         failed_columns_dtypes[i] = col_dtype
 
@@ -1059,7 +1059,7 @@ cdef class TextReader:
 
             results[i] = col_res
 
-        # GH#63168: Filter out bad rows if on_bad_lines is SKIP or WARN
+        # Filters out the bad rows if on_bad_lines is skipped or warned
         if failed_columns_dtypes:
             # Identify bad rows from columns that failed dtype conversion
             for col_idx, target_dtype in failed_columns_dtypes.items():
@@ -1457,16 +1457,16 @@ _NA_VALUES = _ensure_encoded(list(STR_NA_VALUES))
 
 def _identify_bad_rows(values, dtype):
     """
-    Identify row indices where values cannot be converted to the target dtype.
+    Identify the row indices when values cannot be converted to the intended target
 
-    GH#63168: Used to find rows that should be skipped when on_bad_lines='skip'.
+    This can be used to find rows that should be skipped when on_bad_lines='skip'
 
     Parameters
     ----------
     values : ndarray
-        Array of values (typically strings/objects) to check.
+        Array of values to check
     dtype : numpy dtype
-        Target dtype to check conversion against.
+        Target dtype to check conversion against
 
     Returns
     -------
@@ -1492,7 +1492,7 @@ def _identify_bad_rows(values, dtype):
             elif dtype.kind == "f":  # float types
                 float(val)
             elif dtype.kind == "b":  # boolean
-                # Boolean conversion is more complex, skip for now
+                # Complex pass it until we fix again
                 pass
         except (ValueError, TypeError):
             bad_indices.add(idx)
