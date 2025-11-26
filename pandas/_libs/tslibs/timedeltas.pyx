@@ -688,7 +688,7 @@ cdef bint needs_nano_unit(int64_t ival, str item):
     # TODO: more performant way of doing this check?
     if ival % 1000 != 0:
         return True
-    return re.search(r"\.\d{9}", item) or "ns" in item or "nano" in item
+    return re.search(r"\.\d{7}", item) or "ns" in item or "nano" in item
 
 
 cpdef inline str parse_timedelta_unit(str unit):
