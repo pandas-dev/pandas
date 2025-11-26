@@ -984,39 +984,22 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     def delete(self, loc) -> Self:
         """
         Make new Index with passed location(-s) deleted.
+
         Parameters
         ----------
         loc : int or list of int
             Location of item(-s) which will be deleted.
             Use a list of locations to delete more than one value at the same time.
+
         Returns
         -------
         Index
             Will be same type as self, except for RangeIndex.
+
         See Also
         --------
         numpy.delete : Delete any rows and column from NumPy array (ndarray).
-        Examples
-        --------
-        >>> idx = pd.Index(["a", "b", "c"])
-        >>> idx.delete(1)
-        Index(['a', 'c'], dtype='str')
-        >>> idx = pd.Index(["a", "b", "c"])
-        >>> idx.delete([0, 2])
-        Index(['b'], dtype='str')
-        Make new Index with passed location(-s) deleted.
-        Parameters
-        ----------
-        loc : int or list of int
-            Location of item(-s) which will be deleted.
-            Use a list of locations to delete more than one value at the same time.
-        Returns
-        -------
-        Index
-            Will be same type as self, except for RangeIndex.
-        See Also
-        --------
-        numpy.delete : Delete any rows and column from NumPy array (ndarray).
+
         Examples
         --------
         >>> idx = pd.Index(["a", "b", "c"])
@@ -1032,43 +1015,26 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
     def insert(self, loc: int, item):
         """
-                Make new Index inserting new item at location.
-        Follows Python numpy.insert semantics for negative values.
-        Parameters
-        ----------
-        loc : int
-            The integer location where the new item will be inserted.
-        item : object
-            The new item to be inserted into the Index.
-        Returns
-        -------
-        Index
-            Returns a new Index object resulting from inserting the specified item at
-            the specified location within the original Index.
-        See Also
-        --------
-        Index.append : Append a collection of Indexes together.
-        Examples
-        --------
-        >>> idx = pd.Index(["a", "b", "c"])
-        >>> idx.insert(1, "x")
-        Index(['a', 'x', 'b', 'c'], dtype='str')
         Make new Index inserting new item at location.
         Follows Python numpy.insert semantics for negative values.
+
         Parameters
         ----------
         loc : int
             The integer location where the new item will be inserted.
         item : object
             The new item to be inserted into the Index.
+
         Returns
         -------
         Index
             Returns a new Index object resulting from inserting the specified item at
             the specified location within the original Index.
+
         See Also
         --------
         Index.append : Append a collection of Indexes together.
+
         Examples
         --------
         >>> idx = pd.Index(["a", "b", "c"])
