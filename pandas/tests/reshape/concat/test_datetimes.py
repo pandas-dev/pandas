@@ -279,6 +279,7 @@ class TestDatetimeConcat:
         tm.assert_frame_equal(result, expected)
 
     def test_concat_ns_and_s_preserves_datetime64(self):
+        # GH 53307
         # ensure concatenating a datetime64[ns] column and a copy cast to M8[s]
         # yields a datetime64 dtype (finest unit should be ns)
         df = pd.DataFrame(
@@ -617,24 +618,51 @@ def test_concat_float_datetime64():
     result = concat([df_time, df_float.iloc[:0]])
     tm.assert_frame_equal(result, expected)
 
-@pytest.mark.parametrize("order", [[0, 1], [1, 0]])
-def test_concat_ns_and_s_order_invariance(order):
-    df = pd.DataFrame(
-        {"ints": range(2), "dates": pd.date_range("2000", periods=2, freq="min")}
-    )
+
+@pytest.mark.parametrize(
+    "unit,unit2",
+    [(u1, u2) for u1 in ("ns", "us", "ms", "s") for u2 in ("ns", "us", "ms", "s")],
+)
+def test_concat_mixed_units_preserve_datetime_and_unit(unit, unit2):
+    # GH 53307
+    # for each pair of units, concatenating columns of those units should
+    # result in a datetime64 dtype with the finest unit
+    df = pd.DataFrame({"dates": pd.to_datetime(["2000-01-01", "2000-01-02"])})
+    # cast copies to requested unit
+    df1 = df.copy()
+    df1["dates"] = df1["dates"].astype(f"M8[{unit}]")
     df2 = df.copy()
-    df2["dates"] = df2["dates"].astype("M8[s]")
+    df2["dates"] = df2["dates"].astype(f"M8[{unit2}]")
 
-    parts = [df, df2]
-    combined = pd.concat([parts[i] for i in order], ignore_index=True)
+    exp_unit = tm.get_finest_unit(unit, unit2)
 
+    # test both concat orders
+    for a, b in ((df1, df2), (df2, df1)):
+        combined = pd.concat([a, b], ignore_index=True)
+
+        assert pd.api.types.is_datetime64_any_dtype(combined["dates"].dtype)
+
+        res_unit = np.datetime_data(combined["dates"].dtype)[0]
+        assert res_unit == exp_unit
+
+
+@pytest.mark.parametrize(
+    "unit,unit2",
+    [(u1, u2) for u1 in ("ns", "us", "ms", "s") for u2 in ("ns", "us", "ms", "s")],
+)
+def test_concat_mixed_units_with_all_nat(unit, unit2):
+    # GH 53307
+    # mixing non-empty datetime column and an all-NaT column typed to unit2
+    df = pd.DataFrame({"dates": pd.to_datetime(["2000-01-01"])})
+    df1 = df.copy()
+    df1["dates"] = df1["dates"].astype(f"M8[{unit}]")
+
+    ser_nat = pd.Series([pd.NaT], dtype=f"datetime64[{unit2}]")
+    df2 = pd.DataFrame({"dates": ser_nat})
+
+    exp_unit = tm.get_finest_unit(unit, unit2)
+
+    combined = pd.concat([df1, df2], ignore_index=True)
     assert pd.api.types.is_datetime64_any_dtype(combined["dates"].dtype)
-
-
-def test_concat_ns_and_s_with_all_nat_and_empty():
-    # mixing a ns datetime column with an all-NaT seconds-typed column
-    df = pd.DataFrame({"dates": pd.date_range("2000", periods=2, freq="min")})
-    df2 = pd.DataFrame({"dates": [pd.NaT, pd.NaT]}).astype({"dates": "datetime64[s]"})
-
-    combined = pd.concat([df, df2], ignore_index=True)
-    assert pd.api.types.is_datetime64_any_dtype(combined["dates"].dtype)
+    res_unit = np.datetime_data(combined["dates"].dtype)[0]
+    assert res_unit == exp_unit
