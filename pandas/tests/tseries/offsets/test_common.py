@@ -150,7 +150,7 @@ def test_apply_out_of_range(request, tz_naive_fixture, _offset):
             request.applymarker(
                 pytest.mark.xfail(reason="After GH#49737 t.tzinfo is None on CI")
             )
-        assert str(t.tzinfo) == str(result.tzinfo)
+        assert str(t.tzinfo) == str(result.tzinfo), (t.tzinfo, result.tzinfo)
 
     except OutOfBoundsDatetime:
         pass
