@@ -33,11 +33,11 @@ from pandas._libs import (
     properties,
     reshape,
 )
-from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
-    CHAINED_WARNING_DISABLED_INPLACE_METHOD,
     REF_COUNT,
+    REF_COUNT_METHOD,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -48,6 +48,7 @@ from pandas.errors import (
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
+    _chained_assignment_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -231,7 +232,7 @@ axis : int or str, optional
 # class "NDFrame")
 # definition in base class "NDFrame"
 @set_module("pandas")
-class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
+class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -356,11 +357,6 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         doc=base.IndexOpsMixin.hasnans.__doc__,
     )
     _mgr: SingleBlockManager
-
-    # override those to avoid inheriting from SetitemMixin (cython generates
-    # them by default)
-    __reduce__ = object.__reduce__
-    __setstate__ = NDFrame.__setstate__
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -1061,8 +1057,15 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             return self.iloc[loc]
 
-    # def __setitem__() is implemented in SetitemMixin and dispatches to this method
-    def _setitem(self, key, value) -> None:
+    def __setitem__(self, key, value) -> None:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
+                self
+            ):
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
+
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
 
@@ -3351,8 +3354,10 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
-            if sys.getrefcount(self) <= REF_COUNT:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(
+                self
+            ) <= REF_COUNT_METHOD and not com.is_local_in_caller_frame(self):
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
