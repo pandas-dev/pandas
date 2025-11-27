@@ -82,10 +82,9 @@ from pandas._typing import (
     WriteExcelBuffer,
     npt,
 )
-from pandas.compat import PYPY
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
-    REF_COUNT,
-    WARNING_CHECK_DISABLED,
+    REF_COUNT_METHOD,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -2180,6 +2179,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions | None = None,
         engine_kwargs: dict[str, Any] | None = None,
+        autofilter: bool = False,
     ) -> None:
         """
         Write {klass} to an Excel sheet.
@@ -2240,6 +2240,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionadded:: {storage_options_versionadded}
         {extra_parameters}
+        autofilter : bool, default False
+            If True, add automatic filters to all columns.
+
         See Also
         --------
         to_csv : Write DataFrame to a comma-separated values (csv) file.
@@ -2312,6 +2315,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             index_label=index_label,
             merge_cells=merge_cells,
             inf_rep=inf_rep,
+            autofilter=autofilter,
         )
         formatter.write(
             excel_writer,
@@ -6306,7 +6310,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.dtypes
         float              float64
         int                  int64
-        datetime    datetime64[s]
+        datetime    datetime64[us]
         string              str
         dtype: object
         """
@@ -7077,8 +7081,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7324,8 +7330,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7464,8 +7472,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7549,8 +7559,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7912,8 +7924,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -8567,8 +8581,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -10202,8 +10218,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -10266,8 +10284,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None:
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
