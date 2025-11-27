@@ -24,8 +24,8 @@ class TestDataFrameClip:
         median = float_frame.median().median()
         frame_copy = float_frame.copy()
 
-        return_value = frame_copy.clip(upper=median, lower=median, inplace=True)
-        assert return_value is None
+        result = frame_copy.clip(upper=median, lower=median, inplace=True)
+        assert result is frame_copy
         assert not (frame_copy.values != median).any()
 
     def test_dataframe_clip(self):
@@ -68,7 +68,7 @@ class TestDataFrameClip:
         clipped_df = df.clip(lb, ub, axis=0, inplace=inplace)
 
         if inplace:
-            clipped_df = df
+            assert clipped_df is df
 
         for i in range(2):
             lb_mask = original.iloc[:, i] <= lb
@@ -106,7 +106,7 @@ class TestDataFrameClip:
 
         expected = DataFrame(res, columns=original.columns, index=original.index)
         if inplace:
-            result = original
+            assert result is original
         tm.assert_frame_equal(result, expected, check_exact=True)
 
     @pytest.mark.parametrize("axis", [0, 1, None])

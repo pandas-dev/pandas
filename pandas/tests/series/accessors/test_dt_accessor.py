@@ -701,8 +701,8 @@ class TestSeriesDatetimeValues:
     def test_dt_accessor_updates_on_inplace(self):
         ser = Series(date_range("2018-01-01", periods=10))
         ser[2] = None
-        return_value = ser.fillna(pd.Timestamp("2018-01-01"), inplace=True)
-        assert return_value is None
+        result = ser.fillna(pd.Timestamp("2018-01-01"), inplace=True)
+        assert result is ser
         result = ser.dt.date
         assert result[0] == result[2]
 
