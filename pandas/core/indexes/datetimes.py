@@ -425,7 +425,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
               times.
 
         nonexistent : 'shift_forward', 'shift_backward, 'NaT', timedelta, \
-default 'raise'
+        default 'raise'
             A nonexistent time does not exist in a particular timezone
             where clocks moved forward due to DST.
 
@@ -455,82 +455,82 @@ default 'raise'
 
         Examples
         --------
-                >>> tz_naive = pd.date_range('2018-03-01 09:00', periods=3)
-                >>> tz_naive
-                DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
-                               '2018-03-03 09:00:00'],
-                              dtype='datetime64[ns]', freq='D')
+        >>> tz_naive = pd.date_range('2018-03-01 09:00', periods=3)
+        >>> tz_naive
+        DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
+                       '2018-03-03 09:00:00'],
+                      dtype='datetime64[ns]', freq='D')
 
-                Localize DatetimeIndex in US/Eastern time zone:
+        Localize DatetimeIndex in US/Eastern time zone:
 
-                >>> tz_aware = tz_naive.tz_localize(tz='US/Eastern')
-                >>> tz_aware
-                DatetimeIndex(['2018-03-01 09:00:00-05:00',
-                               '2018-03-02 09:00:00-05:00',
-                               '2018-03-03 09:00:00-05:00'],
-                              dtype='datetime64[ns, US/Eastern]', freq=None)
+        >>> tz_aware = tz_naive.tz_localize(tz='US/Eastern')
+        >>> tz_aware
+        DatetimeIndex(['2018-03-01 09:00:00-05:00',
+                       '2018-03-02 09:00:00-05:00',
+                       '2018-03-03 09:00:00-05:00'],
+                      dtype='datetime64[ns, US/Eastern]', freq=None)
 
-                With the ``tz=None``, we can remove the time zone information
-                while keeping the local time (not converted to UTC):
+        With the ``tz=None``, we can remove the time zone information
+        while keeping the local time (not converted to UTC):
 
-                >>> tz_aware.tz_localize(None)
-                DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
-                               '2018-03-03 09:00:00'],
-                              dtype='datetime64[ns]', freq=None)
+        >>> tz_aware.tz_localize(None)
+        DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
+                       '2018-03-03 09:00:00'],
+                      dtype='datetime64[ns]', freq=None)
 
-                Be careful with DST changes. When there is sequential data, pandas can
-                infer the DST time:
+        Be careful with DST changes. When there is sequential data, pandas can
+        infer the DST time:
 
-                >>> s = pd.to_datetime(pd.Series(['2018-10-28 01:30:00',
-                ...                               '2018-10-28 02:00:00',
-                ...                               '2018-10-28 02:30:00',
-                ...                               '2018-10-28 02:00:00',
-                ...                               '2018-10-28 02:30:00',
-                ...                               '2018-10-28 03:00:00',
-                ...                               '2018-10-28 03:30:00']))
-                >>> s.dt.tz_localize('CET', ambiguous='infer')
-                0   2018-10-28 01:30:00+02:00
-                1   2018-10-28 02:00:00+02:00
-                2   2018-10-28 02:30:00+02:00
-                3   2018-10-28 02:00:00+01:00
-                4   2018-10-28 02:30:00+01:00
-                5   2018-10-28 03:00:00+01:00
-                6   2018-10-28 03:30:00+01:00
-                dtype: datetime64[s, CET]
+        >>> s = pd.to_datetime(pd.Series(['2018-10-28 01:30:00',
+        ...                               '2018-10-28 02:00:00',
+        ...                               '2018-10-28 02:30:00',
+        ...                               '2018-10-28 02:00:00',
+        ...                               '2018-10-28 02:30:00',
+        ...                               '2018-10-28 03:00:00',
+        ...                               '2018-10-28 03:30:00']))
+        >>> s.dt.tz_localize('CET', ambiguous='infer')
+        0   2018-10-28 01:30:00+02:00
+        1   2018-10-28 02:00:00+02:00
+        2   2018-10-28 02:30:00+02:00
+        3   2018-10-28 02:00:00+01:00
+        4   2018-10-28 02:30:00+01:00
+        5   2018-10-28 03:00:00+01:00
+        6   2018-10-28 03:30:00+01:00
+        dtype: datetime64[s, CET]
 
-                In some cases, inferring the DST is impossible. In such cases, you can
-                pass an ndarray to the ambiguous parameter to set the DST explicitly
+        In some cases, inferring the DST is impossible. In such cases, you can
+        pass an ndarray to the ambiguous parameter to set the DST explicitly
 
-                >>> s = pd.to_datetime(pd.Series(['2018-10-28 01:20:00',
-                ...                               '2018-10-28 02:36:00',
-                ...                               '2018-10-28 03:46:00']))
-                >>> s.dt.tz_localize('CET', ambiguous=np.array([True, True, False]))
-                0   2018-10-28 01:20:00+02:00
-                1   2018-10-28 02:36:00+02:00
-                2   2018-10-28 03:46:00+01:00
-                dtype: datetime64[s, CET]
+        >>> s = pd.to_datetime(pd.Series(['2018-10-28 01:20:00',
+        ...                               '2018-10-28 02:36:00',
+        ...                               '2018-10-28 03:46:00']))
+        >>> s.dt.tz_localize('CET', ambiguous=np.array([True, True, False]))
+        0   2018-10-28 01:20:00+02:00
+        1   2018-10-28 02:36:00+02:00
+        2   2018-10-28 03:46:00+01:00
+        dtype: datetime64[s, CET]
 
-                If the DST transition causes nonexistent times, you can shift these
-                dates forward or backwards with a timedelta object or `'shift_forward'`
-                or `'shift_backwards'`.
+        If the DST transition causes nonexistent times, you can shift these
+        dates forward or backwards with a timedelta object or `'shift_forward'`
+        or `'shift_backwards'`.
 
-                >>> s = pd.to_datetime(pd.Series(['2015-03-29 02:30:00',
-                ...                               '2015-03-29 03:30:00'], dtype="M8[ns]"))
-                >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
-                0   2015-03-29 03:00:00+02:00
-                1   2015-03-29 03:30:00+02:00
-                dtype: datetime64[ns, Europe/Warsaw]
+        >>> s = pd.to_datetime(pd.Series(['2015-03-29 02:30:00',
+        ...                               '2015-03-29 03:30:00'], dtype="M8[ns]"))
+        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
+        0   2015-03-29 03:00:00+02:00
+        1   2015-03-29 03:30:00+02:00
+        dtype: datetime64[ns, Europe/Warsaw]
 
-                >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
-                0   2015-03-29 01:59:59.999999999+01:00
-                1   2015-03-29 03:30:00+02:00
-                dtype: datetime64[ns, Europe/Warsaw]
+        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
+        0   2015-03-29 01:59:59.999999999+01:00
+        1   2015-03-29 03:30:00+02:00
+        dtype: datetime64[ns, Europe/Warsaw]
 
-                >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
-                0   2015-03-29 03:30:00+02:00
-                1   2015-03-29 03:30:00+02:00
-                dtype: datetime64[ns, Europe/Warsaw]
-                """  # noqa: E501
+        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
+        0   2015-03-29 03:30:00+02:00
+        1   2015-03-29 03:30:00+02:00
+        dtype: datetime64[ns, Europe/Warsaw]
+        """  # noqa: E501
         arr = self._data.tz_localize(tz, ambiguous, nonexistent)
         return type(self)._simple_new(arr, name=self.name)
 
@@ -987,13 +987,16 @@ default 'raise'
         This function should be overloaded in subclasses that allow non-trivial
         casting on label-slice bounds, e.g. datetime-like indices allowing
         strings containing formatted datetimes.
+
         Parameters
         ----------
         label : object
         side : {'left', 'right'}
+
         Returns
         -------
         label : object
+
         Notes
         -----
         Value of `side` parameter should be validated in caller.
