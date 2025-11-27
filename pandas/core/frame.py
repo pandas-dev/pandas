@@ -48,11 +48,11 @@ from pandas._libs import (
     properties,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
-    CHAINED_WARNING_DISABLED_INPLACE_METHOD,
     REF_COUNT,
+    REF_COUNT_METHOD,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -63,6 +63,7 @@ from pandas.errors import (
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
+    _chained_assignment_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -522,7 +523,7 @@ ValueError: columns overlap but no suffix specified:
 
 
 @set_module("pandas")
-class DataFrame(SetitemMixin, NDFrame, OpsMixin):
+class DataFrame(NDFrame, OpsMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
 
@@ -668,11 +669,6 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
     # similar to __array_priority__, positions DataFrame before Series, Index,
     #  and ExtensionArray.  Should NOT be overridden by subclasses.
     __pandas_priority__ = 4000
-
-    # override those to avoid inheriting from SetitemMixin (cython generates
-    # them by default)
-    __reduce__ = object.__reduce__
-    __setstate__ = NDFrame.__setstate__
 
     @property
     def _constructor(self) -> type[DataFrame]:
@@ -4377,8 +4373,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         arraylike, refs = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
-    # def __setitem__() is implemented in SetitemMixin and dispatches to this method
-    def _setitem(self, key, value) -> None:
+    def __setitem__(self, key, value) -> None:
         """
         Set item(s) in DataFrame by key.
 
@@ -4462,6 +4457,14 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         z  3  50
         # Values for 'a' and 'b' are completely ignored!
         """
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
+                self
+            ):
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
+
         key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows
@@ -6106,19 +6109,9 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
-    @overload
-    def _replace_columnwise(
-        self, mapping: dict[Hashable, tuple[Any, Any]], inplace: Literal[True], regex
-    ) -> None: ...
-
-    @overload
-    def _replace_columnwise(
-        self, mapping: dict[Hashable, tuple[Any, Any]], inplace: Literal[False], regex
-    ) -> Self: ...
-
     def _replace_columnwise(
         self, mapping: dict[Hashable, tuple[Any, Any]], inplace: bool, regex
-    ) -> Self | None:
+    ) -> Self:
         """
         Dispatch to Series.replace column-wise.
 
@@ -6131,7 +6124,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
 
         Returns
         -------
-        DataFrame or None
+        DataFrame
         """
         # Operate column-wise
         res = self if inplace else self.copy(deep=False)
@@ -6146,9 +6139,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
 
                 res._iset_item(i, newobj, inplace=inplace)
 
-        if inplace:
-            return None
-        return res.__finalize__(self)
+        return res if inplace else res.__finalize__(self)
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
@@ -9414,8 +9405,10 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         1  2  500.0
         2  3    6.0
         """
-        if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
-            if sys.getrefcount(self) <= REF_COUNT:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(
+                self
+            ) <= REF_COUNT_METHOD and not com.is_local_in_caller_frame(self):
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
