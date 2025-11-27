@@ -1280,7 +1280,7 @@ class Parser:
     @final
     def _try_convert_to_date(self, data: Series) -> Series:
         """
-        Try to parse a ndarray like into a date column.
+        Try to parse an ndarray like into a date column.
 
         Try to coerce object in epoch/iso formats and integer/float in epoch
         formats.

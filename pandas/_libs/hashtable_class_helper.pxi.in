@@ -1070,7 +1070,7 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, str):
-                # GH#31499 if we have a np.str_ PyUnicode_AsUTF8 won't recognize
+                # GH#31499 if we have an np.str_ PyUnicode_AsUTF8 won't recognize
                 #  it as a str, even though isinstance does.
                 v = PyUnicode_AsUTF8(<str>val)
             else:
@@ -1108,7 +1108,7 @@ cdef class StringHashTable(HashTable):
             val = values[i]
 
             if isinstance(val, str):
-                # GH#31499 if we have a np.str_ PyUnicode_AsUTF8 won't recognize
+                # GH#31499 if we have an np.str_ PyUnicode_AsUTF8 won't recognize
                 #  it as a str, even though isinstance does.
                 v = PyUnicode_AsUTF8(<str>val)
             else:

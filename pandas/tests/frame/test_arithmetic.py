@@ -444,7 +444,7 @@ class TestFrameFlexComparisons:
         df = DataFrame([pd.NaT])
 
         result = df == pd.NaT
-        # result.iloc[0, 0] is a np.bool_ object
+        # result.iloc[0, 0] is an np.bool_ object
         assert result.iloc[0, 0].item() is False
 
         result = df.eq(pd.NaT)

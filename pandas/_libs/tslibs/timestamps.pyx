@@ -412,7 +412,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     @classmethod
     def _from_dt64(cls, dt64: np.datetime64):
-        # construct a Timestamp from a np.datetime64 object, keeping the
+        # construct a Timestamp from an np.datetime64 object, keeping the
         #  resolution of the input.
         # This is here mainly so we can incrementally implement non-nano
         #  (e.g. only tznaive at first)

@@ -1977,7 +1977,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         axis: AxisInt | None = None,
     ) -> Self:
         """
-        Repeat elements of a IntervalArray.
+        Repeat elements of an IntervalArray.
 
         Returns a new IntervalArray where each element of the current IntervalArray
         is repeated consecutively a given number of times.

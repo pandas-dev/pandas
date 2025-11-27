@@ -251,7 +251,7 @@ def test_select_dtypes(setup_path, request):
         tm.assert_frame_equal(expected, result)
 
         # https://github.com/PyTables/PyTables/issues/282
-        # bug in selection when 0th row has a np.nan and an index
+        # bug in selection when 0th row has an np.nan and an index
         # store.append('df3',df,data_columns=True)
         # result = store.select(
         #    'df3', where='values>2.0')

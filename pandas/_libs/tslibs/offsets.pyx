@@ -818,7 +818,7 @@ cdef class BaseOffset:
         state["normalize"] = self.normalize
 
         # we don't want to actually pickle the calendar object
-        # as its a np.busyday; we recreate on deserialization
+        # as its an np.busyday; we recreate on deserialization
         state.pop("calendar", None)
         if "kwds" in state:
             state["kwds"].pop("calendar", None)
