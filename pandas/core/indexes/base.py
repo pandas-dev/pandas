@@ -1180,8 +1180,8 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         indices : array-like
             Indices to be taken.
-        axis : int, optional
-            The axis over which to select values, always 0.
+        axis : {0 or 'index'}, optional
+            The axis over which to select values, always 0 or 'index'.
         allow_fill : bool, default True
             How to handle negative values in `indices`.
 
@@ -1234,8 +1234,8 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         indices : array-like
             Indices to be taken.
-        axis : int, optional
-            The axis over which to select values, always 0.
+        axis : {0 or 'index'}, optional
+            The axis over which to select values, always 0 or 'index'.
         allow_fill : bool, default True
             How to handle negative values in `indices`.
 
@@ -7284,19 +7284,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             other = np.asarray(other)
 
-        if is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
-            # e.g. PeriodArray, Categorical
-            result = op(self._values, other)
-
-        elif isinstance(self._values, ExtensionArray):
-            result = op(self._values, other)
-
-        elif is_object_dtype(self.dtype) and not isinstance(self, ABCMultiIndex):
-            # don't pass MultiIndex
-            result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
-
-        else:
-            result = ops.comparison_op(self._values, other, op)
+        result = ops.comparison_op(self._values, other, op)
 
         return result
 

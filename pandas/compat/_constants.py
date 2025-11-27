@@ -18,9 +18,11 @@ PY314 = sys.version_info >= (3, 14)
 PYPY = platform.python_implementation() == "PyPy"
 WASM = (sys.platform == "emscripten") or (platform.machine() in ["wasm32", "wasm64"])
 ISMUSL = "musl" in (sysconfig.get_config_var("HOST_GNU_TYPE") or "")
-REF_COUNT = 2
-CHAINED_WARNING_DISABLED = PYPY or (PY314 and not sys._is_gil_enabled())  # type: ignore[attr-defined]
-CHAINED_WARNING_DISABLED_INPLACE_METHOD = PYPY or PY314
+# the refcount for self in a chained __setitem__/.(i)loc indexing/method call
+REF_COUNT = 2 if PY314 else 3
+REF_COUNT_IDX = 2
+REF_COUNT_METHOD = 1 if PY314 else 2
+CHAINED_WARNING_DISABLED = PYPY
 
 
 __all__ = [
