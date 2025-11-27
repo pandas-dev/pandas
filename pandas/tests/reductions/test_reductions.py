@@ -229,7 +229,7 @@ class TestReductions:
 
 class TestIndexReductions:
     # Note: the name TestIndexReductions indicates these tests
-    #  were moved from a Index-specific test file, _not_ that these tests are
+    #  were moved from an Index-specific test file, _not_ that these tests are
     #  intended long-term to be Index-specific
 
     @pytest.mark.parametrize(
