@@ -15,10 +15,8 @@ import numpy as np
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-from pandas.compat._constants import (
-    CHAINED_WARNING_DISABLED,
-    REF_COUNT,
-)
+from pandas.compat import CHAINED_WARNING_DISABLED
+from pandas.compat._constants import REF_COUNT_IDX
 from pandas.errors import (
     AbstractMethodError,
     ChainedAssignmentError,
@@ -920,7 +918,7 @@ class _LocationIndexer(NDFrameIndexerBase):
     @final
     def __setitem__(self, key, value) -> None:
         if not CHAINED_WARNING_DISABLED:
-            if sys.getrefcount(self.obj) <= REF_COUNT:
+            if sys.getrefcount(self.obj) <= REF_COUNT_IDX:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -2588,7 +2586,7 @@ class _AtIndexer(_ScalarAccessIndexer):
 
     def __setitem__(self, key, value) -> None:
         if not CHAINED_WARNING_DISABLED:
-            if sys.getrefcount(self.obj) <= REF_COUNT:
+            if sys.getrefcount(self.obj) <= REF_COUNT_IDX:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -2619,7 +2617,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
 
     def __setitem__(self, key, value) -> None:
         if not CHAINED_WARNING_DISABLED:
-            if sys.getrefcount(self.obj) <= REF_COUNT:
+            if sys.getrefcount(self.obj) <= REF_COUNT_IDX:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )

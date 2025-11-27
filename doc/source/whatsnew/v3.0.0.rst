@@ -233,6 +233,9 @@ Other enhancements
 - Support reading Stata 102-format (Stata 1) dta files (:issue:`58978`)
 - Support reading Stata 110-format (Stata 7) dta files (:issue:`47176`)
 - Switched wheel upload to **PyPI Trusted Publishing** (OIDC) for release-tag pushes in ``wheels.yml``. (:issue:`61718`)
+- Added a new :meth:`DataFrame.from_arrow` method to import any Arrow-compatible
+  tabular data object into a pandas :class:`DataFrame` through the
+  `Arrow PyCapsule Protocol <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`__ (:issue:`59631`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
@@ -747,8 +750,13 @@ Other API changes
 - :class:`Series` "flex" methods like :meth:`Series.add` no longer allow passing a :class:`DataFrame` for ``other``; use the DataFrame reversed method instead (:issue:`46179`)
 - :meth:`CategoricalIndex.append` no longer attempts to cast different-dtype indexes to the caller's dtype (:issue:`41626`)
 - :meth:`ExtensionDtype.construct_array_type` is now a regular method instead of a ``classmethod`` (:issue:`58663`)
+- Arithmetic operations between a :class:`Series`, :class:`Index`, or :class:`ExtensionArray` with a ``list`` now consistently wrap that list with an array equivalent to ``Series(my_list).array``. To do any other kind of type inference or casting, do so explicitly before operating (:issue:`62552`)
 - Comparison operations between :class:`Index` and :class:`Series` now consistently return :class:`Series` regardless of which object is on the left or right (:issue:`36759`)
 - Numpy functions like ``np.isinf`` that return a bool dtype when called on a :class:`Index` object now return a bool-dtype :class:`Index` instead of ``np.ndarray`` (:issue:`52676`)
+- Methods that can operate in-place (:meth:`~DataFrame.replace`, :meth:`~DataFrame.fillna`,
+  :meth:`~DataFrame.ffill`, :meth:`~DataFrame.bfill`, :meth:`~DataFrame.interpolate`,
+  :meth:`~DataFrame.where`, :meth:`~DataFrame.mask`, :meth:`~DataFrame.clip`) now return
+  the modified DataFrame or Series (``self``) instead of ``None`` when ``inplace=True`` (:issue:`63207`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.deprecations:
