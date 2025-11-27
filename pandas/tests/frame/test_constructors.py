@@ -1869,7 +1869,7 @@ class TestDataFrameConstructors:
         )
         tm.assert_series_equal(result, expected)
 
-        # check with ndarray construction ndim==0 (e.g. we are passing a ndim 0
+        # check with ndarray construction ndim==0 (e.g. we are passing an ndim 0
         # ndarray with a dtype specified)
         df = DataFrame(
             {

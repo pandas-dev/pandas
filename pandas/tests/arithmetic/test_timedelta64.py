@@ -1830,7 +1830,7 @@ class TestTimedeltaArraylikeMulDivOps:
             expected = expected.to_numpy()
         tm.assert_equal(res, expected)
         if box_with_array is DataFrame:
-            # We have a np.timedelta64(NaT), not pd.NaT
+            # We have an np.timedelta64(NaT), not pd.NaT
             assert isinstance(res.iloc[1, 0], np.timedelta64)
 
         res = tdi // other
@@ -1841,7 +1841,7 @@ class TestTimedeltaArraylikeMulDivOps:
             expected = expected.to_numpy()
         tm.assert_equal(res, expected)
         if box_with_array is DataFrame:
-            # We have a np.timedelta64(NaT), not pd.NaT
+            # We have an np.timedelta64(NaT), not pd.NaT
             assert isinstance(res.iloc[1, 0], np.timedelta64)
 
     # ------------------------------------------------------------------
