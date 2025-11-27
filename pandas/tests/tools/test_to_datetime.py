@@ -673,7 +673,7 @@ class TestToDatetime:
         # https://github.com/pandas-dev/pandas/issues/49298
         # https://github.com/pandas-dev/pandas/issues/50254
         # note: ISO8601 formats go down a fastpath, so we need to check both
-        # a ISO8601 format and a non-ISO8601 one
+        # an ISO8601 format and a non-ISO8601 one
         ts1 = constructor(args[0])
         ts2 = args[1]
         result = to_datetime([ts1, ts2], format=fmt, utc=utc)
@@ -697,7 +697,7 @@ class TestToDatetime:
         # https://github.com/pandas-dev/pandas/issues/50254
         # GH#57275
         # note: ISO8601 formats go down a fastpath, so we need to check both
-        # a ISO8601 format and a non-ISO8601 one
+        # an ISO8601 format and a non-ISO8601 one
         args = ["2000-01-01 01:00:00", "2000-01-01 02:00:00+00:00"]
         ts1 = constructor(args[0])
         ts2 = args[1]
@@ -796,7 +796,7 @@ class TestToDatetime:
     ):
         # https://github.com/pandas-dev/pandas/issues/49298
         # note: ISO8601 formats go down a fastpath, so we need to check both
-        # a ISO8601 format and a non-ISO8601 one
+        # an ISO8601 format and a non-ISO8601 one
         ts1 = constructor(args[0])
         ts2 = constructor(args[1])
         with pytest.raises(
