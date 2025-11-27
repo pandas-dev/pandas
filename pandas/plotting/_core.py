@@ -769,6 +769,7 @@ def boxplot_frame_groupby(
     )
 
 
+@set_module("pandas.plotting")
 class PlotAccessor(PandasObject):
     """
     Make plots of Series or DataFrame.
@@ -814,8 +815,6 @@ class PlotAccessor(PandasObject):
           create 2 subplots: one with columns 'a' and 'c', and one
           with columns 'b' and 'd'. Remaining columns that aren't specified
           will be plotted in additional subplots (one per column).
-
-          .. versionadded:: 1.5.0
 
     sharex : bool, default True if ax is None else False
         In case ``subplots=True``, share x axis and set some x axis labels
@@ -986,8 +985,6 @@ class PlotAccessor(PandasObject):
         >>> df = pd.DataFrame({"col1": [1, 2, 3, 4], "col2": ["A", "B", "A", "B"]})
         >>> plot = df.groupby("col2").plot(kind="bar", title="DataFrameGroupBy Plot")
     """
-
-    __module__ = "pandas.plotting"
 
     _common_kinds = ("line", "bar", "barh", "kde", "density", "area", "hist", "box")
     _series_kinds = ("pie",)

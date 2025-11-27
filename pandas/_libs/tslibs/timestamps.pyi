@@ -23,7 +23,10 @@ from pandas._libs.tslibs import (
     Tick,
     Timedelta,
 )
-from pandas._typing import TimestampNonexistent
+from pandas._typing import (
+    TimestampNonexistent,
+    TimeUnit,
+)
 
 _TimeZones: TypeAlias = str | _tzinfo | None | int
 
@@ -235,5 +238,5 @@ class Timestamp(datetime):
     @property
     def daysinmonth(self) -> int: ...
     @property
-    def unit(self) -> str: ...
-    def as_unit(self, unit: str, round_ok: bool = ...) -> Timestamp: ...
+    def unit(self) -> TimeUnit: ...
+    def as_unit(self, unit: TimeUnit, round_ok: bool = ...) -> Timestamp: ...

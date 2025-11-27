@@ -368,7 +368,12 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
         if copy is True:
             return np.array(self._ndarray, dtype=dtype)
-        return self._ndarray
+
+        result = self._ndarray
+        if self._readonly:
+            result = result.view()
+            result.flags.writeable = False
+        return result
 
     @overload
     def __getitem__(self, key: ScalarIndexer) -> DTScalarOrNaT: ...
@@ -1918,11 +1923,11 @@ _round_example = """>>> rng.round('h')
 
     >>> rng_tz.floor("2h", ambiguous=False)
     DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+                  dtype='datetime64[us, Europe/Amsterdam]', freq=None)
 
     >>> rng_tz.floor("2h", ambiguous=True)
     DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+                  dtype='datetime64[us, Europe/Amsterdam]', freq=None)
     """
 
 _floor_example = """>>> rng.floor('h')
@@ -1945,11 +1950,11 @@ _floor_example = """>>> rng.floor('h')
 
     >>> rng_tz.floor("2h", ambiguous=False)
     DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                 dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+                 dtype='datetime64[us, Europe/Amsterdam]', freq=None)
 
     >>> rng_tz.floor("2h", ambiguous=True)
     DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+                  dtype='datetime64[us, Europe/Amsterdam]', freq=None)
     """
 
 _ceil_example = """>>> rng.ceil('h')
@@ -1972,11 +1977,11 @@ _ceil_example = """>>> rng.ceil('h')
 
     >>> rng_tz.ceil("h", ambiguous=False)
     DatetimeIndex(['2021-10-31 02:00:00+01:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+                  dtype='datetime64[us, Europe/Amsterdam]', freq=None)
 
     >>> rng_tz.ceil("h", ambiguous=True)
     DatetimeIndex(['2021-10-31 02:00:00+02:00'],
-                  dtype='datetime64[s, Europe/Amsterdam]', freq=None)
+                  dtype='datetime64[us, Europe/Amsterdam]', freq=None)
     """
 
 
@@ -2337,6 +2342,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     def _values_for_json(self) -> np.ndarray:
         # Small performance bump vs the base class which calls np.asarray(self)
+        if self.unit != "ns":
+            # GH#55827
+            return self.as_unit("ns")._values_for_json()
         if isinstance(self.dtype, np.dtype):
             return self._ndarray
         return super()._values_for_json()

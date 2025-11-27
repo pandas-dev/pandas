@@ -1003,19 +1003,10 @@ class StylerRenderer:
         precision : int, optional
             Floating point precision to use for display purposes, if not determined by
             the specified ``formatter``.
-
-            .. versionadded:: 1.3.0
-
         decimal : str, default "."
             Character used as decimal separator for floats, complex and integers.
-
-            .. versionadded:: 1.3.0
-
         thousands : str, optional, default None
             Character used as thousands separator for floats, complex and integers.
-
-            .. versionadded:: 1.3.0
-
         escape : str, optional
             Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
             in cell display string with HTML-safe sequences.
@@ -1026,15 +1017,10 @@ class StylerRenderer:
             except for math substrings, which either are surrounded
             by two characters ``$`` or start with the character ``\(`` and
             end with ``\)``. Escaping is done before ``formatter``.
-
-            .. versionadded:: 1.3.0
-
         hyperlinks : {"html", "latex"}, optional
             Convert string patterns containing https://, http://, ftp:// or www. to
             HTML <a> tags as clickable URL hyperlinks if "html", or LaTeX \href
             commands if "latex".
-
-            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -1261,8 +1247,6 @@ class StylerRenderer:
         r"""
         Format the text display value of index labels or column headers.
 
-        .. versionadded:: 1.4.0
-
         Parameters
         ----------
         formatter : str, callable, dict or None
@@ -1444,8 +1428,6 @@ class StylerRenderer:
     ) -> StylerRenderer:
         r"""
         Relabel the index, or column header, keys to display a set of specified values.
-
-        .. versionadded:: 1.5.0
 
         Parameters
         ----------

@@ -47,6 +47,7 @@ from pandas._libs.tslibs.ccalendar import (
     int_to_weekday,
     weekday_to_int,
 )
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.ccalendar cimport (
@@ -827,7 +828,7 @@ cdef class BaseOffset:
     @property
     def nanos(self):
         """
-        Returns a integer of the total number of nanoseconds for fixed frequencies.
+        Returns an integer of the total number of nanoseconds for fixed frequencies.
 
         Raises
         ------
@@ -1695,6 +1696,7 @@ class OffsetMeta(type):
 
 
 # TODO: figure out a way to use a metaclass with a cdef class
+@set_module("pandas")
 class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     """
     Standard kind of date increment used for a date range.
@@ -1803,7 +1805,7 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     See Also
     --------
     dateutil.relativedelta.relativedelta : The relativedelta type is designed
-        to be applied to an existing datetime an can replace specific components of
+        to be applied to an existing datetime and can replace specific components of
         that datetime, or represents an interval of time.
 
     Examples
@@ -1822,8 +1824,6 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     >>> ts + pd.DateOffset(hour=8)
     Timestamp('2017-01-01 08:10:11')
     """
-    __module__ = "pandas"
-
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
 
@@ -5202,6 +5202,32 @@ deprec_to_valid_alias = {
     "L": "ms",
     "U": "us",
     "N": "ns",
+    "AS": "YS",
+    "AS-JAN": "YS-JAN",
+    "AS-FEB": "YS-FEB",
+    "AS-MAR": "YS-MAR",
+    "AS-APR": "YS-APR",
+    "AS-MAY": "YS-MAY",
+    "AS-JUN": "YS-JUN",
+    "AS-JUL": "YS-JUL",
+    "AS-AUG": "YS-AUG",
+    "AS-SEP": "YS-SEP",
+    "AS-OCT": "YS-OCT",
+    "AS-NOV": "YS-NOV",
+    "AS-DEC": "YS-DEC",
+    "A": "Y",
+    "A-JAN": "Y-JAN",
+    "A-FEB": "Y-FEB",
+    "A-MAR": "Y-MAR",
+    "A-APR": "Y-APR",
+    "A-MAY": "Y-MAY",
+    "A-JUN": "Y-JUN",
+    "A-JUL": "Y-JUL",
+    "A-AUG": "Y-AUG",
+    "A-SEP": "Y-SEP",
+    "A-OCT": "Y-OCT",
+    "A-NOV": "Y-NOV",
+    "A-DEC": "Y-DEC",
 }
 
 

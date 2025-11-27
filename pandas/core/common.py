@@ -22,6 +22,7 @@ from collections.abc import (
 import contextlib
 from functools import partial
 import inspect
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -639,8 +640,6 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
     """
     If a name is missing then replace it by level_n, where n is the count
 
-    .. versionadded:: 1.4.0
-
     Parameters
     ----------
     names : list-like
@@ -652,3 +651,29 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
         list of column names with the None values replaced.
     """
     return [f"level_{i}" if name is None else name for i, name in enumerate(names)]
+
+
+def is_local_in_caller_frame(obj):
+    """
+    Helper function used in detecting chained assignment.
+
+    If the pandas object (DataFrame/Series) is a local variable
+    in the caller's frame, it should not be a case of chained
+    assignment or method call.
+
+    For example:
+
+    def test():
+        df = pd.DataFrame(...)
+        df["a"] = 1  # not chained assignment
+
+    Inside ``df.__setitem__``, we call this function to check whether `df`
+    (`self`) is a local variable in `test` frame (the frame calling setitem). If
+    so, we know it is not a case of chained assignment (even when the refcount
+    of `df` is below the threshold due to optimization of local variables).
+    """
+    frame = sys._getframe(2)
+    for v in frame.f_locals.values():
+        if v is obj:
+            return True
+    return False

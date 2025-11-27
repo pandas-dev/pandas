@@ -34,10 +34,10 @@ from pandas._libs import (
     reshape,
 )
 from pandas._libs.lib import is_range_indexer
-from pandas.compat import PYPY
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
     REF_COUNT,
-    WARNING_CHECK_DISABLED,
+    REF_COUNT_METHOD,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -169,6 +169,8 @@ if TYPE_CHECKING:
         AnyAll,
         AnyArrayLike,
         ArrayLike,
+        ArrowArrayExportable,
+        ArrowStreamExportable,
         Axis,
         AxisInt,
         CorrelationMethod,
@@ -818,7 +820,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[prop-decorator]
     @property
     def array(self) -> ExtensionArray:
-        return self._mgr.array_values()
+        arr = self._mgr.array_values()
+        arr = arr.view()
+        arr._readonly = True
+        return arr
 
     def __len__(self) -> int:
         """
@@ -1055,8 +1060,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and not WARNING_CHECK_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT + 1:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
+                self
+            ):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -1305,8 +1312,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Modify the Series in place (do not create a new object).
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1833,6 +1838,55 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         df = self._constructor_expanddim_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(self, method="to_frame")
 
+    @classmethod
+    def from_arrow(cls, data: ArrowArrayExportable | ArrowStreamExportable) -> Series:
+        """
+        Construct a Series from an array-like Arrow object.
+
+        This function accepts any Arrow-compatible array-like object implementing
+        the `Arrow PyCapsule Protocol`_ (i.e. having an ``__arrow_c_array__``
+        or ``__arrow_c_stream__`` method).
+
+        This function currently relies on ``pyarrow`` to convert the object
+        in Arrow format to pandas.
+
+        .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        data : pyarrow.Array or Arrow-compatible object
+            Any array-like object implementing the Arrow PyCapsule Protocol
+            (i.e. has an ``__arrow_c_array__`` or ``__arrow_c_stream__``
+            method).
+
+        Returns
+        -------
+        Series
+
+        """
+        pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        if not isinstance(data, (pa.Array, pa.ChunkedArray)):
+            if not (
+                hasattr(data, "__arrow_c_array__")
+                or hasattr(data, "__arrow_c_stream__")
+            ):
+                # explicitly test this, because otherwise we would accept variour other
+                # input types through the pa.chunked_array(..) call
+                raise TypeError(
+                    "Expected an Arrow-compatible array-like object (i.e. having an "
+                    "'_arrow_c_array__' or '__arrow_c_stream__' method), got "
+                    f"'{type(data).__name__}' instead."
+                )
+            # using chunked_array() as it works for both arrays and streams
+            pa_array = pa.chunked_array(data)
+        else:
+            pa_array = data
+
+        ser = pa_array.to_pandas()
+        return ser
+
     def _set_name(self, name, inplace: bool = False) -> Series:
         """
         Set the Series name.
@@ -2130,16 +2184,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> pd.Series([pd.Timestamp("2016-01-01") for _ in range(3)]).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00']
-        Length: 1, dtype: datetime64[s]
+        Length: 1, dtype: datetime64[us]
 
         >>> pd.Series(
         ...     [pd.Timestamp("2016-01-01", tz="US/Eastern") for _ in range(3)]
         ... ).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00-05:00']
-        Length: 1, dtype: datetime64[s, US/Eastern]
+        Length: 1, dtype: datetime64[us, US/Eastern]
 
-        An Categorical will return categories in the order of
+        A Categorical will return categories in the order of
         appearance and with the same dtype.
 
         >>> pd.Series(pd.Categorical(list("baabc"))).unique()
@@ -3028,8 +3082,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result_names : tuple, default ('self', 'other')
             Set the dataframes names in the comparison.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         Series or DataFrame
@@ -3353,8 +3405,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        if not PYPY and not WARNING_CHECK_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(
+                self
+            ) <= REF_COUNT_METHOD and not com.is_local_in_caller_frame(self):
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
@@ -5659,8 +5713,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         This method prints information about a Series including
         the index dtype, non-NA values and memory usage.
-
-        .. versionadded:: 1.4.0
 
         Parameters
         ----------

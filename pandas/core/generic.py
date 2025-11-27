@@ -82,10 +82,9 @@ from pandas._typing import (
     WriteExcelBuffer,
     npt,
 )
-from pandas.compat import PYPY
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
-    REF_COUNT,
-    WARNING_CHECK_DISABLED,
+    REF_COUNT_METHOD,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -2180,6 +2179,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions | None = None,
         engine_kwargs: dict[str, Any] | None = None,
+        autofilter: bool = False,
     ) -> None:
         """
         Write {klass} to an Excel sheet.
@@ -2240,6 +2240,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionadded:: {storage_options_versionadded}
         {extra_parameters}
+        autofilter : bool, default False
+            If True, add automatic filters to all columns.
+
         See Also
         --------
         to_csv : Write DataFrame to a comma-separated values (csv) file.
@@ -2312,6 +2315,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             index_label=index_label,
             merge_cells=merge_cells,
             inf_rep=inf_rep,
+            autofilter=autofilter,
         )
         formatter.write(
             excel_writer,
@@ -2875,8 +2879,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             reflect the exact number of written rows as stipulated in the
             `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
             `SQLAlchemy <https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.CursorResult.rowcount>`__.
-
-            .. versionadded:: 1.4.0
 
         Raises
         ------
@@ -5857,8 +5859,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ignore_index : bool, default False
             If True, the resulting index will be labeled 0, 1, …, n - 1.
 
-            .. versionadded:: 1.3.0
-
         Returns
         -------
         Series or DataFrame
@@ -6310,7 +6310,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.dtypes
         float              float64
         int                  int64
-        datetime    datetime64[s]
+        datetime    datetime64[us]
         string              str
         dtype: object
         """
@@ -7081,8 +7081,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7328,8 +7330,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7468,8 +7472,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7553,8 +7559,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -7916,8 +7924,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -8571,8 +8581,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         inplace = validate_bool_kwarg(inplace, "inplace")
 
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -8954,8 +8966,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - 'end': `origin` is the last value of the timeseries
             - 'end_day': `origin` is the ceiling midnight of the last day
 
-            .. versionadded:: 1.3.0
-
             .. note::
 
                 Only takes effect for Tick-frequencies (i.e. fixed frequencies like
@@ -8966,12 +8976,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         group_keys : bool, default False
             Whether to include the group keys in the result index when using
             ``.apply()`` on the resampled object.
-
-            .. versionadded:: 1.5.0
-
-                Not specifying ``group_keys`` will retain values-dependent behavior
-                from pandas 1.4 and earlier (see :ref:`pandas 1.5.0 Release notes
-                <whatsnew_150.enhancements.resample_group_keys>` for examples).
 
             .. versionchanged:: 2.0.0
 
@@ -10214,8 +10218,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,
@@ -10278,8 +10284,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None:
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
-            if not PYPY and not WARNING_CHECK_DISABLED:
-                if sys.getrefcount(self) <= REF_COUNT:
+            if not CHAINED_WARNING_DISABLED:
+                if sys.getrefcount(
+                    self
+                ) <= REF_COUNT_METHOD and not common.is_local_in_caller_frame(self):
                     warnings.warn(
                         _chained_assignment_method_msg,
                         ChainedAssignmentError,

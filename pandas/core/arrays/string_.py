@@ -548,6 +548,7 @@ class BaseStringArray(ExtensionArray):
         return super().view()
 
 
+@set_module("pandas.arrays")
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
 class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
@@ -630,8 +631,6 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     [True, <NA>, False]
     Length: 3, dtype: boolean
     """
-
-    __module__ = "pandas.arrays"
 
     # undo the NumpyExtensionArray hack
     _typ = "extension"
@@ -802,6 +801,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         return value
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         value = self._maybe_convert_setitem_value(value)
 
         key = check_array_indexer(self, key)
