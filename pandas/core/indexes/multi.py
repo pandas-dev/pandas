@@ -2303,8 +2303,8 @@ class MultiIndex(Index):
         ----------
         indices : array-like
             Indices to be taken.
-        axis : int, optional
-            The axis over which to select values, always 0.
+        axis : {0 or 'index'}, optional
+            The axis over which to select values, always 0 or 'index'.
         allow_fill : bool, default True
             How to handle negative values in `indices`.
 

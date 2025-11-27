@@ -991,7 +991,7 @@ class InvalidColumnName(Warning):
 
 class CategoricalConversionWarning(Warning):
     """
-    Warning is raised when reading a partial labeled Stata file using a iterator.
+    Warning is raised when reading a partial labeled Stata file using an iterator.
 
     This warning helps ensure data integrity and alerts users to potential issues
     during the incremental reading of Stata files with labeled data, allowing for
