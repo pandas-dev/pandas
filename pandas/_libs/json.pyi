@@ -14,10 +14,3 @@ def ujson_dumps(
     default_handler: None
     | Callable[[Any], str | float | bool | list | dict | None] = ...,
 ) -> str: ...
-def ujson_loads(
-    s: str,
-    precise_float: bool = ...,
-    numpy: bool = ...,
-    dtype: None = ...,
-    labelled: bool = ...,
-) -> Any: ...

@@ -11,6 +11,7 @@ import dateutil
 import numpy as np
 import pytest
 
+from pandas._libs import simdjson
 import pandas._libs.json as ujson
 from pandas.compat import IS64
 
@@ -69,7 +70,7 @@ class TestUltraJSONTests:
     def test_encode_decimal(self, value, double_precision):
         sut = decimal.Decimal(value)
         encoded = ujson.ujson_dumps(sut, double_precision=double_precision)
-        decoded = ujson.ujson_loads(encoded)
+        decoded = simdjson.simdjson_loads(encoded)
         assert decoded == value
 
     @pytest.mark.parametrize("ensure_ascii", [True, False])
@@ -87,7 +88,7 @@ class TestUltraJSONTests:
 
             assert output == expected_output
             assert string_input == json.loads(output)
-            assert string_input == ujson.ujson_loads(output)
+            assert string_input == simdjson.simdjson_loads(output)
 
         # Default behavior assumes encode_html_chars=False.
         helper(not_html_encoded)
@@ -105,7 +106,7 @@ class TestUltraJSONTests:
         sut = {"a": long_number}
         encoded = ujson.ujson_dumps(sut, double_precision=15)
 
-        decoded = ujson.ujson_loads(encoded)
+        decoded = simdjson.simdjson_loads(encoded)
         assert sut == decoded
 
     def test_encode_non_c_locale(self):
@@ -115,36 +116,38 @@ class TestUltraJSONTests:
         for new_locale in ("it_IT.UTF-8", "Italian_Italy"):
             if tm.can_set_locale(new_locale, lc_category):
                 with tm.set_locale(new_locale, lc_category):
-                    assert ujson.ujson_loads(ujson.ujson_dumps(4.78e60)) == 4.78e60
-                    assert ujson.ujson_loads("4.78", precise_float=True) == 4.78
+                    assert (
+                        simdjson.simdjson_loads(ujson.ujson_dumps(4.78e60)) == 4.78e60
+                    )
+                    assert simdjson.simdjson_loads("4.78", precise_float=True) == 4.78
                 break
 
     def test_decimal_decode_test_precise(self):
         sut = {"a": 4.56}
         encoded = ujson.ujson_dumps(sut)
-        decoded = ujson.ujson_loads(encoded, precise_float=True)
+        decoded = simdjson.simdjson_loads(encoded, precise_float=True)
         assert sut == decoded
 
     def test_encode_double_tiny_exponential(self):
         num = 1e-40
-        assert num == ujson.ujson_loads(ujson.ujson_dumps(num))
+        assert num == simdjson.simdjson_loads(ujson.ujson_dumps(num))
         num = 1e-100
-        assert num == ujson.ujson_loads(ujson.ujson_dumps(num))
+        assert num == simdjson.simdjson_loads(ujson.ujson_dumps(num))
         num = -1e-45
-        assert num == ujson.ujson_loads(ujson.ujson_dumps(num))
+        assert num == simdjson.simdjson_loads(ujson.ujson_dumps(num))
         num = -1e-145
-        assert np.allclose(num, ujson.ujson_loads(ujson.ujson_dumps(num)))
+        assert np.allclose(num, simdjson.simdjson_loads(ujson.ujson_dumps(num)))
 
     @pytest.mark.parametrize("unicode_key", ["key1", "بن"])
     def test_encode_dict_with_unicode_keys(self, unicode_key):
         unicode_dict = {unicode_key: "value1"}
-        assert unicode_dict == ujson.ujson_loads(ujson.ujson_dumps(unicode_dict))
+        assert unicode_dict == simdjson.simdjson_loads(ujson.ujson_dumps(unicode_dict))
 
     @pytest.mark.parametrize("double_input", [math.pi, -math.pi])
     def test_encode_double_conversion(self, double_input):
         output = ujson.ujson_dumps(double_input)
         assert round(double_input, 5) == round(json.loads(output), 5)
-        assert round(double_input, 5) == round(ujson.ujson_loads(output), 5)
+        assert round(double_input, 5) == round(simdjson.simdjson_loads(output), 5)
 
     def test_encode_with_decimal(self):
         decimal_input = 1.0
@@ -157,28 +160,28 @@ class TestUltraJSONTests:
         output = ujson.ujson_dumps(nested_input)
 
         assert nested_input == json.loads(output)
-        assert nested_input == ujson.ujson_loads(output)
+        assert nested_input == simdjson.simdjson_loads(output)
 
     def test_encode_array_of_doubles(self):
         doubles_input = [31337.31337, 31337.31337, 31337.31337, 31337.31337] * 10
         output = ujson.ujson_dumps(doubles_input)
 
         assert doubles_input == json.loads(output)
-        assert doubles_input == ujson.ujson_loads(output)
+        assert doubles_input == simdjson.simdjson_loads(output)
 
     def test_double_precision(self):
         double_input = 30.012345678901234
         output = ujson.ujson_dumps(double_input, double_precision=15)
 
         assert double_input == json.loads(output)
-        assert double_input == ujson.ujson_loads(output)
+        assert double_input == simdjson.simdjson_loads(output)
 
         for double_precision in (3, 9):
             output = ujson.ujson_dumps(double_input, double_precision=double_precision)
             rounded_input = round(double_input, double_precision)
 
             assert rounded_input == json.loads(output)
-            assert rounded_input == ujson.ujson_loads(output)
+            assert rounded_input == simdjson.simdjson_loads(output)
 
     @pytest.mark.parametrize(
         "invalid_val",
@@ -205,7 +208,7 @@ class TestUltraJSONTests:
         output = ujson.ujson_dumps(string_input)
 
         assert string_input == json.loads(output)
-        assert string_input == ujson.ujson_loads(output)
+        assert string_input == simdjson.simdjson_loads(output)
         assert output == '"A string \\\\ \\/ \\b \\f \\n \\r \\t"'
 
     @pytest.mark.parametrize(
@@ -214,7 +217,7 @@ class TestUltraJSONTests:
     )
     def test_encode_unicode_conversion(self, unicode_input):
         enc = ujson.ujson_dumps(unicode_input)
-        dec = ujson.ujson_loads(enc)
+        dec = simdjson.simdjson_loads(enc)
 
         assert enc == json.dumps(unicode_input)
         assert dec == json.loads(enc)
@@ -222,7 +225,7 @@ class TestUltraJSONTests:
     def test_encode_control_escaping(self):
         escaped_input = "\x19"
         enc = ujson.ujson_dumps(escaped_input)
-        dec = ujson.ujson_loads(enc)
+        dec = simdjson.simdjson_loads(enc)
 
         assert escaped_input == dec
         assert enc == json.dumps(escaped_input)
@@ -230,7 +233,7 @@ class TestUltraJSONTests:
     def test_encode_unicode_surrogate_pair(self):
         surrogate_input = "\xf0\x90\x8d\x86"
         enc = ujson.ujson_dumps(surrogate_input)
-        dec = ujson.ujson_loads(enc)
+        dec = simdjson.simdjson_loads(enc)
 
         assert enc == json.dumps(surrogate_input)
         assert dec == json.loads(enc)
@@ -238,7 +241,7 @@ class TestUltraJSONTests:
     def test_encode_unicode_4bytes_utf8(self):
         four_bytes_input = "\xf0\x91\x80\xb0TRAILINGNORMAL"
         enc = ujson.ujson_dumps(four_bytes_input)
-        dec = ujson.ujson_loads(enc)
+        dec = simdjson.simdjson_loads(enc)
 
         assert enc == json.dumps(four_bytes_input)
         assert dec == json.loads(enc)
@@ -247,7 +250,7 @@ class TestUltraJSONTests:
         four_bytes_input = "\xf3\xbf\xbf\xbfTRAILINGNORMAL"
         enc = ujson.ujson_dumps(four_bytes_input)
 
-        dec = ujson.ujson_loads(enc)
+        dec = simdjson.simdjson_loads(enc)
 
         assert enc == json.dumps(four_bytes_input)
         assert dec == json.loads(enc)
@@ -267,7 +270,7 @@ class TestUltraJSONTests:
 
         assert arr_in_arr_input == json.loads(output)
         assert output == json.dumps(arr_in_arr_input)
-        assert arr_in_arr_input == ujson.ujson_loads(output)
+        assert arr_in_arr_input == simdjson.simdjson_loads(output)
 
     @pytest.mark.parametrize(
         "num_input",
@@ -281,28 +284,28 @@ class TestUltraJSONTests:
         output = ujson.ujson_dumps(num_input)
         assert num_input == json.loads(output)
         assert output == json.dumps(num_input)
-        assert num_input == ujson.ujson_loads(output)
+        assert num_input == simdjson.simdjson_loads(output)
 
     def test_encode_list_conversion(self):
         list_input = [1, 2, 3, 4]
         output = ujson.ujson_dumps(list_input)
 
         assert list_input == json.loads(output)
-        assert list_input == ujson.ujson_loads(output)
+        assert list_input == simdjson.simdjson_loads(output)
 
     def test_encode_dict_conversion(self):
         dict_input = {"k1": 1, "k2": 2, "k3": 3, "k4": 4}
         output = ujson.ujson_dumps(dict_input)
 
         assert dict_input == json.loads(output)
-        assert dict_input == ujson.ujson_loads(output)
+        assert dict_input == simdjson.simdjson_loads(output)
 
     @pytest.mark.parametrize("builtin_value", [None, True, False])
     def test_encode_builtin_values_conversion(self, builtin_value):
         output = ujson.ujson_dumps(builtin_value)
         assert builtin_value == json.loads(output)
         assert output == json.dumps(builtin_value)
-        assert builtin_value == ujson.ujson_loads(output)
+        assert builtin_value == simdjson.simdjson_loads(output)
 
     def test_encode_datetime_conversion(self):
         datetime_input = datetime.datetime.fromtimestamp(time.time())
@@ -310,7 +313,7 @@ class TestUltraJSONTests:
         expected = calendar.timegm(datetime_input.utctimetuple())
 
         assert int(expected) == json.loads(output)
-        assert int(expected) == ujson.ujson_loads(output)
+        assert int(expected) == simdjson.simdjson_loads(output)
 
     def test_encode_date_conversion(self):
         date_input = datetime.date.fromtimestamp(time.time())
@@ -320,7 +323,7 @@ class TestUltraJSONTests:
         expected = calendar.timegm(tup)
 
         assert int(expected) == json.loads(output)
-        assert int(expected) == ujson.ujson_loads(output)
+        assert int(expected) == simdjson.simdjson_loads(output)
 
     @pytest.mark.parametrize(
         "test",
@@ -356,16 +359,16 @@ class TestUltraJSONTests:
         val = datetime.datetime(2013, 8, 17, 21, 17, 12, 215504)
         stamp = Timestamp(val).as_unit("ns")
 
-        roundtrip = ujson.ujson_loads(ujson.ujson_dumps(val, date_unit="s"))
+        roundtrip = simdjson.simdjson_loads(ujson.ujson_dumps(val, date_unit="s"))
         assert roundtrip == stamp._value // 10**9
 
-        roundtrip = ujson.ujson_loads(ujson.ujson_dumps(val, date_unit="ms"))
+        roundtrip = simdjson.simdjson_loads(ujson.ujson_dumps(val, date_unit="ms"))
         assert roundtrip == stamp._value // 10**6
 
-        roundtrip = ujson.ujson_loads(ujson.ujson_dumps(val, date_unit="us"))
+        roundtrip = simdjson.simdjson_loads(ujson.ujson_dumps(val, date_unit="us"))
         assert roundtrip == stamp._value // 10**3
 
-        roundtrip = ujson.ujson_loads(ujson.ujson_dumps(val, date_unit="ns"))
+        roundtrip = simdjson.simdjson_loads(ujson.ujson_dumps(val, date_unit="ns"))
         assert roundtrip == stamp._value
 
         msg = "Invalid value 'foo' for option 'date_unit'"
@@ -376,7 +379,7 @@ class TestUltraJSONTests:
         unencoded = "\xe6\x97\xa5\xd1\x88"
 
         enc = ujson.ujson_dumps(unencoded, ensure_ascii=False)
-        dec = ujson.ujson_loads(enc)
+        dec = simdjson.simdjson_loads(enc)
 
         assert enc == json.dumps(unencoded, ensure_ascii=False)
         assert dec == json.loads(enc)
@@ -384,8 +387,8 @@ class TestUltraJSONTests:
     def test_decode_from_unicode(self):
         unicode_input = '{"obj": 31337}'
 
-        dec1 = ujson.ujson_loads(unicode_input)
-        dec2 = ujson.ujson_loads(str(unicode_input))
+        dec1 = simdjson.simdjson_loads(unicode_input)
+        dec2 = simdjson.simdjson_loads(str(unicode_input))
 
         assert dec1 == dec2
 
@@ -409,7 +412,7 @@ class TestUltraJSONTests:
         jibberish = "fdsa sda v9sa fdsa"
         msg = "Unexpected character found when decoding 'false'"
         with pytest.raises(ValueError, match=msg):
-            ujson.ujson_loads(jibberish)
+            simdjson.simdjson_loads(jibberish)
 
     @pytest.mark.parametrize(
         "broken_json",
@@ -423,12 +426,12 @@ class TestUltraJSONTests:
     def test_decode_broken_json(self, broken_json):
         msg = "Expected object or value"
         with pytest.raises(ValueError, match=msg):
-            ujson.ujson_loads(broken_json)
+            simdjson.simdjson_loads(broken_json)
 
     @pytest.mark.parametrize("too_big_char", ["[", "{"])
     def test_decode_depth_too_big(self, too_big_char):
         with pytest.raises(ValueError, match="Reached object decoding depth limit"):
-            ujson.ujson_loads(too_big_char * (1024 * 1024))
+            simdjson.simdjson_loads(too_big_char * (1024 * 1024))
 
     @pytest.mark.parametrize(
         "bad_string",
@@ -446,7 +449,7 @@ class TestUltraJSONTests:
             "Unmatched ''\"' when when decoding 'string'"
         )
         with pytest.raises(ValueError, match=msg):
-            ujson.ujson_loads(bad_string)
+            simdjson.simdjson_loads(bad_string)
 
     @pytest.mark.parametrize(
         "broken_json, err_msg",
@@ -462,7 +465,7 @@ class TestUltraJSONTests:
     def test_decode_broken_json_leak(self, broken_json, err_msg):
         for _ in range(1000):
             with pytest.raises(ValueError, match=re.escape(err_msg)):
-                ujson.ujson_loads(broken_json)
+                simdjson.simdjson_loads(broken_json)
 
     @pytest.mark.parametrize(
         "invalid_dict",
@@ -479,11 +482,11 @@ class TestUltraJSONTests:
             "Expected object or value"
         )
         with pytest.raises(ValueError, match=msg):
-            ujson.ujson_loads(invalid_dict)
+            simdjson.simdjson_loads(invalid_dict)
 
     @pytest.mark.parametrize("numeric_int_as_str", ["31337", "-31337"])
     def test_decode_numeric_int(self, numeric_int_as_str):
-        assert int(numeric_int_as_str) == ujson.ujson_loads(numeric_int_as_str)
+        assert int(numeric_int_as_str) == simdjson.simdjson_loads(numeric_int_as_str)
 
     def test_encode_null_character(self):
         wrapped_input = "31337 \x00 1337"
@@ -491,19 +494,19 @@ class TestUltraJSONTests:
 
         assert wrapped_input == json.loads(output)
         assert output == json.dumps(wrapped_input)
-        assert wrapped_input == ujson.ujson_loads(output)
+        assert wrapped_input == simdjson.simdjson_loads(output)
 
         alone_input = "\x00"
         output = ujson.ujson_dumps(alone_input)
 
         assert alone_input == json.loads(output)
         assert output == json.dumps(alone_input)
-        assert alone_input == ujson.ujson_loads(output)
+        assert alone_input == simdjson.simdjson_loads(output)
         assert '"  \\u0000\\r\\n "' == ujson.ujson_dumps("  \u0000\r\n ")
 
     def test_decode_null_character(self):
         wrapped_input = '"31337 \\u0000 31337"'
-        assert ujson.ujson_loads(wrapped_input) == json.loads(wrapped_input)
+        assert simdjson.simdjson_loads(wrapped_input) == json.loads(wrapped_input)
 
     def test_encode_list_long_conversion(self):
         long_input = [
@@ -517,7 +520,7 @@ class TestUltraJSONTests:
         output = ujson.ujson_dumps(long_input)
 
         assert long_input == json.loads(output)
-        assert long_input == ujson.ujson_loads(output)
+        assert long_input == simdjson.simdjson_loads(output)
 
     @pytest.mark.parametrize("long_input", [9223372036854775807, 18446744073709551615])
     def test_encode_long_conversion(self, long_input):
@@ -525,7 +528,7 @@ class TestUltraJSONTests:
 
         assert long_input == json.loads(output)
         assert output == json.dumps(long_input)
-        assert long_input == ujson.ujson_loads(output)
+        assert long_input == simdjson.simdjson_loads(output)
 
     @pytest.mark.parametrize("bigNum", [2**64, -(2**63) - 1])
     def test_dumps_ints_larger_than_maxsize(self, bigNum):
@@ -536,25 +539,25 @@ class TestUltraJSONTests:
             ValueError,
             match="Value is too big|Value is too small",
         ):
-            assert ujson.ujson_loads(encoding) == bigNum
+            assert simdjson.simdjson_loads(encoding) == bigNum
 
     @pytest.mark.parametrize(
         "int_exp", ["1337E40", "1.337E40", "1337E+9", "1.337e+40", "1.337E-4"]
     )
     def test_decode_numeric_int_exp(self, int_exp):
-        assert ujson.ujson_loads(int_exp) == json.loads(int_exp)
+        assert simdjson.simdjson_loads(int_exp) == json.loads(int_exp)
 
     def test_loads_non_str_bytes_raises(self):
         msg = "a bytes-like object is required, not 'NoneType'"
         with pytest.raises(TypeError, match=msg):
-            ujson.ujson_loads(None)
+            simdjson.simdjson_loads(None)
 
     @pytest.mark.parametrize("val", [3590016419, 2**31, 2**32, (2**32) - 1])
     def test_decode_number_with_32bit_sign_bit(self, val):
         # Test that numbers that fit within 32 bits but would have the
         # sign bit set (2**31 <= x < 2**32) are decoded properly.
         doc = f'{{"id": {val}}}'
-        assert ujson.ujson_loads(doc)["id"] == val
+        assert simdjson.simdjson_loads(doc)["id"] == val
 
     def test_encode_big_escape(self):
         # Make sure no Exception is raised.
@@ -570,7 +573,7 @@ class TestUltraJSONTests:
             quote = b'"'
 
             escape_input = quote + (base * 1024 * 1024 * 2) + quote
-            ujson.ujson_loads(escape_input)
+            simdjson.simdjson_loads(escape_input)
 
     def test_to_dict(self):
         d = {"key": 31337}
@@ -582,7 +585,7 @@ class TestUltraJSONTests:
         o = DictTest()
         output = ujson.ujson_dumps(o)
 
-        dec = ujson.ujson_loads(output)
+        dec = simdjson.simdjson_loads(output)
         assert dec == d
 
     def test_default_handler(self):
@@ -619,7 +622,7 @@ class TestUltraJSONTests:
             return 42
 
         assert (
-            ujson.ujson_loads(
+            simdjson.simdjson_loads(
                 ujson.ujson_dumps(_TestObject("foo"), default_handler=my_int_handler)
             )
             == 42
@@ -628,14 +631,14 @@ class TestUltraJSONTests:
         def my_obj_handler(_):
             return datetime.datetime(2013, 2, 3)
 
-        assert ujson.ujson_loads(
+        assert simdjson.simdjson_loads(
             ujson.ujson_dumps(datetime.datetime(2013, 2, 3))
-        ) == ujson.ujson_loads(
+        ) == simdjson.simdjson_loads(
             ujson.ujson_dumps(_TestObject("foo"), default_handler=my_obj_handler)
         )
 
         obj_list = [_TestObject("foo"), _TestObject("bar")]
-        assert json.loads(json.dumps(obj_list, default=str)) == ujson.ujson_loads(
+        assert json.loads(json.dumps(obj_list, default=str)) == simdjson.simdjson_loads(
             ujson.ujson_dumps(obj_list, default_handler=str)
         )
 
@@ -652,7 +655,7 @@ class TestUltraJSONTests:
 
         # JSON keys should be all non-callable non-underscore attributes, see GH-42768
         test_object = _TestObject(a=1, b=2, _c=3, d=4)
-        assert ujson.ujson_loads(ujson.ujson_dumps(test_object)) == {
+        assert simdjson.simdjson_loads(ujson.ujson_dumps(test_object)) == {
             "a": 1,
             "b": 2,
             "d": 4,
@@ -667,27 +670,30 @@ class TestNumpyJSONTests:
     @pytest.mark.parametrize("bool_input", [True, False])
     def test_bool(self, bool_input):
         b = bool(bool_input)
-        assert ujson.ujson_loads(ujson.ujson_dumps(b)) == b
+        assert simdjson.simdjson_loads(ujson.ujson_dumps(b)) == b
 
     def test_bool_array(self):
         bool_array = np.array(
             [True, False, True, True, False, True, False, False], dtype=bool
         )
-        output = np.array(ujson.ujson_loads(ujson.ujson_dumps(bool_array)), dtype=bool)
+        output = np.array(
+            simdjson.simdjson_loads(ujson.ujson_dumps(bool_array)), dtype=bool
+        )
         tm.assert_numpy_array_equal(bool_array, output)
 
     def test_int(self, any_int_numpy_dtype):
         klass = np.dtype(any_int_numpy_dtype).type
         num = klass(1)
 
-        assert klass(ujson.ujson_loads(ujson.ujson_dumps(num))) == num
+        assert klass(simdjson.simdjson_loads(ujson.ujson_dumps(num))) == num
 
     def test_int_array(self, any_int_numpy_dtype):
         arr = np.arange(100, dtype=int)
         arr_input = arr.astype(any_int_numpy_dtype)
 
         arr_output = np.array(
-            ujson.ujson_loads(ujson.ujson_dumps(arr_input)), dtype=any_int_numpy_dtype
+            simdjson.simdjson_loads(ujson.ujson_dumps(arr_input)),
+            dtype=any_int_numpy_dtype,
         )
         tm.assert_numpy_array_equal(arr_input, arr_output)
 
@@ -704,20 +710,22 @@ class TestNumpyJSONTests:
         else:
             num = np.iinfo(any_int_numpy_dtype).max
 
-        assert klass(ujson.ujson_loads(ujson.ujson_dumps(num))) == num
+        assert klass(simdjson.simdjson_loads(ujson.ujson_dumps(num))) == num
 
     def test_float(self, float_numpy_dtype):
         klass = np.dtype(float_numpy_dtype).type
         num = klass(256.2013)
 
-        assert klass(ujson.ujson_loads(ujson.ujson_dumps(num))) == num
+        assert klass(simdjson.simdjson_loads(ujson.ujson_dumps(num))) == num
 
     def test_float_array(self, float_numpy_dtype):
         arr = np.arange(12.5, 185.72, 1.7322, dtype=float)
         float_input = arr.astype(float_numpy_dtype)
 
         float_output = np.array(
-            ujson.ujson_loads(ujson.ujson_dumps(float_input, double_precision=15)),
+            simdjson.simdjson_loads(
+                ujson.ujson_dumps(float_input, double_precision=15)
+            ),
             dtype=float_numpy_dtype,
         )
         tm.assert_almost_equal(float_input, float_output)
@@ -727,7 +735,8 @@ class TestNumpyJSONTests:
         num = klass(np.finfo(float_numpy_dtype).max / 10)
 
         tm.assert_almost_equal(
-            klass(ujson.ujson_loads(ujson.ujson_dumps(num, double_precision=15))), num
+            klass(simdjson.simdjson_loads(ujson.ujson_dumps(num, double_precision=15))),
+            num,
         )
 
     def test_array_basic(self):
@@ -735,7 +744,7 @@ class TestNumpyJSONTests:
         arr = arr.reshape((2, 2, 2, 2, 3, 2))
 
         tm.assert_numpy_array_equal(
-            np.array(ujson.ujson_loads(ujson.ujson_dumps(arr))), arr
+            np.array(simdjson.simdjson_loads(ujson.ujson_dumps(arr))), arr
         )
 
     @pytest.mark.parametrize("shape", [(10, 10), (5, 5, 4), (100, 1)])
@@ -744,7 +753,7 @@ class TestNumpyJSONTests:
         arr = arr.reshape(shape)
 
         tm.assert_numpy_array_equal(
-            np.array(ujson.ujson_loads(ujson.ujson_dumps(arr))), arr
+            np.array(simdjson.simdjson_loads(ujson.ujson_dumps(arr))), arr
         )
 
     def test_array_list(self):
@@ -760,7 +769,7 @@ class TestNumpyJSONTests:
             {"key": "val"},
         ]
         arr = np.array(arr_list, dtype=object)
-        result = np.array(ujson.ujson_loads(ujson.ujson_dumps(arr)), dtype=object)
+        result = np.array(simdjson.simdjson_loads(ujson.ujson_dumps(arr)), dtype=object)
         tm.assert_numpy_array_equal(result, arr)
 
     def test_array_float(self):
@@ -769,7 +778,7 @@ class TestNumpyJSONTests:
         arr = np.arange(100.202, 200.202, 1, dtype=dtype)
         arr = arr.reshape((5, 5, 4))
 
-        arr_out = np.array(ujson.ujson_loads(ujson.ujson_dumps(arr)), dtype=dtype)
+        arr_out = np.array(simdjson.simdjson_loads(ujson.ujson_dumps(arr)), dtype=dtype)
         tm.assert_almost_equal(arr, arr_out)
 
     def test_0d_array(self):
@@ -801,7 +810,7 @@ class TestPandasJSONTests:
         encode_kwargs = {} if orient is None else {"orient": orient}
         assert (df.dtypes == dtype).all()
 
-        output = ujson.ujson_loads(ujson.ujson_dumps(df, **encode_kwargs))
+        output = simdjson.simdjson_loads(ujson.ujson_dumps(df, **encode_kwargs))
         assert (df.dtypes == dtype).all()
 
         # Ensure proper DataFrame initialization.
@@ -832,10 +841,10 @@ class TestPandasJSONTests:
         kwargs = {} if orient is None else {"orient": orient}
 
         exp = {
-            "df1": ujson.ujson_loads(ujson.ujson_dumps(df, **kwargs)),
-            "df2": ujson.ujson_loads(ujson.ujson_dumps(df, **kwargs)),
+            "df1": simdjson.simdjson_loads(ujson.ujson_dumps(df, **kwargs)),
+            "df2": simdjson.simdjson_loads(ujson.ujson_dumps(df, **kwargs)),
         }
-        assert ujson.ujson_loads(ujson.ujson_dumps(nested, **kwargs)) == exp
+        assert simdjson.simdjson_loads(ujson.ujson_dumps(nested, **kwargs)) == exp
 
     def test_series(self, orient):
         dtype = np.int64
@@ -849,7 +858,7 @@ class TestPandasJSONTests:
 
         encode_kwargs = {} if orient is None else {"orient": orient}
 
-        output = ujson.ujson_loads(ujson.ujson_dumps(s, **encode_kwargs))
+        output = simdjson.simdjson_loads(ujson.ujson_dumps(s, **encode_kwargs))
         assert s.dtype == dtype
 
         if orient == "split":
@@ -877,19 +886,19 @@ class TestPandasJSONTests:
         kwargs = {} if orient is None else {"orient": orient}
 
         exp = {
-            "s1": ujson.ujson_loads(ujson.ujson_dumps(s, **kwargs)),
-            "s2": ujson.ujson_loads(ujson.ujson_dumps(s, **kwargs)),
+            "s1": simdjson.simdjson_loads(ujson.ujson_dumps(s, **kwargs)),
+            "s2": simdjson.simdjson_loads(ujson.ujson_dumps(s, **kwargs)),
         }
-        assert ujson.ujson_loads(ujson.ujson_dumps(nested, **kwargs)) == exp
+        assert simdjson.simdjson_loads(ujson.ujson_dumps(nested, **kwargs)) == exp
 
     def test_index(self):
         i = Index([23, 45, 18, 98, 43, 11], name="index")
 
         # Column indexed.
-        output = Index(ujson.ujson_loads(ujson.ujson_dumps(i)), name="index")
+        output = Index(simdjson.simdjson_loads(ujson.ujson_dumps(i)), name="index")
         tm.assert_index_equal(i, output)
 
-        dec = _clean_dict(ujson.ujson_loads(ujson.ujson_dumps(i, orient="split")))
+        dec = _clean_dict(simdjson.simdjson_loads(ujson.ujson_dumps(i, orient="split")))
         output = Index(**dec)
 
         tm.assert_index_equal(i, output)
@@ -899,17 +908,18 @@ class TestPandasJSONTests:
         assert i.name == output.name
 
         output = Index(
-            ujson.ujson_loads(ujson.ujson_dumps(i, orient="values")), name="index"
+            simdjson.simdjson_loads(ujson.ujson_dumps(i, orient="values")), name="index"
         )
         tm.assert_index_equal(i, output)
 
         output = Index(
-            ujson.ujson_loads(ujson.ujson_dumps(i, orient="records")), name="index"
+            simdjson.simdjson_loads(ujson.ujson_dumps(i, orient="records")),
+            name="index",
         )
         tm.assert_index_equal(i, output)
 
         output = Index(
-            ujson.ujson_loads(ujson.ujson_dumps(i, orient="index")), name="index"
+            simdjson.simdjson_loads(ujson.ujson_dumps(i, orient="index")), name="index"
         )
         tm.assert_index_equal(i, output)
 
@@ -922,11 +932,13 @@ class TestPandasJSONTests:
         )
         encoded = ujson.ujson_dumps(rng, date_unit=date_unit)
 
-        decoded = DatetimeIndex(np.array(ujson.ujson_loads(encoded)))
+        decoded = DatetimeIndex(np.array(simdjson.simdjson_loads(encoded)))
         tm.assert_index_equal(rng, decoded)
 
         ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
-        decoded = Series(ujson.ujson_loads(ujson.ujson_dumps(ts, date_unit=date_unit)))
+        decoded = Series(
+            simdjson.simdjson_loads(ujson.ujson_dumps(ts, date_unit=date_unit))
+        )
 
         idx_values = decoded.index.values.astype(np.int64)
         decoded.index = DatetimeIndex(idx_values)
@@ -947,15 +959,15 @@ class TestPandasJSONTests:
             "Unexpected character found when decoding array value"
         )
         with pytest.raises(ValueError, match=msg):
-            ujson.ujson_loads(invalid_arr)
+            simdjson.simdjson_loads(invalid_arr)
 
     @pytest.mark.parametrize("arr", [[], [31337]])
     def test_decode_array(self, arr):
-        assert arr == ujson.ujson_loads(str(arr))
+        assert arr == simdjson.simdjson_loads(str(arr))
 
     @pytest.mark.parametrize("extreme_num", [9223372036854775807, -9223372036854775808])
     def test_decode_extreme_numbers(self, extreme_num):
-        assert extreme_num == ujson.ujson_loads(str(extreme_num))
+        assert extreme_num == simdjson.simdjson_loads(str(extreme_num))
 
     @pytest.mark.parametrize("too_extreme_num", [f"{2**64}", f"{-(2**63) - 1}"])
     def test_decode_too_extreme_numbers(self, too_extreme_num):
@@ -963,14 +975,14 @@ class TestPandasJSONTests:
             ValueError,
             match="Value is too big|Value is too small",
         ):
-            ujson.ujson_loads(too_extreme_num)
+            simdjson.simdjson_loads(too_extreme_num)
 
     def test_decode_with_trailing_whitespaces(self):
-        assert {} == ujson.ujson_loads("{}\n\t ")
+        assert {} == simdjson.simdjson_loads("{}\n\t ")
 
     def test_decode_with_trailing_non_whitespaces(self):
         with pytest.raises(ValueError, match="Trailing data"):
-            ujson.ujson_loads("{}\n\t a")
+            simdjson.simdjson_loads("{}\n\t a")
 
     @pytest.mark.parametrize("value", [f"{2**64}", f"{-(2**63) - 1}"])
     def test_decode_array_with_big_int(self, value):
@@ -978,7 +990,7 @@ class TestPandasJSONTests:
             ValueError,
             match="Value is too big|Value is too small",
         ):
-            ujson.ujson_loads(value)
+            simdjson.simdjson_loads(value)
 
     @pytest.mark.parametrize(
         "float_number",
@@ -998,7 +1010,7 @@ class TestPandasJSONTests:
     def test_decode_floating_point(self, sign, float_number):
         float_number *= sign
         tm.assert_almost_equal(
-            float_number, ujson.ujson_loads(str(float_number)), rtol=1e-15
+            float_number, simdjson.simdjson_loads(str(float_number)), rtol=1e-15
         )
 
     def test_encode_big_set(self):
@@ -1012,7 +1024,7 @@ class TestPandasJSONTests:
     def test_encode_set(self):
         s = {1, 2, 3, 4, 5, 6, 7, 8, 9}
         enc = ujson.ujson_dumps(s)
-        dec = ujson.ujson_loads(enc)
+        dec = simdjson.simdjson_loads(enc)
 
         for v in dec:
             assert v in s

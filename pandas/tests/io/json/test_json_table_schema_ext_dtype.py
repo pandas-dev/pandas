@@ -280,7 +280,7 @@ class TestTableOrient:
                         "type":"integer",
                         "extDtype":"Int64"
                     }
-                ],
+                ]
             },
             "data":[
                 {
