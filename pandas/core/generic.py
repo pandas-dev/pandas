@@ -1456,6 +1456,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0  10.0  20.0
         >>> df.equals(different_data_type)
         False
+
+        DataFrames with NaN in the same locations compare equal.
+
+        >>> import numpy as np
+        >>> df_nan1 = pd.DataFrame({"a": [1, np.nan], "b": [3, np.nan]})
+        >>> df_nan2 = pd.DataFrame({"a": [1, np.nan], "b": [3, np.nan]})
+        >>> df_nan1.equals(df_nan2)
+        True
+
+        If the NaN values are not in the same locations, they compare unequal.
+
+        >>> df_nan3 = pd.DataFrame({"a": [1, np.nan], "b": [3, 4]})
+        >>> df_nan1.equals(df_nan3)
+        False
         """
         if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
