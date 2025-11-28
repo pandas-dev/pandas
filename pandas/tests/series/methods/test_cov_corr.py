@@ -228,6 +228,7 @@ class TestSeriesCorr:
         cat_series,
         other_series,
     ):
+        # GH #60306
         expected_corr = {"kendall": 0.33333333333333337, "spearman": 0.5}
         corr_calc = cat_series.corr(other_series, method=method)
         tm.assert_almost_equal(corr_calc, expected_corr[method])

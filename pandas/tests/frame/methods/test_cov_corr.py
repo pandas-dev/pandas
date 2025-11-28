@@ -260,6 +260,7 @@ class TestDataFrameCorr:
         self,
         method,
     ):
+        # GH #60306
         df = DataFrame(
             {
                 "ord_cat": pd.Categorical(
@@ -290,6 +291,7 @@ class TestDataFrameCorr:
         self,
         method,
     ):
+        # GH #60306
         cat = pd.CategoricalDtype(categories=[4, 3, 2, 1], ordered=True)
         df = DataFrame(
             {
@@ -556,6 +558,7 @@ class TestDataFrameCorrWith:
         self,
         method,
     ):
+        # GH #60306
         pytest.importorskip("scipy")
         df1 = DataFrame(
             {
