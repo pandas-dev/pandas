@@ -6317,8 +6317,10 @@ class Index(IndexOpsMixin, PandasObject):
             if dtype.kind != "M":
                 if self.dtype.kind == "m" and pa.types.is_duration(pa_dtype):
                     return True
+                if self.dtype.kind == "O":
+                    return True
                 return False
-            if self.dtype.kind != "M":
+            if self.dtype.kind != "M" and self.dtype.kind != "O":
                 return False
             if pa.types.is_date(pa_dtype):
                 return False
