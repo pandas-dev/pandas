@@ -6290,6 +6290,10 @@ class Index(IndexOpsMixin, PandasObject):
             #  respectively.
             return False
 
+        # GH#62158
+        if self.dtype.kind == "M" and other.inferred_type == "date":
+            return False
+
         dtype = _unpack_nested_dtype(other)
         return (
             self._is_comparable_dtype(dtype)
@@ -6311,12 +6315,6 @@ class Index(IndexOpsMixin, PandasObject):
 
             pa_dtype = dtype.pyarrow_dtype
             if dtype.kind != "M":
-                if self.dtype.kind == "b":
-                    return dtype.kind == "b"
-                if is_numeric_dtype(self.dtype):
-                    return pa.types.is_integer(pa_dtype) or pa.types.is_floating(
-                        pa_dtype
-                    )
                 if self.dtype.kind == "m" and pa.types.is_duration(pa_dtype):
                     return True
                 return False
