@@ -323,8 +323,7 @@ def array(
 
     # to avoid returning an array of string representation of objects.
     if dtype == StringDtype():
-        ndarr = np.array(data)
-        if ndarr.ndim != 1:
+        if any(not lib.is_scalar(i) for i in data):
             raise TypeError("Values must be a 1D list-like")
 
     if isinstance(dtype, ExtensionDtype):
