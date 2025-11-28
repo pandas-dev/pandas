@@ -1,0 +1,13 @@
+[wrap-file]
+directory = simdjson-4.2.2
+source_url = https://github.com/simdjson/simdjson/archive/refs/tags/v4.2.2.tar.gz
+source_filename = simdjson-4.2.2.tar.gz
+source_hash = 3efae22cb41f83299fe0b2e8a187af543d3dda93abbb910586f897df670f9eaa
+source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/simdjson_4.2.2-1/simdjson-4.2.2.tar.gz
+patch_filename = simdjson_4.2.2-1_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/simdjson_4.2.2-1/get_patch
+patch_hash = ff4008b3547e71510cb49b159458ec5b7eee129832b9d9168eafea7b3c51ac34
+wrapdb_version = 4.2.2-1
+
+[provide]
+dependency_names = simdjson
