@@ -1459,7 +1459,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         DataFrames with NaN in the same locations compare equal.
 
-        >>> import numpy as np
         >>> df_nan1 = pd.DataFrame({"a": [1, np.nan], "b": [3, np.nan]})
         >>> df_nan2 = pd.DataFrame({"a": [1, np.nan], "b": [3, np.nan]})
         >>> df_nan1.equals(df_nan2)
