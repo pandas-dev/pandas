@@ -154,6 +154,12 @@ All warnings for upcoming changes in pandas will have the base class :class:`pan
 
 .. _whatsnew_300.enhancements.other:
 
+.. _whatsnew_300.enhancements.documentation:
+
+Documentation
+^^^^^^^^^^^^^
+
+- Added comprehensive Google Colab data loading guide to IO documentation (:issue:`62708`)
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`pandas.NamedAgg` now supports passing ``*args`` and ``**kwargs``
