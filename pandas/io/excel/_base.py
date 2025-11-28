@@ -375,7 +375,9 @@ def read_excel(
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
-    converters: dict[str, Callable[..., Any]] | dict[int, Callable[..., Any]] | None = ...,
+    converters: dict[str, Callable[..., Any]] \
+                | dict[int, Callable[..., Any]] \
+                | None = ...
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
@@ -412,7 +414,9 @@ def read_excel(
     | None = ...,
     dtype: DtypeArg | None = ...,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
-    converters: dict[str, Callable[..., Any]] | dict[int, Callable[..., Any]] | None = ...,
+    converters: dict[str, Callable[..., Any]] \
+                | dict[int, Callable[..., Any]] \
+                | None = ...
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = ...,
@@ -450,7 +454,9 @@ def read_excel(
     | None = None,
     dtype: DtypeArg | None = None,
     engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = None,
-    converters: dict[str, Callable[..., Any]] | dict[int, Callable[..., Any]] | None = None,
+    converters: dict[str, Callable[..., Any]] \
+                | dict[int, Callable[..., Any]] \
+                | None = None
     true_values: Iterable[Hashable] | None = None,
     false_values: Iterable[Hashable] | None = None,
     skiprows: Sequence[int] | int | Callable[[int], object] | None = None,
