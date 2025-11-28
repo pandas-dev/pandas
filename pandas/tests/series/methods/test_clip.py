@@ -97,7 +97,7 @@ class TestSeriesClip:
         expected = Series([1, 2, 3])
 
         if inplace:
-            result = original
+            assert result is original
         tm.assert_series_equal(result, expected, check_exact=True)
 
     def test_clip_with_datetimes(self):

@@ -851,7 +851,7 @@ def pad_or_backfill_inplace(
     # reshape a 1 dim if needed
     if values.ndim == 1:
         if axis != 0:  # pragma: no cover
-            raise AssertionError("cannot interpolate on a ndim == 1 with axis != 0")
+            raise AssertionError("cannot interpolate on an ndim == 1 with axis != 0")
         values = values.reshape(tuple((1,) + values.shape))
 
     method = clean_fill_method(method)

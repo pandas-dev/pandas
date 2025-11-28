@@ -100,6 +100,7 @@ if TYPE_CHECKING:
         DtypeObj,
         NumpyIndexT,
         Scalar,
+        TimeUnit,
     )
 
     from pandas import Index
@@ -392,7 +393,7 @@ def maybe_downcast_numeric(
 
 def maybe_upcast_numeric_to_64bit(arr: NumpyIndexT) -> NumpyIndexT:
     """
-    If array is a int/uint/float bit size lower than 64 bit, upcast it to 64 bit.
+    If array is an int/uint/float bit size lower than 64 bit, upcast it to 64 bit.
 
     Parameters
     ----------
@@ -567,6 +568,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             # different unit, e.g. passed np.timedelta64(24, "h") with dtype=m8[ns]
             # see if we can losslessly cast it to our dtype
             unit = np.datetime_data(dtype)[0]
+            unit = cast("TimeUnit", unit)
             try:
                 td = Timedelta(fill_value).as_unit(unit, round_ok=False)
             except OutOfBoundsTimedelta:
@@ -1391,7 +1393,7 @@ def construct_1d_arraylike_from_scalar(
     value: Scalar, length: int, dtype: DtypeObj | None
 ) -> ArrayLike:
     """
-    create a np.ndarray / pandas type of specified shape and dtype
+    create an np.ndarray / pandas type of specified shape and dtype
     filled with values
 
     Parameters

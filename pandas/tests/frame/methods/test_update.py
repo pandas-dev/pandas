@@ -197,6 +197,7 @@ class TestDataFrameUpdate:
                 np.datetime64("2000-01-02T00:00:00"),
                 np.dtype("datetime64[ns]"),
             ),
+            (1, 2, pd.Int64Dtype()),
         ],
     )
     def test_update_preserve_dtype(self, value_df, value_other, dtype):
@@ -226,5 +227,21 @@ class TestDataFrameUpdate:
         df = DataFrame({"a": [1, 1, 1]}, index=[1, 1, 2], dtype=np.dtype("intc"))
         other = DataFrame({"a": [2, 3]}, index=[1, 2], dtype=np.dtype("intc"))
         expected = DataFrame({"a": [2, 2, 3]}, index=[1, 1, 2], dtype=np.dtype("intc"))
+        df.update(other)
+        tm.assert_frame_equal(df, expected)
+
+    def test_update_preserve_mixed_dtypes(self):
+        # GH#44104
+        dtype1 = pd.Int64Dtype()
+        dtype2 = pd.StringDtype()
+        df = DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
+        df = df.astype({"a": dtype1, "b": dtype2})
+
+        other = DataFrame({"a": [4, 5], "b": ["a", "b"]})
+        other = other.astype({"a": dtype1, "b": dtype2})
+
+        expected = DataFrame({"a": [4, 5, 3], "b": ["a", "b", "z"]})
+        expected = expected.astype({"a": dtype1, "b": dtype2})
+
         df.update(other)
         tm.assert_frame_equal(df, expected)

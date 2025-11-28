@@ -333,7 +333,7 @@ class TestLocBaseIndependent:
 
     def test_loc_getitem_dups(self):
         # GH 5678
-        # repeated getitems on a dup index returning a ndarray
+        # repeated getitems on a dup index returning an ndarray
         df = DataFrame(
             np.random.default_rng(2).random((20, 5)),
             index=["ABCDE"[x % 5] for x in range(20)],
@@ -1431,7 +1431,7 @@ class TestLocBaseIndependent:
         tm.assert_frame_equal(expected, df)
 
     def test_loc_setitem_categorical_values_partial_column_slice(self):
-        # Assigning a Category to parts of a int/... column uses the values of
+        # Assigning a Category to parts of an int/... column uses the values of
         # the Categorical
         df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
         with pytest.raises(TypeError, match="Invalid value"):

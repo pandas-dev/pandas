@@ -14,19 +14,20 @@ from typing import (
     Self,
 )
 
+from pandas.util._decorators import set_module
+
 from pandas.core.base import PandasObject
 
 from pandas.io.formats.printing import pprint_thing
 
 
+@set_module("pandas.api.typing")
 class FrozenList(PandasObject, list):
     """
     Container that doesn't allow setting item *but*
     because it's technically hashable, will be used
     for lookups, appropriately, etc.
     """
-
-    __module__ = "pandas.api.typing"
 
     # Side note: This has to be of type list. Otherwise,
     #            it messes up PyTables type checks.

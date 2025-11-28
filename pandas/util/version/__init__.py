@@ -111,7 +111,6 @@ def parse(version: str) -> Version:
 # The docstring is from an older version of the packaging library to avoid
 # errors in the docstring validation.
 class InvalidVersion(ValueError):
-    __module__ = "pandas.errors"
     """
     An invalid version was found, users should refer to PEP 440.
 
@@ -129,6 +128,8 @@ class InvalidVersion(ValueError):
     Traceback (most recent call last):
     InvalidVersion: Invalid version: '1.'
     """
+
+    __module__ = "pandas.errors"
 
 
 class _BaseVersion:
