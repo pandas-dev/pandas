@@ -6305,7 +6305,154 @@ xarray_ provides data structures inspired by the pandas ``DataFrame`` for workin
 with multi-dimensional datasets, with a focus on the netCDF file format and
 easy conversion to and from pandas.
 
-.. _xarray: https://xarray.pydata.org/en/stable/
+.. _io.google_colab:
+
+Google Colab
+------------
+
+Google Colab is a popular cloud-based environment for running Python code,
+including pandas operations. This section covers various methods to load data
+into pandas DataFrames when working in Google Colab.
+
+.. _io.google_colab.drive:
+
+Reading from Google Drive
+'''''''''''''''''''''''''
+
+The most common approach is to mount your Google Drive, which allows you to
+access files stored in Drive as if they were local files.
+
+.. code-block:: python
+
+   from google.colab import drive
+   import pandas as pd
+
+   # Mount Google Drive
+   drive.mount('/content/drive')
+
+   # Read a CSV file from Google Drive
+   df = pd.read_csv('/content/drive/MyDrive/path/to/your/file.csv')
+
+After running the mount command, you'll be prompted to authorize access to your
+Google Drive. Once mounted, you can navigate to your files using the file browser
+in the Colab sidebar and copy the path to use in pandas read functions.
+
+This approach works with all pandas read functions:
+
+.. code-block:: python
+
+   # Read Excel file
+   df = pd.read_excel('/content/drive/MyDrive/data.xlsx')
+
+   # Read JSON file
+   df = pd.read_json('/content/drive/MyDrive/data.json')
+
+   # Read Parquet file
+   df = pd.read_parquet('/content/drive/MyDrive/data.parquet')
+
+.. _io.google_colab.upload:
+
+Uploading files directly
+'''''''''''''''''''''''''
+
+For smaller files or one-time uploads, you can upload files directly from your
+local machine:
+
+.. code-block:: python
+
+   from google.colab import files
+   import pandas as pd
+   import io
+
+   # Upload file(s)
+   uploaded = files.upload()
+
+   # Read the uploaded CSV file
+   # Replace 'filename.csv' with your actual filename
+   df = pd.read_csv(io.BytesIO(uploaded['filename.csv']))
+
+.. note::
+   Uploaded files are stored in the Colab session's temporary storage and will
+   be lost when the runtime disconnects.
+
+.. _io.google_colab.url:
+
+Reading from URLs
+'''''''''''''''''
+
+pandas can read files directly from URLs, which is useful for accessing data
+from GitHub, public datasets, or other web sources:
+
+.. code-block:: python
+
+   import pandas as pd
+
+   # Read CSV from a URL
+   url = 'https://raw.githubusercontent.com/user/repo/main/data.csv'
+   df = pd.read_csv(url)
+
+   # Read from GitHub
+   github_url = 'https://github.com/user/repo/raw/main/data.xlsx'
+   df = pd.read_excel(github_url)
+
+.. _io.google_colab.gsheets:
+
+Reading from Google Sheets
+'''''''''''''''''''''''''''
+
+You can read data directly from Google Sheets by making the sheet publicly
+accessible and using its export URL:
+
+.. code-block:: python
+
+   import pandas as pd
+
+   # Method 1: Using the sheet's export URL
+   sheet_id = 'your-sheet-id'
+   sheet_name = 'Sheet1'
+   url = f'https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}'
+   df = pd.read_csv(url)
+
+For more advanced Google Sheets integration with authentication, consider using
+the ``gspread`` library alongside pandas.
+
+.. _io.google_colab.kaggle:
+
+Reading Kaggle datasets
+''''''''''''''''''''''''
+
+To access Kaggle datasets in Colab, you need to authenticate using your Kaggle
+API credentials:
+
+.. code-block:: python
+
+   # Upload your kaggle.json file
+   from google.colab import files
+   files.upload()  # Select kaggle.json when prompted
+
+   # Setup Kaggle
+   !mkdir -p ~/.kaggle
+   !cp kaggle.json ~/.kaggle/
+   !chmod 600 ~/.kaggle/kaggle.json
+
+   # Download a dataset
+   !kaggle datasets download -d dataset-owner/dataset-name
+   !unzip dataset-name.zip
+
+   # Read the data
+   import pandas as pd
+   df = pd.read_csv('datafile.csv')
+
+.. _io.google_colab.best_practices:
+
+Best practices for Colab
+'''''''''''''''''''''''''
+
+- **For repeated use**: Mount Google Drive and store your data there
+- **For small files**: Use the upload widget for quick one-time analysis
+- **For public datasets**: Read directly from URLs when possible
+- **For large files**: Consider using Parquet format for faster loading and smaller file sizes
+- **Session management**: Remember that uploaded files and variables are lost when the runtime disconnects.. _xarray: https://xarray.pydata.org/en/stable/
 
 .. _io.perf:
 
