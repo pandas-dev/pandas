@@ -162,7 +162,7 @@ class TestDataFrameSelectReindex:
 
     def test_reindex_date_fill_value(self):
         # passing date to dt64 is deprecated; enforced in 2.0 to cast to object
-        arr = date_range("2016-01-01", periods=6).values.reshape(3, 2)
+        arr = date_range("2016-01-01", periods=6, unit="ns").values.reshape(3, 2)
         df = DataFrame(arr, columns=["A", "B"], index=range(3))
 
         ts = df.iloc[0, 0]

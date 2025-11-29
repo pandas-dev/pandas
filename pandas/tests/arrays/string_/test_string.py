@@ -141,7 +141,7 @@ def test_setitem_with_array_with_missing(dtype):
 
 
 def test_astype_roundtrip(dtype):
-    ser = pd.Series(pd.date_range("2000", periods=12))
+    ser = pd.Series(pd.date_range("2000", periods=12, unit="ns"))
     ser[0] = None
 
     casted = ser.astype(dtype)

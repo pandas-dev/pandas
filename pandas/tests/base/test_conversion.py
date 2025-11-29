@@ -583,7 +583,7 @@ class TestAsArray:
 
     def test_asarray_tz_naive(self):
         # This shouldn't produce a warning.
-        ser = Series(date_range("2000", periods=2))
+        ser = Series(date_range("2000", periods=2, unit="ns"))
         expected = np.array(["2000-01-01", "2000-01-02"], dtype="M8[ns]")
         result = np.asarray(ser)
 

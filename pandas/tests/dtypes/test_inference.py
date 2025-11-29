@@ -1877,8 +1877,8 @@ class TestNumberScalar:
         assert not is_float(Timedelta("1 days"))
 
     def test_is_datetime_dtypes(self):
-        ts = pd.date_range("20130101", periods=3)
-        tsa = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        ts = pd.date_range("20130101", periods=3, unit="ns")
+        tsa = pd.date_range("20130101", periods=3, tz="US/Eastern", unit="ns")
 
         msg = "is_datetime64tz_dtype is deprecated"
 

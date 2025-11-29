@@ -40,9 +40,9 @@ class TestDataFrameDataTypes:
     def test_datetime_with_tz_dtypes(self):
         tzframe = DataFrame(
             {
-                "A": date_range("20130101", periods=3),
-                "B": date_range("20130101", periods=3, tz="US/Eastern"),
-                "C": date_range("20130101", periods=3, tz="CET"),
+                "A": date_range("20130101", periods=3, unit="ns"),
+                "B": date_range("20130101", periods=3, tz="US/Eastern", unit="ns"),
+                "C": date_range("20130101", periods=3, tz="CET", unit="ns"),
             }
         )
         tzframe.iloc[1, 1] = pd.NaT
@@ -97,7 +97,7 @@ class TestDataFrameDataTypes:
     def test_dtypes_timedeltas(self):
         df = DataFrame(
             {
-                "A": Series(date_range("2012-1-1", periods=3, freq="D")),
+                "A": Series(date_range("2012-1-1", periods=3, freq="D", unit="ns")),
                 "B": Series([timedelta(days=i) for i in range(3)]),
             }
         )

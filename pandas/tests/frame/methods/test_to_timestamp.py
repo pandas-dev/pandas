@@ -21,6 +21,7 @@ def _get_with_delta(delta, freq="YE-DEC"):
         to_datetime("1/1/2001") + delta,
         to_datetime("12/31/2009") + delta,
         freq=freq,
+        unit="ns",
     )
 
 
@@ -36,7 +37,7 @@ class TestToTimestamp:
         obj["mix"] = "a"
         obj = tm.get_obj(obj, frame_or_series)
 
-        exp_index = date_range("1/1/2001", end="12/31/2009", freq="YE-DEC")
+        exp_index = date_range("1/1/2001", end="12/31/2009", freq="YE-DEC", unit="ns")
         exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "ns")
         result = obj.to_timestamp("D", "end")
         tm.assert_index_equal(result.index, exp_index)
@@ -44,7 +45,7 @@ class TestToTimestamp:
         if frame_or_series is Series:
             assert result.name == "A"
 
-        exp_index = date_range("1/1/2001", end="1/1/2009", freq="YS-JAN")
+        exp_index = date_range("1/1/2001", end="1/1/2009", freq="YS-JAN", unit="ns")
         result = obj.to_timestamp("D", "start")
         tm.assert_index_equal(result.index, exp_index)
 
@@ -82,13 +83,13 @@ class TestToTimestamp:
         # columns
         df = df.T
 
-        exp_index = date_range("1/1/2001", end="12/31/2009", freq="YE-DEC")
+        exp_index = date_range("1/1/2001", end="12/31/2009", freq="YE-DEC", unit="ns")
         exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "ns")
         result = df.to_timestamp("D", "end", axis=1)
         tm.assert_index_equal(result.columns, exp_index)
         tm.assert_numpy_array_equal(result.values, df.values)
 
-        exp_index = date_range("1/1/2001", end="1/1/2009", freq="YS-JAN")
+        exp_index = date_range("1/1/2001", end="1/1/2009", freq="YS-JAN", unit="ns")
         result = df.to_timestamp("D", "start", axis=1)
         tm.assert_index_equal(result.columns, exp_index)
 
@@ -112,7 +113,7 @@ class TestToTimestamp:
 
         result1 = df.to_timestamp("5min", axis=1)
         result2 = df.to_timestamp("min", axis=1)
-        expected = date_range("2001-01-01", "2009-01-01", freq="YS")
+        expected = date_range("2001-01-01", "2009-01-01", freq="YS", unit="ns")
         assert isinstance(result1.columns, DatetimeIndex)
         assert isinstance(result2.columns, DatetimeIndex)
         tm.assert_numpy_array_equal(result1.columns.asi8, expected.asi8)
@@ -137,7 +138,9 @@ class TestToTimestamp:
         if frame_or_series is not Series:
             obj = obj.to_frame()
 
-        exp_index = date_range("1/1/2001 00:59:59", end="1/2/2001 00:59:59", freq="h")
+        exp_index = date_range(
+            "1/1/2001 00:59:59", end="1/2/2001 00:59:59", freq="h", unit="ns"
+        )
         result = obj.to_timestamp(how="end")
         exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "ns")
         tm.assert_index_equal(result.index, exp_index)

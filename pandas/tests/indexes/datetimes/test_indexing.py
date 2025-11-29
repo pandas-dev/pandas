@@ -158,7 +158,7 @@ class TestWhere:
         tm.assert_index_equal(result, i2)
 
     def test_where_invalid_dtypes(self):
-        dti = date_range("20130101", periods=3, tz="US/Eastern")
+        dti = date_range("20130101", periods=3, tz="US/Eastern", unit="ns")
 
         tail = dti[2:].tolist()
         i2 = Index([pd.NaT, pd.NaT] + tail)
@@ -637,7 +637,7 @@ class TestGetIndexer:
 class TestMaybeCastSliceBound:
     def test_maybe_cast_slice_bounds_empty(self):
         # GH#14354
-        empty_idx = date_range(freq="1h", periods=0, end="2015")
+        empty_idx = date_range(freq="1h", periods=0, end="2015", unit="ns")
 
         right = empty_idx._maybe_cast_slice_bound("2015-01-02", "right")
         exp = Timestamp("2015-01-02 23:59:59.999999999")

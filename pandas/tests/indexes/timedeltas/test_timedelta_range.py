@@ -154,3 +154,32 @@ class TestTimedeltas:
         msg = f"Invalid frequency: {freq_depr}"
         with pytest.raises(ValueError, match=msg):
             timedelta_range(start=start, end=end, freq=freq_depr)
+
+
+class TestTimedeltaRangeUnitInference:
+    def test_timedelta_range_unit_inference_matching_unit(self, unit):
+        start = Timedelta(0).as_unit(unit)
+        end = Timedelta(days=1).as_unit(unit)
+
+        tdi = timedelta_range(start, end, freq="D")
+        assert tdi.unit == unit
+
+    def test_timedelta_range_unit_inference_mismatched_unit(self, unit):
+        start = Timedelta(0).as_unit(unit)
+        end = Timedelta(days=1).as_unit("s")
+
+        tdi = timedelta_range(start, end, freq="D")
+        assert tdi.unit == unit
+
+        tdi = timedelta_range(start, end.as_unit("ns"), freq="D")
+        assert tdi.unit == "ns"
+
+    def test_timedelta_range_unit_inference_tick(self):
+        start = Timedelta(0).as_unit("ms")
+        end = Timedelta(days=1).as_unit("s")
+
+        tdi = timedelta_range(start, end, freq="2000000us")
+        assert tdi.unit == "us"
+
+        tdi = timedelta_range(start, end.as_unit("ns"), freq="2000000us")
+        assert tdi.unit == "ns"
