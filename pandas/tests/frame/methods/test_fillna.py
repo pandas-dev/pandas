@@ -830,7 +830,10 @@ def test_fillna_with_none_object(test_frame, dtype):
 def test_fillna_out_of_bounds_datetime():
     # GH#61208
     df = DataFrame(
-        {"datetime": date_range("1/1/2011", periods=3, freq="h"), "value": [1, 2, 3]}
+        {
+            "datetime": date_range("1/1/2011", periods=3, freq="h", unit="ns"),
+            "value": [1, 2, 3],
+        }
     )
     df.iloc[0, 0] = None
 

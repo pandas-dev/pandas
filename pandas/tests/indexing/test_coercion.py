@@ -439,7 +439,9 @@ class TestWhereCoercion(CoercionBase):
     def test_where_datetime64(self, index_or_series, fill_val, exp_dtype):
         klass = index_or_series
 
-        obj = klass(pd.date_range("2011-01-01", periods=4, freq="D")._with_freq(None))
+        obj = klass(
+            pd.date_range("2011-01-01", periods=4, freq="D", unit="ns")._with_freq(None)
+        )
         assert obj.dtype == "datetime64[ns]"
 
         fv = fill_val

@@ -416,7 +416,7 @@ Categories (10, {np.dtype(int)}): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
         assert repr(s) == exp
 
     def test_categorical_series_repr_datetime(self):
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5)
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5, unit="ns")
         s = Series(Categorical(idx))
         exp = """0   2011-01-01 09:00:00
 1   2011-01-01 10:00:00
@@ -429,7 +429,9 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-
 
         assert repr(s) == exp
 
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
+        idx = date_range(
+            "2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern", unit="ns"
+        )
         s = Series(Categorical(idx))
         exp = """0   2011-01-01 09:00:00-05:00
 1   2011-01-01 10:00:00-05:00
@@ -444,7 +446,7 @@ Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00, 2011-01-
         assert repr(s) == exp
 
     def test_categorical_series_repr_datetime_ordered(self):
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5)
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5, unit="ns")
         s = Series(Categorical(idx, ordered=True))
         exp = """0   2011-01-01 09:00:00
 1   2011-01-01 10:00:00
@@ -457,7 +459,9 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 201
 
         assert repr(s) == exp
 
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
+        idx = date_range(
+            "2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern", unit="ns"
+        )
         s = Series(Categorical(idx, ordered=True))
         exp = """0   2011-01-01 09:00:00-05:00
 1   2011-01-01 10:00:00-05:00

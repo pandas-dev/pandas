@@ -1159,7 +1159,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             raise TypeError(f"cannot subtract a datelike from a {type(self).__name__}")
 
         self = cast("DatetimeArray", self)
-        # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
+        # subtract a datetime from myself, yielding an ndarray[timedelta64[ns]]
 
         if isna(other):
             # i.e. np.datetime64("NaT")
@@ -1863,7 +1863,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                        '2022-02-22 06:22:22-06:00', '2022-02-22 07:22:22-06:00',
                        '2022-02-22 08:22:22-06:00', '2022-02-22 09:22:22-06:00',
                        '2022-02-22 10:22:22-06:00', '2022-02-22 11:22:22-06:00'],
-                      dtype='datetime64[ns, America/Chicago]', freq='h')
+                      dtype='datetime64[us, America/Chicago]', freq='h')
         >>> datetimeindex.freq
         <Hour>
         """

@@ -673,7 +673,7 @@ class TestToDatetime:
         # https://github.com/pandas-dev/pandas/issues/49298
         # https://github.com/pandas-dev/pandas/issues/50254
         # note: ISO8601 formats go down a fastpath, so we need to check both
-        # a ISO8601 format and a non-ISO8601 one
+        # an ISO8601 format and a non-ISO8601 one
         ts1 = constructor(args[0])
         ts2 = args[1]
         result = to_datetime([ts1, ts2], format=fmt, utc=utc)
@@ -697,7 +697,7 @@ class TestToDatetime:
         # https://github.com/pandas-dev/pandas/issues/50254
         # GH#57275
         # note: ISO8601 formats go down a fastpath, so we need to check both
-        # a ISO8601 format and a non-ISO8601 one
+        # an ISO8601 format and a non-ISO8601 one
         args = ["2000-01-01 01:00:00", "2000-01-01 02:00:00+00:00"]
         ts1 = constructor(args[0])
         ts2 = args[1]
@@ -796,7 +796,7 @@ class TestToDatetime:
     ):
         # https://github.com/pandas-dev/pandas/issues/49298
         # note: ISO8601 formats go down a fastpath, so we need to check both
-        # a ISO8601 format and a non-ISO8601 one
+        # an ISO8601 format and a non-ISO8601 one
         ts1 = constructor(args[0])
         ts2 = constructor(args[1])
         with pytest.raises(
@@ -2542,7 +2542,7 @@ class TestToDatetimeMisc:
         assert value == as_obj
 
     def test_to_datetime_list_of_integers(self):
-        rng = date_range("1/1/2000", periods=20)
+        rng = date_range("1/1/2000", periods=20, unit="ns")
         rng = DatetimeIndex(rng.values)
 
         ints = list(rng.asi8)
@@ -2556,7 +2556,7 @@ class TestToDatetimeMisc:
         # we are overflowing Timedelta range here
         msg = "Cannot cast 139999 days 00:00:00 to unit='ns' without overflow"
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
-            date_range(start="1/1/1700", freq="B", periods=100000)
+            date_range(start="1/1/1700", freq="B", periods=100000, unit="ns")
 
     def test_to_datetime_float_with_nans_floating_point_error(self):
         # GH#58419
