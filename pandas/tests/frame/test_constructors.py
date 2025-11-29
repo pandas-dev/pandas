@@ -889,15 +889,15 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(result_Timestamp, expected)
 
     @pytest.mark.parametrize(
-        "klass,name",
+        "klass,exp_dtype",
         [
-            (lambda x: np.timedelta64(x, "D"), "timedelta64"),
-            (lambda x: timedelta(days=x), "pytimedelta"),
-            (lambda x: Timedelta(x, "D"), "Timedelta[ns]"),
-            (lambda x: Timedelta(x, "D").as_unit("s"), "Timedelta[s]"),
+            (lambda x: np.timedelta64(x, "D"), "m8[s]"),
+            (lambda x: timedelta(days=x), "m8[us]"),
+            (lambda x: Timedelta(x, "D"), "m8[ns]"),
+            (lambda x: Timedelta(x, "D").as_unit("s"), "m8[s]"),
         ],
     )
-    def test_constructor_dict_timedelta64_index(self, klass, name):
+    def test_constructor_dict_timedelta64_index(self, klass, exp_dtype):
         # GH 10160
         td_as_int = [1, 2, 3, 4]
 
@@ -912,6 +912,7 @@ class TestDataFrameConstructors:
             ],
             index=[Timedelta(td, "D") for td in td_as_int],
         )
+        expected.index = expected.index.astype(exp_dtype)
 
         result = DataFrame(data)
 
@@ -3258,17 +3259,8 @@ class TestFromScalar:
 
     @pytest.mark.parametrize("cls", [timedelta, np.timedelta64])
     def test_from_out_of_bounds_ns_timedelta(
-        self, constructor, cls, request, box, frame_or_series
+        self, constructor, cls, box, frame_or_series
     ):
-        # scalar that won't fit in nanosecond td64, but will fit in microsecond
-        if box is list or (frame_or_series is Series and box is dict):
-            mark = pytest.mark.xfail(
-                reason="TimedeltaArray constructor has been updated to cast td64 "
-                "to non-nano, but TimedeltaArray._from_sequence has not",
-                strict=True,
-            )
-            request.applymarker(mark)
-
         scalar = datetime(9999, 1, 1) - datetime(1970, 1, 1)
         exp_dtype = "m8[us]"  # smallest reso that fits
         if cls is np.timedelta64:

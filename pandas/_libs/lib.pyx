@@ -106,7 +106,6 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.offsets cimport is_offset_object
 from pandas._libs.tslibs.period cimport is_period_object
-from pandas._libs.tslibs.timedeltas cimport convert_to_timedelta64
 from pandas._libs.tslibs.timezones cimport tz_compare
 
 # constants that will be compared to potentially arbitrarily large
@@ -2674,11 +2673,6 @@ def maybe_convert_objects(ndarray[object] objects,
         elif is_timedelta(val):
             if convert_non_numeric:
                 seen.timedelta_ = True
-                try:
-                    convert_to_timedelta64(val, "ns")
-                except OutOfBoundsTimedelta:
-                    seen.object_ = True
-                    break
                 break
             else:
                 seen.object_ = True

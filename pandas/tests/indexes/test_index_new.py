@@ -141,6 +141,9 @@ class TestIndexConstructorInference:
         if dtype[0] == "d":
             # we infer all-NaT as second resolution
             expected = expected.astype("M8[ns]")
+        if dtype[0] == "t":
+            # we infer all-NaT as second resolution
+            expected = expected.astype("m8[ns]")
         assert expected.dtype == dtype
         data = [ctor]
         data.insert(pos, nulls_fixture)
