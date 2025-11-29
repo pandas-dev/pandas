@@ -311,7 +311,7 @@ def test_orc_dtype_backend_pyarrow(using_infer_string):
             "float_with_nan": [2.0, np.nan, 3.0],
             "bool": [True, False, True],
             "bool_with_na": [True, False, None],
-            "datetime": pd.date_range("20130101", periods=3),
+            "datetime": pd.date_range("20130101", periods=3, unit="ns"),
             "datetime_with_nat": [
                 pd.Timestamp("20130101"),
                 pd.NaT,
