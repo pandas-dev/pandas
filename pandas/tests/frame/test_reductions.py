@@ -613,7 +613,7 @@ class TestDataFrameAnalytics:
                     "D": Series([np.nan], dtype="str"),
                     "E": Categorical([np.nan], categories=["a"]),
                     "F": DatetimeIndex([pd.NaT], dtype="M8[ns]"),
-                    "G": to_timedelta([pd.NaT]),
+                    "G": to_timedelta([pd.NaT]).as_unit("ns"),
                 },
             ),
             (
