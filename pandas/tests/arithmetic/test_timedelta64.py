@@ -274,6 +274,23 @@ class TestTimedelta64ArithmeticUnsorted:
     # Tests moved from type-specific test files but not
     #  yet sorted/parametrized/de-duplicated
 
+    def test_td64_op_with_list(self, box_with_array):
+        # GH#62353
+        box = box_with_array
+
+        left = TimedeltaIndex(["2D", "4D"])
+        left = tm.box_expected(left, box)
+
+        right = [Timestamp("2016-01-01"), Timestamp("2016-02-01")]
+
+        result = left + right
+        expected = DatetimeIndex(["2016-01-03", "2016-02-05"], dtype="M8[ns]")
+        expected = tm.box_expected(expected, box)
+        tm.assert_equal(result, expected)
+
+        result2 = right + left
+        tm.assert_equal(result2, expected)
+
     def test_ufunc_coercions(self):
         # normal ops are also tested in tseries/test_timedeltas.py
         idx = TimedeltaIndex(["2h", "4h", "6h", "8h", "10h"], freq="2h", name="x")
@@ -308,7 +325,7 @@ class TestTimedelta64ArithmeticUnsorted:
     def test_subtraction_ops(self):
         # with datetimes/timedelta and tdi/dti
         tdi = TimedeltaIndex(["1 days", NaT, "2 days"], name="foo")
-        dti = pd.date_range("20130101", periods=3, name="bar")
+        dti = pd.date_range("20130101", periods=3, name="bar", unit="ns")
         td = Timedelta("1 days")
         dt = Timestamp("20130101")
 
@@ -356,11 +373,13 @@ class TestTimedelta64ArithmeticUnsorted:
 
     def test_subtraction_ops_with_tz(self, box_with_array):
         # check that dt/dti subtraction ops with tz are validated
-        dti = pd.date_range("20130101", periods=3)
+        dti = pd.date_range("20130101", periods=3, unit="ns")
         dti = tm.box_expected(dti, box_with_array)
         ts = Timestamp("20130101")
         dt = ts.to_pydatetime()
-        dti_tz = pd.date_range("20130101", periods=3).tz_localize("US/Eastern")
+        dti_tz = pd.date_range("20130101", periods=3, unit="ns").tz_localize(
+            "US/Eastern"
+        )
         dti_tz = tm.box_expected(dti_tz, box_with_array)
         ts_tz = Timestamp("20130101").tz_localize("US/Eastern")
         ts_tz2 = Timestamp("20130101").tz_localize("CET")
@@ -520,7 +539,7 @@ class TestTimedelta64ArithmeticUnsorted:
     # more targeted tests
     @pytest.mark.parametrize("freq", ["D", "B"])
     def test_timedelta(self, freq):
-        index = pd.date_range("1/1/2000", periods=50, freq=freq)
+        index = pd.date_range("1/1/2000", periods=50, freq=freq, unit="ns")
 
         shifted = index + timedelta(1)
         back = shifted + timedelta(-1)
@@ -842,8 +861,8 @@ class TestTimedeltaArraylikeAddSubOps:
     # de-duplication, box-parametrization...
     def test_operators_timedelta64(self):
         # series ops
-        v1 = pd.date_range("2012-1-1", periods=3, freq="D")
-        v2 = pd.date_range("2012-1-2", periods=3, freq="D")
+        v1 = pd.date_range("2012-1-1", periods=3, freq="D", unit="ns")
+        v2 = pd.date_range("2012-1-2", periods=3, freq="D", unit="ns")
         rs = Series(v2) - Series(v1)
         xp = Series(1e9 * 3600 * 24, rs.index).astype("int64").astype("timedelta64[ns]")
         tm.assert_series_equal(rs, xp)
@@ -1011,7 +1030,7 @@ class TestTimedeltaArraylikeAddSubOps:
             ts = dt_scalar
 
         tdi = timedelta_range("1 day", periods=3)
-        expected = pd.date_range("2012-01-02", periods=3, tz=tz)
+        expected = pd.date_range("2012-01-02", periods=3, tz=tz, unit="ns")
         if tz is not None and not timezones.is_utc(expected.tz):
             # Day is no longer preserved by timedelta add/sub in pandas3 because
             #  it represents Calendar-Day instead of 24h
@@ -1023,7 +1042,7 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_equal(ts + tdarr, expected)
         tm.assert_equal(tdarr + ts, expected)
 
-        expected2 = pd.date_range("2011-12-31", periods=3, freq="-1D", tz=tz)
+        expected2 = pd.date_range("2011-12-31", periods=3, freq="-1D", tz=tz, unit="ns")
         if tz is not None and not timezones.is_utc(expected2.tz):
             # Day is no longer preserved by timedelta add/sub in pandas3 because
             #  it represents Calendar-Day instead of 24h
@@ -1813,7 +1832,7 @@ class TestTimedeltaArraylikeMulDivOps:
             expected = expected.to_numpy()
         tm.assert_equal(res, expected)
         if box_with_array is DataFrame:
-            # We have a np.timedelta64(NaT), not pd.NaT
+            # We have an np.timedelta64(NaT), not pd.NaT
             assert isinstance(res.iloc[1, 0], np.timedelta64)
 
         res = tdi // other
@@ -1824,7 +1843,7 @@ class TestTimedeltaArraylikeMulDivOps:
             expected = expected.to_numpy()
         tm.assert_equal(res, expected)
         if box_with_array is DataFrame:
-            # We have a np.timedelta64(NaT), not pd.NaT
+            # We have an np.timedelta64(NaT), not pd.NaT
             assert isinstance(res.iloc[1, 0], np.timedelta64)
 
     # ------------------------------------------------------------------

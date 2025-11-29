@@ -208,7 +208,7 @@ class OutOfBoundsTimedelta(ValueError):
 
     Examples
     --------
-    >>> pd.date_range(start="1/1/1700", freq="B", periods=100000)
+    >>> pd.date_range(start="1/1/1700", freq="B", periods=100000, unit="ns")
     Traceback (most recent call last):
     OutOfBoundsTimedelta: Cannot cast 139999 days 00:00:00
     to unit='ns' without overflow.

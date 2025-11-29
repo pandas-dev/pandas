@@ -1869,7 +1869,7 @@ class TestDataFrameConstructors:
         )
         tm.assert_series_equal(result, expected)
 
-        # check with ndarray construction ndim==0 (e.g. we are passing a ndim 0
+        # check with ndarray construction ndim==0 (e.g. we are passing an ndim 0
         # ndarray with a dtype specified)
         df = DataFrame(
             {
@@ -2907,7 +2907,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
     def test_construction_preserves_tzaware_dtypes(self, tz):
         # after GH#7822
         # these retain the timezones on dict construction
-        dr = date_range("2011/1/1", "2012/1/1", freq="W-FRI")
+        dr = date_range("2011/1/1", "2012/1/1", freq="W-FRI", unit="ns")
         dr_tz = dr.tz_localize(tz)
         df = DataFrame({"A": "foo", "B": dr_tz}, index=dr)
         tz_expected = DatetimeTZDtype("ns", dr_tz.tzinfo)
@@ -3013,7 +3013,7 @@ class TestDataFrameConstructorWithDatetimeTZ:
     def test_frame_timeseries_column(self):
         # GH19157
         dr = date_range(
-            start="20130101T10:00:00", periods=3, freq="min", tz="US/Eastern"
+            start="20130101T10:00:00", periods=3, freq="min", tz="US/Eastern", unit="ns"
         )
         result = DataFrame(dr, columns=["timestamps"])
         expected = DataFrame(

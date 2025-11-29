@@ -529,7 +529,7 @@ def test_append_with_data_columns(tmp_path):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
         )
         df.iloc[0, df.columns.get_loc("B")] = 1.0
         _maybe_remove(store, "df")

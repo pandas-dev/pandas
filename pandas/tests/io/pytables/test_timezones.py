@@ -358,7 +358,7 @@ def test_dst_transitions(tmp_path):
 def test_read_with_where_tz_aware_index(tmp_path, setup_path):
     # GH 11926
     periods = 10
-    dts = date_range("20151201", periods=periods, freq="D", tz="UTC")
+    dts = date_range("20151201", periods=periods, freq="D", tz="UTC", unit="ns")
     mi = pd.MultiIndex.from_arrays([dts, range(periods)], names=["DATE", "NO"])
     expected = DataFrame({"MYCOL": 0}, index=mi)
 
