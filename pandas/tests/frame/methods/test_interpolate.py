@@ -56,7 +56,8 @@ class TestDataFrameInterpolate:
         obj = frame_or_series([1, np.nan, 2])
         orig = obj.values
 
-        obj.interpolate(inplace=True)
+        result = obj.interpolate(inplace=True)
+        assert result is obj
         expected = frame_or_series([1, 1.5, 2])
         tm.assert_equal(obj, expected)
 
@@ -307,22 +308,22 @@ class TestDataFrameInterpolate:
 
     def test_interp_inplace(self):
         df = DataFrame({"a": [1.0, 2.0, np.nan, 4.0]})
-        expected = df.copy()
-        result = df.copy()
+        df_orig = df.copy()
+        expected = df.copy().interpolate()
 
         with tm.raises_chained_assignment_error():
-            return_value = result["a"].interpolate(inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
+            result = df["a"].interpolate(inplace=True)
+        tm.assert_series_equal(result, expected["a"])
+        tm.assert_frame_equal(df, df_orig)
 
     def test_interp_inplace_row(self):
         # GH 10395
-        result = DataFrame(
+        df = DataFrame(
             {"a": [1.0, 2.0, 3.0, 4.0], "b": [np.nan, 2.0, 3.0, 4.0], "c": [3, 2, 2, 2]}
         )
-        expected = result.interpolate(method="linear", axis=1, inplace=False)
-        return_value = result.interpolate(method="linear", axis=1, inplace=True)
-        assert return_value is None
+        expected = df.interpolate(method="linear", axis=1, inplace=False)
+        result = df.interpolate(method="linear", axis=1, inplace=True)
+        assert result is df
         tm.assert_frame_equal(result, expected)
 
     def test_interp_ignore_all_good(self):
@@ -356,11 +357,11 @@ class TestDataFrameInterpolate:
         idx = date_range(start="2014-01-01", periods=periods)
         data = np.random.default_rng(2).random((periods, periods))
         data[data < 0.5] = np.nan
-        expected = DataFrame(index=idx, columns=idx, data=data)
+        df = DataFrame(index=idx, columns=idx, data=data)
 
-        result = expected.interpolate(axis=0, method="time")
-        return_value = expected.interpolate(axis=0, method="time", inplace=True)
-        assert return_value is None
+        expected = df.interpolate(axis=0, method="time")
+        result = df.interpolate(axis=0, method="time", inplace=True)
+        assert result is df
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("axis_name, axis_number", [("index", 0), ("columns", 1)])
@@ -399,8 +400,8 @@ class TestDataFrameInterpolate:
         df = DataFrame()
         expected = df.copy()
         result = df.interpolate(inplace=True)
-        assert result is None
-        tm.assert_frame_equal(df, expected)
+        assert result is df
+        tm.assert_frame_equal(result, expected)
 
     def test_interpolate_ea(self, any_int_ea_dtype):
         # GH#55347

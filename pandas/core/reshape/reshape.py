@@ -158,7 +158,7 @@ class _Unstacker:
             # Bug fix GH 20601
             # If the data frame is too big, the number of unique index combination
             # will cause int32 overflow on windows environments.
-            # We want to check and raise an warning before this happens
+            # We want to check and raise a warning before this happens
             num_rows = max(index_level.size for index_level in self.new_index_levels)
             num_columns = self.removed_level.size
 
@@ -778,7 +778,7 @@ def _stack_multi_column_index(columns: MultiIndex) -> MultiIndex | Index:
 
     levs = (
         [lev[c] if c >= 0 else None for c in codes]
-        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1])
+        for lev, codes in zip(columns.levels[:-1], columns.codes[:-1], strict=True)
     )
 
     # Remove duplicate tuples in the MultiIndex.

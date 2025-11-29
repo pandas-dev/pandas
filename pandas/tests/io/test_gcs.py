@@ -67,7 +67,7 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
             "int": [1, 3],
             "float": [2.0, np.nan],
             "str": ["t", "s"],
-            "dt": date_range("2018-06-18", periods=2),
+            "dt": date_range("2018-06-18", periods=2, unit="ns"),
         }
     )
 
@@ -119,7 +119,7 @@ def test_to_read_gcs(gcs_buffer, format, monkeypatch, capsys, request):
 
     expected = df1[:]
     if format in ["csv", "excel"]:
-        expected["dt"] = expected["dt"].dt.as_unit("s")
+        expected["dt"] = expected["dt"].dt.as_unit("us")
 
     tm.assert_frame_equal(df2, expected)
 

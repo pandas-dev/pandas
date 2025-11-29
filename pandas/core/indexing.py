@@ -15,11 +15,8 @@ import numpy as np
 
 from pandas._libs.indexing import NDFrameIndexerBase
 from pandas._libs.lib import item_from_zerodim
-from pandas.compat import PYPY
-from pandas.compat._constants import (
-    REF_COUNT,
-    WARNING_CHECK_DISABLED,
-)
+from pandas.compat import CHAINED_WARNING_DISABLED
+from pandas.compat._constants import REF_COUNT_IDX
 from pandas.errors import (
     AbstractMethodError,
     ChainedAssignmentError,
@@ -920,8 +917,8 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        if not PYPY and not WARNING_CHECK_DISABLED:
-            if sys.getrefcount(self.obj) <= REF_COUNT:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self.obj) <= REF_COUNT_IDX:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -1483,7 +1480,7 @@ class _LocIndexer(_LocationIndexer):
     def _convert_to_indexer(self, key, axis: AxisInt):
         """
         Convert indexing key into something we can use to do actual fancy
-        indexing on a ndarray.
+        indexing on an ndarray.
 
         Examples
         ix[:5] -> slice(0, 5)
@@ -1994,7 +1991,7 @@ class _iLocIndexer(_LocationIndexer):
         lplane_indexer = length_of_indexer(pi, self.obj.index)
         # lplane_indexer gives the expected length of obj[indexer[0]]
 
-        # we need an iterable, with a ndim of at least 1
+        # we need an iterable, with an ndim of at least 1
         # eg. don't pass through np.array(0)
         if is_list_like_indexer(value) and getattr(value, "ndim", 1) > 0:
             if isinstance(value, ABCDataFrame):
@@ -2024,7 +2021,7 @@ class _iLocIndexer(_LocationIndexer):
                 )
 
             elif lplane_indexer == 0 and len(value) == len(self.obj.index):
-                # We get here in one case via .loc with a all-False mask
+                # We get here in one case via .loc with an all-False mask
                 pass
 
             elif self._is_scalar_access(indexer) and is_object_dtype(
@@ -2588,8 +2585,8 @@ class _AtIndexer(_ScalarAccessIndexer):
         return super().__getitem__(key)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and not WARNING_CHECK_DISABLED:
-            if sys.getrefcount(self.obj) <= REF_COUNT:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self.obj) <= REF_COUNT_IDX:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -2619,8 +2616,8 @@ class _iAtIndexer(_ScalarAccessIndexer):
         return key
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and not WARNING_CHECK_DISABLED:
-            if sys.getrefcount(self.obj) <= REF_COUNT:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self.obj) <= REF_COUNT_IDX:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )

@@ -17,7 +17,10 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -63,6 +66,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
+@set_module("pandas")
 class Grouper:
     """
     A Grouper allows the user to specify a groupby instruction for an object.
@@ -112,8 +116,6 @@ class Grouper:
 
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
-
-        .. versionadded:: 1.3.0
 
     offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
@@ -252,8 +254,6 @@ class Grouper:
     2000-10-02 00:24:00    24
     Freq: 17min, dtype: int64
     """
-
-    __module__ = "pandas"
 
     sort: bool
     dropna: bool

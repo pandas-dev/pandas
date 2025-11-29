@@ -188,7 +188,7 @@ def hash_tuples(
     hash_key: str = _default_hash_key,
 ) -> npt.NDArray[np.uint64]:
     """
-    Hash an MultiIndex / listlike-of-tuples efficiently.
+    Hash a MultiIndex / listlike-of-tuples efficiently.
 
     Parameters
     ----------
@@ -261,7 +261,7 @@ def hash_array(
     See Also
     --------
     util.hash_pandas_object : Return a data hash of the Index/Series/DataFrame.
-    util.hash_tuples : Hash an MultiIndex / listlike-of-tuples efficiently.
+    util.hash_tuples : Hash a MultiIndex / listlike-of-tuples efficiently.
 
     Examples
     --------
@@ -270,7 +270,7 @@ def hash_array(
       dtype=uint64)
     """
     if not hasattr(vals, "dtype"):
-        raise TypeError("must pass a ndarray-like")
+        raise TypeError("must pass an ndarray-like")
 
     if isinstance(vals, ABCExtensionArray):
         return vals._hash_pandas_object(
