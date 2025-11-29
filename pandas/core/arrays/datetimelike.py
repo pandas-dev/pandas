@@ -1649,7 +1649,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         >>> idx = pd.date_range("2001-01-01 00:00", periods=3)
         >>> idx
         DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[us]', freq='D')
         >>> idx.mean()
         Timestamp('2001-01-02 00:00:00')
 
@@ -1900,13 +1900,13 @@ _round_doc = """
     >>> rng
     DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
                    '2018-01-01 12:01:00'],
-                  dtype='datetime64[ns]', freq='min')
+                  dtype='datetime64[us]', freq='min')
     """
 
 _round_example = """>>> rng.round('h')
     DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                    '2018-01-01 12:00:00'],
-                  dtype='datetime64[ns]', freq=None)
+                  dtype='datetime64[us]', freq=None)
 
     **Series**
 
@@ -1914,7 +1914,7 @@ _round_example = """>>> rng.round('h')
     0   2018-01-01 12:00:00
     1   2018-01-01 12:00:00
     2   2018-01-01 12:00:00
-    dtype: datetime64[ns]
+    dtype: datetime64[us]
 
     When rounding near a daylight savings time transition, use ``ambiguous`` or
     ``nonexistent`` to control how the timestamp should be re-localized.
@@ -1933,7 +1933,7 @@ _round_example = """>>> rng.round('h')
 _floor_example = """>>> rng.floor('h')
     DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
                    '2018-01-01 12:00:00'],
-                  dtype='datetime64[ns]', freq=None)
+                  dtype='datetime64[us]', freq=None)
 
     **Series**
 
@@ -1941,7 +1941,7 @@ _floor_example = """>>> rng.floor('h')
     0   2018-01-01 11:00:00
     1   2018-01-01 12:00:00
     2   2018-01-01 12:00:00
-    dtype: datetime64[ns]
+    dtype: datetime64[us]
 
     When rounding near a daylight savings time transition, use ``ambiguous`` or
     ``nonexistent`` to control how the timestamp should be re-localized.
@@ -1960,7 +1960,7 @@ _floor_example = """>>> rng.floor('h')
 _ceil_example = """>>> rng.ceil('h')
     DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                    '2018-01-01 13:00:00'],
-                  dtype='datetime64[ns]', freq=None)
+                  dtype='datetime64[us]', freq=None)
 
     **Series**
 
@@ -1968,7 +1968,7 @@ _ceil_example = """>>> rng.ceil('h')
     0   2018-01-01 12:00:00
     1   2018-01-01 12:00:00
     2   2018-01-01 13:00:00
-    dtype: datetime64[ns]
+    dtype: datetime64[us]
 
     When rounding near a daylight savings time transition, use ``ambiguous`` or
     ``nonexistent`` to control how the timestamp should be re-localized.
@@ -2018,7 +2018,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                        '2022-02-22 06:22:22-06:00', '2022-02-22 07:22:22-06:00',
                        '2022-02-22 08:22:22-06:00', '2022-02-22 09:22:22-06:00',
                        '2022-02-22 10:22:22-06:00', '2022-02-22 11:22:22-06:00'],
-                      dtype='datetime64[ns, America/Chicago]', freq='h')
+                      dtype='datetime64[us, America/Chicago]', freq='h')
         >>> datetimeindex.freq
         <Hour>
         """

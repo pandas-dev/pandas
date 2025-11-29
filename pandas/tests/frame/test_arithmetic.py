@@ -115,7 +115,7 @@ class TestFrameComparisons:
             [
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
@@ -129,13 +129,13 @@ class TestFrameComparisons:
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
             ],
             [
                 {
-                    "a": pd.date_range("20010101", periods=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "a": pd.date_range("20010101", periods=10, unit="ns"),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
@@ -145,11 +145,11 @@ class TestFrameComparisons:
             [
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
-                    "a": pd.date_range("20010101", periods=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "a": pd.date_range("20010101", periods=10, unit="ns"),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
             ],
         ],

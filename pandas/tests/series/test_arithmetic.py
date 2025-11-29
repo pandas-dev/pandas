@@ -301,7 +301,7 @@ class TestSeriesArithmetic:
     def test_sub_datetimelike_align(self):
         # GH#7500
         # datetimelike ops need to align
-        dt = Series(date_range("2012-1-1", periods=3, freq="D"))
+        dt = Series(date_range("2012-1-1", periods=3, freq="D", unit="ns"))
         dt.iloc[2] = np.nan
         dt2 = dt[::-1]
 
@@ -353,8 +353,8 @@ class TestSeriesArithmetic:
 
         # GH#8363
         # datetime ops with a non-unique index
-        ser = Series(date_range("20130101 09:00:00", periods=5), index=index)
-        other = Series(date_range("20130101", periods=5), index=index)
+        ser = Series(date_range("20130101 09:00:00", periods=5, unit="ns"), index=index)
+        other = Series(date_range("20130101", periods=5, unit="ns"), index=index)
         result = ser - other
         expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4])
         tm.assert_series_equal(result, expected)

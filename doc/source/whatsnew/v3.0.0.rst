@@ -748,6 +748,7 @@ Other API changes
   the dtype of the resulting Index (:issue:`60797`)
 - :class:`IncompatibleFrequency` now subclasses ``TypeError`` instead of ``ValueError``. As a result, joins with mismatched frequencies now cast to object like other non-comparable joins, and arithmetic with indexes with mismatched frequencies align (:issue:`55782`)
 - :class:`Series` "flex" methods like :meth:`Series.add` no longer allow passing a :class:`DataFrame` for ``other``; use the DataFrame reversed method instead (:issue:`46179`)
+- :func:`date_range` and :func:`timedelta_range` no longer default to ``unit="ns"``, instead will infer a unit from the ``start``, ``end``, and ``freq`` parameters. Explicitly specify a desired ``unit`` to override these (:issue:`59031`)
 - :meth:`CategoricalIndex.append` no longer attempts to cast different-dtype indexes to the caller's dtype (:issue:`41626`)
 - :meth:`ExtensionDtype.construct_array_type` is now a regular method instead of a ``classmethod`` (:issue:`58663`)
 - Arithmetic operations between a :class:`Series`, :class:`Index`, or :class:`ExtensionArray` with a ``list`` now consistently wrap that list with an array equivalent to ``Series(my_list).array``. To do any other kind of type inference or casting, do so explicitly before operating (:issue:`62552`)
