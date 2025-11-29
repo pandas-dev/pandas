@@ -169,6 +169,8 @@ if TYPE_CHECKING:
         AnyAll,
         AnyArrayLike,
         ArrayLike,
+        ArrowArrayExportable,
+        ArrowStreamExportable,
         Axis,
         AxisInt,
         CorrelationMethod,
@@ -771,9 +773,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Timezone aware datetime data is converted to UTC:
 
         >>> pd.Series(pd.date_range("20130101", periods=3, tz="US/Eastern")).values
-        array(['2013-01-01T05:00:00.000000000',
-               '2013-01-02T05:00:00.000000000',
-               '2013-01-03T05:00:00.000000000'], dtype='datetime64[ns]')
+        array(['2013-01-01T05:00:00.000000',
+               '2013-01-02T05:00:00.000000',
+               '2013-01-03T05:00:00.000000'], dtype='datetime64[us]')
         """
         return self._mgr.external_values()
 
@@ -1835,6 +1837,55 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         mgr = self._mgr.to_2d_mgr(columns)
         df = self._constructor_expanddim_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(self, method="to_frame")
+
+    @classmethod
+    def from_arrow(cls, data: ArrowArrayExportable | ArrowStreamExportable) -> Series:
+        """
+        Construct a Series from an array-like Arrow object.
+
+        This function accepts any Arrow-compatible array-like object implementing
+        the `Arrow PyCapsule Protocol`_ (i.e. having an ``__arrow_c_array__``
+        or ``__arrow_c_stream__`` method).
+
+        This function currently relies on ``pyarrow`` to convert the object
+        in Arrow format to pandas.
+
+        .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        data : pyarrow.Array or Arrow-compatible object
+            Any array-like object implementing the Arrow PyCapsule Protocol
+            (i.e. has an ``__arrow_c_array__`` or ``__arrow_c_stream__``
+            method).
+
+        Returns
+        -------
+        Series
+
+        """
+        pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        if not isinstance(data, (pa.Array, pa.ChunkedArray)):
+            if not (
+                hasattr(data, "__arrow_c_array__")
+                or hasattr(data, "__arrow_c_stream__")
+            ):
+                # explicitly test this, because otherwise we would accept variour other
+                # input types through the pa.chunked_array(..) call
+                raise TypeError(
+                    "Expected an Arrow-compatible array-like object (i.e. having an "
+                    "'_arrow_c_array__' or '__arrow_c_stream__' method), got "
+                    f"'{type(data).__name__}' instead."
+                )
+            # using chunked_array() as it works for both arrays and streams
+            pa_array = pa.chunked_array(data)
+        else:
+            pa_array = data
+
+        ser = pa_array.to_pandas()
+        return ser
 
     def _set_name(self, name, inplace: bool = False) -> Series:
         """
@@ -4242,7 +4293,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         This routine will explode list-likes including lists, tuples, sets,
         Series, and np.ndarray. The result dtype of the subset rows will
         be object. Scalars will be returned unchanged, and empty list-likes will
-        result in a np.nan for that row. In addition, the ordering of elements in
+        result in an np.nan for that row. In addition, the ordering of elements in
         the output will be non-deterministic when exploding sets.
 
         Reference :ref:`the user guide <reshaping.explode>` for more examples.

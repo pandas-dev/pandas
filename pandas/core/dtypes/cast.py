@@ -393,7 +393,7 @@ def maybe_downcast_numeric(
 
 def maybe_upcast_numeric_to_64bit(arr: NumpyIndexT) -> NumpyIndexT:
     """
-    If array is a int/uint/float bit size lower than 64 bit, upcast it to 64 bit.
+    If array is an int/uint/float bit size lower than 64 bit, upcast it to 64 bit.
 
     Parameters
     ----------
@@ -1393,7 +1393,7 @@ def construct_1d_arraylike_from_scalar(
     value: Scalar, length: int, dtype: DtypeObj | None
 ) -> ArrayLike:
     """
-    create a np.ndarray / pandas type of specified shape and dtype
+    create an np.ndarray / pandas type of specified shape and dtype
     filled with values
 
     Parameters
