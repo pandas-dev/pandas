@@ -69,7 +69,9 @@ def datetime_index(freqstr):
     the DatetimeIndex behavior.
     """
     # TODO: non-monotone indexes; NaTs, different start dates, timezones
-    dti = pd.date_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
+    dti = pd.date_range(
+        start=Timestamp("2000-01-01"), periods=100, freq=freqstr, unit="ns"
+    )
     return dti
 
 
@@ -623,7 +625,9 @@ class TestDatetimeArray(SharedTests):
         timezones
         """
         tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01 01:01:00", periods=5, freq=freqstr, tz=tz)
+        dti = pd.date_range(
+            "2016-01-01 01:01:00", periods=5, freq=freqstr, tz=tz, unit="ns"
+        )
         dta = dti._data
         return dta
 
@@ -1092,7 +1096,7 @@ class TestPeriodArray(SharedTests):
 
     def test_to_timestamp_roundtrip_bday(self):
         # Case where infer_freq inside would choose "D" instead of "B"
-        dta = pd.date_range("2021-10-18", periods=3, freq="B")._data
+        dta = pd.date_range("2021-10-18", periods=3, freq="B", unit="ns")._data
         parr = dta.to_period()
         result = parr.to_timestamp()
         assert result.freq == "B"

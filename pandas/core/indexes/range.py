@@ -921,7 +921,7 @@ class RangeIndex(Index):
         sort : bool or None, default None
             Whether to sort (monotonically increasing) the resulting index.
             ``sort=None|True`` returns a ``RangeIndex`` if possible or a sorted
-            ``Index`` with a int64 dtype if not.
+            ``Index`` with an int64 dtype if not.
             ``sort=False`` can return a ``RangeIndex`` if self is monotonically
             increasing and other is fully contained in self. Otherwise, returns
             an unsorted ``Index`` with an int64 dtype.
@@ -1184,7 +1184,7 @@ class RangeIndex(Index):
         Overriding parent method for the case of all RangeIndex instances.
 
         When all members of "indexes" are of type RangeIndex: result will be
-        RangeIndex if possible, Index with a int64 dtype otherwise. E.g.:
+        RangeIndex if possible, Index with an int64 dtype otherwise. E.g.:
         indexes = [RangeIndex(3), RangeIndex(3, 6)] -> RangeIndex(6)
         indexes = [RangeIndex(3), RangeIndex(4, 6)] -> Index([0,1,2,4,5], dtype='int64')
         """

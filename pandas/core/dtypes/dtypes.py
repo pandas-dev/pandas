@@ -113,7 +113,7 @@ str_type = str
 
 class PandasExtensionDtype(ExtensionDtype):
     """
-    A np.dtype duck-typed class, suitable for holding a custom dtype.
+    An np.dtype duck-typed class, suitable for holding a custom dtype.
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
@@ -503,7 +503,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # assumes if any individual category is a tuple, then all our. ATM
             # I don't really want to support just some of the categories being
             # tuples.
-            cat_list = list(categories)  # breaks if a np.array of categories
+            cat_list = list(categories)  # breaks if an np.array of categories
             cat_array = hash_tuples(cat_list)
         else:
             if categories.dtype == "O" and len({type(x) for x in categories}) != 1:
