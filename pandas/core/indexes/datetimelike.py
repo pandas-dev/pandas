@@ -120,7 +120,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         >>> idx = pd.date_range("2001-01-01 00:00", periods=3)
         >>> idx
         DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[us]', freq='D')
         >>> idx.mean()
         Timestamp('2001-01-02 00:00:00')
 
@@ -129,7 +129,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[ns]', freq=None)
+                        dtype='timedelta64[us]', freq=None)
         >>> tdelta_idx.mean()
         Timedelta('2 days 00:00:00')
         """
