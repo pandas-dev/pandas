@@ -683,7 +683,14 @@ cdef timedelta_from_spec(object number, object frac, object unit):
 cdef bint needs_nano_unit(int64_t ival, str item):
     """
     Check if a passed string `item` needs to be stored with nano unit or can
-    use microsecond instead.
+    use microsecond instead. Needs nanoseconds if:
+
+    - if the parsed value in nanoseconds has sub-microseconds content -> certainly
+      needs nano
+    - if the seconds part in the string contains more than 6 decimals, i.e. has
+      trailing zeros beyond the microsecond part (e.g. "0.123456000 s") -> treat
+      as nano for consistency
+    - if the string explicitly contains an entry for nanoseconds (e.g. "1000 ns")
     """
     # TODO: more performant way of doing this check?
     if ival % 1000 != 0:
