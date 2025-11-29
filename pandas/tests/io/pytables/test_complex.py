@@ -2,16 +2,13 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas import (
     DataFrame,
-    Series,
-)
-import pandas._testing as tm
-from pandas.io.pytables import (
     HDFStore,
+    Series,
     read_hdf,
 )
-
 
 
 def test_complex_fixed(tmp_path, setup_path):
