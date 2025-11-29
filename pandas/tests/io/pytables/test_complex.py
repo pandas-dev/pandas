@@ -1,14 +1,16 @@
 import numpy as np
 import pytest
+import tables
+
 
 import pandas as pd
-import pandas._testing as tm
 from pandas import (
     DataFrame,
     HDFStore,
     Series,
     read_hdf,
 )
+import pandas._testing as tm
 
 
 def test_complex_fixed(tmp_path, setup_path):
@@ -108,7 +110,6 @@ def test_complex_mixed_table(tmp_path, setup_path):
         result = store.select("df", where="A>2")
         tm.assert_frame_equal(df.loc[df.A > 2], result)
 
-
     path = tmp_path / setup_path
     df.to_hdf(path, key="df", format="table")
     reread = read_hdf(path, "df")
@@ -163,7 +164,6 @@ def test_complex_indexing_error(tmp_path, setup_path):
             store.append("df", df, data_columns=["C"])
 
 
-
 def test_complex_series_error(tmp_path, setup_path):
     complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
     s = Series(complex128, index=list("abcd"))
@@ -200,4 +200,3 @@ def test_complex_append(tmp_path, setup_path):
         store.append("df", df)
         result = store.select("df")
         tm.assert_frame_equal(pd.concat([df, df], axis=0), result)
-
