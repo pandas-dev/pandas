@@ -227,7 +227,7 @@ def read_excel(
         * ``1``: 2nd sheet as a `DataFrame`
         * ``"Sheet1"``: Load sheet with name "Sheet1"
         * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
-        as a dict of `DataFrame`
+            as a dict of `DataFrame`
         * ``None``: All worksheets.
 
     header : int, list of int, default 0
@@ -254,12 +254,13 @@ def read_excel(
             and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
             both sides.
         * If list of int, then indicates list of column numbers to be parsed
-        (0-indexed).
+            (0-indexed).
         * If list of string, then indicates list of column names to be parsed.
         * If callable, then evaluate each column name against it and parse the
             column if the callable returns ``True``.
 
         Returns a subset of the columns according to behavior above.
+
     dtype : Type name or dict of column -> type, default None
         Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
         Use ``object`` to preserve data as stored in Excel and not interpret dtype,
@@ -285,6 +286,7 @@ def read_excel(
         - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
         - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
         - Otherwise ``openpyxl`` will be used.
+
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels, values are functions that take one
@@ -999,14 +1001,14 @@ class ExcelWriter(Generic[_WorkbookT]):
     mode : {{'w', 'a'}}, default 'w'
         File mode to use (write or append). Append does not work with fsspec URLs.
     storage_options : dict, optional
-    Extra options that make sense for a particular storage connection, e.g.
-    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
-    are forwarded to ``urllib.request.Request`` as header options. For other
-    URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
-    forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-    details, and for more examples on storage options refer `here
-    <https://pandas.pydata.org/docs/user_guide/io.html?
-    highlight=storage_options#reading-writing-remote-files>`_.
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+        are forwarded to ``urllib.request.Request`` as header options. For other
+        URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+        forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+        details, and for more examples on storage options refer `here
+        <https://pandas.pydata.org/docs/user_guide/io.html?
+        highlight=storage_options#reading-writing-remote-files>`_.
 
     if_sheet_exists : {{'error', 'new', 'replace', 'overlay'}}, default 'error'
         How to behave when trying to write to a sheet that already
@@ -1443,14 +1445,14 @@ def inspect_excel_format(
     content_or_path : str or file-like object
         Path to file or content of file to inspect. May be a URL.
     storage_options : dict, optional
-    Extra options that make sense for a particular storage connection, e.g.
-    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
-    are forwarded to ``urllib.request.Request`` as header options. For other
-    URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
-    forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-    details, and for more examples on storage options refer `here
-    <https://pandas.pydata.org/docs/user_guide/io.html?
-    highlight=storage_options#reading-writing-remote-files>`_.
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+        are forwarded to ``urllib.request.Request`` as header options. For other
+        URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+        forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+        details, and for more examples on storage options refer `here
+        <https://pandas.pydata.org/docs/user_guide/io.html?
+        highlight=storage_options#reading-writing-remote-files>`_.
 
     Returns
     -------
@@ -1542,16 +1544,16 @@ class ExcelFile:
            Please do not report issues when using ``xlrd`` to read ``.xlsx`` files.
            This is not supported, switch to using ``openpyxl`` instead.
     storage_options : dict, optional
-    Extra options that make sense for a particular storage connection, e.g.
-    host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
-    are forwarded to ``urllib.request.Request`` as header options. For other
-    URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
-    forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
-    details, and for more examples on storage options refer `here
-    <https://pandas.pydata.org/docs/user_guide/io.html?
-    highlight=storage_options#reading-writing-remote-files>`_.
-    engine_kwargs : dict, optional
-        Arbitrary keyword arguments passed to excel engine.
+        Extra options that make sense for a particular storage connection, e.g.
+        host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+        are forwarded to ``urllib.request.Request`` as header options. For other
+        URLs (e.g. starting with "s3://", and "gcs://") the key-value pairs are
+        forwarded to ``fsspec.open``. Please see ``fsspec`` and ``urllib`` for more
+        details, and for more examples on storage options refer `here
+        <https://pandas.pydata.org/docs/user_guide/io.html?
+        highlight=storage_options#reading-writing-remote-files>`_.
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
 
     See Also
     --------
