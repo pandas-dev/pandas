@@ -233,62 +233,66 @@ class TestDataFrameMisc:
             {"a": ["foo", "bar", "baz", "qux"], "b": [0, 0, 1, 1], "c": [1, 2, 3, 4]}
         )
 
-        def _check_f(base, f):
+        def _check_none(base, f):
             result = f(base)
             assert result is None
+
+        def _check_return(base, f):
+            result = f(base)
+            assert result is base
 
         # -----DataFrame-----
 
         # set_index
         f = lambda x: x.set_index("a", inplace=True)
-        _check_f(data.copy(), f)
+        _check_none(data.copy(), f)
 
         # reset_index
         f = lambda x: x.reset_index(inplace=True)
-        _check_f(data.set_index("a"), f)
+        _check_none(data.set_index("a"), f)
 
         # drop_duplicates
         f = lambda x: x.drop_duplicates(inplace=True)
-        _check_f(data.copy(), f)
+        _check_none(data.copy(), f)
 
         # sort
         f = lambda x: x.sort_values("b", inplace=True)
-        _check_f(data.copy(), f)
+        _check_none(data.copy(), f)
 
         # sort_index
         f = lambda x: x.sort_index(inplace=True)
-        _check_f(data.copy(), f)
+        _check_none(data.copy(), f)
 
         # fillna
         f = lambda x: x.fillna(0, inplace=True)
-        _check_f(data.copy(), f)
+        _check_return(data.copy(), f)
 
         # replace
         f = lambda x: x.replace(1, 0, inplace=True)
-        _check_f(data.copy(), f)
+        _check_return(data.copy(), f)
 
         # rename
         f = lambda x: x.rename({1: "foo"}, inplace=True)
-        _check_f(data.copy(), f)
+        _check_none(data.copy(), f)
 
         # -----Series-----
         d = data.copy()["c"]
 
         # reset_index
         f = lambda x: x.reset_index(inplace=True, drop=True)
-        _check_f(data.set_index("a")["c"], f)
+        _check_none(data.set_index("a")["c"], f)
 
         # fillna
         f = lambda x: x.fillna(0, inplace=True)
-        _check_f(d.copy(), f)
+        _check_return(d.copy(), f)
 
         # replace
         f = lambda x: x.replace(1, 0, inplace=True)
-        _check_f(d.copy(), f)
+        _check_return(d.copy(), f)
 
         # rename
         f = lambda x: x.rename({1: "foo"}, inplace=True)
-        _check_f(d.copy(), f)
+        _check_none(d.copy(), f)
 
     def test_tab_complete_warning(self, ip, frame_or_series):
         # GH 16409

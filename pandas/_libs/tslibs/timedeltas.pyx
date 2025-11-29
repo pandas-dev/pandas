@@ -1531,7 +1531,7 @@ cdef class _Timedelta(timedelta):
         """
         cdef:
             str abbrev = npy_unit_to_abbrev(self._creso)
-        # TODO: way to create a np.timedelta64 obj with the reso directly
+        # TODO: way to create an np.timedelta64 obj with the reso directly
         #  instead of having to get the abbrev?
         return np.timedelta64(self._value, abbrev)
 
