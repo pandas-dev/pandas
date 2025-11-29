@@ -884,7 +884,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         **kwargs,
     ) -> Self:
         """
-        Return a new Index of the same type as self containing the values selected by the indices.
+        Return a new Index of the same type as self containing the values
+        selected by the indices.
 
         For internal compatibility with numpy arrays.
 
