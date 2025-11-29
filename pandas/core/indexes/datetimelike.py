@@ -129,7 +129,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[us]', freq=None)
+                        dtype='timedelta64[ns]', freq=None)
         >>> tdelta_idx.mean()
         Timedelta('2 days 00:00:00')
         """
