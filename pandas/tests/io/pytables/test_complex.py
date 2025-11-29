@@ -7,9 +7,11 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import ensure_clean_store
+from pandas.io.pytables import (
+    HDFStore,
+    read_hdf,
+)
 
-from pandas.io.pytables import read_hdf
 
 
 def test_complex_fixed(tmp_path, setup_path):
@@ -103,10 +105,12 @@ def test_complex_mixed_table(tmp_path, setup_path):
         index=list("abcd"),
     )
 
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / setup_path
+    with HDFStore(path) as store:
         store.append("df", df, data_columns=["A", "B"])
         result = store.select("df", where="A>2")
         tm.assert_frame_equal(df.loc[df.A > 2], result)
+
 
     path = tmp_path / setup_path
     df.to_hdf(path, key="df", format="table")
@@ -139,7 +143,7 @@ def test_complex_across_dimensions(tmp_path, setup_path):
     tm.assert_frame_equal(df, reread)
 
 
-def test_complex_indexing_error(setup_path):
+def test_complex_indexing_error(tmp_path, setup_path):
     complex128 = np.array(
         [1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j], dtype=np.complex128
     )
@@ -156,9 +160,11 @@ def test_complex_indexing_error(setup_path):
         "values to data_columns when initializing the table."
     )
 
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / setup_path
+    with HDFStore(path) as store:
         with pytest.raises(TypeError, match=msg):
             store.append("df", df, data_columns=["C"])
+
 
 
 def test_complex_series_error(tmp_path, setup_path):
@@ -183,7 +189,7 @@ def test_complex_series_error(tmp_path, setup_path):
     tm.assert_series_equal(s, reread)
 
 
-def test_complex_append(setup_path):
+def test_complex_append(tmp_path, setup_path):
     df = DataFrame(
         {
             "a": np.random.default_rng(2).standard_normal(100).astype(np.complex128),
@@ -191,8 +197,10 @@ def test_complex_append(setup_path):
         }
     )
 
-    with ensure_clean_store(setup_path) as store:
+    path = tmp_path / setup_path
+    with HDFStore(path, mode="a") as store:
         store.append("df", df, data_columns=["b"])
         store.append("df", df)
         result = store.select("df")
         tm.assert_frame_equal(pd.concat([df, df], axis=0), result)
+
