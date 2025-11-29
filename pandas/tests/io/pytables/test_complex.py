@@ -7,7 +7,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-
 from pandas.tests.io.pytables.common import ensure_clean_store
 
 from pandas.io.pytables import read_hdf
