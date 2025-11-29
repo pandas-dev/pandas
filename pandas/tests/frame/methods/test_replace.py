@@ -802,7 +802,9 @@ class TestDataFrameReplace:
             (
                 DataFrame(
                     {
-                        "A": date_range("20130101", periods=3, tz="US/Eastern"),
+                        "A": date_range(
+                            "20130101", periods=3, tz="US/Eastern", unit="ns"
+                        ),
                         "B": [0, np.nan, 2],
                     }
                 ),
@@ -1063,14 +1065,14 @@ class TestDataFrameReplace:
         # behaving poorly when presented with a datetime64[ns, tz]
         df = DataFrame(
             {
-                "A": date_range("20130101", periods=3, tz="US/Eastern"),
+                "A": date_range("20130101", periods=3, tz="US/Eastern", unit="ns"),
                 "B": [0, np.nan, 2],
             }
         )
         result = df.replace(np.nan, 1)
         expected = DataFrame(
             {
-                "A": date_range("20130101", periods=3, tz="US/Eastern"),
+                "A": date_range("20130101", periods=3, tz="US/Eastern", unit="ns"),
                 "B": Series([0, 1, 2], dtype="float64"),
             }
         )
@@ -1082,7 +1084,7 @@ class TestDataFrameReplace:
         result = df.replace(0, np.nan)
         expected = DataFrame(
             {
-                "A": date_range("20130101", periods=3, tz="US/Eastern"),
+                "A": date_range("20130101", periods=3, tz="US/Eastern", unit="ns"),
                 "B": [np.nan, np.nan, 2],
             }
         )
