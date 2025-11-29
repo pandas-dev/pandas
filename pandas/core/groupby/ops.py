@@ -665,7 +665,8 @@ class BaseGrouper:
             elif has_mi:
                 # MultiIndex has no efficient way to tell if there are NAs
                 result = {
-                    tuple(np.nan if isna(comp) else comp for comp in key): value
+                    # error: "Hashable" has no attribute "__iter__" (not iterable)
+                    tuple(np.nan if isna(comp) else comp for comp in key): value  # type: ignore[attr-defined]
                     for key, value in result.items()
                 }
 
