@@ -667,8 +667,8 @@ class TestSeriesFillNA:
         x = Series([np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"])
         y = x.copy()
 
-        return_value = y.fillna(value=0, inplace=True)
-        assert return_value is None
+        result = y.fillna(value=0, inplace=True)
+        assert result is y
 
         expected = x.fillna(value=0)
         tm.assert_series_equal(y, expected)
@@ -872,8 +872,8 @@ class TestFillnaPad:
             [np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"], dtype=float
         )
 
-        return_value = x.ffill(inplace=True)
-        assert return_value is None
+        result = x.ffill(inplace=True)
+        assert result is x
 
         expected = Series(
             [np.nan, 1.0, 1.0, 3.0, 3.0], ["z", "a", "b", "c", "d"], dtype=float
@@ -917,8 +917,8 @@ class TestFillnaPad:
 
     def test_fillna_int(self):
         ser = Series(np.random.default_rng(2).integers(-100, 100, 50))
-        return_value = ser.ffill(inplace=True)
-        assert return_value is None
+        result = ser.ffill(inplace=True)
+        assert result is ser
         tm.assert_series_equal(ser.ffill(inplace=False), ser)
 
     def test_datetime64tz_fillna_round_issue(self):

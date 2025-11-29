@@ -1998,7 +1998,8 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
 def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     # Test Sum, GH#55106
     df_time = DataFrame(
-        {"A": range(5)}, index=date_range("2013-01-01", freq="1s", periods=5, tz=tz)
+        {"A": range(5)},
+        index=date_range("2013-01-01", freq="1s", periods=5, tz=tz, unit="ns"),
     )
     sum_in_nanosecs = df_time.rolling("1s").sum()
     # microseconds / milliseconds should not break the correct rolling

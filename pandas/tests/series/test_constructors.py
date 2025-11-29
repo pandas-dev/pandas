@@ -1112,7 +1112,7 @@ class TestSeriesConstructors:
         # 8260
         # support datetime64 with tz
 
-        dr = date_range("20130101", periods=3, tz="US/Eastern")
+        dr = date_range("20130101", periods=3, tz="US/Eastern", unit="ns")
         s = Series(dr)
         assert s.dtype.name == "datetime64[ns, US/Eastern]"
         assert s.dtype == "datetime64[ns, US/Eastern]"
@@ -1157,7 +1157,7 @@ class TestSeriesConstructors:
 
     def test_constructor_with_datetime_tz5(self):
         # long str
-        ser = Series(date_range("20130101", periods=1000, tz="US/Eastern"))
+        ser = Series(date_range("20130101", periods=1000, tz="US/Eastern", unit="ns"))
         assert "datetime64[ns, US/Eastern]" in str(ser)
 
     def test_constructor_with_datetime_tz4(self):
@@ -1615,7 +1615,7 @@ class TestSeriesConstructors:
                     Series(data, name=n)
 
     def test_auto_conversion(self):
-        series = Series(list(date_range("1/1/2000", periods=10)))
+        series = Series(list(date_range("1/1/2000", periods=10, unit="ns")))
         assert series.dtype == "M8[ns]"
 
     def test_convert_non_ns(self):
@@ -2216,7 +2216,16 @@ class TestSeriesConstructorIndexCoercion:
         arr = np.array(data, dtype=StringDType())
         res = Series(arr)
         assert res.dtype == np.object_
-        assert (res == data).all()
+
+        if data[-1] is np.nan:
+            # as of GH#62522 the comparison op for `res==data` casts data
+            #  using sanitize_array, which casts to 'str' dtype, which does not
+            #  consider string 'nan' to be equal to np.nan,
+            #  (which apparently numpy does?  weird.)
+            assert (res.iloc[:-1] == data[:-1]).all()
+            assert res.iloc[-1] == "nan"
+        else:
+            assert (res == data).all()
 
 
 class TestSeriesConstructorInternals:

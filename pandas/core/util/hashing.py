@@ -270,7 +270,7 @@ def hash_array(
       dtype=uint64)
     """
     if not hasattr(vals, "dtype"):
-        raise TypeError("must pass a ndarray-like")
+        raise TypeError("must pass an ndarray-like")
 
     if isinstance(vals, ABCExtensionArray):
         return vals._hash_pandas_object(

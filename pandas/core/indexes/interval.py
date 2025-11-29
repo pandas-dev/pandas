@@ -1339,7 +1339,7 @@ def interval_range(
     IntervalIndex([(2017-01-01 00:00:00, 2017-01-02 00:00:00],
                    (2017-01-02 00:00:00, 2017-01-03 00:00:00],
                    (2017-01-03 00:00:00, 2017-01-04 00:00:00]],
-                  dtype='interval[datetime64[ns], right]')
+                  dtype='interval[datetime64[us], right]')
 
     The ``freq`` parameter specifies the frequency between the left and right.
     endpoints of the individual intervals within the ``IntervalIndex``.  For
@@ -1356,7 +1356,7 @@ def interval_range(
     IntervalIndex([(2017-01-01 00:00:00, 2017-02-01 00:00:00],
                    (2017-02-01 00:00:00, 2017-03-01 00:00:00],
                    (2017-03-01 00:00:00, 2017-04-01 00:00:00]],
-                  dtype='interval[datetime64[ns], right]')
+                  dtype='interval[datetime64[us], right]')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
