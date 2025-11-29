@@ -1647,7 +1647,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         >>> idx = pd.date_range("2001-01-01 00:00", periods=3)
         >>> idx
         DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[us]', freq='D')
         >>> idx.mean()
         Timestamp('2001-01-02 00:00:00')
 
@@ -1656,7 +1656,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit="D")
         >>> tdelta_idx
         TimedeltaIndex(['1 days', '2 days', '3 days'],
-                        dtype='timedelta64[ns]', freq=None)
+                        dtype='timedelta64[us]', freq=None)
         >>> tdelta_idx.mean()
         Timedelta('2 days 00:00:00')
         """
@@ -2182,12 +2182,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         >>> rng
         DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:01:00'],
-                      dtype='datetime64[ns]', freq='min')
+                      dtype='datetime64[us]', freq='min')
 
         >>> rng.round('h')
         DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:00:00'],
-                      dtype='datetime64[ns]', freq=None)
+                      dtype='datetime64[us]', freq=None)
 
         **Series**
 
@@ -2195,7 +2195,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         0   2018-01-01 12:00:00
         1   2018-01-01 12:00:00
         2   2018-01-01 12:00:00
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
 
         When rounding near a daylight savings time transition, use ``ambiguous`` or
         ``nonexistent`` to control how the timestamp should be re-localized.
@@ -2286,12 +2286,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         >>> rng
         DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:01:00'],
-                      dtype='datetime64[ns]', freq='min')
+                      dtype='datetime64[us]', freq='min')
 
         >>> rng.floor('h')
         DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:00:00'],
-                      dtype='datetime64[ns]', freq=None)
+                      dtype='datetime64[us]', freq=None)
 
         **Series**
 
@@ -2299,7 +2299,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         0   2018-01-01 11:00:00
         1   2018-01-01 12:00:00
         2   2018-01-01 12:00:00
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
 
         When rounding near a daylight savings time transition, use ``ambiguous`` or
         ``nonexistent`` to control how the timestamp should be re-localized.
@@ -2390,12 +2390,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         >>> rng
         DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:01:00'],
-                      dtype='datetime64[ns]', freq='min')
+                      dtype='datetime64[us]', freq='min')
 
         >>> rng.ceil('h')
         DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 13:00:00'],
-                      dtype='datetime64[ns]', freq=None)
+                      dtype='datetime64[us]', freq=None)
 
         **Series**
 
@@ -2403,7 +2403,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         0   2018-01-01 12:00:00
         1   2018-01-01 12:00:00
         2   2018-01-01 13:00:00
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
 
         When rounding near a daylight savings time transition, use ``ambiguous`` or
         ``nonexistent`` to control how the timestamp should be re-localized.
