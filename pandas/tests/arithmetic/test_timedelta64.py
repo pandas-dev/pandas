@@ -736,7 +736,7 @@ class TestAddSubNaTMasking:
             )
 
         # These should not overflow!
-        exp = TimedeltaIndex([NaT])
+        exp = TimedeltaIndex([NaT], dtype="m8[ns]")
         result = pd.to_timedelta([NaT]) - Timedelta("1 days")
         tm.assert_index_equal(result, exp)
 
@@ -2235,7 +2235,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
     def test_td64arr_all_nat_div_object_dtype_numeric(self, box_with_array):
         # GH#39750 make sure we infer the result as td64
-        tdi = TimedeltaIndex([NaT, NaT])
+        tdi = TimedeltaIndex([NaT, NaT], dtype="m8[ns]")
 
         left = tm.box_expected(tdi, box_with_array)
         right = np.array([2, 2.0], dtype=object)

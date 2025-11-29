@@ -1143,7 +1143,9 @@ class TestPandasContainer:
             result = read_json(StringIO(ser.to_json()), typ="series").apply(converter)
         tm.assert_series_equal(result, ser)
 
-        ser = Series([timedelta(23), timedelta(seconds=5)], index=Index([0, 1]))
+        ser = Series(
+            [timedelta(23), timedelta(seconds=5)], index=Index([0, 1]), dtype="m8[ns]"
+        )
         assert ser.dtype == "timedelta64[ns]"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = read_json(StringIO(ser.to_json()), typ="series").apply(converter)
@@ -1164,6 +1166,7 @@ class TestPandasContainer:
                 "c": date_range(start="20130101", periods=2, unit="ns"),
             }
         )
+        frame["a"] = frame["a"].astype("m8[ns]")
         msg = (
             "The default 'epoch' date format is deprecated and will be removed "
             "in a future version, please use 'iso' date format instead."
@@ -1197,6 +1200,9 @@ class TestPandasContainer:
             data.append("a")
 
         ser = Series(data, index=data)
+        if not as_object:
+            ser = ser.astype("m8[ns]")
+            ser.index = ser.index.astype("m8[ns]")
         expected_warning = None
         if date_format == "iso":
             expected = (
@@ -1221,7 +1227,8 @@ class TestPandasContainer:
     @pytest.mark.parametrize("timedelta_typ", [pd.Timedelta, timedelta])
     def test_timedelta_to_json_fractional_precision(self, as_object, timedelta_typ):
         data = [timedelta_typ(milliseconds=42)]
-        ser = Series(data, index=data)
+        ser = Series(data, index=data).astype("m8[ns]")
+        ser.index = ser.index.astype("m8[ns]")
         warn = Pandas4Warning
         if as_object:
             ser = ser.astype(object)
