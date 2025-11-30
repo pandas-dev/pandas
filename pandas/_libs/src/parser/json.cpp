@@ -132,13 +132,13 @@ PyObject *json_loads(PyObject *Py_UNUSED(self), PyObject *args,
     simdjson::ondemand::document doc =
         pandas::json::parser.iterate(padded_json);
     switch (doc.type()) {
-    case simdjson::fallback::ondemand::json_type::null:
+    case simdjson::ondemand::json_type::null:
       ret = Py_None;
       break;
-    case simdjson::fallback::ondemand::json_type::boolean:
+    case simdjson::ondemand::json_type::boolean:
       ret = doc.get_bool() ? Py_True : Py_False;
       break;
-    case simdjson::fallback::ondemand::json_type::number: {
+    case simdjson::ondemand::json_type::number: {
       simdjson::ondemand::number num = doc.get_number();
       switch (num.get_number_type()) {
       case simdjson::ondemand::number_type::signed_integer:
@@ -156,7 +156,7 @@ PyObject *json_loads(PyObject *Py_UNUSED(self), PyObject *args,
       }
       break;
     }
-    case simdjson::fallback::ondemand::json_type::string: {
+    case simdjson::ondemand::json_type::string: {
       std::string_view s = doc.get_string();
       ret = PyUnicode_FromStringAndSize(s.data(), s.size());
       break;
