@@ -1,7 +1,4 @@
-simdjson_proj = subproject(
-    'simdjson',
-    default_options: ['default_library=static'],
-)
+simdjson_proj = subproject('simdjson')
 simdjson_dep = simdjson_proj.get_variable('simdjson_dep')
 
 _algos_take_helper = custom_target(

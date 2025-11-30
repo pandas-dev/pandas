@@ -141,7 +141,10 @@ tag_prefix = "v"
 parentdir_prefix = "pandas-"
 
 [tool.meson-python.args]
-setup = ['--vsenv'] # For Windows
+setup = [
+  '--vsenv', # For Windows
+  '--default-library=static'
+]
 install = ['--skip-subprojects']
 
 [tool.cibuildwheel]
