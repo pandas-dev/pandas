@@ -1504,14 +1504,14 @@ class TestSeriesConstructors:
     def test_constructor_dtype_timedelta64(self):
         # basic
         td = Series([timedelta(days=i) for i in range(3)])
-        assert td.dtype == "timedelta64[ns]"
+        assert td.dtype == "timedelta64[us]"
 
         td = Series([timedelta(days=1)])
-        assert td.dtype == "timedelta64[ns]"
+        assert td.dtype == "timedelta64[us]"
 
         td = Series([timedelta(days=1), timedelta(days=2), np.timedelta64(1, "s")])
 
-        assert td.dtype == "timedelta64[ns]"
+        assert td.dtype == "timedelta64[us]"
 
         # mixed with NaT
         td = Series([timedelta(days=1), NaT], dtype="m8[ns]")
@@ -1539,13 +1539,13 @@ class TestSeriesConstructors:
         assert td.dtype == "timedelta64[ns]"
 
         td = Series([np.timedelta64(1, "s")])
-        assert td.dtype == "timedelta64[ns]"
+        assert td.dtype == "timedelta64[s]"
 
         # valid astype
         td.astype("int64")
 
         # invalid casting
-        msg = r"Converting from timedelta64\[ns\] to int32 is not supported"
+        msg = r"Converting from timedelta64\[s\] to int32 is not supported"
         with pytest.raises(TypeError, match=msg):
             td.astype("int32")
 
