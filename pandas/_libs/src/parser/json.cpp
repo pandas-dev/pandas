@@ -121,8 +121,10 @@ PyObject *json_loads(PyObject *Py_UNUSED(self), PyObject *args,
   const char *buf;
   Py_ssize_t len;
   int *precise_float; // Unused. It's declared for compatibility with old parser
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s#|b", kwlist, &buf, &len,
-                                   &precise_float)) {
+  if (!PyArg_ParseTupleAndKeywords(
+          args, kwargs, "s#|b",
+          const_cast<char **>(kwlist), // cast for python<3.13
+          &buf, &len, &precise_float)) {
     return NULL;
   }
 
