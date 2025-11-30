@@ -219,7 +219,7 @@ def _simple_json_normalize(
     sep: str = ".",
 ) -> dict | list[dict] | Any:
     """
-    A optimized basic json_normalize
+    An optimized basic json_normalize
 
     Converts a nested dict into a flat dict ("record"), unlike
     json_normalize and nested_to_record it doesn't do anything clever.
@@ -265,6 +265,37 @@ def _simple_json_normalize(
         normalized_json_list = [_simple_json_normalize(row, sep=sep) for row in ds]
         return normalized_json_list
     return normalized_json_object
+
+
+def _validate_meta(meta: str | list[str | list[str]] | None) -> None:
+    """
+    Validate that meta parameter contains only strings or lists of strings.
+    Parameters
+    ----------
+    meta : str or list of str or list of list of str or None
+        The meta parameter to validate.
+    Raises
+    ------
+    TypeError
+        If meta contains elements that are not strings or lists of strings.
+    """
+    if meta is None:
+        return
+    if isinstance(meta, str):
+        return
+    for item in meta:
+        if isinstance(item, list):
+            for subitem in item:
+                if not isinstance(subitem, str):
+                    raise TypeError(
+                        "All elements in nested meta paths must be strings. "
+                        f"Found {type(subitem).__name__}: {subitem!r}"
+                    )
+        elif not isinstance(item, str):
+            raise TypeError(
+                "All elements in 'meta' must be strings or lists of strings. "
+                f"Found {type(item).__name__}: {item!r}"
+            )
 
 
 @set_module("pandas")
@@ -437,6 +468,7 @@ def json_normalize(
 
     Returns normalized data with columns prefixed with the given string.
     """
+    _validate_meta(meta)
 
     def _pull_field(
         js: dict[str, Any], spec: list | str, extract_record: bool = False
@@ -501,6 +533,13 @@ def json_normalize(
         # GH35923 Fix pd.json_normalize to not skip the first element of a
         # generator input
         data = list(data)
+        for item in data:
+            if not isinstance(item, dict):
+                msg = (
+                    "All items in data must be of type dict, "
+                    f"found {type(item).__name__}"
+                )
+                raise TypeError(msg)
     else:
         raise NotImplementedError
 

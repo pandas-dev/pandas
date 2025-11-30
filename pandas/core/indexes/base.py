@@ -69,6 +69,7 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     DuplicateLabelError,
     InvalidIndexError,
+    Pandas4Warning,
 )
 from pandas.util._decorators import (
     Appender,
@@ -1179,8 +1180,8 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         indices : array-like
             Indices to be taken.
-        axis : int, optional
-            The axis over which to select values, always 0.
+        axis : {0 or 'index'}, optional
+            The axis over which to select values, always 0 or 'index'.
         allow_fill : bool, default True
             How to handle negative values in `indices`.
 
@@ -1233,8 +1234,8 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         indices : array-like
             Indices to be taken.
-        axis : int, optional
-            The axis over which to select values, always 0.
+        axis : {0 or 'index'}, optional
+            The axis over which to select values, always 0 or 'index'.
         allow_fill : bool, default True
             How to handle negative values in `indices`.
 
@@ -1318,7 +1319,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def repeat(self, repeats, axis: None = None) -> Self:
         """
-        Repeat elements of a Index.
+        Repeat elements of an Index.
 
         Returns a new Index where each element of the current Index
         is repeated consecutively a given number of times.
@@ -1413,8 +1414,8 @@ class Index(IndexOpsMixin, PandasObject):
         return new_index
 
     @final
-    def __copy__(self, **kwargs) -> Self:
-        return self.copy(**kwargs)
+    def __copy__(self) -> Self:
+        return self.copy(deep=False)
 
     @final
     def __deepcopy__(self, memo=None) -> Self:
@@ -1953,17 +1954,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-
         names : Hashable or a sequence of the previous or dict-like for MultiIndex
             Name(s) to set.
-
-            .. versionchanged:: 1.3.0
 
         level : int, Hashable or a sequence of the previous, optional
             If the index is a MultiIndex and names is not dict-like, level(s) to set
             (None for all levels). Otherwise level must be None.
-
-            .. versionchanged:: 1.3.0
 
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Index or
@@ -2872,7 +2868,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        Generate an pandas.Index with duplicate values.
+        Generate a pandas.Index with duplicate values.
 
         >>> idx = pd.Index(["llama", "cow", "llama", "beetle", "llama", "hippo"])
 
@@ -4168,7 +4164,7 @@ class Index(IndexOpsMixin, PandasObject):
         limit : int, optional
             Maximum number of consecutive labels in ``target`` to match for
             inexact matches.
-        tolerance : int or float, optional
+        tolerance : int, float, or list-like, optional
             Maximum distance between original and new labels for inexact
             matches. The values of the index at the matching locations must
             satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
@@ -4426,6 +4422,15 @@ class Index(IndexOpsMixin, PandasObject):
         (Index([1, 2, 3, 4, 5, 6], dtype='int64'),
         array([ 0,  1,  2, -1, -1, -1]), array([-1, -1, -1,  0,  1,  2]))
         """
+        if not isinstance(other, Index):
+            warnings.warn(
+                f"Passing {type(other).__name__} to {type(self).__name__}.join "
+                "is deprecated and will raise in a future version. "
+                "Pass an Index instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         other = ensure_index(other)
         sort = sort or how == "outer"
 
@@ -4932,7 +4937,7 @@ class Index(IndexOpsMixin, PandasObject):
         Whether we can use the fastpaths implemented in _libs.join.
 
         This is driven by whether (in monotonic increasing cases that are
-        guaranteed not to have NAs) we can convert to a np.ndarray without
+        guaranteed not to have NAs) we can convert to an np.ndarray without
         making a copy. If we cannot, this negates the performance benefit
         of using libjoin.
         """
@@ -5018,6 +5023,8 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas.core.arrays.numpy_ import NumpyExtensionArray
 
             array = NumpyExtensionArray(array)
+        array = array.view()
+        array._readonly = True
         return array
 
     @property
@@ -5188,7 +5195,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         dtype = self.dtype
         if isinstance(dtype, np.dtype) and dtype.kind not in "mM":
-            # return np_can_hold_element(dtype, value)
+            if isinstance(value, tuple) and dtype != object:
+                # GH#54385
+                raise TypeError
             try:
                 return np_can_hold_element(dtype, value)
             except LossySetitemError as err:
@@ -5675,7 +5684,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._na_value
         else:
             if isinstance(loc, slice):
-                loc = loc.indices(len(self))[-1]
+                return self[loc][-1]
 
         return self[loc]
 
@@ -6351,6 +6360,10 @@ class Index(IndexOpsMixin, PandasObject):
         special cases.
         """
         target_dtype, _ = infer_dtype_from(target)
+
+        if isinstance(target, tuple):
+            # GH#54385
+            return np.dtype(object)
 
         if using_string_dtype():
             # special case: if left or right is a zero-length RangeIndex or
@@ -7272,19 +7285,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             other = np.asarray(other)
 
-        if is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
-            # e.g. PeriodArray, Categorical
-            result = op(self._values, other)
-
-        elif isinstance(self._values, ExtensionArray):
-            result = op(self._values, other)
-
-        elif is_object_dtype(self.dtype) and not isinstance(self, ABCMultiIndex):
-            # don't pass MultiIndex
-            result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
-
-        else:
-            result = ops.comparison_op(self._values, other, op)
+        result = ops.comparison_op(self._values, other, op)
 
         return result
 

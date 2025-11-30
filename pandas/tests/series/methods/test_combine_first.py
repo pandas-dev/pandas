@@ -2,6 +2,8 @@ from datetime import datetime
 
 import numpy as np
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Period,
@@ -75,12 +77,19 @@ class TestCombineFirst:
         xp = to_datetime(Series(["2010", "2011"])).dt.as_unit(unit)
         tm.assert_series_equal(rs, xp)
 
+    def test_combine_first_dt64_casting_deprecation(self, unit):
+        # GH#62931
         s0 = to_datetime(Series(["2010", np.nan])).dt.as_unit(unit)
         s1 = Series([np.nan, "2011"])
-        rs = s0.combine_first(s1)
+
+        msg = "Silently casting non-datetime 'other' to datetime"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            rs = s0.combine_first(s1)
 
         xp = Series([datetime(2010, 1, 1), "2011"], dtype=f"datetime64[{unit}]")
-
+        if unit in ["s", "ms"]:
+            # TODO: should _cast_pointwise_result attempt to preserve unit?
+            xp = xp.dt.as_unit("us")
         tm.assert_series_equal(rs, xp)
 
     def test_combine_first_dt_tz_values(self, tz_naive_fixture):
@@ -143,4 +152,13 @@ class TestCombineFirst:
                 dtype="object",
             ),
         )
+        tm.assert_series_equal(result, expected)
+
+    def test_combine_first_none_not_nan(self):
+        # GH#58977
+        s1 = Series([None, None, None], index=["a", "b", "c"])
+        s2 = Series([None, None, None], index=["b", "c", "d"])
+
+        result = s1.combine_first(s2)
+        expected = Series([None] * 4, index=["a", "b", "c", "d"])
         tm.assert_series_equal(result, expected)

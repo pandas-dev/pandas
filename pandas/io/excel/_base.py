@@ -259,9 +259,6 @@ decimal : str, default '.'
     Note that this parameter is only necessary for columns stored as TEXT in Excel,
     any numeric columns will automatically be parsed, regardless of display
     format.(e.g. use ',' for European data).
-
-    .. versionadded:: 1.4.0
-
 comment : str, default None
     Comments out remainder of line. Pass a character or characters to this
     argument to indicate comments in the input file. Any data between the
@@ -997,12 +994,6 @@ class ExcelWriter(Generic[_WorkbookT]):
         * overlay: Write contents to the existing sheet without first removing,
           but possibly over top of, the existing contents.
 
-        .. versionadded:: 1.3.0
-
-        .. versionchanged:: 1.4.0
-
-           Added ``overlay`` option
-
     engine_kwargs : dict, optional
         Keyword arguments to be passed into the engine. These will be passed to
         the following functions of the respective engines:
@@ -1011,8 +1002,6 @@ class ExcelWriter(Generic[_WorkbookT]):
         * openpyxl (write mode): ``openpyxl.Workbook(**engine_kwargs)``
         * openpyxl (append mode): ``openpyxl.load_workbook(file, **engine_kwargs)``
         * odf: ``odf.opendocument.OpenDocumentSpreadsheet(**engine_kwargs)``
-
-        .. versionadded:: 1.3.0
 
     See Also
     --------
@@ -1215,6 +1204,7 @@ class ExcelWriter(Generic[_WorkbookT]):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        autofilter_range: str | None = None,
     ) -> None:
         """
         Write given formatted cells into Excel an excel sheet
@@ -1229,6 +1219,8 @@ class ExcelWriter(Generic[_WorkbookT]):
         startcol : upper left cell column to dump data frame
         freeze_panes: int tuple of length 2
             contains the bottom-most row and right-most column to freeze
+        autofilter_range: str, default None
+            column ranges to add automatic filters to, for example "A1:D5"
         """
         raise NotImplementedError
 
@@ -1500,25 +1492,20 @@ class ExcelFile:
         - ``calamine`` supports Excel (.xls, .xlsx, .xlsm, .xlsb)
           and OpenDocument (.ods) file formats.
 
-        .. versionchanged:: 1.2.0
+        The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
+        now only supports old-style ``.xls`` files.
+        When ``engine=None``, the following logic will be
+        used to determine the engine:
 
-           The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
-           now only supports old-style ``.xls`` files.
-           When ``engine=None``, the following logic will be
-           used to determine the engine:
-
-           - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-             then `odf <https://pypi.org/project/odfpy/>`_ will be used.
-           - Otherwise if ``path_or_buffer`` is an xls format,
-             ``xlrd`` will be used.
-           - Otherwise if ``path_or_buffer`` is in xlsb format,
-             `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
-
-        .. versionadded:: 1.3.0
-
-           - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
-             then ``openpyxl`` will be used.
-           - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
+        - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
+            then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+        - Otherwise if ``path_or_buffer`` is an xls format,
+            ``xlrd`` will be used.
+        - Otherwise if ``path_or_buffer`` is in xlsb format,
+            `pyxlsb <https://pypi.org/project/pyxlsb/>`_ will be used.
+        - Otherwise if `openpyxl <https://pypi.org/project/openpyxl/>`_ is installed,
+            then ``openpyxl`` will be used.
+        - Otherwise if ``xlrd >= 2.0`` is installed, a ``ValueError`` will be raised.
 
         .. warning::
 

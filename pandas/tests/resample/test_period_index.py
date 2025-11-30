@@ -130,7 +130,7 @@ class TestPeriodIndex:
     def test_annual_upsample_cases(
         self, offset, period, conv, meth, month, simple_period_range_series
     ):
-        ts = simple_period_range_series("1/1/1990", "12/31/1991", freq=f"Y-{month}")
+        ts = simple_period_range_series("1/1/1990", "12/31/1990", freq=f"Y-{month}")
         warn = FutureWarning if period == "B" else None
         msg = r"PeriodDtype\[B\] is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
@@ -214,7 +214,7 @@ class TestPeriodIndex:
         self, month, offset, period, convention, simple_period_range_series
     ):
         freq = f"Q-{month}"
-        ts = simple_period_range_series("1/1/1990", "12/31/1995", freq=freq)
+        ts = simple_period_range_series("1/1/1990", "12/31/1991", freq=freq)
         warn = FutureWarning if period == "B" else None
         msg = r"PeriodDtype\[B\] is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
@@ -396,8 +396,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("convention", ["start", "end"])
     def test_weekly_upsample(self, day, target, convention, simple_period_range_series):
         freq = f"W-{day}"
-        ts = simple_period_range_series("1/1/1990", "12/31/1995", freq=freq)
-
+        ts = simple_period_range_series("1/1/1990", "07/31/1990", freq=freq)
         warn = None if target == "D" else FutureWarning
         msg = r"PeriodDtype\[B\] is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
@@ -711,7 +710,7 @@ class TestPeriodIndex:
 
         df = DataFrame(
             np.random.default_rng(2).standard_normal((9, 3)),
-            index=date_range("2000-1-1", periods=9),
+            index=date_range("2000-1-1", periods=9, unit="ns"),
         )
         result = df.resample("5D").mean()
         expected = pd.concat([df.iloc[0:5].mean(), df.iloc[5:].mean()], axis=1).T

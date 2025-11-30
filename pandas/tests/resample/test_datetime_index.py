@@ -526,7 +526,7 @@ def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
 
 
 def test_resample_ohlc(unit):
-    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="Min")
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 2), freq="Min")
     s = Series(range(len(index)), index=index)
     s.index.name = "index"
     s.index = s.index.as_unit(unit)
@@ -1842,7 +1842,7 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
     # GH 24127
     n1_ = n1 * k
     n2_ = n2 * k
-    dti = date_range("1991-09-05", "1991-09-12", freq=freq1).as_unit(unit)
+    dti = date_range("1991-09-05", "1991-09-06", freq=freq1).as_unit(unit)
     ser = Series(range(len(dti)), index=dti)
 
     result1 = ser.resample(str(n1_) + freq1).mean()
@@ -2058,7 +2058,7 @@ def test_resample_BM_BQ_raises(freq):
 def test_resample_depr_lowercase_frequency(freq, freq_depr, data):
     msg = f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
 
-    s = Series(range(5), index=date_range("20130101", freq="h", periods=5))
+    s = Series(range(5), index=date_range("20130101", freq="h", periods=5, unit="ns"))
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = s.resample(freq_depr).mean()
 
@@ -2168,6 +2168,17 @@ def test_arrow_timestamp_resample_keep_index_name():
     expected = Series(np.arange(5, dtype=np.float64), index=idx)
     expected.index.name = "index_name"
     result = expected.resample("1D").mean()
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_unit_second_large_years():
+    # GH#57427
+    index = DatetimeIndex(
+        date_range(start=Timestamp("1950-01-01"), periods=10, freq="1000YS", unit="s")
+    )
+    ser = Series(1, index=index)
+    result = ser.resample("2000YS").sum()
+    expected = Series(2, index=index[::2])
     tm.assert_series_equal(result, expected)
 
 

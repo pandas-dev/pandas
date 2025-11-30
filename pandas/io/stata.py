@@ -1018,8 +1018,8 @@ class StataParser:
         }
 
 
+@set_module("pandas.api.typing")
 class StataReader(StataParser, abc.Iterator):
-    __module__ = "pandas.api.typing"
     __doc__ = _stata_reader_doc
 
     _path_or_buf: IO[bytes]  # Will be assigned by `_open_file`.
@@ -2158,9 +2158,6 @@ def read_stata(
         As an example, the following could be passed for Zstandard decompression using a
         custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
-
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -2423,12 +2420,6 @@ class StataWriter(StataParser):
         As an example, the following could be passed for faster compression and to
         create a reproducible gzip archive:
         ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
-
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
-
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
@@ -2443,8 +2434,6 @@ class StataWriter(StataParser):
         Dictionary containing columns as keys and dictionaries of column value
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
-
-        .. versionadded:: 1.4.0
 
     Returns
     -------
@@ -3415,14 +3404,10 @@ class StataWriter117(StataWriter):
         characters, and either frequently repeated or sparse.
     {compression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     value_labels : dict of dicts
         Dictionary containing columns as keys and dictionaries of column value
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
-
-        .. versionadded:: 1.4.0
 
     Returns
     -------
@@ -3809,14 +3794,10 @@ class StataWriterUTF8(StataWriter117):
         for storing larger DataFrames.
     {compression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     value_labels : dict of dicts
         Dictionary containing columns as keys and dictionaries of column value
         to labels as values. The combined length of all labels for a single
         variable must be 32,000 characters or smaller.
-
-        .. versionadded:: 1.4.0
 
     Returns
     -------

@@ -115,7 +115,7 @@ class TestFrameComparisons:
             [
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
@@ -129,13 +129,13 @@ class TestFrameComparisons:
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
             ],
             [
                 {
-                    "a": pd.date_range("20010101", periods=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "a": pd.date_range("20010101", periods=10, unit="ns"),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
@@ -145,11 +145,11 @@ class TestFrameComparisons:
             [
                 {
                     "a": np.random.default_rng(2).integers(10, size=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
                 {
-                    "a": pd.date_range("20010101", periods=10),
-                    "b": pd.date_range("20010101", periods=10),
+                    "a": pd.date_range("20010101", periods=10, unit="ns"),
+                    "b": pd.date_range("20010101", periods=10, unit="ns"),
                 },
             ],
         ],
@@ -444,7 +444,7 @@ class TestFrameFlexComparisons:
         df = DataFrame([pd.NaT])
 
         result = df == pd.NaT
-        # result.iloc[0, 0] is a np.bool_ object
+        # result.iloc[0, 0] is an np.bool_ object
         assert result.iloc[0, 0].item() is False
 
         result = df.eq(pd.NaT)

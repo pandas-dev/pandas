@@ -729,6 +729,26 @@ class TestInference:
         result = lib.maybe_convert_objects(arr)
         tm.assert_numpy_array_equal(arr, result)
 
+    @pytest.mark.parametrize(
+        "value, expected_value",
+        [
+            (-(1 << 65), -(1 << 65)),
+            (1 << 65, 1 << 65),
+            (str(1 << 65), 1 << 65),
+            (f"-{1 << 65}", -(1 << 65)),
+        ],
+    )
+    @pytest.mark.parametrize("coerce_numeric", [False, True])
+    def test_convert_numeric_overflow(self, value, expected_value, coerce_numeric):
+        arr = np.array([value], dtype=object)
+        expected = np.array([expected_value], dtype=float if coerce_numeric else object)
+        result, _ = lib.maybe_convert_numeric(
+            arr,
+            set(),
+            coerce_numeric=coerce_numeric,
+        )
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize("val", [None, np.nan, float("nan")])
     @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
     def test_maybe_convert_objects_nat_inference(self, val, dtype):
@@ -788,7 +808,7 @@ class TestInference:
         tm.assert_numpy_array_equal(out, exp)
 
         arr = np.array([pd.NaT, np.timedelta64(1, "s")], dtype=object)
-        exp = np.array([np.timedelta64("NaT"), np.timedelta64(1, "s")], dtype="m8[ns]")
+        exp = np.array([np.timedelta64("NaT"), np.timedelta64(1, "s")], dtype="m8[s]")
         out = lib.maybe_convert_objects(arr, convert_non_numeric=True)
         tm.assert_numpy_array_equal(out, exp)
 
@@ -843,7 +863,7 @@ class TestInference:
         if dtype == "datetime64[ns]":
             expected = np.array(["2363-10-04"], dtype="M8[us]")
         else:
-            expected = arr
+            expected = arr.astype("m8[us]")
         tm.assert_numpy_array_equal(out, expected)
 
     def test_maybe_convert_objects_mixed_datetimes(self):
@@ -1857,8 +1877,8 @@ class TestNumberScalar:
         assert not is_float(Timedelta("1 days"))
 
     def test_is_datetime_dtypes(self):
-        ts = pd.date_range("20130101", periods=3)
-        tsa = pd.date_range("20130101", periods=3, tz="US/Eastern")
+        ts = pd.date_range("20130101", periods=3, unit="ns")
+        tsa = pd.date_range("20130101", periods=3, tz="US/Eastern", unit="ns")
 
         msg = "is_datetime64tz_dtype is deprecated"
 

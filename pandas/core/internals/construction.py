@@ -181,7 +181,7 @@ def rec_array_to_mgr(
     mgr = arrays_to_mgr(arrays, columns, index, dtype=dtype)
 
     if copy:
-        mgr = mgr.copy()
+        mgr = mgr.copy(deep=True)
     return mgr
 
 
@@ -193,7 +193,7 @@ def ndarray_to_mgr(
     values, index, columns, dtype: DtypeObj | None, copy: bool
 ) -> Manager:
     # used in DataFrame.__init__
-    # input must be a ndarray, list, Series, Index, ExtensionArray
+    # input must be an ndarray, list, Series, Index, ExtensionArray
     infer_object = not isinstance(values, (ABCSeries, Index, ExtensionArray))
 
     if isinstance(values, ABCSeries):
@@ -215,7 +215,7 @@ def ndarray_to_mgr(
         # GH#19157
 
         if isinstance(values, (np.ndarray, ExtensionArray)) and values.ndim > 1:
-            # GH#12513 a EA dtype passed with a 2D array, split into
+            # GH#12513 an EA dtype passed with a 2D array, split into
             #  multiple EAs that view the values
             # error: No overload variant of "__getitem__" of "ExtensionArray"
             # matches argument type "Tuple[slice, int]"

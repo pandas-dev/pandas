@@ -478,8 +478,6 @@ The values can be cast to a different type using the ``dtype`` argument.
 
     pd.get_dummies(df, dtype=np.float32).dtypes
 
-.. versionadded:: 1.5.0
-
 :func:`~pandas.from_dummies` converts the output of :func:`~pandas.get_dummies` back into
 a :class:`Series` of categorical values from indicator values.
 
