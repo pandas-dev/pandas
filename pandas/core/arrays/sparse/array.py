@@ -1570,8 +1570,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if axis is not None and axis >= self.ndim:  # Mimic ndarray behaviour.
             raise ValueError(f"axis(={axis}) out of bounds")
 
-        if not self._null_fill_value and self.fill_value != 0:
-            return SparseArray(self.to_dense()).cumsum()
+        if not self._null_fill_value:
+            return SparseArray(self.to_dense(), fill_value=np.nan).cumsum()
 
         return SparseArray(
             self.sp_values.cumsum(),
