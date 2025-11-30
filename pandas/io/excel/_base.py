@@ -282,7 +282,7 @@ def read_excel(
         When ``engine=None``, the following logic will be used to determine the engine:
 
         - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-        then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+            then `odf <https://pypi.org/project/odfpy/>`_ will be used.
         - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
         - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
         - Otherwise ``openpyxl`` will be used.
@@ -368,7 +368,7 @@ def read_excel(
     format. For anything more complex,
     please read in as ``object`` and then apply :func:`to_datetime` as-needed.
 
-    .. versionadded:: 2.0.0
+        .. versionadded:: 2.0.0
     thousands : str, default None
         Thousands separator for parsing string columns to numeric.  Note that
         this parameter is only necessary for columns stored as TEXT in Excel,
