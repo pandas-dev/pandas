@@ -659,7 +659,7 @@ def test_apply_non_numpy_dtype():
 
     result = df.apply(lambda x: x + pd.Timedelta("1day"))
     expected = DataFrame(
-        {"dt": date_range("2015-01-02", periods=3, tz="Europe/Brussels")}
+        {"dt": date_range("2015-01-02", periods=3, tz="Europe/Brussels", unit="ns")}
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1435,7 +1435,7 @@ def test_nuiscance_columns():
 
     result = df.agg(["min"])
     expected = DataFrame(
-        [[1, 1.0, "bar", Timestamp("20130101").as_unit("ns")]],
+        [[1, 1.0, "bar", Timestamp("20130101")]],
         index=["min"],
         columns=df.columns,
     )

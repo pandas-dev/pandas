@@ -225,15 +225,10 @@ def test_datetimelike_centered_selections(
         index=date_range("2020", periods=5),
     )
 
-    if func_name == "sem":
-        kwargs = {"ddof": 0}
-    else:
-        kwargs = {}
-
     result = getattr(
         df_time.rolling("2D", closed=closed, min_periods=1, center=True),
         func_name,
-    )(**kwargs)
+    )()
 
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -1078,7 +1073,7 @@ def test_rolling_sem(frame_or_series):
     result = obj.rolling(2, min_periods=1).sem()
     if isinstance(result, DataFrame):
         result = Series(result[0].values)
-    expected = Series([np.nan] + [0.7071067811865476] * 2)
+    expected = Series([np.nan] + [0.5] * 2)
     tm.assert_series_equal(result, expected)
 
 
@@ -2003,7 +1998,8 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
 def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     # Test Sum, GH#55106
     df_time = DataFrame(
-        {"A": range(5)}, index=date_range("2013-01-01", freq="1s", periods=5, tz=tz)
+        {"A": range(5)},
+        index=date_range("2013-01-01", freq="1s", periods=5, tz=tz, unit="ns"),
     )
     sum_in_nanosecs = df_time.rolling("1s").sum()
     # microseconds / milliseconds should not break the correct rolling

@@ -847,22 +847,30 @@ class TestMerge:
         left = DataFrame(
             {
                 "key": [1, 2],
-                "value": pd.date_range("20151010", periods=2, tz="US/Eastern"),
+                "value": pd.date_range(
+                    "20151010", periods=2, tz="US/Eastern", unit="ns"
+                ),
             }
         )
         right = DataFrame(
             {
                 "key": [2, 3],
-                "value": pd.date_range("20151011", periods=2, tz="US/Eastern"),
+                "value": pd.date_range(
+                    "20151011", periods=2, tz="US/Eastern", unit="ns"
+                ),
             }
         )
         expected = DataFrame(
             {
                 "key": [1, 2, 3],
-                "value_x": list(pd.date_range("20151010", periods=2, tz="US/Eastern"))
+                "value_x": list(
+                    pd.date_range("20151010", periods=2, tz="US/Eastern", unit="ns")
+                )
                 + [pd.NaT],
                 "value_y": [pd.NaT]
-                + list(pd.date_range("20151011", periods=2, tz="US/Eastern")),
+                + list(
+                    pd.date_range("20151011", periods=2, tz="US/Eastern", unit="ns")
+                ),
             }
         )
         result = merge(left, right, on="key", how="outer")

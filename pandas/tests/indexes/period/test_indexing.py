@@ -523,7 +523,7 @@ class TestGetIndexer:
         tol_bad = [
             Timedelta("2 hour").to_timedelta64(),
             Timedelta("1 hour").to_timedelta64(),
-            np.timedelta64(1, "M"),
+            np.timedelta64(2629746, "s"),
         ]
         with pytest.raises(
             libperiod.IncompatibleFrequency, match="Input has different freq=None from"
