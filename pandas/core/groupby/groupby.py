@@ -771,9 +771,9 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             a `(callable, data_keyword)` tuple where `data_keyword` is a
             string indicating the keyword of `callable` that expects the
             GroupBy object.
-        args : iterable, optional
+        *args : iterable, optional
             Positional arguments passed into `func`.
-        kwargs : dict, optional
+        **kwargs : dict, optional
             A dictionary of keyword arguments passed into `func`.
 
         Returns
