@@ -19,6 +19,21 @@ from pandas import (
 import pandas._testing as tm
 
 
+class TestTimedeltaConstructorKeywordBased:
+    # Tests for constructing a Timedelta from keywords like the pytimedelta
+    # base class
+    def test_nanosecond_keyword(self):
+        # GH#63216
+        td = Timedelta(nanoseconds=1000)
+        assert td.unit == "ns"
+
+    def test_noninteger_microseconds(self):
+        # GH#63216
+        td = Timedelta(microseconds=1.5)
+        assert td.unit == "ns"
+        assert td == Timedelta(nanoseconds=1500)
+
+
 class TestTimedeltaConstructorUnitKeyword:
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
