@@ -587,7 +587,7 @@ def test_same_name_scoping(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((20, 2)),
-            index=date_range("20130101", periods=20),
+            index=date_range("20130101", periods=20, unit="ns"),
         )
         store.put("df", df, format="table")
         expected = df[df.index > Timestamp("20130105")]

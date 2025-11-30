@@ -748,11 +748,16 @@ Other API changes
   the dtype of the resulting Index (:issue:`60797`)
 - :class:`IncompatibleFrequency` now subclasses ``TypeError`` instead of ``ValueError``. As a result, joins with mismatched frequencies now cast to object like other non-comparable joins, and arithmetic with indexes with mismatched frequencies align (:issue:`55782`)
 - :class:`Series` "flex" methods like :meth:`Series.add` no longer allow passing a :class:`DataFrame` for ``other``; use the DataFrame reversed method instead (:issue:`46179`)
+- :func:`date_range` and :func:`timedelta_range` no longer default to ``unit="ns"``, instead will infer a unit from the ``start``, ``end``, and ``freq`` parameters. Explicitly specify a desired ``unit`` to override these (:issue:`59031`)
 - :meth:`CategoricalIndex.append` no longer attempts to cast different-dtype indexes to the caller's dtype (:issue:`41626`)
 - :meth:`ExtensionDtype.construct_array_type` is now a regular method instead of a ``classmethod`` (:issue:`58663`)
 - Arithmetic operations between a :class:`Series`, :class:`Index`, or :class:`ExtensionArray` with a ``list`` now consistently wrap that list with an array equivalent to ``Series(my_list).array``. To do any other kind of type inference or casting, do so explicitly before operating (:issue:`62552`)
 - Comparison operations between :class:`Index` and :class:`Series` now consistently return :class:`Series` regardless of which object is on the left or right (:issue:`36759`)
 - Numpy functions like ``np.isinf`` that return a bool dtype when called on a :class:`Index` object now return a bool-dtype :class:`Index` instead of ``np.ndarray`` (:issue:`52676`)
+- Methods that can operate in-place (:meth:`~DataFrame.replace`, :meth:`~DataFrame.fillna`,
+  :meth:`~DataFrame.ffill`, :meth:`~DataFrame.bfill`, :meth:`~DataFrame.interpolate`,
+  :meth:`~DataFrame.where`, :meth:`~DataFrame.mask`, :meth:`~DataFrame.clip`) now return
+  the modified DataFrame or Series (``self``) instead of ``None`` when ``inplace=True`` (:issue:`63207`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.deprecations:
@@ -1185,6 +1190,7 @@ I/O
 - Fix bug in ``on_bad_lines`` callable when returning too many fields: now emits
   ``ParserWarning`` and truncates extra fields regardless of ``index_col`` (:issue:`61837`)
 - Bug in :func:`pandas.json_normalize` inconsistently handling non-dict items in ``data`` when ``max_level`` was set. The function will now raise a ``TypeError`` if ``data`` is a list containing non-dict items (:issue:`62829`)
+- Bug in :func:`pandas.json_normalize` raising ``TypeError`` when ``meta`` contained a non-string key (e.g., ``int``) and ``record_path`` was specified, which was inconsistent with the behavior when ``record_path`` was ``None`` (:issue:`63019`)
 - Bug in :meth:`.DataFrame.to_json` when ``"index"`` was a value in the :attr:`DataFrame.column` and :attr:`Index.name` was ``None``. Now, this will fail with a ``ValueError`` (:issue:`58925`)
 - Bug in :meth:`.io.common.is_fsspec_url` not recognizing chained fsspec URLs (:issue:`48978`)
 - Bug in :meth:`DataFrame._repr_html_` which ignored the ``"display.float_format"`` option (:issue:`59876`)

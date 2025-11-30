@@ -6109,19 +6109,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
-    @overload
-    def _replace_columnwise(
-        self, mapping: dict[Hashable, tuple[Any, Any]], inplace: Literal[True], regex
-    ) -> None: ...
-
-    @overload
-    def _replace_columnwise(
-        self, mapping: dict[Hashable, tuple[Any, Any]], inplace: Literal[False], regex
-    ) -> Self: ...
-
     def _replace_columnwise(
         self, mapping: dict[Hashable, tuple[Any, Any]], inplace: bool, regex
-    ) -> Self | None:
+    ) -> Self:
         """
         Dispatch to Series.replace column-wise.
 
@@ -6134,7 +6124,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        DataFrame or None
+        DataFrame
         """
         # Operate column-wise
         res = self if inplace else self.copy(deep=False)
@@ -6149,9 +6139,7 @@ class DataFrame(NDFrame, OpsMixin):
 
                 res._iset_item(i, newobj, inplace=inplace)
 
-        if inplace:
-            return None
-        return res.__finalize__(self)
+        return res if inplace else res.__finalize__(self)
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(

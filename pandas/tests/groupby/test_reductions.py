@@ -1312,7 +1312,7 @@ def test_groupby_sum_timedelta_with_nat():
             "b": [pd.Timedelta("1D"), pd.Timedelta("2D"), pd.Timedelta("3D"), pd.NaT],
         }
     )
-    td3 = pd.Timedelta(days=3)
+    td3 = pd.Timedelta(days=3).as_unit("ns")
 
     gb = df.groupby("a")
 

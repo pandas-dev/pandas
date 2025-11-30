@@ -166,7 +166,7 @@ def test_astype_different_datetime_resos():
 
 def test_astype_different_timezones():
     df = DataFrame(
-        {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific")}
+        {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific", unit="ns")}
     )
     result = df.astype("datetime64[ns, Europe/Berlin]")
     assert not result._mgr._has_no_reference(0)
@@ -175,7 +175,7 @@ def test_astype_different_timezones():
 
 def test_astype_different_timezones_different_reso():
     df = DataFrame(
-        {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific")}
+        {"a": date_range("2019-12-31", periods=5, freq="D", tz="US/Pacific", unit="ns")}
     )
     result = df.astype("datetime64[ms, Europe/Berlin]")
     assert result._mgr._has_no_reference(0)

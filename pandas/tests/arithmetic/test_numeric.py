@@ -235,7 +235,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         # GH#19333
         box = box_with_array
         index = numeric_idx
-        expected = TimedeltaIndex([Timedelta(days=n) for n in range(len(index))])
+        expected = TimedeltaIndex(
+            [Timedelta(days=n) for n in range(len(index))], dtype="m8[ns]"
+        )
         if isinstance(scalar_td, np.timedelta64):
             dtype = scalar_td.dtype
             expected = expected.astype(dtype)
