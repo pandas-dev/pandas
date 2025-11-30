@@ -59,20 +59,22 @@ static PyObject *big_int_to_pylong(ondemand::value element) {
 
 static PyObject *json_number_to_pyobject(ondemand::value element) {
   ondemand::number num = element.get_number();
+  PyObject *result;
   switch (num.get_number_type()) {
   case ondemand::number_type::signed_integer:
-    return PyLong_FromLongLong(num.get_int64());
+    result = PyLong_FromLongLong(num.get_int64());
     break;
   case ondemand::number_type::unsigned_integer:
-    return PyLong_FromUnsignedLongLong(num.get_uint64());
+    result = PyLong_FromUnsignedLongLong(num.get_uint64());
     break;
   case ondemand::number_type::floating_point_number:
-    return PyFloat_FromDouble(num.get_double());
+    result = PyFloat_FromDouble(num.get_double());
     break;
   case ondemand::number_type::big_integer:
-    return big_int_to_pylong(element);
+    result = big_int_to_pylong(element);
     break;
   }
+  return result;
 }
 
 static PyObject *json_str_to_pyobject(ondemand::value element) {
@@ -124,7 +126,7 @@ PyObject *json_loads(PyObject *Py_UNUSED(self), PyObject *args,
     return NULL;
   }
 
-  PyObject *ret;
+  PyObject *ret = NULL;
   try {
     simdjson::padded_string padded_json(buf, len);
     simdjson::ondemand::document doc =
