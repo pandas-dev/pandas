@@ -691,7 +691,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
         >>> tdelta_idx
         TimedeltaIndex(['0 days', '10 days', '20 days'],
-                       dtype='timedelta64[ns]', freq=None)
+                       dtype='timedelta64[us]', freq=None)
         >>> tdelta_idx.inferred_freq
         '10D'
         """

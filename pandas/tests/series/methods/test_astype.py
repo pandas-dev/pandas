@@ -510,7 +510,7 @@ class TestAstypeString:
             ([1, None], "UInt16"),
             (["1/1/2021", "2/1/2021"], "period[M]"),
             (["1/1/2021", "2/1/2021", NaT], "period[M]"),
-            (["1 Day", "59 Days", NaT], "timedelta64[ns]"),
+            (["1 Day", "59 Days", NaT], "timedelta64[us]"),
             # currently no way to parse IntervalArray from a list of strings
         ],
     )

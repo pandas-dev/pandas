@@ -1531,7 +1531,7 @@ class TestTSPlot:
         assert len(result_labels) == len(expected_labels)
         assert result_labels == expected_labels
 
-    def test_format_timedelta_ticks_wide(self):
+    def test_format_timedelta_ticks_wide(self, unit):
         expected_labels = [
             "00:00:00",
             "1 days 03:46:40",
@@ -1544,7 +1544,7 @@ class TestTSPlot:
             "9 days 06:13:20",
         ]
 
-        rng = timedelta_range("0", periods=10, freq="1 D")
+        rng = timedelta_range("0", periods=10, freq="1 D", unit=unit)
         df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
         _, ax = mpl.pyplot.subplots()
         ax = df.plot(fontsize=2, ax=ax)

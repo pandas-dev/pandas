@@ -170,11 +170,11 @@ class TestTimedeltaIndex:
         # NumPy string array
         strings = np.array(["1 days", "2 days", "3 days"])
         result = TimedeltaIndex(strings)
-        expected = to_timedelta([1, 2, 3], unit="D")
+        expected = to_timedelta([1, 2, 3], unit="D").as_unit("us")
         tm.assert_index_equal(result, expected)
 
-        from_ints = TimedeltaIndex(expected.asi8)
-        tm.assert_index_equal(from_ints, expected)
+        from_ints = TimedeltaIndex(expected.as_unit("ns").asi8)
+        tm.assert_index_equal(from_ints, expected.as_unit("ns"))
 
         # non-conforming freq
         msg = (
@@ -265,4 +265,4 @@ class TestTimedeltaIndex:
 
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tdi = to_timedelta([1, 2], unit=unit_depr)
-        tm.assert_index_equal(tdi, expected)
+        tm.assert_index_equal(tdi, expected.as_unit("ns"))

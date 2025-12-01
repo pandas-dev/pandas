@@ -422,7 +422,7 @@ class TestAstype:
         ]
         df = DataFrame(vals, dtype=object)
         msg = (
-            r"Cannot convert from timedelta64\[ns\] to timedelta64\[.*\]. "
+            r"Cannot convert from timedelta64\[us\] to timedelta64\[.*\]. "
             "Supported resolutions are 's', 'ms', 'us', 'ns'"
         )
         with pytest.raises(ValueError, match=msg):

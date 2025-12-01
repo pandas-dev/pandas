@@ -613,7 +613,7 @@ class TestDataFrameAnalytics:
                     "D": Series([np.nan], dtype="str"),
                     "E": Categorical([np.nan], categories=["a"]),
                     "F": DatetimeIndex([pd.NaT], dtype="M8[ns]"),
-                    "G": to_timedelta([pd.NaT]).as_unit("ns"),
+                    "G": to_timedelta([pd.NaT]).as_unit("us"),
                 },
             ),
             (
@@ -781,12 +781,14 @@ class TestDataFrameAnalytics:
 
         result = df.std(skipna=False)
         expected = Series(
-            [df["A"].std(), pd.NaT], index=["A", "B"], dtype="timedelta64[ns]"
+            [df["A"].std(), pd.NaT], index=["A", "B"], dtype="timedelta64[us]"
         )
         tm.assert_series_equal(result, expected)
 
         result = df.std(axis=1, skipna=False)
-        expected = Series([pd.Timedelta(0)] * 8 + [pd.NaT, pd.Timedelta(0)])
+        expected = Series(
+            [pd.Timedelta(0)] * 8 + [pd.NaT, pd.Timedelta(0)], dtype="m8[us]"
+        )
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(

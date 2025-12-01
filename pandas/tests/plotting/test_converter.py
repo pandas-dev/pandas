@@ -347,7 +347,7 @@ class TestTimeDeltaConverter:
     )
     def test_format_timedelta_ticks(self, x, decimal, format_expected):
         tdc = converter.TimeSeries_TimedeltaFormatter
-        result = tdc.format_timedelta_ticks(x, pos=None, n_decimals=decimal)
+        result = tdc.format_timedelta_ticks(x, pos=None, n_decimals=decimal, exp=9)
         assert result == format_expected
 
     @pytest.mark.parametrize("view_interval", [(1, 2), (2, 1)])

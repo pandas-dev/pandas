@@ -545,7 +545,9 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
             # Avoid possible ambiguities with pd.NaT
             # GH 52295
             if is_unitless(obj.dtype):
-                obj = obj.astype("datetime64[ns]")
+                # Use second resolution to ensure that the result of e.g.
+                #  `left - np.datetime64("NaT")` retains the unit of left.unit
+                obj = obj.astype("datetime64[s]")
             elif not is_supported_dtype(obj.dtype):
                 new_dtype = get_supported_dtype(obj.dtype)
                 obj = obj.astype(new_dtype)
@@ -563,7 +565,9 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
             #  we broadcast and wrap in a TimedeltaArray
             # GH 52295
             if is_unitless(obj.dtype):
-                obj = obj.astype("timedelta64[ns]")
+                # Use second resolution to ensure that the result of e.g.
+                #  `left + np.timedelta64("NaT")` retains the unit of left.unit
+                obj = obj.astype("timedelta64[s]")
             elif not is_supported_dtype(obj.dtype):
                 new_dtype = get_supported_dtype(obj.dtype)
                 obj = obj.astype(new_dtype)

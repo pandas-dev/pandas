@@ -370,8 +370,8 @@ def test_groupby_timedelta_quantile():
     expected = DataFrame(
         {
             "value": [
-                pd.Timedelta("0 days 00:00:00.990000"),
-                pd.Timedelta("0 days 00:00:02.990000"),
+                pd.Timedelta("0 days 00:00:00.990000").as_unit("ns"),
+                pd.Timedelta("0 days 00:00:02.990000").as_unit("ns"),
             ]
         },
         index=Index([1, 2], name="group"),

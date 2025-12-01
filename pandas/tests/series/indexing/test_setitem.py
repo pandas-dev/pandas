@@ -1548,7 +1548,7 @@ class TestCoercionDatetime64TZ(CoercionTest):
 @pytest.mark.parametrize(
     "val,exp_dtype,raises",
     [
-        (Timedelta("12 day"), "timedelta64[ns]", False),
+        (Timedelta("12 day"), "timedelta64[us]", False),
         (1, object, True),
         ("x", object, True),
     ],

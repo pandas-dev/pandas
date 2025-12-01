@@ -611,7 +611,7 @@ class TestSeriesFillNA:
         ser = Series([np.nan, Timedelta("1 days")], index=["A", "B"])
 
         result = ser.fillna(timedelta(1))
-        expected = Series(Timedelta("1 days"), index=["A", "B"])
+        expected = Series(Timedelta("1 days"), index=["A", "B"], dtype="m8[us]")
         tm.assert_series_equal(result, expected)
 
     def test_fillna_period(self):

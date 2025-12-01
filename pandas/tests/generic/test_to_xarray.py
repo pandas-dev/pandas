@@ -15,7 +15,7 @@ xarray = pytest.importorskip("xarray")
 
 if xarray is not None and Version(xarray.__version__) < Version("2025.1.0"):
     pytestmark = pytest.mark.filterwarnings(
-        "ignore:Converting non-nanosecond precision datetime:UserWarning"
+        "ignore:Converting non-nanosecond precision:UserWarning"
     )
 
 

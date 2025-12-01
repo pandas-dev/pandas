@@ -295,7 +295,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
                 # i.e. resolution is lower -> use lowest supported resolution
                 dtype = np.dtype("m8[s]")
             expected = expected.astype(dtype)
-        elif type(three_days) is timedelta:
+        elif type(three_days) is timedelta or (
+            isinstance(three_days, Timedelta) and three_days.unit == "us"
+        ):
             expected = expected.astype("m8[us]")
         elif isinstance(
             three_days,

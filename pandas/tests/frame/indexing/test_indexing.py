@@ -1591,7 +1591,7 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert isinstance(val, Timestamp)
 
     blk = mgr.blocks[mgr.blknos[2]]
-    assert blk.dtype == "m8[ns]"  # we got the right block
+    assert blk.dtype == "m8[us]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timedelta)
 

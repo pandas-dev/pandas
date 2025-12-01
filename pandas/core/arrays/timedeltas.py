@@ -150,7 +150,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> pd.arrays.TimedeltaArray._from_sequence(pd.TimedeltaIndex(["1h", "2h"]))
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
-    Length: 2, dtype: timedelta64[ns]
+    Length: 2, dtype: timedelta64[us]
     """
 
     _typ = "timedeltaarray"
@@ -813,7 +813,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> idx = pd.to_timedelta(np.arange(5), unit="D")
         >>> idx
         TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                       dtype='timedelta64[ns]', freq=None)
+                       dtype='timedelta64[us]', freq=None)
 
         >>> idx.total_seconds()
         Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
@@ -892,7 +892,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
     >>> tdelta_idx
     TimedeltaIndex(['0 days', '10 days', '20 days'],
-                    dtype='timedelta64[ns]', freq=None)
+                    dtype='timedelta64[us]', freq=None)
     >>> tdelta_idx.days
     Index([0, 10, 20], dtype='int64')"""
     )

@@ -274,7 +274,7 @@ class TestIndex:
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
     def test_constructor_dtypes_timedelta(self, attr, klass):
-        index = timedelta_range("1 days", periods=5)
+        index = timedelta_range("1 days", periods=5, unit="ns")
         index = index._with_freq(None)  # won't be preserved by constructors
         dtype = index.dtype
 

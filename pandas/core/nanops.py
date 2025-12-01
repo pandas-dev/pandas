@@ -944,8 +944,9 @@ def nanstd(
     >>> nanops.nanstd(s.values)
     1.0
     """
-    if values.dtype == "M8[ns]":
-        values = values.view("m8[ns]")
+    if values.dtype.kind == "M":
+        unit = np.datetime_data(values.dtype)[0]
+        values = values.view(f"m8[{unit}]")
 
     orig_dtype = values.dtype
     values, mask = _get_values(values, skipna, mask=mask)
