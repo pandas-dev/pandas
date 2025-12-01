@@ -9,7 +9,7 @@ from pandas import (
     read_hdf,
 )
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import tables
+from pandas.tests.io.pytables.common import tables 
 
 _ = tables
 
