@@ -27,6 +27,13 @@ from pandas.core.arrays import TimedeltaArray
 
 
 class TestTimedeltas:
+    def test_to_timedelta_mixed_unit_strings(self):
+        # https://github.com/pandas-dev/pandas/pull/63196#issuecomment-3595743721
+        result = to_timedelta(["1 days 06:05:01.00003", "15.5us"])
+
+        expected = TimedeltaIndex([108_301_000_030_000, 15_500], dtype="m8[ns]")
+        tm.assert_index_equal(result, expected)
+
     def test_to_timedelta_all_nat_unit(self):
         # With all-NaT entries, we get "s" unit
         result = to_timedelta([None])
