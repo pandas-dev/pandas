@@ -36,7 +36,10 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
 )
 from pandas.errors import Pandas4Warning
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -78,6 +81,7 @@ import pandas.core.common as com
 from pandas.core.construction import extract_array
 from pandas.core.indexers import (
     check_array_indexer,
+    getitem_returns_view,
     unpack_tuple_and_ellipses,
     validate_indices,
 )
@@ -241,6 +245,7 @@ def to_pyarrow_type(
     return None
 
 
+@set_module("pandas.arrays")
 class ArrowExtensionArray(
     OpsMixin,
     ExtensionArraySupportsAnyAll,
@@ -439,6 +444,10 @@ class ArrowExtensionArray(
             #  or test_agg_lambda_complex128_dtype_conversion for complex values
             return super()._cast_pointwise_result(values)
 
+        if pa.types.is_null(arr.type):
+            if lib.infer_dtype(values) == "decimal":
+                # GH#62522; the specific decimal precision here is arbitrary
+                arr = arr.cast(pa.decimal128(1))
         if pa.types.is_duration(arr.type):
             # workaround for https://github.com/apache/arrow/issues/40620
             result = ArrowExtensionArray._from_sequence(values)
@@ -784,7 +793,10 @@ class ArrowExtensionArray(
 
         value = self._pa_array[item]
         if isinstance(value, pa.ChunkedArray):
-            return self._from_pyarrow_array(value)
+            result = self._from_pyarrow_array(value)
+            if getitem_returns_view(self, item):
+                result._readonly = self._readonly
+            return result
         else:
             pa_type = self._pa_array.type
             scalar = value.as_py()
@@ -822,6 +834,14 @@ class ArrowExtensionArray(
     def __arrow_array__(self, type=None):
         """Convert myself to a pyarrow ChunkedArray."""
         return self._pa_array
+
+    def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        # Need to wrap np.array results GH#62800
+        result = super().__array_ufunc__(ufunc, method, *inputs, **kwargs)
+        if type(self) is ArrowExtensionArray:
+            # Exclude ArrowStringArray
+            return type(self)._from_sequence(result)
+        return result
 
     def __array__(
         self, dtype: NpDtype | None = None, copy: bool | None = None
@@ -2182,6 +2202,9 @@ class ArrowExtensionArray(
         -------
         None
         """
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         # GH50085: unwrap 1D indexers
         if isinstance(key, tuple) and len(key) == 1:
             key = key[0]

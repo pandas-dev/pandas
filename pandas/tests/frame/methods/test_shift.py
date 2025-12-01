@@ -26,7 +26,7 @@ class TestDataFrameShift:
         expected = df.T.shift(periods=1, fill_value=12345).T
         tm.assert_frame_equal(res, expected)
 
-        # same but with an 1D ExtensionArray backing it
+        # same but with a 1D ExtensionArray backing it
         df2 = df[[0]].astype("Float64")
         res2 = df2.shift(axis=1, periods=1, fill_value=12345)
         expected2 = DataFrame([12345] * 5, dtype="Float64")
@@ -154,7 +154,9 @@ class TestDataFrameShift:
 
     def test_shift_dst(self, frame_or_series):
         # GH#13926
-        dates = date_range("2016-11-06", freq="h", periods=10, tz="US/Eastern")
+        dates = date_range(
+            "2016-11-06", freq="h", periods=10, tz="US/Eastern", unit="ns"
+        )
         obj = frame_or_series(dates)
 
         res = obj.shift(0)
@@ -176,7 +178,9 @@ class TestDataFrameShift:
     @pytest.mark.parametrize("ex", [10, -10, 20, -20])
     def test_shift_dst_beyond(self, frame_or_series, ex):
         # GH#13926
-        dates = date_range("2016-11-06", freq="h", periods=10, tz="US/Eastern")
+        dates = date_range(
+            "2016-11-06", freq="h", periods=10, tz="US/Eastern", unit="ns"
+        )
         obj = frame_or_series(dates)
         res = obj.shift(ex)
         exp = frame_or_series([NaT] * 10, dtype="datetime64[ns, US/Eastern]")
@@ -794,3 +798,17 @@ class TestDataFrameShift:
             df["a"].shift(1, fill_value=NaT)
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             df["b"].shift(1, fill_value=NaT)
+
+    def test_shift_dt_index_multiple_periods_unsorted(self):
+        # https://github.com/pandas-dev/pandas/pull/62843
+        values = date_range("1/1/2000", periods=4, freq="D")
+        df = DataFrame({"a": [1, 2]}, index=[values[1], values[0]])
+        result = df.shift(periods=[1, 2], freq="D")
+        expected = DataFrame(
+            {
+                "a_1": [1.0, 2.0, np.nan],
+                "a_2": [2.0, np.nan, 1.0],
+            },
+            index=[values[2], values[1], values[3]],
+        )
+        tm.assert_frame_equal(result, expected)

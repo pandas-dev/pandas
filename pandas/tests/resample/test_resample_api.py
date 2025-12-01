@@ -99,7 +99,7 @@ def test_groupby_resample_on_api():
 
 
 def test_resample_group_keys():
-    df = DataFrame({"A": 1, "B": 2}, index=date_range("2000", periods=10))
+    df = DataFrame({"A": 1, "B": 2}, index=date_range("2000", periods=10, unit="ns"))
     expected = df.copy()
 
     # group_keys=False
@@ -221,7 +221,7 @@ def test_combined_up_downsampling_of_irregular():
     # ts2.resample('2s').mean().ffill()
     # preserve these semantics
 
-    rng = date_range("1/1/2012", periods=100, freq="s")
+    rng = date_range("1/1/2012", periods=100, freq="s", unit="ns")
     ts = Series(np.arange(len(rng)), index=rng)
     ts2 = ts.iloc[[0, 1, 2, 3, 5, 7, 11, 15, 16, 25, 30]]
 
@@ -355,7 +355,7 @@ def test_agg_consistency_int_str_column_mix():
 
 @pytest.fixture
 def index():
-    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
+    index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D", unit="ns")
     index.name = "date"
     return index
 
@@ -744,7 +744,7 @@ def test_agg_with_datetime_index_list_agg_func(col_name):
 
 def test_resample_agg_readonly():
     # GH#31710 cython needs to allow readonly data
-    index = date_range("2020-01-01", "2020-01-02", freq="1h")
+    index = date_range("2020-01-01", "2020-01-02", freq="1h", unit="ns")
     arr = np.zeros_like(index)
     arr.setflags(write=False)
 
@@ -989,3 +989,30 @@ def test_resample_empty():
     )
     result = df.resample("8h").mean()
     tm.assert_frame_equal(result, expected)
+
+
+def test_asfreq_respects_origin_with_fixed_freq_all_seconds_equal():
+    # GH#62725: Ensure Resampler.asfreq respects origin="start_day"
+    # when all datetimes share identical seconds values.
+    idx = [
+        datetime(2025, 10, 17, 17, 15, 10),
+        datetime(2025, 10, 17, 17, 16, 10),
+        datetime(2025, 10, 17, 17, 17, 10),
+    ]
+    df = DataFrame({"value": [0, 1, 2]}, index=idx)
+
+    result = df.resample("1min", origin="start_day").asfreq()
+
+    # Expected index: list of Timestamps, matching dtype
+    exp_idx = pd.DatetimeIndex(
+        [
+            pd.Timestamp("2025-10-17 17:15:00"),
+            pd.Timestamp("2025-10-17 17:16:00"),
+            pd.Timestamp("2025-10-17 17:17:00"),
+        ],
+        dtype=result.index.dtype,
+        freq="min",
+    )
+
+    exp = DataFrame({"value": [np.nan, np.nan, np.nan]}, index=exp_idx)
+    tm.assert_frame_equal(result, exp)

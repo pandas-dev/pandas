@@ -28,6 +28,8 @@ from pandas._config.config import (
     is_text,
 )
 
+from pandas.errors import Pandas4Warning
+
 # compute
 
 use_bottleneck_doc = """
@@ -406,12 +408,11 @@ with cf.config_prefix("mode"):
     cf.register_option("sim_interactive", False, tc_sim_interactive_doc)
 
 
-# TODO better name?
 copy_on_write_doc = """
 : bool
-    Use new copy-view behaviour using Copy-on-Write. Defaults to False,
-    unless overridden by the 'PANDAS_COPY_ON_WRITE' environment variable
-    (if set to "1" for True, needs to be set before pandas is imported).
+    Use new copy-view behaviour using Copy-on-Write. No longer used,
+    pandas now always uses Copy-on-Write behavior. This option will
+    be removed in pandas 4.0.
 """
 
 
@@ -476,12 +477,6 @@ def is_valid_string_storage(value: Any) -> None:
     legal_values = ["auto", "python", "pyarrow"]
     if value not in legal_values:
         msg = "Value must be one of python|pyarrow"
-        if value == "pyarrow_numpy":
-            # TODO: we can remove extra message after 3.0
-            msg += (
-                ". 'pyarrow_numpy' was specified, but this option should be "
-                "enabled using pandas.options.future.infer_string instead"
-            )
         raise ValueError(msg)
 
 
@@ -899,10 +894,18 @@ with cf.config_prefix("future"):
     cf.register_option(
         "no_silent_downcasting",
         False,
-        "Whether to opt-in to the future behavior which will *not* silently "
-        "downcast results from Series and DataFrame `where`, `mask`, and `clip` "
-        "methods. "
-        "Silent downcasting will be removed in pandas 3.0 "
-        "(at which point this option will be deprecated).",
+        "This option is deprecated and will be removed in a future version. "
+        "It has no effect.",
         validator=is_one_of_factory([True, False]),
     )
+
+# GH#59502
+cf.deprecate_option("future.no_silent_downcasting", Pandas4Warning)
+cf.deprecate_option(
+    "mode.copy_on_write",
+    Pandas4Warning,
+    msg=(
+        "Copy-on-Write can no longer be disabled, setting to False has no impact. "
+        "This option will be removed in pandas 4.0."
+    ),
+)

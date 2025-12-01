@@ -45,14 +45,14 @@ class TestDataFrameMask:
 
         rdf = df.copy()
 
-        return_value = rdf.where(cond, inplace=True)
-        assert return_value is None
+        result = rdf.where(cond, inplace=True)
+        assert result is rdf
         tm.assert_frame_equal(rdf, df.where(cond))
         tm.assert_frame_equal(rdf, df.mask(~cond))
 
         rdf = df.copy()
-        return_value = rdf.where(cond, -df, inplace=True)
-        assert return_value is None
+        result = rdf.where(cond, -df, inplace=True)
+        assert result is rdf
         tm.assert_frame_equal(rdf, df.where(cond, -df))
         tm.assert_frame_equal(rdf, df.mask(~cond, -df))
 

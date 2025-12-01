@@ -145,6 +145,7 @@ def _coerce_to_data_and_mask(
 ):
     values = extract_array(values, extract_numpy=True)
     checker = dtype_cls._checker
+    default_dtype = dtype_cls._default_np_dtype
 
     mask = None
     inferred_type = None
@@ -165,7 +166,7 @@ def _coerce_to_data_and_mask(
         if copy:
             values = values.copy()
             mask = mask.copy()
-        return values, mask, dtype, inferred_type
+        return values, mask
 
     original = values
     if not copy:
@@ -176,6 +177,7 @@ def _coerce_to_data_and_mask(
     if values.dtype == object or is_string_dtype(values.dtype):
         inferred_type = lib.infer_dtype(values, skipna=True)
         if inferred_type == "boolean" and dtype is None:
+            # object dtype array of bools
             name = dtype_cls.__name__.strip("_")
             raise TypeError(f"{values.dtype} cannot be converted to {name}")
 
@@ -254,7 +256,7 @@ def _coerce_to_data_and_mask(
         values = values.astype(dtype, copy=copy)
     else:
         values = dtype_cls._safe_cast(values, dtype, copy=False)
-    return values, mask, dtype, inferred_type
+    return values, mask
 
 
 class NumericArray(BaseMaskedArray):
@@ -299,8 +301,8 @@ class NumericArray(BaseMaskedArray):
     ) -> tuple[np.ndarray, np.ndarray]:
         dtype_cls = cls._dtype_cls
         default_dtype = dtype_cls._default_np_dtype
-        values, mask, _, _ = _coerce_to_data_and_mask(
-            value, dtype, copy, dtype_cls, default_dtype
+        values, mask,_,_ = _coerce_to_data_and_mask(
+          value, dtype, copy, dtype_cls, default_dtype
         )
         return values, mask
 

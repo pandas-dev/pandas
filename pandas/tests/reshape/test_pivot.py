@@ -436,7 +436,7 @@ class TestPivotTable:
         df = DataFrame(
             {
                 "A": [1, 2, 3, 4, 5],
-                "dt": date_range("2011-01-01", freq="D", periods=5),
+                "dt": date_range("2011-01-01", freq="D", periods=5, unit="ns"),
             },
             index=idx,
         )
@@ -2673,8 +2673,6 @@ class TestPivot:
 
         result = df.pivot(index=1, columns=0, values=2)
         expected_columns = Index(["A", "B"], name=0, dtype=any_string_dtype)
-        if any_string_dtype == "object":
-            expected_columns = expected_columns.astype("str")
         tm.assert_index_equal(result.columns, expected_columns)
 
     def test_pivot_index_none(self):
@@ -2944,3 +2942,20 @@ class TestPivot:
         tm.assert_frame_equal(
             df, df_expected, check_dtype=False, check_column_type=False
         )
+
+    @pytest.mark.parametrize("freq", ["D", "M", "Q", "Y"])
+    def test_pivot_empty_dataframe_period_dtype(self, freq):
+        # GH#62705
+
+        dtype = pd.PeriodDtype(freq=freq)
+        df = DataFrame({"index": [], "columns": [], "values": []})
+        df = df.astype({"values": dtype})
+        result = df.pivot(index="index", columns="columns", values="values")
+
+        expected_index = Index([], name="index", dtype="float64")
+        expected_columns = Index([], name="columns", dtype="float64")
+        expected = DataFrame(
+            index=expected_index, columns=expected_columns, dtype=dtype
+        )
+
+        tm.assert_frame_equal(result, expected)

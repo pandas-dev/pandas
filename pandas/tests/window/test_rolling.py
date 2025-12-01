@@ -225,15 +225,10 @@ def test_datetimelike_centered_selections(
         index=date_range("2020", periods=5),
     )
 
-    if func_name == "sem":
-        kwargs = {"ddof": 0}
-    else:
-        kwargs = {}
-
     result = getattr(
         df_time.rolling("2D", closed=closed, min_periods=1, center=True),
         func_name,
-    )(**kwargs)
+    )()
 
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -761,7 +756,9 @@ def test_iter_rolling_dataframe(df, expected, window, min_periods):
     df = DataFrame(df)
     expecteds = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for expected, actual in zip(expecteds, df.rolling(window, min_periods=min_periods)):
+    for expected, actual in zip(
+        expecteds, df.rolling(window, min_periods=min_periods), strict=False
+    ):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -807,7 +804,7 @@ def test_iter_rolling_on_dataframe(expected, window):
     expecteds = [
         DataFrame(values, index=df.loc[index, "C"]) for (values, index) in expected
     ]
-    for expected, actual in zip(expecteds, df.rolling(window, on="C")):
+    for expected, actual in zip(expecteds, df.rolling(window, on="C"), strict=False):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -816,7 +813,7 @@ def test_iter_rolling_on_dataframe_unordered():
     df = DataFrame({"a": ["x", "y", "x"], "b": [0, 1, 2]})
     results = list(df.groupby("a").rolling(2))
     expecteds = [df.iloc[idx, [1]] for idx in [[0], [0, 2], [1]]]
-    for result, expected in zip(results, expecteds):
+    for result, expected in zip(results, expecteds, strict=True):
         tm.assert_frame_equal(result, expected)
 
 
@@ -858,7 +855,7 @@ def test_iter_rolling_series(ser, expected, window, min_periods):
     expecteds = [Series(values, index=index) for (values, index) in expected]
 
     for expected, actual in zip(
-        expecteds, ser.rolling(window, min_periods=min_periods)
+        expecteds, ser.rolling(window, min_periods=min_periods), strict=True
     ):
         tm.assert_series_equal(actual, expected)
 
@@ -906,10 +903,11 @@ def test_iter_rolling_datetime(expected, expected_index, window):
     ser = Series(range(5), index=date_range(start="2020-01-01", periods=5, freq="D"))
 
     expecteds = [
-        Series(values, index=idx) for (values, idx) in zip(expected, expected_index)
+        Series(values, index=idx)
+        for (values, idx) in zip(expected, expected_index, strict=True)
     ]
 
-    for expected, actual in zip(expecteds, ser.rolling(window)):
+    for expected, actual in zip(expecteds, ser.rolling(window), strict=True):
         tm.assert_series_equal(actual, expected)
 
 
@@ -1075,7 +1073,7 @@ def test_rolling_sem(frame_or_series):
     result = obj.rolling(2, min_periods=1).sem()
     if isinstance(result, DataFrame):
         result = Series(result[0].values)
-    expected = Series([np.nan] + [0.7071067811865476] * 2)
+    expected = Series([np.nan] + [0.5] * 2)
     tm.assert_series_equal(result, expected)
 
 
@@ -1233,7 +1231,9 @@ def test_rolling_decreasing_indices(method):
     increasing = getattr(df.rolling(window=5), method)()
     decreasing = getattr(df_reverse.rolling(window=5), method)()
 
-    assert np.abs(decreasing.values[::-1][:-4] - increasing.values[4:]).max() < 1e-12
+    tm.assert_almost_equal(
+        decreasing.values[::-1][:-4], increasing.values[4:], atol=1e-12
+    )
 
 
 @pytest.mark.parametrize(
@@ -1499,17 +1499,30 @@ def test_rolling_skew_kurt_numerical_stability(method):
 
 
 @pytest.mark.parametrize(
-    ("method", "values"),
+    ("method", "data", "values"),
     [
-        ("skew", [2.0, 0.854563, 0.0, 1.999984]),
-        ("kurt", [4.0, -1.289256, -1.2, 3.999946]),
+        (
+            "skew",
+            [3000000, 1, 1, 2, 3, 4, 999],
+            [np.nan] * 3 + [2.0, 0.854563, 0.0, 1.999984],
+        ),
+        (
+            "skew",
+            [1e6, -1e6, 1, 2, 3, 4, 5, 6],
+            [np.nan] * 3 + [-5.51135192e-06, -2.0, 0.0, 0.0, 0.0],
+        ),
+        (
+            "kurt",
+            [3000000, 1, 1, 2, 3, 4, 999],
+            [np.nan] * 3 + [4.0, -1.289256, -1.2, 3.999946],
+        ),
     ],
 )
-def test_rolling_skew_kurt_large_value_range(method, values):
-    # GH: 37557
-    s = Series([3000000, 1, 1, 2, 3, 4, 999])
+def test_rolling_skew_kurt_large_value_range(method, data, values):
+    # GH: 37557, 47461
+    s = Series(data)
     result = getattr(s.rolling(4), method)()
-    expected = Series([np.nan] * 3 + values)
+    expected = Series(values)
     tm.assert_series_equal(result, expected)
 
 
@@ -1895,9 +1908,11 @@ def test_rolling_skew_kurt_floating_artifacts():
     sr = Series([1 / 3, 4, 0, 0, 0, 0, 0])
     r = sr.rolling(4)
     result = r.skew()
-    assert (result[-2:] == 0).all()
+    expected = Series([np.nan, np.nan, np.nan, 1.9619045191072484, 2.0, 0.0, 0.0])
+    tm.assert_series_equal(result, expected)
     result = r.kurt()
-    assert (result[-2:] == -3).all()
+    expected = Series([np.nan, np.nan, np.nan, 3.8636048803878786, 4.0, -3.0, -3.0])
+    tm.assert_series_equal(result, expected)
 
 
 def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
@@ -1983,7 +1998,8 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
 def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     # Test Sum, GH#55106
     df_time = DataFrame(
-        {"A": range(5)}, index=date_range("2013-01-01", freq="1s", periods=5, tz=tz)
+        {"A": range(5)},
+        index=date_range("2013-01-01", freq="1s", periods=5, tz=tz, unit="ns"),
     )
     sum_in_nanosecs = df_time.rolling("1s").sum()
     # microseconds / milliseconds should not break the correct rolling

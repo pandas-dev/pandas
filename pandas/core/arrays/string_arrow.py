@@ -6,7 +6,6 @@ from typing import (
     TYPE_CHECKING,
     Self,
 )
-import warnings
 
 import numpy as np
 
@@ -19,7 +18,8 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
     pa_version_under16p0,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._decorators import set_module
+from pandas.util._validators import validate_na_arg
 
 from pandas.core.dtypes.common import (
     is_scalar,
@@ -81,6 +81,7 @@ def _is_string_view(typ):
 # fallback for the ones that pyarrow doesn't yet support
 
 
+@set_module("pandas.arrays")
 class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringArray):
     """
     Extension array for string data in a ``pyarrow.ChunkedArray``.
@@ -108,10 +109,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     See Also
     --------
     :func:`array`
-        The recommended function for creating a ArrowStringArray.
+        The recommended function for creating an ArrowStringArray.
     Series.str
         The string methods are available on Series backed by
-        a ArrowStringArray.
+        an ArrowStringArray.
 
     Notes
     -----
@@ -242,17 +243,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         return super().insert(loc, item)
 
     def _convert_bool_result(self, values, na=lib.no_default, method_name=None):
-        if na is not lib.no_default and not isna(na) and not isinstance(na, bool):
-            # TODO: Enforce in 3.0 (#59615)
-            # GH#59561
-            warnings.warn(
-                f"Allowing a non-bool 'na' in obj.str.{method_name} is deprecated "
-                "and will raise in a future version.",
-                FutureWarning,  # pdlint: ignore[warning_class]
-                stacklevel=find_stack_level(),
-            )
-            na = bool(na)
-
+        validate_na_arg(na, name="na")
         if self.dtype.na_value is np.nan:
             if na is lib.no_default or isna(na):
                 # NaN propagates as False
@@ -434,8 +425,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             or flags
             or (  # substitution contains a named group pattern
                 # https://docs.python.org/3/library/re.html
-                isinstance(repl, str)
-                and (r"\g<" in repl or re.search(r"\\\d", repl) is not None)
+                isinstance(repl, str) and r"\g<" in repl
             )
         ):
             return super()._str_replace(pat, repl, n, case, flags, regex)

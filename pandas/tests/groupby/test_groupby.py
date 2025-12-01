@@ -2269,7 +2269,7 @@ def test_groupby_cumsum_skipna_false():
 
 def test_groupby_cumsum_timedelta64():
     # GH#46216 don't ignore is_datetimelike in libgroupby.group_cumsum
-    dti = date_range("2016-01-01", periods=5)
+    dti = date_range("2016-01-01", periods=5, unit="ns")
     ser = Series(dti) - dti[0]
     ser[2] = pd.NaT
 

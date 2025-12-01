@@ -31,7 +31,10 @@ from pandas._libs.sparse import (
 from pandas._libs.tslibs import NaT
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
@@ -85,22 +88,16 @@ from pandas.core.nanops import check_below_min_count
 
 from pandas.io.formats import printing
 
-# See https://github.com/python/typing/issues/684
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
         Sequence,
     )
-    from enum import Enum
+    from types import EllipsisType
     from typing import (
         Protocol,
         type_check_only,
     )
-
-    class ellipsis(Enum):
-        Ellipsis = "..."
-
-    Ellipsis = ellipsis.Ellipsis
 
     from scipy.sparse import (
         csc_array,
@@ -132,10 +129,6 @@ if TYPE_CHECKING:
     )
 
     from pandas import Series
-
-
-else:
-    ellipsis = type(Ellipsis)
 
 
 # ----------------------------------------------------------------------------
@@ -299,6 +292,7 @@ def _wrap_result(
     )
 
 
+@set_module("pandas.arrays")
 class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     """
     An ExtensionArray for storing sparse data.
@@ -576,7 +570,11 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             if copy is True:
                 return np.array(self.sp_values)
             else:
-                return self.sp_values
+                result = self.sp_values
+                if self._readonly:
+                    result = result.view()
+                    result.flags.writeable = False
+                return result
 
         if copy is False:
             raise ValueError(
@@ -605,6 +603,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return out
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
         # I suppose we could allow setting of non-fill_value elements.
         # TODO(SparseArray.__setitem__): remove special cases in
         # ExtensionBlock.where
@@ -974,32 +974,30 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     @overload
     def __getitem__(
         self,
-        key: SequenceIndexer | tuple[int | ellipsis, ...],
+        key: SequenceIndexer | tuple[int | EllipsisType, ...],
     ) -> Self: ...
 
     def __getitem__(
         self,
-        key: PositionalIndexer | tuple[int | ellipsis, ...],
+        key: PositionalIndexer | tuple[int | EllipsisType, ...],
     ) -> Self | Any:
         if isinstance(key, tuple):
             key = unpack_tuple_and_ellipses(key)
-            if key is Ellipsis:
+            if key is ...:
                 raise ValueError("Cannot slice with Ellipsis")
 
         if is_integer(key):
             return self._get_val_at(key)
         elif isinstance(key, tuple):
-            # error: Invalid index type "Tuple[Union[int, ellipsis], ...]"
-            # for "ndarray[Any, Any]"; expected type
-            # "Union[SupportsIndex, _SupportsArray[dtype[Union[bool_,
-            # integer[Any]]]], _NestedSequence[_SupportsArray[dtype[
-            # Union[bool_, integer[Any]]]]], _NestedSequence[Union[
-            # bool, int]], Tuple[Union[SupportsIndex, _SupportsArray[
-            # dtype[Union[bool_, integer[Any]]]], _NestedSequence[
-            # _SupportsArray[dtype[Union[bool_, integer[Any]]]]],
-            # _NestedSequence[Union[bool, int]]], ...]]"
-            data_slice = self.to_dense()[key]  # type: ignore[index]
+            data_slice = self.to_dense()[key]
         elif isinstance(key, slice):
+            if key == slice(None):
+                # to ensure arr[:] (used by view()) does not make a copy
+                result = type(self)._simple_new(
+                    self.sp_values, self.sp_index, self.dtype
+                )
+                result._readonly = self._readonly
+                return result
             # Avoid densifying when handling contiguous slices
             if key.step is None or key.step == 1:
                 start = 0 if key.start is None else key.start
@@ -1571,7 +1569,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             raise ValueError(f"axis(={axis}) out of bounds")
 
         if not self._null_fill_value:
-            return SparseArray(self.to_dense()).cumsum()
+            return SparseArray(self.to_dense(), fill_value=np.nan).cumsum()
 
         return SparseArray(
             self.sp_values.cumsum(),
