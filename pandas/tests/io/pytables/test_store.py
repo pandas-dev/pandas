@@ -1017,10 +1017,12 @@ def test_duplicate_column_name(tmp_path, setup_path):
     assert other.equals(df)
 
 
-def test_preserve_timedeltaindex_type(setup_path):
+def test_preserve_timedeltaindex_type(setup_path, unit):
     # GH9635
     df = DataFrame(np.random.default_rng(2).normal(size=(10, 5)))
-    df.index = timedelta_range(start="0s", periods=10, freq="1s", name="example")
+    df.index = timedelta_range(
+        start="0s", periods=10, freq="1s", name="example", unit=unit
+    )
 
     with ensure_clean_store(setup_path) as store:
         store["df"] = df
