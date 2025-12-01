@@ -40,6 +40,7 @@ dependencies:
   - numba=0.60.0
   - numexpr=2.10.2
   - odfpy=1.4.1
+  - orjson=3.10.0
   - qtpy=2.4.2
   - openpyxl=3.1.5
   - psycopg2=2.9.10

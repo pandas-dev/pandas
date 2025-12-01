@@ -38,6 +38,7 @@ dependencies:
   - numba>=0.60.0
   - numexpr>=2.10.2
   - odfpy>=1.4.1
+  - orjson=3.10.0
   - qtpy>=2.4.2
   - pyqt>=5.15.9
   - openpyxl>=3.1.5

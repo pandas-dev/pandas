@@ -68,6 +68,7 @@ computation = ['scipy>=1.14.1', 'xarray>=2024.10.0']
 fss = ['fsspec>=2024.10.0']
 aws = ['s3fs>=2024.10.0']
 gcp = ['gcsfs>=2024.10.0']
+json = ['orjson>=3.10.0']
 excel = ['odfpy>=1.4.1', 'openpyxl>=3.1.5', 'python-calamine>=0.3.0', 'pyxlsb>=1.0.10', 'xlrd>=2.0.1', 'xlsxwriter>=3.2.0']
 parquet = ['pyarrow>=13.0.0']
 feather = ['pyarrow>=13.0.0']
@@ -99,6 +100,7 @@ all = ['adbc-driver-postgresql>=1.2.0',
        'numba>=0.60.0',
        'numexpr>=2.10.2',
        'odfpy>=1.4.1',
+       'orjson>=3.10.0',
        'openpyxl>=3.1.5',
        'psycopg2>=2.9.10',
        'pyarrow>=13.0.0',

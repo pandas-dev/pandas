@@ -35,6 +35,7 @@ VERSIONS = {
     "numba": "0.60.0",
     "numexpr": "2.10.2",
     "odfpy": "1.4.1",
+    "orjson": "3.10.0",
     "openpyxl": "3.1.5",
     "psycopg2": "2.9.10",  # (dt dec pq3 ext lo64)
     "pymysql": "1.1.1",
