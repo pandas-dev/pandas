@@ -1509,6 +1509,9 @@ class TestExcelWriter:
 
     def test_to_excel_multiindex_nan_in_columns(self, merge_cells, tmp_excel):
         # GH 62340
+        # Test that MultiIndex column headers with NaN are written to Excel correctly
+        # Note: read_excel cannot reconstruct NaN from empty cells in headers,
+        # so we verify the data round-trips correctly instead
         df = (
             DataFrame({"a": list("ABBAAAB"), "b": [-1, 1, 1, -2, float("nan"), 3, -4]})
             .assign(b_bin=lambda x: pd.cut(x.b, bins=[-float("inf"), 0, float("inf")]))
@@ -1522,7 +1525,14 @@ class TestExcelWriter:
 
         with ExcelFile(tmp_excel) as reader:
             result = pd.read_excel(reader, index_col=0, header=[0, 1])
-
+        
+        # Test structure is preserved
+        assert result.shape == df.shape
+        assert list(result.index) == list(df.index)
+        assert isinstance(result.columns, MultiIndex)
+        assert result.columns.nlevels == df.columns.nlevels
+        
+        # Test data values are preserved (most important part)
         tm.assert_numpy_array_equal(result.to_numpy(), df.to_numpy())
 
     @pytest.mark.parametrize("with_index", [True, False])

@@ -650,7 +650,11 @@ class ExcelFormatter:
         for lnum, (spans, levels, level_codes) in enumerate(
             zip(level_lengths, fixed_columns.levels, fixed_columns.codes, strict=True)
         ):
-            values = levels.take(level_codes)
+            # GH#62340: Use original column values (with NaN) instead of NBSP-filled ones
+            # Get values from original columns (which have NaN), not fixed_columns
+            orig_level_values = columns.get_level_values(lnum)
+            # Extract the values according to the order in fixed_columns
+            values = orig_level_values[:len(level_codes)]
             for i, span_val in spans.items():
                 mergestart, mergeend = None, None
                 if merge_columns and span_val > 1:
