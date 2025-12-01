@@ -122,7 +122,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     --------
     >>> pd.TimedeltaIndex(["0 days", "1 days", "2 days", "3 days", "4 days"])
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[us]', freq=None)
 
     We can also let pandas infer the frequency when possible.
 
@@ -319,14 +319,14 @@ def timedelta_range(
     --------
     >>> pd.timedelta_range(start="1 day", periods=4)
     TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq='D')
+                   dtype='timedelta64[us]', freq='D')
 
     The ``closed`` parameter specifies which endpoint is included.  The default
     behavior is to include both endpoints.
 
     >>> pd.timedelta_range(start="1 day", periods=4, closed="right")
     TimedeltaIndex(['2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq='D')
+                   dtype='timedelta64[us]', freq='D')
 
     The ``freq`` parameter specifies the frequency of the TimedeltaIndex.
     Only fixed frequencies can be passed, non-fixed frequencies such as
@@ -335,7 +335,7 @@ def timedelta_range(
     >>> pd.timedelta_range(start="1 day", end="2 days", freq="6h")
     TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 12:00:00',
                     '1 days 18:00:00', '2 days 00:00:00'],
-                   dtype='timedelta64[ns]', freq='6h')
+                   dtype='timedelta64[us]', freq='6h')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
@@ -343,7 +343,7 @@ def timedelta_range(
     >>> pd.timedelta_range(start="1 day", end="5 days", periods=4)
     TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',
                     '5 days 00:00:00'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[us]', freq=None)
 
     **Specify a unit**
 
