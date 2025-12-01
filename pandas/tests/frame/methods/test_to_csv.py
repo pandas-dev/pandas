@@ -128,7 +128,7 @@ class TestDataFrameToCSV:
     def test_to_csv_from_csv4(self, temp_file):
         path = str(temp_file)
         # GH 10833 (TimedeltaIndex formatting)
-        dt = pd.Timedelta(seconds=1)
+        dt = pd.Timedelta(seconds=1).as_unit("us")
         df = DataFrame(
             {"dt_data": [i * dt for i in range(3)]},
             index=Index([i * dt for i in range(3)], name="dt_index"),
@@ -1163,7 +1163,7 @@ class TestDataFrameToCSV:
 
         tm.assert_frame_equal(test, nat_frame)
 
-    @pytest.mark.parametrize("td", [pd.Timedelta(0), pd.Timedelta("10s")])
+    @pytest.mark.parametrize("td", [pd.Timedelta(0).as_unit("us"), pd.Timedelta("10s")])
     def test_to_csv_with_dst_transitions(self, td, temp_file):
         path = str(temp_file)
         # make sure we are not failing on transitions
@@ -1182,11 +1182,7 @@ class TestDataFrameToCSV:
         # we have to reconvert the index as we
         # don't parse the tz's
         result = read_csv(path, index_col=0)
-        result.index = (
-            to_datetime(result.index, utc=True)
-            .tz_convert("Europe/London")
-            .as_unit("ns")
-        )
+        result.index = to_datetime(result.index, utc=True).tz_convert("Europe/London")
         tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize(

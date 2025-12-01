@@ -453,7 +453,7 @@ class TimedeltaProperties(Properties):
     0   0 days 00:00:01
     1   0 days 00:00:02
     2   0 days 00:00:03
-    dtype: timedelta64[ns]
+    dtype: timedelta64[us]
     >>> seconds_series.dt.seconds
     0    1
     1    2

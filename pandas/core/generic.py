@@ -1573,7 +1573,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> s = pd.Series([pd.Timedelta("1 days")])
         >>> s.abs()
         0   1 days
-        dtype: timedelta64[ns]
+        dtype: timedelta64[us]
 
         Select rows with data closest to certain value using argsort (from
         `StackOverflow <https://stackoverflow.com/a/17758115>`__).
