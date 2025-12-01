@@ -236,7 +236,11 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     # "pandas.core.indexes.datetimelike.DatetimeIndexOpsMixin"
     def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, Resolution]:  # type: ignore[override]
         parsed = Timedelta(label)
-        reso = Resolution.get_reso_from_freqstr(parsed.unit)
+        if isinstance(parsed, Timedelta):
+            reso = Resolution.get_reso_from_freqstr(parsed.unit)
+        else:
+            # i.e. pd.NaT
+            reso = Resolution.get_reso_from_freqstr("s")
         return parsed, reso
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: Timedelta):
