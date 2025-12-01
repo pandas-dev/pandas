@@ -13,6 +13,7 @@ from typing import (
     Any,
     ClassVar,
     Self,
+    cast,
 )
 
 import numpy as np
@@ -44,7 +45,10 @@ from pandas.io.formats.printing import (
 )
 
 if TYPE_CHECKING:
-    from pandas._typing import npt
+    from pandas._typing import (
+        TimeUnit,
+        npt,
+    )
 
 
 class PyTablesScope(_scope.Scope):
@@ -230,7 +234,7 @@ class BinOp(ops.BinOp):
             #  test_append_with_timedelta gets here
             unit = "ns"
             if "[" in kind:
-                unit = kind[-3:-1]
+                unit = cast("TimeUnit", kind[-3:-1])
             if isinstance(conv_val, str):
                 conv_val = Timedelta(conv_val)
             elif lib.is_integer(conv_val) or lib.is_float(conv_val):
