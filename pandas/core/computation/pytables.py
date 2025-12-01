@@ -230,11 +230,9 @@ class BinOp(ops.BinOp):
                 conv_val = conv_val.tz_convert("UTC")
             return TermValue(conv_val, conv_val._value, kind)
         elif kind.startswith("timedelta"):
-            # TODO: other timedelta64 units? 2025-11-30 only
-            #  test_append_with_timedelta gets here
             unit = "ns"
             if "[" in kind:
-                unit = cast("TimeUnit", kind[-3:-1])
+                unit = cast("TimeUnit", kind.split("[")[-1][:-1])
             if isinstance(conv_val, str):
                 conv_val = Timedelta(conv_val)
             elif lib.is_integer(conv_val) or lib.is_float(conv_val):
