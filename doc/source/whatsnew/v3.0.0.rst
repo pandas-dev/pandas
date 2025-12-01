@@ -117,6 +117,9 @@ process in more detail.
 
     `PDEP-7: Consistent copy/view semantics in pandas with Copy-on-Write <https://pandas.pydata.org/pdeps/0007-copy-on-write.html>`__
 
+Setting the option ``mode.copy_on_write`` no longer has any impact. The option is deprecated
+and will be removed in pandas 4.0.
+
 .. _whatsnew_300.enhancements.col:
 
 ``pd.col`` syntax can now be used in :meth:`DataFrame.assign` and :meth:`DataFrame.loc`
@@ -1312,6 +1315,7 @@ Sparse
 - Bug in :class:`SparseDtype` for equal comparison with na fill value. (:issue:`54770`)
 - Bug in :meth:`DataFrame.sparse.from_spmatrix` which hard coded an invalid ``fill_value`` for certain subtypes. (:issue:`59063`)
 - Bug in :meth:`DataFrame.sparse.to_dense` which ignored subclassing and always returned an instance of :class:`DataFrame` (:issue:`59913`)
+- Bug in :meth:`cumsum` for integer arrays Calling SparseArray.cumsum caused max recursion depth error. (:issue:`62669`)
 
 ExtensionArray
 ^^^^^^^^^^^^^^
