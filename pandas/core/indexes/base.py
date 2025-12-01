@@ -1319,7 +1319,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def repeat(self, repeats, axis: None = None) -> Self:
         """
-        Repeat elements of a Index.
+        Repeat elements of an Index.
 
         Returns a new Index where each element of the current Index
         is repeated consecutively a given number of times.
@@ -4937,7 +4937,7 @@ class Index(IndexOpsMixin, PandasObject):
         Whether we can use the fastpaths implemented in _libs.join.
 
         This is driven by whether (in monotonic increasing cases that are
-        guaranteed not to have NAs) we can convert to a np.ndarray without
+        guaranteed not to have NAs) we can convert to an np.ndarray without
         making a copy. If we cannot, this negates the performance benefit
         of using libjoin.
         """
@@ -7285,19 +7285,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             other = np.asarray(other)
 
-        if is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
-            # e.g. PeriodArray, Categorical
-            result = op(self._values, other)
-
-        elif isinstance(self._values, ExtensionArray):
-            result = op(self._values, other)
-
-        elif is_object_dtype(self.dtype) and not isinstance(self, ABCMultiIndex):
-            # don't pass MultiIndex
-            result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
-
-        else:
-            result = ops.comparison_op(self._values, other, op)
+        result = ops.comparison_op(self._values, other, op)
 
         return result
 

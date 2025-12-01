@@ -109,8 +109,8 @@ class TestDataFrameDiff:
         # GH#18578
         df = DataFrame(
             {
-                0: date_range("2010", freq="D", periods=2, tz=tz),
-                1: date_range("2010", freq="D", periods=2, tz=tz),
+                0: date_range("2010", freq="D", periods=2, tz=tz, unit="ns"),
+                1: date_range("2010", freq="D", periods=2, tz=tz, unit="ns"),
             }
         )
 
@@ -128,8 +128,8 @@ class TestDataFrameDiff:
         # GH#18578
         df = DataFrame(
             {
-                0: date_range("2010", freq="D", periods=2, tz=tz),
-                1: date_range("2010", freq="D", periods=2, tz=tz),
+                0: date_range("2010", freq="D", periods=2, tz=tz, unit="ns"),
+                1: date_range("2010", freq="D", periods=2, tz=tz, unit="ns"),
             }
         )
 
