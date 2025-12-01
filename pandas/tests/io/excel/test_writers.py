@@ -1525,13 +1525,13 @@ class TestExcelWriter:
 
         with ExcelFile(tmp_excel) as reader:
             result = pd.read_excel(reader, index_col=0, header=[0, 1])
-        
+
         # Test structure is preserved
         assert result.shape == df.shape
         assert list(result.index) == list(df.index)
         assert isinstance(result.columns, MultiIndex)
         assert result.columns.nlevels == df.columns.nlevels
-        
+
         # Test data values are preserved (most important part)
         tm.assert_numpy_array_equal(result.to_numpy(), df.to_numpy())
 

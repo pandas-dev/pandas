@@ -654,7 +654,7 @@ class ExcelFormatter:
             # Get values from original columns (which have NaN), not fixed_columns
             orig_level_values = columns.get_level_values(lnum)
             # Extract the values according to the order in fixed_columns
-            values = orig_level_values[:len(level_codes)]
+            values = orig_level_values[: len(level_codes)]
             for i, span_val in spans.items():
                 mergestart, mergeend = None, None
                 if merge_columns and span_val > 1:
