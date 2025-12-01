@@ -230,18 +230,19 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         return Index.get_loc(self, key)
 
-    # error: Return type "tuple[Timedelta | NaTType, None]" of "_parse_with_reso"
-    # incompatible with return type "tuple[datetime, Resolution]" in supertype
-    # "DatetimeIndexOpsMixin"
-    def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, None]:  # type: ignore[override]
-        # the "with_reso" is a no-op for TimedeltaIndex
+    def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, Resolution]:
         parsed = Timedelta(label)
-        return parsed, None
+        reso = Resolution.get_reso_from_freqstr(parsed.unit)
+        return parsed, reso
 
-    def _parsed_string_to_bounds(self, reso, parsed: Timedelta):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: Timedelta):
         # reso is unused, included to match signature of DTI/PI
         lbound = parsed.round(parsed.resolution_string)
-        rbound = lbound + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
+        rbound = (
+            lbound
+            + to_offset(parsed.resolution_string)
+            - Timedelta(1, unit=self.unit).as_unit(self.unit)
+        )
         return lbound, rbound
 
     # -------------------------------------------------------------------

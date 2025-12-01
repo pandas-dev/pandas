@@ -117,7 +117,7 @@ def _astype_nansafe(
             # bc we know arr.dtype == object, this is equivalent to
             #  `np.asarray(to_timedelta(arr))`, but using a lower-level API that
             #  does not require a circular import.
-            tdvals = array_to_timedelta64(arr).view("m8[ns]")
+            tdvals = array_to_timedelta64(arr)
 
             tda = ensure_wrapped_if_datetimelike(tdvals)
             return tda.astype(dtype, copy=False)._ndarray

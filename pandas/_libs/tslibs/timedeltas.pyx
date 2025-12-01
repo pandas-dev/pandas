@@ -449,11 +449,16 @@ def array_to_timedelta64(
                     ival = parse_iso_format_string(item)
                 else:
                     ival = parse_timedelta_string(item)
+                if not needs_nano_unit(ival, item):
+                    item_reso = NPY_DATETIMEUNIT.NPY_FR_us
+                    ival = ival // 1000
+                else:
+                    item_reso = NPY_FR_ns
 
-                item_reso = NPY_FR_ns
-                state.update_creso(item_reso)
-                if infer_reso:
-                    creso = state.creso
+                if ival != NPY_NAT:
+                    state.update_creso(item_reso)
+                    if infer_reso:
+                        creso = state.creso
 
             elif is_tick_object(item):
                 item_reso = get_supported_reso(item._creso)
@@ -738,7 +743,7 @@ cdef bint needs_nano_unit(int64_t ival, str item):
     # TODO: more performant way of doing this check?
     if ival % 1000 != 0:
         return True
-    return re.search(r"\.\d{7}", item) or "ns" in item or "nano" in item
+    return re.search(r"\.\d{7}", item) or "ns" in item or "nano" in item.lower()
 
 
 cpdef inline str parse_timedelta_unit(str unit):

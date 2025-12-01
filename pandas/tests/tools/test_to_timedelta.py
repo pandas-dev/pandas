@@ -84,7 +84,7 @@ class TestTimedeltas:
     def test_to_timedelta_series(self):
         # Series
         expected = Series(
-            [timedelta(days=1), timedelta(days=1, seconds=1)], dtype="m8[ns]"
+            [timedelta(days=1), timedelta(days=1, seconds=1)], dtype="m8[us]"
         )
 
         msg = "'d' is deprecated and will be removed in a future version."
@@ -208,7 +208,7 @@ class TestTimedeltas:
 
     def test_to_timedelta_via_apply(self):
         # GH 5458
-        expected = Series([np.timedelta64(1, "s")], dtype="m8[ns]")
+        expected = Series([np.timedelta64(1, "s")], dtype="m8[us]")
         result = Series(["00:00:01"]).apply(to_timedelta)
         tm.assert_series_equal(result, expected)
 
@@ -222,7 +222,7 @@ class TestTimedeltas:
         with tm.assert_produces_warning(None):
             result = to_timedelta(vals)
 
-        expected = TimedeltaIndex([pd.Timedelta(seconds=1), pd.NaT])
+        expected = TimedeltaIndex([pd.Timedelta(seconds=1), pd.NaT], dtype="m8[us]")
         tm.assert_index_equal(result, expected)
 
     def test_to_timedelta_on_missing_values(self):
@@ -232,11 +232,11 @@ class TestTimedeltas:
         actual = to_timedelta(Series(["00:00:01", np.nan]))
         expected = Series(
             [np.timedelta64(1000000000, "ns"), timedelta_NaT],
-            dtype=f"{tm.ENDIAN}m8[ns]",
+            dtype=f"{tm.ENDIAN}m8[us]",
         )
         tm.assert_series_equal(actual, expected)
 
-        ser = Series(["00:00:01", pd.NaT], dtype="m8[ns]")
+        ser = Series(["00:00:01", pd.NaT], dtype="m8[us]")
         actual = to_timedelta(ser)
         tm.assert_series_equal(actual, expected)
 

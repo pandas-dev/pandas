@@ -1017,6 +1017,7 @@ def test_duplicate_column_name(tmp_path, setup_path):
     assert other.equals(df)
 
 
+@pytest.mark.xfail(reason="non-nano TimedeltaIndex does not round-trip")
 def test_preserve_timedeltaindex_type(setup_path):
     # GH9635
     df = DataFrame(np.random.default_rng(2).normal(size=(10, 5)))

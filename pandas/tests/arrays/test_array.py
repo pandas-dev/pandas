@@ -163,7 +163,7 @@ def test_dt64_array(dtype_unit):
         (
             pd.TimedeltaIndex(["1h", "2h"]),
             None,
-            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[ns]"),
+            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[us]"),
         ),
         (
             # preserve non-nano, i.e. don't cast to NumpyExtensionArray
@@ -369,7 +369,7 @@ def test_array_copy():
         # timedelta
         (
             [pd.Timedelta("1h"), pd.Timedelta("2h")],
-            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[ns]"),
+            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[us]"),
         ),
         (
             np.array([1, 2], dtype="m8[ns]"),

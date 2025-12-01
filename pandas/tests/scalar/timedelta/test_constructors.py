@@ -133,19 +133,19 @@ class TestTimedeltaConstructorUnitKeyword:
             [np.timedelta64(i, np_unit) for i in np.arange(5).tolist()],
             dtype="m8[ns]",
         )
-        # TODO(2.0): the desired output dtype may have non-nano resolution
 
         result = to_timedelta(wrapper(range(5)), unit=unit)
         tm.assert_index_equal(result, expected)
 
         str_repr = [f"{x}{unit}" for x in np.arange(5)]
+        exp_unit = "us" if np_unit != "ns" else "ns"
         result = to_timedelta(wrapper(str_repr))
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected.as_unit(exp_unit))
         result = to_timedelta(wrapper(str_repr))
-        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected.as_unit(exp_unit))
 
         # scalar
-        expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
+        expected = Timedelta(np.timedelta64(2, np_unit)).as_unit(exp_unit)
         result = to_timedelta(2, unit=unit)
         assert result == expected
         result = Timedelta(2, unit=unit)
