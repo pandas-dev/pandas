@@ -2387,6 +2387,7 @@ def external_values(values: ArrayLike) -> ArrayLike:
         values.flags.writeable = False
     else:
         # ExtensionArrays
+        # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
         # values = values.view()
         # values._readonly = True
         pass

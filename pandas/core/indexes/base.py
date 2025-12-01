@@ -5023,6 +5023,7 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas.core.arrays.numpy_ import NumpyExtensionArray
 
             array = NumpyExtensionArray(array)
+        # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
         # array = array.view()
         # array._readonly = True
         return array
