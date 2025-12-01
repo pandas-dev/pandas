@@ -449,7 +449,10 @@ def array_to_timedelta64(
                     ival = parse_iso_format_string(item)
                 else:
                     ival = parse_timedelta_string(item)
-                if infer_reso and not needs_nano_unit(ival, item):
+                if (
+                    (infer_reso or creso == NPY_DATETIMEUNIT.NPY_FR_us)
+                    and not needs_nano_unit(ival, item)
+                ):
                     item_reso = NPY_DATETIMEUNIT.NPY_FR_us
                     ival = ival // 1000
                 else:
