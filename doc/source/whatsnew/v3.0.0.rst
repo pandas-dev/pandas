@@ -796,6 +796,7 @@ Other Deprecations
 
 - Deprecated :func:`core.internals.api.make_block`, use public APIs instead (:issue:`56815`)
 - Deprecated :meth:`.DataFrameGroupby.corrwith` (:issue:`57158`)
+- Deprecated :meth:`PeriodDtype.freq`, use ``dtype.unit`` instead (:issue:`61897`)
 - Deprecated :meth:`Timestamp.utcfromtimestamp`, use ``Timestamp.fromtimestamp(ts, "UTC")`` instead (:issue:`56680`)
 - Deprecated :meth:`Timestamp.utcnow`, use ``Timestamp.now("UTC")`` instead (:issue:`56680`)
 - Deprecated ``pd.core.internals.api.maybe_infer_ndim`` (:issue:`40226`)

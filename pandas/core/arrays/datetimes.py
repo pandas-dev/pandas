@@ -757,7 +757,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             )
 
         elif isinstance(dtype, PeriodDtype):
-            return self.to_period(freq=dtype.freq)
+            return self.to_period(freq=dtype.unit)
         return dtl.DatetimeLikeArrayMixin.astype(self, dtype, copy)
 
     # -----------------------------------------------------------------
