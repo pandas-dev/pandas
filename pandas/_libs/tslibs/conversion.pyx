@@ -276,7 +276,7 @@ cdef (int64_t, int) precision_from_unit(
 
 cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
     """
-    Extract the value and unit from a np.datetime64 object, then convert the
+    Extract the value and unit from an np.datetime64 object, then convert the
     value to nanoseconds if necessary.
     """
     cdef:
