@@ -894,8 +894,10 @@ with cf.config_prefix("future"):
     cf.register_option(
         "distinguish_nan_and_na",
         os.environ.get("PANDAS_FUTURE_DISTINGUISH_NAN_AND_NA", "0") == "1",
-        "Whether to treat NaN entries as interchangeable with pd.NA in "
-        "numpy-nullable and pyarrow float dtypes. See discussion in "
+        "Whether to treat NaN entries as distinct from pd.NA in "
+        "numpy-nullable and pyarrow float dtypes. By default treats both "
+        "interchangeable as missing values (NaN will be coerced to NA). "
+        "See discussion in "
         "https://github.com/pandas-dev/pandas/issues/32265",
         validator=is_one_of_factory([True, False]),
     )
