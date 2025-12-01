@@ -230,7 +230,11 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         return Index.get_loc(self, key)
 
-    def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, Resolution]:
+    # error: Return type "tuple[Timedelta | NaTType, Resolution]" of
+    # "_parse_with_reso" incompatible with return type
+    # "tuple[datetime, Resolution]" in supertype
+    # "pandas.core.indexes.datetimelike.DatetimeIndexOpsMixin"
+    def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, Resolution]:  # type: ignore[override]
         parsed = Timedelta(label)
         reso = Resolution.get_reso_from_freqstr(parsed.unit)
         return parsed, reso
