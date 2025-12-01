@@ -2127,16 +2127,52 @@ class Index(IndexOpsMixin, PandasObject):
         verification must be done like in MultiIndex.
 
         """
-        if isinstance(level, int):
-            if level < 0 and level != -1:
-                raise IndexError(
-                    "Too many levels: Index has only 1 level, "
-                    f"{level} is not a valid level number"
+        if isna(level) and isna(self.name):
+            return
+
+        elif isna(level) and not isna(self.name):
+            raise KeyError(
+                f"Requested level ({level}) does not match index name ({self.name})"
+            )
+
+        elif not isna(level) and isna(self.name):
+            # level is not NA, but self.name is NA
+            # This is valid for integer levels (0, -1) accessing unnamed index
+            if lib.is_integer(level):
+                if level < 0 and level != -1:
+                    raise IndexError(
+                        f"Too many levels: Index has only 1 level, not {level + 1}"
+                    )
+                elif level > 0:
+                    raise IndexError(
+                        f"Too many levels: Index has only 1 level, not {level + 1}"
+                    )
+                return
+            else:
+                raise KeyError(
+                    f"Requested level ({level}) does not match index name ({self.name})"
                 )
-            if level > 0:
+
+        elif lib.is_integer(level):
+            if isinstance(self.name, int) and level == self.name:
+                return
+            if level < 0 and level != -1:
                 raise IndexError(
                     f"Too many levels: Index has only 1 level, not {level + 1}"
                 )
+            elif level > 0:
+                raise IndexError(
+                    f"Too many levels: Index has only 1 level, not {level + 1}"
+                )
+            return
+
+        elif isinstance(level, str) and isinstance(self.name, str):
+            if level != self.name:
+                raise KeyError(
+                    f"Requested level ({level}) does not match index name ({self.name})"
+                )
+            return
+
         elif level != self.name:
             raise KeyError(
                 f"Requested level ({level}) does not match index name ({self.name})"
