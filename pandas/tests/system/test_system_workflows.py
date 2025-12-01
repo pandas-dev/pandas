@@ -5,7 +5,8 @@ These tests validate complete user workflows through public APIs only,
 treating the system as a black box without referencing internal implementation.
 
 Test Categories:
-Data Loading and Export Workflow (Sandeep Ramavath)
+1. Data Loading and Export Workflow (Sandeep Ramavath)
+2. Data Cleaning and Transformation Workflow (Nithikesh Bobbili)
 """
 import os
 import tempfile
@@ -71,3 +72,61 @@ class TestDataIOWorkflow:
         assert pd.api.types.is_datetime64_any_dtype(loaded_data['date'])
 
 
+class TestDataCleaningWorkflow:
+    """
+    System tests by Nithikesh Bobbili.
+    Validates end-to-end data cleaning and transformation workflows.
+    """
+    
+    def test_missing_data_handling_workflow(self):
+        """
+        Test Case: Missing Data Cleaning Workflow
+        
+        Pre-conditions:
+        - pandas library available
+        - No external dependencies required
+        
+        Test Steps:
+        1. Create DataFrame with missing values using public API
+        2. Detect missing values using public methods
+        3. Fill missing values using multiple strategies
+        4. Verify all missing values handled correctly
+        
+        Expected Results:
+        - Missing values correctly identified
+        - Forward fill propagates last valid value
+        - Backward fill propagates next valid value
+        - Constant fill replaces with specified value
+        - No missing values remain after filling
+        """
+        # Step 1: Create DataFrame with missing data
+        data = pd.DataFrame({
+            'A': [1, np.nan, 3, np.nan, 5],
+            'B': [np.nan, 2, np.nan, 4, 5],
+            'C': [1, 2, 3, 4, np.nan]
+        })
+        
+        # Step 2: Detect missing values using public API
+        missing_count = data.isnull().sum()
+        assert missing_count['A'] == 2, "Column A should have 2 missing values"
+        assert missing_count['B'] == 2, "Column B should have 2 missing values"
+        assert missing_count['C'] == 1, "Column C should have 1 missing value"
+        
+        # Step 3a: Fill missing values with forward fill
+        filled_ffill = data.ffill()
+        assert filled_ffill.isnull().sum().sum() == 1, "Should have 1 remaining NaN at start"
+        assert filled_ffill.loc[1, 'A'] == 1.0, "Should forward fill from previous value"
+        
+        # Step 3b: Fill missing values with backward fill
+        filled_bfill = data.bfill()
+        assert filled_bfill.isnull().sum().sum() == 1, "Should have 1 remaining NaN at end"
+        assert filled_bfill.loc[0, 'B'] == 2.0, "Should backward fill from next value"
+        
+        # Step 3c: Fill with constant value
+        filled_constant = data.fillna(0)
+        assert filled_constant.isnull().sum().sum() == 0, "No missing values should remain"
+        assert filled_constant.loc[1, 'A'] == 0.0, "Should fill with constant value"
+        
+        # Step 4: Verify complete workflow
+        original_shape = data.shape
+        assert filled_constant.shape == original_shape, "Shape should be preserved"
