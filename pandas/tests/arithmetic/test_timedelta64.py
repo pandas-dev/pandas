@@ -621,6 +621,9 @@ class TestTimedelta64ArithmeticUnsorted:
             and two_hours.unit == "ns"
             and box_with_array is not pd.array
         ):
+            # The EA op has to be _actually_ inplace so does not cast to a
+            #  new dtype.  For the others, the op can assign a new array
+            #  and get the dtype that normally results from `rng + two_hours`
             expected = expected.as_unit("ns")
 
         rng = tm.box_expected(rng, box_with_array)
@@ -642,6 +645,9 @@ class TestTimedelta64ArithmeticUnsorted:
             and two_hours.unit == "ns"
             and box_with_array is not pd.array
         ):
+            # The EA op has to be _actually_ inplace so does not cast to a
+            #  new dtype.  For the others, the op can assign a new array
+            #  and get the dtype that normally results from `rng - two_hours`
             expected = expected.as_unit("ns")
 
         rng = tm.box_expected(rng, box_with_array)
