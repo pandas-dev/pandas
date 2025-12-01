@@ -7,6 +7,7 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs.timedeltas import Timedelta
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -758,4 +759,17 @@ def test_intersection_non_nano_rangelike():
         dtype="datetime64[s]",
         freq="D",
     )
+    tm.assert_index_equal(result, expected)
+
+
+def test_cday_intersection_empty():
+    # GH#44025
+    off = pd.offsets.CDay(1, normalize=False)
+    ts = Timestamp("2021-10-13 09:00")
+    ts2 = ts + Timedelta("1 hour")
+
+    dti1 = date_range(start=ts, periods=10, freq=off)
+    dti2 = date_range(start=ts2, periods=10, freq=off)
+    result = dti1.intersection(dti2)
+    expected = DatetimeIndex([], dtype="datetime64[ns]")
     tm.assert_index_equal(result, expected)

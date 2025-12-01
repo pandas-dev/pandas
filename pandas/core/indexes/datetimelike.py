@@ -807,6 +807,13 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # Because freq is not None, we must then be monotonic decreasing
             return False
 
+        # for non-anchored frequencies, need to check that the two
+        #  indexes actually share a common point
+        # GH#44025
+        diff = other[0] - self[0]
+        if diff != Timedelta(0) and diff.total_seconds() % 86400 != 0:
+            return False
+
         # this along with matching freqs ensure that we "line up",
         #  so intersection will preserve freq
         # Note we are assuming away Ticks, as those go through _range_intersect
