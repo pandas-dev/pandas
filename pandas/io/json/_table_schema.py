@@ -386,7 +386,7 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
             'table="orient" can not yet read ISO-formatted Timedelta data'
         )
 
-    with option_context("mode.nan_is_na", True):
+    with option_context("future.distinguish_nan_and_na", False):
         df = df.astype(dtypes)
 
     if "primaryKey" in table["schema"]:

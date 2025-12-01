@@ -547,29 +547,55 @@ small behavior differences as collateral:
 Changed treatment of NaN values in pyarrow and numpy-nullable floating dtypes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously, when dealing with a nullable dtype (e.g. ``Float64Dtype`` or ``int64[pyarrow]``), ``NaN`` was treated as interchangeable with :class:`NA` in some circumstances but not others. This was done to make adoption easier, but caused some confusion (:issue:`32265`). In 3.0, an option ``"mode.nan_is_na"`` (default ``True``) controls whether to treat ``NaN`` as equivalent to :class:`NA`.
+Previously, when dealing with a nullable dtype (e.g. ``Float64Dtype`` or ``int64[pyarrow]``),
+``NaN`` was treated as interchangeable with :class:`NA` in some circumstances but not others.
+This was done to make adoption easier, but caused some confusion (:issue:`32265`).
+In 3.0, this behaviour is made consistent to by default treat ``NaN`` as equivalent
+to :class:`NA` in all cases.
 
-With ``pd.set_option("mode.nan_is_na", True)`` (again, this is the default), ``NaN`` can be passed to constructors, ``__setitem__``, ``__contains__`` and be treated the same as :class:`NA`. The only change users will see is that arithmetic and ``np.ufunc`` operations that previously introduced ``NaN`` entries produce :class:`NA` entries instead:
+By default, ``NaN`` can be passed to constructors, ``__setitem__``, ``__contains__``
+and will be treated the same as :class:`NA`. The only change users will see is
+that arithmetic and ``np.ufunc`` operations that previously introduced ``NaN``
+ entries produce :class:`NA` entries instead.
 
 *Old behavior:*
 
 .. code-block:: ipython
 
-    In [2]: ser = pd.Series([0, None], dtype=pd.Float64Dtype())
+    # NaN in input gets converted to NA
+    In [1]: ser = pd.Series([0, np.nan], dtype=pd.Float64Dtype())
+    In [2]: ser
+    Out[2]:
+    0     0.0
+    1    <NA>
+    dtype: Float64
+    # NaN produced by arithmetic (0/0) remained NaN
     In [3]: ser / 0
     Out[3]:
     0     NaN
     1    <NA>
     dtype: Float64
+    # the NaN value is not considered as missing
+    In [4]: (ser / 0).isna()
+    Out[4]:
+    0    False
+    1     True
+    dtype: bool
 
 *New behavior:*
 
 .. ipython:: python
 
-    ser = pd.Series([0, None], dtype=pd.Float64Dtype())
+    ser = pd.Series([0, np.nan], dtype=pd.Float64Dtype())
+    ser
     ser / 0
+    (ser / 0).isna()
 
-By contrast, with ``pd.set_option("mode.nan_is_na", False)``, ``NaN`` is always considered distinct and specifically as a floating-point value, so cannot be used with integer dtypes:
+In the future, the intention is to consider ``NaN`` and :class:`NA` as distinct
+values, and an option to control this behaviour is added in 3.0 through
+``pd.options.future.distinguish_nan_and_na``. When enabled, ``NaN`` is always
+considered distinct and specifically as a floating-point value. As a consequence,
+it cannot be used with integer dtypes.
 
 *Old behavior:*
 
@@ -583,13 +609,21 @@ By contrast, with ``pd.set_option("mode.nan_is_na", False)``, ``NaN`` is always 
 
 .. ipython:: python
 
-    pd.set_option("mode.nan_is_na", False)
-    ser = pd.Series([1, np.nan], dtype=pd.Float64Dtype())
-    ser[1]
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = pd.Series([1, np.nan], dtype=pd.Float64Dtype())
+        print(ser[1])
 
-If we had passed ``pd.Int64Dtype()`` or ``"int64[pyarrow]"`` for the dtype in the latter example, this would raise, as a float ``NaN`` cannot be held by an integer dtype.
+If we had passed ``pd.Int64Dtype()`` or ``"int64[pyarrow]"`` for the dtype in
+the latter example, this would raise, as a float ``NaN`` cannot be held by an
+integer dtype.
 
-With ``"mode.nan_is_na"`` set to ``False``, ``ser.to_numpy()`` (and ``frame.values`` and ``np.asarray(obj)``) will convert to ``object`` dtype if :class:`NA` entries are present, where before they would coerce to ``NaN``.  To retain a float numpy dtype, explicitly pass ``na_value=np.nan`` to :meth:`Series.to_numpy`.
+With ``"future.distinguish_nan_and_na"`` enabled, ``ser.to_numpy()`` (and
+``frame.values`` and ``np.asarray(obj)``) will convert to ``object`` dtype if
+:class:`NA` entries are present, where before they would coerce to
+``NaN``.  To retain a float numpy dtype, explicitly pass ``na_value=np.nan``
+to :meth:`Series.to_numpy`.
+
+Note that the option is experimental and subject to change in future releases.
 
 The ``__module__`` attribute now points to public modules
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
