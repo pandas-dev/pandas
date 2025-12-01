@@ -32,3 +32,9 @@ pandas/tests/util/test_integration.
 py::TestNithikeshIntegration::test_validate_fillna_with_clean_method PASSED
 pandas/tests/util/test_integration.py::TestNithikeshIntegration::test_series_fillna_integration PASSED
 pandas/tests/util/test_integration.
+
+py::TestMallikarjunaIntegration::test_check_dtype_backend_with_lib_sentinel PASSED
+pandas/tests/util/test_integration.py::TestMallikarjunaIntegration::test_percentile_validation_with_numpy_arrays PASSED
+
+=================================== 6 passed in 0.94s
+```
