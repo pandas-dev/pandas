@@ -629,11 +629,43 @@ class TestFrameFlexArithmetic:
         expected = float_frame.sort_index() * np.nan
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            float_frame.add(float_frame.iloc[0], fill_value=3)
+    @pytest.mark.parametrize("axis", [0, 1])
+    def test_arith_flex_frame_fill_value_series(self, float_frame, axis):
+        rng = np.random.default_rng(60)
+        mask = rng.random(float_frame.shape) < 0.2
+        left = float_frame.mask(mask)
+        right = left.iloc[0]
 
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            float_frame.add(float_frame.iloc[0], axis="index", fill_value=3)
+        result = left.add(right, axis=axis, fill_value=3)
+
+        if axis == 0:  # axis = index, vertical
+            pad_num = abs(result.shape[0] - len(right))
+            mult_num = result.shape[1]
+            right_pad = np.pad(
+                right, (0, pad_num), mode="constant", constant_values=(np.nan)
+            )
+            right_df = DataFrame(
+                [right_pad] * mult_num, columns=result.index, index=result.columns
+            ).T
+
+            left = left.reindex_like(result)
+
+        else:  # axis = columns, horizontal
+            pad_num = abs(result.shape[1] - len(right))
+            mult_num = result.shape[0]
+            right_pad = np.pad(
+                right, (0, pad_num), mode="constant", constant_values=(np.nan)
+            )
+            right_df = DataFrame(
+                [right_pad] * mult_num, index=result.index, columns=result.columns
+            )
+
+        left_filled = left.fillna(3)
+        right_filled = right_df.fillna(3)
+        expected = right_filled + left_filled
+        expected = expected.mask(expected == 6, pd.NA)
+
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op", ["add", "sub", "mul", "mod"])
     def test_arith_flex_series_ops(self, simple_frame, op):
@@ -675,11 +707,21 @@ class TestFrameFlexArithmetic:
         df_len0 = DataFrame(columns=["A", "B"])
         df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
 
-        with pytest.raises(NotImplementedError, match="fill_value"):
+        msg = r"unsupported operand type\(s\) for \+: 'int' and 'str'"
+        with pytest.raises(TypeError, match=msg):
             df.add(ser_len0, fill_value="E")
 
-        with pytest.raises(NotImplementedError, match="fill_value"):
-            df_len0.sub(df["A"], axis=None, fill_value=3)
+        result = df_len0.sub(df, axis=None, fill_value=3)
+        expected = DataFrame([[2, 1], [0, -1]], columns=["A", "B"])
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+
+        result = df_len0.sub(df["A"], axis=0, fill_value=3)
+        expected = DataFrame([[2, 2], [0, 0]], columns=["A", "B"])
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+
+        result = df_len0.sub(df["A"], axis=1, fill_value=3)
+        expected = DataFrame([], columns=["A", "B", 0, 1])
+        tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_flex_add_scalar_fill_value(self):
         # GH#12723
@@ -2199,5 +2241,39 @@ def test_mixed_col_index_dtype(string_dtype_no_object):
     expected = DataFrame(columns=list("abc"), data=1.0, index=[0])
 
     expected.columns = expected.columns.astype(string_dtype_no_object)
+
+    tm.assert_frame_equal(result, expected)
+
+
+dt_params = [
+    (tm.ALL_INT_NUMPY_DTYPES[0], 10),
+    (tm.ALL_INT_EA_DTYPES[0], 10),
+    (tm.FLOAT_NUMPY_DTYPES[0], 4.9),
+    (tm.FLOAT_EA_DTYPES[0], 4.9),
+]
+
+axes = [0, 1]
+
+
+@pytest.mark.parametrize(
+    "dtype,fill_val, axis",
+    [(dt, val, axis) for axis in axes for dt, val in dt_params],
+)
+def test_df_mul_array_fill_value(dtype, fill_val, axis):
+    # GH 61581
+    if dtype == tm.ALL_INT_NUMPY_DTYPES[0]:
+        # Numpy int type cannot represent NaN
+        safe_null = fill_val
+    else:
+        safe_null = np.nan
+
+    df = DataFrame([[safe_null, 1, 2], [3, safe_null, 5]], dtype=dtype)
+
+    mult = pd.array([safe_null, 1.0], dtype=dtype)
+
+    result = df.mul(mult, axis=0, fill_value=fill_val)
+    expected = DataFrame(
+        [[safe_null * safe_null, fill_val, fill_val * 2], [3.0, fill_val, 5.0]]
+    ).astype(dtype)
 
     tm.assert_frame_equal(result, expected)
