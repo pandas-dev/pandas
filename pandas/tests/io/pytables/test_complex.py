@@ -10,8 +10,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-tables = pytest.importorskip("tables")
-
 
 def test_complex_fixed(tmp_path, setup_path):
     df = DataFrame(
