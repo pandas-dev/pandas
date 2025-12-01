@@ -174,7 +174,7 @@ def to_timedelta(
                    dtype='timedelta64[ns]', freq=None)
     >>> pd.to_timedelta(np.arange(5), unit="D")
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[us]', freq=None)
+                   dtype='timedelta64[ns]', freq=None)
     """
     if unit is not None:
         unit = parse_timedelta_unit(unit)
