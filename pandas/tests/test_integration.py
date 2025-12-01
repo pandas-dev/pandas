@@ -118,3 +118,51 @@ class TestNithikeshIntegration:
         expected = Series([1.0, 0.0, 3.0, 0.0, 5.0])
         pd.testing.assert_series_equal(result, expected)
 
+class TestMallikarjunaIntegration:
+    """Integration tests by Mallikarjuna covering dtype_backend-libs interactions."""
+    
+    def test_check_dtype_backend_with_lib_sentinel(self):
+        """Test check_dtype_backend with lib.no_default sentinel.
+        
+        This exercises interaction between:
+        - pandas.util._validators.check_dtype_backend
+        - pandas._libs.lib.no_default (sentinel value)
+        - validation of backend options
+        """
+        # Should accept sentinel without exception
+        check_dtype_backend(lib.no_default)
+        
+        # Should accept valid backends
+        check_dtype_backend("numpy_nullable")
+        check_dtype_backend("pyarrow")
+        
+        # Should reject unknown backend
+        with pytest.raises(ValueError, match="dtype_backend .* is invalid"):
+            check_dtype_backend("not_a_backend")
+    
+    def test_percentile_validation_with_numpy_arrays(self):
+        """Test validate_percentile with numpy array interaction.
+        
+        This exercises interaction between:
+        - pandas.util._validators.validate_percentile
+        - numpy array conversion and validation
+        - pandas statistical methods that use percentiles
+        """
+        # Single percentile as float
+        result = validate_percentile(0.5)
+        assert isinstance(result, np.ndarray)
+        assert result == 0.5
+        
+        # Multiple percentiles as list
+        result = validate_percentile([0.25, 0.5, 0.75])
+        expected = np.array([0.25, 0.5, 0.75])
+        np.testing.assert_array_equal(result, expected)
+        
+        # Invalid percentile should raise
+        with pytest.raises(ValueError, match="percentiles should all be"):
+            validate_percentile(1.5)
+        
+        with pytest.raises(ValueError, match="percentiles should all be"):
+            validate_percentile([0.25, 1.5, 0.75])
+
+
