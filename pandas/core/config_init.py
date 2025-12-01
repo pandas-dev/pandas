@@ -408,12 +408,11 @@ with cf.config_prefix("mode"):
     cf.register_option("sim_interactive", False, tc_sim_interactive_doc)
 
 
-# TODO better name?
 copy_on_write_doc = """
 : bool
-    Use new copy-view behaviour using Copy-on-Write. Defaults to False,
-    unless overridden by the 'PANDAS_COPY_ON_WRITE' environment variable
-    (if set to "1" for True, needs to be set before pandas is imported).
+    Use new copy-view behaviour using Copy-on-Write. No longer used,
+    pandas now always uses Copy-on-Write behavior. This option will
+    be removed in pandas 4.0.
 """
 
 
@@ -902,3 +901,11 @@ with cf.config_prefix("future"):
 
 # GH#59502
 cf.deprecate_option("future.no_silent_downcasting", Pandas4Warning)
+cf.deprecate_option(
+    "mode.copy_on_write",
+    Pandas4Warning,
+    msg=(
+        "Copy-on-Write can no longer be disabled, setting to False has no impact. "
+        "This option will be removed in pandas 4.0."
+    ),
+)
