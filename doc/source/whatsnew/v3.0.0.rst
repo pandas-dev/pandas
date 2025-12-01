@@ -556,7 +556,7 @@ to :class:`NA` in all cases.
 By default, ``NaN`` can be passed to constructors, ``__setitem__``, ``__contains__``
 and will be treated the same as :class:`NA`. The only change users will see is
 that arithmetic and ``np.ufunc`` operations that previously introduced ``NaN``
- entries produce :class:`NA` entries instead.
+entries produce :class:`NA` entries instead.
 
 *Old behavior:*
 
