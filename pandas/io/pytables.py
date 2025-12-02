@@ -2702,8 +2702,12 @@ class DataCol(IndexCol):
             # recreate with tz if indicated
             converted = _set_tz(converted, tz, dtype)
 
-        elif dtype == "timedelta64":
-            converted = np.asarray(converted, dtype="m8[ns]")
+        elif dtype.startswith("timedelta64"):
+            if dtype == "timedelta64":
+                # from before we started storing timedelta64 unit
+                converted = np.asarray(converted, dtype="m8[ns]")
+            else:
+                converted = np.asarray(converted, dtype=dtype)
         elif dtype == "date":
             try:
                 converted = np.asarray(
@@ -3086,8 +3090,13 @@ class GenericFixed(Fixed):
                 tz = getattr(attrs, "tz", None)
                 ret = _set_tz(ret, tz, dtype)
 
-            elif dtype == "timedelta64":
-                ret = np.asarray(ret, dtype="m8[ns]")
+            elif dtype and dtype.startswith("timedelta64"):
+                if dtype == "timedelta64":
+                    # This was written back before we started writing
+                    # timedelta64 units
+                    ret = np.asarray(ret, dtype="m8[ns]")
+                else:
+                    ret = np.asarray(ret, dtype=dtype)
 
         if transposed:
             return ret.T
@@ -3324,7 +3333,7 @@ class GenericFixed(Fixed):
             node._v_attrs.value_type = f"datetime64[{value.dtype.unit}]"
         elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
-            getattr(self.group, key)._v_attrs.value_type = "timedelta64"
+            getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
         elif isinstance(value, BaseStringArray):
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value.to_numpy())
@@ -5175,8 +5184,12 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
             index = DatetimeIndex(data)
         else:
             index = DatetimeIndex(data.view(kind))
-    elif kind == "timedelta64":
-        index = TimedeltaIndex(data)
+    elif kind.startswith("timedelta64"):
+        if kind == "timedelta64":
+            # created before we stored resolution information
+            index = TimedeltaIndex(data)
+        else:
+            index = TimedeltaIndex(data.view(kind))
     elif kind == "date":
         try:
             index = np.asarray([date.fromordinal(v) for v in data], dtype=object)
@@ -5413,7 +5426,7 @@ def _dtype_to_kind(dtype_str: str) -> str:
     elif dtype_str.startswith("datetime64"):
         kind = dtype_str
     elif dtype_str.startswith("timedelta"):
-        kind = "timedelta64"
+        kind = dtype_str
     elif dtype_str.startswith("bool"):
         kind = "bool"
     elif dtype_str.startswith("category"):
