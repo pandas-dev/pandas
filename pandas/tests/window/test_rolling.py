@@ -1516,14 +1516,39 @@ def test_rolling_skew_kurt_numerical_stability(method):
             [3000000, 1, 1, 2, 3, 4, 999],
             [np.nan] * 3 + [4.0, -1.289256, -1.2, 3.999946],
         ),
+        (
+            "kurt",
+            [1e6, -1e6, 1, 2, 3, 4, 5, 6],
+            [np.nan] * 3 + [1.5, 4.0, -1.2, -1.2, -1.2],
+        ),
     ],
 )
 def test_rolling_skew_kurt_large_value_range(method, data, values):
-    # GH: 37557, 47461
+    # GH: 37557, 47461, 61416
     s = Series(data)
     result = getattr(s.rolling(4), method)()
     expected = Series(values)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["skew", "kurt"])
+def test_same_result_with_different_lengths(method):
+    # GH-54380
+    len_smaller = 10
+    len_bigger = 12
+    window_size = 8
+
+    rng = np.random.default_rng(2)
+    data = rng.normal(loc=0.0, scale=1e3, size=len_bigger)
+    window_smaller = Series(data[:len_smaller]).rolling(window_size)
+    window_bigger = Series(data).rolling(window_size)
+
+    result_smaller = getattr(window_smaller, method)()
+    result_bigger = getattr(window_bigger, method)()
+
+    result_bigger_trimmed = result_bigger[:len_smaller]
+
+    tm.assert_series_equal(result_smaller, result_bigger_trimmed, check_exact=True)
 
 
 def test_invalid_method():

@@ -45,7 +45,7 @@ class ConstructorTests:
                 date_range("20180101", periods=10, tz="US/Eastern", unit="ns"),
                 "datetime64[ns, US/Eastern]",
             ),
-            (timedelta_range("1 day", periods=10), "m8[ns]"),
+            (timedelta_range("1 day", periods=10), "m8[us]"),
         ],
     )
     @pytest.mark.parametrize("name", [None, "foo"])

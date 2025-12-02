@@ -979,15 +979,15 @@ class TestTimedeltaArray(SharedTests):
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
 
-        # specifying m8[ns] gives the same result as default
-        result = np.asarray(arr, dtype="timedelta64[ns]")
+        # specifying m8[us] gives the same result as default
+        result = np.asarray(arr, dtype="timedelta64[us]")
         expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
-        result = np.array(arr, dtype="timedelta64[ns]", copy=copy_false)
+        result = np.array(arr, dtype="timedelta64[us]", copy=copy_false)
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
-        result = np.array(arr, dtype="timedelta64[ns]")
+        result = np.array(arr, dtype="timedelta64[us]")
         if not np_version_gt2:
             # TODO: GH 57739
             assert result is not expected

@@ -870,7 +870,7 @@ class TestDatetime64Arithmetic:
         tm.assert_equal(rng, expected)
 
     def test_dt64_array_sub_dt_with_different_timezone(self, box_with_array):
-        t1 = date_range("20130101", periods=3, unit="ns").tz_localize("US/Eastern")
+        t1 = date_range("20130101", periods=3).tz_localize("US/Eastern")
         t1 = tm.box_expected(t1, box_with_array)
         t2 = Timestamp("20130101").tz_localize("CET")
         tnaive = Timestamp(20130101)
@@ -897,11 +897,11 @@ class TestDatetime64Arithmetic:
             tnaive - t1
 
     def test_dt64_array_sub_dt64_array_with_different_timezone(self, box_with_array):
-        t1 = date_range("20130101", periods=3, unit="ns").tz_localize("US/Eastern")
+        t1 = date_range("20130101", periods=3).tz_localize("US/Eastern")
         t1 = tm.box_expected(t1, box_with_array)
-        t2 = date_range("20130101", periods=3, unit="ns").tz_localize("CET")
+        t2 = date_range("20130101", periods=3).tz_localize("CET")
         t2 = tm.box_expected(t2, box_with_array)
-        tnaive = date_range("20130101", periods=3, unit="ns")
+        tnaive = date_range("20130101", periods=3)
 
         result = t1 - t2
         expected = TimedeltaIndex(
@@ -947,11 +947,11 @@ class TestDatetime64Arithmetic:
 
     def test_dt64arr_add_sub_td64ndarray(self, tz_naive_fixture, box_with_array):
         tz = tz_naive_fixture
-        dti = date_range("2016-01-01", periods=3, tz=tz, unit="ns")
+        dti = date_range("2016-01-01", periods=3, tz=tz)
         tdi = TimedeltaIndex(["-1 Day", "-1 Day", "-1 Day"])
         tdarr = tdi.values
 
-        expected = date_range("2015-12-31", "2016-01-02", periods=3, tz=tz, unit="ns")
+        expected = date_range("2015-12-31", "2016-01-02", periods=3, tz=tz)
 
         dtarr = tm.box_expected(dti, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -961,7 +961,7 @@ class TestDatetime64Arithmetic:
         result = tdarr + dtarr
         tm.assert_equal(result, expected)
 
-        expected = date_range("2016-01-02", "2016-01-04", periods=3, tz=tz, unit="ns")
+        expected = date_range("2016-01-02", "2016-01-04", periods=3, tz=tz)
         expected = tm.box_expected(expected, box_with_array)
 
         result = dtarr - tdarr
@@ -970,6 +970,7 @@ class TestDatetime64Arithmetic:
             [
                 "cannot subtract DatetimeArray from ndarray",
                 "cannot subtract a datelike from a TimedeltaArray",
+                "cannot subtract DatetimeArray from Timedelta",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -991,7 +992,7 @@ class TestDatetime64Arithmetic:
     )
     def test_dt64arr_sub_dtscalar(self, box_with_array, ts):
         # GH#8554, GH#22163 DataFrame op should _not_ return dt64 dtype
-        idx = date_range("2013-01-01", periods=3, unit="ns")._with_freq(None)
+        idx = date_range("2013-01-01", periods=3)._with_freq(None)
         idx = tm.box_expected(idx, box_with_array)
 
         expected = TimedeltaIndex(["0 Days", "1 Day", "2 Days"])
@@ -1892,7 +1893,7 @@ class TestTimestampSeriesArithmetic:
     def test_dt64tz_series_sub_dtitz(self):
         # GH#19071 subtracting tzaware DatetimeIndex from tzaware Series
         # (with same tz) raises, fixed by #19024
-        dti = date_range("1999-09-30", periods=10, tz="US/Pacific", unit="ns")
+        dti = date_range("1999-09-30", periods=10, tz="US/Pacific")
         ser = Series(dti)
         expected = Series(TimedeltaIndex(["0days"] * 10))
 
@@ -2042,7 +2043,7 @@ class TestDatetimeIndexArithmetic:
         tz = tz_naive_fixture
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
-        expected = date_range("2017-01-01", periods=10, tz=tz, unit="ns")
+        expected = date_range("2017-01-01", periods=10, tz=tz)
         expected = expected._with_freq(None)
 
         # add with TimedeltaIndex
@@ -2064,7 +2065,7 @@ class TestDatetimeIndexArithmetic:
         tz = tz_naive_fixture
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
-        expected = date_range("2017-01-01", periods=10, tz=tz, unit="ns")
+        expected = date_range("2017-01-01", periods=10, tz=tz)
         expected = expected._with_freq(None)
 
         # iadd with TimedeltaIndex
@@ -2090,7 +2091,7 @@ class TestDatetimeIndexArithmetic:
         tz = tz_naive_fixture
         dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
         tdi = pd.timedelta_range("0 days", periods=10)
-        expected = date_range("2017-01-01", periods=10, tz=tz, freq="-1D", unit="ns")
+        expected = date_range("2017-01-01", periods=10, tz=tz, freq="-1D")
         expected = expected._with_freq(None)
 
         # sub with TimedeltaIndex
@@ -2479,11 +2480,11 @@ def test_non_nano_dt64_addsub_np_nat_scalars_unitless():
     # TODO: Can we default to the ser unit?
     ser = Series([1233242342344, 232432434324, 332434242344], dtype="datetime64[ms]")
     result = ser - np.datetime64("nat")
-    expected = Series([NaT] * 3, dtype="timedelta64[ns]")
+    expected = Series([NaT] * 3, dtype="timedelta64[ms]")
     tm.assert_series_equal(result, expected)
 
     result = ser + np.timedelta64("nat")
-    expected = Series([NaT] * 3, dtype="datetime64[ns]")
+    expected = Series([NaT] * 3, dtype="datetime64[ms]")
     tm.assert_series_equal(result, expected)
 
 

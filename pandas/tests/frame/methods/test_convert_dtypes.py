@@ -110,7 +110,7 @@ class TestConvertDtypes:
                             datetime.timedelta(2),
                             datetime.timedelta(3),
                         ],
-                        type=pa.duration("ns"),
+                        type=pa.duration("us"),
                     )
                 ),
             }
