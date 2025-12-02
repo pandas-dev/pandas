@@ -1928,10 +1928,10 @@ class _MergeOperation:
                 )
             if not self.right_index and right_on is None:
                 raise MergeError('Must pass "right_on" OR "right_index".')
-            # if self.right_index and right_on is not None:
-            #     raise MergeError(
-            #         'Can only pass argument "right_on" OR "right_index" not both.'
-            #     )
+            if self.right_index and right_on is not None:
+                raise MergeError(
+                    'Can only pass argument "right_on" OR "right_index" not both.'
+                )
             n = len(left_on)
             if self.right_index:
                 if len(left_on) != self.right.index.nlevels:
