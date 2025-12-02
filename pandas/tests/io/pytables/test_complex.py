@@ -4,10 +4,10 @@ import pytest
 import pandas as pd
 from pandas import (
     DataFrame,
+    HDFStore,
     Series,
 )
 import pandas._testing as tm
-from pandas import HDFStore
 
 from pandas.io.pytables import read_hdf
 
