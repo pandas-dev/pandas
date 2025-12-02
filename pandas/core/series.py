@@ -821,8 +821,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @property
     def array(self) -> ExtensionArray:
         arr = self._mgr.array_values()
-        arr = arr.view()
-        arr._readonly = True
+        # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
+        # arr = arr.view()
+        # arr._readonly = True
         return arr
 
     def __len__(self) -> int:
