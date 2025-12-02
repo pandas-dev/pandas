@@ -1566,7 +1566,6 @@ class SeriesGroupBy(GroupBy[Series]):
         --------
         Series.corr : Equivalent method on ``Series``.
 
-        
         Examples
         --------
         >>> import pandas as pd
