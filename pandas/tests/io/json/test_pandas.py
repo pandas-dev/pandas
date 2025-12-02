@@ -1111,9 +1111,10 @@ class TestPandasContainer:
             ("20130101 20:43:42.123456789", "ns"),
         ],
     )
-    def test_date_format_series(self, date, date_unit, datetime_series,
-                                json_engines_no_ndjson):
-        ts = Series(Timestamp(date), index=datetime_series.index)
+    def test_date_format_series(
+        self, date, date_unit, datetime_series, json_engines_no_ndjson
+    ):
+        ts = Series(Timestamp(date).as_unit("ns"), index=datetime_series.index)
         ts.iloc[1] = pd.NaT
         ts.iloc[5] = pd.NaT
         if date_unit:
@@ -1312,9 +1313,10 @@ class TestPandasContainer:
             "in a future version, please use 'iso' date format instead."
         )
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = read_json(StringIO(ser.to_json()), typ="series",
-                               engine=json_engines_no_ndjson).apply(converter)
-        tm.assert_series_equal(result, ser.astype("m8[ms]"))
+            result = read_json(
+                StringIO(ser.to_json()), typ="series", engine=json_engines_no_ndjson
+            ).apply(converter)
+        tm.assert_series_equal(result, ser)
 
         ser = Series(
             [timedelta(23), timedelta(seconds=5)], index=Index([0, 1]), dtype="m8[ns]"
@@ -1324,15 +1326,13 @@ class TestPandasContainer:
             result = read_json(
                 StringIO(ser.to_json()), typ="series", engine=json_engines_no_ndjson
             ).apply(converter)
-        tm.assert_series_equal(result, ser.astype("m8[ms]"))
+        tm.assert_series_equal(result, ser)
 
         frame = DataFrame([timedelta(23), timedelta(seconds=5)], dtype="m8[ns]")
         assert frame[0].dtype == "timedelta64[ns]"
 
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             json = frame.to_json()
-        result = read_json(StringIO(json), engine=json_engines_no_ndjson).apply(converter)
-        tm.assert_frame_equal(frame.astype("m8[ms]"), result)
 
         result = read_json(StringIO(json), engine=json_engines_no_ndjson).apply(
             converter
