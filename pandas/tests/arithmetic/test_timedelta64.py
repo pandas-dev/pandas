@@ -1255,8 +1255,14 @@ class TestTimedeltaArraylikeAddSubOps:
 
         tdi = TimedeltaIndex(["0 days", "1 day"], name=names[1])
         tdi = np.array(tdi) if box in [tm.to_array, pd.array] else tdi
-        ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[0])
-        expected = Series([Timedelta(hours=3), Timedelta(days=1, hours=4)], name=exname)
+        ser = Series(
+            [Timedelta(hours=3), Timedelta(hours=4)], name=names[0], dtype="m8[ns]"
+        )
+        expected = Series(
+            [Timedelta(hours=3), Timedelta(days=1, hours=4)],
+            name=exname,
+            dtype="m8[ns]",
+        )
 
         ser = tm.box_expected(ser, box)
         expected = tm.box_expected(expected, box)
@@ -1270,7 +1276,9 @@ class TestTimedeltaArraylikeAddSubOps:
         assert_dtype(result, "timedelta64[ns]")
 
         expected = Series(
-            [Timedelta(hours=-3), Timedelta(days=1, hours=-4)], name=exname
+            [Timedelta(hours=-3), Timedelta(days=1, hours=-4)],
+            name=exname,
+            dtype="m8[ns]",
         )
         expected = tm.box_expected(expected, box)
 
@@ -1666,7 +1674,7 @@ class TestTimedeltaArraylikeMulDivOps:
         other = Series(np.arange(5), dtype=dtype)
         other = tm.box_expected(other, box_with_array)
 
-        expected = Series([Timedelta(hours=n**2) for n in range(5)])
+        expected = Series([Timedelta(hours=n**2) for n in range(5)], dtype="m8[ns]")
         expected = tm.box_expected(expected, box_with_array)
         if dtype == "int64[pyarrow]":
             expected = expected.astype("duration[ns][pyarrow]")
