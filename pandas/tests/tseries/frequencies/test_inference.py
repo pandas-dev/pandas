@@ -565,7 +565,7 @@ def test_infer_freq_no_stateful_behavior():
     assert frequencies.infer_freq(times[:3]) == "D"
 
     # Call on full index (which has duplicates, so returns None)
-    frequencies.infer_freq(times)
+    assert frequencies.infer_freq(times) is None
 
     # After calling on full index, slice should still return "D"
     assert frequencies.infer_freq(times[:3]) == "D"
