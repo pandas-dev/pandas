@@ -1567,12 +1567,12 @@ class SeriesGroupBy(GroupBy[Series]):
         Series.corr : Equivalent method on ``Series``.
 
         
-         Examples
-         --------
-         >>> import pandas as pd
-         >>> s = pd.Series([1, 2, 3, 4], index=[0, 0, 1, 1])
-         >>> g = s.groupby([0, 0, 1, 1])
-         >>> g.corr()  # doctest: +SKIP
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> s = pd.Series([1, 2, 3, 4], index=[0, 0, 1, 1])
+        >>> g = s.groupby([0, 0, 1, 1])
+        >>> g.corr()  # doctest: +SKIP
         """
         result = self._op_via_apply(
             "corr", other=other, method=method, min_periods=min_periods
