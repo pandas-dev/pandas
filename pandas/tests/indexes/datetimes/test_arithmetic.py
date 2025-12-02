@@ -55,7 +55,8 @@ class TestDatetimeIndexArithmetic:
                 Timedelta(days=1),
                 Timedelta(days=2),
                 Timedelta(days=2, hours=23),
-            ]
+            ],
+            dtype="m8[ns]",
         )
         tm.assert_index_equal(res, expected)
         assert res.freq == expected.freq

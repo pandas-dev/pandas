@@ -104,7 +104,9 @@ class TestTimedeltaIndex:
     def test_float64_unit_conversion(self):
         # GH#23539
         tdi = to_timedelta([1.5, 2.25], unit="D")
-        expected = TimedeltaIndex([Timedelta(days=1.5), Timedelta(days=2.25)])
+        expected = TimedeltaIndex(
+            [Timedelta(days=1.5), Timedelta(days=2.25)], dtype="m8[ns]"
+        )
         tm.assert_index_equal(tdi, expected)
 
     def test_construction_base_constructor(self):
