@@ -274,7 +274,7 @@ def read_excel(
 
         - ``openpyxl`` supports newer Excel file formats.
         - ``calamine`` supports Excel (.xls, .xlsx, .xlsm, .xlsb)
-        and OpenDocument (.ods) file formats.
+            and OpenDocument (.ods) file formats.
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
         - ``xlrd`` supports old-style Excel files (.xls).
@@ -325,6 +325,7 @@ def read_excel(
 
         Note that if `na_filter` is passed in as False, the ``keep_default_na`` and
         ``na_values`` parameters will be ignored.
+
     na_filter : bool, default True
         Detect missing value markers (empty strings and the value of na_values). In
         data without any NAs, passing ``na_filter=False`` can improve the
@@ -349,6 +350,7 @@ def read_excel(
         ``pd.read_excel``.
 
         Note: A fast-path exists for iso8601-formatted dates.
+
     date_parser : function, optional
         Function to use for converting a sequence of string columns to an array of
         datetime instances. The default uses ``dateutil.parser.parser`` to do the
