@@ -9,9 +9,6 @@ from pandas import (
     read_hdf,
 )
 import pandas._testing as tm
-from pandas.tests.io.pytables.common import tables 
-
-_ = tables
 
 
 def test_complex_fixed(tmp_path, setup_path):
