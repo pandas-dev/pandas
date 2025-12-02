@@ -364,9 +364,9 @@ def read_excel(
         Use ``date_format`` instead, or read in as ``object`` and then apply
         :func:`to_datetime` as-needed.
     date_format : str or dict of column -> format, default ``None``
-    If used in conjunction with ``parse_dates``, will parse dates according to this
-    format. For anything more complex,
-    please read in as ``object`` and then apply :func:`to_datetime` as-needed.
+        If used in conjunction with ``parse_dates``, will parse dates according to this
+        format. For anything more complex, please read in as ``object`` and then apply
+        :func:`to_datetime` as-needed.
 
         .. versionadded:: 2.0.0
     thousands : str, default None
