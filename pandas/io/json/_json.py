@@ -690,7 +690,7 @@ def read_json(
 
         .. versionadded:: 2.0
 
-    engine : {{"ujson", "pyarrow"}}, default "ujson"
+    engine : {{"ujson", "orjson", "pyarrow"}}, default "ujson"
         Parser engine to use. The ``"pyarrow"`` engine is only available when
         ``lines=True``.
 
@@ -872,7 +872,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         self.handles: IOHandles[str] | None = None
         self.dtype_backend = dtype_backend
 
-        if self.engine not in {"pyarrow", "ujson"}:
+        if self.engine not in {"pyarrow", "ujson", "orjson"}:
             raise ValueError(
                 f"The engine type {self.engine} is currently not supported."
             )
@@ -895,7 +895,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                     "the line-delimited JSON format"
                 )
             self.data = filepath_or_buffer
-        elif self.engine == "ujson":
+        elif self.engine in {"ujson", "orjson"}:
             data = self._get_data_from_filepath(filepath_or_buffer)
             # If self.chunksize, we prepare the data for the `__next__` method.
             # Otherwise, we read it into memory for the `read` method.
@@ -904,6 +904,16 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
                     self.data = data.read()
             else:
                 self.data = data
+
+        if self.engine == "ujson":
+            self.json_load_fn = lambda s: ujson_loads(
+                s, precise_float=self.precise_float
+            )
+        elif self.engine == "orjson":
+            orjson = import_optional_dependency("orjson")
+            self.json_load_fn = orjson.loads
+        elif self.engine == "pyarrow":
+            pass
 
     def _get_data_from_filepath(self, filepath_or_buffer):
         """
@@ -953,8 +963,8 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         with self:
             if self.engine == "pyarrow":
                 obj = self._read_pyarrow()
-            elif self.engine == "ujson":
-                obj = self._read_ujson()
+            elif self.engine in {"ujson", "orjson"}:
+                obj = self._read_json()
 
         return obj
 
@@ -983,9 +993,9 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
 
         return df
 
-    def _read_ujson(self) -> DataFrame | Series:
+    def _read_json(self) -> DataFrame | Series:
         """
-        Read JSON using the ujson engine.
+        Read JSON using the json engine.
         """
         obj: DataFrame | Series
         if self.lines:
@@ -1024,6 +1034,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             "precise_float": self.precise_float,
             "date_unit": self.date_unit,
             "dtype_backend": self.dtype_backend,
+            "json_load_fn": self.json_load_fn,
         }
         if typ == "frame":
             return FrameParser(json, **kwargs).parse()
@@ -1123,6 +1134,7 @@ class Parser:
         precise_float: bool = False,
         date_unit=None,
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+        json_load_fn: Callable[[str | bytes], Any] | lib.NoDefault = lib.no_default,
     ) -> None:
         self.json = json
 
@@ -1142,6 +1154,14 @@ class Parser:
             self.min_stamp = self._MIN_STAMPS["s"]
 
         self.precise_float = precise_float
+
+        if json_load_fn is not lib.no_default:
+            self.json_load_fn = json_load_fn
+        else:
+            self.json_load_fn = lambda s: ujson_loads(
+                s, precise_float=self.precise_float
+            )
+
         self.convert_axes = convert_axes
         self.convert_dates = convert_dates
         self.date_unit = date_unit
@@ -1348,7 +1368,7 @@ class SeriesParser(Parser):
     _split_keys = ("name", "index", "data")
 
     def _parse(self) -> Series:
-        data = ujson_loads(self.json, precise_float=self.precise_float)
+        data = self.json_load_fn(self.json)
 
         if self.orient == "split":
             decoded = {str(k): v for k, v in data.items()}
@@ -1371,10 +1391,7 @@ class FrameParser(Parser):
         orient = self.orient
 
         if orient == "split":
-            decoded = {
-                str(k): v
-                for k, v in ujson_loads(json, precise_float=self.precise_float).items()
-            }
+            decoded = {str(k): v for k, v in self.json_load_fn(json).items()}
             self.check_keys_split(decoded)
             orig_names = [
                 (tuple(col) if isinstance(col, list) else col)
@@ -1387,17 +1404,15 @@ class FrameParser(Parser):
             return DataFrame(dtype=None, **decoded)
         elif orient == "index":
             return DataFrame.from_dict(
-                ujson_loads(json, precise_float=self.precise_float),
+                self.json_load_fn(json),
                 dtype=None,
                 orient="index",
             )
         elif orient == "table":
-            return parse_table_schema(json, precise_float=self.precise_float)
+            return parse_table_schema(json, self.json_load_fn)
         else:
             # includes orient == "columns"
-            return DataFrame(
-                ujson_loads(json, precise_float=self.precise_float), dtype=None
-            )
+            return DataFrame(self.json_load_fn(json), dtype=None)
 
     def _try_convert_types(self, obj: DataFrame) -> DataFrame:
         arrays = []

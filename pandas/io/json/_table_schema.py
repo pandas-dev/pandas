@@ -16,7 +16,6 @@ import warnings
 from pandas._config import option_context
 
 from pandas._libs import lib
-from pandas._libs.json import ujson_loads
 from pandas._libs.tslibs import timezones
 from pandas.util._exceptions import find_stack_level
 
@@ -40,6 +39,10 @@ import pandas.core.common as com
 from pandas.tseries.frequencies import to_offset
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Callable,
+    )
+
     from pandas._typing import (
         DtypeObj,
         JSONSerializable,
@@ -335,7 +338,7 @@ def build_table_schema(
     return schema
 
 
-def parse_table_schema(json, precise_float: bool) -> DataFrame:
+def parse_table_schema(json, json_load_fn: Callable[[str | bytes], Any]) -> DataFrame:
     """
     Builds a DataFrame from a given schema
 
@@ -343,9 +346,8 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     ----------
     json :
         A JSON table schema
-    precise_float : bool
-        Flag controlling precision when decoding string to double values, as
-        dictated by ``read_json``
+    json_load_fn : Callable
+        Function to decode JSON.
 
     Returns
     -------
@@ -371,7 +373,7 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     build_table_schema : Inverse function.
     pandas.read_json
     """
-    table = ujson_loads(json, precise_float=precise_float)
+    table = json_load_fn(json)
     col_order = [field["name"] for field in table["schema"]["fields"]]
     df = DataFrame(table["data"], columns=col_order)[col_order]
 

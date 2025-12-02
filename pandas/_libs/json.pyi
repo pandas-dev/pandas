@@ -15,7 +15,7 @@ def ujson_dumps(
     | Callable[[Any], str | float | bool | list | dict | None] = ...,
 ) -> str: ...
 def ujson_loads(
-    s: str,
+    s: str | bytes,
     precise_float: bool = ...,
     numpy: bool = ...,
     dtype: None = ...,
