@@ -36,7 +36,6 @@ class TestDatetimeIndexArithmetic:
             periods=12,
             tz=tz_naive_fixture,
             freq=offsets.Hour(24),
-            unit="ns",
         )
 
         res = dti - dti[0]

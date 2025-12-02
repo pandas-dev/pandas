@@ -384,6 +384,8 @@ In cases with mixed-resolution inputs, the highest resolution is used:
 
 .. warning:: Many users will now get "M8[us]" dtype data in cases when they used to get "M8[ns]". For most use cases they should not notice a difference. One big exception is converting to integers, which will give integers 1000x smaller.
 
+Similarly, the :class:`Timedelta` constructor and :func:`to_timedelta` with a string input now defaults to a microsecond unit, using nanosecond unit only in cases that actually have nanosecond precision.
+
 .. _whatsnew_300.api_breaking.concat_datetime_sorting:
 
 :func:`concat` no longer ignores ``sort`` when all objects have a :class:`DatetimeIndex`
@@ -1277,7 +1279,8 @@ Groupby/resample/rolling
 - Bug in :meth:`Rolling.apply` for ``method="table"`` where column order was not being respected due to the columns getting sorted by default. (:issue:`59666`)
 - Bug in :meth:`Rolling.apply` where the applied function could be called on fewer than ``min_period`` periods if ``method="table"``. (:issue:`58868`)
 - Bug in :meth:`Rolling.sem` computing incorrect results because it divided by ``sqrt((n - 1) * (n - ddof))`` instead of ``sqrt(n * (n - ddof))``. (:issue:`63180`)
-- Bug in :meth:`Rolling.skew` incorrectly computing skewness for windows following outliers due to numerical instability. The calculation now properly handles catastrophic cancellation by recomputing affected windows (:issue:`47461`)
+- Bug in :meth:`Rolling.skew` and in :meth:`Rolling.kurt` incorrectly computing skewness and kurtosis, respectively, for windows following outliers due to numerical instability. The calculation now properly handles catastrophic cancellation by recomputing affected windows (:issue:`47461`, :issue:`61416`)
+- Bug in :meth:`Rolling.skew` and in :meth:`Rolling.kurt` where results varied with input length despite identical data and window contents (:issue:`54380`)
 - Bug in :meth:`Series.resample` could raise when the date range ended shortly before a non-existent time. (:issue:`58380`)
 - Bug in :meth:`Series.resample` raising error when resampling non-nanosecond resolutions out of bounds for nanosecond precision (:issue:`57427`)
 - Bug in :meth:`Series.rolling.var` and :meth:`Series.rolling.std` computing incorrect results due to numerical instability. (:issue:`47721`, :issue:`52407`, :issue:`54518`, :issue:`55343`)

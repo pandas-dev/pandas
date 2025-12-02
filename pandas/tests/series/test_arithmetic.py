@@ -356,7 +356,7 @@ class TestSeriesArithmetic:
         ser = Series(date_range("20130101 09:00:00", periods=5, unit="ns"), index=index)
         other = Series(date_range("20130101", periods=5, unit="ns"), index=index)
         result = ser - other
-        expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4])
+        expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4], dtype="m8[ns]")
         tm.assert_series_equal(result, expected)
 
     def test_masked_and_non_masked_propagate_na(self):

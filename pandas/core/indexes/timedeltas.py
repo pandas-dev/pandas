@@ -122,7 +122,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     --------
     >>> pd.TimedeltaIndex(["0 days", "1 days", "2 days", "3 days", "4 days"])
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[us]', freq=None)
 
     We can also let pandas infer the frequency when possible.
 
@@ -230,18 +230,27 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         return Index.get_loc(self, key)
 
-    # error: Return type "tuple[Timedelta | NaTType, None]" of "_parse_with_reso"
-    # incompatible with return type "tuple[datetime, Resolution]" in supertype
-    # "DatetimeIndexOpsMixin"
-    def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, None]:  # type: ignore[override]
-        # the "with_reso" is a no-op for TimedeltaIndex
+    # error: Return type "tuple[Timedelta | NaTType, Resolution]" of
+    # "_parse_with_reso" incompatible with return type
+    # "tuple[datetime, Resolution]" in supertype
+    # "pandas.core.indexes.datetimelike.DatetimeIndexOpsMixin"
+    def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, Resolution]:  # type: ignore[override]
         parsed = Timedelta(label)
-        return parsed, None
+        if isinstance(parsed, Timedelta):
+            reso = Resolution.get_reso_from_freqstr(parsed.unit)
+        else:
+            # i.e. pd.NaT
+            reso = Resolution.get_reso_from_freqstr("s")
+        return parsed, reso
 
-    def _parsed_string_to_bounds(self, reso, parsed: Timedelta):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: Timedelta):
         # reso is unused, included to match signature of DTI/PI
         lbound = parsed.round(parsed.resolution_string)
-        rbound = lbound + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
+        rbound = (
+            lbound
+            + to_offset(parsed.resolution_string)
+            - Timedelta(1, unit=self.unit).as_unit(self.unit)
+        )
         return lbound, rbound
 
     # -------------------------------------------------------------------
@@ -314,14 +323,14 @@ def timedelta_range(
     --------
     >>> pd.timedelta_range(start="1 day", periods=4)
     TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq='D')
+                   dtype='timedelta64[us]', freq='D')
 
     The ``closed`` parameter specifies which endpoint is included.  The default
     behavior is to include both endpoints.
 
     >>> pd.timedelta_range(start="1 day", periods=4, closed="right")
     TimedeltaIndex(['2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq='D')
+                   dtype='timedelta64[us]', freq='D')
 
     The ``freq`` parameter specifies the frequency of the TimedeltaIndex.
     Only fixed frequencies can be passed, non-fixed frequencies such as
@@ -330,7 +339,7 @@ def timedelta_range(
     >>> pd.timedelta_range(start="1 day", end="2 days", freq="6h")
     TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 12:00:00',
                     '1 days 18:00:00', '2 days 00:00:00'],
-                   dtype='timedelta64[ns]', freq='6h')
+                   dtype='timedelta64[us]', freq='6h')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
@@ -338,7 +347,7 @@ def timedelta_range(
     >>> pd.timedelta_range(start="1 day", end="5 days", periods=4)
     TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',
                     '5 days 00:00:00'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[us]', freq=None)
 
     **Specify a unit**
 

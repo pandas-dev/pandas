@@ -440,7 +440,7 @@ class TestTimedeltaMultiplicationDivision:
 
         msg = (
             "ufunc '?multiply'? cannot use operands with types "
-            rf"dtype\('{tm.ENDIAN}m8\[ns\]'\) and dtype\('{tm.ENDIAN}m8\[ns\]'\)"
+            rf"dtype\('{tm.ENDIAN}m8\[us\]'\) and dtype\('{tm.ENDIAN}m8\[us\]'\)"
         )
         with pytest.raises(TypeError, match=msg):
             td * other
@@ -1225,6 +1225,7 @@ def test_ops_str_deprecated(box):
                 "ufunc 'divide' cannot use operands",
                 "Invalid dtype object for __floordiv__",
                 r"unsupported operand type\(s\) for /: 'int' and 'str'",
+                r"unsupported operand type\(s\) for /: 'datetime.timedelta' and 'str'",
             ]
         )
         with pytest.raises(TypeError, match=msg):
