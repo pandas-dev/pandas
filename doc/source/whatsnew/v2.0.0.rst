@@ -673,7 +673,7 @@ If installed, we now require:
 | tzdata            | 2022.1          |    X     |    X    |
 +-------------------+-----------------+----------+---------+
 
-For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
+For `optional libraries <https://pandas.pydata.org/docs/getting_started/installation.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
 Optional libraries below the lowest tested version may still work, but are not considered supported.
 

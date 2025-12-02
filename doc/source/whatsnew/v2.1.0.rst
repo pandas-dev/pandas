@@ -357,7 +357,7 @@ If installed, we now require:
 | zstandard            | 0.17.0          |          |    X    |
 +----------------------+-----------------+----------+---------+
 
-For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
+For `optional libraries <https://pandas.pydata.org/docs/getting_started/installation.html>`_ the general recommendation is to use the latest version.
 
 See :ref:`install.dependencies` and :ref:`install.optional_dependencies` for more.
 

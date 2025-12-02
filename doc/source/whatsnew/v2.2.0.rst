@@ -440,7 +440,7 @@ index levels when joining on two indexes with different levels (:issue:`34133`).
 
 Increased minimum versions for dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For `optional dependencies <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
+For `optional dependencies <https://pandas.pydata.org/docs/getting_started/installation.html>`_ the general recommendation is to use the latest version.
 Optional dependencies below the lowest tested version may still work but are not considered supported.
 The following table lists the optional dependencies that have had their minimum tested version increased.
 
