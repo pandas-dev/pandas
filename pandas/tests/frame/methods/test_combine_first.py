@@ -327,7 +327,7 @@ class TestDataFrameCombineFirst:
         )
         exp = DataFrame({"TD": exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
-        assert res["TD"].dtype == "timedelta64[ns]"
+        assert res["TD"].dtype == "timedelta64[us]"
 
     def test_combine_first_period(self):
         data1 = pd.PeriodIndex(["2011-01", "NaT", "2011-03", "2011-04"], freq="M")

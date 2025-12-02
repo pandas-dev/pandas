@@ -131,7 +131,8 @@ def test_mask_where_dtype_timedelta():
     tm.assert_frame_equal(df.mask(df.notna()), expected)
 
     expected = DataFrame(
-        [np.nan, np.nan, np.nan, Timedelta("3 day"), Timedelta("4 day")]
+        [np.nan, np.nan, np.nan, Timedelta("3 day"), Timedelta("4 day")],
+        dtype="m8[ns]",
     )
     tm.assert_frame_equal(df.where(df > Timedelta(2, unit="D")), expected)
 

@@ -284,7 +284,7 @@ class TestTimedelta64ArithmeticUnsorted:
         right = [Timestamp("2016-01-01"), Timestamp("2016-02-01")]
 
         result = left + right
-        expected = DatetimeIndex(["2016-01-03", "2016-02-05"], dtype="M8[ns]")
+        expected = DatetimeIndex(["2016-01-03", "2016-02-05"], dtype="M8[us]")
         expected = tm.box_expected(expected, box)
         tm.assert_equal(result, expected)
 
@@ -361,13 +361,13 @@ class TestTimedelta64ArithmeticUnsorted:
 
         result = dti - td
         expected = DatetimeIndex(
-            ["20121231", "20130101", "20130102"], dtype="M8[ns]", freq="D", name="bar"
+            ["20121231", "20130101", "20130102"], dtype="M8[us]", freq="D", name="bar"
         )
         tm.assert_index_equal(result, expected)
 
         result = dt - tdi
         expected = DatetimeIndex(
-            ["20121231", NaT, "20121230"], dtype="M8[ns]", name="foo"
+            ["20121231", NaT, "20121230"], dtype="M8[us]", name="foo"
         )
         tm.assert_index_equal(result, expected)
 
@@ -451,9 +451,7 @@ class TestTimedelta64ArithmeticUnsorted:
         _check(result, expected)
 
         result = dti_tz - td
-        expected = DatetimeIndex(
-            ["20121231", "20130101", "20130102"], tz="US/Eastern"
-        ).as_unit("ns")
+        expected = DatetimeIndex(["20121231", "20130101", "20130102"], tz="US/Eastern")
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(result, expected)
 
@@ -471,7 +469,7 @@ class TestTimedelta64ArithmeticUnsorted:
         tm.assert_index_equal(result, expected)
 
         result = dti - tdi  # name will be reset
-        expected = DatetimeIndex(["20121231", NaT, "20130101"], dtype="M8[ns]")
+        expected = DatetimeIndex(["20121231", NaT, "20130101"], dtype="M8[us]")
         tm.assert_index_equal(result, expected)
 
     def test_addition_ops(self):
@@ -483,13 +481,13 @@ class TestTimedelta64ArithmeticUnsorted:
 
         result = tdi + dt
         expected = DatetimeIndex(
-            ["20130102", NaT, "20130103"], dtype="M8[ns]", name="foo"
+            ["20130102", NaT, "20130103"], dtype="M8[us]", name="foo"
         )
         tm.assert_index_equal(result, expected)
 
         result = dt + tdi
         expected = DatetimeIndex(
-            ["20130102", NaT, "20130103"], dtype="M8[ns]", name="foo"
+            ["20130102", NaT, "20130103"], dtype="M8[us]", name="foo"
         )
         tm.assert_index_equal(result, expected)
 
@@ -518,11 +516,11 @@ class TestTimedelta64ArithmeticUnsorted:
         # pytest.raises(TypeError, lambda : Index([1,2,3]) + tdi)
 
         result = tdi + dti  # name will be reset
-        expected = DatetimeIndex(["20130102", NaT, "20130105"], dtype="M8[ns]")
+        expected = DatetimeIndex(["20130102", NaT, "20130105"], dtype="M8[us]")
         tm.assert_index_equal(result, expected)
 
         result = dti + tdi  # name will be reset
-        expected = DatetimeIndex(["20130102", NaT, "20130105"], dtype="M8[ns]")
+        expected = DatetimeIndex(["20130102", NaT, "20130105"], dtype="M8[us]")
         tm.assert_index_equal(result, expected)
 
         result = dt + td
@@ -537,7 +535,7 @@ class TestTimedelta64ArithmeticUnsorted:
     # more targeted tests
     @pytest.mark.parametrize("freq", ["D", "B"])
     def test_timedelta(self, freq):
-        index = pd.date_range("1/1/2000", periods=50, freq=freq)
+        index = pd.date_range("1/1/2000", periods=50, freq=freq, unit="ns")
 
         shifted = index + timedelta(1)
         back = shifted + timedelta(-1)
@@ -618,6 +616,15 @@ class TestTimedelta64ArithmeticUnsorted:
         # only test adding/sub offsets as + is now numeric
         rng = timedelta_range("1 days", "10 days")
         expected = timedelta_range("1 days 02:00:00", "10 days 02:00:00", freq="D")
+        if (
+            isinstance(two_hours, Timedelta)
+            and two_hours.unit == "ns"
+            and box_with_array is not pd.array
+        ):
+            # The EA op has to be _actually_ inplace so does not cast to a
+            #  new dtype.  For the others, the op can assign a new array
+            #  and get the dtype that normally results from `rng + two_hours`
+            expected = expected.as_unit("ns")
 
         rng = tm.box_expected(rng, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -633,6 +640,15 @@ class TestTimedelta64ArithmeticUnsorted:
         # only test adding/sub offsets as - is now numeric
         rng = timedelta_range("1 days", "10 days")
         expected = timedelta_range("0 days 22:00:00", "9 days 22:00:00")
+        if (
+            isinstance(two_hours, Timedelta)
+            and two_hours.unit == "ns"
+            and box_with_array is not pd.array
+        ):
+            # The EA op has to be _actually_ inplace so does not cast to a
+            #  new dtype.  For the others, the op can assign a new array
+            #  and get the dtype that normally results from `rng - two_hours`
+            expected = expected.as_unit("ns")
 
         rng = tm.box_expected(rng, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -734,7 +750,7 @@ class TestAddSubNaTMasking:
             )
 
         # These should not overflow!
-        exp = TimedeltaIndex([NaT])
+        exp = TimedeltaIndex([NaT], dtype="m8[us]")
         result = pd.to_timedelta([NaT]) - Timedelta("1 days")
         tm.assert_index_equal(result, exp)
 
@@ -766,12 +782,12 @@ class TestTimedeltaArraylikeAddSubOps:
         s1 = pd.to_timedelta(Series(["00:00:01"]))
         s2 = pd.to_timedelta(Series(["00:00:02"]))
 
-        sn = pd.to_timedelta(Series([NaT], dtype="m8[ns]"))
+        sn = pd.to_timedelta(Series([NaT], dtype="m8[us]"))
 
         df1 = DataFrame(["00:00:01"]).apply(pd.to_timedelta)
         df2 = DataFrame(["00:00:02"]).apply(pd.to_timedelta)
 
-        dfn = DataFrame([NaT._value]).apply(pd.to_timedelta)
+        dfn = DataFrame([NaT._value]).apply(pd.to_timedelta).astype("m8[us]")
 
         scalar1 = pd.to_timedelta("00:00:01")
         scalar2 = pd.to_timedelta("00:00:02")
@@ -859,8 +875,8 @@ class TestTimedeltaArraylikeAddSubOps:
     # de-duplication, box-parametrization...
     def test_operators_timedelta64(self):
         # series ops
-        v1 = pd.date_range("2012-1-1", periods=3, freq="D")
-        v2 = pd.date_range("2012-1-2", periods=3, freq="D")
+        v1 = pd.date_range("2012-1-1", periods=3, freq="D", unit="ns")
+        v2 = pd.date_range("2012-1-2", periods=3, freq="D", unit="ns")
         rs = Series(v2) - Series(v1)
         xp = Series(1e9 * 3600 * 24, rs.index).astype("int64").astype("timedelta64[ns]")
         tm.assert_series_equal(rs, xp)
@@ -928,8 +944,8 @@ class TestTimedeltaArraylikeAddSubOps:
     def test_timedelta64_ops_nat(self):
         # GH 11349
         timedelta_series = Series([NaT, Timedelta("1s")])
-        nat_series_dtype_timedelta = Series([NaT, NaT], dtype="timedelta64[ns]")
-        single_nat_dtype_timedelta = Series([NaT], dtype="timedelta64[ns]")
+        nat_series_dtype_timedelta = Series([NaT, NaT], dtype="timedelta64[us]")
+        single_nat_dtype_timedelta = Series([NaT], dtype="timedelta64[us]")
 
         # subtraction
         tm.assert_series_equal(timedelta_series - NaT, nat_series_dtype_timedelta)
@@ -1059,7 +1075,7 @@ class TestTimedeltaArraylikeAddSubOps:
         other = np.datetime64("NaT")
 
         tdi = timedelta_range("1 day", periods=3)
-        expected = DatetimeIndex(["NaT", "NaT", "NaT"], dtype="M8[ns]")
+        expected = DatetimeIndex(["NaT", "NaT", "NaT"], dtype="M8[us]")
 
         tdser = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1114,7 +1130,15 @@ class TestTimedeltaArraylikeAddSubOps:
 
         tdi = tm.box_expected(tdi, box_with_array)
         pi = tm.box_expected(pi, box_with_array2)
-        msg = "cannot subtract|unsupported operand type"
+        msg = "|".join(
+            [
+                "cannot subtract",
+                "unsupported operand type",
+                r"bad operand type for unary \-: 'PeriodArray'",
+                r"Input has different freq=-1h from PeriodArray\(.*\)",
+                "Cannot add/subtract timedelta-like from PeriodArray",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             tdi - pi
 
@@ -1263,7 +1287,7 @@ class TestTimedeltaArraylikeAddSubOps:
         # GH#18808, GH#23320 special handling for timedelta64("NaT")
         box = box_with_array
         tdi = TimedeltaIndex([NaT, Timedelta("1s")])
-        expected = TimedeltaIndex(["NaT"] * 2)
+        expected = TimedeltaIndex(["NaT"] * 2).as_unit("us")
 
         obj = tm.box_expected(tdi, box)
         expected = tm.box_expected(expected, box)
@@ -1283,6 +1307,9 @@ class TestTimedeltaArraylikeAddSubOps:
         box = box_with_array
         rng = timedelta_range("1 days", "10 days")
         expected = timedelta_range("1 days 02:00:00", "10 days 02:00:00", freq="D")
+        if isinstance(two_hours, Timedelta) and two_hours.unit == "ns":
+            expected = expected.as_unit("ns")
+
         rng = tm.box_expected(rng, box)
         expected = tm.box_expected(expected, box)
 
@@ -1298,6 +1325,8 @@ class TestTimedeltaArraylikeAddSubOps:
         box = box_with_array
         rng = timedelta_range("1 days", "10 days")
         expected = timedelta_range("0 days 22:00:00", "9 days 22:00:00")
+        if isinstance(two_hours, Timedelta) and two_hours.unit == "ns":
+            expected = expected.as_unit("ns")
 
         rng = tm.box_expected(rng, box)
         expected = tm.box_expected(expected, box)
@@ -1494,6 +1523,7 @@ class TestTimedeltaArraylikeMulDivOps:
                 "argument must be an integer",
                 "cannot use operands with types dtype",
                 "Cannot multiply with",
+                r"unsupported operand type\(s\) for \*",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -1824,7 +1854,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
         res = tdi / other
 
-        expected = Index([1.0, np.timedelta64("NaT", "ns"), orig[0], 1.5], dtype=object)
+        expected = Index([1.0, np.timedelta64("NaT", "us"), orig[0], 1.5], dtype=object)
         expected = tm.box_expected(expected, box_with_array, transpose=False)
         if isinstance(expected, NumpyExtensionArray):
             expected = expected.to_numpy()
@@ -1835,7 +1865,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
         res = tdi // other
 
-        expected = Index([1, np.timedelta64("NaT", "ns"), orig[0], 1], dtype=object)
+        expected = Index([1, np.timedelta64("NaT", "us"), orig[0], 1], dtype=object)
         expected = tm.box_expected(expected, box_with_array, transpose=False)
         if isinstance(expected, NumpyExtensionArray):
             expected = expected.to_numpy()
@@ -2190,7 +2220,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
         expected = Series(
             ["0days", "1day", "4days", "9days", "16days"],
-            dtype="timedelta64[ns]",
+            dtype="timedelta64[us]",
             name=exname,
         )
 
@@ -2217,7 +2247,7 @@ class TestTimedeltaArraylikeMulDivOps:
         xname = names[2] if box not in [tm.to_array, pd.array] else names[1]
         expected = Series(
             [tdi[n] / ser[n] for n in range(len(ser))],
-            dtype="timedelta64[ns]",
+            dtype="timedelta64[us]",
             name=xname,
         )
 
@@ -2233,7 +2263,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
     def test_td64arr_all_nat_div_object_dtype_numeric(self, box_with_array):
         # GH#39750 make sure we infer the result as td64
-        tdi = TimedeltaIndex([NaT, NaT])
+        tdi = TimedeltaIndex([NaT, NaT], dtype="m8[ns]")
 
         left = tm.box_expected(tdi, box_with_array)
         right = np.array([2, 2.0], dtype=object)
@@ -2282,8 +2312,8 @@ def test_add_timestamp_to_timedelta():
         [
             timestamp
             + (
-                pd.to_timedelta("0.033333333s") * i
-                + pd.to_timedelta("0.000000001s") * divmod(i, 3)[0]
+                pd.to_timedelta("0.033333s") * i
+                + pd.to_timedelta("0.000001s") * divmod(i, 3)[0]
             )
             for i in range(31)
         ]
