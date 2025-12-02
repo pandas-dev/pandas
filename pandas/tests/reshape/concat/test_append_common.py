@@ -31,7 +31,7 @@ import pandas._testing as tm
                 pd.Timestamp("2011-01-02", tz="US/Eastern").as_unit("s"),
                 pd.Timestamp("2011-01-03", tz="US/Eastern").as_unit("s"),
             ],
-            "timedelta64[ns]": [
+            "timedelta64[us]": [
                 pd.Timedelta("1 days"),
                 pd.Timedelta("2 days"),
                 pd.Timedelta("3 days"),
