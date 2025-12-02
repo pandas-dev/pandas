@@ -1568,7 +1568,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> s = pd.Series([1, 2, 3, 4], index=[0, 0, 1, 1])
         >>> g = s.groupby([0, 0, 1, 1])
         >>> g.corr()  # doctest: +SKIP
@@ -1605,7 +1604,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> s = pd.Series([1, 2, 3, 4], index=[0, 0, 1, 1])
         >>> g = s.groupby([0, 0, 1, 1])
         >>> g.cov()  # doctest: +SKIP
@@ -1720,7 +1718,6 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> df = pd.DataFrame({"val": [1, 2, 2, 3, 3, 3]}, index=[0, 0, 1, 1, 2, 2])
         >>> g = df["val"].groupby([0, 0, 1, 1, 2, 2])
         >>> g.hist()  # doctest: +SKIP
