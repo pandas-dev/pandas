@@ -243,11 +243,9 @@ def read_excel(
         those columns will be combined into a ``MultiIndex``.  If a
         subset of data is selected with ``usecols``, index_col
         is based on the subset.
-
-        Missing values will be forward filled to allow roundtripping with
-        ``to_excel`` for ``merged_cells=True``. To avoid forward filling the
-        missing values use ``set_index`` after reading the data instead of
-        ``index_col``.
+        Missing values will be forward filled to allow roundtripping with ``to_excel``
+        for ``merged_cells=True``. To avoid forward filling the missing values use
+        ``set_index`` after reading the data instead of ``index_col``.
     usecols : str, list-like, or callable, default None
         * If None, then parse all columns.
         * If str, then indicates comma separated list of Excel column letters
@@ -328,8 +326,8 @@ def read_excel(
 
     na_filter : bool, default True
         Detect missing value markers (empty strings and the value of na_values). In
-        data without any NAs, passing ``na_filter=False`` can improve the
-        performance of reading a large file.
+        data without any NAs, passing ``na_filter=False`` can improve the performance
+        of reading a large file.
     verbose : bool, default False
         Indicate number of NA values placed in non-numeric columns.
     parse_dates : bool, list-like, or dict, default False
