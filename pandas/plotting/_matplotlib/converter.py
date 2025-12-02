@@ -1107,7 +1107,7 @@ class TimeSeries_TimedeltaFormatter(mpl.ticker.Formatter):  # pyright: ignore[re
     axis: Axis
 
     @staticmethod
-    def format_timedelta_ticks(x, pos, n_decimals: int, exp: int) -> str:
+    def format_timedelta_ticks(x, pos, n_decimals: int, exp: int = 9) -> str:
         """
         Convert seconds to 'D days HH:MM:SS.F'
         """
