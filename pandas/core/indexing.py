@@ -789,8 +789,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         if (
             isinstance(ax, MultiIndex)
             and self.name != "iloc"
-            and is_hashable(key)
-            and not isinstance(key, slice)
+            and is_hashable(key, allow_slice=False)
         ):
             with suppress(KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
@@ -1124,14 +1123,6 @@ class _LocationIndexer(NDFrameIndexerBase):
         # we have a nested tuple so have at least 1 multi-index level
         # we should be able to match up the dimensionality here
 
-        def _contains_slice(x: object) -> bool:
-            # Check if object is a slice or a tuple containing a slice
-            if isinstance(x, tuple):
-                return any(isinstance(v, slice) for v in x)
-            elif isinstance(x, slice):
-                return True
-            return False
-
         for key in tup:
             check_dict_or_set_indexers(key)
 
@@ -1143,8 +1134,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 # This should never be reached, but let's be explicit about it
                 raise ValueError("Too many indices")  # pragma: no cover
             if all(
-                (is_hashable(x) and not _contains_slice(x)) or com.is_null_slice(x)
-                for x in tup
+                is_hashable(x, allow_slice=False) or com.is_null_slice(x) for x in tup
             ):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
