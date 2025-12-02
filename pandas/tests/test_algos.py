@@ -1448,14 +1448,16 @@ class TestValueCounts:
 
     def test_value_counts_stability(self):
         # GH 63155
-        arr = np.random.default_rng(2).integers(0, 128, 8192)
+        arr = np.random.default_rng(2).integers(0, 16, 64)
         result = algos.value_counts_internal(arr, sort=True)
-        expected = (
-            Series(arr)
-            .value_counts(sort=False)
-            .sort_values(ascending=False, kind="stable")
-        )
+
+        value_counts = Series(arr).value_counts(sort=False)
+        expected = value_counts.sort_values(ascending=False, kind="stable")
         tm.assert_series_equal(result, expected)
+
+        unstable_sorted = value_counts.sort_values(ascending=False, kind="quicksort")
+        with pytest.raises(AssertionError):
+            tm.assert_series_equal(result, unstable_sorted)
 
 
 class TestDuplicated:
