@@ -129,11 +129,11 @@ class BaseMissingTests:
         data = data_missing.copy()
         data._readonly = True
 
-        expected = data_missing.fillna(fill_value, copy=True)
-
         # by default fillna(copy=True), then this works fine
         res_copy = data.fillna(fill_value, copy=True)
-        tm.assert_extension_array_equal(res_copy, expected)
+        tm.assert_extension_array_equal(
+            res_copy, data_missing.fillna(fill_value, copy=True)
+        )
         tm.assert_extension_array_equal(data, data_missing)
 
         if self._supports_fillna_copy_false:
@@ -142,6 +142,7 @@ class BaseMissingTests:
                 data.fillna(fill_value, copy=False)
             tm.assert_extension_array_equal(data, data_missing)
         else:
+            # EAs that do not respect the copy keyword, copy=False is ignored
             res_no_copy = data.fillna(fill_value, copy=False)
             tm.assert_extension_array_equal(res_no_copy, res_copy)
             tm.assert_extension_array_equal(data, data_missing)
