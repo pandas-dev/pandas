@@ -227,7 +227,7 @@ def read_excel(
         * ``1``: 2nd sheet as a `DataFrame`
         * ``"Sheet1"``: Load sheet with name "Sheet1"
         * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
-            as a dict of `DataFrame`
+          as a dict of `DataFrame`
         * ``None``: All worksheets.
 
     header : int, list of int, default 0
@@ -239,23 +239,25 @@ def read_excel(
         then you should explicitly pass header=None.
     index_col : int, str, list of int, default None
         Column (0-indexed) to use as the row labels of the DataFrame.
-        Pass None if there is no such column.  If a list is passed,
-        those columns will be combined into a ``MultiIndex``.  If a
+        Pass None if there is no such column. If a list is passed,
+        those columns will be combined into a ``MultiIndex``. If a
         subset of data is selected with ``usecols``, index_col
         is based on the subset.
+
         Missing values will be forward filled to allow roundtripping with ``to_excel``
         for ``merged_cells=True``. To avoid forward filling the missing values use
         ``set_index`` after reading the data instead of ``index_col``.
+
     usecols : str, list-like, or callable, default None
         * If None, then parse all columns.
         * If str, then indicates comma separated list of Excel column letters
-            and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
-            both sides.
+          and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
+          both sides.
         * If list of int, then indicates list of column numbers to be parsed
-            (0-indexed).
+          (0-indexed).
         * If list of string, then indicates list of column names to be parsed.
         * If callable, then evaluate each column name against it and parse the
-            column if the callable returns ``True``.
+          column if the callable returns ``True``.
 
         Returns a subset of the columns according to behavior above.
 
@@ -272,7 +274,7 @@ def read_excel(
 
         - ``openpyxl`` supports newer Excel file formats.
         - ``calamine`` supports Excel (.xls, .xlsx, .xlsm, .xlsb)
-            and OpenDocument (.ods) file formats.
+          and OpenDocument (.ods) file formats.
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
         - ``xlrd`` supports old-style Excel files (.xls).
@@ -280,7 +282,7 @@ def read_excel(
         When ``engine=None``, the following logic will be used to determine the engine:
 
         - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-            then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+          then `odf <https://pypi.org/project/odfpy/>`_ will be used.
         - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
         - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
         - Otherwise ``openpyxl`` will be used.
@@ -313,13 +315,13 @@ def read_excel(
         Depending on whether ``na_values`` is passed in, the behavior is as follows:
 
         * If ``keep_default_na`` is True, and ``na_values`` are specified,
-        ``na_values`` is appended to the default NaN values used for parsing.
+          ``na_values`` is appended to the default NaN values used for parsing.
         * If ``keep_default_na`` is True, and ``na_values`` are not specified, only
-            the default NaN values are used for parsing.
+          the default NaN values are used for parsing.
         * If ``keep_default_na`` is False, and ``na_values`` are specified, only
-            the NaN values specified ``na_values`` are used for parsing.
+          the NaN values specified ``na_values`` are used for parsing.
         * If ``keep_default_na`` is False, and ``na_values`` are not specified, no
-            strings will be parsed as NaN.
+          strings will be parsed as NaN.
 
         Note that if `na_filter` is passed in as False, the ``keep_default_na`` and
         ``na_values`` parameters will be ignored.
@@ -328,21 +330,23 @@ def read_excel(
         Detect missing value markers (empty strings and the value of na_values). In
         data without any NAs, passing ``na_filter=False`` can improve the performance
         of reading a large file.
+
     verbose : bool, default False
         Indicate number of NA values placed in non-numeric columns.
+
     parse_dates : bool, list-like, or dict, default False
         The behavior is as follows:
 
         * ``bool``. If True -> try parsing the index.
         * ``list`` of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
-        each as a separate date column.
+          each as a separate date column.
         * ``list`` of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
-        a single date column.
+          a single date column.
         * ``dict``, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
-        result 'foo'
+          result 'foo'
 
         If a column or index contains an unparsable date, the entire column or
-        index will be returned unaltered as an object data type. If you don`t want to
+        index will be returned unaltered as an object data type. If you don’t want to
         parse some cells as date just change their type in Excel to "Text".
         For non-standard datetime parsing, use ``pd.to_datetime`` after
         ``pd.read_excel``.
