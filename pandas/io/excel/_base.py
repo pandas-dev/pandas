@@ -213,6 +213,7 @@ def read_excel(
         or ``StringIO``.
 
         .. deprecated:: 2.1.0
+
             Passing byte strings is deprecated. To read from a
             byte string, wrap it in a ``BytesIO`` object.
     sheet_name : str, int, list, or None, default 0
@@ -365,6 +366,7 @@ def read_excel(
         arguments.
 
         .. deprecated:: 2.0.0
+
         Use ``date_format`` instead, or read in as ``object`` and then apply
         :func:`to_datetime` as-needed.
     date_format : str or dict of column -> format, default ``None``
@@ -373,6 +375,7 @@ def read_excel(
         :func:`to_datetime` as-needed.
 
         .. versionadded:: 2.0.0
+
     thousands : str, default None
         Thousands separator for parsing string columns to numeric.  Note that
         this parameter is only necessary for columns stored as TEXT in Excel,
@@ -1777,6 +1780,7 @@ class ExcelFile:
               :class:`ArrowDtype` :class:`DataFrame`
 
             .. versionadded:: 2.0
+
         **kwds : dict, optional
             Arbitrary keyword arguments passed to excel engine.
 
