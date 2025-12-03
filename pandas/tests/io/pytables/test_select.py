@@ -137,7 +137,7 @@ def test_select(tmp_path):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
         )
         _maybe_remove(store, "df")
         store.append("df", df)
@@ -354,7 +354,7 @@ def test_select_iterator(tmp_path):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
         )
         _maybe_remove(store, "df")
         store.append("df", df)
@@ -379,7 +379,7 @@ def test_select_iterator(tmp_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     df.to_hdf(path, key="df_non_table")
 
@@ -395,7 +395,7 @@ def test_select_iterator(tmp_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     df.to_hdf(path, key="df", format="table")
 
@@ -413,7 +413,7 @@ def test_select_iterator(tmp_path):
         df1 = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
         )
         store.append("df1", df1, data_columns=True)
         df2 = df1.copy().rename(columns="{}_2".format)
@@ -633,7 +633,7 @@ def test_frame_select(tmp_path, request):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
 
     path = tmp_path / "file.h22"
@@ -666,7 +666,7 @@ def test_frame_select(tmp_path, request):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
         )
         store.append("df_time", df)
         msg = "day is out of range for month: 0"
@@ -685,7 +685,7 @@ def test_frame_select_complex(tmp_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     df["string"] = "foo"
     df.loc[df.index[0:4], "string"] = "bar"
@@ -803,7 +803,7 @@ def test_invalid_filtering(tmp_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
 
     path = tmp_path / "file.h24"
@@ -827,7 +827,7 @@ def test_string_select(tmp_path):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
         )
 
         # test string ==/!=
@@ -871,7 +871,7 @@ def test_select_as_multiple(tmp_path):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     df2 = df1.copy().rename(columns="{}_2".format)
     df2["foo"] = "bar"
