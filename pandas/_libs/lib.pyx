@@ -862,6 +862,26 @@ cpdef ndarray[object] ensure_string_array(
     return result
 
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef bool is_all_scalar(obj: list | tuple):
+    # Optimized for lists and tuples
+    cdef:
+        Py_ssize_t i, n = len(obj)
+        bool all_scalars = True
+        object temp
+
+    for i in range(n):
+        temp = obj[i]
+        if isinstance(temp, (bytes, str)):
+            continue
+        elif hasattr(temp, "__iter__"):
+            all_scalars = False
+            break
+
+    return all_scalars
+
+
 def is_all_arraylike(obj: list) -> bool:
     """
     Should we treat these as levels of a MultiIndex, as opposed to Index items?

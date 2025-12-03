@@ -322,8 +322,8 @@ def array(
         return data
 
     # to avoid returning an array of string representation of objects.
-    if dtype == StringDtype():
-        if any(not lib.is_scalar(i) for i in data):
+    if isinstance(dtype, StringDtype) and isinstance(data, (list, tuple)):
+        if not lib.is_all_scalar(data):
             raise TypeError("Values must be a 1D list-like")
 
     if isinstance(dtype, ExtensionDtype):
