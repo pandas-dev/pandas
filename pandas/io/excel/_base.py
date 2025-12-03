@@ -346,7 +346,7 @@ def read_excel(
           result 'foo'
 
         If a column or index contains an unparsable date, the entire column or
-        index will be returned unaltered as an object data type. If you don’t want to
+        index will be returned unaltered as an object data type. If you don`t want to
         parse some cells as date just change their type in Excel to "Text".
         For non-standard datetime parsing, use ``pd.to_datetime`` after
         ``pd.read_excel``.
@@ -1556,8 +1556,8 @@ class ExcelFile:
         details, and for more examples on storage options refer `here
         <https://pandas.pydata.org/docs/user_guide/io.html?
         highlight=storage_options#reading-writing-remote-files>`_.
-        engine_kwargs : dict, optional
-            Arbitrary keyword arguments passed to excel engine.
+    engine_kwargs : dict, optional
+        Arbitrary keyword arguments passed to excel engine.
 
     See Also
     --------
