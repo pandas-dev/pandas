@@ -1023,6 +1023,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             return IntegerArray(result, mask, copy=False)
 
+        elif result.dtype == object:
+            result[mask] = self.dtype.na_value
+            return result
         else:
             result[mask] = np.nan
             return result

@@ -422,7 +422,7 @@ class TestAstype:
         ]
         df = DataFrame(vals, dtype=object)
         msg = (
-            r"Cannot convert from timedelta64\[ns\] to timedelta64\[.*\]. "
+            r"Cannot convert from timedelta64\[us\] to timedelta64\[.*\]. "
             "Supported resolutions are 's', 'ms', 'us', 'ns'"
         )
         with pytest.raises(ValueError, match=msg):
@@ -734,7 +734,9 @@ class TestAstype:
         msg = "'d' is deprecated and will be removed in a future version."
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             val = {
-                "tz": date_range("2020-08-30", freq="d", periods=2, tz="Europe/London")
+                "tz": date_range(
+                    "2020-08-30", freq="d", periods=2, tz="Europe/London", unit="ns"
+                )
             }
         df = DataFrame(val)
         result = df.astype({"tz": "datetime64[ns, Europe/Berlin]"})
@@ -746,7 +748,11 @@ class TestAstype:
     @pytest.mark.parametrize("tz", ["UTC", "Europe/Berlin"])
     def test_astype_tz_object_conversion(self, tz):
         # GH 35973
-        val = {"tz": date_range("2020-08-30", freq="D", periods=2, tz="Europe/London")}
+        val = {
+            "tz": date_range(
+                "2020-08-30", freq="D", periods=2, tz="Europe/London", unit="ns"
+            )
+        }
         expected = DataFrame(val)
 
         # convert expected to object dtype from other tz str (independently tested)
