@@ -140,9 +140,7 @@ class NumericDtype(BaseMaskedDtype):
         raise AbstractMethodError(cls)
 
 
-def _coerce_to_data_and_mask(
-    values, dtype, copy: bool, dtype_cls: type[NumericDtype], default_dtype: np.dtype
-):
+def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericDtype]):
     values = extract_array(values, extract_numpy=True)
     checker = dtype_cls._checker
     default_dtype = dtype_cls._default_np_dtype
@@ -300,10 +298,7 @@ class NumericArray(BaseMaskedArray):
         cls, value, dtype: DtypeObj, copy: bool = False
     ) -> tuple[np.ndarray, np.ndarray]:
         dtype_cls = cls._dtype_cls
-        default_dtype = dtype_cls._default_np_dtype
-        values, mask = _coerce_to_data_and_mask(
-            value, dtype, copy, dtype_cls, default_dtype
-        )
+        values, mask = _coerce_to_data_and_mask(value, dtype, copy, dtype_cls)
         return values, mask
 
     @classmethod
