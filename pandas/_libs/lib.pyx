@@ -865,8 +865,9 @@ cpdef ndarray[object] ensure_string_array(
 def is_all_scalar(obj: list | tuple) -> bool:
     cdef:
         Py_ssize_t i, n = len(obj)
-        bool all_scalars = True
         object temp
+
+    all_scalars = True
 
     for i in range(n):
         temp = obj[i]
