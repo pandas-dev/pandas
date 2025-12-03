@@ -6288,6 +6288,10 @@ class Index(IndexOpsMixin, PandasObject):
             #  respectively.
             return False
 
+        # GH#62158
+        if self.dtype.kind == "M" and other.inferred_type == "date":
+            return False
+
         dtype = _unpack_nested_dtype(other)
         return (
             self._is_comparable_dtype(dtype)
