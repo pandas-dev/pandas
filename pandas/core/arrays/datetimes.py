@@ -826,17 +826,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
             ]
             res_unit = self.unit
             if type(offset) is DateOffset:
-                nano = offset.kwds.get("nanoseconds", 0)
-                micro = offset.kwds.get("microseconds", 0)
-                if nano:
+                if "nanoseconds" in offset.kwds:
                     res_unit = "ns"
-                elif micro and self.unit != "ns":
+                elif "microseconds" in offset.kwds and self.unit != "ns":
                     res_unit = "us"
-            if (
-                hasattr(offset, "offset")
-                and offset.offset is not None
-                and not isinstance(offset, Tick)
-            ):
+            if hasattr(offset, "offset") and offset.offset is not None:
                 offset_td = Timedelta(offset.offset)
                 if offset_td.value != 0:
                     offset_unit = offset_td.unit
