@@ -410,9 +410,9 @@ def read_excel(
         (still experimental). Behaviour is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-        (default).
+          (default).
         * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-        DataFrame.
+          DataFrame.
 
         .. versionadded:: 2.0
 
