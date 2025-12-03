@@ -1315,6 +1315,9 @@ def assert_frame_equal(
     if check_like:
         left = left.reindex_like(right)
 
+    column_errors = []
+    first_error_message = None
+
     # compare by blocks
     if by_blocks:
         rblocks = right._to_dict_of_blocks()
@@ -1338,29 +1341,45 @@ def assert_frame_equal(
             # use check_index=False, because we do not want to run
             # assert_index_equal for each column,
             # as we already checked it for the whole dataframe before.
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    message="the 'check_datetimelike_compat' keyword",
-                    category=Pandas4Warning,
-                )
-                assert_series_equal(
-                    lcol,
-                    rcol,
-                    check_dtype=check_dtype,
-                    check_index_type=check_index_type,
-                    check_exact=check_exact,
-                    check_names=check_names,
-                    check_datetimelike_compat=check_datetimelike_compat,
-                    check_categorical=check_categorical,
-                    check_freq=check_freq,
-                    obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
-                    rtol=rtol,
-                    atol=atol,
-                    check_index=False,
-                    check_flags=False,
-                )
-
+            try:
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        message="the 'check_datetimelike_compat' keyword",
+                        category=Pandas4Warning,
+                    )
+                    assert_series_equal(
+                        lcol,
+                        rcol,
+                        check_dtype=check_dtype,
+                        check_index_type=check_index_type,
+                        check_exact=check_exact,
+                        check_names=check_names,
+                        check_datetimelike_compat=check_datetimelike_compat,
+                        check_categorical=check_categorical,
+                        check_freq=check_freq,
+                        obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
+                        rtol=rtol,
+                        atol=atol,
+                        check_index=False,
+                        check_flags=False,
+                    )
+            except AssertionError as e:
+                column_errors.append((i, col))
+                if first_error_message is None:
+                    first_error_message = str(e)
+        
+        if column_errors:
+            column_indices = [idx for idx, _ in column_errors]
+            column_names = [name for _, name in column_errors]
+            
+            error_summary = f"{obj} are different\n\n"
+            error_summary += f"Columns with differences (positions {column_indices}):\n"
+            error_summary += f"{column_names}\n\n"
+            error_summary += f"First difference details:\n"
+            error_summary += first_error_message
+            
+            raise AssertionError(error_summary)
 
 def assert_equal(left, right, **kwargs) -> None:
     """
