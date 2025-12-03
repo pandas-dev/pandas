@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-pytest.importorskip("tables")
 
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import PY312
