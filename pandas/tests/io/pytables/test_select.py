@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 
-
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import PY312
 
