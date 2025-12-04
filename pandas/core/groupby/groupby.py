@@ -76,6 +76,7 @@ from pandas.core.dtypes.cast import (
     ensure_dtype_can_hold_na,
 )
 from pandas.core.dtypes.common import (
+    is_bool,
     is_bool_dtype,
     is_float_dtype,
     is_hashable,
@@ -109,9 +110,7 @@ from pandas.core.arrays import (
     SparseArray,
 )
 from pandas.core.arrays.string_ import StringDtype
-from pandas.core.arrays.string_arrow import (
-    ArrowStringArray,
-)
+from pandas.core.arrays.string_arrow import ArrowStringArray
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -407,10 +406,8 @@ When using ``engine='numba'``, there will be no "fall back" behavior internally.
 The group data and group index will be passed as numpy arrays to the JITed
 user defined function, and no alternative execution attempts will be tried.
 
-.. versionchanged:: 1.3.0
-
-    The resulting dtype will reflect the return value of the passed ``func``,
-    see the examples below.
+The resulting dtype will reflect the return value of the passed ``func``,
+see the examples below.
 
 .. versionchanged:: 2.0.0
 
@@ -648,7 +645,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         def get_converter(s):
             # possibly convert to the actual key types
-            # in the indices, could be a Timestamp or a np.datetime64
+            # in the indices, could be a Timestamp or an np.datetime64
             if isinstance(s, datetime.datetime):
                 return lambda key: Timestamp(key)
             elif isinstance(s, np.datetime64):
@@ -1519,11 +1516,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Notes
         -----
-
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``,
-            see the examples below.
+        The resulting dtype will reflect the return value of the passed ``func``,
+        see the examples below.
 
         Functions that mutate the passed object can produce unexpected
         behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
@@ -1563,9 +1557,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         its argument and returns a Series.  `apply` combines the result for
         each group together into a new DataFrame.
 
-        .. versionchanged:: 1.3.0
-
-            The resulting dtype will reflect the return value of the passed ``func``.
+        The resulting dtype will reflect the return value of the passed ``func``.
 
         >>> g1[["B", "C"]].apply(lambda x: x.astype(float).max() - x.min())
              B    C
@@ -1755,6 +1747,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     ):
         # Note: we never get here with how="ohlc" for DataFrameGroupBy;
         #  that goes through SeriesGroupBy
+
+        if not is_bool(numeric_only):
+            raise ValueError("numeric_only accepts only Boolean values")
 
         data = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
 
@@ -2185,15 +2180,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         skipna : bool, default True
             Exclude NA/null values. If an entire group is NA, the result will be NA.
 
-            .. versionadded:: 3.0.0
-
         engine : str, default None
             * ``'cython'`` : Runs the operation through C-extensions from cython.
             * ``'numba'`` : Runs the operation through JIT compiled code from numba.
             * ``None`` : Defaults to ``'cython'`` or globally setting
               ``compute.use_numba``
-
-            .. versionadded:: 1.4.0
 
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
@@ -2201,8 +2192,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
               and ``parallel`` dictionary keys. The values must either be ``True`` or
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
-
-            .. versionadded:: 1.4.0
 
         Returns
         -------
@@ -2395,8 +2384,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * ``None`` : Defaults to ``'cython'`` or globally setting
               ``compute.use_numba``
 
-            .. versionadded:: 1.4.0
-
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -2404,12 +2391,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
 
-            .. versionadded:: 1.4.0
-
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
 
@@ -2513,8 +2496,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             * ``None`` : Defaults to ``'cython'`` or globally setting
               ``compute.use_numba``
 
-            .. versionadded:: 1.4.0
-
         engine_kwargs : dict, default None
             * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
             * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -2522,12 +2503,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
               ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
               ``{{'nopython': True, 'nogil': False, 'parallel': False}}``
 
-            .. versionadded:: 1.4.0
-
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
 
@@ -2743,8 +2720,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
-
-            .. versionadded:: 1.5.0
 
             .. versionchanged:: 2.0.0
 
@@ -4398,8 +4373,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         numeric_only : bool, default False
             Include only `float`, `int` or `boolean` data.
 
-            .. versionadded:: 1.5.0
-
             .. versionchanged:: 2.0.0
 
                 numeric_only now defaults to ``False``.
@@ -5236,7 +5209,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return (
             shifted_dataframes[0]
             if len(shifted_dataframes) == 1
-            else concat(shifted_dataframes, axis=1)
+            else concat(shifted_dataframes, axis=1, sort=False)
         )
 
     @final
@@ -5560,10 +5533,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             If int, array-like, or BitGenerator, seed for random number generator.
             If np.random.RandomState or np.random.Generator, use as given.
             Default ``None`` results in sampling with the current state of np.random.
-
-            .. versionchanged:: 1.4.0
-
-                np.random.Generator objects now accepted
 
         Returns
         -------

@@ -9,6 +9,8 @@ from typing import (
     Any,
 )
 
+from pandas.util._decorators import set_module
+
 from pandas.core.series import Series
 
 if TYPE_CHECKING:
@@ -69,14 +71,13 @@ def _pretty_print_args_kwargs(*args: Any, **kwargs: Any) -> str:
     return ", ".join(all_args)
 
 
+@set_module("pandas.api.typing")
 class Expression:
     """
     Class representing a deferred column.
 
     This is not meant to be instantiated directly. Instead, use :meth:`pandas.col`.
     """
-
-    __module__ = "pandas.api.typing"
 
     def __init__(self, func: Callable[[DataFrame], Any], repr_str: str) -> None:
         self._func = func
@@ -222,6 +223,7 @@ class NamespaceExpression:
         return wrapper
 
 
+@set_module("pandas")
 def col(col_name: Hashable) -> Expression:
     """
     Generate deferred object representing a column of a DataFrame.

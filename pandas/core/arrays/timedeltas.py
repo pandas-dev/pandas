@@ -40,6 +40,7 @@ from pandas._libs.tslibs.timedeltas import (
     truediv_object_array,
 )
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import set_module
 from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.common import (
@@ -51,7 +52,11 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
@@ -103,6 +108,7 @@ def _field_accessor(name: str, alias: str, docstring: str):
     return property(f)
 
 
+@set_module("pandas.arrays")
 class TimedeltaArray(dtl.TimelikeOps):
     """
     Pandas ExtensionArray for timedelta data.
@@ -144,10 +150,8 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> pd.arrays.TimedeltaArray._from_sequence(pd.TimedeltaIndex(["1h", "2h"]))
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
-    Length: 2, dtype: timedelta64[ns]
+    Length: 2, dtype: timedelta64[us]
     """
-
-    __module__ = "pandas.arrays"
 
     _typ = "timedeltaarray"
     _internal_fill_value = np.timedelta64("NaT", "ns")
@@ -501,6 +505,10 @@ class TimedeltaArray(dtl.TimelikeOps):
                 f"Cannot multiply '{self.dtype}' by bool, explicitly cast to "
                 "integers instead"
             )
+        if isinstance(other.dtype, (ArrowDtype, BaseMaskedDtype)):
+            # GH#58054
+            return NotImplemented
+
         if len(other) != len(self) and not lib.is_np_dtype(other.dtype, "m"):
             # Exclude timedelta64 here so we correctly raise TypeError
             #  for that instead of ValueError
@@ -805,7 +813,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> idx = pd.to_timedelta(np.arange(5), unit="D")
         >>> idx
         TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                       dtype='timedelta64[ns]', freq=None)
+                       dtype='timedelta64[us]', freq=None)
 
         >>> idx.total_seconds()
         Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
@@ -884,7 +892,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
     >>> tdelta_idx
     TimedeltaIndex(['0 days', '10 days', '20 days'],
-                    dtype='timedelta64[ns]', freq=None)
+                    dtype='timedelta64[us]', freq=None)
     >>> tdelta_idx.days
     Index([0, 10, 20], dtype='int64')"""
     )
@@ -1212,7 +1220,7 @@ def _objects_to_td64ns(
     data, unit=None, errors: DateTimeErrorChoices = "raise"
 ) -> np.ndarray:
     """
-    Convert a object-dtyped or string-dtyped array into an
+    Convert an object-dtyped or string-dtyped array into a
     timedelta64[ns]-dtyped array.
 
     Parameters
@@ -1243,7 +1251,7 @@ def _objects_to_td64ns(
     values = np.asarray(data, dtype=np.object_)
 
     result = array_to_timedelta64(values, unit=unit, errors=errors)
-    return result.view("timedelta64[ns]")
+    return result
 
 
 def _validate_td64_dtype(dtype) -> DtypeObj:

@@ -31,12 +31,14 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
     cache_readonly,
+    set_module,
 )
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_insert_loc,
 )
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
@@ -105,6 +107,7 @@ if TYPE_CHECKING:
 _extension_array_shared_docs: dict[str, str] = {}
 
 
+@set_module("pandas.api.extensions")
 class ExtensionArray:
     """
     Abstract base class for custom 1-D array types.
@@ -256,8 +259,6 @@ class ExtensionArray:
     https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/list/array.py
     """
 
-    __module__ = "pandas.api.extensions"
-
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
     _typ = "extension"
@@ -267,6 +268,8 @@ class ExtensionArray:
     #  subclass takes priority. If overriding, the value should always be
     #  strictly less than 2000 to be below Index.__pandas_priority__.
     __pandas_priority__ = 1000
+
+    _readonly = False
 
     # ------------------------------------------------------------------------
     # Constructors
@@ -454,6 +457,11 @@ class ExtensionArray:
         Returns
         -------
         None
+
+        Raises
+        ------
+        ValueError
+            If the array is readonly and modification is attempted.
         """
         # Some notes to the ExtensionArray implementer who may have ended up
         # here. While this method is not required for the interface, if you
@@ -473,6 +481,10 @@ class ExtensionArray:
         #   __init__ method coerces that value, then so should __setitem__
         # Note, also, that Series/DataFrame.where internally use __setitem__
         # on a copy of the data.
+        # Check if the array is readonly
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         raise NotImplementedError(f"{type(self)} does not implement __setitem__.")
 
     def __len__(self) -> int:
@@ -567,8 +579,14 @@ class ExtensionArray:
         result = np.asarray(self, dtype=dtype)
         if copy or na_value is not lib.no_default:
             result = result.copy()
+        elif self._readonly and astype_is_view(self.dtype, result.dtype):
+            # If the ExtensionArray is readonly, make the numpy array readonly too
+            result = result.view()
+            result.flags.writeable = False
+
         if na_value is not lib.no_default:
             result[self.isna()] = na_value  # type: ignore[index]
+
         return result
 
     # ------------------------------------------------------------------------
@@ -1573,8 +1591,6 @@ class ExtensionArray:
             If True, the sentinel -1 will be used for NaN values. If False,
             NaN values will be encoded as non-negative integers and will not drop the
             NaN from the uniques of the values.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -2788,6 +2804,7 @@ class ExtensionOpsMixin:
         setattr(cls, "__rxor__", cls._create_logical_method(roperator.rxor))
 
 
+@set_module("pandas.api.extensions")
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
     A mixin for defining ops on an ExtensionArray.
@@ -2813,8 +2830,6 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
        implementation to be called when involved in binary operations
        with NumPy arrays.
     """
-
-    __module__ = "pandas.api.extensions"
 
     @classmethod
     def _create_method(cls, op, coerce_to_dtype: bool = True, result_dtype=None):

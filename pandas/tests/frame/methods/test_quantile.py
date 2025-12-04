@@ -135,7 +135,7 @@ class TestDataFrameQuantile:
     def test_quantile_date_range(self, interp_method):
         # GH 2460
         interpolation, method = interp_method
-        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
+        dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific", unit="ns")
         ser = Series(dti)
         df = DataFrame(ser)
 

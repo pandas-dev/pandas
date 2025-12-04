@@ -101,7 +101,7 @@ class TestVectorizedTimedelta:
         t1 = timedelta_range("1 days", periods=3, freq="1 min 2 s 3 us")
         t2 = -1 * t1
         t1a = timedelta_range("1 days", periods=3, freq="1 min 2 s")
-        t1c = TimedeltaIndex(np.array([1, 1, 1], "m8[D]")).as_unit("ns")
+        t1c = TimedeltaIndex(np.array([1, 1, 1], "m8[D]")).as_unit("us")
 
         # note that negative times round DOWN! so don't give whole numbers
         msg = "'d' is deprecated and will be removed in a future version."

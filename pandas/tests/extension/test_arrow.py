@@ -591,14 +591,6 @@ class TestArrowArray(base.ExtensionTests):
             if data.dtype._is_numeric:
                 mark = pytest.mark.xfail(reason="skew not implemented")
                 request.applymarker(mark)
-        elif (
-            op_name in ["std", "sem"]
-            and pa.types.is_date64(data._pa_array.type)
-            and skipna
-        ):
-            # overflow
-            mark = pytest.mark.xfail(reason="Cannot cast")
-            request.applymarker(mark)
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
     @pytest.mark.parametrize("typ", ["int64", "uint64", "float64"])
@@ -686,6 +678,21 @@ class TestArrowArray(base.ExtensionTests):
         result = data.fillna(valid)
         assert result is not data
         tm.assert_extension_array_equal(result, data)
+
+    def test_fillna_readonly(self, data_missing):
+        data = data_missing.copy()
+        data._readonly = True
+
+        # by default fillna(copy=True), then this works fine
+        result = data.fillna(data_missing[1])
+        assert result[0] == data_missing[1]
+        tm.assert_extension_array_equal(data, data_missing)
+
+        # fillna(copy=False) is generally not honored by Arrow-backed array,
+        # but always returns new data -> same result as above
+        result = data.fillna(data_missing[1])
+        assert result[0] == data_missing[1]
+        tm.assert_extension_array_equal(data, data_missing)
 
     @pytest.mark.xfail(
         reason="GH 45419: pyarrow.ChunkedArray does not support views", run=False
@@ -3470,9 +3477,9 @@ def test_string_to_datetime_parsing_cast():
     # GH 56266
     string_dates = ["2020-01-01 04:30:00", "2020-01-02 00:00:00", "2020-01-03 00:00:00"]
     result = pd.Series(string_dates, dtype="timestamp[s][pyarrow]")
-    expected = pd.Series(
-        ArrowExtensionArray(pa.array(pd.to_datetime(string_dates), from_pandas=True))
-    )
+
+    pd_res = pd.to_datetime(string_dates).as_unit("s")
+    expected = pd.Series(ArrowExtensionArray(pa.array(pd_res, from_pandas=True)))
     tm.assert_series_equal(result, expected)
 
 
@@ -3800,3 +3807,13 @@ def test_cast_pontwise_result_decimal_nan():
 
     pa_type = result.dtype.pyarrow_dtype
     assert pa.types.is_decimal(pa_type)
+
+
+def test_ufunc_retains_missing():
+    # GH#62800
+    ser = pd.Series([0.1, pd.NA], dtype="float64[pyarrow]")
+
+    result = np.sin(ser)
+
+    expected = pd.Series([np.sin(0.1), pd.NA], dtype="float64[pyarrow]")
+    tm.assert_series_equal(result, expected)

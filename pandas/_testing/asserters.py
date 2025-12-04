@@ -17,7 +17,10 @@ from pandas._libs.sparse import SparseIndex
 import pandas._libs.testing as _testing
 from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
 from pandas.errors import Pandas4Warning
-from pandas.util._decorators import deprecate_kwarg
+from pandas.util._decorators import (
+    deprecate_kwarg,
+    set_module,
+)
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -181,6 +184,7 @@ def assert_dict_equal(left, right, compare_keys: bool = True) -> None:
     _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
 
+@set_module("pandas.testing")
 def assert_index_equal(
     left: Index,
     right: Index,
@@ -695,6 +699,7 @@ def assert_numpy_array_equal(
             assert_attr_equal("dtype", left, right, obj=obj)
 
 
+@set_module("pandas.testing")
 def assert_extension_array_equal(
     left,
     right,
@@ -798,7 +803,7 @@ def assert_extension_array_equal(
             ):
                 return
         # Avoid slow object-dtype comparisons
-        # np.asarray for case where we have a np.MaskedArray
+        # np.asarray for case where we have an np.MaskedArray
         assert_numpy_array_equal(
             np.asarray(left.asi8),
             np.asarray(right.asi8),
@@ -850,6 +855,7 @@ def assert_extension_array_equal(
 
 
 # This could be refactored to use the NDFrame.equals method
+@set_module("pandas.testing")
 @deprecate_kwarg(Pandas4Warning, "check_datetimelike_compat", new_arg_name=None)
 def assert_series_equal(
     left,
@@ -925,13 +931,9 @@ def assert_series_equal(
         assertion message.
     check_index : bool, default True
         Whether to check index equivalence. If False, then compare only values.
-
-        .. versionadded:: 1.3.0
     check_like : bool, default False
         If True, ignore the order of the index. Must be False if check_index is False.
         Note: same labels must be with the same data.
-
-        .. versionadded:: 1.5.0
 
     See Also
     --------
@@ -1143,6 +1145,7 @@ def assert_series_equal(
 
 
 # This could be refactored to use the NDFrame.equals method
+@set_module("pandas.testing")
 @deprecate_kwarg(Pandas4Warning, "check_datetimelike_compat", new_arg_name=None)
 def assert_frame_equal(
     left,

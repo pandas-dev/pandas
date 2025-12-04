@@ -1361,12 +1361,8 @@ class TestPeriodIndexArithmetic:
             arr + ts
         with pytest.raises(TypeError, match=msg):
             ts + arr
-        if box_with_array is pd.DataFrame:
-            # TODO: before implementing resolution-inference we got the same
-            #  message with DataFrame and non-DataFrame.  Why did that change?
-            msg = "cannot add PeriodArray and Timestamp"
-        else:
-            msg = "cannot add PeriodArray and DatetimeArray"
+
+        msg = "cannot add PeriodArray and DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             arr + Series([ts])
         with pytest.raises(TypeError, match=msg):
@@ -1641,7 +1637,9 @@ class TestPeriodIndexSeriesMethods:
         result = np.subtract(Period("2012-01", freq="M"), idx)
         tm.assert_index_equal(result, exp)
 
-        exp = TimedeltaIndex([np.nan, np.nan, np.nan, np.nan], name="idx")
+        exp = TimedeltaIndex(
+            [np.nan, np.nan, np.nan, np.nan], name="idx", dtype="m8[ns]"
+        )
         result = idx - Period("NaT", freq="M")
         tm.assert_index_equal(result, exp)
         assert result.freq == exp.freq
@@ -1655,7 +1653,7 @@ class TestPeriodIndexSeriesMethods:
         idx = PeriodIndex(
             ["2011-01", "2011-02", "NaT", "2011-04"], freq="M", name="idx"
         )
-        exp = TimedeltaIndex([pd.NaT] * 4, name="idx")
+        exp = TimedeltaIndex([pd.NaT] * 4, name="idx", dtype="m8[ns]")
         tm.assert_index_equal(pd.NaT - idx, exp)
         tm.assert_index_equal(idx - pd.NaT, exp)
 
@@ -1674,6 +1672,8 @@ class TestPeriodIndexSeriesMethods:
         exp = pd.Index([12 * off, pd.NaT, 10 * off, 9 * off], name="idx")
         tm.assert_index_equal(result, exp)
 
-        exp = TimedeltaIndex([np.nan, np.nan, np.nan, np.nan], name="idx")
+        exp = TimedeltaIndex(
+            [np.nan, np.nan, np.nan, np.nan], name="idx", dtype="m8[ns]"
+        )
         tm.assert_index_equal(idx - Period("NaT", freq="M"), exp)
         tm.assert_index_equal(Period("NaT", freq="M") - idx, exp)

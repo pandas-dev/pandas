@@ -1,0 +1,22 @@
+.. _whatsnew_234:
+
+What's new in 2.3.4 (November XX, 2025)
+----------------------------------------
+
+These are the changes in pandas 2.3.4. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+
+Bug fixes
+^^^^^^^^^
+- Bug in :meth:`DataFrame.__getitem__` returning modified columns when called with ``slice`` in Python 3.12 (:issue:`57500`)
+- Bug in :meth:`Series.str.replace` raising an error on valid group references (``\1``, ``\2``, etc.) on series converted to PyArrow backend dtype (:issue:`62653`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_234.contributors:
+
+Contributors
+~~~~~~~~~~~~

@@ -8,6 +8,8 @@ from typing import (
 
 from pandas._config import get_option
 
+from pandas.util._decorators import set_module
+
 from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
@@ -44,6 +46,7 @@ def holds_integer(column: Index) -> bool:
     return column.dtype.kind in "iu"
 
 
+@set_module("pandas.plotting")
 def hist_series(
     self: Series,
     by=None,
@@ -142,6 +145,7 @@ def hist_series(
     )
 
 
+@set_module("pandas.plotting")
 def hist_frame(
     data: DataFrame,
     column: IndexLabel | None = None,
@@ -227,8 +231,8 @@ def hist_frame(
 
     Returns
     -------
-    matplotlib.Axes or numpy.ndarray of them
-        Returns a AxesSubplot object a numpy array of AxesSubplot objects.
+    np.ndarray
+        2D NumPy Array of :class:`matplotlib.axes.Axes`.
 
     See Also
     --------
@@ -271,6 +275,7 @@ def hist_frame(
     )
 
 
+@set_module("pandas.plotting")
 def boxplot(
     data: DataFrame,
     column: str | list[str] | None = None,
@@ -458,6 +463,7 @@ def boxplot(
     )
 
 
+@set_module("pandas.plotting")
 def boxplot_frame(
     self: DataFrame,
     column=None,
@@ -615,6 +621,9 @@ def boxplot_frame(
     returned by `boxplot`.  When ``return_type='axes'`` is selected,
     the matplotlib axes on which the boxplot is drawn are returned:
 
+    .. plot::
+        :context: close-figs
+
         >>> boxplot = df.boxplot(column=["Col1", "Col2"], return_type="axes")
         >>> type(boxplot)
         <class 'matplotlib.axes._axes.Axes'>
@@ -622,12 +631,18 @@ def boxplot_frame(
     When grouping with ``by``, a Series mapping columns to ``return_type``
     is returned:
 
+    .. plot::
+        :context: close-figs
+
         >>> boxplot = df.boxplot(column=["Col1", "Col2"], by="X", return_type="axes")
         >>> type(boxplot)
         <class 'pandas.Series'>
 
     If ``return_type`` is `None`, a NumPy array of axes with the same shape
     as ``layout`` is returned:
+
+    .. plot::
+        :context: close-figs
 
         >>> boxplot = df.boxplot(column=["Col1", "Col2"], by="X", return_type=None)
         >>> type(boxplot)
@@ -650,6 +665,7 @@ def boxplot_frame(
     )
 
 
+@set_module("pandas.plotting")
 def boxplot_frame_groupby(
     grouped: DataFrameGroupBy,
     subplots: bool = True,
@@ -753,6 +769,7 @@ def boxplot_frame_groupby(
     )
 
 
+@set_module("pandas.plotting")
 class PlotAccessor(PandasObject):
     """
     Make plots of Series or DataFrame.
@@ -798,8 +815,6 @@ class PlotAccessor(PandasObject):
           create 2 subplots: one with columns 'a' and 'c', and one
           with columns 'b' and 'd'. Remaining columns that aren't specified
           will be plotted in additional subplots (one per column).
-
-          .. versionadded:: 1.5.0
 
     sharex : bool, default True if ax is None else False
         In case ``subplots=True``, share x axis and set some x axis labels
@@ -970,8 +985,6 @@ class PlotAccessor(PandasObject):
         >>> df = pd.DataFrame({"col1": [1, 2, 3, 4], "col2": ["A", "B", "A", "B"]})
         >>> plot = df.groupby("col2").plot(kind="bar", title="DataFrameGroupBy Plot")
     """
-
-    __module__ = "pandas.plotting"
 
     _common_kinds = ("line", "bar", "barh", "kde", "density", "area", "hist", "box")
     _series_kinds = ("pie",)
@@ -1584,10 +1597,6 @@ class PlotAccessor(PandasObject):
         by : str or sequence
             Column in the DataFrame to group by.
 
-            .. versionchanged:: 1.4.0
-
-               Previously, `by` is silently ignore and makes no groupings
-
         **kwargs
             Additional keywords are documented in
             :meth:`DataFrame.plot`.
@@ -1618,8 +1627,6 @@ class PlotAccessor(PandasObject):
         You can also generate groupings if you specify the `by` parameter (which
         can take a column name, or a list or tuple of column names):
 
-        .. versionchanged:: 1.4.0
-
         .. plot::
             :context: close-figs
 
@@ -1644,11 +1651,6 @@ class PlotAccessor(PandasObject):
         ----------
         by : str or sequence, optional
             Column in the DataFrame to group by.
-
-            .. versionchanged:: 1.4.0
-
-               Previously, `by` is silently ignore and makes no groupings
-
         bins : int, default 10
             Number of histogram bins to be used.
         **kwargs

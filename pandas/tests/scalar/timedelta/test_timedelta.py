@@ -83,7 +83,7 @@ class TestNonNano:
 
     def test_cmp_cross_reso(self, td):
         # numpy gets this wrong because of silent overflow
-        other = Timedelta(days=106751, unit="ns")
+        other = Timedelta(days=106751)
         assert other < td
         assert td > other
         assert not other == td
@@ -338,6 +338,7 @@ class TestTimedeltas:
 
     def test_conversion(self):
         for td in [Timedelta(10, unit="D"), Timedelta("1 days, 10:11:12.012345")]:
+            td = td.as_unit("ns")
             pydt = td.to_pytimedelta()
             assert td == Timedelta(pydt)
             assert td == pydt
@@ -385,8 +386,8 @@ class TestTimedeltas:
         assert abs(td) == Timedelta("13:48:48")
         assert str(td) == "-1 days +10:11:12"
         assert -td == Timedelta("0 days 13:48:48")
-        assert -Timedelta("-1 days, 10:11:12")._value == 49728000000000
-        assert Timedelta("-1 days, 10:11:12")._value == -49728000000000
+        assert -Timedelta("-1 days, 10:11:12")._value == 49728000000
+        assert Timedelta("-1 days, 10:11:12")._value == -49728000000
 
         rng = to_timedelta("-1 days, 10:11:12.100123456")
         assert rng.days == -1
@@ -664,7 +665,7 @@ class TestTimedeltas:
         # GH#21344
         td = Timedelta(days=4, hours=3)
         result = td.resolution
-        assert result == Timedelta(nanoseconds=1)
+        assert result == Timedelta(microseconds=1)
 
         # Check that the attribute is available on the class, mirroring
         #  the stdlib timedelta behavior

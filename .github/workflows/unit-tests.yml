@@ -139,7 +139,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -181,8 +181,7 @@ jobs:
     timeout-minutes: 90
     strategy:
       matrix:
-        # Note: Don't use macOS latest since macos 14 appears to be arm64 only
-        os: [macos-13, macos-14, windows-2025]
+        os: [macos-15-intel, macos-15, windows-2025]
         env_file: [actions-311.yaml, actions-312.yaml, actions-313.yaml]
       fail-fast: false
     runs-on: ${{ matrix.os }}
@@ -199,7 +198,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -217,7 +216,7 @@ jobs:
   Linux-32-bit:
     runs-on: ubuntu-24.04
     container:
-      image: quay.io/pypa/manylinux2014_i686
+      image: quay.io/pypa/manylinux_2_28_i686
       options: --platform linux/386
     steps:
       - name: Checkout pandas Repo
@@ -321,8 +320,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Separate out macOS 13 and 14, since macOS 14 is arm64 only
-        os: [ubuntu-24.04, macOS-13, macOS-14, windows-2025]
+        os: [ubuntu-24.04, macos-15-intel, macos-15, windows-2025]
 
     timeout-minutes: 90
 
@@ -338,7 +336,7 @@ jobs:
       PYTEST_TARGET: pandas
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -375,7 +373,7 @@ jobs:
       cancel-in-progress: true
     steps:
       - name: Checkout pandas Repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
