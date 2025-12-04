@@ -778,7 +778,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         Returns
         -------
-        the return type of `func`.
+        GroupBy
+            the return type of `func`.
 
         See Also
         --------
