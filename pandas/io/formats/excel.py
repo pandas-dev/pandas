@@ -650,7 +650,7 @@ class ExcelFormatter:
         for lnum, (spans, levels, level_codes) in enumerate(
             zip(level_lengths, fixed_columns.levels, fixed_columns.codes, strict=True)
         ):
-            # GH#62340: Use original column values (with NaN) instead of NBSP-filled ones
+            # GH#62340: Use original column values instead of NBSP-filled ones
             # Get values from original columns (which have NaN), not fixed_columns
             orig_level_values = columns.get_level_values(lnum)
             # Extract the values according to the order in fixed_columns
