@@ -1073,3 +1073,23 @@ def test_where_other_nullable_dtype():
     result = df.where(df > 1, other, axis=0)
     expected = DataFrame({0: Series([pd.NA, 2, 3], dtype="Int64")})
     tm.assert_frame_equal(result, expected)
+
+
+def test_where_inplace_string_array_consistency():
+    # GH#46512 - inplace and non-inplace should have consistent behavior
+    # for StringArray with NA-like values
+    df = DataFrame({"A": ["1", "", "3"]}, dtype="string")
+    df_inplace = df.copy()
+
+    # Test non-inplace
+    result = df.where(df != "", np.nan)
+
+    # Test inplace
+    df_inplace.where(df_inplace != "", np.nan, inplace=True)
+
+    # Both should produce pd.NA, not float nan
+    assert isinstance(result["A"]._values[1], type(pd.NA))
+    assert isinstance(df_inplace["A"]._values[1], type(pd.NA))
+
+    # Results should be identical
+    tm.assert_frame_equal(result, df_inplace)
