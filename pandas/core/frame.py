@@ -99,10 +99,8 @@ from pandas.core.dtypes.common import (
     is_dataclass,
     is_dict_like,
     is_float,
-    is_float_dtype,
     is_hashable,
     is_integer,
-    is_integer_dtype,
     is_iterator,
     is_list_like,
     is_scalar,
@@ -11599,23 +11597,9 @@ class DataFrame(NDFrame, OpsMixin):
         def _dict_round(df: DataFrame, decimals) -> Iterator[Series]:
             for col, vals in df.items():
                 try:
-                    yield _series_round(vals, decimals[col])
+                    yield vals.round(decimals[col])
                 except KeyError:
                     yield vals
-
-        def _series_round(ser: Series, decimals: int) -> Series:
-            if is_integer_dtype(ser.dtype) or is_float_dtype(ser.dtype):
-                return ser.round(decimals)
-            elif isinstance(ser._values, (DatetimeArray, TimedeltaArray, PeriodArray)):
-                # GH#57781
-                # TODO: also the ArrowDtype analogues?
-                warnings.warn(
-                    "obj.round has no effect with datetime, timedelta, "
-                    "or period dtypes. Use obj.dt.round(...) instead.",
-                    UserWarning,
-                    stacklevel=find_stack_level(),
-                )
-            return ser
 
         nv.validate_round(args, kwargs)
 
