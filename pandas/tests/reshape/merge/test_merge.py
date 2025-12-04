@@ -2937,21 +2937,20 @@ def test_merge_multiindex_single_level():
 
 
 def test_merge_multiindex_reset_index_mixed():
-    # GH#62150 - merging reset MultiIndex when one df has single-level index
-    # Bug existed in 2.3.1, fixed in 3.0.0, this test prevents regression
-
-    # Create first dataframe with MultiIndex on both index and columns
-    df = DataFrame(data={("column_1", ""): [1, 1], ("column_2", ""): [2, 2]})
-    df.index = MultiIndex.from_arrays(
-        [[1, 1], ["metadata_1", "metadata_2"]], names=["index", "metadata"]
+    # GH#62150
+    df = DataFrame(
+        {("column_1", ""): [1, 1], ("column_2", ""): [2, 2]},
+        index=MultiIndex.from_arrays(
+            [[1, 1], ["metadata_1", "metadata_2"]], names=["index", "metadata"]
+        ),
     )
 
-    # Create second dataframe with single index and MultiIndex columns
-    df2 = DataFrame(data=[1, 1], index=[1, 1]).rename_axis("index", axis=0)
-    df2.columns = MultiIndex.from_product([["new_data"], [""]])
+    df2 = DataFrame(
+        data=[1, 1],
+        index=Index([1, 1], name="index"),
+        columns=MultiIndex.from_product([["new_data"], [""]]),
+    )
 
-    # Test merge with on='index' - should work
-    # Note: PerformanceWarning is expected due to non-lexsorted MultiIndex
     with tm.assert_produces_warning(pd.errors.PerformanceWarning):
         result = df.reset_index().merge(df2.reset_index(), on="index")
 
@@ -2968,8 +2967,6 @@ def test_merge_multiindex_reset_index_mixed():
 
     tm.assert_frame_equal(result, expected)
 
-    # Test merge with on=[('index', '')] - should also work
-    # Warning may or may not be raised depending on internal state
     result2 = df.reset_index().merge(df2.reset_index(), on=[("index", "")])
     tm.assert_frame_equal(result2, expected)
 
