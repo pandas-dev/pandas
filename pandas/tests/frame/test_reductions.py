@@ -1043,6 +1043,25 @@ class TestDataFrameAnalytics:
         bools = isna(df)
         assert bools.sum(axis=1)[0] == 10
 
+    def test_sum_string_dtype_coercion(self):
+        # GH#22642
+        # Check that summing numeric strings results in concatenation
+        # and not conversion to dtype int64 or float64
+        df = DataFrame({"a": ["483", "3"], "b": ["94", "759"]})
+        result = df.sum(axis=1)
+        expected = Series(["48394", "3759"])
+        tm.assert_series_equal(result, expected)
+
+        df = DataFrame({"a": ["483.948", "3.0"], "b": ["94.2", "759.93"]})
+        result = df.sum(axis=1)
+        expected = Series(["483.94894.2", "3.0759.93"])
+        tm.assert_series_equal(result, expected)
+
+        df = DataFrame({"a": ["483", "3.0"], "b": ["94.2", "79"]})
+        result = df.sum(axis=1)
+        expected = Series(["48394.2", "3.079"])
+        tm.assert_series_equal(result, expected)
+
     # ----------------------------------------------------------------------
     # Index of max / min
 
