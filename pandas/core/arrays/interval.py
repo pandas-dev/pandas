@@ -2128,9 +2128,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )
             comb = comb.view("complex128")[:, 0]
         else:
-            comb = (np.array(left.ravel(), dtype="complex128")) + (
-                1j * np.array(right.ravel(), dtype="complex128")
-            )
+            comb = np.array(left.ravel(), dtype="complex128")
+            comb.imag = right.ravel()
         return comb
 
     def _from_combined(self, combined: np.ndarray) -> IntervalArray:
