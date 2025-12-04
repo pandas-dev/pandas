@@ -7,6 +7,7 @@ treating the system as a black box without referencing internal implementation.
 Test Categories:
 1. Data Loading and Export Workflow (Sandeep Ramavath)
 2. Data Cleaning and Transformation Workflow (Nithikesh Bobbili)
+3. Aggregation and Analysis Workflow (Mallikarjuna)
 """
 import os
 import tempfile
@@ -130,3 +131,69 @@ class TestDataCleaningWorkflow:
         # Step 4: Verify complete workflow
         original_shape = data.shape
         assert filled_constant.shape == original_shape, "Shape should be preserved"
+class TestAggregationWorkflow:
+    """
+    System tests by Mallikarjuna.
+    Validates end-to-end data aggregation and analysis workflows.
+    """
+    
+    def test_groupby_aggregation_workflow(self):
+        """
+        Test Case: Group-by Aggregation Analysis Workflow
+        
+        Pre-conditions:
+        - pandas library functional
+        - Sufficient memory for operations
+        
+        Test Steps:
+        1. Create DataFrame with categorical and numeric data
+        2. Group data by category using public API
+        3. Apply multiple aggregation functions
+        4. Verify aggregated results for each category
+        5. Verify multiple aggregation functions work simultaneously
+        
+        Expected Results:
+        - Data groups correctly by category
+        - Mean aggregation produces correct averages
+        - Sum aggregation produces correct totals
+        - Count aggregation shows correct group sizes
+        - Multiple aggregations work in single operation
+        """
+        # Step 1: Create DataFrame with categorical data
+        data = pd.DataFrame({
+            'category': ['A', 'B', 'A', 'B', 'A', 'B', 'A', 'B'],
+            'value': [10, 20, 15, 25, 20, 30, 25, 35],
+            'quantity': [1, 2, 3, 4, 5, 6, 7, 8]
+        })
+        
+        # Step 2: Group by category using public API
+        grouped = data.groupby('category')
+        
+        # Step 3a: Apply mean aggregation
+        mean_result = grouped['value'].mean()
+        assert mean_result['A'] == 17.5, "Category A mean should be 17.5"
+        assert mean_result['B'] == 27.5, "Category B mean should be 27.5"
+        
+        # Step 3b: Apply sum aggregation
+        sum_result = grouped['value'].sum()
+        assert sum_result['A'] == 70, "Category A sum should be 70"
+        assert sum_result['B'] == 110, "Category B sum should be 110"
+        
+        # Step 3c: Apply count aggregation
+        count_result = grouped.size()
+        assert count_result['A'] == 4, "Category A should have 4 items"
+        assert count_result['B'] == 4, "Category B should have 4 items"
+        
+        # Step 4: Apply multiple aggregations simultaneously
+        multi_agg = grouped['value'].agg(['mean', 'sum', 'count'])
+        
+        # Step 5: Verify multi-aggregation results
+        assert multi_agg.loc['A', 'mean'] == 17.5
+        assert multi_agg.loc['A', 'sum'] == 70
+        assert multi_agg.loc['A', 'count'] == 4
+        assert multi_agg.loc['B', 'mean'] == 27.5
+        assert multi_agg.loc['B', 'sum'] == 110
+        assert multi_agg.loc['B', 'count'] == 4
+        
+        # Verify shape of result
+        assert multi_agg.shape == (2, 3), "Should have 2 categories and 3 aggregations"
