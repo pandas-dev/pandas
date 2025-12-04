@@ -62,19 +62,19 @@ class TestDatetimeIndexSetOps:
 
     @pytest.mark.parametrize("tz", tz)
     def test_union(self, tz, sort):
-        rng1 = date_range("1/1/2000", freq="D", periods=5, tz=tz)
-        other1 = date_range("1/6/2000", freq="D", periods=5, tz=tz)
-        expected1 = date_range("1/1/2000", freq="D", periods=10, tz=tz)
+        rng1 = date_range("1/1/2000", freq="D", periods=5, tz=tz, unit="ns")
+        other1 = date_range("1/6/2000", freq="D", periods=5, tz=tz, unit="ns")
+        expected1 = date_range("1/1/2000", freq="D", periods=10, tz=tz, unit="ns")
         expected1_notsorted = DatetimeIndex(list(other1) + list(rng1))
 
-        rng2 = date_range("1/1/2000", freq="D", periods=5, tz=tz)
-        other2 = date_range("1/4/2000", freq="D", periods=5, tz=tz)
-        expected2 = date_range("1/1/2000", freq="D", periods=8, tz=tz)
+        rng2 = date_range("1/1/2000", freq="D", periods=5, tz=tz, unit="ns")
+        other2 = date_range("1/4/2000", freq="D", periods=5, tz=tz, unit="ns")
+        expected2 = date_range("1/1/2000", freq="D", periods=8, tz=tz, unit="ns")
         expected2_notsorted = DatetimeIndex(list(other2) + list(rng2[:3]))
 
-        rng3 = date_range("1/1/2000", freq="D", periods=5, tz=tz)
+        rng3 = date_range("1/1/2000", freq="D", periods=5, tz=tz, unit="ns")
         other3 = DatetimeIndex([], tz=tz).as_unit("ns")
-        expected3 = date_range("1/1/2000", freq="D", periods=5, tz=tz)
+        expected3 = date_range("1/1/2000", freq="D", periods=5, tz=tz, unit="ns")
         expected3_notsorted = rng3
 
         for rng, other, exp, exp_notsorted in [
@@ -287,17 +287,17 @@ class TestDatetimeIndexSetOps:
     )
     def test_intersection(self, tz, sort):
         # GH 4690 (with tz)
-        base = date_range("6/1/2000", "6/30/2000", freq="D", name="idx")
+        base = date_range("6/1/2000", "6/30/2000", freq="D", name="idx", unit="ns")
 
         # if target has the same name, it is preserved
-        rng2 = date_range("5/15/2000", "6/20/2000", freq="D", name="idx")
-        expected2 = date_range("6/1/2000", "6/20/2000", freq="D", name="idx")
+        rng2 = date_range("5/15/2000", "6/20/2000", freq="D", name="idx", unit="ns")
+        expected2 = date_range("6/1/2000", "6/20/2000", freq="D", name="idx", unit="ns")
 
         # if target name is different, it will be reset
-        rng3 = date_range("5/15/2000", "6/20/2000", freq="D", name="other")
-        expected3 = date_range("6/1/2000", "6/20/2000", freq="D", name=None)
+        rng3 = date_range("5/15/2000", "6/20/2000", freq="D", name="other", unit="ns")
+        expected3 = date_range("6/1/2000", "6/20/2000", freq="D", name=None, unit="ns")
 
-        rng4 = date_range("7/1/2000", "7/31/2000", freq="D", name="idx")
+        rng4 = date_range("7/1/2000", "7/31/2000", freq="D", name="idx", unit="ns")
         expected4 = DatetimeIndex([], freq="D", name="idx", dtype="M8[ns]")
 
         for rng, expected in [
@@ -331,7 +331,9 @@ class TestDatetimeIndexSetOps:
         ).as_unit("ns")
 
         # GH 7880
-        rng4 = date_range("7/1/2000", "7/31/2000", freq="D", tz=tz, name="idx")
+        rng4 = date_range(
+            "7/1/2000", "7/31/2000", freq="D", tz=tz, unit="ns", name="idx"
+        )
         expected4 = DatetimeIndex([], tz=tz, name="idx").as_unit("ns")
         assert expected4.freq is None
 
@@ -415,8 +417,8 @@ class TestDatetimeIndexSetOps:
     def test_difference_freq(self, sort):
         # GH14323: difference of DatetimeIndex should not preserve frequency
 
-        index = date_range("20160920", "20160925", freq="D")
-        other = date_range("20160921", "20160924", freq="D")
+        index = date_range("20160920", "20160925", freq="D", unit="ns")
+        other = date_range("20160921", "20160924", freq="D", unit="ns")
         expected = DatetimeIndex(["20160920", "20160925"], dtype="M8[ns]", freq=None)
         idx_diff = index.difference(other, sort)
         tm.assert_index_equal(idx_diff, expected)
@@ -424,7 +426,7 @@ class TestDatetimeIndexSetOps:
 
         # preserve frequency when the difference is a contiguous
         # subset of the original range
-        other = date_range("20160922", "20160925", freq="D")
+        other = date_range("20160922", "20160925", freq="D", unit="ns")
         idx_diff = index.difference(other, sort)
         expected = DatetimeIndex(["20160920", "20160921"], dtype="M8[ns]", freq="D")
         tm.assert_index_equal(idx_diff, expected)
@@ -589,7 +591,7 @@ class TestBusinessDatetimeIndex:
         tm.assert_index_equal(the_union, expected)
 
     def test_intersection(self):
-        rng = date_range("1/1/2000", periods=50, freq=Minute())
+        rng = date_range("1/1/2000", periods=50, freq=Minute(), unit="ns")
         rng1 = rng[10:]
         rng2 = rng[:25]
         the_int = rng1.intersection(rng2)
@@ -756,4 +758,14 @@ def test_intersection_non_nano_rangelike():
         dtype="datetime64[s]",
         freq="D",
     )
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_across_dst_boundary():
+    # GH#62915 union should work when one index ends at DST boundary
+    # and the other extends past it
+    index1 = date_range("2025-10-25", "2025-10-26", freq="D", tz="Europe/Helsinki")
+    index2 = date_range("2025-10-25", "2025-10-28", freq="D", tz="Europe/Helsinki")
+    result = index1.union(index2)
+    expected = date_range("2025-10-25", "2025-10-28", freq="D", tz="Europe/Helsinki")
     tm.assert_index_equal(result, expected)

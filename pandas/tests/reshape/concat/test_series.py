@@ -29,7 +29,7 @@ class TestSeriesConcat:
     def test_concat_series(self):
         ts = Series(
             np.arange(20, dtype=np.float64),
-            index=date_range("2020-01-01", periods=20),
+            index=date_range("2020-01-01", periods=20, unit="ns"),
             name="foo",
         )
         ts.name = "foo"

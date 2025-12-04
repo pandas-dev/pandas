@@ -440,7 +440,7 @@ class TestTimedeltaMultiplicationDivision:
 
         msg = (
             "ufunc '?multiply'? cannot use operands with types "
-            rf"dtype\('{tm.ENDIAN}m8\[ns\]'\) and dtype\('{tm.ENDIAN}m8\[ns\]'\)"
+            rf"dtype\('{tm.ENDIAN}m8\[us\]'\) and dtype\('{tm.ENDIAN}m8\[us\]'\)"
         )
         with pytest.raises(TypeError, match=msg):
             td * other
@@ -818,11 +818,11 @@ class TestTimedeltaMultiplicationDivision:
         assert isinstance(result, Timedelta)
         assert result == Timedelta(0)
 
-        result = td % 1e12
+        result = td % 1e9
         assert isinstance(result, Timedelta)
         assert result == Timedelta(minutes=3, seconds=20)
 
-        result = td % int(1e12)
+        result = td % int(1e9)
         assert isinstance(result, Timedelta)
         assert result == Timedelta(minutes=3, seconds=20)
 
@@ -876,8 +876,8 @@ class TestTimedeltaMultiplicationDivision:
         # GH#19365
         td = Timedelta(days=2, hours=6)
 
-        result = divmod(td, 53 * 3600 * 1e9)
-        assert result[0] == Timedelta(1, unit="ns")
+        result = divmod(td, 53 * 3600 * 1e6)
+        assert result[0] == Timedelta(1, unit="us").as_unit("us")
         assert isinstance(result[1], Timedelta)
         assert result[1] == Timedelta(hours=1)
 
@@ -1225,6 +1225,7 @@ def test_ops_str_deprecated(box):
                 "ufunc 'divide' cannot use operands",
                 "Invalid dtype object for __floordiv__",
                 r"unsupported operand type\(s\) for /: 'int' and 'str'",
+                r"unsupported operand type\(s\) for /: 'datetime.timedelta' and 'str'",
             ]
         )
         with pytest.raises(TypeError, match=msg):

@@ -304,7 +304,7 @@ def test_no_prefix_string_cats_contains_get_dummies_NaN_column():
         pytest.param(
             1,
             {"": ["a", "b", 1]},
-            id="default_category is a int",
+            id="default_category is an int",
         ),
         pytest.param(
             1.25,
