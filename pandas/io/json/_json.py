@@ -114,6 +114,7 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
+    engine: Literal["ujson", "orjson"] = ...,
 ) -> None: ...
 
 
@@ -133,6 +134,7 @@ def to_json(
     indent: int = ...,
     storage_options: StorageOptions = ...,
     mode: Literal["a", "w"] = ...,
+    engine: Literal["ujson", "orjson"] = ...,
 ) -> str: ...
 
 
@@ -151,6 +153,7 @@ def to_json(
     indent: int = 0,
     storage_options: StorageOptions | None = None,
     mode: Literal["a", "w"] = "w",
+    engine: Literal["ujson", "orjson"] = "ujson",
 ) -> str | None:
     if orient in ["records", "values"] and index is True:
         raise ValueError(
@@ -206,6 +209,7 @@ def to_json(
         default_handler=default_handler,
         index=index,
         indent=indent,
+        engine=engine,
     ).write()
 
     if lines:
@@ -236,6 +240,7 @@ class Writer(ABC):
         index: bool,
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         indent: int = 0,
+        engine: Literal["ujson", "orjson"] = "ujson",
     ) -> None:
         self.obj = obj
 
@@ -250,23 +255,36 @@ class Writer(ABC):
         self.default_handler = default_handler
         self.index = index
         self.indent = indent
+        self.engine = engine
         self._format_axes()
 
     def _format_axes(self) -> None:
         raise AbstractMethodError(self)
 
     def write(self) -> str:
-        iso_dates = self.date_format == "iso"
-        return ujson_dumps(
-            self.obj_to_write,
-            orient=self.orient,
-            double_precision=self.double_precision,
-            ensure_ascii=self.ensure_ascii,
-            date_unit=self.date_unit,
-            iso_dates=iso_dates,
-            default_handler=self.default_handler,
-            indent=self.indent,
-        )
+        match self.engine:
+            case "ujson":
+                iso_dates = self.date_format == "iso"
+                return ujson_dumps(
+                    self.obj_to_write,
+                    orient=self.orient,
+                    double_precision=self.double_precision,
+                    ensure_ascii=self.ensure_ascii,
+                    date_unit=self.date_unit,
+                    iso_dates=iso_dates,
+                    default_handler=self.default_handler,
+                    indent=self.indent,
+                )
+            case "orjson":
+                orjson = import_optional_dependency("orjson")
+                if isinstance(self.obj_to_write, DataFrame):
+                    obj = self.obj_to_write.to_dict()
+                else:
+                    obj = self.obj_to_write
+
+                return orjson.dumps(obj)
+            case engine:
+                raise ValueError(f"Invalid {engine=}")
 
     @property
     @abstractmethod
@@ -333,6 +351,7 @@ class JSONTableWriter(FrameWriter):
         index: bool,
         default_handler: Callable[[Any], JSONSerializable] | None = None,
         indent: int = 0,
+        engine: Literal["ujson", "orjson"] = "ujson",
     ) -> None:
         """
         Adds a `schema` attribute with the Table Schema, resets
@@ -350,6 +369,7 @@ class JSONTableWriter(FrameWriter):
             index,
             default_handler=default_handler,
             indent=indent,
+            engine=engine,
         )
 
         if date_format != "iso":

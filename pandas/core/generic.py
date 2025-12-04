@@ -2338,6 +2338,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         indent: int | None = None,
         storage_options: StorageOptions | None = None,
         mode: Literal["a", "w"] = "w",
+        engine: Literal["ujson", "orjson"] = "ujson",
     ) -> str | None:
         """
         Convert the object to a JSON string.
@@ -2446,6 +2447,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Specify the IO mode for output when supplying a path_or_buf.
             Accepted args are 'w' (writing) and 'a' (append) only.
             mode='a' is only supported when lines is True and orient is 'records'.
+
+        engine : {{"ujson", "orjson"}}, default "ujson"
+            JSON encoder engine to use.
 
         Returns
         -------
@@ -2647,6 +2651,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             indent=indent,
             storage_options=storage_options,
             mode=mode,
+            engine=engine,
         )
 
     @final
