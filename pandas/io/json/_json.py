@@ -5,6 +5,7 @@ from abc import (
     abstractmethod,
 )
 from collections import abc
+from decimal import Decimal
 from itertools import islice
 from typing import (
     TYPE_CHECKING,
@@ -27,7 +28,9 @@ from pandas._libs.json import (
     ujson_dumps,
     ujson_loads,
 )
+from pandas._libs.missing import NAType
 from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs.nattype import NaTType
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
@@ -49,6 +52,8 @@ from pandas import (
     Index,
     MultiIndex,
     Series,
+    Timedelta,
+    Timestamp,
     isna,
     notna,
     to_datetime,
@@ -277,17 +282,151 @@ class Writer(ABC):
                 )
             case "orjson":
                 orjson = import_optional_dependency("orjson")
-                if isinstance(self.obj_to_write, DataFrame):
-                    obj = self.obj_to_write.to_dict()
-                else:
-                    obj = self.obj_to_write
 
-                # TODO: use orjson.dumps default to handle dataframe.
-                # Maybe it's possible to handle the orient there too.
-                dumped_bytes: bytes = orjson.dumps(obj)
+                converter = self._get_converter()
+
+                options = orjson.OPT_SERIALIZE_NUMPY
+                if self.indent == 2:
+                    options |= orjson.OPT_INDENT_2
+                elif self.indent != 0:
+                    raise ValueError(
+                        "orjson only supports 'indent' equals to 0 or 2. "
+                        f"Got {self.indent!r}"
+                    )
+
+                dumped_bytes: bytes = orjson.dumps(
+                    self.obj_to_write,
+                    default=converter,
+                    option=options,
+                )
                 return dumped_bytes.decode()
             case engine:
                 raise ValueError(f"Invalid {engine=}")
+
+    def _convert_col_to_str(self, obj: object):
+        # NOTE: how to handle datetimes
+        # see pandas/_libs/src/vendored/ujson/python/objToJSON.c:263
+        # to handle time formats.
+        if isinstance(obj, (Timedelta, Timestamp)):
+            if self.date_format == "iso":
+                return obj.isoformat()
+            value = obj._value
+
+            match obj.unit:
+                case "us":
+                    return str(value * 1_000)
+                case "ms":
+                    return str(value * 1_000_000)
+                case "s":
+                    return str(value * 1_000_000_000)
+            obj.resolution
+        return str(obj)
+
+    def _get_converter(self):
+        def default(obj: object):
+            # TODO: handle self.date_unit for epoch resolution.
+            # TODO: use default_handler
+            # NOTE: ujson implementation cycles between object
+            # by changing iter* function pointers.
+            if isinstance(obj, DataFrame):
+                match self.orient:
+            #         case "columns":
+            #             return {
+            #                 self._convert_col_to_str(col): {
+            #                     self._convert_col_to_str(index): value
+            #                     for index, value in series_.items()
+            #                 }
+            #                 for col, series_ in obj.items()
+            #             }
+                    case "values":
+                        return obj.values
+                    case "index":
+                        index = self._get_values(obj.index)
+                        columns = self._get_values(obj.columns)
+                        return {
+                            idx: dict(
+                                zip(
+                                    columns,
+                                    row,
+                                    strict=True,
+                                )
+                            )
+                            for idx, row in zip(
+                                index,
+                                obj.itertuples(index=False, name=None),
+                                strict=True,
+                            )
+                        }
+                    case "records":
+                        columns = self._get_values(obj.columns)
+                        return [
+                            dict(zip(columns, row, strict=True))
+                            for row in obj.itertuples(index=False, name=None)
+                        ]
+                    case "split":
+                        # outputFormat values
+                        # type JT_OBJECT
+                        # pandas/_libs/src/vendored/ujson/python/objToJSON.c:1124
+                        self.orient = "values"
+                        return {
+                            "columns": self._get_values(obj.columns),
+                            "index": self._get_values(obj.index),
+                            "data": obj,
+                        }
+                    case orient:
+                        # NB: This will show in the call stack,
+                        #     but won't be the final exception.
+                        raise ValueError(
+                            f"Invalid value '{orient}' for option 'orient'"
+                        )
+            # # elif isinstance(obj, DatetimeIndex):
+            # #     return obj._values.tolist()
+            # elif isinstance(obj, Index):
+            #     # NOTE: this is wrong. If I arrive here, it means that I am serializing
+            #     # an index object directly instead of serializing a part of dataframe.
+            #     return self._get_values(obj)
+            # elif isinstance(obj, Series):
+            #     match self.orient:
+            #         case "split":
+            #             return {
+            #                 "index": obj.index,
+            #                 "name": obj.name,
+            #                 "data": obj.to_list(),
+            #             }
+            #         case "index" | "columns":
+            #             return {str(k): v for k, v in obj.items()}
+            #         case "records" | "values":
+            #             return obj.to_list()
+            #         case orient:
+            #             raise ValueError(
+            #                 f"Invalid value '{orient}' for option 'orient'"
+            #             )
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            # elif isinstance(obj, (NaTType, NAType)):
+            #     return None
+            # elif isinstance(obj, Timestamp):
+            #     if self.date_format == "iso":
+            #         return obj.isoformat()
+            #     return int(obj.timestamp() * 1e3)
+            # elif isinstance(obj, complex):
+            #     return {"imag": obj.imag, "real": obj.real}
+            # elif isinstance(obj, Decimal):
+            #     return None if obj.is_nan() else str(obj)
+
+            raise TypeError
+
+        return default
+
+    def _get_values(self, obj: object) -> np.ndarray:
+        # adapted from get_values in
+        # pandas/_libs/src/vendored/ujson/python/objToJSON.c
+        if isinstance(obj, Index):
+            values = obj.values
+            if hasattr(values, "__array__"):
+                values = values.__array__()
+            return values
+        raise TypeError
 
     @property
     @abstractmethod

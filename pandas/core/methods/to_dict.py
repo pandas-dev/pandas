@@ -145,7 +145,7 @@ def to_dict(
         Return a collections.abc.MutableMapping object representing the
         DataFrame. The resulting transformation depends on the `orient` parameter.
     """
-    if orient != "tight" and not df.columns.is_unique:
+    if orient not in {"tight", "split"} and not df.columns.is_unique:
         warnings.warn(
             "DataFrame columns are not unique, some columns will be omitted.",
             UserWarning,

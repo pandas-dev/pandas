@@ -190,7 +190,7 @@ class TestPandasContainer:
     def test_frame_default_orient(self, float_frame, json_engines_no_ndjson):
         assert float_frame.to_json(
             engine=json_engines_no_ndjson
-        ) == float_frame.to_json(orient="columns")
+        ) == float_frame.to_json(orient="columns", engine=json_engines_no_ndjson)
 
     @pytest.mark.parametrize("dtype", [False, float])
     @pytest.mark.parametrize("convert_axes", [True, False])
@@ -528,8 +528,16 @@ class TestPandasContainer:
 
     def test_frame_to_json_except(self, json_engines_no_ndjson):
         df = DataFrame([1, 2, 3])
-        msg = "Invalid value 'garbage' for option 'orient'"
-        with pytest.raises(ValueError, match=msg):
+        if json_engines_no_ndjson == "orjson":
+            # The final orjson exception is
+            # TypeError(Type is not JSON serializable: <object-type>)
+            msg = None
+            exception_ = TypeError
+        else:
+            msg = "Invalid value 'garbage' for option 'orient'"
+            exception_ = ValueError
+
+        with pytest.raises(exception_, match=msg):
             df.to_json(orient="garbage", engine=json_engines_no_ndjson)
 
     def test_frame_empty(self, json_engines_no_ndjson):
@@ -914,8 +922,16 @@ class TestPandasContainer:
 
     def test_series_to_json_except(self, json_engines_no_ndjson):
         s = Series([1, 2, 3])
-        msg = "Invalid value 'garbage' for option 'orient'"
-        with pytest.raises(ValueError, match=msg):
+        if json_engines_no_ndjson == "orjson":
+            # The final orjson exception is
+            # TypeError(Type is not JSON serializable: <object-type>)
+            msg = None
+            exception_ = TypeError
+        else:
+            msg = "Invalid value 'garbage' for option 'orient'"
+            exception_ = ValueError
+
+        with pytest.raises(exception_, match=msg):
             s.to_json(orient="garbage", engine=json_engines_no_ndjson)
 
     def test_series_from_json_precise_float(self, json_engines_no_ndjson):
@@ -1089,7 +1105,7 @@ class TestPandasContainer:
         if as_object:
             expected = expected.replace("}", ',"a":"a"}')
 
-        assert result == expected
+        assert result == expected, f"\nActual:\n{result}\n\nExpected:\n{expected}"
 
     @pytest.mark.parametrize(
         "infer_word",
@@ -2134,7 +2150,7 @@ class TestPandasContainer:
     def test_timedelta_as_label(
         self, date_format, key, unit, request, json_engines_no_ndjson
     ):
-        if unit != "ns":
+        if unit != "ns" and json_engines_no_ndjson != "orjson":
             mark = pytest.mark.xfail(reason="GH#63236 failure to round-trip")
             request.applymarker(mark)
         df = DataFrame([[1]], columns=[pd.Timedelta("1D").as_unit(unit)])
@@ -2151,7 +2167,7 @@ class TestPandasContainer:
         with tm.assert_produces_warning(expected_warning, match=msg):
             result = df.to_json(date_format=date_format, engine=json_engines_no_ndjson)
 
-        assert result == expected
+        assert result == expected, f"\nActual:\n{result}\n\nExpected:\n{expected}"
 
     @pytest.mark.parametrize(
         "orient,expected",
@@ -2182,24 +2198,31 @@ class TestPandasContainer:
         assert result == expected
 
     @pytest.mark.parametrize("indent", [1, 2, 4])
-    def test_to_json_indent(self, indent, json_engines_no_ndjson):
+    def test_to_json_indent(self, indent, json_engines_no_ndjson, request):
         # GH 12004
+        if json_engines_no_ndjson == "orjson" and indent != 2:
+            mark = pytest.mark.xfail(
+                reason="orjson only supports indent == 2", raises=ValueError
+            )
+            request.applymarker(mark)
+
         df = DataFrame([["foo", "bar"], ["baz", "qux"]], columns=["a", "b"])
 
         result = df.to_json(indent=indent, engine=json_engines_no_ndjson)
         spaces = " " * indent
+        kv_space = " " if json_engines_no_ndjson == "orjson" else ""
         expected = f"""{{
-{spaces}"a":{{
-{spaces}{spaces}"0":"foo",
-{spaces}{spaces}"1":"baz"
+{spaces}"a":{kv_space}{{
+{spaces}{spaces}"0":{kv_space}"foo",
+{spaces}{spaces}"1":{kv_space}"baz"
 {spaces}}},
-{spaces}"b":{{
-{spaces}{spaces}"0":"bar",
-{spaces}{spaces}"1":"qux"
+{spaces}"b":{kv_space}{{
+{spaces}{spaces}"0":{kv_space}"bar",
+{spaces}{spaces}"1":{kv_space}"qux"
 {spaces}}}
 }}"""
 
-        assert result == expected
+        assert result == expected, f"\nActual:\n{result}\n\nExpected:\n{expected}"
 
     @pytest.mark.skipif(
         using_string_dtype(),
