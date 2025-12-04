@@ -92,7 +92,7 @@ def read_feather(
     path : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``read()`` function. The string could be a URL.
-        Valid URL schemes include http, ftp, s3, and file. For file URLs, a host is
+        Valid URL schemes include http, ftp, s3, gs and file. For file URLs, a host is
         expected. A local file could be: ``file://localhost/path/to/table.feather``.
     columns : sequence, default None
         If not provided, all columns are read.
