@@ -461,7 +461,21 @@ cdef class TextReader:
                 raise ValueError("Only length-1 comment characters supported")
             self.parser.commentchar = <char>ord(comment)
 
-        self.parser.on_bad_lines = on_bad_lines
+        if isinstance(on_bad_lines, str):
+            if on_bad_lines == 'error':
+                c_on_bad_lines = ERROR
+            elif on_bad_lines == 'warn':
+                c_on_bad_lines = WARN
+            elif on_bad_lines == 'skip':
+                c_on_bad_lines = SKIP
+            # Note: can add 'skip_with_log' here later when we work on logging
+            else:
+                raise ValueError(f"Invalid value for on_bad_lines: {on_bad_lines}")
+        else:
+            # If it's not a string, assume it's already an integer/enum constant (like ERROR)
+            c_on_bad_lines = on_bad_lines
+
+        self.parser.on_bad_lines = c_on_bad_lines
 
         self.skiprows = skiprows
         if skiprows is not None:
