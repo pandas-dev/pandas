@@ -10,11 +10,14 @@ from pandas._libs.algos import (
     Infinity,
     NegInfinity,
 )
+import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
     Index,
     Series,
+    to_datetime,
+    to_timedelta,
 )
 import pandas._testing as tm
 
@@ -498,3 +501,96 @@ class TestRank:
             exp_dtype = "float64"
         expected = Series([1, 2, None, 3], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "method,og_dtype,expected_dtype",
+        [
+            ("average", "UInt32", "Float64"),
+            ("average", "Float32", "Float64"),
+            pytest.param(
+                "average",
+                "int32[pyarrow]",
+                "double[pyarrow]",
+                marks=td.skip_if_no("pyarrow"),
+            ),
+            ("min", "Int32", "UInt64"),
+            ("min", "Float32", "UInt64"),
+            pytest.param(
+                "min",
+                "int32[pyarrow]",
+                "uint64[pyarrow]",
+                marks=td.skip_if_no("pyarrow"),
+            ),
+        ],
+    )
+    def test_rank_extension_array_dtype(self, method, og_dtype, expected_dtype):
+        # GH#52829
+        result = DataFrame([4, 89, 33], dtype=og_dtype).rank(method=method)
+        if method == "average":
+            expected = DataFrame([1.0, 3.0, 2.0], dtype=expected_dtype)
+        else:
+            expected = DataFrame([1, 3, 2], dtype=expected_dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_rank_mixed_extension_array_dtype(self):
+        # GH#52829
+        pytest.importorskip("pyarrow")
+        result = DataFrame(
+            {
+                "base": Series([4, 5, 6]),
+                "pyarrow": Series([7, 8, 9], dtype="int32[pyarrow]"),
+            }
+        ).rank(method="min")
+        expected = DataFrame(
+            {
+                "base": Series([1.0, 2.0, 3.0], dtype="float64"),
+                "pyarrow": Series([1, 2, 3], dtype="uint64[pyarrow]"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_2d_extension_array_datetime(self):
+        # GH#52829
+        df = DataFrame(
+            {
+                "year": to_datetime(["2012-1-1", "2013-1-1", "2014-1-1"]),
+                "week": to_datetime(["2012-1-2", "2012-1-9", "2012-1-16"]),
+                "day": to_datetime(["2012-1-3", "2012-1-4", "2012-1-5"]),
+            }
+        )
+        axis0_expected = DataFrame(
+            {"year": [1.0, 2.0, 3.0], "week": [1.0, 2.0, 3.0], "day": [1.0, 2.0, 3.0]}
+        )
+        axis1_expected = DataFrame(
+            {"year": [1.0, 3.0, 3.0], "week": [2.0, 2.0, 2.0], "day": [3.0, 1.0, 1.0]}
+        )
+        tm.assert_frame_equal(df.rank(), axis0_expected)
+        tm.assert_frame_equal(df.rank(1), axis1_expected)
+
+    def test_2d_extension_array_timedelta(self):
+        # GH#52829
+        df = DataFrame(
+            {
+                "day": to_timedelta(["0 days", "1 day", "2 days"]),
+                "hourly": to_timedelta(["23 hours", "24 hours", "25 hours"]),
+                "minute": to_timedelta(
+                    ["1439 minutes", "1440 minutes", "1441 minutes"]
+                ),
+            }
+        )
+        axis0_expected = DataFrame(
+            {
+                "day": [1.0, 2.0, 3.0],
+                "hourly": [1.0, 2.0, 3.0],
+                "minute": [1.0, 2.0, 3.0],
+            }
+        )
+        axis1_expected = DataFrame(
+            {
+                "day": [1.0, 2.0, 3.0],
+                "hourly": [2.0, 2.0, 2.0],
+                "minute": [3.0, 2.0, 1.0],
+            }
+        )
+        tm.assert_frame_equal(df.rank(), axis0_expected)
+        tm.assert_frame_equal(df.rank(1), axis1_expected)
