@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import operator
+import re
 from typing import (
     TYPE_CHECKING,
     Self,
@@ -111,6 +112,38 @@ def _new_DatetimeIndex(cls, d):
             result = cls.__new__(cls, **d)
 
     return result
+
+
+def _is_iso_format_string(date_str: str) -> bool:
+    """
+    Check if a date string follows ISO8601 format.
+
+    Uses date.fromisoformat() to validate full ISO dates, with fallback to regex
+    for reduced precision dates (YYYY or YYYY-MM) which are not supported by
+    fromisoformat().
+
+    Examples of ISO format (True):
+    - 2024 (reduced precision)
+    - 2024-01 (reduced precision)
+    - 2024-01-10
+    - 2024-01-10T00:00:00
+
+    Examples of non-ISO format (False):
+    - 2024/01/10 (/ separator)
+    - 2024 01 10 (space separator)
+    - 01/10/2024 (MM/DD/YYYY)
+    - 10/01/2024 (DD/MM/YYYY)
+    - 01-10-2024 (MM-DD-YYYY)
+    """
+    try:
+        # Standard library validates full ISO dates (YYYY-MM-DD format)
+        dt.date.fromisoformat(date_str)
+        return True
+    except (ValueError, TypeError):
+        # Fallback for reduced precision dates not supported by fromisoformat()
+        # Match YYYY, YYYY-MM, YYYY-MM-DD with optional time component
+        pattern = r"\d{4}(?:-\d{2})?(?:-\d{2})?(?:T.*)?"
+        return re.fullmatch(pattern, date_str) is not None
 
 
 @inherit_names(
@@ -958,6 +991,14 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
                 parsed, reso = self._parse_with_reso(key)
             except ValueError as err:
                 raise KeyError(key) from err
+            # GH#58302 - Deprecate non-ISO string formats in .loc indexing
+            if not _is_iso_format_string(key):
+                msg = (
+                    "Parsing non-ISO datetime strings in .loc is deprecated "
+                    "and will be removed in a future version. Use ISO format "
+                    f"(YYYY-MM-DD) instead. Got '{key}'."
+                )
+                warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
             self._disallow_mismatched_indexing(parsed)
 
             if self._can_partial_date_slice(reso):
@@ -1049,6 +1090,23 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         def check_str_or_none(point) -> bool:
             return point is not None and not isinstance(point, str)
+
+        # GH#58302 - Deprecate non-ISO string formats in .loc indexing
+        if isinstance(start, str) and not _is_iso_format_string(start):
+            msg = (
+                "Parsing non-ISO datetime strings in .loc is deprecated "
+                "and will be removed in a future version. Use ISO format "
+                f"(YYYY-MM-DD) instead. Got '{start}'."
+            )
+            warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+
+        if isinstance(end, str) and not _is_iso_format_string(end):
+            msg = (
+                "Parsing non-ISO datetime strings in .loc is deprecated "
+                "and will be removed in a future version. Use ISO format "
+                f"(YYYY-MM-DD) instead. Got '{end}'."
+            )
+            warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
 
         # GH#33146 if start and end are combinations of str and None and Index is not
         # monotonic, we can not use Index.slice_indexer because it does not honor the

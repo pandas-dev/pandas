@@ -134,6 +134,9 @@ def test_groupby_resample_on_api_with_getitem():
     tm.assert_series_equal(result, exp)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
 def test_groupby_with_origin():
     # GH 31809
 

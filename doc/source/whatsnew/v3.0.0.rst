@@ -857,6 +857,7 @@ Other Deprecations
 - Deprecated allowing ``fill_value`` that cannot be held in the original dtype (excepting NA values for integer and bool dtypes) in :meth:`Series.shift` and :meth:`DataFrame.shift` (:issue:`53802`)
 - Deprecated allowing strings representing full dates in :meth:`DataFrame.at_time` and :meth:`Series.at_time` (:issue:`50839`)
 - Deprecated backward-compatibility behavior for :meth:`DataFrame.select_dtypes` matching "str" dtype when ``np.object_`` is specified (:issue:`61916`)
+- Deprecated non-ISO date string formats in :meth:`DatetimeIndex.__getitem__` with string labels. Use ISO format (YYYY-MM-DD) instead. (:issue:`58302`)
 - Deprecated option "future.no_silent_downcasting", as it is no longer used. In a future version accessing this option will raise (:issue:`59502`)
 - Deprecated passing non-Index types to :meth:`Index.join`; explicitly convert to Index first (:issue:`62897`)
 - Deprecated silent casting of non-datetime 'other' to datetime in :meth:`Series.combine_first` (:issue:`62931`)
