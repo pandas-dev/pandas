@@ -282,7 +282,10 @@ class Writer(ABC):
                 else:
                     obj = self.obj_to_write
 
-                return orjson.dumps(obj)
+                # TODO: use orjson.dumps default to handle dataframe.
+                # Maybe it's possible to handle the orient there too.
+                dumped_bytes: bytes = orjson.dumps(obj)
+                return dumped_bytes.decode()
             case engine:
                 raise ValueError(f"Invalid {engine=}")
 
