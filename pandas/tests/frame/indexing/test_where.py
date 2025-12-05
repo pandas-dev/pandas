@@ -1076,17 +1076,11 @@ def test_where_other_nullable_dtype():
 
 
 def test_where_inplace_string_array_consistency():
-    # GH#46512 - inplace and non-inplace should have consistent behavior
-    # for StringArray with NA-like values
+    # GH#46512
     df = DataFrame({"A": ["1", "", "3"]}, dtype="string")
     df_inplace = df.copy()
 
-    # Test non-inplace
     result = df.where(df != "", np.nan)
-
-    # Test inplace
     df_inplace.where(df_inplace != "", np.nan, inplace=True)
 
-
-    # Results should be identical
     tm.assert_frame_equal(result, df_inplace)
