@@ -797,7 +797,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         --------
         >>> df = pd.DataFrame({"A": "a b a b".split(), "B": [1, 2, 3, 4]})
         >>> df
-        A  B
+           A  B
         0  a  1
         1  b  2
         2  a  3
@@ -807,8 +807,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         pass, you can do
 
         >>> df.groupby("A").pipe(lambda x: x.max() - x.min())
-        B
-        A
+           A
         a  2
         b  2
         """
