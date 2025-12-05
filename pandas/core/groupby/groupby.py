@@ -807,7 +807,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         pass, you can do
 
         >>> df.groupby("A").pipe(lambda x: x.max() - x.min())
-        A  B
+           B
+        A
         a  2
         b  2
         """
