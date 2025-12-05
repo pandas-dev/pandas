@@ -318,7 +318,9 @@ class TestPartialSetting:
         df["B"] = df["B"].astype(np.float64)
         # as of 2.0, df.loc[:, "B"] = ... attempts (and here succeeds) at
         #  setting inplace
-        df.loc[:, "B"] = df.loc[:, "A"]
+        msg = r"Setting `df.loc\[:, col\] = values` does \*not\* change"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.loc[:, "B"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # single dtype frame, partial setting
