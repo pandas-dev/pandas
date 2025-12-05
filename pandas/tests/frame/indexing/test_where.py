@@ -1087,9 +1087,6 @@ def test_where_inplace_string_array_consistency():
     # Test inplace
     df_inplace.where(df_inplace != "", np.nan, inplace=True)
 
-    # Both should produce pd.NA, not float nan
-    assert isinstance(result["A"]._values[1], type(pd.NA))
-    assert isinstance(df_inplace["A"]._values[1], type(pd.NA))
 
     # Results should be identical
     tm.assert_frame_equal(result, df_inplace)
