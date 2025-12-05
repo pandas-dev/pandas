@@ -460,6 +460,8 @@ class Grouping:
         dropna: bool = True,
         uniques: ArrayLike | None = None,
     ) -> None:
+        if isinstance(grouper, Series):
+            grouper = grouper.copy(deep=False)
         self.level = level
         self._orig_grouper = grouper
         grouping_vector = _convert_grouper(index, grouper)
