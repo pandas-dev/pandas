@@ -1,8 +1,4 @@
-from unittest.mock import (  # noqa: TID251
-    mock_open,
-    patch,
-)
-
+from unittest.mock import mock_open, patch
 import pytest
 import requests
 
@@ -10,6 +6,7 @@ from web.pandas_web import Preprocessors
 
 
 class MockResponse:
+    """Minimal mock for requests.Response with correct error behavior."""
     def __init__(self, status_code: int, response: dict) -> None:
         self.status_code = status_code
         self._resp = response
@@ -17,9 +14,17 @@ class MockResponse:
     def json(self):
         return self._resp
 
-    @staticmethod
-    def raise_for_status() -> None:
-        return
+    def raise_for_status(self) -> None:
+        """Raise an HTTPError for non-2xx responses (important behavior)."""
+        if not (200 <= self.status_code < 300):
+            raise requests.HTTPError(f"HTTP {self.status_code}")
+
+    # Add context manager support
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
 
 
 @pytest.fixture
@@ -31,8 +36,14 @@ def context() -> dict:
 
 
 @pytest.fixture
-def mock_response(monkeypatch, request) -> None:
+def mock_response(monkeypatch, request):
+    """Safer fixture — ensures parametrize includes correct tuple."""
+
     def mocked_resp(*args, **kwargs):
+        if not hasattr(request, "param") or len(request.param) != 2:
+            raise RuntimeError(
+                "mock_response must be parametrized as (status_code, response_json)"
+            )
         status_code, response = request.param
         return MockResponse(status_code, response)
 
@@ -40,42 +51,12 @@ def mock_response(monkeypatch, request) -> None:
 
 
 _releases_list = [
-    {
-        "prerelease": False,
-        "published_at": "2024-01-19T03:34:05Z",
-        "tag_name": "v1.5.6",
-        "assets": None,
-    },
-    {
-        "prerelease": False,
-        "published_at": "2023-11-10T19:07:37Z",
-        "tag_name": "v2.1.3",
-        "assets": None,
-    },
-    {
-        "prerelease": False,
-        "published_at": "2023-08-30T13:24:32Z",
-        "tag_name": "v2.1.0",
-        "assets": None,
-    },
-    {
-        "prerelease": False,
-        "published_at": "2023-04-30T13:24:32Z",
-        "tag_name": "v2.0.0",
-        "assets": None,
-    },
-    {
-        "prerelease": True,
-        "published_at": "2023-01-19T03:34:05Z",
-        "tag_name": "v1.5.3xd",
-        "assets": None,
-    },
-    {
-        "prerelease": False,
-        "published_at": "2027-01-19T03:34:05Z",
-        "tag_name": "v10.0.1",
-        "assets": None,
-    },
+    {"prerelease": False, "published_at": "2024-01-19T03:34:05Z", "tag_name": "v1.5.6", "assets": None},
+    {"prerelease": False, "published_at": "2023-11-10T19:07:37Z", "tag_name": "v2.1.3", "assets": None},
+    {"prerelease": False, "published_at": "2023-08-30T13:24:32Z", "tag_name": "v2.1.0", "assets": None},
+    {"prerelease": False, "published_at": "2023-04-30T13:24:32Z", "tag_name": "v2.0.0", "assets": None},
+    {"prerelease": True,  "published_at": "2023-01-19T03:34:05Z", "tag_name": "v1.5.3xd", "assets": None},
+    {"prerelease": False, "published_at": "2027-01-19T03:34:05Z", "tag_name": "v10.0.1", "assets": None},
 ]
 
 
