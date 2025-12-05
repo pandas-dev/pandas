@@ -207,13 +207,10 @@ jobs:
         if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
         shell: bash -el {0}
         env:
-          PANDAS_STAGING_UPLOAD_TOKEN: ${{ secrets.PANDAS_STAGING_UPLOAD_TOKEN }}
           PANDAS_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN }}
         # trigger an upload to
         # https://anaconda.org/scientific-python-nightly-wheels/pandas
         # for cron jobs or "Run workflow" (restricted to main branch).
-        # Tags will upload to
-        # https://anaconda.org/multibuild-wheels-staging/pandas
         # The tokens were originally generated at anaconda.org
         run: |
           source ci/upload_wheels.sh
