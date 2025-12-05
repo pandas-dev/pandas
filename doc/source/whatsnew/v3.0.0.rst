@@ -239,6 +239,7 @@ Other enhancements
 - Added a new :meth:`DataFrame.from_arrow` method to import any Arrow-compatible
   tabular data object into a pandas :class:`DataFrame` through the
   `Arrow PyCapsule Protocol <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`__ (:issue:`59631`)
+- :meth:`DataFrame.itertuples` is now annotated to return an iterable of Any to accommodate dynamic namedtuple types
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:

@@ -1598,9 +1598,17 @@ class DataFrame(NDFrame, OpsMixin):
                 s._mgr.add_references(self._mgr)
             yield k, s
 
+    @overload
+    def itertuples(self, index: bool, name: None) -> Iterable[tuple[Any, ...]]:
+        ...
+
+    @overload
+    def itertuples(self, index: bool, name: str) -> Iterable[Any]:
+        ...
+
     def itertuples(
         self, index: bool = True, name: str | None = "Pandas"
-    ) -> Iterable[tuple[Any, ...]]:
+    ) -> Iterable[tuple[Any, ...]] | Iterable[Any]:
         """
         Iterate over DataFrame rows as namedtuples.
 
