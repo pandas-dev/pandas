@@ -636,7 +636,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         return self._grouper.indices
 
     @final
-    def _get_indices(self, names):
+    def _get_index(self, name):
         """
         Safe get multiple indices, translate keys for
         datelike to underlying repr.
@@ -652,23 +652,24 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             else:
                 return lambda key: key
 
-        if len(names) == 0:
-            return []
+        if isna(name):
+            return self.indices.get(np.nan, [])
+        if isinstance(name, tuple):
+            name = tuple(np.nan if isna(comp) else comp for comp in name)
 
         if len(self.indices) > 0:
             index_sample = next(iter(self.indices))
         else:
             index_sample = None  # Dummy sample
 
-        name_sample = names[0]
         if isinstance(index_sample, tuple):
-            if not isinstance(name_sample, tuple):
+            if not isinstance(name, tuple):
                 msg = "must supply a tuple to get_group with multiple grouping keys"
                 raise ValueError(msg)
-            if not len(name_sample) == len(index_sample):
+            if not len(name) == len(index_sample):
                 try:
                     # If the original grouper was a tuple
-                    return [self.indices[name] for name in names]
+                    return self.indices[name]
                 except KeyError as err:
                     # turns out it wasn't a tuple
                     msg = (
@@ -678,23 +679,12 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                     raise ValueError(msg) from err
 
             converters = (get_converter(s) for s in index_sample)
-            names = (
-                tuple(f(n) for f, n in zip(converters, name, strict=True))
-                for name in names
-            )
-
+            name = tuple(f(n) for f, n in zip(converters, name, strict=True))
         else:
             converter = get_converter(index_sample)
-            names = (converter(name) for name in names)
+            name = converter(name)
 
-        return [self.indices.get(name, []) for name in names]
-
-    @final
-    def _get_index(self, name):
-        """
-        Safe get index, translate keys for datelike to underlying repr.
-        """
-        return self._get_indices([name])[0]
+        return self.indices.get(name, [])
 
     @final
     @cache_readonly
