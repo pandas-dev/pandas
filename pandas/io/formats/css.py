@@ -20,6 +20,25 @@ if TYPE_CHECKING:
     )
 
 
+def _normalize_number_format_value(value: str) -> str:
+    out = []
+    in_single = False
+    in_double = False
+
+    for ch in value.strip():
+        if ch == "'" and not in_double:
+            in_single = not in_single
+            out.append(ch)
+        elif ch == '"' and not in_single:
+            in_double = not in_double
+            out.append(ch)
+        elif in_single or in_double:
+            out.append(ch)
+        else:
+            out.append(ch.lower())
+    return "".join(out)
+
+
 def _side_expander(prop_fmt: str) -> Callable:
     """
     Wrapper to expand shorthand property into top, right, bottom, left properties
@@ -391,7 +410,10 @@ class CSSResolver:
     def atomize(self, declarations: Iterable) -> Generator[tuple[str, str]]:
         for prop, value in declarations:
             prop = prop.lower()
-            value = value.lower()
+            if prop == "number-format":
+                value = _normalize_number_format_value(value)
+            else:
+                value = value.lower()
             if prop in self.CSS_EXPANSIONS:
                 expand = self.CSS_EXPANSIONS[prop]
                 yield from expand(self, prop, value)
@@ -414,7 +436,10 @@ class CSSResolver:
             prop, sep, val = decl.partition(":")
             prop = prop.strip().lower()
             # TODO: don't lowercase case sensitive parts of values (strings)
-            val = val.strip().lower()
+            if prop == "number-format":
+                val = _normalize_number_format_value(val)
+            else:
+                val = val.strip().lower()
             if sep:
                 yield prop, val
             else:
