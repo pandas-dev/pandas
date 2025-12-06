@@ -460,7 +460,21 @@ def test_nd_raises(data):
         pd.array(data, dtype="int64")
 
 
-@pytest.mark.parametrize("data", [[["a"], ["b"]]])
+@pytest.mark.parametrize(
+    "data",
+    [
+        # string 2D
+        [["a"], ["b"]],
+        # int 2D
+        [[1], [2]],
+        # float 2D
+        [[1.0], [2.0]],
+        # mixed 2D
+        [[1, 2], ["a", "b"]],
+        # mixed 3D
+        [[[1]], [["a"]], [[3.14]]],
+    ],
+)
 def test_not_1D_like_raises(data):
     with pytest.raises(TypeError, match="Values must be a 1D list-like"):
         pd.array(data, dtype=pd.StringDtype())
