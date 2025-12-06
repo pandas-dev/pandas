@@ -206,7 +206,7 @@ Other enhancements
 - :func:`read_parquet` accepts ``to_pandas_kwargs`` which are forwarded to :meth:`pyarrow.Table.to_pandas` which enables passing additional keywords to customize the conversion to pandas, such as ``maps_as_pydicts`` to read the Parquet map data type as python dictionaries (:issue:`56842`)
 - :meth:`.DataFrameGroupBy.transform`, :meth:`.SeriesGroupBy.transform`, :meth:`.DataFrameGroupBy.agg`, :meth:`.SeriesGroupBy.agg`, :meth:`.RollingGroupby.apply`, :meth:`.ExpandingGroupby.apply`, :meth:`.Rolling.apply`, :meth:`.Expanding.apply`, :meth:`.DataFrame.apply` with ``engine="numba"`` now supports positional arguments passed as kwargs (:issue:`58995`)
 - :meth:`.DataFrameGroupBy.transform`, :meth:`.SeriesGroupBy.transform`, :meth:`.DataFrameGroupBy.agg`, :meth:`.SeriesGroupBy.agg`, :meth:`.SeriesGroupBy.apply`, :meth:`.DataFrameGroupBy.apply` now support ``kurt`` (:issue:`40139`)
-- :meth:`.Rolling.agg`, :meth:`.Expanding.agg` and :meth:`.ExponentialMovingWindow.agg` now accept :class:`NamedAgg` aggregations through ``**kwargs`` (:issue:`28333`)
+- :meth:`.Rolling.aggregate`, :meth:`.Expanding.aggregate` and :meth:`.ExponentialMovingWindow.aggregate` now accept :class:`NamedAgg` aggregations through ``**kwargs`` (:issue:`28333`)
 - :meth:`DataFrame.apply` supports using third-party execution engines like the Bodo.ai JIT compiler (:issue:`60668`)
 - :meth:`DataFrame.iloc` and :meth:`Series.iloc` now support boolean masks in ``__getitem__`` for more consistent indexing behavior (:issue:`60994`)
 - :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` now support f-strings (e.g., ``"{:.6f}"``) for the ``float_format`` parameter, in addition to the ``%`` format strings and callables (:issue:`49580`)
@@ -217,8 +217,8 @@ Other enhancements
 - :meth:`Series.str.get_dummies` now accepts a  ``dtype`` parameter to specify the dtype of the resulting DataFrame (:issue:`47872`)
 - :meth:`pandas.concat` will raise a ``ValueError`` when ``ignore_index=True`` and ``keys`` is not ``None`` (:issue:`59274`)
 - :py:class:`frozenset` elements in pandas objects are now natively printed (:issue:`60690`)
-- Added :meth:`Rolling.first`, :meth:`Rolling.last`, :meth:`Expanding.first`, and :meth:`Expanding.last` (:issue:`33155`)
-- Added :meth:`Rolling.nunique` and :meth:`Expanding.nunique` (:issue:`26958`)
+- Added :meth:`.Rolling.first`, :meth:`.Rolling.last`, :meth:`.Expanding.first`, and :meth:`.Expanding.last` (:issue:`33155`)
+- Added :meth:`.Rolling.nunique` and :meth:`.Expanding.nunique` (:issue:`26958`)
 - Added :meth:`Series.str.isascii` (:issue:`59091`)
 - Added ``"delete_rows"`` option to ``if_exists`` argument in :meth:`DataFrame.to_sql` deleting all records of the table before inserting data (:issue:`37210`).
 - Added half-year offset classes :class:`.HalfYearBegin`, :class:`.HalfYearEnd`, :class:`.BHalfYearBegin` and :class:`.BHalfYearEnd` (:issue:`60928`)
@@ -448,7 +448,7 @@ that are now fixed in this release are as follows.
 .. _whatsnew_300.api_breaking.value_counts_sorting:
 
 Changed behavior in :meth:`DataFrame.value_counts` and :meth:`.DataFrameGroupBy.value_counts` when ``sort=False``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In previous versions of pandas, :meth:`DataFrame.value_counts` with ``sort=False`` would sort the result by row labels (as was documented). This was nonintuitive and inconsistent with :meth:`Series.value_counts` which would maintain the order of the input. Now :meth:`DataFrame.value_counts` will maintain the order of the input. (:issue:`59745`)
 
@@ -958,7 +958,7 @@ Other Removals
 - Enforced deprecation of string ``A`` denoting frequency in :class:`.YearEnd` and strings ``A-DEC``, ``A-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`57699`)
 - Enforced deprecation of string ``BAS`` denoting frequency in :class:`.BYearBegin` and strings ``BAS-DEC``, ``BAS-JAN``, etc. denoting annual frequencies with various fiscal year starts (:issue:`57793`)
 - Enforced deprecation of string ``BA`` denoting frequency in :class:`.BYearEnd` and strings ``BA-DEC``, ``BA-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`57793`)
-- Enforced deprecation of strings ``H``, ``BH``, and ``CBH`` denoting frequencies in :class:`.Hour`, :class:`BusinessHour`, :class:`CustomBusinessHour` (:issue:`59143`)
+- Enforced deprecation of strings ``H``, ``BH``, and ``CBH`` denoting frequencies in :class:`.Hour`, :class:`.BusinessHour`, :class:`.CustomBusinessHour` (:issue:`59143`)
 - Enforced deprecation of strings ``H``, ``BH``, and ``CBH`` denoting units in :class:`Timedelta` (:issue:`59143`)
 - Enforced deprecation of strings ``T``, ``L``, ``U``, and ``N`` denoting frequencies in :class:`Minute`, :class:`Milli`, :class:`Micro`, :class:`Nano` (:issue:`57627`)
 - Enforced deprecation of strings ``T``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`57627`)
@@ -1090,7 +1090,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
-- Bug in :attr:`is_year_start` where a :class:`DateTimeIndex` constructed via :func:`date_range` with frequency 'MS' wouldn't have the correct year or quarter start attributes (:issue:`57377`)
+- Bug in :attr:`is_year_start` where a :class:`DatetimeIndex` constructed via :func:`date_range` with frequency 'MS' wouldn't have the correct year or quarter start attributes (:issue:`57377`)
 - Bug in :class:`DataFrame` raising ``ValueError`` when ``dtype`` is ``timedelta64`` and ``data`` is a list containing ``None`` (:issue:`60064`)
 - Bug in :class:`Timestamp` constructor failing to raise when ``tz=None`` is explicitly specified in conjunction with timezone-aware ``tzinfo`` or data (:issue:`48688`)
 - Bug in :class:`Timestamp` constructor failing to raise when given a ``np.datetime64`` object with non-standard unit (:issue:`25611`)
@@ -1249,6 +1249,7 @@ I/O
 - Bug in :meth:`MultiIndex.factorize` incorrectly raising on length-0 indexes (:issue:`57517`)
 - Bug in :meth:`read_csv` causing segmentation fault when ``encoding_errors`` is not a string. (:issue:`59059`)
 - Bug in :meth:`read_csv` for the ``c`` and ``python`` engines where parsing numbers with large exponents caused overflows. Now, numbers with large positive exponents are parsed as ``inf`` or ``-inf`` depending on the sign of the mantissa, while those with large negative exponents are parsed as ``0.0`` (:issue:`62617`, :issue:`38794`, :issue:`62740`)
+- Bug in :meth:`DataFrame.to_csv` where ``quotechar`` is not escaped when ``escapechar`` is not ``None`` (:issue:`61407`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``index_col`` is specified and ``na_values`` is a dict containing the key ``None``. (:issue:`57547`)
 - Bug in :meth:`read_csv` raising ``TypeError`` when ``nrows`` and ``iterator`` are specified without specifying a ``chunksize``. (:issue:`59079`)
 - Bug in :meth:`read_csv` where chained fsspec TAR file and ``compression="infer"`` fails with ``tarfile.ReadError`` (:issue:`60028`)
@@ -1266,7 +1267,6 @@ I/O
 - Bug in :meth:`read_stata` where extreme value integers were incorrectly interpreted as missing for format versions 111 and prior (:issue:`58130`)
 - Bug in :meth:`read_stata` where the missing code for double was not recognised for format versions 105 and prior (:issue:`58149`)
 - Bug in :meth:`set_option` where setting the pandas option ``display.html.use_mathjax`` to ``False`` has no effect (:issue:`59884`)
-- Bug in :meth:`to_csv` where ``quotechar`` is not escaped when ``escapechar`` is not ``None`` (:issue:`61407`)
 - Bug in :meth:`to_excel` where :class:`MultiIndex` columns would be merged to a single row when ``merge_cells=False`` is passed (:issue:`60274`)
 
 Period
@@ -1305,7 +1305,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.median` where nat values gave an incorrect result. (:issue:`57926`)
 - Bug in :meth:`.DataFrameGroupBy.quantile` when ``interpolation="nearest"`` is inconsistent with :meth:`DataFrame.quantile` (:issue:`47942`)
 - Bug in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` returning ``NaN`` on overflow. These methods now returns ``inf`` or ``-inf`` on overflow. (:issue:`60303`)
-- Bug in :meth:`.DataFrameGroupby.transform` and :meth:`.SeriesGroupby.transform` with a reducer and ``observed=False`` that coerces dtype to float when there are unobserved categories. (:issue:`55326`)
+- Bug in :meth:`.DataFrameGroupBy.transform` and :meth:`.SeriesGroupBy.transform` with a reducer and ``observed=False`` that coerces dtype to float when there are unobserved categories. (:issue:`55326`)
 - Bug in :meth:`.Resampler.asfreq` where fixed-frequency indexes with ``origin`` ignored alignment and returned incorrect values. Now ``origin`` and ``offset`` are respected. (:issue:`62725`)
 - Bug in :meth:`.Resampler.interpolate` on a :class:`DataFrame` with non-uniform sampling and/or indices not aligning with the resulting resampled index would result in wrong interpolation (:issue:`21351`)
 - Bug in :meth:`.Rolling.apply` for ``method="table"`` where column order was not being respected due to the columns getting sorted by default. (:issue:`59666`)
@@ -1344,7 +1344,7 @@ Reshaping
 - Bug in :meth:`DataFrame.pivot_table` where ``margins=True`` did not correctly include groups with ``NaN`` values in the index or columns when ``dropna=False`` was explicitly passed. (:issue:`61509`)
 - Bug in :meth:`DataFrame.stack` with the ``future_stack=True`` where ``ValueError`` is raised when ``level=[]`` (:issue:`60740`)
 - Bug in :meth:`DataFrame.unstack` producing incorrect results when manipulating empty :class:`DataFrame` with an :class:`ExtentionDtype` (:issue:`59123`)
-- Bug in :meth:`concat` where concatenating DataFrame and Series with ``ignore_index=True`` drops the series name (:issue:`60723`, :issue:`56257`)
+- Bug in :meth:`concat` where concatenating DataFrame and Series with ``ignore_index=True`` drops the Series name (:issue:`60723`, :issue:`56257`)
 - Bug in :func:`melt` where calling with duplicate column names in ``id_vars`` raised a misleading ``AttributeError`` (:issue:`61475`)
 - Bug in :meth:`DataFrame.merge` where specifying both ``right_on`` and ``right_index`` did not raise a ``MergeError`` if ``left_on`` is also specified. Now raises a ``MergeError`` in such cases. (:issue:`63242`)
 - Bug in :meth:`DataFrame.merge` where user-provided suffixes could result in duplicate column names if the resulting names matched existing columns. Now raises a :class:`MergeError` in such cases. (:issue:`61402`)
