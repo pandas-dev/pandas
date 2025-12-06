@@ -137,7 +137,6 @@ class BaseMissingTests:
         tm.assert_extension_array_equal(data, data_missing)
 
         if self._supports_fillna_copy_false:
-            # but with copy=False, this raises for EAs that respect the copy keyword
             with pytest.raises(ValueError, match="Cannot modify read-only array"):
                 data.fillna(fill_value, copy=False)
             tm.assert_extension_array_equal(data, data_missing)
