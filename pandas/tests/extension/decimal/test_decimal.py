@@ -67,6 +67,8 @@ def data_for_grouping():
 
 
 class TestDecimalArray(base.ExtensionTests):
+    _supports_fillna_copy_false = False
+
     def _get_expected_exception(
         self, op_name: str, obj, other
     ) -> type[Exception] | tuple[type[Exception], ...] | None:
@@ -170,10 +172,6 @@ class TestDecimalArray(base.ExtensionTests):
             DeprecationWarning, match=msg, check_stacklevel=False
         ):
             super().test_fillna_limit_series(data_missing)
-
-    @pytest.mark.xfail(reason="copy keyword is missing")
-    def test_fillna_readonly(self, data_missing):
-        super().test_fillna_readonly(data_missing)
 
     def test_series_repr(self, data):
         # Overriding this base test to explicitly test that
