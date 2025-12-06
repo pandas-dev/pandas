@@ -109,7 +109,9 @@ class TestReductions:
         assert result is pd.NaT
 
         result = tda.sum(axis=0, skipna=False)
-        expected = pd.TimedeltaIndex([Timedelta(seconds=12), pd.NaT])._values
+        expected = pd.TimedeltaIndex(
+            [Timedelta(seconds=12), pd.NaT], dtype="m8[ns]"
+        )._values
         tm.assert_timedelta_array_equal(result, expected)
 
         result = tda.sum(axis=1, skipna=False)
@@ -119,7 +121,8 @@ class TestReductions:
                 Timedelta(seconds=5),
                 Timedelta(seconds=9),
                 pd.NaT,
-            ]
+            ],
+            dtype="m8[ns]",
         )._values
         tm.assert_timedelta_array_equal(result, expected)
 

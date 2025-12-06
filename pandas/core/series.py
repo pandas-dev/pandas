@@ -821,8 +821,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @property
     def array(self) -> ExtensionArray:
         arr = self._mgr.array_values()
-        arr = arr.view()
-        arr._readonly = True
+        # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
+        # arr = arr.view()
+        # arr._readonly = True
         return arr
 
     def __len__(self) -> int:
@@ -955,7 +956,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if is_iterator(key):
             key = list(key)
 
-        if is_hashable(key) and not isinstance(key, slice):
+        if is_hashable(key, allow_slice=False):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
                 # For labels that don't resolve as scalars like tuples and frozensets

@@ -2707,14 +2707,18 @@ class MultiIndex(Index):
 
         Calling this method does not change the ordering of the values.
 
+        Default is to swap the last two levels of the MultiIndex.
+
         Parameters
         ----------
         i : int, str, default -2
             First level of index to be swapped. Can pass level name as string.
-            Type of parameters can be mixed.
+            Type of parameters can be mixed. If i is a negative int, the first
+            level is indexed relative to the end of the MultiIndex.
         j : int, str, default -1
             Second level of index to be swapped. Can pass level name as string.
-            Type of parameters can be mixed.
+            Type of parameters can be mixed. If j is a negative int, the second
+            level is indexed relative to the end of the MultiIndex.
 
         Returns
         -------
@@ -2730,20 +2734,33 @@ class MultiIndex(Index):
         Examples
         --------
         >>> mi = pd.MultiIndex(
-        ...     levels=[["a", "b"], ["bb", "aa"]], codes=[[0, 0, 1, 1], [0, 1, 0, 1]]
+        ...     levels=[["a", "b"], ["bb", "aa"], ["aaa", "bbb"]],
+        ...     codes=[[0, 0, 1, 1], [0, 1, 0, 1], [1, 0, 1, 0]],
         ... )
         >>> mi
-        MultiIndex([('a', 'bb'),
-                    ('a', 'aa'),
-                    ('b', 'bb'),
-                    ('b', 'aa')],
+        MultiIndex([('a', 'bb', 'bbb'),
+                    ('a', 'aa', 'aaa'),
+                    ('b', 'bb', 'bbb'),
+                    ('b', 'aa', 'aaa')],
+                   )
+        >>> mi.swaplevel()
+        MultiIndex([('a', 'bbb', 'bb'),
+                    ('a', 'aaa', 'aa'),
+                    ('b', 'bbb', 'bb'),
+                    ('b', 'aaa', 'aa')],
+                   )
+        >>> mi.swaplevel(0)
+        MultiIndex([('bbb', 'bb', 'a'),
+                    ('aaa', 'aa', 'a'),
+                    ('bbb', 'bb', 'b'),
+                    ('aaa', 'aa', 'b')],
                    )
         >>> mi.swaplevel(0, 1)
-        MultiIndex([('bb', 'a'),
-                    ('aa', 'a'),
-                    ('bb', 'b'),
-                    ('aa', 'b')],
-                   )
+        MultiIndex([('bb', 'a', 'bbb'),
+                    ('aa', 'a', 'aaa'),
+                    ('bb', 'b', 'bbb'),
+                    ('aa', 'b', 'aaa')],
+                )
         """
         new_levels = list(self.levels)
         new_codes = list(self.codes)

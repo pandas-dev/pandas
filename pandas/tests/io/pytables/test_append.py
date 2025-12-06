@@ -848,7 +848,7 @@ because its data contents are not [string] but [mixed] object dtype"""
             store.append("df", df)
 
 
-def test_append_with_timedelta(tmp_path):
+def test_append_with_timedelta(tmp_path, unit):
     # GH 3577
     # append timedelta
 
@@ -860,6 +860,7 @@ def test_append_with_timedelta(tmp_path):
         }
     )
     df["C"] = df["A"] - df["B"]
+    df["C"] = df["C"].astype(f"m8[{unit}]")
     df.loc[3:5, "C"] = np.nan
 
     path = tmp_path / "test_append_with_timedelta.h5"
