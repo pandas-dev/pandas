@@ -84,6 +84,10 @@ monkeytype.sqlite3
 # meson editable install folder
 .mesonpy
 
+# Meson #
+#########
+/subprojects/*
+!/subprojects/*.wrap
 
 # OS generated files #
 ######################
@@ -102,15 +106,6 @@ Thumbs.db
 pandas/io/*.dat
 pandas/io/*.json
 scikits
-
-# Generated Sources #
-#####################
-!skts.c
-*.c
-*.cpp
-!pandas/_libs/src/**/*.c
-!pandas/_libs/src/**/*.h
-!pandas/_libs/include/**/*.h
 
 # Unit / Performance Testing #
 ##############################

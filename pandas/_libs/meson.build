@@ -1,3 +1,6 @@
+simdjson_proj = subproject('simdjson')
+simdjson_dep = simdjson_proj.get_variable('simdjson_dep')
+
 _algos_take_helper = custom_target(
     'algos_take_helper_pxi',
     output: 'algos_take_helper.pxi',
@@ -122,11 +125,10 @@ libs_sources = {
         'sources': [
             'src/vendored/ujson/python/ujson.c',
             'src/vendored/ujson/python/objToJSON.c',
-            'src/vendored/ujson/python/JSONtoObj.c',
             'src/vendored/ujson/lib/ultrajsonenc.c',
-            'src/vendored/ujson/lib/ultrajsondec.c',
         ],
     },
+    'simdjson': {'sources': ['src/parser/json.cpp'], 'deps': simdjson_dep},
     'ops': {'sources': ['ops.pyx']},
     'ops_dispatch': {'sources': ['ops_dispatch.pyx']},
     'properties': {'sources': ['properties.pyx']},
@@ -189,6 +191,7 @@ sources_to_install = [
     'properties.pyi',
     'reshape.pyi',
     'sas.pyi',
+    'simdjson.pyi',
     'sparse.pyi',
     'testing.pyi',
     'tslib.pyi',

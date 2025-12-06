@@ -24,8 +24,10 @@ from pandas._config import option_context
 from pandas._libs import lib
 from pandas._libs.json import (
     ujson_dumps,
-    ujson_loads,
 )
+
+# TODO: rename simdjson to json after done refactoring
+from pandas._libs.simdjson import simdjson_loads
 from pandas._libs.tslibs import iNaT
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
@@ -1326,7 +1328,7 @@ class SeriesParser(Parser):
     _split_keys = ("name", "index", "data")
 
     def _parse(self) -> Series:
-        data = ujson_loads(self.json, precise_float=self.precise_float)
+        data = simdjson_loads(self.json, precise_float=self.precise_float)
 
         if self.orient == "split":
             decoded = {str(k): v for k, v in data.items()}
@@ -1351,7 +1353,9 @@ class FrameParser(Parser):
         if orient == "split":
             decoded = {
                 str(k): v
-                for k, v in ujson_loads(json, precise_float=self.precise_float).items()
+                for k, v in simdjson_loads(
+                    json, precise_float=self.precise_float
+                ).items()
             }
             self.check_keys_split(decoded)
             orig_names = [
@@ -1365,7 +1369,7 @@ class FrameParser(Parser):
             return DataFrame(dtype=None, **decoded)
         elif orient == "index":
             return DataFrame.from_dict(
-                ujson_loads(json, precise_float=self.precise_float),
+                simdjson_loads(json, precise_float=self.precise_float),
                 dtype=None,
                 orient="index",
             )
@@ -1374,7 +1378,7 @@ class FrameParser(Parser):
         else:
             # includes orient == "columns"
             return DataFrame(
-                ujson_loads(json, precise_float=self.precise_float), dtype=None
+                simdjson_loads(json, precise_float=self.precise_float), dtype=None
             )
 
     def _try_convert_types(self, obj: DataFrame) -> DataFrame:
