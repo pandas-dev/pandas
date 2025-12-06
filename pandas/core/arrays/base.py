@@ -958,6 +958,22 @@ class ExtensionArray:
             raise ValueError("Encountered an NA value with skipna=False")
         return nargminmax(self, "argmax")
 
+    def _supports_reduction(self, op_name: str) -> bool:
+        """
+        Return whether the reduction operation is supported for this array.
+
+        Parameters
+        ----------
+        op_name : str
+            Name of the reduction operation (e.g., 'sum', 'mean', 'min', etc.)
+
+        Returns
+        -------
+        bool
+            True if supported, False otherwise.
+        """
+        return False
+
     def interpolate(
         self,
         *,
@@ -2186,8 +2202,7 @@ class ExtensionArray:
         meth = getattr(self, name, None)
         if meth is None:
             raise TypeError(
-                f"'{type(self).__name__}' with dtype {self.dtype} "
-                f"does not support operation '{name}'"
+                f"operation '{name}' is not supported for dtype '{self.dtype}'"
             )
         result = meth(skipna=skipna, **kwargs)
         if keepdims:

@@ -1933,9 +1933,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """assert that we are ordered"""
         if not self.ordered:
             raise TypeError(
-                f"Categorical is not ordered for operation {op}\n"
-                "you can use .as_ordered() to change the "
-                "Categorical to an ordered one\n"
+                f"operation '{op}' is not supported for dtype '{self.dtype}'"
             )
 
     def argsort(
@@ -2419,9 +2417,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
     # Reductions
 
+    def _supports_reduction(self, op_name: str) -> bool:
+        return op_name in {"min", "max", "mode"}
+
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
+        if not self._supports_reduction(name):
+            raise TypeError(
+                f"operation '{name}' is not supported for dtype '{self.dtype}'"
+            )
+
         result = super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
         if name in ["argmax", "argmin"]:
             # don't wrap in Categorical!
@@ -2566,7 +2572,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         elif name == "cummax":
             func = np.maximum.accumulate
         else:
-            raise TypeError(f"Accumulation {name} not supported for {type(self)}")
+            raise TypeError(
+                f"operation '{name}' is not supported for dtype '{self.dtype}'"
+            )
         self.check_for_ordered(name)
 
         codes = self.codes.copy()
@@ -2766,12 +2774,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         dtype = self.dtype
         if how in ["sum", "prod", "cumsum", "cumprod", "skew", "kurt"]:
-            raise TypeError(f"{dtype} type does not support {how} operations")
+            raise TypeError(f"operation '{how}' is not supported for dtype '{dtype}'")
         if how in ["min", "max", "rank", "idxmin", "idxmax"] and not dtype.ordered:
             # raise TypeError instead of NotImplementedError to ensure we
             #  don't go down a group-by-group path, since in the empty-groups
             #  case that would fail to raise
-            raise TypeError(f"Cannot perform {how} with non-ordered Categorical")
+            raise TypeError(f"operation '{how}' is not supported for dtype '{dtype}'")
         if how not in [
             "rank",
             "any",
@@ -2784,8 +2792,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "idxmax",
         ]:
             if kind == "transform":
-                raise TypeError(f"{dtype} type does not support {how} operations")
-            raise TypeError(f"{dtype} dtype does not support aggregation '{how}'")
+                raise TypeError(
+                    f"operation '{how}' is not supported for dtype '{dtype}'"
+                )
+            raise TypeError(f"operation '{how}' is not supported for dtype '{dtype}'")
 
         result_mask = None
         mask = self.isna()

@@ -1133,9 +1133,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     # ------------------------------------------------------------------
     # Reductions
 
+    def _supports_reduction(self, op_name: str) -> bool:
+        return op_name in {"min", "max"}
+
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
+        if not self._supports_reduction(name):
+            raise TypeError(
+                f"operation '{name}' is not supported for dtype '{self.dtype}'"
+            )
+
         result = super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
         if keepdims and isinstance(result, np.ndarray):
             return self._from_sequence(result, dtype=self.dtype)

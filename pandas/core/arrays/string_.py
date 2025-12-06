@@ -897,6 +897,9 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
         return super().astype(dtype, copy)
 
+    def _supports_reduction(self, op_name: str) -> bool:
+        return op_name in {"min", "max"}
+
     def _reduce(
         self,
         name: str,
@@ -906,6 +909,10 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         axis: AxisInt | None = 0,
         **kwargs,
     ):
+        if not self._supports_reduction(name):
+            raise TypeError(
+                f"operation '{name}' is not supported for dtype '{self.dtype}'"
+            )
         if self.dtype.na_value is np.nan and name in ["any", "all"]:
             if name == "any":
                 return nanops.nanany(self._ndarray, skipna=skipna)

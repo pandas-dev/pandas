@@ -670,7 +670,7 @@ def test_raises_on_nuisance(df, using_infer_string):
     df = df.loc[:, ["A", "C", "D"]]
     df["E"] = datetime.now()
     grouped = df.groupby("A")
-    msg = "datetime64 type does not support operation 'sum'"
+    msg = "operation 'sum' is not supported for dtype 'datetime64[ns]'"
     with pytest.raises(TypeError, match=msg):
         grouped.agg("sum")
     with pytest.raises(TypeError, match=msg):

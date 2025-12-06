@@ -7419,6 +7419,10 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._na_value
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
+            if not self._values._supports_reduction("min"):
+                raise TypeError(
+                    f"operation 'min' is not supported for dtype '{self.dtype}'"
+                )
             return self._values._reduce(name="min", skipna=skipna)
 
         return nanops.nanmin(self._values, skipna=skipna)
@@ -7483,6 +7487,10 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._na_value
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
+            if not self._values._supports_reduction("max"):
+                raise TypeError(
+                    f"operation 'max' is not supported for dtype '{self.dtype}'"
+                )
             return self._values._reduce(name="max", skipna=skipna)
 
         return nanops.nanmax(self._values, skipna=skipna)

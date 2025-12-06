@@ -374,13 +374,7 @@ class TestIndexReductions:
         )
         td = s.diff()
 
-        msg = "|".join(
-            [
-                f"reduction operation '{opname}' not allowed for this dtype",
-                rf"cannot perform {opname} with type timedelta64\[ns\]",
-                f"does not support operation '{opname}'",
-            ]
-        )
+        msg = f"operation '{opname}' is not supported for dtype 'timedelta64[ns]'"
 
         with pytest.raises(TypeError, match=msg):
             getattr(td, opname)()
@@ -711,13 +705,7 @@ class TestSeriesReductions:
         # timedelta64[ns]
         tdser = Series([], dtype="m8[ns]")
         if method == "var":
-            msg = "|".join(
-                [
-                    "operation 'var' not allowed",
-                    r"cannot perform var with type timedelta64\[ns\]",
-                    "does not support operation 'var'",
-                ]
-            )
+            msg = "operation 'var' is not supported for dtype 'timedelta64[ns]'"
             with pytest.raises(TypeError, match=msg):
                 getattr(tdser, method)()
         else:
@@ -1019,39 +1007,40 @@ class TestSeriesReductions:
         df = DataFrame(ser)
 
         # GH#34479
-        msg = "datetime64 type does not support operation '(any|all)'"
-        with pytest.raises(TypeError, match=msg):
+        msg_all = "operation 'all' is not supported for dtype 'datetime64[ns]'"
+        msg_any = "operation 'any' is not supported for dtype 'datetime64[ns]'"
+        with pytest.raises(TypeError, match=msg_all):
             dta.all()
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg_any):
             dta.any()
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg_all):
             ser.all()
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg_any):
             ser.any()
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg_all):
             df.any().all()
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg_any):
             df.all().all()
 
         dta = dta.tz_localize("UTC")
         ser = Series(dta)
         df = DataFrame(ser)
         # GH#34479
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg_all):
             dta.all()
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg_any):
             dta.any()
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg_all):
             ser.all()
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg_any):
             ser.any()
 
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg_all):
             df.any().all()
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError, match=msg_any):
             df.all().all()
 
         tda = dta - dta[0]

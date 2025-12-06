@@ -222,6 +222,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     Length: 2, dtype: datetime64[s]
     """
 
+    def _supports_reduction(self, op_name: str) -> bool:
+        return op_name in {"min", "max", "mean", "median", "std"}
+
     _typ = "datetimearray"
     _internal_fill_value = np.datetime64("NaT", "ns")
     _recognized_scalars = (datetime, np.datetime64)
@@ -2298,6 +2301,11 @@ default 'raise'
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
+        if not self._supports_reduction(name):
+            raise TypeError(
+                f"operation '{name}' is not supported for dtype '{self.dtype}'"
+            )
+
         result = super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
         if keepdims and isinstance(result, np.ndarray):
             if name == "std":

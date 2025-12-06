@@ -1365,7 +1365,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     def _accumulate(self, name: str, *, skipna: bool = True, **kwargs) -> Self:
         if name not in {"cummin", "cummax"}:
-            raise TypeError(f"Accumulation {name} not supported for {type(self)}")
+            raise TypeError(
+                f"operation '{name}' is not supported for dtype '{self.dtype}'"
+            )
 
         op = getattr(datetimelike_accumulations, name)
         result = op(self.copy(), skipna=skipna, **kwargs)
@@ -1697,12 +1699,13 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if dtype.kind == "M":
             # Adding/multiplying datetimes is not valid
             if how in ["sum", "prod", "cumsum", "cumprod", "var", "skew", "kurt"]:
-                raise TypeError(f"datetime64 type does not support operation '{how}'")
+                raise TypeError(
+                    f"operation '{how}' is not supported for dtype '{self.dtype}'"
+                )
             if how in ["any", "all"]:
                 # GH#34479
                 raise TypeError(
-                    f"'{how}' with datetime64 dtypes is no longer supported. "
-                    f"Use (obj != pd.Timestamp(0)).{how}() instead."
+                    f"operation '{how}' is not supported for dtype '{self.dtype}'"
                 )
 
         elif isinstance(dtype, PeriodDtype):
