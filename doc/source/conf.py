@@ -258,6 +258,7 @@ html_theme_options = {
     # This shows a warning for patch releases since the
     # patch version doesn't compare as equal (e.g. 2.2.1 != 2.2.0 but it should be)
     "show_version_warning_banner": False,
+    "announcement": "https://raw.githubusercontent.com/pandas-dev/pandas/main/doc/_templates/docs-announcement-banner.html",
     "icon_links": [
         {
             "name": "X",
