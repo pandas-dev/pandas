@@ -122,12 +122,15 @@ def test_split_n(any_string_dtype, method, n):
 
 
 def test_rsplit(any_string_dtype):
-    # regex split is not supported by rsplit
     values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
     result = values.str.rsplit("[,_]")
     exp = Series([["a,b_c"], ["c_d,e"], np.nan, ["f,g,h"]])
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
+
+    # regex split is not supported by rsplit
+    with pytest.raises(TypeError, match="expected a string object, not Pattern"):
+        values.str.rsplit(re.compile("[,_]"))
 
 
 def test_rsplit_max_number(any_string_dtype):
