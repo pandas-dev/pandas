@@ -391,6 +391,9 @@ class TimedeltaArray(dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # Reductions
 
+    def _supports_reduction(self, op_name: str) -> bool:
+        return op_name in {"min", "max", "sum", "mean", "median", "std", "var"}
+
     def sum(
         self,
         *,
@@ -402,6 +405,11 @@ class TimedeltaArray(dtl.TimelikeOps):
         skipna: bool = True,
         min_count: int = 0,
     ):
+        if not self._supports_reduction("sum"):
+            raise TypeError(
+                f"operation 'sum' is not supported for dtype '{self.dtype}'"
+            )
+
         nv.validate_sum(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims, "initial": initial}
         )
@@ -421,6 +429,11 @@ class TimedeltaArray(dtl.TimelikeOps):
         keepdims: bool = False,
         skipna: bool = True,
     ):
+        if not self._supports_reduction("std"):
+            raise TypeError(
+                f"operation 'std' is not supported for dtype '{self.dtype}'"
+            )
+
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="std"
         )
@@ -440,7 +453,9 @@ class TimedeltaArray(dtl.TimelikeOps):
 
             return type(self)._simple_new(result, freq=None, dtype=self.dtype)
         elif name == "cumprod":
-            raise TypeError("cumprod not supported for Timedelta.")
+            raise TypeError(
+                f"operation 'cumprod' is not supported for dtype '{self.dtype}'"
+            )
 
         else:
             return super()._accumulate(name, skipna=skipna, **kwargs)
