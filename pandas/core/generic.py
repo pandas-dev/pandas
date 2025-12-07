@@ -6354,6 +6354,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             a numpy.dtype or Python type to cast one or more of the DataFrame's
             columns to column-specific types.
         copy : bool, default False
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
+
             .. deprecated:: 3.0.0
 
                 This keyword is ignored and will be removed in pandas 4.0. Since
