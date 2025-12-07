@@ -2851,6 +2851,9 @@ def test_groupby_with_Time_Grouper(unit):
     tm.assert_frame_equal(result, expected_output)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+)
 def test_groupby_series_with_datetimeindex_month_name():
     # GH 48509
     s = Series([0, 1, 0], index=date_range("2022-01-01", periods=3), name="jan")

@@ -12,6 +12,10 @@ import pandas._testing as tm
 
 
 class TestPeriodIndex:
+    pytestmark = pytest.mark.filterwarnings(
+        "ignore:Parsing non-ISO datetime strings:pandas.errors.Pandas4Warning"
+    )
+
     def test_getitem_periodindex_duplicates_string_slice(self):
         # monotonic
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="Y-JUN")
