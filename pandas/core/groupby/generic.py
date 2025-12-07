@@ -2286,7 +2286,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         index = key_index
         columns = first_not_none.index.copy()
-        if columns.name is None:
+        if columns.name is None and not isinstance(columns, MultiIndex):
             # GH6124 - propagate name of Series when it's consistent
             names = {v.name for v in values}
             if len(names) == 1:
