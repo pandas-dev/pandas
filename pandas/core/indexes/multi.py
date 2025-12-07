@@ -92,6 +92,7 @@ from pandas.core.arrays import (
     ExtensionArray,
 )
 from pandas.core.arrays.categorical import (
+    factorize_from_iterable,
     factorize_from_iterables,
     recode_for_categories,
 )
@@ -2825,6 +2826,73 @@ class MultiIndex(Index):
         order = [self._get_level_number(i) for i in order]
         result = self._reorder_ilevels(order)
         return result
+
+    def insert_level(
+        self, position: int, value, name: Hashable = lib.no_default
+    ) -> MultiIndex:
+        """
+        Insert a new level at the specified position in the MultiIndex.
+
+        Parameters
+        ----------
+        position : int
+            The position at which to insert the new level (0-based).
+            Must be between 0 and nlevels (inclusive).
+        value : array-like
+            Values to use for the new level. Length must match the length of the index.
+        name : Hashable, default lib.no_default
+            Name for the new level. If not provided, the new level will have no name.
+
+        Returns
+        -------
+        MultiIndex
+            New MultiIndex with the inserted level.
+
+        See Also
+        --------
+        MultiIndex.droplevel : Remove levels from the MultiIndex.
+        MultiIndex.swaplevel : Swap two levels in the MultiIndex.
+        MultiIndex.reorder_levels : Reorder levels using specified order.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_tuples([("A", 1), ("B", 2)])
+        >>> idx.insert_level(0, ["new_value", "new_value"])
+        MultiIndex([('new_value', 'A', 1), ('new_value', 'B', 2)], ...)
+
+        >>> idx.insert_level(1, ["X", "Y"])
+        MultiIndex([('A', 'X', 1), ('B', 'Y', 2)], ...)
+        """
+        if not isinstance(position, int):
+            raise TypeError("position must be an integer")
+
+        if position < 0 or position > self.nlevels:
+            raise ValueError(f"position must be between 0 and {self.nlevels}")
+
+        if name is lib.no_default:
+            name = None
+
+        if not (is_list_like(value) and len(value) == len(self)):
+            raise ValueError(
+                "value must be an array-like object of the same length as self"
+            )
+
+        if all(val is None for val in value):
+            new_level = Index([], dtype="object")
+            new_codes = np.full(len(value), -1, dtype=np.intp)
+        else:
+            new_codes, new_level = factorize_from_iterable(value)
+
+        new_levels = self.levels[:position] + [new_level] + self.levels[position:]
+        new_codes_list = self.codes[:position] + [new_codes] + self.codes[position:]
+        new_names = self.names[:position] + [name] + self.names[position:]
+
+        return MultiIndex(
+            levels=new_levels,
+            codes=new_codes_list,
+            names=new_names,
+            verify_integrity=False,
+        )
 
     def _reorder_ilevels(self, order) -> MultiIndex:
         if len(order) != self.nlevels:

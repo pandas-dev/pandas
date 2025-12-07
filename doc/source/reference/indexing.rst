@@ -294,6 +294,7 @@ MultiIndex components
    MultiIndex.copy
    MultiIndex.append
    MultiIndex.truncate
+   MultiIndex.insert_level
 
 MultiIndex selecting
 ~~~~~~~~~~~~~~~~~~~~
