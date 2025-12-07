@@ -168,7 +168,10 @@ class TestDataFrameSelectReindex:
         ts = df.iloc[0, 0]
         fv = ts.date()
 
-        res = df.reindex(index=range(4), columns=["A", "B", "C"], fill_value=fv)
+        msg = "reindexing with a fill_value that cannot be held"
+
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            res = df.reindex(index=range(4), columns=["A", "B", "C"], fill_value=fv)
 
         expected = DataFrame(
             {"A": df["A"].tolist() + [fv], "B": df["B"].tolist() + [fv], "C": [fv] * 4},
@@ -177,7 +180,8 @@ class TestDataFrameSelectReindex:
         tm.assert_frame_equal(res, expected)
 
         # only reindexing rows
-        res = df.reindex(index=range(4), fill_value=fv)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            res = df.reindex(index=range(4), fill_value=fv)
         tm.assert_frame_equal(res, expected[["A", "B"]])
 
         # same with a datetime-castable str
@@ -796,7 +800,9 @@ class TestDataFrameSelectReindex:
 
         # other dtypes
         df["foo"] = "foo"
-        result = df.reindex(range(15), fill_value="0")
+        msg = "reindexing with a fill_value that cannot be held"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = df.reindex(range(15), fill_value="0")
         expected = df.reindex(range(15)).fillna("0")
         tm.assert_frame_equal(result, expected)
 
@@ -1227,7 +1233,9 @@ class TestDataFrameSelectReindex:
         index = df.index.append(Index([1]))
         columns = df.columns.append(Index(["foo"]))
 
-        res = df.reindex(index=index, columns=columns, fill_value=fv)
+        msg = "reindexing with a fill_value that cannot be held"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            res = df.reindex(index=index, columns=columns, fill_value=fv)
 
         expected = DataFrame(
             {
