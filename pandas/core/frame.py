@@ -371,12 +371,28 @@ right_index : bool, default False
 sort : bool, default False
     Sort the join keys lexicographically in the result DataFrame. If False,
     the order of the join keys depends on the join type (how keyword).
+diff_option : Literal
+    The allowed values are "suffix"、"prefix"、"both",default "suffix".
+    If the value is "suffix", the duplicated columns will be differentiated
+    using the suffixes provided by parameter "suffixes".
+    If the value is "prefix", the duplicated columns will be differentiated
+    using the prefixes provided by parameter "prefixes".
+    If the value is "both", the duplicated columns will be differentiated
+    using both the suffixes provided by parameter "suffixes" and
+    the prefixes provided by parameter "prefixes".
 suffixes : list-like, default is ("_x", "_y")
     A length-2 sequence where each element is optionally a string
     indicating the suffix to add to overlapping column names in
     `left` and `right` respectively. Pass a value of `None` instead
     of a string to indicate that the column name from `left` or
     `right` should be left as-is, with no suffix. At least one of the
+    values must not be None.
+prefixes : list-like, default is (``"a_"``, ``"b_"``)
+    A length-2 sequence where each element is optionally a string
+    indicating the prefix to add to overlapping column names in
+    `left` and `right` respectively. Pass a value of `None` instead
+    of a string to indicate that the column name from `left` or
+    `right` should be left as-is, with no prefix. At least one of the
     values must not be None.
 copy : bool, default False
     If False, avoid copy if possible.
@@ -11488,7 +11504,9 @@ class DataFrame(NDFrame, OpsMixin):
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = False,
+        diff_option: Literal["prefix", "suffix", "both"] = "suffix",
         suffixes: Suffixes = ("_x", "_y"),
+        prefixes: Sequence[str | None] = ("a_", "b_"),
         copy: bool | lib.NoDefault = lib.no_default,
         indicator: str | bool = False,
         validate: MergeValidate | None = None,
@@ -11507,7 +11525,9 @@ class DataFrame(NDFrame, OpsMixin):
             left_index=left_index,
             right_index=right_index,
             sort=sort,
+            diff_option=diff_option,
             suffixes=suffixes,
+            prefixes=prefixes,
             indicator=indicator,
             validate=validate,
         )
