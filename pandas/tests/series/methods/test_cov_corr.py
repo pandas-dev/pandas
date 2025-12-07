@@ -3,6 +3,8 @@ import math
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Series,
@@ -184,3 +186,49 @@ class TestSeriesCorr:
         df = pd.DataFrame([s1, s2])
         expected = pd.DataFrame([{0: 1.0, 1: 0}, {0: 0, 1: 1.0}])
         tm.assert_almost_equal(df.transpose().corr(method=my_corr), expected)
+
+    @td.skip_if_no("scipy")
+    @pytest.mark.parametrize("method", ["kendall", "spearman"])
+    @pytest.mark.parametrize(
+        "cat_series",
+        [
+            Series(
+                pd.Categorical(  # ordered cat series
+                    ["low", "medium", "high"],
+                    categories=["low", "medium", "high"],
+                    ordered=True,
+                )
+            ),
+            Series(
+                pd.Categorical(  # ordered cat series with NA
+                    ["low", "medium", "high", None],
+                    categories=["low", "medium", "high"],
+                    ordered=True,
+                )
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "other_series",
+        [
+            Series(  # other cat ordered series
+                pd.Categorical(
+                    ["m", "l", "h"],
+                    categories=["l", "m", "h"],
+                    ordered=True,
+                )
+            ),
+            # other non cat series
+            Series([2, 1, 3]),
+        ],
+    )
+    def test_corr_rank_ordered_categorical(
+        self,
+        method,
+        cat_series,
+        other_series,
+    ):
+        # GH #60306
+        expected_corr = {"kendall": 0.33333333333333337, "spearman": 0.5}
+        corr_calc = cat_series.corr(other_series, method=method)
+        tm.assert_almost_equal(corr_calc, expected_corr[method])
