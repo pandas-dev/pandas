@@ -1029,3 +1029,65 @@ def test_get_loc_namedtuple_behaves_like_tuple():
         assert idx.get_loc(("i1", "i2")) == 0
         assert idx.get_loc(("i3", "i4")) == 1
         assert idx.get_loc(("i5", "i6")) == 2
+
+
+@pytest.fixture
+def mi():
+    return MultiIndex.from_tuples([("a", 0), ("a", 1), ("b", 0), ("b", 1), ("c", 0)])
+
+
+@pytest.mark.parametrize(
+    "value, side, expected",
+    [
+        (("b", 0), "left", 2),
+        (("b", 0), "right", 3),
+        (("a", 0), "left", 0),
+        (("a", -1), "left", 0),
+        (("c", 1), "left", 5),
+    ],
+    ids=[
+        "b-0-left",
+        "b-0-right",
+        "a-0-left",
+        "a--1-left",
+        "c-1-left-beyond",
+    ],
+)
+def test_searchsorted_single(mi, value, side, expected):
+    # GH14833
+    result = mi.searchsorted(value, side=side)
+    assert np.all(result == expected)
+
+
+@pytest.mark.parametrize(
+    "values, side, expected",
+    [
+        ([("a", 1), ("b", 0), ("c", 0)], "left", np.array([1, 2, 4], dtype=np.intp)),
+        ([("a", 1), ("b", 0), ("c", 0)], "right", np.array([2, 3, 5], dtype=np.intp)),
+    ],
+    ids=["list-left", "list-right"],
+)
+def test_searchsorted_list(mi, values, side, expected):
+    result = mi.searchsorted(values, side=side)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value, side, error_type, match",
+    [
+        (("a", 1), "middle", ValueError, "side must be either 'left' or 'right'"),
+        (
+            "a",
+            "left",
+            TypeError,
+            re.escape(
+                "value must be a tuple (scalar key), or a list/numpy"
+                "array/ExtensionArray of tuples"
+            ),
+        ),
+    ],
+    ids=["invalid-side", "invalid-value-type"],
+)
+def test_searchsorted_invalid(mi, value, side, error_type, match):
+    with pytest.raises(error_type, match=match):
+        mi.searchsorted(value, side=side)

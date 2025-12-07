@@ -17,6 +17,7 @@ from typing import (
     Literal,
     Self,
     cast,
+    overload,
 )
 import warnings
 
@@ -45,6 +46,15 @@ from pandas._typing import (
     Shape,
     npt,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        NumpySorter,
+        NumpyValueArrayLike,
+        ScalarLike_co,
+    )
+
+
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -3943,6 +3953,111 @@ class MultiIndex(Index):
         # Find the reordering using lexsort on the keys mapping
         ind = np.lexsort(keys)
         return indexer[ind]
+
+    @overload
+    def searchsorted(  # type: ignore[overload-overlap]
+        self,
+        value: ScalarLike_co,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
+    ) -> np.intp: ...
+
+    @overload
+    def searchsorted(
+        self,
+        value: npt.ArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = ...,
+        sorter: NumpySorter = ...,
+    ) -> npt.NDArray[np.intp]: ...
+
+    def searchsorted(
+        self,
+        value: NumpyValueArrayLike | ExtensionArray,
+        side: Literal["left", "right"] = "left",
+        sorter: NumpySorter | None = None,
+    ) -> npt.NDArray[np.intp] | np.intp:
+        """
+        Find the indices where elements should be inserted to maintain order.
+
+        Parameters
+        ----------
+        value : Any
+            The value(s) to search for in the MultiIndex.
+        side : {'left', 'right'}, default 'left'
+            If 'left', the index of the first suitable location found is given.
+            If 'right', return the last such index. Note that if `value` is
+            already present in the MultiIndex, the results will be different.
+        sorter : 1-D array-like, optional
+            Optional array of integer indices that sort the MultiIndex.
+
+        Returns
+        -------
+        npt.NDArray[np.intp] or np.intp
+            The index or indices where the value(s) should be inserted to
+            maintain order.
+
+        See Also
+        --------
+        Index.searchsorted : Search for insertion point in a 1-D index.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_arrays([["a", "b", "c"], ["x", "y", "z"]])
+        >>> mi.searchsorted(("b", "y"))
+        array([1])
+        """
+
+        if isinstance(value, tuple):
+            value = [value]
+        elif isinstance(value, (list, np.ndarray, ExtensionArray)):
+            if len(value) == 0:
+                raise ValueError("searchsorted requires a non-empty sequence")
+        else:
+            raise TypeError(
+                "value must be a tuple (scalar key), or a list/numpy"
+                "array/ExtensionArray of tuples"
+            )
+
+        if side not in ["left", "right"]:
+            raise ValueError("side must be either 'left' or 'right'")
+
+        if sorter is None:
+            get_val = lambda i: self.values[i]
+        else:
+            get_val = lambda i: self.values[sorter[i]]
+
+        def has_missing(val):
+            if isinstance(val, tuple):
+                return np.any(isna(list(val)))
+            return np.any(isna(val))
+
+        def binary_search(key, side="left", sorter=None):
+            l_ptr, r_ptr = 0, len(self) if sorter is None else len(sorter)
+            while l_ptr < r_ptr:
+                mid = l_ptr + (r_ptr - l_ptr) // 2
+
+                mid_val = get_val(mid)
+                if has_missing(mid_val):
+                    raise ValueError(f"Unsortable or missing value: {mid_val}")
+                if mid_val > key or (side == "left" and mid_val == key):
+                    r_ptr = mid
+                else:
+                    l_ptr = mid + 1
+            return sorter[l_ptr] if sorter is not None else l_ptr
+
+        indexer = self.get_indexer(value)
+        result = []
+
+        for v, i in zip(value, indexer):
+            if i != -1:
+                val = i if side == "left" else i + 1
+                result.append(np.intp(val))
+            else:
+                result.append(binary_search(v, side=side, sorter=sorter))
+
+        if len(result) == 1:
+            return result[0]
+        return np.array(result, dtype=np.intp)
 
     def truncate(self, before=None, after=None) -> MultiIndex:
         """
