@@ -152,8 +152,6 @@ Computations / descriptive stats
    Series.median
    Series.min
    Series.mode
-   Series.nlargest
-   Series.nsmallest
    Series.pct_change
    Series.prod
    Series.quantile
@@ -228,6 +226,9 @@ Reshaping, sorting
    Series.argmin
    Series.argmax
    Series.reorder_levels
+   Series.nlargest
+   Series.nsmallest
+   Series.nsorted
    Series.sort_values
    Series.sort_index
    Series.swaplevel

@@ -229,6 +229,7 @@ Reshaping, sorting, transposing
    DataFrame.sort_index
    DataFrame.nlargest
    DataFrame.nsmallest
+   DataFrame.nsorted
    DataFrame.swaplevel
    DataFrame.stack
    DataFrame.unstack

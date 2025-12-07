@@ -221,6 +221,7 @@ Other enhancements
 - :meth:`pandas.concat` will raise a ``ValueError`` when ``ignore_index=True`` and ``keys`` is not ``None`` (:issue:`59274`)
 - :py:class:`frozenset` elements in pandas objects are now natively printed (:issue:`60690`)
 - Add ``"delete_rows"`` option to ``if_exists`` argument in :meth:`DataFrame.to_sql` deleting all records of the table before inserting data (:issue:`37210`).
+- Added :meth:`DataFrame.nsorted` to select top ``n`` rows according to column-dependent order (:issue:`61166`)
 - Added half-year offset classes :class:`HalfYearBegin`, :class:`HalfYearEnd`, :class:`BHalfYearBegin` and :class:`BHalfYearEnd` (:issue:`60928`)
 - Added support for ``axis=1`` with ``dict`` or :class:`Series` arguments into :meth:`DataFrame.fillna` (:issue:`4514`)
 - Added support to read and write from and to Apache Iceberg tables with the new :func:`read_iceberg` and :meth:`DataFrame.to_iceberg` functions (:issue:`61383`)

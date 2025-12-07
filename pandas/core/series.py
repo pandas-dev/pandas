@@ -186,6 +186,7 @@ if TYPE_CHECKING:
         ListLike,
         MutableMappingT,
         NaPosition,
+        NsmallestNlargestKeep,
         NumpySorter,
         NumpyValueArrayLike,
         QuantileInterpolation,
@@ -3905,9 +3906,94 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
         return res.__finalize__(self, method="argsort")
 
-    def nlargest(
-        self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
+    def nsorted(
+        self,
+        n: int,
+        ascending: bool,
+        keep: NsmallestNlargestKeep = "first",
     ) -> Series:
+        """
+        Return the top `n` elements, sorted in ascending or descending order.
+
+        Parameters
+        ----------
+        n : int, default 5
+            Return this many descending sorted values.
+        ascending : bool
+            If True, return the smallest `n` elements. If False, return
+            largest `n` elements.
+        keep : {'first', 'last', 'all'}, default 'first'
+            When there are duplicate values that cannot all fit in a
+            Series of `n` elements:
+
+            - ``first`` : return the first `n` occurrences in order
+              of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+              order of appearance.
+            - ``all`` : keep all occurrences. This can result in a Series of
+              size larger than `n`.
+
+        Returns
+        -------
+        Series
+            The `n` top values in the Series.
+
+        See Also
+        --------
+        Series.nsmallest: Get the `n` smallest elements.
+        Series.nlargest: Get the `n` largest elements.
+
+        Examples
+        --------
+        >>> countries_population = {
+        ...     "Italy": 59000000,
+        ...     "France": 65000000,
+        ...     "Malta": 434000,
+        ...     "Maldives": 434000,
+        ...     "Brunei": 434000,
+        ...     "Iceland": 337000,
+        ...     "Nauru": 11300,
+        ...     "Tuvalu": 11300,
+        ...     "Anguilla": 11300,
+        ...     "Montserrat": 5200,
+        ... }
+        >>> s = pd.Series(countries_population)
+        >>> s
+        Italy       59000000
+        France      65000000
+        Malta         434000
+        Maldives      434000
+        Brunei        434000
+        Iceland       337000
+        Nauru          11300
+        Tuvalu         11300
+        Anguilla       11300
+        Montserrat      5200
+        dtype: int64
+
+        Get the `n` largest elements.
+
+        >>> s.nsorted(n=3, ascending=False)
+        France      65000000
+        Italy       59000000
+        Malta         434000
+        dtype: int64
+
+        Get the `n` smallest elements.
+
+        >>> s.nsorted(n=3, ascending=True)
+        Montserrat     5200
+        Nauru         11300
+        Tuvalu        11300
+        dtype: int64
+        """
+        return selectn.SelectNSeries(
+            self,
+            n=n,
+            keep=keep,
+        ).nsorted(ascending=ascending)
+
+    def nlargest(self, n: int = 5, keep: NsmallestNlargestKeep = "first") -> Series:
         """
         Return the largest `n` elements.
 
@@ -4012,9 +4098,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return selectn.SelectNSeries(self, n=n, keep=keep).nlargest()
 
-    def nsmallest(
-        self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
-    ) -> Series:
+    def nsmallest(self, n: int = 5, keep: NsmallestNlargestKeep = "first") -> Series:
         """
         Return the smallest `n` elements.
 
