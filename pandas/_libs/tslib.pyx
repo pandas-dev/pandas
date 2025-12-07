@@ -120,7 +120,7 @@ def format_array_from_datetime(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ) -> np.ndarray:
     """
-    return a np object array of the string formatted values
+    return an np object array of the string formatted values
 
     Parameters
     ----------

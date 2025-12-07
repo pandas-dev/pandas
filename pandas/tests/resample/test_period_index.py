@@ -710,7 +710,7 @@ class TestPeriodIndex:
 
         df = DataFrame(
             np.random.default_rng(2).standard_normal((9, 3)),
-            index=date_range("2000-1-1", periods=9),
+            index=date_range("2000-1-1", periods=9, unit="ns"),
         )
         result = df.resample("5D").mean()
         expected = pd.concat([df.iloc[0:5].mean(), df.iloc[5:].mean()], axis=1).T

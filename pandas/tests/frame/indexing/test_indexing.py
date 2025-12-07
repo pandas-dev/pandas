@@ -820,7 +820,7 @@ class TestDataFrameIndexing:
             columns=["foo", "bar", "baz"],
         )
 
-        df["timestamp"] = Timestamp("20010102")
+        df["timestamp"] = Timestamp("20010102").as_unit("s")
 
         # check our dtypes
         result = df.dtypes
@@ -1125,7 +1125,7 @@ class TestDataFrameIndexing:
         # assignment of timedeltas with NaT
 
         one_hour = timedelta(hours=1)
-        df = DataFrame(index=date_range("20130101", periods=4))
+        df = DataFrame(index=date_range("20130101", periods=4, unit="ns"))
         df["A"] = np.array([1 * one_hour] * 4, dtype="m8[ns]")
         df.loc[:, "B"] = np.array([2 * one_hour] * 4, dtype="m8[ns]")
         df.loc[df.index[:3], "C"] = np.array([3 * one_hour] * 3, dtype="m8[ns]")
@@ -1133,7 +1133,7 @@ class TestDataFrameIndexing:
         df.loc[df.index[:3], "E"] = np.array([5 * one_hour] * 3, dtype="m8[ns]")
         df["F"] = np.timedelta64("NaT")
         df.loc[df.index[:-1], "F"] = np.array([6 * one_hour] * 3, dtype="m8[ns]")
-        df.loc[df.index[-3] :, "G"] = date_range("20130101", periods=3)
+        df.loc[df.index[-3] :, "G"] = date_range("20130101", periods=3, unit="ns")
         df["H"] = np.datetime64("NaT")
         result = df.dtypes
         expected = Series(
@@ -1562,7 +1562,7 @@ def test_object_casting_indexing_wraps_datetimelike():
     df = DataFrame(
         {
             "A": [1, 2],
-            "B": date_range("2000", periods=2),
+            "B": date_range("2000", periods=2, unit="ns"),
             "C": pd.timedelta_range("1 Day", periods=2),
         }
     )
@@ -1591,7 +1591,7 @@ def test_object_casting_indexing_wraps_datetimelike():
     assert isinstance(val, Timestamp)
 
     blk = mgr.blocks[mgr.blknos[2]]
-    assert blk.dtype == "m8[ns]"  # we got the right block
+    assert blk.dtype == "m8[us]"  # we got the right block
     val = blk.iget((0, 0))
     assert isinstance(val, pd.Timedelta)
 

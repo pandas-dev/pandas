@@ -49,10 +49,10 @@ from pandas._libs import (
 )
 from pandas._libs.hashtable import duplicated
 from pandas._libs.lib import is_range_indexer
-from pandas.compat import PYPY
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
     REF_COUNT,
-    WARNING_CHECK_DISABLED,
+    REF_COUNT_METHOD,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -215,6 +215,8 @@ if TYPE_CHECKING:
         AnyAll,
         AnyArrayLike,
         ArrayLike,
+        ArrowArrayExportable,
+        ArrowStreamExportable,
         Axes,
         Axis,
         AxisInt,
@@ -1835,6 +1837,56 @@ class DataFrame(NDFrame, OpsMixin):
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)
+
+    @classmethod
+    def from_arrow(
+        cls, data: ArrowArrayExportable | ArrowStreamExportable
+    ) -> DataFrame:
+        """
+        Construct a DataFrame from a tabular Arrow object.
+
+        This function accepts any Arrow-compatible tabular object implementing
+        the `Arrow PyCapsule Protocol`_ (i.e. having an ``__arrow_c_array__``
+        or ``__arrow_c_stream__`` method).
+
+        This function currently relies on ``pyarrow`` to convert the tabular
+        object in Arrow format to pandas.
+
+        .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        data : pyarrow.Table or Arrow-compatible table
+            Any tabular object implementing the Arrow PyCapsule Protocol
+            (i.e. has an ``__arrow_c_array__`` or ``__arrow_c_stream__``
+            method).
+
+        Returns
+        -------
+        DataFrame
+
+        """
+        pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        if not isinstance(data, pa.Table):
+            if not (
+                hasattr(data, "__arrow_c_array__")
+                or hasattr(data, "__arrow_c_stream__")
+            ):
+                # explicitly test this, because otherwise we would accept variour other
+                # input types through the pa.table(..) call
+                raise TypeError(
+                    "Expected an Arrow-compatible tabular object (i.e. having an "
+                    "'_arrow_c_array__' or '__arrow_c_stream__' method), got "
+                    f"'{type(data).__name__}' instead."
+                )
+            pa_table = pa.table(data)
+        else:
+            pa_table = data
+
+        df = pa_table.to_pandas()
+        return df
 
     @classmethod
     def from_dict(
@@ -4104,7 +4156,7 @@ class DataFrame(NDFrame, OpsMixin):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        if is_hashable(key) and not is_iterator(key) and not isinstance(key, slice):
+        if is_hashable(key, allow_slice=False) and not is_iterator(key):
             # is_iterator to exclude generator e.g. test_getitem_listlike
             # As of Python 3.12, slice is hashable which breaks MultiIndex (GH#57500)
 
@@ -4405,8 +4457,10 @@ class DataFrame(NDFrame, OpsMixin):
         z  3  50
         # Values for 'a' and 'b' are completely ignored!
         """
-        if not PYPY and not WARNING_CHECK_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT + 1:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
+                self
+            ):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -6055,19 +6109,9 @@ class DataFrame(NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
-    @overload
-    def _replace_columnwise(
-        self, mapping: dict[Hashable, tuple[Any, Any]], inplace: Literal[True], regex
-    ) -> None: ...
-
-    @overload
-    def _replace_columnwise(
-        self, mapping: dict[Hashable, tuple[Any, Any]], inplace: Literal[False], regex
-    ) -> Self: ...
-
     def _replace_columnwise(
         self, mapping: dict[Hashable, tuple[Any, Any]], inplace: bool, regex
-    ) -> Self | None:
+    ) -> Self:
         """
         Dispatch to Series.replace column-wise.
 
@@ -6080,7 +6124,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        DataFrame or None
+        DataFrame
         """
         # Operate column-wise
         res = self if inplace else self.copy(deep=False)
@@ -6095,9 +6139,7 @@ class DataFrame(NDFrame, OpsMixin):
 
                 res._iset_item(i, newobj, inplace=inplace)
 
-        if inplace:
-            return None
-        return res.__finalize__(self)
+        return res if inplace else res.__finalize__(self)
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
@@ -7719,11 +7761,16 @@ class DataFrame(NDFrame, OpsMixin):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies when True. Preserve the order of the data when False.
+            Stable sort by frequencies when True. Preserve the order of the data
+            when False.
 
             .. versionchanged:: 3.0.0
 
                 Prior to 3.0.0, ``sort=False`` would sort by the columns values.
+
+            .. versionchanged:: 3.0.0
+
+                Prior to 3.0.0, the sort was unstable.
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
@@ -7833,7 +7880,7 @@ class DataFrame(NDFrame, OpsMixin):
         counts.name = name
 
         if sort:
-            counts = counts.sort_values(ascending=ascending)
+            counts = counts.sort_values(ascending=ascending, kind="stable")
         if normalize:
             counts /= counts.sum()
 
@@ -8615,7 +8662,8 @@ class DataFrame(NDFrame, OpsMixin):
         rvalues = series._values
         if not isinstance(rvalues, np.ndarray):
             # TODO(EA2D): no need to special-case with 2D EAs
-            if rvalues.dtype in ("datetime64[ns]", "timedelta64[ns]"):
+            if lib.is_np_dtype(rvalues.dtype, "mM"):
+                # i.e. DatetimeArray[tznaive] or TimedeltaArray
                 # We can losslessly+cheaply cast to ndarray
                 rvalues = np.asarray(rvalues)
             else:
@@ -9363,8 +9411,10 @@ class DataFrame(NDFrame, OpsMixin):
         1  2  500.0
         2  3    6.0
         """
-        if not PYPY and not WARNING_CHECK_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(
+                self
+            ) <= REF_COUNT_METHOD and not com.is_local_in_caller_frame(self):
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
@@ -12149,8 +12199,7 @@ class DataFrame(NDFrame, OpsMixin):
                 result.index = df.index
                 return result
 
-            # kurtosis excluded since groupby does not implement it
-            if df.shape[1] and name != "kurt":
+            if df.shape[1]:
                 dtype = find_common_type(
                     [block.values.dtype for block in df._mgr.blocks]
                 )
