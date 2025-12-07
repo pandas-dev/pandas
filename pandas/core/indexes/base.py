@@ -5023,8 +5023,9 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas.core.arrays.numpy_ import NumpyExtensionArray
 
             array = NumpyExtensionArray(array)
-        array = array.view()
-        array._readonly = True
+        # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
+        # array = array.view()
+        # array._readonly = True
         return array
 
     @property
@@ -5406,9 +5407,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        mask : np.ndarray[bool]
-            Array of booleans denoting where values in the original
-            data are not ``NA``.
+        mask : array-like of bool
+            Array of booleans denoting where values should be replaced.
         value : scalar
             Scalar value to use to fill holes (e.g. 0).
             This value cannot be a list-likes.

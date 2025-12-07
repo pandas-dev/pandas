@@ -4156,7 +4156,7 @@ class DataFrame(NDFrame, OpsMixin):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        if is_hashable(key) and not is_iterator(key) and not isinstance(key, slice):
+        if is_hashable(key, allow_slice=False) and not is_iterator(key):
             # is_iterator to exclude generator e.g. test_getitem_listlike
             # As of Python 3.12, slice is hashable which breaks MultiIndex (GH#57500)
 
@@ -7761,11 +7761,16 @@ class DataFrame(NDFrame, OpsMixin):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies when True. Preserve the order of the data when False.
+            Stable sort by frequencies when True. Preserve the order of the data
+            when False.
 
             .. versionchanged:: 3.0.0
 
                 Prior to 3.0.0, ``sort=False`` would sort by the columns values.
+
+            .. versionchanged:: 3.0.0
+
+                Prior to 3.0.0, the sort was unstable.
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
@@ -7875,7 +7880,7 @@ class DataFrame(NDFrame, OpsMixin):
         counts.name = name
 
         if sort:
-            counts = counts.sort_values(ascending=ascending)
+            counts = counts.sort_values(ascending=ascending, kind="stable")
         if normalize:
             counts /= counts.sum()
 
@@ -8657,7 +8662,8 @@ class DataFrame(NDFrame, OpsMixin):
         rvalues = series._values
         if not isinstance(rvalues, np.ndarray):
             # TODO(EA2D): no need to special-case with 2D EAs
-            if rvalues.dtype in ("datetime64[ns]", "timedelta64[ns]"):
+            if lib.is_np_dtype(rvalues.dtype, "mM"):
+                # i.e. DatetimeArray[tznaive] or TimedeltaArray
                 # We can losslessly+cheaply cast to ndarray
                 rvalues = np.asarray(rvalues)
             else:

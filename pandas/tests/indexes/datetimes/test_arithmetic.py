@@ -36,7 +36,6 @@ class TestDatetimeIndexArithmetic:
             periods=12,
             tz=tz_naive_fixture,
             freq=offsets.Hour(24),
-            unit="ns",
         )
 
         res = dti - dti[0]
@@ -56,7 +55,8 @@ class TestDatetimeIndexArithmetic:
                 Timedelta(days=1),
                 Timedelta(days=2),
                 Timedelta(days=2, hours=23),
-            ]
+            ],
+            dtype="m8[ns]",
         )
         tm.assert_index_equal(res, expected)
         assert res.freq == expected.freq

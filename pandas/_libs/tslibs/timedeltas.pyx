@@ -1,4 +1,5 @@
 import collections
+import re
 import warnings
 
 from pandas.util._decorators import set_module
@@ -448,11 +449,19 @@ def array_to_timedelta64(
                     ival = parse_iso_format_string(item)
                 else:
                     ival = parse_timedelta_string(item)
+                if (
+                    (infer_reso or creso == NPY_DATETIMEUNIT.NPY_FR_us)
+                    and not needs_nano_unit(ival, item)
+                ):
+                    item_reso = NPY_DATETIMEUNIT.NPY_FR_us
+                    ival = ival // 1000
+                else:
+                    item_reso = NPY_FR_ns
 
-                item_reso = NPY_FR_ns
-                state.update_creso(item_reso)
-                if infer_reso:
-                    creso = state.creso
+                if ival != NPY_NAT:
+                    state.update_creso(item_reso)
+                    if infer_reso:
+                        creso = state.creso
 
             elif is_tick_object(item):
                 item_reso = get_supported_reso(item._creso)
@@ -720,6 +729,24 @@ cdef timedelta_from_spec(object number, object frac, object unit):
 
     n = "".join(number) + "." + "".join(frac)
     return cast_from_unit(float(n), unit)
+
+
+cdef bint needs_nano_unit(int64_t ival, str item):
+    """
+    Check if a passed string `item` needs to be stored with nano unit or can
+    use microsecond instead. Needs nanoseconds if:
+
+    - if the parsed value in nanoseconds has sub-microseconds content -> certainly
+      needs nano
+    - if the seconds part in the string contains more than 6 decimals, i.e. has
+      trailing zeros beyond the microsecond part (e.g. "0.123456000 s") -> treat
+      as nano for consistency
+    - if the string explicitly contains an entry for nanoseconds (e.g. "1000 ns")
+    """
+    # TODO: more performant way of doing this check?
+    if ival % 1000 != 0:
+        return True
+    return re.search(r"\.\d{7}", item) or "ns" in item or "nano" in item.lower()
 
 
 cpdef inline str parse_timedelta_unit(str unit):
@@ -2087,7 +2114,7 @@ class Timedelta(_Timedelta):
                     int(ns)
                     + int(us * 1_000)
                     + int(ms * 1_000_000)
-                    + seconds
+                    + seconds, "ns"
                 )
             except OverflowError as err:
                 # GH#55503
@@ -2096,6 +2123,13 @@ class Timedelta(_Timedelta):
                     f"microseconds={us}, nanoseconds={ns}"
                 )
                 raise OutOfBoundsTimedelta(msg) from err
+
+            if (
+                "nanoseconds" not in kwargs
+                and cnp.get_timedelta64_value(value) % 1000 == 0
+            ):
+                # If possible, give a microsecond unit
+                value = value.astype("m8[us]")
 
         disallow_ambiguous_unit(unit)
 
@@ -2121,10 +2155,17 @@ class Timedelta(_Timedelta):
             if (len(value) > 0 and value[0] == "P") or (
                 len(value) > 1 and value[:2] == "-P"
             ):
-                value = parse_iso_format_string(value)
+                ival = parse_iso_format_string(value)
             else:
-                value = parse_timedelta_string(value)
-            value = np.timedelta64(value)
+                ival = parse_timedelta_string(value)
+
+            if not needs_nano_unit(ival, value):
+                # If we don't specifically need nanosecond resolution, default
+                #  to microsecond like we do for datetimes
+                value = np.timedelta64(ival // 1000, "us")
+                return cls(value)
+            else:
+                value = np.timedelta64(ival, "ns")
         elif PyDelta_Check(value):
             # pytimedelta object -> microsecond resolution
             new_value = delta_to_nanoseconds(

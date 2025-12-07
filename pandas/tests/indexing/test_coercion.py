@@ -270,12 +270,12 @@ class TestInsertIndexCoercion(CoercionBase):
 
     def test_insert_index_timedelta64(self):
         obj = pd.TimedeltaIndex(["1 day", "2 day", "3 day", "4 day"])
-        assert obj.dtype == "timedelta64[ns]"
+        assert obj.dtype == "timedelta64[us]"
 
         # timedelta64 + timedelta64 => timedelta64
         exp = pd.TimedeltaIndex(["1 day", "10 day", "2 day", "3 day", "4 day"])
         self._assert_insert_conversion(
-            obj, pd.Timedelta("10 day"), exp, "timedelta64[ns]"
+            obj, pd.Timedelta("10 day"), exp, "timedelta64[us]"
         )
 
         for item in [pd.Timestamp("2012-01-01").as_unit("s"), 1]:
@@ -470,7 +470,8 @@ class TestWhereCoercion(CoercionBase):
         raise NotImplementedError
 
     @pytest.mark.parametrize(
-        "value", [pd.Timedelta(days=9), timedelta(days=9), np.timedelta64(9, "D")]
+        "value",
+        [pd.Timedelta(days=9).as_unit("us"), timedelta(days=9), np.timedelta64(9, "D")],
     )
     def test_where_index_timedelta64(self, value):
         tdi = pd.timedelta_range("1 Day", periods=4)
@@ -748,7 +749,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
             pd.Timestamp("2011-01-03", tz=tz).as_unit("s"),
         ]
 
-    rep["timedelta64[ns]"] = [pd.Timedelta("1 day"), pd.Timedelta("2 day")]
+    rep["timedelta64[us]"] = [pd.Timedelta("1 day"), pd.Timedelta("2 day")]
 
     @pytest.fixture(params=["dict", "series"])
     def how(self, request):
@@ -764,7 +765,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
             "datetime64[ns]",
             "datetime64[ns, UTC]",
             "datetime64[ns, US/Eastern]",
-            "timedelta64[ns]",
+            "timedelta64[us]",
         ]
     )
     def from_key(self, request):
@@ -780,7 +781,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
             "datetime64[ns]",
             "datetime64[ns, UTC]",
             "datetime64[ns, US/Eastern]",
-            "timedelta64[ns]",
+            "timedelta64[us]",
         ],
         ids=[
             "object",
@@ -840,7 +841,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
     @pytest.mark.parametrize(
         "to_key",
-        ["timedelta64[ns]", "bool", "object", "complex128", "float64", "int64"],
+        ["timedelta64[us]", "bool", "object", "complex128", "float64", "int64"],
         indirect=True,
     )
     @pytest.mark.parametrize(
