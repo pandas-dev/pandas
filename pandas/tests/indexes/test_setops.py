@@ -986,78 +986,81 @@ class TestSetOpsUnsorted:
         tm.assert_index_equal(res, expected)
 
 
-class TestSetOpsMutation:
-    def test_intersection_mutation_safety(self):
-        # GH#63169
-        index1 = Index([0, 1], name="original")
-        index2 = Index([0, 1], name="original")
+def test_intersection_mutation_safety():
+    # GH#63169
+    index1 = Index([0, 1], name="original")
+    index2 = Index([0, 1], name="original")
 
-        result = index1.intersection(index2)
+    result = index1.intersection(index2)
 
-        assert result is not index1
-        assert result is not index2
+    assert result is not index1
+    assert result is not index2
 
-        tm.assert_index_equal(result, index1)
-        assert result.name == "original"
+    tm.assert_index_equal(result, index1)
+    assert result.name == "original"
 
-        index1.name = "changed"
+    index1.name = "changed"
 
-        assert result.name == "original"
-        assert index1.name == "changed"
+    assert result.name == "original"
+    assert index1.name == "changed"
 
-    def test_union_mutation_safety(self):
-        # GH#63169
-        index1 = Index([0, 1], name="original")
-        index2 = Index([0, 1], name="original")
 
-        result = index1.union(index2)
+def test_union_mutation_safety():
+    # GH#63169
+    index1 = Index([0, 1], name="original")
+    index2 = Index([0, 1], name="original")
 
-        assert result is not index1
-        assert result is not index2
+    result = index1.union(index2)
 
-        tm.assert_index_equal(result, index1)
-        assert result.name == "original"
+    assert result is not index1
+    assert result is not index2
 
-        index1.name = "changed"
+    tm.assert_index_equal(result, index1)
+    assert result.name == "original"
 
-        assert result.name == "original"
-        assert index1.name == "changed"
+    index1.name = "changed"
 
-    def test_union_mutation_safety_other(self):
-        # GH#63169
-        index1 = Index([0, 1], name="original")
-        index2 = Index([0, 1], name="original")
+    assert result.name == "original"
+    assert index1.name == "changed"
 
-        result = index1.union(index2)
 
-        assert result is not index2
+def test_union_mutation_safety_other():
+    # GH#63169
+    index1 = Index([0, 1], name="original")
+    index2 = Index([0, 1], name="original")
 
-        tm.assert_index_equal(result, index2)
-        assert result.name == "original"
+    result = index1.union(index2)
 
-        index2.name = "changed"
+    assert result is not index2
 
-        assert result.name == "original"
-        assert index2.name == "changed"
+    tm.assert_index_equal(result, index2)
+    assert result.name == "original"
 
-    def test_multiindex_intersection_mutation_safety(self):
-        # GH#63169
-        mi1 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
-        mi2 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+    index2.name = "changed"
 
-        result = mi1.intersection(mi2)
-        assert result is not mi1
+    assert result.name == "original"
+    assert index2.name == "changed"
 
-        mi1.names = ["changed1", "changed2"]
-        assert result.names == ["x", "y"]
 
-    def test_multiindex_union_mutation_safety(self):
-        # GH#63169
-        mi1 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
-        mi2 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+def test_multiindex_intersection_mutation_safety():
+    # GH#63169
+    mi1 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+    mi2 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
 
-        result = mi1.union(mi2)
-        assert result is not mi1
+    result = mi1.intersection(mi2)
+    assert result is not mi1
 
-        mi1.names = ["changed1", "changed2"]
-        assert result.names == ["x", "y"]
+    mi1.names = ["changed1", "changed2"]
+    assert result.names == ["x", "y"]
+
+
+def test_multiindex_union_mutation_safety():
+    # GH#63169
+    mi1 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+    mi2 = MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["x", "y"])
+
+    result = mi1.union(mi2)
+    assert result is not mi1
+
+    mi1.names = ["changed1", "changed2"]
+    assert result.names == ["x", "y"]
