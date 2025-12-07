@@ -166,6 +166,7 @@ Other enhancements
   :func:`pandas.concat`.
 - :class:`pandas.api.typing.FrozenList` is available for typing the outputs of :attr:`MultiIndex.names`, :attr:`MultiIndex.codes` and :attr:`MultiIndex.levels` (:issue:`58237`)
 - :class:`pandas.api.typing.SASReader` is available for typing the output of :func:`read_sas` (:issue:`55689`)
+- :meth:`DataFrame.apply` accepts Numba as an engine by passing the JIT decorator directly, e.g. ``df.apply(func, engine=numba.jit)`` (:issue:`61458`)
 - Added :meth:`.Styler.to_typst` to write Styler objects to file, buffer or string in Typst format (:issue:`57617`)
 - Added missing :meth:`pandas.Series.info` to API reference (:issue:`60926`)
 - :class:`pandas.api.typing.NoDefault` is available for typing ``no_default``

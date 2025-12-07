@@ -10,6 +10,7 @@ from pandas import (
     Index,
 )
 import pandas._testing as tm
+from pandas.core.util.numba_ import extract_numba_options
 from pandas.util.version import Version
 
 pytestmark = [td.skip_if_no("numba"), pytest.mark.single_cpu, pytest.mark.skipif()]
@@ -127,3 +128,20 @@ def test_numba_unsupported_dtypes(apply_axis):
         "which is not supported by the numba engine.",
     ):
         df["c"].to_frame().apply(f, engine="numba", axis=apply_axis)
+
+
+@pytest.mark.parametrize(
+    "jit_args",
+    [
+        {"parallel": True, "nogil": True},
+        {"parallel": False, "nogil": False},
+    ],
+)
+def test_extract_numba_options_from_user_decorated_function(jit_args):
+    extracted = extract_numba_options(numba.jit(**jit_args))
+    for k, v in jit_args.items():
+        assert extracted.get(k) == v
+
+    extracted = extract_numba_options(numba.njit(**jit_args))
+    for k, v in jit_args.items():
+        assert extracted.get(k) == v
