@@ -155,11 +155,7 @@ class TestTimedeltaConstructorUnitKeyword:
     def test_unit_parser(self, unit, np_unit, wrapper):
         # validate all units, GH 6855, GH 21762
         # array-likes
-        if wrapper is list:
-            # we go through _objects_to_td64ns which hasn't yet been updated
-            exp_unit = "ns"
-        else:
-            exp_unit = np_unit if np_unit not in ["W", "D", "m"] else "s"
+        exp_unit = np_unit if np_unit not in ["W", "D", "m"] else "s"
         expected = TimedeltaIndex(
             [np.timedelta64(i, np_unit) for i in np.arange(5).tolist()],
             dtype=f"m8[{exp_unit}]",
