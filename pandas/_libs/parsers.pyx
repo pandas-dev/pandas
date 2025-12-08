@@ -1099,6 +1099,16 @@ cdef class TextReader:
                         stacklevel=find_stack_level()
                     )
 
+            # Re-convert failed columns to their target dtype now that bad rows
+            # have been removed. All remaining values should be convertible.
+            for col_idx, target_dtype in failed_columns_dtypes.items():
+                try:
+                    results[col_idx] = np.array(results[col_idx]).astype(target_dtype)
+                except (ValueError, TypeError, OverflowError):
+                    # If conversion still fails, keep as string (shouldn't happen
+                    # if _identify_bad_rows worked correctly, but be defensive)
+                    pass
+
         self.parser_start += end - start
 
         return results
