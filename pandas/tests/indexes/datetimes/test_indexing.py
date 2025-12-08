@@ -656,6 +656,32 @@ class TestMaybeCastSliceBound:
 
 
 class TestGetSliceBounds:
+    @pytest.mark.parametrize("as_td", [True, False])
+    def test_get_slice_bound_mismatched_unit(self, as_td):
+        # GH#63262
+        index = date_range(start="2000-01-01", freq="h", periods=8)
+
+        td = pd.Timedelta(1)
+        ts = Timestamp("2000-01-01 01:00:00")
+        start = ts - td
+        stop = ts + td
+        if as_td:
+            index = index - Timestamp(0).as_unit("us")
+            start = start - Timestamp(0).as_unit("us")
+            stop = stop - Timestamp(0).as_unit("us")
+
+        left = index.get_slice_bound(start, side="left")
+        assert left == 1
+        right = index.get_slice_bound(stop, side="right")
+        assert right == 2
+
+        # The user-facing behavior is slicing with .loc, so let's test that
+        #  explicitly while we're here.
+        ser = pd.Series(1, index=index)
+        result = ser.loc[start:stop]
+        expected = ser.iloc[1:2]
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("box", [date, datetime, Timestamp])
     @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
     def test_get_slice_bounds_datetime_within(

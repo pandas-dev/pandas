@@ -11,6 +11,7 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     Self,
     cast,
     final,
@@ -20,16 +21,18 @@ import numpy as np
 
 from pandas._libs import (
     NaT,
-    Timedelta,
     lib,
 )
 from pandas._libs.tslibs import (
     BaseOffset,
     Resolution,
     Tick,
+    Timedelta,
+    Timestamp,
     parsing,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -932,6 +935,22 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # view e.g. i8 back to M8[ns]
         result = result.view(self._data._ndarray.dtype)
         return self._data._from_backing_data(result)
+
+    def _searchsorted_monotonic(self, label, side: Literal["left", "right"] = "left"):
+        if (
+            self.is_monotonic_increasing
+            and isinstance(label, (Timestamp, Timedelta))
+            and abbrev_to_npy_unit(label.unit) > abbrev_to_npy_unit(self.unit)
+        ):
+            # For non-matching units we can safely round down (with side=right)
+            # This is needed for GH#63262
+            if side == "right":
+                label = label.as_unit(self.unit)  # this should always be a round-down
+            else:
+                # round up
+                label = label.ceil(self.unit).as_unit(self.unit)
+
+        return super()._searchsorted_monotonic(label, side)
 
     # --------------------------------------------------------------------
     # List-like Methods
