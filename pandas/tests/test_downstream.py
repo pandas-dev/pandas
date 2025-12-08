@@ -190,9 +190,9 @@ def test_yaml_dump(df):
     tm.assert_frame_equal(df, loaded2)
 
 
-@pytest.mark.parametrize("dependency", ["numpy", "dateutil", "tzdata"])
+@pytest.mark.parametrize("dependency", ["numpy", "dateutil"])
 def test_missing_required_dependency(monkeypatch, dependency):
-    # GH#61030, GH61273
+    # GH#61030
     original_import = __import__
     mock_error = ImportError(f"Mock error for {dependency}")
 
