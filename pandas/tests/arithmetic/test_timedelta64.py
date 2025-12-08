@@ -729,11 +729,12 @@ class TestAddSubNaTMasking:
         # TODO: Make raised error message more informative and test
 
         _NaT = NaT._value + 1
+        td = pd.to_timedelta([106580], "D").as_unit("ns")
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
-            pd.to_timedelta([106580], "D") + Timestamp("2000")
+            td + Timestamp("2000")
         with pytest.raises(OverflowError, match=msg):
-            Timestamp("2000") + pd.to_timedelta([106580], "D")
+            Timestamp("2000") + td
         with pytest.raises(OverflowError, match=msg):
             pd.to_timedelta([_NaT]) - Timedelta("1 days")
         with pytest.raises(OverflowError, match=msg):
