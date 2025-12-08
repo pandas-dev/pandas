@@ -282,7 +282,7 @@ class TestArrowArray(base.ExtensionTests):
 
         if isinstance(right, type(left)):
             return left._from_sequence(
-                [a + b for (a, b) in zip(list(left), list(right))],
+                [a + b for (a, b) in zip(list(left), list(right), strict=True)],
                 dtype=dtype,
             )
         else:
