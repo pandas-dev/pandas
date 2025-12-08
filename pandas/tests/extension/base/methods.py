@@ -352,9 +352,7 @@ class BaseMethodsTests:
             pd.array(
                 [
                     a <= b
-                    for (a, b) in zip(
-                        list(orig_data1), list(orig_data2), strict=True
-                    )
+                    for (a, b) in zip(list(orig_data1), list(orig_data2), strict=True)
                 ],
                 dtype=self._combine_le_expected_dtype,
             )
