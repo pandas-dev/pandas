@@ -1208,7 +1208,9 @@ def _ints_to_td64ns(data, unit: str = "ns") -> tuple[np.ndarray, bool]:
         dtype_str = f"timedelta64[{unit}]"
         data = data.view(dtype_str)
 
-        data = astype_overflowsafe(data, dtype=TD64NS_DTYPE)
+        new_dtype = get_supported_dtype(data.dtype)
+        if new_dtype != data.dtype:
+            data = astype_overflowsafe(data, dtype=new_dtype)
 
         # the astype conversion makes a copy, so we can avoid re-copying later
         copy_made = True
