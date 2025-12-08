@@ -229,7 +229,7 @@ def read_excel(
         * ``1``: 2nd sheet as a `DataFrame`
         * ``"Sheet1"``: Load sheet with name "Sheet1"
         * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
-        as a dict of `DataFrame`
+          as a dict of `DataFrame`
         * ``None``: Returns a dictionary containing DataFrames for each sheet..
 
     header : int, list of int, default 0
@@ -253,13 +253,13 @@ def read_excel(
     usecols : str, list-like, or callable, default None
         * If None, then parse all columns.
         * If str, then indicates comma separated list of Excel column letters
-        and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
-        both sides.
+          and column ranges (e.g. "A:E" or "A,C,E:F"). Ranges are inclusive of
+          both sides.
         * If list of int, then indicates list of column numbers to be parsed
-        (0-indexed).
+          (0-indexed).
         * If list of string, then indicates list of column names to be parsed.
         * If callable, then evaluate each column name against it and parse the
-        column if the callable returns ``True``.
+          column if the callable returns ``True``.
 
         Returns a subset of the columns according to behavior above.
     dtype : Type name or dict of column -> type, default None
@@ -315,13 +315,13 @@ def read_excel(
         Depending on whether ``na_values`` is passed in, the behavior is as follows:
 
         * If ``keep_default_na`` is True, and ``na_values`` are specified,
-        ``na_values`` is appended to the default NaN values used for parsing.
+          ``na_values`` is appended to the default NaN values used for parsing.
         * If ``keep_default_na`` is True, and ``na_values`` are not specified, only
-        the default NaN values are used for parsing.
+          the default NaN values are used for parsing.
         * If ``keep_default_na`` is False, and ``na_values`` are specified, only
-        the NaN values specified ``na_values`` are used for parsing.
+          the NaN values specified ``na_values`` are used for parsing.
         * If ``keep_default_na`` is False, and ``na_values`` are not specified, no
-        strings will be parsed as NaN.
+          strings will be parsed as NaN.
 
         Note that if `na_filter` is passed in as False, the ``keep_default_na`` and
         ``na_values`` parameters will be ignored.
@@ -336,11 +336,11 @@ def read_excel(
 
         * ``bool``. If True -> try parsing the index.
         * ``list`` of int or names. e.g. If [1, 2, 3] -> try parsing columns 1, 2, 3
-        each as a separate date column.
+          each as a separate date column.
         * ``list`` of lists. e.g.  If [[1, 3]] -> combine columns 1 and 3 and parse as
-        a single date column.
+          a single date column.
         * ``dict``, e.g. {'foo' : [1, 3]} -> parse columns 1, 3 as date and call
-        result 'foo'
+          result 'foo'
 
         If a column or index contains an unparsable date, the entire column or
         index will be returned unaltered as an object data type. If you don`t want to
@@ -350,11 +350,12 @@ def read_excel(
 
         Note: A fast-path exists for iso8601-formatted dates.
     date_format : str or dict of column -> format, default ``None``
-    If used in conjunction with ``parse_dates``, will parse dates according to this
-    format. For anything more complex,
-    please read in as ``object`` and then apply :func:`to_datetime` as-needed.
+        If used in conjunction with ``parse_dates``, will parse dates according to this
+        format. For anything more complex,
+        please read in as ``object`` and then apply :func:`to_datetime` as-needed.
 
-    .. versionadded:: 2.0.0
+        .. versionadded:: 2.0.0
+
     thousands : str, default None
         Thousands separator for parsing string columns to numeric.  Note that
         this parameter is only necessary for columns stored as TEXT in Excel,
@@ -389,6 +390,7 @@ def read_excel(
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
         * ``"pyarrow"``: returns pyarrow-backed nullable
+
         :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
