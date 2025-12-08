@@ -1866,7 +1866,6 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
-
         """
         pa = import_optional_dependency("pyarrow", min_version="14.0.0")
         if not isinstance(data, pa.Table):
