@@ -145,6 +145,7 @@ setup = ['--vsenv'] # For Windows
 
 [tool.cibuildwheel]
 skip = ["*_i686", "*_ppc64le", "*_s390x"]
+output-dir = "dist"
 build-verbosity = 3
 environment = {LDFLAGS="-Wl,--strip-all"}
 test-extras = "test"
