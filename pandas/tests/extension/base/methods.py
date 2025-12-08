@@ -350,7 +350,12 @@ class BaseMethodsTests:
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
             pd.array(
-                [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2), strict=True)],
+                [
+                    a <= b
+                    for (a, b) in zip(
+                        list(orig_data1), list(orig_data2), strict=True
+                    )
+                ],
                 dtype=self._combine_le_expected_dtype,
             )
         )
