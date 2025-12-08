@@ -423,7 +423,7 @@ class TestDataFrameGroupByPlots:
 
     @pytest.mark.slow
     def test_boxplot_legacy2(self):
-        tuples = zip(string.ascii_letters[:10], range(10))
+        tuples = zip(string.ascii_letters[:10], range(10), strict=True)
         df = DataFrame(
             np.random.default_rng(2).random((10, 3)),
             index=MultiIndex.from_tuples(tuples),
@@ -435,7 +435,7 @@ class TestDataFrameGroupByPlots:
 
     @pytest.mark.slow
     def test_boxplot_legacy2_return_type(self):
-        tuples = zip(string.ascii_letters[:10], range(10))
+        tuples = zip(string.ascii_letters[:10], range(10), strict=True)
         df = DataFrame(
             np.random.default_rng(2).random((10, 3)),
             index=MultiIndex.from_tuples(tuples),
@@ -744,7 +744,7 @@ class TestDataFrameGroupByPlots:
             ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
-        tuples = list(zip(*arrays))
+        tuples = list(zip(*arrays, strict=True))
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
         df = DataFrame(
             np.random.default_rng(2).standard_normal((3, 8)),
