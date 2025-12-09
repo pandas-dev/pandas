@@ -31,7 +31,7 @@ import pandas._testing as tm
                 pd.Timestamp("2011-01-02", tz="US/Eastern").as_unit("s"),
                 pd.Timestamp("2011-01-03", tz="US/Eastern").as_unit("s"),
             ],
-            "timedelta64[ns]": [
+            "timedelta64[us]": [
                 pd.Timedelta("1 days"),
                 pd.Timedelta("2 days"),
                 pd.Timedelta("3 days"),
@@ -298,7 +298,9 @@ class TestConcatAppendCommon:
     @pytest.mark.parametrize("tz", ["UTC", "US/Eastern", "Asia/Tokyo", "EST5EDT"])
     def test_concatlike_datetimetz_short(self, tz):
         # GH#7795
-        ix1 = pd.date_range(start="2014-07-15", end="2014-07-17", freq="D", tz=tz)
+        ix1 = pd.date_range(
+            start="2014-07-15", end="2014-07-17", freq="D", tz=tz, unit="ns"
+        )
         ix2 = pd.DatetimeIndex(["2014-07-11", "2014-07-21"], tz=tz)
         df1 = DataFrame(0, index=ix1, columns=["A", "B"])
         df2 = DataFrame(0, index=ix2, columns=["A", "B"])

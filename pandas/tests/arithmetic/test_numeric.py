@@ -223,8 +223,8 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "scalar_td",
         [
-            Timedelta(days=1),
-            Timedelta(days=1).to_timedelta64(),
+            Timedelta(days=1).as_unit("ns"),
+            Timedelta(days=1).as_unit("ns").to_timedelta64(),
             Timedelta(days=1).to_pytimedelta(),
             Timedelta(days=1).to_timedelta64().astype("timedelta64[s]"),
             Timedelta(days=1).to_timedelta64().astype("timedelta64[ms]"),
@@ -235,7 +235,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
         # GH#19333
         box = box_with_array
         index = numeric_idx
-        expected = TimedeltaIndex([Timedelta(days=n) for n in range(len(index))])
+        expected = TimedeltaIndex(
+            [Timedelta(days=n) for n in range(len(index))], dtype="m8[ns]"
+        )
         if isinstance(scalar_td, np.timedelta64):
             dtype = scalar_td.dtype
             expected = expected.astype(dtype)
@@ -254,9 +256,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
     @pytest.mark.parametrize(
         "scalar_td",
         [
-            Timedelta(days=1),
-            Timedelta(days=1).to_timedelta64(),
-            Timedelta(days=1).to_pytimedelta(),
+            Timedelta(days=1).as_unit("ns"),
+            Timedelta(days=1).as_unit("ns").to_timedelta64(),
+            Timedelta(days=1).as_unit("ns").to_pytimedelta(),
         ],
         ids=lambda x: type(x).__name__,
     )
@@ -295,7 +297,9 @@ class TestNumericArraylikeArithmeticWithDatetimeLike:
                 # i.e. resolution is lower -> use lowest supported resolution
                 dtype = np.dtype("m8[s]")
             expected = expected.astype(dtype)
-        elif type(three_days) is timedelta:
+        elif type(three_days) is timedelta or (
+            isinstance(three_days, Timedelta) and three_days.unit == "us"
+        ):
             expected = expected.astype("m8[us]")
         elif isinstance(
             three_days,

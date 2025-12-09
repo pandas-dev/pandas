@@ -1456,6 +1456,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0  10.0  20.0
         >>> df.equals(different_data_type)
         False
+
+        DataFrames with NaN in the same locations compare equal.
+
+        >>> df_nan1 = pd.DataFrame({"a": [1, np.nan], "b": [3, np.nan]})
+        >>> df_nan2 = pd.DataFrame({"a": [1, np.nan], "b": [3, np.nan]})
+        >>> df_nan1.equals(df_nan2)
+        True
+
+        If the NaN values are not in the same locations, they compare unequal.
+
+        >>> df_nan3 = pd.DataFrame({"a": [1, np.nan], "b": [3, 4]})
+        >>> df_nan1.equals(df_nan3)
+        False
         """
         if not (isinstance(other, type(self)) or isinstance(self, type(other))):
             return False
@@ -1560,7 +1573,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> s = pd.Series([pd.Timedelta("1 days")])
         >>> s.abs()
         0   1 days
-        dtype: timedelta64[ns]
+        dtype: timedelta64[us]
 
         Select rows with data closest to certain value using argsort (from
         `StackOverflow <https://stackoverflow.com/a/17758115>`__).
@@ -6341,23 +6354,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             a numpy.dtype or Python type to cast one or more of the DataFrame's
             columns to column-specific types.
         copy : bool, default False
-            Return a copy when ``copy=True`` (be very careful setting
-            ``copy=False`` as changes to values then may propagate to other
-            pandas objects).
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
         errors : {'raise', 'ignore'}, default 'raise'
             Control raising of exceptions on invalid data for provided dtype.
 
@@ -6446,7 +6454,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0   2020-01-01
         1   2020-01-02
         2   2020-01-03
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         """
         self._check_copy_deprecation(copy)
         if is_dict_like(dtype):

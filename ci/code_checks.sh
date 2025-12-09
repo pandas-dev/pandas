@@ -69,9 +69,11 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
     "$BASE_DIR"/scripts/validate_docstrings.py \
         --format=actions \
         -i ES01 `# For now it is ok if docstrings are missing the extended summary` \
+        -i "pandas.DataFrame.from_arrow SA01,EX01" \
         -i "pandas.Series.dt PR01" `# Accessors are implemented as classes, but we do not document the Parameters section` \
         -i "pandas.Period.freq GL08" \
         -i "pandas.Period.ordinal GL08" \
+        -i "pandas.errors.ChainedAssignmentError SA01" \
         -i "pandas.errors.IncompatibleFrequency SA01,SS06,EX01" \
         -i "pandas.api.extensions.ExtensionArray.value_counts EX01,RT03,SA01" \
         -i "pandas.api.typing.DataFrameGroupBy.plot PR02" \
@@ -164,6 +166,8 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         -i "pandas.tseries.offsets.DateOffset.is_on_offset GL08" \
         -i "pandas.tseries.offsets.DateOffset.n GL08" \
         -i "pandas.tseries.offsets.DateOffset.normalize GL08" \
+        -i "pandas.tseries.offsets.DateOffset.rollback SA01,EX01" \
+        -i "pandas.tseries.offsets.DateOffset.rollforward SA01,EX01" \
         -i "pandas.tseries.offsets.Day.freqstr SA01" \
         -i "pandas.tseries.offsets.Day.is_on_offset GL08" \
         -i "pandas.tseries.offsets.Day.n GL08" \

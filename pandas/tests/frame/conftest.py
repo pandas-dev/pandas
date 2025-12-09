@@ -90,9 +90,9 @@ def timezone_frame():
     """
     df = DataFrame(
         {
-            "A": date_range("20130101", periods=3),
-            "B": date_range("20130101", periods=3, tz="US/Eastern"),
-            "C": date_range("20130101", periods=3, tz="CET"),
+            "A": date_range("20130101", periods=3, unit="ns"),
+            "B": date_range("20130101", periods=3, tz="US/Eastern", unit="ns"),
+            "C": date_range("20130101", periods=3, tz="CET", unit="ns"),
         }
     )
     df.iloc[1, 1] = NaT

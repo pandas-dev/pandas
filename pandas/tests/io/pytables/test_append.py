@@ -529,7 +529,7 @@ def test_append_with_data_columns(tmp_path):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
         )
         df.iloc[0, df.columns.get_loc("B")] = 1.0
         _maybe_remove(store, "df")
@@ -848,7 +848,7 @@ because its data contents are not [string] but [mixed] object dtype"""
             store.append("df", df)
 
 
-def test_append_with_timedelta(tmp_path):
+def test_append_with_timedelta(tmp_path, unit):
     # GH 3577
     # append timedelta
 
@@ -860,6 +860,7 @@ def test_append_with_timedelta(tmp_path):
         }
     )
     df["C"] = df["A"] - df["B"]
+    df["C"] = df["C"].astype(f"m8[{unit}]")
     df.loc[3:5, "C"] = np.nan
 
     path = tmp_path / "test_append_with_timedelta.h5"
