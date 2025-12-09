@@ -472,7 +472,6 @@ cdef class TextReader:
             else:
                 raise ValueError(f"Invalid value for on_bad_lines: {on_bad_lines}")
         else:
-            # If it's not a string, assume it's already an integer/enum constant (like ERROR)
             c_on_bad_lines = on_bad_lines
 
         self.parser.on_bad_lines = c_on_bad_lines
