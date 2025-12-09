@@ -1977,7 +1977,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         axis: AxisInt | None = None,
     ) -> Self:
         """
-        Repeat elements of a IntervalArray.
+        Repeat elements of an IntervalArray.
 
         Returns a new IntervalArray where each element of the current IntervalArray
         is repeated consecutively a given number of times.
@@ -2128,9 +2128,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )
             comb = comb.view("complex128")[:, 0]
         else:
-            comb = (np.array(left.ravel(), dtype="complex128")) + (
-                1j * np.array(right.ravel(), dtype="complex128")
-            )
+            comb = np.asarray(left.ravel(), dtype="complex128")
+            comb.imag = right.ravel()
         return comb
 
     def _from_combined(self, combined: np.ndarray) -> IntervalArray:

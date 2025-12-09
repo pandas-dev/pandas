@@ -613,7 +613,7 @@ class TestDataFrameAnalytics:
                     "D": Series([np.nan], dtype="str"),
                     "E": Categorical([np.nan], categories=["a"]),
                     "F": DatetimeIndex([pd.NaT], dtype="M8[ns]"),
-                    "G": to_timedelta([pd.NaT]),
+                    "G": to_timedelta([pd.NaT]).as_unit("us"),
                 },
             ),
             (
@@ -687,8 +687,8 @@ class TestDataFrameAnalytics:
     def test_operators_timedelta64(self):
         df = DataFrame(
             {
-                "A": date_range("2012-1-1", periods=3, freq="D"),
-                "B": date_range("2012-1-2", periods=3, freq="D"),
+                "A": date_range("2012-1-1", periods=3, freq="D", unit="ns"),
+                "B": date_range("2012-1-2", periods=3, freq="D", unit="ns"),
                 "C": Timestamp("20120101") - timedelta(minutes=5, seconds=5),
             }
         )
@@ -761,8 +761,8 @@ class TestDataFrameAnalytics:
         # GH 3106
         df = DataFrame(
             {
-                "time": date_range("20130102", periods=5),
-                "time2": date_range("20130105", periods=5),
+                "time": date_range("20130102", periods=5, unit="ns"),
+                "time2": date_range("20130105", periods=5, unit="ns"),
             }
         )
         df["off1"] = df["time2"] - df["time"]
@@ -781,12 +781,14 @@ class TestDataFrameAnalytics:
 
         result = df.std(skipna=False)
         expected = Series(
-            [df["A"].std(), pd.NaT], index=["A", "B"], dtype="timedelta64[ns]"
+            [df["A"].std(), pd.NaT], index=["A", "B"], dtype="timedelta64[us]"
         )
         tm.assert_series_equal(result, expected)
 
         result = df.std(axis=1, skipna=False)
-        expected = Series([pd.Timedelta(0)] * 8 + [pd.NaT, pd.Timedelta(0)])
+        expected = Series(
+            [pd.Timedelta(0)] * 8 + [pd.NaT, pd.Timedelta(0)], dtype="m8[us]"
+        )
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1040,6 +1042,26 @@ class TestDataFrameAnalytics:
         df = DataFrame(index=range(1), columns=range(10))
         bools = isna(df)
         assert bools.sum(axis=1)[0] == 10
+
+    @pytest.mark.parametrize(
+        "input_data, expected_data",
+        [
+            ({"a": ["483", "3"], "b": ["94", "759"]}, ["48394", "3759"]),
+            (
+                {"a": ["483.948", "3.0"], "b": ["94.2", "759.93"]},
+                ["483.94894.2", "3.0759.93"],
+            ),
+            ({"a": ["483", "3.0"], "b": ["94.2", "79"]}, ["48394.2", "3.079"]),
+        ],
+    )
+    def test_sum_string_dtype_coercion(self, input_data, expected_data):
+        # GH#22642
+        # Check that summing numeric strings results in concatenation
+        # and not conversion to dtype int64 or float64
+        df = DataFrame(input_data)
+        expected = Series(expected_data)
+        result = df.sum(axis=1)
+        tm.assert_series_equal(result, expected)
 
     # ----------------------------------------------------------------------
     # Index of max / min

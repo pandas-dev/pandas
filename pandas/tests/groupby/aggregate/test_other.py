@@ -466,7 +466,9 @@ def test_agg_tzaware_non_datetime_result(as_period):
     tm.assert_series_equal(result, expected)
 
     result = gb["b"].agg(lambda x: x.iloc[-1] - x.iloc[0])
-    expected = Series([pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b")
+    expected = Series(
+        [pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b", dtype="m8[us]"
+    )
     expected.index.name = "a"
     if as_period:
         expected = Series([pd.offsets.Day(1), pd.offsets.Day(1)], name="b")
