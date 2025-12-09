@@ -1,3 +1,6 @@
+import os
+import warnings
+
 import pytest
 
 from pandas._config import config as cf
@@ -476,6 +479,21 @@ class TestConfig:
 
         # Ensure the current context is reset
         assert cf.get_option(option_name) == original_value
+
+    def test_option_context_deprecated_stacklevel(self):
+        cf.register_option("a", 1)
+        cf.deprecate_option("a", FutureWarning)
+
+        expected = os.path.normcase(os.path.abspath(__file__))
+
+        with warnings.catch_warnings(record=True) as recorded:
+            warnings.simplefilter("always")
+            with pd.option_context("a", 2):
+                pass
+
+        assert recorded
+        for warning in recorded:
+            assert os.path.normcase(warning.filename) == expected
 
     def test_dictwrapper_getattr(self):
         options = cf.options
