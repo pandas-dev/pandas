@@ -462,11 +462,11 @@ cdef class TextReader:
             self.parser.commentchar = <char>ord(comment)
 
         if isinstance(on_bad_lines, str):
-            if on_bad_lines == 'error':
+            if on_bad_lines == "error":
                 c_on_bad_lines = ERROR
-            elif on_bad_lines == 'warn':
+            elif on_bad_lines == "warn":
                 c_on_bad_lines = WARN
-            elif on_bad_lines == 'skip':
+            elif on_bad_lines == "skip":
                 c_on_bad_lines = SKIP
             # Note: can add 'skip_with_log' here later when we work on logging
             else:
@@ -1482,7 +1482,7 @@ def _identify_bad_rows(values, dtype):
     """
     Identify the row indices when values cannot be converted to the intended target
 
-    This can be used to find rows that should be skipped when on_bad_lines='skip'
+    This can be used to find rows that should be skipped when on_bad_lines="skip"
 
     Parameters
     ----------
