@@ -230,7 +230,7 @@ def read_excel(
         * ``"Sheet1"``: Load sheet with name "Sheet1"
         * ``[0, 1, "Sheet5"]``: Load first, second and sheet named "Sheet5"
           as a dict of `DataFrame`
-        * ``None``: Returns a dictionary containing DataFrames for each sheet..
+        * ``None``: Returns a dictionary containing DataFrames for each sheet.
 
     header : int, list of int, default 0
         Row (0-indexed) to use for the column labels of the parsed
@@ -275,7 +275,7 @@ def read_excel(
 
         - ``openpyxl`` supports newer Excel file formats.
         - ``calamine`` supports Excel (.xls, .xlsx, .xlsm, .xlsb)
-        and OpenDocument (.ods) file formats.
+          and OpenDocument (.ods) file formats.
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
         - ``xlrd`` supports old-style Excel files (.xls).
@@ -283,10 +283,11 @@ def read_excel(
         When ``engine=None``, the following logic will be used to determine the engine:
 
         - If ``path_or_buffer`` is an OpenDocument format (.odf, .ods, .odt),
-        then `odf <https://pypi.org/project/odfpy/>`_ will be used.
+          then `odf <https://pypi.org/project/odfpy/>`_ will be used.
         - Otherwise if ``path_or_buffer`` is an xls format, ``xlrd`` will be used.
         - Otherwise if ``path_or_buffer`` is in xlsb format, ``pyxlsb`` will be used.
         - Otherwise ``openpyxl`` will be used.
+
     converters : dict, default None
         Dict of functions for converting values in certain columns. Keys can
         either be integers or column labels, values are functions that take one
