@@ -195,14 +195,15 @@ class TestDataFrameCombineFirst:
 
     def test_combine_first_align_nan(self):
         # GH 7509 (not fixed)
-        dfa = DataFrame([[pd.Timestamp("2011-01-01"), 2]], columns=["a", "b"])
+        ts = pd.Timestamp("2011-01-01").as_unit("s")
+        dfa = DataFrame([[ts, 2]], columns=["a", "b"])
         dfb = DataFrame([[4], [5]], columns=["b"])
         assert dfa["a"].dtype == "datetime64[s]"
         assert dfa["b"].dtype == "int64"
 
         res = dfa.combine_first(dfb)
         exp = DataFrame(
-            {"a": [pd.Timestamp("2011-01-01"), pd.NaT], "b": [2, 5]},
+            {"a": [ts, pd.NaT], "b": [2, 5]},
             columns=["a", "b"],
         )
         tm.assert_frame_equal(res, exp)
@@ -326,7 +327,7 @@ class TestDataFrameCombineFirst:
         )
         exp = DataFrame({"TD": exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
-        assert res["TD"].dtype == "timedelta64[ns]"
+        assert res["TD"].dtype == "timedelta64[us]"
 
     def test_combine_first_period(self):
         data1 = pd.PeriodIndex(["2011-01", "NaT", "2011-03", "2011-04"], freq="M")

@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import numpy as np
 import pytest
 
@@ -468,9 +466,9 @@ def test_datetime_bin(conv):
     bins = [conv(v) for v in bin_data]
     result = Series(cut(data, bins=bins))
 
-    if type(bins[0]) is datetime:
+    if type(bins[0]) is np.datetime64:
         # The bins have microsecond dtype -> so does result
-        expected = expected.astype("interval[datetime64[us]]")
+        expected = expected.astype("interval[datetime64[s]]")
 
     expected = expected.astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
@@ -545,7 +543,7 @@ def test_datetime_tz_cut_mismatched_tzawareness(box):
 def test_datetime_tz_cut(bins, box):
     # see gh-19872
     tz = "US/Eastern"
-    ser = Series(date_range("20130101", periods=3, tz=tz))
+    ser = Series(date_range("20130101", periods=3, tz=tz, unit="ns"))
 
     if not isinstance(bins, int):
         bins = box(bins)
@@ -796,7 +794,7 @@ def test_cut_bins_datetime_intervalindex():
     # https://github.com/pandas-dev/pandas/issues/46218
     bins = interval_range(Timestamp("2022-02-25"), Timestamp("2022-02-27"), freq="1D")
     # passing Series instead of list is important to trigger bug
-    result = cut(Series([Timestamp("2022-02-26")]).astype("M8[ns]"), bins=bins)
+    result = cut(Series([Timestamp("2022-02-26")]), bins=bins)
     expected = Categorical.from_codes([0], bins, ordered=True)
     tm.assert_categorical_equal(result.array, expected)
 

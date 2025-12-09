@@ -1473,7 +1473,7 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmin()
         a   2023-01-01
         b   2023-02-01
-        dtype: datetime64[s]
+        dtype: datetime64[us]
         """
         return self._idxmax_idxmin("idxmin", skipna=skipna)
 
@@ -1534,26 +1534,80 @@ class SeriesGroupBy(GroupBy[Series]):
         >>> ser.groupby(["a", "a", "b", "b"]).idxmax()
         a   2023-01-15
         b   2023-02-15
-        dtype: datetime64[s]
+        dtype: datetime64[us]
         """
         return self._idxmax_idxmin("idxmax", skipna=skipna)
 
-    @doc(Series.corr.__doc__)
     def corr(
         self,
         other: Series,
         method: CorrelationMethod = "pearson",
         min_periods: int | None = None,
     ) -> Series:
+        """
+        Compute correlation between each group and another Series.
+
+        Parameters
+        ----------
+        other : Series
+            Series to compute correlation with.
+        method : {'pearson', 'kendall', 'spearman'}, default 'pearson'
+            Method of correlation to use.
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns to
+            have a valid result.
+
+        Returns
+        -------
+        Series
+            Correlation value for each group.
+
+        See Also
+        --------
+        Series.corr : Equivalent method on ``Series``.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4], index=[0, 0, 1, 1])
+        >>> g = s.groupby([0, 0, 1, 1])
+        >>> g.corr()  # doctest: +SKIP
+        """
         result = self._op_via_apply(
             "corr", other=other, method=method, min_periods=min_periods
         )
         return result
 
-    @doc(Series.cov.__doc__)
     def cov(
         self, other: Series, min_periods: int | None = None, ddof: int | None = 1
     ) -> Series:
+        """
+        Compute covariance between each group and another Series.
+
+        Parameters
+        ----------
+        other : Series
+            Series to compute covariance with.
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns to
+            have a valid result.
+        ddof : int, optional
+            Delta degrees of freedom for variance calculation.
+
+        Returns
+        -------
+        Series
+            Covariance value for each group.
+
+        See Also
+        --------
+        Series.cov : Equivalent method on ``Series``.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4], index=[0, 0, 1, 1])
+        >>> g = s.groupby([0, 0, 1, 1])
+        >>> g.cov()  # doctest: +SKIP
+        """
         result = self._op_via_apply(
             "cov", other=other, min_periods=min_periods, ddof=ddof
         )
@@ -1607,7 +1661,6 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         return self.apply(lambda ser: ser.is_monotonic_decreasing)
 
-    @doc(Series.hist.__doc__)
     def hist(
         self,
         by=None,
@@ -1623,6 +1676,52 @@ class SeriesGroupBy(GroupBy[Series]):
         legend: bool = False,
         **kwargs,
     ):
+        """
+        Draw histogram for each group's values using :meth:`Series.hist` API.
+
+        Parameters
+        ----------
+        by : object, optional
+            Grouping key.
+        ax : matplotlib.axes.Axes, optional
+            Axis to draw the histogram on.
+        grid : bool, default True
+            Show axis grid lines.
+        xlabelsize : int, default None
+            X axis label size.
+        xrot : float, default None
+            Rotation for x ticks.
+        ylabelsize : int, default None
+            Y axis label size.
+        yrot : float, default None
+            Rotation for y ticks.
+        figsize : tuple, optional
+            Figure size in inches.
+        bins : int or sequence, default 10
+            Number of histogram bins or bin edges.
+        backend : str or callable or None, optional
+            Plotting backend to use (e.g. 'matplotlib'). If None, use the default
+            plotting backend.
+        legend : bool, default False
+            Whether to draw the legend.
+        **kwargs
+            Additional keyword arguments passed to :meth:`Series.hist`.
+
+        Returns
+        -------
+        matplotlib.axes.Axes or ndarray of Axes
+            The returned matplotlib axes or array of axes depending on input.
+
+        See Also
+        --------
+        Series.hist : Equivalent histogram plotting method on Series.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"val": [1, 2, 2, 3, 3, 3]}, index=[0, 0, 1, 1, 2, 2])
+        >>> g = df["val"].groupby([0, 0, 1, 1, 2, 2])
+        >>> g.hist()  # doctest: +SKIP
+        """
         result = self._op_via_apply(
             "hist",
             by=by,
@@ -1641,8 +1740,17 @@ class SeriesGroupBy(GroupBy[Series]):
         return result
 
     @property
-    @doc(Series.dtype.__doc__)
     def dtype(self) -> Series:
+        """
+        Return the dtype object of the underlying data for each group.
+
+        Mirrors :meth:`Series.dtype` applied group-wise.
+
+        Returns
+        -------
+        Series
+            Dtype of each group's values.
+        """
         return self.apply(lambda ser: ser.dtype)
 
     def unique(self) -> Series:
@@ -2776,8 +2884,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies when True. When False, non-grouping columns will appear
-            in the order they occur in within groups.
+            Stable sort by frequencies when True. When False, non-grouping
+            columns will appear in the order they occur in within groups.
 
             .. versionchanged:: 3.0.0
 

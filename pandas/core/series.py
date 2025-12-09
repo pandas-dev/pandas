@@ -33,11 +33,11 @@ from pandas._libs import (
     properties,
     reshape,
 )
-from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
-    CHAINED_WARNING_DISABLED_INPLACE_METHOD,
     REF_COUNT,
+    REF_COUNT_METHOD,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -48,6 +48,7 @@ from pandas.errors import (
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
+    _chained_assignment_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -168,6 +169,8 @@ if TYPE_CHECKING:
         AnyAll,
         AnyArrayLike,
         ArrayLike,
+        ArrowArrayExportable,
+        ArrowStreamExportable,
         Axis,
         AxisInt,
         CorrelationMethod,
@@ -231,7 +234,7 @@ axis : int or str, optional
 # class "NDFrame")
 # definition in base class "NDFrame"
 @set_module("pandas")
-class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
+class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     """
     One-dimensional ndarray with axis labels (including time series).
 
@@ -356,11 +359,6 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         doc=base.IndexOpsMixin.hasnans.__doc__,
     )
     _mgr: SingleBlockManager
-
-    # override those to avoid inheriting from SetitemMixin (cython generates
-    # them by default)
-    __reduce__ = object.__reduce__
-    __setstate__ = NDFrame.__setstate__
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -775,9 +773,9 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Timezone aware datetime data is converted to UTC:
 
         >>> pd.Series(pd.date_range("20130101", periods=3, tz="US/Eastern")).values
-        array(['2013-01-01T05:00:00.000000000',
-               '2013-01-02T05:00:00.000000000',
-               '2013-01-03T05:00:00.000000000'], dtype='datetime64[ns]')
+        array(['2013-01-01T05:00:00.000000',
+               '2013-01-02T05:00:00.000000',
+               '2013-01-03T05:00:00.000000'], dtype='datetime64[us]')
         """
         return self._mgr.external_values()
 
@@ -823,8 +821,9 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @property
     def array(self) -> ExtensionArray:
         arr = self._mgr.array_values()
-        arr = arr.view()
-        arr._readonly = True
+        # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
+        # arr = arr.view()
+        # arr._readonly = True
         return arr
 
     def __len__(self) -> int:
@@ -957,7 +956,7 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if is_iterator(key):
             key = list(key)
 
-        if is_hashable(key) and not isinstance(key, slice):
+        if is_hashable(key, allow_slice=False):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
                 # For labels that don't resolve as scalars like tuples and frozensets
@@ -1061,8 +1060,15 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             return self.iloc[loc]
 
-    # def __setitem__() is implemented in SetitemMixin and dispatches to this method
-    def _setitem(self, key, value) -> None:
+    def __setitem__(self, key, value) -> None:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
+                self
+            ):
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
+
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
 
@@ -1833,6 +1839,55 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         df = self._constructor_expanddim_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(self, method="to_frame")
 
+    @classmethod
+    def from_arrow(cls, data: ArrowArrayExportable | ArrowStreamExportable) -> Series:
+        """
+        Construct a Series from an array-like Arrow object.
+
+        This function accepts any Arrow-compatible array-like object implementing
+        the `Arrow PyCapsule Protocol`_ (i.e. having an ``__arrow_c_array__``
+        or ``__arrow_c_stream__`` method).
+
+        This function currently relies on ``pyarrow`` to convert the object
+        in Arrow format to pandas.
+
+        .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        data : pyarrow.Array or Arrow-compatible object
+            Any array-like object implementing the Arrow PyCapsule Protocol
+            (i.e. has an ``__arrow_c_array__`` or ``__arrow_c_stream__``
+            method).
+
+        Returns
+        -------
+        Series
+
+        """
+        pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        if not isinstance(data, (pa.Array, pa.ChunkedArray)):
+            if not (
+                hasattr(data, "__arrow_c_array__")
+                or hasattr(data, "__arrow_c_stream__")
+            ):
+                # explicitly test this, because otherwise we would accept variour other
+                # input types through the pa.chunked_array(..) call
+                raise TypeError(
+                    "Expected an Arrow-compatible array-like object (i.e. having an "
+                    "'_arrow_c_array__' or '__arrow_c_stream__' method), got "
+                    f"'{type(data).__name__}' instead."
+                )
+            # using chunked_array() as it works for both arrays and streams
+            pa_array = pa.chunked_array(data)
+        else:
+            pa_array = data
+
+        ser = pa_array.to_pandas()
+        return ser
+
     def _set_name(self, name, inplace: bool = False) -> Series:
         """
         Set the Series name.
@@ -2130,14 +2185,14 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> pd.Series([pd.Timestamp("2016-01-01") for _ in range(3)]).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00']
-        Length: 1, dtype: datetime64[s]
+        Length: 1, dtype: datetime64[us]
 
         >>> pd.Series(
         ...     [pd.Timestamp("2016-01-01", tz="US/Eastern") for _ in range(3)]
         ... ).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00-05:00']
-        Length: 1, dtype: datetime64[s, US/Eastern]
+        Length: 1, dtype: datetime64[us, US/Eastern]
 
         A Categorical will return categories in the order of
         appearance and with the same dtype.
@@ -3351,8 +3406,10 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
-            if sys.getrefcount(self) <= REF_COUNT:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(
+                self
+            ) <= REF_COUNT_METHOD and not com.is_local_in_caller_frame(self):
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
@@ -4237,7 +4294,7 @@ class Series(SetitemMixin, base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         This routine will explode list-likes including lists, tuples, sets,
         Series, and np.ndarray. The result dtype of the subset rows will
         be object. Scalars will be returned unchanged, and empty list-likes will
-        result in a np.nan for that row. In addition, the ordering of elements in
+        result in an np.nan for that row. In addition, the ordering of elements in
         the output will be non-deterministic when exploding sets.
 
         Reference :ref:`the user guide <reshaping.explode>` for more examples.

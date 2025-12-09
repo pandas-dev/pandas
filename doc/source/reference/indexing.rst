@@ -189,6 +189,7 @@ Categorical components
 .. autosummary::
    :toctree: api/
 
+   CategoricalIndex.append
    CategoricalIndex.codes
    CategoricalIndex.categories
    CategoricalIndex.ordered
