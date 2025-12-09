@@ -680,14 +680,38 @@ def compress_group_index(
     space can be huge, so this function compresses it, by computing offsets
     (comp_ids) into the list of unique labels (obs_group_ids).
     """
-    if len(group_index) and np.all(group_index[1:] >= group_index[:-1]):
+    import sys
+
+    # Use numpy-based approach for Python 3.14+ to avoid hashtable issues
+    if sys.version_info >= (3, 14) or (len(group_index) and np.all(group_index[1:] >= group_index[:-1])):
         # GH 53806: fast path for sorted group_index
+        # GH 63314: also use for Python 3.14+ due to hashtable behavior changes
+        if len(group_index) == 0:
+            return ensure_int64(np.array([], dtype=np.int64)), ensure_int64(np.array([], dtype=np.int64))
+
+        # Sort if needed
+        if not np.all(group_index[1:] >= group_index[:-1]):
+            sorted_idx = np.argsort(group_index, kind='stable')
+            sorted_group_index = group_index[sorted_idx]
+            unsort_idx = np.empty_like(sorted_idx)
+            unsort_idx[sorted_idx] = np.arange(len(sorted_idx))
+        else:
+            sorted_group_index = group_index
+            unsort_idx = None
+
         unique_mask = np.concatenate(
-            [group_index[:1] > -1, group_index[1:] != group_index[:-1]]
+            [sorted_group_index[:1] > -1, sorted_group_index[1:] != sorted_group_index[:-1]]
         )
-        comp_ids = unique_mask.cumsum()
-        comp_ids -= 1
-        obs_group_ids = group_index[unique_mask]
+        comp_ids_sorted = unique_mask.cumsum() - 1
+        obs_group_ids = sorted_group_index[unique_mask]
+
+        if unsort_idx is not None:
+            comp_ids = comp_ids_sorted[unsort_idx]
+        else:
+            comp_ids = comp_ids_sorted
+
+        if sort and not np.all(obs_group_ids[1:] >= obs_group_ids[:-1]):
+            obs_group_ids, comp_ids = _reorder_by_uniques(obs_group_ids, comp_ids)
     else:
         size_hint = len(group_index)
         table = hashtable.Int64HashTable(size_hint)
