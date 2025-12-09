@@ -195,7 +195,7 @@ jobs:
 
       - name: Validate wheel RECORD
         shell: bash -el {0}
-        run: for whl in $(ls ./dist/*.whl); do wheel unpack ./dist/$whl -d /tmp; done
+        run: for whl in $(ls ./dist/*.whl); do wheel unpack $whl -d /tmp; done
 
       - uses: actions/upload-artifact@v5
         with:
