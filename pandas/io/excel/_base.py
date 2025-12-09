@@ -423,13 +423,13 @@ def read_excel(
     The file can be read using the file name as string or an open file object:
 
     >>> pd.read_excel("tmp.xlsx", index_col=0)  # doctest: +SKIP
-        Name  Value
+           Name  Value
     0   string1      1
     1   string2      2
     2  #Comment      3
 
     >>> pd.read_excel(open("tmp.xlsx", "rb"), sheet_name="Sheet3")  # doctest: +SKIP
-    Unnamed: 0      Name  Value
+       Unnamed: 0      Name  Value
     0           0   string1      1
     1           1   string2      2
     2           2  #Comment      3
@@ -437,7 +437,7 @@ def read_excel(
     Index and header can be specified via the `index_col` and `header` arguments
 
     >>> pd.read_excel("tmp.xlsx", index_col=None, header=None)  # doctest: +SKIP
-        0         1      2
+         0         1      2
     0  NaN      Name  Value
     1  0.0   string1      1
     2  1.0   string2      2
@@ -448,7 +448,7 @@ def read_excel(
     >>> pd.read_excel(
     ...     "tmp.xlsx", index_col=0, dtype={"Name": str, "Value": float}
     ... )  # doctest: +SKIP
-        Name  Value
+           Name  Value
     0   string1    1.0
     1   string2    2.0
     2  #Comment    3.0
@@ -460,7 +460,7 @@ def read_excel(
     >>> pd.read_excel(
     ...     "tmp.xlsx", index_col=0, na_values=["string1", "string2"]
     ... )  # doctest: +SKIP
-        Name  Value
+           Name  Value
     0       NaN      1
     1       NaN      2
     2  #Comment      3
@@ -469,7 +469,7 @@ def read_excel(
     ``comment`` kwarg.
 
     >>> pd.read_excel("tmp.xlsx", index_col=0, comment="#")  # doctest: +SKIP
-        Name  Value
+          Name  Value
     0  string1    1.0
     1  string2    2.0
     2     None    NaN
