@@ -342,7 +342,7 @@ by supplying the ``var_name`` and ``value_name`` parameters.
    cheese.melt(id_vars=["first", "last"], var_name="quantity")
 
 When transforming a DataFrame using :func:`~pandas.melt`, the index will be ignored.
-The original index values can be kept by setting the ``ignore_index=False`` parameter to ``False`` (default is ``True``).
+The original index values can be kept by setting the ``ignore_index`` parameter to ``False`` (default is ``True``).
 ``ignore_index=False`` will however duplicate index values.
 
 .. ipython:: python
