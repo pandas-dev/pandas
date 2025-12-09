@@ -1866,7 +1866,6 @@ class DataFrame(NDFrame, OpsMixin):
         Returns
         -------
         DataFrame
-
         """
         pa = import_optional_dependency("pyarrow", min_version="14.0.0")
         if not isinstance(data, pa.Table):
@@ -7761,11 +7760,16 @@ class DataFrame(NDFrame, OpsMixin):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies when True. Preserve the order of the data when False.
+            Stable sort by frequencies when True. Preserve the order of the data
+            when False.
 
             .. versionchanged:: 3.0.0
 
                 Prior to 3.0.0, ``sort=False`` would sort by the columns values.
+
+            .. versionchanged:: 3.0.0
+
+                Prior to 3.0.0, the sort was unstable.
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
@@ -7875,7 +7879,7 @@ class DataFrame(NDFrame, OpsMixin):
         counts.name = name
 
         if sort:
-            counts = counts.sort_values(ascending=ascending)
+            counts = counts.sort_values(ascending=ascending, kind="stable")
         if normalize:
             counts /= counts.sum()
 

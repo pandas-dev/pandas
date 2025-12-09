@@ -687,6 +687,11 @@ cdef class BaseOffset:
         """
         Roll provided date backward to next offset only if not on offset.
 
+        Parameters
+        ----------
+        dt : datetime or Timestamp
+            Timestamp to rollback.
+
         Returns
         -------
         TimeStamp
@@ -703,6 +708,11 @@ cdef class BaseOffset:
     def rollforward(self, dt) -> datetime:
         """
         Roll provided date forward to next offset only if not on offset.
+
+        Parameters
+        ----------
+        dt : datetime or Timestamp
+            Timestamp to rollback.
 
         Returns
         -------
