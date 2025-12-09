@@ -2961,19 +2961,16 @@ class TestPivot:
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_large_dataset_no_duplicates(self):
-        # GH 63314: pivot_table with large datasets should not produce duplicate indices
-        # This test ensures that the fix for Python 3.14 hashtable issues works correctly
+        # GH 63314: pivot_table with large datasets should not produce
+        # duplicate indices. This test ensures the Python 3.14 fix works.
         n_indices = 10000
         metrics = ["apple", "banana", "coconut"]
 
-        data = []
-        for i in range(n_indices):
-            for metric in metrics:
-                data.append({
-                    "idx": f"id_{i}",
-                    "metric": metric,
-                    "value": i * 10 + len(metric)
-                })
+        data = [
+            {"idx": f"id_{i}", "metric": metric, "value": i * 10 + len(metric)}
+            for i in range(n_indices)
+            for metric in metrics
+        ]
 
         df = DataFrame(data)
 
@@ -2985,15 +2982,19 @@ class TestPivot:
         )
 
         # Verify no duplicate indices in the result
-        assert len(result.index) == len(result.index.unique()), \
-            f"Expected {len(result.index.unique())} unique indices, got {len(result.index)}"
+        n_unique = len(result.index.unique())
+        assert len(result.index) == n_unique, (
+            f"Expected {n_unique} unique indices, got {len(result.index)}"
+        )
 
         # Verify we have the expected number of rows
-        assert len(result) == n_indices, \
+        assert len(result) == n_indices, (
             f"Expected {n_indices} rows, got {len(result)}"
+        )
 
         # Verify all expected indices are present
         expected_indices = {f"id_{i}" for i in range(n_indices)}
         actual_indices = set(result.index)
-        assert expected_indices == actual_indices, \
+        assert expected_indices == actual_indices, (
             "Result indices don't match expected indices"
+        )

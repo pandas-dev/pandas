@@ -683,15 +683,19 @@ def compress_group_index(
     import sys
 
     # Use numpy-based approach for Python 3.14+ to avoid hashtable issues
-    if sys.version_info >= (3, 14) or (len(group_index) and np.all(group_index[1:] >= group_index[:-1])):
+    is_sorted = len(group_index) and np.all(
+        group_index[1:] >= group_index[:-1]
+    )
+    if sys.version_info >= (3, 14) or is_sorted:
         # GH 53806: fast path for sorted group_index
         # GH 63314: also use for Python 3.14+ due to hashtable behavior changes
         if len(group_index) == 0:
-            return ensure_int64(np.array([], dtype=np.int64)), ensure_int64(np.array([], dtype=np.int64))
+            empty_arr = np.array([], dtype=np.int64)
+            return ensure_int64(empty_arr), ensure_int64(empty_arr)
 
         # Sort if needed
         if not np.all(group_index[1:] >= group_index[:-1]):
-            sorted_idx = np.argsort(group_index, kind='stable')
+            sorted_idx = np.argsort(group_index, kind="stable")
             sorted_group_index = group_index[sorted_idx]
             unsort_idx = np.empty_like(sorted_idx)
             unsort_idx[sorted_idx] = np.arange(len(sorted_idx))
@@ -700,7 +704,10 @@ def compress_group_index(
             unsort_idx = None
 
         unique_mask = np.concatenate(
-            [sorted_group_index[:1] > -1, sorted_group_index[1:] != sorted_group_index[:-1]]
+            [
+                sorted_group_index[:1] > -1,
+                sorted_group_index[1:] != sorted_group_index[:-1],
+            ]
         )
         comp_ids_sorted = unique_mask.cumsum() - 1
         obs_group_ids = sorted_group_index[unique_mask]
