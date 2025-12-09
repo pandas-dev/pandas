@@ -116,10 +116,32 @@ The following code snippet updated both ``df`` and ``subset`` without CoW:
 
 This is not possible anymore with CoW, since the CoW rules explicitly forbid this.
 This includes updating a single column as a :class:`Series` and relying on the change
-propagating back to the parent :class:`DataFrame`.
-This statement can be rewritten into a single statement with ``loc`` or ``iloc`` if
-this behavior is necessary. :meth:`DataFrame.where` is another suitable alternative
-for this case.
+propagating back to the parent :class:`DataFrame`. To modify a DataFrame value in a given
+column and row, the code must be rewritten as a single assignment to ``loc`` or ``iloc``.
+When the column is given by name (``loc``) and the row by position (``iloc``), you either
+need to convert the column name to its position using :meth:`Index.get_loc` or you need
+to convert the row position to its index. Both variants as shown in the following snippet:
+
+.. code-block:: ipython
+
+    In [1]: df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
+    In [2]: df.iloc[0, df.columns.get_loc("foo")] = 100
+    In [3]: df.loc[df.index[1], "bar"] = 200
+    In [4]: df
+    Out[4]:
+       foo  bar
+    0  100    4
+    1    2  200
+    2    3    6
+
+The ``iloc`` variant works as a direct replacement of the old code ``df["foo"].iloc[0] = 100``
+while the ``loc`` variant first translates the position to the index and then finds all
+positions with that index. It does more work and only does the same if the DataFrame has
+a unique row index.
+
+Note that many such statements in the code can potentially hurt the performance. If possible,
+prefer to update the whole column at once. If you have boolean mask,
+:meth:`DataFrame.where` could be another suitable alternative for this case.
 
 Updating a column selected from a :class:`DataFrame` with an inplace method will
 also not work anymore.
