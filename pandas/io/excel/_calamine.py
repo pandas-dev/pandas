@@ -106,16 +106,12 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
                     return val
                 else:
                     return value
-            elif isinstance(value, datetime):
-                # Return datetime.datetime as-is to match openpyxl behavior (GH#59186)
+            elif isinstance(value, (datetime, timedelta)):
+                # Return as-is to match openpyxl behavior (GH#59186)
                 return value
             elif isinstance(value, date):
                 # Convert date to datetime to match openpyxl behavior (GH#59186)
                 return datetime(value.year, value.month, value.day)
-            elif isinstance(value, timedelta):
-                # Return datetime.timedelta as-is to match openpyxl behavior (GH#59186)
-                # (previously returned pd.Timedelta)
-                return value
             elif isinstance(value, time):
                 return value
 
