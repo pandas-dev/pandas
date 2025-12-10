@@ -16,14 +16,6 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture
-def reordered_frame(float_frame):
-    head, tail = float_frame[:5], float_frame[5:]
-    combined = head.combine_first(tail)
-    reordered_frame = float_frame.reindex(combined.index)
-    return reordered_frame
-
-
 class TestDataFrameCombineFirst:
     def test_combine_first_mixed(self):
         a = Series(["a", "b"], index=range(2))
@@ -46,6 +38,7 @@ class TestDataFrameCombineFirst:
         tm.assert_frame_equal(combined, reordered_frame)
         tm.assert_index_equal(combined.columns, float_frame.columns)
         tm.assert_series_equal(combined["A"], reordered_frame["A"])
+
         tm.assert_series_equal(combined["A"].reindex(head.index), head["A"])
         tm.assert_series_equal(combined["A"].reindex(tail.index), tail["A"])
 
@@ -65,14 +58,19 @@ class TestDataFrameCombineFirst:
         tm.assert_series_equal(combined["C"], fcopy2["C"])
         tm.assert_series_equal(combined["D"], fcopy["D"])
 
-    def test_combine_first_overlap(self, reordered_frame):
+    def test_combine_first_overlap(self, float_frame):
+        combined = float_frame[:5].combine_first(float_frame[5:])
+        reordered_frame = float_frame.reindex(combined.index)
         head, tail = reordered_frame[:10].copy(), reordered_frame.copy()
         head["A"] = 1
         combined = head.combine_first(tail)
         assert (combined["A"][:10] == 1).all()
 
-    def test_combine_first_reverse_overlap(self, reordered_frame):
-        head, tail = reordered_frame[:10].copy(), reordered_frame.copy()
+    def test_combine_first_reverse_overlap(self, float_frame):
+        combined = float_frame[:5].combine_first(float_frame[5:])
+        reordered_frame = float_frame.reindex(combined.index)
+        head, tail = reordered_frame[:10].copy(), reordered_frame
+
         tail.iloc[:10, tail.columns.get_loc("A")] = 0
         combined = tail.combine_first(head)
         assert (combined["A"][:10] == 0).all()
