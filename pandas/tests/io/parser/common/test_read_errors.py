@@ -335,18 +335,20 @@ def test_on_bad_lines_dtype_conversion_skip(c_parser_only, on_bad_lines, should_
         ):
             result = parser.read_csv(
                 StringIO(data),
-                dtype={"col1": int, "col2": int, "col3": int},
+                dtype={"col1": np.int64, "col2": np.int64, "col3": np.int64},
                 on_bad_lines=on_bad_lines,
             )
     else:
         result = parser.read_csv(
             StringIO(data),
-            dtype={"col1": int, "col2": int, "col3": int},
+            dtype={"col1": np.int64, "col2": np.int64, "col3": np.int64},
             on_bad_lines=on_bad_lines,
         )
 
     # Row with 'a' cannot convert to int, should be skipped
-    expected = DataFrame({"col1": [1, 4], "col2": [2, 5], "col3": [3, 6]})
+    expected = DataFrame(
+        {"col1": [1, 4], "col2": [2, 5], "col3": [3, 6]}, dtype=np.int64
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -358,7 +360,7 @@ def test_on_bad_lines_dtype_conversion_error(c_parser_only):
     with pytest.raises(ValueError, match="invalid literal for int"):
         parser.read_csv(
             StringIO(data),
-            dtype={"col1": int, "col2": int},
+            dtype={"col1": np.int64, "col2": np.int64},
             on_bad_lines="error",
         )
 
@@ -385,11 +387,17 @@ def test_on_bad_lines_dtype_partial_columns(c_parser_only):
 
     result = parser.read_csv(
         StringIO(data),
-        dtype={"a": int, "c": int},
+        dtype={"a": np.int64, "c": np.int64},
         on_bad_lines="skip",
     )
 
-    expected = DataFrame({"a": [1, 4], "b": ["hello", "test"], "c": [3, 9]})
+    expected = DataFrame(
+        {
+            "a": np.array([1, 4], dtype=np.int64),
+            "b": ["hello", "test"],
+            "c": np.array([3, 9], dtype=np.int64),
+        }
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -400,11 +408,11 @@ def test_on_bad_lines_dtype_mixed_errors(c_parser_only):
 
     result = parser.read_csv(
         StringIO(data),
-        dtype={"a": int, "b": int, "c": int},
+        dtype={"a": np.int64, "b": np.int64, "c": np.int64},
         on_bad_lines="skip",
     )
 
-    expected = DataFrame({"a": [1, 6], "b": [2, 7], "c": [3, 8]})
+    expected = DataFrame({"a": [1, 6], "b": [2, 7], "c": [3, 8]}, dtype=np.int64)
     tm.assert_frame_equal(result, expected)
 
 
@@ -415,9 +423,9 @@ def test_on_bad_lines_dtype_all_bad_rows(c_parser_only):
 
     result = parser.read_csv(
         StringIO(data),
-        dtype={"a": int, "b": int},
+        dtype={"a": np.int64, "b": np.int64},
         on_bad_lines="skip",
     )
 
-    expected = DataFrame({"a": [], "b": []}).astype(int)
+    expected = DataFrame({"a": [], "b": []}).astype(np.int64)
     tm.assert_frame_equal(result, expected)
