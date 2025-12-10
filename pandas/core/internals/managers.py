@@ -598,6 +598,7 @@ class BaseBlockManager(PandasObject):
                     return self
             # No need to split if we either set all columns or on a single block
             # manager
+
             self = self.copy(deep=True)
 
         return self.apply("setitem", indexer=indexer, value=value)
