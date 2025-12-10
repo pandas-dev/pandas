@@ -122,7 +122,7 @@ When the column is given by name (``loc``) and the row by position (``iloc``), y
 need to convert the column name to its position using :meth:`Index.get_loc` or you need
 to convert the row position to its index. Both variants as shown in the following snippet:
 
-.. code-block:: ipython
+.. ipython:: python
 
     In [1]: df = pd.DataFrame({"foo": [1, 2, 3], "bar": [4, 5, 6]})
     In [2]: df.iloc[0, df.columns.get_loc("foo")] = 100
