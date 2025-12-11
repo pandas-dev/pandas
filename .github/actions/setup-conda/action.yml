@@ -1,13 +1,15 @@
 name: Set up Conda environment
+
 inputs:
   environment-file:
     description: Conda environment file to use.
     default: environment.yml
+
 runs:
   using: composite
   steps:
     - name: Install ${{ inputs.environment-file }}
-      uses: mamba-org/setup-micromamba@v1 # Changed from @v2 to @v1 for stability
+      uses: mamba-org/setup-micromamba@v2
       with:
         micromamba-url: https://github.com/mamba-org/micromamba-releases/releases/latest/download/micromamba-linux-64
         environment-file: ${{ inputs.environment-file }}
@@ -15,9 +17,11 @@ runs:
         condarc-file: ci/.condarc
         cache-environment: true
         cache-downloads: true
+        # avoid aggressive post-cleanup that can trigger JSON issues
+        post-cleanup: none
 
     - name: Uninstall pyarrow
       if: ${{ env.REMOVE_PYARROW == '1' }}
-      run: |
-        micromamba remove -y pyarrow
       shell: bash -el {0}
+      run: |
+        micromamba remove -y -n test pyarrow
