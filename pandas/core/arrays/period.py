@@ -54,6 +54,7 @@ from pandas._libs.tslibs.period import (
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.common import (
@@ -120,6 +121,7 @@ def _field_accessor(name: str, docstring: str | None = None):
     return property(f)
 
 
+@set_module("pandas.arrays")
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
 class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
@@ -176,8 +178,6 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     ['2023-01-01', '2023-01-02']
     Length: 2, dtype: period[D]
     """
-
-    __module__ = "pandas.arrays"
 
     # array priority higher than numpy scalars
     __array_priority__ = 1000
@@ -397,7 +397,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             # For NumPy 1.x compatibility we cannot use copy=None.  And
             # `copy=False` has the meaning of `copy=None` here:
             if not copy:
-                return np.asarray(self.asi8, dtype=dtype)
+                result = np.asarray(self.asi8, dtype=dtype)
+                if self._readonly:
+                    result = result.view()
+                    result.flags.writeable = False
+                return result
             else:
                 return np.array(self.asi8, dtype=dtype)
 
@@ -1331,7 +1335,7 @@ def dt64arr_to_periodarr(
     data, freq, tz=None
 ) -> tuple[npt.NDArray[np.int64], BaseOffset]:
     """
-    Convert an datetime-like array to values Period ordinals.
+    Convert a datetime-like array to values Period ordinals.
 
     Parameters
     ----------

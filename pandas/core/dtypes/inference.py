@@ -385,7 +385,7 @@ def is_named_tuple(obj: object) -> bool:
 
 
 @set_module("pandas.api.types")
-def is_hashable(obj: object) -> TypeGuard[Hashable]:
+def is_hashable(obj: object, allow_slice: bool = True) -> TypeGuard[Hashable]:
     """
     Return True if hash(obj) will succeed, False otherwise.
 
@@ -399,13 +399,17 @@ def is_hashable(obj: object) -> TypeGuard[Hashable]:
     ----------
     obj : object
         The object to check for hashability. Any Python object can be passed here.
+    allow_slice : bool
+        If True, return True if the object is hashable (including slices).
+        If False, return True if the object is hashable and not a slice.
 
     Returns
     -------
     bool
         True if object can be hashed (i.e., does not raise TypeError when
-        passed to hash()), and False otherwise (e.g., if object is mutable
-        like a list or dictionary).
+        passed to hash()) and passes the slice check according to 'allow_slice'.
+        False otherwise (e.g., if object is mutable like a list or dictionary
+        or if allow_slice is False and object is a slice or contains a slice).
 
     See Also
     --------
@@ -430,6 +434,12 @@ def is_hashable(obj: object) -> TypeGuard[Hashable]:
 
     # Reconsider this decision once this numpy bug is fixed:
     # https://github.com/numpy/numpy/issues/5562
+
+    if allow_slice is False:
+        if isinstance(obj, tuple) and any(isinstance(v, slice) for v in obj):
+            return False
+        elif isinstance(obj, slice):
+            return False
 
     try:
         hash(obj)

@@ -1004,25 +1004,26 @@ def test_match_compiled_regex(any_string_dtype):
     expected = Series([True, False, True, False], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
-    # TODO this currently works for pyarrow-backed dtypes but raises for python
-    if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
-        result = values.str.match(re.compile("ab"), case=False)
-        expected = Series([True, True, True, True], dtype=expected_dtype)
-        tm.assert_series_equal(result, expected)
-    else:
-        with pytest.raises(
-            ValueError, match="cannot process flags argument with a compiled pattern"
-        ):
-            values.str.match(re.compile("ab"), case=False)
+    msg = (
+        "Cannot both specify 'case' and pass a compiled "
+        "regexp object with conflicting case-sensitivity"
+    )
+    with pytest.raises(ValueError, match=msg):
+        values.str.match(re.compile("ab"), case=False)
 
     result = values.str.match(re.compile("ab", flags=re.IGNORECASE))
     expected = Series([True, True, True, True], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
-    with pytest.raises(
-        ValueError, match="cannot process flags argument with a compiled pattern"
-    ):
+    msg = (
+        "Cannot both specify 'flags' and pass a compiled "
+        "regexp object with conflicting flags"
+    )
+    with pytest.raises(ValueError, match=msg):
         values.str.match(re.compile("ab"), flags=re.IGNORECASE)
+
+    # But if the flags match you're OK
+    values.str.match(re.compile("ab", flags=re.IGNORECASE), flags=re.IGNORECASE)
 
 
 @pytest.mark.parametrize(

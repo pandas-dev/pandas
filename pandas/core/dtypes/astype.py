@@ -24,8 +24,12 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
     ExtensionDtype,
+    IntervalDtype,
     NumpyEADtype,
+    PeriodDtype,
 )
 
 if TYPE_CHECKING:
@@ -113,7 +117,7 @@ def _astype_nansafe(
             # bc we know arr.dtype == object, this is equivalent to
             #  `np.asarray(to_timedelta(arr))`, but using a lower-level API that
             #  does not require a circular import.
-            tdvals = array_to_timedelta64(arr).view("m8[ns]")
+            tdvals = array_to_timedelta64(arr)
 
             tda = ensure_wrapped_if_datetimelike(tdvals)
             return tda.astype(dtype, copy=False)._ndarray
@@ -136,11 +140,13 @@ def _astype_float_to_int_nansafe(
     values: np.ndarray, dtype: np.dtype, copy: bool
 ) -> np.ndarray:
     """
-    astype with a check preventing converting NaN to an meaningless integer value.
+    astype with a check preventing converting NaN to a meaningless integer value.
     """
     if not np.isfinite(values).all():
         raise IntCastingNaNError(
-            "Cannot convert non-finite values (NA or inf) to integer"
+            "Cannot convert non-finite values (NA or inf) to integer."
+            "Replace or remove non-finite values or cast to an integer type"
+            "that supports these values (e.g. 'Int64')"
         )
     if dtype.kind == "u":
         # GH#45151
@@ -282,6 +288,16 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
         dtype = getattr(dtype, "numpy_dtype", dtype)
         new_dtype = getattr(new_dtype, "numpy_dtype", new_dtype)
         return getattr(dtype, "unit", None) == getattr(new_dtype, "unit", None)
+
+    elif new_dtype == object and isinstance(
+        dtype, (DatetimeTZDtype, PeriodDtype, IntervalDtype)
+    ):
+        return False
+
+    elif isinstance(dtype, CategoricalDtype) and not isinstance(
+        new_dtype, CategoricalDtype
+    ):
+        return False
 
     numpy_dtype = getattr(dtype, "numpy_dtype", None)
     new_numpy_dtype = getattr(new_dtype, "numpy_dtype", None)

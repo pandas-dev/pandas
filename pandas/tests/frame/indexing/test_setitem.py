@@ -171,7 +171,7 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_dt64_index_empty_columns(self):
-        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
+        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s", unit="ns")
         df = DataFrame(index=np.arange(len(rng)))
 
         df["A"] = rng
@@ -259,7 +259,7 @@ class TestDataFrameSetItem:
             (Period("2020-01"), PeriodDtype("M")),
             (Interval(left=0, right=5), IntervalDtype("int64", "right")),
             (
-                Timestamp("2011-01-01", tz="US/Eastern"),
+                Timestamp("2011-01-01", tz="US/Eastern").as_unit("s"),
                 DatetimeTZDtype(unit="s", tz="US/Eastern"),
             ),
         ],
@@ -1000,7 +1000,18 @@ class TestDataFrameSetItemWithExpansion:
             index=Index([0]),
             columns=(["a", "b", "c"]),
         )
+        expected["a"] = expected["a"].astype("m8[ns]")
+        expected["b"] = expected["b"].astype("m8[ns]")
         tm.assert_frame_equal(result, expected)
+
+    def test_setitem_tuple_key_in_empty_frame(self):
+        # GH#54385
+        df = DataFrame()
+        df[(0, 0)] = [1, 2, 3]
+
+        cols = Index([(0, 0)], tupleize_cols=False)
+        expected = DataFrame({(0, 0): [1, 2, 3]}, columns=cols)
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameSetItemSlicing:

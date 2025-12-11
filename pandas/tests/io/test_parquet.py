@@ -138,7 +138,7 @@ def df_full():
             "float": np.arange(4.0, 7.0, dtype="float64"),
             "float_with_nan": [2.0, np.nan, 3.0],
             "bool": [True, False, True],
-            "datetime": pd.date_range("20130101", periods=3),
+            "datetime": pd.date_range("20130101", periods=3, unit="ns"),
             "datetime_with_nat": [
                 pd.Timestamp("20130101"),
                 pd.NaT,
@@ -443,7 +443,7 @@ class TestBasic(Base):
 
         indexes = [
             [2, 3, 4],
-            pd.date_range("20130101", periods=3),
+            pd.date_range("20130101", periods=3, unit="ns"),
             list("abc"),
             [1, 3, 4],
         ]
@@ -470,7 +470,7 @@ class TestBasic(Base):
 
     def test_multiindex_with_columns(self, pa, temp_file):
         engine = pa
-        dates = pd.date_range("01-Jan-2018", "01-Dec-2018", freq="MS")
+        dates = pd.date_range("01-Jan-2018", "01-Dec-2018", freq="MS", unit="ns")
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((2 * len(dates), 3)),
             columns=list("ABC"),
@@ -709,7 +709,6 @@ class TestBasic(Base):
 
 
 class TestParquetPyArrow(Base):
-    @pytest.mark.xfail(reason="datetime_with_nat unit doesn't round-trip")
     def test_basic(self, pa, df_full, temp_file):
         df = df_full
         pytest.importorskip("pyarrow", "11.0.0")
@@ -747,7 +746,7 @@ class TestParquetPyArrow(Base):
 
         expected = df_full.copy()
         expected.loc[1, "string_with_nan"] = None
-        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype("M8[ms]")
+        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype("M8[us]")
         tm.assert_frame_equal(res, expected)
 
     def test_duplicate_columns(self, pa, temp_file):
@@ -1052,7 +1051,7 @@ class TestParquetPyArrow(Base):
         df = df_full
 
         # additional supported types for pyarrow
-        dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels")
+        dti = pd.date_range("20130101", periods=3, tz="Europe/Brussels", unit="ns")
         dti = dti._with_freq(None)  # freq doesn't round-trip
         df["datetime_tz"] = dti
         df["bool_with_none"] = [True, None, True]
@@ -1060,7 +1059,7 @@ class TestParquetPyArrow(Base):
         pa_table = pyarrow.Table.from_pandas(df)
         expected = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
         expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
-            "timestamp[ms][pyarrow]"
+            "timestamp[us][pyarrow]"
         )
 
         check_round_trip(

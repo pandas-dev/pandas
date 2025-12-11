@@ -34,10 +34,10 @@ from pandas._libs import (
     reshape,
 )
 from pandas._libs.lib import is_range_indexer
-from pandas.compat import PYPY
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
     REF_COUNT,
-    WARNING_CHECK_DISABLED,
+    REF_COUNT_METHOD,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -87,7 +87,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
-    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -170,6 +169,8 @@ if TYPE_CHECKING:
         AnyAll,
         AnyArrayLike,
         ArrayLike,
+        ArrowArrayExportable,
+        ArrowStreamExportable,
         Axis,
         AxisInt,
         CorrelationMethod,
@@ -501,7 +502,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if dtype is not None:
                 data = data.astype(dtype=dtype)
             elif copy:
-                data = data.copy()
+                data = data.copy(deep=True)
         else:
             data = sanitize_array(data, index, dtype, copy)
             data = SingleBlockManager.from_array(data, index, refs=refs)
@@ -772,9 +773,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Timezone aware datetime data is converted to UTC:
 
         >>> pd.Series(pd.date_range("20130101", periods=3, tz="US/Eastern")).values
-        array(['2013-01-01T05:00:00.000000000',
-               '2013-01-02T05:00:00.000000000',
-               '2013-01-03T05:00:00.000000000'], dtype='datetime64[ns]')
+        array(['2013-01-01T05:00:00.000000',
+               '2013-01-02T05:00:00.000000',
+               '2013-01-03T05:00:00.000000'], dtype='datetime64[us]')
         """
         return self._mgr.external_values()
 
@@ -819,7 +820,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @Appender(base.IndexOpsMixin.array.__doc__)  # type: ignore[prop-decorator]
     @property
     def array(self) -> ExtensionArray:
-        return self._mgr.array_values()
+        arr = self._mgr.array_values()
+        # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
+        # arr = arr.view()
+        # arr._readonly = True
+        return arr
 
     def __len__(self) -> int:
         """
@@ -951,7 +956,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if is_iterator(key):
             key = list(key)
 
-        if is_hashable(key) and not isinstance(key, slice):
+        if is_hashable(key, allow_slice=False):
             # Otherwise index.get_value will raise InvalidIndexError
             try:
                 # For labels that don't resolve as scalars like tuples and frozensets
@@ -1056,8 +1061,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and not WARNING_CHECK_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT + 1:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
+                self
+            ):
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
@@ -1306,8 +1313,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Modify the Series in place (do not create a new object).
         allow_duplicates : bool, default False
             Allow duplicate column labels to be created.
-
-            .. versionadded:: 1.5.0
 
         Returns
         -------
@@ -1834,9 +1839,56 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         df = self._constructor_expanddim_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(self, method="to_frame")
 
-    def _set_name(
-        self, name, inplace: bool = False, deep: bool | None = None
-    ) -> Series:
+    @classmethod
+    def from_arrow(cls, data: ArrowArrayExportable | ArrowStreamExportable) -> Series:
+        """
+        Construct a Series from an array-like Arrow object.
+
+        This function accepts any Arrow-compatible array-like object implementing
+        the `Arrow PyCapsule Protocol`_ (i.e. having an ``__arrow_c_array__``
+        or ``__arrow_c_stream__`` method).
+
+        This function currently relies on ``pyarrow`` to convert the object
+        in Arrow format to pandas.
+
+        .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        data : pyarrow.Array or Arrow-compatible object
+            Any array-like object implementing the Arrow PyCapsule Protocol
+            (i.e. has an ``__arrow_c_array__`` or ``__arrow_c_stream__``
+            method).
+
+        Returns
+        -------
+        Series
+
+        """
+        pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        if not isinstance(data, (pa.Array, pa.ChunkedArray)):
+            if not (
+                hasattr(data, "__arrow_c_array__")
+                or hasattr(data, "__arrow_c_stream__")
+            ):
+                # explicitly test this, because otherwise we would accept variour other
+                # input types through the pa.chunked_array(..) call
+                raise TypeError(
+                    "Expected an Arrow-compatible array-like object (i.e. having an "
+                    "'_arrow_c_array__' or '__arrow_c_stream__' method), got "
+                    f"'{type(data).__name__}' instead."
+                )
+            # using chunked_array() as it works for both arrays and streams
+            pa_array = pa.chunked_array(data)
+        else:
+            pa_array = data
+
+        ser = pa_array.to_pandas()
+        return ser
+
+    def _set_name(self, name, inplace: bool = False) -> Series:
         """
         Set the Series name.
 
@@ -2133,16 +2185,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> pd.Series([pd.Timestamp("2016-01-01") for _ in range(3)]).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00']
-        Length: 1, dtype: datetime64[s]
+        Length: 1, dtype: datetime64[us]
 
         >>> pd.Series(
         ...     [pd.Timestamp("2016-01-01", tz="US/Eastern") for _ in range(3)]
         ... ).unique()
         <DatetimeArray>
         ['2016-01-01 00:00:00-05:00']
-        Length: 1, dtype: datetime64[s, US/Eastern]
+        Length: 1, dtype: datetime64[us, US/Eastern]
 
-        An Categorical will return categories in the order of
+        A Categorical will return categories in the order of
         appearance and with the same dtype.
 
         >>> pd.Series(pd.Categorical(list("baabc"))).unique()
@@ -3031,8 +3083,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         result_names : tuple, default ('self', 'other')
             Set the dataframes names in the comparison.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         Series or DataFrame
@@ -3112,8 +3162,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Combine the Series and `other` using `func` to perform elementwise
         selection for combined Series.
-        `fill_value` is assumed when value is missing at some index
-        from one of the two objects being combined.
+        `fill_value` is assumed when value is not present at some index
+        from one of the two Series being combined.
 
         Parameters
         ----------
@@ -3254,9 +3304,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if self.dtype == other.dtype:
             if self.index.equals(other.index):
                 return self.mask(self.isna(), other)
-            elif self._can_hold_na and not isinstance(self.dtype, SparseDtype):
-                this, other = self.align(other, join="outer")
-                return this.mask(this.isna(), other)
 
         new_index = self.index.union(other.index)
 
@@ -3271,6 +3318,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if this.dtype.kind == "M" and other.dtype.kind != "M":
             # TODO: try to match resos?
             other = to_datetime(other)
+            warnings.warn(
+                # GH#62931
+                "Silently casting non-datetime 'other' to datetime in "
+                "Series.combine_first is deprecated and will be removed "
+                "in a future version. Explicitly cast before calling "
+                "combine_first instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+
         combined = concat([this, other])
         combined = combined.reindex(new_index)
         return combined.__finalize__(self, method="combine_first")
@@ -3349,8 +3406,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2    3
         dtype: int64
         """
-        if not PYPY and not WARNING_CHECK_DISABLED:
-            if sys.getrefcount(self) <= REF_COUNT:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(
+                self
+            ) <= REF_COUNT_METHOD and not com.is_local_in_caller_frame(self):
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
@@ -4071,20 +4130,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ----------
         i, j : int or str
             Levels of the indices to be swapped. Can pass level name as string.
-        copy : bool, default True
-                    Whether to copy underlying data.
+        copy : bool, default False
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
-                    .. note::
-                        The `copy` keyword will change behavior in pandas 3.0.
-                        `Copy-on-Write
-                        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                        will be enabled by default, which means that all methods with a
-                        `copy` keyword will use a lazy copy mechanism to defer the copy
-                        and ignore the `copy` keyword. The `copy` keyword will be
-                        removed in a future version of pandas.
+            .. deprecated:: 3.0.0
 
-                        You can already get the future behavior and improvements through
-                        enabling copy on write ``pd.options.mode.copy_on_write = True``
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
@@ -4235,7 +4292,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         This routine will explode list-likes including lists, tuples, sets,
         Series, and np.ndarray. The result dtype of the subset rows will
         be object. Scalars will be returned unchanged, and empty list-likes will
-        result in a np.nan for that row. In addition, the ordering of elements in
+        result in an np.nan for that row. In addition, the ordering of elements in
         the output will be non-deterministic when exploding sets.
 
         Reference :ref:`the user guide <reshaping.explode>` for more examples.
@@ -4999,21 +5056,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis : {0 or 'index'}
             Unused. Parameter needed for compatibility with DataFrame.
         copy : bool, default False
-            Also copy underlying data.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
         inplace : bool, default False
             Whether to return a new Series. If True the value of copy is ignored.
         level : int or level name, default None
@@ -5152,21 +5206,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             * nearest: Use nearest valid observations to fill gap.
 
         copy : bool, default False
-            Return a new object, even if the passed indexes are the same.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
         level : int or name
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
@@ -5412,19 +5463,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis : {0 or 'index'}, default 0
             The axis to rename. For `Series` this parameter is unused and defaults to 0.
         copy : bool, default False
-            Also copy underlying data.
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
+            .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
                 <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
+                for more details.
 
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
         inplace : bool, default False
             Modifies the object directly, instead of creating a new Series
             or DataFrame.
@@ -5655,8 +5705,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         This method prints information about a Series including
         the index dtype, non-NA values and memory usage.
-
-        .. versionadded:: 1.4.0
 
         Parameters
         ----------
@@ -5921,8 +5969,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Right boundary.
         inclusive : {"both", "neither", "left", "right"}
             Include boundaries. Whether to set each bound as closed or open.
-
-            .. versionchanged:: 1.3.0
 
         Returns
         -------
@@ -6404,21 +6450,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             Convention for converting period to timestamp; start of period
             vs. end.
         copy : bool, default False
-            Whether or not to return a copy.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
@@ -6481,21 +6523,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         freq : str, default None
             Frequency associated with the PeriodIndex.
         copy : bool, default False
-            Whether or not to return a copy.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------

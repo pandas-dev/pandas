@@ -229,21 +229,18 @@ def merge(
         `right` should be left as-is, with no suffix. At least one of the
         values must not be None.
     copy : bool, default False
-        If False, avoid copy if possible.
-
-        .. note::
-            The `copy` keyword will change behavior in pandas 3.0.
-            `Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            will be enabled by default, which means that all methods with a
-            `copy` keyword will use a lazy copy mechanism to defer the copy and
-            ignore the `copy` keyword. The `copy` keyword will be removed in a
-            future version of pandas.
-
-            You can already get the future behavior and improvements through
-            enabling copy on write ``pd.options.mode.copy_on_write = True``
+        This keyword is now ignored; changing its value will have no
+        impact on the method.
 
         .. deprecated:: 3.0.0
+
+            This keyword is ignored and will be removed in pandas 4.0. Since
+            pandas 3.0, this method always returns a new object using a lazy
+            copy mechanism that defers copies until necessary
+            (Copy-on-Write). See the `user guide on Copy-on-Write
+            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+            for more details.
+
     indicator : bool or str, default False
         If True, adds a column to the output DataFrame called "_merge" with
         information on the source of each row. The column can be given a different
@@ -1248,7 +1245,7 @@ class _MergeOperation:
         """
         names_to_restore = []
         for name, left_key, right_key in zip(
-            self.join_names, self.left_on, self.right_on
+            self.join_names, self.left_on, self.right_on, strict=True
         ):
             if (
                 # Argument 1 to "_is_level_reference" of "NDFrame" has incompatible
@@ -1281,7 +1278,7 @@ class _MergeOperation:
 
         assert all(isinstance(x, _known) for x in self.left_join_keys)
 
-        keys = zip(self.join_names, self.left_on, self.right_on)
+        keys = zip(self.join_names, self.left_on, self.right_on, strict=True)
         for i, (name, lname, rname) in enumerate(keys):
             if not _should_fill(lname, rname):
                 continue
@@ -1590,7 +1587,7 @@ class _MergeOperation:
 
         # ugh, spaghetti re #733
         if _any(self.left_on) and _any(self.right_on):
-            for lk, rk in zip(self.left_on, self.right_on):
+            for lk, rk in zip(self.left_on, self.right_on, strict=True):
                 lk = extract_array(lk, extract_numpy=True)
                 rk = extract_array(rk, extract_numpy=True)
                 if is_lkey(lk):
@@ -1653,7 +1650,7 @@ class _MergeOperation:
                 right_keys = [
                     lev._values.take(lev_codes)
                     for lev, lev_codes in zip(
-                        self.right.index.levels, self.right.index.codes
+                        self.right.index.levels, self.right.index.codes, strict=True
                     )
                 ]
             else:
@@ -1675,7 +1672,7 @@ class _MergeOperation:
                 left_keys = [
                     lev._values.take(lev_codes)
                     for lev, lev_codes in zip(
-                        self.left.index.levels, self.left.index.codes
+                        self.left.index.levels, self.left.index.codes, strict=True
                     )
                 ]
             else:
@@ -1692,7 +1689,7 @@ class _MergeOperation:
         # or if we have object and integer dtypes
 
         for lk, rk, name in zip(
-            self.left_join_keys, self.right_join_keys, self.join_names
+            self.left_join_keys, self.right_join_keys, self.join_names, strict=True
         ):
             if (len(lk) and not len(rk)) or (not len(lk) and len(rk)):
                 continue
@@ -1928,6 +1925,10 @@ class _MergeOperation:
                 )
             if not self.right_index and right_on is None:
                 raise MergeError('Must pass "right_on" OR "right_index".')
+            if self.right_index and right_on is not None:
+                raise MergeError(
+                    'Can only pass argument "right_on" OR "right_index" not both.'
+                )
             n = len(left_on)
             if self.right_index:
                 if len(left_on) != self.right.index.nlevels:
@@ -2084,7 +2085,7 @@ def get_join_indexers(
             _factorize_keys(left_keys[n], right_keys[n], sort=sort)
             for n in range(len(left_keys))
         )
-        zipped = zip(*mapped)
+        zipped = zip(*mapped, strict=True)
         llab, rlab, shape = (list(x) for x in zipped)
 
         # get flat i8 keys from label lists
@@ -2469,7 +2470,7 @@ class _AsOfMerge(_OrderedMerge):
                 raise MergeError(msg)
 
         # validate index types are the same
-        for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys)):
+        for i, (lk, rk) in enumerate(zip(left_join_keys, right_join_keys, strict=True)):
             _check_dtype_match(lk, rk, i)
 
         if self.left_index:
@@ -2654,7 +2655,7 @@ def _get_multiindex_indexer(
         _factorize_keys(index.levels[n]._values, join_keys[n], sort=sort)
         for n in range(index.nlevels)
     )
-    zipped = zip(*mapped)
+    zipped = zip(*mapped, strict=True)
     rcodes, lcodes, shape = (list(x) for x in zipped)
     if sort:
         rcodes = list(map(np.take, rcodes, index.codes))

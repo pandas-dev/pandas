@@ -445,7 +445,6 @@ cdef class Interval(IntervalMixin):
     >>> interval.closed
     'left'
     """
-    __module__ = "pandas"
 
     def __init__(self, left, right, str closed="right"):
         # note: it is faster to just do these checks than to use a special

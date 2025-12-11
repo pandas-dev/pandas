@@ -150,7 +150,9 @@ def test_aggregate_normal(resample_method):
 
     expected = getattr(normal_grouped, resample_method)()
     dt_result = getattr(dt_grouped, resample_method)()
-    expected.index = date_range(start="2013-01-01", freq="D", periods=5, name="key")
+    expected.index = date_range(
+        start="2013-01-01", freq="D", periods=5, unit="ns", name="key"
+    )
     tm.assert_equal(expected, dt_result)
 
 
@@ -192,7 +194,7 @@ def test_aggregate_nth():
     ],
 )
 def test_resample_entirely_nat_window(method, method_args, unit):
-    ser = Series([0] * 2 + [np.nan] * 2, index=date_range("2017", periods=4))
+    ser = Series([0] * 2 + [np.nan] * 2, index=date_range("2017", periods=4, unit="ns"))
     result = methodcaller(method, **method_args)(ser.resample("2D"))
 
     exp_dti = pd.DatetimeIndex(["2017-01-01", "2017-01-03"], dtype="M8[ns]", freq="2D")
@@ -321,7 +323,7 @@ def test_repr():
     ],
 )
 def test_upsample_sum(method, method_args, expected_values):
-    ser = Series(1, index=date_range("2017", periods=2, freq="h"))
+    ser = Series(1, index=date_range("2017", periods=2, freq="h", unit="ns"))
     resampled = ser.resample("30min")
     index = pd.DatetimeIndex(
         ["2017-01-01T00:00:00", "2017-01-01T00:30:00", "2017-01-01T01:00:00"],
@@ -337,7 +339,7 @@ def test_upsample_sum(method, method_args, expected_values):
 def groupy_test_df():
     return DataFrame(
         {"price": [10, 11, 9], "volume": [50, 60, 50]},
-        index=date_range("01/01/2018", periods=3, freq="W"),
+        index=date_range("01/01/2018", periods=3, freq="W", unit="ns"),
     )
 
 
@@ -373,7 +375,7 @@ def test_groupby_resample_interpolate_with_apply_syntax(groupy_test_df):
         )
 
         volume = [50] * 15 + [60]
-        week_starting = list(date_range("2018-01-07", "2018-01-21")) + [
+        week_starting = list(date_range("2018-01-07", "2018-01-21", unit="ns")) + [
             Timestamp("2018-01-14")
         ]
         expected_ind = pd.MultiIndex.from_arrays(

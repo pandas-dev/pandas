@@ -141,7 +141,7 @@ def test_setitem_with_array_with_missing(dtype):
 
 
 def test_astype_roundtrip(dtype):
-    ser = pd.Series(pd.date_range("2000", periods=12))
+    ser = pd.Series(pd.date_range("2000", periods=12, unit="ns"))
     ser[0] = None
 
     casted = ser.astype(dtype)
@@ -485,6 +485,16 @@ def test_to_numpy_na_value(dtype, nulls_fixture):
     result = arr.to_numpy(na_value=na_value)
     expected = np.array(["a", na_value, "b"], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_readonly(dtype):
+    arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
+    arr._readonly = True
+    result = arr.to_numpy()
+    if dtype.storage == "python":
+        assert not result.flags.writeable
+    else:
+        assert result.flags.writeable
 
 
 def test_isin(dtype, fixed_now_ts):

@@ -19,16 +19,26 @@ from pandas.tests.copy_view.util import get_array
     "method",
     [
         lambda ser: ser.values,
+        lambda ser: np.asarray(ser.array),
         lambda ser: np.asarray(ser),
         lambda ser: np.array(ser, copy=False),
     ],
-    ids=["values", "asarray", "array"],
+    ids=["values", "array", "np.asarray", "np.array"],
 )
-def test_series_values(method):
+def test_series_values(request, method):
     ser = Series([1, 2, 3], name="name")
     ser_orig = ser.copy()
 
     arr = method(ser)
+
+    if request.node.callspec.id == "array":
+        # https://github.com/pandas-dev/pandas/issues/63099
+        # .array for now does not return a read-only view
+        assert arr.flags.writeable is True
+        # updating the array updates the series
+        arr[0] = 0
+        assert ser.iloc[0] == 0
+        return
 
     # .values still gives a view but is read-only
     assert np.shares_memory(arr, get_array(ser, "name"))
@@ -105,24 +115,60 @@ def test_series_to_numpy():
     assert arr.flags.writeable is True
 
 
-def test_series_array_ea_dtypes():
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda ser: np.asarray(ser.values),
+        lambda ser: np.asarray(ser.array),
+        lambda ser: np.asarray(ser),
+        lambda ser: np.asarray(ser, dtype="int64"),
+        lambda ser: np.array(ser, copy=False),
+    ],
+    ids=["values", "array", "np.asarray", "np.asarray-dtype", "np.array"],
+)
+def test_series_values_ea_dtypes(request, method):
     ser = Series([1, 2, 3], dtype="Int64")
-    arr = np.asarray(ser, dtype="int64")
+    ser_orig = ser.copy()
+
+    arr = method(ser)
+
+    if request.node.callspec.id in ("values", "array"):
+        # https://github.com/pandas-dev/pandas/issues/63099
+        # .array/values for now does not return a read-only view
+        assert arr.flags.writeable is True
+        # updating the array updates the series
+        arr[0] = 0
+        assert ser.iloc[0] == 0
+        return
+
+    # conversion to ndarray gives a view but is read-only
     assert np.shares_memory(arr, get_array(ser))
     assert arr.flags.writeable is False
 
-    arr = np.asarray(ser)
-    assert np.shares_memory(arr, get_array(ser))
-    assert arr.flags.writeable is False
+    # mutating series through arr therefore doesn't work
+    with pytest.raises(ValueError, match="read-only"):
+        arr[0] = 0
+    tm.assert_series_equal(ser, ser_orig)
+
+    # mutating the series itself still works
+    ser.iloc[0] = 0
+    assert ser.values[0] == 0
 
 
-def test_dataframe_array_ea_dtypes():
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda df: df.values,
+        lambda df: np.asarray(df),
+        lambda df: np.asarray(df, dtype="int64"),
+        lambda df: np.array(df, copy=False),
+    ],
+    ids=["values", "np.asarray", "np.asarray-dtype", "np.array"],
+)
+def test_dataframe_array_ea_dtypes(method):
     df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
-    arr = np.asarray(df, dtype="int64")
-    assert np.shares_memory(arr, get_array(df, "a"))
-    assert arr.flags.writeable is False
+    arr = method(df)
 
-    arr = np.asarray(df)
     assert np.shares_memory(arr, get_array(df, "a"))
     assert arr.flags.writeable is False
 
