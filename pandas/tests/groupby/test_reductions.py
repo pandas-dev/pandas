@@ -1312,7 +1312,7 @@ def test_groupby_sum_timedelta_with_nat():
             "b": [pd.Timedelta("1D"), pd.Timedelta("2D"), pd.Timedelta("3D"), pd.NaT],
         }
     )
-    td3 = pd.Timedelta(days=3)
+    td3 = pd.Timedelta(days=3).as_unit("us")
 
     gb = df.groupby("a")
 
@@ -1324,7 +1324,7 @@ def test_groupby_sum_timedelta_with_nat():
     tm.assert_series_equal(res, expected["b"])
 
     res = gb["b"].sum(min_count=2)
-    expected = Series([td3, pd.NaT], dtype="m8[ns]", name="b", index=expected.index)
+    expected = Series([td3, pd.NaT], dtype="m8[us]", name="b", index=expected.index)
     tm.assert_series_equal(res, expected)
 
 
@@ -1497,7 +1497,7 @@ def test_groupby_prod_with_int64_dtype():
 
 def test_groupby_std_datetimelike():
     # GH#48481
-    tdi = pd.timedelta_range("1 Day", periods=10000)
+    tdi = pd.timedelta_range("1 Day", periods=10000, unit="ns")
     ser = Series(tdi)
     ser[::5] *= 2  # get different std for different groups
 
@@ -1520,3 +1520,19 @@ def test_groupby_std_datetimelike():
     exp_ser = Series([td1 * 2, td1, td1, td1, td4], index=np.arange(5))
     expected = DataFrame({"A": exp_ser, "B": exp_ser, "C": exp_ser})
     tm.assert_frame_equal(result, expected)
+
+
+def test_mean_numeric_only_validates_bool():
+    # GH#62778
+
+    df = DataFrame({"A": range(5), "B": range(5)})
+
+    msg = "numeric_only accepts only Boolean values"
+    with pytest.raises(ValueError, match=msg):
+        df.groupby(["A"]).mean(["B"])
+
+    with pytest.raises(ValueError, match=msg):
+        df.groupby(["A"]).mean(numeric_only="True")
+
+    with pytest.raises(ValueError, match=msg):
+        df.groupby(["A"]).mean(numeric_only=1)

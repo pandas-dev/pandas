@@ -549,9 +549,6 @@ def read_json(
         such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
 
-        .. deprecated:: 2.1.0
-            Passing json literal strings is deprecated.
-
     orient : str, optional
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a
@@ -641,8 +638,6 @@ def read_json(
         How encoding errors are treated. `List of possible values
         <https://docs.python.org/3/library/codecs.html#error-handlers>`_ .
 
-        .. versionadded:: 1.3.0
-
     lines : bool, default False
         Read the file as a json object per line.
 
@@ -654,8 +649,6 @@ def read_json(
         This can only be passed if `lines=True`.
         If this is None, the file will be read into memory all at once.
     {decompression_options}
-
-        .. versionchanged:: 1.4.0 Zstandard support.
 
     nrows : int, optional
         The number of lines from the line-delimited jsonfile that has to be read.
@@ -820,6 +813,7 @@ def read_json(
         return json_reader.read()
 
 
+@set_module("pandas.api.typing")
 class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
     """
     JsonReader provides an interface for reading in a JSON file.
@@ -1000,7 +994,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         else:
             obj = self._get_object_parser(self.data)
         if self.dtype_backend is not lib.no_default:
-            with option_context("mode.nan_is_na", True):
+            with option_context("future.distinguish_nan_and_na", False):
                 return obj.convert_dtypes(
                     infer_objects=False, dtype_backend=self.dtype_backend
                 )
@@ -1078,7 +1072,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
             raise ex
 
         if self.dtype_backend is not lib.no_default:
-            with option_context("mode.nan_is_na", True):
+            with option_context("future.distinguish_nan_and_na", False):
                 return obj.convert_dtypes(
                     infer_objects=False, dtype_backend=self.dtype_backend
                 )
@@ -1283,7 +1277,7 @@ class Parser:
     @final
     def _try_convert_to_date(self, data: Series) -> Series:
         """
-        Try to parse a ndarray like into a date column.
+        Try to parse an ndarray like into a date column.
 
         Try to coerce object in epoch/iso formats and integer/float in epoch
         formats.

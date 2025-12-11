@@ -13,8 +13,12 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import set_module
 
-from pandas.core.dtypes.astype import astype_array
+from pandas.core.dtypes.astype import (
+    astype_array,
+    astype_is_view,
+)
 from pandas.core.dtypes.cast import (
     construct_1d_object_array_from_listlike,
     maybe_downcast_to_dtype,
@@ -45,6 +49,7 @@ if TYPE_CHECKING:
         InterpolateOptions,
         NpDtype,
         Scalar,
+        TakeIndexer,
         npt,
     )
 
@@ -52,6 +57,7 @@ if TYPE_CHECKING:
     from pandas.arrays import StringArray
 
 
+@set_module("pandas.arrays")
 class NumpyExtensionArray(
     OpsMixin,
     NDArrayBackedExtensionArray,
@@ -178,12 +184,23 @@ class NumpyExtensionArray(
     # NumPy Array Interface
 
     def __array__(
-        self, dtype: NpDtype | None = None, copy: bool | None = None
+        self, dtype: np.dtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
         if copy is not None:
             # Note: branch avoids `copy=None` for NumPy 1.x support
-            return np.array(self._ndarray, dtype=dtype, copy=copy)
-        return np.asarray(self._ndarray, dtype=dtype)
+            result = np.array(self._ndarray, dtype=dtype, copy=copy)
+        else:
+            result = np.asarray(self._ndarray, dtype=dtype)
+
+        if (
+            self._readonly
+            and not copy
+            and (dtype is None or astype_is_view(self.dtype, dtype))
+        ):
+            result = result.view()
+            result.flags.writeable = False
+
+        return result
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
@@ -349,6 +366,27 @@ class NumpyExtensionArray(
         if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
+
+    def take(
+        self,
+        indices: TakeIndexer,
+        *,
+        allow_fill: bool = False,
+        fill_value: Any = None,
+        axis: AxisInt = 0,
+    ) -> Self:
+        """
+        Take entries from this array at each index in a list of indices,
+        producing an array containing only those entries.
+        """
+        result = super().take(
+            indices, allow_fill=allow_fill, fill_value=fill_value, axis=axis
+        )
+        # See GH#62448.
+        if self.dtype.kind in "iub":
+            return type(self)(result._ndarray, copy=False)
+
+        return result
 
     # ------------------------------------------------------------------------
     # Reductions
@@ -544,6 +582,9 @@ class NumpyExtensionArray(
             result[mask] = na_value
         else:
             result = self._ndarray
+            if not copy and self._readonly:
+                result = result.view()
+                result.flags.writeable = False
 
         result = np.asarray(result, dtype=dtype)
 

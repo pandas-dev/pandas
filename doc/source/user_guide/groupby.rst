@@ -137,7 +137,7 @@ We could naturally group by either the ``A`` or ``B`` columns, or both:
 
    ``df.groupby('A')`` is just syntactic sugar for ``df.groupby(df['A'])``.
 
-The above GroupBy will split the DataFrame on its index (rows). To split by columns, first do
+DataFrame groupby always operates along axis 0 (rows). To split by columns, first do
 a transpose:
 
 .. ipython::
@@ -1263,8 +1263,6 @@ with
 
 Numba accelerated routines
 --------------------------
-
-.. versionadded:: 1.1
 
 If `Numba <https://numba.pydata.org/>`__ is installed as an optional dependency, the ``transform`` and
 ``aggregate`` methods support ``engine='numba'`` and ``engine_kwargs`` arguments.

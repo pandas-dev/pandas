@@ -107,6 +107,8 @@ _T_co = TypeVar("_T_co", covariant=True)
 
 
 class SequenceNotStr(Protocol[_T_co]):
+    __module__: str = "pandas.api.typing.aliases"
+
     @overload
     def __getitem__(self, index: SupportsIndex, /) -> _T_co: ...
 
@@ -278,12 +280,16 @@ class BaseBuffer(Protocol):
 
 
 class ReadBuffer(BaseBuffer, Protocol[AnyStr_co]):
+    __module__: str = "pandas.api.typing.aliases"
+
     def read(self, n: int = ..., /) -> AnyStr_co:
         # for BytesIOWrapper, gzip.GzipFile, bz2.BZ2File
         ...
 
 
 class WriteBuffer(BaseBuffer, Protocol[AnyStr_contra]):
+    __module__: str = "pandas.api.typing.aliases"
+
     def write(self, b: AnyStr_contra, /) -> Any:
         # for gzip.GzipFile, bz2.BZ2File
         ...
@@ -294,14 +300,20 @@ class WriteBuffer(BaseBuffer, Protocol[AnyStr_contra]):
 
 
 class ReadPickleBuffer(ReadBuffer[bytes], Protocol):
+    __module__: str = "pandas.api.typing.aliases"
+
     def readline(self) -> bytes: ...
 
 
 class WriteExcelBuffer(WriteBuffer[bytes], Protocol):
+    __module__: str = "pandas.api.typing.aliases"
+
     def truncate(self, size: int | None = ..., /) -> int: ...
 
 
 class ReadCsvBuffer(ReadBuffer[AnyStr_co], Protocol):
+    __module__: str = "pandas.api.typing.aliases"
+
     def __iter__(self) -> Iterator[AnyStr_co]:
         # for engine=python
         ...
@@ -520,5 +532,45 @@ UsecolsArgType: TypeAlias = (
 SequenceT = TypeVar("SequenceT", bound=Sequence[Hashable])
 
 SliceType: TypeAlias = Hashable | None
+
+
+# Arrow PyCapsule Interface
+# from https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html#protocol-typehints
+
+
+class ArrowArrayExportable(Protocol):
+    """
+    An object with an ``__arrow_c_array__`` method.
+
+    This method indicates the object is an Arrow-compatible object implementing
+    the `Arrow PyCapsule Protocol`_ (exposing the `Arrow C Data Interface`_ in
+    Python), enabling zero-copy Arrow data interchange across libraries.
+
+    .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
+    .. _Arrow C Data Interface: https://arrow.apache.org/docs/format/CDataInterface.html
+
+    """
+
+    def __arrow_c_array__(
+        self, requested_schema: object | None = None
+    ) -> tuple[object, object]: ...
+
+
+class ArrowStreamExportable(Protocol):
+    """
+    An object with an ``__arrow_c_stream__`` method.
+
+    This method indicates the object is an Arrow-compatible object implementing
+    the `Arrow PyCapsule Protocol`_ (exposing the `Arrow C Data Interface`_
+    for streams in Python), enabling zero-copy Arrow data interchange across
+    libraries.
+
+    .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
+    .. _Arrow C Stream Interface: https://arrow.apache.org/docs/format/CStreamInterface.html
+
+    """
+
+    def __arrow_c_stream__(self, requested_schema: object | None = None) -> object: ...
+
 
 __all__ = ["type_t"]

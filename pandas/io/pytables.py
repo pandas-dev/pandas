@@ -134,6 +134,7 @@ if TYPE_CHECKING:
         AxisInt,
         DtypeArg,
         FilePath,
+        TimeUnit,
         npt,
     )
 
@@ -2278,7 +2279,7 @@ class IndexCol:
         except UnicodeEncodeError as err:
             if (
                 errors == "surrogatepass"
-                and get_option("future.infer_string")
+                and using_string_dtype()
                 and str(err).endswith("surrogates not allowed")
                 and HAS_PYARROW
             ):
@@ -2701,8 +2702,12 @@ class DataCol(IndexCol):
             # recreate with tz if indicated
             converted = _set_tz(converted, tz, dtype)
 
-        elif dtype == "timedelta64":
-            converted = np.asarray(converted, dtype="m8[ns]")
+        elif dtype.startswith("timedelta64"):
+            if dtype == "timedelta64":
+                # from before we started storing timedelta64 unit
+                converted = np.asarray(converted, dtype="m8[ns]")
+            else:
+                converted = np.asarray(converted, dtype=dtype)
         elif dtype == "date":
             try:
                 converted = np.asarray(
@@ -3085,8 +3090,13 @@ class GenericFixed(Fixed):
                 tz = getattr(attrs, "tz", None)
                 ret = _set_tz(ret, tz, dtype)
 
-            elif dtype == "timedelta64":
-                ret = np.asarray(ret, dtype="m8[ns]")
+            elif dtype and dtype.startswith("timedelta64"):
+                if dtype == "timedelta64":
+                    # This was written back before we started writing
+                    # timedelta64 units
+                    ret = np.asarray(ret, dtype="m8[ns]")
+                else:
+                    ret = np.asarray(ret, dtype=dtype)
 
         if transposed:
             return ret.T
@@ -3214,7 +3224,7 @@ class GenericFixed(Fixed):
             except UnicodeEncodeError as err:
                 if (
                     self.errors == "surrogatepass"
-                    and get_option("future.infer_string")
+                    and using_string_dtype()
                     and str(err).endswith("surrogates not allowed")
                     and HAS_PYARROW
                 ):
@@ -3323,7 +3333,7 @@ class GenericFixed(Fixed):
             node._v_attrs.value_type = f"datetime64[{value.dtype.unit}]"
         elif lib.is_np_dtype(value.dtype, "m"):
             self._handle.create_array(self.group, key, value.view("i8"))
-            getattr(self.group, key)._v_attrs.value_type = "timedelta64"
+            getattr(self.group, key)._v_attrs.value_type = str(value.dtype)
         elif isinstance(value, BaseStringArray):
             vlarr = self._handle.create_vlarray(self.group, key, _tables().ObjectAtom())
             vlarr.append(value.to_numpy())
@@ -3365,7 +3375,7 @@ class SeriesFixed(GenericFixed):
         except UnicodeEncodeError as err:
             if (
                 self.errors == "surrogatepass"
-                and get_option("future.infer_string")
+                and using_string_dtype()
                 and str(err).endswith("surrogates not allowed")
                 and HAS_PYARROW
             ):
@@ -4829,7 +4839,7 @@ class AppendableFrameTable(AppendableTable):
                 except UnicodeEncodeError as err:
                     if (
                         self.errors == "surrogatepass"
-                        and get_option("future.infer_string")
+                        and using_string_dtype()
                         and str(err).endswith("surrogates not allowed")
                         and HAS_PYARROW
                     ):
@@ -4999,7 +5009,7 @@ class GenericTable(AppendableFrameTable):
 
     # error: Signature of "write" incompatible with supertype "AppendableTable"
     def write(self, **kwargs) -> None:  # type: ignore[override]
-        raise NotImplementedError("cannot write on an generic table")
+        raise NotImplementedError("cannot write on a generic table")
 
 
 class AppendableMultiFrameTable(AppendableFrameTable):
@@ -5093,6 +5103,9 @@ def _set_tz(
     # Argument "tz" to "tz_to_dtype" has incompatible type "str | tzinfo | None";
     # expected "tzinfo"
     unit, _ = np.datetime_data(datetime64_dtype)  # parsing dtype: unit, count
+    unit = cast("TimeUnit", unit)
+    # error: Argument "tz" to "tz_to_dtype" has incompatible type
+    #  "str | tzinfo | None"; expected "tzinfo"
     dtype = tz_to_dtype(tz=tz, unit=unit)  # type: ignore[arg-type]
     dta = DatetimeArray._from_sequence(values, dtype=dtype)
     return dta
@@ -5171,8 +5184,12 @@ def _unconvert_index(data, kind: str, encoding: str, errors: str) -> np.ndarray 
             index = DatetimeIndex(data)
         else:
             index = DatetimeIndex(data.view(kind))
-    elif kind == "timedelta64":
-        index = TimedeltaIndex(data)
+    elif kind.startswith("timedelta64"):
+        if kind == "timedelta64":
+            # created before we stored resolution information
+            index = TimedeltaIndex(data)
+        else:
+            index = TimedeltaIndex(data.view(kind))
     elif kind == "date":
         try:
             index = np.asarray([date.fromordinal(v) for v in data], dtype=object)
@@ -5371,7 +5388,7 @@ def _need_convert(kind: str) -> bool:
 
 def _maybe_adjust_name(name: str, version: Sequence[int]) -> str:
     """
-    Prior to 0.10.1, we named values blocks like: values_block_0 an the
+    Prior to 0.10.1, we named values blocks like: values_block_0 and the
     name values_0, adjust the given name if necessary.
 
     Parameters
@@ -5409,7 +5426,7 @@ def _dtype_to_kind(dtype_str: str) -> str:
     elif dtype_str.startswith("datetime64"):
         kind = dtype_str
     elif dtype_str.startswith("timedelta"):
-        kind = "timedelta64"
+        kind = dtype_str
     elif dtype_str.startswith("bool"):
         kind = "bool"
     elif dtype_str.startswith("category"):

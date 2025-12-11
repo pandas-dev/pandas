@@ -668,7 +668,7 @@ class ChainedAssignmentError(Warning):
     """
     Warning raised when trying to set using chained assignment.
 
-    When the ``mode.copy_on_write`` option is enabled, chained assignment can
+    With Copy-on-Write now always enabled, chained assignment can
     never work. In such a situation, we are always setting into a temporary
     object that is the result of an indexing operation (getitem), which under
     Copy-on-Write always behaves as a copy. Thus, assigning through a chain
@@ -677,18 +677,11 @@ class ChainedAssignmentError(Warning):
     For more information on Copy-on-Write,
     see :ref:`the user guide<copy_on_write>`.
 
-    See Also
-    --------
-    options.mode.copy_on_write : Global setting for enabling or disabling
-        Copy-on-Write behavior.
-
     Examples
     --------
-    >>> pd.options.mode.copy_on_write = True
     >>> df = pd.DataFrame({"A": [1, 1, 1, 2, 2]}, columns=["A"])
     >>> df["A"][0:3] = 10  # doctest: +SKIP
     ... # ChainedAssignmentError: ...
-    >>> pd.options.mode.copy_on_write = False
     """
 
 
@@ -991,7 +984,7 @@ class InvalidColumnName(Warning):
 
 class CategoricalConversionWarning(Warning):
     """
-    Warning is raised when reading a partial labeled Stata file using a iterator.
+    Warning is raised when reading a partial labeled Stata file using an iterator.
 
     This warning helps ensure data integrity and alerts users to potential issues
     during the incremental reading of Stata files with labeled data, allowing for

@@ -30,17 +30,19 @@ class TestDataFrameCombineFirst:
         combined = f.combine_first(g)
         tm.assert_frame_equal(combined, exp)
 
-    def test_combine_first(self, float_frame):
-        # disjoint
+    def test_combine_first_disjoint(self, float_frame):
         head, tail = float_frame[:5], float_frame[5:]
-
         combined = head.combine_first(tail)
         reordered_frame = float_frame.reindex(combined.index)
+
         tm.assert_frame_equal(combined, reordered_frame)
         tm.assert_index_equal(combined.columns, float_frame.columns)
         tm.assert_series_equal(combined["A"], reordered_frame["A"])
 
-        # same index
+        tm.assert_series_equal(combined["A"].reindex(head.index), head["A"])
+        tm.assert_series_equal(combined["A"].reindex(tail.index), tail["A"])
+
+    def test_combine_first_same_index(self, float_frame):
         fcopy = float_frame.copy()
         fcopy["A"] = 1
         del fcopy["C"]
@@ -56,36 +58,36 @@ class TestDataFrameCombineFirst:
         tm.assert_series_equal(combined["C"], fcopy2["C"])
         tm.assert_series_equal(combined["D"], fcopy["D"])
 
-        # overlap
-        head, tail = reordered_frame[:10].copy(), reordered_frame
+    def test_combine_first_overlap(self, float_frame):
+        combined = float_frame[:5].combine_first(float_frame[5:])
+        reordered_frame = float_frame.reindex(combined.index)
+        head, tail = reordered_frame[:10].copy(), reordered_frame.copy()
         head["A"] = 1
-
         combined = head.combine_first(tail)
         assert (combined["A"][:10] == 1).all()
 
-        # reverse overlap
+    def test_combine_first_reverse_overlap(self, float_frame):
+        combined = float_frame[:5].combine_first(float_frame[5:])
+        reordered_frame = float_frame.reindex(combined.index)
+        head, tail = reordered_frame[:10].copy(), reordered_frame
+
         tail.iloc[:10, tail.columns.get_loc("A")] = 0
         combined = tail.combine_first(head)
         assert (combined["A"][:10] == 0).all()
 
-        # no overlap
-        f = float_frame[:10]
-        g = float_frame[10:]
-        combined = f.combine_first(g)
-        tm.assert_series_equal(combined["A"].reindex(f.index), f["A"])
-        tm.assert_series_equal(combined["A"].reindex(g.index), g["A"])
-
-        # corner cases
+    def test_combine_first_with_empty(self, float_frame):
         comb = float_frame.combine_first(DataFrame())
         tm.assert_frame_equal(comb, float_frame)
 
         comb = DataFrame().combine_first(float_frame)
         tm.assert_frame_equal(comb, float_frame.sort_index())
 
+    def test_combine_first_with_new_index(self, float_frame):
         comb = float_frame.combine_first(DataFrame(index=["faz", "boo"]))
         assert "faz" in comb.index
 
-        # #2525
+    def test_combine_first_column_union(self):
+        # GH#2525
         df = DataFrame({"a": [1]}, index=[datetime(2012, 1, 1)])
         df2 = DataFrame(columns=["b"])
         result = df.combine_first(df2)
@@ -195,14 +197,15 @@ class TestDataFrameCombineFirst:
 
     def test_combine_first_align_nan(self):
         # GH 7509 (not fixed)
-        dfa = DataFrame([[pd.Timestamp("2011-01-01"), 2]], columns=["a", "b"])
+        ts = pd.Timestamp("2011-01-01").as_unit("s")
+        dfa = DataFrame([[ts, 2]], columns=["a", "b"])
         dfb = DataFrame([[4], [5]], columns=["b"])
         assert dfa["a"].dtype == "datetime64[s]"
         assert dfa["b"].dtype == "int64"
 
         res = dfa.combine_first(dfb)
         exp = DataFrame(
-            {"a": [pd.Timestamp("2011-01-01"), pd.NaT], "b": [2, 5]},
+            {"a": [ts, pd.NaT], "b": [2, 5]},
             columns=["a", "b"],
         )
         tm.assert_frame_equal(res, exp)
@@ -326,7 +329,7 @@ class TestDataFrameCombineFirst:
         )
         exp = DataFrame({"TD": exp_dts}, index=[1, 2, 3, 4, 5, 7])
         tm.assert_frame_equal(res, exp)
-        assert res["TD"].dtype == "timedelta64[ns]"
+        assert res["TD"].dtype == "timedelta64[us]"
 
     def test_combine_first_period(self):
         data1 = pd.PeriodIndex(["2011-01", "NaT", "2011-03", "2011-04"], freq="M")
@@ -396,6 +399,33 @@ class TestDataFrameCombineFirst:
         expected = DataFrame(
             {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
         ).set_index(["a", "b"])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "wide_val, dtype",
+        (
+            (1666880195890293744, "UInt64"),
+            (-1666880195890293744, "Int64"),
+        ),
+    )
+    def test_combine_first_preserve_EA_precision(self, wide_val, dtype):
+        # GH#60128
+        df1 = DataFrame({"A": [wide_val, 5]}, dtype=dtype)
+        df2 = DataFrame({"A": [6, 7, wide_val]}, dtype=dtype)
+        result = df1.combine_first(df2)
+        expected = DataFrame({"A": [wide_val, 5, wide_val]}, dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_combine_first_non_unique_columns(self):
+        # GH#29135
+        df1 = DataFrame([[1, np.nan], [3, 4]], columns=["P", "Q"], index=["A", "B"])
+        df2 = DataFrame(
+            [[5, 6, 7], [8, 9, np.nan]], columns=["P", "Q", "Q"], index=["A", "B"]
+        )
+        result = df1.combine_first(df2)
+        expected = DataFrame(
+            [[1, 6.0, 7.0], [3, 4.0, 4.0]], index=["A", "B"], columns=["P", "Q", "Q"]
+        )
         tm.assert_frame_equal(result, expected)
 
 

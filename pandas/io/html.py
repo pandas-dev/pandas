@@ -173,8 +173,6 @@ class _HtmlFrameParser:
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
-        .. versionadded:: 1.5.0
-
     Attributes
     ----------
     io : str or file-like
@@ -196,8 +194,6 @@ class _HtmlFrameParser:
     extract_links : {None, "all", "header", "body", "footer"}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
-
-        .. versionadded:: 1.5.0
 
     Notes
     -----
@@ -1056,15 +1052,11 @@ def read_html(
     Parameters
     ----------
     io : str, path object, or file-like object
-        String, path object (implementing ``os.PathLike[str]``), or file-like
+        String path, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a string ``read()`` function.
         The string can represent a URL. Note that
         lxml only accepts the http, ftp and file url protocols. If you have a
         URL that starts with ``'https'`` you might try removing the ``'s'``.
-
-        .. deprecated:: 2.1.0
-            Passing html literal strings is deprecated.
-            Wrap literal string/bytes input in ``io.StringIO``/``io.BytesIO`` instead.
 
     match : str or compiled regular expression, optional
         The set of tables containing text matching this regex or string will be
@@ -1150,8 +1142,6 @@ def read_html(
     extract_links : {{None, "all", "header", "body", "footer"}}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
-
-        .. versionadded:: 1.5.0
 
     dtype_backend : {{'numpy_nullable', 'pyarrow'}}
         Back-end data type applied to the resultant :class:`DataFrame`

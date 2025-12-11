@@ -135,12 +135,14 @@ def pytest_collection_modifyitems(items, config) -> None:
     # Warnings from doctests that can be ignored; place reason in comment above.
     # Each entry specifies (path, message) - see the ignore_doctest_warning function
     ignored_doctest_warnings = [
+        ("api.interchange.from_dataframe", ".*Interchange Protocol is deprecated"),
         ("is_int64_dtype", "is_int64_dtype is deprecated"),
         ("is_interval_dtype", "is_interval_dtype is deprecated"),
         ("is_period_dtype", "is_period_dtype is deprecated"),
         ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
         ("is_sparse", "is_sparse is deprecated"),
+        ("DataFrame.__dataframe__", "Interchange Protocol is deprecated"),
         ("DataFrameGroupBy.fillna", "DataFrameGroupBy.fillna is deprecated"),
         ("DataFrameGroupBy.corrwith", "DataFrameGroupBy.corrwith is deprecated"),
         ("NDFrame.replace", "Series.replace without 'value'"),
@@ -689,7 +691,9 @@ indices_dict = {
     "categorical": CategoricalIndex(list("abcd") * 2),
     "interval": IntervalIndex.from_breaks(np.linspace(0, 100, num=11)),
     "empty": Index([]),
-    "tuples": MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3])),
+    "tuples": MultiIndex.from_tuples(
+        zip(["foo", "bar", "baz"], [1, 2, 3], strict=True)
+    ),
     "mi-with-dt64tz-level": _create_mi_with_dt64tz_level(),
     "multi": _create_multiindex(),
     "repeats": Index([0, 0, 1, 1, 2, 2]),
@@ -718,7 +722,7 @@ def index(request):
         - ...
     """
     # copy to avoid mutation, e.g. setting .name
-    return indices_dict[request.param].copy()
+    return indices_dict[request.param].copy(deep=False)
 
 
 @pytest.fixture(
@@ -731,7 +735,7 @@ def index_flat(request):
     index fixture, but excluding MultiIndex cases.
     """
     key = request.param
-    return indices_dict[key].copy()
+    return indices_dict[key].copy(deep=False)
 
 
 @pytest.fixture(
@@ -754,11 +758,7 @@ def index_with_missing(request):
 
     MultiIndex is excluded because isna() is not defined for MultiIndex.
     """
-
-    # GH 35538. Use deep copy to avoid illusive bug on np-dev
-    # GHA pipeline that writes into indices_dict despite copy
-    ind = indices_dict[request.param].copy(deep=True)
-    vals = ind.values.copy()
+    ind = indices_dict[request.param]
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
@@ -766,6 +766,7 @@ def index_with_missing(request):
         vals[-1] = (None,) + vals[-1][1:]
         return MultiIndex.from_tuples(vals)
     else:
+        vals = ind.values.copy()
         vals[0] = None
         vals[-1] = None
         return type(ind)(vals)
@@ -846,7 +847,7 @@ def index_or_series_obj(request):
     Fixture for tests on indexes, series and series with a narrow dtype
     copy to avoid mutation, e.g. setting .name
     """
-    return _index_or_series_objs[request.param].copy(deep=True)
+    return _index_or_series_objs[request.param].copy(deep=False)
 
 
 _typ_objects_series = {
@@ -869,7 +870,7 @@ def index_or_series_memory_obj(request):
     series with empty objects type
     copy to avoid mutation, e.g. setting .name
     """
-    return _index_or_series_memory_objs[request.param].copy(deep=True)
+    return _index_or_series_memory_objs[request.param].copy(deep=False)
 
 
 # ----------------------------------------------------------------
@@ -934,10 +935,10 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
         (Period("2012-01", freq="M"), "period[M]"),
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
-            Timestamp("2011-01-01", tz="US/Eastern"),
+            Timestamp("2011-01-01", tz="US/Eastern").as_unit("s"),
             DatetimeTZDtype(unit="s", tz="US/Eastern"),
         ),
-        (Timedelta(seconds=500), "timedelta64[ns]"),
+        (Timedelta(seconds=500), "timedelta64[us]"),
     ]
 )
 def ea_scalar_and_dtype(request):
@@ -1445,6 +1446,9 @@ def any_string_dtype(request):
         return pd.StringDtype(storage, na_value)
 
 
+any_string_dtype2 = any_string_dtype
+
+
 @pytest.fixture(params=tm.DATETIME64_DTYPES)
 def datetime64_dtype(request):
     """
@@ -1874,7 +1878,9 @@ _any_skipna_inferred_dtype = [
     ("period", [Period(2013), pd.NaT, Period(2018)]),
     ("interval", [Interval(0, 1), np.nan, Interval(0, 2)]),
 ]
-ids, _ = zip(*_any_skipna_inferred_dtype)  # use inferred type as fixture-id
+ids = [
+    pair[0] for pair in _any_skipna_inferred_dtype
+]  # use inferred type as fixture-id
 
 
 @pytest.fixture(params=_any_skipna_inferred_dtype, ids=ids)
@@ -2121,5 +2127,5 @@ def monkeysession():
 @pytest.fixture(params=[True, False])
 def using_nan_is_na(request):
     opt = request.param
-    with pd.option_context("mode.nan_is_na", opt):
+    with pd.option_context("future.distinguish_nan_and_na", not opt):
         yield opt

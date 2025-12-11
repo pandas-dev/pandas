@@ -77,7 +77,10 @@ class TestConstructors:
         assert arr.dtype == SparseDtype(object, False)
         assert arr.fill_value is False
         arr_expected = np.array(data, dtype=object)
-        it = (type(x) == type(y) and x == y for x, y in zip(arr, arr_expected))
+        it = (
+            type(x) == type(y) and x == y
+            for x, y in zip(arr, arr_expected, strict=True)
+        )
         assert np.fromiter(it, dtype=np.bool_).all()
 
     @pytest.mark.parametrize("dtype", [SparseDtype(int, 0), int])

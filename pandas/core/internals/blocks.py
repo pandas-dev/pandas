@@ -350,7 +350,7 @@ class Block(PandasObject, libinternals.Block):
         return self._split_op_result(result)
 
     @final
-    def reduce(self, func) -> list[Block]:
+    def reduce(self, func) -> Block:
         # We will apply the function and reshape the result into a single-row
         #  Block with the same mgr_locs; squeezing will be done at a higher level
         assert self.ndim == 2
@@ -362,8 +362,7 @@ class Block(PandasObject, libinternals.Block):
         else:
             res_values = result.reshape(-1, 1)
 
-        nb = self.make_block(res_values)
-        return [nb]
+        return self.make_block(res_values)
 
     @final
     def _split_op_result(self, result: ArrayLike) -> list[Block]:
@@ -638,7 +637,7 @@ class Block(PandasObject, libinternals.Block):
         return self.make_block(result)
 
     @final
-    def copy(self, deep: bool = True) -> Self:
+    def copy(self, *, deep: bool) -> Self:
         """copy constructor"""
         values = self.values
         refs: BlockValuesRefs | None
@@ -656,7 +655,7 @@ class Block(PandasObject, libinternals.Block):
         if inplace:
             deep = self.refs.has_reference()
             return self.copy(deep=deep)
-        return self.copy()
+        return self.copy(deep=True)
 
     @final
     def _get_refs_and_copy(self, inplace: bool):
@@ -923,10 +922,10 @@ class Block(PandasObject, libinternals.Block):
                     has_ref = self.refs.has_reference()
                     nb = self.astype(np.dtype(object))
                     if not inplace:
-                        nb = nb.copy()
+                        nb = nb.copy(deep=True)
                     elif inplace and has_ref and nb.refs.has_reference():
                         # no copy in astype and we had refs before
-                        nb = nb.copy()
+                        nb = nb.copy(deep=True)
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
                 return [self.copy(deep=False)]
@@ -1152,7 +1151,7 @@ class Block(PandasObject, libinternals.Block):
         Parameters
         ----------
         mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
-        new : a ndarray/object
+        new : an ndarray/object
 
         Returns
         -------
@@ -1215,7 +1214,7 @@ class Block(PandasObject, libinternals.Block):
 
         Parameters
         ----------
-        other : a ndarray/object
+        other : an ndarray/object
         cond : np.ndarray[bool], SparseArray[bool], or BooleanArray
 
         Returns
@@ -1514,6 +1513,15 @@ class Block(PandasObject, libinternals.Block):
             Caller is responsible for validating this
         """
         if not self.is_numeric or self.is_bool:
+            if isinstance(self.values, (DatetimeArray, TimedeltaArray, PeriodArray)):
+                # GH#57781
+                # TODO: also the ArrowDtype analogues?
+                warnings.warn(
+                    "obj.round has no effect with datetime, timedelta, "
+                    "or period dtypes. Use obj.dt.round(...) instead.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
             return self.copy(deep=False)
         # TODO: round only defined on BaseMaskedArray
         # Series also does this, so would need to fix both places
@@ -2377,7 +2385,11 @@ def external_values(values: ArrayLike) -> ArrayLike:
     if isinstance(values, np.ndarray):
         values = values.view()
         values.flags.writeable = False
-
-    # TODO(CoW) we should also mark our ExtensionArrays as read-only
+    else:
+        # ExtensionArrays
+        # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
+        # values = values.view()
+        # values._readonly = True
+        pass
 
     return values

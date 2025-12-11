@@ -58,7 +58,7 @@ cdef bint is_definitely_invalid_key(object val):
 
 cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
     """
-    Return a ndarray[bool] of locations where val matches self.values.
+    Return an ndarray[bool] of locations where val matches self.values.
 
     If val is not NA, this is equivalent to `self.values == val`
     """
@@ -320,6 +320,9 @@ cdef class IndexEngine:
             # we can only be sure of uniqueness if is_strict_monotonic=1
             if is_strict_monotonic:
                 self.unique = 1
+                self.need_unique_check = 0
+            elif self.monotonic_inc == 1 or self.monotonic_dec == 1:
+                self.unique = 0
                 self.need_unique_check = 0
 
     cdef _call_monotonic(self, values):

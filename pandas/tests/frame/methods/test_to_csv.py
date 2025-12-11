@@ -50,7 +50,7 @@ class TestDataFrameToCSV:
         datetime_frame.to_csv(path)
         recons = self.read_csv(path, parse_dates=True)
         expected = datetime_frame.copy()
-        expected.index = expected.index.as_unit("s")
+        expected.index = expected.index.as_unit("us")
         tm.assert_frame_equal(expected, recons)
 
         datetime_frame.to_csv(path, index_label="index")
@@ -128,7 +128,7 @@ class TestDataFrameToCSV:
     def test_to_csv_from_csv4(self, temp_file):
         path = str(temp_file)
         # GH 10833 (TimedeltaIndex formatting)
-        dt = pd.Timedelta(seconds=1)
+        dt = pd.Timedelta(seconds=1).as_unit("us")
         df = DataFrame(
             {"dt_data": [i * dt for i in range(3)]},
             index=Index([i * dt for i in range(3)], name="dt_index"),
@@ -240,8 +240,8 @@ class TestDataFrameToCSV:
         result = self.read_csv(path).apply(to_datetime)
 
         expected = df[:]
-        expected["a"] = expected["a"].astype("M8[s]")
-        expected["b"] = expected["b"].astype("M8[s]")
+        expected["a"] = expected["a"].astype("M8[us]")
+        expected["b"] = expected["b"].astype("M8[us]")
         tm.assert_frame_equal(result, expected, check_names=False)
 
     def _return_result_expected(
@@ -359,7 +359,7 @@ class TestDataFrameToCSV:
             columns=Index(list("abcd"), dtype=object),
         )
         result, expected = self._return_result_expected(df, 1000, temp_file, "dt", "s")
-        expected.index = expected.index.astype("M8[ns]")
+        expected.index = expected.index.astype("M8[us]")
         tm.assert_frame_equal(result, expected, check_names=False)
 
     @pytest.mark.slow
@@ -390,9 +390,13 @@ class TestDataFrameToCSV:
             r_idx_type,
             c_idx_type,
         )
-        if r_idx_type in ["dt", "p"]:
+        if r_idx_type == "dt":
+            expected.index = expected.index.astype("M8[us]")
+        elif r_idx_type == "p":
             expected.index = expected.index.astype("M8[ns]")
-        if c_idx_type in ["dt", "p"]:
+        if c_idx_type == "dt":
+            expected.columns = expected.columns.astype("M8[us]")
+        elif c_idx_type == "p":
             expected.columns = expected.columns.astype("M8[ns]")
         tm.assert_frame_equal(result, expected, check_names=False)
 
@@ -585,7 +589,7 @@ class TestDataFrameToCSV:
 
         # TODO to_csv drops column name
         expected = tsframe.copy()
-        expected.index = MultiIndex.from_arrays([old_index.as_unit("s"), new_index[1]])
+        expected.index = MultiIndex.from_arrays([old_index.as_unit("us"), new_index[1]])
         tm.assert_frame_equal(recons, expected, check_names=False)
 
         # do not load index
@@ -836,9 +840,9 @@ class TestDataFrameToCSV:
         result = result.rename(columns={"a.1": "a"})
         tm.assert_frame_equal(result, df)
 
-    @pytest.mark.parametrize("chunksize", [10000, 50000, 100000])
+    @pytest.mark.parametrize("chunksize", [1, 5, 10])
     def test_to_csv_chunking(self, chunksize, temp_file):
-        aa = DataFrame({"A": range(100000)})
+        aa = DataFrame({"A": range(10)})
         aa["B"] = aa.A + 1.0
         aa["C"] = aa.A + 2.0
         aa["D"] = aa.A + 3.0
@@ -1159,7 +1163,7 @@ class TestDataFrameToCSV:
 
         tm.assert_frame_equal(test, nat_frame)
 
-    @pytest.mark.parametrize("td", [pd.Timedelta(0), pd.Timedelta("10s")])
+    @pytest.mark.parametrize("td", [pd.Timedelta(0).as_unit("us"), pd.Timedelta("10s")])
     def test_to_csv_with_dst_transitions(self, td, temp_file):
         path = str(temp_file)
         # make sure we are not failing on transitions
@@ -1178,11 +1182,7 @@ class TestDataFrameToCSV:
         # we have to reconvert the index as we
         # don't parse the tz's
         result = read_csv(path, index_col=0)
-        result.index = (
-            to_datetime(result.index, utc=True)
-            .tz_convert("Europe/London")
-            .as_unit("ns")
-        )
+        result.index = to_datetime(result.index, utc=True).tz_convert("Europe/London")
         tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize(
@@ -1194,7 +1194,7 @@ class TestDataFrameToCSV:
     )
     def test_to_csv_with_dst_transitions_with_pickle(self, start, end, temp_file):
         # GH11619
-        idx = date_range(start, end, freq="h", tz="Europe/Paris")
+        idx = date_range(start, end, freq="h", tz="Europe/Paris", unit="ns")
         idx = idx._with_freq(None)  # freq does not round-trip
         idx._data._freq = None  # otherwise there is trouble on unpickle
         df = DataFrame({"values": 1, "idx": idx}, index=idx)

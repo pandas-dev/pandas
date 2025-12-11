@@ -52,7 +52,6 @@ from pandas.errors import (
     UnsortedIndexError,
 )
 from pandas.util._decorators import (
-    Appender,
     cache_readonly,
     doc,
     set_module,
@@ -101,7 +100,6 @@ from pandas.core.construction import sanitize_array
 import pandas.core.indexes.base as ibase
 from pandas.core.indexes.base import (
     Index,
-    _index_shared_docs,
     ensure_index,
     get_unanimous_names,
 )
@@ -1902,8 +1900,6 @@ class MultiIndex(Index):
         allow_duplicates : bool, optional default False
             Allow duplicate column labels to be created.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         DataFrame
@@ -2290,7 +2286,6 @@ class MultiIndex(Index):
             verify_integrity=False,
         )
 
-    @Appender(_index_shared_docs["take"] % _index_doc_kwargs)
     def take(
         self: MultiIndex,
         indices,
@@ -2299,6 +2294,60 @@ class MultiIndex(Index):
         fill_value=None,
         **kwargs,
     ) -> MultiIndex:
+        """
+        Return a new MultiIndex of the values selected by the indices.
+
+        For internal compatibility with numpy arrays.
+
+        Parameters
+        ----------
+        indices : array-like
+            Indices to be taken.
+        axis : {0 or 'index'}, optional
+            The axis over which to select values, always 0 or 'index'.
+        allow_fill : bool, default True
+            How to handle negative values in `indices`.
+
+            * False: negative values in `indices` indicate positional indices
+            from the right (the default). This is similar to
+            :func:`numpy.take`.
+
+            * True: negative values in `indices` indicate
+            missing values. These values are set to `fill_value`. Any other
+            other negative values raise a ``ValueError``.
+
+        fill_value : scalar, default None
+            If allow_fill=True and fill_value is not None, indices specified by
+            -1 are regarded as NA. If Index doesn't hold NA, raise ValueError.
+        **kwargs
+            Required for compatibility with numpy.
+
+        Returns
+        -------
+        Index
+            An index formed of elements at the given indices. Will be the same
+            type as self, except for RangeIndex.
+
+        See Also
+        --------
+        numpy.ndarray.take: Return an array formed from the
+            elements of a at the given indices.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_arrays([["a", "b", "c"], [1, 2, 3]])
+        >>> idx
+        MultiIndex([('a', 1),
+                    ('b', 2),
+                    ('c', 3)],
+                   )
+        >>> idx.take([2, 2, 1, 0])
+        MultiIndex([('c', 3),
+                    ('c', 3),
+                    ('b', 2),
+                    ('a', 1)],
+                   )
+        """
         nv.validate_take((), kwargs)
         indices = ensure_platform_int(indices)
 
@@ -2454,8 +2503,58 @@ class MultiIndex(Index):
         keys = [lev.codes for lev in target._get_codes_for_sorting()]
         return lexsort_indexer(keys, na_position=na_position, codes_given=True)
 
-    @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats: int, axis=None) -> MultiIndex:
+        """
+        Repeat elements of a MultiIndex.
+
+        Returns a new MultiIndex where each element of the current MultiIndex
+        is repeated consecutively a given number of times.
+
+        Parameters
+        ----------
+        repeats : int or array of ints
+            The number of repetitions for each element. This should be a
+            non-negative integer. Repeating 0 times will return an empty
+            MultiIndex.
+        axis : None
+            Must be ``None``. Has no effect but is accepted for compatibility
+            with numpy.
+
+        Returns
+        -------
+        MultiIndex
+            Newly created MultiIndex with repeated elements.
+
+        See Also
+        --------
+        Series.repeat : Equivalent function for Series.
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_arrays([["a", "b", "c"], [1, 2, 3]])
+        >>> idx
+        MultiIndex([('a', 1),
+                    ('b', 2),
+                    ('c', 3)],
+                   )
+        >>> idx.repeat(2)
+        MultiIndex([('a', 1),
+                    ('a', 1),
+                    ('b', 2),
+                    ('b', 2),
+                    ('c', 3),
+                    ('c', 3)],
+                   )
+        >>> idx.repeat([1, 2, 3])
+        MultiIndex([('a', 1),
+                    ('b', 2),
+                    ('b', 2),
+                    ('c', 3),
+                    ('c', 3),
+                    ('c', 3)],
+                   )
+        """
         nv.validate_repeat((), {"axis": axis})
         # error: Incompatible types in assignment (expression has type "ndarray",
         # variable has type "int")
@@ -2607,14 +2706,18 @@ class MultiIndex(Index):
 
         Calling this method does not change the ordering of the values.
 
+        Default is to swap the last two levels of the MultiIndex.
+
         Parameters
         ----------
         i : int, str, default -2
             First level of index to be swapped. Can pass level name as string.
-            Type of parameters can be mixed.
+            Type of parameters can be mixed. If i is a negative int, the first
+            level is indexed relative to the end of the MultiIndex.
         j : int, str, default -1
             Second level of index to be swapped. Can pass level name as string.
-            Type of parameters can be mixed.
+            Type of parameters can be mixed. If j is a negative int, the second
+            level is indexed relative to the end of the MultiIndex.
 
         Returns
         -------
@@ -2630,20 +2733,33 @@ class MultiIndex(Index):
         Examples
         --------
         >>> mi = pd.MultiIndex(
-        ...     levels=[["a", "b"], ["bb", "aa"]], codes=[[0, 0, 1, 1], [0, 1, 0, 1]]
+        ...     levels=[["a", "b"], ["bb", "aa"], ["aaa", "bbb"]],
+        ...     codes=[[0, 0, 1, 1], [0, 1, 0, 1], [1, 0, 1, 0]],
         ... )
         >>> mi
-        MultiIndex([('a', 'bb'),
-                    ('a', 'aa'),
-                    ('b', 'bb'),
-                    ('b', 'aa')],
+        MultiIndex([('a', 'bb', 'bbb'),
+                    ('a', 'aa', 'aaa'),
+                    ('b', 'bb', 'bbb'),
+                    ('b', 'aa', 'aaa')],
+                   )
+        >>> mi.swaplevel()
+        MultiIndex([('a', 'bbb', 'bb'),
+                    ('a', 'aaa', 'aa'),
+                    ('b', 'bbb', 'bb'),
+                    ('b', 'aaa', 'aa')],
+                   )
+        >>> mi.swaplevel(0)
+        MultiIndex([('bbb', 'bb', 'a'),
+                    ('aaa', 'aa', 'a'),
+                    ('bbb', 'bb', 'b'),
+                    ('aaa', 'aa', 'b')],
                    )
         >>> mi.swaplevel(0, 1)
-        MultiIndex([('bb', 'a'),
-                    ('aa', 'a'),
-                    ('bb', 'b'),
-                    ('aa', 'b')],
-                   )
+        MultiIndex([('bb', 'a', 'bbb'),
+                    ('aa', 'a', 'aaa'),
+                    ('bb', 'b', 'bbb'),
+                    ('aa', 'b', 'aaa')],
+                )
         """
         new_levels = list(self.levels)
         new_codes = list(self.codes)
@@ -3946,7 +4062,9 @@ class MultiIndex(Index):
         if other.has_duplicates:
             # This is only necessary if other has dupes,
             # otherwise difference is faster
-            result = super()._union(other, sort)
+            result = super(MultiIndex, self.rename(result_names))._union(
+                other.rename(result_names), sort
+            )
 
             if isinstance(result, MultiIndex):
                 return result

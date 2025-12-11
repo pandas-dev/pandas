@@ -41,22 +41,20 @@ pytestmark = [pytest.mark.single_cpu]
 tables = pytest.importorskip("tables")
 
 
-def test_context(setup_path):
-    with tm.ensure_clean(setup_path) as path:
-        try:
-            with HDFStore(path) as tbl:
-                raise ValueError("blah")
-        except ValueError:
-            pass
-    with tm.ensure_clean(setup_path) as path:
-        with HDFStore(path) as tbl:
-            tbl["a"] = DataFrame(
-                1.1 * np.arange(120).reshape((30, 4)),
-                columns=Index(list("ABCD"), dtype=object),
-                index=Index([f"i-{i}" for i in range(30)], dtype=object),
-            )
-            assert len(tbl) == 1
-            assert type(tbl["a"]) == DataFrame
+def test_context(setup_path, tmp_path):
+    try:
+        with HDFStore(tmp_path / setup_path) as tbl:
+            raise ValueError("blah")
+    except ValueError:
+        pass
+    with HDFStore(tmp_path / setup_path) as tbl:
+        tbl["a"] = DataFrame(
+            1.1 * np.arange(120).reshape((30, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+        )
+        assert len(tbl) == 1
+        assert type(tbl["a"]) == DataFrame
 
 
 def test_no_track_times(tmp_path, setup_path):
@@ -589,7 +587,7 @@ def test_same_name_scoping(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((20, 2)),
-            index=date_range("20130101", periods=20),
+            index=date_range("20130101", periods=20, unit="ns"),
         )
         store.put("df", df, format="table")
         expected = df[df.index > Timestamp("20130105")]
@@ -971,37 +969,36 @@ def test_pickle_path_localpath():
 
 
 @pytest.mark.parametrize("propindexes", [True, False])
-def test_copy(propindexes):
+def test_copy(propindexes, temp_file):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
         index=Index([f"i-{i}" for i in range(30)]),
     )
 
-    with tm.ensure_clean() as path:
-        with HDFStore(path) as st:
-            st.append("df", df, data_columns=["A"])
-        with tempfile.NamedTemporaryFile() as new_f:
-            with HDFStore(path) as store:
-                with contextlib.closing(
-                    store.copy(new_f.name, keys=None, propindexes=propindexes)
-                ) as tstore:
-                    # check keys
-                    keys = store.keys()
-                    assert set(keys) == set(tstore.keys())
-                    # check indices & nrows
-                    for k in tstore.keys():
-                        if tstore.get_storer(k).is_table:
-                            new_t = tstore.get_storer(k)
-                            orig_t = store.get_storer(k)
+    with HDFStore(temp_file) as st:
+        st.append("df", df, data_columns=["A"])
+    with tempfile.NamedTemporaryFile() as new_f:
+        with HDFStore(temp_file) as store:
+            with contextlib.closing(
+                store.copy(new_f.name, keys=None, propindexes=propindexes)
+            ) as tstore:
+                # check keys
+                keys = store.keys()
+                assert set(keys) == set(tstore.keys())
+                # check indices & nrows
+                for k in tstore.keys():
+                    if tstore.get_storer(k).is_table:
+                        new_t = tstore.get_storer(k)
+                        orig_t = store.get_storer(k)
 
-                            assert orig_t.nrows == new_t.nrows
+                        assert orig_t.nrows == new_t.nrows
 
-                            # check propindixes
-                            if propindexes:
-                                for a in orig_t.axes:
-                                    if a.is_indexed:
-                                        assert new_t[a.name].is_indexed
+                        # check propindixes
+                        if propindexes:
+                            for a in orig_t.axes:
+                                if a.is_indexed:
+                                    assert new_t[a.name].is_indexed
 
 
 def test_duplicate_column_name(tmp_path, setup_path):
@@ -1020,10 +1017,12 @@ def test_duplicate_column_name(tmp_path, setup_path):
     assert other.equals(df)
 
 
-def test_preserve_timedeltaindex_type(setup_path):
+def test_preserve_timedeltaindex_type(setup_path, unit):
     # GH9635
     df = DataFrame(np.random.default_rng(2).normal(size=(10, 5)))
-    df.index = timedelta_range(start="0s", periods=10, freq="1s", name="example")
+    df.index = timedelta_range(
+        start="0s", periods=10, freq="1s", name="example", unit=unit
+    )
 
     with ensure_clean_store(setup_path) as store:
         store["df"] = df

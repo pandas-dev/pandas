@@ -276,7 +276,7 @@ cdef (int64_t, int) precision_from_unit(
 
 cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
     """
-    Extract the value and unit from a np.datetime64 object, then convert the
+    Extract the value and unit from an np.datetime64 object, then convert the
     value to nanoseconds if necessary.
     """
     cdef:
@@ -623,6 +623,8 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
             )
             if not string_to_dts_failed:
                 reso = get_supported_reso(out_bestunit)
+                if reso < NPY_FR_us:
+                    reso = NPY_FR_us
                 check_dts_bounds(&dts, reso)
                 obj = _TSObject()
                 obj.dts = dts
@@ -661,6 +663,8 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
             nanos=&nanos,
         )
         reso = get_supported_reso(out_bestunit)
+        if reso < NPY_FR_us:
+            reso = NPY_FR_us
         return convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
 
 

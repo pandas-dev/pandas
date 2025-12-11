@@ -27,6 +27,34 @@ from pandas.core.arrays import TimedeltaArray
 
 
 class TestTimedeltas:
+    def test_to_timedelta_mixed_unit_strings(self):
+        # https://github.com/pandas-dev/pandas/pull/63196#issuecomment-3595743721
+        result = to_timedelta(["1 days 06:05:01.00003", "15.5us"])
+
+        expected = TimedeltaIndex([108_301_000_030_000, 15_500], dtype="m8[ns]")
+        tm.assert_index_equal(result, expected)
+
+    def test_to_timedelta_all_nat_unit(self):
+        # With all-NaT entries, we get "s" unit
+        result = to_timedelta([None])
+        assert result.unit == "s"
+
+        result = TimedeltaIndex([None])
+        assert result.unit == "s"
+
+    def test_to_timedelta_month_raises(self):
+        obj = np.timedelta64(1, "M")
+
+        msg = "Unit M is not supported."
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta(obj)
+        with pytest.raises(ValueError, match=msg):
+            pd.Timedelta(obj)
+        with pytest.raises(ValueError, match=msg):
+            to_timedelta([obj])
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaIndex([obj])
+
     def test_to_timedelta_none(self):
         # GH#23055
         assert to_timedelta(None) is pd.NaT
@@ -62,7 +90,9 @@ class TestTimedeltas:
 
     def test_to_timedelta_series(self):
         # Series
-        expected = Series([timedelta(days=1), timedelta(days=1, seconds=1)])
+        expected = Series(
+            [timedelta(days=1), timedelta(days=1, seconds=1)], dtype="m8[us]"
+        )
 
         msg = "'d' is deprecated and will be removed in a future version."
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -185,7 +215,7 @@ class TestTimedeltas:
 
     def test_to_timedelta_via_apply(self):
         # GH 5458
-        expected = Series([np.timedelta64(1, "s")])
+        expected = Series([np.timedelta64(1, "s")], dtype="m8[us]")
         result = Series(["00:00:01"]).apply(to_timedelta)
         tm.assert_series_equal(result, expected)
 
@@ -199,7 +229,7 @@ class TestTimedeltas:
         with tm.assert_produces_warning(None):
             result = to_timedelta(vals)
 
-        expected = TimedeltaIndex([pd.Timedelta(seconds=1), pd.NaT])
+        expected = TimedeltaIndex([pd.Timedelta(seconds=1), pd.NaT], dtype="m8[us]")
         tm.assert_index_equal(result, expected)
 
     def test_to_timedelta_on_missing_values(self):
@@ -209,11 +239,11 @@ class TestTimedeltas:
         actual = to_timedelta(Series(["00:00:01", np.nan]))
         expected = Series(
             [np.timedelta64(1000000000, "ns"), timedelta_NaT],
-            dtype=f"{tm.ENDIAN}m8[ns]",
+            dtype=f"{tm.ENDIAN}m8[us]",
         )
         tm.assert_series_equal(actual, expected)
 
-        ser = Series(["00:00:01", pd.NaT], dtype="m8[ns]")
+        ser = Series(["00:00:01", pd.NaT], dtype="m8[us]")
         actual = to_timedelta(ser)
         tm.assert_series_equal(actual, expected)
 
@@ -247,7 +277,7 @@ class TestTimedeltas:
     )
     def test_to_timedelta_nullable_int64_dtype(self, expected_val, result_val):
         # GH 35574
-        expected = Series([timedelta(days=1), expected_val])
+        expected = Series([timedelta(days=1), expected_val], dtype="m8[ns]")
         result = to_timedelta(Series([1, result_val], dtype="Int64"), unit="days")
 
         tm.assert_series_equal(result, expected)

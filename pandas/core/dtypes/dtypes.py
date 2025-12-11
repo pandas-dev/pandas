@@ -85,6 +85,7 @@ if TYPE_CHECKING:
         IntervalClosedType,
         Ordered,
         Scalar,
+        TimeUnit,
         npt,
         type_t,
     )
@@ -112,7 +113,7 @@ str_type = str
 
 class PandasExtensionDtype(ExtensionDtype):
     """
-    A np.dtype duck-typed class, suitable for holding a custom dtype.
+    An np.dtype duck-typed class, suitable for holding a custom dtype.
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
@@ -176,7 +177,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         The categories are stored in an Index,
         and if an index is provided the dtype of that index will be used.
     ordered : bool or None, default False
-        Whether or not this categorical is treated as a ordered categorical.
+        Whether or not this categorical is treated as an ordered categorical.
         None can be used to maintain the ordered value of existing categoricals when
         used in operations that combine categoricals, e.g. astype, and will resolve to
         False if there is no existing ordered to maintain.
@@ -502,7 +503,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             # assumes if any individual category is a tuple, then all our. ATM
             # I don't really want to support just some of the categories being
             # tuples.
-            cat_list = list(categories)  # breaks if a np.array of categories
+            cat_list = list(categories)  # breaks if an np.array of categories
             cat_array = hash_tuples(cat_list)
         else:
             if categories.dtype == "O" and len({type(x) for x in categories}) != 1:
@@ -780,10 +781,10 @@ class DatetimeTZDtype(PandasExtensionDtype):
     def str(self) -> str:  # type: ignore[override]
         return f"|M8[{self.unit}]"
 
-    def __init__(self, unit: str_type | DatetimeTZDtype = "ns", tz=None) -> None:
+    def __init__(self, unit: TimeUnit | DatetimeTZDtype = "ns", tz=None) -> None:
         if isinstance(unit, DatetimeTZDtype):
             # error: "str" has no attribute "tz"
-            unit, tz = unit.unit, unit.tz  # type: ignore[attr-defined]
+            unit, tz = unit.unit, unit.tz  # type: ignore[union-attr]
 
         if unit != "ns":
             if isinstance(unit, str) and tz is None:
@@ -820,7 +821,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         return abbrev_to_npy_unit(self.unit)
 
     @property
-    def unit(self) -> str_type:
+    def unit(self) -> TimeUnit:
         """
         The precision of the datetime data.
 
@@ -894,7 +895,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
         if match:
             d = match.groupdict()
             try:
-                return cls(unit=d["unit"], tz=d["tz"])
+                unit = cast("TimeUnit", d["unit"])
+                return cls(unit=unit, tz=d["tz"])
             except (KeyError, TypeError, ValueError) as err:
                 # KeyError if maybe_get_tz tries and fails to get a
                 #  zoneinfo timezone (actually zoneinfo.ZoneInfoNotFoundError).
@@ -971,6 +973,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         if all(isinstance(t, DatetimeTZDtype) and t.tz == self.tz for t in dtypes):
             np_dtype = np.max([cast(DatetimeTZDtype, t).base for t in [self, *dtypes]])
             unit = np.datetime_data(np_dtype)[0]
+            unit = cast("TimeUnit", unit)
             return type(self)(unit=unit, tz=self.tz)
         return super()._get_common_dtype(dtypes)
 
@@ -2308,8 +2311,35 @@ class ArrowDtype(StorageExtensionDtype):
 
     @cache_readonly
     def itemsize(self) -> int:
-        """Return the number of bytes in this dtype"""
-        return self.numpy_dtype.itemsize
+        """
+        Return the number of bytes in this dtype.
+
+        For Arrow-backed dtypes:
+        - Returns the fixed-width bit size divided by 8 for standard fixed-width types.
+        - For boolean types, returns the NumPy itemsize.
+        - Falls back to the NumPy dtype itemsize for variable-width & unsupported types.
+
+        Examples
+        --------
+        >>> import pyarrow as pa
+        >>> import pandas as pd
+        >>> dtype = pd.ArrowDtype(pa.int32())
+        >>> dtype.itemsize
+        4
+
+        >>> dtype = pd.ArrowDtype(pa.bool_())
+        >>> dtype.itemsize  # falls back to numpy dtype
+        1
+        """
+        if pa.types.is_boolean(self.pyarrow_dtype):
+            return self.numpy_dtype.itemsize
+
+        # Use pyarrow itemsize for fixed-width data types
+        # e.g. int32 -> 32 bits // 8 = 4 bytes
+        try:
+            return self.pyarrow_dtype.bit_width // 8
+        except (ValueError, AttributeError, NotImplementedError):
+            return self.numpy_dtype.itemsize
 
     def construct_array_type(self) -> type_t[ArrowExtensionArray]:
         """

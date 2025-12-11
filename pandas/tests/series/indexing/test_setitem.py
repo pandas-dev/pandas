@@ -42,7 +42,7 @@ from pandas.tseries.offsets import BDay
 
 class TestSetitemDT64Values:
     def test_setitem_none_nan(self):
-        series = Series(date_range("1/1/2000", periods=10))
+        series = Series(date_range("1/1/2000", periods=10, unit="ns"))
         series[3] = None
         assert series[3] is NaT
 
@@ -73,7 +73,7 @@ class TestSetitemDT64Values:
 
     def test_setitem_tuple_with_datetimetz_values(self):
         # GH#20441
-        arr = date_range("2017", periods=4, tz="US/Eastern")
+        arr = date_range("2017", periods=4, tz="US/Eastern", unit="ns")
         index = [(0, 1), (0, 2), (0, 3), (0, 4)]
         result = Series(arr, index=index)
         expected = result.copy()
@@ -83,7 +83,7 @@ class TestSetitemDT64Values:
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "UTC", "Asia/Tokyo"])
     def test_setitem_with_tz(self, tz, indexer_sli):
-        orig = Series(date_range("2016-01-01", freq="h", periods=3, tz=tz))
+        orig = Series(date_range("2016-01-01", freq="h", periods=3, tz=tz, unit="ns"))
         assert orig.dtype == f"datetime64[ns, {tz}]"
 
         exp = Series(
@@ -124,7 +124,7 @@ class TestSetitemDT64Values:
     def test_setitem_with_tz_dst(self, indexer_sli):
         # GH#14146 trouble setting values near DST boundary
         tz = "US/Eastern"
-        orig = Series(date_range("2016-11-06", freq="h", periods=3, tz=tz))
+        orig = Series(date_range("2016-11-06", freq="h", periods=3, tz=tz, unit="ns"))
         assert orig.dtype == f"datetime64[ns, {tz}]"
 
         exp = Series(
@@ -1483,7 +1483,7 @@ class TestCoercionDatetime64HigherReso(CoercionTest):
     def obj(self, exp_dtype):
         idx = date_range("2011-01-01", freq="D", periods=4, unit="s")
         if exp_dtype == "m8[ms]":
-            idx = idx - Timestamp("1970-01-01")
+            idx = idx - Timestamp("1970-01-01").as_unit("s")
             assert idx.dtype == "m8[s]"
         elif exp_dtype == "M8[ms, UTC]":
             idx = idx.tz_localize("UTC")
@@ -1493,7 +1493,7 @@ class TestCoercionDatetime64HigherReso(CoercionTest):
     def val(self, exp_dtype):
         ts = Timestamp("2011-01-02 03:04:05.678").as_unit("ms")
         if exp_dtype == "m8[ms]":
-            return ts - Timestamp("1970-01-01")
+            return ts - Timestamp("1970-01-01").as_unit("s")
         elif exp_dtype == "M8[ms, UTC]":
             return ts.tz_localize("UTC")
         return ts
@@ -1516,7 +1516,7 @@ class TestCoercionDatetime64(CoercionTest):
 
     @pytest.fixture
     def obj(self):
-        return Series(date_range("2011-01-01", freq="D", periods=4))
+        return Series(date_range("2011-01-01", freq="D", periods=4, unit="ns"))
 
     @pytest.fixture
     def raises(self):
@@ -1538,7 +1538,7 @@ class TestCoercionDatetime64TZ(CoercionTest):
     @pytest.fixture
     def obj(self):
         tz = "US/Eastern"
-        return Series(date_range("2011-01-01", freq="D", periods=4, tz=tz))
+        return Series(date_range("2011-01-01", freq="D", periods=4, tz=tz, unit="ns"))
 
     @pytest.fixture
     def raises(self):
@@ -1548,7 +1548,7 @@ class TestCoercionDatetime64TZ(CoercionTest):
 @pytest.mark.parametrize(
     "val,exp_dtype,raises",
     [
-        (Timedelta("12 day"), "timedelta64[ns]", False),
+        (Timedelta("12 day"), "timedelta64[us]", False),
         (1, object, True),
         ("x", object, True),
     ],

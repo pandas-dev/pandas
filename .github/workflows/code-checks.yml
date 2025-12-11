@@ -33,7 +33,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -114,7 +114,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
@@ -131,33 +131,6 @@ jobs:
         asv machine --yes
         asv run --quick --dry-run --durations=30 --python=same --show-stderr
 
-  build_docker_dev_environment:
-    name: Build Docker Dev Environment
-    runs-on: ubuntu-24.04
-    defaults:
-      run:
-        shell: bash -el {0}
-
-    concurrency:
-      # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-build_docker_dev_environment
-      cancel-in-progress: true
-
-    steps:
-      - name: Clean up dangling images
-        run: docker image prune -f
-
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Build image
-        run: docker build --pull --no-cache --tag pandas-dev-env .
-
-      - name: Show environment
-        run: docker run --rm pandas-dev-env python -c "import pandas as pd; print(pd.show_versions())"
-
   requirements-dev-text-installable:
     name: Test install requirements-dev.txt
     runs-on: ubuntu-24.04
@@ -169,7 +142,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 

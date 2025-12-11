@@ -598,7 +598,7 @@ class BaseBlockManager(PandasObject):
                     return self
             # No need to split if we either set all columns or on a single block
             # manager
-            self = self.copy()
+            self = self.copy(deep=True)
 
         return self.apply("setitem", indexer=indexer, value=value)
 
@@ -712,30 +712,21 @@ class BaseBlockManager(PandasObject):
     def nblocks(self) -> int:
         return len(self.blocks)
 
-    def copy(self, deep: bool | Literal["all"] = True) -> Self:
+    def copy(self, *, deep: bool) -> Self:
         """
         Make deep or shallow copy of BlockManager
 
         Parameters
         ----------
         deep : bool, string or None, default True
-            If False or None, return a shallow copy (do not copy data)
-            If 'all', copy data and a deep copy of the index
+            If False, return a shallow copy (do not copy data)
 
         Returns
         -------
         BlockManager
         """
-        # this preserves the notion of view copying of axes
-        if deep:
-            # hit in e.g. tests.io.json.test_pandas
-
-            def copy_func(ax):
-                return ax.copy(deep=True) if deep == "all" else ax.view()
-
-            new_axes = [copy_func(ax) for ax in self.axes]
-        else:
-            new_axes = [ax.view() for ax in self.axes]
+        # TODO: Should deep=True be respected for axes?
+        new_axes = [ax.view() for ax in self.axes]
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
@@ -816,7 +807,7 @@ class BaseBlockManager(PandasObject):
         only_slice : bool, default False
             Whether to take views, not copies, along columns.
         use_na_proxy : bool, default False
-            Whether to use a np.void ndarray for newly introduced columns.
+            Whether to use an np.void ndarray for newly introduced columns.
 
         pandas-indexer with -1's only.
         """
@@ -892,7 +883,7 @@ class BaseBlockManager(PandasObject):
             If True, we always return views on existing arrays, never copies.
             This is used when called from ops.blockwise.operate_blockwise.
         use_na_proxy : bool, default False
-            Whether to use a np.void ndarray for newly introduced columns.
+            Whether to use an np.void ndarray for newly introduced columns.
         ref_inplace_op: bool, default False
             Don't track refs if True because we operate inplace
 
@@ -1651,12 +1642,8 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         # If 2D, we assume that we're operating column-wise
         assert self.ndim == 2
 
-        res_blocks: list[Block] = []
-        for blk in self.blocks:
-            nbs = blk.reduce(func)
-            res_blocks.extend(nbs)
-
-        index = Index([None])  # placeholder
+        res_blocks = [blk.reduce(func) for blk in self.blocks]
+        index = default_index(1)  # placeholder
         new_mgr = type(self).from_blocks(res_blocks, [self.items, index])
         return new_mgr
 
@@ -2192,7 +2179,7 @@ class SingleBlockManager(BaseBlockManager):
         the dtype.
         """
         if not self._has_no_reference(0):
-            self.blocks = (self._block.copy(),)
+            self.blocks = (self._block.copy(deep=True),)
             self._reset_cache()
 
         arr = self.array
