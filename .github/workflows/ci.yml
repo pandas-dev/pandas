@@ -1,0 +1,34 @@
+- name: Download micromamba (with retries)
+  shell: bash
+  run: |
+    set -euo pipefail
+    RETRIES=5
+    URL="https://micromamba.snakepit.net/api/micromamba/linux-64/latest"   # linux binary endpoint
+    OUT="$RUNNER_TEMP/micromamba.tar.bz2"
+    i=0
+    until [ $i -ge $RETRIES ]
+    do
+      echo "Attempt $((i+1))..."
+      if curl -fSL "$URL" -o "$OUT"; then
+        echo "Downloaded micromamba"
+        break
+      fi
+      i=$((i+1))
+      sleep $((i * 2))
+    done
+    if [ ! -f "$OUT" ]; then
+      echo "Failed to download micromamba after $RETRIES attempts"
+      exit 1
+    fi
+    mkdir -p "$RUNNER_TEMP/micromamba"
+    tar -xjf "$OUT" -C "$RUNNER_TEMP/micromamba" --strip-components=1
+    export MAMBA_ROOT_PREFIX="$RUNNER_TEMP/micromamba-root"
+    mkdir -p "$MAMBA_ROOT_PREFIX"
+    echo "Adding micromamba to PATH"
+    echo "$RUNNER_TEMP/micromamba/bin" >> $GITHUB_PATH
+
+- name: Create env with micromamba
+  run: |
+    micromamba create -y -n ci-env python=3.10
+    micromamba activate ci-env
+    micromamba install -y -n ci-env -c conda-forge <your-deps-here>
