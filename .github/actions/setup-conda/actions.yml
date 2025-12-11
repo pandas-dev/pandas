@@ -9,6 +9,7 @@ runs:
     - name: Install ${{ inputs.environment-file }}
       uses: mamba-org/setup-micromamba@v1 # Changed from @v2 to @v1 for stability
       with:
+      micromamba-url: https://github.com/mamba-org/micromamba-releases/releases/latest/download/micromamba-linux-64
         environment-file: ${{ inputs.environment-file }}
         environment-name: test
         condarc-file: ci/.condarc
