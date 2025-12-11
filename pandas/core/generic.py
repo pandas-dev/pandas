@@ -10965,10 +10965,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Periods to shift for forming percent change.
         fill_method : None
             Must be None. This argument will be removed in a future version of pandas.
-
-            .. deprecated:: 2.1
-                All options of `fill_method` are deprecated except `fill_method=None`.
-
         freq : DateOffset, timedelta, or str, optional
             Increment to use from time series API (e.g. 'ME' or BDay()).
         **kwargs

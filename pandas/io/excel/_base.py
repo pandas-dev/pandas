@@ -214,9 +214,6 @@ def read_excel(
         such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
 
-        .. deprecated:: 2.1.0
-            Passing byte strings is deprecated. To read from a
-            byte string, wrap it in a ``BytesIO`` object.
     sheet_name : str, int, list, or None, default 0
         Strings are used for sheet names. Integers are used in zero-indexed
         sheet positions (chart sheets do not count as a sheet position).

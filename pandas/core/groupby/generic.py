@@ -375,7 +375,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Parameters
         ----------
-        func : function, str, list, dict or None
+        func : function, str, list or None
             Function to use for aggregating the data. If a function, must either
             work when passed a Series or when passed to Series.apply.
 
@@ -399,10 +399,6 @@ class SeriesGroupBy(GroupBy[Series]):
               Each group's index will be passed to the user defined function
               and optionally available for use.
 
-            .. deprecated:: 2.1.0
-
-                Passing a dictionary is deprecated and will raise in a future version
-                of pandas. Pass a list of aggregations instead.
         *args
             Positional arguments to pass to func.
         engine : str, default None

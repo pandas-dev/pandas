@@ -549,9 +549,6 @@ def read_json(
         such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
 
-        .. deprecated:: 2.1.0
-            Passing json literal strings is deprecated.
-
     orient : str, optional
         Indication of expected JSON string format.
         Compatible JSON strings can be produced by ``to_json()`` with a

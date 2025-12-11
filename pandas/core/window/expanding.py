@@ -1078,8 +1078,6 @@ class Expanding(RollingAndExpandingMixin):
         q : float
             Quantile to compute. 0 <= quantile <= 1.
 
-            .. deprecated:: 2.1.0
-                This was renamed from 'quantile' to 'q' in version 2.1.0.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
