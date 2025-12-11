@@ -849,7 +849,9 @@ cdef int64_t _period_ordinal_safe(npy_datetimestruct *dts, int freq) except? -1:
     except OverflowError as err:
         # Translate low-level overflow into a user-facing OutOfBoundsDatetime.
         fmt = dts_to_iso_string(dts)
-        raise OutOfBoundsDatetime(f"Out of bounds datetime for Period with freq {freq}: {fmt}") from err
+        raise OutOfBoundsDatetime(
+            f"Out of bounds datetime for Period with freq {freq}: {fmt}"
+            ) from err
 
 
 cdef void get_date_info(int64_t ordinal,
@@ -1189,7 +1191,7 @@ cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
     dts.sec = s
     dts.us = us
     dts.ps = ps
-    #return get_period_ordinal(&dts, freq)
+    # return get_period_ordinal(&dts, freq)
     return _period_ordinal_safe(&dts, freq)
 
 

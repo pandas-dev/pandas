@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
-import pandas as pd
+
 from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
     iNaT,
     to_offset,
-    OutOfBoundsDatetime,
 )
 from pandas._libs.tslibs.period import (
     extract_ordinals,
@@ -13,6 +13,7 @@ from pandas._libs.tslibs.period import (
     period_ordinal,
 )
 
+import pandas as pd
 import pandas._testing as tm
 
 
@@ -122,6 +123,7 @@ def test_get_period_field_array_raises_on_out_of_range():
     msg = "Buffer dtype mismatch, expected 'const int64_t' but got 'double'"
     with pytest.raises(ValueError, match=msg):
         get_period_field_arr(-1, np.empty(1), 0)
+
 
 def test_period_from_overflow_timestamp_raises():
     # Construct a deliberately broken Timestamp
