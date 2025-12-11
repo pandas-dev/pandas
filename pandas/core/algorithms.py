@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_list_like,
     is_object_dtype,
+    is_scalar,
     is_signed_integer_dtype,
     needs_i8_conversion,
 )
@@ -1326,6 +1327,27 @@ def searchsorted(
 
     # Argument 1 to "searchsorted" of "ndarray" has incompatible type
     # "Union[NumpyValueArrayLike, ExtensionArray]"; expected "NumpyValueArrayLike"
+    # If `arr` is an object-dtype ndarray that mixes incomparable Python
+    # types (e.g. ints and strs), NumPy may still return an insertion
+    # index while direct Python comparisons raise TypeError. To make
+    # behavior consistent with pandas operations that rely on comparisons
+    # (e.g. sort_values), attempt a lightweight comparability check and
+    # propagate a TypeError if comparisons fail.
+    if isinstance(arr, np.ndarray) and arr.dtype == object:
+        # find first non-NA element to use as a sample
+        try:
+            first = next(x for x in arr if not isna(x))
+        except StopIteration:
+            first = None
+
+        if first is not None:
+            sample = value[0] if is_list_like(value) and not is_scalar(value) else value
+            try:
+                _ = first < sample
+            except TypeError:
+                # bubble up the TypeError (message comes from Python)
+                raise
+
     return arr.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
 
 

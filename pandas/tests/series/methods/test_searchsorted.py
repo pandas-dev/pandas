@@ -75,3 +75,9 @@ class TestSeriesSearchSorted:
         msg = "Value must be 1-D array-like or scalar, DataFrame is not supported"
         with pytest.raises(ValueError, match=msg):
             ser.searchsorted(vals)
+
+    def test_searchsorted_incomparable_object_raises():
+        # mixed int/str in object-dtype Series should raise, mirroring sort_values
+        ser = Series([1, 2, "1"])
+        with pytest.raises(TypeError):
+            ser.searchsorted("1")
