@@ -817,7 +817,7 @@ class MPLPlot(ABC):
                             f"number of columns = {self.nseries}"
                         )
 
-                    for ax, title in zip(self.axes, self.title):
+                    for ax, title in zip(self.axes, self.title, strict=False):
                         ax.set_title(title)
                 else:
                     fig.suptitle(self.title)
@@ -1126,16 +1126,16 @@ class MPLPlot(ABC):
         Error bars can be specified in several ways:
             Series: the user provides a pandas.Series object of the same
                     length as the data
-            ndarray: provides a np.ndarray of the same length as the data
+            ndarray: provides an np.ndarray of the same length as the data
             DataFrame/dict: error values are paired with keys matching the
                     key in the plotted DataFrame
             str: the name of the column within the plotted DataFrame
 
         Asymmetrical error bars are also supported, however raw error values
-        must be provided in this case. For a ``N`` length :class:`Series`, a
+        must be provided in this case. For an ``N`` length :class:`Series`, a
         ``2xN`` array should be provided indicating lower and upper (or left
-        and right) errors. For a ``MxN`` :class:`DataFrame`, asymmetrical errors
-        should be in a ``Mx2xN`` array.
+        and right) errors. For an ``MxN`` :class:`DataFrame`, asymmetrical errors
+        should be in an ``Mx2xN`` array.
         """
         if err is None:
             return None, data
@@ -1216,7 +1216,7 @@ class MPLPlot(ABC):
     ) -> dict[str, Any]:
         errors = {}
 
-        for kw, flag in zip(["xerr", "yerr"], [xerr, yerr]):
+        for kw, flag in zip(["xerr", "yerr"], [xerr, yerr], strict=True):
             if flag:
                 err = self.errors[kw]
                 # user provided label-matched dataframe of errors
@@ -1457,7 +1457,7 @@ class ScatterPlot(PlanePlot):
         cmap = mpl.colormaps.get_cmap(self.colormap)
         colors = cmap(np.linspace(0, 1, n_colors))  # RGB tuples
 
-        return dict(zip(unique, colors))
+        return dict(zip(unique, colors, strict=True))
 
     def _get_norm_and_cmap(self, c_values, color_by_categorical: bool):
         c = self.c
@@ -2178,7 +2178,10 @@ class PiePlot(MPLPlot):
             # Blank out labels for values of 0 so they don't overlap
             # with nonzero wedges
             if labels is not None:
-                blabels = [blank_labeler(left, value) for left, value in zip(labels, y)]
+                blabels = [
+                    blank_labeler(left, value)
+                    for left, value in zip(labels, y, strict=True)
+                ]
             else:
                 blabels = None
             results = ax.pie(y, labels=blabels, **kwds)
@@ -2197,7 +2200,7 @@ class PiePlot(MPLPlot):
 
             # leglabels is used for legend labels
             leglabels = labels if labels is not None else idx
-            for _patch, _leglabel in zip(patches, leglabels):
+            for _patch, _leglabel in zip(patches, leglabels, strict=True):
                 self._append_legend_handles_labels(_patch, _leglabel)
 
     def _post_plot_logic(self, ax: Axes, data) -> None:

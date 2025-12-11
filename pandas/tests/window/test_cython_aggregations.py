@@ -62,7 +62,7 @@ def _get_rolling_aggregations():
         ]
     )
     # unzip to a list of 2 tuples, names and functions
-    unzipped = list(zip(*named_roll_aggs))
+    unzipped = list(zip(*named_roll_aggs, strict=True))
     return {"ids": unzipped[0], "params": unzipped[1]}
 
 

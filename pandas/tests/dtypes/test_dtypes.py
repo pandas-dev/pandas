@@ -1,4 +1,5 @@
 import re
+import warnings
 import weakref
 
 import numpy as np
@@ -122,7 +123,9 @@ class TestCategoricalDtype(Base):
 
     dtype1 = CategoricalDtype(["a", "b"], ordered=True)
     dtype2 = CategoricalDtype(["x", "y"], ordered=False)
-    c = Categorical([0, 1], dtype=dtype1)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        c = Categorical([0, 1], dtype=dtype1)
 
     @pytest.mark.parametrize(
         "values, categories, ordered, dtype, expected",
@@ -291,7 +294,6 @@ class TestDatetimeTZDtype(Base):
         a = DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]")
         b = DatetimeTZDtype.construct_from_string("datetime64[ns, CET]")
 
-        assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
 
     def test_compat(self, dtype):
@@ -463,7 +465,6 @@ class TestPeriodDtype(Base):
         a = PeriodDtype("period[D]")
         b = PeriodDtype("period[3D]")
 
-        assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
 
     def test_identity(self):
@@ -718,7 +719,6 @@ class TestIntervalDtype(Base):
         a = IntervalDtype("interval[int64, right]")
         b = IntervalDtype("interval[int64, right]")
 
-        assert issubclass(type(a), type(a))
         assert issubclass(type(a), type(b))
 
     def test_is_dtype(self, dtype):

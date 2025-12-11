@@ -135,10 +135,7 @@ def df_ref(datapath):
 
 
 def get_exp_unit(read_ext: str, engine: str | None) -> str:
-    unit = "us"
-    if (read_ext == ".ods") ^ (engine == "calamine"):
-        unit = "s"
-    return unit
+    return "us"
 
 
 def adjust_expected(expected: DataFrame, read_ext: str, engine: str | None) -> None:
@@ -657,6 +654,10 @@ class TestReaders:
                     for col in df.columns
                 }
             )
+
+            # pandas uses large_string by default, but pyarrow infers string
+            expected["d"] = expected["d"].astype(pd.ArrowDtype(pa.string()))
+            expected["h"] = expected["h"].astype(pd.ArrowDtype(pa.string()))
             # pyarrow by default infers timestamp resolution as us, not ns
             expected["i"] = ArrowExtensionArray(
                 expected["i"].array._pa_array.cast(pa.timestamp(unit="us"))

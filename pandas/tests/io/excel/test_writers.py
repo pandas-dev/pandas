@@ -1,3 +1,4 @@
+import contextlib
 from datetime import (
     date,
     datetime,
@@ -38,8 +39,6 @@ from pandas.io.excel._util import _writers
 
 
 def get_exp_unit(path: str) -> str:
-    if path.endswith(".ods"):
-        return "s"
     return "us"
 
 
@@ -297,13 +296,13 @@ class TestRoundTrip:
 
         res = pd.read_excel(tmp_excel, parse_dates=["date_strings"], index_col=0)
         expected = df[:]
-        expected["date_strings"] = expected["date_strings"].astype("M8[s]")
+        expected["date_strings"] = expected["date_strings"].astype("M8[us]")
         tm.assert_frame_equal(res, expected)
 
         res = pd.read_excel(
             tmp_excel, parse_dates=["date_strings"], date_format="%m/%d/%Y", index_col=0
         )
-        expected["date_strings"] = expected["date_strings"].astype("M8[s]")
+        expected["date_strings"] = expected["date_strings"].astype("M8[us]")
         tm.assert_frame_equal(expected, res)
 
     def test_multiindex_interval_datetimes(self, tmp_excel):
@@ -356,17 +355,15 @@ class TestRoundTrip:
             MultiIndex.from_arrays(
                 [
                     [
-                        pd.to_datetime("2006-10-06 00:00:00"),
-                        pd.to_datetime("2006-10-07 00:00:00"),
+                        pd.to_datetime("2006-10-06 00:00:00").as_unit("s"),
+                        pd.to_datetime("2006-10-07 00:00:00").as_unit("s"),
                     ],
                     ["X", "Y"],
                 ],
                 names=["date", "category"],
             ),
         )
-        time_format = (
-            "datetime64[s]" if tmp_excel.endswith(".ods") else "datetime64[us]"
-        )
+        time_format = "datetime64[us]"
         expected.index = expected.index.set_levels(
             expected.index.levels[0].astype(time_format), level=0
         )
@@ -1409,8 +1406,7 @@ class TestExcelWriter:
     def test_true_and_false_value_options(self, tmp_excel):
         # see gh-13347
         df = DataFrame([["foo", "bar"]], columns=["col1", "col2"], dtype=object)
-        with option_context("future.no_silent_downcasting", True):
-            expected = df.replace({"foo": True, "bar": False}).astype("bool")
+        expected = df.replace({"foo": True, "bar": False}).astype("bool")
 
         df.to_excel(tmp_excel)
         read_frame = pd.read_excel(
@@ -1510,6 +1506,163 @@ class TestExcelWriter:
         ):
             buf = BytesIO()
             df.to_excel(buf)
+
+    @pytest.mark.parametrize("with_index", [True, False])
+    def test_autofilter(self, engine, with_index, tmp_excel):
+        # GH 61194
+        df = DataFrame.from_dict([{"A": 1, "B": 2, "C": 3}, {"A": 4, "B": 5, "C": 6}])
+
+        if engine in ["odf"]:
+            with pytest.raises(
+                ValueError, match="Autofilter is not supported with odf!"
+            ):
+                df.to_excel(tmp_excel, engine=engine, autofilter=True, index=False)
+        else:
+            df.to_excel(tmp_excel, engine=engine, autofilter=True, index=with_index)
+
+            openpyxl = pytest.importorskip(
+                "openpyxl"
+            )  # test loading only with openpyxl
+            with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+                ws = wb.active
+
+                assert ws.auto_filter.ref is not None
+                assert ws.auto_filter.ref == "A1:D3" if with_index else "A1:C3"
+
+    def test_autofilter_with_startrow_startcol(self, engine, tmp_excel):
+        # GH 61194
+        df = DataFrame.from_dict([{"A": 1, "B": 2, "C": 3}, {"A": 4, "B": 5, "C": 6}])
+
+        if engine in ["odf"]:
+            # odf does not support autofilter
+            with pytest.raises(
+                ValueError, match="Autofilter is not supported with odf!"
+            ):
+                df.to_excel(tmp_excel, engine=engine, autofilter=True, index=False)
+        else:
+            df.to_excel(
+                tmp_excel, engine=engine, autofilter=True, startrow=10, startcol=10
+            )
+
+            openpyxl = pytest.importorskip(
+                "openpyxl"
+            )  # test loading only with openpyxl
+            with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+                ws = wb.active
+                assert ws.auto_filter.ref is not None
+                # Autofiler range moved by 10x10 cells
+                assert ws.auto_filter.ref == "K11:N13"
+
+    @pytest.mark.parametrize("merge_cells", [True, False])
+    def test_autofilter_with_multiindex_index(self, engine, tmp_excel, merge_cells):
+        # GH 61194
+        df = DataFrame(
+            {
+                "animal": ("horse", "horse", "dog", "dog"),
+                "color of fur": ("black", "white", "grey", "black"),
+                "name": ("Blacky", "Wendy", "Rufus", "Catchy"),
+            }
+        )
+        # setup hierarchical index
+        mi_df = df.set_index(["animal", "color of fur"])
+        if engine in ["odf"]:
+            # odf does not support autofilter
+            with pytest.raises(
+                ValueError, match="Autofilter is not supported with odf!"
+            ):
+                mi_df.to_excel(
+                    tmp_excel,
+                    engine=engine,
+                    autofilter=True,
+                    index=False,
+                    merge_cells=merge_cells,
+                )
+        elif merge_cells:
+            # multiindex and merge cells cannot be used simultaneously
+            with pytest.raises(
+                ValueError,
+                match="Excel filters merged cells by showing only the first row. "
+                "'autofilter' and 'merge_cells' cannot be used simultaneously.",
+            ):
+                mi_df.to_excel(
+                    tmp_excel,
+                    engine=engine,
+                    autofilter=True,
+                    index=True,
+                    merge_cells=merge_cells,
+                )
+        else:
+            mi_df.to_excel(
+                tmp_excel,
+                engine=engine,
+                autofilter=True,
+                index=True,
+                merge_cells=merge_cells,
+            )
+
+            # validate autofilter range
+            openpyxl = pytest.importorskip(
+                "openpyxl"
+            )  # test loading only with openpyxl
+            with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+                ws = wb.active
+
+                assert ws.auto_filter.ref is not None
+                assert ws.auto_filter.ref == "A1:C5"
+
+    @pytest.mark.parametrize("merge_cells", [True, False])
+    def test_autofilter_with_multiindex_columns(self, engine, tmp_excel, merge_cells):
+        # GH 61194
+        columns = MultiIndex(
+            levels=[["x", "y"], ["w", "t"]],
+            codes=[[0, 0, 1], [0, 1, 0]],
+        )
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=columns)
+
+        if engine in ["odf"]:
+            # odf does not support autofilter
+            with pytest.raises(
+                ValueError, match="Autofilter is not supported with odf!"
+            ):
+                df.to_excel(
+                    tmp_excel,
+                    engine=engine,
+                    autofilter=True,
+                    index=False,
+                    merge_cells=merge_cells,
+                )
+        elif merge_cells:
+            # multiindex and merge cells cannot be used simultaneously
+            with pytest.raises(
+                ValueError,
+                match="Excel filters merged cells by showing only the first row. "
+                "'autofilter' and 'merge_cells' cannot be used simultaneously.",
+            ):
+                df.to_excel(
+                    tmp_excel,
+                    engine=engine,
+                    autofilter=True,
+                    index=True,
+                    merge_cells=merge_cells,
+                )
+        else:
+            df.to_excel(
+                tmp_excel,
+                engine=engine,
+                autofilter=True,
+                index=True,
+                merge_cells=merge_cells,
+            )
+
+            # validate autofilter range
+            openpyxl = pytest.importorskip(
+                "openpyxl"
+            )  # test loading only with openpyxl
+            with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+                ws = wb.active
+
+                assert ws.auto_filter.ref is not None
+                assert ws.auto_filter.ref == "A2:D5"
 
 
 class TestExcelWriterEngineTests:

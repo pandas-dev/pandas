@@ -22,6 +22,7 @@ from pandas._libs.tslibs.timedeltas import (
     disallow_ambiguous_unit,
     parse_timedelta_unit,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.dtypes import ArrowDtype
@@ -73,6 +74,7 @@ def to_timedelta(
 ) -> TimedeltaIndex: ...
 
 
+@set_module("pandas")
 def to_timedelta(
     arg: str
     | int
@@ -111,18 +113,14 @@ def to_timedelta(
 
         * 'W'
         * 'D' / 'days' / 'day'
-        * 'hours' / 'hour' / 'hr' / 'h' / 'H'
+        * 'hours' / 'hour' / 'hr' / 'h'
         * 'm' / 'minute' / 'min' / 'minutes'
-        * 's' / 'seconds' / 'sec' / 'second' / 'S'
+        * 's' / 'seconds' / 'sec' / 'second'
         * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis'
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond'
 
         Must not be specified when `arg` contains strings and ``errors="raise"``.
-
-        .. deprecated:: 2.2.0
-            Units 'H'and 'S' are deprecated and will be removed
-            in a future version. Please use 'h' and 's'.
 
     errors : {'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.

@@ -17,7 +17,6 @@ import warnings
 
 import numpy as np
 
-from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
@@ -124,20 +123,6 @@ member_info : list
     Contains information about the file
 fields : list
     Contains information about the variables in the file
-"""
-
-_read_method_doc = """\
-Read observations from SAS Xport file, returning as data frame.
-
-Parameters
-----------
-nrows : int
-    Number of rows to read from data file; if None, read whole
-    file.
-
-Returns
--------
-A DataFrame.
 """
 
 
@@ -359,7 +344,7 @@ class XportReader(SASReader):
             fieldbytes = fieldbytes.ljust(140)
 
             fieldstruct = struct.unpack(">hhhh8s40s8shhh2s8shhl52s", fieldbytes)
-            field = dict(zip(_fieldkeys, fieldstruct))
+            field = dict(zip(_fieldkeys, fieldstruct, strict=True))
             del field["_"]
             field["ntype"] = types[field["ntype"]]
             fl = field["field_length"]
@@ -464,8 +449,19 @@ class XportReader(SASReader):
         miss &= miss1
         return miss
 
-    @Appender(_read_method_doc)
     def read(self, nrows: int | None = None) -> pd.DataFrame:
+        """Read observations from SAS Xport file, returning as data frame.
+
+        Parameters
+        ----------
+        nrows : int
+            Number of rows to read from data file; if None, read whole
+            file.
+
+        Returns
+        -------
+        A DataFrame.
+        """
         if nrows is None:
             nrows = self.nobs
 

@@ -993,7 +993,12 @@ class IndexOpsMixin(OpsMixin):
             If True then the object returned will contain the relative
             frequencies of the unique values.
         sort : bool, default True
-            Sort by frequencies when True. Preserve the order of the data when False.
+            Stable sort by frequencies when True. Preserve the order of the data
+            when False.
+
+            .. versionchanged:: 3.0.0
+
+                Prior to 3.0.0, the sort was unstable.
         ascending : bool, default False
             Sort in ascending order.
         bins : int, optional
@@ -1102,7 +1107,7 @@ class IndexOpsMixin(OpsMixin):
             # i.e. ExtensionArray
             result = values.unique()
         else:
-            result = algorithms.unique1d(values)
+            result = algorithms.unique1d(values)  # type: ignore[assignment]
         return result
 
     @final
@@ -1120,7 +1125,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         int
-            A integer indicating the number of unique elements in the object.
+            An integer indicating the number of unique elements in the object.
 
         See Also
         --------
@@ -1298,7 +1303,11 @@ class IndexOpsMixin(OpsMixin):
 
         if isinstance(self, ABCMultiIndex):
             # preserve MultiIndex
-            uniques = self._constructor(uniques)
+            if len(self) == 0:
+                # GH#57517
+                uniques = self[:0]
+            else:
+                uniques = self._constructor(uniques)
         else:
             from pandas import Index
 
@@ -1376,7 +1385,7 @@ class IndexOpsMixin(OpsMixin):
         0   2000-03-11
         1   2000-03-12
         2   2000-03-13
-        dtype: datetime64[s]
+        dtype: datetime64[us]
 
         >>> ser.searchsorted('3/14/2000')
         np.int64(3)

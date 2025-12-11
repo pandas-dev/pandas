@@ -104,7 +104,7 @@ def test_td64_sum_empty(skipna):
 
 def test_td64_summation_overflow():
     # GH#9442
-    ser = Series(pd.date_range("20130101", periods=100000, freq="h"))
+    ser = Series(pd.date_range("20130101", periods=100000, freq="h", unit="ns"))
     ser[0] += pd.Timedelta("1s 1ms")
 
     # mean

@@ -168,7 +168,7 @@ class TestDataFrameEval:
             }
         ).rename(columns={"B": "A"})
 
-        res = df.query('C == 1', engine=engine, parser=parser)
+        res = df.query("C == 1", engine=engine, parser=parser)
 
         expect = DataFrame(
             [[1, 1, 1]],
@@ -529,7 +529,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_date_query_with_non_date(self, engine, parser):
         n = 10
         df = DataFrame(
-            {"dates": date_range("1/1/2012", periods=n), "nondate": np.arange(n)}
+            {"dates": date_range("1/1/2012", periods=n, unit="ns"), "nondate": np.arange(n)}
         )
 
         result = df.query("dates == nondate", parser=parser, engine=engine)
@@ -1411,7 +1411,7 @@ class TestDataFrameQueryBacktickQuoting:
     def test_expr_with_column_name_with_backtick(self):
         # GH 59285
         df = DataFrame({"a`b": (1, 2, 3), "ab": (4, 5, 6)})
-        result = df.query("`a``b` < 2")  # noqa
+        result = df.query("`a``b` < 2")
         # Note: Formatting checks may wrongly consider the above ``inline code``.
         expected = df[df["a`b"] < 2]
         tm.assert_frame_equal(result, expected)

@@ -527,7 +527,6 @@ Data sets often contain more than just numerical data. pandas provides a wide ra
                 </div>
             </div>
         </div>
-
     </div>
     </div>
 

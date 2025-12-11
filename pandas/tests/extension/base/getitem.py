@@ -408,7 +408,7 @@ class BaseGetitemTests:
         result = s.take([0, -1])
         expected = pd.Series(
             data._from_sequence([data[0], data[len(data) - 1]], dtype=s.dtype),
-            index=range(0, 198, 99),
+            index=s.index.take([0, -1]),
         )
         tm.assert_series_equal(result, expected)
 
@@ -467,3 +467,10 @@ class BaseGetitemTests:
 
         with pytest.raises(ValueError, match=msg):
             s.item()
+
+    def test_getitem_propagates_readonly_property(self, data):
+        # ensure read-only propagates if getitem returns view
+        data._readonly = True
+
+        result = data[:]
+        assert result._readonly

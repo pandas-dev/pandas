@@ -8,6 +8,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.compat import PY314
+
 from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_dtype,
@@ -845,22 +847,30 @@ class TestMerge:
         left = DataFrame(
             {
                 "key": [1, 2],
-                "value": pd.date_range("20151010", periods=2, tz="US/Eastern"),
+                "value": pd.date_range(
+                    "20151010", periods=2, tz="US/Eastern", unit="ns"
+                ),
             }
         )
         right = DataFrame(
             {
                 "key": [2, 3],
-                "value": pd.date_range("20151011", periods=2, tz="US/Eastern"),
+                "value": pd.date_range(
+                    "20151011", periods=2, tz="US/Eastern", unit="ns"
+                ),
             }
         )
         expected = DataFrame(
             {
                 "key": [1, 2, 3],
-                "value_x": list(pd.date_range("20151010", periods=2, tz="US/Eastern"))
+                "value_x": list(
+                    pd.date_range("20151010", periods=2, tz="US/Eastern", unit="ns")
+                )
                 + [pd.NaT],
                 "value_y": [pd.NaT]
-                + list(pd.date_range("20151011", periods=2, tz="US/Eastern")),
+                + list(
+                    pd.date_range("20151011", periods=2, tz="US/Eastern", unit="ns")
+                ),
             }
         )
         result = merge(left, right, on="key", how="outer")
@@ -1323,6 +1333,26 @@ class TestMerge:
         result = merge(left, right, on=["a", "b"], validate="1:1")
         tm.assert_frame_equal(result, expected_multi)
 
+    def test_merge_validate_error_message(self):
+        # GH#62742
+        left = DataFrame({"key": [1, 1, 2]})
+        right = DataFrame({"key": [1, 2, 2]})
+
+        with pytest.raises(MergeError, match="Duplicates in left:\n  key\n   1 ...\n"):
+            merge(left, right, validate="1:1")
+        with pytest.raises(MergeError, match="Duplicates in left:\n  key\n   1 ..."):
+            merge(left, right, validate="1:m")
+        with pytest.raises(MergeError, match="Duplicates in right:\n  key\n   2 ..."):
+            merge(left, right, validate="1:1")
+        with pytest.raises(MergeError, match="Duplicates in right:\n  key\n   2 ..."):
+            merge(left, right, validate="m:1")
+
+        right = DataFrame({"key": [1, 2, 3]})
+        with pytest.raises(MergeError, match="Duplicates in left:\n  key\n   1 ..."):
+            merge(left, right, validate="1:1")
+        with pytest.raises(MergeError, match="Duplicates in right:\n  key\n   1 ..."):
+            merge(right, left, validate="1:1")
+
     def test_merge_two_empty_df_no_division_error(self):
         # GH17776, PR #17846
         a = DataFrame({"a": [], "b": [], "c": []})
@@ -1376,6 +1406,9 @@ class TestMerge:
         # GH 24212
         # pd.merge gets [0, 1, 2, -1, -1, -1] as left_indexer, ensure that
         # -1 is interpreted as a missing value instead of the last element
+        if index.dtype == "float32" and expected_index.dtype == "float64":
+            # GH#41626
+            expected_index = expected_index.astype("float32")
         df1 = DataFrame({"a": [0, 1, 2], "key": [0, 1, 2]}, index=index)
         df2 = DataFrame({"b": [0, 1, 2, 3, 4, 5]})
         result = df1.merge(df2, left_on="key", right_index=True, how=how)
@@ -2420,10 +2453,18 @@ def test_merge_suffix_raises(suffixes):
         merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
 
 
+TWO_GOT_THREE = "2, got 3" if PY314 else "2"
+
+
 @pytest.mark.parametrize(
     "col1, col2, suffixes, msg",
     [
-        ("a", "a", ("a", "b", "c"), r"too many values to unpack \(expected 2\)"),
+        (
+            "a",
+            "a",
+            ("a", "b", "c"),
+            (rf"too many values to unpack \(expected {TWO_GOT_THREE}\)"),
+        ),
         ("a", "a", tuple("a"), r"not enough values to unpack \(expected 2, got 1\)"),
     ],
 )
@@ -2895,6 +2936,41 @@ def test_merge_multiindex_single_level():
     tm.assert_frame_equal(result, expected)
 
 
+def test_merge_multiindex_reset_index_mixed():
+    # GH#62150
+    df = DataFrame(
+        {("column_1", ""): [1, 1], ("column_2", ""): [2, 2]},
+        index=MultiIndex.from_arrays(
+            [[1, 1], ["metadata_1", "metadata_2"]], names=["index", "metadata"]
+        ),
+    )
+
+    df2 = DataFrame(
+        data=[1, 1],
+        index=Index([1, 1], name="index"),
+        columns=MultiIndex.from_product([["new_data"], [""]]),
+    )
+
+    with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+        result = df.reset_index().merge(df2.reset_index(), on="index")
+
+    expected = DataFrame(
+        {
+            ("index", ""): [1, 1, 1, 1],
+            ("metadata", ""): ["metadata_1", "metadata_1", "metadata_2", "metadata_2"],
+            ("column_1", ""): [1, 1, 1, 1],
+            ("column_2", ""): [2, 2, 2, 2],
+            ("new_data", ""): [1, 1, 1, 1],
+        }
+    )
+    expected.columns = MultiIndex.from_tuples(expected.columns)
+
+    tm.assert_frame_equal(result, expected)
+
+    result2 = df.reset_index().merge(df2.reset_index(), on=[("index", "")])
+    tm.assert_frame_equal(result2, expected)
+
+
 @pytest.mark.parametrize("on_index", [True, False])
 @pytest.mark.parametrize("left_unique", [True, False])
 @pytest.mark.parametrize("left_monotonic", [True, False])
@@ -3070,3 +3146,49 @@ def test_merge_for_suffix_collisions(suffixes):
     df2 = DataFrame({"col1": [1], "col2": [2], "col2_dup": [3]})
     with pytest.raises(MergeError, match="duplicate columns"):
         merge(df1, df2, on="col1", suffixes=suffixes)
+
+
+def test_merge_categorical_key_recursion():
+    # GH#56376
+    lt = CategoricalDtype(categories=np.asarray([1, 2, 3], dtype="int64"))
+    rt = CategoricalDtype(categories=np.asarray([1, 2, 3], dtype="float64"))
+    left = DataFrame({"key": Series([1, 2], dtype=lt)})
+    right = DataFrame({"key": Series([1, 3], dtype=rt)})
+
+    result = left.merge(right, on="key", how="outer")
+    expected = left.astype("int64").merge(
+        right.astype("float64"), on="key", how="outer"
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_pyarrow_datetime_duplicates():
+    # GH#61926
+    pytest.importorskip("pyarrow")
+
+    t = pd.date_range("2025-07-06", periods=3, freq="h")
+    df1 = DataFrame({"time": t, "val1": [1, 2, 3]})
+    df1 = df1.convert_dtypes(dtype_backend="pyarrow")
+
+    df2 = DataFrame({"time": t.repeat(2), "val2": [10, 20, 30, 40, 50, 60]})
+    df2 = df2.convert_dtypes(dtype_backend="pyarrow")
+
+    result = merge(df1, df2, on="time", how="left")
+
+    expected = DataFrame(
+        {
+            "time": t.repeat(2),
+            "val1": [1, 1, 2, 2, 3, 3],
+            "val2": [10, 20, 30, 40, 50, 60],
+        }
+    )
+    expected = expected.convert_dtypes(dtype_backend="pyarrow")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_right_on_and_right_index():
+    df1 = DataFrame({"col": [1, 2, 3]})
+    df2 = DataFrame({"col": [2, 3, 4]})
+
+    with pytest.raises(pd.errors.MergeError):
+        df1.merge(df2, left_on="col", right_on="col", right_index=True)

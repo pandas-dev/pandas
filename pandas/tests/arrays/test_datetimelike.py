@@ -69,7 +69,9 @@ def datetime_index(freqstr):
     the DatetimeIndex behavior.
     """
     # TODO: non-monotone indexes; NaTs, different start dates, timezones
-    dti = pd.date_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
+    dti = pd.date_range(
+        start=Timestamp("2000-01-01"), periods=100, freq=freqstr, unit="ns"
+    )
     return dti
 
 
@@ -623,7 +625,9 @@ class TestDatetimeArray(SharedTests):
         timezones
         """
         tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01 01:01:00", periods=5, freq=freqstr, tz=tz)
+        dti = pd.date_range(
+            "2016-01-01 01:01:00", periods=5, freq=freqstr, tz=tz, unit="ns"
+        )
         dta = dti._data
         return dta
 
@@ -975,15 +979,15 @@ class TestTimedeltaArray(SharedTests):
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
 
-        # specifying m8[ns] gives the same result as default
-        result = np.asarray(arr, dtype="timedelta64[ns]")
+        # specifying m8[us] gives the same result as default
+        result = np.asarray(arr, dtype="timedelta64[us]")
         expected = arr._ndarray
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
-        result = np.array(arr, dtype="timedelta64[ns]", copy=copy_false)
+        result = np.array(arr, dtype="timedelta64[us]", copy=copy_false)
         assert result is expected
         tm.assert_numpy_array_equal(result, expected)
-        result = np.array(arr, dtype="timedelta64[ns]")
+        result = np.array(arr, dtype="timedelta64[us]")
         if not np_version_gt2:
             # TODO: GH 57739
             assert result is not expected
@@ -1092,7 +1096,7 @@ class TestPeriodArray(SharedTests):
 
     def test_to_timestamp_roundtrip_bday(self):
         # Case where infer_freq inside would choose "D" instead of "B"
-        dta = pd.date_range("2021-10-18", periods=3, freq="B")._data
+        dta = pd.date_range("2021-10-18", periods=3, freq="B", unit="ns")._data
         parr = dta.to_period()
         result = parr.to_timestamp()
         assert result.freq == "B"
@@ -1248,8 +1252,8 @@ def test_invalid_nat_setitem_array(arr, non_casting_nats):
 @pytest.mark.parametrize(
     "arr",
     [
-        pd.date_range("2000", periods=4).array,
-        pd.timedelta_range("2000", periods=4).array,
+        pd.date_range("2000", periods=4)._values,
+        pd.timedelta_range("2000", periods=4)._values,
     ],
 )
 def test_to_numpy_extra(arr):
@@ -1270,6 +1274,28 @@ def test_to_numpy_extra(arr):
 
     result = arr.to_numpy(na_value=arr[1].to_numpy(copy=False))
     assert result[0] == result[1]
+
+    tm.assert_equal(arr, original)
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
+        pd.date_range("2000", periods=4)._values,
+        pd.timedelta_range("2000", periods=4)._values,
+    ],
+)
+def test_to_numpy_extra_readonly(arr):
+    arr[0] = NaT
+    original = arr.copy()
+    arr._readonly = True
+
+    result = arr.to_numpy(dtype=object)
+    assert result.flags.writeable
+
+    # numpy does not do zero-copy conversion from M8 to i8
+    result = arr.to_numpy(dtype="int64")
+    assert result.flags.writeable
 
     tm.assert_equal(arr, original)
 

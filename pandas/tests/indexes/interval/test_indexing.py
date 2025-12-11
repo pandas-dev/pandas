@@ -364,7 +364,7 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_get_indexer_datetime(self):
-        ii = IntervalIndex.from_breaks(date_range("2018-01-01", periods=4))
+        ii = IntervalIndex.from_breaks(date_range("2018-01-01", periods=4, unit="ns"))
         # TODO: with mismatched resolution get_indexer currently raises;
         #  this should probably coerce?
         target = DatetimeIndex(["2018-01-02"], dtype="M8[ns]")
@@ -502,6 +502,25 @@ class TestGetIndexer:
 
         result = idx.get_indexer_non_unique(arr)[0]
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+
+    def test_get_indexer_non_unique_right(self):
+        # GH#52245
+        data = [
+            Interval(Timestamp("2020-05-26"), Timestamp("2020-05-27")),
+            Interval(Timestamp("2020-05-27"), Timestamp("2020-05-27")),
+        ]
+
+        index = IntervalIndex(data)
+
+        result = index.get_indexer([index[0]])
+        expected = np.array([0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # GH#52245 OP is about drop so we test that here, but the underlying
+        #  problem is in get_indexer.
+        result = index.drop(index[0])
+        expected = index[1:]
+        tm.assert_index_equal(result, expected)
 
 
 class TestSliceLocs:
@@ -642,7 +661,7 @@ class TestPutmask:
 
     def test_putmask_td64(self):
         # GH#37968
-        dti = date_range("2016-01-01", periods=9)
+        dti = date_range("2016-01-01", periods=9, unit="ns")
         tdi = dti - dti[0]
         idx = IntervalIndex.from_breaks(tdi)
         mask = np.zeros(idx.shape, dtype=bool)

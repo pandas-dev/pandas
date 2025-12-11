@@ -25,13 +25,15 @@ from pandas.api.types import (
     is_scalar,
 )
 from pandas.core import arraylike
-from pandas.core.algorithms import value_counts_internal as value_counts
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     ExtensionArray,
     ExtensionScalarOpsMixin,
 )
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    getitem_returns_view,
+)
 
 if TYPE_CHECKING:
     from pandas._typing import type_t
@@ -178,7 +180,10 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         else:
             # array, slice.
             item = pd.api.indexers.check_array_indexer(self, item)
-            return type(self)(self._data[item])
+            result = type(self)(self._data[item])
+            if getitem_returns_view(self, item):
+                result._readonly = self._readonly
+            return result
 
     def take(self, indexer, allow_fill=False, fill_value=None):
         from pandas.api.extensions import take
@@ -204,6 +209,9 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return super().astype(dtype, copy=copy)
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         if is_list_like(value):
             if is_scalar(key):
                 raise ValueError("setting an array element with a sequence.")
@@ -287,12 +295,9 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
         # If the operator is not defined for the underlying objects,
         # a TypeError should be raised
-        res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
+        res = [op(a, b) for (a, b) in zip(lvalues, rvalues, strict=True)]
 
         return np.asarray(res, dtype=bool)
-
-    def value_counts(self, dropna: bool = True):
-        return value_counts(self.to_numpy(), dropna=dropna)
 
     # We override fillna here to simulate a 3rd party EA that has done so. This
     #  lets us test a 3rd-party EA that has not yet updated to include a "copy"
@@ -305,8 +310,8 @@ def to_decimal(values, context=None):
     return DecimalArray([decimal.Decimal(x) for x in values], context=context)
 
 
-def make_data():
-    return [decimal.Decimal(val) for val in np.random.default_rng(2).random(100)]
+def make_data(n: int):
+    return [decimal.Decimal(val) for val in np.random.default_rng(2).random(n)]
 
 
 DecimalArray._add_arithmetic_ops()

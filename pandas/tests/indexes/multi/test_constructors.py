@@ -155,7 +155,7 @@ def test_copy_in_constructor():
 def test_from_arrays(idx):
     arrays = [
         np.asarray(lev).take(level_codes)
-        for lev, level_codes in zip(idx.levels, idx.codes)
+        for lev, level_codes in zip(idx.levels, idx.codes, strict=True)
     ]
 
     # list of arrays as input
@@ -172,7 +172,7 @@ def test_from_arrays_iterator(idx):
     # GH 18434
     arrays = [
         np.asarray(lev).take(level_codes)
-        for lev, level_codes in zip(idx.levels, idx.codes)
+        for lev, level_codes in zip(idx.levels, idx.codes, strict=True)
     ]
 
     # iterator as input
@@ -188,7 +188,7 @@ def test_from_arrays_iterator(idx):
 def test_from_arrays_tuples(idx):
     arrays = tuple(
         tuple(np.asarray(lev).take(level_codes))
-        for lev, level_codes in zip(idx.levels, idx.codes)
+        for lev, level_codes in zip(idx.levels, idx.codes, strict=True)
     )
 
     # tuple of tuples as input
@@ -368,7 +368,7 @@ def test_from_tuples_iterator():
         levels=[[1, 3], [2, 4]], codes=[[0, 1], [0, 1]], names=["a", "b"]
     )
 
-    result = MultiIndex.from_tuples(zip([1, 3], [2, 4]), names=["a", "b"])
+    result = MultiIndex.from_tuples(zip([1, 3], [2, 4], strict=True), names=["a", "b"])
     tm.assert_index_equal(result, expected)
 
     # input non-iterables
@@ -671,7 +671,7 @@ def test_from_frame_missing_values_multiIndex():
     multi_indexed = MultiIndex.from_frame(df)
     expected = MultiIndex.from_arrays(
         [
-            Series([1, 2, None]).astype("Int64"),
+            Series([1, 2, None], dtype="Int64"),
             pd.Float64Dtype().__from_arrow__(pa.array([0.2, None, None])),
         ],
         names=["a", "b"],
@@ -762,7 +762,7 @@ def test_index_equal_empty_iterable():
 
 
 def test_raise_invalid_sortorder():
-    # Test that the MultiIndex constructor raise when a incorrect sortorder is given
+    # Test that the MultiIndex constructor raise when an incorrect sortorder is given
     # GH#28518
 
     levels = [[0, 1], [0, 1, 2]]
