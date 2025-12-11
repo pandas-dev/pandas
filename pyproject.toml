@@ -29,7 +29,7 @@ requires-python = '>=3.11'
 dependencies = [
   "numpy>=1.26.0",
   "python-dateutil>=2.8.2",
-  "tzdata>=2023.3"
+  "tzdata>=2023.3; platform_system == 'Windows'",
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',

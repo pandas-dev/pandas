@@ -150,10 +150,12 @@ Package                                                          Minimum support
 ================================================================ ==========================
 `NumPy <https://numpy.org>`__                                    1.26.0
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
-`tzdata <https://pypi.org/project/tzdata/>`__                    2023.3
+*`tzdata <https://pypi.org/project/tzdata/>`__                    2023.3
 ================================================================ ==========================
 
 Generally, the minimum supported version is ~2 years old from the release date of a major or minor pandas version.
+
+* ``tzdata`` is only required on Windows.
 
 .. _install.optional_dependencies:
 
