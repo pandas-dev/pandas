@@ -167,8 +167,38 @@ dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFram
   dtypes if "pyarrow" is set.
 
   The dtype_backends are still experimental.
+ .. versionadded:: 2.0
 
-  .. versionadded:: 2.0
+   
+Google Colab
+^^^^^^^^^^^^
+
+Google Colab provides several methods to load data for :func:`read_csv` and similar functions.
+
+File upload
++++++++++++
+
+.. ipython:: python
+
+   from google.colab import files
+   # uploaded = files.upload()  # Interactive in Colab
+   import io
+   import pandas as pd
+   # df = pd.read_csv(io.BytesIO(uploaded['example.csv']))
+
+Google Drive
+++++++++++++
+
+.. ipython:: python
+
+   from google.colab import drive
+   drive.mount('/content/drive')
+   df = pd.read_csv('/content/drive/MyDrive/example.csv')
+
+See `Google Colab IO notebook <https://colab.research.google.com/notebooks/io.ipynb>`_.
+
+  
+ 
 
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
