@@ -37,8 +37,8 @@ _OP_SYMBOLS = {
     "__lt__": "<",
     "__eq__": "==",
     "__ne__": "!=",
-    "__and__" : "&",
-    "__rand__" : "&",
+    "__and__": "&",
+    "__rand__": "&",
 }
 
 
@@ -158,8 +158,10 @@ class Expression:
 
     def __rmod__(self, other: Any) -> Expression:
         return self._with_binary_op("__rmod__", other)
+
     def __and__(self, other: Any) -> Expression:
         return self._with_binary_op("__and__", other)
+
     def __rand__(self, other: Any) -> Expression:
         return self._with_binary_op("__rand__", other)
 
