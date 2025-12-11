@@ -210,21 +210,17 @@ def concat(
         not already aligned. In that case, the non-concatenation axis is always
         sorted lexicographically.
     copy : bool, default False
-        If False, do not copy data unnecessarily.
-
-        .. note::
-            The `copy` keyword will change behavior in pandas 3.0.
-            `Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            will be enabled by default, which means that all methods with a
-            `copy` keyword will use a lazy copy mechanism to defer the copy and
-            ignore the `copy` keyword. The `copy` keyword will be removed in a
-            future version of pandas.
-
-            You can already get the future behavior and improvements through
-            enabling copy on write ``pd.options.mode.copy_on_write = True``
+        This keyword is now ignored; changing its value will have no
+        impact on the method.
 
         .. deprecated:: 3.0.0
+
+            This keyword is ignored and will be removed in pandas 4.0. Since
+            pandas 3.0, this method always returns a new object using a lazy
+            copy mechanism that defers copies until necessary
+            (Copy-on-Write). See the `user guide on Copy-on-Write
+            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+            for more details.
 
     Returns
     -------

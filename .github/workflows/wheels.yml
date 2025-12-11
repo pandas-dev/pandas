@@ -164,6 +164,7 @@ jobs:
         uses: pypa/cibuildwheel@v3.2.1
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
+         output-dir: ./dist
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend || 'pip' }}
@@ -194,18 +195,18 @@ jobs:
 
       - name: Validate wheel RECORD
         shell: bash -el {0}
-        run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
+        run: for whl in $(ls ./dist/*.whl); do wheel unpack $whl -d /tmp; done
 
       - uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          path: ./wheelhouse/*.whl
+          path: ./dist/*.whl
 
       - name: Upload wheels & sdist
         if: ${{ success() && env.IS_SCHEDULE_DISPATCH == 'true' }}
         uses: scientific-python/upload-nightly-action@0.6.2
         with:
-          artifacts_path: dist
+          artifacts_path: ./dist
           anaconda_nightly_upload_token: ${{secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN}}
 
   publish:
