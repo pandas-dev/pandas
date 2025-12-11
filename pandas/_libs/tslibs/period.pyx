@@ -812,6 +812,45 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) noexcept nogi
     unit = freq_group_code_to_npy_unit(freq)
     return npy_datetimestruct_to_datetime(unit, dts)
 
+cdef int64_t _period_ordinal_safe(npy_datetimestruct *dts, int freq) except? -1:
+    """
+    Safe variant of get_period_ordinal used by the Python API (period_ordinal).
+
+    It mirrors get_period_ordinal's logic but is allowed to raise Python
+    exceptions instead of leaking OverflowError from numpy's datetime code.
+    """
+    cdef:
+        int64_t unix_date
+        int freq_group, fmonth
+        NPY_DATETIMEUNIT unit
+
+    freq_group = get_freq_group(freq)
+
+    try:
+        if freq_group == FR_ANN:
+            fmonth = get_anchor_month(freq, freq_group)
+            return dts_to_year_ordinal(dts, fmonth)
+
+        elif freq_group == FR_QTR:
+            fmonth = get_anchor_month(freq, freq_group)
+            return dts_to_qtr_ordinal(dts, fmonth)
+
+        elif freq_group == FR_WK:
+            unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
+            return unix_date_to_week(unix_date, freq - FR_WK)
+
+        elif freq == FR_BUS:
+            unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
+            return DtoB(dts, 0, unix_date)
+
+        unit = freq_group_code_to_npy_unit(freq)
+        return npy_datetimestruct_to_datetime(unit, dts)
+
+    except OverflowError as err:
+        # Translate low-level overflow into a user-facing OutOfBoundsDatetime.
+        fmt = dts_to_iso_string(dts)
+        raise OutOfBoundsDatetime(f"Out of bounds datetime for Period with freq {freq}: {fmt}") from err
+
 
 cdef void get_date_info(int64_t ordinal,
                         int freq, npy_datetimestruct *dts) noexcept nogil:
@@ -1150,7 +1189,8 @@ cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
     dts.sec = s
     dts.us = us
     dts.ps = ps
-    return get_period_ordinal(&dts, freq)
+    #return get_period_ordinal(&dts, freq)
+    return _period_ordinal_safe(&dts, freq)
 
 
 cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
