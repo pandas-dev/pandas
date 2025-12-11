@@ -235,8 +235,9 @@ class _Unstacker:
         self.mask = mask
         if self.sort:
             import sys
+
             # GH 63314: avoid searchsorted bug with py3.14 + numpy < 2.0
-            numpy_major = int(np.__version__.split('.')[0])
+            numpy_major = int(np.__version__.split(".")[0])
             has_searchsorted_bug = sys.version_info >= (3, 14) and numpy_major < 2
 
             if has_searchsorted_bug:
