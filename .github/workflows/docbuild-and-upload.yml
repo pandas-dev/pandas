@@ -42,7 +42,8 @@ jobs:
 
     - name: Set up Conda
       uses: ./.github/actions/setup-conda
-
+      with:
+        cache-buster: ${{ github.sha }}
     - name: Build Pandas
       uses: ./.github/actions/build_pandas
 
