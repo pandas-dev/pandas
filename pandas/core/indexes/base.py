@@ -2175,7 +2175,7 @@ class Index(IndexOpsMixin, PandasObject):
                 f"Requested level ({level}) does not match index name ({self.name})"
             )
 
-        if isinstance(level, bool) or isinstance(self.name, bool):
+        if isinstance(level, bool) and isinstance(self.name, bool):
             if level == self.name:
                 return
             raise KeyError(
@@ -2183,11 +2183,20 @@ class Index(IndexOpsMixin, PandasObject):
             )
 
         if lib.is_integer(level):
-            if isinstance(self.name, int) and level == self.name:
+            if (
+                isinstance(self.name, int)
+                and not isinstance(self.name, bool)
+                and level == self.name
+            ):
                 return
 
             self._validate_positional_level(level)
             return
+
+        if isinstance(self.name, bool):
+            raise KeyError(
+                f"Requested level ({level}) does not match index name ({self.name})"
+            )
 
         if level == self.name:
             return
