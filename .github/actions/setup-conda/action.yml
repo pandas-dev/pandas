@@ -11,16 +11,15 @@ runs:
     - name: Install ${{ inputs.environment-file }}
       uses: mamba-org/setup-micromamba@v2
       with:
-        micromamba-url: https://github.com/mamba-org/micromamba-releases/releases/latest/download/micromamba-linux-64
         environment-file: ${{ inputs.environment-file }}
         environment-name: test
         condarc-file: ci/.condarc
         cache-environment: true
         cache-downloads: true
-        # avoid aggressive post-cleanup that can trigger JSON issues
-        post-cleanup: none
+        # keep post step simple to avoid JSON parsing problems
+        post-cleanup: environment
 
-    - name: Uninstall pyarrow
+    - name: Uninstall pyarrow (optional)
       if: ${{ env.REMOVE_PYARROW == '1' }}
       shell: bash -el {0}
       run: |

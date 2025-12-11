@@ -202,10 +202,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Conda
-        uses: ./.github/actions/setup-conda
+      # Replaced custom setup-conda (micromamba) with setup-miniconda to avoid micromamba spawn errors on macOS
+      - name: Set up Miniconda (avoid micromamba)
+        uses: conda-incubator/setup-miniconda@v3
         with:
+          auto-update-conda: true
+          use-mamba: false
           environment-file: ci/deps/${{ matrix.env_file }}
+          environment-name: pandas-ci
+          activate-environment: pandas-ci
 
       - name: Build Pandas
         uses: ./.github/actions/build_pandas
@@ -304,7 +309,7 @@ jobs:
     #    To unfreeze, comment out the ``if: false`` condition, and make sure you update
     #    the name of the workflow and Python version in actions/setup-python ``python-version:``
     #
-    # After it has been unfrozen, this file should remain unfrozen(present, and running) until:
+    # After it has been unfrozen, this file should remain unfrozen(present and running) until:
     #    - The next Python version has been officially released.
     #    OR
     #    - Most/All of our optional dependencies support the next Python version AND
