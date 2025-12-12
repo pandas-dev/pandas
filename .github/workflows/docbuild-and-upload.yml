@@ -26,7 +26,6 @@ jobs:
     runs-on: ubuntu-24.04
 
     concurrency:
-      # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-web-docs
       cancel-in-progress: true
 
@@ -35,67 +34,110 @@ jobs:
         shell: bash -el {0}
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v6
-      with:
-        fetch-depth: 0
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
-    - name: Set up Conda
-      uses: ./.github/actions/setup-conda
-      with:
-        cache-buster: ${{ github.sha }}
-    - name: Build Pandas
-      uses: ./.github/actions/build_pandas
+      - name: Download micromamba (with retries)
+        shell: bash
+        run: |
+          set -euo pipefail
+          RETRIES=5
+          URL="https://micromamba.snakepit.net/api/micromamba/linux-64/latest"
+          OUT="$RUNNER_TEMP/micromamba.tar.bz2"
+          i=0
+          until [ $i -ge $RETRIES ]
+          do
+            echo "Attempt $((i+1))..."
+            if curl -fSL "$URL" -o "$OUT"; then
+              echo "Downloaded micromamba"
+              break
+            fi
+            i=$((i+1))
+            sleep $((i * 2))
+          done
+          if [ ! -f "$OUT" ]; then
+            echo "Failed to download micromamba after $RETRIES attempts"
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/micromamba"
+          tar -xjf "$OUT" -C "$RUNNER_TEMP/micromamba" --strip-components=1
+          export MAMBA_ROOT_PREFIX="$RUNNER_TEMP/micromamba-root"
+          mkdir -p "$MAMBA_ROOT_PREFIX"
+          echo "Adding micromamba to PATH"
+          echo "$RUNNER_TEMP/micromamba/bin" >> $GITHUB_PATH
 
-    - name: Extra installs
-      # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions-azure-pipelines-travis-ci-and-gitlab-ci-cd
-      run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
+      - name: Create env with micromamba
+        run: |
+          micromamba create -y -n ci-env python=3.10 -f ${{ env.ENV_FILE }}
+          micromamba activate ci-env
+          echo "PATH updated for ci-env"
 
-    - name: Test website
-      run: python -m pytest web/
+      - name: Build Pandas
+        run: |
+          micromamba activate ci-env
+          # Replace with your actual build command from build_pandas action
+          python setup.py build
 
-    - name: Build website
-      run: python web/pandas_web.py web/pandas --target-path=web/build
+      - name: Extra installs
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0
 
-    - name: Build documentation
-      run: doc/make.py --warnings-are-errors
+      - name: Test website
+        run: |
+          micromamba activate ci-env
+          python -m pytest web/
 
-    - name: Build the interactive terminal
-      working-directory: web/interactive_terminal
-      run: jupyter lite build
+      - name: Build website
+        run: |
+          micromamba activate ci-env
+          python web/pandas_web.py web/pandas --target-path=web/build
 
-    - name: Build documentation zip
-      run: doc/make.py zip_html
+      - name: Build documentation
+        run: |
+          micromamba activate ci-env
+          doc/make.py --warnings-are-errors
 
-    - name: Install ssh key
-      run: |
-        mkdir -m 700 -p ~/.ssh
-        echo "${{ secrets.server_ssh_key }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        echo "${{ secrets.server_ip }} ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFjYkJBk7sos+r7yATODogQc3jUdW1aascGpyOD4bohj8dWjzwLJv/OJ/fyOQ5lmj81WKDk67tGtqNJYGL9acII=" > ~/.ssh/known_hosts
-      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+      - name: Build the interactive terminal
+        working-directory: web/interactive_terminal
+        run: |
+          micromamba activate ci-env
+          jupyter lite build
 
-    - name: Copy cheatsheets into site directory
-      run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
+      - name: Build documentation zip
+        run: |
+          micromamba activate ci-env
+          doc/make.py zip_html
 
-    - name: Upload web
-      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='benchmarks' web/build/ web@${{ secrets.server_ip }}:/var/www/html
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Install ssh key
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+        run: |
+          mkdir -m 700 -p ~/.ssh
+          echo "${{ secrets.server_ssh_key }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.server_ip }} ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFjYkJBk7sos+r7yATODogQc3jUdW1aascGpyOD4bohj8dWjzwLJv/OJ/fyOQ5lmj81WKDk67tGtqNJYGL9acII=" > ~/.ssh/known_hosts
 
-    - name: Upload dev docs
-      run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/dev
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Copy cheatsheets into site directory
+        run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
 
-    - name: Upload prod docs
-      run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/version/${GITHUB_REF_NAME:1}
-      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+      - name: Upload web
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='benchmarks' web/build/ web@${{ secrets.server_ip }}:/var/www/html
 
-    - name: Move docs into site directory
-      run: mv doc/build/html web/build/docs
+      - name: Upload dev docs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/dev
 
-    - name: Save website as an artifact
-      uses: actions/upload-artifact@v5
-      with:
-        name: website
-        path: web/build
-        retention-days: 14
+      - name: Upload prod docs
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: rsync -az --delete doc/build/html/ web@${{ secrets.server_ip }}:/var/www/html/pandas-docs/version/${GITHUB_REF_NAME:1}
+
+      - name: Move docs into site directory
+        run: mv doc/build/html web/build/docs
+
+      - name: Save website as an artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: website
+          path: web/build
+          retention-days: 14
