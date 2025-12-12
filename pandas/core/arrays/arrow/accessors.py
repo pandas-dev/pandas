@@ -156,10 +156,45 @@ class ListAccessor(ArrowAccessor):
         from pandas import Series
 
         if isinstance(key, int):
-            # TODO: Support negative key but pyarrow does not allow
-            # element index to be an array.
-            # if key < 0:
-            #     key = pc.add(key, pc.list_value_length(self._pa_array))
+            if key < 0:
+                arr = self._pa_array
+                lengths = pc.list_value_length(arr)
+                not_null = pc.is_valid(arr)
+                length_zero = pc.equal(lengths, 0)
+                length_too_short = pc.less(lengths, abs(key))
+                should_error = pc.and_(not_null, pc.or_(length_zero, length_too_short))
+                if pc.any(should_error).as_py():
+                    for i in range(len(arr)):
+                        if not arr.is_null()[i].as_py():
+                            current_length = lengths[i].as_py()
+                            if current_length == 0:
+                                raise IndexError(f"Index {key} is out of bounds: should be in [0, 0)")
+                            if current_length < abs(key):
+                                raise IndexError(f"Index {key} is out of bounds: should be in [{-current_length}, {current_length})")
+                chunks = arr.chunks if isinstance(arr, pa.ChunkedArray) else [arr]
+                all_results = []
+                for chunk in chunks:
+                    if len(chunk) == 0:
+                        continue
+                    chunk_lengths = pc.list_value_length(chunk)
+                    chunk_offsets = chunk.offsets
+                    offsets = chunk_offsets.slice(0, len(chunk))
+                    indices = pc.add(pc.add(offsets, chunk_lengths), key)
+                    taken_values = chunk.values.take(indices)
+                    if chunk.null_count > 0:
+                        mask = chunk.is_null()
+                        null_scalar = pa.scalar(None, type=chunk.type.value_type)
+                        chunk_result = pc.if_else(mask, null_scalar, taken_values)
+                    else:
+                        chunk_result = taken_values
+                    all_results.append(chunk_result)
+                result_values = pa.concat_arrays(all_results) if all_results else pa.array([],type=arr.type.value_type)
+                return Series(
+                    result_values,
+                    dtype=ArrowDtype(result_values.type),
+                    index=self._data.index,
+                    name=self._data.name,
+                )
             element = pc.list_element(self._pa_array, key)
             return Series(
                 element,
