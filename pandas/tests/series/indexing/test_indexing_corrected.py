@@ -275,7 +275,6 @@ def test_underlying_data_conversion():
     s = Series([1], index=[(2, 2, 2)])
     df["val"] = 0
     df_original = df.copy()
-    df
 
     with tm.raises_chained_assignment_error():
         df["val"].update(s)
