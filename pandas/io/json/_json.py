@@ -11,9 +11,9 @@ from typing import (
     Any,
     Generic,
     Literal,
-    cast,
     Self,
     TypeVar,
+    cast,
     final,
     overload,
 )
@@ -255,7 +255,7 @@ def _format_timedelta_labels(index, date_format: str, date_unit: str | None):
         if date_unit is None:
             unit: DateUnit = "ms"
         else:
-            unit = cast(DateUnit, date_unit) 
+            unit = cast(DateUnit, date_unit)
 
         for val in values:
             if isna(val):
