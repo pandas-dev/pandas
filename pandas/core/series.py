@@ -266,10 +266,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     name : Hashable, default None
         The name to give to the Series.
     copy : bool, default None
-        Copy input data. By default, will copy if the input data is a numpy or
-        pandas array. Set to False to avoid copying, at your own risk (if you
+        Whether to copy input data. Only affects array or Series/Index input,
+        because for other input (e.g. a list) a new array is created anyway.
+        By default, will copy if the input data is a numpy or pandas array.
+        For Series/Index input, a shallow copy of the data is made by default.
+        Set to False to avoid copying array input, at your own risk (if you
         know the input data won't be modified elsewhere).
-        Only affects Series or 1d ndarray input. See examples.
 
     See Also
     --------
