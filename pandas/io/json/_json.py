@@ -38,10 +38,12 @@ from pandas.util._validators import check_dtype_backend
 from pandas.core.dtypes.common import (
     ensure_str,
     is_string_dtype,
+    is_timedelta64_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
 
+import pandas as pd
 from pandas import (
     ArrowDtype,
     DataFrame,
@@ -222,6 +224,44 @@ def to_json(
     return None
 
 
+def _format_timedelta_labels(index, date_format: str, date_unit: str | None):
+    """
+    Format TimedeltaIndex labels for JSON serialization.
+
+    Rules:
+    - Timedelta values → ISO 8601 (iso) or integer (epoch)
+    - NaT MUST stay missing so JSON encodes it as null
+    """
+
+    # Fast-path: empty index
+    if len(index) == 0:
+        return index
+
+    values = index._values  # ndarray[td64]
+    result = []
+
+    if date_format == "iso":
+        for val in values:
+            if isna(val):
+                # critical: preserve missing → JSON null
+                result.append("null")
+            else:
+                td = pd.Timedelta(val)
+                result.append(td.isoformat())
+
+    else:  # epoch
+        unit = date_unit or "ms"
+
+        for val in values:
+            if isna(val):
+                result.append("null")
+            else:
+                td = pd.Timedelta(val).as_unit(unit)
+                result.append(int(td._value))
+
+    return Index(result, dtype=object)
+
+
 class Writer(ABC):
     _default_orient: str
 
@@ -287,6 +327,12 @@ class SeriesWriter(Writer):
     def _format_axes(self) -> None:
         if not self.obj.index.is_unique and self.orient == "index":
             raise ValueError(f"Series index must be unique for orient='{self.orient}'")
+        # FIX:GH#63236 format TimedeltaIndex labels correctly before ujson_dumps
+        if is_timedelta64_dtype(self.obj.index.dtype):
+            self.obj = self.obj.copy(deep=False)
+            self.obj.index = _format_timedelta_labels(
+                self.obj.index, self.date_format, self.date_unit
+            )
 
 
 class FrameWriter(Writer):
@@ -317,6 +363,29 @@ class FrameWriter(Writer):
             raise ValueError(
                 f"DataFrame columns must be unique for orient='{self.orient}'."
             )
+        # FIX:GH#63236 format Timedelta labels (Index and Columns) correctly
+        if (
+            not isinstance(self.obj.index, MultiIndex)
+            and is_timedelta64_dtype(self.obj.index.dtype)
+        ) or (
+            not isinstance(self.obj.columns, MultiIndex)
+            and is_timedelta64_dtype(self.obj.columns.dtype)
+        ):
+            self.obj = self.obj.copy(deep=False)
+
+            if not isinstance(self.obj.index, MultiIndex) and is_timedelta64_dtype(
+                self.obj.index.dtype
+            ):
+                self.obj.index = _format_timedelta_labels(
+                    self.obj.index, self.date_format, self.date_unit
+                )
+
+            if not isinstance(self.obj.columns, MultiIndex) and is_timedelta64_dtype(
+                self.obj.columns.dtype
+            ):
+                self.obj.columns = _format_timedelta_labels(
+                    self.obj.columns, self.date_format, self.date_unit
+                )
 
 
 class JSONTableWriter(FrameWriter):

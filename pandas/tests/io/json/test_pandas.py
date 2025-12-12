@@ -1794,9 +1794,9 @@ class TestPandasContainer:
         "date_format,key", [("epoch", 86400000), ("iso", "P1DT0H0M0S")]
     )
     def test_timedelta_as_label(self, date_format, key, unit, request):
-        if unit != "ns":
-            mark = pytest.mark.xfail(reason="GH#63236 failure to round-trip")
-            request.applymarker(mark)
+        # if unit != "ns":
+        #     mark = pytest.mark.xfail(reason="GH#63236 failure to round-trip")
+        #     request.applymarker(mark)
         df = DataFrame([[1]], columns=[pd.Timedelta("1D").as_unit(unit)])
         expected = f'{{"{key}":{{"0":1}}}}'
 
