@@ -280,4 +280,224 @@ def test_underlying_data_conversion():
     with tm.raises_chained_assignment_error():
         df["val"].update(s)
     expected = df_original
-    tm.assert_frame_equal(
+    tm.assert_frame_equal(df, expected)
+
+
+def test_preserve_refs(datetime_series):
+    seq = datetime_series.iloc[[5, 10, 15]]
+    seq.iloc[1] = np.nan
+    assert not np.isnan(datetime_series.iloc[10])
+
+
+def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer_sl):
+    index = lexsorted_two_level_string_multiindex
+    ser = Series(
+        np.random.default_rng(2).standard_normal(len(index)), index=index, name="sth"
+    )
+
+    result = indexer_sl(ser)["foo"]
+    assert result.name == ser.name
+
+
+# miscellaneous methods
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        date_range("2014-01-01", periods=20, freq="MS"),
+        period_range("2014-01", periods=20, freq="M"),
+        timedelta_range("0", periods=20, freq="h"),
+    ],
+)
+def test_slice_with_negative_step(index):
+    keystr1 = str(index[9])
+    keystr2 = str(index[13])
+
+    ser = Series(np.arange(20), index)
+    SLC = IndexSlice
+
+    for key in [keystr1, index[9]]:
+        tm.assert_indexing_slices_equivalent(ser, SLC[key::-1], SLC[9::-1])
+        tm.assert_indexing_slices_equivalent(ser, SLC[:key:-1], SLC[:8:-1])
+
+        for key2 in [keystr2, index[13]]:
+            tm.assert_indexing_slices_equivalent(ser, SLC[key2:key:-1], SLC[13:8:-1])
+            tm.assert_indexing_slices_equivalent(ser, SLC[key:key2:-1], SLC[0:0:-1])
+
+
+def test_tuple_index():
+    # GH 35534 - Selecting values when a Series has an Index of tuples
+    s = Series([1, 2], index=[("a",), ("b",)])
+    assert s[("a",)] == 1
+    assert s[("b",)] == 2
+    s[("b",)] = 3
+    assert s[("b",)] == 3
+
+
+def test_frozenset_index():
+    # GH35747 - Selecting values when a Series has an Index of frozenset
+    idx0, idx1 = frozenset("a"), frozenset("b")
+    s = Series([1, 2], index=[idx0, idx1])
+    assert s[idx0] == 1
+    assert s[idx1] == 2
+    s[idx1] = 3
+    assert s[idx1] == 3
+
+
+def test_loc_setitem_all_false_indexer():
+    # GH#45778
+    ser = Series([1, 2], index=["a", "b"])
+    expected = ser.copy()
+    rhs = Series([6, 7], index=["a", "b"])
+    ser.loc[ser > 100] = rhs
+    tm.assert_series_equal(ser, expected)
+
+
+def test_loc_boolean_indexer_non_matching_index():
+    # GH#46551
+    ser = Series([1])
+    result = ser.loc[Series([NA, False], dtype="boolean")]
+    expected = Series([], dtype="int64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_loc_boolean_indexer_miss_matching_index():
+    # GH#46551
+    ser = Series([1])
+    indexer = Series([NA, False], dtype="boolean", index=[1, 2])
+    with pytest.raises(IndexingError, match="Unalignable"):
+        ser.loc[indexer]
+
+
+def test_loc_setitem_nested_data_enlargement():
+    # GH#48614
+    df = DataFrame({"a": [1]})
+    ser = Series({"label": df})
+    ser.loc["new_label"] = df
+    expected = Series({"label": df, "new_label": df})
+    tm.assert_series_equal(ser, expected)
+
+
+def test_loc_ea_numeric_index_oob_slice_end():
+    # GH#50161
+    ser = Series(1, index=Index([0, 1, 2], dtype="Int64"))
+    result = ser.loc[2:3]
+    expected = Series(1, index=Index([2], dtype="Int64"))
+    tm.assert_series_equal(result, expected)
+
+
+def test_getitem_bool_int_key():
+    # GH#48653
+    ser = Series({True: 1, False: 0})
+    with pytest.raises(KeyError, match="0"):
+        ser.loc[0]
+
+
+@pytest.mark.parametrize("val", [{}, {"b": "x"}])
+@pytest.mark.parametrize("indexer", [[], [False, False], slice(0, -1), np.array([])])
+def test_setitem_empty_indexer(indexer, val):
+    # GH#45981
+    df = DataFrame({"a": [1, 2], **val})
+    expected = df.copy()
+    df.loc[indexer] = 1.5
+    tm.assert_frame_equal(df, expected)
+
+
+class TestDeprecatedIndexers:
+    @pytest.mark.parametrize("key", [{1}, {1: 1}])
+    def test_getitem_dict_and_set_deprecated(self, key):
+        # GH#42825 enforced in 2.0
+        ser = Series([1, 2])
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
+            ser.loc[key]
+
+    @pytest.mark.parametrize("key", [{1}, {1: 1}, ({1}, 2), ({1: 1}, 2)])
+    def test_getitem_dict_and_set_deprecated_multiindex(self, key):
+        # GH#42825 enforced in 2.0
+        ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
+            ser.loc[key]
+
+    @pytest.mark.parametrize("key", [{1}, {1: 1}])
+    def test_setitem_dict_and_set_disallowed(self, key):
+        # GH#42825 enforced in 2.0
+        ser = Series([1, 2])
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
+            ser.loc[key] = 1
+
+    @pytest.mark.parametrize("key", [{1}, {1: 1}, ({1}, 2), ({1: 1}, 2)])
+    def test_setitem_dict_and_set_disallowed_multiindex(self, key):
+        # GH#42825 enforced in 2.0
+        ser = Series([1, 2], index=MultiIndex.from_tuples([(1, 2), (3, 4)]))
+        with pytest.raises(TypeError, match="as an indexer is not supported"):
+            ser.loc[key] = 1
+
+
+class TestSetitemValidation:
+    # This is adapted from pandas/tests/arrays/masked/test_indexing.py
+    def _check_setitem_invalid(self, ser, invalid, indexer):
+        orig_ser = ser.copy()
+
+        with pytest.raises(TypeError, match="Invalid value"):
+            ser[indexer] = invalid
+            ser = orig_ser.copy()
+
+        with pytest.raises(TypeError, match="Invalid value"):
+            ser.iloc[indexer] = invalid
+            ser = orig_ser.copy()
+
+        with pytest.raises(TypeError, match="Invalid value"):
+            ser.loc[indexer] = invalid
+            ser = orig_ser.copy()
+
+        with pytest.raises(TypeError, match="Invalid value"):
+            ser[:] = invalid
+
+    def _check_setitem_valid(self, ser, value, indexer):
+        orig_ser = ser.copy()
+
+        ser[indexer] = value
+        ser = orig_ser.copy()
+
+        ser.iloc[indexer] = value
+        ser = orig_ser.copy()
+
+        ser.loc[indexer] = value
+        ser = orig_ser.copy()
+
+        ser[:] = value
+
+    _invalid_scalars = [
+        1 + 2j,
+        "True",
+        "1",
+        "1.0",
+        NaT,
+        np.datetime64("NaT"),
+        np.timedelta64("NaT"),
+    ]
+    _indexers = [0, [0], slice(0, 1), [True, False, False], slice(None, None, None)]
+
+    @pytest.mark.parametrize(
+        "invalid", _invalid_scalars + [1, 1.0, np.int64(1), np.float64(1)]
+    )
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_bool(self, invalid, indexer):
+        ser = Series([True, False, False], dtype="bool")
+        self._check_setitem_invalid(ser, invalid, indexer)
+
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
+        ser = Series([1, 2, 3], dtype=any_int_numpy_dtype)
+        if isna(invalid) and invalid is not NaT and not np.isnat(invalid):
+            self._check_setitem_valid(ser, invalid, indexer)
+        else:
+            self._check_setitem_invalid(ser, invalid, indexer)
+
+    @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
+    @pytest.mark.parametrize("indexer", _indexers)
+    def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype, indexer):
+        ser = Series([1, 2, None], dtype=float_numpy_dtype)
+        self._check_setitem_invalid(ser, invalid, indexer)
