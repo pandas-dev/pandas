@@ -265,8 +265,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         See the :ref:`user guide <basics.dtypes>` for more usages.
     name : Hashable, default None
         The name to give to the Series.
-    copy : bool, default False
-        Copy input data. Only affects Series or 1d ndarray input. See examples.
+    copy : bool, default None
+        Copy input data. By default, will copy if the input data is a numpy or
+        pandas array. Set to False to avoid copying, at your own risk (if you
+        know the input data won't be modified elsewhere).
+        Only affects Series or 1d ndarray input. See examples.
 
     See Also
     --------
