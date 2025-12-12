@@ -41,7 +41,8 @@ def test_list_getitem_negative_index():
     tm.assert_series_equal(actual, expected)
 
     ser_empty = Series([[]], dtype=ArrowDtype(pa.list_(pa.int64())))
-    with pytest.raises(IndexError, match="Index -1 is out of bounds: should be in \\[0, 0\\)"):
+    with pytest.raises(
+            IndexError, match="Index -1 is out of bounds: should be in \\[0, 0\\)"):
         ser_empty.list[-1]
 
     ser_mixed = Series([[1], [1, 2], [1, 2, 3]], dtype=ArrowDtype(pa.list_(pa.int64())))

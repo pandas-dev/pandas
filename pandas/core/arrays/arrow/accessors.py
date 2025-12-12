@@ -168,9 +168,11 @@ class ListAccessor(ArrowAccessor):
                         if not arr.is_null()[i].as_py():
                             current_length = lengths[i].as_py()
                             if current_length == 0:
-                                raise IndexError(f"Index {key} is out of bounds: should be in [0, 0)")
+                                raise IndexError(
+f"Index {key} is out of bounds: should be in [0, 0)")
                             if current_length < abs(key):
-                                raise IndexError(f"Index {key} is out of bounds: should be in [{-current_length}, {current_length})")
+                                raise IndexError(
+f"Index {key} is out of bounds: should be in [{-current_length}, {current_length})")
                 chunks = arr.chunks if isinstance(arr, pa.ChunkedArray) else [arr]
                 all_results = []
                 for chunk in chunks:
@@ -188,7 +190,9 @@ class ListAccessor(ArrowAccessor):
                     else:
                         chunk_result = taken_values
                     all_results.append(chunk_result)
-                result_values = pa.concat_arrays(all_results) if all_results else pa.array([],type=arr.type.value_type)
+                result_values = pa.concat_arrays(
+                    all_results) if all_results else pa.array([],
+                                                              type=arr.type.value_type)
                 return Series(
                     result_values,
                     dtype=ArrowDtype(result_values.type),
