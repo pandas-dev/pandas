@@ -16,8 +16,10 @@ runs:
         condarc-file: ci/.condarc
         cache-environment: true
         cache-downloads: true
-        # keep post step simple to avoid JSON parsing problems
-        post-cleanup: environment
+        # FIX: Set this to 'none'.
+        # 'environment' mode tries to parse JSON to delete packages, which causes the crash.
+        # GitHub runners are destroyed after the job, so cleanup is not required.
+        post-cleanup: 'none'
 
     - name: Uninstall pyarrow (optional)
       if: ${{ env.REMOVE_PYARROW == '1' }}
