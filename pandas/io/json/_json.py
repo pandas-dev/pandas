@@ -11,6 +11,7 @@ from typing import (
     Any,
     Generic,
     Literal,
+    cast,
     Self,
     TypeVar,
     final,
@@ -73,6 +74,7 @@ from pandas.io.json._table_schema import (
 )
 from pandas.io.parsers.readers import validate_integer
 
+DateUnit = Literal["s", "ms", "us", "ns"]
 if TYPE_CHECKING:
     from collections.abc import (
         Callable,
@@ -238,7 +240,7 @@ def _format_timedelta_labels(index, date_format: str, date_unit: str | None):
         return index
 
     values = index._values  # ndarray[td64]
-    result = []
+    result: list[object] = []
 
     if date_format == "iso":
         for val in values:
@@ -250,7 +252,10 @@ def _format_timedelta_labels(index, date_format: str, date_unit: str | None):
                 result.append(td.isoformat())
 
     else:  # epoch
-        unit = date_unit or "ms"
+        if date_unit is None:
+            unit: DateUnit = "ms"
+        else:
+            unit = cast(DateUnit, date_unit) 
 
         for val in values:
             if isna(val):
