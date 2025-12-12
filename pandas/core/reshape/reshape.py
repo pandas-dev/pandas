@@ -234,13 +234,11 @@ class _Unstacker:
         self.group_index = comp_index
         self.mask = mask
         if self.sort:
-            import sys
+            from pandas.compat import PY314
+            from pandas.compat.numpy import np_version_gt2
 
             # GH 63314: avoid searchsorted bug with py3.14 + numpy < 2.0
-            numpy_major = int(np.__version__.split(".")[0])
-            has_searchsorted_bug = sys.version_info >= (3, 14) and numpy_major < 2
-
-            if has_searchsorted_bug:
+            if PY314 and not np_version_gt2:
                 # use manual approach instead of buggy searchsorted
                 self.compressor = np.sort(np.unique(comp_index, return_index=True)[1])
             else:
