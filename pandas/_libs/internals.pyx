@@ -26,7 +26,7 @@ from pandas._libs.util cimport (
     is_integer_object,
 )
 
-IF Py_GIL_DISABLED:
+IF 0:
     include "free_threading_config.pxi"
 
 IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
