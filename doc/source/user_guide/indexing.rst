@@ -431,6 +431,24 @@ an error will be raised. For instance, in the above example, ``s.loc[2:5]`` woul
 For more information about duplicate labels, see
 :ref:`Duplicate Labels <duplicates>`.
 
+Also, when using a slice with a step, such as ``.loc[start:stop:step]``, note that
+*start* and *stop* are interpreted as **labels**, while *step* is applied over
+the **positional index** within that label range. This means a stepped slice
+may return different labels than selecting an explicit list, even when they
+appear similar.
+
+For example, in a ``Series`` with a non-contiguous integer index:
+
+.. ipython:: python
+
+   s = pd.Series(range(10), index=[0, 5, 10, 15, 20, 25, 30, 35, 40, 45])
+   s.loc[10:50:5]              # (10), then skip 3 positions → 35 only
+   s.loc[[10, 15, 20, 25]]     # explicit label selection
+
+The first applies *step* across **positional locations** between the start/stop
+labels. The second selects each label directly.
+
+
 .. _indexing.integer:
 
 Selection by position
