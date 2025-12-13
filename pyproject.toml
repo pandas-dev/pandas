@@ -453,7 +453,6 @@ exclude = [
 "pandas/core/groupby/grouper.py" = ["B905"]
 "pandas/core/groupby/ops.py" = ["B905"]
 "pandas/core/methods/to_dict.py" = ["B905"]
-"pandas/core/reshape/concat.py" = ["B905"]
 "pandas/core/reshape/encoding.py" = ["B905"]
 "pandas/core/reshape/melt.py" = ["B905"]
 "pandas/core/reshape/merge.py" = ["B905"]
