@@ -35,6 +35,21 @@ class TestTimedeltaAdditionSubtraction:
         __sub__, __rsub__
     """
 
+    def test_td_add_sub_pydatetime(self, unit):
+        # GH#53643
+        td = Timedelta(hours=23).as_unit(unit)
+        dt = datetime(2016, 1, 1)
+
+        expected = datetime(2016, 1, 1, 23)
+        result = dt + td
+        assert result == expected
+        result = td + dt
+        assert result == expected
+
+        expected = datetime(2015, 12, 31, 1)
+        result = dt - td
+        assert result == expected
+
     @pytest.mark.parametrize(
         "ten_seconds",
         [
@@ -104,7 +119,7 @@ class TestTimedeltaAdditionSubtraction:
 
     def test_td_add_timestamp_overflow(self):
         ts = Timestamp("1700-01-01").as_unit("ns")
-        msg = "Cannot cast 259987 from D to 'ns' without overflow."
+        msg = "Cannot cast 259987 days 00:00:00 to unit='ns' without overflow."
         with pytest.raises(OutOfBoundsTimedelta, match=msg):
             ts + Timedelta(13 * 19999, unit="D")
 

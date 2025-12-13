@@ -380,6 +380,8 @@ In cases with mixed-resolution inputs, the highest resolution is used:
 
 Similarly, the :class:`Timedelta` constructor and :func:`to_timedelta` with a string input now defaults to a microsecond unit, using nanosecond unit only in cases that actually have nanosecond precision.
 
+Moreover, passing an integer to the :class:`Timedelta` constructor or :func:`to_timedelta` along with a ``unit`` will now return an object with that unit when possible, or the closest-supported unit for non-supported units ("W", "D", "h", "m").
+
 .. _whatsnew_300.api_breaking.concat_datetime_sorting:
 
 :func:`concat` no longer ignores ``sort`` when all objects have a :class:`DatetimeIndex`
@@ -1131,6 +1133,7 @@ Timedelta
 - Accuracy improvement in :meth:`Timedelta.to_pytimedelta` to round microseconds consistently for large nanosecond based Timedelta (:issue:`57841`)
 - Bug in :class:`Timedelta` constructor failing to raise when passed an invalid keyword (:issue:`53801`)
 - Bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
+- Bug in adding or subtracting a :class:`Timedelta` object with non-nanosecond unit to a python ``datetime.datetime`` object giving incorrect results; this now works correctly for Timedeltas inside the ``datetime.timedelta`` implementation bounds (:issue:`53643`)
 - Bug in multiplication operations with ``timedelta64`` dtype failing to raise ``TypeError`` when multiplying by ``bool`` objects or dtypes (:issue:`58054`)
 - Bug in multiplication operations with ``timedelta64`` dtype incorrectly raising when multiplying by numpy-nullable dtypes or pyarrow integer dtypes (:issue:`58054`)
 

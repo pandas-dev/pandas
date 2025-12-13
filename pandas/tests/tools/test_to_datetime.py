@@ -2111,7 +2111,7 @@ class TestToDatetimeDataFrame:
         result = to_datetime(df[list(unit.keys())].rename(columns=unit), cache=cache)
         expected = Series(
             [Timestamp("20150204 06:58:10"), Timestamp("20160305 07:59:11")],
-            dtype="M8[ns]",
+            dtype="M8[us]",
         )
         tm.assert_series_equal(result, expected)
 
@@ -3263,7 +3263,8 @@ class TestOrigin:
         epoch_1960 = Timestamp(1960, 1, 1)
         units_from_epochs = np.arange(5, dtype=np.int64)
         expected = Series(
-            [pd.Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs]
+            [pd.Timedelta(x, unit=units) + epoch_1960 for x in units_from_epochs],
+            dtype="M8[ns]",
         )
 
         result = Series(to_datetime(units_from_epochs, unit=units, origin=epochs))
