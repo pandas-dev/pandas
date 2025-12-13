@@ -102,9 +102,6 @@ def test_custom_accessor() -> None:
 @pytest.mark.parametrize(
     ("expr", "expected_values", "expected_str"),
     [
-        # __and__ and __rand__
-        # a = [True, False, True, False], b = [False, True, True, True]
-        # a & b = [False, False, True, False]
         (
             pd.col("a") & pd.col("b"),
             [False, False, True, False],
@@ -115,7 +112,6 @@ def test_custom_accessor() -> None:
             [True, False, True, False],
             "(col('a') & True)",
         ),
-        # __or__ and __ror__
         (
             pd.col("a") | pd.col("b"),
             [True, True, True, True],
@@ -126,8 +122,6 @@ def test_custom_accessor() -> None:
             [True, False, True, False],
             "(col('a') | False)",
         ),
-        # __xor__ and __rxor__
-        # a ^ b = [True, True, False, True]
         (
             pd.col("a") ^ pd.col("b"),
             [True, True, False, True],
@@ -138,7 +132,6 @@ def test_custom_accessor() -> None:
             [False, True, False, True],
             "(col('a') ^ True)",
         ),
-        # __invert__
         (
             ~pd.col("a"),
             [False, True, False, True],
@@ -147,7 +140,7 @@ def test_custom_accessor() -> None:
     ],
 )
 def test_col_logical_ops(
-    expr: Expression, expected_values: list[object], expected_str: str
+    expr: Expression, expected_values: list[bool], expected_str: str
 ) -> None:
     df = pd.DataFrame({"a": [True, False, True, False], "b": [False, True, True, True]})
     result = df.assign(c=expr)
@@ -161,29 +154,7 @@ def test_col_logical_ops(
     tm.assert_frame_equal(result, expected)
     assert str(expr) == expected_str
 
-
-def test_col_logical_ops_combined() -> None:
-    """Test combining multiple logical operators like in DataFrame.loc[]."""
-    df = pd.DataFrame(
-        {
-            "x": [1, 2, 3, 4, 5],
-            "y": [10, 20, 30, 40, 50],
-        }
-    )
-    # Test combining conditions with & operator
-    expr = (pd.col("x") > 2) & (pd.col("y") < 45)
+    # Test that the expression works with .loc
     result = df.loc[expr]
-    expected = df.loc[(df["x"] > 2) & (df["y"] < 45)]
-    tm.assert_frame_equal(result, expected)
-
-    # Test combining conditions with | operator
-    expr = (pd.col("x") == 1) | (pd.col("x") == 5)
-    result = df.loc[expr]
-    expected = df.loc[(df["x"] == 1) | (df["x"] == 5)]
-    tm.assert_frame_equal(result, expected)
-
-    # Test negation with ~
-    expr = ~(pd.col("x") > 3)
-    result = df.loc[expr]
-    expected = df.loc[~(df["x"] > 3)]
+    expected = df[expected_values]
     tm.assert_frame_equal(result, expected)
