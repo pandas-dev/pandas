@@ -37,10 +37,10 @@ def get_objs():
         Index([True, False] * 5, name="a"),
         Index(np.arange(10), dtype=np.int64, name="a"),
         Index(np.arange(10), dtype=np.float64, name="a"),
-        DatetimeIndex(date_range("2020-01-01", periods=10), name="a"),
-        DatetimeIndex(date_range("2020-01-01", periods=10), name="a").tz_localize(
-            tz="US/Eastern"
-        ),
+        DatetimeIndex(date_range("2020-01-01", periods=10, unit="ns"), name="a"),
+        DatetimeIndex(
+            date_range("2020-01-01", periods=10, unit="ns"), name="a"
+        ).tz_localize(tz="US/Eastern"),
         PeriodIndex(period_range("2020-01-01", periods=10, freq="D"), name="a"),
         Index([str(i) for i in range(10)], name="a"),
     ]
@@ -198,7 +198,8 @@ class TestReductions:
     def test_same_tz_min_max_axis_1(self, op, expected_col):
         # GH 10390
         df = DataFrame(
-            date_range("2016-01-01 00:00:00", periods=3, tz="UTC"), columns=["a"]
+            date_range("2016-01-01 00:00:00", periods=3, tz="UTC", unit="ns"),
+            columns=["a"],
         )
         df["b"] = df.a.subtract(Timedelta(seconds=3600))
         result = getattr(df, op)(axis=1)
@@ -229,7 +230,7 @@ class TestReductions:
 
 class TestIndexReductions:
     # Note: the name TestIndexReductions indicates these tests
-    #  were moved from a Index-specific test file, _not_ that these tests are
+    #  were moved from an Index-specific test file, _not_ that these tests are
     #  intended long-term to be Index-specific
 
     @pytest.mark.parametrize(

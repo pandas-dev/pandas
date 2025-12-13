@@ -370,8 +370,8 @@ def test_groupby_timedelta_quantile():
     expected = DataFrame(
         {
             "value": [
-                pd.Timedelta("0 days 00:00:00.990000"),
-                pd.Timedelta("0 days 00:00:02.990000"),
+                pd.Timedelta("0 days 00:00:00.990000").as_unit("ns"),
+                pd.Timedelta("0 days 00:00:02.990000").as_unit("ns"),
             ]
         },
         index=Index([1, 2], name="group"),
@@ -410,7 +410,7 @@ def test_timestamp_groupby_quantile(unit):
 
 def test_groupby_quantile_dt64tz_period():
     # GH#51373
-    dti = pd.date_range("2016-01-01", periods=1000)
+    dti = pd.date_range("2016-01-01", periods=1000, unit="ns")
     df = pd.Series(dti).to_frame().copy()
     df[1] = dti.tz_localize("US/Pacific")
     df[2] = dti.to_period("D")

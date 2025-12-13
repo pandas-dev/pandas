@@ -40,6 +40,8 @@ Methods
     DateOffset.is_quarter_end
     DateOffset.is_year_start
     DateOffset.is_year_end
+    DateOffset.rollback
+    DateOffset.rollforward
 
 BusinessDay
 -----------

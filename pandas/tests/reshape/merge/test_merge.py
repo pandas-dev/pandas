@@ -847,22 +847,30 @@ class TestMerge:
         left = DataFrame(
             {
                 "key": [1, 2],
-                "value": pd.date_range("20151010", periods=2, tz="US/Eastern"),
+                "value": pd.date_range(
+                    "20151010", periods=2, tz="US/Eastern", unit="ns"
+                ),
             }
         )
         right = DataFrame(
             {
                 "key": [2, 3],
-                "value": pd.date_range("20151011", periods=2, tz="US/Eastern"),
+                "value": pd.date_range(
+                    "20151011", periods=2, tz="US/Eastern", unit="ns"
+                ),
             }
         )
         expected = DataFrame(
             {
                 "key": [1, 2, 3],
-                "value_x": list(pd.date_range("20151010", periods=2, tz="US/Eastern"))
+                "value_x": list(
+                    pd.date_range("20151010", periods=2, tz="US/Eastern", unit="ns")
+                )
                 + [pd.NaT],
                 "value_y": [pd.NaT]
-                + list(pd.date_range("20151011", periods=2, tz="US/Eastern")),
+                + list(
+                    pd.date_range("20151011", periods=2, tz="US/Eastern", unit="ns")
+                ),
             }
         )
         result = merge(left, right, on="key", how="outer")
@@ -2928,6 +2936,41 @@ def test_merge_multiindex_single_level():
     tm.assert_frame_equal(result, expected)
 
 
+def test_merge_multiindex_reset_index_mixed():
+    # GH#62150
+    df = DataFrame(
+        {("column_1", ""): [1, 1], ("column_2", ""): [2, 2]},
+        index=MultiIndex.from_arrays(
+            [[1, 1], ["metadata_1", "metadata_2"]], names=["index", "metadata"]
+        ),
+    )
+
+    df2 = DataFrame(
+        data=[1, 1],
+        index=Index([1, 1], name="index"),
+        columns=MultiIndex.from_product([["new_data"], [""]]),
+    )
+
+    with tm.assert_produces_warning(pd.errors.PerformanceWarning):
+        result = df.reset_index().merge(df2.reset_index(), on="index")
+
+    expected = DataFrame(
+        {
+            ("index", ""): [1, 1, 1, 1],
+            ("metadata", ""): ["metadata_1", "metadata_1", "metadata_2", "metadata_2"],
+            ("column_1", ""): [1, 1, 1, 1],
+            ("column_2", ""): [2, 2, 2, 2],
+            ("new_data", ""): [1, 1, 1, 1],
+        }
+    )
+    expected.columns = MultiIndex.from_tuples(expected.columns)
+
+    tm.assert_frame_equal(result, expected)
+
+    result2 = df.reset_index().merge(df2.reset_index(), on=[("index", "")])
+    tm.assert_frame_equal(result2, expected)
+
+
 @pytest.mark.parametrize("on_index", [True, False])
 @pytest.mark.parametrize("left_unique", [True, False])
 @pytest.mark.parametrize("left_monotonic", [True, False])
@@ -3141,3 +3184,11 @@ def test_merge_pyarrow_datetime_duplicates():
     )
     expected = expected.convert_dtypes(dtype_backend="pyarrow")
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_right_on_and_right_index():
+    df1 = DataFrame({"col": [1, 2, 3]})
+    df2 = DataFrame({"col": [2, 3, 4]})
+
+    with pytest.raises(pd.errors.MergeError):
+        df1.merge(df2, left_on="col", right_on="col", right_index=True)

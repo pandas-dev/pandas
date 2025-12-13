@@ -1736,7 +1736,7 @@ def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
         {
             "td": Series(
                 ["0 days 01:00:00", "0 days 00:15:00", "0 days 01:15:00"],
-                dtype="timedelta64[ns]",
+                dtype="timedelta64[us]",
             ),
             "grps": ["a", "a", "b"],
         }

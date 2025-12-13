@@ -363,6 +363,28 @@ def test_setting_fill_value_fillna_still_works():
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_cumsum_integer_no_recursion():
+    # GH 62669: RecursionError in integer SparseArray.cumsum
+    arr = SparseArray([1, 2, 3])
+    result = arr.cumsum()
+    expected = SparseArray([1, 3, 6], fill_value=np.nan)
+    tm.assert_sp_array_equal(result, expected)
+
+    # Also test with some zeros interleaved
+    arr2 = SparseArray([0, 1, 0, 2])
+    result2 = arr2.cumsum()
+    expected2 = SparseArray([0, 1, 1, 3], fill_value=np.nan)
+    tm.assert_sp_array_equal(result2, expected2)
+
+
+def test_cumsum_float_fill_value_zero():
+    # GH 62669
+    arr = pd.arrays.SparseArray([1.0, 0.0, np.nan, 3.0], fill_value=0.0)
+    result = arr.cumsum()
+    expected = SparseArray([1.0, 1.0, None, 4.0], fill_value=np.nan)
+    tm.assert_sp_array_equal(result, expected)
+
+
 def test_setting_fill_value_updates():
     arr = SparseArray([0.0, np.nan], fill_value=0)
     arr.fill_value = np.nan

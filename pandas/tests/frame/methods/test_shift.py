@@ -154,7 +154,9 @@ class TestDataFrameShift:
 
     def test_shift_dst(self, frame_or_series):
         # GH#13926
-        dates = date_range("2016-11-06", freq="h", periods=10, tz="US/Eastern")
+        dates = date_range(
+            "2016-11-06", freq="h", periods=10, tz="US/Eastern", unit="ns"
+        )
         obj = frame_or_series(dates)
 
         res = obj.shift(0)
@@ -176,7 +178,9 @@ class TestDataFrameShift:
     @pytest.mark.parametrize("ex", [10, -10, 20, -20])
     def test_shift_dst_beyond(self, frame_or_series, ex):
         # GH#13926
-        dates = date_range("2016-11-06", freq="h", periods=10, tz="US/Eastern")
+        dates = date_range(
+            "2016-11-06", freq="h", periods=10, tz="US/Eastern", unit="ns"
+        )
         obj = frame_or_series(dates)
         res = obj.shift(ex)
         exp = frame_or_series([NaT] * 10, dtype="datetime64[ns, US/Eastern]")

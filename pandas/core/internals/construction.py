@@ -193,7 +193,7 @@ def ndarray_to_mgr(
     values, index, columns, dtype: DtypeObj | None, copy: bool
 ) -> Manager:
     # used in DataFrame.__init__
-    # input must be a ndarray, list, Series, Index, ExtensionArray
+    # input must be an ndarray, list, Series, Index, ExtensionArray
     infer_object = not isinstance(values, (ABCSeries, Index, ExtensionArray))
 
     if isinstance(values, ABCSeries):

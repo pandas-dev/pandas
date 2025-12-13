@@ -249,9 +249,9 @@ two subsequent indexing operations, e.g.
     In [3]: df
     Out[3]:
        foo  bar
-    0  100    4
+    0    1    4
     1    2    5
-    2    3    6
+    2  100    6
 
 The column ``foo`` was updated where the column ``bar`` is greater than 5.
 This violated the CoW principles though, because it would have to modify the

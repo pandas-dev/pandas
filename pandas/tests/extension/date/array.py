@@ -162,7 +162,7 @@ class DateArray(ExtensionArray):
         self._day[key] = value.day
 
     def __repr__(self) -> str:
-        return f"DateArray{list(zip(self._year, self._month, self._day))}"
+        return f"DateArray{list(zip(self._year, self._month, self._day, strict=True))}"
 
     def copy(self) -> DateArray:
         return DateArray((self._year.copy(), self._month.copy(), self._day.copy()))

@@ -436,7 +436,7 @@ class TestPivotTable:
         df = DataFrame(
             {
                 "A": [1, 2, 3, 4, 5],
-                "dt": date_range("2011-01-01", freq="D", periods=5),
+                "dt": date_range("2011-01-01", freq="D", periods=5, unit="ns"),
             },
             index=idx,
         )

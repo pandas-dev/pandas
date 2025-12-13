@@ -3780,7 +3780,7 @@ class StringMethods(NoNewAttributesMixin):
     Series.str.isupper : Check whether all characters are uppercase.
 
     Examples
-    ------------
+    --------
     The ``s5.str.isascii`` method checks for whether all characters are ascii
     characters, which includes digits 0-9, capital and lowercase letters A-Z,
     and some other special characters.

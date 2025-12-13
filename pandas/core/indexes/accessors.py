@@ -286,7 +286,7 @@ class DatetimeProperties(Properties):
     0   2000-01-01 00:00:00
     1   2000-01-01 00:00:01
     2   2000-01-01 00:00:02
-    dtype: datetime64[ns]
+    dtype: datetime64[us]
     >>> seconds_series.dt.second
     0    0
     1    1
@@ -298,7 +298,7 @@ class DatetimeProperties(Properties):
     0   2000-01-01 00:00:00
     1   2000-01-01 01:00:00
     2   2000-01-01 02:00:00
-    dtype: datetime64[ns]
+    dtype: datetime64[us]
     >>> hours_series.dt.hour
     0    0
     1    1
@@ -310,7 +310,7 @@ class DatetimeProperties(Properties):
     0   2000-03-31
     1   2000-06-30
     2   2000-09-30
-    dtype: datetime64[ns]
+    dtype: datetime64[us]
     >>> quarters_series.dt.quarter
     0    1
     1    2
@@ -347,7 +347,7 @@ class DatetimeProperties(Properties):
         >>> s
         0   2018-03-10
         1   2018-03-11
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
 
         >>> s.dt.to_pydatetime()
         0    2018-03-10 00:00:00
@@ -453,7 +453,7 @@ class TimedeltaProperties(Properties):
     0   0 days 00:00:01
     1   0 days 00:00:02
     2   0 days 00:00:03
-    dtype: timedelta64[ns]
+    dtype: timedelta64[us]
     >>> seconds_series.dt.seconds
     0    1
     1    2

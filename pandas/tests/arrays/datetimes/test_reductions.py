@@ -143,7 +143,7 @@ class TestReductions:
         assert result == expected
 
     def test_mean_2d(self):
-        dti = pd.date_range("2016-01-01", periods=6, tz="US/Pacific")
+        dti = pd.date_range("2016-01-01", periods=6, tz="US/Pacific", unit="ns")
         dta = dti._data.reshape(3, 2)
 
         result = dta.mean(axis=0)

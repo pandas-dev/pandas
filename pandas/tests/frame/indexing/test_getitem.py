@@ -176,7 +176,9 @@ class TestGetitemListLike:
         # GH 46671
         df = DataFrame(
             list(range(10)),
-            index=date_range("01-01-2022", periods=10, freq=DateOffset(days=1)),
+            index=date_range(
+                "01-01-2022", periods=10, freq=DateOffset(days=1), unit="ns"
+            ),
         )
         result = df.loc["2022-01-01":"2022-01-03"]
         expected = DataFrame(
@@ -192,7 +194,7 @@ class TestGetitemListLike:
         df = DataFrame(
             list(range(10)),
             index=date_range(
-                "01-01-2022", periods=10, freq=DateOffset(days=1, hours=2)
+                "01-01-2022", periods=10, freq=DateOffset(days=1, hours=2), unit="ns"
             ),
         )
         result = df.loc["2022-01-01":"2022-01-03"]
@@ -208,7 +210,9 @@ class TestGetitemListLike:
 
         df = DataFrame(
             list(range(10)),
-            index=date_range("01-01-2022", periods=10, freq=DateOffset(minutes=3)),
+            index=date_range(
+                "01-01-2022", periods=10, freq=DateOffset(minutes=3), unit="ns"
+            ),
         )
         result = df.loc["2022-01-01":"2022-01-03"]
         tm.assert_frame_equal(result, df)

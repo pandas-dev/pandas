@@ -321,8 +321,8 @@ def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value):
 
 def test_reindex_datetimeindexes_tz_naive_and_aware():
     # GH 8306
-    idx = date_range("20131101", tz="America/Chicago", periods=7)
-    newidx = date_range("20131103", periods=10, freq="h")
+    idx = date_range("20131101", tz="America/Chicago", periods=7, unit="ns")
+    newidx = date_range("20131103", periods=10, freq="h", unit="ns")
     s = Series(range(7), index=idx)
     msg = (
         r"Cannot compare dtypes datetime64\[ns, America/Chicago\] "

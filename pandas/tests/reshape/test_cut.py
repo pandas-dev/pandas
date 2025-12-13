@@ -543,7 +543,7 @@ def test_datetime_tz_cut_mismatched_tzawareness(box):
 def test_datetime_tz_cut(bins, box):
     # see gh-19872
     tz = "US/Eastern"
-    ser = Series(date_range("20130101", periods=3, tz=tz))
+    ser = Series(date_range("20130101", periods=3, tz=tz, unit="ns"))
 
     if not isinstance(bins, int):
         bins = box(bins)
@@ -794,7 +794,7 @@ def test_cut_bins_datetime_intervalindex():
     # https://github.com/pandas-dev/pandas/issues/46218
     bins = interval_range(Timestamp("2022-02-25"), Timestamp("2022-02-27"), freq="1D")
     # passing Series instead of list is important to trigger bug
-    result = cut(Series([Timestamp("2022-02-26")]).astype("M8[ns]"), bins=bins)
+    result = cut(Series([Timestamp("2022-02-26")]), bins=bins)
     expected = Categorical.from_codes([0], bins, ordered=True)
     tm.assert_categorical_equal(result.array, expected)
 

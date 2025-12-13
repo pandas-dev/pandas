@@ -1435,7 +1435,7 @@ def test_nuiscance_columns():
 
     result = df.agg(["min"])
     expected = DataFrame(
-        [[1, 1.0, "bar", Timestamp("20130101").as_unit("ns")]],
+        [[1, 1.0, "bar", Timestamp("20130101")]],
         index=["min"],
         columns=df.columns,
     )

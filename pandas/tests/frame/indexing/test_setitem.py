@@ -171,7 +171,7 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_dt64_index_empty_columns(self):
-        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s")
+        rng = date_range("1/1/2000 00:00:00", "1/1/2000 1:59:50", freq="10s", unit="ns")
         df = DataFrame(index=np.arange(len(rng)))
 
         df["A"] = rng
@@ -1000,6 +1000,8 @@ class TestDataFrameSetItemWithExpansion:
             index=Index([0]),
             columns=(["a", "b", "c"]),
         )
+        expected["a"] = expected["a"].astype("m8[ns]")
+        expected["b"] = expected["b"].astype("m8[ns]")
         tm.assert_frame_equal(result, expected)
 
     def test_setitem_tuple_key_in_empty_frame(self):

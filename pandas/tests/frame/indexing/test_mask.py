@@ -45,14 +45,14 @@ class TestDataFrameMask:
 
         rdf = df.copy()
 
-        return_value = rdf.where(cond, inplace=True)
-        assert return_value is None
+        result = rdf.where(cond, inplace=True)
+        assert result is rdf
         tm.assert_frame_equal(rdf, df.where(cond))
         tm.assert_frame_equal(rdf, df.mask(~cond))
 
         rdf = df.copy()
-        return_value = rdf.where(cond, -df, inplace=True)
-        assert return_value is None
+        result = rdf.where(cond, -df, inplace=True)
+        assert result is rdf
         tm.assert_frame_equal(rdf, df.where(cond, -df))
         tm.assert_frame_equal(rdf, df.mask(~cond, -df))
 
@@ -131,7 +131,8 @@ def test_mask_where_dtype_timedelta():
     tm.assert_frame_equal(df.mask(df.notna()), expected)
 
     expected = DataFrame(
-        [np.nan, np.nan, np.nan, Timedelta("3 day"), Timedelta("4 day")]
+        [np.nan, np.nan, np.nan, Timedelta("3 day"), Timedelta("4 day")],
+        dtype="m8[ns]",
     )
     tm.assert_frame_equal(df.where(df > Timedelta(2, unit="D")), expected)
 

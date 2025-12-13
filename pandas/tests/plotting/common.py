@@ -80,7 +80,7 @@ def _check_data(xp, rs):
     rs_lines = rs.get_lines()
 
     assert len(xp_lines) == len(rs_lines)
-    for xpl, rsl in zip(xp_lines, rs_lines):
+    for xpl, rsl in zip(xp_lines, rs_lines, strict=True):
         xpdata = xpl.get_xydata()
         rsdata = rsl.get_xydata()
         tm.assert_almost_equal(xpdata, rsdata)
@@ -162,7 +162,7 @@ def _check_colors(collections, linecolors=None, facecolors=None, mapping=None):
             linecolors = linecolors[: len(collections)]
 
         assert len(collections) == len(linecolors)
-        for patch, color in zip(collections, linecolors):
+        for patch, color in zip(collections, linecolors, strict=True):
             if isinstance(patch, Line2D):
                 result = patch.get_color()
                 # Line2D may contains string color expression
@@ -181,7 +181,7 @@ def _check_colors(collections, linecolors=None, facecolors=None, mapping=None):
             facecolors = facecolors[: len(collections)]
 
         assert len(collections) == len(facecolors)
-        for patch, color in zip(collections, facecolors):
+        for patch, color in zip(collections, facecolors, strict=True):
             if isinstance(patch, Collection):
                 # returned as list of np.array
                 result = patch.get_facecolor()[0]
@@ -211,7 +211,7 @@ def _check_text_labels(texts, expected):
     else:
         labels = [t.get_text() for t in texts]
         assert len(labels) == len(expected)
-        for label, e in zip(labels, expected):
+        for label, e in zip(labels, expected, strict=True):
             assert label == e
 
 

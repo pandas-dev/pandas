@@ -109,7 +109,7 @@ class TestDataFrameGroupByPlots:
 
         for axes in g.hist(legend=True, column=column):
             _check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
-            for ax, expected_label in zip(axes[0], expected_labels):
+            for ax, expected_label in zip(axes[0], expected_labels, strict=True):
                 _check_legend_labels(ax, expected_label)
 
     @pytest.mark.parametrize("column", [None, "b"])

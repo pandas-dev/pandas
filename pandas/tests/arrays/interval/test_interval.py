@@ -136,6 +136,20 @@ class TestMethods:
         )
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [Interval(-np.inf, 0), Interval(-np.inf, 1)],
+            [Interval(0, np.inf), Interval(1, np.inf)],
+        ],
+    )
+    def test_unique_with_infinty(self, data):
+        # https://github.com/pandas-dev/pandas/issues/63218
+        s = pd.Series(data)
+        tm.assert_interval_array_equal(s.unique(), s.array)
+        assert s.nunique() == 2
+        tm.assert_series_equal(s.drop_duplicates(), s)
+
 
 class TestSetitem:
     def test_set_na(self, left_right_dtypes):

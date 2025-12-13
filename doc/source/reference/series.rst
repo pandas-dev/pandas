@@ -424,6 +424,7 @@ strings and apply several methods to it. These can be accessed like
    Series.str.fullmatch
    Series.str.get
    Series.str.index
+   Series.str.isascii
    Series.str.join
    Series.str.len
    Series.str.ljust

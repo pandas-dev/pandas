@@ -13,6 +13,11 @@ from pandas.util.version import Version
 
 xarray = pytest.importorskip("xarray")
 
+if xarray is not None and Version(xarray.__version__) < Version("2025.1.0"):
+    pytestmark = pytest.mark.filterwarnings(
+        "ignore:Converting non-nanosecond precision:UserWarning"
+    )
+
 
 class TestDataFrameToXArray:
     @pytest.fixture
@@ -77,6 +82,9 @@ class TestDataFrameToXArray:
         expected["f"] = expected["f"].astype(
             object if not using_infer_string else "str"
         )
+        if Version(xarray.__version__) < Version("2025.1.0"):
+            expected["g"] = expected["g"].astype("M8[ns]")
+            expected["h"] = expected["h"].astype("M8[ns, US/Eastern]")
         expected.columns.name = None
         tm.assert_frame_equal(result, expected)
 

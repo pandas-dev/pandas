@@ -913,13 +913,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         DatetimeIndex(['2014-08-01 09:00:00+02:00',
                        '2014-08-01 10:00:00+02:00',
                        '2014-08-01 11:00:00+02:00'],
-                        dtype='datetime64[ns, Europe/Berlin]', freq='h')
+                        dtype='datetime64[us, Europe/Berlin]', freq='h')
 
         >>> dti.tz_convert(None)
         DatetimeIndex(['2014-08-01 07:00:00',
                        '2014-08-01 08:00:00',
                        '2014-08-01 09:00:00'],
-                        dtype='datetime64[ns]', freq='h')
+                        dtype='datetime64[us]', freq='h')
         """  # noqa: E501
         tz = timezones.maybe_get_tz(tz)
 
@@ -1010,7 +1010,7 @@ default 'raise'
         >>> tz_naive
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[us]', freq='D')
 
         Localize DatetimeIndex in US/Eastern time zone:
 
@@ -1019,7 +1019,7 @@ default 'raise'
         DatetimeIndex(['2018-03-01 09:00:00-05:00',
                        '2018-03-02 09:00:00-05:00',
                        '2018-03-03 09:00:00-05:00'],
-                      dtype='datetime64[ns, US/Eastern]', freq=None)
+                      dtype='datetime64[us, US/Eastern]', freq=None)
 
         With the ``tz=None``, we can remove the time zone information
         while keeping the local time (not converted to UTC):
@@ -1027,7 +1027,7 @@ default 'raise'
         >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
                        '2018-03-03 09:00:00'],
-                      dtype='datetime64[ns]', freq=None)
+                      dtype='datetime64[us]', freq=None)
 
         Be careful with DST changes. When there is sequential data, pandas can
         infer the DST time:
@@ -1180,12 +1180,12 @@ default 'raise'
         DatetimeIndex(['2014-08-01 10:00:00+05:30',
                        '2014-08-01 11:00:00+05:30',
                        '2014-08-01 12:00:00+05:30'],
-                        dtype='datetime64[ns, Asia/Calcutta]', freq='h')
+                        dtype='datetime64[us, Asia/Calcutta]', freq='h')
         >>> idx.normalize()
         DatetimeIndex(['2014-08-01 00:00:00+05:30',
                        '2014-08-01 00:00:00+05:30',
                        '2014-08-01 00:00:00+05:30'],
-                       dtype='datetime64[ns, Asia/Calcutta]', freq=None)
+                       dtype='datetime64[us, Asia/Calcutta]', freq=None)
         """
         new_values = normalize_i8_timestamps(self.asi8, self.tz, reso=self._creso)
         dt64_values = new_values.view(self._ndarray.dtype)
@@ -1309,7 +1309,7 @@ default 'raise'
         0   2018-01-31
         1   2018-02-28
         2   2018-03-31
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         >>> s.dt.month_name()
         0     January
         1    February
@@ -1319,7 +1319,7 @@ default 'raise'
         >>> idx = pd.date_range(start="2018-01", freq="ME", periods=3)
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
-                      dtype='datetime64[ns]', freq='ME')
+                      dtype='datetime64[us]', freq='ME')
         >>> idx.month_name()
         Index(['January', 'February', 'March'], dtype='str')
 
@@ -1330,7 +1330,7 @@ default 'raise'
         >>> idx = pd.date_range(start="2018-01", freq="ME", periods=3)
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
-                      dtype='datetime64[ns]', freq='ME')
+                      dtype='datetime64[us]', freq='ME')
         >>> idx.month_name(locale="pt_BR.utf8")  # doctest: +SKIP
         Index(['Janeiro', 'Fevereiro', 'Março'], dtype='str')
         """
@@ -1377,7 +1377,7 @@ default 'raise'
         0   2018-01-01
         1   2018-01-02
         2   2018-01-03
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         >>> s.dt.day_name()
         0       Monday
         1      Tuesday
@@ -1387,7 +1387,7 @@ default 'raise'
         >>> idx = pd.date_range(start="2018-01-01", freq="D", periods=3)
         >>> idx
         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[us]', freq='D')
         >>> idx.day_name()
         Index(['Monday', 'Tuesday', 'Wednesday'], dtype='str')
 
@@ -1398,7 +1398,7 @@ default 'raise'
         >>> idx = pd.date_range(start="2018-01-01", freq="D", periods=3)
         >>> idx
         DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[us]', freq='D')
         >>> idx.day_name(locale="pt_BR.utf8")  # doctest: +SKIP
         Index(['Segunda', 'Terça', 'Quarta'], dtype='str')
         """
@@ -1611,7 +1611,7 @@ default 'raise'
         0   2000-12-31
         1   2001-12-31
         2   2002-12-31
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         >>> datetime_series.dt.year
         0    2000
         1    2001
@@ -1639,7 +1639,7 @@ default 'raise'
         0   2000-01-31
         1   2000-02-29
         2   2000-03-31
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         >>> datetime_series.dt.month
         0    1
         1    2
@@ -1668,7 +1668,7 @@ default 'raise'
         0   2000-01-01
         1   2000-01-02
         2   2000-01-03
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         >>> datetime_series.dt.day
         0    1
         1    2
@@ -1697,7 +1697,7 @@ default 'raise'
         0   2000-01-01 00:00:00
         1   2000-01-01 01:00:00
         2   2000-01-01 02:00:00
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         >>> datetime_series.dt.hour
         0    0
         1    1
@@ -1725,7 +1725,7 @@ default 'raise'
         0   2000-01-01 00:00:00
         1   2000-01-01 00:01:00
         2   2000-01-01 00:02:00
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         >>> datetime_series.dt.minute
         0    0
         1    1
@@ -1754,7 +1754,7 @@ default 'raise'
         0   2000-01-01 00:00:00
         1   2000-01-01 00:00:01
         2   2000-01-01 00:00:02
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         >>> datetime_series.dt.second
         0    0
         1    1
@@ -1782,7 +1782,7 @@ default 'raise'
         0   2000-01-01 00:00:00.000000
         1   2000-01-01 00:00:00.000001
         2   2000-01-01 00:00:00.000002
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         >>> datetime_series.dt.microsecond
         0       0
         1       1
@@ -1982,7 +1982,7 @@ default 'raise'
         0   2018-02-27
         1   2018-02-28
         2   2018-03-01
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         >>> s.dt.is_month_start
         0    False
         1    False
@@ -2044,7 +2044,7 @@ default 'raise'
         >>> idx = pd.date_range('2017-03-30', periods=4)
         >>> idx
         DatetimeIndex(['2017-03-30', '2017-03-31', '2017-04-01', '2017-04-02'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[us]', freq='D')
 
         >>> idx.is_quarter_start
         array([False, False,  True, False])
@@ -2086,7 +2086,7 @@ default 'raise'
         >>> idx = pd.date_range('2017-03-30', periods=4)
         >>> idx
         DatetimeIndex(['2017-03-30', '2017-03-31', '2017-04-01', '2017-04-02'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[us]', freq='D')
 
         >>> idx.is_quarter_end
         array([False,  True, False, False])
@@ -2119,7 +2119,7 @@ default 'raise'
         0   2017-12-30
         1   2017-12-31
         2   2018-01-01
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
 
         >>> dates.dt.is_year_start
         0    False
@@ -2130,7 +2130,7 @@ default 'raise'
         >>> idx = pd.date_range("2017-12-30", periods=3)
         >>> idx
         DatetimeIndex(['2017-12-30', '2017-12-31', '2018-01-01'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[us]', freq='D')
 
         >>> idx.is_year_start
         array([False, False,  True])
@@ -2144,7 +2144,7 @@ default 'raise'
         1   2022-01-03
         2   2023-01-02
         3   2024-01-01
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
 
         >>> dates.dt.is_year_start
         0    True
@@ -2156,7 +2156,7 @@ default 'raise'
         >>> idx = pd.date_range("2020-10-30", periods=4, freq="BYS")
         >>> idx
         DatetimeIndex(['2021-01-01', '2022-01-03', '2023-01-02', '2024-01-01'],
-                      dtype='datetime64[ns]', freq='BYS-JAN')
+                      dtype='datetime64[us]', freq='BYS-JAN')
 
         >>> idx.is_year_start
         array([ True,  True,  True,  True])
@@ -2189,7 +2189,7 @@ default 'raise'
         0   2017-12-30
         1   2017-12-31
         2   2018-01-01
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
 
         >>> dates.dt.is_year_end
         0    False
@@ -2200,7 +2200,7 @@ default 'raise'
         >>> idx = pd.date_range("2017-12-30", periods=3)
         >>> idx
         DatetimeIndex(['2017-12-30', '2017-12-31', '2018-01-01'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[us]', freq='D')
 
         >>> idx.is_year_end
         array([False,  True, False])
@@ -2237,7 +2237,7 @@ default 'raise'
         >>> idx = pd.date_range("2012-01-01", "2015-01-01", freq="YE")
         >>> idx
         DatetimeIndex(['2012-12-31', '2013-12-31', '2014-12-31'],
-                      dtype='datetime64[ns]', freq='YE-DEC')
+                      dtype='datetime64[us]', freq='YE-DEC')
         >>> idx.is_leap_year
         array([ True, False, False])
 
@@ -2246,7 +2246,7 @@ default 'raise'
         0   2012-12-31
         1   2013-12-31
         2   2014-12-31
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
         >>> dates_series.dt.is_leap_year
         0     True
         1    False
@@ -2380,7 +2380,7 @@ default 'raise'
         >>> idx = pd.date_range("2001-01-01 00:00", periods=3)
         >>> idx
         DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
-                      dtype='datetime64[ns]', freq='D')
+                      dtype='datetime64[us]', freq='D')
         >>> idx.std()
         Timedelta('1 days 00:00:00')
         """

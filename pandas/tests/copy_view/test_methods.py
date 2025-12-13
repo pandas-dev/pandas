@@ -226,6 +226,19 @@ def test_groupby_column_index_in_references():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_modify_series():
+    # https://github.com/pandas-dev/pandas/issues/63219
+    # Modifying a Series after using it to groupby should not impact
+    # the groupby operation.
+    ser = Series([1, 2, 1])
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    gb = df.groupby(ser)
+    ser.iloc[0] = 100
+    result = gb.sum()
+    expected = DataFrame({"a": [4, 2], "b": [10, 5]}, index=[1, 2])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_rename_columns():
     # Case: renaming columns returns a new dataframe
     # + afterwards modifying the result
@@ -1205,11 +1218,11 @@ def test_where_mask_noop_on_single_column(dtype, val, func):
 def test_chained_where_mask(func):
     df = DataFrame({"a": [1, 4, 2], "b": 1})
     df_orig = df.copy()
-    with tm.raises_chained_assignment_error(inplace_method=True):
+    with tm.raises_chained_assignment_error():
         getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
     tm.assert_frame_equal(df, df_orig)
 
-    with tm.raises_chained_assignment_error(inplace_method=True):
+    with tm.raises_chained_assignment_error():
         getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
     tm.assert_frame_equal(df, df_orig)
 
@@ -1391,11 +1404,11 @@ def test_update_chained_assignment():
     df = DataFrame({"a": [1, 2, 3]})
     ser2 = Series([100.0], index=[1])
     df_orig = df.copy()
-    with tm.raises_chained_assignment_error(inplace_method=True):
+    with tm.raises_chained_assignment_error():
         df["a"].update(ser2)
     tm.assert_frame_equal(df, df_orig)
 
-    with tm.raises_chained_assignment_error(inplace_method=True):
+    with tm.raises_chained_assignment_error():
         df[["a"]].update(ser2.to_frame())
     tm.assert_frame_equal(df, df_orig)
 

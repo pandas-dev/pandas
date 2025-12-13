@@ -48,7 +48,9 @@ def test_pass_spec_to_storer(tmp_path, setup_path):
 
 def test_table_index_incompatible_dtypes(tmp_path, setup_path):
     df1 = DataFrame({"a": [1, 2, 3]})
-    df2 = DataFrame({"a": [4, 5, 6]}, index=date_range("1/1/2000", periods=3))
+    df2 = DataFrame(
+        {"a": [4, 5, 6]}, index=date_range("1/1/2000", periods=3, unit="ns")
+    )
 
     with HDFStore(tmp_path / setup_path) as store:
         store.put("frame", df1, format="table")
@@ -104,7 +106,7 @@ def test_invalid_terms(tmp_path, setup_path):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
         )
         df["string"] = "foo"
         df.loc[df.index[0:4], "string"] = "bar"
@@ -133,7 +135,7 @@ def test_invalid_terms(tmp_path, setup_path):
     dfq = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=list("ABCD"),
-        index=date_range("20130101", periods=10),
+        index=date_range("20130101", periods=10, unit="ns"),
     )
     dfq.to_hdf(path, key="dfq", format="table", data_columns=True)
 
@@ -146,7 +148,7 @@ def test_invalid_terms(tmp_path, setup_path):
     dfq = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=list("ABCD"),
-        index=date_range("20130101", periods=10),
+        index=date_range("20130101", periods=10, unit="ns"),
     )
     dfq.to_hdf(path, key="dfq", format="table")
 
@@ -195,7 +197,7 @@ def test_invalid_complib(tmp_path, setup_path):
 @pytest.mark.parametrize(
     "idx",
     [
-        date_range("2019", freq="D", periods=3, tz="UTC"),
+        date_range("2019", freq="D", periods=3, tz="UTC", unit="ns"),
         CategoricalIndex(list("abc")),
     ],
 )

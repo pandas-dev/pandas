@@ -436,7 +436,7 @@ class TestSeriesPlots:
             series.plot.pie, colors=color_args, autopct="%.2f", fontsize=7
         )
         pcts = [f"{s * 100:.2f}" for s in series.values / series.sum()]
-        expected_texts = list(chain.from_iterable(zip(series.index, pcts)))
+        expected_texts = list(chain.from_iterable(zip(series.index, pcts, strict=True)))
         _check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
             assert t.get_fontsize() == 7

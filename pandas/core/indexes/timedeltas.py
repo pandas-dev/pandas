@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 from pandas._libs import (
     index as libindex,
@@ -13,6 +16,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
@@ -33,6 +37,10 @@ from pandas.core.indexes.extension import inherit_names
 
 if TYPE_CHECKING:
     from pandas._libs import NaTType
+    from pandas._libs.tslibs import (
+        Day,
+        Tick,
+    )
     from pandas._typing import (
         DtypeObj,
         TimeUnit,
@@ -114,7 +122,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     --------
     >>> pd.TimedeltaIndex(["0 days", "1 days", "2 days", "3 days", "4 days"])
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[us]', freq=None)
 
     We can also let pandas infer the frequency when possible.
 
@@ -222,18 +230,27 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
 
         return Index.get_loc(self, key)
 
-    # error: Return type "tuple[Timedelta | NaTType, None]" of "_parse_with_reso"
-    # incompatible with return type "tuple[datetime, Resolution]" in supertype
-    # "DatetimeIndexOpsMixin"
-    def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, None]:  # type: ignore[override]
-        # the "with_reso" is a no-op for TimedeltaIndex
+    # error: Return type "tuple[Timedelta | NaTType, Resolution]" of
+    # "_parse_with_reso" incompatible with return type
+    # "tuple[datetime, Resolution]" in supertype
+    # "pandas.core.indexes.datetimelike.DatetimeIndexOpsMixin"
+    def _parse_with_reso(self, label: str) -> tuple[Timedelta | NaTType, Resolution]:  # type: ignore[override]
         parsed = Timedelta(label)
-        return parsed, None
+        if isinstance(parsed, Timedelta):
+            reso = Resolution.get_reso_from_freqstr(parsed.unit)
+        else:
+            # i.e. pd.NaT
+            reso = Resolution.get_reso_from_freqstr("s")
+        return parsed, reso
 
-    def _parsed_string_to_bounds(self, reso, parsed: Timedelta):
+    def _parsed_string_to_bounds(self, reso: Resolution, parsed: Timedelta):
         # reso is unused, included to match signature of DTI/PI
         lbound = parsed.round(parsed.resolution_string)
-        rbound = lbound + to_offset(parsed.resolution_string) - Timedelta(1, "ns")
+        rbound = (
+            lbound
+            + to_offset(parsed.resolution_string)
+            - Timedelta(1, unit=self.unit).as_unit(self.unit)
+        )
         return lbound, rbound
 
     # -------------------------------------------------------------------
@@ -252,7 +269,7 @@ def timedelta_range(
     name=None,
     closed=None,
     *,
-    unit: TimeUnit = "ns",
+    unit: TimeUnit | None = None,
 ) -> TimedeltaIndex:
     """
     Return a fixed frequency TimedeltaIndex with day as the default.
@@ -272,8 +289,11 @@ def timedelta_range(
     closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
-    unit : {'s', 'ms', 'us', 'ns'}, default 'ns'
+    unit : {'s', 'ms', 'us', 'ns', None}, default None
         Specify the desired resolution of the result.
+        If not specified, this is inferred from the 'start', 'end', and 'freq'
+        using the same inference as :class:`Timedelta` taking the highest
+        resolution of the three that are provided.
 
         .. versionadded:: 2.0.0
 
@@ -303,14 +323,14 @@ def timedelta_range(
     --------
     >>> pd.timedelta_range(start="1 day", periods=4)
     TimedeltaIndex(['1 days', '2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq='D')
+                   dtype='timedelta64[us]', freq='D')
 
     The ``closed`` parameter specifies which endpoint is included.  The default
     behavior is to include both endpoints.
 
     >>> pd.timedelta_range(start="1 day", periods=4, closed="right")
     TimedeltaIndex(['2 days', '3 days', '4 days'],
-                   dtype='timedelta64[ns]', freq='D')
+                   dtype='timedelta64[us]', freq='D')
 
     The ``freq`` parameter specifies the frequency of the TimedeltaIndex.
     Only fixed frequencies can be passed, non-fixed frequencies such as
@@ -319,7 +339,7 @@ def timedelta_range(
     >>> pd.timedelta_range(start="1 day", end="2 days", freq="6h")
     TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 12:00:00',
                     '1 days 18:00:00', '2 days 00:00:00'],
-                   dtype='timedelta64[ns]', freq='6h')
+                   dtype='timedelta64[us]', freq='6h')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
@@ -327,7 +347,7 @@ def timedelta_range(
     >>> pd.timedelta_range(start="1 day", end="5 days", periods=4)
     TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',
                     '5 days 00:00:00'],
-                   dtype='timedelta64[ns]', freq=None)
+                   dtype='timedelta64[us]', freq=None)
 
     **Specify a unit**
 
@@ -337,8 +357,44 @@ def timedelta_range(
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
-
     freq = to_offset(freq)
+
+    if com.count_not_none(start, end, periods, freq) != 3:
+        # This check needs to come before the `unit = start.unit` line below
+        raise ValueError(
+            "Of the four parameters: start, end, periods, "
+            "and freq, exactly three must be specified"
+        )
+
+    if unit is None:
+        # Infer the unit based on the inputs
+
+        if start is not None and end is not None:
+            start = Timedelta(start)
+            end = Timedelta(end)
+            start = cast(Timedelta, start)
+            end = cast(Timedelta, end)
+            if abbrev_to_npy_unit(start.unit) > abbrev_to_npy_unit(end.unit):
+                unit = cast("TimeUnit", start.unit)
+            else:
+                unit = cast("TimeUnit", end.unit)
+        elif start is not None:
+            start = Timedelta(start)
+            start = cast(Timedelta, start)
+            unit = cast("TimeUnit", start.unit)
+        else:
+            end = Timedelta(end)
+            end = cast(Timedelta, end)
+            unit = cast("TimeUnit", end.unit)
+
+        # Last we need to watch out for cases where the 'freq' implies a higher
+        #  unit than either start or end
+        if freq is not None:
+            freq = cast("Tick | Day", freq)
+            creso = abbrev_to_npy_unit(unit)
+            if freq._creso > creso:  # pyright: ignore[reportAttributeAccessIssue]
+                unit = cast("TimeUnit", freq.base.freqstr)
+
     tdarr = TimedeltaArray._generate_range(
         start, end, periods, freq, closed=closed, unit=unit
     )

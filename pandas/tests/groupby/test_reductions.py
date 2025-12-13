@@ -1312,7 +1312,7 @@ def test_groupby_sum_timedelta_with_nat():
             "b": [pd.Timedelta("1D"), pd.Timedelta("2D"), pd.Timedelta("3D"), pd.NaT],
         }
     )
-    td3 = pd.Timedelta(days=3)
+    td3 = pd.Timedelta(days=3).as_unit("us")
 
     gb = df.groupby("a")
 
@@ -1324,7 +1324,7 @@ def test_groupby_sum_timedelta_with_nat():
     tm.assert_series_equal(res, expected["b"])
 
     res = gb["b"].sum(min_count=2)
-    expected = Series([td3, pd.NaT], dtype="m8[ns]", name="b", index=expected.index)
+    expected = Series([td3, pd.NaT], dtype="m8[us]", name="b", index=expected.index)
     tm.assert_series_equal(res, expected)
 
 
@@ -1497,7 +1497,7 @@ def test_groupby_prod_with_int64_dtype():
 
 def test_groupby_std_datetimelike():
     # GH#48481
-    tdi = pd.timedelta_range("1 Day", periods=10000)
+    tdi = pd.timedelta_range("1 Day", periods=10000, unit="ns")
     ser = Series(tdi)
     ser[::5] *= 2  # get different std for different groups
 

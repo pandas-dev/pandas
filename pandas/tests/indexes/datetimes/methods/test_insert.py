@@ -212,7 +212,9 @@ class TestInsert:
     def test_insert_mismatched_tz(self):
         # see GH#7299
         # pre-2.0 with mismatched tzs we would cast to object
-        idx = date_range("1/1/2000", periods=3, freq="D", tz="Asia/Tokyo", name="idx")
+        idx = date_range(
+            "1/1/2000", periods=3, freq="D", tz="Asia/Tokyo", unit="ns", name="idx"
+        )
 
         # mismatched tz -> cast to object (could reasonably cast to same tz or UTC)
         item = Timestamp("2000-01-04", tz="US/Eastern")

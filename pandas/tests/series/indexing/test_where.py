@@ -326,12 +326,14 @@ def test_where_inplace():
 
     rs = s.copy()
 
-    rs.where(cond, inplace=True)
+    result = rs.where(cond, inplace=True)
+    assert result is rs
     tm.assert_series_equal(rs.dropna(), s[cond])
     tm.assert_series_equal(rs, s.where(cond))
 
     rs = s.copy()
-    rs.where(cond, -s, inplace=True)
+    result = rs.where(cond, -s, inplace=True)
+    assert result is rs
     tm.assert_series_equal(rs, s.where(cond, -s))
 
 

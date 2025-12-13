@@ -346,8 +346,8 @@ def test_value_counts_object_inference_deprecated():
     ("index", "expected_index"),
     [
         [
-            pd.date_range("2016-01-01", periods=5, freq="D"),
-            pd.date_range("2016-01-01", periods=5, freq="D"),
+            pd.date_range("2016-01-01", periods=5, freq="D", unit="ns"),
+            pd.date_range("2016-01-01", periods=5, freq="D", unit="ns"),
         ],
         [
             pd.timedelta_range(Timedelta(0), periods=5, freq="h"),
@@ -359,7 +359,7 @@ def test_value_counts_object_inference_deprecated():
                 + [Timestamp("2016-01-02")]
                 + [Timestamp("2016-01-01") + Timedelta(days=i) for i in range(1, 5)]
             ),
-            DatetimeIndex(pd.date_range("2016-01-01", periods=5, freq="D")),
+            DatetimeIndex(pd.date_range("2016-01-01", periods=5, freq="D", unit="us")),
         ],
         [
             TimedeltaIndex(
@@ -367,7 +367,7 @@ def test_value_counts_object_inference_deprecated():
                 + [Timedelta(hours=1)]
                 + [Timedelta(hours=i) for i in range(1, 5)],
             ),
-            TimedeltaIndex(pd.timedelta_range(Timedelta(0), periods=5, freq="h")),
+            TimedeltaIndex(pd.timedelta_range(Timedelta(hours=0), periods=5, freq="h")),
         ],
         [
             DatetimeIndex(

@@ -57,7 +57,9 @@ class TestResetIndex:
         tm.assert_index_equal(df.index, idx)
 
     def test_set_index_reset_index_dt64tz(self):
-        idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
+        idx = Index(
+            date_range("20130101", periods=3, tz="US/Eastern", unit="ns"), name="foo"
+        )
 
         # set/reset
         df = DataFrame({"A": [0, 1, 2]}, index=idx)
@@ -350,7 +352,7 @@ class TestResetIndex:
         # GH#5818
         df = DataFrame(
             [[1, 2], [3, 4]],
-            columns=date_range("1/1/2013", "1/2/2013"),
+            columns=date_range("1/1/2013", "1/2/2013", unit="ns"),
             index=["A", "B"],
         )
         df.index.name = name
@@ -699,7 +701,7 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby(
 def test_reset_index_multiindex_nat():
     # GH 11479
     idx = range(3)
-    tstamp = date_range("2015-07-01", freq="D", periods=3)
+    tstamp = date_range("2015-07-01", freq="D", periods=3, unit="ns")
     df = DataFrame({"id": idx, "tstamp": tstamp, "a": list("abc")})
     df.loc[2, "tstamp"] = pd.NaT
     result = df.set_index(["id", "tstamp"]).reset_index("id")

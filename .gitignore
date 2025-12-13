@@ -67,7 +67,6 @@ pandas/py.typed
 .ropeproject
 # wheel files
 *.whl
-**/wheelhouse/*
 pip-wheel-metadata
 # coverage
 .coverage

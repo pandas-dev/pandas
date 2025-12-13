@@ -1569,7 +1569,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             raise ValueError(f"axis(={axis}) out of bounds")
 
         if not self._null_fill_value:
-            return SparseArray(self.to_dense()).cumsum()
+            return SparseArray(self.to_dense(), fill_value=np.nan).cumsum()
 
         return SparseArray(
             self.sp_values.cumsum(),

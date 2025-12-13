@@ -220,7 +220,7 @@ class TestIndex:
         # .asi8 produces integers, so these are considered epoch timestamps
         # ^the above will be true in a later version. Right now we `.view`
         # the i8 values as NS_DTYPE, effectively treating them as wall times.
-        index = date_range("2011-01-01", periods=5)
+        index = date_range("2011-01-01", periods=5, unit="ns")
         arg = getattr(index, attr)
         index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
@@ -274,7 +274,7 @@ class TestIndex:
     @pytest.mark.parametrize("attr", ["values", "asi8"])
     @pytest.mark.parametrize("klass", [Index, TimedeltaIndex])
     def test_constructor_dtypes_timedelta(self, attr, klass):
-        index = timedelta_range("1 days", periods=5)
+        index = timedelta_range("1 days", periods=5, unit="ns")
         index = index._with_freq(None)  # won't be preserved by constructors
         dtype = index.dtype
 

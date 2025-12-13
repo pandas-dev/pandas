@@ -529,7 +529,7 @@ class TestDataFrameQueryNumExprPandas:
     def test_date_query_with_non_date(self, engine, parser):
         n = 10
         df = DataFrame(
-            {"dates": date_range("1/1/2012", periods=n), "nondate": np.arange(n)}
+            {"dates": date_range("1/1/2012", periods=n, unit="ns"), "nondate": np.arange(n)}
         )
 
         result = df.query("dates == nondate", parser=parser, engine=engine)

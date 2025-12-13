@@ -184,8 +184,8 @@ class TestDataFrameIndexingWhere:
             econd = cond.reindex_like(df).fillna(True).infer_objects()
             expected = dfi.mask(~econd)
 
-            return_value = dfi.where(cond, np.nan, inplace=True)
-            assert return_value is None
+            result = dfi.where(cond, np.nan, inplace=True)
+            assert result is dfi
             tm.assert_frame_equal(dfi, expected)
 
             # dtypes (and confirm upcasts)x
@@ -320,24 +320,27 @@ class TestDataFrameIndexingWhere:
 
     def test_where_bug(self):
         # see gh-2793
-        df = DataFrame(
+        df_orig = DataFrame(
             {"a": [1.0, 2.0, 3.0, 4.0], "b": [4.0, 3.0, 2.0, 1.0]}, dtype="float64"
         )
         expected = DataFrame(
             {"a": [np.nan, np.nan, 3.0, 4.0], "b": [4.0, 3.0, np.nan, np.nan]},
             dtype="float64",
         )
+
+        df = df_orig.copy()
         result = df.where(df > 2, np.nan)
         tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(df, df_orig)
 
-        result = df.copy()
-        return_value = result.where(result > 2, np.nan, inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
+        df = df_orig.copy()
+        result = df.where(df > 2, np.nan, inplace=True)
+        assert result is df
+        tm.assert_frame_equal(df, expected)
 
     def test_where_bug_mixed(self, any_signed_int_numpy_dtype):
         # see gh-2793
-        df = DataFrame(
+        df_orig = DataFrame(
             {
                 "a": np.array([1, 2, 3, 4], dtype=any_signed_int_numpy_dtype),
                 "b": np.array([4.0, 3.0, 2.0, 1.0], dtype="float64"),
@@ -348,13 +351,15 @@ class TestDataFrameIndexingWhere:
             {"a": [-1, -1, 3, 4], "b": [4.0, 3.0, -1, -1]},
         ).astype({"a": any_signed_int_numpy_dtype, "b": "float64"})
 
+        df = df_orig.copy()
         result = df.where(df > 2, -1)
         tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(df, df_orig)
 
-        result = df.copy()
-        return_value = result.where(result > 2, -1, inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
+        df = df_orig.copy()
+        result = df.where(df > 2, -1, inplace=True)
+        assert result is df
+        tm.assert_frame_equal(df, expected)
 
     def test_where_bug_transposition(self):
         # see gh-7506
@@ -461,8 +466,8 @@ class TestDataFrameIndexingWhere:
         result = df.where(pd.notna(df), df.mean(), axis="columns")
         tm.assert_frame_equal(result, expected)
 
-        return_value = df.where(pd.notna(df), df.mean(), inplace=True, axis="columns")
-        assert return_value is None
+        result = df.where(pd.notna(df), df.mean(), inplace=True, axis="columns")
+        assert result is df
         tm.assert_frame_equal(df, expected)
 
         df = create().fillna(0)
@@ -489,27 +494,30 @@ class TestDataFrameIndexingWhere:
 
     def test_where_axis(self):
         # GH 9736
-        df = DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
+        df_orig = DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
         mask = DataFrame([[False, False], [False, False]])
         ser = Series([0, 1])
 
+        df = df_orig.copy()
         expected = DataFrame([[0, 0], [1, 1]], dtype="float64")
         result = df.where(mask, ser, axis="index")
         tm.assert_frame_equal(result, expected)
 
-        result = df.copy()
-        return_value = result.where(mask, ser, axis="index", inplace=True)
-        assert return_value is None
+        df = df_orig.copy()
+        result = df.where(mask, ser, axis="index", inplace=True)
+        assert result is df
         tm.assert_frame_equal(result, expected)
 
+        df = df_orig.copy()
         expected = DataFrame([[0, 1], [0, 1]], dtype="float64")
         result = df.where(mask, ser, axis="columns")
         tm.assert_frame_equal(result, expected)
 
+        df = df_orig.copy()
         result = df.copy()
-        return_value = result.where(mask, ser, axis="columns", inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
+        result = df.where(mask, ser, axis="columns", inplace=True)
+        assert result is df
+        tm.assert_frame_equal(df, expected)
 
     def test_where_axis_with_upcast(self):
         # Upcast needed
@@ -534,7 +542,7 @@ class TestDataFrameIndexingWhere:
 
     def test_where_axis_multiple_dtypes(self):
         # Multiple dtypes (=> multiple Blocks)
-        df = pd.concat(
+        df_orig = pd.concat(
             [
                 DataFrame(np.random.default_rng(2).standard_normal((10, 2))),
                 DataFrame(
@@ -545,64 +553,68 @@ class TestDataFrameIndexingWhere:
             ignore_index=True,
             axis=1,
         )
-        mask = DataFrame(False, columns=df.columns, index=df.index)
-        s1 = Series(1, index=df.columns)
-        s2 = Series(2, index=df.index)
+        mask = DataFrame(False, columns=df_orig.columns, index=df_orig.index)
+        s1 = Series(1, index=df_orig.columns)
+        s2 = Series(2, index=df_orig.index)
 
+        df = df_orig.copy()
         result = df.where(mask, s1, axis="columns")
-        expected = DataFrame(1.0, columns=df.columns, index=df.index)
+        expected = DataFrame(1.0, columns=df_orig.columns, index=df_orig.index)
         expected[2] = expected[2].astype("int64")
         expected[3] = expected[3].astype("int64")
         tm.assert_frame_equal(result, expected)
 
-        result = df.copy()
-        return_value = result.where(mask, s1, axis="columns", inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
+        df = df_orig.copy()
+        result = df.where(mask, s1, axis="columns", inplace=True)
+        assert result is df
+        tm.assert_frame_equal(df, expected)
 
+        df = df_orig.copy()
         result = df.where(mask, s2, axis="index")
-        expected = DataFrame(2.0, columns=df.columns, index=df.index)
+        expected = DataFrame(2.0, columns=df_orig.columns, index=df_orig.index)
         expected[2] = expected[2].astype("int64")
         expected[3] = expected[3].astype("int64")
         tm.assert_frame_equal(result, expected)
 
-        result = df.copy()
-        return_value = result.where(mask, s2, axis="index", inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
+        df = df_orig.copy()
+        result = df.where(mask, s2, axis="index", inplace=True)
+        assert result is df
+        tm.assert_frame_equal(df, expected)
 
         # DataFrame vs DataFrame
-        d1 = df.copy().drop(1, axis=0)
+        d1 = df_orig.copy().drop(1, axis=0)
         # Explicit cast to avoid implicit cast when setting value to np.nan
-        expected = df.copy().astype("float")
+        expected = df_orig.copy().astype("float")
         expected.loc[1, :] = np.nan
 
+        df = df_orig.copy()
         result = df.where(mask, d1)
         tm.assert_frame_equal(result, expected)
         result = df.where(mask, d1, axis="index")
         tm.assert_frame_equal(result, expected)
-        result = df.copy()
+        df = df_orig.copy()
         with pytest.raises(TypeError, match="Invalid value"):
-            result.where(mask, d1, inplace=True)
+            df.where(mask, d1, inplace=True)
         with pytest.raises(TypeError, match="Invalid value"):
-            return_value = result.where(mask, d1, inplace=True, axis="index")
+            df.where(mask, d1, inplace=True, axis="index")
 
-        d2 = df.copy().drop(1, axis=1)
-        expected = df.copy()
+        d2 = df_orig.copy().drop(1, axis=1)
+        expected = df_orig.copy()
         expected.loc[:, 1] = np.nan
 
+        df = df_orig.copy()
         result = df.where(mask, d2)
         tm.assert_frame_equal(result, expected)
         result = df.where(mask, d2, axis="columns")
         tm.assert_frame_equal(result, expected)
-        result = df.copy()
-        return_value = result.where(mask, d2, inplace=True)
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
-        result = df.copy()
-        return_value = result.where(mask, d2, inplace=True, axis="columns")
-        assert return_value is None
-        tm.assert_frame_equal(result, expected)
+        df = df_orig.copy()
+        result = df.where(mask, d2, inplace=True)
+        assert result is df
+        tm.assert_frame_equal(df, expected)
+        df = df_orig.copy()
+        result = df.where(mask, d2, inplace=True, axis="columns")
+        assert result is df
+        tm.assert_frame_equal(df, expected)
 
     def test_where_callable(self):
         # GH 12533
@@ -1047,6 +1059,17 @@ def test_where_inplace_no_other():
     # GH#51685
     df = DataFrame({"a": [1.0, 2.0], "b": ["x", "y"]})
     cond = DataFrame({"a": [True, False], "b": [False, True]})
-    df.where(cond, inplace=True)
+    result = df.where(cond, inplace=True)
+    assert result is df
     expected = DataFrame({"a": [1, np.nan], "b": [np.nan, "y"]})
     tm.assert_frame_equal(df, expected)
+
+
+def test_where_other_nullable_dtype():
+    # GH#49052 DataFrame.where should return nullable dtype when
+    # other is a Series with nullable dtype, matching Series.where behavior
+    df = DataFrame([1, 2, 3], dtype="int64")
+    other = Series([pd.NA, pd.NA, pd.NA], dtype="Int64")
+    result = df.where(df > 1, other, axis=0)
+    expected = DataFrame({0: Series([pd.NA, 2, 3], dtype="Int64")})
+    tm.assert_frame_equal(result, expected)

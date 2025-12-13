@@ -65,7 +65,7 @@ def test_select_with_dups(setup_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "A", "B", "B"]
     )
-    df.index = date_range("20130101 9:30", periods=10, freq="min")
+    df.index = date_range("20130101 9:30", periods=10, freq="min", unit="ns")
 
     with ensure_clean_store(setup_path) as store:
         store.append("df", df)
@@ -96,7 +96,7 @@ def test_select_with_dups(setup_path):
         ],
         axis=1,
     )
-    df.index = date_range("20130101 9:30", periods=10, freq="min")
+    df.index = date_range("20130101 9:30", periods=10, freq="min", unit="ns")
 
     with ensure_clean_store(setup_path) as store:
         store.append("df", df)
@@ -134,7 +134,7 @@ def test_select(setup_path):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
         )
         _maybe_remove(store, "df")
         store.append("df", df)
@@ -174,7 +174,7 @@ def test_select_dtypes(setup_path, request):
         # with a Timestamp data column (GH #2637)
         df = DataFrame(
             {
-                "ts": bdate_range("2012-01-01", periods=300),
+                "ts": bdate_range("2012-01-01", periods=300, unit="ns"),
                 "A": np.random.default_rng(2).standard_normal(300),
             }
         )
@@ -251,7 +251,7 @@ def test_select_dtypes(setup_path, request):
         tm.assert_frame_equal(expected, result)
 
         # https://github.com/PyTables/PyTables/issues/282
-        # bug in selection when 0th row has a np.nan and an index
+        # bug in selection when 0th row has an np.nan and an index
         # store.append('df3',df,data_columns=True)
         # result = store.select(
         #    'df3', where='values>2.0')
@@ -296,7 +296,7 @@ def test_select_with_many_inputs(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             {
-                "ts": bdate_range("2012-01-01", periods=300),
+                "ts": bdate_range("2012-01-01", periods=300, unit="ns"),
                 "A": np.random.default_rng(2).standard_normal(300),
                 "B": range(300),
                 "users": ["a"] * 50
@@ -346,7 +346,7 @@ def test_select_iterator(tmp_path, setup_path):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
         )
         _maybe_remove(store, "df")
         store.append("df", df)
@@ -371,7 +371,7 @@ def test_select_iterator(tmp_path, setup_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     df.to_hdf(path, key="df_non_table")
 
@@ -387,7 +387,7 @@ def test_select_iterator(tmp_path, setup_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     df.to_hdf(path, key="df", format="table")
 
@@ -404,7 +404,7 @@ def test_select_iterator(tmp_path, setup_path):
         df1 = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
         )
         store.append("df1", df1, data_columns=True)
         df2 = df1.copy().rename(columns="{}_2".format)
@@ -432,7 +432,7 @@ def test_select_iterator_complete_8014(setup_path):
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=100064, freq="s"),
+            index=date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
         )
         _maybe_remove(store, "df")
         store.append("df", expected)
@@ -467,7 +467,7 @@ def test_select_iterator_complete_8014(setup_path):
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=100064, freq="s"),
+            index=date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
         )
         _maybe_remove(store, "df")
         store.append("df", expected)
@@ -509,7 +509,7 @@ def test_select_iterator_non_complete_8014(setup_path):
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=100064, freq="s"),
+            index=date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
         )
         _maybe_remove(store, "df")
         store.append("df", expected)
@@ -543,7 +543,7 @@ def test_select_iterator_non_complete_8014(setup_path):
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=100064, freq="s"),
+            index=date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
         )
         _maybe_remove(store, "df")
         store.append("df", expected)
@@ -567,7 +567,7 @@ def test_select_iterator_many_empty_frames(setup_path):
         expected = DataFrame(
             np.random.default_rng(2).standard_normal((100064, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=100064, freq="s"),
+            index=date_range("2000-01-01", periods=100064, freq="s", unit="ns"),
         )
         _maybe_remove(store, "df")
         store.append("df", expected)
@@ -619,7 +619,7 @@ def test_frame_select(setup_path, request):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
 
     with ensure_clean_store(setup_path) as store:
@@ -651,7 +651,7 @@ def test_frame_select(setup_path, request):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
         )
         store.append("df_time", df)
         msg = "day is out of range for month: 0"
@@ -670,7 +670,7 @@ def test_frame_select_complex(setup_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     df["string"] = "foo"
     df.loc[df.index[0:4], "string"] = "bar"
@@ -787,7 +787,7 @@ def test_invalid_filtering(setup_path):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
 
     with ensure_clean_store(setup_path) as store:
@@ -809,7 +809,7 @@ def test_string_select(setup_path):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
         )
 
         # test string ==/!=
@@ -853,7 +853,7 @@ def test_select_as_multiple(setup_path):
     df1 = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
-        index=date_range("2000-01-01", periods=10, freq="B"),
+        index=date_range("2000-01-01", periods=10, freq="B", unit="ns"),
     )
     df2 = df1.copy().rename(columns="{}_2".format)
     df2["foo"] = "bar"
@@ -982,7 +982,7 @@ def test_query_compare_column_type(setup_path):
     df = DataFrame(
         {
             "date": ["2014-01-01", "2014-01-02"],
-            "real_date": date_range("2014-01-01", periods=2),
+            "real_date": date_range("2014-01-01", periods=2, unit="ns"),
             "float": [1.1, 1.2],
             "int": [1, 2],
         },
