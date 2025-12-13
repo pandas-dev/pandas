@@ -30,6 +30,8 @@ dependencies = [
   "numpy>=1.26.0",
   "python-dateutil>=2.8.2",
   "tzdata>=2023.3; platform_system == 'Windows'",
+  # Emscripten is the platform system for Pyodide.
+  "tzdata>=2023.3; platform_system == 'Emscripten'",
 ]
 classifiers = [
     'Development Status :: 5 - Production/Stable',
