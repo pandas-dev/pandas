@@ -419,13 +419,15 @@ def concat(
             or any(not isinstance(index, DatetimeIndex) for index in non_concat_axis)
             or all(
                 prev is curr
-                for prev, curr in zip(non_concat_axis, non_concat_axis[1:], strict=True)
+                for prev, curr in zip(
+                    non_concat_axis, non_concat_axis[1:], strict=False
+                )
             )
             or (
                 all(
                     prev[-1] <= curr[0] and prev.is_monotonic_increasing
                     for prev, curr in zip(
-                        non_concat_axis, non_concat_axis[1:], strict=True
+                        non_concat_axis, non_concat_axis[1:], strict=False
                     )
                     if not prev.empty and not curr.empty
                 )
