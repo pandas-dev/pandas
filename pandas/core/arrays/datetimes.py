@@ -814,13 +814,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     PerformanceWarning,
                     stacklevel=find_stack_level(),
                 )
-            res_values = np.array(
-                [Timestamp(x) + offset for x in self],
-                dtype="object",
-            )
-            result = type(self)._from_sequence(res_values)
-
-        else:
+            res_values = self.astype("O") + offset
             units = [
                 "ns",
                 "us",
@@ -840,8 +834,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     idx_self = units.index(self.unit)
                     idx_offset = units.index(offset_unit)
                     res_unit = units[min(idx_self, idx_offset)]
+            dtype = tz_to_dtype(self.tz, unit=res_unit)
+            result = type(self)._from_sequence(res_values, dtype=dtype)
+
+        else:
             result = type(self)._simple_new(res_values, dtype=res_values.dtype)
-            result = result.as_unit(res_unit)
+            result = result.as_unit(self.unit)
 
             if offset.normalize:
                 result = result.normalize()
