@@ -49,6 +49,36 @@ def test_col_simple(
 @pytest.mark.parametrize(
     ("expr", "expected_values", "expected_str"),
     [
+        (
+            (pd.col("a") >= 3) & (pd.col("a") <= 5),
+            [3, 4, 5],
+            "((col('a') >= 3) & (col('a') <= 5))",
+        ),
+        (
+            (pd.col("b") >= 20) & (pd.col("a") <= 5),
+            [1, 2, 3],
+            "((col('b') >= 20) & (col('a') <= 5))",
+        ),
+        (
+            (pd.col("b") >= 20) & (pd.col("a") <= 5) & (pd.col("b") < 22),
+            [2, 3],
+            "(((col('b') >= 20) & (col('a') <= 5)) & (col('b') < 22))",
+        ),
+    ],
+)
+def test_col_bool(
+    expr: Expression, expected_values: list[object], expected_str: str
+) -> None:
+    df = pd.DataFrame({"a": list(range(1, 21)), "b": list(range(22, 2, -1))})
+    result = df.loc[expr]
+    ls = result["a"].tolist()
+    assert ls == expected_values
+    assert str(expr) == expected_str
+
+
+@pytest.mark.parametrize(
+    ("expr", "expected_values", "expected_str"),
+    [
         (pd.col("a").dt.year, [2020], "col('a').dt.year"),
         (pd.col("a").dt.strftime("%B"), ["January"], "col('a').dt.strftime('%B')"),
         (pd.col("b").str.upper(), ["FOO"], "col('b').str.upper()"),
