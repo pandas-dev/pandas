@@ -3502,12 +3502,13 @@ class MultiIndex(Index):
         >>> mi.get_loc(("b", "e"))
         1
         """
-        # --- FIX GH#55969 START ---
-        # If the key contains np.datetime64 but the level is object-dtype (python objects),
-        # strict lookups (and binary search) can fail. Convert to python objects to match.
+        # GH#55969: If key has np.datetime64 but level is object-dtype
+        # (python objects), strict lookups/binary search can fail.
+        # Convert to python objects to match.
         if isinstance(key, tuple):
             new_key = list(key)
             modified = False
+            # Use strict=False as key len might be < levels len
             for i, (k, level) in enumerate(zip(new_key, self.levels, strict=False)):
                 if isinstance(k, np.datetime64) and level.dtype == object:
                     try:
