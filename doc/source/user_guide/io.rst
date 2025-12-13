@@ -6521,8 +6521,9 @@ The files ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the 
     24458940 Oct 10 06:44 test_table.hdf
     24458940 Oct 10 06:44 test_table_compress.hdf
 
-Loading data in Google Colab
-'''''''''''''''''''''''''''
+Loading data in Google Colab notebooks
+'''''''''''''''''''''''''''''''''''''''
+
 
 Google Colab is a hosted Jupyter notebook environment. Since it runs remotely,
 files must be explicitly uploaded or mounted before they can be read by pandas.
@@ -6539,6 +6540,7 @@ Files can be uploaded directly to the Colab runtime using ``google.colab.files``
 
    import pandas as pd
    df = pd.read_csv("data.csv")
+
 
 Using Google Drive
 ~~~~~~~~~~~~~~~~~~
@@ -6561,4 +6563,5 @@ Data hosted remotely can be read directly using a URL:
 .. code-block:: python
 
    import pandas as pd
-   df = pd.read_csv("https://example.com/data.csv")
+   df = pd.read_csv("https://raw.githubusercontent.com/pandas-dev/pandas/main/doc/data/air_quality_no2.csv")
+
