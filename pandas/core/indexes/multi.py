@@ -3508,7 +3508,7 @@ class MultiIndex(Index):
         if isinstance(key, tuple):
             new_key = list(key)
             modified = False
-            for i, (k, level) in enumerate(zip(new_key, self.levels)):
+            for i, (k, level) in enumerate(zip(new_key, self.levels, strict=False)):
                 if isinstance(k, np.datetime64) and level.dtype == object:
                     try:
                         new_key[i] = k.item()
