@@ -3148,8 +3148,7 @@ class MultiIndex(Index):
         # error: Item "Hashable" of "Union[Hashable, Sequence[Hashable]]" has
         # no attribute "__iter__" (not iterable)
         level = [
-            self._get_level_number(lev)
-            for lev in level  # type: ignore[union-attr]
+            self._get_level_number(lev) for lev in level  # type: ignore[union-attr]
         ]
         sortorder = None
 
@@ -3457,9 +3456,9 @@ class MultiIndex(Index):
         else:
             return level_index.get_loc(key)
 
-    def get_loc(self, key):
+    def get_loc(self, key, method=None):
         """
-        Get location for a label or a tuple of labels. The location is returned \
+        Get location for a label or a tuple of labels. The location is returned
         as an integer/slice or boolean mask.
 
         This method returns the integer location, slice object, or boolean mask
@@ -3503,6 +3502,25 @@ class MultiIndex(Index):
         >>> mi.get_loc(("b", "e"))
         1
         """
+        # --- FIX GH#55969 START ---
+        # If the key contains np.datetime64 but the level is object-dtype (python objects),
+        # strict lookups (and binary search) can fail. Convert to python objects to match.
+        if isinstance(key, tuple):
+            new_key = list(key)
+            modified = False
+            for i, (k, level) in enumerate(zip(new_key, self.levels)):
+                if isinstance(k, np.datetime64) and level.dtype == object:
+                    try:
+                        new_key[i] = k.item()
+                        modified = True
+                    except (ValueError, TypeError):
+                        pass
+            if modified:
+                key = tuple(new_key)
+
+        if method is not None:
+            return Index.get_loc(self, key, method=method)
+
         self._check_indexing_error(key)
 
         def _maybe_to_slice(loc):
