@@ -198,6 +198,20 @@ class TestSeriesFlexArithmetic:
         with pytest.raises(TypeError, match=msg):
             ser.add(df, axis=0)
 
+    @pytest.mark.parametrize(
+        "opname", ["truediv", "rtruediv", "floordiv", "rfloordiv", "pow", "rpow"]
+    )
+    def test_flex_method_bool_dtype_raises(self, opname):
+        # GH#63250 - flex methods should raise NotImplementedError for bool dtypes
+        # consistent with their dunder counterparts
+        ser = Series([True, False, True])
+        other = Series([False, True, True])
+
+        op = getattr(Series, opname)
+        msg = f"operator '{opname.removeprefix('r')}' not implemented for bool dtypes"
+        with pytest.raises(NotImplementedError, match=msg):
+            op(ser, other)
+
 
 class TestSeriesArithmetic:
     # Some of these may end up in tests/arithmetic, but are not yet sorted
