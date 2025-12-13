@@ -6564,4 +6564,3 @@ Data hosted remotely can be read directly using a URL:
 
    import pandas as pd
    df = pd.read_csv("https://raw.githubusercontent.com/pandas-dev/pandas/main/doc/data/air_quality_no2.csv")
-
