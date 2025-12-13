@@ -964,7 +964,7 @@ class TestPandasContainer:
             json = ts.to_json(date_format="iso")
 
         result = read_json(StringIO(json), typ="series")
-        expected = ts.copy()
+        expected = ts.copy().dt.as_unit("ns")
         tm.assert_series_equal(result, expected)
 
     def test_date_format_series_raises(self, datetime_series):
@@ -1118,9 +1118,9 @@ class TestPandasContainer:
     @pytest.mark.parametrize(
         "field,dtype",
         [
-            ["created_at", pd.DatetimeTZDtype(tz="UTC", unit="us")],
-            ["closed_at", "datetime64[us]"],
-            ["updated_at", pd.DatetimeTZDtype(tz="UTC", unit="us")],
+            ["created_at", pd.DatetimeTZDtype(tz="UTC")],
+            ["closed_at", "datetime64[ns]"],
+            ["updated_at", pd.DatetimeTZDtype(tz="UTC")],
         ],
     )
     def test_url(self, field, dtype, httpserver):
@@ -1756,7 +1756,7 @@ class TestPandasContainer:
         result = read_json(
             StringIO('{"2019-01-01T11:00:00.000Z":88}'), typ="series", orient="index"
         )
-        exp_dti = DatetimeIndex(["2019-01-01 11:00:00"], dtype="M8[us, UTC]")
+        exp_dti = DatetimeIndex(["2019-01-01 11:00:00"], dtype="M8[ns, UTC]")
         expected = Series([88], index=exp_dti)
         tm.assert_series_equal(result, expected)
 

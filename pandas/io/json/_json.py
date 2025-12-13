@@ -1312,7 +1312,11 @@ class Parser:
         date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
         for date_unit in date_units:
             try:
-                return to_datetime(new_data, errors="raise", unit=date_unit)
+                # Without this as_unit cast, we would fail to overflow
+                #  and get much-too-large dates
+                return to_datetime(new_data, errors="raise", unit=date_unit).dt.as_unit(
+                    "ns"
+                )
             except (ValueError, OverflowError, TypeError):
                 continue
         return data
