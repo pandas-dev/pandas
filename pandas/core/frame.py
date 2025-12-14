@@ -11396,8 +11396,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Get Multiplication of dataframe and other,
-        element-wise (binary operator `mul`).
+        Get Multiplication of dataframe and other,element-wise (binary operator `mul`).
 
         Equivalent to ``dataframe * other``, but with support to substitute a fill_value
         for missing data in one of the inputs. With reverse version, `rmul`.
