@@ -457,7 +457,20 @@ raise an error regardless of the number of strings:
    ...
    TypeError: Cannot perform reduction 'prod' with string dtype
 
-.. For existing users of the nullable ``StringDtype``
-.. --------------------------------------------------
+For existing users of the nullable ``StringDtype``
+--------------------------------------------------
 
-.. TODO
+While pandas 3.0 introduces a new _default_ string data type, pandas had an
+opt-in nullable string data type since pandas 1.0, which can be specified using
+``dtype="string"``. This nullable string dtype uses ``pd.NA`` as the missing
+value indicator. In addition, also through :class:`ArrowDtype` (by using
+``dtypes_backend="pyarrow"``) since pandas 1.5, one could already make use of
+a dedicated string dtype.
+
+If you are already using one of the nullable string dtypes, for example by
+specifying ``dtype="string"``, by using :meth:`~DataFrame.convert_dtypes`, or
+by specifying the ``dtype_backend`` argument in IO functions, you can continue
+to do so without change.
+
+The migration guide above applies to code that is currently (< 3.0) using object
+dtype for string data.
