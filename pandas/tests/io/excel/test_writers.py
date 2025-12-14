@@ -1529,6 +1529,85 @@ class TestExcelWriter:
                 assert ws.auto_filter.ref is not None
                 assert ws.auto_filter.ref == "A1:D3" if with_index else "A1:C3"
 
+    def test_autofilter_empty_dataframe(self, engine, tmp_excel):
+        df = DataFrame()
+
+        if engine in ["odf"]:
+            with pytest.raises(
+                ValueError, match="Autofilter is not supported with odf!"
+            ):
+                df.to_excel(tmp_excel, engine=engine, autofilter=True)
+        else:
+            df.to_excel(tmp_excel, engine=engine, autofilter=True)
+
+            openpyxl = pytest.importorskip("openpyxl")
+            with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+                ws = wb.active
+                assert ws.auto_filter.ref is not None
+
+    def test_autofilter_single_row(self, engine, tmp_excel):
+        df = DataFrame({"A": [1], "B": [2]})
+
+        if engine in ["odf"]:
+            with pytest.raises(
+                ValueError, match="Autofilter is not supported with odf!"
+            ):
+                df.to_excel(tmp_excel, engine=engine, autofilter=True, index=False)
+        else:
+            df.to_excel(tmp_excel, engine=engine, autofilter=True, index=False)
+
+            openpyxl = pytest.importorskip("openpyxl")
+            with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+                ws = wb.active
+                assert ws.auto_filter.ref is not None
+                assert ws.auto_filter.ref == "A1:B2"
+
+    def test_autofilter_single_column(self, engine, tmp_excel):
+        df = DataFrame({"A": [1, 2, 3]})
+
+        if engine in ["odf"]:
+            with pytest.raises(
+                ValueError, match="Autofilter is not supported with odf!"
+            ):
+                df.to_excel(tmp_excel, engine=engine, autofilter=True, index=False)
+        else:
+            df.to_excel(tmp_excel, engine=engine, autofilter=True, index=False)
+
+            openpyxl = pytest.importorskip("openpyxl")
+            with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+                ws = wb.active
+                assert ws.auto_filter.ref is not None
+                assert ws.auto_filter.ref == "A1:A4"
+
+    def test_autofilter_no_header(self, engine, tmp_excel):
+        df = DataFrame([[1, 2], [3, 4]])
+
+        if engine in ["odf"]:
+            with pytest.raises(
+                ValueError, match="Autofilter is not supported with odf!"
+            ):
+                df.to_excel(
+                    tmp_excel,
+                    engine=engine,
+                    autofilter=True,
+                    header=False,
+                    index=False,
+                )
+        else:
+            df.to_excel(
+                tmp_excel,
+                engine=engine,
+                autofilter=True,
+                header=False,
+                index=False,
+            )
+
+            openpyxl = pytest.importorskip("openpyxl")
+            with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+                ws = wb.active
+                assert ws.auto_filter.ref is not None
+                assert ws.auto_filter.ref == "A1:B2"
+
     def test_autofilter_with_startrow_startcol(self, engine, tmp_excel):
         # GH 61194
         df = DataFrame.from_dict([{"A": 1, "B": 2, "C": 3}, {"A": 4, "B": 5, "C": 6}])
