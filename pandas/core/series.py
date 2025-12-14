@@ -270,7 +270,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         because for other input (e.g. a list) a new array is created anyway.
         By default, will copy if the input data is a numpy or pandas array.
         For Series/Index input, a shallow copy of the data is made by default.
-        Set to False to avoid copying array input, at your own risk (if you
+        Set to False to avoid copying array input at your own risk (if you
         know the input data won't be modified elsewhere).
 
     See Also
