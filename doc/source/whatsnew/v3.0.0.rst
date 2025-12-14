@@ -849,6 +849,7 @@ Other Deprecations
 - Deprecated the keyword ``check_datetimelike_compat`` in :meth:`testing.assert_frame_equal` and :meth:`testing.assert_series_equal` (:issue:`55638`)
 - Deprecated using ``epoch`` date format in :meth:`DataFrame.to_json` and :meth:`Series.to_json`, use ``iso`` instead. (:issue:`57063`)
 - Deprecated allowing ``fill_value`` that cannot be held in the original dtype (excepting NA values for integer and bool dtypes) in :meth:`Series.unstack` and :meth:`DataFrame.unstack` (:issue:`12189`, :issue:`53868`)
+- Deprecated :meth:`Series.filter` and :meth:`DataFrame.filter`, renaming these to ``select`` (:issue:`26642`)
 - Deprecated allowing ``fill_value`` that cannot be held in the original dtype (excepting NA values for integer and bool dtypes) in :meth:`Series.shift` and :meth:`DataFrame.shift` (:issue:`53802`)
 - Deprecated allowing strings representing full dates in :meth:`DataFrame.at_time` and :meth:`Series.at_time` (:issue:`50839`)
 - Deprecated backward-compatibility behavior for :meth:`DataFrame.select_dtypes` matching ``str`` dtype when ``np.object_`` is specified (:issue:`61916`)
