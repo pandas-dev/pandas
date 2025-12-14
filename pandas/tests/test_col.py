@@ -127,3 +127,65 @@ def test_custom_accessor() -> None:
         result = df.assign(b=pd.col("a").xyz.mean())
     expected = pd.DataFrame({"a": [1, 2, 3], "b": [2.0, 2.0, 2.0]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("expr", "expected_values", "expected_str"),
+    [
+        (
+            pd.col("a") & pd.col("b"),
+            [False, False, True, False],
+            "(col('a') & col('b'))",
+        ),
+        (
+            pd.col("a") & True,
+            [True, False, True, False],
+            "(col('a') & True)",
+        ),
+        (
+            pd.col("a") | pd.col("b"),
+            [True, True, True, True],
+            "(col('a') | col('b'))",
+        ),
+        (
+            pd.col("a") | False,
+            [True, False, True, False],
+            "(col('a') | False)",
+        ),
+        (
+            pd.col("a") ^ pd.col("b"),
+            [True, True, False, True],
+            "(col('a') ^ col('b'))",
+        ),
+        (
+            pd.col("a") ^ True,
+            [False, True, False, True],
+            "(col('a') ^ True)",
+        ),
+        (
+            ~pd.col("a"),
+            [False, True, False, True],
+            "(~col('a'))",
+        ),
+    ],
+)
+def test_col_logical_ops(
+    expr: Expression, expected_values: list[bool], expected_str: str
+) -> None:
+    # https://github.com/pandas-dev/pandas/issues/63322
+    df = pd.DataFrame({"a": [True, False, True, False], "b": [False, True, True, True]})
+    result = df.assign(c=expr)
+    expected = pd.DataFrame(
+        {
+            "a": [True, False, True, False],
+            "b": [False, True, True, True],
+            "c": expected_values,
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+    assert str(expr) == expected_str
+
+    # Test that the expression works with .loc
+    result = df.loc[expr]
+    expected = df[expected_values]
+    tm.assert_frame_equal(result, expected)
