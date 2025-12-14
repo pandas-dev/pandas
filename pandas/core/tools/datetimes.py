@@ -895,7 +895,7 @@ def to_datetime(
 
     >>> pd.to_datetime(1490195805, unit="s")
     Timestamp('2017-03-22 15:16:45')
-    >>> pd.to_datetime(1490195805433502912, unit="ns")
+    >>> pd.to_datetime(1490195805433502912, unit="s")
     Timestamp('2017-03-22 15:16:45.433502912')
 
     .. warning:: For float arg, precision rounding might happen. To prevent
@@ -905,7 +905,7 @@ def to_datetime(
 
     >>> pd.to_datetime([1, 2, 3], unit="D", origin=pd.Timestamp("1960-01-01"))
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
-                  dtype='datetime64[ns]', freq=None)
+                  dtype='datetime64[s]', freq=None)
 
     **Differences with strptime behavior**
 
