@@ -189,6 +189,7 @@ Categorical components
 .. autosummary::
    :toctree: api/
 
+   CategoricalIndex.append
    CategoricalIndex.codes
    CategoricalIndex.categories
    CategoricalIndex.ordered
@@ -390,6 +391,7 @@ Conversion
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
    DatetimeIndex.to_frame
+   DatetimeIndex.to_julian_date
 
 Methods
 ~~~~~~~

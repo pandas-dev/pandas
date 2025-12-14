@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Categorical,
     DataFrame,
@@ -140,8 +142,8 @@ class TestCatAccessor:
     @pytest.mark.parametrize(
         "idx",
         [
-            date_range("1/1/2015", periods=5),
-            date_range("1/1/2015", periods=5, tz="MET"),
+            date_range("1/1/2015", periods=5, unit="ns"),
+            date_range("1/1/2015", periods=5, tz="MET", unit="ns"),
             period_range("1/1/2015", freq="D", periods=5),
             timedelta_range("1 days", "10 days"),
         ],
@@ -202,7 +204,7 @@ class TestCatAccessor:
                 warn_cls.append(UserWarning)
             elif func == "to_pytimedelta":
                 # GH 57463
-                warn_cls.append(FutureWarning)
+                warn_cls.append(Pandas4Warning)
             if warn_cls:
                 warn_cls = tuple(warn_cls)
             else:

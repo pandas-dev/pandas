@@ -162,7 +162,10 @@ def test_seaborn(mpl_cleanup):
     seaborn.stripplot(x="day", y="total_bill", data=tips)
 
 
+@pytest.mark.xfail(reason="pandas_datareader uses old variant of deprecate_kwarg")
 def test_pandas_datareader():
+    # https://github.com/pandas-dev/pandas/pull/61468
+    # https://github.com/pydata/pandas-datareader/issues/1005
     pytest.importorskip("pandas_datareader")
 
 
@@ -187,9 +190,9 @@ def test_yaml_dump(df):
     tm.assert_frame_equal(df, loaded2)
 
 
-@pytest.mark.parametrize("dependency", ["numpy", "dateutil", "tzdata"])
+@pytest.mark.parametrize("dependency", ["numpy", "dateutil"])
 def test_missing_required_dependency(monkeypatch, dependency):
-    # GH#61030, GH61273
+    # GH#61030
     original_import = __import__
     mock_error = ImportError(f"Mock error for {dependency}")
 
@@ -269,13 +272,10 @@ def test_from_obscure_array(dtype, box):
     else:
         data = box(arr)
 
-    if not isinstance(data, memoryview):
-        # FIXME(GH#44431) these raise on memoryview and attempted fix
-        #  fails on py3.10
-        func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
-        result = func(arr).array
-        expected = func(data).array
-        tm.assert_equal(result, expected)
+    func = {"M8[ns]": pd.to_datetime, "m8[ns]": pd.to_timedelta}[dtype]
+    result = func(arr).array
+    expected = func(data).array
+    tm.assert_equal(result, expected)
 
     # Let's check the Indexes while we're here
     idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]

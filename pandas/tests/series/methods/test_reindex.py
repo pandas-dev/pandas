@@ -321,8 +321,8 @@ def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value):
 
 def test_reindex_datetimeindexes_tz_naive_and_aware():
     # GH 8306
-    idx = date_range("20131101", tz="America/Chicago", periods=7)
-    newidx = date_range("20131103", periods=10, freq="h")
+    idx = date_range("20131101", tz="America/Chicago", periods=7, unit="ns")
+    newidx = date_range("20131103", periods=10, freq="h", unit="ns")
     s = Series(range(7), index=idx)
     msg = (
         r"Cannot compare dtypes datetime64\[ns, America/Chicago\] "
@@ -421,7 +421,7 @@ def test_reindexing_with_float64_NA_log():
     tm.assert_numpy_array_equal(result, expected)
     with tm.assert_produces_warning(None):
         result_log = np.log(s_reindex)
-        expected_log = Series([0, np.nan, np.nan], dtype=Float64Dtype())
+        expected_log = Series([0, NA, NA], dtype=Float64Dtype())
         tm.assert_series_equal(result_log, expected_log)
 
 
@@ -433,4 +433,42 @@ def test_reindex_expand_nonnano_nat(dtype):
     expected = Series(
         np.array([1, getattr(np, dtype)("nat", "s")], dtype=f"{dtype}[s]")
     )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "name, expected_match_level_a",
+    [
+        ("a", True),
+        (None, False),
+        ("x", False),
+    ],
+)
+def test_reindex_multiindex_automatic_level(name, expected_match_level_a):
+    series = Series([26.73, 24.255], index=Index([81, 82], name=name))
+    target = MultiIndex.from_product(
+        [[81, 82], [np.nan], ["2018-06-01", "2018-07-01"]], names=["a", "b", "c"]
+    )
+
+    result = series.reindex(target)
+
+    if expected_match_level_a:
+        expected = Series(
+            data=[26.73, 26.73, 24.255, 24.255],
+            index=MultiIndex.from_product(
+                [[81, 82], [np.nan], ["2018-06-01", "2018-07-01"]],
+                names=["a", "b", "c"],
+            ),
+            dtype=series.dtype,
+        )
+    else:
+        expected = Series(
+            data=[np.nan] * 4,
+            index=MultiIndex.from_product(
+                [[81, 82], [np.nan], ["2018-06-01", "2018-07-01"]],
+                names=["a", "b", "c"],
+            ),
+            dtype=series.dtype,
+        )
+
     tm.assert_series_equal(result, expected)

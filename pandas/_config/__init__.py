@@ -33,3 +33,8 @@ from pandas._config.display import detect_console_encoding
 def using_string_dtype() -> bool:
     _mode_options = _global_config["future"]
     return _mode_options["infer_string"]
+
+
+def is_nan_na() -> bool:
+    _mode_options = _global_config["future"]
+    return not _mode_options["distinguish_nan_and_na"]

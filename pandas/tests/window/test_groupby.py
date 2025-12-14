@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -639,7 +641,7 @@ class TestRolling:
         )
         msg = "'d' is deprecated and will be removed in a future version."
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = (
                 df.groupby("group")
                 .rolling("3d", on="date", closed="left")["column1"]
@@ -671,17 +673,24 @@ class TestRolling:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        ("func", "kwargs"),
-        [("rolling", {"window": 2, "min_periods": 1}), ("expanding", {})],
+        ("func", "kwargs", "expected_values"),
+        [
+            (
+                "rolling",
+                {"window": 2, "min_periods": 1},
+                [np.nan, 0.5, np.nan, 0.5, 0.5],
+            ),
+            ("expanding", {}, [np.nan, 0.5, np.nan, 0.5, (1 / 3) ** 0.5]),
+        ],
     )
-    def test_groupby_rolling_sem(self, func, kwargs):
+    def test_groupby_rolling_sem(self, func, kwargs, expected_values):
         # GH: 26476
         df = DataFrame(
             [["a", 1], ["a", 2], ["b", 1], ["b", 2], ["b", 3]], columns=["a", "b"]
         )
         result = getattr(df.groupby("a"), func)(**kwargs).sem()
         expected = DataFrame(
-            {"a": [np.nan] * 5, "b": [np.nan, 0.70711, np.nan, 0.70711, 0.70711]},
+            {"a": [np.nan] * 5, "b": expected_values},
             index=MultiIndex.from_tuples(
                 [("a", 0), ("a", 1), ("b", 2), ("b", 3), ("b", 4)], names=["a", None]
             ),

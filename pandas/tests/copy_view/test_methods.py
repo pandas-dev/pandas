@@ -16,6 +16,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
+from pandas.util.version import Version
 
 
 def test_copy():
@@ -222,6 +223,19 @@ def test_groupby_column_index_in_references():
     key = df["C"]
     result = df.groupby(key, observed=True).sum()
     expected = df.groupby("C", observed=True).sum()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_modify_series():
+    # https://github.com/pandas-dev/pandas/issues/63219
+    # Modifying a Series after using it to groupby should not impact
+    # the groupby operation.
+    ser = Series([1, 2, 1])
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    gb = df.groupby(ser)
+    ser.iloc[0] = 100
+    result = gb.sum()
+    expected = DataFrame({"a": [4, 2], "b": [10, 5]}, index=[1, 2])
     tm.assert_frame_equal(result, expected)
 
 
@@ -559,7 +573,7 @@ def test_to_frame():
     ],
     ids=["shallow-copy", "reset_index", "rename", "select_dtypes"],
 )
-def test_chained_methods(request, method, idx):
+def test_chained_methods(method, idx):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
@@ -917,8 +931,9 @@ def test_round(decimals):
 
     assert tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     # TODO: Make inplace by using out parameter of ndarray.round?
-    if decimals >= 0:
+    if decimals >= 0 and Version(np.__version__) < Version("2.4.0.dev0"):
         # Ensure lazy copy if no-op
+        # TODO: Cannot rely on Numpy returning view after version 2.3
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))

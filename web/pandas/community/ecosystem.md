@@ -25,7 +25,7 @@ authors to coordinate on the namespace.
 
   | Library                                                              | Accessor   | Classes               |
   | -------------------------------------------------------------------- | ---------- | --------------------- |
-  | [awkward-pandas](https://awkward-pandas.readthedocs.io/en/latest/)   | `ak`       | `Series`              |
+  | [akimbo](https://akimbo.readthedocs.io/en/latest/)                   | `ak`       | `Series`              |
   | [pdvega](https://altair-viz.github.io/pdvega/)                       | `vgplot`   | `Series`, `DataFrame` |
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
@@ -42,9 +42,9 @@ Pandas provides an interface for defining
 The following libraries implement that interface to provide types not found in NumPy or pandas,
 which work well with pandas' data containers.
 
-#### [awkward-pandas](https://github.com/scikit-hep/awkward)
+#### [akimbo](https://github.com/intake/akimbo)
 
-Awkward-pandas provides an extension type for storing [Awkward
+Akimbo provides an extension type for storing [Awkward
 Arrays](https://awkward-array.org/) inside pandas' Series and
 DataFrame. It also provides an accessor for using awkward functions
 on Series that are of awkward type.
@@ -141,7 +141,7 @@ pd.set_option("plotting.backend", "hvplot")
 
 [Plotly's](https://plot.ly/) [Python API](https://plot.ly/python/)
 enables interactive figures and web shareability. Maps, 2D, 3D, and
-live-streaming graphs are rendered with WebGL and
+live-streaming graphs are rendered with [WebGL](https://www.khronos.org/webgl/) and
 [D3.js](https://d3js.org/). The library supports plotting directly from
 a pandas DataFrame and cloud-based collaboration. Users of [matplotlib,
 ggplot for Python, and

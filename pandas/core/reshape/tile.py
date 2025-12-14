@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    cast,
 )
 
 import numpy as np
@@ -17,6 +18,7 @@ from pandas._libs import (
     Timestamp,
     lib,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -48,9 +50,11 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeObj,
         IntervalLeftRight,
+        TimeUnit,
     )
 
 
+@set_module("pandas")
 def cut(
     x,
     bins,
@@ -175,14 +179,14 @@ def cut(
 
     >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3, labels=["bad", "medium", "good"])
     ['bad', 'good', 'medium', 'medium', 'good', 'bad']
-    Categories (3, object): ['bad' < 'medium' < 'good']
+    Categories (3, str): ['bad' < 'medium' < 'good']
 
     ``ordered=False`` will result in unordered categories when labels are passed.
     This parameter can be used to allow non-unique labels:
 
     >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3, labels=["B", "A", "B"], ordered=False)
     ['B', 'B', 'A', 'A', 'B', 'B']
-    Categories (2, object): ['A', 'B']
+    Categories (2, str): ['A', 'B']
 
     ``labels=False`` implies you just want the bins back.
 
@@ -287,6 +291,7 @@ def cut(
     return _postprocess_for_cut(fac, bins, retbins, original)
 
 
+@set_module("pandas")
 def qcut(
     x,
     q,
@@ -349,7 +354,7 @@ def qcut(
     >>> pd.qcut(range(5), 3, labels=["good", "medium", "bad"])
     ... # doctest: +SKIP
     [good, good, medium, bad, bad]
-    Categories (3, object): [good < medium < bad]
+    Categories (3, str): [good < medium < bad]
 
     >>> pd.qcut(range(5), 4, labels=False)
     array([0, 0, 1, 2, 3])
@@ -409,7 +414,7 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
             # error: Argument 1 to "dtype_to_unit" has incompatible type
             # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
             unit = dtype_to_unit(x_idx.dtype)  # type: ignore[arg-type]
-            td = Timedelta(seconds=1).as_unit(unit)
+            td = Timedelta(seconds=1).as_unit(cast("TimeUnit", unit))
             # Use DatetimeArray/TimedeltaArray method instead of linspace
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
             # has no attribute "_generate_range"
@@ -592,6 +597,7 @@ def _format_labels(
         # error: Argument 1 to "dtype_to_unit" has incompatible type
         # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
         unit = dtype_to_unit(bins.dtype)  # type: ignore[arg-type]
+        unit = cast("TimeUnit", unit)
         formatter = lambda x: x
         adjust = lambda x: x - Timedelta(1, unit=unit).as_unit(unit)
     else:

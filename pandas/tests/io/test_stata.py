@@ -13,6 +13,7 @@ import zipfile
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1035,7 +1036,7 @@ class TestStata:
             "when writing to stata is deprecated"
         )
         exp_object = expected.astype(object)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             exp_object.to_stata(path, convert_dates=date_conversion)
         written_and_read_again = self.read_dta(path)
 
@@ -1339,25 +1340,26 @@ class TestStata:
         return from_frame
 
     def test_iterator(self, datapath):
-        fname = datapath("io", "data", "stata", "stata3_117.dta")
+        fname = datapath("io", "data", "stata", "stata12_117.dta")
 
         parsed = read_stata(fname)
+        expected = parsed.iloc[0:5, :]
 
         with read_stata(fname, iterator=True) as itr:
             chunk = itr.read(5)
-            tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
+            tm.assert_frame_equal(expected, chunk)
 
         with read_stata(fname, chunksize=5) as itr:
-            chunk = list(itr)
-            tm.assert_frame_equal(parsed.iloc[0:5, :], chunk[0])
+            chunk = next(itr)
+            tm.assert_frame_equal(expected, chunk)
 
         with read_stata(fname, iterator=True) as itr:
             chunk = itr.get_chunk(5)
-            tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
+            tm.assert_frame_equal(expected, chunk)
 
         with read_stata(fname, chunksize=5) as itr:
             chunk = itr.get_chunk()
-            tm.assert_frame_equal(parsed.iloc[0:5, :], chunk)
+            tm.assert_frame_equal(expected, chunk)
 
         # GH12153
         with read_stata(fname, chunksize=4) as itr:
@@ -2056,9 +2058,10 @@ the string values returned are correct."""
         ["numpy_nullable", pytest.param("pyarrow", marks=td.skip_if_no("pyarrow"))],
     )
     def test_read_write_ea_dtypes(self, dtype_backend, temp_file, tmp_path):
+        dtype = "Int64" if dtype_backend == "numpy_nullable" else "int64[pyarrow]"
         df = DataFrame(
             {
-                "a": [1, 2, None],
+                "a": pd.array([1, 2, None], dtype=dtype),
                 "b": ["a", "b", "c"],
                 "c": [True, False, None],
                 "d": [1.5, 2.5, 3.5],

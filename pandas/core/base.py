@@ -10,6 +10,7 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Self,
     cast,
     final,
     overload,
@@ -23,7 +24,6 @@ from pandas._typing import (
     DtypeObj,
     IndexLabel,
     NDFrameT,
-    Self,
     Shape,
     npt,
 )
@@ -90,7 +90,7 @@ _shared_docs: dict[str, str] = {}
 
 class PandasObject(DirNamesMixin):
     """
-    Baseclass for various pandas objects.
+    Base class for various pandas objects.
     """
 
     # results from calls to methods decorated with cache_readonly get added to _cache
@@ -323,12 +323,12 @@ class IndexOpsMixin(OpsMixin):
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
         >>> s.T
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
 
         For Index:
 
@@ -383,7 +383,7 @@ class IndexOpsMixin(OpsMixin):
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
         >>> s.ndim
         1
 
@@ -452,9 +452,9 @@ class IndexOpsMixin(OpsMixin):
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
         >>> s.nbytes
-        24
+        34
 
         For Index:
 
@@ -487,7 +487,7 @@ class IndexOpsMixin(OpsMixin):
         0     Ant
         1    Bear
         2     Cow
-        dtype: object
+        dtype: str
         >>> s.size
         3
 
@@ -567,7 +567,7 @@ class IndexOpsMixin(OpsMixin):
         >>> ser = pd.Series(pd.Categorical(["a", "b", "a"]))
         >>> ser.array
         ['a', 'b', 'a']
-        Categories (2, object): ['a', 'b']
+        Categories (2, str): ['a', 'b']
         """
         raise AbstractMethodError(self)
 
@@ -993,7 +993,12 @@ class IndexOpsMixin(OpsMixin):
             If True then the object returned will contain the relative
             frequencies of the unique values.
         sort : bool, default True
-            Sort by frequencies when True. Preserve the order of the data when False.
+            Stable sort by frequencies when True. Preserve the order of the data
+            when False.
+
+            .. versionchanged:: 3.0.0
+
+                Prior to 3.0.0, the sort was unstable.
         ascending : bool, default False
             Sort in ascending order.
         bins : int, optional
@@ -1076,7 +1081,7 @@ class IndexOpsMixin(OpsMixin):
 
         >>> df.dtypes
         a    category
-        b      object
+        b      str
         c    category
         d    category
         dtype: object
@@ -1084,7 +1089,7 @@ class IndexOpsMixin(OpsMixin):
         >>> df.dtypes.value_counts()
         category    2
         category    1
-        object      1
+        str         1
         Name: count, dtype: int64
         """
         return algorithms.value_counts_internal(
@@ -1102,7 +1107,7 @@ class IndexOpsMixin(OpsMixin):
             # i.e. ExtensionArray
             result = values.unique()
         else:
-            result = algorithms.unique1d(values)
+            result = algorithms.unique1d(values)  # type: ignore[assignment]
         return result
 
     @final
@@ -1120,7 +1125,7 @@ class IndexOpsMixin(OpsMixin):
         Returns
         -------
         int
-            A integer indicating the number of unique elements in the object.
+            An integer indicating the number of unique elements in the object.
 
         See Also
         --------
@@ -1298,7 +1303,11 @@ class IndexOpsMixin(OpsMixin):
 
         if isinstance(self, ABCMultiIndex):
             # preserve MultiIndex
-            uniques = self._constructor(uniques)
+            if len(self) == 0:
+                # GH#57517
+                uniques = self[:0]
+            else:
+                uniques = self._constructor(uniques)
         else:
             from pandas import Index
 
@@ -1376,7 +1385,7 @@ class IndexOpsMixin(OpsMixin):
         0   2000-03-11
         1   2000-03-12
         2   2000-03-13
-        dtype: datetime64[s]
+        dtype: datetime64[us]
 
         >>> ser.searchsorted('3/14/2000')
         np.int64(3)
@@ -1386,7 +1395,7 @@ class IndexOpsMixin(OpsMixin):
         ... )
         >>> ser
         ['apple', 'bread', 'bread', 'cheese', 'milk']
-        Categories (4, object): ['apple' < 'bread' < 'cheese' < 'milk']
+        Categories (4, str): ['apple' < 'bread' < 'cheese' < 'milk']
 
         >>> ser.searchsorted('bread')
         np.int64(1)

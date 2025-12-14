@@ -117,8 +117,8 @@ def test_getitem_with_duplicates_indices(result_1, duplicate_item, expected_1):
     # GH 17610
     result_1 = Series(result_1)
     duplicate_item = Series(duplicate_item)
-    result = result_1._append(duplicate_item)
-    expected = expected_1._append(duplicate_item)
+    result = result_1._append_internal(duplicate_item)
+    expected = expected_1._append_internal(duplicate_item)
     tm.assert_series_equal(result[1], expected)
     assert result[2] == result_1[2]
 
@@ -253,17 +253,17 @@ def test_timedelta_assignment():
     # GH 8209
     s = Series([], dtype=object)
     s.loc["B"] = timedelta(1)
-    expected = Series(Timedelta("1 days"), dtype="timedelta64[ns]", index=["B"])
+    expected = Series(Timedelta("1 days"), dtype="timedelta64[us]", index=["B"])
     tm.assert_series_equal(s, expected)
 
     s = s.reindex(s.index.insert(0, "A"))
     expected = Series(
-        [np.nan, Timedelta("1 days")], dtype="timedelta64[ns]", index=["A", "B"]
+        [np.nan, Timedelta("1 days")], dtype="timedelta64[us]", index=["A", "B"]
     )
     tm.assert_series_equal(s, expected)
 
     s.loc["A"] = timedelta(1)
-    expected = Series(Timedelta("1 days"), dtype="timedelta64[ns]", index=["A", "B"])
+    expected = Series(Timedelta("1 days"), dtype="timedelta64[us]", index=["A", "B"])
     tm.assert_series_equal(s, expected)
 
 

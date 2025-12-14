@@ -10,6 +10,7 @@ import pytest
 
 from pandas._libs.internals import BlockPlacement
 from pandas.compat import IS64
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import is_scalar
 
@@ -276,12 +277,12 @@ class TestBlock:
         assert len(fblock) == len(fblock.values)
 
     def test_copy(self, fblock):
-        cop = fblock.copy()
+        cop = fblock.copy(deep=True)
         assert cop is not fblock
         assert_block_equal(fblock, cop)
 
     def test_delete(self, fblock):
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         locs = newb.mgr_locs
         nb = newb.delete(0)[0]
         assert newb.mgr_locs is locs
@@ -294,7 +295,7 @@ class TestBlock:
         assert not (newb.values[0] == 1).all()
         assert (nb.values[0] == 1).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         locs = newb.mgr_locs
         nb = newb.delete(1)
         assert len(nb) == 2
@@ -309,7 +310,7 @@ class TestBlock:
         assert not (newb.values[1] == 2).all()
         assert (nb[1].values[0] == 2).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
         nb = newb.delete(2)
         assert len(nb) == 1
         tm.assert_numpy_array_equal(
@@ -317,7 +318,7 @@ class TestBlock:
         )
         assert (nb[0].values[1] == 1).all()
 
-        newb = fblock.copy()
+        newb = fblock.copy(deep=True)
 
         with pytest.raises(IndexError, match=None):
             newb.delete(3)
@@ -735,8 +736,6 @@ class TestBlockManager:
         mgr = create_mgr("a: f8; b: i8; c: f8; d: i8; e: f8; f: bool; g: f8-2")
 
         reindexed = mgr.reindex_axis(["g", "c", "a", "d"], axis=0)
-        # reindex_axis does not consolidate_inplace, as that risks failing to
-        #  invalidate _item_cache
         assert not reindexed.is_consolidated()
 
         tm.assert_index_equal(reindexed.items, Index(["g", "c", "a", "d"]))
@@ -1349,7 +1348,7 @@ class TestCanHoldElement:
             ser[: len(elem)] = elem
 
         if inplace:
-            assert ser.array is arr  # i.e. setting was done inplace
+            assert ser._values is arr  # i.e. setting was done inplace
         else:
             assert ser.dtype == object
 
@@ -1378,7 +1377,7 @@ def test_validate_ndim():
 
     depr_msg = "make_block is deprecated"
     with pytest.raises(ValueError, match=msg):
-        with tm.assert_produces_warning(DeprecationWarning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             make_block(values, placement, ndim=2)
 
 

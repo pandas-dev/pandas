@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import SpecificationError
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
 
@@ -23,6 +24,7 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
+from pandas.arrays import ArrowExtensionArray
 from pandas.core.groupby.grouper import Grouping
 
 
@@ -186,6 +188,8 @@ def test_with_na_groups(any_real_numpy_dtype):
 
     agged = grouped.agg(f)
     expected = Series([4.0, 2.0], index=["bar", "foo"])
+    if values.dtype == np.float32:
+        expected = expected.astype(np.float32)
 
     tm.assert_series_equal(agged, expected)
 
@@ -544,6 +548,14 @@ def test_callable_result_dtype_frame(
     op = getattr(df.groupby(keys)[["c"]], method)
     result = op(lambda x: x.astype(result_dtype).iloc[0])
     expected_index = pd.RangeIndex(0, 1) if method == "transform" else agg_index
+
+    if method == "aggregate":
+        # _cast_pointwise_result retains the input's dtype where feasible
+        if input_dtype == "float32" and result_dtype == "float64":
+            result_dtype = "float32"
+        if input_dtype == "int32" and result_dtype == "int64":
+            result_dtype = "int32"
+
     expected = DataFrame({"c": [df["c"].iloc[0]]}, index=expected_index).astype(
         result_dtype
     )
@@ -852,6 +864,64 @@ class TestNamedAggregationDataFrame:
             b=pd.NamedAgg("B", "sum"), c=pd.NamedAgg(column="B", aggfunc="count")
         )
         expected = df.groupby("A").agg(b=("B", "sum"), c=("B", "count"))
+        tm.assert_frame_equal(result, expected)
+
+    def n_between(self, ser, low, high, **kwargs):
+        return ser.between(low, high, **kwargs).sum()
+
+    def test_namedagg_args(self):
+        # https://github.com/pandas-dev/pandas/issues/58283
+        df = DataFrame({"A": [0, 0, 1, 1], "B": [-1, 0, 1, 2]})
+
+        result = df.groupby("A").agg(
+            count_between=pd.NamedAgg("B", self.n_between, 0, 1)
+        )
+        expected = DataFrame({"count_between": [1, 1]}, index=Index([0, 1], name="A"))
+        tm.assert_frame_equal(result, expected)
+
+    def test_namedagg_kwargs(self):
+        # https://github.com/pandas-dev/pandas/issues/58283
+        df = DataFrame({"A": [0, 0, 1, 1], "B": [-1, 0, 1, 2]})
+
+        result = df.groupby("A").agg(
+            count_between_kw=pd.NamedAgg("B", self.n_between, 0, 1, inclusive="both")
+        )
+        expected = DataFrame(
+            {"count_between_kw": [1, 1]}, index=Index([0, 1], name="A")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_namedagg_args_and_kwargs(self):
+        # https://github.com/pandas-dev/pandas/issues/58283
+        df = DataFrame({"A": [0, 0, 1, 1], "B": [-1, 0, 1, 2]})
+
+        result = df.groupby("A").agg(
+            count_between_mix=pd.NamedAgg(
+                "B", self.n_between, 0, 1, inclusive="neither"
+            )
+        )
+        expected = DataFrame(
+            {"count_between_mix": [0, 0]}, index=Index([0, 1], name="A")
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_multiple_named_agg_with_args_and_kwargs(self):
+        # https://github.com/pandas-dev/pandas/issues/58283
+        df = DataFrame({"A": [0, 1, 2, 3], "B": [1, 2, 3, 4]})
+
+        result = df.groupby("A").agg(
+            n_between01=pd.NamedAgg("B", self.n_between, 0, 1),
+            n_between13=pd.NamedAgg("B", self.n_between, 1, 3),
+            n_between02=pd.NamedAgg("B", self.n_between, 0, 2),
+        )
+        expected = DataFrame(
+            {
+                "n_between01": [1, 0, 0, 0],
+                "n_between13": [1, 1, 1, 0],
+                "n_between02": [1, 1, 0, 0],
+            },
+            index=Index([0, 1, 2, 3], name="A"),
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_mangled(self):
@@ -1666,7 +1736,7 @@ def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
         {
             "td": Series(
                 ["0 days 01:00:00", "0 days 00:15:00", "0 days 01:15:00"],
-                dtype="timedelta64[ns]",
+                dtype="timedelta64[us]",
             ),
             "grps": ["a", "a", "b"],
         }
@@ -1806,6 +1876,94 @@ def test_groupby_aggregation_func_list_multi_index_duplicate_columns():
         ),
         index=Index(["level1.1", "level1.2"]),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize(
+    "dtype",
+    ["float[pyarrow]", "int64[pyarrow]", "uint64[pyarrow]", "bool[pyarrow]"],
+)
+def test_agg_lambda_pyarrow_dtype_conversion(dtype):
+    # GH#59601
+    # Test PyArrow dtype conversion back to PyArrow dtype
+    df = DataFrame(
+        {
+            "A": ["c1", "c2", "c3", "c1", "c2", "c3"],
+            "B": pd.array([100, 200, 255, 0, 199, 40392], dtype=dtype),
+        }
+    )
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: x.min())
+
+    expected = DataFrame(
+        {"B": pd.array([0, 199, 255], dtype=dtype)},
+        index=Index(["c1", "c2", "c3"], name="A"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_agg_lambda_complex128_dtype_conversion():
+    # GH#59601
+    df = DataFrame(
+        {"A": ["c1", "c2", "c3"], "B": pd.array([100, 200, 255], "int64[pyarrow]")}
+    )
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: complex(x.sum(), x.count()))
+
+    expected = DataFrame(
+        {
+            "B": pd.array(
+                [complex(100, 1), complex(200, 1), complex(255, 1)], dtype="complex128"
+            ),
+        },
+        index=Index(["c1", "c2", "c3"], name="A"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_agg_lambda_numpy_uint64_to_pyarrow_dtype_conversion():
+    # GH#59601
+    df = DataFrame(
+        {
+            "A": ["c1", "c2", "c3"],
+            "B": pd.array([100, 200, 255], dtype="uint64[pyarrow]"),
+        }
+    )
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: np.uint64(x.sum()))
+
+    expected = DataFrame(
+        {
+            "B": pd.array([100, 200, 255], dtype="uint64[pyarrow]"),
+        },
+        index=Index(["c1", "c2", "c3"], name="A"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_agg_lambda_pyarrow_struct_to_object_dtype_conversion():
+    # GH#59601
+    import pyarrow as pa
+
+    df = DataFrame(
+        {
+            "A": ["c1", "c2", "c3"],
+            "B": pd.array([100, 200, 255], dtype="int64[pyarrow]"),
+        }
+    )
+    gb = df.groupby("A")
+    result = gb.agg(lambda x: {"number": 1})
+
+    arr = pa.array([{"number": 1}, {"number": 1}, {"number": 1}])
+    expected = DataFrame(
+        {"B": ArrowExtensionArray(arr)},
+        index=Index(["c1", "c2", "c3"], name="A"),
+    )
+
     tm.assert_frame_equal(result, expected)
 
 

@@ -15,10 +15,10 @@ from typing import (
     Any,
     ClassVar,
     Literal,
+    Self,
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
@@ -30,17 +30,15 @@ from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import (
-    Appender,
-    Substitution,
     cache_readonly,
+    set_module,
 )
-from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
     validate_insert_loc,
 )
 
-from pandas.core.dtypes.cast import maybe_cast_pointwise_result
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
@@ -88,14 +86,12 @@ if TYPE_CHECKING:
         AstypeArg,
         AxisInt,
         Dtype,
-        DtypeObj,
         FillnaOptions,
         InterpolateOptions,
         NumpySorter,
         NumpyValueArrayLike,
         PositionalIndexer,
         ScalarIndexer,
-        Self,
         SequenceIndexer,
         Shape,
         SortKind,
@@ -103,11 +99,15 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import Index
+    from pandas import (
+        Index,
+        Series,
+    )
 
 _extension_array_shared_docs: dict[str, str] = {}
 
 
+@set_module("pandas.api.extensions")
 class ExtensionArray:
     """
     Abstract base class for custom 1-D array types.
@@ -269,6 +269,8 @@ class ExtensionArray:
     #  strictly less than 2000 to be below Index.__pandas_priority__.
     __pandas_priority__ = 1000
 
+    _readonly = False
+
     # ------------------------------------------------------------------------
     # Constructors
     # ------------------------------------------------------------------------
@@ -312,38 +314,6 @@ class ExtensionArray:
         raise AbstractMethodError(cls)
 
     @classmethod
-    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
-        """
-        Strict analogue to _from_sequence, allowing only sequences of scalars
-        that should be specifically inferred to the given dtype.
-
-        Parameters
-        ----------
-        scalars : sequence
-        dtype : ExtensionDtype
-
-        Raises
-        ------
-        TypeError or ValueError
-
-        Notes
-        -----
-        This is called in a try/except block when casting the result of a
-        pointwise operation.
-        """
-        try:
-            return cls._from_sequence(scalars, dtype=dtype, copy=False)
-        except (ValueError, TypeError):
-            raise
-        except Exception:
-            warnings.warn(
-                "_from_scalars should only raise ValueError or TypeError. "
-                "Consider overriding _from_scalars where appropriate.",
-                stacklevel=find_stack_level(),
-            )
-            raise
-
-    @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: ExtensionDtype, copy: bool = False
     ) -> Self:
@@ -371,9 +341,6 @@ class ExtensionArray:
             from a sequence of scalars.
         api.extensions.ExtensionArray._from_factorized : Reconstruct an ExtensionArray
             after factorization.
-        api.extensions.ExtensionArray._from_scalars : Strict analogue to _from_sequence,
-            allowing only sequences of scalars that should be specifically inferred to
-            the given dtype.
 
         Examples
         --------
@@ -415,6 +382,14 @@ class ExtensionArray:
         Length: 2, dtype: interval[int64, right]
         """
         raise AbstractMethodError(cls)
+
+    def _cast_pointwise_result(self, values) -> ArrayLike:
+        """
+        Cast the result of a pointwise operation (e.g. Series.map) to an
+        array, preserve dtype_backend if possible.
+        """
+        values = np.asarray(values, dtype=object)
+        return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # ------------------------------------------------------------------------
     # Must be a Sequence
@@ -482,6 +457,11 @@ class ExtensionArray:
         Returns
         -------
         None
+
+        Raises
+        ------
+        ValueError
+            If the array is readonly and modification is attempted.
         """
         # Some notes to the ExtensionArray implementer who may have ended up
         # here. While this method is not required for the interface, if you
@@ -501,6 +481,10 @@ class ExtensionArray:
         #   __init__ method coerces that value, then so should __setitem__
         # Note, also, that Series/DataFrame.where internally use __setitem__
         # on a copy of the data.
+        # Check if the array is readonly
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         raise NotImplementedError(f"{type(self)} does not implement __setitem__.")
 
     def __len__(self) -> int:
@@ -595,8 +579,14 @@ class ExtensionArray:
         result = np.asarray(self, dtype=dtype)
         if copy or na_value is not lib.no_default:
             result = result.copy()
+        elif self._readonly and astype_is_view(self.dtype, result.dtype):
+            # If the ExtensionArray is readonly, make the numpy array readonly too
+            result = result.view()
+            result.flags.writeable = False
+
         if na_value is not lib.no_default:
             result[self.isna()] = na_value  # type: ignore[index]
+
         return result
 
     # ------------------------------------------------------------------------
@@ -1602,8 +1592,6 @@ class ExtensionArray:
             NaN values will be encoded as non-negative integers and will not drop the
             NaN from the uniques of the values.
 
-            .. versionadded:: 1.5.0
-
         Returns
         -------
         codes : ndarray
@@ -1688,21 +1676,79 @@ class ExtensionArray:
         >>> cat = pd.Categorical(['a', 'b', 'c'])
         >>> cat
         ['a', 'b', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> cat.repeat(2)
         ['a', 'a', 'b', 'b', 'c', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         >>> cat.repeat([1, 2, 3])
         ['a', 'b', 'b', 'c', 'c', 'c']
-        Categories (3, object): ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
         """
 
-    @Substitution(klass="ExtensionArray")
-    @Appender(_extension_array_shared_docs["repeat"])
     def repeat(self, repeats: int | Sequence[int], axis: AxisInt | None = None) -> Self:
+        """
+        Repeat elements of an ExtensionArray.
+
+        Returns a new ExtensionArray where each element of the current ExtensionArray
+        is repeated consecutively a given number of times.
+
+        Parameters
+        ----------
+        repeats : int or array of ints
+            The number of repetitions for each element. This should be a
+            non-negative integer. Repeating 0 times will return an empty
+            ExtensionArray.
+        axis : None
+            Must be ``None``. Has no effect but is accepted for compatibility
+            with numpy.
+
+        Returns
+        -------
+        ExtensionArray
+            Newly created ExtensionArray with repeated elements.
+
+        See Also
+        --------
+        Series.repeat : Equivalent function for Series.
+        Index.repeat : Equivalent function for Index.
+        numpy.repeat : Similar method for :class:`numpy.ndarray`.
+        ExtensionArray.take : Take arbitrary positions.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(["a", "b", "c"])
+        >>> cat
+        ['a', 'b', 'c']
+        Categories (3, str): ['a', 'b', 'c']
+        >>> cat.repeat(2)
+        ['a', 'a', 'b', 'b', 'c', 'c']
+        Categories (3, str): ['a', 'b', 'c']
+        >>> cat.repeat([1, 2, 3])
+        ['a', 'b', 'b', 'c', 'c', 'c']
+        Categories (3, str): ['a', 'b', 'c']
+        """
         nv.validate_repeat((), {"axis": axis})
         ind = np.arange(len(self)).repeat(repeats)
         return self.take(ind)
+
+    def value_counts(self, dropna: bool = True) -> Series:
+        """
+        Return a Series containing counts of unique values.
+
+        Parameters
+        ----------
+        dropna : bool, default True
+            Don't include counts of NA values.
+
+        Returns
+        -------
+        Series
+        """
+        from pandas.core.algorithms import value_counts_internal as value_counts
+
+        result = value_counts(self.to_numpy(copy=False), sort=False, dropna=dropna)
+        result.index = result.index.astype(self.dtype)
+        return result
 
     # ------------------------------------------------------------------------
     # Indexing methods
@@ -1778,7 +1824,7 @@ class ExtensionArray:
         .. code-block:: python
 
            def take(self, indices, allow_fill=False, fill_value=None):
-               from pandas.core.algorithms import take
+               from pandas.api.extensions import take
 
                # If the ExtensionArray is backed by an ndarray, then
                # just pass that here instead of coercing to object.
@@ -1834,6 +1880,12 @@ class ExtensionArray:
         Length: 3, dtype: Int64
         """
         raise AbstractMethodError(self)
+
+    @overload
+    def view(self) -> Self: ...
+
+    @overload
+    def view(self, dtype: Dtype | None = ...) -> ArrayLike: ...
 
     def view(self, dtype: Dtype | None = None) -> ArrayLike:
         """
@@ -2608,6 +2660,7 @@ class ExtensionArray:
         kind = WrappedCythonOp.get_kind_from_how(how)
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
 
+        initial: Any = 0
         # GH#43682
         if isinstance(self.dtype, StringDtype):
             # StringArray
@@ -2632,6 +2685,7 @@ class ExtensionArray:
 
             arr = self
             if op.how == "sum":
+                initial = ""
                 # https://github.com/pandas-dev/pandas/issues/60229
                 # All NA should result in the empty string.
                 assert "skipna" in kwargs
@@ -2649,6 +2703,7 @@ class ExtensionArray:
             ngroups=ngroups,
             comp_ids=ids,
             mask=None,
+            initial=initial,
             **kwargs,
         )
 
@@ -2749,6 +2804,7 @@ class ExtensionOpsMixin:
         setattr(cls, "__rxor__", cls._create_logical_method(roperator.rxor))
 
 
+@set_module("pandas.api.extensions")
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """
     A mixin for defining ops on an ExtensionArray.
@@ -2832,14 +2888,14 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
             # If the operator is not defined for the underlying objects,
             # a TypeError should be raised
-            res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
+            res = [op(a, b) for (a, b) in zip(lvalues, rvalues, strict=True)]
 
             def _maybe_convert(arr):
                 if coerce_to_dtype:
                     # https://github.com/pandas-dev/pandas/issues/22850
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
-                    res = maybe_cast_pointwise_result(arr, self.dtype, same_dtype=False)
+                    res = self._cast_pointwise_result(arr)
                     if not isinstance(res, type(self)):
                         # exception raised in _from_sequence; ensure we have ndarray
                         res = np.asarray(arr)
@@ -2848,7 +2904,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                 return res
 
             if op.__name__ in {"divmod", "rdivmod"}:
-                a, b = zip(*res)
+                a, b = zip(*res, strict=True)
                 return _maybe_convert(a), _maybe_convert(b)
 
             return _maybe_convert(res)

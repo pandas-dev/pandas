@@ -147,7 +147,7 @@ def test_len_nan_group():
 
 def test_groupby_timedelta_median():
     # issue 57926
-    expected = Series(data=Timedelta("1D"), index=["foo"])
+    expected = Series(data=Timedelta("1D"), index=["foo"], dtype="m8[us]")
     df = DataFrame({"label": ["foo", "foo"], "timedelta": [pd.NaT, Timedelta("1D")]})
     gb = df.groupby("label")["timedelta"]
     actual = gb.median()
@@ -2269,7 +2269,7 @@ def test_groupby_cumsum_skipna_false():
 
 def test_groupby_cumsum_timedelta64():
     # GH#46216 don't ignore is_datetimelike in libgroupby.group_cumsum
-    dti = date_range("2016-01-01", periods=5)
+    dti = date_range("2016-01-01", periods=5, unit="ns")
     ser = Series(dti) - dti[0]
     ser[2] = pd.NaT
 
@@ -2434,25 +2434,28 @@ def test_rolling_wrong_param_min_period():
 
 def test_by_column_values_with_same_starting_value(any_string_dtype):
     # GH29635
+    dtype = any_string_dtype
     df = DataFrame(
         {
             "Name": ["Thomas", "Thomas", "Thomas John"],
             "Credit": [1200, 1300, 900],
-            "Mood": Series(["sad", "happy", "happy"], dtype=any_string_dtype),
+            "Mood": Series(["sad", "happy", "happy"], dtype=dtype),
         }
     )
     aggregate_details = {"Mood": Series.mode, "Credit": "sum"}
 
     result = df.groupby(["Name"]).agg(aggregate_details)
-    expected_result = DataFrame(
+    expected = DataFrame(
         {
             "Mood": [["happy", "sad"], "happy"],
             "Credit": [2500, 900],
             "Name": ["Thomas", "Thomas John"],
-        }
+        },
     ).set_index("Name")
-
-    tm.assert_frame_equal(result, expected_result)
+    if getattr(dtype, "storage", None) == "pyarrow":
+        mood_values = pd.array(["happy", "sad"], dtype=dtype)
+        expected["Mood"] = [mood_values, "happy"]
+    tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_none_in_first_mi_level():

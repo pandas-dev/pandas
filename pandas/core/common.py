@@ -22,19 +22,19 @@ from collections.abc import (
 import contextlib
 from functools import partial
 import inspect
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
+    Concatenate,
     TypeVar,
     cast,
     overload,
 )
-import warnings
 
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat.numpy import np_version_gte1p24
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -53,7 +53,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
-        Concatenate,
         NpDtype,
         P,
         RandomState,
@@ -93,8 +92,10 @@ def consensus_name_attr(objs):
         try:
             if obj.name != name:
                 name = None
+                break
         except ValueError:
             name = None
+            break
     return name
 
 
@@ -243,12 +244,7 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
         return construct_1d_object_array_from_listlike(values)
 
     try:
-        with warnings.catch_warnings():
-            # Can remove warning filter once NumPy 1.24 is min version
-            if not np_version_gte1p24:
-                # np.VisibleDeprecationWarning only in np.exceptions in 2.0
-                warnings.simplefilter("ignore", np.VisibleDeprecationWarning)  # type: ignore[attr-defined]
-            result = np.asarray(values, dtype=dtype)
+        result = np.asarray(values, dtype=dtype)
     except ValueError:
         # Using try/except since it's more performant than checking is_list_like
         # over each element
@@ -291,9 +287,9 @@ def index_labels_to_array(
         except TypeError:  # non-iterable
             labels = [labels]
 
-    labels = asarray_tuplesafe(labels, dtype=dtype)
+    rlabels = asarray_tuplesafe(labels, dtype=dtype)
 
-    return labels
+    return rlabels
 
 
 def maybe_make_list(obj):
@@ -644,8 +640,6 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
     """
     If a name is missing then replace it by level_n, where n is the count
 
-    .. versionadded:: 1.4.0
-
     Parameters
     ----------
     names : list-like
@@ -657,3 +651,29 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
         list of column names with the None values replaced.
     """
     return [f"level_{i}" if name is None else name for i, name in enumerate(names)]
+
+
+def is_local_in_caller_frame(obj):
+    """
+    Helper function used in detecting chained assignment.
+
+    If the pandas object (DataFrame/Series) is a local variable
+    in the caller's frame, it should not be a case of chained
+    assignment or method call.
+
+    For example:
+
+    def test():
+        df = pd.DataFrame(...)
+        df["a"] = 1  # not chained assignment
+
+    Inside ``df.__setitem__``, we call this function to check whether `df`
+    (`self`) is a local variable in `test` frame (the frame calling setitem). If
+    so, we know it is not a case of chained assignment (even when the refcount
+    of `df` is below the threshold due to optimization of local variables).
+    """
+    frame = sys._getframe(2)
+    for v in frame.f_locals.values():
+        if v is obj:
+            return True
+    return False

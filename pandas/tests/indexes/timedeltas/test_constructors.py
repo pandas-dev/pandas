@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Timedelta,
@@ -102,7 +104,9 @@ class TestTimedeltaIndex:
     def test_float64_unit_conversion(self):
         # GH#23539
         tdi = to_timedelta([1.5, 2.25], unit="D")
-        expected = TimedeltaIndex([Timedelta(days=1.5), Timedelta(days=2.25)])
+        expected = TimedeltaIndex(
+            [Timedelta(days=1.5), Timedelta(days=2.25)], dtype="m8[ns]"
+        )
         tm.assert_index_equal(tdi, expected)
 
     def test_construction_base_constructor(self):
@@ -168,11 +172,11 @@ class TestTimedeltaIndex:
         # NumPy string array
         strings = np.array(["1 days", "2 days", "3 days"])
         result = TimedeltaIndex(strings)
-        expected = to_timedelta([1, 2, 3], unit="D")
+        expected = to_timedelta([1, 2, 3], unit="D").as_unit("us")
         tm.assert_index_equal(result, expected)
 
-        from_ints = TimedeltaIndex(expected.asi8)
-        tm.assert_index_equal(from_ints, expected)
+        from_ints = TimedeltaIndex(expected.as_unit("ns").asi8)
+        tm.assert_index_equal(from_ints, expected.as_unit("ns"))
 
         # non-conforming freq
         msg = (
@@ -257,10 +261,10 @@ class TestTimedeltaIndex:
         msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
 
         expected = TimedeltaIndex([f"1{unit}", f"2{unit}"])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = TimedeltaIndex([f"1{unit_depr}", f"2{unit_depr}"])
         tm.assert_index_equal(result, expected)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             tdi = to_timedelta([1, 2], unit=unit_depr)
-        tm.assert_index_equal(tdi, expected)
+        tm.assert_index_equal(tdi, expected.as_unit("ns"))

@@ -17,7 +17,10 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -63,6 +66,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
+@set_module("pandas")
 class Grouper:
     """
     A Grouper allows the user to specify a groupby instruction for an object.
@@ -112,8 +116,6 @@ class Grouper:
 
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
-
-        .. versionadded:: 1.3.0
 
     offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
@@ -286,18 +288,22 @@ class Grouper:
         self._indexer: npt.NDArray[np.intp] | None = None
 
     def _get_grouper(
-        self, obj: NDFrameT, validate: bool = True
+        self, obj: NDFrameT, validate: bool = True, observed: bool = True
     ) -> tuple[ops.BaseGrouper, NDFrameT]:
         """
         Parameters
         ----------
         obj : Series or DataFrame
+            Object being grouped.
         validate : bool, default True
-            if True, validate the grouper
+            If True, validate the grouper.
+        observed : bool, default True
+            Whether only observed groups should be in the result. Only
+            has an impact when grouping on categorical data.
 
         Returns
         -------
-        a tuple of grouper, obj (possibly sorted)
+        A tuple of grouper, obj (possibly sorted)
         """
         obj, _, _ = self._set_grouper(obj)
         grouper, _, obj = get_grouper(
@@ -307,6 +313,7 @@ class Grouper:
             sort=self.sort,
             validate=validate,
             dropna=self.dropna,
+            observed=observed,
         )
 
         return grouper, obj
@@ -453,6 +460,8 @@ class Grouping:
         dropna: bool = True,
         uniques: ArrayLike | None = None,
     ) -> None:
+        if isinstance(grouper, Series):
+            grouper = grouper.copy(deep=False)
         self.level = level
         self._orig_grouper = grouper
         grouping_vector = _convert_grouper(index, grouper)
@@ -679,9 +688,9 @@ class Grouping:
 
         r, counts = libalgos.groupsort_indexer(ensure_platform_int(codes), len(uniques))
         counts = ensure_int64(counts).cumsum()
-        _result = (r[start:end] for start, end in zip(counts, counts[1:]))
+        _result = (r[start:end] for start, end in zip(counts, counts[1:], strict=False))
         # map to the label
-        result = {k: self._index.take(v) for k, v in zip(uniques, _result)}
+        result = {k: self._index.take(v) for k, v in zip(uniques, _result, strict=True)}
 
         return PrettyDict(result)
 
@@ -787,7 +796,7 @@ def get_grouper(
 
     # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
-        grouper, obj = key._get_grouper(obj, validate=False)
+        grouper, obj = key._get_grouper(obj, validate=False, observed=observed)
         if key.key is None:
             return grouper, frozenset(), obj
         else:
@@ -870,7 +879,7 @@ def get_grouper(
             return gpr._mgr.references_same_values(obj_gpr_column._mgr, 0)
         return False
 
-    for gpr, level in zip(keys, levels):
+    for gpr, level in zip(keys, levels, strict=True):
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis = True
             exclusions.add(gpr.name)

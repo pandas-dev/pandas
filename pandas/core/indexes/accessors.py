@@ -14,6 +14,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -218,7 +219,7 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
             "in a future version this will return a Series containing python "
             "datetime.timedelta objects instead of an ndarray. To retain the "
             "old behavior, call `np.array` on the result",
-            FutureWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
         return cast(ArrowExtensionArray, self._parent.array)._dt_to_pytimedelta()
@@ -285,7 +286,7 @@ class DatetimeProperties(Properties):
     0   2000-01-01 00:00:00
     1   2000-01-01 00:00:01
     2   2000-01-01 00:00:02
-    dtype: datetime64[ns]
+    dtype: datetime64[us]
     >>> seconds_series.dt.second
     0    0
     1    1
@@ -297,7 +298,7 @@ class DatetimeProperties(Properties):
     0   2000-01-01 00:00:00
     1   2000-01-01 01:00:00
     2   2000-01-01 02:00:00
-    dtype: datetime64[ns]
+    dtype: datetime64[us]
     >>> hours_series.dt.hour
     0    0
     1    1
@@ -309,7 +310,7 @@ class DatetimeProperties(Properties):
     0   2000-03-31
     1   2000-06-30
     2   2000-09-30
-    dtype: datetime64[ns]
+    dtype: datetime64[us]
     >>> quarters_series.dt.quarter
     0    1
     1    2
@@ -346,7 +347,7 @@ class DatetimeProperties(Properties):
         >>> s
         0   2018-03-10
         1   2018-03-11
-        dtype: datetime64[ns]
+        dtype: datetime64[us]
 
         >>> s.dt.to_pydatetime()
         0    2018-03-10 00:00:00
@@ -452,7 +453,7 @@ class TimedeltaProperties(Properties):
     0   0 days 00:00:01
     1   0 days 00:00:02
     2   0 days 00:00:03
-    dtype: timedelta64[ns]
+    dtype: timedelta64[us]
     >>> seconds_series.dt.seconds
     0    1
     1    2
@@ -501,7 +502,7 @@ class TimedeltaProperties(Properties):
             "in a future version this will return a Series containing python "
             "datetime.timedelta objects instead of an ndarray. To retain the "
             "old behavior, call `np.array` on the result",
-            FutureWarning,
+            Pandas4Warning,
             stacklevel=find_stack_level(),
         )
         return self._get_values().to_pytimedelta()

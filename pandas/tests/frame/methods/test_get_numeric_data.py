@@ -25,7 +25,7 @@ class TestGetNumericData:
         objectname = np.dtype(np.object_).name
 
         df = DataFrame(
-            {"a": 1.0, "b": 2, "c": "foo", "f": Timestamp("20010102")},
+            {"a": 1.0, "b": 2, "c": "foo", "f": Timestamp("20010102").as_unit("s")},
             index=np.arange(10),
         )
         result = df.dtypes
@@ -93,9 +93,9 @@ class TestGetNumericData:
         # GH#22290
         df = DataFrame(
             {
-                "A": pd.array([-10, np.nan, 0, 10, 20, 30], dtype="Int64"),
+                "A": pd.array([-10, pd.NA, 0, 10, 20, 30], dtype="Int64"),
                 "B": Categorical(list("abcabc")),
-                "C": pd.array([0, 1, 2, 3, np.nan, 5], dtype="UInt8"),
+                "C": pd.array([0, 1, 2, 3, pd.NA, 5], dtype="UInt8"),
                 "D": IntervalArray.from_breaks(range(7)),
             }
         )

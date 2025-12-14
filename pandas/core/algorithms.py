@@ -11,7 +11,9 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Literal,
+    TypeVar,
     cast,
+    overload,
 )
 import warnings
 
@@ -33,7 +35,10 @@ from pandas._typing import (
     TakeIndexer,
     npt,
 )
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -103,6 +108,8 @@ if TYPE_CHECKING:
         BaseMaskedArray,
         ExtensionArray,
     )
+
+    T = TypeVar("T", bound=Index | Categorical | ExtensionArray)
 
 
 # --------------- #
@@ -211,14 +218,15 @@ def _reconstruct_data(
         #  that values.dtype == dtype
         cls = dtype.construct_array_type()
 
-        # error: Incompatible types in assignment (expression has type
-        # "ExtensionArray", variable has type "ndarray[Any, Any]")
-        values = cls._from_sequence(values, dtype=dtype)  # type: ignore[assignment]
+        # error: Incompatible return value type
+        # (got "ExtensionArray",
+        # expected "ndarray[tuple[Any, ...], dtype[Any]]")
+        return cls._from_sequence(values, dtype=dtype)  # type: ignore[return-value]
 
-    else:
-        values = values.astype(dtype, copy=False)  # type: ignore[assignment]
-
-    return values
+    # error: Incompatible return value type
+    # (got "ndarray[tuple[Any, ...], dtype[Any]]",
+    # expected "ExtensionArray")
+    return values.astype(dtype, copy=False)  # type: ignore[return-value]
 
 
 def _ensure_arraylike(values, func_name: str) -> ArrayLike:
@@ -314,6 +322,13 @@ def _check_object_for_strings(values: np.ndarray) -> str:
 # --------------- #
 
 
+@overload
+def unique(values: T) -> T: ...
+@overload
+def unique(values: np.ndarray | Series) -> np.ndarray: ...
+
+
+@set_module("pandas")
 def unique(values):
     """
     Return unique values based on a hash table.
@@ -355,7 +370,7 @@ def unique(values):
     array([2, 1])
 
     >>> pd.unique(pd.Series([pd.Timestamp("20160101"), pd.Timestamp("20160101")]))
-    array(['2016-01-01T00:00:00'], dtype='datetime64[s]')
+    array(['2016-01-01T00:00:00.000000'], dtype='datetime64[us]')
 
     >>> pd.unique(
     ...     pd.Series(
@@ -391,11 +406,11 @@ def unique(values):
 
     >>> pd.unique(pd.Series(pd.Categorical(list("baabc"))))
     ['b', 'a', 'c']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     >>> pd.unique(pd.Series(pd.Categorical(list("baabc"), categories=list("abc"))))
     ['b', 'a', 'c']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     An ordered Categorical preserves the category ordering.
 
@@ -405,7 +420,7 @@ def unique(values):
     ...     )
     ... )
     ['b', 'a', 'c']
-    Categories (3, object): ['a' < 'b' < 'c']
+    Categories (3, str): ['a' < 'b' < 'c']
 
     An array of tuples
 
@@ -638,6 +653,7 @@ def factorize_array(
     return codes, uniques
 
 
+@set_module("pandas")
 @doc(
     values=dedent(
         """\
@@ -681,8 +697,6 @@ def factorize(
         If True, the sentinel -1 will be used for NaN values. If False,
         NaN values will be encoded as non-negative integers and will not drop the
         NaN from the uniques of the values.
-
-        .. versionadded:: 1.5.0
     {size_hint}\
 
     Returns
@@ -751,7 +765,7 @@ def factorize(
     array([0, 0, 1])
     >>> uniques
     ['a', 'c']
-    Categories (3, object): ['a', 'b', 'c']
+    Categories (3, str): ['a', 'b', 'c']
 
     Notice that ``'b'`` is in ``uniques.categories``, despite not being
     present in ``cat.values``.
@@ -764,7 +778,7 @@ def factorize(
     >>> codes
     array([0, 0, 1])
     >>> uniques
-    Index(['a', 'c'], dtype='object')
+    Index(['a', 'c'], dtype='str')
 
     If NaN is in the values, and we want to include NaN in the uniques of the
     values, it can be achieved by setting ``use_na_sentinel=False``.
@@ -852,8 +866,10 @@ def value_counts_internal(
     dropna: bool = True,
 ) -> Series:
     from pandas import (
+        DatetimeIndex,
         Index,
         Series,
+        TimedeltaIndex,
     )
 
     index_name = getattr(values, "name", None)
@@ -904,7 +920,10 @@ def value_counts_internal(
                 .size()
             )
             result.index.names = values.names
-            counts = result._values
+            # error: Incompatible types in assignment (expression has type
+            # "ndarray[Any, Any] | DatetimeArray | TimedeltaArray | PeriodArray | Any",
+            # variable has type "ndarray[tuple[int, ...], dtype[Any]]")
+            counts = result._values  # type: ignore[assignment]
 
         else:
             values = _ensure_arraylike(values, func_name="value_counts")
@@ -915,10 +934,21 @@ def value_counts_internal(
             # Starting in 3.0, we no longer perform dtype inference on the
             #  Index object we construct here, xref GH#56161
             idx = Index(keys, dtype=keys.dtype, name=index_name)
+
+            if (
+                bins is None
+                and not sort
+                and isinstance(values, (DatetimeIndex, TimedeltaIndex))
+                and idx.equals(values)
+                and values.inferred_freq is not None
+            ):
+                # Preserve freq of original index
+                idx.freq = values.inferred_freq  # type: ignore[attr-defined]
+
             result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
-        result = result.sort_values(ascending=ascending)
+        result = result.sort_values(ascending=ascending, kind="stable")
 
     if normalize:
         result = result / counts.sum()
@@ -1097,6 +1127,7 @@ def rank(
 # ---- #
 
 
+@set_module("pandas.api.extensions")
 def take(
     arr,
     indices: TakeIndexer,
@@ -1109,14 +1140,8 @@ def take(
 
     Parameters
     ----------
-    arr : array-like or scalar value
-        Non array-likes (sequences/scalars without a dtype) are coerced
-        to an ndarray.
-
-        .. deprecated:: 2.1.0
-            Passing an argument other than a numpy.ndarray, ExtensionArray,
-            Index, or Series is deprecated.
-
+    arr : numpy.ndarray, ExtensionArray, Index, or Series
+        Input array.
     indices : sequence of int or one-dimensional np.ndarray of int
         Indices to be taken.
     axis : int, default 0
@@ -1311,7 +1336,7 @@ def searchsorted(
 _diff_special = {"float64", "float32", "int64", "int32", "int16", "int8"}
 
 
-def diff(arr, n: int, axis: AxisInt = 0):
+def diff(arr, n: int | float | np.integer | np.floating, axis: AxisInt = 0):
     """
     difference of n between self,
     analogous to s-s.shift(n)
@@ -1400,7 +1425,7 @@ def diff(arr, n: int, axis: AxisInt = 0):
     if arr.dtype.name in _diff_special:
         # TODO: can diff_2d dtype specialization troubles be fixed by defining
         #  out_arr inside diff_2d?
-        algos.diff_2d(arr, out_arr, n, axis, datetimelike=is_timedelta)
+        algos.diff_2d(arr, out_arr, int(n), axis, datetimelike=is_timedelta)
     else:
         # To keep mypy happy, _res_indexer is a list while res_indexer is
         #  a tuple, ditto for lag_indexer.
@@ -1670,7 +1695,7 @@ def map_array(
             ]
         else:
             # Dictionary does not have a default. Thus it's safe to
-            # convert to an Series for efficiency.
+            # convert to a Series for efficiency.
             # we specify the keys here to handle the
             # possibility that they are tuples
 

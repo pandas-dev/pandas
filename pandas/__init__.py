@@ -3,7 +3,8 @@ from __future__ import annotations
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
-_hard_dependencies = ("numpy", "dateutil", "tzdata")
+# except tzdata (see https://github.com/pandas-dev/pandas/issues/63264)
+_hard_dependencies = ("numpy", "dateutil")
 
 for _dependency in _hard_dependencies:
     try:
@@ -105,6 +106,7 @@ from pandas.core.api import (
     Series,
     DataFrame,
 )
+from pandas.core.col import col
 
 from pandas.core.dtypes.dtypes import SparseDtype
 
@@ -281,6 +283,7 @@ __all__ = [
     "array",
     "arrays",
     "bdate_range",
+    "col",
     "concat",
     "crosstab",
     "cut",

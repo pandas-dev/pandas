@@ -6,6 +6,7 @@ from datetime import (
 from typing import (
     Literal,
     NoReturn,
+    Self,
     TypeAlias,
     overload,
 )
@@ -15,8 +16,8 @@ import numpy as np
 from pandas._libs.tslibs.period import Period
 from pandas._typing import (
     Frequency,
-    Self,
     TimestampNonexistent,
+    TimeUnit,
 )
 
 NaT: NaTType
@@ -180,4 +181,4 @@ class NaTType:
     def __floordiv__(self, other: float, /) -> Self: ...
     # other
     def __hash__(self) -> int: ...
-    def as_unit(self, unit: str, round_ok: bool = ...) -> NaTType: ...
+    def as_unit(self, unit: TimeUnit, round_ok: bool = ...) -> NaTType: ...

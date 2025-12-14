@@ -6,11 +6,8 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
-    cast,
 )
 import warnings
-
-import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -78,19 +75,16 @@ def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
 
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
-            series = series.copy()
+            series = series.copy(deep=False)
             # error: "Index" has no attribute "asfreq"
             series.index = series.index.asfreq(  # type: ignore[attr-defined]
                 ax_freq, how="s"
             )
             freq = ax_freq
         elif _is_sup(freq, ax_freq):  # one is weekly
-            # Resampling with PeriodDtype is deprecated, so we convert to
-            #  DatetimeIndex, resample, then convert back.
-            ser_ts = series.to_timestamp()
-            ser_d = ser_ts.resample("D").last().dropna()
-            ser_freq = ser_d.resample(ax_freq).last().dropna()
-            series = ser_freq.to_period(ax_freq)
+            how = "last"
+            series = getattr(series.resample("D"), how)().dropna()
+            series = getattr(series.resample(ax_freq), how)().dropna()
             freq = ax_freq
         elif is_subperiod(freq, ax_freq) or _is_sub(freq, ax_freq):
             _upsample_others(ax, freq, kwargs)
@@ -148,7 +142,7 @@ def _replot_ax(ax: Axes, freq: BaseOffset):
     labels = []
     if data is not None:
         for series, plotf, kwds in data:
-            series = series.copy()
+            series = series.copy(deep=False)
             idx = series.index.asfreq(freq, how="S")
             series.index = idx
             # TODO #54485
@@ -265,13 +259,7 @@ def _get_index_freq(index: Index) -> BaseOffset | None:
     freq = getattr(index, "freq", None)
     if freq is None:
         freq = getattr(index, "inferred_freq", None)
-        if freq == "B":
-            # error: "Index" has no attribute "dayofweek"
-            weekdays = np.unique(index.dayofweek)  # type: ignore[attr-defined]
-            if (5 in weekdays) or (6 in weekdays):
-                freq = None
-
-    freq = to_offset(freq)
+        freq = to_offset(freq)
     return freq
 
 
@@ -279,13 +267,7 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
-        freq: str | BaseOffset | None = data.index.freq
-
-        if freq is None:
-            # We only get here for DatetimeIndex
-            data.index = cast("DatetimeIndex", data.index)
-            freq = data.index.inferred_freq
-            freq = to_offset(freq)
+        freq = _get_index_freq(data.index)
 
         if freq is None:
             freq = _get_ax_freq(ax)
@@ -315,7 +297,7 @@ def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
 # Patch methods for subplot.
 
 
-def _format_coord(freq, t, y) -> str:
+def _format_coord(freq: BaseOffset, t, y) -> str:
     time_period = Period(ordinal=int(t), freq=freq)
     return f"t = {time_period}  y = {y:8f}"
 
@@ -359,7 +341,7 @@ def format_dateaxis(
         subplot.format_coord = functools.partial(_format_coord, freq)
 
     elif isinstance(index, ABCTimedeltaIndex):
-        subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter())
+        subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter(index.unit))
     else:
         raise TypeError("index type not supported")
 

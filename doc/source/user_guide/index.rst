@@ -87,5 +87,6 @@ Guides
     enhancingperf
     scale
     sparse
+    migration-3-strings
     gotchas
     cookbook

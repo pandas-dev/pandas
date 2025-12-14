@@ -1,4 +1,4 @@
-"""Common IO api utilities"""
+"""Common I/O API utilities"""
 
 from __future__ import annotations
 
@@ -317,8 +317,6 @@ def _get_filepath_or_buffer(
                          or buffer
     {compression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     encoding : the encoding to use to decode bytes, default is 'utf-8'
     mode : str, optional
 
@@ -568,8 +566,6 @@ def infer_compression(
         File path or object.
     {compression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     Returns
     -------
     string or None
@@ -697,8 +693,6 @@ def get_handle(
 
            Passing compression options as keys in dict is
            supported for compression modes 'gzip', 'bz2', 'zstd' and 'zip'.
-
-        .. versionchanged:: 1.4.0 Zstandard support.
 
     memory_map : bool, default False
         See parsers._parser_params for more information. Only used by read_csv.
@@ -951,9 +945,7 @@ def get_handle(
     )
 
 
-# error: Definition of "__enter__" in base class "IOBase" is incompatible
-# with definition in base class "BinaryIO"
-class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
+class _BufferedWriter(BytesIO, ABC):
     """
     Some objects do not support multiple .write() calls (TarFile and ZipFile).
     This wrapper writes to the underlying buffer on close.
@@ -990,9 +982,12 @@ class _BytesTarFile(_BufferedWriter):
         super().__init__()
         self.archive_name = archive_name
         self.name = name
+        #  error: No overload variant of "open" of "TarFile" matches argument
+        # types "str | None", "str", "ReadBuffer[bytes] | WriteBuffer[bytes] | None",
+        # "dict[str, Any]"
         # error: Incompatible types in assignment (expression has type "TarFile",
-        # base class "_BufferedWriter" defined the type as "BytesIO")
-        self.buffer: tarfile.TarFile = tarfile.TarFile.open(  # type: ignore[assignment]
+        #  base class "_BufferedWriter" defined the type as "BytesIO")
+        self.buffer: tarfile.TarFile = tarfile.TarFile.open(  # type: ignore[call-overload, assignment]
             name=name,
             mode=self.extend_mode(mode),
             fileobj=fileobj,
@@ -1045,9 +1040,12 @@ class _BytesZipFile(_BufferedWriter):
         self.archive_name = archive_name
 
         kwargs.setdefault("compression", zipfile.ZIP_DEFLATED)
+        # error: No overload variant of "ZipFile" matches argument types
+        # "str | PathLike[str] | ReadBuffer[bytes] | WriteBuffer[bytes]",
+        # "str", "dict[str, Any]"
         # error: Incompatible types in assignment (expression has type "ZipFile",
         # base class "_BufferedWriter" defined the type as "BytesIO")
-        self.buffer: zipfile.ZipFile = zipfile.ZipFile(  # type: ignore[assignment]
+        self.buffer: zipfile.ZipFile = zipfile.ZipFile(  # type: ignore[call-overload, assignment]
             file, mode, **kwargs
         )
 

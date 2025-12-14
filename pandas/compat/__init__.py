@@ -16,18 +16,18 @@ import sys
 from typing import TYPE_CHECKING
 
 from pandas.compat._constants import (
+    CHAINED_WARNING_DISABLED,
     IS64,
     ISMUSL,
-    PY311,
     PY312,
+    PY314,
     PYPY,
     WASM,
 )
 from pandas.compat.numpy import is_numpy_dev
 from pandas.compat.pyarrow import (
     HAS_PYARROW,
-    pa_version_under12p1,
-    pa_version_under13p0,
+    PYARROW_MIN_VERSION,
     pa_version_under14p0,
     pa_version_under14p1,
     pa_version_under16p0,
@@ -35,6 +35,7 @@ from pandas.compat.pyarrow import (
     pa_version_under18p0,
     pa_version_under19p0,
     pa_version_under20p0,
+    pa_version_under21p0,
 )
 
 if TYPE_CHECKING:
@@ -151,16 +152,16 @@ def is_ci_environment() -> bool:
 
 
 __all__ = [
+    "CHAINED_WARNING_DISABLED",
     "HAS_PYARROW",
     "IS64",
     "ISMUSL",
-    "PY311",
     "PY312",
+    "PY314",
+    "PYARROW_MIN_VERSION",
     "PYPY",
     "WASM",
     "is_numpy_dev",
-    "pa_version_under12p1",
-    "pa_version_under13p0",
     "pa_version_under14p0",
     "pa_version_under14p1",
     "pa_version_under16p0",
@@ -168,4 +169,5 @@ __all__ = [
     "pa_version_under18p0",
     "pa_version_under19p0",
     "pa_version_under20p0",
+    "pa_version_under21p0",
 ]

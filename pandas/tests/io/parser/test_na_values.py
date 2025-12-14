@@ -499,13 +499,8 @@ def test_na_values_scalar(all_parsers, na_values, row_data):
     data = "1,2\n2,1"
 
     if parser.engine == "pyarrow" and isinstance(na_values, dict):
-        if isinstance(na_values, dict):
-            err = ValueError
-            msg = "The pyarrow engine doesn't support passing a dict for na_values"
-        else:
-            err = TypeError
-            msg = "The 'pyarrow' engine requires all na_values to be strings"
-        with pytest.raises(err, match=msg):
+        msg = "The pyarrow engine doesn't support passing a dict for na_values"
+        with pytest.raises(ValueError, match=msg):
             parser.read_csv(StringIO(data), names=names, na_values=na_values)
         return
     elif parser.engine == "pyarrow":
@@ -670,11 +665,16 @@ def test_inf_na_values_with_int_index(all_parsers):
     tm.assert_frame_equal(out, expected)
 
 
-@xfail_pyarrow  # mismatched shape
 @pytest.mark.parametrize("na_filter", [True, False])
-def test_na_values_with_dtype_str_and_na_filter(all_parsers, na_filter):
+def test_na_values_with_dtype_str_and_na_filter(
+    all_parsers, na_filter, using_infer_string, request
+):
     # see gh-20377
     parser = all_parsers
+    if parser.engine == "pyarrow" and (na_filter is False or not using_infer_string):
+        mark = pytest.mark.xfail(reason="mismatched shape")
+        request.applymarker(mark)
+
     data = "a,b,c\n1,,3\n4,5,6"
 
     # na_filter=True --> missing value becomes NaN.
@@ -798,7 +798,18 @@ NaN
 True
 False
 """
-    with pytest.raises(ValueError, match="convert|NoneType"):
+    msg = (
+        "cannot safely convert passed user dtype of int(64|32) for "
+        "<class 'numpy.bool_?'> dtyped data in column 0 due to NA values"
+    )
+    if parser.engine == "python":
+        msg = "Unable to convert column 0 to type int(64|32)"
+    elif parser.engine == "pyarrow":
+        msg = (
+            r"int\(\) argument must be a string, a bytes-like object or a "
+            "real number, not 'NoneType"
+        )
+    with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), dtype="int")
 
 

@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     Index,
@@ -36,7 +38,7 @@ def test_groupby_preserves_subclass(obj, groupby_func):
 
     args = get_groupby_method_args(groupby_func, obj)
 
-    warn = FutureWarning if groupby_func == "corrwith" else None
+    warn = Pandas4Warning if groupby_func == "corrwith" else None
     msg = f"{type(grouped).__name__}.corrwith is deprecated"
     with tm.assert_produces_warning(warn, match=msg):
         result1 = getattr(grouped, groupby_func)(*args)
@@ -94,6 +96,35 @@ def test_groupby_preserves_metadata():
     tm.assert_series_equal(result, expected)
     result = custom_series.groupby(custom_df["c"]).agg(func2)
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_apply_preserves_metadata():
+    # GH#62134 - Test that apply() preserves metadata when returning DataFrames/Series
+    custom_df = tm.SubclassedDataFrame({"a": [1, 2, 3], "b": [1, 1, 2], "c": [7, 8, 9]})
+    custom_df.testattr = "hello"
+
+    def sum_func(group):
+        assert isinstance(group, tm.SubclassedDataFrame)
+        assert hasattr(group, "testattr")
+        assert group.testattr == "hello"
+        return group.sum()
+
+    result = custom_df.groupby("c").apply(sum_func)
+    assert hasattr(result, "testattr"), "DataFrame apply() should preserve metadata"
+    assert result.testattr == "hello"
+
+    custom_series = tm.SubclassedSeries([1, 2, 3])
+    custom_series.testattr = "hello"
+
+    def sum_series_func(group):
+        assert isinstance(group, tm.SubclassedSeries)
+        assert hasattr(group, "testattr")
+        assert group.testattr == "hello"
+        return group.sum()
+
+    result = custom_series.groupby(custom_df["c"]).apply(sum_series_func)
+    assert hasattr(result, "testattr"), "Series apply() should preserve metadata"
+    assert result.testattr == "hello"
 
 
 @pytest.mark.parametrize("obj", [DataFrame, tm.SubclassedDataFrame])

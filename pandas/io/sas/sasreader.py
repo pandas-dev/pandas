@@ -11,10 +11,14 @@ from abc import (
 from collections.abc import Iterator
 from typing import (
     TYPE_CHECKING,
+    Self,
     overload,
 )
 
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 
 from pandas.core.shared_docs import _shared_docs
 
@@ -28,12 +32,12 @@ if TYPE_CHECKING:
         CompressionOptions,
         FilePath,
         ReadBuffer,
-        Self,
     )
 
     from pandas import DataFrame
 
 
+@set_module("pandas.api.typing")
 class SASReader(Iterator["DataFrame"], ABC):
     """
     Abstract class for XportReader and SAS7BDATReader.
@@ -83,6 +87,7 @@ def read_sas(
 ) -> DataFrame | SASReader: ...
 
 
+@set_module("pandas")
 @doc(decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer")
 def read_sas(
     filepath_or_buffer: FilePath | ReadBuffer[bytes],

@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -104,8 +105,12 @@ class TestDataFrameReshape:
         )
         tm.assert_frame_equal(result, expected)
 
-        # From a series with incorrect data type for fill_value
-        result = data.unstack(fill_value=0.5)
+        msg = (
+            "Using a fill_value that cannot be held in the existing dtype is deprecated"
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            # From a series with incorrect data type for fill_value
+            result = data.unstack(fill_value=0.5)
         expected = DataFrame(
             {"a": [1, 0.5, 5], "b": [2, 4, 0.5]}, index=["x", "y", "z"], dtype=float
         )
@@ -160,8 +165,12 @@ class TestDataFrameReshape:
         expected["B"] = expected["B"].astype(np.float64)
         tm.assert_frame_equal(result, expected)
 
-        # From a dataframe with incorrect data type for fill_value
-        result = df.unstack(fill_value=0.5)
+        msg = (
+            "Using a fill_value that cannot be held in the existing dtype is deprecated"
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            # From a dataframe with incorrect data type for fill_value
+            result = df.unstack(fill_value=0.5)
 
         rows = [[1, 3, 2, 4], [0.5, 5, 0.5, 6], [7, 0.5, 8, 0.5]]
         expected = DataFrame(rows, index=list("xyz"), dtype=float)
@@ -255,8 +264,8 @@ class TestDataFrameReshape:
         result = data.unstack()
         expected = DataFrame(
             {
-                "a": pd.Categorical(list("axa"), categories=list("abc")),
-                "b": pd.Categorical(list("bcx"), categories=list("abc")),
+                "a": pd.Categorical(["a", None, "a"], categories=list("abc")),
+                "b": pd.Categorical(["b", "c", None], categories=list("abc")),
             },
             index=list("xyz"),
         )
@@ -1066,7 +1075,7 @@ class TestDataFrameReshape:
         # GH 8039
         t = datetime(2014, 1, 1)
         df = DataFrame([1, 2, 3, 4], columns=MultiIndex.from_tuples([(t, "A", "B")]))
-        warn = None if future_stack else FutureWarning
+        warn = None if future_stack else Pandas4Warning
         msg = "The previous implementation of stack is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
             result = df.stack(future_stack=future_stack)
@@ -1348,8 +1357,10 @@ def test_unstack_sort_false(frame_or_series, dtype):
         )
     else:
         expected_columns = ["b", "a"]
+
+    item = pd.NA if dtype == "Float64" else np.nan
     expected = DataFrame(
-        [[1.0, np.nan], [np.nan, 2.0], [3.0, np.nan], [np.nan, 4.0]],
+        [[1.0, item], [item, 2.0], [3.0, item], [item, 4.0]],
         columns=expected_columns,
         index=MultiIndex.from_tuples(
             [("two", "z"), ("two", "y"), ("one", "z"), ("one", "y")]
@@ -1371,6 +1382,43 @@ def test_unstack_sort_false(frame_or_series, dtype):
         index=["two", "one"],
         columns=expected_columns,
         dtype=dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "levels2, expected_columns",
+    [
+        (
+            [None, 1, 2, 3],
+            [("value", np.nan), ("value", 1), ("value", 2), ("value", 3)],
+        ),
+        (
+            [1, None, 2, 3],
+            [("value", 1), ("value", np.nan), ("value", 2), ("value", 3)],
+        ),
+        (
+            [1, 2, None, 3],
+            [("value", 1), ("value", 2), ("value", np.nan), ("value", 3)],
+        ),
+        (
+            [1, 2, 3, None],
+            [("value", 1), ("value", 2), ("value", 3), ("value", np.nan)],
+        ),
+    ],
+    ids=["nan=first", "nan=second", "nan=third", "nan=last"],
+)
+def test_unstack_sort_false_nan(levels2, expected_columns):
+    # GH#61221
+    levels1 = ["b", "a"]
+    index = MultiIndex.from_product([levels1, levels2], names=["level1", "level2"])
+    df = DataFrame({"value": [0, 1, 2, 3, 4, 5, 6, 7]}, index=index)
+    result = df.unstack(level="level2", sort=False)
+    expected_data = [[0, 4], [1, 5], [2, 6], [3, 7]]
+    expected = DataFrame(
+        dict(zip(expected_columns, expected_data)),
+        index=Index(["b", "a"], name="level1"),
+        columns=MultiIndex.from_tuples(expected_columns, names=[None, "level2"]),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2227,7 +2275,7 @@ class TestStackUnstackMultiLevel:
         tm.assert_frame_equal(recons, df)
 
     @pytest.mark.slow
-    def test_unstack_number_of_levels_larger_than_int32(
+    def test_unstack_number_of_levels_larger_than_int32_warns(
         self, performance_warning, monkeypatch
     ):
         # GH#20601
@@ -2238,6 +2286,9 @@ class TestStackUnstackMultiLevel:
                 # __init__ will raise the warning
                 super().__init__(*args, **kwargs)
                 raise Exception("Don't compute final result.")
+
+            def _make_selectors(self) -> None:
+                pass
 
         with monkeypatch.context() as m:
             m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
