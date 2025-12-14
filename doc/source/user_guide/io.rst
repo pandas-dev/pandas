@@ -193,6 +193,9 @@ skiprows : list-like or integer, default ``None``
 
   .. ipython:: python
 
+     import pandas as pd
+     from io import StringIO
+
      data = "col1,col2,col3\na,b,1\na,b,2\nc,d,3"
      pd.read_csv(StringIO(data))
      pd.read_csv(StringIO(data), skiprows=lambda x: x % 2 != 0)
@@ -2761,7 +2764,8 @@ Read an XML string:
 .. ipython:: python
 
     from io import StringIO
-   xml = """<?xml version="1.0" encoding="UTF-8"?>
+
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
    <bookstore>
      <book category="cooking">
        <title lang="en">Everyday Italian</title>
