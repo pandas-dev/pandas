@@ -264,3 +264,13 @@ class TestIndexSetOps:
         result = getattr(idx1, diff_type)(idx2)
         expected = Index(expected)
         tm.assert_index_equal(result, expected)
+    def test_intersection_returns_new_instance(self):
+        idx1 = Index([0, 1])
+        idx2 = Index([0, 1])
+        result = idx1.intersection(idx2)
+
+        # Should be equal but NOT the same reference
+        tm.assert_index_equal(result, idx1)
+        print(idx1)
+        assert result is not idx1
+
