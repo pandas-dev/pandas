@@ -1000,7 +1000,7 @@ class IndexOpsMixin(OpsMixin):
                 Prior to 3.0.0, the sort was unstable.
 
             .. versionchanged:: 2.2.0
-                The default sort kind 'quicksort' is now stable and deterministic,
+                The default sort kind 'quicksort' is deterministic,
                 i.e. it produces the same result for the same input on each run.
 
         ascending : bool, default False

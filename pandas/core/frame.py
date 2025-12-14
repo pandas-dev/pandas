@@ -7340,7 +7340,7 @@ class DataFrame(NDFrame, OpsMixin):
 
              .. versionchanged:: 2.2.0
 
-                 The default sort kind 'quicksort' is now stable and deterministic,
+                 The default sort kind 'quicksort' is deterministic,
                  i.e. it produces the same result for the same input on each run.
         na_position : {'first', 'last'}, default 'last'
              Puts NaNs at the beginning if `first`; `last` puts NaNs at the
@@ -7665,7 +7665,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionchanged:: 2.2.0
 
-                The default sort kind 'quicksort' is now stable and deterministic,
+                The default sort kind 'quicksort' is deterministic,
                 i.e. it produces the same result for the same input on each run.
         na_position : {'first', 'last'}, default 'last'
             Puts NaNs at the beginning if `first`; `last` puts NaNs at the end.

@@ -3496,9 +3496,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             information. 'mergesort' and 'stable' are the only stable  algorithms.
 
             .. versionchanged:: 2.2.0
-
-                The default sort kind 'quicksort' is now stable and deterministic,
+                The default sort kind 'quicksort' is deterministic,
                 i.e. it produces the same result for the same input on each run.
+
         na_position : {'first' or 'last'}, default 'last'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
@@ -3748,7 +3748,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
             .. versionchanged:: 2.2.0
 
-                The default sort kind 'quicksort' is now stable and deterministic,
+                The default sort kind 'quicksort' is deterministic,
                 i.e. it produces the same result for the same input on each run.
         na_position : {'first', 'last'}, default 'last'
             If 'first' puts NaNs at the beginning, 'last' puts NaNs at the end.
