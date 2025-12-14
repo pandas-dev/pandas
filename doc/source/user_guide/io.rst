@@ -192,6 +192,7 @@ skiprows : list-like or integer, default ``None``
   indices, returning True if the row should be skipped and False otherwise:
 
   .. ipython:: python
+     :okwarning:
 
      import pandas as pd
      from io import StringIO
