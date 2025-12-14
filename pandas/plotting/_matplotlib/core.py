@@ -173,6 +173,7 @@ class MPLPlot(ABC):
         stacked: bool = False,
         label: Hashable | None = None,
         style=None,
+        legend_loc: str | tuple[float, float] = "best",
         **kwds,
     ) -> None:
         # if users assign an empty list or tuple, raise `ValueError`
@@ -241,6 +242,7 @@ class MPLPlot(ABC):
         self.legend = legend
         self.legend_handles: list[Artist] = []
         self.legend_labels: list[Hashable] = []
+        self.legend_loc = legend_loc
 
         self.logx = type(self)._validate_log_kwd("logx", logx)
         self.logy = type(self)._validate_log_kwd("logy", logy)
@@ -909,7 +911,7 @@ class MPLPlot(ABC):
                     title = self.legend_title
 
             if len(handles) > 0:
-                ax.legend(handles, labels, loc="best", title=title)
+                ax.legend(handles, labels, loc=self.legend_loc, title=title)
 
         elif self.subplots and self.legend:
             for ax in self.axes:
@@ -920,7 +922,7 @@ class MPLPlot(ABC):
                             "No artists with labels found to put in legend.",
                             UserWarning,
                         )
-                        ax.legend(loc="best")
+                        ax.legend(loc=self.legend_loc)
 
     @final
     @staticmethod
