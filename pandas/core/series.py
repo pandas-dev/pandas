@@ -3,7 +3,7 @@ Data structure for 1-dimensional cross-sectional and time series data
 """
 
 from __future__ import annotations
-
+from pandas._libs import lib
 from collections.abc import (
     Callable,
     Hashable,
@@ -6777,14 +6777,24 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(other, Series):
             return self._binop(other, op, level=level, fill_value=fill_value)
         elif isinstance(other, (np.ndarray, list, tuple, ExtensionArray)):
+            if isinstance(other, np.ndarray) and other.ndim == 0:
+                scalar = lib.item_from_zerodim(other)
+                
+                if fill_value is not None:
+                    if isna(scalar):
+                        return op(self, fill_value)
+                    self = self.fillna(fill_value)
+                
+                return op(self, scalar)
+            
             if len(other) != len(self):
                 raise ValueError("Lengths must be equal")
             other = self._constructor(other, self.index, copy=False)
             result = self._binop(other, op, level=level, fill_value=fill_value)
             result._name = res_name
             return result
+        
         elif isinstance(other, ABCDataFrame):
-            # GH#46179
             raise TypeError(
                 f"Series.{op.__name__.strip('_')} does not support a DataFrame "
                 f"`other`. Use df.{op.__name__.strip('_')}(ser) instead."
@@ -6794,8 +6804,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 if isna(other):
                     return op(self, fill_value)
                 self = self.fillna(fill_value)
-
+            
             return op(self, other)
+
 
     def eq(
         self,
