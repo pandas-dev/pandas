@@ -6,6 +6,14 @@ What's new in 3.0.0 (Month XX, 2025)
 These are the changes in pandas 3.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
+.. note::
+
+    The pandas 3.0 release removed a lot of functionality that was deprecated
+    in previous releases (see :ref:`below <whatsnew_300.prior_deprecations>`
+    for an overview). It is recommended to first upgrade to pandas 2.3 and to
+    ensure your code is working without warnings, before upgrading to pandas
+    3.0.
+
 {{ header }}
 
 .. ---------------------------------------------------------------------------
