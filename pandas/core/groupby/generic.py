@@ -32,9 +32,6 @@ from pandas.errors import (
     SpecificationError,
 )
 from pandas.util._decorators import (
-    Appender,
-    Substitution,
-    doc,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -71,7 +68,6 @@ from pandas.core.groupby import base
 from pandas.core.groupby.groupby import (
     GroupBy,
     GroupByPlot,
-    _transform_template,
 )
 from pandas.core.indexes.api import (
     Index,
@@ -702,9 +698,149 @@ class SeriesGroupBy(GroupBy[Series]):
     """
     )
 
-    @Substitution(klass="Series", example=__examples_series_doc)
-    @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
+        """
+        Call ``func`` on self producing a Series with the same axis shape as self.
+
+        Parameters
+        ----------
+        func : function, str, list-like or dict-like
+            Function to use for transforming the data. If a function, must either
+            work when passed a Series or when passed to Series.apply. If func
+            is both list-like and dict-like, dict-like behavior takes precedence.
+
+            Accepted combinations are:
+
+            - function
+            - string function name
+            - list-like of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
+            - dict-like of axis labels -> functions, function names or list-like of such
+
+        axis : {0 or 'index'}
+            Unused. Parameter needed for compatibility with DataFrame.
+
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
+
+        Returns
+        -------
+        Series
+            A Series that must have the same length as self.
+
+        Raises
+        ------
+        ValueError : If the returned Series has a different length than self.
+
+        See Also
+        --------
+        Series.agg : Only perform aggregating type operations.
+        Series.apply : Invoke function on a Series.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+        for more details.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({{"A": range(3), "B": range(1, 4)}})
+        >>> df
+        A  B
+        0  0  1
+        1  1  2
+        2  2  3
+        >>> df.transform(lambda x: x + 1)
+        A  B
+        0  1  2
+        1  2  3
+        2  3  4
+
+        Even though the resulting Series must have the same length as the
+        input Series, it is possible to provide several input functions:
+
+        >>> s = pd.Series(range(3))
+        >>> s
+        0    0
+        1    1
+        2    2
+        dtype: int64
+        >>> s.transform([np.sqrt, np.exp])
+            sqrt        exp
+        0  0.000000   1.000000
+        1  1.000000   2.718282
+        2  1.414214   7.389056
+
+        You can call transform on a GroupBy object:
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "Date": [
+        ...                 "2015-05-08",
+        ...                 "2015-05-07",
+        ...                 "2015-05-06",
+        ...                 "2015-05-05",
+        ...                 "2015-05-08",
+        ...                 "2015-05-07",
+        ...                 "2015-05-06",
+        ...                 "2015-05-05",
+        ...             ],
+        ...             "Data": [5, 8, 6, 1, 50, 100, 60, 120],
+        ...         }
+        ...     }
+        ... )
+        >>> df
+                Date  Data
+        0  2015-05-08     5
+        1  2015-05-07     8
+        2  2015-05-06     6
+        3  2015-05-05     1
+        4  2015-05-08    50
+        5  2015-05-07   100
+        6  2015-05-06    60
+        7  2015-05-05   120
+        >>> df.groupby("Date")["Data"].transform("sum")
+        0     55
+        1    108
+        2     66
+        3    121
+        4     55
+        5    108
+        6     66
+        7    121
+        Name: Data, dtype: int64
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         {
+        ...             "c": [1, 1, 1, 2, 2, 2, 2],
+        ...             "type": ["m", "n", "o", "m", "m", "n", "n"],
+        ...         }
+        ...     }
+        ... )
+        >>> df
+        c type
+        0  1    m
+        1  1    n
+        2  1    o
+        3  2    m
+        4  2    m
+        5  2    n
+        6  2    n
+        >>> df["size"] = df.groupby("c")["type"].transform(len)
+        >>> df
+        c type size
+        0  1    m    3
+        1  1    n    3
+        2  1    o    3
+        3  2    m    4
+        4  2    m    4
+        5  2    n    4
+        6  2    n    4
+        """
         return self._transform(
             func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
@@ -899,8 +1035,246 @@ class SeriesGroupBy(GroupBy[Series]):
             result.index = default_index(len(result))
         return result
 
-    @doc(Series.describe)
     def describe(self, percentiles=None, include=None, exclude=None) -> Series:
+        """
+        Generate descriptive statistics.
+
+        Descriptive statistics include those that summarize the central
+        tendency, dispersion and shape of a
+        dataset's distribution, excluding ``NaN`` values.
+
+        Analyzes both numeric and object series, as well
+        as ``DataFrame`` column sets of mixed data types. The output
+        will vary depending on what is provided. Refer to the notes
+        below for more detail.
+
+        Parameters
+        ----------
+        percentiles : list-like of numbers, optional
+            The percentiles to include in the output. All should
+            fall between 0 and 1. The default, ``None``, will automatically
+            return the 25th, 50th, and 75th percentiles.
+        include : 'all', list-like of dtypes or None (default), optional
+            A white list of data types to include in the result. Ignored
+            for ``Series``. Here are the options:
+
+            - 'all' : All columns of the input will be included in the output.
+            - A list-like of dtypes : Limits the results to the
+              provided data types.
+              To limit the result to numeric types submit
+              ``numpy.number``. To limit it instead to object columns submit
+              the ``numpy.object`` data type. Strings
+              can also be used in the style of
+              ``select_dtypes`` (e.g. ``df.describe(include=['O'])``). To
+              select pandas categorical columns, use ``'category'``
+            - None (default) : The result will include all numeric columns.
+        exclude : list-like of dtypes or None (default), optional,
+            A black list of data types to omit from the result. Ignored
+            for ``Series``. Here are the options:
+
+            - A list-like of dtypes : Excludes the provided data types
+              from the result. To exclude numeric types submit
+              ``numpy.number``. To exclude object columns submit the data
+              type ``numpy.object``. Strings can also be used in the style of
+              ``select_dtypes`` (e.g. ``df.describe(exclude=['O'])``). To
+              exclude pandas categorical columns, use ``'category'``
+            - None (default) : The result will exclude nothing.
+
+        Returns
+        -------
+        Series or DataFrame
+            Summary statistics of the Series or Dataframe provided.
+
+        See Also
+        --------
+        DataFrame.count: Count number of non-NA/null observations.
+        DataFrame.max: Maximum of the values in the object.
+        DataFrame.min: Minimum of the values in the object.
+        DataFrame.mean: Mean of the values.
+        DataFrame.std: Standard deviation of the observations.
+        DataFrame.select_dtypes: Subset of a DataFrame including/excluding
+            columns based on their dtype.
+
+        Notes
+        -----
+        For numeric data, the result's index will include ``count``,
+        ``mean``, ``std``, ``min``, ``max`` as well as lower, ``50`` and
+        upper percentiles. By default the lower percentile is ``25`` and the
+        upper percentile is ``75``. The ``50`` percentile is the
+        same as the median.
+
+        For object data (e.g. strings), the result's index
+        will include ``count``, ``unique``, ``top``, and ``freq``. The ``top``
+        is the most common value. The ``freq`` is the most common value's
+        frequency.
+
+        If multiple object values have the highest count, then the
+        ``count`` and ``top`` results will be arbitrarily chosen from
+        among those with the highest count.
+
+        For mixed data types provided via a ``DataFrame``, the default is to
+        return only an analysis of numeric columns. If the DataFrame consists
+        only of object and categorical data without any numeric columns, the
+        default is to return an analysis of both the object and categorical
+        columns. If ``include='all'`` is provided as an option, the result
+        will include a union of attributes of each type.
+
+        The `include` and `exclude` parameters can be used to limit
+        which columns in a ``DataFrame`` are analyzed for the output.
+        The parameters are ignored when analyzing a ``Series``.
+
+        Examples
+        --------
+        Describing a numeric ``Series``.
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.describe()
+        count    3.0
+        mean     2.0
+        std      1.0
+        min      1.0
+        25%      1.5
+        50%      2.0
+        75%      2.5
+        max      3.0
+        dtype: float64
+
+        Describing a categorical ``Series``.
+
+        >>> s = pd.Series(["a", "a", "b", "c"])
+        >>> s.describe()
+        count     4
+        unique    3
+        top       a
+        freq      2
+        dtype: object
+
+        Describing a timestamp ``Series``.
+
+        >>> s = pd.Series(
+        ...     [
+        ...         np.datetime64("2000-01-01"),
+        ...         np.datetime64("2010-01-01"),
+        ...         np.datetime64("2010-01-01"),
+        ...     ]
+        ... )
+        >>> s.describe()
+        count                      3
+        mean     2006-09-01 08:00:00
+        min      2000-01-01 00:00:00
+        25%      2004-12-31 12:00:00
+        50%      2010-01-01 00:00:00
+        75%      2010-01-01 00:00:00
+        max      2010-01-01 00:00:00
+        dtype: object
+
+        Describing a ``DataFrame``. By default only numeric fields
+        are returned.
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "categorical": pd.Categorical(["d", "e", "f"]),
+        ...         "numeric": [1, 2, 3],
+        ...         "object": ["a", "b", "c"],
+        ...     }
+        ... )
+        >>> df.describe()
+               numeric
+        count      3.0
+        mean       2.0
+        std        1.0
+        min        1.0
+        25%        1.5
+        50%        2.0
+        75%        2.5
+        max        3.0
+
+        Describing all columns of a ``DataFrame`` regardless of data type.
+
+        >>> df.describe(include="all")  # doctest: +SKIP
+               categorical  numeric object
+        count            3      3.0      3
+        unique           3      NaN      3
+        top              f      NaN      a
+        freq             1      NaN      1
+        mean           NaN      2.0    NaN
+        std            NaN      1.0    NaN
+        min            NaN      1.0    NaN
+        25%            NaN      1.5    NaN
+        50%            NaN      2.0    NaN
+        75%            NaN      2.5    NaN
+        max            NaN      3.0    NaN
+
+        Describing a column from a ``DataFrame`` by accessing it as
+        an attribute.
+
+        >>> df.numeric.describe()
+        count    3.0
+        mean     2.0
+        std      1.0
+        min      1.0
+        25%      1.5
+        50%      2.0
+        75%      2.5
+        max      3.0
+        Name: numeric, dtype: float64
+
+        Including only numeric columns in a ``DataFrame`` description.
+
+        >>> df.describe(include=[np.number])
+               numeric
+        count      3.0
+        mean       2.0
+        std        1.0
+        min        1.0
+        25%        1.5
+        50%        2.0
+        75%        2.5
+        max        3.0
+
+        Including only string columns in a ``DataFrame`` description.
+
+        >>> df.describe(include=[object])  # doctest: +SKIP
+               object
+        count       3
+        unique      3
+        top         a
+        freq        1
+
+        Including only categorical columns from a ``DataFrame`` description.
+
+        >>> df.describe(include=["category"])
+               categorical
+        count            3
+        unique           3
+        top              d
+        freq             1
+
+        Excluding numeric columns from a ``DataFrame`` description.
+
+        >>> df.describe(exclude=[np.number])  # doctest: +SKIP
+               categorical object
+        count            3      3
+        unique           3      3
+        top              f      a
+        freq             1      1
+
+        Excluding object columns from a ``DataFrame`` description.
+
+        >>> df.describe(exclude=[object])  # doctest: +SKIP
+               categorical  numeric
+        count            3      3.0
+        unique           3      NaN
+        top              f      NaN
+        freq             1      NaN
+        mean           NaN      2.0
+        std            NaN      1.0
+        min            NaN      1.0
+        25%            NaN      1.5
+        50%            NaN      2.0
+        75%            NaN      2.5
+        max            NaN      3.0
+        """
         return super().describe(
             percentiles=percentiles, include=include, exclude=exclude
         )
@@ -1385,15 +1759,333 @@ class SeriesGroupBy(GroupBy[Series]):
         )
 
     @property
-    @doc(Series.plot.__doc__)
     def plot(self) -> GroupByPlot:
+        """
+        Make plots of Series or DataFrame.
+
+        Uses the backend specified by the
+        option ``plotting.backend``. By default, matplotlib is used.
+
+        Parameters
+        ----------
+        data : Series or DataFrame
+            The object for which the method is called.
+
+        Attributes
+        ----------
+        x : label or position, default None
+            Only used if data is a DataFrame.
+        y : label, position or list of label, positions, default None
+            Allows plotting of one column versus another. Only used if data is a
+            DataFrame.
+        kind : str
+            The kind of plot to produce:
+
+            - 'line' : line plot (default)
+            - 'bar' : vertical bar plot
+            - 'barh' : horizontal bar plot
+            - 'hist' : histogram
+            - 'box' : boxplot
+            - 'kde' : Kernel Density Estimation plot
+            - 'density' : same as 'kde'
+            - 'area' : area plot
+            - 'pie' : pie plot
+            - 'scatter' : scatter plot (DataFrame only)
+            - 'hexbin' : hexbin plot (DataFrame only)
+        ax : matplotlib axes object, default None
+            An axes of the current figure.
+        subplots : bool or sequence of iterables, default False
+            Whether to group columns into subplots:
+
+            - ``False`` : No subplots will be used
+            - ``True`` : Make separate subplots for each column.
+            - sequence of iterables of column labels: Create a subplot for each
+            group of columns. For example `[('a', 'c'), ('b', 'd')]` will
+            create 2 subplots: one with columns 'a' and 'c', and one
+            with columns 'b' and 'd'. Remaining columns that aren't specified
+            will be plotted in additional subplots (one per column).
+
+        sharex : bool, default True if ax is None else False
+            In case ``subplots=True``, share x axis and set some x axis labels
+            to invisible; defaults to True if ax is None otherwise False if
+            an ax is passed in; Be aware, that passing in both an ax and
+            ``sharex=True`` will alter all x axis labels for all axis in a figure.
+        sharey : bool, default False
+            In case ``subplots=True``,
+            share y axis and set some y axis labels to invisible.
+        layout : tuple, optional
+            (rows, columns) for the layout of subplots.
+        figsize : a tuple (width, height) in inches
+            Size of a figure object.
+        use_index : bool, default True
+            Use index as ticks for x axis.
+        title : str or list
+            Title to use for the plot. If a string is passed, print the string
+            at the top of the figure. If a list is passed and `subplots` is
+            True, print each item in the list above the corresponding subplot.
+        grid : bool, default None (matlab style default)
+            Axis grid lines.
+        legend : bool or {'reverse'}
+            Place legend on axis subplots.
+        style : list or dict
+            The matplotlib line style per column.
+        logx : bool or 'sym', default False
+            Use log scaling or symlog scaling on x axis.
+
+        logy : bool or 'sym' default False
+            Use log scaling or symlog scaling on y axis.
+
+        loglog : bool or 'sym', default False
+            Use log scaling or symlog scaling on both x and y axes.
+
+        xticks : sequence
+            Values to use for the xticks.
+        yticks : sequence
+            Values to use for the yticks.
+        xlim : 2-tuple/list
+            Set the x limits of the current axes.
+        ylim : 2-tuple/list
+            Set the y limits of the current axes.
+        xlabel : label, optional
+            Name to use for the xlabel on x-axis.
+            Default uses index name as xlabel, or the
+            x-column name for planar plots.
+
+            .. versionchanged:: 2.0.0
+
+                Now applicable to histograms.
+
+        ylabel : label, optional
+            Name to use for the ylabel on y-axis. Default will show no ylabel, or the
+            y-column name for planar plots.
+
+            .. versionchanged:: 2.0.0
+
+                Now applicable to histograms.
+
+        rot : float, default None
+            Rotation for ticks (xticks for vertical, yticks for horizontal
+            plots).
+        fontsize : float, default None
+            Font size for xticks and yticks.
+        colormap : str or matplotlib colormap object, default None
+            Colormap to select colors from. If string, load colormap with that
+            name from matplotlib.
+        colorbar : bool, optional
+            If True, plot colorbar (only relevant for 'scatter' and 'hexbin'
+            plots).
+        position : float
+            Specify relative alignments for bar plot layout.
+            From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
+            (center).
+        table : bool, Series or DataFrame, default False
+            If True, draw a table using the data in the DataFrame and the data
+            will be transposed to meet matplotlib's default layout.
+            If a Series or DataFrame is passed, use passed data to draw a
+            table.
+        yerr : DataFrame, Series, array-like, dict and str
+            See :ref:`Plotting with Error Bars <visualization.errorbars>` for
+            detail.
+        xerr : DataFrame, Series, array-like, dict and str
+            Equivalent to yerr.
+        stacked : bool, default False in line and bar plots, and True in area plot
+            If True, create stacked plot.
+        secondary_y : bool or sequence, default False
+            Whether to plot on the secondary y-axis if a list/tuple, which
+            columns to plot on secondary y-axis.
+        mark_right : bool, default True
+            When using a secondary_y axis, automatically mark the column
+            labels with "(right)" in the legend.
+        include_bool : bool, default is False
+            If True, boolean values can be plotted.
+        backend : str, default None
+            Backend to use instead of the backend specified in the option
+            ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
+            specify the ``plotting.backend`` for the whole session, set
+            ``pd.options.plotting.backend``.
+        **kwargs
+            Options to pass to matplotlib plotting method.
+
+        Returns
+        -------
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+            If the backend is not the default matplotlib one, the return value
+            will be the object returned by the backend.
+
+        See Also
+        --------
+        matplotlib.pyplot.plot : Plot y versus x as lines and/or markers.
+        DataFrame.hist : Make a histogram.
+        DataFrame.boxplot : Make a box plot.
+        DataFrame.plot.scatter : Make a scatter plot with varying marker
+            point size and color.
+        DataFrame.plot.hexbin : Make a hexagonal binning plot of
+            two variables.
+        DataFrame.plot.kde : Make Kernel Density Estimate plot using
+            Gaussian kernels.
+        DataFrame.plot.area : Make a stacked area plot.
+        DataFrame.plot.bar : Make a bar plot.
+        DataFrame.plot.barh : Make a horizontal bar plot.
+
+        Notes
+        -----
+        - See matplotlib documentation online for more on this subject
+        - If `kind` = 'bar' or 'barh', you can specify relative alignments
+        for bar plot layout by `position` keyword.
+        From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
+        (center)
+
+        Examples
+        --------
+        For Series:
+
+        .. plot::
+            :context: close-figs
+
+            >>> ser = pd.Series([1, 2, 3, 3])
+            >>> plot = ser.plot(kind="hist", title="My plot")
+
+        For DataFrame:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame(
+            ...     {
+            ...         "length": [1.5, 0.5, 1.2, 0.9, 3],
+            ...         "width": [0.7, 0.2, 0.15, 0.2, 1.1],
+            ...     },
+            ...     index=["pig", "rabbit", "duck", "chicken", "horse"],
+            ... )
+            >>> plot = df.plot(title="DataFrame Plot")
+
+        For SeriesGroupBy:
+
+        .. plot::
+            :context: close-figs
+
+            >>> lst = [-1, -2, -3, 1, 2, 3]
+            >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+            >>> plot = ser.groupby(lambda x: x > 0).plot(title="SeriesGroupBy Plot")
+
+        For DataFrameGroupBy:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({"col1": [1, 2, 3, 4], "col2": ["A", "B", "A", "B"]})
+            >>> plot = df.groupby("col2").plot(
+            ...     kind="bar", title="DataFrameGroupBy Plot"
+            ... )
+        """
         result = GroupByPlot(self)
         return result
 
-    @doc(Series.nlargest.__doc__)
     def nlargest(
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
+        """
+        Return the largest `n` elements.
+
+        Parameters
+        ----------
+        n : int, default 5
+            Return this many descending sorted values.
+        keep : {'first', 'last', 'all'}, default 'first'
+            When there are duplicate values that cannot all fit in a
+            Series of `n` elements:
+
+            - ``first`` : return the first `n` occurrences in order
+              of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+              order of appearance.
+            - ``all`` : keep all occurrences. This can result in a Series of
+              size larger than `n`.
+
+        Returns
+        -------
+        Series
+            The `n` largest values in the Series, sorted in decreasing order.
+
+        See Also
+        --------
+        Series.nsmallest: Get the `n` smallest elements.
+        Series.sort_values: Sort Series by values.
+        Series.head: Return the first `n` rows.
+
+        Notes
+        -----
+        Faster than ``.sort_values(ascending=False).head(n)`` for small `n`
+        relative to the size of the ``Series`` object.
+
+        Examples
+        --------
+        >>> countries_population = {
+        ...     "Italy": 59000000,
+        ...     "France": 65000000,
+        ...     "Malta": 434000,
+        ...     "Maldives": 434000,
+        ...     "Brunei": 434000,
+        ...     "Iceland": 337000,
+        ...     "Nauru": 11300,
+        ...     "Tuvalu": 11300,
+        ...     "Anguilla": 11300,
+        ...     "Montserrat": 5200,
+        ... }
+        >>> s = pd.Series(countries_population)
+        >>> s
+        Italy       59000000
+        France      65000000
+        Malta         434000
+        Maldives      434000
+        Brunei        434000
+        Iceland       337000
+        Nauru          11300
+        Tuvalu         11300
+        Anguilla       11300
+        Montserrat      5200
+        dtype: int64
+
+        The `n` largest elements where ``n=5`` by default.
+
+        >>> s.nlargest()
+        France      65000000
+        Italy       59000000
+        Malta         434000
+        Maldives      434000
+        Brunei        434000
+        dtype: int64
+
+        The `n` largest elements where ``n=3``. Default `keep` value is 'first'
+        so Malta will be kept.
+
+        >>> s.nlargest(3)
+        France    65000000
+        Italy     59000000
+        Malta       434000
+        dtype: int64
+
+        The `n` largest elements where ``n=3`` and keeping the last duplicates.
+        Brunei will be kept since it is the last with value 434000 based on
+        the index order.
+
+        >>> s.nlargest(3, keep="last")
+        France      65000000
+        Italy       59000000
+        Brunei        434000
+        dtype: int64
+
+        The `n` largest elements where ``n=3`` with all duplicates kept. Note
+        that the returned Series has five elements due to the three duplicates.
+
+        >>> s.nlargest(3, keep="all")
+        France      65000000
+        Italy       59000000
+        Malta         434000
+        Maldives      434000
+        Brunei        434000
+        dtype: int64
+        """
         f = partial(Series.nlargest, n=n, keep=keep)
         data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
@@ -1401,10 +2093,110 @@ class SeriesGroupBy(GroupBy[Series]):
         result = self._python_apply_general(f, data, not_indexed_same=True)
         return result
 
-    @doc(Series.nsmallest.__doc__)
     def nsmallest(
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
+        """
+        Return the smallest `n` elements.
+
+        Parameters
+        ----------
+        n : int, default 5
+            Return this many ascending sorted values.
+        keep : {'first', 'last', 'all'}, default 'first'
+            When there are duplicate values that cannot all fit in a
+            Series of `n` elements:
+
+            - ``first`` : return the first `n` occurrences in order
+              of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+              order of appearance.
+            - ``all`` : keep all occurrences. This can result in a Series of
+              size larger than `n`.
+
+        Returns
+        -------
+        Series
+            The `n` smallest values in the Series, sorted in increasing order.
+
+        See Also
+        --------
+        Series.nlargest: Get the `n` largest elements.
+        Series.sort_values: Sort Series by values.
+        Series.head: Return the first `n` rows.
+
+        Notes
+        -----
+        Faster than ``.sort_values().head(n)`` for small `n` relative to
+        the size of the ``Series`` object.
+
+        Examples
+        --------
+        >>> countries_population = {
+        ...     "Italy": 59000000,
+        ...     "France": 65000000,
+        ...     "Brunei": 434000,
+        ...     "Malta": 434000,
+        ...     "Maldives": 434000,
+        ...     "Iceland": 337000,
+        ...     "Nauru": 11300,
+        ...     "Tuvalu": 11300,
+        ...     "Anguilla": 11300,
+        ...     "Montserrat": 5200,
+        ... }
+        >>> s = pd.Series(countries_population)
+        >>> s
+        Italy       59000000
+        France      65000000
+        Brunei        434000
+        Malta         434000
+        Maldives      434000
+        Iceland       337000
+        Nauru          11300
+        Tuvalu         11300
+        Anguilla       11300
+        Montserrat      5200
+        dtype: int64
+
+        The `n` smallest elements where ``n=5`` by default.
+
+        >>> s.nsmallest()
+        Montserrat    5200
+        Nauru        11300
+        Tuvalu       11300
+        Anguilla     11300
+        Iceland     337000
+        dtype: int64
+
+        The `n` smallest elements where ``n=3``. Default `keep` value is
+        'first' so Nauru and Tuvalu will be kept.
+
+        >>> s.nsmallest(3)
+        Montserrat   5200
+        Nauru       11300
+        Tuvalu      11300
+        dtype: int64
+
+        The `n` smallest elements where ``n=3`` and keeping the last
+        duplicates. Anguilla and Tuvalu will be kept since they are the last
+        with value 11300 based on the index order.
+
+        >>> s.nsmallest(3, keep="last")
+        Montserrat   5200
+        Anguilla    11300
+        Tuvalu      11300
+        dtype: int64
+
+        The `n` smallest elements where ``n=3`` with all duplicates kept. Note
+        that the returned Series has four elements due to the three duplicates.
+
+        >>> s.nsmallest(3, keep="all")
+        Montserrat   5200
+        Nauru       11300
+        Tuvalu      11300
+        Anguilla    11300
+        dtype: int64
+        """
         f = partial(Series.nsmallest, n=n, keep=keep)
         data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
@@ -2423,9 +3215,145 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     """
     )
 
-    @Substitution(klass="DataFrame", example=__examples_dataframe_doc)
-    @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
+        """
+        Call ``func`` on self producing a DataFrame with the same axis shape as self.
+
+        Parameters
+        ----------
+        func : function, str, list-like or dict-like
+            Function to use for transforming the data. If a function, must either
+            work when passed a DataFrame or when passed to DataFrame.apply. If func
+            is both list-like and dict-like, dict-like behavior takes precedence.
+
+            Accepted combinations are:
+
+            - function
+            - string function name
+            - list-like of functions and/or function names, e.g. ``[np.exp, 'sqrt']``
+            - dict-like of axis labels -> functions,
+              function names or list-like of such.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+                If 0 or 'index': apply function to each column.
+                If 1 or 'columns': apply function to each row.
+        *args
+            Positional arguments to pass to `func`.
+        **kwargs
+            Keyword arguments to pass to `func`.
+
+        Returns
+        -------
+        DataFrame
+            A DataFrame that must have the same length as self.
+
+        Raises
+        ------
+        ValueError : If the returned DataFrame has a different length than self.
+
+        See Also
+        --------
+        DataFrame.agg : Only perform aggregating type operations.
+        DataFrame.apply : Invoke function on a DataFrame.
+
+        Notes
+        -----
+        Functions that mutate the passed object can produce unexpected
+        behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+        for more details.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": range(3), "B": range(1, 4)})
+        >>> df
+           A  B
+        0  0  1
+        1  1  2
+        2  2  3
+        >>> df.transform(lambda x: x + 1)
+           A  B
+        0  1  2
+        1  2  3
+        2  3  4
+
+        Even though the resulting DataFrame must have the same length as the
+        input DataFrame, it is possible to provide several input functions:
+
+        >>> s = pd.Series(range(3))
+        >>> s
+        0    0
+        1    1
+        2    2
+        dtype: int64
+        >>> s.transform([np.sqrt, np.exp])
+               sqrt        exp
+        0  0.000000   1.000000
+        1  1.000000   2.718282
+        2  1.414214   7.389056
+
+        You can call transform on a GroupBy object:
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "Date": [
+        ...             "2015-05-08",
+        ...             "2015-05-07",
+        ...             "2015-05-06",
+        ...             "2015-05-05",
+        ...             "2015-05-08",
+        ...             "2015-05-07",
+        ...             "2015-05-06",
+        ...             "2015-05-05",
+        ...         ],
+        ...         "Data": [5, 8, 6, 1, 50, 100, 60, 120],
+        ...     }
+        ... )
+        >>> df
+                 Date  Data
+        0  2015-05-08     5
+        1  2015-05-07     8
+        2  2015-05-06     6
+        3  2015-05-05     1
+        4  2015-05-08    50
+        5  2015-05-07   100
+        6  2015-05-06    60
+        7  2015-05-05   120
+        >>> df.groupby("Date")["Data"].transform("sum")
+        0     55
+        1    108
+        2     66
+        3    121
+        4     55
+        5    108
+        6     66
+        7    121
+        Name: Data, dtype: int64
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "c": [1, 1, 1, 2, 2, 2, 2],
+        ...         "type": ["m", "n", "o", "m", "m", "n", "n"],
+        ...     }
+        ... )
+        >>> df
+           c type
+        0  1    m
+        1  1    n
+        2  1    o
+        3  2    m
+        4  2    m
+        5  2    n
+        6  2    n
+        >>> df["size"] = df.groupby("c")["type"].transform(len)
+        >>> df
+           c type size
+        0  1    m    3
+        1  1    n    3
+        2  1    o    3
+        3  2    m    4
+        4  2    m    4
+        5  2    n    4
+        6  2    n    4
+        """
         return self._transform(
             func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
@@ -3256,30 +4184,417 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         )
 
     @property
-    @doc(DataFrame.plot.__doc__)
     def plot(self) -> GroupByPlot:
+        """
+        Make plots of Series or DataFrame.
+
+        Uses the backend specified by the
+        option ``plotting.backend``. By default, matplotlib is used.
+
+        Parameters
+        ----------
+        data : Series or DataFrame
+            The object for which the method is called.
+
+        Attributes
+        ----------
+        x : label or position, default None
+            Only used if data is a DataFrame.
+        y : label, position or list of label, positions, default None
+            Allows plotting of one column versus another. Only used if data is a
+            DataFrame.
+        kind : str
+            The kind of plot to produce:
+
+            - 'line' : line plot (default)
+            - 'bar' : vertical bar plot
+            - 'barh' : horizontal bar plot
+            - 'hist' : histogram
+            - 'box' : boxplot
+            - 'kde' : Kernel Density Estimation plot
+            - 'density' : same as 'kde'
+            - 'area' : area plot
+            - 'pie' : pie plot
+            - 'scatter' : scatter plot (DataFrame only)
+            - 'hexbin' : hexbin plot (DataFrame only)
+        ax : matplotlib axes object, default None
+            An axes of the current figure.
+        subplots : bool or sequence of iterables, default False
+            Whether to group columns into subplots:
+
+            - ``False`` : No subplots will be used
+            - ``True`` : Make separate subplots for each column.
+            - sequence of iterables of column labels: Create a subplot for each
+            group of columns. For example `[('a', 'c'), ('b', 'd')]` will
+            create 2 subplots: one with columns 'a' and 'c', and one
+            with columns 'b' and 'd'. Remaining columns that aren't specified
+            will be plotted in additional subplots (one per column).
+
+        sharex : bool, default True if ax is None else False
+            In case ``subplots=True``, share x axis and set some x axis labels
+            to invisible; defaults to True if ax is None otherwise False if
+            an ax is passed in; Be aware, that passing in both an ax and
+            ``sharex=True`` will alter all x axis labels for all axis in a figure.
+        sharey : bool, default False
+            In case ``subplots=True``,
+            share y axis and set some y axis labels to invisible.
+        layout : tuple, optional
+            (rows, columns) for the layout of subplots.
+        figsize : a tuple (width, height) in inches
+            Size of a figure object.
+        use_index : bool, default True
+            Use index as ticks for x axis.
+        title : str or list
+            Title to use for the plot. If a string is passed, print the string
+            at the top of the figure. If a list is passed and `subplots` is
+            True, print each item in the list above the corresponding subplot.
+        grid : bool, default None (matlab style default)
+            Axis grid lines.
+        legend : bool or {'reverse'}
+            Place legend on axis subplots.
+        style : list or dict
+            The matplotlib line style per column.
+        logx : bool or 'sym', default False
+            Use log scaling or symlog scaling on x axis.
+
+        logy : bool or 'sym' default False
+            Use log scaling or symlog scaling on y axis.
+
+        loglog : bool or 'sym', default False
+            Use log scaling or symlog scaling on both x and y axes.
+
+        xticks : sequence
+            Values to use for the xticks.
+        yticks : sequence
+            Values to use for the yticks.
+        xlim : 2-tuple/list
+            Set the x limits of the current axes.
+        ylim : 2-tuple/list
+            Set the y limits of the current axes.
+        xlabel : label, optional
+            Name to use for the xlabel on x-axis.
+            Default uses index name as xlabel, or the
+            x-column name for planar plots.
+
+            .. versionchanged:: 2.0.0
+
+                Now applicable to histograms.
+
+        ylabel : label, optional
+            Name to use for the ylabel on y-axis. Default will show no ylabel, or the
+            y-column name for planar plots.
+
+            .. versionchanged:: 2.0.0
+
+                Now applicable to histograms.
+
+        rot : float, default None
+            Rotation for ticks (xticks for vertical, yticks for horizontal
+            plots).
+        fontsize : float, default None
+            Font size for xticks and yticks.
+        colormap : str or matplotlib colormap object, default None
+            Colormap to select colors from. If string, load colormap with that
+            name from matplotlib.
+        colorbar : bool, optional
+            If True, plot colorbar (only relevant for 'scatter' and 'hexbin'
+            plots).
+        position : float
+            Specify relative alignments for bar plot layout.
+            From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
+            (center).
+        table : bool, Series or DataFrame, default False
+            If True, draw a table using the data in the DataFrame and the data
+            will be transposed to meet matplotlib's default layout.
+            If a Series or DataFrame is passed, use passed data to draw a
+            table.
+        yerr : DataFrame, Series, array-like, dict and str
+            See :ref:`Plotting with Error Bars <visualization.errorbars>` for
+            detail.
+        xerr : DataFrame, Series, array-like, dict and str
+            Equivalent to yerr.
+        stacked : bool, default False in line and bar plots, and True in area plot
+            If True, create stacked plot.
+        secondary_y : bool or sequence, default False
+            Whether to plot on the secondary y-axis if a list/tuple, which
+            columns to plot on secondary y-axis.
+        mark_right : bool, default True
+            When using a secondary_y axis, automatically mark the column
+            labels with "(right)" in the legend.
+        include_bool : bool, default is False
+            If True, boolean values can be plotted.
+        backend : str, default None
+            Backend to use instead of the backend specified in the option
+            ``plotting.backend``. For instance, 'matplotlib'. Alternatively, to
+            specify the ``plotting.backend`` for the whole session, set
+            ``pd.options.plotting.backend``.
+        **kwargs
+            Options to pass to matplotlib plotting method.
+
+        Returns
+        -------
+        :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+            If the backend is not the default matplotlib one, the return value
+            will be the object returned by the backend.
+
+        See Also
+        --------
+        matplotlib.pyplot.plot : Plot y versus x as lines and/or markers.
+        DataFrame.hist : Make a histogram.
+        DataFrame.boxplot : Make a box plot.
+        DataFrame.plot.scatter : Make a scatter plot with varying marker
+            point size and color.
+        DataFrame.plot.hexbin : Make a hexagonal binning plot of
+            two variables.
+        DataFrame.plot.kde : Make Kernel Density Estimate plot using
+            Gaussian kernels.
+        DataFrame.plot.area : Make a stacked area plot.
+        DataFrame.plot.bar : Make a bar plot.
+        DataFrame.plot.barh : Make a horizontal bar plot.
+
+        Notes
+        -----
+        - See matplotlib documentation online for more on this subject
+        - If `kind` = 'bar' or 'barh', you can specify relative alignments
+        for bar plot layout by `position` keyword.
+        From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
+        (center)
+
+        Examples
+        --------
+        For Series:
+
+        .. plot::
+            :context: close-figs
+
+            >>> ser = pd.Series([1, 2, 3, 3])
+            >>> plot = ser.plot(kind="hist", title="My plot")
+
+        For DataFrame:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame(
+            ...     {
+            ...         "length": [1.5, 0.5, 1.2, 0.9, 3],
+            ...         "width": [0.7, 0.2, 0.15, 0.2, 1.1],
+            ...     },
+            ...     index=["pig", "rabbit", "duck", "chicken", "horse"],
+            ... )
+            >>> plot = df.plot(title="DataFrame Plot")
+
+        For SeriesGroupBy:
+
+        .. plot::
+            :context: close-figs
+
+            >>> lst = [-1, -2, -3, 1, 2, 3]
+            >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+            >>> plot = ser.groupby(lambda x: x > 0).plot(title="SeriesGroupBy Plot")
+
+        For DataFrameGroupBy:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({"col1": [1, 2, 3, 4], "col2": ["A", "B", "A", "B"]})
+            >>> plot = df.groupby("col2").plot(
+            ...     kind="bar", title="DataFrameGroupBy Plot"
+            ... )
+        """
         result = GroupByPlot(self)
         return result
 
-    @doc(DataFrame.corr.__doc__)
     def corr(
         self,
         method: str | Callable[[np.ndarray, np.ndarray], float] = "pearson",
         min_periods: int = 1,
         numeric_only: bool = False,
     ) -> DataFrame:
+        """
+        Compute pairwise correlation of columns, excluding NA/null values.
+
+        Parameters
+        ----------
+        method : {'pearson', 'kendall', 'spearman'} or callable
+            Method of correlation:
+
+            * pearson : standard correlation coefficient
+            * kendall : Kendall Tau correlation coefficient
+            * spearman : Spearman rank correlation
+            * callable: callable with input two 1d ndarrays
+                and returning a float. Note that the returned matrix from corr
+                will have 1 along the diagonals and will be symmetric
+                regardless of the callable's behavior.
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result. Currently only available for Pearson
+            and Spearman correlation.
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
+
+        Returns
+        -------
+        DataFrame
+            Correlation matrix.
+
+        See Also
+        --------
+        DataFrame.corrwith : Compute pairwise correlation with another
+            DataFrame or Series.
+        Series.corr : Compute the correlation between two Series.
+
+        Notes
+        -----
+        Pearson, Kendall and Spearman correlation are currently
+        computed using pairwise complete observations.
+
+        * `Pearson correlation coefficient <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
+        * `Kendall rank correlation coefficient <https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient>`_
+        * `Spearman's rank correlation coefficient <https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient>`_
+
+        Examples
+        --------
+        >>> def histogram_intersection(a, b):
+        ...     v = np.minimum(a, b).sum().round(decimals=1)
+        ...     return v
+        >>> df = pd.DataFrame(
+        ...     [(0.2, 0.3), (0.0, 0.6), (0.6, 0.0), (0.2, 0.1)],
+        ...     columns=["dogs", "cats"],
+        ... )
+        >>> df.corr(method=histogram_intersection)
+              dogs  cats
+        dogs   1.0   0.3
+        cats   0.3   1.0
+
+        >>> df = pd.DataFrame(
+        ...     [(1, 1), (2, np.nan), (np.nan, 3), (4, 4)], columns=["dogs", "cats"]
+        ... )
+        >>> df.corr(min_periods=3)
+              dogs  cats
+        dogs   1.0   NaN
+        cats   NaN   1.0
+        """
         result = self._op_via_apply(
             "corr", method=method, min_periods=min_periods, numeric_only=numeric_only
         )
         return result
 
-    @doc(DataFrame.cov.__doc__)
     def cov(
         self,
         min_periods: int | None = None,
         ddof: int | None = 1,
         numeric_only: bool = False,
     ) -> DataFrame:
+        """
+        Compute pairwise covariance of columns, excluding NA/null values.
+
+        Compute the pairwise covariance among the series of a DataFrame.
+        The returned data frame is the `covariance matrix
+        <https://en.wikipedia.org/wiki/Covariance_matrix>`__ of the columns
+        of the DataFrame.
+
+        Both NA and null values are automatically excluded from the
+        calculation. (See the note below about bias from missing values.)
+        A threshold can be set for the minimum number of
+        observations for each value created. Comparisons with observations
+        below this threshold will be returned as ``NaN``.
+
+        This method is generally used for the analysis of time series data to
+        understand the relationship between different measures
+        across time.
+
+        Parameters
+        ----------
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result.
+
+        ddof : int, default 1
+            Delta degrees of freedom.  The divisor used in calculations
+            is ``N - ddof``, where ``N`` represents the number of elements.
+            This argument is applicable only when no ``nan`` is in the dataframe.
+
+        numeric_only : bool, default False
+            Include only `float`, `int` or `boolean` data.
+
+            .. versionchanged:: 2.0.0
+                The default value of ``numeric_only`` is now ``False``.
+
+        Returns
+        -------
+        DataFrame
+            The covariance matrix of the series of the DataFrame.
+
+        See Also
+        --------
+        Series.cov : Compute covariance with another Series.
+        core.window.ewm.ExponentialMovingWindow.cov : Exponential weighted sample
+            covariance.
+        core.window.expanding.Expanding.cov : Expanding sample covariance.
+        core.window.rolling.Rolling.cov : Rolling sample covariance.
+
+        Notes
+        -----
+        Returns the covariance matrix of the DataFrame's time series.
+        The covariance is normalized by N-ddof.
+
+        For DataFrames that have Series that are missing data (assuming that
+        data is `missing at random
+        <https://en.wikipedia.org/wiki/Missing_data#Missing_at_random>`__)
+        the returned covariance matrix will be an unbiased estimate
+        of the variance and covariance between the member Series.
+
+        However, for many applications this estimate may not be acceptable
+        because the estimate covariance matrix is not guaranteed to be positive
+        semi-definite. This could lead to estimate correlations having
+        absolute values which are greater than one, and/or a non-invertible
+        covariance matrix. See `Estimation of covariance matrices
+        <https://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_
+        matrices>`__ for more details.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     [(1, 2), (0, 3), (2, 0), (1, 1)], columns=["dogs", "cats"]
+        ... )
+        >>> df.cov()
+                  dogs      cats
+        dogs  0.666667 -1.000000
+        cats -1.000000  1.666667
+
+        >>> np.random.seed(42)
+        >>> df = pd.DataFrame(
+        ...     np.random.randn(1000, 5), columns=["a", "b", "c", "d", "e"]
+        ... )
+        >>> df.cov()
+                  a         b         c         d         e
+        a  0.998438 -0.020161  0.059277 -0.008943  0.014144
+        b -0.020161  1.059352 -0.008543 -0.024738  0.009826
+        c  0.059277 -0.008543  1.010670 -0.001486 -0.000271
+        d -0.008943 -0.024738 -0.001486  0.921297 -0.013692
+        e  0.014144  0.009826 -0.000271 -0.013692  0.977795
+
+        **Minimum number of periods**
+
+        This method also supports an optional ``min_periods`` keyword
+        that specifies the required minimum number of non-NA observations for
+        each column pair in order to have a valid result:
+
+        >>> np.random.seed(42)
+        >>> df = pd.DataFrame(np.random.randn(20, 3), columns=["a", "b", "c"])
+        >>> df.loc[df.index[:5], "a"] = np.nan
+        >>> df.loc[df.index[5:10], "b"] = np.nan
+        >>> df.cov(min_periods=12)
+                  a         b         c
+        a  0.316741       NaN -0.150812
+        b       NaN  1.248003  0.191417
+        c -0.150812  0.191417  0.895202
+        """
         result = self._op_via_apply(
             "cov", min_periods=min_periods, ddof=ddof, numeric_only=numeric_only
         )
