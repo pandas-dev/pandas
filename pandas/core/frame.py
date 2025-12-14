@@ -9838,8 +9838,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     def le(self, other, axis: Axis = "columns", level=None) -> DataFrame:
         """
-        Get Greater than or equal to of dataframe and other,
-        element-wise (binary operator `le`).
+        Binary operator `le`.
+
+        Get Greater than or equal to of dataframe and other,element-wise.
 
         Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
         operators.
@@ -10151,8 +10152,9 @@ class DataFrame(NDFrame, OpsMixin):
 
     def ge(self, other, axis: Axis = "columns", level=None) -> DataFrame:
         """
-        Get Greater than or equal to of dataframe and other,
-        element-wise (binary operator `ge`).
+        Binary operator `ge`.
+
+        Get Greater than or equal to of dataframe and other,element-wise.
 
         Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
         operators.
@@ -11065,8 +11067,9 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Get Subtraction of dataframe and other,
-        element-wise (binary operator `rsub`).
+        Binary operator `rsub`.
+
+        Get Subtraction of dataframe and other,element-wise.
 
         Equivalent to ``other - dataframe``, but with support to substitute a fill_value
         for missing data in one of the inputs. With reverse version, `sub`.
@@ -11265,8 +11268,9 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Get Multiplication of dataframe and other,
-        element-wise (binary operator `mul`).
+        Binary operator `mul`.
+
+        Get Multiplication of dataframe and other,element-wise.
 
         Equivalent to ``dataframe * other``, but with support to substitute a fill_value
         for missing data in one of the inputs. With reverse version, `rmul`.
@@ -11467,8 +11471,9 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Get Multiplication of dataframe and other,
-        element-wise (binary operator `rmul`).
+        Binary operator `rmul`.
+
+        Get Multiplication of dataframe and other,element-wise.
 
         Equivalent to ``other * dataframe``, but with support to substitute a fill_value
         for missing data in one of the inputs. With reverse version, `mul`.
@@ -11667,8 +11672,9 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Get Floating division of dataframe and other,
-        element-wise (binary operator `truediv`).
+        Binary operator `truediv`.
+
+        Get Floating division of dataframe and other,element-wise.
 
         Equivalent to ``dataframe / other``, but with support to substitute a fill_value
         for missing data in one of the inputs. With reverse version, `rtruediv`.
@@ -11870,8 +11876,9 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Get Floating division of dataframe and other,
-        element-wise (binary operator `rtruediv`).
+        Binary operator `rtruediv`.
+
+        Get Floating division of dataframe and other,element-wise.
 
         Equivalent to ``other / dataframe``, but with support to substitute a fill_value
         for missing data in one of the inputs. With reverse version, `truediv`.
@@ -12072,8 +12079,9 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Get Integer division of dataframe and other,
-        element-wise (binary operator `floordiv`).
+        Binary operator `floordiv`.
+
+        Get Integer division of dataframe and other,element-wise.
 
         Equivalent to ``dataframe // other``,
         but with support to substitute a fill_value
@@ -12273,8 +12281,9 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Get Integer division of dataframe and other,
-        element-wise (binary operator `rfloordiv`).
+        Binary operator `rfloordiv`.
+
+        Get Integer division of dataframe and other,element-wise.
 
         Equivalent to ``other // dataframe``,
         but with support to substitute a fill_value
@@ -12872,8 +12881,9 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Get Exponential power of dataframe and other,
-        element-wise (binary operator `pow`).
+        Binary operator `pow`.
+
+        Get Exponential power of dataframe and other,element-wise.
 
         Equivalent to ``dataframe ** other``,
         but with support to substitute a fill_value
@@ -13073,8 +13083,9 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Get Exponential power of dataframe and other,
-        element-wise (binary operator `rpow`).
+        Binary operator `rpow`.
+
+        Get Exponential power of dataframe and other,element-wise.
 
         Equivalent to ``other ** dataframe``,
         but with support to substitute a fill_value
