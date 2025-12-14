@@ -7654,7 +7654,8 @@ class DataFrame(NDFrame, OpsMixin):
         return ~self.isna()
 
     def notnull(self) -> DataFrame:
-        """DataFrame.notnull is an alias for DataFrame.notna.
+        """
+        DataFrame.notnull is an alias for DataFrame.notna.
 
         Detect existing (non-missing) values.
 
