@@ -35,6 +35,21 @@ class TestTimedeltaAdditionSubtraction:
         __sub__, __rsub__
     """
 
+    def test_td_add_sub_pydatetime(self, unit):
+        # GH#53643
+        td = Timedelta(hours=23).as_unit(unit)
+        dt = datetime(2016, 1, 1)
+
+        expected = datetime(2016, 1, 1, 23)
+        result = dt + td
+        assert result == expected
+        result = td + dt
+        assert result == expected
+
+        expected = datetime(2015, 12, 31, 1)
+        result = dt - td
+        assert result == expected
+
     @pytest.mark.parametrize(
         "ten_seconds",
         [
