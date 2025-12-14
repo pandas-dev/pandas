@@ -2658,7 +2658,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ... )
         >>> grouped = df.groupby("A")[["C", "D"]]
         >>> grouped.transform(lambda x: (x - x.mean()) / x.std())
-                C         D
+            C         D
         0 -1.154701 -0.577350
         1  0.577350  0.000000
         2  0.577350  1.154701
@@ -2678,7 +2678,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         5  3.0  8.0
 
         >>> grouped.transform("mean")
-            C    D
+            C        D
         0  3.666667  4.0
         1  4.000000  5.0
         2  3.666667  4.0
@@ -2690,7 +2690,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         for example:
 
         >>> grouped.transform(lambda x: x.astype(int).max())
-        C  D
+           C  D
         0  5  8
         1  5  9
         2  5  8
