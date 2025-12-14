@@ -308,7 +308,10 @@ def test_subset_set_column_with_loc(backend, dtype):
     df_orig = df.copy()
     subset = df[1:3]
 
-    subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
+    msg = r"Setting `df.loc\[:, col\] = values` does \*not\* change"
+    err = UserWarning if backend[0] != "numpy" else None
+    with tm.assert_produces_warning(err, match=msg):
+        subset.loc[:, "a"] = np.array([10, 11], dtype="int64")
 
     subset._mgr._verify_integrity()
     expected = DataFrame(
