@@ -270,7 +270,7 @@ def test_cross_type_arithmetic():
 
 
 @pytest.mark.parametrize("op", ["mean"])
-def test_reduce_to_float(op):
+def test_reduce_to_float(op, using_python_scalars):
     # some reduce ops always return float, even if the result
     # is a rounded number
     df = pd.DataFrame(
@@ -283,7 +283,10 @@ def test_reduce_to_float(op):
 
     # op
     result = getattr(df.C, op)()
-    assert isinstance(result, float)
+    if using_python_scalars:
+        assert type(result) == float
+    else:
+        assert isinstance(result, np.float64)
 
     # groupby
     result = getattr(df.groupby("A"), op)()
