@@ -215,7 +215,7 @@ cdef class BlockPlacement:
 
     cdef object _ensure_has_slice(self):
         if not self._has_slice:
-            self._as_slice = indexer_as_slice(<intp_t[:]>self._as_array)
+            self._as_slice = indexer_as_slice(self._as_array)
             self._has_slice = True
         return self._as_slice
 
