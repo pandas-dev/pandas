@@ -238,6 +238,7 @@ Other enhancements
 - Added a new :meth:`DataFrame.from_arrow` method to import any Arrow-compatible
   tabular data object into a pandas :class:`DataFrame` through the
   `Arrow PyCapsule Protocol <https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html>`__ (:issue:`59631`)
+- Added support for reading from directories in :func:`pandas.read_csv`, including local folders and remote locations via ``fsspec``
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.notable_bug_fixes:
