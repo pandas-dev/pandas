@@ -44,6 +44,10 @@ def find_stack_level() -> int:
 
     pkg_dir = os.path.dirname(pd.__file__)
     test_dir = os.path.join(pkg_dir, "tests")
+    contextlib_file = getattr(contextlib, "__file__", None)
+    contextlib_dir = (
+        os.path.dirname(contextlib_file) if contextlib_file is not None else None
+    )
 
     # https://stackoverflow.com/questions/17407119/python-inspect-stack-is-slow
     frame: FrameType | None = inspect.currentframe()
@@ -52,6 +56,9 @@ def find_stack_level() -> int:
         while frame:
             filename = inspect.getfile(frame)
             if filename.startswith(pkg_dir) and not filename.startswith(test_dir):
+                frame = frame.f_back
+                n += 1
+            elif contextlib_dir and filename.startswith(contextlib_dir):
                 frame = frame.f_back
                 n += 1
             else:
