@@ -3494,6 +3494,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         kind : {'quicksort', 'mergesort', 'heapsort', 'stable'}, default 'quicksort'
             Choice of sorting algorithm. See also :func:`numpy.sort` for more
             information. 'mergesort' and 'stable' are the only stable  algorithms.
+
+            .. versionchanged:: 2.2.0
+
+                The default sort kind 'quicksort' is now stable and deterministic,
+                i.e. it produces the same result for the same input on each run.
         na_position : {'first' or 'last'}, default 'last'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
             the end.
@@ -3740,6 +3745,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             information. 'mergesort' and 'stable' are the only stable algorithms. For
             DataFrames, this option is only applied when sorting on a single
             column or label.
+
+            .. versionchanged:: 2.2.0
+
+                The default sort kind 'quicksort' is now stable and deterministic,
+                i.e. it produces the same result for the same input on each run.
         na_position : {'first', 'last'}, default 'last'
             If 'first' puts NaNs at the beginning, 'last' puts NaNs at the end.
             Not implemented for MultiIndex.

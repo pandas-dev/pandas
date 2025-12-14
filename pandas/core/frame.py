@@ -7337,6 +7337,11 @@ class DataFrame(NDFrame, OpsMixin):
              information. `mergesort` and `stable` are the only stable algorithms. For
              DataFrames, this option is only applied when sorting on a single
              column or label.
+
+             .. versionchanged:: 2.2.0
+
+                 The default sort kind 'quicksort' is now stable and deterministic,
+                 i.e. it produces the same result for the same input on each run.
         na_position : {'first', 'last'}, default 'last'
              Puts NaNs at the beginning if `first`; `last` puts NaNs at the
              end.
@@ -7657,6 +7662,11 @@ class DataFrame(NDFrame, OpsMixin):
             information. `mergesort` and `stable` are the only stable algorithms. For
             DataFrames, this option is only applied when sorting on a single
             column or label.
+
+            .. versionchanged:: 2.2.0
+
+                The default sort kind 'quicksort' is now stable and deterministic,
+                i.e. it produces the same result for the same input on each run.
         na_position : {'first', 'last'}, default 'last'
             Puts NaNs at the beginning if `first`; `last` puts NaNs at the end.
             Not implemented for MultiIndex.
