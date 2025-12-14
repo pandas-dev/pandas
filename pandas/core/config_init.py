@@ -423,7 +423,7 @@ with cf.config_prefix("mode"):
         # to False. This environment variable can be set for testing.
         "warn"
         if os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "warn"
-        else os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1",
+        else os.environ.get("PANDAS_COPY_ON_WRITE", "1") == "1",
         copy_on_write_doc,
         validator=is_one_of_factory([True, False, "warn"]),
     )
@@ -908,7 +908,8 @@ cf.deprecate_option(
     "mode.copy_on_write",
     Pandas4Warning,
     msg=(
-        "Copy-on-Write can no longer be disabled, setting to False has no impact. "
-        "This option will be removed in pandas 4.0."
+        "The 'mode.copy_on_write' option is deprecated. Copy-on-Write can no longer "
+        "be disabled (it is always enabled with pandas >= 3.0), and setting the option "
+        "has no impact. This option will be removed in pandas 4.0."
     ),
 )
