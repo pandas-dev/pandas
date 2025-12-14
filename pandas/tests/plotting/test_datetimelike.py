@@ -1264,7 +1264,7 @@ class TestTSPlot:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="D"),
         )
         df.plot(secondary_y=["A", "B"], ax=ax)
         leg = ax.get_legend()
@@ -1285,7 +1285,7 @@ class TestTSPlot:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="D"),
         )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
@@ -1301,7 +1301,7 @@ class TestTSPlot:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="D"),
         )
         fig, ax = mpl.pyplot.subplots()
         df.plot(kind="bar", secondary_y=["A"], ax=ax)
@@ -1313,7 +1313,7 @@ class TestTSPlot:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="D"),
         )
         fig, ax = mpl.pyplot.subplots()
         df.plot(kind="bar", secondary_y=["A"], mark_right=False, ax=ax)
@@ -1325,14 +1325,14 @@ class TestTSPlot:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="D"),
         )
         fig = mpl.pyplot.figure()
         ax = fig.add_subplot(211)
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD"), dtype=object),
-            index=date_range("2000-01-01", periods=10, freq="B"),
+            index=date_range("2000-01-01", periods=10, freq="D"),
         )
         ax = df.plot(secondary_y=["C", "D"], ax=ax)
         leg = ax.get_legend()
@@ -1690,6 +1690,17 @@ class TestTSPlot:
         df.plot(ax=ax)
         with temp_file.open(mode="wb") as path:
             pickle.dump(fig, path)
+
+    def test_bar_plot_with_datetime_index_uses_date_formatter(self):
+        # GH#1918 - bar plots should use DateFormatter for datetime indices
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)),
+            index=date_range("2020-01-01", periods=10),
+            columns=["A", "B"],
+        )
+        ax_bar = df.plot(kind="bar")
+        bar_formatter = ax_bar.get_xaxis().get_major_formatter()
+        assert isinstance(bar_formatter, conv.TimeSeries_DateFormatter)
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
