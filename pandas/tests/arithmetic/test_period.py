@@ -962,11 +962,11 @@ class TestPeriodIndexArithmetic:
         pi = period_range("2016-01-01", periods=10, freq="2D")
         arr = np.arange(10)
         result = pi + arr
-        expected = pd.Index([x + y for x, y in zip(pi, arr)])
+        expected = pd.Index([x + y for x, y in zip(pi, arr, strict=True)])
         tm.assert_index_equal(result, expected)
 
         result = pi - arr
-        expected = pd.Index([x - y for x, y in zip(pi, arr)])
+        expected = pd.Index([x - y for x, y in zip(pi, arr, strict=True)])
         tm.assert_index_equal(result, expected)
 
     def test_pi_sub_isub_offset(self):
@@ -1361,12 +1361,8 @@ class TestPeriodIndexArithmetic:
             arr + ts
         with pytest.raises(TypeError, match=msg):
             ts + arr
-        if box_with_array is pd.DataFrame:
-            # TODO: before implementing resolution-inference we got the same
-            #  message with DataFrame and non-DataFrame.  Why did that change?
-            msg = "cannot add PeriodArray and Timestamp"
-        else:
-            msg = "cannot add PeriodArray and DatetimeArray"
+
+        msg = "cannot add PeriodArray and DatetimeArray"
         with pytest.raises(TypeError, match=msg):
             arr + Series([ts])
         with pytest.raises(TypeError, match=msg):

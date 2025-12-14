@@ -221,7 +221,8 @@ class TestDatetimelikeSubtype(AstypeTests):
 
         if subtype != "int64":
             msg = (
-                r"Cannot convert interval\[(timedelta64|datetime64)\[ns.*\], .*\] "
+                r"Cannot convert interval"
+                r"\[(timedelta64\[us\]|datetime64\[us(, US/Eastern)?\]), .*\] "
                 r"to interval\[uint64, .*\]"
             )
             with pytest.raises(TypeError, match=msg):

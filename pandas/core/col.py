@@ -37,6 +37,12 @@ _OP_SYMBOLS = {
     "__lt__": "<",
     "__eq__": "==",
     "__ne__": "!=",
+    "__and__": "&",
+    "__rand__": "&",
+    "__or__": "|",
+    "__ror__": "|",
+    "__xor__": "^",
+    "__rxor__": "^",
 }
 
 
@@ -71,14 +77,13 @@ def _pretty_print_args_kwargs(*args: Any, **kwargs: Any) -> str:
     return ", ".join(all_args)
 
 
+@set_module("pandas.api.typing")
 class Expression:
     """
     Class representing a deferred column.
 
     This is not meant to be instantiated directly. Instead, use :meth:`pandas.col`.
     """
-
-    __module__ = "pandas.api.typing"
 
     def __init__(self, func: Callable[[DataFrame], Any], repr_str: str) -> None:
         self._func = func
@@ -157,6 +162,28 @@ class Expression:
 
     def __rmod__(self, other: Any) -> Expression:
         return self._with_binary_op("__rmod__", other)
+
+    # Logical ops
+    def __and__(self, other: Any) -> Expression:
+        return self._with_binary_op("__and__", other)
+
+    def __rand__(self, other: Any) -> Expression:
+        return self._with_binary_op("__rand__", other)
+
+    def __or__(self, other: Any) -> Expression:
+        return self._with_binary_op("__or__", other)
+
+    def __ror__(self, other: Any) -> Expression:
+        return self._with_binary_op("__ror__", other)
+
+    def __xor__(self, other: Any) -> Expression:
+        return self._with_binary_op("__xor__", other)
+
+    def __rxor__(self, other: Any) -> Expression:
+        return self._with_binary_op("__rxor__", other)
+
+    def __invert__(self) -> Expression:
+        return Expression(lambda df: ~self(df), f"(~{self._repr_str})")
 
     def __array_ufunc__(
         self, ufunc: Callable[..., Any], method: str, *inputs: Any, **kwargs: Any

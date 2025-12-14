@@ -341,7 +341,7 @@ def format_dateaxis(
         subplot.format_coord = functools.partial(_format_coord, freq)
 
     elif isinstance(index, ABCTimedeltaIndex):
-        subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter())
+        subplot.xaxis.set_major_formatter(TimeSeries_TimedeltaFormatter(index.unit))
     else:
         raise TypeError("index type not supported")
 
