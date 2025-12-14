@@ -26,15 +26,9 @@ from pandas._libs.util cimport (
     is_integer_object,
 )
 
-# At the top of the file:
-DEF CYTHON_COMPATIBLE_WITH_FREE_THREADING = False  # Or import from external config as needed
+# Use object-based weakref API (works across Cython versions)
+from cpython.weakref cimport PyWeakref_GetObject
 
-IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
-    from cpython.ref cimport Py_DECREF
-    from cpython.weakref cimport PyWeakref_GetRef
-else:
-    from cpython.weakref cimport PyWeakref_GetObject
-    
 
 cdef extern from "Python.h":
     PyObject* Py_None
@@ -914,26 +908,13 @@ cdef class BlockValuesRefs:
         # if force=False. Clearing for every insertion causes slowdowns if
         # all these objects stay alive, e.g. df.items() for wide DataFrames
         # see GH#55245 and GH#55008
-        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
-            cdef PyObject* pobj
-            cdef bint status
-
-        if force or len(self.referenced_blocks) > self.clear_counter:
-            IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
-                new_referenced_blocks = []
-                for ref in self.referenced_blocks:
-                    status = PyWeakref_GetRef(ref, &pobj)
-                    if status == -1:
-                        return
-                    elif status == 1:
-                        new_referenced_blocks.append(ref)
-                        Py_DECREF(<object>pobj)
-                self.referenced_blocks = new_referenced_blocks
-            ELSE:
-                self.referenced_blocks = [
-                    ref for ref in self.referenced_blocks
-                    if PyWeakref_GetObject(ref) != Py_None
-                ]
+# No compile-time IF: always use object-based weakref check
+if force or len(self.referenced_blocks) > self.clear_counter:
+    new_referenced_blocks = []
+    for ref in self.referenced_blocks:
+        if PyWeakref_GetObject(ref) != Py_None:
+            new_referenced_blocks.append(ref)
+    self.referenced_blocks = new_referenced_blocks
 
             nr_of_refs = len(self.referenced_blocks)
             if nr_of_refs < self.clear_counter // 2:
@@ -953,11 +934,12 @@ cdef class BlockValuesRefs:
         blk : Block
             The block that the new references should point to.
         """
-        IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
-            with cython.critical_section(self):
-                self._add_reference_maybe_locked(blk)
-        ELSE:
-            self._add_reference_maybe_locked(blk)
+try:
+    with cython.critical_section(self):
+        self._add_reference_maybe_locked(blk)
+except AttributeError:
+    # Older Cython/runtime: fall back
+    self._add_reference_maybe_locked(blk)
 
     def _add_index_reference_maybe_locked(self, index: object) -> None:
         self._clear_dead_references()
