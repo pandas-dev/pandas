@@ -156,6 +156,14 @@ class StringDtype(StorageExtensionDtype):
         This value indicates which missing value semantics are used by this dtype.
         Returns ``np.nan`` for the default string dtype with NumPy semantics,
         and ``pd.NA`` for the opt-in string dtype with pandas NA semantics.
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b"])
+        >>> ser.dtype
+        <StringDtype(na_value=nan)>
+        >>> ser.dtype.na_value
+        nan
         """
         return self._na_value
 
@@ -165,6 +173,14 @@ class StringDtype(StorageExtensionDtype):
         The storage backend for this dtype.
 
         Can be either "pyarrow" or "python".
+
+        Examples
+        --------
+        >>> ser = pd.Series(["a", "b"])
+        >>> ser.dtype
+        <StringDtype(na_value=nan)>
+        >>> ser.dtype.storage
+        'pyarrow'
         """
         return self._storage
 
