@@ -26,15 +26,15 @@ from pandas._libs.util cimport (
     is_integer_object,
 )
 
-IF 0:
-    include "free_threading_config.pxi"
+# At the top of the file:
+DEF CYTHON_COMPATIBLE_WITH_FREE_THREADING = False  # Or import from external config as needed
 
 IF CYTHON_COMPATIBLE_WITH_FREE_THREADING:
     from cpython.ref cimport Py_DECREF
     from cpython.weakref cimport PyWeakref_GetRef
-ELSE:
+else:
     from cpython.weakref cimport PyWeakref_GetObject
-
+    
 
 cdef extern from "Python.h":
     PyObject* Py_None
