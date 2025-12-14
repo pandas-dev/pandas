@@ -9969,7 +9969,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def le(self, other, axis: Axis = "columns", level=None) -> DataFrame:
         """
-        Binary operator `le`
+        Binary operator `le`.
 
         Get Greater than or equal to of dataframe and other,element-wise.
 
@@ -10283,7 +10283,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def ge(self, other, axis: Axis = "columns", level=None) -> DataFrame:
         """
-        Binary operator `ge`
+        Binary operator `ge`.
 
         Get Greater than or equal to of dataframe and other,element-wise.
 
@@ -11198,7 +11198,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Binary operator `rsub`
+        Binary operator `rsub`.
 
         Get Subtraction of dataframe and other,element-wise.
 
@@ -11399,7 +11399,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Binary operator `mul`
+        Binary operator `mul`.
 
         Get Multiplication of dataframe and other,element-wise.
 
@@ -11602,7 +11602,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Binary operator `rmul`
+        Binary operator `rmul`.
 
         Get Multiplication of dataframe and other,element-wise.
 
@@ -11803,7 +11803,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Binary operator `truediv`
+        Binary operator `truediv`.
 
         Get Floating division of dataframe and other,element-wise.
 
@@ -12007,7 +12007,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Binary operator `rtruediv`
+        Binary operator `rtruediv`.
 
         Get Floating division of dataframe and other,element-wise.
 
@@ -12210,7 +12210,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Binary operator `floordiv`
+        Binary operator `floordiv`.
 
         Get Integer division of dataframe and other,element-wise.
 
@@ -12412,7 +12412,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Binary operator `rfloordiv`
+        Binary operator `rfloordiv`.
 
         Get Integer division of dataframe and other,element-wise.
 
@@ -13214,7 +13214,7 @@ class DataFrame(NDFrame, OpsMixin):
         self, other, axis: Axis = "columns", level=None, fill_value=None
     ) -> DataFrame:
         """
-        Binary operator `rpow`
+        Binary operator `rpow`.
 
         Get Exponential power of dataframe and other,element-wise.
 
