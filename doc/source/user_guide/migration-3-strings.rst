@@ -20,6 +20,14 @@ enable it with:
 
 This allows you to test your code before the final 3.0 release.
 
+.. note::
+
+   This migration guide focuses on the changes and migration steps needed when
+   you are currently using ``object`` dtype for string data, which is used by
+   default in pandas < 3.0. If you are already using one of the opt-in string
+   dtypes, you can continue to do so without change.
+   See :ref:`string_migration_guide-for_existing_users` for more details.
+
 Background
 ----------
 
@@ -456,6 +464,9 @@ raise an error regardless of the number of strings:
    TypeError                                 Traceback (most recent call last)
    ...
    TypeError: Cannot perform reduction 'prod' with string dtype
+
+
+.. _string_migration_guide-for_existing_users:
 
 For existing users of the nullable ``StringDtype``
 --------------------------------------------------
