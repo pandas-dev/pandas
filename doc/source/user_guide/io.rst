@@ -6521,3 +6521,86 @@ The files ``test.pkl.compress``, ``test.parquet`` and ``test.feather`` took the 
     24458940 Oct 10 06:44 test_table.hdf
     24458940 Oct 10 06:44 test_table_compress.hdf
 
+=====================================================================================================================
+LOADING PANDA IN GOOGLE COLAB
+=====================================================================================================================
+In Google Colab, pandas data can be loaded in multiple ways. 
+You can either create a DataFrame directly from Python objects
+or import data from external sources such as local files, 
+Google Drive, or public URLs.
+
+Start by importing pandas:
+   import pandas as pd
+
+1. Loading data from external sources
+   The most common way to load data into pandas is by reading external files such as CSV or Excel files. In Google Colab, this is typically done through file uploads, Google Drive integration, or public URLs.
+
+A. Uploading files from your local computer (session-only)
+   This method is suitable for small to medium-sized files. Note that uploaded files are temporary and will be lost when the Colab runtime disconnects.
+
+      from google.colab import files
+      import io
+
+      uploaded = files.upload()  # Opens a file picker dialog
+
+      for filename in uploaded.keys():
+         df = pd.read_csv(io.BytesIO(uploaded[filename]))
+         print(f'Uploaded file "{filename}" with {len(df)} rows.')
+
+B. Loading files from Google Drive (persistent storage)
+   Google Drive can be mounted into the Colab environment, 
+   allowing persistent access to files across sessions.
+
+   First, mount Google Drive:
+
+      from google.colab import drive
+      drive.mount('/content/drive')
+
+   Follow the prompt to authenticate your Google account. 
+   Once mounted, your Drive will appear under /content/drive.
+
+   Next, read the file using its path:
+
+      # Example path: '/content/drive/My Drive/data_folder/my_data.csv'
+      file_path = '/content/drive/My Drive/my_data.csv'
+      df = pd.read_csv(file_path)
+      print(df.head())
+
+C. Loading data from a public URL
+   If your dataset is hosted online (for example, on GitHub 
+   or a public data repository), pandas can read it directly 
+   from the URL:
+
+      url = 'https://raw.githubusercontent.com/...'
+      df = pd.read_csv(url)
+      print(df.head())
+
+2. Creating a DataFrame from Python objects
+   A DataFrame can also be created directly from in-memory 
+   Python data structures within the notebook.
+
+   From a dictionary
+      data = {
+         'Name': ['Alice', 'Bob', 'Charlie'],
+         'Age': [25, 30, 35],
+         'City': ['New York', 'Los Angeles', 'Chicago']
+      }
+
+      df = pd.DataFrame(data)
+      print(df)
+
+   From a NumPy array
+      import numpy as np
+
+      my_data = np.array([
+         [0, 3],
+         [10, 7],
+         [20, 9],
+         [30, 14],
+         [40, 15]
+      ])
+
+      column_names = ['temperature', 'activity']
+
+      df = pd.DataFrame(data=my_data, columns=column_names)
+      print(df)
