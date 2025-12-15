@@ -107,10 +107,22 @@ def test_series_from_array_different_dtype(copy):
 def test_series_from_index(idx):
     ser = Series(idx)
     expected = idx.copy(deep=True)
-    assert np.shares_memory(get_array(ser), get_array(idx))
-    assert not ser._mgr._has_no_reference(0)
+    assert not np.shares_memory(get_array(ser), get_array(idx))
+    assert ser._mgr._has_no_reference(0)
     ser.iloc[0] = ser.iloc[1]
     tm.assert_index_equal(idx, expected)
+
+
+def test_series_from_temporary_index_readonly_data():
+    # GH 63306
+    arr = np.array([0, 1])
+    arr.flags.writeable = False
+    ser = Series(Index(arr))
+    assert not np.shares_memory(arr, get_array(ser))
+    assert ser._mgr._has_no_reference(0)
+    ser[[False, True]] = [0, 2]
+    expected = Series([0, 2])
+    tm.assert_series_equal(ser, expected)
 
 
 def test_series_from_index_different_dtypes():

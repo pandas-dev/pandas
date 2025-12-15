@@ -399,10 +399,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             self.name = name
             return
 
-        if isinstance(data, (ExtensionArray, np.ndarray)):
+        if isinstance(data, (ExtensionArray, np.ndarray, Index)):
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
-                    data = data.copy()
+                    if isinstance(data, Index):
+                        # https://github.com/pandas-dev/pandas/issues/63306#issuecomment-3637458119
+                        data = data.copy(deep=True)
+                    else:
+                        data = data.copy()
         if copy is None:
             copy = False
 
