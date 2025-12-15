@@ -28,7 +28,6 @@ from pandas.api.types import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_store,
 )
 
 from pandas.io.pytables import (
@@ -100,14 +99,14 @@ def test_no_track_times(tmp_path, setup_path):
     assert checksum_0_tt_true != checksum_1_tt_true
 
 
-def test_iter_empty(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_iter_empty(temp_file):
+    with HDFStore(temp_file) as store:
         # GH 12221
         assert list(store) == []
 
 
-def test_repr(setup_path, performance_warning, using_infer_string):
-    with ensure_clean_store(setup_path) as store:
+def test_repr(temp_file, performance_warning, using_infer_string):
+    with HDFStore(temp_file) as store:
         repr(store)
         store.info()
         store["a"] = Series(
@@ -154,7 +153,7 @@ def test_repr(setup_path, performance_warning, using_infer_string):
         store.info()
 
     # storers
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD"), dtype=object),
@@ -167,8 +166,8 @@ def test_repr(setup_path, performance_warning, using_infer_string):
         str(s)
 
 
-def test_contains(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_contains(temp_file):
+    with HDFStore(temp_file) as store:
         store["a"] = Series(
             np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
         )
@@ -202,8 +201,8 @@ def test_contains(setup_path):
         assert "node())" in store
 
 
-def test_versioning(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_versioning(temp_file):
+    with HDFStore(temp_file) as store:
         store["a"] = Series(
             np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
         )
@@ -259,7 +258,7 @@ def test_versioning(setup_path):
         ),
     ],
 )
-def test_walk(where, expected):
+def test_walk(temp_path, where, expected):
     # GH10143
     objs = {
         "df1": DataFrame([1, 2, 3]),
@@ -273,7 +272,7 @@ def test_walk(where, expected):
         "tb2": np.array([(7, 8, 9), (10, 11, 12)], dtype="i,i,i"),
     }
 
-    with ensure_clean_store("walk_groups.hdf", mode="w") as store:
+    with HDFStore(temp_path / "walk_groups.hdf", mode="w") as store:
         store.put("/first_group/df1", objs["df1"])
         store.put("/first_group/df2", objs["df2"])
         store.put("/second_group/df3", objs["df3"])
@@ -299,8 +298,8 @@ def test_walk(where, expected):
                     tm.assert_series_equal(obj, objs[leaf])
 
 
-def test_getattr(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_getattr(temp_file):
+    with HDFStore(temp_file) as store:
         s = Series(
             np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
         )
@@ -403,8 +402,8 @@ def test_to_hdf_errors(tmp_path, format, setup_path, using_infer_string):
     tm.assert_series_equal(result, expected)
 
 
-def test_create_table_index(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_create_table_index(temp_file):
+    with HDFStore(temp_file) as store:
 
         def col(t, column):
             return getattr(store.get_storer(t).table.cols, column)
@@ -436,10 +435,10 @@ def test_create_table_index(setup_path):
             store.create_table_index("f2")
 
 
-def test_create_table_index_data_columns_argument(setup_path):
+def test_create_table_index_data_columns_argument(temp_file):
     # GH 28156
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
 
         def col(t, column):
             return getattr(store.get_storer(t).table.cols, column)
@@ -470,14 +469,14 @@ def test_create_table_index_data_columns_argument(setup_path):
             store.create_table_index("f", columns=["string2"])
 
 
-def test_mi_data_columns(setup_path):
+def test_mi_data_columns(temp_file):
     # GH 14435
     idx = MultiIndex.from_arrays(
         [date_range("2000-01-01", periods=5), range(5)], names=["date", "id"]
     )
     df = DataFrame({"a": [1.1, 1.2, 1.3, 1.4, 1.5]}, index=idx)
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store.append("df", df, data_columns=True)
 
         actual = store.select("df", where="id == 1")
@@ -485,7 +484,7 @@ def test_mi_data_columns(setup_path):
         tm.assert_frame_equal(actual, expected)
 
 
-def test_table_mixed_dtypes(setup_path):
+def test_table_mixed_dtypes(temp_file):
     # frame
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
@@ -506,12 +505,12 @@ def test_table_mixed_dtypes(setup_path):
     df.loc[df.index[3:6], ["obj1"]] = np.nan
     df = df._consolidate()
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store.append("df1_mixed", df)
         tm.assert_frame_equal(store.select("df1_mixed"), df)
 
 
-def test_calendar_roundtrip_issue(setup_path):
+def test_calendar_roundtrip_issue(temp_file):
     # 8591
     # doc example from tseries holiday section
     weekmask_egypt = "Sun Mon Tue Wed Thu"
@@ -528,7 +527,7 @@ def test_calendar_roundtrip_issue(setup_path):
 
     s = Series(dts.weekday, dts).map(Series("Mon Tue Wed Thu Fri Sat Sun".split()))
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store.put("fixed", s)
         result = store.select("fixed")
         tm.assert_series_equal(result, s)
@@ -538,8 +537,8 @@ def test_calendar_roundtrip_issue(setup_path):
         tm.assert_series_equal(result, s)
 
 
-def test_remove(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_remove(temp_file):
+    with HDFStore(temp_file) as store:
         ts = Series(
             np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
         )
@@ -583,8 +582,8 @@ def test_remove(setup_path):
         assert len(store) == 0
 
 
-def test_same_name_scoping(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_same_name_scoping(temp_file):
+    with HDFStore(temp_file) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((20, 2)),
             index=date_range("20130101", periods=20, unit="ns"),
@@ -606,7 +605,7 @@ def test_same_name_scoping(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_store_index_name(setup_path):
+def test_store_index_name(temp_file):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
@@ -614,7 +613,7 @@ def test_store_index_name(setup_path):
     )
     df.index.name = "foo"
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store["frame"] = df
         recons = store["frame"]
         tm.assert_frame_equal(recons, df)
@@ -653,7 +652,7 @@ def test_store_index_name_numpy_str(tmp_path, table_format, setup_path, unit, tz
     assert isinstance(df2.columns.name, str)
 
 
-def test_store_series_name(setup_path):
+def test_store_series_name(temp_file):
     df = DataFrame(
         1.1 * np.arange(120).reshape((30, 4)),
         columns=Index(list("ABCD")),
@@ -661,14 +660,14 @@ def test_store_series_name(setup_path):
     )
     series = df["A"]
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store["series"] = series
         recons = store["series"]
         tm.assert_series_equal(recons, series)
 
 
-def test_overwrite_node(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_overwrite_node(temp_file):
+    with HDFStore(temp_file) as store:
         store["a"] = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
             columns=Index(list("ABCD")),
@@ -682,14 +681,14 @@ def test_overwrite_node(setup_path):
         tm.assert_series_equal(store["a"], ts)
 
 
-def test_coordinates(setup_path):
+def test_coordinates(temp_file):
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)),
         columns=Index(list("ABCD")),
         index=date_range("2000-01-01", periods=10, freq="B"),
     )
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         _maybe_remove(store, "df")
         store.append("df", df)
 
@@ -739,7 +738,7 @@ def test_coordinates(setup_path):
         #  but expect freq="18B"
 
     # pass array/mask as the coordinates
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((1000, 2)),
             index=date_range("20000101", periods=1000),
@@ -800,8 +799,8 @@ def test_coordinates(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_start_stop_table(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_start_stop_table(temp_file):
+    with HDFStore(temp_file) as store:
         # table
         df = DataFrame(
             {
@@ -822,9 +821,9 @@ def test_start_stop_table(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_start_stop_multiple(setup_path):
+def test_start_stop_multiple(temp_file):
     # GH 16209
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         df = DataFrame({"foo": [1, 2], "bar": [1, 2]})
 
         store.append_to_multiple(
@@ -837,8 +836,8 @@ def test_start_stop_multiple(setup_path):
         tm.assert_frame_equal(result, expected)
 
 
-def test_start_stop_fixed(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_start_stop_fixed(temp_file):
+    with HDFStore(temp_file) as store:
         # fixed, GH 8287
         df = DataFrame(
             {
@@ -883,12 +882,12 @@ def test_start_stop_fixed(setup_path):
         df.iloc[8:10, -2] = np.nan
 
 
-def test_select_filter_corner(setup_path, request):
+def test_select_filter_corner(temp_file, request):
     df = DataFrame(np.random.default_rng(2).standard_normal((50, 100)))
     df.index = [f"{c:3d}" for c in df.index]
     df.columns = [f"{c:3d}" for c in df.columns]
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store.put("frame", df, format="table")
 
         request.applymarker(
@@ -921,7 +920,7 @@ def test_path_pathlib():
 
 
 @pytest.mark.parametrize("start, stop", [(0, 2), (1, 2), (None, None)])
-def test_contiguous_mixed_data_table(start, stop, setup_path):
+def test_contiguous_mixed_data_table(start, stop, temp_file):
     # GH 17021
     df = DataFrame(
         {
@@ -930,7 +929,7 @@ def test_contiguous_mixed_data_table(start, stop, setup_path):
         }
     )
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store.append("test_dataset", df)
 
         result = store.select("test_dataset", start=start, stop=stop)
@@ -1017,14 +1016,14 @@ def test_duplicate_column_name(tmp_path, setup_path):
     assert other.equals(df)
 
 
-def test_preserve_timedeltaindex_type(setup_path, unit):
+def test_preserve_timedeltaindex_type(temp_file, unit):
     # GH9635
     df = DataFrame(np.random.default_rng(2).normal(size=(10, 5)))
     df.index = timedelta_range(
         start="0s", periods=10, freq="1s", name="example", unit=unit
     )
 
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store["df"] = df
         tm.assert_frame_equal(store["df"], df)
 
@@ -1090,10 +1089,10 @@ def test_to_hdf_with_object_column_names_should_run(tmp_path, setup_path, dtype)
     assert len(result)
 
 
-def test_hdfstore_strides(setup_path):
+def test_hdfstore_strides(temp_file):
     # GH22073
     df = DataFrame({"a": [1, 2, 3, 4], "b": [5, 6, 7, 8]})
-    with ensure_clean_store(setup_path) as store:
+    with HDFStore(temp_file) as store:
         store.put("df", df)
         assert df["a"].values.strides == store["df"]["a"].values.strides
 
