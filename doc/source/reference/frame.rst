@@ -360,6 +360,7 @@ Serialization / IO / conversion
 .. autosummary::
    :toctree: api/
 
+   DataFrame.from_arrow
    DataFrame.from_dict
    DataFrame.from_records
    DataFrame.to_orc

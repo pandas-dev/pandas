@@ -948,7 +948,7 @@ def value_counts_internal(
             result = Series(counts, index=idx, name=name, copy=False)
 
     if sort:
-        result = result.sort_values(ascending=ascending)
+        result = result.sort_values(ascending=ascending, kind="stable")
 
     if normalize:
         result = result / counts.sum()
@@ -1140,14 +1140,8 @@ def take(
 
     Parameters
     ----------
-    arr : array-like or scalar value
-        Non array-likes (sequences/scalars without a dtype) are coerced
-        to an ndarray.
-
-        .. deprecated:: 2.1.0
-            Passing an argument other than a numpy.ndarray, ExtensionArray,
-            Index, or Series is deprecated.
-
+    arr : numpy.ndarray, ExtensionArray, Index, or Series
+        Input array.
     indices : sequence of int or one-dimensional np.ndarray of int
         Indices to be taken.
     axis : int, default 0

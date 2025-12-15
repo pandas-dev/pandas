@@ -853,14 +853,10 @@ def read_xml(
     Parameters
     ----------
     path_or_buffer : str, path object, or file-like object
-        String, path object (implementing ``os.PathLike[str]``), or file-like
+        String path, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a ``read()`` function. The string can be a path.
         The string can further be a URL. Valid URL schemes
         include http, ftp, s3, and file.
-
-        .. deprecated:: 2.1.0
-            Passing xml literal strings is deprecated.
-            Wrap literal xml input in ``io.StringIO`` or ``io.BytesIO`` instead.
 
     xpath : str, optional, default './\*'
         The ``XPath`` to parse required set of nodes for migration to

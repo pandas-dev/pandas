@@ -1043,6 +1043,26 @@ class TestDataFrameAnalytics:
         bools = isna(df)
         assert bools.sum(axis=1)[0] == 10
 
+    @pytest.mark.parametrize(
+        "input_data, expected_data",
+        [
+            ({"a": ["483", "3"], "b": ["94", "759"]}, ["48394", "3759"]),
+            (
+                {"a": ["483.948", "3.0"], "b": ["94.2", "759.93"]},
+                ["483.94894.2", "3.0759.93"],
+            ),
+            ({"a": ["483", "3.0"], "b": ["94.2", "79"]}, ["48394.2", "3.079"]),
+        ],
+    )
+    def test_sum_string_dtype_coercion(self, input_data, expected_data):
+        # GH#22642
+        # Check that summing numeric strings results in concatenation
+        # and not conversion to dtype int64 or float64
+        df = DataFrame(input_data)
+        expected = Series(expected_data)
+        result = df.sum(axis=1)
+        tm.assert_series_equal(result, expected)
+
     # ----------------------------------------------------------------------
     # Index of max / min
 
