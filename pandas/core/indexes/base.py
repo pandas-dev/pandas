@@ -482,7 +482,7 @@ class Index(IndexOpsMixin, PandasObject):
         cls,
         data=None,
         dtype=None,
-        copy: bool = False,
+        copy: bool | None = None,
         name=None,
         tupleize_cols: bool = True,
     ) -> Self:
@@ -517,7 +517,13 @@ class Index(IndexOpsMixin, PandasObject):
             pass
 
         elif isinstance(data, (np.ndarray, ABCMultiIndex)):
-            if isinstance(data, ABCMultiIndex):
+            if isinstance(data, np.ndarray):
+                if copy is not False:
+                    if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                        # GH 63306
+                        data = data.copy()
+                        copy = False
+            elif isinstance(data, ABCMultiIndex):
                 data = data._values
 
             if data.dtype.kind not in "iufcbmM":
@@ -569,7 +575,7 @@ class Index(IndexOpsMixin, PandasObject):
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
         try:
-            arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+            arr = sanitize_array(data, None, dtype=dtype, copy=bool(copy))
         except ValueError as err:
             if "index must be specified when data is not list-like" in str(err):
                 raise cls._raise_scalar_data_error(data) from err

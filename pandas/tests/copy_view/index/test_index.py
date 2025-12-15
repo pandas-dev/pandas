@@ -150,3 +150,21 @@ def test_index_values():
     idx = Index([1, 2, 3])
     result = idx.values
     assert result.flags.writeable is False
+
+
+def test_constructor_copy_input_ndarray_default():
+    arr = np.array([0, 1])
+    idx = Index(arr)
+    assert not np.shares_memory(arr, get_array(idx))
+
+
+def test_series_from_temporary_index_readonly_data():
+    # GH 63370
+    arr = np.array([0, 1])
+    arr.flags.writeable = False
+    ser = Series(Index(arr))
+    assert not np.shares_memory(arr, get_array(ser))
+    assert ser._mgr._has_no_reference(0)
+    ser[[False, True]] = [0, 2]
+    expected = Series([0, 2])
+    tm.assert_series_equal(ser, expected)
