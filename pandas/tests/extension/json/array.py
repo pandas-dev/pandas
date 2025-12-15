@@ -94,11 +94,10 @@ class JSONArray(ExtensionArray):
         return cls([UserDict(x) for x in values if x != ()])
 
     def _cast_pointwise_result(self, values):
-        result = super()._cast_pointwise_result(values)
         try:
-            return type(self)._from_sequence(result, dtype=self.dtype)
+            return type(self)._from_sequence(values, dtype=self.dtype)
         except (ValueError, TypeError):
-            return result
+            return values
 
     def __getitem__(self, item):
         if isinstance(item, tuple):

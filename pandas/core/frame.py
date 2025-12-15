@@ -84,6 +84,7 @@ from pandas.util._validators import (
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
+    cast_pointwise_result,
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
     find_common_type,
@@ -11200,7 +11201,7 @@ class DataFrame(NDFrame, OpsMixin):
         if isinstance(self.index.dtype, ExtensionDtype):
             # GH#41626 retain e.g. CategoricalDtype if reached via
             #  df.loc[key] = item
-            row_df.index = self.index.array._cast_pointwise_result(row_df.index._values)
+            row_df.index = cast_pointwise_result(row_df.index._values, self.index.array)
 
         # infer_objects is needed for
         #  test_append_empty_frame_to_series_with_dateutil_tz

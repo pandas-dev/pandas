@@ -69,6 +69,7 @@ from pandas.util._validators import (
 from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     LossySetitemError,
+    cast_pointwise_result,
     construct_1d_arraylike_from_scalar,
     find_common_type,
     infer_dtype_from,
@@ -3252,7 +3253,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 new_values[:] = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        res_values = self.array._cast_pointwise_result(new_values)
+        res_values = cast_pointwise_result(new_values, self.array)
         return self._constructor(
             res_values,
             dtype=res_values.dtype,
