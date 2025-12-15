@@ -2678,7 +2678,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         5  3.0  8.0
 
         >>> grouped.transform("mean")
-            C        D
+                  C    D
         0  3.666667  4.0
         1  4.000000  5.0
         2  3.666667  4.0
