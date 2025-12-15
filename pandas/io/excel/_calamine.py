@@ -15,7 +15,6 @@ from typing import (
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
-import pandas as pd
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
@@ -107,10 +106,12 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
                     return val
                 else:
                     return value
+            elif isinstance(value, (datetime, timedelta)):
+                # Return as-is to match openpyxl behavior (GH#59186)
+                return value
             elif isinstance(value, date):
-                return pd.Timestamp(value)
-            elif isinstance(value, timedelta):
-                return pd.Timedelta(value)
+                # Convert date to datetime to match openpyxl behavior (GH#59186)
+                return datetime(value.year, value.month, value.day)
             elif isinstance(value, time):
                 return value
 
