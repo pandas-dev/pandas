@@ -7,6 +7,9 @@ We're excited to announce the release candidate for pandas 3.0. This major
 release brings significant improvements to pandas, but also features some
 potentially breaking changes.
 
+To ensure a smooth pandas 3.0 release, we can use your help to [test the
+release candidate now](#call-to-action-test-the-release-candidate).
+
 ## Highlights of pandas 3.0
 
 pandas 3.0 introduces several major enhancements:
@@ -20,8 +23,6 @@ pandas 3.0 introduces several major enhancements:
   copies
 - **New `pd.col` syntax**: Initial support for `pd.col()` as a simplified syntax
   for creating callables in `DataFrame.assign`
-- **Enhanced deprecation policy**: A new 3-stage deprecation process to give
-  downstream packages more time to adapt
 
 You can find the complete list of changes in our
 [release notes](https://pandas.pydata.org/docs/dev/whatsnew/v3.0.0.html).
@@ -36,7 +37,7 @@ updates to your code. The two most significant changes are:
 Starting with pandas 3.0, string columns are automatically inferred as `str`
 dtype instead of the numpy `object` (which can store any Python object).
 
-**Example of the change:**
+**Example:**
 ```python
 # Old behavior (pandas < 3.0)
 >>> ser = pd.Series(["a", "b"])
@@ -54,35 +55,41 @@ dtype: object  # <-- numpy object dtype
 dtype: str  # <-- new string dtype
 ```
 
-This change improves performance and type safety, but may require code updates.
+This change improves performance and type safety, but may require code updates,
+especially for library code that currently looks for "object" dtype when
+expecting string data.
+
 For more details, see the
-[String Data Type Migration Guide](https://pandas.pydata.org/docs/dev/user_guide/migration-3-strings.html).
+[migration guide for the new string data type](https://pandas.pydata.org/docs/dev/user_guide/migration-3-strings.html).
 
 ### 2. Consistent copy/view behaviour with Copy-on-Write (CoW)
 
 Copy-on-Write is now the default and only mode in pandas 3.0. This makes
 behavior more consistent and predictable, but requires updates to certain coding
-patterns:
+patterns.
 
-**What you need to update:**
-- **Chained assignment** will no longer work. You'll need to use `.loc` or
-  `.iloc` directly on the DataFrame instead
-- The `SettingWithCopyWarning` is removed (since chained assignment no longer works)
-- Any indexing operation now always behaves as if it were a copy, so
-  modifications won't affect the original DataFrame
+The most impactfull change is that **chained assignment will no longer work**.
+As a result, the `SettingWithCopyWarning` is also removed (since there is no
+longer ambiguity whether it would work or not).
 
-**Example of the change:**
+**Example:**
 ```python
 # Old behavior (pandas < 3.0) - chained assignment
-df[df['A'] > 0]['B'] = 1  # This might modify df (unpredictable)
+df["foo"][df["bar"] > 5] =   # This might modify df (unpredictable)
 
-# New behavior (pandas 3.0) - must use .loc
-df.loc[df['A'] > 0, 'B'] = 1  # This is the correct way
+# New behavior (pandas 3.0) - must do the modification in one step (e.g. with .loc)
+df.loc[df["bar"] > 5, "foo"] = 100
 ```
 
-[Copy-on-Write Migration Guide](https://pandas.pydata.org/pandas-docs/version/3.0.0/user_guide/copy_on_write.html)
+In general, any result of an indexing operation or method now always behaves as
+if it were a copy, so modifications of the result won't affect the original
+DataFrame.
 
-## Call to Action: Test the Release Candidate
+For more details, see the
+[Copy-on-Write migration guide](https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html#migrating-to-copy-on-write).
+
+
+## Call to Action: test the Release Candidate
 
 We need your help to ensure a smooth pandas 3.0 release!
 
@@ -91,13 +98,17 @@ pandas as a dependency, it is strongly recommended to run your test suites with
 the release candidate, and report any issue to our issue tracker before the
 official 3.0.0 release.
 
-1. **Install the release candidate** and test it with your codebase
-2. **Run your existing code** to identify any issues or needed updates
-3. **Report any problems** you encounter on our [GitHub repository](https://github.com/pandas-dev/pandas/issues)
-4. **Share your migration experiences** with the community
+How can you best test the release candidate?
+
+1. **First update to the latest released pandas 2.3** (if you are not already
+   running that version) and test it with your codebase. It is recommended to
+   resolve any deprecation warning before upgrading to pandas 3.0.
+2. **Install the release candidate** and test it with your codebase
+3. **Run your existing code** to identify any issues or needed updates
+4. **Report any problems** you encounter on our [GitHub repository issue tracker](https://github.com/pandas-dev/pandas/issues)
 
 The more testing we get now, the smoother the final pandas 3.0 release will be
-for everyone. Your feedback is crucial to making this a successful release!
+for everyone. Your feedback is crucial for making this a successful release!
 
 ### Getting the Release Candidate
 
