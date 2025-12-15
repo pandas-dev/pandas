@@ -64,7 +64,7 @@ jobs:
           python -m pip install build
           python -m build --sdist
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: sdist
           path: ./dist/*
@@ -197,7 +197,7 @@ jobs:
         shell: bash -el {0}
         run: for whl in $(ls ./dist/*.whl); do wheel unpack $whl -d /tmp; done
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           path: ./dist/*.whl
