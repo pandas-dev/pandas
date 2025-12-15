@@ -117,7 +117,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dict_like,
     is_extension_array_dtype,
-    is_float_dtype,
     is_list_like,
     is_number,
     is_numeric_dtype,
@@ -9629,7 +9628,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
 
-        has_nan: bool = False
         # align the cond to same shape as myself
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
@@ -9645,13 +9643,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
-            if is_float_dtype(cond) and np.isnan(cond).any():
-                has_nan = True
             if cond.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
-            if has_nan:
-                cond = cond.astype(bool)
             cond = cond.fillna(True)
 
         # make sure we are boolean
@@ -9999,13 +9993,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # see gh-21891
         if not hasattr(cond, "__invert__"):
             cond = np.array(cond)
-            if is_float_dtype(cond) and np.isnan(cond).any():
-                cond = cond.astype(bool)
 
+        # GH 60772
+        na_msg = "Cannot mask with non-boolean array containing NA / NaN values"
         if isinstance(cond, np.ndarray):
-            if not cond.flags.writeable:
-                cond.setflags(write=True)
-            cond[isna(cond)] = False
+            if not lib.is_bool_array(cond):
+                raise ValueError(na_msg)
+        elif isinstance(cond, ABCDataFrame):
+            if not all(is_bool_dtype(blk.dtype) for blk in cond._mgr.blocks):
+                raise ValueError(na_msg)
+        elif isinstance(cond, ABCSeries):
+            if not is_bool_dtype(cond):
+                raise ValueError(na_msg)
 
         return self._where(
             ~cond,
