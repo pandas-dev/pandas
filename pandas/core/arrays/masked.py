@@ -33,7 +33,6 @@ from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
-    maybe_unbox_numpy_scalar,
 )
 from pandas.core.dtypes.common import (
     is_bool,
@@ -1770,7 +1769,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         values = self._data.copy()
         np.putmask(values, self._mask, self.dtype._falsey_value)
-        result = maybe_unbox_numpy_scalar(values.any())
+        result = values.any()
         if skipna:
             return result
         else:
@@ -1856,7 +1855,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         values = self._data.copy()
         np.putmask(values, self._mask, self.dtype._truthy_value)
-        result = maybe_unbox_numpy_scalar(values.all(axis=axis))
+        result = values.all(axis=axis)
 
         if skipna:
             return result
