@@ -501,7 +501,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # range
         if isinstance(data, (range, RangeIndex)):
-            result = RangeIndex(start=data, copy=copy, name=name)
+            result = RangeIndex(start=data, copy=bool(copy), name=name)
             if dtype is not None:
                 return result.astype(dtype, copy=False)
             # error: Incompatible return value type (got "MultiIndex",
