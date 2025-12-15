@@ -895,7 +895,7 @@ def to_datetime(
 
     >>> pd.to_datetime(1490195805, unit="s")
     Timestamp('2017-03-22 15:16:45')
-    >>> pd.to_datetime(1490195805433502912, unit="s")
+    >>> pd.to_datetime(1490195805433502912, unit="ns")
     Timestamp('2017-03-22 15:16:45.433502912')
 
     .. warning:: For float arg, precision rounding might happen. To prevent
