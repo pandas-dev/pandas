@@ -108,7 +108,7 @@ def cut(
         The precision at which to store and display the bins labels.
     include_lowest : bool, default False
         Whether the first interval should be left-inclusive or not.
-    duplicates : {default 'raise', 'drop'}, optional
+    duplicates : {'raise', 'drop'}, default 'raise'
         If bin edges are not unique, raise ValueError or drop non-uniques.
     ordered : bool, default True
         Whether the labels are ordered or not. Applies to returned types
