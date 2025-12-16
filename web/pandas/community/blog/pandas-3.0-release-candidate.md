@@ -1,4 +1,4 @@
-Title: pandas 3.0.0 release candidate ready for testing
+Title: pandas 3.0.0 release candidate ready for testing!
 Date: 2025-12-12
 
 # pandas 3.0.0 release candidate ready for testing!
@@ -24,7 +24,8 @@ pandas 3.0 introduces several major enhancements:
 - **New `pd.col` syntax**: Initial support for `pd.col()` as a simplified syntax
   for creating callables in `DataFrame.assign`
 
-You can find the complete list of changes in our
+Together with a lot of other improvements and bug fixes. You can find the
+complete list of changes in our
 [release notes](https://pandas.pydata.org/docs/dev/whatsnew/v3.0.0.html).
 
 ## Important changes requiring code updates
@@ -70,7 +71,8 @@ patterns.
 
 The most impactfull change is that **chained assignment will no longer work**.
 As a result, the `SettingWithCopyWarning` is also removed (since there is no
-longer ambiguity whether it would work or not).
+longer ambiguity whether it would work or not), and defensive `.copy()` calls
+to silence the warning are no longer needed.
 
 **Example:**
 ```python
@@ -103,9 +105,12 @@ How can you best test the release candidate?
 1. **First update to the latest released pandas 2.3** (if you are not already
    running that version) and test it with your codebase. It is recommended to
    resolve any deprecation warning before upgrading to pandas 3.0.
-2. **Install the release candidate** and test it with your codebase
-3. **Run your existing code** to identify any issues or needed updates
-4. **Report any problems** you encounter on our [GitHub repository issue tracker](https://github.com/pandas-dev/pandas/issues)
+2. Optionally, you can already enable the new string dtype and Copy-on-Write
+   mode using pandas 2.3 (`pd.options.future.infer_string = True` and
+   `pd.options.mode.copy_on_write = True`).
+3. **Install the release candidate** (see below) and test it with your codebase
+4. **Run your existing code** to identify any issues or needed updates
+5. **Report any problems** you encounter on our [GitHub repository issue tracker](https://github.com/pandas-dev/pandas/issues)
 
 The more testing we get now, the smoother the final pandas 3.0 release will be
 for everyone. Your feedback is crucial for making this a successful release!
