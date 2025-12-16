@@ -284,7 +284,7 @@ def timedelta_range(
         Number of periods to generate.
     freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5h'.
-    name : str, default None
+    name : Hashable, default None
         Name of the resulting TimedeltaIndex.
     closed : str, default None
         Make the interval closed with respect to the given frequency to
