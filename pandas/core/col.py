@@ -260,6 +260,8 @@ def col(col_name: Hashable) -> Expression:
     :meth:`DataFrame.assign` or :meth:`DataFrame.loc`, can also accept
     ``pd.col(col_name)``.
 
+    .. versionadded:: 3.0.0
+
     Parameters
     ----------
     col_name : Hashable
