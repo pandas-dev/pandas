@@ -80,8 +80,8 @@ and how to adapt your code to the new default.
 
 .. _whatsnew_300.enhancements.copy_on_write:
 
-Copy-on-Write
-^^^^^^^^^^^^^
+Consistent copy/view behaviour with Copy-on-Write
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The new "copy-on-write" behaviour in pandas 3.0 brings changes in behavior in
 how pandas operates with respect to copies and views. A summary of the changes:
@@ -101,9 +101,10 @@ copy or a view depended on the exact operation performed, which was often
 confusing).
 
 Because every single indexing step now behaves as a copy, this also means that
-"chained assignment" (updating a DataFrame with multiple setitem steps) will
-stop working. Because this now consistently never works, the
-``SettingWithCopyWarning`` is removed.
+**"chained assignment"** (updating a DataFrame with multiple setitem steps)
+**will stop working**. Because this now consistently never works, the
+``SettingWithCopyWarning`` is removed,  and defensive ``.copy()`` calls to
+silence the warning are no longer needed.
 
 The new behavioral semantics are explained in more detail in the
 :ref:`user guide about Copy-on-Write <copy_on_write>`.
