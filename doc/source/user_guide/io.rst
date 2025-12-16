@@ -1,105 +1,12 @@
-.. _io:
-
-.. currentmodule:: pandas
-
-IO tools (text, CSV, HDF5, ...)
-================================
-
-The pandas IO API is a set of top level :term:`reader` functions accessed like
-:meth:`pandas.read_csv` that generally return a pandas object. The corresponding
-:term:`writer` functions are object methods that are accessed like
-:meth:`DataFrame.to_csv`.
-
-Below is a table containing available ``readers`` and ``writers``.
-
-.. csv-table::
-   :header: "Format Type", "Data Description", "Reader", "Writer"
-   :widths: 30, 100, 60, 60
-
-   "text","CSV https://en.wikipedia.org/wiki/Comma-separated_values",":ref:`read_csv<io.read_csv_table>`",":ref:`to_csv<io.store_in_csv>`"
-   "text","Fixed-Width Text File",":ref:`read_fwf<io.fwf_reader>`","NA"
-   "text","JSON https://www.json.org",":ref:`read_json<io.json_reader>`",":ref:`to_json<io.json_writer>`"
-   "text","HTML https://en.wikipedia.org/wiki/HTML",":ref:`read_html<io.read_html>`",":ref:`to_html<io.html>`"
-   "text","LaTeX https://en.wikipedia.org/wiki/LaTeX","NA",":ref:`Styler.to_latex<io.latex>`"
-   "text","XML https://www.w3.org/standards/xml/core",":ref:`read_xml<io.read_xml>`",":ref:`to_xml<io.xml>`"
-   "text","Local clipboard",":ref:`read_clipboard<io.clipboard>`",":ref:`to_clipboard<io.clipboard>`"
-   "binary","MS Excel https://en.wikipedia.org/wiki/Microsoft_Excel",":ref:`read_excel<io.excel_reader>`",":ref:`to_excel<io.excel_writer>`"
-   "binary","OpenDocument http://opendocumentformat.org",":ref:`read_excel<io.ods>`","NA"
-   "binary","HDF5 Format https://support.hdfgroup.org/documentation/hdf5/latest/intro_hdf5.html",":ref:`read_hdf<io.hdf5>`",":ref:`to_hdf<io.hdf5>`"
-   "binary","Feather Format https://github.com/wesm/feather",":ref:`read_feather<io.feather>`",":ref:`to_feather<io.feather>`"
-   "binary","Parquet Format https://parquet.apache.org",":ref:`read_parquet<io.parquet>`",":ref:`to_parquet<io.parquet>`"
-   "binary","Apache Iceberg https://iceberg.apache.org",":ref:`read_iceberg<io.iceberg>`",":ref:`to_iceberg<io.iceberg>`"
-   "binary","ORC Format https://orc.apache.org",":ref:`read_orc<io.orc>`",":ref:`to_orc<io.orc>`"
-   "binary","Stata https://en.wikipedia.org/wiki/Stata",":ref:`read_stata<io.stata_reader>`",":ref:`to_stata<io.stata_writer>`"
-   "binary","SAS https://en.wikipedia.org/wiki/SAS_(software)",":ref:`read_sas<io.sas_reader>`","NA"
-   "binary","SPSS https://en.wikipedia.org/wiki/SPSS",":ref:`read_spss<io.spss_reader>`","NA"
-   "binary","Python Pickle Format https://docs.python.org/3/library/pickle.html",":ref:`read_pickle<io.pickle>`",":ref:`to_pickle<io.pickle>`"
-   "SQL","SQL https://en.wikipedia.org/wiki/SQL",":ref:`read_sql<io.sql>`",":ref:`to_sql<io.sql>`"
-
-:ref:`here <io.perf>` is an informal performance comparison for some of these IO
-methods.
-
-.. note::
-
-   For examples that use the :class:`~io.StringIO` class, make sure you import it
-   with ``from io import StringIO`` for Python 3.
-
-.. _io.read_csv_table:
-
-CSV & text files
-----------------
-
-The workhorse function for reading text files (a.k.a. flat files) is
-:func:`read_csv`. See the :ref:`cookbook<cookbook.csv>` for some advanced
-strategies.
-
-Parsing options
-^^^^^^^^^^^^^^^
-
-:func:`read_csv` accepts the following common arguments:
-
-Basic
-"""""
-
-* ``filepath_or_buffer`` : various
-
-  Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`,
-  URL (including http, ftp, and S3 locations), or any object with a
-  ``read`` method (such as an open file or :class:`python:io.StringIO`).
-
-* ``sep`` : str, defaults to ``','`` for :func:`read_csv`, ``'\t'`` for
-  :func:`read_table`
-
-  Delimiter to use. If ``sep`` is ``None``, the C engine cannot automatically
-  detect the separator, but the Python parsing engine can, meaning the latter
-  will be used and automatically detect the separator by Python’s builtin
-  sniffer tool, :class:`python:csv.Sniffer`. In addition, separators longer than
-  1 character and different from ``'\s+'`` will be interpreted as regular
-  expressions and will also force the use of the Python parsing engine. Note
-  that regex delimiters are prone to ignoring quoted data. Regex example:
-  ``'\\r\\t'``.
-
-* ``delimiter`` : str, default ``None``
-
-  Alternative argument name for ``sep``.
-
-[...]
-
-(KEEP ALL THE EXISTING CONTENT FROM YOUR CURRENT ``io.rst`` UNCHANGED
-DOWN TO JUST BEFORE THE “Dealing with Unicode data” SECTION. THE ONLY
-NEW CONTENT GOES RIGHT AFTER THE “Comments and empty lines” / CSV-related
-material AND BEFORE THE NEXT MAJOR UNRELATED SUBSECTION. PLACE THE NEW
-SECTION LIKE THIS:)
-
 Using pandas IO in Google Colab
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Google Colab provides a hosted Python environment where pandas IO functions
-such as :func:`read_csv` work the same as in any other Python runtime, but
-there are a few common patterns for getting data into the environment. [file:11]
+Google Colab is a hosted Python environment. pandas IO functions such as
+:func:`read_csv` work the same as anywhere else, but there are a few common
+ways to get data into the notebook.
 
 This section shows how to use :mod:`pandas` IO tools together with Colab
-utilities such as file upload, Google Drive, and remote URLs. [file:11]
+utilities for file upload, Google Drive, and remote URLs.
 
 Uploading local files
 """""""""""""""""""""
@@ -122,14 +29,14 @@ To load a file from your local machine into Colab:
    filename = next(iter(uploaded))
    df = pd.read_csv(filename)
 
-See :func:`read_csv` for additional options such as ``sep``, ``dtype``, and
-``parse_dates`` when parsing the uploaded file. [file:11]
+See :func:`read_csv` for options such as ``sep``, ``dtype``, and ``parse_dates``
+when parsing the uploaded file.
 
 Reading from Google Drive
 """""""""""""""""""""""""
 
-If your data is stored in Google Drive, you can mount the Drive filesystem and
-then read files with the usual pandas IO functions. [file:11]
+If your data is in Google Drive, you can mount the Drive filesystem and then
+read files with the usual pandas IO functions.
 
 .. code-block:: python
 
@@ -143,15 +50,15 @@ then read files with the usual pandas IO functions. [file:11]
    path = "/content/drive/MyDrive/data/example.csv"
    df = pd.read_csv(path)
 
-Any other text or binary formats supported by pandas, such as Excel with
-:func:`read_excel` or Parquet with :func:`read_parquet`, can be read from
-mounted Drive in the same way. [file:11]
+Other formats supported by pandas, such as Excel with :func:`read_excel` or
+Parquet with :func:`read_parquet`, can be read from mounted Drive in the same
+way.
 
 Reading from URLs and cloud storage
 """""""""""""""""""""""""""""""""""
 
 Colab can access data directly over HTTP(S), so many remote resources can be
-read by passing a URL to pandas readers. [file:11]
+read by passing a URL to pandas readers.
 
 .. code-block:: python
 
@@ -162,12 +69,12 @@ read by passing a URL to pandas readers. [file:11]
 
 For object stores such as Amazon S3 or Google Cloud Storage, use the same
 :func:`read_csv`, :func:`read_parquet`, or other IO functions with the
-appropriate URL scheme (for example, ``"s3://..."`` or ``"gs://..."``) and
-ensure the required authentication libraries and credentials are configured in
-Colab. [file:11]
+appropriate URL scheme (for example, ``"s3://..."`` or ``"gs://..."``) and make
+sure the required authentication libraries and credentials are set up in Colab.
 
 For more details on specific formats, see the sections below on CSV, Excel,
-Parquet, HDF5, and other IO tools. [file:11]
+Parquet, HDF5, and other IO tools.
+ [file:11]
 
 [...]
 
