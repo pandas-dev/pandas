@@ -83,12 +83,17 @@ def test_mask_na(dtype, cond_type):
     # We should not be filling pd.NA. See GH#60729
     series = Series([None, 1, 2, None, 3, 4, None], dtype=dtype)
     cond = series <= 2
-    expected = Series([None, -99, -99, None, 3, 4, None], dtype=dtype)
 
     if cond_type == "list":
         cond = cond.to_list()
     elif cond_type == "numpy":
         cond = cond.to_numpy()
 
-    result = series.mask(cond, -99)
-    tm.assert_series_equal(result, expected)
+    if isinstance(cond, Series):
+        result = series.mask(cond, -99)
+        expected = Series([None, -99, -99, None, 3, 4, None], dtype=dtype)
+        tm.assert_series_equal(result, expected)
+    else:
+        msg = "Cannot mask with non-boolean array containing NA / NaN values"
+        with pytest.raises(ValueError, match=msg):
+            series.mask(cond)
