@@ -5,6 +5,7 @@ from pandas import (
     DataFrame,
     Index,
     Series,
+    array,
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -156,6 +157,12 @@ def test_constructor_copy_input_ndarray_default():
     arr = np.array([0, 1])
     idx = Index(arr)
     assert not np.shares_memory(arr, get_array(idx))
+
+
+def test_constructor_copy_input_ea_default():
+    arr = array([0, 1], dtype="Int64")
+    idx = Index(arr)
+    assert not tm.shares_memory(arr, idx.array)
 
 
 def test_series_from_temporary_index_readonly_data():

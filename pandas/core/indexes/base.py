@@ -499,6 +499,13 @@ class Index(IndexOpsMixin, PandasObject):
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
+        if isinstance(data, (ExtensionArray, np.ndarray)):
+            # GH 63306
+            if copy is not False:
+                if dtype is None or astype_is_view(data.dtype, dtype):
+                    data = data.copy()
+                    copy = False
+
         # range
         if isinstance(data, (range, RangeIndex)):
             result = RangeIndex(start=data, copy=bool(copy), name=name)
@@ -517,13 +524,7 @@ class Index(IndexOpsMixin, PandasObject):
             pass
 
         elif isinstance(data, (np.ndarray, ABCMultiIndex)):
-            if isinstance(data, np.ndarray):
-                if copy is not False:
-                    if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
-                        # GH 63306
-                        data = data.copy()
-                        copy = False
-            elif isinstance(data, ABCMultiIndex):
+            if isinstance(data, ABCMultiIndex):
                 data = data._values
 
             if data.dtype.kind not in "iufcbmM":
