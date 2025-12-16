@@ -14,18 +14,18 @@ release candidate now](#call-to-action-test-the-release-candidate).
 
 pandas 3.0 introduces several major enhancements:
 
-- **Dedicated string data type by default**: String columns are now inferred as
+- **Dedicated string data type by default**: string columns are now inferred as
   the new `str` dtype instead of `object`, providing better performance and type
   safety
 - **Consistent copy/view behaviour with Copy-on-Write (CoW)** (a.k.a. getting
-  rid of the SettingWithCopyWarning): More predictable and consistent behavior
+  rid of the SettingWithCopyWarning): more predictable and consistent behavior
   for all operations, with improved performance through avoiding unnecessary
   copies
-- **New `pd.col` syntax**: Initial support for `pd.col()` as a simplified syntax
+- **New `pd.col` syntax**: initial support for `pd.col()` as a simplified syntax
   for creating callables in `DataFrame.assign`
 
-Together with a lot of other improvements and bug fixes. You can find the
-complete list of changes in our
+Further, pandas 3.0 includes a lot of other improvements and bug fixes. You can
+find the complete list of changes in our
 [release notes](https://pandas.pydata.org/docs/dev/whatsnew/v3.0.0.html).
 
 ## Important changes requiring code updates
