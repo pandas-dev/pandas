@@ -37,6 +37,12 @@ _OP_SYMBOLS = {
     "__lt__": "<",
     "__eq__": "==",
     "__ne__": "!=",
+    "__and__": "&",
+    "__rand__": "&",
+    "__or__": "|",
+    "__ror__": "|",
+    "__xor__": "^",
+    "__rxor__": "^",
 }
 
 
@@ -156,6 +162,28 @@ class Expression:
 
     def __rmod__(self, other: Any) -> Expression:
         return self._with_binary_op("__rmod__", other)
+
+    # Logical ops
+    def __and__(self, other: Any) -> Expression:
+        return self._with_binary_op("__and__", other)
+
+    def __rand__(self, other: Any) -> Expression:
+        return self._with_binary_op("__rand__", other)
+
+    def __or__(self, other: Any) -> Expression:
+        return self._with_binary_op("__or__", other)
+
+    def __ror__(self, other: Any) -> Expression:
+        return self._with_binary_op("__ror__", other)
+
+    def __xor__(self, other: Any) -> Expression:
+        return self._with_binary_op("__xor__", other)
+
+    def __rxor__(self, other: Any) -> Expression:
+        return self._with_binary_op("__rxor__", other)
+
+    def __invert__(self) -> Expression:
+        return Expression(lambda df: ~self(df), f"(~{self._repr_str})")
 
     def __array_ufunc__(
         self, ufunc: Callable[..., Any], method: str, *inputs: Any, **kwargs: Any
