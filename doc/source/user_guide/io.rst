@@ -2,45 +2,46 @@
 
 .. currentmodule:: pandas
 
-
-===============================
 IO tools (text, CSV, HDF5, ...)
-===============================
+================================
 
-The pandas I/O API is a set of top level ``reader`` functions accessed like
-:func:`pandas.read_csv` that generally return a pandas object. The corresponding
-``writer`` functions are object methods that are accessed like
-:meth:`DataFrame.to_csv`. Below is a table containing available ``readers`` and
-``writers``.
+The pandas IO API is a set of top level :term:`reader` functions accessed like
+:meth:`pandas.read_csv` that generally return a pandas object. The corresponding
+:term:`writer` functions are object methods that are accessed like
+:meth:`DataFrame.to_csv`.
+
+Below is a table containing available ``readers`` and ``writers``.
 
 .. csv-table::
-    :header: "Format Type", "Data Description", "Reader", "Writer"
-    :widths: 30, 100, 60, 60
+   :header: "Format Type", "Data Description", "Reader", "Writer"
+   :widths: 30, 100, 60, 60
 
-    text,`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__, :ref:`read_csv<io.read_csv_table>`, :ref:`to_csv<io.store_in_csv>`
-    text,Fixed-Width Text File, :ref:`read_fwf<io.fwf_reader>`, NA
-    text,`JSON <https://www.json.org/>`__, :ref:`read_json<io.json_reader>`, :ref:`to_json<io.json_writer>`
-    text,`HTML <https://en.wikipedia.org/wiki/HTML>`__, :ref:`read_html<io.read_html>`, :ref:`to_html<io.html>`
-    text,`LaTeX <https://en.wikipedia.org/wiki/LaTeX>`__, NA, :ref:`Styler.to_latex<io.latex>`
-    text,`XML <https://www.w3.org/standards/xml/core>`__, :ref:`read_xml<io.read_xml>`, :ref:`to_xml<io.xml>`
-    text, Local clipboard, :ref:`read_clipboard<io.clipboard>`, :ref:`to_clipboard<io.clipboard>`
-    binary,`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__ , :ref:`read_excel<io.excel_reader>`, :ref:`to_excel<io.excel_writer>`
-    binary,`OpenDocument <http://opendocumentformat.org>`__, :ref:`read_excel<io.ods>`, NA
-    binary,`HDF5 Format <https://support.hdfgroup.org/documentation/hdf5/latest/_intro_h_d_f5.html>`__, :ref:`read_hdf<io.hdf5>`, :ref:`to_hdf<io.hdf5>`
-    binary,`Feather Format <https://github.com/wesm/feather>`__, :ref:`read_feather<io.feather>`, :ref:`to_feather<io.feather>`
-    binary,`Parquet Format <https://parquet.apache.org/>`__, :ref:`read_parquet<io.parquet>`, :ref:`to_parquet<io.parquet>`
-    binary,`Apache Iceberg <https://iceberg.apache.org/>`__, :ref:`read_iceberg<io.iceberg>` , :ref:`to_iceberg<io.iceberg>`
-    binary,`ORC Format <https://orc.apache.org/>`__, :ref:`read_orc<io.orc>`, :ref:`to_orc<io.orc>`
-    binary,`Stata <https://en.wikipedia.org/wiki/Stata>`__, :ref:`read_stata<io.stata_reader>`, :ref:`to_stata<io.stata_writer>`
-    binary,`SAS <https://en.wikipedia.org/wiki/SAS_(software)>`__, :ref:`read_sas<io.sas_reader>` , NA
-    binary,`SPSS <https://en.wikipedia.org/wiki/SPSS>`__, :ref:`read_spss<io.spss_reader>` , NA
-    binary,`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__, :ref:`read_pickle<io.pickle>`, :ref:`to_pickle<io.pickle>`
-    SQL,`SQL <https://en.wikipedia.org/wiki/SQL>`__, :ref:`read_sql<io.sql>`,:ref:`to_sql<io.sql>`
+   "text","CSV https://en.wikipedia.org/wiki/Comma-separated_values",":ref:`read_csv<io.read_csv_table>`",":ref:`to_csv<io.store_in_csv>`"
+   "text","Fixed-Width Text File",":ref:`read_fwf<io.fwf_reader>`","NA"
+   "text","JSON https://www.json.org",":ref:`read_json<io.json_reader>`",":ref:`to_json<io.json_writer>`"
+   "text","HTML https://en.wikipedia.org/wiki/HTML",":ref:`read_html<io.read_html>`",":ref:`to_html<io.html>`"
+   "text","LaTeX https://en.wikipedia.org/wiki/LaTeX","NA",":ref:`Styler.to_latex<io.latex>`"
+   "text","XML https://www.w3.org/standards/xml/core",":ref:`read_xml<io.read_xml>`",":ref:`to_xml<io.xml>`"
+   "text","Local clipboard",":ref:`read_clipboard<io.clipboard>`",":ref:`to_clipboard<io.clipboard>`"
+   "binary","MS Excel https://en.wikipedia.org/wiki/Microsoft_Excel",":ref:`read_excel<io.excel_reader>`",":ref:`to_excel<io.excel_writer>`"
+   "binary","OpenDocument http://opendocumentformat.org",":ref:`read_excel<io.ods>`","NA"
+   "binary","HDF5 Format https://support.hdfgroup.org/documentation/hdf5/latest/intro_hdf5.html",":ref:`read_hdf<io.hdf5>`",":ref:`to_hdf<io.hdf5>`"
+   "binary","Feather Format https://github.com/wesm/feather",":ref:`read_feather<io.feather>`",":ref:`to_feather<io.feather>`"
+   "binary","Parquet Format https://parquet.apache.org",":ref:`read_parquet<io.parquet>`",":ref:`to_parquet<io.parquet>`"
+   "binary","Apache Iceberg https://iceberg.apache.org",":ref:`read_iceberg<io.iceberg>`",":ref:`to_iceberg<io.iceberg>`"
+   "binary","ORC Format https://orc.apache.org",":ref:`read_orc<io.orc>`",":ref:`to_orc<io.orc>`"
+   "binary","Stata https://en.wikipedia.org/wiki/Stata",":ref:`read_stata<io.stata_reader>`",":ref:`to_stata<io.stata_writer>`"
+   "binary","SAS https://en.wikipedia.org/wiki/SAS_(software)",":ref:`read_sas<io.sas_reader>`","NA"
+   "binary","SPSS https://en.wikipedia.org/wiki/SPSS",":ref:`read_spss<io.spss_reader>`","NA"
+   "binary","Python Pickle Format https://docs.python.org/3/library/pickle.html",":ref:`read_pickle<io.pickle>`",":ref:`to_pickle<io.pickle>`"
+   "SQL","SQL https://en.wikipedia.org/wiki/SQL",":ref:`read_sql<io.sql>`",":ref:`to_sql<io.sql>`"
 
-:ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
+:ref:`here <io.perf>` is an informal performance comparison for some of these IO
+methods.
 
 .. note::
-   For examples that use the ``StringIO`` class, make sure you import it
+
+   For examples that use the :class:`~io.StringIO` class, make sure you import it
    with ``from io import StringIO`` for Python 3.
 
 .. _io.read_csv_table:
@@ -49,659 +50,138 @@ CSV & text files
 ----------------
 
 The workhorse function for reading text files (a.k.a. flat files) is
-:func:`read_csv`. See the :ref:`cookbook<cookbook.csv>` for some advanced strategies.
+:func:`read_csv`. See the :ref:`cookbook<cookbook.csv>` for some advanced
+strategies.
 
 Parsing options
-'''''''''''''''
+^^^^^^^^^^^^^^^
 
 :func:`read_csv` accepts the following common arguments:
 
 Basic
-+++++
-
-filepath_or_buffer : various
-  Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`)
-  URL (including http, ftp, and S3
-  locations), or any object with a ``read()`` method (such as an open file or
-  :class:`~python:io.StringIO`).
-sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_table`
-  Delimiter to use. If sep is ``None``, the C engine cannot automatically detect
-  the separator, but the Python parsing engine can, meaning the latter will be
-  used and automatically detect the separator by Python's builtin sniffer tool,
-  :class:`python:csv.Sniffer`. In addition, separators longer than 1 character and
-  different from ``'\s+'`` will be interpreted as regular expressions and
-  will also force the use of the Python parsing engine. Note that regex
-  delimiters are prone to ignoring quoted data. Regex example: ``'\\r\\t'``.
-delimiter : str, default ``None``
-  Alternative argument name for sep.
-
-Column and index locations and names
-++++++++++++++++++++++++++++++++++++
-
-header : int or list of ints, default ``'infer'``
-  Row number(s) to use as the column names, and the start of the
-  data. Default behavior is to infer the column names: if no names are
-  passed the behavior is identical to ``header=0`` and column names
-  are inferred from the first line of the file, if column names are
-  passed explicitly then the behavior is identical to
-  ``header=None``. Explicitly pass ``header=0`` to be able to replace
-  existing names.
-
-  The header can be a list of ints that specify row locations
-  for a MultiIndex on the columns e.g. ``[0,1,3]``. Intervening rows
-  that are not specified will be skipped (e.g. 2 in this example is
-  skipped). Note that this parameter ignores commented lines and empty
-  lines if ``skip_blank_lines=True``, so header=0 denotes the first
-  line of data rather than the first line of the file.
-names : array-like, default ``None``
-  List of column names to use. If file contains no header row, then you should
-  explicitly pass ``header=None``. Duplicates in this list are not allowed.
-index_col : int, str, sequence of int / str, or False, optional, default ``None``
-  Column(s) to use as the row labels of the ``DataFrame``, either given as
-  string name or column index. If a sequence of int / str is given, a
-  MultiIndex is used.
-
-  .. note::
-     ``index_col=False`` can be used to force pandas to *not* use the first
-     column as the index, e.g. when you have a malformed file with delimiters at
-     the end of each line.
-
-  The default value of ``None`` instructs pandas to guess. If the number of
-  fields in the column header row is equal to the number of fields in the body
-  of the data file, then a default index is used.  If it is larger, then
-  the first columns are used as index so that the remaining number of fields in
-  the body are equal to the number of fields in the header.
-
-  The first row after the header is used to determine the number of columns,
-  which will go into the index. If the subsequent rows contain less columns
-  than the first row, they are filled with ``NaN``.
-
-  This can be avoided through ``usecols``. This ensures that the columns are
-  taken as is and the trailing data are ignored.
-usecols : list-like or callable, default ``None``
-  Return a subset of the columns. If list-like, all elements must either
-  be positional (i.e. integer indices into the document columns) or strings
-  that correspond to column names provided either by the user in ``names`` or
-  inferred from the document header row(s). If ``names`` are given, the document
-  header row(s) are not taken into account. For example, a valid list-like
-  ``usecols`` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
-
-  Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``. To
-  instantiate a DataFrame from ``data`` with element order preserved use
-  ``pd.read_csv(data, usecols=['foo', 'bar'])[['foo', 'bar']]`` for columns
-  in ``['foo', 'bar']`` order or
-  ``pd.read_csv(data, usecols=['foo', 'bar'])[['bar', 'foo']]`` for
-  ``['bar', 'foo']`` order.
-
-  If callable, the callable function will be evaluated against the column names,
-  returning names where the callable function evaluates to True:
-
-  .. ipython:: python
-
-     import pandas as pd
-     from io import StringIO
-
-     data = "col1,col2,col3\na,b,1\na,b,2\nc,d,3"
-     pd.read_csv(StringIO(data))
-     pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ["COL1", "COL3"])
-
-  Using this parameter results in much faster parsing time and lower memory usage
-  when using the c engine. The Python engine loads the data first before deciding
-  which columns to drop.
-
-General parsing configuration
-+++++++++++++++++++++++++++++
-
-dtype : Type name or dict of column -> type, default ``None``
-  Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
-  Use ``str`` or ``object`` together with suitable ``na_values`` settings to preserve
-  and not interpret dtype. If converters are specified, they will be applied INSTEAD
-  of dtype conversion. Specify a defaultdict as input where
-  the default determines the dtype of the columns which are not explicitly
-  listed.
-
-dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
-  Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-  arrays, nullable dtypes are used for all dtypes that have a nullable
-  implementation when "numpy_nullable" is set, pyarrow is used for all
-  dtypes if "pyarrow" is set.
-
-  The dtype_backends are still experimental.
-
-  .. versionadded:: 2.0
-
-engine : {``'c'``, ``'python'``, ``'pyarrow'``}
-  Parser engine to use. The C and pyarrow engines are faster, while the python engine
-  is currently more feature-complete. Multithreading is currently only supported by
-  the pyarrow engine. Some features of the "pyarrow" engine
-  are unsupported or may not work correctly.
-converters : dict, default ``None``
-  Dict of functions for converting values in certain columns. Keys can either be
-  integers or column labels.
-true_values : list, default ``None``
-  Values to consider as ``True``.
-false_values : list, default ``None``
-  Values to consider as ``False``.
-skipinitialspace : boolean, default ``False``
-  Skip spaces after delimiter.
-skiprows : list-like or integer, default ``None``
-  Line numbers to skip (0-indexed) or number of lines to skip (int) at the start
-  of the file.
-
-  If callable, the callable function will be evaluated against the row
-  indices, returning True if the row should be skipped and False otherwise:
-
-  .. ipython:: python
-
-     data = "col1,col2,col3\na,b,1\na,b,2\nc,d,3"
-     pd.read_csv(StringIO(data))
-     pd.read_csv(StringIO(data), skiprows=lambda x: x % 2 != 0)
-
-skipfooter : int, default ``0``
-  Number of lines at bottom of file to skip (unsupported with engine='c').
-
-nrows : int, default ``None``
-  Number of rows of file to read. Useful for reading pieces of large files.
-low_memory : boolean, default ``True``
-  Internally process the file in chunks, resulting in lower memory use
-  while parsing, but possibly mixed type inference.  To ensure no mixed
-  types either set ``False``, or specify the type with the ``dtype`` parameter.
-  Note that the entire file is read into a single ``DataFrame`` regardless,
-  use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
-  (Only valid with C parser)
-memory_map : boolean, default False
-  If a filepath is provided for ``filepath_or_buffer``, map the file object
-  directly onto memory and access the data directly from there. Using this
-  option can improve performance because there is no longer any I/O overhead.
-
-NA and missing data handling
-++++++++++++++++++++++++++++
-
-na_values : scalar, str, list-like, or dict, default ``None``
-  Additional strings to recognize as NA/NaN. If dict passed, specific per-column
-  NA values. See :ref:`na values const <io.navaluesconst>` below
-  for a list of the values interpreted as NaN by default.
-
-keep_default_na : boolean, default ``True``
-  Whether or not to include the default NaN values when parsing the data.
-  Depending on whether ``na_values`` is passed in, the behavior is as follows:
-
-  * If ``keep_default_na`` is ``True``, and ``na_values`` are specified, ``na_values``
-    is appended to the default NaN values used for parsing.
-  * If ``keep_default_na`` is ``True``, and ``na_values`` are not specified, only
-    the default NaN values are used for parsing.
-  * If ``keep_default_na`` is ``False``, and ``na_values`` are specified, only
-    the NaN values specified ``na_values`` are used for parsing.
-  * If ``keep_default_na`` is ``False``, and ``na_values`` are not specified, no
-    strings will be parsed as NaN.
-
-  Note that if ``na_filter`` is passed in as ``False``, the ``keep_default_na`` and
-  ``na_values`` parameters will be ignored.
-na_filter : boolean, default ``True``
-  Detect missing value markers (empty strings and the value of na_values). In
-  data without any NAs, passing ``na_filter=False`` can improve the performance
-  of reading a large file.
-verbose : boolean, default ``False``
-  Indicate number of NA values placed in non-numeric columns.
-skip_blank_lines : boolean, default ``True``
-  If ``True``, skip over blank lines rather than interpreting as NaN values.
-
-.. _io.read_csv_table.datetime:
-
-Datetime handling
-+++++++++++++++++
-
-parse_dates : boolean or list of ints or names or list of lists or dict, default ``False``.
-  * If ``True`` -> try parsing the index.
-  * If ``[1, 2, 3]`` ->  try parsing columns 1, 2, 3 each as a separate date
-    column.
-
-  .. note::
-     A fast-path exists for iso8601-formatted dates.
-date_format : str or dict of column -> format, default ``None``
-   If used in conjunction with ``parse_dates``, will parse dates according to this
-   format. For anything more complex,
-   please read in as ``object`` and then apply :func:`to_datetime` as-needed.
-
-   .. versionadded:: 2.0.0
-dayfirst : boolean, default ``False``
-  DD/MM format dates, international and European format.
-cache_dates : boolean, default True
-  If True, use a cache of unique, converted dates to apply the datetime
-  conversion. May produce significant speed-up when parsing duplicate
-  date strings, especially ones with timezone offsets.
-
-Iteration
-+++++++++
-
-iterator : boolean, default ``False``
-  Return ``TextFileReader`` object for iteration or getting chunks with
-  ``get_chunk()``.
-chunksize : int, default ``None``
-  Return ``TextFileReader`` object for iteration. See :ref:`iterating and chunking
-  <io.chunking>` below.
-
-Quoting, compression, and file format
-+++++++++++++++++++++++++++++++++++++
-
-compression : {``'infer'``, ``'gzip'``, ``'bz2'``, ``'zip'``, ``'xz'``, ``'zstd'``, ``None``, ``dict``}, default ``'infer'``
-  For on-the-fly decompression of on-disk data. If 'infer', then use gzip,
-  bz2, zip, xz, or zstandard if ``filepath_or_buffer`` is path-like ending in '.gz', '.bz2',
-  '.zip', '.xz', '.zst', respectively, and no decompression otherwise. If using 'zip',
-  the ZIP file must contain only one data file to be read in.
-  Set to ``None`` for no decompression. Can also be a dict with key ``'method'``
-  set to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``} and other key-value pairs are
-  forwarded to ``zipfile.ZipFile``, ``gzip.GzipFile``, ``bz2.BZ2File``, or ``zstandard.ZstdDecompressor``.
-  As an example, the following could be passed for faster compression and to
-  create a reproducible gzip archive:
-  ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
-thousands : str, default ``None``
-  Thousands separator.
-decimal : str, default ``'.'``
-  Character to recognize as decimal point. E.g. use ``','`` for European data.
-float_precision : string, default None
-  Specifies which converter the C engine should use for floating-point values.
-  The options are ``None`` for the ordinary converter, ``high`` for the
-  high-precision converter, and ``round_trip`` for the round-trip converter.
-lineterminator : str (length 1), default ``None``
-  Character to break file into lines. Only valid with C parser.
-quotechar : str (length 1)
-  The character used to denote the start and end of a quoted item. Quoted items
-  can include the delimiter and it will be ignored.
-quoting : int or ``csv.QUOTE_*`` instance, default ``0``
-  Control field quoting behavior per ``csv.QUOTE_*`` constants. Use one of
-  ``QUOTE_MINIMAL`` (0), ``QUOTE_ALL`` (1), ``QUOTE_NONNUMERIC`` (2) or
-  ``QUOTE_NONE`` (3).
-doublequote : boolean, default ``True``
-   When ``quotechar`` is specified and ``quoting`` is not ``QUOTE_NONE``,
-   indicate whether or not to interpret two consecutive ``quotechar`` elements
-   **inside** a field as a single ``quotechar`` element.
-escapechar : str (length 1), default ``None``
-  One-character string used to escape delimiter when quoting is ``QUOTE_NONE``.
-comment : str, default ``None``
-  Indicates remainder of line should not be parsed. If found at the beginning of
-  a line, the line will be ignored altogether. This parameter must be a single
-  character. Like empty lines (as long as ``skip_blank_lines=True``), fully
-  commented lines are ignored by the parameter ``header`` but not by ``skiprows``.
-  For example, if ``comment='#'``, parsing '#empty\\na,b,c\\n1,2,3' with
-  ``header=0`` will result in 'a,b,c' being treated as the header.
-encoding : str, default ``None``
-  Encoding to use for UTF when reading/writing (e.g. ``'utf-8'``). `List of
-  Python standard encodings
-  <https://docs.python.org/3/library/codecs.html#standard-encodings>`_.
-dialect : str or :class:`python:csv.Dialect` instance, default ``None``
-  If provided, this parameter will override values (default or not) for the
-  following parameters: ``delimiter``, ``doublequote``, ``escapechar``,
-  ``skipinitialspace``, ``quotechar``, and ``quoting``. If it is necessary to
-  override values, a ParserWarning will be issued. See :class:`python:csv.Dialect`
-  documentation for more details.
-
-Error handling
-++++++++++++++
-
-on_bad_lines : {{'error', 'warn', 'skip'}}, default 'error'
-    Specifies what to do upon encountering a bad line (a line with too many fields).
-    Allowed values are :
-
-    - 'error', raise a ParserError when a bad line is encountered.
-    - 'warn', print a warning when a bad line is encountered and skip that line.
-    - 'skip', skip bad lines without raising or warning when they are encountered.
-
-.. _io.dtypes:
-
-Specifying column data types
-''''''''''''''''''''''''''''
-
-You can indicate the data type for the whole ``DataFrame`` or individual
-columns:
-
-.. ipython:: python
-
-    import numpy as np
-
-    data = "a,b,c,d\n1,2,3,4\n5,6,7,8\n9,10,11"
-    print(data)
-
-    df = pd.read_csv(StringIO(data), dtype=object)
-    df
-    df["a"][0]
-    df = pd.read_csv(StringIO(data), dtype={"b": object, "c": np.float64, "d": "Int64"})
-    df.dtypes
-
-Fortunately, pandas offers more than one way to ensure that your column(s)
-contain only one ``dtype``. If you're unfamiliar with these concepts, you can
-see :ref:`here<basics.dtypes>` to learn more about dtypes, and
-:ref:`here<basics.object_conversion>` to learn more about ``object`` conversion in
-pandas.
-
-
-For instance, you can use the ``converters`` argument
-of :func:`~pandas.read_csv`:
-
-.. ipython:: python
-
-    data = "col_1\n1\n2\n'A'\n4.22"
-    df = pd.read_csv(StringIO(data), converters={"col_1": str})
-    df
-    df["col_1"].apply(type).value_counts()
-
-Or you can use the :func:`~pandas.to_numeric` function to coerce the
-dtypes after reading in the data,
-
-.. ipython:: python
-
-    df2 = pd.read_csv(StringIO(data))
-    df2["col_1"] = pd.to_numeric(df2["col_1"], errors="coerce")
-    df2
-    df2["col_1"].apply(type).value_counts()
-
-which will convert all valid parsing to floats, leaving the invalid parsing
-as ``NaN``.
-
-Ultimately, how you deal with reading in columns containing mixed dtypes
-depends on your specific needs. In the case above, if you wanted to ``NaN`` out
-the data anomalies, then :func:`~pandas.to_numeric` is probably your best option.
-However, if you wanted for all the data to be coerced, no matter the type, then
-using the ``converters`` argument of :func:`~pandas.read_csv` would certainly be
-worth trying.
-
-.. note::
-   In some cases, reading in abnormal data with columns containing mixed dtypes
-   will result in an inconsistent dataset. If you rely on pandas to infer the
-   dtypes of your columns, the parsing engine will go and infer the dtypes for
-   different chunks of the data, rather than the whole dataset at once. Consequently,
-   you can end up with column(s) with mixed dtypes. For example,
-
-   .. ipython:: python
-        :okwarning:
-
-        col_1 = list(range(500000)) + ["a", "b"] + list(range(500000))
-        df = pd.DataFrame({"col_1": col_1})
-        df.to_csv("foo.csv")
-        mixed_df = pd.read_csv("foo.csv")
-        mixed_df["col_1"].apply(type).value_counts()
-        mixed_df["col_1"].dtype
-
-   will result with ``mixed_df`` containing an ``int`` dtype for certain chunks
-   of the column, and ``str`` for others due to the mixed dtypes from the
-   data that was read in. It is important to note that the overall column will be
-   marked with a ``dtype`` of ``object``, which is used for columns with mixed dtypes.
-
-.. ipython:: python
-   :suppress:
-
-   import os
-
-   os.remove("foo.csv")
-
-Setting ``dtype_backend="numpy_nullable"`` will result in nullable dtypes for every column.
-
-.. ipython:: python
-
-   data = """a,b,c,d,e,f,g,h,i,j
-   1,2.5,True,a,,,,,12-31-2019,
-   3,4.5,False,b,6,7.5,True,a,12-31-2019,
-   """
-
-   df = pd.read_csv(StringIO(data), dtype_backend="numpy_nullable", parse_dates=["i"])
-   df
-   df.dtypes
-
-.. _io.categorical:
-
-Specifying categorical dtype
-''''''''''''''''''''''''''''
-
-``Categorical`` columns can be parsed directly by specifying ``dtype='category'`` or
-``dtype=CategoricalDtype(categories, ordered)``.
-
-.. ipython:: python
-
-   data = "col1,col2,col3\na,b,1\na,b,2\nc,d,3"
-
-   pd.read_csv(StringIO(data))
-   pd.read_csv(StringIO(data)).dtypes
-   pd.read_csv(StringIO(data), dtype="category").dtypes
-
-Individual columns can be parsed as a ``Categorical`` using a dict
-specification:
-
-.. ipython:: python
-
-   pd.read_csv(StringIO(data), dtype={"col1": "category"}).dtypes
-
-Specifying ``dtype='category'`` will result in an unordered ``Categorical``
-whose ``categories`` are the unique values observed in the data. For more
-control on the categories and order, create a
-:class:`~pandas.api.types.CategoricalDtype` ahead of time, and pass that for
-that column's ``dtype``.
-
-.. ipython:: python
-
-   from pandas.api.types import CategoricalDtype
-
-   dtype = CategoricalDtype(["d", "c", "b", "a"], ordered=True)
-   pd.read_csv(StringIO(data), dtype={"col1": dtype}).dtypes
-
-When using ``dtype=CategoricalDtype``, "unexpected" values outside of
-``dtype.categories`` are treated as missing values.
-
-.. ipython:: python
-   :okwarning:
-
-   dtype = CategoricalDtype(["a", "b", "d"])  # No 'c'
-   pd.read_csv(StringIO(data), dtype={"col1": dtype}).col1
-
-This matches the behavior of :meth:`Categorical.set_categories`. This behavior is
-deprecated. In a future version, the presence of non-NA values that are not
-among the specified categories will raise.
-
-.. note::
-
-   With ``dtype='category'``, the resulting categories will always be parsed
-   as strings (object dtype). If the categories are numeric they can be
-   converted using the :func:`to_numeric` function, or as appropriate, another
-   converter such as :func:`to_datetime`.
-
-   When ``dtype`` is a ``CategoricalDtype`` with homogeneous ``categories`` (
-   all numeric, all datetimes, etc.), the conversion is done automatically.
-
-   .. ipython:: python
-
-      df = pd.read_csv(StringIO(data), dtype="category")
-      df.dtypes
-      df["col3"]
-      new_categories = pd.to_numeric(df["col3"].cat.categories)
-      df["col3"] = df["col3"].cat.rename_categories(new_categories)
-      df["col3"]
-
-
-Naming and using columns
-''''''''''''''''''''''''
-
-.. _io.headers:
-
-Handling column names
-+++++++++++++++++++++
-
-A file may or may not have a header row. pandas assumes the first row should be
-used as the column names:
-
-.. ipython:: python
-
-    data = "a,b,c\n1,2,3\n4,5,6\n7,8,9"
-    print(data)
-    pd.read_csv(StringIO(data))
-
-By specifying the ``names`` argument in conjunction with ``header`` you can
-indicate other names to use and whether or not to throw away the header row (if
-any):
-
-.. ipython:: python
-
-    print(data)
-    pd.read_csv(StringIO(data), names=["foo", "bar", "baz"], header=0)
-    pd.read_csv(StringIO(data), names=["foo", "bar", "baz"], header=None)
-
-If the header is in a row other than the first, pass the row number to
-``header``. This will skip the preceding rows:
+"""""
 
-.. ipython:: python
-
-    data = "skip this skip it\na,b,c\n1,2,3\n4,5,6\n7,8,9"
-    pd.read_csv(StringIO(data), header=1)
-
-.. note::
-
-  Default behavior is to infer the column names: if no names are
-  passed the behavior is identical to ``header=0`` and column names
-  are inferred from the first non-blank line of the file, if column
-  names are passed explicitly then the behavior is identical to
-  ``header=None``.
-
-.. _io.dupe_names:
-
-Duplicate names parsing
-'''''''''''''''''''''''
-
-If the file or header contains duplicate names, pandas will by default
-distinguish between them so as to prevent overwriting data:
-
-.. ipython:: python
-
-   data = "a,b,a\n0,1,2\n3,4,5"
-   pd.read_csv(StringIO(data))
-
-There is no more duplicate data because duplicate columns 'X', ..., 'X' become
-'X', 'X.1', ..., 'X.N'.
-
-.. _io.usecols:
-
-Filtering columns (``usecols``)
-+++++++++++++++++++++++++++++++
-
-The ``usecols`` argument allows you to select any subset of the columns in a
-file, either using the column names, position numbers or a callable:
-
-.. ipython:: python
+* ``filepath_or_buffer`` : various
 
-    data = "a,b,c,d\n1,2,3,foo\n4,5,6,bar\n7,8,9,baz"
-    pd.read_csv(StringIO(data))
-    pd.read_csv(StringIO(data), usecols=["b", "d"])
-    pd.read_csv(StringIO(data), usecols=[0, 2, 3])
-    pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ["A", "C"])
+  Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`,
+  URL (including http, ftp, and S3 locations), or any object with a
+  ``read`` method (such as an open file or :class:`python:io.StringIO`).
 
-The ``usecols`` argument can also be used to specify which columns not to
-use in the final result:
+* ``sep`` : str, defaults to ``','`` for :func:`read_csv`, ``'\t'`` for
+  :func:`read_table`
 
-.. ipython:: python
+  Delimiter to use. If ``sep`` is ``None``, the C engine cannot automatically
+  detect the separator, but the Python parsing engine can, meaning the latter
+  will be used and automatically detect the separator by Python’s builtin
+  sniffer tool, :class:`python:csv.Sniffer`. In addition, separators longer than
+  1 character and different from ``'\s+'`` will be interpreted as regular
+  expressions and will also force the use of the Python parsing engine. Note
+  that regex delimiters are prone to ignoring quoted data. Regex example:
+  ``'\\r\\t'``.
 
-   pd.read_csv(StringIO(data), usecols=lambda x: x not in ["a", "c"])
+* ``delimiter`` : str, default ``None``
 
-In this case, the callable is specifying that we exclude the "a" and "c"
-columns from the output.
+  Alternative argument name for ``sep``.
 
-Comments and empty lines
-''''''''''''''''''''''''
+[...]
 
-.. _io.skiplines:
+(KEEP ALL THE EXISTING CONTENT FROM YOUR CURRENT ``io.rst`` UNCHANGED
+DOWN TO JUST BEFORE THE “Dealing with Unicode data” SECTION. THE ONLY
+NEW CONTENT GOES RIGHT AFTER THE “Comments and empty lines” / CSV-related
+material AND BEFORE THE NEXT MAJOR UNRELATED SUBSECTION. PLACE THE NEW
+SECTION LIKE THIS:)
 
-Ignoring line comments and empty lines
-++++++++++++++++++++++++++++++++++++++
+Using pandas IO in Google Colab
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If the ``comment`` parameter is specified, then completely commented lines will
-be ignored. By default, completely blank lines will be ignored as well.
+Google Colab provides a hosted Python environment where pandas IO functions
+such as :func:`read_csv` work the same as in any other Python runtime, but
+there are a few common patterns for getting data into the environment. [file:11]
 
-.. ipython:: python
+This section shows how to use :mod:`pandas` IO tools together with Colab
+utilities such as file upload, Google Drive, and remote URLs. [file:11]
 
-   data = "\na,b,c\n  \n# commented line\n1,2,3\n\n4,5,6"
-   print(data)
-   pd.read_csv(StringIO(data), comment="#")
+Uploading local files
+"""""""""""""""""""""
 
-If ``skip_blank_lines=False``, then ``read_csv`` will not ignore blank lines:
+To load a file from your local machine into Colab:
 
-.. ipython:: python
+1. Use the Colab file upload widget to upload the file.
+2. Pass the uploaded filename to :func:`read_csv` or another reader.
 
-   data = "a,b,c\n\n1,2,3\n\n\n4,5,6"
-   pd.read_csv(StringIO(data), skip_blank_lines=False)
+.. code-block:: python
 
-.. warning::
+   import pandas as pd
+   from google.colab import files
 
-   The presence of ignored lines might create ambiguities involving line numbers;
-   the parameter ``header`` uses row numbers (ignoring commented/empty
-   lines), while ``skiprows`` uses line numbers (including commented/empty lines):
+   # Open a file picker and upload one or more files
+   uploaded = files.upload()
 
-   .. ipython:: python
+   # uploaded is a dict: {filename: bytes}
+   # Use the key (filename) with read_csv
+   filename = next(iter(uploaded))
+   df = pd.read_csv(filename)
 
-      data = "#comment\na,b,c\nA,B,C\n1,2,3"
-      pd.read_csv(StringIO(data), comment="#", header=1)
-      data = "A,B,C\n#comment\na,b,c\n1,2,3"
-      pd.read_csv(StringIO(data), comment="#", skiprows=2)
+See :func:`read_csv` for additional options such as ``sep``, ``dtype``, and
+``parse_dates`` when parsing the uploaded file. [file:11]
 
-   If both ``header`` and ``skiprows`` are specified, ``header`` will be
-   relative to the end of ``skiprows``. For example:
+Reading from Google Drive
+"""""""""""""""""""""""""
 
-.. ipython:: python
+If your data is stored in Google Drive, you can mount the Drive filesystem and
+then read files with the usual pandas IO functions. [file:11]
 
-   data = (
-       "# empty\n"
-       "# second empty line\n"
-       "# third emptyline\n"
-       "X,Y,Z\n"
-       "1,2,3\n"
-       "A,B,C\n"
-       "1,2.,4.\n"
-       "5.,NaN,10.0\n"
-   )
-   print(data)
-   pd.read_csv(StringIO(data), comment="#", skiprows=4, header=1)
+.. code-block:: python
 
-.. _io.comments:
+   import pandas as pd
+   from google.colab import drive
 
-Comments
-++++++++
+   # Mount your Drive at /content/drive
+   drive.mount("/content/drive")
 
-Sometimes comments or meta data may be included in a file:
+   # Replace the path below with the actual location in your Drive
+   path = "/content/drive/MyDrive/data/example.csv"
+   df = pd.read_csv(path)
 
-.. ipython:: python
+Any other text or binary formats supported by pandas, such as Excel with
+:func:`read_excel` or Parquet with :func:`read_parquet`, can be read from
+mounted Drive in the same way. [file:11]
 
-   data = (
-       "ID,level,category\n"
-       "Patient1,123000,x # really unpleasant\n"
-       "Patient2,23000,y # wouldn't take his medicine\n"
-       "Patient3,1234018,z # awesome"
-   )
-   with open("tmp.csv", "w") as fh:
-       fh.write(data)
+Reading from URLs and cloud storage
+"""""""""""""""""""""""""""""""""""
 
-   print(open("tmp.csv").read())
+Colab can access data directly over HTTP(S), so many remote resources can be
+read by passing a URL to pandas readers. [file:11]
 
-By default, the parser includes the comments in the output:
+.. code-block:: python
 
-.. ipython:: python
+   import pandas as pd
 
-   df = pd.read_csv("tmp.csv")
-   df
+   url = "https://example.com/data.csv"
+   df = pd.read_csv(url)
 
-We can suppress the comments using the ``comment`` keyword:
+For object stores such as Amazon S3 or Google Cloud Storage, use the same
+:func:`read_csv`, :func:`read_parquet`, or other IO functions with the
+appropriate URL scheme (for example, ``"s3://..."`` or ``"gs://..."``) and
+ensure the required authentication libraries and credentials are configured in
+Colab. [file:11]
 
-.. ipython:: python
+For more details on specific formats, see the sections below on CSV, Excel,
+Parquet, HDF5, and other IO tools. [file:11]
 
-   df = pd.read_csv("tmp.csv", comment="#")
-   df
+[...]
 
-.. ipython:: python
-   :suppress:
-
-   os.remove("tmp.csv")
-
-.. _io.unicode:
+(THEN CONTINUE WITH THE REST OF YOUR ORIGINAL FILE, STARTING WITH
+“Dealing with Unicode data” / ``.. _io.unicode:`` AND ALL FOLLOWING
+SECTIONS EXACTLY AS THEY WERE IN ``paste.txt``.)
 
 Dealing with Unicode data
-'''''''''''''''''''''''''
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``encoding`` argument should be used for encoded unicode data, which will
-result in byte strings being decoded to unicode in the result:
+result in byte strings being decoded to unicode in the result.
+
+
 
 .. ipython:: python
 
