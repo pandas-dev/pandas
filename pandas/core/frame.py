@@ -5582,37 +5582,6 @@ class DataFrame(NDFrame, OpsMixin):
                 fill_value=fill_value,
             )
 
-    @Appender(
-        """
-        Examples
-        --------
-        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-
-        Change the row labels.
-
-        >>> df.set_axis(['a', 'b', 'c'], axis='index')
-           A  B
-        a  1  4
-        b  2  5
-        c  3  6
-
-        Change the column labels.
-
-        >>> df.set_axis(['I', 'II'], axis='columns')
-           I  II
-        0  1   4
-        1  2   5
-        2  3   6
-        """
-    )
-    @Substitution(
-        klass=_shared_doc_kwargs["klass"],
-        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
-        extended_summary_sub=" column or",
-        axis_description_sub=", and 1 identifies the columns",
-        see_also_sub=" or columns",
-    )
-    @Appender(NDFrame.set_axis.__doc__)
     def set_axis(
         self,
         labels,
@@ -5620,13 +5589,65 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = 0,
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
+        """
+        Assign desired index to given axis.
+
+        Indexes for column or row labels can be changed by assigning
+        a list-like or Index.
+
+        Parameters
+        ----------
+        labels : list-like, Index
+            The values for the new index.
+
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to update. The value 0 identifies the rows. For `Series`
+            this parameter is unused and defaults to 0.
+
+        copy : bool, default False
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
+
+            .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
+        Returns
+        -------
+        DataFrame
+            An object of type DataFrame.
+
+        See Also
+        --------
+        DataFrame.rename_axis : Alter the name of the index or columns.
+
+                Examples
+                --------
+                >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+
+                Change the row labels.
+
+                >>> df.set_axis(["a", "b", "c"], axis="index")
+                A  B
+                a  1  4
+                b  2  5
+                c  3  6
+
+                Change the column labels.
+
+                >>> df.set_axis(["I", "II"], axis="columns")
+                I  II
+                0  1   4
+                1  2   5
+                2  3   6
+        """
         return super().set_axis(labels, axis=axis, copy=copy)
 
-    @doc(
-        NDFrame.reindex,
-        klass=_shared_doc_kwargs["klass"],
-        optional_reindex=_shared_doc_kwargs["optional_reindex"],
-    )
     def reindex(
         self,
         labels=None,
@@ -5641,6 +5662,227 @@ class DataFrame(NDFrame, OpsMixin):
         limit: int | None = None,
         tolerance=None,
     ) -> DataFrame:
+        """
+        Conform DataFrame to new index with optional filling logic.
+
+        Places NA/NaN in locations having no value in the previous index. A new object
+        is produced unless the new index is equivalent to the current one and
+        ``copy=False``.
+
+        Parameters
+        ----------
+
+        labels : array-like, optional
+            New labels / index to conform the axis specified by 'axis' to.
+        index : array-like, optional
+            New labels for the index. Preferably an Index object to avoid
+            duplicating data.
+        columns : array-like, optional
+            New labels for the columns. Preferably an Index object to avoid
+            duplicating data.
+        axis : int or str, optional
+            Axis to target. Can be either the axis name ('index', 'columns')
+            or number (0, 1).
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
+            Method to use for filling holes in reindexed DataFrame.
+            Please note: this is only applicable to DataFrames/Series with a
+            monotonically increasing/decreasing index.
+
+            * None (default): don't fill gaps
+            * pad / ffill: Propagate last valid observation forward to next
+            valid.
+            * backfill / bfill: Use next valid observation to fill gap.
+            * nearest: Use nearest valid observations to fill gap.
+
+        copy : bool, default False
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
+
+            .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
+        level : int or name
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        fill_value : scalar, default np.nan
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value.
+        limit : int, default None
+            Maximum number of consecutive elements to forward or backward fill.
+        tolerance : optional
+            Maximum distance between original and new labels for inexact
+            matches. The values of the index at the matching locations most
+            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
+
+        Returns
+        -------
+        DataFrame
+            DataFrame with changed index.
+
+        See Also
+        --------
+        DataFrame.set_index : Set row labels.
+        DataFrame.reset_index : Remove row labels or move them to new columns.
+        DataFrame.reindex_like : Change to same indices as other DataFrame.
+
+        Examples
+        --------
+        ``DataFrame.reindex`` supports two calling conventions
+
+        * ``(index=index_labels, columns=column_labels, ...)``
+        * ``(labels, axis={'index', 'columns'}, ...)``
+
+        We *highly* recommend using keyword arguments to clarify your
+        intent.
+
+        Create a DataFrame with some fictional data.
+
+        >>> index = ["Firefox", "Chrome", "Safari", "IE10", "Konqueror"]
+        >>> columns = ["http_status", "response_time"]
+        >>> df = pd.DataFrame(
+        ...     [[200, 0.04], [200, 0.02], [404, 0.07], [404, 0.08], [301, 1.0]],
+        ...     columns=columns,
+        ...     index=index,
+        ... )
+        >>> df
+                http_status  response_time
+        Firefox            200           0.04
+        Chrome             200           0.02
+        Safari             404           0.07
+        IE10               404           0.08
+        Konqueror          301           1.00
+
+        Create a new index and reindex the DataFrame. By default
+        values in the new index that do not have corresponding
+        records in the DataFrame are assigned ``NaN``.
+
+        >>> new_index = ["Safari", "Iceweasel", "Comodo Dragon", "IE10", "Chrome"]
+        >>> df.reindex(new_index)
+                    http_status  response_time
+        Safari               404.0           0.07
+        Iceweasel              NaN            NaN
+        Comodo Dragon          NaN            NaN
+        IE10                 404.0           0.08
+        Chrome               200.0           0.02
+
+        We can fill in the missing values by passing a value to
+        the keyword ``fill_value``. Because the index is not monotonically
+        increasing or decreasing, we cannot use arguments to the keyword
+        ``method`` to fill the ``NaN`` values.
+
+        >>> df.reindex(new_index, fill_value=0)
+                    http_status  response_time
+        Safari                 404           0.07
+        Iceweasel                0           0.00
+        Comodo Dragon            0           0.00
+        IE10                   404           0.08
+        Chrome                 200           0.02
+
+        >>> df.reindex(new_index, fill_value="missing")
+                    http_status response_time
+        Safari                404          0.07
+        Iceweasel         missing       missing
+        Comodo Dragon     missing       missing
+        IE10                  404          0.08
+        Chrome                200          0.02
+
+        We can also reindex the columns.
+
+        >>> df.reindex(columns=["http_status", "user_agent"])
+                http_status  user_agent
+        Firefox            200         NaN
+        Chrome             200         NaN
+        Safari             404         NaN
+        IE10               404         NaN
+        Konqueror          301         NaN
+
+        Or we can use "axis-style" keyword arguments
+
+        >>> df.reindex(["http_status", "user_agent"], axis="columns")
+                http_status  user_agent
+        Firefox            200         NaN
+        Chrome             200         NaN
+        Safari             404         NaN
+        IE10               404         NaN
+        Konqueror          301         NaN
+
+        To further illustrate the filling functionality in
+        ``reindex``, we will create a DataFrame with a
+        monotonically increasing index (for example, a sequence
+        of dates).
+
+        >>> date_index = pd.date_range("1/1/2010", periods=6, freq="D")
+        >>> df2 = pd.DataFrame(
+        ...     {"prices": [100, 101, np.nan, 100, 89, 88]}, index=date_index
+        ... )
+        >>> df2
+                    prices
+        2010-01-01   100.0
+        2010-01-02   101.0
+        2010-01-03     NaN
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
+
+        Suppose we decide to expand the DataFrame to cover a wider
+        date range.
+
+        >>> date_index2 = pd.date_range("12/29/2009", periods=10, freq="D")
+        >>> df2.reindex(date_index2)
+                    prices
+        2009-12-29     NaN
+        2009-12-30     NaN
+        2009-12-31     NaN
+        2010-01-01   100.0
+        2010-01-02   101.0
+        2010-01-03     NaN
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
+        2010-01-07     NaN
+
+        The index entries that did not have a value in the original data frame
+        (for example, '2009-12-29') are by default filled with ``NaN``.
+        If desired, we can fill in the missing values using one of several
+        options.
+
+        For example, to back-propagate the last valid value to fill the ``NaN``
+        values, pass ``bfill`` as an argument to the ``method`` keyword.
+
+        >>> df2.reindex(date_index2, method="bfill")
+                    prices
+        2009-12-29   100.0
+        2009-12-30   100.0
+        2009-12-31   100.0
+        2010-01-01   100.0
+        2010-01-02   101.0
+        2010-01-03     NaN
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
+        2010-01-07     NaN
+
+        Please note that the ``NaN`` value present in the original DataFrame
+        (at index value 2010-01-03) will not be filled by any of the
+        value propagation schemes. This is because filling while reindexing
+        does not look at DataFrame values, but only compares the original and
+        desired indexes. If you do want to fill in the ``NaN`` values present
+        in the original DataFrame, use the ``fillna()`` method.
+
+        See the :ref:`user guide <basics.reindexing>` for more.
+        """
         return super().reindex(
             labels=labels,
             index=index,
@@ -6129,7 +6371,6 @@ class DataFrame(NDFrame, OpsMixin):
 
         return res if inplace else res.__finalize__(self)
 
-    @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
         self,
         periods: int | Sequence[int] = 1,
@@ -6138,6 +6379,120 @@ class DataFrame(NDFrame, OpsMixin):
         fill_value: Hashable = lib.no_default,
         suffix: str | None = None,
     ) -> DataFrame:
+        """
+        Shift index by desired number of periods with an optional time `freq`.
+
+        When `freq` is not passed, shift the index without realigning the data.
+        If `freq` is passed (in this case, the index must be date or datetime,
+        or it will raise a `NotImplementedError`), the index will be
+        increased using the periods and the `freq`. `freq` can be inferred
+        when specified as "infer" as long as either freq or inferred_freq
+        attribute is set in the index.
+
+        Parameters
+        ----------
+        periods : int or Sequence
+            Number of periods to shift. Can be positive or negative.
+            If an iterable of ints, the data will be shifted once by each int.
+            This is equivalent to shifting by one value at a time and
+            concatenating all resulting frames. The resulting columns will have
+            the shift suffixed to their column names. For multiple periods,
+            axis must not be 1.
+        freq : DateOffset, tseries.offsets, timedelta, or str, optional
+            Offset to use from the tseries module or time rule (e.g. 'EOM').
+            If `freq` is specified then the index values are shifted but the
+            data is not realigned. That is, use `freq` if you would like to
+            extend the index when shifting and preserve the original data.
+            If `freq` is specified as "infer" then it will be inferred from
+            the freq or inferred_freq attributes of the index. If neither of
+            those attributes exist, a ValueError is thrown.
+        axis : {0 or 'index', 1 or 'columns', None}, default None
+            Shift direction. For `Series` this parameter is unused and defaults to 0.
+        fill_value : object, optional
+            The scalar value to use for newly introduced missing values.
+            the default depends on the dtype of `self`.
+            For Boolean and numeric NumPy data types, ``np.nan`` is used.
+            For datetime, timedelta, or period data, etc. :attr:`NaT` is used.
+            For extension dtypes, ``self.dtype.na_value`` is used.
+        suffix : str, optional
+            If str and periods is an iterable, this is added after the column
+            name and before the shift value for each shifted column name.
+            For `Series` this parameter is unused and defaults to `None`.
+
+        Returns
+        -------
+        DataFrame
+            Copy of input object, shifted.
+
+        See Also
+        --------
+        Index.shift : Shift values of Index.
+        DatetimeIndex.shift : Shift values of DatetimeIndex.
+        PeriodIndex.shift : Shift values of PeriodIndex.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     [[10, 13, 17], [20, 23, 27], [15, 18, 22], [30, 33, 37], [45, 48, 52]],
+        ...     columns=["Col1", "Col2", "Col3"],
+        ...     index=pd.date_range("2020-01-01", "2020-01-05"),
+        ... )
+        >>> df
+                    Col1  Col2  Col3
+        2020-01-01    10    13    17
+        2020-01-02    20    23    27
+        2020-01-03    15    18    22
+        2020-01-04    30    33    37
+        2020-01-05    45    48    52
+
+        >>> df.shift(periods=3)
+                    Col1  Col2  Col3
+        2020-01-01   NaN   NaN   NaN
+        2020-01-02   NaN   NaN   NaN
+        2020-01-03   NaN   NaN   NaN
+        2020-01-04  10.0  13.0  17.0
+        2020-01-05  20.0  23.0  27.0
+
+        >>> df.shift(periods=1, axis="columns")
+                    Col1  Col2  Col3
+        2020-01-01   NaN    10    13
+        2020-01-02   NaN    20    23
+        2020-01-03   NaN    15    18
+        2020-01-04   NaN    30    33
+        2020-01-05   NaN    45    48
+
+        >>> df.shift(periods=3, fill_value=0)
+                    Col1  Col2  Col3
+        2020-01-01     0     0     0
+        2020-01-02     0     0     0
+        2020-01-03     0     0     0
+        2020-01-04    10    13    17
+        2020-01-05    20    23    27
+
+        >>> df.shift(periods=3, freq="D")
+                    Col1  Col2  Col3
+        2020-01-04    10    13    17
+        2020-01-05    20    23    27
+        2020-01-06    15    18    22
+        2020-01-07    30    33    37
+        2020-01-08    45    48    52
+
+        >>> df.shift(periods=3, freq="infer")
+                    Col1  Col2  Col3
+        2020-01-04    10    13    17
+        2020-01-05    20    23    27
+        2020-01-06    15    18    22
+        2020-01-07    30    33    37
+        2020-01-08    45    48    52
+
+        >>> df["Col1"].shift(periods=[0, 1, 2])
+                    Col1_0  Col1_1  Col1_2
+        2020-01-01      10     NaN     NaN
+        2020-01-02      20    10.0     NaN
+        2020-01-03      15    20.0    10.0
+        2020-01-04      30    15.0    20.0
+        2020-01-05      45    30.0    15.0
+        """
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832
             raise ValueError(
@@ -8743,12 +9098,316 @@ class DataFrame(NDFrame, OpsMixin):
         new_data = self._dispatch_frame_op(other, op, axis=axis)
         return self._construct_result(new_data, other=other)
 
-    @Appender(ops.make_flex_doc("eq", "dataframe"))
     def eq(self, other, axis: Axis = "columns", level=None) -> DataFrame:
+        """
+        Get Not equal to of dataframe and other, element-wise (binary operator `eq`).
+
+        Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+        operators.
+
+        Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
+        (rows or columns) and level for comparison.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}, default 'columns'
+            Whether to compare by the index (0 or 'index') or columns
+            (1 or 'columns').
+        level : int or label
+            Broadcast across a level, matching Index values on the passed
+            MultiIndex level.
+
+        Returns
+        -------
+        DataFrame of bool
+            Result of the comparison.
+
+        See Also
+        --------
+        DataFrame.eq : Compare DataFrames for equality elementwise.
+        DataFrame.ne : Compare DataFrames for inequality elementwise.
+        DataFrame.le : Compare DataFrames for less than inequality
+            or equality elementwise.
+        DataFrame.lt : Compare DataFrames for strictly less than
+            inequality elementwise.
+        DataFrame.ge : Compare DataFrames for greater than inequality
+            or equality elementwise.
+        DataFrame.gt : Compare DataFrames for strictly greater than
+            inequality elementwise.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+        `NaN` values are considered different (i.e. `NaN` != `NaN`).
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"cost": [250, 150, 100], "revenue": [100, 250, 300]},
+        ...     index=["A", "B", "C"],
+        ... )
+        >>> df
+        cost  revenue
+        A   250      100
+        B   150      250
+        C   100      300
+
+        Comparison with a scalar, using either the operator or method:
+
+        >>> df == 100
+            cost  revenue
+        A  False     True
+        B  False    False
+        C   True    False
+
+        >>> df.eq(100)
+            cost  revenue
+        A  False     True
+        B  False    False
+        C   True    False
+
+        When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+        with the index of `other` and broadcast:
+
+        >>> df != pd.Series([100, 250], index=["cost", "revenue"])
+            cost  revenue
+        A   True     True
+        B   True    False
+        C  False     True
+
+        Use the method to control the broadcast axis:
+
+        >>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis="index")
+        cost  revenue
+        A  True    False
+        B  True     True
+        C  True     True
+        D  True     True
+
+        When comparing to an arbitrary sequence, the number of columns must
+        match the number elements in `other`:
+
+        >>> df == [250, 100]
+            cost  revenue
+        A   True     True
+        B  False    False
+        C  False    False
+
+        Use the method to control the axis:
+
+        >>> df.eq([250, 250, 100], axis="index")
+            cost  revenue
+        A   True    False
+        B  False     True
+        C   True    False
+
+        Compare to a DataFrame of different shape.
+
+        >>> other = pd.DataFrame(
+        ...     {"revenue": [300, 250, 100, 150]}, index=["A", "B", "C", "D"]
+        ... )
+        >>> other
+        revenue
+        A      300
+        B      250
+        C      100
+        D      150
+
+        >>> df.gt(other)
+            cost  revenue
+        A  False    False
+        B  False    False
+        C  False     True
+        D  False    False
+
+        Compare to a MultiIndex by level.
+
+        >>> df_multindex = pd.DataFrame(
+        ...     {
+        ...         "cost": [250, 150, 100, 150, 300, 220],
+        ...         "revenue": [100, 250, 300, 200, 175, 225],
+        ...     },
+        ...     index=[
+        ...         ["Q1", "Q1", "Q1", "Q2", "Q2", "Q2"],
+        ...         ["A", "B", "C", "A", "B", "C"],
+        ...     ],
+        ... )
+        >>> df_multindex
+            cost  revenue
+        Q1 A   250      100
+        B   150      250
+        C   100      300
+        Q2 A   150      200
+        B   300      175
+        C   220      225
+
+        >>> df.le(df_multindex, level=1)
+            cost  revenue
+        Q1 A   True     True
+        B   True     True
+        C   True     True
+        Q2 A  False     True
+        B   True    False
+        C   True    False
+        """
         return self._flex_cmp_method(other, operator.eq, axis=axis, level=level)
 
-    @Appender(ops.make_flex_doc("ne", "dataframe"))
     def ne(self, other, axis: Axis = "columns", level=None) -> DataFrame:
+        """
+        Get Not equal to of dataframe and other, element-wise (binary operator `ne`).
+
+        Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+        operators.
+
+        Equivalent to `==`, `!=`, `<=`, `<`, `>=`, `>` with support to choose axis
+        (rows or columns) and level for comparison.
+
+        Parameters
+        ----------
+        other : scalar, sequence, Series, or DataFrame
+            Any single or multiple element data structure, or list-like object.
+        axis : {0 or 'index', 1 or 'columns'}, default 'columns'
+            Whether to compare by the index (0 or 'index') or columns
+            (1 or 'columns').
+        level : int or label
+            Broadcast across a level, matching Index values on the passed
+            MultiIndex level.
+
+        Returns
+        -------
+        DataFrame of bool
+            Result of the comparison.
+
+        See Also
+        --------
+        DataFrame.eq : Compare DataFrames for equality elementwise.
+        DataFrame.ne : Compare DataFrames for inequality elementwise.
+        DataFrame.le : Compare DataFrames for less than inequality
+            or equality elementwise.
+        DataFrame.lt : Compare DataFrames for strictly less than
+            inequality elementwise.
+        DataFrame.ge : Compare DataFrames for greater than inequality
+            or equality elementwise.
+        DataFrame.gt : Compare DataFrames for strictly greater than
+            inequality elementwise.
+
+        Notes
+        -----
+        Mismatched indices will be unioned together.
+        `NaN` values are considered different (i.e. `NaN` != `NaN`).
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {"cost": [250, 150, 100], "revenue": [100, 250, 300]},
+        ...     index=["A", "B", "C"],
+        ... )
+        >>> df
+        cost  revenue
+        A   250      100
+        B   150      250
+        C   100      300
+
+        Comparison with a scalar, using either the operator or method:
+
+        >>> df == 100
+            cost  revenue
+        A  False     True
+        B  False    False
+        C   True    False
+
+        >>> df.eq(100)
+            cost  revenue
+        A  False     True
+        B  False    False
+        C   True    False
+
+        When `other` is a :class:`Series`, the columns of a DataFrame are aligned
+        with the index of `other` and broadcast:
+
+        >>> df != pd.Series([100, 250], index=["cost", "revenue"])
+            cost  revenue
+        A   True     True
+        B   True    False
+        C  False     True
+
+        Use the method to control the broadcast axis:
+
+        >>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis="index")
+        cost  revenue
+        A  True    False
+        B  True     True
+        C  True     True
+        D  True     True
+
+        When comparing to an arbitrary sequence, the number of columns must
+        match the number elements in `other`:
+
+        >>> df == [250, 100]
+            cost  revenue
+        A   True     True
+        B  False    False
+        C  False    False
+
+        Use the method to control the axis:
+
+        >>> df.eq([250, 250, 100], axis="index")
+            cost  revenue
+        A   True    False
+        B  False     True
+        C   True    False
+
+        Compare to a DataFrame of different shape.
+
+        >>> other = pd.DataFrame(
+        ...     {"revenue": [300, 250, 100, 150]}, index=["A", "B", "C", "D"]
+        ... )
+        >>> other
+        revenue
+        A      300
+        B      250
+        C      100
+        D      150
+
+        >>> df.gt(other)
+            cost  revenue
+        A  False    False
+        B  False    False
+        C  False     True
+        D  False    False
+
+        Compare to a MultiIndex by level.
+
+        >>> df_multindex = pd.DataFrame(
+        ...     {
+        ...         "cost": [250, 150, 100, 150, 300, 220],
+        ...         "revenue": [100, 250, 300, 200, 175, 225],
+        ...     },
+        ...     index=[
+        ...         ["Q1", "Q1", "Q1", "Q2", "Q2", "Q2"],
+        ...         ["A", "B", "C", "A", "B", "C"],
+        ...     ],
+        ... )
+        >>> df_multindex
+            cost  revenue
+        Q1 A   250      100
+        B   150      250
+        C   100      300
+        Q2 A   150      200
+        B   300      175
+        C   220      225
+
+        >>> df.le(df_multindex, level=1)
+            cost  revenue
+        Q1 A   True     True
+        B   True     True
+        C   True     True
+        Q2 A  False     True
+        B   True    False
+        C   True    False
+        """
         return self._flex_cmp_method(other, operator.ne, axis=axis, level=level)
 
     @Appender(ops.make_flex_doc("le", "dataframe"))
