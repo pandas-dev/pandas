@@ -131,10 +131,18 @@ and will be removed in pandas 4.0.
 
 .. _whatsnew_300.enhancements.col:
 
-``pd.col`` syntax can now be used in :meth:`DataFrame.assign` and :meth:`DataFrame.loc`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Initial support for ``pd.col()`` syntax to create expressions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can now use ``pd.col`` to create callables for use in dataframe methods which accept them. For example, if you have a dataframe
+This release introduces :func:`col` to refer to a DataFrame column by name
+and build up expressions.
+
+This can be used as a simplified syntax to create callables for use in
+methods such as :meth:`DataFrame.assign`. In practice, where you would
+have to use a ``lambda`` function before, you can now use ``pd.col()``
+instead.
+
+For example, if you have a dataframe
 
 .. ipython:: python
 
@@ -151,6 +159,18 @@ you can now write:
 .. ipython:: python
 
     df.assign(c = pd.col('a') + pd.col('b'))
+
+The expression object returned by :func:`col` supports all standard operators
+(like ``+``, ``-``, ``*``, ``/``, etc.) and all Series methods and namespaces
+(like ``pd.col("name").sum()``, ``pd.col("name").str.upper()``, etc.).
+
+Currently, the ``pd.col()`` syntax can be used in any place which accepts a
+callable that takes the calling DataFrame as first argument and returns a
+Series, like ``lambda df: df[col_name]``.
+This includes :meth:`DataFrame.assign`, :meth:`DataFrame.loc`, and getitem/setitem.
+
+It is expected that the support for ``pd.col()`` will be expanded to more methods
+in future releases.
 
 New Deprecation Policy
 ^^^^^^^^^^^^^^^^^^^^^^
