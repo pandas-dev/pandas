@@ -1524,7 +1524,7 @@ def bdate_range(
         Asia/Beijing.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    name : str, default None
+    name : Hashable, default None
         Name of the resulting DatetimeIndex.
     weekmask : str or None, default None
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``,
