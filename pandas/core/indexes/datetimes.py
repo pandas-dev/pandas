@@ -42,6 +42,7 @@ from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     DatetimeTZDtype,
 )
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
@@ -49,6 +50,7 @@ from pandas.core.arrays.datetimes import (
     DatetimeArray,
     tz_to_dtype,
 )
+from pandas.core.arrays import ExtensionArray
 import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,
@@ -181,8 +183,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         If True parse dates in `data` with the year first order.
     dtype : numpy.dtype or DatetimeTZDtype or str, default None
         Note that the only NumPy dtype allowed is `datetime64[ns]`.
-    copy : bool, default False
-        Make a copy of input ndarray.
+    copy : bool, default None
+        Whether to copy input data, only relevant for array, Series, and Index
+        inputs (for other input, e.g. a list, a new array is created anyway).
+        Defaults to True for array input and False for Index/Series.
+        Set to False to avoid copying array input at your own risk (if you
+        know the input data won't be modified elsewhere).
+        Set to True to force copying Series/Index up front.
     name : label, default None
         Name to be stored in the index.
 
@@ -669,7 +676,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         dayfirst: bool = False,
         yearfirst: bool = False,
         dtype: Dtype | None = None,
-        copy: bool = False,
+        copy: bool | None = None,
         name: Hashable | None = None,
     ) -> Self:
         if is_scalar(data):
@@ -678,6 +685,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         # - Cases checked above all return/raise before reaching here - #
 
         name = maybe_extract_name(name, data, cls)
+
+        if isinstance(data, (ExtensionArray, np.ndarray)):
+            # GH 63388
+            if copy is not False:
+                if dtype is None or astype_is_view(data.dtype, dtype):
+                    data = data.copy()
+                    copy = False
 
         if (
             isinstance(data, DatetimeArray)
