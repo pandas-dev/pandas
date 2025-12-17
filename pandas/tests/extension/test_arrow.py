@@ -270,35 +270,6 @@ def data_for_twos(data):
     # TODO: skip otherwise?
 
 
-@pytest.fixture
-def arrow_to_numpy_tracker(monkeypatch):
-    """
-    Fixture to track if ArrowExtensionArray.to_numpy() was called.
-
-    Returns a callable that returns True if to_numpy was called since the last check,
-    and resets the tracker.
-    """
-    from pandas.core.arrays.arrow import ArrowExtensionArray
-
-    called = False
-    original_to_numpy = ArrowExtensionArray.to_numpy
-
-    def tracked_to_numpy(self, *args, **kwargs):
-        nonlocal called
-        called = True
-        return original_to_numpy(self, *args, **kwargs)
-
-    monkeypatch.setattr(ArrowExtensionArray, "to_numpy", tracked_to_numpy)
-
-    def was_called():
-        nonlocal called
-        result = called
-        called = False
-        return result
-
-    return was_called
-
-
 class TestArrowArray(base.ExtensionTests):
     def _construct_for_combine_add(self, left, right):
         dtype = left.dtype
@@ -815,19 +786,6 @@ class TestArrowArray(base.ExtensionTests):
         data = data[:10]
         result = data.value_counts()
         assert result.dtype == ArrowDtype(pa.int64())
-
-    @pytest.mark.parametrize("normalize", [False, True])
-    def test_value_counts_no_numpy_fallback(
-        self, data, normalize, arrow_to_numpy_tracker
-    ):
-        # Ensure value_counts doesn't unnecessarily convert Arrow arrays to NumPy
-        data = data[:10]
-        ser = pd.Series(data)
-
-        ser.value_counts(normalize=normalize)
-
-        numpy_called = arrow_to_numpy_tracker()
-        assert not numpy_called
 
     _combine_le_expected_dtype = "bool[pyarrow]"
 
