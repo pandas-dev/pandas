@@ -246,7 +246,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             if copy is not False:
                 if dtype is None or astype_is_view(
                     data.dtype,
-                    pandas_dtype(dtype),  # type: ignore[arg-type]
+                    pandas_dtype(dtype),
                 ):
                     data = data.copy()
                     copy = False
