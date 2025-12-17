@@ -19,6 +19,7 @@ from pandas.compat import is_platform_windows
 from pandas import Timestamp
 
 
+@pytest.mark.single_cpu
 def test_no_timezone_data():
     # https://github.com/pandas-dev/pandas/pull/63335
     # Test error message when timezone data is not available.
