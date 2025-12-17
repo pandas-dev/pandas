@@ -820,6 +820,7 @@ Other API changes
   :meth:`~DataFrame.ffill`, :meth:`~DataFrame.bfill`, :meth:`~DataFrame.interpolate`,
   :meth:`~DataFrame.where`, :meth:`~DataFrame.mask`, :meth:`~DataFrame.clip`) now return
   the modified DataFrame or Series (``self``) instead of ``None`` when ``inplace=True`` (:issue:`63207`)
+- :class:`DatetimeIndex`, :class:`TimedeltaIndex`, :class:`PeriodIndex` and :class:`IntervalIndex` constructors now copy the input ``data`` by default when ``copy=None``, consistent with :class:`Index` behavior (:issue:`63388`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.deprecations:
