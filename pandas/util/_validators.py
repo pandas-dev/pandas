@@ -2,6 +2,7 @@
 Module that contains many useful utilities
 for validating data or function arguments
 """
+
 from __future__ import annotations
 
 from collections.abc import (
@@ -16,6 +17,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.missing import NA
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -26,7 +28,7 @@ BoolishT = TypeVar("BoolishT", bool, int)
 BoolishNoneT = TypeVar("BoolishNoneT", bool, int, None)
 
 
-def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
+def _check_arg_length(fname, args, max_fname_arg_count, compat_args) -> None:
     """
     Checks whether 'args' has length of at most 'compat_args'. Raises
     a TypeError if that is not the case, similar to in Python when a
@@ -46,7 +48,7 @@ def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
         )
 
 
-def _check_for_default_values(fname, arg_val_dict, compat_args):
+def _check_for_default_values(fname, arg_val_dict, compat_args) -> None:
     """
     Check that the keys in `arg_val_dict` are mapped to their
     default values as specified in `compat_args`.
@@ -121,11 +123,11 @@ def validate_args(fname, args, max_fname_arg_count, compat_args) -> None:
     # We do this so that we can provide a more informative
     # error message about the parameters that we are not
     # supporting in the pandas implementation of 'fname'
-    kwargs = dict(zip(compat_args, args))
+    kwargs = dict(zip(compat_args, args, strict=False))
     _check_for_default_values(fname, kwargs, compat_args)
 
 
-def _check_for_invalid_keys(fname, kwargs, compat_args):
+def _check_for_invalid_keys(fname, kwargs, compat_args) -> None:
     """
     Checks whether 'kwargs' contains any keys that are not
     in 'compat_args' and raises a TypeError if there is one.
@@ -211,7 +213,7 @@ def validate_args_and_kwargs(
 
     # Check there is no overlap with the positional and keyword
     # arguments, similar to what is done in actual Python functions
-    args_dict = dict(zip(compat_args, args))
+    args_dict = dict(zip(compat_args, args, strict=False))
 
     for key in args_dict:
         if key in kwargs:
@@ -265,7 +267,34 @@ def validate_bool_kwarg(
             f'For argument "{arg_name}" expected type bool, received '
             f"type {type(value).__name__}."
         )
-    return value  # pyright: ignore[reportGeneralTypeIssues]
+    return value
+
+
+def validate_na_arg(value, name: str):
+    """
+    Validate na arguments.
+
+    Parameters
+    ----------
+    value : object
+        Value to validate.
+    name : str
+        Name of the argument, used to raise an informative error message.
+
+    Raises
+    ______
+    ValueError
+        When ``value`` is determined to be invalid.
+    """
+    if (
+        value is lib.no_default
+        or isinstance(value, bool)
+        or value is None
+        or value is NA
+        or (lib.is_float(value) and np.isnan(value))
+    ):
+        return
+    raise ValueError(f"{name} must be None, pd.NA, np.nan, True, or False; got {value}")
 
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
@@ -335,20 +364,17 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     if q_arr.ndim == 0:
         if not 0 <= q_arr <= 1:
             raise ValueError(msg)
-    else:
-        if not all(0 <= qs <= 1 for qs in q_arr):
-            raise ValueError(msg)
+    elif not all(0 <= qs <= 1 for qs in q_arr):
+        raise ValueError(msg)
     return q_arr
 
 
 @overload
-def validate_ascending(ascending: BoolishT) -> BoolishT:
-    ...
+def validate_ascending(ascending: BoolishT) -> BoolishT: ...
 
 
 @overload
-def validate_ascending(ascending: Sequence[BoolishT]) -> list[BoolishT]:
-    ...
+def validate_ascending(ascending: Sequence[BoolishT]) -> list[BoolishT]: ...
 
 
 def validate_ascending(
@@ -444,7 +470,7 @@ def validate_insert_loc(loc: int, length: int) -> int:
         loc += length
     if not 0 <= loc <= length:
         raise IndexError(f"loc must be an integer between -{length} and {length}")
-    return loc  # pyright: ignore[reportGeneralTypeIssues]
+    return loc  # pyright: ignore[reportReturnType]
 
 
 def check_dtype_backend(dtype_backend) -> None:

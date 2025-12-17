@@ -1,11 +1,10 @@
 import numpy as np
-import pytest
-
-from pandas._libs.tslibs import IncompatibleFrequency
 
 from pandas import (
+    DataFrame,
     Index,
     PeriodIndex,
+    date_range,
     period_range,
 )
 import pandas._testing as tm
@@ -35,12 +34,10 @@ class TestJoin:
         assert index is res
 
     def test_join_does_not_recur(self):
-        df = tm.makeCustomDataframe(
-            3,
-            2,
-            data_gen_f=lambda *args: np.random.default_rng(2).integers(2),
-            c_idx_type="p",
-            r_idx_type="dt",
+        df = DataFrame(
+            np.ones((3, 2)),
+            index=date_range("2020-01-01", periods=3),
+            columns=period_range("2020-01-01", periods=2),
         )
         ser = df.iloc[:2, 0]
 
@@ -51,8 +48,9 @@ class TestJoin:
         tm.assert_index_equal(res, expected)
 
     def test_join_mismatched_freq_raises(self):
+        # pre-GH#55782 this raises IncompatibleFrequency
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index3 = period_range("1/1/2000", "1/20/2000", freq="2D")
-        msg = r".*Input has different freq=2D from Period\(freq=D\)"
-        with pytest.raises(IncompatibleFrequency, match=msg):
-            index.join(index3)
+        result = index.join(index3)
+        expected = index.astype(object).join(index3.astype(object))
+        tm.assert_index_equal(result, expected)

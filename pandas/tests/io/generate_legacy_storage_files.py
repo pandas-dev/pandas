@@ -38,6 +38,10 @@ import pickle
 import platform as pl
 import sys
 
+# Remove script directory from path, otherwise Python will try to
+# import the JSON test directory as the json module
+sys.path.pop(0)
+
 import numpy as np
 
 import pandas
@@ -143,6 +147,7 @@ def create_pickle_data():
         "float": Index(np.arange(10, dtype=np.float64)),
         "uint": Index(np.arange(10, dtype=np.uint64)),
         "timedelta": timedelta_range("00:00:00", freq="30min", periods=10),
+        "string": Index(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
     }
 
     index["range"] = RangeIndex(10)
@@ -181,6 +186,7 @@ def create_pickle_data():
         "dt": Series(date_range("20130101", periods=5)),
         "dt_tz": Series(date_range("20130101", periods=5, tz="US/Eastern")),
         "period": Series([Period("2000Q1")] * 5),
+        "string": Series(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
     }
 
     mixed_dup_df = DataFrame(data)
@@ -228,6 +234,12 @@ def create_pickle_data():
                 "C": Timestamp("20130603", tz="UTC"),
             },
             index=range(5),
+        ),
+        "string": DataFrame(
+            {
+                "A": Series(["foo", "bar", "baz", "qux", "quux"], dtype="string"),
+                "B": Series(["one", "two", "one", "two", "three"], dtype="string"),
+            }
         ),
     }
 
@@ -314,7 +326,7 @@ def write_legacy_pickles(output_dir):
 
 def write_legacy_file():
     # force our cwd to be the first searched
-    sys.path.insert(0, ".")
+    sys.path.insert(0, "")
 
     if not 3 <= len(sys.argv) <= 4:
         sys.exit(
@@ -324,6 +336,9 @@ def write_legacy_file():
 
     output_dir = str(sys.argv[1])
     storage_type = str(sys.argv[2])
+
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
 
     if storage_type == "pickle":
         write_legacy_pickles(output_dir=output_dir)

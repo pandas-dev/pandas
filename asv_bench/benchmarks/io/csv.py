@@ -10,6 +10,7 @@ import numpy as np
 from pandas import (
     Categorical,
     DataFrame,
+    Index,
     concat,
     date_range,
     period_range,
@@ -17,10 +18,7 @@ from pandas import (
     to_datetime,
 )
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
 
 
 class ToCSV(BaseIO):
@@ -53,6 +51,25 @@ class ToCSV(BaseIO):
 
     def time_frame(self, kind):
         self.df.to_csv(self.fname)
+
+
+class ToCSVFloatFormatVariants(BaseIO):
+    fname = "__test__.csv"
+
+    def setup(self):
+        self.df = DataFrame(np.random.default_rng(seed=42).random((1000, 1000)))
+
+    def time_old_style_percent_format(self):
+        self.df.to_csv(self.fname, float_format="%.6f")
+
+    def time_new_style_brace_format(self):
+        self.df.to_csv(self.fname, float_format="{:.6f}")
+
+    def time_new_style_thousands_format(self):
+        self.df.to_csv(self.fname, float_format="{:,.2f}")
+
+    def time_callable_format(self):
+        self.df.to_csv(self.fname, float_format=lambda x: f"{x:.6f}")
 
 
 class ToCSVMultiIndexUnusedLevels(BaseIO):
@@ -288,7 +305,7 @@ class ReadCSVSkipRows(BaseIO):
 
     def setup(self, skiprows, engine):
         N = 20000
-        index = tm.makeStringIndex(N)
+        index = Index([f"i-{i}" for i in range(N)], dtype=object)
         df = DataFrame(
             {
                 "float1": np.random.randn(N),
@@ -410,6 +427,9 @@ class ReadCSVEngine(StringIORewind):
     def time_read_bytescsv(self, engine):
         read_csv(self.data(self.BytesIO_input), engine=engine)
 
+    def peakmem_read_csv(self, engine):
+        read_csv(self.data(self.BytesIO_input), engine=engine)
+
 
 class ReadCSVCategorical(BaseIO):
     fname = "__test__.csv"
@@ -443,16 +463,6 @@ class ReadCSVParseDates(StringIORewind):
         two_cols = ["KORD,19990127"] * 5
         data = data.format(*two_cols)
         self.StringIO_input = StringIO(data)
-
-    def time_multiple_date(self, engine):
-        read_csv(
-            self.data(self.StringIO_input),
-            engine=engine,
-            sep=",",
-            header=None,
-            names=list(string.digits[:9]),
-            parse_dates=[[1, 2], [1, 3]],
-        )
 
     def time_baseline(self, engine):
         read_csv(
@@ -603,7 +613,7 @@ class ReadCSVIndexCol(StringIORewind):
         self.StringIO_input = StringIO(data)
 
     def time_read_csv_index_col(self):
-        read_csv(self.StringIO_input, index_col="a")
+        read_csv(self.data(self.StringIO_input), index_col="a")
 
 
 class ReadCSVDatePyarrowEngine(StringIORewind):
@@ -614,11 +624,22 @@ class ReadCSVDatePyarrowEngine(StringIORewind):
 
     def time_read_csv_index_col(self):
         read_csv(
-            self.StringIO_input,
+            self.data(self.StringIO_input),
             parse_dates=["a"],
             engine="pyarrow",
             dtype_backend="pyarrow",
         )
+
+
+class ReadCSVCParserLowMemory:
+    # GH 16798
+    def setup(self):
+        self.csv = StringIO(
+            "strings\n" + "\n".join(["x" * (1 << 20) for _ in range(2100)])
+        )
+
+    def peakmem_over_2gb_input(self):
+        read_csv(self.csv, engine="c", low_memory=False)
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

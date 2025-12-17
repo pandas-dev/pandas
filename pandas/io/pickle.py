@@ -1,4 +1,5 @@
-""" pickle compat """
+"""pickle compat"""
+
 from __future__ import annotations
 
 import pickle
@@ -8,8 +9,11 @@ from typing import (
 )
 import warnings
 
-from pandas.compat import pickle_compat as pc
-from pandas.util._decorators import doc
+from pandas.compat import pickle_compat
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 
 from pandas.core.shared_docs import _shared_docs
 
@@ -30,6 +34,7 @@ if TYPE_CHECKING:
     )
 
 
+@set_module("pandas")
 @doc(
     storage_options=_shared_docs["storage_options"],
     compression_options=_shared_docs["compression_options"] % "filepath_or_buffer",
@@ -54,8 +59,6 @@ def to_pickle(
         Also accepts URL. URL has to be of S3 or GCS.
     {compression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     protocol : int
         Int which indicates which protocol should be used by the pickler,
         default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
@@ -66,8 +69,6 @@ def to_pickle(
         HIGHEST_PROTOCOL.
 
     {storage_options}
-
-        .. versionadded:: 1.2.0
 
         .. [1] https://docs.python.org/3/library/pickle.html
 
@@ -80,7 +81,9 @@ def to_pickle(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})  # doctest: +SKIP
+    >>> original_df = pd.DataFrame(
+    ...     {{"foo": range(5), "bar": range(5, 10)}}
+    ... )  # doctest: +SKIP
     >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5
@@ -98,7 +101,7 @@ def to_pickle(
     2    2    7
     3    3    8
     4    4    9
-    """  # noqa: E501
+    """
     if protocol < 0:
         protocol = pickle.HIGHEST_PROTOCOL
 
@@ -113,6 +116,7 @@ def to_pickle(
         pickle.dump(obj, handles.handle, protocol=protocol)
 
 
+@set_module("pandas")
 @doc(
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer",
@@ -123,7 +127,7 @@ def read_pickle(
     storage_options: StorageOptions | None = None,
 ) -> DataFrame | Series:
     """
-    Load pickled pandas object (or any object) from file.
+    Load pickled pandas object (or any object) from file and return unpickled object.
 
     .. warning::
 
@@ -139,15 +143,12 @@ def read_pickle(
 
     {decompression_options}
 
-        .. versionchanged:: 1.4.0 Zstandard support.
-
     {storage_options}
-
-        .. versionadded:: 1.2.0
 
     Returns
     -------
-    same type as object stored in file
+    object
+        The unpickled pandas object (or any object) that was stored in file.
 
     See Also
     --------
@@ -159,14 +160,14 @@ def read_pickle(
 
     Notes
     -----
-    read_pickle is only guaranteed to be backwards compatible to pandas 0.20.3
+    read_pickle is only guaranteed to be backwards compatible to pandas 1.0
     provided the object was serialized with to_pickle.
 
     Examples
     --------
     >>> original_df = pd.DataFrame(
     ...     {{"foo": range(5), "bar": range(5, 10)}}
-    ...    )  # doctest: +SKIP
+    ... )  # doctest: +SKIP
     >>> original_df  # doctest: +SKIP
        foo  bar
     0    0    5
@@ -185,6 +186,7 @@ def read_pickle(
     3    3    8
     4    4    9
     """
+    # TypeError for Cython complaints about object.__new__ vs Tick.__new__
     excs_to_catch = (AttributeError, ImportError, ModuleNotFoundError, TypeError)
     with get_handle(
         filepath_or_buffer,
@@ -195,20 +197,14 @@ def read_pickle(
     ) as handles:
         # 1) try standard library Pickle
         # 2) try pickle_compat (older pandas version) to handle subclass changes
-        # 3) try pickle_compat with latin-1 encoding upon a UnicodeDecodeError
-
         try:
-            # TypeError for Cython complaints about object.__new__ vs Tick.__new__
-            try:
-                with warnings.catch_warnings(record=True):
-                    # We want to silence any warnings about, e.g. moved modules.
-                    warnings.simplefilter("ignore", Warning)
-                    return pickle.load(handles.handle)
-            except excs_to_catch:
-                # e.g.
-                #  "No module named 'pandas.core.sparse.series'"
-                #  "Can't get attribute '__nat_unpickle' on <module 'pandas._libs.tslib"
-                return pc.load(handles.handle, encoding=None)
-        except UnicodeDecodeError:
-            # e.g. can occur for files written in py27; see GH#28645 and GH#31988
-            return pc.load(handles.handle, encoding="latin-1")
+            with warnings.catch_warnings(record=True):
+                # We want to silence any warnings about, e.g. moved modules.
+                warnings.simplefilter("ignore", Warning)
+                return pickle.load(handles.handle)
+        except excs_to_catch:
+            # e.g.
+            #  "No module named 'pandas.core.sparse.series'"
+            #  "Can't get attribute '_nat_unpickle' on <module 'pandas._libs.tslib"
+            handles.handle.seek(0)
+            return pickle_compat.Unpickler(handles.handle).load()

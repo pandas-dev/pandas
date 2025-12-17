@@ -38,19 +38,7 @@ import pandas._testing as tm
     ],
 )
 @pytest.mark.parametrize("q", [0, 0.25, 0.5, 0.75, 1])
-def test_quantile(interpolation, a_vals, b_vals, q, request):
-    if (
-        interpolation == "nearest"
-        and q == 0.5
-        and isinstance(b_vals, list)
-        and b_vals == [4, 3, 2, 1]
-    ):
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="Unclear numpy expectation for nearest "
-                "result with equidistant data"
-            )
-        )
+def test_quantile(interpolation, a_vals, b_vals, q):
     all_vals = pd.concat([pd.Series(a_vals), pd.Series(b_vals)])
 
     a_expected = pd.Series(a_vals).quantile(q, interpolation=interpolation)
@@ -171,7 +159,8 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
 def test_quantile_raises():
     df = DataFrame([["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"])
 
-    with pytest.raises(TypeError, match="cannot be performed against 'object' dtypes"):
+    msg = "dtype '(object|str)' does not support operation 'quantile'"
+    with pytest.raises(TypeError, match=msg):
         df.groupby("key").quantile()
 
 
@@ -259,15 +248,16 @@ def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
         expected = df.groupby("a")[["b"]].quantile(q)
         tm.assert_frame_equal(result, expected)
     else:
-        with pytest.raises(
-            TypeError, match="'quantile' cannot be performed against 'object' dtypes!"
-        ):
+        msg = "dtype '.*' does not support operation 'quantile'"
+        with pytest.raises(TypeError, match=msg):
             df.groupby("a").quantile(q, numeric_only=numeric_only)
 
 
 def test_groupby_quantile_NA_float(any_float_dtype):
     # GH#42849
-    df = DataFrame({"x": [1, 1], "y": [0.2, np.nan]}, dtype=any_float_dtype)
+    dtype = pd.Series([], dtype=any_float_dtype).dtype
+    item = np.nan if isinstance(dtype, np.dtype) else pd.NA
+    df = DataFrame({"x": [1, 1], "y": [0.2, item]}, dtype=any_float_dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     exp_index = Index([1.0], dtype=any_float_dtype, name="x")
 
@@ -365,7 +355,7 @@ def test_groupby_quantile_allNA_column(dtype):
     df = DataFrame({"x": [1, 1], "y": [pd.NA] * 2}, dtype=dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     expected = pd.Series(
-        [np.nan], dtype=dtype, index=Index([1.0], dtype=dtype), name="y"
+        [pd.NA], dtype=dtype, index=Index([1.0], dtype=dtype), name="y"
     )
     expected.index.name = "x"
     tm.assert_series_equal(expected, result)
@@ -380,38 +370,12 @@ def test_groupby_timedelta_quantile():
     expected = DataFrame(
         {
             "value": [
-                pd.Timedelta("0 days 00:00:00.990000"),
-                pd.Timedelta("0 days 00:00:02.990000"),
+                pd.Timedelta("0 days 00:00:00.990000").as_unit("ns"),
+                pd.Timedelta("0 days 00:00:02.990000").as_unit("ns"),
             ]
         },
         index=Index([1, 2], name="group"),
     )
-    tm.assert_frame_equal(result, expected)
-
-
-def test_columns_groupby_quantile():
-    # GH 33795
-    df = DataFrame(
-        np.arange(12).reshape(3, -1),
-        index=list("XYZ"),
-        columns=pd.Series(list("ABAB"), name="col"),
-    )
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = df.groupby("col", axis=1)
-    result = gb.quantile(q=[0.8, 0.2])
-    expected = DataFrame(
-        [
-            [1.6, 0.4, 2.6, 1.4],
-            [5.6, 4.4, 6.6, 5.4],
-            [9.6, 8.4, 10.6, 9.4],
-        ],
-        index=list("XYZ"),
-        columns=pd.MultiIndex.from_tuples(
-            [("A", 0.8), ("A", 0.2), ("B", 0.8), ("B", 0.2)], names=["col", None]
-        ),
-    )
-
     tm.assert_frame_equal(result, expected)
 
 
@@ -446,9 +410,8 @@ def test_timestamp_groupby_quantile(unit):
 
 def test_groupby_quantile_dt64tz_period():
     # GH#51373
-    dti = pd.date_range("2016-01-01", periods=1000)
-    ser = pd.Series(dti)
-    df = ser.to_frame()
+    dti = pd.date_range("2016-01-01", periods=1000, unit="ns")
+    df = pd.Series(dti).to_frame().copy()
     df[1] = dti.tz_localize("US/Pacific")
     df[2] = dti.to_period("D")
     df[3] = dti - dti[0]

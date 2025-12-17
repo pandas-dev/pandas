@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     Index,
@@ -42,7 +44,10 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, expected)
 
     def test_union_coverage(self):
-        idx = TimedeltaIndex(["3d", "1d", "2d"])
+        # GH#59051
+        msg = "'d' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            idx = TimedeltaIndex(["3d", "1d", "2d"])
         ordered = TimedeltaIndex(idx.sort_values(), freq="infer")
         result = ordered.union(idx)
         tm.assert_index_equal(result, ordered)
@@ -70,7 +75,7 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(result, exp)
 
     def test_union_bug_4564(self):
-        left = timedelta_range("1 day", "30d")
+        left = timedelta_range("1 day", "30D")
         right = left + pd.offsets.Minute(15)
 
         result = left.union(right)
@@ -115,7 +120,7 @@ class TestTimedeltaIndex:
         intersect = first.intersection(second, sort=sort)
         if sort is None:
             tm.assert_index_equal(intersect, second.sort_values())
-        assert tm.equalContents(intersect, second)
+        tm.assert_index_equal(intersect, second)
 
         # Corner cases
         inter = first.intersection(first, sort=sort)
@@ -155,7 +160,7 @@ class TestTimedeltaIndex:
             # if no overlap exists return empty index
             (
                 timedelta_range("1 day", periods=10, freq="h", name="idx")[5:],
-                TimedeltaIndex([], freq="h", name="idx"),
+                TimedeltaIndex([], freq="h", name="idx", dtype="m8[us]"),
             ),
         ],
     )

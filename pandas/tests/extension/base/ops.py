@@ -20,20 +20,22 @@ class BaseOpsUtil:
 
     def _get_expected_exception(
         self, op_name: str, obj, other
-    ) -> type[Exception] | None:
+    ) -> type[Exception] | tuple[type[Exception], ...] | None:
         # Find the Exception, if any we expect to raise calling
         #  obj.__op_name__(other)
 
         # The self.obj_bar_exc pattern isn't great in part because it can depend
         #  on op_name or dtypes, but we use it here for backward-compatibility.
         if op_name in ["__divmod__", "__rdivmod__"]:
-            return self.divmod_exc
-        if isinstance(obj, pd.Series) and isinstance(other, pd.Series):
-            return self.series_array_exc
+            result = self.divmod_exc
+        elif isinstance(obj, pd.Series) and isinstance(other, pd.Series):
+            result = self.series_array_exc
         elif isinstance(obj, pd.Series):
-            return self.series_scalar_exc
+            result = self.series_scalar_exc
         else:
-            return self.frame_scalar_exc
+            result = self.frame_scalar_exc
+
+        return result
 
     def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
         # In _check_op we check that the result of a pointwise operation
@@ -248,9 +250,7 @@ class BaseUnaryOpsTests(BaseOpsUtil):
     def test_invert(self, data):
         ser = pd.Series(data, name="name")
         try:
-            # 10 is an arbitrary choice here, just avoid iterating over
-            #  the whole array to trim test runtime
-            [~x for x in data[:10]]
+            [~x for x in data]
         except TypeError:
             # scalars don't support invert -> we don't expect the vectorized
             #  operation to succeed

@@ -502,7 +502,7 @@ class TestGetIndexer:
         )
 
         msg = "Input has different freq=None from PeriodArray\\(freq=h\\)"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(libperiod.IncompatibleFrequency, match=msg):
             idx.get_indexer(target, "nearest", tolerance="1 minute")
 
         tm.assert_numpy_array_equal(
@@ -523,7 +523,7 @@ class TestGetIndexer:
         tol_bad = [
             Timedelta("2 hour").to_timedelta64(),
             Timedelta("1 hour").to_timedelta64(),
-            np.timedelta64(1, "M"),
+            np.timedelta64(2629746, "s"),
         ]
         with pytest.raises(
             libperiod.IncompatibleFrequency, match="Input has different freq=None from"
@@ -700,8 +700,7 @@ class TestTake:
         tm.assert_index_equal(result, expected)
 
         msg = (
-            "When allow_fill=True and fill_value is not None, "
-            "all indices must be >= -1"
+            "When allow_fill=True and fill_value is not None, all indices must be >= -1"
         )
         with pytest.raises(ValueError, match=msg):
             idx.take(np.array([1, 0, -2]), fill_value=True)

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.compat import PY311
-
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -17,7 +15,7 @@ def assert_matching(actual, expected, check_dtype=False):
     # avoid specifying internal representation
     # as much as possible
     assert len(actual) == len(expected)
-    for act, exp in zip(actual, expected):
+    for act, exp in zip(actual, expected, strict=True):
         act = np.asarray(act)
         exp = np.asarray(exp)
         tm.assert_numpy_array_equal(act, exp, check_dtype=check_dtype)
@@ -34,53 +32,61 @@ def test_get_level_number_integer(idx):
         idx._get_level_number("fourth")
 
 
-def test_get_dtypes():
+def test_get_dtypes(using_infer_string):
     # Test MultiIndex.dtypes (# Gh37062)
     idx_multitype = MultiIndex.from_product(
-        [[1, 2, 3], ["a", "b", "c"], pd.date_range("20200101", periods=2, tz="UTC")],
+        [
+            [1, 2, 3],
+            ["a", "b", "c"],
+            pd.date_range("20200101", periods=2, tz="UTC", unit="ns"),
+        ],
         names=["int", "string", "dt"],
     )
+
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
         {
             "int": np.dtype("int64"),
-            "string": np.dtype("O"),
+            "string": exp,
             "dt": DatetimeTZDtype(tz="utc"),
         }
     )
     tm.assert_series_equal(expected, idx_multitype.dtypes)
 
 
-def test_get_dtypes_no_level_name():
+def test_get_dtypes_no_level_name(using_infer_string):
     # Test MultiIndex.dtypes (# GH38580 )
     idx_multitype = MultiIndex.from_product(
         [
             [1, 2, 3],
             ["a", "b", "c"],
-            pd.date_range("20200101", periods=2, tz="UTC"),
+            pd.date_range("20200101", periods=2, tz="UTC", unit="ns"),
         ],
     )
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
         {
             "level_0": np.dtype("int64"),
-            "level_1": np.dtype("O"),
+            "level_1": exp,
             "level_2": DatetimeTZDtype(tz="utc"),
         }
     )
     tm.assert_series_equal(expected, idx_multitype.dtypes)
 
 
-def test_get_dtypes_duplicate_level_names():
+def test_get_dtypes_duplicate_level_names(using_infer_string):
     # Test MultiIndex.dtypes with non-unique level names (# GH45174)
     result = MultiIndex.from_product(
         [
             [1, 2, 3],
             ["a", "b", "c"],
-            pd.date_range("20200101", periods=2, tz="UTC"),
+            pd.date_range("20200101", periods=2, tz="UTC", unit="ns"),
         ],
         names=["A", "A", "A"],
     ).dtypes
+    exp = "object" if not using_infer_string else pd.StringDtype(na_value=np.nan)
     expected = pd.Series(
-        [np.dtype("int64"), np.dtype("O"), DatetimeTZDtype(tz="utc")],
+        [np.dtype("int64"), exp, DatetimeTZDtype(tz="utc")],
         index=["A", "A", "A"],
     )
     tm.assert_series_equal(result, expected)
@@ -95,8 +101,9 @@ def test_get_level_number_out_of_bounds(multiindex_dataframe_random_data):
         frame.index._get_level_number(-3)
 
 
-def test_set_name_methods(idx, index_names):
+def test_set_name_methods(idx):
     # so long as these are synonyms, we don't need to test set_names
+    index_names = ["first", "second"]
     assert idx.rename == idx.set_names
     new_names = [name + "SUFFIX" for name in index_names]
     ind = idx.set_names(new_names)
@@ -145,11 +152,7 @@ def test_set_levels_codes_directly(idx):
     with pytest.raises(AttributeError, match=msg):
         idx.levels = new_levels
 
-    msg = (
-        "property 'codes' of 'MultiIndex' object has no setter"
-        if PY311
-        else "can't set attribute"
-    )
+    msg = "property 'codes' of 'MultiIndex' object has no setter"
     with pytest.raises(AttributeError, match=msg):
         idx.codes = new_codes
 
@@ -327,10 +330,8 @@ def test_set_value_keeps_names():
         index=idx,
     )
     df = df.sort_index()
-    assert df._is_copy is None
     assert df.index.names == ("Name", "Number")
     df.at[("grethe", "4"), "one"] = 99.34
-    assert df._is_copy is None
     assert df.index.names == ("Name", "Number")
 
 

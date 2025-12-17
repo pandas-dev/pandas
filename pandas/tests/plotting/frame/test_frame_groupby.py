@@ -1,4 +1,4 @@
-""" Test cases for DataFrame.plot """
+"""Test cases for DataFrame.plot"""
 
 import pytest
 
@@ -10,11 +10,11 @@ pytest.importorskip("matplotlib")
 
 class TestDataFramePlotsGroupby:
     def _assert_ytickslabels_visibility(self, axes, expected):
-        for ax, exp in zip(axes, expected):
+        for ax, exp in zip(axes, expected, strict=True):
             _check_visible(ax.get_yticklabels(), visible=exp)
 
     def _assert_xtickslabels_visibility(self, axes, expected):
-        for ax, exp in zip(axes, expected):
+        for ax, exp in zip(axes, expected, strict=True):
             _check_visible(ax.get_xticklabels(), visible=exp)
 
     @pytest.mark.parametrize(

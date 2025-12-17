@@ -1,6 +1,7 @@
 """
 Tests shared for DatetimeIndex/TimedeltaIndex/PeriodIndex
 """
+
 from datetime import (
     datetime,
     timedelta,
@@ -18,6 +19,7 @@ from pandas import (
     TimedeltaIndex,
     date_range,
     period_range,
+    timedelta_range,
 )
 import pandas._testing as tm
 
@@ -50,6 +52,7 @@ class EqualsTests:
 class TestPeriodIndexEquals(EqualsTests):
     @pytest.fixture
     def index(self):
+        """Fixture for creating a PeriodIndex for use in equality tests."""
         return period_range("2013-01-01", periods=5, freq="D")
 
     # TODO: de-duplicate with other test_equals2 methods
@@ -89,6 +92,7 @@ class TestPeriodIndexEquals(EqualsTests):
 class TestDatetimeIndexEquals(EqualsTests):
     @pytest.fixture
     def index(self):
+        """Fixture for creating a DatetimeIndex for use in equality tests."""
         return date_range("2013-01-01", periods=5)
 
     def test_equals2(self):
@@ -141,7 +145,8 @@ class TestDatetimeIndexEquals(EqualsTests):
 class TestTimedeltaIndexEquals(EqualsTests):
     @pytest.fixture
     def index(self):
-        return tm.makeTimedeltaIndex(10)
+        """Fixture for creating a TimedeltaIndex for use in equality tests."""
+        return timedelta_range("1 day", periods=10)
 
     def test_equals2(self):
         # GH#13107

@@ -1,15 +1,24 @@
 import pytest
 
+from pandas.compat import is_platform_arm
+
 from pandas import (
     DataFrame,
     Series,
     option_context,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
-pytestmark = pytest.mark.single_cpu
+pytestmark = [pytest.mark.single_cpu]
 
-pytest.importorskip("numba")
+numba = pytest.importorskip("numba")
+pytestmark.append(
+    pytest.mark.skipif(
+        Version(numba.__version__) == Version("0.61") and is_platform_arm(),
+        reason=f"Segfaults on ARM platforms with numba {numba.__version__}",
+    )
+)
 
 
 @pytest.mark.filterwarnings("ignore")
@@ -59,13 +68,6 @@ class TestEngine:
         df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
         gb = df.groupby("a", as_index=False)
         with pytest.raises(NotImplementedError, match="as_index=False"):
-            getattr(gb, func)(engine="numba", **kwargs)
-
-    def test_axis_1_unsupported(self, numba_supported_reductions):
-        func, kwargs = numba_supported_reductions
-        df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
-        gb = df.groupby("a", axis=1)
-        with pytest.raises(NotImplementedError, match="axis=1"):
             getattr(gb, func)(engine="numba", **kwargs)
 
     def test_no_engine_doesnt_raise(self):

@@ -13,6 +13,7 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -30,11 +31,13 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-def make_data():
-    N = 100
-    left_array = np.random.default_rng(2).uniform(size=N).cumsum()
-    right_array = left_array + np.random.default_rng(2).uniform(size=N)
-    return [Interval(left, right) for left, right in zip(left_array, right_array)]
+def make_data(n: int):
+    left_array = np.random.default_rng(2).uniform(size=n).cumsum()
+    right_array = left_array + np.random.default_rng(2).uniform(size=n)
+    return [
+        Interval(left, right)
+        for left, right in zip(left_array, right_array, strict=True)
+    ]
 
 
 @pytest.fixture
@@ -44,8 +47,8 @@ def dtype():
 
 @pytest.fixture
 def data():
-    """Length-100 PeriodArray for semantics test."""
-    return IntervalArray(make_data())
+    """Length-10 IntervalArray for semantics test."""
+    return IntervalArray(make_data(10))
 
 
 @pytest.fixture
@@ -56,7 +59,7 @@ def data_missing():
 
 @pytest.fixture
 def data_for_twos():
-    pytest.skip("Not a numeric dtype")
+    pytest.skip("Interval is not a numeric dtype")
 
 
 @pytest.fixture
@@ -83,6 +86,16 @@ class TestIntervalArray(base.ExtensionTests):
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return op_name in ["min", "max"]
 
+    def test_fillna_limit_frame(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
+
+    def test_fillna_limit_series(self, data_missing):
+        # GH#58001
+        with pytest.raises(ValueError, match="limit must be None"):
+            super().test_fillna_limit_frame(data_missing)
+
     @pytest.mark.xfail(
         reason="Raises with incorrect message bc it disallows *all* listlikes "
         "instead of just wrong-length listlikes"
@@ -90,11 +103,41 @@ class TestIntervalArray(base.ExtensionTests):
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 
+    @pytest.mark.xfail(reason="copy=False is not Implemented")
+    def test_fillna_readonly(self, data_missing):
+        super().test_fillna_readonly(data_missing)
+
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
+    def test_hash_pandas_object(self, data):
+        super().test_hash_pandas_object(data)
+
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
+    def test_hash_pandas_object_works(self, data, as_frame):
+        super().test_hash_pandas_object_works(data, as_frame)
+
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
     @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_EA_types(self, engine, data):
-        expected_msg = r".*must implement _from_sequence_of_strings.*"
-        with pytest.raises(NotImplementedError, match=expected_msg):
-            super().test_EA_types(engine, data)
+    def test_EA_types(self, engine, data, request):
+        super().test_EA_types(engine, data, request)
+
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
+    def test_astype_str(self, data):
+        super().test_astype_str(data)
+
+    @pytest.mark.xfail(
+        reason="Test is invalid for IntervalDtype, needs to be adapted for "
+        "this dtype with an index with index._index_as_unique."
+    )
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data):
+        super().test_loc_setitem_with_expansion_preserves_ea_index_dtype(data)
 
 
 # TODO: either belongs in tests.arrays.interval or move into base tests.

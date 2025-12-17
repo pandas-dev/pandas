@@ -10,7 +10,7 @@ import versioneer
 sys.path.insert(0, "")
 
 
-def write_version_info(path):
+def write_version_info(path) -> None:
     version = None
     git_version = None
 
@@ -29,7 +29,7 @@ def write_version_info(path):
         file.write(f'__git_version__="{git_version}"\n')
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-o",

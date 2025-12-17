@@ -33,17 +33,13 @@ class TestSeriesDelItem:
 
     def test_delitem_object_index(self):
         # Index(dtype=object)
-        s = Series(1, index=["a"])
+        s = Series(1, index=Index(["a"], dtype="str"))
         del s["a"]
-        tm.assert_series_equal(
-            s, Series(dtype="int64", index=Index([], dtype="object"))
-        )
+        tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="str")))
         s["a"] = 1
-        tm.assert_series_equal(s, Series(1, index=["a"]))
+        tm.assert_series_equal(s, Series(1, index=Index(["a"], dtype="str")))
         del s["a"]
-        tm.assert_series_equal(
-            s, Series(dtype="int64", index=Index([], dtype="object"))
-        )
+        tm.assert_series_equal(s, Series(dtype="int64", index=Index([], dtype="str")))
 
     def test_delitem_missing_key(self):
         # empty

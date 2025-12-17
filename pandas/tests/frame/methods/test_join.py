@@ -1,4 +1,6 @@
 from datetime import datetime
+import re
+import zoneinfo
 
 import numpy as np
 import pytest
@@ -15,25 +17,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.reshape.concat import concat
-
-
-@pytest.fixture
-def frame_with_period_index():
-    return DataFrame(
-        data=np.arange(20).reshape(4, 5),
-        columns=list("abcde"),
-        index=period_range(start="2000", freq="Y", periods=4),
-    )
-
-
-@pytest.fixture
-def left():
-    return DataFrame({"a": [20, 10, 0]}, index=[2, 1, 0])
-
-
-@pytest.fixture
-def right():
-    return DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
 
 
 @pytest.fixture
@@ -112,7 +95,9 @@ def right_w_dups(right_no_dup):
         ),
     ],
 )
-def test_join(left, right, how, sort, expected):
+def test_join(how, sort, expected):
+    left = DataFrame({"a": [20, 10, 0]}, index=[2, 1, 0])
+    right = DataFrame({"b": [300, 100, 200]}, index=[3, 1, 2])
     result = left.join(right, how=how, sort=sort, validate="1:1")
     tm.assert_frame_equal(result, expected)
 
@@ -292,7 +277,21 @@ def test_join_index(float_frame):
     tm.assert_index_equal(joined.index, float_frame.index.sort_values())
     tm.assert_index_equal(joined.columns, expected_columns)
 
-    with pytest.raises(ValueError, match="join method"):
+    # left anti
+    joined = f.join(f2, how="left_anti")
+    tm.assert_index_equal(joined.index, float_frame.index[:5])
+    tm.assert_index_equal(joined.columns, expected_columns)
+
+    # right anti
+    joined = f.join(f2, how="right_anti")
+    tm.assert_index_equal(joined.index, float_frame.index[10:][::-1])
+    tm.assert_index_equal(joined.columns, expected_columns)
+
+    join_msg = (
+        "'foo' is not a valid Merge type: left, right, inner, outer, "
+        "left_anti, right_anti, cross, asof"
+    )
+    with pytest.raises(ValueError, match=re.escape(join_msg)):
         f.join(f2, how="foo")
 
     # corner case - overlapping columns
@@ -347,7 +346,12 @@ def test_join_overlap(float_frame):
     tm.assert_frame_equal(joined, expected.loc[:, joined.columns])
 
 
-def test_join_period_index(frame_with_period_index):
+def test_join_period_index():
+    frame_with_period_index = DataFrame(
+        data=np.arange(20).reshape(4, 5),
+        columns=list("abcde"),
+        index=period_range(start="2000", freq="Y", periods=4),
+    )
     other = frame_with_period_index.rename(columns=lambda key: f"{key}{key}")
 
     joined_values = np.concatenate([frame_with_period_index.values] * 2, axis=1)
@@ -389,29 +393,6 @@ def test_join_list_series(float_frame):
     right = [float_frame.B, float_frame[["C", "D"]]]
     result = left.join(right)
     tm.assert_frame_equal(result, float_frame)
-
-
-@pytest.mark.parametrize("sort_kw", [True, False])
-def test_suppress_future_warning_with_sort_kw(sort_kw):
-    a = DataFrame({"col1": [1, 2]}, index=["c", "a"])
-
-    b = DataFrame({"col2": [4, 5]}, index=["b", "a"])
-
-    c = DataFrame({"col3": [7, 8]}, index=["a", "b"])
-
-    expected = DataFrame(
-        {
-            "col1": {"a": 2.0, "b": float("nan"), "c": 1.0},
-            "col2": {"a": 5.0, "b": 4.0, "c": float("nan")},
-            "col3": {"a": 7.0, "b": 8.0, "c": float("nan")},
-        }
-    )
-    if sort_kw is False:
-        expected = expected.reindex(index=["c", "a", "b"])
-
-    with tm.assert_produces_warning(None):
-        result = a.join([b, c], how="outer", sort=sort_kw)
-    tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameJoin:
@@ -555,17 +536,14 @@ class TestDataFrameJoin:
             df1.join(df2, on="a")
 
     def test_frame_join_tzaware(self):
+        tz = zoneinfo.ZoneInfo("US/Central")
         test1 = DataFrame(
             np.zeros((6, 3)),
-            index=date_range(
-                "2012-11-15 00:00:00", periods=6, freq="100ms", tz="US/Central"
-            ),
+            index=date_range("2012-11-15 00:00:00", periods=6, freq="100ms", tz=tz),
         )
         test2 = DataFrame(
             np.zeros((3, 3)),
-            index=date_range(
-                "2012-11-15 00:00:00", periods=3, freq="250ms", tz="US/Central"
-            ),
+            index=date_range("2012-11-15 00:00:00", periods=3, freq="250ms", tz=tz),
             columns=range(3, 6),
         )
 
@@ -573,4 +551,28 @@ class TestDataFrameJoin:
         expected = test1.index.union(test2.index)
 
         tm.assert_index_equal(result.index, expected)
-        assert result.index.tz.zone == "US/Central"
+        assert result.index.tz.key == "US/Central"
+
+    def test_frame_join_categorical_index(self):
+        # GH 61675
+        cat_data = pd.Categorical(
+            [3, 4],
+            categories=pd.Series([2, 3, 4, 5], dtype="Int64"),
+            ordered=True,
+        )
+        values1 = "a b".split()
+        values2 = "foo bar".split()
+        df1 = DataFrame({"hr": cat_data, "values1": values1}).set_index("hr")
+        df2 = DataFrame({"hr": cat_data, "values2": values2}).set_index("hr")
+        df1.columns = pd.CategoricalIndex([4], dtype=cat_data.dtype, name="other_hr")
+        df2.columns = pd.CategoricalIndex([3], dtype=cat_data.dtype, name="other_hr")
+
+        df_joined = df1.join(df2)
+        expected = DataFrame(
+            {"hr": cat_data, "values1": values1, "values2": values2}
+        ).set_index("hr")
+        expected.columns = pd.CategoricalIndex(
+            [4, 3], dtype=cat_data.dtype, name="other_hr"
+        )
+
+        tm.assert_frame_equal(df_joined, expected)

@@ -18,6 +18,8 @@ from pandas.io.excel._util import (
 )
 
 if TYPE_CHECKING:
+    from odf.opendocument import OpenDocumentSpreadsheet
+
     from pandas._typing import (
         ExcelWriterIfSheetExists,
         FilePath,
@@ -32,17 +34,17 @@ class ODSWriter(ExcelWriter):
     _engine = "odf"
     _supported_extensions = (".ods",)
 
-    def __init__(
+    def __init__(  # pyright: ignore[reportInconsistentConstructor]
         self,
         path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine: str | None = None,
         date_format: str | None = None,
-        datetime_format=None,
+        datetime_format: str | None = None,
         mode: str = "w",
         storage_options: StorageOptions | None = None,
         if_sheet_exists: ExcelWriterIfSheetExists | None = None,
         engine_kwargs: dict[str, Any] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         from odf.opendocument import OpenDocumentSpreadsheet
 
@@ -63,7 +65,7 @@ class ODSWriter(ExcelWriter):
         self._style_dict: dict[str, str] = {}
 
     @property
-    def book(self):
+    def book(self) -> OpenDocumentSpreadsheet:
         """
         Book instance of class odf.opendocument.OpenDocumentSpreadsheet.
 
@@ -97,10 +99,15 @@ class ODSWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        autofilter_range: str | None = None,
     ) -> None:
         """
         Write the frame cells using odf
         """
+
+        if autofilter_range:
+            raise ValueError("Autofilter is not supported with odf!")
+
         from odf.table import (
             Table,
             TableCell,
@@ -149,7 +156,7 @@ class ODSWriter(ExcelWriter):
             for row_nr in range(max(rows.keys()) + 1):
                 wks.addElement(rows[row_nr])
 
-    def _make_table_cell_attributes(self, cell) -> dict[str, int | str]:
+    def _make_table_cell_attributes(self, cell: ExcelCell) -> dict[str, int | str]:
         """Convert cell attributes to OpenDocument attributes
 
         Parameters
@@ -171,7 +178,7 @@ class ODSWriter(ExcelWriter):
             attributes["numbercolumnsspanned"] = cell.mergeend
         return attributes
 
-    def _make_table_cell(self, cell) -> tuple[object, Any]:
+    def _make_table_cell(self, cell: ExcelCell) -> tuple[object, Any]:
         """Convert cell data to an OpenDocument spreadsheet cell
 
         Parameters
@@ -238,15 +245,13 @@ class ODSWriter(ExcelWriter):
             )
 
     @overload
-    def _process_style(self, style: dict[str, Any]) -> str:
-        ...
+    def _process_style(self, style: dict[str, Any]) -> str: ...
 
     @overload
-    def _process_style(self, style: None) -> None:
-        ...
+    def _process_style(self, style: None) -> None: ...
 
     def _process_style(self, style: dict[str, Any] | None) -> str | None:
-        """Convert a style dictionary to a OpenDocument style sheet
+        """Convert a style dictionary to an OpenDocument style sheet
 
         Parameters
         ----------
@@ -270,7 +275,7 @@ class ODSWriter(ExcelWriter):
         style_key = json.dumps(style)
         if style_key in self._style_dict:
             return self._style_dict[style_key]
-        name = f"pd{len(self._style_dict)+1}"
+        name = f"pd{len(self._style_dict) + 1}"
         self._style_dict[style_key] = name
         odf_style = Style(name=name, family="table-cell")
         if "font" in style:

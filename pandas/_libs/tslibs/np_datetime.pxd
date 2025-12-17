@@ -34,7 +34,7 @@ cdef extern from "numpy/ndarraytypes.h":
         NPY_FR_as
         NPY_FR_GENERIC
 
-    int64_t NPY_DATETIME_NAT  # elswhere we call this NPY_NAT
+    int64_t NPY_DATETIME_NAT  # elsewhere we call this NPY_NAT
 
 
 cdef extern from "pandas/datetime/pd_datetime.h":
@@ -89,7 +89,7 @@ cdef int string_to_dts(
     int* out_local,
     int* out_tzoffset,
     bint want_exc,
-    format: str | None = *,
+    str format = *,
     bint exact = *
 ) except? -1
 
@@ -118,3 +118,5 @@ cdef int64_t convert_reso(
     NPY_DATETIMEUNIT to_reso,
     bint round_ok,
 ) except? -1
+
+cpdef cnp.ndarray add_overflowsafe(cnp.ndarray left, cnp.ndarray right)

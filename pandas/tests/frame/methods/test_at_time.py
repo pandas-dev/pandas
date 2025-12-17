@@ -1,10 +1,14 @@
-from datetime import time
+from datetime import (
+    time,
+    timezone,
+)
+import zoneinfo
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import timezones
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
@@ -65,7 +69,7 @@ class TestAtTime:
         assert len(rs) == 0
 
     @pytest.mark.parametrize(
-        "hour", ["1:00", "1:00AM", time(1), time(1, tzinfo=pytz.UTC)]
+        "hour", ["1:00", "1:00AM", time(1), time(1, tzinfo=timezone.utc)]
     )
     def test_at_time_errors(self, hour):
         # GH#24043
@@ -83,7 +87,7 @@ class TestAtTime:
         # GH#24043
         dti = date_range("2018", periods=3, freq="h", tz="US/Pacific")
         df = DataFrame(list(range(len(dti))), index=dti)
-        result = df.at_time(time(4, tzinfo=pytz.timezone("US/Eastern")))
+        result = df.at_time(time(4, tzinfo=zoneinfo.ZoneInfo("US/Eastern")))
         expected = df.iloc[1:2]
         tm.assert_frame_equal(result, expected)
 
@@ -95,10 +99,9 @@ class TestAtTime:
         with pytest.raises(TypeError, match=msg):  # index is not a DatetimeIndex
             obj.at_time("00:00")
 
-    @pytest.mark.parametrize("axis", ["index", "columns", 0, 1])
     def test_at_time_axis(self, axis):
         # issue 8839
-        rng = date_range("1/1/2000", "1/5/2000", freq="5min")
+        rng = date_range("1/1/2000", "1/2/2000", freq="5min")
         ts = DataFrame(np.random.default_rng(2).standard_normal((len(rng), len(rng))))
         ts.index, ts.columns = rng, rng
 
@@ -130,3 +133,21 @@ class TestAtTime:
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result, expected2)
         assert len(result) == 4
+
+    def test_at_time_ambiguous_format_deprecation(self):
+        # GH#50839
+        rng = date_range("1/1/2000", "1/5/2000", freq="125min")
+        ts = DataFrame(list(range(len(rng))), index=rng)
+
+        msg1 = "The string '.*' cannot be parsed"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg1):
+            ts.at_time("2022-12-12 00:00:00")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg1):
+            ts.at_time("2022-12-12 00:00:00 +09:00")
+        with tm.assert_produces_warning(Pandas4Warning, match=msg1):
+            ts.at_time("2022-12-12 00:00:00.000000")
+
+        # The dateutil parser raises on these, so we can give the future behavior
+        #  immediately using pd.core.tools.to_time
+        ts.at_time("235500")
+        ts.at_time("115500PM")

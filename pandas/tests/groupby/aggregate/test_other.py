@@ -209,7 +209,7 @@ def test_aggregate_api_consistency():
     expected = pd.concat([c_mean, c_sum, d_mean, d_sum], axis=1)
     expected.columns = MultiIndex.from_product([["C", "D"], ["mean", "sum"]])
 
-    msg = r"Column\(s\) \['r', 'r2'\] do not exist"
+    msg = r"Label\(s\) \['r', 'r2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         grouped[["D", "C"]].agg({"r": "sum", "r2": "mean"})
 
@@ -224,7 +224,7 @@ def test_agg_dict_renaming_deprecation():
             {"B": {"foo": ["sum", "max"]}, "C": {"bar": ["count", "min"]}}
         )
 
-    msg = r"Column\(s\) \['ma'\] do not exist"
+    msg = r"Label\(s\) \['ma'\] do not exist"
     with pytest.raises(KeyError, match=msg):
         df.groupby("A")[["B", "C"]].agg({"ma": "max"})
 
@@ -296,7 +296,9 @@ def test_agg_item_by_item_raise_typeerror():
 
 
 def test_series_agg_multikey():
-    ts = tm.makeTimeSeries()
+    ts = Series(
+        np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
+    )
     grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
 
     result = grouped.agg("sum")
@@ -353,7 +355,8 @@ def test_series_agg_multi_pure_python():
     )
 
     def bad(x):
-        assert len(x.values.base) > 0
+        if isinstance(x.values, np.ndarray):
+            assert len(x.values.base) > 0
         return "foo"
 
     result = data.groupby(["A", "B"]).agg(bad)
@@ -408,10 +411,7 @@ def test_agg_callables():
 
     expected = df.groupby("foo").agg("sum")
     for ecall in equiv_callables:
-        warn = FutureWarning if ecall is sum or ecall is np.sum else None
-        msg = "using DataFrameGroupBy.sum"
-        with tm.assert_produces_warning(warn, match=msg):
-            result = df.groupby("foo").agg(ecall)
+        result = df.groupby("foo").agg(ecall)
         tm.assert_frame_equal(result, expected)
 
 
@@ -466,7 +466,9 @@ def test_agg_tzaware_non_datetime_result(as_period):
     tm.assert_series_equal(result, expected)
 
     result = gb["b"].agg(lambda x: x.iloc[-1] - x.iloc[0])
-    expected = Series([pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b")
+    expected = Series(
+        [pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b", dtype="m8[us]"
+    )
     expected.index.name = "a"
     if as_period:
         expected = Series([pd.offsets.Day(1), pd.offsets.Day(1)], name="b")
@@ -499,17 +501,13 @@ def test_agg_timezone_round_trip():
     assert ts == grouped.first()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
+    assert ts == grouped.apply(lambda x: x.iloc[0])["B"].iloc[0]
 
     ts = df["B"].iloc[2]
     assert ts == grouped.last()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
+    assert ts == grouped.apply(lambda x: x.iloc[-1])["B"].iloc[0]
 
 
 def test_sum_uint64_overflow():
@@ -538,46 +536,44 @@ def test_sum_uint64_overflow():
 
 
 @pytest.mark.parametrize(
-    "structure, expected",
+    "structure, cast_as",
     [
-        (tuple, DataFrame({"C": {(1, 1): (1, 1, 1), (3, 4): (3, 4, 4)}})),
-        (list, DataFrame({"C": {(1, 1): [1, 1, 1], (3, 4): [3, 4, 4]}})),
-        (
-            lambda x: tuple(x),
-            DataFrame({"C": {(1, 1): (1, 1, 1), (3, 4): (3, 4, 4)}}),
-        ),
-        (
-            lambda x: list(x),
-            DataFrame({"C": {(1, 1): [1, 1, 1], (3, 4): [3, 4, 4]}}),
-        ),
+        (tuple, tuple),
+        (list, list),
+        (lambda x: tuple(x), tuple),
+        (lambda x: list(x), list),
     ],
 )
-def test_agg_structs_dataframe(structure, expected):
+def test_agg_structs_dataframe(structure, cast_as):
     df = DataFrame(
         {"A": [1, 1, 1, 3, 3, 3], "B": [1, 1, 1, 4, 4, 4], "C": [1, 1, 1, 3, 4, 4]}
     )
 
     result = df.groupby(["A", "B"]).aggregate(structure)
+    expected = DataFrame(
+        {"C": {(1, 1): cast_as([1, 1, 1]), (3, 4): cast_as([3, 4, 4])}}
+    )
     expected.index.names = ["A", "B"]
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
-    "structure, expected",
+    "structure, cast_as",
     [
-        (tuple, Series([(1, 1, 1), (3, 4, 4)], index=[1, 3], name="C")),
-        (list, Series([[1, 1, 1], [3, 4, 4]], index=[1, 3], name="C")),
-        (lambda x: tuple(x), Series([(1, 1, 1), (3, 4, 4)], index=[1, 3], name="C")),
-        (lambda x: list(x), Series([[1, 1, 1], [3, 4, 4]], index=[1, 3], name="C")),
+        (tuple, tuple),
+        (list, list),
+        (lambda x: tuple(x), tuple),
+        (lambda x: list(x), list),
     ],
 )
-def test_agg_structs_series(structure, expected):
+def test_agg_structs_series(structure, cast_as):
     # Issue #18079
     df = DataFrame(
         {"A": [1, 1, 1, 3, 3, 3], "B": [1, 1, 1, 4, 4, 4], "C": [1, 1, 1, 3, 4, 4]}
     )
 
     result = df.groupby("A")["C"].aggregate(structure)
+    expected = Series([cast_as([1, 1, 1]), cast_as([3, 4, 4])], index=[1, 3], name="C")
     expected.index.name = "A"
     tm.assert_series_equal(result, expected)
 
@@ -587,9 +583,7 @@ def test_agg_category_nansum(observed):
     df = DataFrame(
         {"A": pd.Categorical(["a", "a", "b"], categories=categories), "B": [1, 2, 3]}
     )
-    msg = "using SeriesGroupBy.sum"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A", observed=observed).B.agg(np.nansum)
+    result = df.groupby("A", observed=observed).B.agg(np.nansum)
     expected = Series(
         [3, 3, 0],
         index=pd.CategoricalIndex(["a", "b", "c"], categories=categories, name="A"),
@@ -655,7 +649,7 @@ def test_groupby_agg_err_catching(err_cls):
         to_decimal,
     )
 
-    data = make_data()[:5]
+    data = make_data(5)
     df = DataFrame(
         {"id1": [0, 0, 0, 1, 1], "id2": [0, 1, 0, 1, 1], "decimals": DecimalArray(data)}
     )

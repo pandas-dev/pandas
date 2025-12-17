@@ -9,8 +9,8 @@ from time import struct_time
 from typing import (
     ClassVar,
     Literal,
+    Self,
     TypeAlias,
-    TypeVar,
     overload,
 )
 
@@ -24,11 +24,10 @@ from pandas._libs.tslibs import (
     Timedelta,
 )
 from pandas._typing import (
-    Self,
     TimestampNonexistent,
+    TimeUnit,
 )
 
-_DatetimeT = TypeVar("_DatetimeT", bound=datetime)
 _TimeZones: TypeAlias = str | _tzinfo | None | int
 
 def integer_op_not_supported(obj: object) -> TypeError: ...
@@ -42,7 +41,7 @@ class Timestamp(datetime):
     _value: int  # np.int64
     # error: "__new__" must return a class instance (got "Union[Timestamp, NaTType]")
     def __new__(  # type: ignore[misc]
-        cls: type[_DatetimeT],
+        cls: type[Self],
         ts_input: np.integer | float | str | _date | datetime | np.datetime64 = ...,
         year: int | None = ...,
         month: int | None = ...,
@@ -57,7 +56,7 @@ class Timestamp(datetime):
         tz: _TimeZones = ...,
         unit: str | int | None = ...,
         fold: int | None = ...,
-    ) -> _DatetimeT | NaTType: ...
+    ) -> Self | NaTType: ...
     @classmethod
     def _from_value_and_reso(
         cls, value: int, reso: int, tz: _TimeZones
@@ -239,5 +238,5 @@ class Timestamp(datetime):
     @property
     def daysinmonth(self) -> int: ...
     @property
-    def unit(self) -> str: ...
-    def as_unit(self, unit: str, round_ok: bool = ...) -> Timestamp: ...
+    def unit(self) -> TimeUnit: ...
+    def as_unit(self, unit: TimeUnit, round_ok: bool = ...) -> Timestamp: ...

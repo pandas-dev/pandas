@@ -6,21 +6,22 @@ These are used for:
 - .names (FrozenList)
 
 """
+
 from __future__ import annotations
 
 from typing import (
-    TYPE_CHECKING,
     NoReturn,
+    Self,
 )
+
+from pandas.util._decorators import set_module
 
 from pandas.core.base import PandasObject
 
 from pandas.io.formats.printing import pprint_thing
 
-if TYPE_CHECKING:
-    from pandas._typing import Self
 
-
+@set_module("pandas.api.typing")
 class FrozenList(PandasObject, list):
     """
     Container that doesn't allow setting item *but*
@@ -68,10 +69,8 @@ class FrozenList(PandasObject, list):
         return type(self)(temp)
 
     # TODO: Consider deprecating these in favor of `union` (xref gh-15506)
-    # error: Incompatible types in assignment (expression has type
-    # "Callable[[FrozenList, Any], FrozenList]", base class "list" defined the
-    # type as overloaded function)
-    __add__ = __iadd__ = union  # type: ignore[assignment]
+
+    __add__ = __iadd__ = union  # pyright: ignore[reportAssignmentType]
 
     def __getitem__(self, n):
         if isinstance(n, slice):
@@ -109,12 +108,14 @@ class FrozenList(PandasObject, list):
         raise TypeError(f"'{type(self).__name__}' does not support mutable operations.")
 
     def __str__(self) -> str:
-        return pprint_thing(self, quote_strings=True, escape_chars=("\t", "\r", "\n"))
+        return pprint_thing(
+            self, quote_strings=True, escape_chars=("\t", "\r", "\n", "'")
+        )
 
     def __repr__(self) -> str:
-        return f"{type(self).__name__}({str(self)})"
+        return f"{type(self).__name__}({self!s})"
 
-    __setitem__ = __setslice__ = _disabled  # type: ignore[assignment]
+    __setitem__ = __setslice__ = _disabled
     __delitem__ = __delslice__ = _disabled
     pop = append = extend = _disabled
-    remove = sort = insert = _disabled  # type: ignore[assignment]
+    remove = sort = insert = _disabled  # pyright: ignore[reportAssignmentType]

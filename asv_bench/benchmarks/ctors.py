@@ -9,8 +9,6 @@ from pandas import (
     date_range,
 )
 
-from .pandas_vb_common import tm
-
 
 def no_change(arr):
     return arr
@@ -25,7 +23,7 @@ def gen_of_str(arr):
 
 
 def arr_dict(arr):
-    return dict(zip(range(len(arr)), arr))
+    return dict(zip(range(len(arr)), arr, strict=True))
 
 
 def list_of_tuples(arr):
@@ -115,7 +113,7 @@ class SeriesDtypesConstructors:
 class MultiIndexConstructor:
     def setup(self):
         N = 10**4
-        self.iterables = [tm.makeStringIndex(N), range(20)]
+        self.iterables = [Index([f"i-{i}" for i in range(N)], dtype=object), range(20)]
 
     def time_multiindex_from_iterables(self):
         MultiIndex.from_product(self.iterables)

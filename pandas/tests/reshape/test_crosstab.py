@@ -289,7 +289,7 @@ class TestCrosstab:
         # GH: 10772: Keep np.nan in result with dropna=False
         df = DataFrame({"a": [1, 2, 2, 2, 2, np.nan], "b": [3, 3, 4, 4, 4, 4]})
         actual = crosstab(df.a, df.b, margins=True, dropna=False)
-        expected = DataFrame([[1, 0, 1.0], [1, 3, 4.0], [0, 1, np.nan], [2, 4, 6.0]])
+        expected = DataFrame([[1, 0, 1], [1, 3, 4], [0, 1, 1], [2, 4, 6]])
         expected.index = Index([1.0, 2.0, np.nan, "All"], name="a")
         expected.columns = Index([3, 4, "All"], name="b")
         tm.assert_frame_equal(actual, expected)
@@ -301,11 +301,11 @@ class TestCrosstab:
         )
         actual = crosstab(df.a, df.b, margins=True, dropna=False)
         expected = DataFrame(
-            [[1, 0, 0, 1.0], [0, 1, 0, 1.0], [0, 3, 1, np.nan], [1, 4, 0, 6.0]]
+            [[1, 0, 0, 1.0], [0, 1, 0, 1.0], [0, 3, 1, 4.0], [1, 4, 1, 6.0]]
         )
         expected.index = Index([1.0, 2.0, np.nan, "All"], name="a")
         expected.columns = Index([3.0, 4.0, np.nan, "All"], name="b")
-        tm.assert_frame_equal(actual, expected)
+        tm.assert_frame_equal(actual, expected, check_dtype=False)
 
     def test_margin_dropna6(self):
         # GH: 10772: Keep np.nan in result with dropna=False
@@ -326,7 +326,7 @@ class TestCrosstab:
             names=["b", "c"],
         )
         expected = DataFrame(
-            [[1, 0, 1, 0, 0, 0, 2], [2, 0, 1, 1, 0, 1, 5], [3, 0, 2, 1, 0, 0, 7]],
+            [[1, 0, 1, 0, 0, 0, 2], [2, 0, 1, 1, 0, 1, 5], [3, 0, 2, 1, 0, 1, 7]],
             columns=m,
         )
         expected.index = Index(["bar", "foo", "All"], name="a")
@@ -349,7 +349,7 @@ class TestCrosstab:
                 [0, 0, np.nan],
                 [2, 0, 2.0],
                 [1, 1, 2.0],
-                [0, 1, np.nan],
+                [0, 1, 1.0],
                 [5, 2, 7.0],
             ],
             index=m,
@@ -452,14 +452,12 @@ class TestCrosstab:
             index=Index([1, 2, "All"], name="a", dtype="object"),
             columns=Index([3, 4, "All"], name="b", dtype="object"),
         )
-        msg = "using DataFrameGroupBy.sum"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            test_case = crosstab(
-                df.a, df.b, df.c, aggfunc=np.sum, normalize="all", margins=True
-            )
+        test_case = crosstab(
+            df.a, df.b, df.c, aggfunc=np.sum, normalize="all", margins=True
+        )
         tm.assert_frame_equal(test_case, norm_sum)
 
-    def test_crosstab_with_empties(self, using_array_manager):
+    def test_crosstab_with_empties(self):
         # Check handling of empties
         df = DataFrame(
             {
@@ -484,9 +482,6 @@ class TestCrosstab:
             index=Index([1, 2], name="a", dtype="int64"),
             columns=Index([3, 4], name="b"),
         )
-        if using_array_manager:
-            # INFO(ArrayManager) column without NaNs can preserve int dtype
-            nans[3] = nans[3].astype("int64")
 
         calculated = crosstab(df.a, df.b, values=df.c, aggfunc="count", normalize=False)
         tm.assert_frame_equal(nans, calculated)
@@ -562,7 +557,7 @@ class TestCrosstab:
             codes=[[1, 1, 1, 2, 2, 2, 3, 3, 3, 0], [1, 2, 3, 1, 2, 3, 1, 2, 3, 0]],
             names=["A", "B"],
         )
-        expected_column = Index(["bar", "foo", "All"], dtype="object", name="C")
+        expected_column = Index(["bar", "foo", "All"], name="C")
         expected_data = np.array(
             [
                 [2.0, 2.0, 4.0],
@@ -658,19 +653,17 @@ class TestCrosstab:
             }
         )
 
-        msg = "using DataFrameGroupBy.sum"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = crosstab(
-                [df.A, df.B],
-                df.C,
-                values=df.D,
-                aggfunc=np.sum,
-                normalize=True,
-                margins=True,
-            )
+        result = crosstab(
+            [df.A, df.B],
+            df.C,
+            values=df.D,
+            aggfunc=np.sum,
+            normalize=True,
+            margins=True,
+        )
         expected = DataFrame(
             np.array([0] * 29 + [1], dtype=float).reshape(10, 3),
-            columns=Index(["bar", "foo", "All"], dtype="object", name="C"),
+            columns=Index(["bar", "foo", "All"], name="C"),
             index=MultiIndex.from_tuples(
                 [
                     ("one", "A"),
@@ -722,7 +715,7 @@ class TestCrosstab:
             codes=[[1, 1, 2, 2, 0], [1, 2, 1, 2, 0]],
             names=["A", "B"],
         )
-        expected.columns = Index(["large", "small"], dtype="object", name="C")
+        expected.columns = Index(["large", "small"], name="C")
         tm.assert_frame_equal(result, expected)
 
         # normalize on columns
@@ -737,9 +730,7 @@ class TestCrosstab:
                 [0, 0.4, 0.222222],
             ]
         )
-        expected.columns = Index(
-            ["large", "small", "Sub-Total"], dtype="object", name="C"
-        )
+        expected.columns = Index(["large", "small", "Sub-Total"], name="C")
         expected.index = MultiIndex(
             levels=[["bar", "foo"], ["one", "two"]],
             codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
@@ -760,9 +751,7 @@ class TestCrosstab:
                 [0.444444, 0.555555, 1],
             ]
         )
-        expected.columns = Index(
-            ["large", "small", "Sub-Total"], dtype="object", name="C"
-        )
+        expected.columns = Index(["large", "small", "Sub-Total"], name="C")
         expected.index = MultiIndex(
             levels=[["Sub-Total", "bar", "foo"], ["", "one", "two"]],
             codes=[[1, 1, 2, 2, 0], [1, 2, 1, 2, 0]],

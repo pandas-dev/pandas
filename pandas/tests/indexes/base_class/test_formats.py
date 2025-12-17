@@ -75,8 +75,11 @@ class TestIndexRendering:
             ),
         ],
     )
-    def test_string_index_repr(self, index, expected):
+    def test_string_index_repr(self, index, expected, using_infer_string):
         result = repr(index)
+        if using_infer_string:
+            expected = expected.replace("dtype='object'", "dtype='str'")
+
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -118,11 +121,16 @@ class TestIndexRendering:
             ),
         ],
     )
-    def test_string_index_repr_with_unicode_option(self, index, expected):
+    def test_string_index_repr_with_unicode_option(
+        self, index, expected, using_infer_string
+    ):
         # Enable Unicode option -----------------------------------------
         with cf.option_context("display.unicode.east_asian_width", True):
             result = repr(index)
-            assert result == expected
+
+        if using_infer_string:
+            expected = expected.replace("dtype='object'", "dtype='str'")
+        assert result == expected
 
     def test_repr_summary(self):
         with cf.option_context("display.max_seq_items", 10):
@@ -141,20 +149,6 @@ class TestIndexRendering:
     def test_index_repr_bool_nan(self):
         # GH32146
         arr = Index([True, False, np.nan], dtype=object)
-        msg = "Index.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            exp1 = arr.format()
-        out1 = ["True", "False", "NaN"]
-        assert out1 == exp1
-
         exp2 = repr(arr)
         out2 = "Index([True, False, nan], dtype='object')"
         assert out2 == exp2
-
-    def test_format_different_scalar_lengths(self):
-        # GH#35439
-        idx = Index(["aaaaaaaaa", "b"])
-        expected = ["aaaaaaaaa", "b"]
-        msg = r"Index\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert idx.format() == expected

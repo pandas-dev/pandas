@@ -10,8 +10,11 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Categorical,
+    CategoricalIndex,
     DataFrame,
     DatetimeIndex,
     Index,
@@ -22,6 +25,34 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
+
+
+@pytest.fixture
+def frame_of_index_cols():
+    """
+    Fixture for DataFrame of columns that can be used for indexing
+
+    Columns are ['A', 'B', 'C', 'D', 'E', ('tuple', 'as', 'label')];
+    'A' & 'B' contain duplicates (but are jointly unique), the rest are unique.
+
+         A      B  C         D         E  (tuple, as, label)
+    0  foo    one  a  0.608477 -0.012500           -1.664297
+    1  foo    two  b -0.633460  0.249614           -0.364411
+    2  foo  three  c  0.615256  2.154968           -0.834666
+    3  bar    one  d  0.234246  1.085675            0.718445
+    4  bar    two  e  0.533841 -0.005702           -3.533912
+    """
+    df = DataFrame(
+        {
+            "A": ["foo", "foo", "foo", "bar", "bar"],
+            "B": ["one", "two", "three", "one", "two"],
+            "C": ["a", "b", "c", "d", "e"],
+            "D": np.random.default_rng(2).standard_normal(5),
+            "E": np.random.default_rng(2).standard_normal(5),
+            ("tuple", "as", "label"): np.random.default_rng(2).standard_normal(5),
+        }
+    )
+    return df
 
 
 class TestSetIndex:
@@ -119,7 +150,7 @@ class TestSetIndex:
 
     def test_set_index(self, float_string_frame):
         df = float_string_frame
-        idx = Index(np.arange(len(df))[::-1])
+        idx = Index(np.arange(len(df) - 1, -1, -1, dtype=np.int64))
 
         df = df.set_index(idx)
         tm.assert_index_equal(df.index, idx)
@@ -127,7 +158,11 @@ class TestSetIndex:
             df.set_index(idx[::2])
 
     def test_set_index_names(self):
-        df = tm.makeDataFrame()
+        df = DataFrame(
+            np.ones((10, 4)),
+            columns=Index(list("ABCD"), dtype=object),
+            index=Index([f"i-{i}" for i in range(10)], dtype=object),
+        )
         df.index.name = "name"
 
         assert df.set_index(df.index).index.names == ["name"]
@@ -370,8 +405,7 @@ class TestSetIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_construction_with_categorical_index(self):
-        ci = tm.makeCategoricalIndex(10)
-        ci.name = "B"
+        ci = CategoricalIndex(list("ab") * 5, name="B")
 
         # with Categorical
         df = DataFrame(
@@ -515,11 +549,14 @@ class TestSetIndexInvalid:
     def test_set_index_verify_integrity(self, frame_of_index_cols):
         df = frame_of_index_cols
 
+        msg = "The 'verify_integrity' keyword in DataFrame.set_index"
         with pytest.raises(ValueError, match="Index has duplicate keys"):
-            df.set_index("A", verify_integrity=True)
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                df.set_index("A", verify_integrity=True)
         # with MultiIndex
         with pytest.raises(ValueError, match="Index has duplicate keys"):
-            df.set_index([df["A"], df["A"]], verify_integrity=True)
+            with tm.assert_produces_warning(Pandas4Warning, match=msg):
+                df.set_index([df["A"], df["A"]], verify_integrity=True)
 
     @pytest.mark.parametrize("append", [True, False])
     @pytest.mark.parametrize("drop", [True, False])
@@ -545,8 +582,8 @@ class TestSetIndexInvalid:
 
     @pytest.mark.parametrize("append", [True, False])
     @pytest.mark.parametrize("drop", [True, False])
-    @pytest.mark.parametrize("box", [set], ids=["set"])
-    def test_set_index_raise_on_type(self, frame_of_index_cols, box, drop, append):
+    def test_set_index_raise_on_type(self, frame_of_index_cols, drop, append):
+        box = set
         df = frame_of_index_cols
 
         msg = 'The parameter "keys" may be a column key, .*'
@@ -596,7 +633,7 @@ class TestSetIndexCustomLabelType:
                 self.color = color
 
             def __str__(self) -> str:
-                return f"<Thing {repr(self.name)}>"
+                return f"<Thing {self.name!r}>"
 
             # necessary for pretty KeyError
             __repr__ = __str__
@@ -674,7 +711,7 @@ class TestSetIndexCustomLabelType:
                 self.color = color
 
             def __str__(self) -> str:
-                return f"<Thing {repr(self.name)}>"
+                return f"<Thing {self.name!r}>"
 
         thing1 = Thing("One", "red")
         thing2 = Thing("Two", "blue")

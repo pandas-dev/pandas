@@ -433,9 +433,6 @@ def test_ufuncs(ufunc, arr):
     [
         (SparseArray([0, 0, 0]), np.array([0, 1, 2])),
         (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
-        (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
-        (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
-        (SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
     ],
 )
 @pytest.mark.parametrize("ufunc", [np.add, np.greater])
@@ -469,6 +466,19 @@ def test_mismatched_length_cmp_op(cons):
     right = cons([True, True, True])
     with pytest.raises(ValueError, match="operands have mismatched length"):
         left & right
+
+
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        ([0, 1, 2], [0, 1, 2, 3]),
+        ([0, 1, 2, 3], [0, 1, 2]),
+    ],
+)
+def test_mismatched_length_arith_op(a, b, all_arithmetic_functions):
+    op = all_arithmetic_functions
+    with pytest.raises(AssertionError, match=f"length mismatch: {len(a)} vs. {len(b)}"):
+        op(SparseArray(a, fill_value=0), np.array(b))
 
 
 @pytest.mark.parametrize("op", ["add", "sub", "mul", "truediv", "floordiv", "pow"])

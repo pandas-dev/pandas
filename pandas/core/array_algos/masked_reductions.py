@@ -2,12 +2,10 @@
 masked_reductions.py is for reduction algorithms using a mask-based approach
 for missing values.
 """
+
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -17,6 +15,8 @@ from pandas._libs import missing as libmissing
 from pandas.core.nanops import check_below_min_count
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         AxisInt,
         npt,
@@ -62,6 +62,10 @@ def _reductions(
         ):
             return libmissing.NA
 
+        if values.dtype == np.dtype(object):
+            # object dtype does not support `where` without passing an initial
+            values = values[~mask]
+            return func(values, axis=axis, **kwargs)
         return func(values, where=~mask, axis=axis, **kwargs)
 
 

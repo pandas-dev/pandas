@@ -8,6 +8,7 @@ from pandas import (
     DataFrame,
     Index,
     MultiIndex,
+    Series,
     merge,
 )
 import pandas._testing as tm
@@ -164,16 +165,13 @@ class TestRename:
         renamed = df.rename(index={"foo1": "foo3", "bar2": "bar3"}, level=0)
         tm.assert_index_equal(renamed.index, new_index)
 
-    def test_rename_nocopy(self, float_frame, using_copy_on_write):
-        renamed = float_frame.rename(columns={"C": "foo"}, copy=False)
+    def test_rename_nocopy(self, float_frame):
+        renamed = float_frame.rename(columns={"C": "foo"})
 
         assert np.shares_memory(renamed["foo"]._values, float_frame["C"]._values)
 
         renamed.loc[:, "foo"] = 1.0
-        if using_copy_on_write:
-            assert not (float_frame["C"] == 1.0).all()
-        else:
-            assert (float_frame["C"] == 1.0).all()
+        assert not (float_frame["C"] == 1.0).all()
 
     def test_rename_inplace(self, float_frame):
         float_frame.rename(columns={"C": "foo"})
@@ -412,3 +410,33 @@ class TestRename:
             index=["foo", "bar", "bah"],
         )
         tm.assert_frame_equal(res, exp)
+
+    def test_rename_non_unique_index_series(self):
+        # GH#58621
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6], "C": [7, 8, 9]})
+        orig = df.copy(deep=True)
+
+        rename_series = Series(["X", "Y", "Z", "W"], index=["A", "B", "B", "C"])
+
+        msg = "Cannot rename with a Series with non-unique index"
+        with pytest.raises(ValueError, match=msg):
+            df.rename(rename_series)
+        with pytest.raises(ValueError, match=msg):
+            df.rename(columns=rename_series)
+        with pytest.raises(ValueError, match=msg):
+            df.rename(columns=rename_series, inplace=True)
+
+        # check we didn't corrupt the original
+        tm.assert_frame_equal(df, orig)
+
+        # Check the Series method while we're here
+        ser = df.iloc[0]
+        with pytest.raises(ValueError, match=msg):
+            ser.rename(rename_series)
+        with pytest.raises(ValueError, match=msg):
+            ser.rename(index=rename_series)
+        with pytest.raises(ValueError, match=msg):
+            ser.rename(index=rename_series, inplace=True)
+
+        # check we didn't corrupt the original
+        tm.assert_series_equal(ser, orig.iloc[0])

@@ -9,15 +9,12 @@ from datetime import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    Union,
-    cast,
+    TypeAlias,
 )
 
-from pandas._typing import Scalar
 from pandas.compat._optional import import_optional_dependency
 from pandas.util._decorators import doc
 
-import pandas as pd
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.excel._base import BaseExcelReader
@@ -30,11 +27,13 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         FilePath,
+        NaTType,
         ReadBuffer,
+        Scalar,
         StorageOptions,
     )
 
-_CellValueT = Union[int, float, str, bool, time, date, datetime, timedelta]
+_CellValue: TypeAlias = int | float | str | bool | time | date | datetime | timedelta
 
 
 class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
@@ -75,7 +74,8 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
         from python_calamine import load_workbook
 
         return load_workbook(
-            filepath_or_buffer, **engine_kwargs  # type: ignore[arg-type]
+            filepath_or_buffer,
+            **engine_kwargs,
         )
 
     @property
@@ -98,30 +98,28 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
 
     def get_sheet_data(
         self, sheet: CalamineSheet, file_rows_needed: int | None = None
-    ) -> list[list[Scalar]]:
-        def _convert_cell(value: _CellValueT) -> Scalar:
+    ) -> list[list[Scalar | NaTType | time]]:
+        def _convert_cell(value: _CellValue) -> Scalar | NaTType | time:
             if isinstance(value, float):
                 val = int(value)
                 if val == value:
                     return val
                 else:
                     return value
+            elif isinstance(value, (datetime, timedelta)):
+                # Return as-is to match openpyxl behavior (GH#59186)
+                return value
             elif isinstance(value, date):
-                return pd.Timestamp(value)
-            elif isinstance(value, timedelta):
-                return pd.Timedelta(value)
+                # Convert date to datetime to match openpyxl behavior (GH#59186)
+                return datetime(value.year, value.month, value.day)
             elif isinstance(value, time):
-                # cast needed here because Scalar doesn't include datetime.time
-                return cast(Scalar, value)
+                return value
 
             return value
 
-        rows: list[list[_CellValueT]] = sheet.to_python(skip_empty_area=False)
-        data: list[list[Scalar]] = []
-
-        for row in rows:
-            data.append([_convert_cell(cell) for cell in row])
-            if file_rows_needed is not None and len(data) >= file_rows_needed:
-                break
+        rows: list[list[_CellValue]] = sheet.to_python(
+            skip_empty_area=False, nrows=file_rows_needed
+        )
+        data = [[_convert_cell(cell) for cell in row] for row in rows]
 
         return data

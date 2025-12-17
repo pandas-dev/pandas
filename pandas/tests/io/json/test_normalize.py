@@ -79,17 +79,6 @@ def state_data():
 
 
 @pytest.fixture
-def author_missing_data():
-    return [
-        {"info": None},
-        {
-            "info": {"created_at": "11/08/1993", "last_updated": "26/05/2012"},
-            "author_name": {"first": "Jane", "last_name": "Doe"},
-        },
-    ]
-
-
-@pytest.fixture
 def missing_metadata():
     return [
         {
@@ -117,23 +106,6 @@ def missing_metadata():
             ],
             "previous_residences": {"cities": [{"city_name": "Barmingham"}]},
         },
-    ]
-
-
-@pytest.fixture
-def max_level_test_input_data():
-    """
-    input data to test json_normalize with max_level param
-    """
-    return [
-        {
-            "CreatedBy": {"Name": "User001"},
-            "Lookup": {
-                "TextField": "Some text",
-                "UserField": {"Id": "ID001", "Name": "Name001"},
-            },
-            "Image": {"a": "b"},
-        }
     ]
 
 
@@ -200,7 +172,7 @@ class TestJSONNormalize:
     )
     def test_accepted_input(self, data, record_path, exception_type):
         if exception_type is not None:
-            with pytest.raises(exception_type, match=tm.EMPTY_STRING_PATTERN):
+            with pytest.raises(exception_type, match="^$"):
                 json_normalize(data, record_path=record_path)
         else:
             result = json_normalize(data, record_path=record_path)
@@ -408,6 +380,19 @@ class TestJSONNormalize:
 
         tm.assert_frame_equal(result, expected)
 
+    def test_record_prefix_no_record_path_series(self):
+        # Ensure record_prefix is applied when record_path is None for Series input
+        s = Series([{"k": f"{i}", "m": "q"} for i in range(3)])
+        result = json_normalize(s, record_prefix="T.")
+        expected = DataFrame(
+            [
+                {"T.k": "0", "T.m": "q"},
+                {"T.k": "1", "T.m": "q"},
+                {"T.k": "2", "T.m": "q"},
+            ]
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_non_ascii_key(self):
         testjson = (
             b'[{"\xc3\x9cnic\xc3\xb8de":0,"sub":{"A":1, "B":2}},'
@@ -424,8 +409,15 @@ class TestJSONNormalize:
         result = json_normalize(json.loads(testjson))
         tm.assert_frame_equal(result, expected)
 
-    def test_missing_field(self, author_missing_data):
+    def test_missing_field(self):
         # GH20030:
+        author_missing_data = [
+            {"info": None},
+            {
+                "info": {"created_at": "11/08/1993", "last_updated": "26/05/2012"},
+                "author_name": {"first": "Jane", "last_name": "Doe"},
+            },
+        ]
         result = json_normalize(author_missing_data)
         ex_data = [
             {
@@ -519,6 +511,17 @@ class TestJSONNormalize:
         expected_df = DataFrame(data=expected, columns=result.columns.values)
         tm.assert_equal(expected_df, result)
 
+    def test_json_normalize_non_dict_items(self):
+        # gh-62829
+        data_list = [np.nan, {"id": 12}, {"id": 13}]
+        msg = "All items in data must be of type dict, found float"
+
+        with pytest.raises(TypeError, match=msg):
+            json_normalize(data_list, max_level=0)
+
+        with pytest.raises(TypeError, match=msg):
+            json_normalize(data_list)
+
     def test_nested_flattening_consistent(self):
         # see gh-21537
         df1 = json_normalize([{"A": {"B": 1}}])
@@ -537,7 +540,7 @@ class TestJSONNormalize:
             ],
             record_path=["info"],
         )
-        expected = DataFrame({"i": 2}, index=[0])
+        expected = DataFrame({"i": 2}, index=range(1))
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("value", ["false", "true", "{}", "1", '"text"'])
@@ -547,8 +550,8 @@ class TestJSONNormalize:
         test_input = {"state": "Texas", "info": parsed_value}
         test_path = "info"
         msg = (
-            f"{test_input} has non list value {parsed_value} for path {test_path}. "
-            "Must be list or null."
+            f"Path must contain list or null, "
+            f"but got {type(parsed_value).__name__} at 'info'"
         )
         with pytest.raises(TypeError, match=msg):
             json_normalize([test_input], record_path=[test_path])
@@ -581,6 +584,14 @@ class TestJSONNormalize:
         expected = DataFrame([[4, 10, 0]], columns=["gg", "_id_a1", "_id_l2_l3"])
 
         tm.assert_frame_equal(result, expected)
+
+    def test_series_index(self, state_data):
+        idx = Index([7, 8])
+        series = Series(state_data, index=idx)
+        result = json_normalize(series)
+        tm.assert_index_equal(result.index, idx)
+        result = json_normalize(series, "counties")
+        tm.assert_index_equal(result.index, idx.repeat([3, 2]))
 
 
 class TestNestedToRecord:
@@ -843,8 +854,18 @@ class TestNestedToRecord:
             ),
         ],
     )
-    def test_with_max_level(self, max_level, expected, max_level_test_input_data):
+    def test_with_max_level(self, max_level, expected):
         # GH23843: Enhanced JSON normalize
+        max_level_test_input_data = [
+            {
+                "CreatedBy": {"Name": "User001"},
+                "Lookup": {
+                    "TextField": "Some text",
+                    "UserField": {"Id": "ID001", "Name": "Name001"},
+                },
+                "Image": {"a": "b"},
+            }
+        ]
         output = nested_to_record(max_level_test_input_data, max_level=max_level)
         assert output == expected
 
@@ -902,6 +923,18 @@ class TestNestedToRecord:
                 "elements.a": [1.0, np.nan, np.nan],
                 "elements.b": [np.nan, 2.0, np.nan],
                 "elements.c": [np.nan, np.nan, 3.0],
-            }
+            },
+            index=[1, 2, 3],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_json_normalize_meta_string_validation(self):
+        # GH 63019
+        data = [{"a": 1, 12: "meta_value", "nested": [{"b": 2}]}]
+
+        # Test non-string meta raises TypeError consistently
+        with pytest.raises(TypeError, match="must be strings"):
+            json_normalize(data, meta=[12])
+
+        with pytest.raises(TypeError, match="must be strings"):
+            json_normalize(data, record_path=["nested"], meta=[12])

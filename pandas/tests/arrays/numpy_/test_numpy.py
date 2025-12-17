@@ -2,8 +2,11 @@
 Additional tests for NumpyExtensionArray that aren't covered by
 the interface tests.
 """
+
 import numpy as np
 import pytest
+
+from pandas.compat.numpy import np_version_gt2
 
 from pandas.core.dtypes.dtypes import NumpyEADtype
 
@@ -21,7 +24,7 @@ from pandas.arrays import NumpyExtensionArray
         np.array([True, False], dtype=bool),
         np.array([0, 1], dtype="datetime64[ns]"),
         np.array([0, 1], dtype="timedelta64[ns]"),
-    ]
+    ],
 )
 def any_numpy_array(request):
     """
@@ -29,7 +32,7 @@ def any_numpy_array(request):
 
     This excludes string and bytes.
     """
-    return request.param
+    return request.param.copy()
 
 
 # ----------------------------------------------------------------------------
@@ -87,7 +90,7 @@ def test_constructor_from_string():
     assert result == expected
 
 
-def test_dtype_univalent(any_numpy_dtype):
+def test_dtype_idempotent(any_numpy_dtype):
     dtype = NumpyEADtype(any_numpy_dtype)
 
     result = NumpyEADtype(dtype)
@@ -154,15 +157,36 @@ def test_to_numpy():
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_to_numpy_readonly():
+    arr = NumpyExtensionArray(np.array([1, 2, 3]))
+    arr._readonly = True
+    result = arr.to_numpy()
+    assert not result.flags.writeable
+
+    result = arr.to_numpy(copy=True)
+    assert result.flags.writeable
+
+    result = arr.to_numpy(dtype="f8")
+    assert result.flags.writeable
+
+
+@pytest.mark.skipif(not np_version_gt2, reason="copy keyword introduced in np 2.0")
+@pytest.mark.parametrize("dtype", [None, "int64"])
+def test_asarray_readonly(dtype):
+    arr = NumpyExtensionArray(np.array([1, 2, 3], dtype="int64"))
+    arr._readonly = True
+    result = np.asarray(arr, dtype=dtype)
+    assert not result.flags.writeable
+
+    result = np.asarray(arr, dtype=dtype, copy=True)
+    assert result.flags.writeable
+
+    result = np.asarray(arr, dtype=dtype, copy=False)
+    assert not result.flags.writeable
+
+
 # ----------------------------------------------------------------------------
 # Setitem
-
-
-def test_setitem_series():
-    ser = pd.Series([1, 2, 3])
-    ser.array[0] = 10
-    expected = pd.Series([10, 2, 3])
-    tm.assert_series_equal(ser, expected)
 
 
 def test_setitem(any_numpy_array):
@@ -322,3 +346,66 @@ def test_factorize_unsigned():
     tm.assert_numpy_array_equal(res_codes, exp_codes)
 
     tm.assert_extension_array_equal(res_unique, NumpyExtensionArray(exp_unique))
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        np.bool_,
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.uint64,
+        np.int8,
+        np.int16,
+        np.int32,
+        np.int64,
+    ],
+)
+def test_take_assigns_floating_point_dtype(dtype):
+    # GH#62448.
+    if dtype == np.bool_:
+        array = NumpyExtensionArray(np.array([False, True, False], dtype=dtype))
+        expected = np.dtype(object)
+    else:
+        array = NumpyExtensionArray(np.array([1, 2, 3], dtype=dtype))
+        expected = np.float64
+
+    result = array.take([-1], allow_fill=True)
+    assert result.dtype.numpy_dtype == expected
+
+    result = array.take([-1], allow_fill=True, fill_value=5.0)
+    assert result.dtype.numpy_dtype == expected
+
+
+def test_take_preserves_boolean_arrays():
+    array = NumpyExtensionArray(np.array([False, True, False], dtype=np.bool_))
+    result = array.take([-1], allow_fill=False)
+    assert result.dtype.numpy_dtype == np.bool_
+
+
+# ----------------------------------------------------------------------------
+# Output formatting
+
+
+def test_array_repr(any_numpy_array):
+    # GH#61085
+    nparray = any_numpy_array
+    arr = NumpyExtensionArray(nparray)
+    if nparray.dtype == "object":
+        values = "['a', 'b']"
+    elif nparray.dtype == "float64":
+        values = "[0.0, 1.0]"
+    elif str(nparray.dtype).startswith("int"):
+        values = "[0, 1]"
+    elif nparray.dtype == "complex128":
+        values = "[0j, (1+2j)]"
+    elif nparray.dtype == "bool":
+        values = "[True, False]"
+    elif nparray.dtype == "datetime64[ns]":
+        values = "[1970-01-01T00:00:00.000000000, 1970-01-01T00:00:00.000000001]"
+    elif nparray.dtype == "timedelta64[ns]":
+        values = "[0 nanoseconds, 1 nanoseconds]"
+    expected = f"<NumpyExtensionArray>\n{values}\nLength: 2, dtype: {nparray.dtype}"
+    result = repr(arr)
+    assert result == expected, f"{result} vs {expected}"

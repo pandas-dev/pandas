@@ -12,6 +12,8 @@ def group_median_float64(
     min_count: int = ...,  # Py_ssize_t
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
+    is_datetimelike: bool = ...,  # bint
+    skipna: bool = ...,
 ) -> None: ...
 def group_cumprod(
     out: np.ndarray,  # float64_t[:, ::1]
@@ -42,10 +44,10 @@ def group_shift_indexer(
 def group_fillna_indexer(
     out: np.ndarray,  # ndarray[intp_t]
     labels: np.ndarray,  # ndarray[int64_t]
-    sorted_labels: npt.NDArray[np.intp],
     mask: npt.NDArray[np.uint8],
     limit: int,  # int64_t
-    dropna: bool,
+    compute_ffill: bool,
+    ngroups: int,
 ) -> None: ...
 def group_any_all(
     out: np.ndarray,  # uint8_t[::1]
@@ -65,6 +67,8 @@ def group_sum(
     result_mask: np.ndarray | None = ...,
     min_count: int = ...,
     is_datetimelike: bool = ...,
+    initial: object = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_prod(
     out: np.ndarray,  # int64float_t[:, ::1]
@@ -74,6 +78,7 @@ def group_prod(
     mask: np.ndarray | None,
     result_mask: np.ndarray | None = ...,
     min_count: int = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_var(
     out: np.ndarray,  # floating[:, ::1]
@@ -86,8 +91,18 @@ def group_var(
     result_mask: np.ndarray | None = ...,
     is_datetimelike: bool = ...,
     name: str = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_skew(
+    out: np.ndarray,  # float64_t[:, ::1]
+    counts: np.ndarray,  # int64_t[::1]
+    values: np.ndarray,  # ndarray[float64_T, ndim=2]
+    labels: np.ndarray,  # const intp_t[::1]
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
+    skipna: bool = ...,
+) -> None: ...
+def group_kurt(
     out: np.ndarray,  # float64_t[:, ::1]
     counts: np.ndarray,  # int64_t[::1]
     values: np.ndarray,  # ndarray[float64_T, ndim=2]
@@ -105,6 +120,7 @@ def group_mean(
     is_datetimelike: bool = ...,  # bint
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_ohlc(
     out: np.ndarray,  # floatingintuint_t[:, ::1]
@@ -136,6 +152,7 @@ def group_last(
     result_mask: npt.NDArray[np.bool_] | None = ...,
     min_count: int = ...,  # Py_ssize_t
     is_datetimelike: bool = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_nth(
     out: np.ndarray,  # rank_t[:, ::1]
@@ -147,6 +164,7 @@ def group_nth(
     min_count: int = ...,  # int64_t
     rank: int = ...,  # int64_t
     is_datetimelike: bool = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_rank(
     out: np.ndarray,  # float64_t[:, ::1]
@@ -169,6 +187,7 @@ def group_max(
     is_datetimelike: bool = ...,
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_min(
     out: np.ndarray,  # groupby_t[:, ::1]
@@ -179,6 +198,7 @@ def group_min(
     is_datetimelike: bool = ...,
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_idxmin_idxmax(
     out: npt.NDArray[np.intp],

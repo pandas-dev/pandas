@@ -90,9 +90,9 @@ class CSVFormatter:
         self.index_label = self._initialize_index_label(index_label)
         self.errors = errors
         self.quoting = quoting or csvlib.QUOTE_MINIMAL
-        self.quotechar = self._initialize_quotechar(quotechar)
         self.doublequote = doublequote
         self.escapechar = escapechar
+        self.quotechar = self._initialize_quotechar(quotechar)
         self.lineterminator = lineterminator or os.linesep
         self.date_format = date_format
         self.cols = self._initialize_columns(cols)
@@ -141,7 +141,7 @@ class CSVFormatter:
         return [""] if index_label is None else [index_label]
 
     def _initialize_quotechar(self, quotechar: str | None) -> str | None:
-        if self.quoting != csvlib.QUOTE_NONE:
+        if self.quoting != csvlib.QUOTE_NONE or self.escapechar is not None:
             # prevents crash in _csv
             return quotechar
         return None
@@ -257,11 +257,13 @@ class CSVFormatter:
             storage_options=self.storage_options,
         ) as handles:
             # Note: self.encoding is irrelevant here
+            # error: Argument "quoting" to "writer" has incompatible type "int";
+            # expected "Literal[0, 1, 2, 3]"
             self.writer = csvlib.writer(
                 handles.handle,
                 lineterminator=self.lineterminator,
                 delimiter=self.sep,
-                quoting=self.quoting,
+                quoting=self.quoting,  # type: ignore[arg-type]
                 doublequote=self.doublequote,
                 escapechar=self.escapechar,
                 quotechar=self.quotechar,
@@ -320,7 +322,11 @@ class CSVFormatter:
         res = df._get_values_for_csv(**self._number_format)
         data = list(res._iter_column_arrays())
 
-        ix = self.data_index[slicer]._get_values_for_csv(**self._number_format)
+        ix = (
+            self.data_index[slicer]._get_values_for_csv(**self._number_format)
+            if self.nlevels != 0
+            else np.empty(end_i - start_i)
+        )
         libwriters.write_csv_rows(
             data,
             ix,

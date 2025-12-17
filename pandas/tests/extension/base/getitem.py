@@ -139,8 +139,8 @@ class BaseGetitemTests:
                 "index out of bounds",  # pyarrow
                 "Out of bounds access",  # Sparse
                 f"loc must be an integer between -{ub} and {ub}",  # Sparse
-                f"index {ub+1} is out of bounds for axis 0 with size {ub}",
-                f"index -{ub+1} is out of bounds for axis 0 with size {ub}",
+                f"index {ub + 1} is out of bounds for axis 0 with size {ub}",
+                f"index -{ub + 1} is out of bounds for axis 0 with size {ub}",
             ]
         )
         with pytest.raises(IndexError, match=msg):
@@ -148,8 +148,7 @@ class BaseGetitemTests:
         with pytest.raises(IndexError, match=msg):
             data[-ub - 1]
 
-    def test_getitem_scalar_na(self, data_missing, na_cmp):
-        na_value = data_missing.dtype.na_value
+    def test_getitem_scalar_na(self, data_missing, na_cmp, na_value):
         result = data_missing[0]
         assert na_cmp(result, na_value)
 
@@ -330,11 +329,10 @@ class BaseGetitemTests:
         result = s.get("Z")
         assert result is None
 
-        msg = "Series.__getitem__ treating keys as positions is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert s.get(4) == s.iloc[4]
-            assert s.get(-1) == s.iloc[-1]
-            assert s.get(len(s)) is None
+        # As of 3.0, getitem with int keys treats them as labels
+        assert s.get(4) is None
+        assert s.get(-1) is None
+        assert s.get(len(s)) is None
 
         # GH 21257
         s = pd.Series(data)
@@ -349,8 +347,7 @@ class BaseGetitemTests:
         assert result.iloc[1] == data[1]
         assert result.iloc[2] == data[3]
 
-    def test_take(self, data, na_cmp):
-        na_value = data.dtype.na_value
+    def test_take(self, data, na_value, na_cmp):
         result = data.take([0, -1])
         assert result.dtype == data.dtype
         assert result[0] == data[0]
@@ -363,8 +360,7 @@ class BaseGetitemTests:
         with pytest.raises(IndexError, match="out of bounds"):
             data.take([len(data) + 1])
 
-    def test_take_empty(self, data, na_cmp):
-        na_value = data.dtype.na_value
+    def test_take_empty(self, data, na_value, na_cmp):
         empty = data[:0]
 
         result = empty.take([-1], allow_fill=True)
@@ -396,9 +392,8 @@ class BaseGetitemTests:
         expected = arr.take([1, 1])
         tm.assert_extension_array_equal(result, expected)
 
-    def test_take_pandas_style_negative_raises(self, data):
-        na_value = data.dtype.na_value
-        with pytest.raises(ValueError, match=""):
+    def test_take_pandas_style_negative_raises(self, data, na_value):
+        with tm.external_error_raised(ValueError):
             data.take([0, -2], fill_value=na_value, allow_fill=True)
 
     @pytest.mark.parametrize("allow_fill", [True, False])
@@ -413,12 +408,11 @@ class BaseGetitemTests:
         result = s.take([0, -1])
         expected = pd.Series(
             data._from_sequence([data[0], data[len(data) - 1]], dtype=s.dtype),
-            index=[0, len(data) - 1],
+            index=s.index.take([0, -1]),
         )
         tm.assert_series_equal(result, expected)
 
-    def test_reindex(self, data):
-        na_value = data.dtype.na_value
+    def test_reindex(self, data, na_value):
         s = pd.Series(data)
         result = s.reindex([0, 1, 3])
         expected = pd.Series(data.take([0, 1, 3]), index=[0, 1, 3])
@@ -434,7 +428,8 @@ class BaseGetitemTests:
 
         result = s.reindex([n, n + 1])
         expected = pd.Series(
-            data._from_sequence([na_value, na_value], dtype=s.dtype), index=[n, n + 1]
+            data._from_sequence([na_value, na_value], dtype=s.dtype),
+            index=range(n, n + 2, 1),
         )
         tm.assert_series_equal(result, expected)
 
@@ -456,7 +451,7 @@ class BaseGetitemTests:
         df = pd.DataFrame({"A": data})
         res = df.loc[[0], "A"]
         assert res.ndim == 1
-        assert res._mgr.arrays[0].ndim == 1
+        assert res._mgr.blocks[0].ndim == 1
         if hasattr(res._mgr, "blocks"):
             assert res._mgr._block.ndim == 1
 
@@ -472,3 +467,10 @@ class BaseGetitemTests:
 
         with pytest.raises(ValueError, match=msg):
             s.item()
+
+    def test_getitem_propagates_readonly_property(self, data):
+        # ensure read-only propagates if getitem returns view
+        data._readonly = True
+
+        result = data[:]
+        assert result._readonly

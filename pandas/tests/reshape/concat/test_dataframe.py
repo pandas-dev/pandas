@@ -12,6 +12,28 @@ import pandas._testing as tm
 
 
 class TestDataFrameConcat:
+    @pytest.mark.xfail(reason="GH#62888 the `mi[2][1] is 1` check fails")
+    def test_concat_multiindex_level_bool_and_numeric(self):
+        # GH#21108, GH#45101
+        left = DataFrame([123, 456], columns=["data"], index=[True, False])
+        right = DataFrame(
+            [55, 983, 69, 112, 0], columns=["data"], index=[1, 2, 3, 4, 99]
+        )
+        result = concat({"One": left, "Two": right})
+
+        # in particular, the first two entries should not be cast to ints, the
+        #  other 1 should not cast to True
+        mi = pd.MultiIndex.from_arrays(
+            [
+                ["One"] * 2 + ["Two"] * 5,
+                np.array([True, False, 1, 2, 3, 4, 99], dtype=object),
+            ],
+        )
+        assert mi[0][1] is True
+        assert type(mi[2][1]) is int
+        expected = DataFrame({"data": [123, 456, 55, 983, 69, 112, 0]}, index=mi)
+        tm.assert_frame_equal(result, expected)
+
     def test_concat_multiple_frames_dtypes(self):
         # GH#2759
         df1 = DataFrame(data=np.ones((10, 2)), columns=["foo", "bar"], dtype=np.float64)
@@ -191,20 +213,6 @@ class TestDataFrameConcat:
         expected = DataFrame(data=data, index=mi)
         tm.assert_frame_equal(result, expected)
         tm.assert_index_equal(result.index.levels[1], Index([1, 3], name="date"))
-
-    @pytest.mark.parametrize("ignore_index", [True, False])
-    @pytest.mark.parametrize("order", ["C", "F"])
-    @pytest.mark.parametrize("axis", [0, 1])
-    def test_concat_copies(self, axis, order, ignore_index, using_copy_on_write):
-        # based on asv ConcatDataFrames
-        df = DataFrame(np.zeros((10, 5), dtype=np.float32, order=order))
-
-        res = concat([df] * 5, axis=axis, ignore_index=ignore_index, copy=True)
-
-        if not using_copy_on_write:
-            for arr in res._iter_column_arrays():
-                for arr2 in df._iter_column_arrays():
-                    assert not np.shares_memory(arr, arr2)
 
     def test_outer_sort_columns(self):
         # GH#47127

@@ -1,29 +1,24 @@
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    is_ci_environment,
-    is_platform_mac,
-    is_platform_windows,
-)
+from pandas.compat import is_platform_arm
 
 from pandas import (
     DataFrame,
     Series,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
-pytestmark = [
-    pytest.mark.single_cpu,
+pytestmark = [pytest.mark.single_cpu]
+
+numba = pytest.importorskip("numba")
+pytestmark.append(
     pytest.mark.skipif(
-        is_ci_environment() and (is_platform_windows() or is_platform_mac()),
-        reason="On GHA CI, Windows can fail with "
-        "'Windows fatal exception: stack overflow' "
-        "and macOS can timeout",
-    ),
-]
-
-pytest.importorskip("numba")
+        Version(numba.__version__) == Version("0.61") and is_platform_arm(),
+        reason=f"Segfaults on ARM platforms with numba {numba.__version__}",
+    )
+)
 
 
 @pytest.mark.filterwarnings("ignore")

@@ -50,7 +50,7 @@ class TestBuildSchema:
                 {"name": "index", "type": "integer"},
                 {"name": "A", "type": "any", "extDtype": "DateDtype"},
                 {"name": "B", "type": "number", "extDtype": "decimal"},
-                {"name": "C", "type": "any", "extDtype": "string"},
+                {"name": "C", "type": "string", "extDtype": "string"},
                 {"name": "D", "type": "integer", "extDtype": "Int64"},
             ],
             "primaryKey": ["index"],
@@ -61,54 +61,33 @@ class TestBuildSchema:
 
 
 class TestTableSchemaType:
-    @pytest.mark.parametrize(
-        "date_data",
-        [
-            DateArray([dt.date(2021, 10, 10)]),
-            DateArray(dt.date(2021, 10, 10)),
-            Series(DateArray(dt.date(2021, 10, 10))),
-        ],
-    )
-    def test_as_json_table_type_ext_date_array_dtype(self, date_data):
+    @pytest.mark.parametrize("box", [lambda x: x, Series])
+    def test_as_json_table_type_ext_date_array_dtype(self, box):
+        date_data = box(DateArray([dt.date(2021, 10, 10)]))
         assert as_json_table_type(date_data.dtype) == "any"
 
     def test_as_json_table_type_ext_date_dtype(self):
         assert as_json_table_type(DateDtype()) == "any"
 
-    @pytest.mark.parametrize(
-        "decimal_data",
-        [
-            DecimalArray([decimal.Decimal(10)]),
-            Series(DecimalArray([decimal.Decimal(10)])),
-        ],
-    )
-    def test_as_json_table_type_ext_decimal_array_dtype(self, decimal_data):
+    @pytest.mark.parametrize("box", [lambda x: x, Series])
+    def test_as_json_table_type_ext_decimal_array_dtype(self, box):
+        decimal_data = box(DecimalArray([decimal.Decimal(10)]))
         assert as_json_table_type(decimal_data.dtype) == "number"
 
     def test_as_json_table_type_ext_decimal_dtype(self):
         assert as_json_table_type(DecimalDtype()) == "number"
 
-    @pytest.mark.parametrize(
-        "string_data",
-        [
-            array(["pandas"], dtype="string"),
-            Series(array(["pandas"], dtype="string")),
-        ],
-    )
-    def test_as_json_table_type_ext_string_array_dtype(self, string_data):
-        assert as_json_table_type(string_data.dtype) == "any"
+    @pytest.mark.parametrize("box", [lambda x: x, Series])
+    def test_as_json_table_type_ext_string_array_dtype(self, box):
+        string_data = box(array(["pandas"], dtype="string"))
+        assert as_json_table_type(string_data.dtype) == "string"
 
     def test_as_json_table_type_ext_string_dtype(self):
-        assert as_json_table_type(StringDtype()) == "any"
+        assert as_json_table_type(StringDtype()) == "string"
 
-    @pytest.mark.parametrize(
-        "integer_data",
-        [
-            array([10], dtype="Int64"),
-            Series(array([10], dtype="Int64")),
-        ],
-    )
-    def test_as_json_table_type_ext_integer_array_dtype(self, integer_data):
+    @pytest.mark.parametrize("box", [lambda x: x, Series])
+    def test_as_json_table_type_ext_integer_array_dtype(self, box):
+        integer_data = box(array([10], dtype="Int64"))
         assert as_json_table_type(integer_data.dtype) == "integer"
 
     def test_as_json_table_type_ext_integer_dtype(self):
@@ -118,30 +97,23 @@ class TestTableSchemaType:
 class TestTableOrient:
     @pytest.fixture
     def da(self):
+        """Fixture for creating a DateArray."""
         return DateArray([dt.date(2021, 10, 10)])
 
     @pytest.fixture
     def dc(self):
+        """Fixture for creating a DecimalArray."""
         return DecimalArray([decimal.Decimal(10)])
 
     @pytest.fixture
     def sa(self):
+        """Fixture for creating a StringDtype array."""
         return array(["pandas"], dtype="string")
 
     @pytest.fixture
     def ia(self):
+        """Fixture for creating an Int64Dtype array."""
         return array([10], dtype="Int64")
-
-    @pytest.fixture
-    def df(self, da, dc, sa, ia):
-        return DataFrame(
-            {
-                "A": da,
-                "B": dc,
-                "C": sa,
-                "D": ia,
-            }
-        )
 
     def test_build_date_series(self, da):
         s = Series(da, name="a")
@@ -187,7 +159,7 @@ class TestTableOrient:
         expected = OrderedDict(
             [
                 ("schema", schema),
-                ("data", [OrderedDict([("id", 0), ("a", 10.0)])]),
+                ("data", [OrderedDict([("id", 0), ("a", "10")])]),
             ]
         )
 
@@ -204,7 +176,7 @@ class TestTableOrient:
 
         fields = [
             {"name": "id", "type": "integer"},
-            {"name": "a", "type": "any", "extDtype": "string"},
+            {"name": "a", "type": "string", "extDtype": "string"},
         ]
 
         schema = {"fields": fields, "primaryKey": ["id"]}
@@ -243,8 +215,15 @@ class TestTableOrient:
 
         assert result == expected
 
-    def test_to_json(self, df):
-        df = df.copy()
+    def test_to_json(self, da, dc, sa, ia):
+        df = DataFrame(
+            {
+                "A": da,
+                "B": dc,
+                "C": sa,
+                "D": ia,
+            }
+        )
         df.index.name = "idx"
         result = df.to_json(orient="table", date_format="iso")
         result = json.loads(result, object_pairs_hook=OrderedDict)
@@ -256,7 +235,7 @@ class TestTableOrient:
             OrderedDict({"name": "idx", "type": "integer"}),
             OrderedDict({"name": "A", "type": "any", "extDtype": "DateDtype"}),
             OrderedDict({"name": "B", "type": "number", "extDtype": "decimal"}),
-            OrderedDict({"name": "C", "type": "any", "extDtype": "string"}),
+            OrderedDict({"name": "C", "type": "string", "extDtype": "string"}),
             OrderedDict({"name": "D", "type": "integer", "extDtype": "Int64"}),
         ]
 
@@ -266,7 +245,7 @@ class TestTableOrient:
                 [
                     ("idx", 0),
                     ("A", "2021-10-10T00:00:00.000"),
-                    ("B", 10.0),
+                    ("B", "10"),
                     ("C", "pandas"),
                     ("D", 10),
                 ]

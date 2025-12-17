@@ -1,6 +1,7 @@
 """
 Assertion helpers for arithmetic tests.
 """
+
 import numpy as np
 import pytest
 
@@ -19,13 +20,16 @@ from pandas.core.arrays import (
 
 def assert_cannot_add(left, right, msg="cannot add"):
     """
-    Helper to assert that left and right cannot be added.
+    Helper function to assert that two objects cannot be added.
 
     Parameters
     ----------
     left : object
+        The first operand.
     right : object
+        The second operand.
     msg : str, default "cannot add"
+        The error message expected in the TypeError.
     """
     with pytest.raises(TypeError, match=msg):
         left + right
@@ -35,13 +39,17 @@ def assert_cannot_add(left, right, msg="cannot add"):
 
 def assert_invalid_addsub_type(left, right, msg=None):
     """
-    Helper to assert that left and right can be neither added nor subtracted.
+    Helper function to assert that two objects can
+    neither be added nor subtracted.
 
     Parameters
     ----------
     left : object
+        The first operand.
     right : object
+        The second operand.
     msg : str or None, default None
+        The error message expected in the TypeError.
     """
     with pytest.raises(TypeError, match=msg):
         left + right
@@ -103,24 +111,19 @@ def assert_invalid_comparison(left, right, box):
             return x.astype(bool)
         return x
 
-    # rev_box: box to use for reversed comparisons
-    rev_box = xbox
-    if isinstance(right, Index) and isinstance(left, Series):
-        rev_box = np.array
-
     result = xbox2(left == right)
     expected = xbox(np.zeros(result.shape, dtype=np.bool_))
 
     tm.assert_equal(result, expected)
 
     result = xbox2(right == left)
-    tm.assert_equal(result, rev_box(expected))
+    tm.assert_equal(result, xbox(expected))
 
     result = xbox2(left != right)
     tm.assert_equal(result, ~expected)
 
     result = xbox2(right != left)
-    tm.assert_equal(result, rev_box(~expected))
+    tm.assert_equal(result, xbox(~expected))
 
     msg = "|".join(
         [

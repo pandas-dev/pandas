@@ -27,7 +27,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-@pytest.fixture()
+@pytest.fixture
 def multiindex_df():
     levels = [["A", ""], ["B", "b"]]
     return DataFrame([[0, 2], [1, 3]], columns=MultiIndex.from_tuples(levels))
@@ -57,7 +57,9 @@ class TestResetIndex:
         tm.assert_index_equal(df.index, idx)
 
     def test_set_index_reset_index_dt64tz(self):
-        idx = Index(date_range("20130101", periods=3, tz="US/Eastern"), name="foo")
+        idx = Index(
+            date_range("20130101", periods=3, tz="US/Eastern", unit="ns"), name="foo"
+        )
 
         # set/reset
         df = DataFrame({"A": [0, 1, 2]}, index=idx)
@@ -106,7 +108,7 @@ class TestResetIndex:
         tm.assert_frame_equal(result2, original)
 
     def test_reset_index(self, float_frame):
-        stacked = float_frame.stack(future_stack=True)[::2]
+        stacked = float_frame.stack()[::2]
         stacked = DataFrame({"foo": stacked, "bar": stacked})
 
         names = ["first", "second"]
@@ -232,9 +234,7 @@ class TestResetIndex:
 
     def test_reset_index_right_dtype(self):
         time = np.arange(0.0, 10, np.sqrt(2) / 2)
-        s1 = Series(
-            (9.81 * time**2) / 2, index=Index(time, name="time"), name="speed"
-        )
+        s1 = Series((9.81 * time**2) / 2, index=Index(time, name="time"), name="speed")
         df = DataFrame(s1)
 
         reset = s1.reset_index()
@@ -352,7 +352,7 @@ class TestResetIndex:
         # GH#5818
         df = DataFrame(
             [[1, 2], [3, 4]],
-            columns=date_range("1/1/2013", "1/2/2013"),
+            columns=date_range("1/1/2013", "1/2/2013", unit="ns"),
             index=["A", "B"],
         )
         df.index.name = name
@@ -602,8 +602,8 @@ class TestResetIndex:
                 {"a": [pd.NaT, Timestamp("2020-01-01")], "b": [1, 2], "x": [11, 12]},
             ),
             (
-                [(pd.NaT, 1), (pd.Timedelta(123, "d"), 2)],
-                {"a": [pd.NaT, pd.Timedelta(123, "d")], "b": [1, 2], "x": [11, 12]},
+                [(pd.NaT, 1), (pd.Timedelta(123, "D"), 2)],
+                {"a": [pd.NaT, pd.Timedelta(123, "D")], "b": [1, 2], "x": [11, 12]},
             ),
         ],
     )
@@ -654,21 +654,22 @@ class TestResetIndex:
         ),
     ],
 )
-def test_reset_index_dtypes_on_empty_frame_with_multiindex(array, dtype):
+def test_reset_index_dtypes_on_empty_frame_with_multiindex(
+    array, dtype, using_infer_string
+):
     # GH 19602 - Preserve dtype on empty DataFrame with MultiIndex
     idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], array])
     result = DataFrame(index=idx)[:0].reset_index().dtypes
+    if using_infer_string and dtype == object:
+        dtype = pd.StringDtype(na_value=np.nan)
     expected = Series({"level_0": np.int64, "level_1": np.float64, "level_2": dtype})
     tm.assert_series_equal(result, expected)
 
 
 def test_reset_index_empty_frame_with_datetime64_multiindex():
     # https://github.com/pandas-dev/pandas/issues/35606
-    idx = MultiIndex(
-        levels=[[Timestamp("2020-07-20 00:00:00")], [3, 4]],
-        codes=[[], []],
-        names=["a", "b"],
-    )
+    dti = pd.DatetimeIndex(["2020-07-20 00:00:00"], dtype="M8[ns]")
+    idx = MultiIndex.from_product([dti, [3, 4]], names=["a", "b"])[:0]
     df = DataFrame(index=idx, columns=["c", "d"])
     result = df.reset_index()
     expected = DataFrame(
@@ -679,9 +680,12 @@ def test_reset_index_empty_frame_with_datetime64_multiindex():
     tm.assert_frame_equal(result, expected)
 
 
-def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
+def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby(
+    using_infer_string,
+):
     # https://github.com/pandas-dev/pandas/issues/35657
-    df = DataFrame({"c1": [10.0], "c2": ["a"], "c3": pd.to_datetime("2020-01-01")})
+    dti = pd.DatetimeIndex(["2020-01-01"], dtype="M8[ns]")
+    df = DataFrame({"c1": [10.0], "c2": ["a"], "c3": dti})
     df = df.head(0).groupby(["c2", "c3"])[["c1"]].sum()
     result = df.reset_index()
     expected = DataFrame(
@@ -689,19 +693,24 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
     )
     expected["c3"] = expected["c3"].astype("datetime64[ns]")
     expected["c1"] = expected["c1"].astype("float64")
+    if using_infer_string:
+        expected["c2"] = expected["c2"].astype("str")
     tm.assert_frame_equal(result, expected)
 
 
 def test_reset_index_multiindex_nat():
     # GH 11479
     idx = range(3)
-    tstamp = date_range("2015-07-01", freq="D", periods=3)
+    tstamp = date_range("2015-07-01", freq="D", periods=3, unit="ns")
     df = DataFrame({"id": idx, "tstamp": tstamp, "a": list("abc")})
     df.loc[2, "tstamp"] = pd.NaT
     result = df.set_index(["id", "tstamp"]).reset_index("id")
+    exp_dti = pd.DatetimeIndex(
+        ["2015-07-01", "2015-07-02", "NaT"], dtype="M8[ns]", name="tstamp"
+    )
     expected = DataFrame(
         {"id": range(3), "a": list("abc")},
-        index=pd.DatetimeIndex(["2015-07-01", "2015-07-02", "NaT"], name="tstamp"),
+        index=exp_dti,
     )
     tm.assert_frame_equal(result, expected)
 
@@ -732,7 +741,7 @@ def test_reset_index_rename(float_frame):
 
 def test_reset_index_rename_multiindex(float_frame):
     # GH 6878
-    stacked_df = float_frame.stack(future_stack=True)[::2]
+    stacked_df = float_frame.stack()[::2]
     stacked_df = DataFrame({"foo": stacked_df, "bar": stacked_df})
 
     names = ["first", "second"]
@@ -746,7 +755,7 @@ def test_reset_index_rename_multiindex(float_frame):
 
 def test_errorreset_index_rename(float_frame):
     # GH 6878
-    stacked_df = float_frame.stack(future_stack=True)[::2]
+    stacked_df = float_frame.stack()[::2]
     stacked_df = DataFrame({"first": stacked_df, "second": stacked_df})
 
     with pytest.raises(
@@ -771,3 +780,34 @@ def test_reset_index_false_index_name():
     result_frame.reset_index()
     expected_frame = DataFrame(range(5, 10), RangeIndex(range(5), name=False))
     tm.assert_frame_equal(result_frame, expected_frame)
+
+
+@pytest.mark.parametrize("columns", [None, Index([])])
+def test_reset_index_with_empty_frame(columns):
+    # Currently empty DataFrame has RangeIndex or object dtype Index, but when
+    # resetting the index we still want to end up with the default string dtype
+    # https://github.com/pandas-dev/pandas/issues/60338
+
+    index = Index([], name="foo")
+    df = DataFrame(index=index, columns=columns)
+    result = df.reset_index()
+    expected = DataFrame(columns=["foo"])
+    tm.assert_frame_equal(result, expected)
+
+    index = Index([1, 2, 3], name="foo")
+    df = DataFrame(index=index, columns=columns)
+    result = df.reset_index()
+    expected = DataFrame({"foo": [1, 2, 3]})
+    tm.assert_frame_equal(result, expected)
+
+    index = MultiIndex.from_tuples([], names=["foo", "bar"])
+    df = DataFrame(index=index, columns=columns)
+    result = df.reset_index()
+    expected = DataFrame(columns=["foo", "bar"])
+    tm.assert_frame_equal(result, expected)
+
+    index = MultiIndex.from_tuples([(1, 2), (2, 3)], names=["foo", "bar"])
+    df = DataFrame(index=index, columns=columns)
+    result = df.reset_index()
+    expected = DataFrame({"foo": [1, 2], "bar": [2, 3]})
+    tm.assert_frame_equal(result, expected)

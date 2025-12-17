@@ -58,12 +58,11 @@ class TestAttributes:
 
 
 class TestMethods:
-    @pytest.mark.parametrize("new_closed", ["left", "right", "both", "neither"])
-    def test_set_closed(self, closed, new_closed):
+    def test_set_closed(self, closed, other_closed):
         # GH 21670
         array = IntervalArray.from_breaks(range(10), closed=closed)
-        result = array.set_closed(new_closed)
-        expected = IntervalArray.from_breaks(range(10), closed=new_closed)
+        result = array.set_closed(other_closed)
+        expected = IntervalArray.from_breaks(range(10), closed=other_closed)
         tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -112,13 +111,50 @@ class TestMethods:
         with pytest.raises(TypeError, match=msg):
             a.shift(1, fill_value=np.timedelta64("NaT", "ns"))
 
+    def test_unique_with_negatives(self):
+        # GH#61917
+        idx_pos = IntervalIndex.from_tuples(
+            [(3, 4), (3, 4), (2, 3), (2, 3), (1, 2), (1, 2)]
+        )
+        result = idx_pos.unique()
+        expected = IntervalIndex.from_tuples([(3, 4), (2, 3), (1, 2)])
+        tm.assert_index_equal(result, expected)
+
+        idx_neg = IntervalIndex.from_tuples(
+            [(-4, -3), (-4, -3), (-3, -2), (-3, -2), (-2, -1), (-2, -1)]
+        )
+        result = idx_neg.unique()
+        expected = IntervalIndex.from_tuples([(-4, -3), (-3, -2), (-2, -1)])
+        tm.assert_index_equal(result, expected)
+
+        idx_mix = IntervalIndex.from_tuples(
+            [(1, 2), (0, 1), (-1, 0), (-2, -1), (-3, -2), (-3, -2)]
+        )
+        result = idx_mix.unique()
+        expected = IntervalIndex.from_tuples(
+            [(1, 2), (0, 1), (-1, 0), (-2, -1), (-3, -2)]
+        )
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [Interval(-np.inf, 0), Interval(-np.inf, 1)],
+            [Interval(0, np.inf), Interval(1, np.inf)],
+        ],
+    )
+    def test_unique_with_infinty(self, data):
+        # https://github.com/pandas-dev/pandas/issues/63218
+        s = pd.Series(data)
+        tm.assert_interval_array_equal(s.unique(), s.array)
+        assert s.nunique() == 2
+        tm.assert_series_equal(s.drop_duplicates(), s)
+
 
 class TestSetitem:
     def test_set_na(self, left_right_dtypes):
         left, right = left_right_dtypes
-        left = left.copy(deep=True)
-        right = right.copy(deep=True)
-        result = IntervalArray.from_arrays(left, right)
+        result = IntervalArray.from_arrays(left, right, copy=True)
 
         if result.dtype.subtype.kind not in ["m", "M"]:
             msg = "'value' should be an interval type, got <.*NaTType'> instead."
@@ -169,8 +205,6 @@ class TestSetitem:
 class TestReductions:
     def test_min_max_invalid_axis(self, left_right_dtypes):
         left, right = left_right_dtypes
-        left = left.copy(deep=True)
-        right = right.copy(deep=True)
         arr = IntervalArray.from_arrays(left, right)
 
         msg = "`axis` must be fewer than the number of dimensions"
@@ -189,8 +223,6 @@ class TestReductions:
     def test_min_max(self, left_right_dtypes, index_or_series_or_array):
         # GH#44746
         left, right = left_right_dtypes
-        left = left.copy(deep=True)
-        right = right.copy(deep=True)
         arr = IntervalArray.from_arrays(left, right)
 
         # The expected results below are only valid if monotonic
@@ -223,184 +255,10 @@ class TestReductions:
         res = arr_na.max(skipna=False)
         assert np.isnan(res)
 
-        res = arr_na.min(skipna=True)
-        assert res == MIN
-        assert type(res) == type(MIN)
-        res = arr_na.max(skipna=True)
-        assert res == MAX
-        assert type(res) == type(MAX)
-
-
-# ----------------------------------------------------------------------------
-# Arrow interaction
-
-
-def test_arrow_extension_type():
-    pa = pytest.importorskip("pyarrow")
-
-    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
-
-    p1 = ArrowIntervalType(pa.int64(), "left")
-    p2 = ArrowIntervalType(pa.int64(), "left")
-    p3 = ArrowIntervalType(pa.int64(), "right")
-
-    assert p1.closed == "left"
-    assert p1 == p2
-    assert p1 != p3
-    assert hash(p1) == hash(p2)
-    assert hash(p1) != hash(p3)
-
-
-def test_arrow_array():
-    pa = pytest.importorskip("pyarrow")
-
-    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
-
-    intervals = pd.interval_range(1, 5, freq=1).array
-
-    result = pa.array(intervals)
-    assert isinstance(result.type, ArrowIntervalType)
-    assert result.type.closed == intervals.closed
-    assert result.type.subtype == pa.int64()
-    assert result.storage.field("left").equals(pa.array([1, 2, 3, 4], type="int64"))
-    assert result.storage.field("right").equals(pa.array([2, 3, 4, 5], type="int64"))
-
-    expected = pa.array([{"left": i, "right": i + 1} for i in range(1, 5)])
-    assert result.storage.equals(expected)
-
-    # convert to its storage type
-    result = pa.array(intervals, type=expected.type)
-    assert result.equals(expected)
-
-    # unsupported conversions
-    with pytest.raises(TypeError, match="Not supported to convert IntervalArray"):
-        pa.array(intervals, type="float64")
-
-    with pytest.raises(TypeError, match="Not supported to convert IntervalArray"):
-        pa.array(intervals, type=ArrowIntervalType(pa.float64(), "left"))
-
-
-def test_arrow_array_missing():
-    pa = pytest.importorskip("pyarrow")
-
-    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
-
-    arr = IntervalArray.from_breaks([0.0, 1.0, 2.0, 3.0])
-    arr[1] = None
-
-    result = pa.array(arr)
-    assert isinstance(result.type, ArrowIntervalType)
-    assert result.type.closed == arr.closed
-    assert result.type.subtype == pa.float64()
-
-    # fields have missing values (not NaN)
-    left = pa.array([0.0, None, 2.0], type="float64")
-    right = pa.array([1.0, None, 3.0], type="float64")
-    assert result.storage.field("left").equals(left)
-    assert result.storage.field("right").equals(right)
-
-    # structarray itself also has missing values on the array level
-    vals = [
-        {"left": 0.0, "right": 1.0},
-        {"left": None, "right": None},
-        {"left": 2.0, "right": 3.0},
-    ]
-    expected = pa.StructArray.from_pandas(vals, mask=np.array([False, True, False]))
-    assert result.storage.equals(expected)
-
-
-@pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-@pytest.mark.parametrize(
-    "breaks",
-    [[0.0, 1.0, 2.0, 3.0], date_range("2017", periods=4, freq="D")],
-    ids=["float", "datetime64[ns]"],
-)
-def test_arrow_table_roundtrip(breaks):
-    pa = pytest.importorskip("pyarrow")
-
-    from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
-
-    arr = IntervalArray.from_breaks(breaks)
-    arr[1] = None
-    df = pd.DataFrame({"a": arr})
-
-    table = pa.table(df)
-    assert isinstance(table.field("a").type, ArrowIntervalType)
-    result = table.to_pandas()
-    assert isinstance(result["a"].dtype, pd.IntervalDtype)
-    tm.assert_frame_equal(result, df)
-
-    table2 = pa.concat_tables([table, table])
-    result = table2.to_pandas()
-    expected = pd.concat([df, df], ignore_index=True)
-    tm.assert_frame_equal(result, expected)
-
-    # GH-41040
-    table = pa.table(
-        [pa.chunked_array([], type=table.column(0).type)], schema=table.schema
-    )
-    result = table.to_pandas()
-    tm.assert_frame_equal(result, expected[0:0])
-
-
-@pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
-)
-@pytest.mark.parametrize(
-    "breaks",
-    [[0.0, 1.0, 2.0, 3.0], date_range("2017", periods=4, freq="D")],
-    ids=["float", "datetime64[ns]"],
-)
-def test_arrow_table_roundtrip_without_metadata(breaks):
-    pa = pytest.importorskip("pyarrow")
-
-    arr = IntervalArray.from_breaks(breaks)
-    arr[1] = None
-    df = pd.DataFrame({"a": arr})
-
-    table = pa.table(df)
-    # remove the metadata
-    table = table.replace_schema_metadata()
-    assert table.schema.metadata is None
-
-    result = table.to_pandas()
-    assert isinstance(result["a"].dtype, pd.IntervalDtype)
-    tm.assert_frame_equal(result, df)
-
-
-def test_from_arrow_from_raw_struct_array():
-    # in case pyarrow lost the Interval extension type (eg on parquet roundtrip
-    # with datetime64[ns] subtype, see GH-45881), still allow conversion
-    # from arrow to IntervalArray
-    pa = pytest.importorskip("pyarrow")
-
-    arr = pa.array([{"left": 0, "right": 1}, {"left": 1, "right": 2}])
-    dtype = pd.IntervalDtype(np.dtype("int64"), closed="neither")
-
-    result = dtype.__from_arrow__(arr)
-    expected = IntervalArray.from_breaks(
-        np.array([0, 1, 2], dtype="int64"), closed="neither"
-    )
-    tm.assert_extension_array_equal(result, expected)
-
-    result = dtype.__from_arrow__(pa.chunked_array([arr]))
-    tm.assert_extension_array_equal(result, expected)
-
-
-@pytest.mark.parametrize("timezone", ["UTC", "US/Pacific", "GMT"])
-def test_interval_index_subtype(timezone, inclusive_endpoints_fixture):
-    # GH 46999
-    dates = date_range("2022", periods=3, tz=timezone)
-    dtype = f"interval[datetime64[ns, {timezone}], {inclusive_endpoints_fixture}]"
-    result = IntervalIndex.from_arrays(
-        ["2022-01-01", "2022-01-02"],
-        ["2022-01-02", "2022-01-03"],
-        closed=inclusive_endpoints_fixture,
-        dtype=dtype,
-    )
-    expected = IntervalIndex.from_arrays(
-        dates[:-1], dates[1:], closed=inclusive_endpoints_fixture
-    )
-    tm.assert_index_equal(result, expected)
+        for kws in [{"skipna": True}, {}]:
+            res = arr_na.min(**kws)
+            assert res == MIN
+            assert type(res) == type(MIN)
+            res = arr_na.max(**kws)
+            assert res == MAX
+            assert type(res) == type(MAX)

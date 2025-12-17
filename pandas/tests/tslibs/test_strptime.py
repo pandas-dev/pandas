@@ -9,21 +9,35 @@ import pytest
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
 from pandas._libs.tslibs.strptime import array_strptime
 
-from pandas import Timestamp
+from pandas import (
+    NaT,
+    Timestamp,
+)
 import pandas._testing as tm
 
 creso_infer = NpyDatetimeUnit.NPY_FR_GENERIC.value
 
 
 class TestArrayStrptimeResolutionInference:
+    def test_array_strptime_resolution_all_nat(self):
+        arr = np.array([NaT, np.nan], dtype=object)
+
+        fmt = "%Y-%m-%d %H:%M:%S"
+        res, _ = array_strptime(arr, fmt=fmt, utc=False, creso=creso_infer)
+        assert res.dtype == "M8[s]"
+
+        res, _ = array_strptime(arr, fmt=fmt, utc=True, creso=creso_infer)
+        assert res.dtype == "M8[s]"
+
     @pytest.mark.parametrize("tz", [None, timezone.utc])
     def test_array_strptime_resolution_inference_homogeneous_strings(self, tz):
         dt = datetime(2016, 1, 2, 3, 4, 5, 678900, tzinfo=tz)
+        dt0 = dt.replace(microsecond=0)
 
         fmt = "%Y-%m-%d %H:%M:%S"
         dtstr = dt.strftime(fmt)
         arr = np.array([dtstr] * 3, dtype=object)
-        expected = np.array([dt.replace(tzinfo=None)] * 3, dtype="M8[s]")
+        expected = np.array([dt0.replace(tzinfo=None)] * 3, dtype="M8[us]")
 
         res, _ = array_strptime(arr, fmt=fmt, utc=False, creso=creso_infer)
         tm.assert_numpy_array_equal(res, expected)
@@ -84,14 +98,14 @@ class TestArrayStrptimeResolutionInference:
 
     def test_array_strptime_str_outside_nano_range(self):
         vals = np.array(["2401-09-15"], dtype=object)
-        expected = np.array(["2401-09-15"], dtype="M8[s]")
+        expected = np.array(["2401-09-15"], dtype="M8[us]")
         fmt = "ISO8601"
         res, _ = array_strptime(vals, fmt=fmt, creso=creso_infer)
         tm.assert_numpy_array_equal(res, expected)
 
         # non-iso -> different path
         vals2 = np.array(["Sep 15, 2401"], dtype=object)
-        expected2 = np.array(["2401-09-15"], dtype="M8[s]")
+        expected2 = np.array(["2401-09-15"], dtype="M8[us]")
         fmt2 = "%b %d, %Y"
         res2, _ = array_strptime(vals2, fmt=fmt2, creso=creso_infer)
         tm.assert_numpy_array_equal(res2, expected2)

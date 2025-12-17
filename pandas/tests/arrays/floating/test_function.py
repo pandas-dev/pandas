@@ -10,10 +10,13 @@ import pandas._testing as tm
 @pytest.mark.parametrize("ufunc", [np.abs, np.sign])
 # np.sign emits a warning with nans, <https://github.com/numpy/numpy/issues/15127>
 @pytest.mark.filterwarnings("ignore:invalid value encountered in sign:RuntimeWarning")
-def test_ufuncs_single(ufunc):
-    a = pd.array([1, 2, -3, np.nan], dtype="Float64")
+def test_ufuncs_single(ufunc, using_nan_is_na):
+    a = pd.array([1, 2, -3, pd.NA], dtype="Float64")
     result = ufunc(a)
-    expected = pd.array(ufunc(a.astype(float)), dtype="Float64")
+    np_res = ufunc(a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     s = pd.Series(a)
@@ -23,45 +26,66 @@ def test_ufuncs_single(ufunc):
 
 
 @pytest.mark.parametrize("ufunc", [np.log, np.exp, np.sin, np.cos, np.sqrt])
-def test_ufuncs_single_float(ufunc):
-    a = pd.array([1.0, 0.2, 3.0, np.nan], dtype="Float64")
+def test_ufuncs_single_float(ufunc, using_nan_is_na):
+    a = pd.array([1.0, 0.2, 3.0, pd.NA], dtype="Float64")
     with np.errstate(invalid="ignore"):
         result = ufunc(a)
-        expected = pd.array(ufunc(a.astype(float)), dtype="Float64")
+        np_res = ufunc(a.astype(float))
+        np_res = np_res.astype(object)
+        np_res[a.isna()] = pd.NA
+        expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     s = pd.Series(a)
     with np.errstate(invalid="ignore"):
         result = ufunc(s)
-        expected = pd.Series(ufunc(s.astype(float)), dtype="Float64")
+        np_res = ufunc(s.astype(float))
+        np_res = np_res.astype(object)
+        np_res[a.isna()] = pd.NA
+        expected = pd.Series(np_res, dtype="Float64")
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("ufunc", [np.add, np.subtract])
-def test_ufuncs_binary_float(ufunc):
+def test_ufuncs_binary_float(ufunc, using_nan_is_na):
     # two FloatingArrays
-    a = pd.array([1, 0.2, -3, np.nan], dtype="Float64")
+    a = pd.array([1, 0.2, -3, pd.NA], dtype="Float64")
     result = ufunc(a, a)
-    expected = pd.array(ufunc(a.astype(float), a.astype(float)), dtype="Float64")
+    np_res = ufunc(a.astype(float), a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     # FloatingArray with numpy array
     arr = np.array([1, 2, 3, 4])
     result = ufunc(a, arr)
-    expected = pd.array(ufunc(a.astype(float), arr), dtype="Float64")
+    np_res = ufunc(a.astype(float), arr)
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     result = ufunc(arr, a)
-    expected = pd.array(ufunc(arr, a.astype(float)), dtype="Float64")
+    np_res = ufunc(arr, a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     # FloatingArray with scalar
     result = ufunc(a, 1)
-    expected = pd.array(ufunc(a.astype(float), 1), dtype="Float64")
+    np_res = ufunc(a.astype(float), 1)
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
     result = ufunc(1, a)
-    expected = pd.array(ufunc(1, a.astype(float)), dtype="Float64")
+    np_res = ufunc(1, a.astype(float))
+    np_res = np_res.astype(object)
+    np_res[a.isna()] = pd.NA
+    expected = pd.array(np_res, dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -88,7 +112,7 @@ def test_ufunc_reduce_raises(values):
     ],
 )
 def test_stat_method(pandasmethname, kwargs):
-    s = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, np.nan, np.nan], dtype="Float64")
+    s = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, pd.NA, pd.NA], dtype="Float64")
     pandasmeth = getattr(s, pandasmethname)
     result = pandasmeth(**kwargs)
     s2 = pd.Series(data=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6], dtype="float64")
@@ -127,7 +151,6 @@ def test_value_counts_with_normalize():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("min_count", [0, 4])
 def test_floating_array_sum(skipna, min_count, dtype):
     arr = pd.array([1, 2, 3, None], dtype=dtype)
@@ -171,7 +194,6 @@ def test_preserve_dtypes(op):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("method", ["min", "max"])
 def test_floating_array_min_max(skipna, method, dtype):
     arr = pd.array([0.0, 1.0, None], dtype=dtype)
@@ -183,7 +205,6 @@ def test_floating_array_min_max(skipna, method, dtype):
         assert result is pd.NA
 
 
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize("min_count", [0, 9])
 def test_floating_array_prod(skipna, min_count, dtype):
     arr = pd.array([1.0, 2.0, None], dtype=dtype)

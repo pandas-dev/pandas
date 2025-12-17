@@ -3,6 +3,8 @@ import itertools
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.dtypes import NumpyEADtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import ExtensionArray
@@ -29,12 +31,12 @@ class BaseReshapingTests:
         assert dtype == data.dtype
         if hasattr(result._mgr, "blocks"):
             assert isinstance(result._mgr.blocks[0], EABackedBlock)
-        assert isinstance(result._mgr.arrays[0], ExtensionArray)
+        assert isinstance(result._mgr.blocks[0].values, ExtensionArray)
 
     @pytest.mark.parametrize("in_frame", [True, False])
     def test_concat_all_na_block(self, data_missing, in_frame):
-        valid_block = pd.Series(data_missing.take([1, 1]), index=[0, 1])
-        na_block = pd.Series(data_missing.take([0, 0]), index=[2, 3])
+        valid_block = pd.Series(data_missing.take([1, 1]), index=range(2))
+        na_block = pd.Series(data_missing.take([0, 0]), index=range(2, 4))
         if in_frame:
             valid_block = pd.DataFrame({"a": valid_block})
             na_block = pd.DataFrame({"a": na_block})
@@ -72,8 +74,7 @@ class BaseReshapingTests:
         expected = pd.concat([df1["A"].astype("object"), df2["A"].astype("object")])
         tm.assert_series_equal(result, expected)
 
-    def test_concat_columns(self, data):
-        na_value = data.dtype.na_value
+    def test_concat_columns(self, data, na_value):
         df1 = pd.DataFrame({"A": data[:3]})
         df2 = pd.DataFrame({"B": [1, 2, 3]})
 
@@ -97,9 +98,8 @@ class BaseReshapingTests:
         result = pd.concat([df1["A"], df2["B"]], axis=1)
         tm.assert_frame_equal(result, expected)
 
-    def test_concat_extension_arrays_copy_false(self, data):
+    def test_concat_extension_arrays_copy_false(self, data, na_value):
         # GH 20756
-        na_value = data.dtype.na_value
         df1 = pd.DataFrame({"A": data[:3]})
         df2 = pd.DataFrame({"B": data[3:7]})
         expected = pd.DataFrame(
@@ -108,7 +108,7 @@ class BaseReshapingTests:
                 "B": data[3:7],
             }
         )
-        result = pd.concat([df1, df2], axis=1, copy=False)
+        result = pd.concat([df1, df2], axis=1)
         tm.assert_frame_equal(result, expected)
 
     def test_concat_with_reindex(self, data):
@@ -124,8 +124,7 @@ class BaseReshapingTests:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_align(self, data):
-        na_value = data.dtype.na_value
+    def test_align(self, data, na_value):
         a = data[:3]
         b = data[2:5]
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
@@ -136,8 +135,7 @@ class BaseReshapingTests:
         tm.assert_series_equal(r1, e1)
         tm.assert_series_equal(r2, e2)
 
-    def test_align_frame(self, data):
-        na_value = data.dtype.na_value
+    def test_align_frame(self, data, na_value):
         a = data[:3]
         b = data[2:5]
         r1, r2 = pd.DataFrame({"A": a}).align(pd.DataFrame({"A": b}, index=[1, 2, 3]))
@@ -152,9 +150,8 @@ class BaseReshapingTests:
         tm.assert_frame_equal(r1, e1)
         tm.assert_frame_equal(r2, e2)
 
-    def test_align_series_frame(self, data):
+    def test_align_series_frame(self, data, na_value):
         # https://github.com/pandas-dev/pandas/issues/20576
-        na_value = data.dtype.na_value
         ser = pd.Series(data, name="a")
         df = pd.DataFrame({"col": np.arange(len(ser) + 1)})
         r1, r2 = ser.align(df)
@@ -185,7 +182,7 @@ class BaseReshapingTests:
         df["A"] = data
         assert df.dtypes["A"] == data.dtype
 
-    def test_merge(self, data):
+    def test_merge(self, data, na_value):
         # GH-20743
         df1 = pd.DataFrame({"ext": data[:3], "int1": [1, 2, 3], "key": [0, 1, 2]})
         df2 = pd.DataFrame({"int2": [1, 2, 3, 4], "key": [0, 0, 1, 3]})
@@ -210,8 +207,7 @@ class BaseReshapingTests:
                 "int2": [1, 2, 3, np.nan, 4],
                 "key": [0, 0, 1, 2, 3],
                 "ext": data._from_sequence(
-                    [data[0], data[0], data[1], data[2], data.dtype.na_value],
-                    dtype=data.dtype,
+                    [data[0], data[0], data[1], data[2], na_value], dtype=data.dtype
                 ),
             }
         )
@@ -272,7 +268,13 @@ class BaseReshapingTests:
         expected = expected.astype(object)
 
         if isinstance(expected, pd.Series):
-            assert result.dtype == df.iloc[:, 0].dtype
+            if future_stack and isinstance(data.dtype, NumpyEADtype):
+                # GH#58817 future_stack=True constructs the result specifying the dtype
+                # using the dtype of the input; we thus get the underlying
+                # NumPy dtype as the result instead of the NumpyExtensionArray
+                assert result.dtype == df.iloc[:, 0].to_numpy().dtype
+            else:
+                assert result.dtype == df.iloc[:, 0].dtype
         else:
             assert all(result.dtypes == df.iloc[:, 0].dtype)
 
@@ -301,7 +303,9 @@ class BaseReshapingTests:
     )
     @pytest.mark.parametrize("obj", ["series", "frame"])
     def test_unstack(self, data, index, obj):
-        data = data[: len(index)]
+        final_length = min(len(index), len(data))
+        index = index[:final_length]
+        data = data[:final_length]
         if obj == "series":
             ser = pd.Series(data, index=index)
         else:
@@ -343,7 +347,7 @@ class BaseReshapingTests:
         assert type(result) == type(data)
 
         if data.dtype._is_immutable:
-            pytest.skip("test_ravel assumes mutability")
+            pytest.skip(f"test_ravel assumes mutability and {data.dtype} is immutable")
 
         # Check that we have a view, not a copy
         result[0] = result[1]
@@ -360,7 +364,9 @@ class BaseReshapingTests:
         assert result.shape == data.shape[::-1]
 
         if data.dtype._is_immutable:
-            pytest.skip("test_transpose assumes mutability")
+            pytest.skip(
+                f"test_transpose assumes mutability and {data.dtype} is immutable"
+            )
 
         # Check that we have a view, not a copy
         result[0] = result[1]

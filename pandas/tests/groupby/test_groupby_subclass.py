@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     DataFrame,
     Index,
@@ -36,11 +38,11 @@ def test_groupby_preserves_subclass(obj, groupby_func):
 
     args = get_groupby_method_args(groupby_func, obj)
 
-    warn = FutureWarning if groupby_func == "fillna" else None
-    msg = f"{type(grouped).__name__}.fillna is deprecated"
-    with tm.assert_produces_warning(warn, match=msg, raise_on_extra_warnings=False):
+    warn = Pandas4Warning if groupby_func == "corrwith" else None
+    msg = f"{type(grouped).__name__}.corrwith is deprecated"
+    with tm.assert_produces_warning(warn, match=msg):
         result1 = getattr(grouped, groupby_func)(*args)
-    with tm.assert_produces_warning(warn, match=msg, raise_on_extra_warnings=False):
+    with tm.assert_produces_warning(warn, match=msg):
         result2 = grouped.agg(groupby_func, *args)
 
     # Reduction or transformation kernels should preserve type
@@ -69,14 +71,18 @@ def test_groupby_preserves_metadata():
     def func(group):
         assert isinstance(group, tm.SubclassedDataFrame)
         assert hasattr(group, "testattr")
+        assert group.testattr == "hello"
         return group.testattr
 
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(
-        FutureWarning, match=msg, raise_on_extra_warnings=False
-    ):
-        result = custom_df.groupby("c").apply(func)
+    result = custom_df.groupby("c").apply(func)
     expected = tm.SubclassedSeries(["hello"] * 3, index=Index([7, 8, 9], name="c"))
+    tm.assert_series_equal(result, expected)
+
+    result = custom_df.groupby("c").apply(func)
+    tm.assert_series_equal(result, expected)
+
+    # https://github.com/pandas-dev/pandas/pull/56761
+    result = custom_df.groupby("c")[["a", "b"]].apply(func)
     tm.assert_series_equal(result, expected)
 
     def func2(group):
@@ -92,13 +98,42 @@ def test_groupby_preserves_metadata():
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_apply_preserves_metadata():
+    # GH#62134 - Test that apply() preserves metadata when returning DataFrames/Series
+    custom_df = tm.SubclassedDataFrame({"a": [1, 2, 3], "b": [1, 1, 2], "c": [7, 8, 9]})
+    custom_df.testattr = "hello"
+
+    def sum_func(group):
+        assert isinstance(group, tm.SubclassedDataFrame)
+        assert hasattr(group, "testattr")
+        assert group.testattr == "hello"
+        return group.sum()
+
+    result = custom_df.groupby("c").apply(sum_func)
+    assert hasattr(result, "testattr"), "DataFrame apply() should preserve metadata"
+    assert result.testattr == "hello"
+
+    custom_series = tm.SubclassedSeries([1, 2, 3])
+    custom_series.testattr = "hello"
+
+    def sum_series_func(group):
+        assert isinstance(group, tm.SubclassedSeries)
+        assert hasattr(group, "testattr")
+        assert group.testattr == "hello"
+        return group.sum()
+
+    result = custom_series.groupby(custom_df["c"]).apply(sum_series_func)
+    assert hasattr(result, "testattr"), "Series apply() should preserve metadata"
+    assert result.testattr == "hello"
+
+
 @pytest.mark.parametrize("obj", [DataFrame, tm.SubclassedDataFrame])
 def test_groupby_resample_preserves_subclass(obj):
     # GH28330 -- preserve subclass through groupby.resample()
 
     df = obj(
         {
-            "Buyer": "Carl Carl Carl Carl Joe Carl".split(),
+            "Buyer": Series("Carl Carl Carl Carl Joe Carl".split(), dtype=object),
             "Quantity": [18, 3, 5, 1, 9, 3],
             "Date": [
                 datetime(2013, 9, 1, 13, 0),
@@ -113,9 +148,5 @@ def test_groupby_resample_preserves_subclass(obj):
     df = df.set_index("Date")
 
     # Confirm groupby.resample() preserves dataframe type
-    msg = "DataFrameGroupBy.resample operated on the grouping columns"
-    with tm.assert_produces_warning(
-        FutureWarning, match=msg, raise_on_extra_warnings=False
-    ):
-        result = df.groupby("Buyer").resample("5D").sum()
+    result = df.groupby("Buyer").resample("5D").sum()
     assert isinstance(result, obj)

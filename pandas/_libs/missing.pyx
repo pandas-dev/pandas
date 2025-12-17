@@ -72,7 +72,7 @@ cpdef bint check_na_tuples_nonequal(object left, object right):
     if len(left) != len(right):
         return False
 
-    for left_element, right_element in zip(left, right):
+    for left_element, right_element in zip(left, right, strict=True):
         if left_element is C_NA and right_element is not C_NA:
             return True
         elif right_element is C_NA and left_element is not C_NA:
@@ -137,7 +137,7 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
     return False
 
 
-cpdef bint checknull(object val, bint inf_as_na=False):
+cpdef bint checknull(object val):
     """
     Return boolean describing of the input is NA-like, defined here as any
     of:
@@ -152,8 +152,6 @@ cpdef bint checknull(object val, bint inf_as_na=False):
     Parameters
     ----------
     val : object
-    inf_as_na : bool, default False
-        Whether to treat INF and -INF as NA values.
 
     Returns
     -------
@@ -164,8 +162,6 @@ cpdef bint checknull(object val, bint inf_as_na=False):
     elif util.is_float_object(val) or util.is_complex_object(val):
         if val != val:
             return True
-        elif inf_as_na:
-            return val == INF or val == NEGINF
         return False
     elif cnp.is_timedelta64_object(val):
         return cnp.get_timedelta64_value(val) == NPY_NAT
@@ -184,7 +180,7 @@ cdef bint is_decimal_na(object val):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
+cpdef ndarray[uint8_t] isnaobj(ndarray arr):
     """
     Return boolean mask denoting which elements of a 1-D array are na-like,
     according to the criteria defined in `checknull`:
@@ -217,7 +213,7 @@ cpdef ndarray[uint8_t] isnaobj(ndarray arr, bint inf_as_na=False):
         #  equivalents to `val = values[i]`
         val = cnp.PyArray_GETITEM(arr, cnp.PyArray_ITER_DATA(it))
         cnp.PyArray_ITER_NEXT(it)
-        is_null = checknull(val, inf_as_na=inf_as_na)
+        is_null = checknull(val)
         # Dereference pointer (set value)
         (<uint8_t *>(cnp.PyArray_ITER_DATA(it2)))[0] = <uint8_t>is_null
         cnp.PyArray_ITER_NEXT(it2)
@@ -251,6 +247,24 @@ cdef bint is_null_timedelta64(v):
 cdef bint checknull_with_nat_and_na(object obj):
     # See GH#32214
     return checknull_with_nat(obj) or obj is C_NA
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def is_pdna_or_none(values: ndarray) -> ndarray:
+    cdef:
+        ndarray[uint8_t] result
+        Py_ssize_t i, N
+        object val
+
+    N = len(values)
+    result = np.zeros(N, dtype=np.uint8)
+
+    for i in range(N):
+        val = values[i]
+        if val is None or val is C_NA:
+            result[i] = True
+    return result.view(bool)
 
 
 @cython.wraparound(False)
@@ -351,6 +365,14 @@ class NAType(C_NAType):
     The NA singleton is a missing value indicator defined by pandas. It is
     used in certain new extension dtypes (currently the "string" dtype).
 
+    See Also
+    --------
+    numpy.nan : Floating point representation of Not a Number (NaN) for numerical data.
+    isna : Detect missing values for an array-like object.
+    notna : Detect non-missing values for an array-like object.
+    DataFrame.fillna : Fill missing values in a DataFrame.
+    Series.fillna : Fill missing values in a Series.
+
     Examples
     --------
     >>> pd.NA
@@ -371,6 +393,7 @@ class NAType(C_NAType):
     >>> True | pd.NA
     True
     """
+    __module__ = "pandas.api.typing"
 
     _instance = None
 
@@ -467,6 +490,10 @@ class NAType(C_NAType):
             return False
         elif other is True or other is C_NA:
             return NA
+        elif util.is_bool_object(other):
+            if not other:
+                return False
+            return NA
         return NotImplemented
 
     __rand__ = __and__
@@ -476,12 +503,16 @@ class NAType(C_NAType):
             return True
         elif other is False or other is C_NA:
             return NA
+        elif util.is_bool_object(other):
+            if not other:
+                return NA
+            return True
         return NotImplemented
 
     __ror__ = __or__
 
     def __xor__(self, other):
-        if other is False or other is True or other is C_NA:
+        if util.is_bool_object(other) or other is C_NA:
             return NA
         return NotImplemented
 
@@ -515,3 +546,4 @@ class NAType(C_NAType):
 
 C_NA = NAType()   # C-visible
 NA = C_NA         # Python-visible
+NA.__module__ = "pandas"

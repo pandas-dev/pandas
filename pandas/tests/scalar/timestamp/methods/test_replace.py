@@ -1,9 +1,9 @@
 from datetime import datetime
+import zoneinfo
 
 from dateutil.tz import gettz
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
@@ -11,6 +11,7 @@ from pandas._libs.tslibs import (
     conversion,
 )
 from pandas._libs.tslibs.dtypes import NpyDatetimeUnit
+from pandas.compat import WASM
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
@@ -99,6 +100,7 @@ class TestTimestampReplace:
         with pytest.raises(ValueError, match=msg):
             ts.replace(hour=0.1)
 
+    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     def test_replace_tzinfo_equiv_tz_localize_none(self):
         # GH#14621, GH#7825
         # assert conversion to naive is the same as replacing tzinfo with None
@@ -106,10 +108,11 @@ class TestTimestampReplace:
         assert ts.tz_localize(None) == ts.replace(tzinfo=None)
 
     @td.skip_if_windows
+    @pytest.mark.skipif(WASM, reason="tzset is not available on WASM")
     def test_replace_tzinfo(self):
         # GH#15683
-        dt = datetime(2016, 3, 27, 1)
-        tzinfo = pytz.timezone("CET").localize(dt, is_dst=False).tzinfo
+        dt = datetime(2016, 3, 27, 1, fold=1)
+        tzinfo = dt.astimezone(zoneinfo.ZoneInfo("Europe/Berlin")).tzinfo
 
         result_dt = dt.replace(tzinfo=tzinfo)
         result_pd = Timestamp(dt).replace(tzinfo=tzinfo)
@@ -134,13 +137,16 @@ class TestTimestampReplace:
     @pytest.mark.parametrize(
         "tz, normalize",
         [
-            (pytz.timezone("US/Eastern"), lambda x: x.tzinfo.normalize(x)),
+            ("pytz/US/Eastern", lambda x: x.tzinfo.normalize(x)),
             (gettz("US/Eastern"), lambda x: x),
         ],
     )
     def test_replace_across_dst(self, tz, normalize):
         # GH#18319 check that 1) timezone is correctly normalized and
         # 2) that hour is not incorrectly changed by this normalization
+        if isinstance(tz, str) and tz.startswith("pytz/"):
+            pytz = pytest.importorskip("pytz")
+            tz = pytz.timezone(tz.removeprefix("pytz/"))
         ts_naive = Timestamp("2017-12-03 16:03:30")
         ts_aware = conversion.localize_pydatetime(ts_naive, tz)
 
@@ -157,7 +163,6 @@ class TestTimestampReplace:
         ts2b = normalize(ts2)
         assert ts2 == ts2b
 
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_replace_dst_border(self, unit):
         # Gh 7825
         t = Timestamp("2013-11-3", tz="America/Chicago").as_unit(unit)
@@ -168,7 +173,6 @@ class TestTimestampReplace:
 
     @pytest.mark.parametrize("fold", [0, 1])
     @pytest.mark.parametrize("tz", ["dateutil/Europe/London", "Europe/London"])
-    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_replace_dst_fold(self, fold, tz, unit):
         # GH 25017
         d = datetime(2019, 10, 27, 2, 30)
@@ -191,3 +195,17 @@ class TestTimestampReplace:
         ts_replaced = ts.replace(second=1)
 
         assert ts_replaced.fold == fold
+
+    def test_replace_updates_unit(self):
+        # GH#57749
+        ts = Timestamp("2023-07-15 23:08:12.134567123")
+        ts2 = Timestamp("2023-07-15 23:08:12.000000")
+        assert ts2.unit == "us"
+        result = ts2.replace(microsecond=ts.microsecond, nanosecond=ts.nanosecond)
+        assert result.unit == "ns"
+        assert result == ts
+
+        ts3 = Timestamp("2023-07-15 23:08:12").as_unit("s")
+        result = ts3.replace(microsecond=ts2.microsecond)
+        assert result.unit == "us"
+        assert result == ts2

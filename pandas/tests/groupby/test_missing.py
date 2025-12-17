@@ -5,7 +5,6 @@ import pandas as pd
 from pandas import (
     DataFrame,
     Index,
-    date_range,
 )
 import pandas._testing as tm
 
@@ -36,80 +35,7 @@ def test_groupby_fill_duplicate_column_names(func):
     tm.assert_frame_equal(result, expected)
 
 
-def test_ffill_missing_arguments():
-    # GH 14955
-    df = DataFrame({"a": [1, 2], "b": [1, 1]})
-    msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        with pytest.raises(ValueError, match="Must specify a fill"):
-            df.groupby("b").fillna()
-
-
-@pytest.mark.parametrize(
-    "method, expected", [("ffill", [None, "a", "a"]), ("bfill", ["a", "a", None])]
-)
-def test_fillna_with_string_dtype(method, expected):
-    # GH 40250
-    df = DataFrame({"a": pd.array([None, "a", None], dtype="string"), "b": [0, 0, 0]})
-    grp = df.groupby("b")
-    msg = "DataFrameGroupBy.fillna is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = grp.fillna(method=method)
-    expected = DataFrame({"a": pd.array(expected, dtype="string")})
-    tm.assert_frame_equal(result, expected)
-
-
-def test_fill_consistency():
-    # GH9221
-    # pass thru keyword arguments to the generated wrapper
-    # are set if the passed kw is None (only)
-    df = DataFrame(
-        index=pd.MultiIndex.from_product(
-            [["value1", "value2"], date_range("2014-01-01", "2014-01-06")]
-        ),
-        columns=Index(["1", "2"], name="id"),
-    )
-    df["1"] = [
-        np.nan,
-        1,
-        np.nan,
-        np.nan,
-        11,
-        np.nan,
-        np.nan,
-        2,
-        np.nan,
-        np.nan,
-        22,
-        np.nan,
-    ]
-    df["2"] = [
-        np.nan,
-        3,
-        np.nan,
-        np.nan,
-        33,
-        np.nan,
-        np.nan,
-        4,
-        np.nan,
-        np.nan,
-        44,
-        np.nan,
-    ]
-
-    msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        expected = df.groupby(level=0, axis=0).fillna(method="ffill")
-
-    msg = "DataFrame.groupby with axis=1 is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.T.groupby(level=0, axis=1).fillna(method="ffill").T
-    tm.assert_frame_equal(result, expected)
-
-
 @pytest.mark.parametrize("method", ["ffill", "bfill"])
-@pytest.mark.parametrize("dropna", [True, False])
 @pytest.mark.parametrize("has_nan_group", [True, False])
 def test_ffill_handles_nan_groups(dropna, method, has_nan_group):
     # GH 34725

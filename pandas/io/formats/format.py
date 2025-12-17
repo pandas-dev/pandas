@@ -2,9 +2,11 @@
 Internal module for formatting output data in csv, html, xml,
 and latex files. This module also applies to display formatting.
 """
+
 from __future__ import annotations
 
 from collections.abc import (
+    Callable,
     Generator,
     Hashable,
     Mapping,
@@ -21,7 +23,6 @@ from shutil import get_terminal_size
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Final,
     cast,
 )
@@ -41,6 +42,7 @@ from pandas._libs.tslibs import (
     Timestamp,
 )
 from pandas._libs.tslibs.nattype import NaTType
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_complex_dtype,
@@ -66,7 +68,6 @@ from pandas.core.arrays import (
     ExtensionArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.indexes.api import (
@@ -77,7 +78,6 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.core.reshape.concat import concat
 
 from pandas.io.common import (
     check_parent_directory,
@@ -115,7 +115,7 @@ common_docstring: Final = """
         columns : array-like, optional, default None
             The subset of columns to write. Writes all columns by default.
         col_space : %(col_space_type)s, optional
-            %(col_space)s.
+            %(col_space)s
         header : %(header_type)s, optional
             %(header)s.
         index : bool, optional, default True
@@ -132,9 +132,6 @@ common_docstring: Final = """
             floats. This function must return a unicode string and will be
             applied only to the non-``NaN`` elements, with ``NaN`` being
             handled by ``na_rep``.
-
-            .. versionchanged:: 1.2.0
-
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.
@@ -247,7 +244,11 @@ class SeriesFormatter:
                 series = series.iloc[:max_rows]
             else:
                 row_num = max_rows // 2
-                series = concat((series.iloc[:row_num], series.iloc[-row_num:]))
+                _len = len(series)
+                _slice = np.hstack(
+                    [np.arange(row_num), np.arange(_len - row_num, _len)]
+                )
+                series = series.iloc[_slice]
             self.tr_row_num = row_num
         else:
             self.tr_row_num = None
@@ -357,8 +358,6 @@ def get_dataframe_repr_params() -> dict[str, Any]:
     Supplying these parameters to DataFrame.to_string is equivalent to calling
     ``repr(DataFrame)``. This is useful if you want to adjust the repr output.
 
-    .. versionadded:: 1.4.0
-
     Example
     -------
     >>> import pandas as pd
@@ -389,8 +388,6 @@ def get_series_repr_params() -> dict[str, Any]:
 
     Supplying these parameters to Series.to_string is equivalent to calling
     ``repr(series)``. This is useful if you want to adjust the series repr output.
-
-    .. versionadded:: 1.4.0
 
     Example
     -------
@@ -454,7 +451,7 @@ class DataFrameFormatter:
         self.na_rep = na_rep
         self.formatters = self._initialize_formatters(formatters)
         self.justify = self._initialize_justify(justify)
-        self.float_format = float_format
+        self.float_format = self._validate_float_format(float_format)
         self.sparsify = self._initialize_sparsify(sparsify)
         self.show_index_names = index_names
         self.decimal = decimal
@@ -565,7 +562,7 @@ class DataFrameFormatter:
             result = {}
         elif isinstance(col_space, (int, str)):
             result = {"": col_space}
-            result.update({column: col_space for column in self.frame.columns})
+            result.update(dict.fromkeys(self.frame.columns, col_space))
         elif isinstance(col_space, Mapping):
             for column in col_space.keys():
                 if column not in self.frame.columns and column != "":
@@ -579,7 +576,7 @@ class DataFrameFormatter:
                     f"Col_space length({len(col_space)}) should match "
                     f"DataFrame number of columns({len(self.frame.columns)})"
                 )
-            result = dict(zip(self.frame.columns, col_space))
+            result = dict(zip(self.frame.columns, col_space, strict=True))
         return result
 
     def _calc_max_cols_fitted(self) -> int | None:
@@ -671,9 +668,9 @@ class DataFrameFormatter:
         assert self.max_cols_fitted is not None
         col_num = self.max_cols_fitted // 2
         if col_num >= 1:
-            left = self.tr_frame.iloc[:, :col_num]
-            right = self.tr_frame.iloc[:, -col_num:]
-            self.tr_frame = concat((left, right), axis=1)
+            _len = len(self.tr_frame.columns)
+            _slice = np.hstack([np.arange(col_num), np.arange(_len - col_num, _len)])
+            self.tr_frame = self.tr_frame.iloc[:, _slice]
 
             # truncate formatter
             if isinstance(self.formatters, (list, tuple)):
@@ -684,7 +681,7 @@ class DataFrameFormatter:
         else:
             col_num = cast(int, self.max_cols)
             self.tr_frame = self.tr_frame.iloc[:, :col_num]
-        self.tr_col_num = col_num
+        self.tr_col_num: int = col_num
 
     def _truncate_vertically(self) -> None:
         """Remove rows, which are not to be displayed.
@@ -783,38 +780,22 @@ class DataFrameFormatter:
 
         if isinstance(columns, MultiIndex):
             fmt_columns = columns._format_multi(sparsify=False, include_names=False)
-            fmt_columns = list(zip(*fmt_columns))
-            dtypes = self.frame.dtypes._values
+            if self.sparsify and len(fmt_columns):
+                fmt_columns = sparsify_labels(fmt_columns)
 
-            # if we have a Float level, they don't use leading space at all
-            restrict_formatting = any(level.is_floating for level in columns.levels)
-            need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
-
-            def space_format(x, y):
-                if (
-                    y not in self.formatters
-                    and need_leadsp[x]
-                    and not restrict_formatting
-                ):
-                    return " " + y
-                return y
-
-            str_columns = list(
-                zip(*([space_format(x, y) for y in x] for x in fmt_columns))
-            )
-            if self.sparsify and len(str_columns):
-                str_columns = sparsify_labels(str_columns)
-
-            str_columns = [list(x) for x in zip(*str_columns)]
+            str_columns = [list(x) for x in zip(*fmt_columns, strict=True)]
         else:
             fmt_columns = columns._format_flat(include_name=False)
-            dtypes = self.frame.dtypes
-            need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
-                [" " + x if not self._get_formatter(i) and need_leadsp[x] else x]
-                for i, x in enumerate(fmt_columns)
+                [
+                    " " + x
+                    if not self._get_formatter(i) and is_numeric_dtype(dtype)
+                    else x
+                ]
+                for i, (x, dtype) in enumerate(
+                    zip(fmt_columns, self.frame.dtypes, strict=False)
+                )
             ]
-        # self.str_columns = str_columns
         return str_columns
 
     def _get_formatted_index(self, frame: DataFrame) -> list[str]:
@@ -867,6 +848,29 @@ class DataFrameFormatter:
             names.append("" if columns.name is None else columns.name)
         return names
 
+    def _validate_float_format(
+        self, fmt: FloatFormatType | None
+    ) -> FloatFormatType | None:
+        """
+        Validates and processes the float_format argument.
+        Converts new-style format strings to callables.
+        """
+        if fmt is None or callable(fmt):
+            return fmt
+
+        if isinstance(fmt, str):
+            if "%" in fmt:
+                # Keeps old-style format strings as they are (C code handles them)
+                return fmt
+            else:
+                try:
+                    _ = fmt.format(1.0)  # Test with an arbitrary float
+                    return fmt.format
+                except (ValueError, KeyError, IndexError) as e:
+                    raise ValueError(f"Invalid new-style format string {fmt!r}") from e
+
+        raise ValueError("float_format must be a string or callable")
+
 
 class DataFrameRenderer:
     """Class for creating dataframe output in multiple formats.
@@ -875,7 +879,7 @@ class DataFrameRenderer:
         - to_csv
         - to_latex
 
-    Called in pandas.core.frame.DataFrame:
+    Called in pandas.DataFrame:
         - to_html
         - to_string
 
@@ -914,9 +918,13 @@ class DataFrameRenderer:
             ``<table>`` tag, in addition to the default "dataframe".
         notebook : {True, False}, optional, default False
             Whether the generated HTML is for IPython Notebook.
-        border : int
-            A ``border=border`` attribute is included in the opening
-            ``<table>`` tag. Default ``pd.options.display.html.border``.
+        border : int or bool
+            When an integer value is provided, it sets the border attribute in
+            the opening tag, specifying the thickness of the border.
+            If ``False`` or ``0`` is passed, the border attribute will not
+            be present in the ``<table>`` tag.
+            The default value for this parameter is governed by
+            ``pd.options.display.html.border``.
         table_id : str, optional
             A css id is included in the opening `<table>` tag if specified.
         render_links : bool, default False
@@ -1044,7 +1052,7 @@ def save_to_buffer(
 @contextmanager
 def _get_buffer(
     buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
-) -> Generator[WriteBuffer[str], None, None] | Generator[StringIO, None, None]:
+) -> Generator[WriteBuffer[str]] | Generator[StringIO]:
     """
     Context manager to open, yield and close buffer for filenames or Path-like
     objects, otherwise yield buf unchanged.
@@ -1226,17 +1234,11 @@ class _GenericArrayFormatter:
                     return "None"
                 elif x is NA:
                     return str(NA)
-                elif lib.is_float(x) and np.isinf(x):
-                    # TODO(3.0): this will be unreachable when use_inf_as_na
-                    #  deprecation is enforced
-                    return str(x)
                 elif x is NaT or isinstance(x, (np.datetime64, np.timedelta64)):
                     return "NaT"
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
-            elif isinstance(x, StringDtype):
-                return repr(x)
             else:
                 # object dtype
                 return str(formatter(x))
@@ -1349,19 +1351,21 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         the parameters given at initialisation, as a numpy array
         """
 
-        def format_with_na_rep(values: ArrayLike, formatter: Callable, na_rep: str):
+        def format_with_na_rep(
+            values: ArrayLike, formatter: Callable, na_rep: str
+        ) -> np.ndarray:
             mask = isna(values)
             formatted = np.array(
                 [
                     formatter(val) if not m else na_rep
-                    for val, m in zip(values.ravel(), mask.ravel())
+                    for val, m in zip(values.ravel(), mask.ravel(), strict=True)
                 ]
             ).reshape(values.shape)
             return formatted
 
         def format_complex_with_na_rep(
             values: ArrayLike, formatter: Callable, na_rep: str
-        ):
+        ) -> np.ndarray:
             real_values = np.real(values).ravel()  # type: ignore[arg-type]
             imag_values = np.imag(values).ravel()  # type: ignore[arg-type]
             real_mask, imag_mask = isna(real_values), isna(imag_values)
@@ -1372,6 +1376,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
                 imag_values,
                 real_mask,
                 imag_mask,
+                strict=True,
             ):
                 if not re_isna and not im_isna:
                     formatted_lst.append(formatter(val))
@@ -1528,7 +1533,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
         else:
-            array = np.asarray(values)
+            array = np.asarray(values, dtype=object)
 
         fmt_values = format_array(
             array,
@@ -1547,7 +1552,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
 
 
 def format_percentiles(
-    percentiles: (np.ndarray | Sequence[float]),
+    percentiles: np.ndarray | Sequence[float],
 ) -> list[str]:
     """
     Outputs rounded and formatted percentiles.
@@ -1580,6 +1585,9 @@ def format_percentiles(
     >>> format_percentiles([0, 0.5, 0.02001, 0.5, 0.666666, 0.9999])
     ['0%', '50%', '2.0%', '50%', '66.67%', '99.99%']
     """
+    if len(percentiles) == 0:
+        return []
+
     percentiles = np.asarray(percentiles)
 
     # It checks for np.nan as well
@@ -1771,7 +1779,7 @@ def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[st
         # The split will give [{"", "-"}, "xxx", "+/-", "xxx", "j", ""]
         # Therefore, the imaginary part is the 4th and 3rd last elements,
         # and the real part is everything before the imaginary part
-        trimmed = re.split(r"([j+-])", x)
+        trimmed = re.split(r"(?<!e)([j+-])", x)
         real_part.append("".join(trimmed[:-4]))
         imag_part.append("".join(trimmed[-4:-2]))
 
@@ -1788,7 +1796,7 @@ def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[st
         + imag_pt[0]  # +/-
         + f"{imag_pt[1:]:>{padded_length}}"  # complex part (no sign), possibly nan
         + "j"
-        for real_pt, imag_pt in zip(padded_parts[:n], padded_parts[n:])
+        for real_pt, imag_pt in zip(padded_parts[:n], padded_parts[n:], strict=True)
     ]
     return padded
 
@@ -1944,9 +1952,13 @@ class EngFormatter:
         return formatted
 
 
+@set_module("pandas")
 def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> None:
     """
     Format float representation in DataFrame with SI notation.
+
+    Sets the floating-point display format for ``DataFrame`` objects using engineering
+    notation (SI units), allowing easier readability of values across wide ranges.
 
     Parameters
     ----------
@@ -1958,6 +1970,13 @@ def set_eng_float_format(accuracy: int = 3, use_eng_prefix: bool = False) -> Non
     Returns
     -------
     None
+        This method does not return a value. it updates the global display format
+        for floats in DataFrames.
+
+    See Also
+    --------
+    set_option : Set the value of the specified option or options.
+    reset_option : Reset one or more options to their default value.
 
     Examples
     --------

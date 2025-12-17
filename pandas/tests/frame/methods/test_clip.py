@@ -24,8 +24,8 @@ class TestDataFrameClip:
         median = float_frame.median().median()
         frame_copy = float_frame.copy()
 
-        return_value = frame_copy.clip(upper=median, lower=median, inplace=True)
-        assert return_value is None
+        result = frame_copy.clip(upper=median, lower=median, inplace=True)
+        assert result is frame_copy
         assert not (frame_copy.values != median).any()
 
     def test_dataframe_clip(self):
@@ -68,7 +68,7 @@ class TestDataFrameClip:
         clipped_df = df.clip(lb, ub, axis=0, inplace=inplace)
 
         if inplace:
-            clipped_df = df
+            assert clipped_df is df
 
         for i in range(2):
             lb_mask = original.iloc[:, i] <= lb
@@ -94,15 +94,19 @@ class TestDataFrameClip:
             (1, [[2.0, 3.0, 4.0], [4.0, 5.0, 6.0], [5.0, 6.0, 7.0]]),
         ],
     )
-    def test_clip_against_list_like(self, simple_frame, inplace, lower, axis, res):
+    def test_clip_against_list_like(self, inplace, lower, axis, res):
         # GH#15390
-        original = simple_frame.copy(deep=True)
+        arr = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+
+        original = DataFrame(
+            arr, columns=["one", "two", "three"], index=["a", "b", "c"]
+        )
 
         result = original.clip(lower=lower, upper=[5, 6, 7], axis=axis, inplace=inplace)
 
         expected = DataFrame(res, columns=original.columns, index=original.index)
         if inplace:
-            result = original
+            assert result is original
         tm.assert_frame_equal(result, expected, check_exact=True)
 
     @pytest.mark.parametrize("axis", [0, 1, None])
@@ -151,13 +155,13 @@ class TestDataFrameClip:
         # GH#19992 and adjusted in GH#40420
         df = DataFrame({"col_0": [1, 2, 3], "col_1": [4, 5, 6], "col_2": [7, 8, 9]})
 
-        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
-        # TODO: avoid this warning here?  seems like we should never be upcasting
-        #  in the first place?
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.clip(lower=[4, 5, np.nan], axis=0)
+        result = df.clip(lower=[4, 5, np.nan], axis=0)
         expected = DataFrame(
-            {"col_0": [4, 5, 3], "col_1": [4, 5, 6], "col_2": [7, 8, 9]}
+            {
+                "col_0": Series([4, 5, 3], dtype="float"),
+                "col_1": [4, 5, 6],
+                "col_2": [7, 8, 9],
+            }
         )
         tm.assert_frame_equal(result, expected)
 
@@ -171,9 +175,10 @@ class TestDataFrameClip:
         data = {"col_0": [9, -3, 0, -1, 5], "col_1": [-2, -7, 6, 8, -5]}
         df = DataFrame(data)
         t = Series([2, -4, np.nan, 6, 3])
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.clip(lower=t, axis=0)
-        expected = DataFrame({"col_0": [9, -3, 0, 6, 5], "col_1": [2, -4, 6, 8, 3]})
+        result = df.clip(lower=t, axis=0)
+        expected = DataFrame(
+            {"col_0": [9, -3, 0, 6, 5], "col_1": [2, -4, 6, 8, 3]}, dtype="float"
+        )
         tm.assert_frame_equal(result, expected)
 
     def test_clip_int_data_with_float_bound(self):

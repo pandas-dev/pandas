@@ -14,9 +14,11 @@ test_indexing tests the following Index methods:
 The corresponding tests.indexes.[index_type].test_indexing files
 contain tests for the corresponding methods specific to those Index subclasses.
 """
+
 import numpy as np
 import pytest
 
+from pandas.compat import PY314
 from pandas.errors import InvalidIndexError
 
 from pandas.core.dtypes.common import (
@@ -92,15 +94,16 @@ class TestContains:
     @pytest.mark.parametrize(
         "index,val",
         [
-            (Index([0, 1, 2]), 2),
-            (Index([0, 1, "2"]), "2"),
-            (Index([0, 1, 2, np.inf, 4]), 4),
-            (Index([0, 1, 2, np.nan, 4]), 4),
-            (Index([0, 1, 2, np.inf]), np.inf),
-            (Index([0, 1, 2, np.nan]), np.nan),
+            ([0, 1, 2], 2),
+            ([0, 1, "2"], "2"),
+            ([0, 1, 2, np.inf, 4], 4),
+            ([0, 1, 2, np.nan, 4], 4),
+            ([0, 1, 2, np.inf], np.inf),
+            ([0, 1, 2, np.nan], np.nan),
         ],
     )
     def test_index_contains(self, index, val):
+        index = Index(index)
         assert val in index
 
     @pytest.mark.parametrize(
@@ -123,18 +126,16 @@ class TestContains:
     def test_index_not_contains(self, index, val):
         assert val not in index
 
-    @pytest.mark.parametrize(
-        "index,val", [(Index([0, 1, "2"]), 0), (Index([0, 1, "2"]), "2")]
-    )
-    def test_mixed_index_contains(self, index, val):
+    @pytest.mark.parametrize("val", [0, "2"])
+    def test_mixed_index_contains(self, val):
         # GH#19860
+        index = Index([0, 1, "2"])
         assert val in index
 
-    @pytest.mark.parametrize(
-        "index,val", [(Index([0, 1, "2"]), "1"), (Index([0, 1, "2"]), 2)]
-    )
+    @pytest.mark.parametrize("val", ["1", 2])
     def test_mixed_index_not_contains(self, index, val):
         # GH#19860
+        index = Index([0, 1, "2"])
         assert val not in index
 
     def test_contains_with_float_index(self, any_real_numpy_dtype):
@@ -160,13 +161,19 @@ class TestContains:
         with pytest.raises(TypeError, match=msg):
             [] in index
 
+        if PY314:
+            container_or_iterable = "a container or iterable"
+        else:
+            container_or_iterable = "iterable"
+
         msg = "|".join(
             [
                 r"unhashable type: 'dict'",
                 r"must be real number, not dict",
                 r"an integer is required",
                 r"\{\}",
-                r"pandas\._libs\.interval\.IntervalTree' is not iterable",
+                r"pandas\._libs\.interval\.IntervalTree' is not "
+                f"{container_or_iterable}",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -303,12 +310,10 @@ class TestPutmask:
             index.putmask("foo", fill)
 
 
-@pytest.mark.parametrize(
-    "idx", [Index([1, 2, 3]), Index([0.1, 0.2, 0.3]), Index(["a", "b", "c"])]
-)
+@pytest.mark.parametrize("idx", [[1, 2, 3], [0.1, 0.2, 0.3], ["a", "b", "c"]])
 def test_getitem_deprecated_float(idx):
     # https://github.com/pandas-dev/pandas/issues/34191
-
+    idx = Index(idx)
     msg = "Indexing with a float is no longer supported"
     with pytest.raises(IndexError, match=msg):
         idx[1.0]

@@ -5,6 +5,7 @@ Tests for the following offsets:
 - MonthBegin
 - MonthEnd
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -23,7 +24,6 @@ from pandas import (
     DatetimeIndex,
     Series,
     _testing as tm,
-    date_range,
 )
 from pandas.tests.tseries.offsets.common import (
     assert_is_on_offset,
@@ -61,7 +61,7 @@ class TestSemiMonthEnd:
             datetime(2008, 12, 31),
         )
 
-        for base, exp_date in zip(dates[:-1], dates[1:]):
+        for base, exp_date in zip(dates[:-1], dates[1:], strict=True):
             assert_offset_equal(SemiMonthEnd(), base, exp_date)
 
         # ensure .apply_index works as expected
@@ -72,11 +72,6 @@ class TestSemiMonthEnd:
             result = SemiMonthEnd() + shift
 
         exp = DatetimeIndex(dates[1:])
-        tm.assert_index_equal(result, exp)
-
-        # ensure generating a range with DatetimeIndex gives same result
-        result = date_range(start=dates[0], end=dates[-1], freq="SM")
-        exp = DatetimeIndex(dates, freq="SM")
         tm.assert_index_equal(result, exp)
 
     offset_cases = []
@@ -317,7 +312,7 @@ class TestSemiMonthBegin:
             datetime(2008, 12, 15),
         )
 
-        for base, exp_date in zip(dates[:-1], dates[1:]):
+        for base, exp_date in zip(dates[:-1], dates[1:], strict=True):
             assert_offset_equal(SemiMonthBegin(), base, exp_date)
 
         # ensure .apply_index works as expected
@@ -328,11 +323,6 @@ class TestSemiMonthBegin:
             result = SemiMonthBegin() + shift
 
         exp = DatetimeIndex(dates[1:])
-        tm.assert_index_equal(result, exp)
-
-        # ensure generating a range with DatetimeIndex gives same result
-        result = date_range(start=dates[0], end=dates[-1], freq="SMS")
-        exp = DatetimeIndex(dates, freq="SMS")
         tm.assert_index_equal(result, exp)
 
     offset_cases = [

@@ -1,42 +1,16 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame
-import pandas._testing as tm
+from pandas import (
+    DataFrame,
+    Index,
+    Series,
+    date_range,
+)
 from pandas.core.groupby.base import (
     reduction_kernels,
     transformation_kernels,
 )
-
-
-@pytest.fixture(params=[True, False])
-def sort(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def as_index(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def dropna(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def skipna(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def observed(request):
-    return request.param
-
-
-@pytest.fixture
-def mframe(multiindex_dataframe_random_data):
-    return multiindex_dataframe_random_data
 
 
 @pytest.fixture
@@ -53,28 +27,18 @@ def df():
 
 @pytest.fixture
 def ts():
-    return tm.makeTimeSeries()
+    return Series(
+        np.random.default_rng(2).standard_normal(30),
+        index=date_range("2000-01-01", periods=30, freq="B"),
+    )
 
 
 @pytest.fixture
-def tsd():
-    return tm.getTimeSeriesData()
-
-
-@pytest.fixture
-def tsframe(tsd):
-    return DataFrame(tsd)
-
-
-@pytest.fixture
-def df_mixed_floats():
+def tsframe():
     return DataFrame(
-        {
-            "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
-            "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-            "C": np.random.default_rng(2).standard_normal(8),
-            "D": np.array(np.random.default_rng(2).standard_normal(8), dtype="float32"),
-        }
+        np.random.default_rng(2).standard_normal((30, 4)),
+        columns=Index(list("ABCD"), dtype=object),
+        index=date_range("2000-01-01", periods=30, freq="B"),
     )
 
 
@@ -128,7 +92,7 @@ def three_group():
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def slice_test_df():
     data = [
         [0, "a", "a0_at_0"],
@@ -144,7 +108,7 @@ def slice_test_df():
     return df.set_index("Index")
 
 
-@pytest.fixture()
+@pytest.fixture
 def slice_test_grouped(slice_test_df):
     return slice_test_df.groupby("Group", as_index=False)
 
@@ -166,28 +130,6 @@ def transformation_func(request):
 @pytest.fixture(params=sorted(reduction_kernels) + sorted(transformation_kernels))
 def groupby_func(request):
     """yields both aggregation and transformation functions."""
-    return request.param
-
-
-@pytest.fixture(params=[True, False])
-def parallel(request):
-    """parallel keyword argument for numba.jit"""
-    return request.param
-
-
-# Can parameterize nogil & nopython over True | False, but limiting per
-# https://github.com/pandas-dev/pandas/pull/41971#issuecomment-860607472
-
-
-@pytest.fixture(params=[False])
-def nogil(request):
-    """nogil keyword argument for numba.jit"""
-    return request.param
-
-
-@pytest.fixture(params=[True])
-def nopython(request):
-    """nopython keyword argument for numba.jit"""
     return request.param
 
 

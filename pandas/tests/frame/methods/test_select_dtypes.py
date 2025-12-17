@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
 import pandas as pd
@@ -32,7 +34,7 @@ class DummyArray(ExtensionArray):
         self.data = data
         self._dtype = dtype
 
-    def __array__(self, dtype):
+    def __array__(self, dtype=None, copy=None):
         return self.data
 
     @property
@@ -50,7 +52,7 @@ class DummyArray(ExtensionArray):
 
 
 class TestSelectDtypes:
-    def test_select_dtypes_include_using_list_like(self):
+    def test_select_dtypes_include_using_list_like(self, using_infer_string):
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -93,6 +95,23 @@ class TestSelectDtypes:
 
         with pytest.raises(NotImplementedError, match=r"^$"):
             df.select_dtypes(include=["period"])
+
+        if using_infer_string:
+            ri = df.select_dtypes(include=["str"])
+            ei = df[["a"]]
+            tm.assert_frame_equal(ri, ei)
+
+            ri = df.select_dtypes(include=[str])
+            tm.assert_frame_equal(ri, ei)
+
+        msg = "For backward compatibility, 'str' dtypes are included"
+        warn = None
+        if using_infer_string:
+            warn = Pandas4Warning
+        with tm.assert_produces_warning(warn, match=msg):
+            ri = df.select_dtypes(include=["object"])
+        ei = df[["a"]]
+        tm.assert_frame_equal(ri, ei)
 
     def test_select_dtypes_exclude_using_list_like(self):
         df = DataFrame(
@@ -151,7 +170,7 @@ class TestSelectDtypes:
         expected = df[["b", "c", "e"]]
         tm.assert_frame_equal(result, expected)
 
-    def test_select_dtypes_include_using_scalars(self):
+    def test_select_dtypes_include_using_scalars(self, using_infer_string):
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -186,6 +205,11 @@ class TestSelectDtypes:
 
         with pytest.raises(NotImplementedError, match=r"^$"):
             df.select_dtypes(include="period")
+
+        if using_infer_string:
+            ri = df.select_dtypes(include="str")
+            ei = df[["a"]]
+            tm.assert_frame_equal(ri, ei)
 
     def test_select_dtypes_exclude_using_scalars(self):
         df = DataFrame(
@@ -282,7 +306,7 @@ class TestSelectDtypes:
         result = df.select_dtypes(include=[np.number], exclude=["floating"])
         tm.assert_frame_equal(result, expected)
 
-    def test_select_dtypes_not_an_attr_but_still_valid_dtype(self):
+    def test_select_dtypes_not_an_attr_but_still_valid_dtype(self, using_infer_string):
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -295,11 +319,18 @@ class TestSelectDtypes:
         )
         df["g"] = df.f.diff()
         assert not hasattr(np, "u8")
-        r = df.select_dtypes(include=["i8", "O"], exclude=["timedelta"])
+
+        msg = "For backward compatibility, 'str' dtypes are included"
+        warn = None
+        if using_infer_string:
+            warn = Pandas4Warning
+        with tm.assert_produces_warning(warn, match=msg):
+            r = df.select_dtypes(include=["i8", "O"], exclude=["timedelta"])
         e = df[["a", "b"]]
         tm.assert_frame_equal(r, e)
 
-        r = df.select_dtypes(include=["i8", "O", "timedelta64[ns]"])
+        with tm.assert_produces_warning(warn, match=msg):
+            r = df.select_dtypes(include=["i8", "O", "timedelta64[ns]"])
         e = df[["a", "b", "g"]]
         tm.assert_frame_equal(r, e)
 
@@ -341,7 +372,10 @@ class TestSelectDtypes:
 
     @pytest.mark.parametrize("dtype", [str, "str", np.bytes_, "S1", np.str_, "U1"])
     @pytest.mark.parametrize("arg", ["include", "exclude"])
-    def test_select_dtypes_str_raises(self, dtype, arg):
+    def test_select_dtypes_str_raises(self, dtype, arg, using_infer_string):
+        if using_infer_string and (dtype == "str" or dtype is str):
+            # this is tested below
+            pytest.skip("Selecting string columns works with future strings")
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -378,12 +412,9 @@ class TestSelectDtypes:
 
     def test_select_dtypes_typecodes(self):
         # GH 11990
-        df = tm.makeCustomDataframe(
-            30, 3, data_gen_f=lambda x, y: np.random.default_rng(2).random()
-        )
-        expected = df
+        df = DataFrame(np.random.default_rng(2).random((5, 3)))
         FLOAT_TYPES = list(np.typecodes["AllFloat"])
-        tm.assert_frame_equal(df.select_dtypes(FLOAT_TYPES), expected)
+        tm.assert_frame_equal(df.select_dtypes(FLOAT_TYPES), df)
 
     @pytest.mark.parametrize(
         "arr,expected",
@@ -464,3 +495,31 @@ class TestSelectDtypes:
         result = df.select_dtypes(include=["number"])
         result.iloc[0, 0] = 0
         tm.assert_frame_equal(df, df_orig)
+
+    def test_select_dtype_object_and_str(self, using_infer_string):
+        # https://github.com/pandas-dev/pandas/issues/61916
+        df = DataFrame(
+            {
+                "a": ["a", "b", "c"],
+                "b": [1, 2, 3],
+                "c": pd.array(["a", "b", "c"], dtype="string"),
+            }
+        )
+
+        # with "object" -> only select the object or default str dtype column
+        msg = "For backward compatibility, 'str' dtypes are included"
+        warn = None
+        if using_infer_string:
+            warn = Pandas4Warning
+        with tm.assert_produces_warning(warn, match=msg):
+            result = df.select_dtypes(include=["object"])
+        expected = df[["a"]]
+        tm.assert_frame_equal(result, expected)
+
+        # with "string" -> select both the default 'str' and the nullable 'string'
+        result = df.select_dtypes(include=["string"])
+        if using_infer_string:
+            expected = df[["a", "c"]]
+        else:
+            expected = df[["c"]]
+        tm.assert_frame_equal(result, expected)

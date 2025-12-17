@@ -13,16 +13,17 @@ from pandas._libs.tslibs.ccalendar import (
 from pandas._libs.tslibs.offsets import _get_offset
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.compat import is_platform_windows
+import pandas.util._test_decorators as td
 
 from pandas import (
     DatetimeIndex,
     Index,
+    RangeIndex,
     Series,
     Timestamp,
     date_range,
     period_range,
 )
-import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
     TimedeltaArray,
@@ -52,7 +53,7 @@ def base_delta_code_pair(request):
 
 freqs = (
     [f"QE-{month}" for month in MONTHS]
-    + [f"{annual}-{month}" for annual in ["YE", "BY"] for month in MONTHS]
+    + [f"{annual}-{month}" for annual in ["YE", "BYE"] for month in MONTHS]
     + ["ME", "BME", "BMS"]
     + [f"WOM-{count}{day}" for count in range(1, 5) for day in DAYS]
     + [f"W-{day}" for day in DAYS]
@@ -151,10 +152,7 @@ def test_fifth_week_of_month():
     # see gh-9425
     #
     # Only supports freq up to WOM-4.
-    msg = (
-        "Of the four parameters: start, end, periods, "
-        "and freq, exactly three must be specified"
-    )
+    msg = "Invalid frequency: WOM-5MON"
 
     with pytest.raises(ValueError, match=msg):
         date_range("2014-01-01", freq="WOM-5MON")
@@ -202,16 +200,6 @@ def test_infer_freq_custom(base_delta_code_pair, constructor):
 
 
 @pytest.mark.parametrize(
-    "freq,expected", [("Q", "QE-DEC"), ("Q-NOV", "QE-NOV"), ("Q-OCT", "QE-OCT")]
-)
-def test_infer_freq_index(freq, expected):
-    rng = period_range("1959Q2", "2009Q3", freq=freq)
-    rng = Index(rng.to_timestamp("D", how="e").astype(object))
-
-    assert rng.inferred_freq == expected
-
-
-@pytest.mark.parametrize(
     "expected,dates",
     list(
         {
@@ -229,7 +217,6 @@ def test_infer_freq_index(freq, expected):
         }.items()
     ),
 )
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_infer_freq_tz(tz_naive_fixture, expected, dates, unit):
     # see gh-7310, GH#55609
     tz = tz_naive_fixture
@@ -374,10 +361,10 @@ def test_non_datetime_index2():
 @pytest.mark.parametrize(
     "idx",
     [
-        tm.makeIntIndex(10),
-        tm.makeFloatIndex(10),
-        tm.makePeriodIndex(10),
-        tm.makeRangeIndex(10),
+        Index(np.arange(5), dtype=np.int64),
+        Index(np.arange(5), dtype=np.float64),
+        period_range("2020-01-01", periods=5),
+        RangeIndex(5),
     ],
 )
 def test_invalid_index_types(idx):
@@ -401,7 +388,7 @@ def test_invalid_index_types_unicode():
     msg = "Unknown datetime string format"
 
     with pytest.raises(ValueError, match=msg):
-        frequencies.infer_freq(tm.makeStringIndex(10))
+        frequencies.infer_freq(Index(["ZqgszYBfuL"]))
 
 
 def test_string_datetime_like_compat():
@@ -431,12 +418,18 @@ def test_series_invalid_type(end):
         frequencies.infer_freq(s)
 
 
-def test_series_inconvertible_string():
+def test_series_inconvertible_string(using_infer_string):
     # see gh-6407
-    msg = "Unknown datetime string format"
+    if using_infer_string:
+        msg = "cannot infer freq from"
 
-    with pytest.raises(ValueError, match=msg):
-        frequencies.infer_freq(Series(["foo", "bar"]))
+        with pytest.raises(TypeError, match=msg):
+            frequencies.infer_freq(Series(["foo", "bar"]))
+    else:
+        msg = "Unknown datetime string format"
+
+        with pytest.raises(ValueError, match=msg):
+            frequencies.infer_freq(Series(["foo", "bar"]))
 
 
 @pytest.mark.parametrize("freq", [None, "ms"])
@@ -492,7 +485,6 @@ def test_series_datetime_index(freq):
         "YE@OCT",
         "YE@NOV",
         "YE@DEC",
-        "YE@JAN",
         "WOM@1MON",
         "WOM@2MON",
         "WOM@3MON",
@@ -548,3 +540,32 @@ def test_infer_freq_non_nano_tzaware(tz_aware_fixture):
 
     res = frequencies.infer_freq(dta)
     assert res == "B"
+
+
+@td.skip_if_no("pyarrow")
+def test_infer_freq_pyarrow():
+    # GH#58403
+    data = ["2022-01-01T10:00:00", "2022-01-01T10:00:30", "2022-01-01T10:01:00"]
+    pd_series = Series(data).astype("timestamp[s][pyarrow]")
+    pd_index = Index(data).astype("timestamp[s][pyarrow]")
+
+    assert frequencies.infer_freq(pd_index.values) == "30s"
+    assert frequencies.infer_freq(pd_series.values) == "30s"
+    assert frequencies.infer_freq(pd_index) == "30s"
+    assert frequencies.infer_freq(pd_series) == "30s"
+
+
+def test_infer_freq_no_stateful_behavior():
+    # GH#55794 infer_freq should not have stateful behavior
+    # calling infer_freq on a full index with duplicates should not
+    # affect the result of calling it on a slice without duplicates
+    times = to_datetime(["2019-01-01", "2019-01-02", "2019-01-03", "2019-01-03"])
+
+    # Before calling infer_freq on full index
+    assert frequencies.infer_freq(times[:3]) == "D"
+
+    # Call on full index (which has duplicates, so returns None)
+    assert frequencies.infer_freq(times) is None
+
+    # After calling on full index, slice should still return "D"
+    assert frequencies.infer_freq(times[:3]) == "D"

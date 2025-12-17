@@ -1,4 +1,4 @@
-""" basic inference routines """
+"""basic inference routines"""
 
 from __future__ import annotations
 
@@ -6,16 +6,18 @@ from collections import abc
 from numbers import Number
 import re
 from re import Pattern
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    TypeGuard,
+)
 
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._decorators import set_module
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
-
-    from pandas._typing import TypeGuard
 
 is_bool = lib.is_bool
 
@@ -29,14 +31,13 @@ is_scalar = lib.is_scalar
 
 is_decimal = lib.is_decimal
 
-is_interval = lib.is_interval
-
 is_list_like = lib.is_list_like
 
 is_iterator = lib.is_iterator
 
 
-def is_number(obj) -> TypeGuard[Number | np.number]:
+@set_module("pandas.api.types")
+def is_number(obj: object) -> TypeGuard[Number | np.number]:
     """
     Check if the object is a number.
 
@@ -77,7 +78,7 @@ def is_number(obj) -> TypeGuard[Number | np.number]:
     return isinstance(obj, (Number, np.number))
 
 
-def iterable_not_string(obj) -> bool:
+def iterable_not_string(obj: object) -> bool:
     """
     Check if the object is an iterable but not a string.
 
@@ -102,7 +103,8 @@ def iterable_not_string(obj) -> bool:
     return isinstance(obj, abc.Iterable) and not isinstance(obj, str)
 
 
-def is_file_like(obj) -> bool:
+@set_module("pandas.api.types")
+def is_file_like(obj: object) -> bool:
     """
     Check if the object is a file-like object.
 
@@ -115,12 +117,23 @@ def is_file_like(obj) -> bool:
 
     Parameters
     ----------
-    obj : The object to check
+    obj : object
+        The object to check for file-like properties.
+        This can be any Python object, and the function will
+        check if it has attributes typically associated with
+        file-like objects (e.g., `read`, `write`, `__iter__`).
 
     Returns
     -------
     bool
         Whether `obj` has file-like properties.
+
+    See Also
+    --------
+    api.types.is_dict_like : Check if the object is dict-like.
+    api.types.is_hashable : Return True if hash(obj) will succeed, False otherwise.
+    api.types.is_named_tuple : Check if the object is a named tuple.
+    api.types.is_iterator : Check if the object is an iterator.
 
     Examples
     --------
@@ -138,18 +151,30 @@ def is_file_like(obj) -> bool:
     return bool(hasattr(obj, "__iter__"))
 
 
-def is_re(obj) -> TypeGuard[Pattern]:
+@set_module("pandas.api.types")
+def is_re(obj: object) -> TypeGuard[Pattern]:
     """
     Check if the object is a regex pattern instance.
 
     Parameters
     ----------
-    obj : The object to check
+    obj : object
+        The object to check for being a regex pattern. Typically,
+        this would be an object that you expect to be a compiled
+        pattern from the `re` module.
 
     Returns
     -------
     bool
         Whether `obj` is a regex pattern.
+
+    See Also
+    --------
+    api.types.is_float : Return True if given object is float.
+    api.types.is_iterator : Check if the object is an iterator.
+    api.types.is_integer : Return True if given object is integer.
+    api.types.is_re_compilable : Check if the object can be compiled
+                                into a regex pattern instance.
 
     Examples
     --------
@@ -163,18 +188,24 @@ def is_re(obj) -> TypeGuard[Pattern]:
     return isinstance(obj, Pattern)
 
 
-def is_re_compilable(obj) -> bool:
+@set_module("pandas.api.types")
+def is_re_compilable(obj: object) -> bool:
     """
     Check if the object can be compiled into a regex pattern instance.
 
     Parameters
     ----------
     obj : The object to check
+        The object to check if the object can be compiled into a regex pattern instance.
 
     Returns
     -------
     bool
         Whether `obj` can be compiled as a regex pattern.
+
+    See Also
+    --------
+    api.types.is_re : Check if the object is a regex pattern instance.
 
     Examples
     --------
@@ -185,14 +216,15 @@ def is_re_compilable(obj) -> bool:
     False
     """
     try:
-        re.compile(obj)
+        re.compile(obj)  # type: ignore[call-overload]
     except TypeError:
         return False
     else:
         return True
 
 
-def is_array_like(obj) -> bool:
+@set_module("pandas.api.types")
+def is_array_like(obj: object) -> bool:
     """
     Check if the object is array-like.
 
@@ -224,7 +256,7 @@ def is_array_like(obj) -> bool:
     return is_list_like(obj) and hasattr(obj, "dtype")
 
 
-def is_nested_list_like(obj) -> bool:
+def is_nested_list_like(obj: object) -> bool:
     """
     Check if the object is list-like, and that all of its elements
     are also list-like.
@@ -265,23 +297,34 @@ def is_nested_list_like(obj) -> bool:
     return (
         is_list_like(obj)
         and hasattr(obj, "__len__")
-        and len(obj) > 0
-        and all(is_list_like(item) for item in obj)
+        # need PEP 724 to handle these typing errors
+        and len(obj) > 0  # pyright: ignore[reportArgumentType]
+        and all(is_list_like(item) for item in obj)  # type: ignore[attr-defined]
     )
 
 
-def is_dict_like(obj) -> bool:
+@set_module("pandas.api.types")
+def is_dict_like(obj: object) -> bool:
     """
     Check if the object is dict-like.
 
     Parameters
     ----------
-    obj : The object to check
+    obj : object
+        The object to check. This can be any Python object,
+        and the function will determine whether it
+        behaves like a dictionary.
 
     Returns
     -------
     bool
         Whether `obj` has dict-like properties.
+
+    See Also
+    --------
+    api.types.is_list_like : Check if the object is list-like.
+    api.types.is_file_like : Check if the object is a file-like.
+    api.types.is_named_tuple : Check if the object is a named tuple.
 
     Examples
     --------
@@ -303,18 +346,28 @@ def is_dict_like(obj) -> bool:
     )
 
 
-def is_named_tuple(obj) -> bool:
+@set_module("pandas.api.types")
+def is_named_tuple(obj: object) -> bool:
     """
     Check if the object is a named tuple.
 
     Parameters
     ----------
-    obj : The object to check
+    obj : object
+        The object that will be checked to determine
+        whether it is a named tuple.
 
     Returns
     -------
     bool
         Whether `obj` is a named tuple.
+
+    See Also
+    --------
+    api.types.is_dict_like: Check if the object is dict-like.
+    api.types.is_hashable: Return True if hash(obj)
+                                  will succeed, False otherwise.
+    api.types.is_categorical_dtype : Check if the dtype is categorical.
 
     Examples
     --------
@@ -331,7 +384,8 @@ def is_named_tuple(obj) -> bool:
     return isinstance(obj, abc.Sequence) and hasattr(obj, "_fields")
 
 
-def is_hashable(obj) -> TypeGuard[Hashable]:
+@set_module("pandas.api.types")
+def is_hashable(obj: object, allow_slice: bool = True) -> TypeGuard[Hashable]:
     """
     Return True if hash(obj) will succeed, False otherwise.
 
@@ -341,9 +395,28 @@ def is_hashable(obj) -> TypeGuard[Hashable]:
     Distinguish between these and other types by trying the call to hash() and
     seeing if they raise TypeError.
 
+    Parameters
+    ----------
+    obj : object
+        The object to check for hashability. Any Python object can be passed here.
+    allow_slice : bool
+        If True, return True if the object is hashable (including slices).
+        If False, return True if the object is hashable and not a slice.
+
     Returns
     -------
     bool
+        True if object can be hashed (i.e., does not raise TypeError when
+        passed to hash()) and passes the slice check according to 'allow_slice'.
+        False otherwise (e.g., if object is mutable like a list or dictionary
+        or if allow_slice is False and object is a slice or contains a slice).
+
+    See Also
+    --------
+    api.types.is_float : Return True if given object is float.
+    api.types.is_iterator : Check if the object is an iterator.
+    api.types.is_list_like : Check if the object is list-like.
+    api.types.is_dict_like : Check if the object is dict-like.
 
     Examples
     --------
@@ -362,6 +435,12 @@ def is_hashable(obj) -> TypeGuard[Hashable]:
     # Reconsider this decision once this numpy bug is fixed:
     # https://github.com/numpy/numpy/issues/5562
 
+    if allow_slice is False:
+        if isinstance(obj, tuple) and any(isinstance(v, slice) for v in obj):
+            return False
+        elif isinstance(obj, slice):
+            return False
+
     try:
         hash(obj)
     except TypeError:
@@ -370,7 +449,7 @@ def is_hashable(obj) -> TypeGuard[Hashable]:
         return True
 
 
-def is_sequence(obj) -> bool:
+def is_sequence(obj: object) -> bool:
     """
     Check if the object is a sequence of objects.
     String types are not included as sequences here.
@@ -394,14 +473,16 @@ def is_sequence(obj) -> bool:
     False
     """
     try:
-        iter(obj)  # Can iterate over it.
-        len(obj)  # Has a length associated with it.
+        # Can iterate over it.
+        iter(obj)  # type: ignore[call-overload]
+        # Has a length associated with it.
+        len(obj)  # type: ignore[arg-type]
         return not isinstance(obj, (str, bytes))
     except (TypeError, AttributeError):
         return False
 
 
-def is_dataclass(item) -> bool:
+def is_dataclass(item: object) -> bool:
     """
     Checks if the object is a data-class instance
 
@@ -425,7 +506,7 @@ def is_dataclass(item) -> bool:
 
     >>> is_dataclass(Point)
     False
-    >>> is_dataclass(Point(0,2))
+    >>> is_dataclass(Point(0, 2))
     True
 
     """

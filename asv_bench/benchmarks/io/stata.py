@@ -2,14 +2,12 @@ import numpy as np
 
 from pandas import (
     DataFrame,
+    Index,
     date_range,
     read_stata,
 )
 
-from ..pandas_vb_common import (
-    BaseIO,
-    tm,
-)
+from ..pandas_vb_common import BaseIO
 
 
 class Stata(BaseIO):
@@ -25,7 +23,7 @@ class Stata(BaseIO):
             columns=[f"float{i}" for i in range(C)],
             index=date_range("20000101", periods=N, freq="h"),
         )
-        self.df["object"] = tm.makeStringIndex(self.N)
+        self.df["object"] = Index([f"i-{i}" for i in range(self.N)], dtype=object)
         self.df["int8_"] = np.random.randint(
             np.iinfo(np.int8).min, np.iinfo(np.int8).max - 27, N
         )

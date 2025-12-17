@@ -409,6 +409,22 @@ def test_single_bin(data, length):
 
 
 @pytest.mark.parametrize(
+    "values,threshold",
+    [
+        ([0.1, 0.1, 0.1], 0.001),  # small positive values
+        ([-0.1, -0.1, -0.1], 0.001),  # negative values
+        ([0.01, 0.01, 0.01], 0.0001),  # very small values
+    ],
+)
+def test_single_bin_edge_adjustment(values, threshold):
+    # gh-58517 - edge adjustment mutation when all values are same
+    result, bins = cut(values, 3, retbins=True)
+
+    bin_range = bins[-1] - bins[0]
+    assert bin_range < threshold
+
+
+@pytest.mark.parametrize(
     "array_1_writeable,array_2_writeable", [(True, True), (True, False), (False, False)]
 )
 def test_cut_read_only(array_1_writeable, array_2_writeable):
@@ -445,53 +461,51 @@ def test_datetime_bin(conv):
                 Interval(Timestamp(bin_data[1]), Timestamp(bin_data[2])),
             ]
         )
-    ).astype(CategoricalDtype(ordered=True))
+    )
 
     bins = [conv(v) for v in bin_data]
     result = Series(cut(data, bins=bins))
+
+    if type(bins[0]) is np.datetime64:
+        # The bins have microsecond dtype -> so does result
+        expected = expected.astype("interval[datetime64[s]]")
+
+    expected = expected.astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "data",
-    [
-        to_datetime(Series(["2013-01-01", "2013-01-02", "2013-01-03"])),
-        [
-            np.datetime64("2013-01-01"),
-            np.datetime64("2013-01-02"),
-            np.datetime64("2013-01-03"),
-        ],
-        np.array(
-            [
-                np.datetime64("2013-01-01"),
-                np.datetime64("2013-01-02"),
-                np.datetime64("2013-01-03"),
-            ]
-        ),
-        DatetimeIndex(["2013-01-01", "2013-01-02", "2013-01-03"]),
-    ],
-)
-def test_datetime_cut(data):
+@pytest.mark.parametrize("box", [Series, Index, np.array, list])
+def test_datetime_cut(unit, box):
     # see gh-14714
     #
     # Testing time data when it comes in various collection types.
+    data = to_datetime(["2013-01-01", "2013-01-02", "2013-01-03"]).astype(f"M8[{unit}]")
+    data = box(data)
     result, _ = cut(data, 3, retbins=True)
-    expected = Series(
-        IntervalIndex(
-            [
-                Interval(
-                    Timestamp("2012-12-31 23:57:07.200000"),
-                    Timestamp("2013-01-01 16:00:00"),
-                ),
-                Interval(
-                    Timestamp("2013-01-01 16:00:00"), Timestamp("2013-01-02 08:00:00")
-                ),
-                Interval(
-                    Timestamp("2013-01-02 08:00:00"), Timestamp("2013-01-03 00:00:00")
-                ),
-            ]
+
+    if unit == "s":
+        # See https://github.com/pandas-dev/pandas/pull/56101#discussion_r1405325425
+        # for why we round to 8 seconds instead of 7
+        left = DatetimeIndex(
+            ["2012-12-31 23:57:08", "2013-01-01 16:00:00", "2013-01-02 08:00:00"],
+            dtype=f"M8[{unit}]",
         )
-    ).astype(CategoricalDtype(ordered=True))
+    else:
+        left = DatetimeIndex(
+            [
+                "2012-12-31 23:57:07.200000",
+                "2013-01-01 16:00:00",
+                "2013-01-02 08:00:00",
+            ],
+            dtype=f"M8[{unit}]",
+        )
+    right = DatetimeIndex(
+        ["2013-01-01 16:00:00", "2013-01-02 08:00:00", "2013-01-03 00:00:00"],
+        dtype=f"M8[{unit}]",
+    )
+
+    exp_intervals = IntervalIndex.from_arrays(left, right)
+    expected = Series(exp_intervals).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(Series(result), expected)
 
 
@@ -529,30 +543,32 @@ def test_datetime_tz_cut_mismatched_tzawareness(box):
 def test_datetime_tz_cut(bins, box):
     # see gh-19872
     tz = "US/Eastern"
-    s = Series(date_range("20130101", periods=3, tz=tz))
+    ser = Series(date_range("20130101", periods=3, tz=tz, unit="ns"))
 
     if not isinstance(bins, int):
         bins = box(bins)
 
-    result = cut(s, bins)
-    expected = Series(
-        IntervalIndex(
-            [
-                Interval(
-                    Timestamp("2012-12-31 23:57:07.200000", tz=tz),
-                    Timestamp("2013-01-01 16:00:00", tz=tz),
-                ),
-                Interval(
-                    Timestamp("2013-01-01 16:00:00", tz=tz),
-                    Timestamp("2013-01-02 08:00:00", tz=tz),
-                ),
-                Interval(
-                    Timestamp("2013-01-02 08:00:00", tz=tz),
-                    Timestamp("2013-01-03 00:00:00", tz=tz),
-                ),
-            ]
-        )
-    ).astype(CategoricalDtype(ordered=True))
+    result = cut(ser, bins)
+    ii = IntervalIndex(
+        [
+            Interval(
+                Timestamp("2012-12-31 23:57:07.200000", tz=tz),
+                Timestamp("2013-01-01 16:00:00", tz=tz),
+            ),
+            Interval(
+                Timestamp("2013-01-01 16:00:00", tz=tz),
+                Timestamp("2013-01-02 08:00:00", tz=tz),
+            ),
+            Interval(
+                Timestamp("2013-01-02 08:00:00", tz=tz),
+                Timestamp("2013-01-03 00:00:00", tz=tz),
+            ),
+        ]
+    )
+    if isinstance(bins, int):
+        # the dtype is inferred from ser, which has nanosecond unit
+        ii = ii.astype("interval[datetime64[ns, US/Eastern]]")
+    expected = Series(ii).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -576,17 +592,33 @@ def test_datetime_nan_mask():
 
 
 @pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
-def test_datetime_cut_roundtrip(tz):
+def test_datetime_cut_roundtrip(tz, unit):
     # see gh-19891
-    ser = Series(date_range("20180101", periods=3, tz=tz))
+    ser = Series(date_range("20180101", periods=3, tz=tz, unit=unit))
     result, result_bins = cut(ser, 2, retbins=True)
 
     expected = cut(ser, result_bins)
     tm.assert_series_equal(result, expected)
 
-    expected_bins = DatetimeIndex(
-        ["2017-12-31 23:57:07.200000", "2018-01-02 00:00:00", "2018-01-03 00:00:00"]
-    )
+    if unit == "s":
+        # TODO: constructing DatetimeIndex with dtype="M8[s]" without truncating
+        #  the first entry here raises in array_to_datetime. Should truncate
+        #  instead of raising?
+        # See https://github.com/pandas-dev/pandas/pull/56101#discussion_r1405325425
+        # for why we round to 8 seconds instead of 7
+        expected_bins = DatetimeIndex(
+            ["2017-12-31 23:57:08", "2018-01-02 00:00:00", "2018-01-03 00:00:00"],
+            dtype=f"M8[{unit}]",
+        )
+    else:
+        expected_bins = DatetimeIndex(
+            [
+                "2017-12-31 23:57:07.200000",
+                "2018-01-02 00:00:00",
+                "2018-01-03 00:00:00",
+            ],
+            dtype=f"M8[{unit}]",
+        )
     expected_bins = expected_bins.tz_localize(tz)
     tm.assert_index_equal(result_bins, expected_bins)
 
@@ -638,8 +670,10 @@ def test_cut_incorrect_labels(labels):
 def test_cut_nullable_integer(bins, right, include_lowest):
     a = np.random.default_rng(2).integers(0, 10, size=50).astype(float)
     a[::2] = np.nan
+    b = a.astype(object)
+    b[::2] = pd.NA
     result = cut(
-        pd.array(a, dtype="Int64"), bins, right=right, include_lowest=include_lowest
+        pd.array(b, dtype="Int64"), bins, right=right, include_lowest=include_lowest
     )
     expected = cut(a, bins, right=right, include_lowest=include_lowest)
     tm.assert_categorical_equal(result, expected)
@@ -686,10 +720,10 @@ def test_cut_unordered_with_missing_labels_raises_error():
 
 def test_cut_unordered_with_series_labels():
     # https://github.com/pandas-dev/pandas/issues/36603
-    s = Series([1, 2, 3, 4, 5])
+    ser = Series([1, 2, 3, 4, 5])
     bins = Series([0, 2, 4, 6])
     labels = Series(["a", "b", "c"])
-    result = cut(s, bins=bins, labels=labels, ordered=False)
+    result = cut(ser, bins=bins, labels=labels, ordered=False)
     expected = Series(["a", "a", "b", "b", "c"], dtype="category")
     tm.assert_series_equal(result, expected)
 
@@ -710,11 +744,12 @@ def test_cut_with_duplicated_index_lowest_included():
         dtype="category",
     ).cat.as_ordered()
 
-    s = Series([0, 1, 2, 3, 0], index=[0, 1, 2, 3, 0])
-    result = cut(s, bins=[0, 2, 4], include_lowest=True)
+    ser = Series([0, 1, 2, 3, 0], index=[0, 1, 2, 3, 0])
+    result = cut(ser, bins=[0, 2, 4], include_lowest=True)
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
 def test_cut_with_nonexact_categorical_indices():
     # GH 42424
 
@@ -777,3 +812,17 @@ def test_cut_with_nullable_int64():
     result = cut(series, bins=bins)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_cut_datetime_array_no_attributeerror():
+    # GH 55431
+    ser = Series(to_datetime(["2023-10-06 12:00:00+0000", "2023-10-07 12:00:00+0000"]))
+
+    result = cut(ser.array, bins=2)
+
+    categories = result.categories
+    expected = Categorical.from_codes([0, 1], categories=categories, ordered=True)
+
+    tm.assert_categorical_equal(
+        result, expected, check_dtype=True, check_category_order=True
+    )

@@ -1,6 +1,9 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
+
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import is_extension_array_dtype
 from pandas.core.dtypes.dtypes import ExtensionDtype
 
@@ -16,10 +19,10 @@ class BaseInterfaceTests:
     # ------------------------------------------------------------------------
 
     def test_len(self, data):
-        assert len(data) == 100
+        assert len(data) == 10
 
     def test_size(self, data):
-        assert data.size == 100
+        assert data.size == 10
 
     def test_ndim(self, data):
         assert data.ndim == 1
@@ -28,7 +31,7 @@ class BaseInterfaceTests:
         # GH-20761
         assert data._can_hold_na is True
 
-    def test_contains(self, data, data_missing):
+    def test_contains(self, data, data_missing, using_nan_is_na):
         # GH-37867
         # Tests for membership checks. Membership checks for nan-likes is tricky and
         # the settled on rule is: `nan_like in arr` is True if nan_like is
@@ -52,7 +55,21 @@ class BaseInterfaceTests:
                 # type check for e.g. two instances of Decimal("NAN")
                 continue
             assert na_value_obj not in data
-            assert na_value_obj not in data_missing
+            if (
+                using_nan_is_na
+                and isinstance(na_value_obj, float)
+                and isinstance(
+                    data,
+                    (
+                        pd.core.arrays.BaseMaskedArray,
+                        pd.core.arrays.ArrowExtensionArray,
+                    ),
+                )
+            ):
+                # TODO: wrong place for this override
+                assert na_value_obj in data_missing
+            else:
+                assert na_value_obj not in data_missing
 
     def test_memory_usage(self, data):
         s = pd.Series(data)
@@ -65,7 +82,29 @@ class BaseInterfaceTests:
 
         result = np.array(data, dtype=object)
         expected = np.array(list(data), dtype=object)
+        if expected.ndim > 1:
+            # nested data, explicitly construct as 1D
+            expected = construct_1d_object_array_from_listlike(list(data))
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_array_interface_copy(self, data):
+        result_copy1 = np.array(data, copy=True)
+        result_copy2 = np.array(data, copy=True)
+        assert not np.may_share_memory(result_copy1, result_copy2)
+
+        if not np_version_gt2:
+            # copy=False semantics are only supported in NumPy>=2.
+            return
+
+        try:
+            result_nocopy1 = np.array(data, copy=False)
+        except ValueError:
+            # An error is always acceptable for `copy=False`
+            return
+
+        result_nocopy2 = np.array(data, copy=False)
+        # If copy=False was given and did not raise, these must share the same data
+        assert np.may_share_memory(result_nocopy1, result_nocopy2)
 
     def test_is_extension_array_dtype(self, data):
         assert is_extension_array_dtype(data)
@@ -103,7 +142,7 @@ class BaseInterfaceTests:
         result = data.copy()
 
         if data.dtype._is_immutable:
-            pytest.skip("test_copy assumes mutability")
+            pytest.skip(f"test_copy assumes mutability and {data.dtype} is immutable")
 
         data[1] = data[0]
         assert result[1] != result[0]
@@ -118,7 +157,7 @@ class BaseInterfaceTests:
         assert type(result) == type(data)
 
         if data.dtype._is_immutable:
-            pytest.skip("test_view assumes mutability")
+            pytest.skip(f"test_view assumes mutability and {data.dtype} is immutable")
 
         result[1] = result[0]
         assert data[1] == data[0]

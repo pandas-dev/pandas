@@ -3,8 +3,10 @@ import pytest
 
 import pandas as pd
 from pandas import (
+    DatetimeIndex,
     Index,
     Series,
+    date_range,
 )
 import pandas._testing as tm
 
@@ -155,20 +157,17 @@ def test_get_with_default():
             assert s.get("e", "z") == "z"
             assert s.get("e", "e") == "e"
 
-            msg = "Series.__getitem__ treating keys as positions is deprecated"
-            warn = None
-            if index is d0:
-                warn = FutureWarning
-            with tm.assert_produces_warning(warn, match=msg):
-                assert s.get(10, "z") == "z"
-                assert s.get(10, 10) == 10
+            assert s.get(10, "z") == "z"
+            assert s.get(10, 10) == 10
 
 
 @pytest.mark.parametrize(
     "arr",
     [
         np.random.default_rng(2).standard_normal(10),
-        tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern"),
+        DatetimeIndex(date_range("2020-01-01", periods=10), name="a").tz_localize(
+            tz="US/Eastern"
+        ),
     ],
 )
 def test_get_with_ea(arr):
@@ -197,13 +196,10 @@ def test_get_with_ea(arr):
     result = ser.get("Z")
     assert result is None
 
-    msg = "Series.__getitem__ treating keys as positions is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert ser.get(4) == ser.iloc[4]
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert ser.get(-1) == ser.iloc[-1]
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert ser.get(len(ser)) is None
+    # As of 3.0, ints are treated as labels
+    assert ser.get(4) is None
+    assert ser.get(-1) is None
+    assert ser.get(len(ser)) is None
 
     # GH#21257
     ser = Series(arr)
@@ -212,16 +208,14 @@ def test_get_with_ea(arr):
 
 
 def test_getitem_get(string_series, object_series):
-    msg = "Series.__getitem__ treating keys as positions is deprecated"
-
     for obj in [string_series, object_series]:
         idx = obj.index[5]
 
         assert obj[idx] == obj.get(idx)
         assert obj[idx] == obj.iloc[5]
 
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        assert string_series.get(-1) == string_series.get(string_series.index[-1])
+    # As of 3.0, ints are treated as labels
+    assert string_series.get(-1) is None
     assert string_series.iloc[5] == string_series.get(string_series.index[5])
 
 

@@ -12,8 +12,6 @@ from pandas import (
     date_range,
 )
 
-from .pandas_vb_common import tm
-
 
 class SetOperations:
     params = (
@@ -30,7 +28,7 @@ class SetOperations:
         date_str_left = Index(dates_left.strftime(fmt))
         int_left = Index(np.arange(N))
         ea_int_left = Index(np.arange(N), dtype="Int64")
-        str_left = tm.makeStringIndex(N)
+        str_left = Index([f"i-{i}" for i in range(N)], dtype=object)
 
         data = {
             "datetime": dates_left,
@@ -138,9 +136,13 @@ class IndexAppend:
             self.int_idxs.append(i_idx)
             o_idx = i_idx.astype(str)
             self.object_idxs.append(o_idx)
+        self.same_range_idx = [self.range_idx] * N
 
     def time_append_range_list(self):
         self.range_idx.append(self.range_idxs)
+
+    def time_append_range_list_same(self):
+        self.range_idx.append(self.same_range_idx)
 
     def time_append_int_list(self):
         self.int_idx.append(self.int_idxs)
@@ -155,7 +157,12 @@ class Indexing:
 
     def setup(self, dtype):
         N = 10**6
-        self.idx = getattr(tm, f"make{dtype}Index")(N)
+        if dtype == "String":
+            self.idx = Index([f"i-{i}" for i in range(N)], dtype=object)
+        elif dtype == "Float":
+            self.idx = Index(np.arange(N), dtype=np.float64)
+        elif dtype == "Int":
+            self.idx = Index(np.arange(N), dtype=np.int64)
         self.array_mask = (np.arange(N) % 3) == 0
         self.series_mask = Series(self.array_mask)
         self.sorted = self.idx.sort_values()

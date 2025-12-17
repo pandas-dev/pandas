@@ -79,8 +79,9 @@ Function application
    DataFrameGroupBy.cumsum
    DataFrameGroupBy.describe
    DataFrameGroupBy.diff
+   DataFrameGroupBy.ewm
+   DataFrameGroupBy.expanding
    DataFrameGroupBy.ffill
-   DataFrameGroupBy.fillna
    DataFrameGroupBy.first
    DataFrameGroupBy.head
    DataFrameGroupBy.idxmax
@@ -105,6 +106,7 @@ Function application
    DataFrameGroupBy.shift
    DataFrameGroupBy.size
    DataFrameGroupBy.skew
+   DataFrameGroupBy.kurt
    DataFrameGroupBy.std
    DataFrameGroupBy.sum
    DataFrameGroupBy.var
@@ -130,8 +132,9 @@ Function application
    SeriesGroupBy.cumsum
    SeriesGroupBy.describe
    SeriesGroupBy.diff
+   SeriesGroupBy.ewm
+   SeriesGroupBy.expanding
    SeriesGroupBy.ffill
-   SeriesGroupBy.fillna
    SeriesGroupBy.first
    SeriesGroupBy.head
    SeriesGroupBy.last
@@ -161,6 +164,7 @@ Function application
    SeriesGroupBy.shift
    SeriesGroupBy.size
    SeriesGroupBy.skew
+   SeriesGroupBy.kurt
    SeriesGroupBy.std
    SeriesGroupBy.sum
    SeriesGroupBy.var

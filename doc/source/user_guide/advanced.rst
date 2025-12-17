@@ -11,13 +11,6 @@ and :ref:`other advanced indexing features <advanced.index_types>`.
 
 See the :ref:`Indexing and Selecting Data <indexing>` for general indexing documentation.
 
-.. warning::
-
-   Whether a copy or a reference is returned for a setting operation may
-   depend on the context.  This is sometimes called ``chained assignment`` and
-   should be avoided.  See :ref:`Returning a View versus Copy
-   <indexing.view_versus_copy>`.
-
 See the :ref:`cookbook<cookbook.selection>` for some advanced strategies.
 
 .. _advanced.hierarchical:
@@ -402,6 +395,7 @@ slicers on a single axis.
 Furthermore, you can *set* the values using the following methods.
 
 .. ipython:: python
+   :okwarning:
 
    df2 = dfmi.copy()
    df2.loc(axis=0)[:, :, ["C1", "C3"]] = -10

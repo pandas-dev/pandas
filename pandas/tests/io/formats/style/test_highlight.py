@@ -15,8 +15,10 @@ from pandas.io.formats.style import Styler
 @pytest.fixture(params=[(None, "float64"), (NA, "Int64")])
 def df(request):
     # GH 45804
+    dtype = request.param[1]
+    item = np.nan if dtype == "float64" else NA
     return DataFrame(
-        {"A": [0, np.nan, 10], "B": [1, request.param[0], 2]}, dtype=request.param[1]
+        {"A": [0, item, 10], "B": [1, request.param[0], 2]}, dtype=request.param[1]
     )
 
 
@@ -198,16 +200,17 @@ def test_highlight_quantile(styler, kwargs):
     ],
 )
 @pytest.mark.parametrize(
-    "df",
+    "dtype",
     [
-        DataFrame([[0, 10], [20, 30]], dtype=int),
-        DataFrame([[0, 10], [20, 30]], dtype=float),
-        DataFrame([[0, 10], [20, 30]], dtype="datetime64[ns]"),
-        DataFrame([[0, 10], [20, 30]], dtype=str),
-        DataFrame([[0, 10], [20, 30]], dtype="timedelta64[ns]"),
+        int,
+        float,
+        "datetime64[ns]",
+        str,
+        "timedelta64[ns]",
     ],
 )
-def test_all_highlight_dtypes(f, kwargs, df):
+def test_all_highlight_dtypes(f, kwargs, dtype):
+    df = DataFrame([[0, 10], [20, 30]], dtype=dtype)
     if f == "highlight_quantile" and isinstance(df.iloc[0, 0], (str)):
         return None  # quantile incompatible with str
     if f == "highlight_between":

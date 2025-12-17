@@ -3,6 +3,8 @@ from datetime import timedelta
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -17,7 +19,7 @@ def test_asfreq_bug():
     result = df.resample("1min").asfreq()
     expected = DataFrame(
         data=[1, np.nan, np.nan, 3],
-        index=timedelta_range("0 day", periods=4, freq="1min"),
+        index=timedelta_range("0 day", periods=4, freq="1min", unit="us"),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -51,7 +53,8 @@ def test_resample_with_timedeltas():
     expected.index = timedelta_range("0 days", freq="30min", periods=50)
 
     df = DataFrame(
-        {"A": np.arange(1480)}, index=pd.to_timedelta(np.arange(1480), unit="min")
+        {"A": np.arange(1480)},
+        index=pd.to_timedelta(np.arange(1480), unit="min").as_unit("us"),
     )
     result = df.resample("30min").sum()
 
@@ -98,9 +101,12 @@ def test_resample_categorical_data_with_timedeltaindex():
     df = DataFrame({"Group_obj": "A"}, index=pd.to_timedelta(list(range(20)), unit="s"))
     df["Group"] = df["Group_obj"].astype("category")
     result = df.resample("10s").agg(lambda x: (x.value_counts().index[0]))
+    exp_tdi = pd.TimedeltaIndex(np.array([0, 10], dtype="m8[s]"), freq="10s").as_unit(
+        "ns"
+    )
     expected = DataFrame(
         {"Group_obj": ["A", "A"], "Group": ["A", "A"]},
-        index=pd.TimedeltaIndex([0, 10], unit="s", freq="10s"),
+        index=exp_tdi,
     )
     expected = expected.reindex(["Group_obj", "Group"], axis=1)
     expected["Group"] = expected["Group_obj"].astype("category")
@@ -165,13 +171,12 @@ def test_resample_with_timedelta_yields_no_empty_groups(duplicates):
 
     expected = DataFrame(
         [[768] * 4] * 12 + [[528] * 4],
-        index=timedelta_range(start="1s", periods=13, freq="3s"),
+        index=timedelta_range(start="1s", periods=13, freq="3s", unit="ns"),
     )
     expected.columns = df.columns
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 def test_resample_quantile_timedelta(unit):
     # GH: 29485
     dtype = np.dtype(f"m8[{unit}]")
@@ -203,4 +208,13 @@ def test_resample_closed_right():
             [pd.Timedelta(seconds=120 + i * 60) for i in range(6)], freq="min"
         ),
     )
+    tm.assert_series_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_arrow_duration_resample():
+    # GH 56371
+    idx = pd.Index(timedelta_range("1 day", periods=5), dtype="duration[ns][pyarrow]")
+    expected = Series(np.arange(5, dtype=np.float64), index=idx)
+    result = expected.resample("1D").mean()
     tm.assert_series_equal(result, expected)

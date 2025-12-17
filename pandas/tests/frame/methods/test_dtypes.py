@@ -10,7 +10,6 @@ from pandas import (
     DataFrame,
     Series,
     date_range,
-    option_context,
 )
 import pandas._testing as tm
 
@@ -41,9 +40,9 @@ class TestDataFrameDataTypes:
     def test_datetime_with_tz_dtypes(self):
         tzframe = DataFrame(
             {
-                "A": date_range("20130101", periods=3),
-                "B": date_range("20130101", periods=3, tz="US/Eastern"),
-                "C": date_range("20130101", periods=3, tz="CET"),
+                "A": date_range("20130101", periods=3, unit="ns"),
+                "B": date_range("20130101", periods=3, tz="US/Eastern", unit="ns"),
+                "C": date_range("20130101", periods=3, tz="CET", unit="ns"),
             }
         )
         tzframe.iloc[1, 1] = pd.NaT
@@ -95,24 +94,16 @@ class TestDataFrameDataTypes:
         )
         tm.assert_series_equal(result, expected)
 
-        # compat, GH 8722
-        msg = "use_inf_as_na option is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            with option_context("use_inf_as_na", True):
-                df = DataFrame([[1]])
-                result = df.dtypes
-                tm.assert_series_equal(result, Series({0: np.dtype("int64")}))
-
     def test_dtypes_timedeltas(self):
         df = DataFrame(
             {
-                "A": Series(date_range("2012-1-1", periods=3, freq="D")),
+                "A": Series(date_range("2012-1-1", periods=3, freq="D", unit="ns")),
                 "B": Series([timedelta(days=i) for i in range(3)]),
             }
         )
         result = df.dtypes
         expected = Series(
-            [np.dtype("datetime64[ns]"), np.dtype("timedelta64[ns]")], index=list("AB")
+            [np.dtype("datetime64[ns]"), np.dtype("timedelta64[us]")], index=list("AB")
         )
         tm.assert_series_equal(result, expected)
 
@@ -121,7 +112,7 @@ class TestDataFrameDataTypes:
         expected = Series(
             [
                 np.dtype("datetime64[ns]"),
-                np.dtype("timedelta64[ns]"),
+                np.dtype("timedelta64[us]"),
                 np.dtype("datetime64[ns]"),
             ],
             index=list("ABC"),
@@ -134,7 +125,7 @@ class TestDataFrameDataTypes:
         expected = Series(
             [
                 np.dtype("datetime64[ns]"),
-                np.dtype("timedelta64[ns]"),
+                np.dtype("timedelta64[us]"),
                 np.dtype("datetime64[ns]"),
                 np.dtype("int64"),
             ],
@@ -142,9 +133,9 @@ class TestDataFrameDataTypes:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_frame_apply_np_array_return_type(self):
+    def test_frame_apply_np_array_return_type(self, using_infer_string):
         # GH 35517
         df = DataFrame([["foo"]])
         result = df.apply(lambda col: np.array("bar"))
-        expected = Series(["bar"])
+        expected = Series(np.array("bar"))
         tm.assert_series_equal(result, expected)

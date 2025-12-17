@@ -1,13 +1,8 @@
 import pathlib
-import sys
+import tomllib
 
 import pytest
 import yaml
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 from scripts.validate_min_versions_in_sync import (
     get_toml_map_from,
@@ -15,38 +10,40 @@ from scripts.validate_min_versions_in_sync import (
     pin_min_versions_to_yaml_file,
 )
 
+DATA_PATH = pathlib.Path(__file__).parents[2] / "scripts/tests/data/"
+
 
 @pytest.mark.parametrize(
     "src_toml, src_yaml, expected_yaml",
     [
         (
-            pathlib.Path("scripts/tests/data/deps_minimum.toml"),
-            pathlib.Path("scripts/tests/data/deps_unmodified_random.yaml"),
-            pathlib.Path("scripts/tests/data/deps_expected_random.yaml"),
+            DATA_PATH / "deps_minimum.toml",
+            DATA_PATH / "deps_unmodified_random.yaml",
+            DATA_PATH / "deps_expected_random.yaml",
         ),
         (
-            pathlib.Path("scripts/tests/data/deps_minimum.toml"),
-            pathlib.Path("scripts/tests/data/deps_unmodified_same_version.yaml"),
-            pathlib.Path("scripts/tests/data/deps_expected_same_version.yaml"),
+            DATA_PATH / "deps_minimum.toml",
+            DATA_PATH / "deps_unmodified_same_version.yaml",
+            DATA_PATH / "deps_expected_same_version.yaml",
         ),
         (
-            pathlib.Path("scripts/tests/data/deps_minimum.toml"),
-            pathlib.Path("scripts/tests/data/deps_unmodified_duplicate_package.yaml"),
-            pathlib.Path("scripts/tests/data/deps_expected_duplicate_package.yaml"),
+            DATA_PATH / "deps_minimum.toml",
+            DATA_PATH / "deps_unmodified_duplicate_package.yaml",
+            DATA_PATH / "deps_expected_duplicate_package.yaml",
         ),
         (
-            pathlib.Path("scripts/tests/data/deps_minimum.toml"),
-            pathlib.Path("scripts/tests/data/deps_unmodified_no_version.yaml"),
-            pathlib.Path("scripts/tests/data/deps_expected_no_version.yaml"),
+            DATA_PATH / "deps_minimum.toml",
+            DATA_PATH / "deps_unmodified_no_version.yaml",
+            DATA_PATH / "deps_expected_no_version.yaml",
         ),
         (
-            pathlib.Path("scripts/tests/data/deps_minimum.toml"),
-            pathlib.Path("scripts/tests/data/deps_unmodified_range.yaml"),
-            pathlib.Path("scripts/tests/data/deps_expected_range.yaml"),
+            DATA_PATH / "deps_minimum.toml",
+            DATA_PATH / "deps_unmodified_range.yaml",
+            DATA_PATH / "deps_expected_range.yaml",
         ),
     ],
 )
-def test_pin_min_versions_to_yaml_file(src_toml, src_yaml, expected_yaml):
+def test_pin_min_versions_to_yaml_file(src_toml, src_yaml, expected_yaml) -> None:
     with open(src_toml, "rb") as toml_f:
         toml_map = tomllib.load(toml_f)
     with open(src_yaml, encoding="utf-8") as yaml_f:

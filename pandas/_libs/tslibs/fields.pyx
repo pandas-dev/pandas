@@ -109,7 +109,7 @@ def month_position_check(fields, weekdays) -> str | None:
         int32_t[:] months = fields["M"]
         int32_t[:] days = fields["D"]
 
-    for y, m, d, wd in zip(years, months, days, weekdays):
+    for y, m, d, wd in zip(years, months, days, weekdays, strict=True):
         if calendar_start:
             calendar_start &= d == 1
         if business_start:
@@ -146,7 +146,7 @@ def get_date_name_field(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
     """
-    Given a int64-based datetime index, return array of strings of date
+    Given an int64-based datetime index, return array of strings of date
     name based on requested field (e.g. day_name)
     """
     cdef:
@@ -210,7 +210,7 @@ cdef bint _is_on_month(int month, int compare_month, int modby) noexcept nogil:
 def get_start_end_field(
     const int64_t[:] dtindex,
     str field,
-    str freqstr=None,
+    str freq_name=None,
     int month_kw=12,
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
@@ -223,7 +223,7 @@ def get_start_end_field(
     ----------
     dtindex : ndarray[int64]
     field : str
-    frestr : str or None, default None
+    freq_name : str or None, default None
     month_kw : int, default 12
     reso : NPY_DATETIMEUNIT, default NPY_FR_ns
 
@@ -243,20 +243,20 @@ def get_start_end_field(
 
     out = np.zeros(count, dtype="int8")
 
-    if freqstr:
-        if freqstr == "C":
+    if freq_name:
+        if freq_name == "C":
             raise ValueError(f"Custom business days is not supported by {field}")
-        is_business = freqstr[0] == "B"
+        is_business = freq_name[0] == "B"
 
         # YearBegin(), BYearBegin() use month = starting month of year.
         # QuarterBegin(), BQuarterBegin() use startingMonth = starting
         # month of year. Other offsets use month, startingMonth as ending
         # month of year.
 
-        if (freqstr[0:2] in ["MS", "QS", "YS"]) or (
-                freqstr[1:3] in ["MS", "QS", "YS"]):
+        if freq_name.lstrip("B")[0:2] in ["QS", "YS"]:
             end_month = 12 if month_kw == 1 else month_kw - 1
             start_month = month_kw
+
         else:
             end_month = month_kw
             start_month = (end_month % 12) + 1
@@ -335,7 +335,7 @@ def get_date_field(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
     """
-    Given a int64-based datetime index, extract the year, month, etc.,
+    Given an int64-based datetime index, extract the year, month, etc.,
     field and return an array of these values.
     """
     cdef:
@@ -502,7 +502,7 @@ def get_timedelta_field(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
     """
-    Given a int64-based timedelta index, extract the days, hrs, sec.,
+    Given an int64-based timedelta index, extract the days, hrs, sec.,
     field and return an array of these values.
     """
     cdef:
@@ -555,7 +555,7 @@ def get_timedelta_days(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ):
     """
-    Given a int64-based timedelta index, extract the days,
+    Given an int64-based timedelta index, extract the days,
     field and return an array of these values.
     """
     cdef:
@@ -592,7 +592,7 @@ cpdef isleapyear_arr(ndarray years):
 @cython.boundscheck(False)
 def build_isocalendar_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
     """
-    Given a int64-based datetime array, return the ISO 8601 year, week, and day
+    Given an int64-based datetime array, return the ISO 8601 year, week, and day
     as a structured array.
     """
     cdef:
@@ -746,7 +746,31 @@ cdef ndarray[int64_t] _ceil_int64(const int64_t[:] values, int64_t unit):
 
 
 cdef ndarray[int64_t] _rounddown_int64(values, int64_t unit):
-    return _ceil_int64(values - unit // 2, unit)
+    cdef:
+        Py_ssize_t i, n = len(values)
+        ndarray[int64_t] result = np.empty(n, dtype="i8")
+        int64_t res, value, remainder, half
+
+    half = unit // 2
+
+    with cython.overflowcheck(True):
+        for i in range(n):
+            value = values[i]
+
+            if value == NPY_NAT:
+                res = NPY_NAT
+            else:
+                # This adjustment is the only difference between rounddown_int64
+                #  and _ceil_int64
+                value = value - half
+                remainder = value % unit
+                if remainder == 0:
+                    res = value
+                else:
+                    res = value + (unit - remainder)
+
+            result[i] = res
+    return result
 
 
 cdef ndarray[int64_t] _roundup_int64(values, int64_t unit):

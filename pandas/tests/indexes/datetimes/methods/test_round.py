@@ -40,9 +40,9 @@ class TestDatetimeIndexRound:
         with pytest.raises(ValueError, match=error_msg):
             dti.round(freq)
 
-    def test_round(self, tz_naive_fixture):
+    def test_round(self, tz_naive_fixture, unit):
         tz = tz_naive_fixture
-        rng = date_range(start="2016-01-01", periods=5, freq="30Min", tz=tz)
+        rng = date_range(start="2016-01-01", periods=5, freq="30Min", tz=tz, unit=unit)
         elt = rng[1]
 
         expected_rng = DatetimeIndex(
@@ -53,10 +53,11 @@ class TestDatetimeIndexRound:
                 Timestamp("2016-01-01 02:00:00", tz=tz),
                 Timestamp("2016-01-01 02:00:00", tz=tz),
             ]
-        )
+        ).as_unit(unit)
         expected_elt = expected_rng[1]
 
-        tm.assert_index_equal(rng.round(freq="h"), expected_rng)
+        result = rng.round(freq="h")
+        tm.assert_index_equal(result, expected_rng)
         assert elt.round(freq="h") == expected_elt
 
         msg = INVALID_FREQ_ERR_MSG
@@ -74,9 +75,9 @@ class TestDatetimeIndexRound:
     def test_round2(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH#14440 & GH#15578
-        index = DatetimeIndex(["2016-10-17 12:00:00.0015"], tz=tz)
+        index = DatetimeIndex(["2016-10-17 12:00:00.0015"], tz=tz).as_unit("ns")
         result = index.round("ms")
-        expected = DatetimeIndex(["2016-10-17 12:00:00.002000"], tz=tz)
+        expected = DatetimeIndex(["2016-10-17 12:00:00.002000"], tz=tz).as_unit("ns")
         tm.assert_index_equal(result, expected)
 
         for freq in ["us", "ns"]:
@@ -84,25 +85,26 @@ class TestDatetimeIndexRound:
 
     def test_round3(self, tz_naive_fixture):
         tz = tz_naive_fixture
-        index = DatetimeIndex(["2016-10-17 12:00:00.00149"], tz=tz)
+        index = DatetimeIndex(["2016-10-17 12:00:00.00149"], tz=tz).as_unit("ns")
         result = index.round("ms")
-        expected = DatetimeIndex(["2016-10-17 12:00:00.001000"], tz=tz)
+        expected = DatetimeIndex(["2016-10-17 12:00:00.001000"], tz=tz).as_unit("ns")
         tm.assert_index_equal(result, expected)
 
     def test_round4(self, tz_naive_fixture):
-        index = DatetimeIndex(["2016-10-17 12:00:00.001501031"])
+        index = DatetimeIndex(["2016-10-17 12:00:00.001501031"], dtype="M8[ns]")
         result = index.round("10ns")
-        expected = DatetimeIndex(["2016-10-17 12:00:00.001501030"])
+        expected = DatetimeIndex(["2016-10-17 12:00:00.001501030"], dtype="M8[ns]")
         tm.assert_index_equal(result, expected)
 
+        ts = "2016-10-17 12:00:00.001501031"
+        dti = DatetimeIndex([ts], dtype="M8[ns]")
         with tm.assert_produces_warning(False):
-            ts = "2016-10-17 12:00:00.001501031"
-            DatetimeIndex([ts]).round("1010ns")
+            dti.round("1010ns")
 
     def test_no_rounding_occurs(self, tz_naive_fixture):
         # GH 21262
         tz = tz_naive_fixture
-        rng = date_range(start="2016-01-01", periods=5, freq="2Min", tz=tz)
+        rng = date_range(start="2016-01-01", periods=5, freq="2Min", tz=tz, unit="ns")
 
         expected_rng = DatetimeIndex(
             [
@@ -112,9 +114,10 @@ class TestDatetimeIndexRound:
                 Timestamp("2016-01-01 00:06:00", tz=tz),
                 Timestamp("2016-01-01 00:08:00", tz=tz),
             ]
-        )
+        ).as_unit("ns")
 
-        tm.assert_index_equal(rng.round(freq="2min"), expected_rng)
+        result = rng.round(freq="2min")
+        tm.assert_index_equal(result, expected_rng)
 
     @pytest.mark.parametrize(
         "test_input, rounder, freq, expected",
@@ -189,7 +192,7 @@ class TestDatetimeIndexRound:
         ],
     )
     def test_round_int64(self, start, index_freq, periods, round_freq):
-        dt = date_range(start=start, freq=index_freq, periods=periods)
+        dt = date_range(start=start, freq=index_freq, periods=periods, unit="ns")
         unit = to_offset(round_freq).nanos
 
         # test floor
@@ -213,6 +216,6 @@ class TestDatetimeIndexRound:
         assert (mod == 0).all(), f"round not a {round_freq} multiple"
         assert (diff <= unit // 2).all(), "round error"
         if unit % 2 == 0:
-            assert (
-                result.asi8[diff == unit // 2] % 2 == 0
-            ).all(), "round half to even error"
+            assert (result.asi8[diff == unit // 2] % 2 == 0).all(), (
+                "round half to even error"
+            )

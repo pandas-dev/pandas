@@ -12,25 +12,26 @@ Usage:
     generated with this script:
     $ python scripts/generate_pip_deps_from_conda.py --compare
 """
+
 import argparse
 import pathlib
 import re
 import sys
+import tomllib
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 import yaml
 
 EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
-REMAP_VERSION = {"tzdata": "2022.7"}
-RENAME = {
+REMAP_VERSION = {"tzdata": "2023.3"}
+CONDA_TO_PIP = {
+    "versioneer": "versioneer[toml]",
+    "meson": "meson[ninja]",
     "pytables": "tables",
     "psycopg2": "psycopg2-binary",
     "dask-core": "dask",
     "seaborn-base": "seaborn",
     "sqlalchemy": "SQLAlchemy",
+    "pyqt": "PyQt5",
 }
 
 
@@ -40,11 +41,11 @@ def conda_package_to_pip(package: str):
 
     In most cases they are the same, those are the exceptions:
     - Packages that should be excluded (in `EXCLUDE`)
-    - Packages that should be renamed (in `RENAME`)
+    - Packages that should be renamed (in `CONDA_TO_PIP`)
     - A package requiring a specific version, in conda is defined with a single
       equal (e.g. ``pandas=1.0``) and in pip with two (e.g. ``pandas==1.0``)
     """
-    package = re.sub("(?<=[^<>])=", "==", package).strip()
+    package = re.sub("(?<=[^<>~])=", "==", package).strip()
 
     for compare in ("<=", ">=", "=="):
         if compare in package:
@@ -53,14 +54,14 @@ def conda_package_to_pip(package: str):
                 return
             if pkg in REMAP_VERSION:
                 return "".join((pkg, compare, REMAP_VERSION[pkg]))
-            if pkg in RENAME:
-                return "".join((RENAME[pkg], compare, version))
+            if pkg in CONDA_TO_PIP:
+                return "".join((CONDA_TO_PIP[pkg], compare, version))
 
     if package in EXCLUDE:
         return
 
-    if package in RENAME:
-        return RENAME[package]
+    if package in CONDA_TO_PIP:
+        return CONDA_TO_PIP[package]
 
     return package
 

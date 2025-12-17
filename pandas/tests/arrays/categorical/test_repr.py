@@ -4,6 +4,7 @@ from pandas import (
     Categorical,
     CategoricalDtype,
     CategoricalIndex,
+    Index,
     Series,
     date_range,
     option_context,
@@ -13,10 +14,12 @@ from pandas import (
 
 
 class TestCategoricalReprWithFactor:
-    def test_print(self, factor):
+    def test_print(self, using_infer_string):
+        factor = Categorical(["a", "b", "b", "a", "a", "c", "c", "c"], ordered=True)
+        dtype = "str" if using_infer_string else "object"
         expected = [
             "['a', 'b', 'b', 'a', 'a', 'c', 'c', 'c']",
-            "Categories (3, object): ['a' < 'b' < 'c']",
+            f"Categories (3, {dtype}): ['a' < 'b' < 'c']",
         ]
         expected = "\n".join(expected)
         actual = repr(factor)
@@ -26,7 +29,7 @@ class TestCategoricalReprWithFactor:
 class TestCategoricalRepr:
     def test_big_print(self):
         codes = np.array([0, 1, 2, 0, 1, 2] * 100)
-        dtype = CategoricalDtype(categories=["a", "b", "c"])
+        dtype = CategoricalDtype(categories=Index(["a", "b", "c"], dtype=object))
         factor = Categorical.from_codes(codes, dtype=dtype)
         expected = [
             "['a', 'b', 'c', 'a', 'b', ..., 'b', 'c', 'a', 'b', 'c']",
@@ -40,13 +43,13 @@ class TestCategoricalRepr:
         assert actual == expected
 
     def test_empty_print(self):
-        factor = Categorical([], ["a", "b", "c"])
+        factor = Categorical([], Index(["a", "b", "c"], dtype=object))
         expected = "[], Categories (3, object): ['a', 'b', 'c']"
         actual = repr(factor)
         assert actual == expected
 
         assert expected == actual
-        factor = Categorical([], ["a", "b", "c"], ordered=True)
+        factor = Categorical([], Index(["a", "b", "c"], dtype=object), ordered=True)
         expected = "[], Categories (3, object): ['a' < 'b' < 'c']"
         actual = repr(factor)
         assert expected == actual
@@ -66,12 +69,15 @@ class TestCategoricalRepr:
         with option_context("display.width", None):
             assert exp == repr(a)
 
-    def test_unicode_print(self):
+    def test_unicode_print(self, using_infer_string):
         c = Categorical(["aaaaa", "bb", "cccc"] * 20)
         expected = """\
 ['aaaaa', 'bb', 'cccc', 'aaaaa', 'bb', ..., 'bb', 'cccc', 'aaaaa', 'bb', 'cccc']
 Length: 60
 Categories (3, object): ['aaaaa', 'bb', 'cccc']"""
+
+        if using_infer_string:
+            expected = expected.replace("object", "str")
 
         assert repr(c) == expected
 
@@ -80,6 +86,9 @@ Categories (3, object): ['aaaaa', 'bb', 'cccc']"""
 ['ああああ', 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', ..., 'いいいいい', 'ううううううう', 'ああああ', 'いいいいい', 'ううううううう']
 Length: 60
 Categories (3, object): ['ああああ', 'いいいいい', 'ううううううう']"""  # noqa: E501
+
+        if using_infer_string:
+            expected = expected.replace("object", "str")
 
         assert repr(c) == expected
 
@@ -91,7 +100,10 @@ Categories (3, object): ['ああああ', 'いいいいい', 'うううううう�
 Length: 60
 Categories (3, object): ['ああああ', 'いいいいい', 'ううううううう']"""  # noqa: E501
 
-            assert repr(c) == expected
+        if using_infer_string:
+            expected = expected.replace("object", "str")
+
+        assert repr(c) == expected
 
     def test_categorical_repr(self):
         c = Categorical([1, 2, 3])
@@ -148,7 +160,7 @@ Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
         assert repr(c) == exp
 
     def test_categorical_repr_datetime(self):
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5)
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5, unit="ns")
         c = Categorical(idx)
 
         exp = (
@@ -176,7 +188,9 @@ Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
 
         assert repr(c) == exp
 
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
+        idx = date_range(
+            "2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern", unit="ns"
+        )
         c = Categorical(idx)
         exp = (
             "[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, "
@@ -210,7 +224,7 @@ Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
         assert repr(c) == exp
 
     def test_categorical_repr_datetime_ordered(self):
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5)
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5, unit="ns")
         c = Categorical(idx, ordered=True)
         exp = """[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00]
 Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 2011-01-01 11:00:00 <
@@ -225,7 +239,9 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 201
 
         assert repr(c) == exp
 
-        idx = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
+        idx = date_range(
+            "2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern", unit="ns"
+        )
         c = Categorical(idx, ordered=True)
         exp = """[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00]
 Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <
@@ -315,13 +331,13 @@ Categories (5, period[M]): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]""" 
         idx = timedelta_range("1 days", periods=5)
         c = Categorical(idx)
         exp = """[1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
+Categories (5, timedelta64[us]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
 
         assert repr(c) == exp
 
         c = Categorical(idx.append(idx), categories=idx)
         exp = """[1 days, 2 days, 3 days, 4 days, 5 days, 1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""  # noqa: E501
+Categories (5, timedelta64[us]): [1 days, 2 days, 3 days, 4 days, 5 days]"""  # noqa: E501
 
         assert repr(c) == exp
 
@@ -329,7 +345,7 @@ Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""  # 
         c = Categorical(idx)
         exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
 Length: 20
-Categories (20, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
+Categories (20, timedelta64[us]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
                                    3 days 01:00:00, ..., 16 days 01:00:00, 17 days 01:00:00,
                                    18 days 01:00:00, 19 days 01:00:00]"""  # noqa: E501
 
@@ -338,7 +354,7 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:0
         c = Categorical(idx.append(idx), categories=idx)
         exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
 Length: 40
-Categories (20, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
+Categories (20, timedelta64[us]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
                                    3 days 01:00:00, ..., 16 days 01:00:00, 17 days 01:00:00,
                                    18 days 01:00:00, 19 days 01:00:00]"""  # noqa: E501
 
@@ -348,13 +364,13 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:0
         idx = timedelta_range("1 days", periods=5)
         c = Categorical(idx, ordered=True)
         exp = """[1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
+Categories (5, timedelta64[us]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
 
         assert repr(c) == exp
 
         c = Categorical(idx.append(idx), categories=idx, ordered=True)
         exp = """[1 days, 2 days, 3 days, 4 days, 5 days, 1 days, 2 days, 3 days, 4 days, 5 days]
-Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""  # noqa: E501
+Categories (5, timedelta64[us]): [1 days < 2 days < 3 days < 4 days < 5 days]"""  # noqa: E501
 
         assert repr(c) == exp
 
@@ -362,7 +378,7 @@ Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""
         c = Categorical(idx, ordered=True)
         exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
 Length: 20
-Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
+Categories (20, timedelta64[us]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
                                    3 days 01:00:00 ... 16 days 01:00:00 < 17 days 01:00:00 <
                                    18 days 01:00:00 < 19 days 01:00:00]"""  # noqa: E501
 
@@ -371,7 +387,7 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         c = Categorical(idx.append(idx), categories=idx, ordered=True)
         exp = """[0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00, 3 days 01:00:00, 4 days 01:00:00, ..., 15 days 01:00:00, 16 days 01:00:00, 17 days 01:00:00, 18 days 01:00:00, 19 days 01:00:00]
 Length: 40
-Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
+Categories (20, timedelta64[us]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
                                    3 days 01:00:00 ... 16 days 01:00:00 < 17 days 01:00:00 <
                                    18 days 01:00:00 < 19 days 01:00:00]"""  # noqa: E501
 
@@ -532,4 +548,14 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         # GH 33676
         result = repr(Categorical([1, "2", 3, 4]))
         expected = "[1, '2', 3, 4]\nCategories (4, object): [1, 3, 4, '2']"
+        assert result == expected
+
+    def test_categorical_with_string_dtype(self, string_dtype_no_object):
+        # GH 63045 - ensure categories are quoted for string dtypes
+        s = Series(
+            ["apple", "banana", "cherry", "cherry"], dtype=string_dtype_no_object
+        )
+        result = repr(Categorical(s))
+        expected = f"['apple', 'banana', 'cherry', 'cherry']\nCategories (3, {string_dtype_no_object!s}): ['apple', 'banana', 'cherry']"  # noqa: E501
+
         assert result == expected

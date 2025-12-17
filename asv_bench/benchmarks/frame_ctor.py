@@ -12,8 +12,6 @@ from pandas import (
     date_range,
 )
 
-from .pandas_vb_common import tm
-
 try:
     from pandas.tseries.offsets import (
         Hour,
@@ -30,8 +28,8 @@ except ImportError:
 class FromDicts:
     def setup(self):
         N, K = 5000, 50
-        self.index = tm.makeStringIndex(N)
-        self.columns = tm.makeStringIndex(K)
+        self.index = pd.Index([f"i-{i}" for i in range(N)], dtype=object)
+        self.columns = pd.Index([f"i-{i}" for i in range(K)], dtype=object)
         frame = DataFrame(np.random.randn(N, K), index=self.index, columns=self.columns)
         self.data = frame.to_dict()
         self.dict_list = frame.to_dict(orient="records")

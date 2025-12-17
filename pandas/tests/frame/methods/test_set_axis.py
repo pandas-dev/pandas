@@ -21,7 +21,7 @@ class SharedSetAxisTests:
         result = obj.set_axis(new_index, axis=0)
         tm.assert_equal(expected, result)
 
-    def test_set_axis_copy(self, obj, using_copy_on_write):
+    def test_set_axis_copy(self, obj):
         # Test copy keyword GH#47932
         new_index = list("abcd")[: len(obj)]
 
@@ -29,20 +29,7 @@ class SharedSetAxisTests:
         expected = obj.copy()
         expected.index = new_index
 
-        result = obj.set_axis(new_index, axis=0, copy=True)
-        tm.assert_equal(expected, result)
-        assert result is not obj
-        # check we DID make a copy
-        if not using_copy_on_write:
-            if obj.ndim == 1:
-                assert not tm.shares_memory(result, obj)
-            else:
-                assert not any(
-                    tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
-                    for i in range(obj.shape[1])
-                )
-
-        result = obj.set_axis(new_index, axis=0, copy=False)
+        result = obj.set_axis(new_index, axis=0)
         tm.assert_equal(expected, result)
         assert result is not obj
         # check we did NOT make a copy
@@ -54,29 +41,19 @@ class SharedSetAxisTests:
                 for i in range(obj.shape[1])
             )
 
-        # copy defaults to True
         result = obj.set_axis(new_index, axis=0)
         tm.assert_equal(expected, result)
         assert result is not obj
-        if using_copy_on_write:
-            # check we DID NOT make a copy
-            if obj.ndim == 1:
-                assert tm.shares_memory(result, obj)
-            else:
-                assert any(
-                    tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
-                    for i in range(obj.shape[1])
-                )
-        # check we DID make a copy
-        elif obj.ndim == 1:
-            assert not tm.shares_memory(result, obj)
+        # check we DID NOT make a copy
+        if obj.ndim == 1:
+            assert tm.shares_memory(result, obj)
         else:
-            assert not any(
+            assert any(
                 tm.shares_memory(result.iloc[:, i], obj.iloc[:, i])
                 for i in range(obj.shape[1])
             )
 
-        res = obj.set_axis(new_index, copy=False)
+        res = obj.set_axis(new_index)
         tm.assert_equal(expected, res)
         # check we did NOT make a copy
         if res.ndim == 1:
@@ -116,7 +93,7 @@ class SharedSetAxisTests:
         # wrong length
         msg = (
             f"Length mismatch: Expected axis has {len(obj)} elements, "
-            f"new values have {len(obj)-1} elements"
+            f"new values have {len(obj) - 1} elements"
         )
         with pytest.raises(ValueError, match=msg):
             obj.index = np.arange(len(obj) - 1)
@@ -134,6 +111,16 @@ class TestDataFrameSetAxis(SharedSetAxisTests):
             index=[2010, 2011, 2012],
         )
         return df
+
+    def test_set_axis_with_allows_duplicate_labels_false(self):
+        # GH#44958
+        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"]).set_flags(
+            allows_duplicate_labels=False
+        )
+
+        result = df.set_axis(labels=["x", "y"], axis=0)
+        expected = DataFrame([[1, 2], [3, 4]], index=["x", "y"], columns=["a", "b"])
+        tm.assert_frame_equal(result, expected, check_flags=False)
 
 
 class TestSeriesSetAxis(SharedSetAxisTests):

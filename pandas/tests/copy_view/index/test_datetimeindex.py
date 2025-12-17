@@ -13,57 +13,44 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 
-@pytest.mark.parametrize(
-    "cons",
-    [
-        lambda x: DatetimeIndex(x),
-        lambda x: DatetimeIndex(DatetimeIndex(x)),
-    ],
-)
-def test_datetimeindex(using_copy_on_write, cons):
+@pytest.mark.parametrize("box", [lambda x: x, DatetimeIndex])
+def test_datetimeindex(box):
     dt = date_range("2019-12-31", periods=3, freq="D")
     ser = Series(dt)
-    idx = cons(ser)
+    idx = box(DatetimeIndex(ser))
     expected = idx.copy(deep=True)
     ser.iloc[0] = Timestamp("2020-12-31")
-    if using_copy_on_write:
-        tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected)
 
 
-def test_datetimeindex_tz_convert(using_copy_on_write):
+def test_datetimeindex_tz_convert():
     dt = date_range("2019-12-31", periods=3, freq="D", tz="Europe/Berlin")
     ser = Series(dt)
     idx = DatetimeIndex(ser).tz_convert("US/Eastern")
     expected = idx.copy(deep=True)
     ser.iloc[0] = Timestamp("2020-12-31", tz="Europe/Berlin")
-    if using_copy_on_write:
-        tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected)
 
 
-def test_datetimeindex_tz_localize(using_copy_on_write):
+def test_datetimeindex_tz_localize():
     dt = date_range("2019-12-31", periods=3, freq="D")
     ser = Series(dt)
     idx = DatetimeIndex(ser).tz_localize("Europe/Berlin")
     expected = idx.copy(deep=True)
     ser.iloc[0] = Timestamp("2020-12-31")
-    if using_copy_on_write:
-        tm.assert_index_equal(idx, expected)
+    tm.assert_index_equal(idx, expected)
 
 
-def test_datetimeindex_isocalendar(using_copy_on_write):
+def test_datetimeindex_isocalendar():
     dt = date_range("2019-12-31", periods=3, freq="D")
     ser = Series(dt)
     df = DatetimeIndex(ser).isocalendar()
     expected = df.index.copy(deep=True)
     ser.iloc[0] = Timestamp("2020-12-31")
-    if using_copy_on_write:
-        tm.assert_index_equal(df.index, expected)
+    tm.assert_index_equal(df.index, expected)
 
 
-def test_index_values(using_copy_on_write):
+def test_index_values():
     idx = date_range("2019-12-31", periods=3, freq="D")
     result = idx.values
-    if using_copy_on_write:
-        assert result.flags.writeable is False
-    else:
-        assert result.flags.writeable is True
+    assert result.flags.writeable is False

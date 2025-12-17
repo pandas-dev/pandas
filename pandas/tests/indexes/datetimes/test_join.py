@@ -7,10 +7,12 @@ import numpy as np
 import pytest
 
 from pandas import (
+    DataFrame,
     DatetimeIndex,
     Index,
     Timestamp,
     date_range,
+    period_range,
     to_datetime,
 )
 import pandas._testing as tm
@@ -23,15 +25,7 @@ from pandas.tseries.offsets import (
 
 class TestJoin:
     def test_does_not_convert_mixed_integer(self):
-        df = tm.makeCustomDataframe(
-            10,
-            10,
-            data_gen_f=lambda *args, **kwargs: np.random.default_rng(
-                2
-            ).standard_normal(),
-            r_idx_type="i",
-            c_idx_type="dt",
-        )
+        df = DataFrame(np.ones((3, 2)), columns=date_range("2020-01-01", periods=2))
         cols = df.columns.join(df.index, how="outer")
         joined = cols.join(df.columns)
         assert cols.dtype == np.dtype("O")
@@ -44,12 +38,10 @@ class TestJoin:
         assert index is joined
 
     def test_join_with_period_index(self, join_type):
-        df = tm.makeCustomDataframe(
-            10,
-            10,
-            data_gen_f=lambda *args: np.random.default_rng(2).integers(2),
-            c_idx_type="p",
-            r_idx_type="dt",
+        df = DataFrame(
+            np.ones((10, 2)),
+            index=date_range("2020-01-01", periods=10),
+            columns=period_range("2020-01-01", periods=2),
         )
         s = df.iloc[:5, 0]
 
@@ -78,13 +70,17 @@ class TestJoin:
         assert isinstance(result, DatetimeIndex)
         assert result.tz is timezone.utc
 
-    def test_datetimeindex_union_join_empty(self, sort):
+    def test_datetimeindex_union_join_empty(self, sort, using_infer_string):
         dti = date_range(start="1/1/2001", end="2/1/2001", freq="D")
         empty = Index([])
 
         result = dti.union(empty, sort=sort)
-        expected = dti.astype("O")
-        tm.assert_index_equal(result, expected)
+        if using_infer_string:
+            assert isinstance(result, DatetimeIndex)
+            tm.assert_index_equal(result, dti)
+        else:
+            expected = dti.astype("O")
+            tm.assert_index_equal(result, expected)
 
         result = dti.join(empty)
         assert isinstance(result, DatetimeIndex)

@@ -10,18 +10,13 @@ cdef extern from "Python.h":
     bint PyComplex_Check(object obj) nogil
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
-    # TODO(cython3): cimport this, xref GH#49670
     # Note that following functions can potentially raise an exception,
-    # thus they cannot be declared 'nogil'. Also PyUnicode_AsUTF8AndSize() can
-    # potentially allocate memory inside in unlikely case of when underlying
-    # unicode object was stored as non-utf8 and utf8 wasn't requested before.
-    const char* PyUnicode_AsUTF8AndSize(object obj,
-                                        Py_ssize_t* length) except NULL
-
+    # thus they cannot be declared 'nogil'.
     object PyUnicode_EncodeLocale(object obj, const char *errors) nogil
     object PyUnicode_DecodeLocale(const char *str, const char *errors) nogil
 
 
+cimport numpy as cnp
 from numpy cimport (
     PyArray_Check,
     float64_t,
@@ -54,7 +49,7 @@ cdef inline bint is_integer_object(object obj) noexcept:
     """
     Cython equivalent of
 
-    `isinstance(val, (int, long, np.integer)) and not isinstance(val, bool)`
+    `isinstance(val, (int, np.integer)) and not isinstance(val, (bool, np.timedelta64))`
 
     Parameters
     ----------
@@ -68,13 +63,13 @@ cdef inline bint is_integer_object(object obj) noexcept:
     -----
     This counts np.timedelta64 objects as integers.
     """
-    return (not PyBool_Check(obj) and PyArray_IsIntegerScalar(obj)
+    return (not PyBool_Check(obj) and isinstance(obj, (int, cnp.integer))
             and not is_timedelta64_object(obj))
 
 
 cdef inline bint is_float_object(object obj) noexcept nogil:
     """
-    Cython equivalent of `isinstance(val, (float, np.float64))`
+    Cython equivalent of `isinstance(val, (float, np.floating))`
 
     Parameters
     ----------
@@ -90,7 +85,7 @@ cdef inline bint is_float_object(object obj) noexcept nogil:
 
 cdef inline bint is_complex_object(object obj) noexcept nogil:
     """
-    Cython equivalent of `isinstance(val, (complex, np.complex128))`
+    Cython equivalent of `isinstance(val, (complex, np.complexfloating))`
 
     Parameters
     ----------
@@ -159,38 +154,11 @@ cdef inline bint is_nan(object val):
     return is_complex_object(val) and val != val
 
 
-cdef inline const char* get_c_string_buf_and_size(str py_string,
-                                                  Py_ssize_t *length) except NULL:
-    """
-    Extract internal char* buffer of unicode or bytes object `py_string` with
-    getting length of this internal buffer saved in `length`.
-
-    Notes
-    -----
-    Python object owns memory, thus returned char* must not be freed.
-    `length` can be NULL if getting buffer length is not needed.
-
-    Parameters
-    ----------
-    py_string : str
-    length : Py_ssize_t*
-
-    Returns
-    -------
-    buf : const char*
-    """
-    return PyUnicode_AsUTF8AndSize(py_string, length)
-
-
-cdef inline const char* get_c_string(str py_string) except NULL:
-    return get_c_string_buf_and_size(py_string, NULL)
-
-
-cdef inline bytes string_encode_locale(str py_string) noexcept:
+cdef inline bytes string_encode_locale(str py_string):
     """As opposed to PyUnicode_Encode, use current system locale to encode."""
     return PyUnicode_EncodeLocale(py_string, NULL)
 
 
-cdef inline object char_to_string_locale(const char* data) noexcept:
+cdef inline object char_to_string_locale(const char* data):
     """As opposed to PyUnicode_FromString, use current system locale to decode."""
     return PyUnicode_DecodeLocale(data, NULL)

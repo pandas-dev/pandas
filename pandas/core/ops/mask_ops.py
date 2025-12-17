@@ -1,7 +1,10 @@
 """
 Ops for masked arrays.
 """
+
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -10,13 +13,16 @@ from pandas._libs import (
     missing as libmissing,
 )
 
+if TYPE_CHECKING:
+    from pandas._typing import npt
+
 
 def kleene_or(
     left: bool | np.ndarray | libmissing.NAType,
     right: bool | np.ndarray | libmissing.NAType,
     left_mask: np.ndarray | None,
     right_mask: np.ndarray | None,
-):
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
     """
     Boolean ``or`` using Kleene logic.
 
@@ -43,7 +49,7 @@ def kleene_or(
         return kleene_or(right, left, right_mask, left_mask)
 
     if not isinstance(left, np.ndarray):
-        raise TypeError("Either `left` or `right` need to be a np.ndarray.")
+        raise TypeError("Either `left` or `right` need to be an np.ndarray.")
 
     raise_for_nan(right, method="or")
 
@@ -78,7 +84,7 @@ def kleene_xor(
     right: bool | np.ndarray | libmissing.NAType,
     left_mask: np.ndarray | None,
     right_mask: np.ndarray | None,
-):
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
     """
     Boolean ``xor`` using Kleene logic.
 
@@ -107,7 +113,7 @@ def kleene_xor(
         return kleene_xor(right, left, right_mask, left_mask)
 
     if not isinstance(left, np.ndarray):
-        raise TypeError("Either `left` or `right` need to be a np.ndarray.")
+        raise TypeError("Either `left` or `right` need to be an np.ndarray.")
 
     raise_for_nan(right, method="xor")
     if right is libmissing.NA:
@@ -131,7 +137,7 @@ def kleene_and(
     right: bool | libmissing.NAType | np.ndarray,
     left_mask: np.ndarray | None,
     right_mask: np.ndarray | None,
-):
+) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
     """
     Boolean ``and`` using Kleene logic.
 
@@ -157,7 +163,7 @@ def kleene_and(
         return kleene_and(right, left, right_mask, left_mask)
 
     if not isinstance(left, np.ndarray):
-        raise TypeError("Either `left` or `right` need to be a np.ndarray.")
+        raise TypeError("Either `left` or `right` need to be an np.ndarray.")
     raise_for_nan(right, method="and")
 
     if right is libmissing.NA:
@@ -184,6 +190,6 @@ def kleene_and(
     return result, mask
 
 
-def raise_for_nan(value, method: str) -> None:
+def raise_for_nan(value: object, method: str) -> None:
     if lib.is_float(value) and np.isnan(value):
         raise ValueError(f"Cannot perform logical '{method}' with floating NaN")

@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import Timestamp
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -25,11 +26,13 @@ from pandas import (
     PeriodIndex,
     RangeIndex,
     Series,
+    StringDtype,
     TimedeltaIndex,
     isna,
     period_range,
 )
 import pandas._testing as tm
+import pandas.core.algorithms as algos
 from pandas.core.arrays import BaseMaskedArray
 
 
@@ -83,6 +86,7 @@ class TestBase:
                 r"kind, None was passed",
                 r"__new__\(\) missing 1 required positional argument: 'data'",
                 r"__new__\(\) takes at least 2 arguments \(1 given\)",
+                r"'NoneType' object is not iterable",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -209,7 +213,7 @@ class TestBase:
             1 // idx
 
     def test_logical_compat(self, simple_index):
-        if simple_index.dtype == object:
+        if simple_index.dtype in (object, "string"):
             pytest.skip("Tested elsewhere.")
         idx = simple_index
         if idx.dtype.kind in "iufcbm":
@@ -218,12 +222,7 @@ class TestBase:
             assert idx.any() == idx._values.any()
             assert idx.any() == idx.to_series().any()
         else:
-            msg = "cannot perform (any|all)"
-            if isinstance(idx, IntervalIndex):
-                msg = (
-                    r"'IntervalArray' with dtype interval\[.*\] does "
-                    "not support reduction '(any|all)'"
-                )
+            msg = "does not support operation '(any|all)'"
             with pytest.raises(TypeError, match=msg):
                 idx.all()
             with pytest.raises(TypeError, match=msg):
@@ -258,7 +257,7 @@ class TestBase:
                 "RangeIndex cannot be initialized from data, "
                 "MultiIndex and CategoricalIndex are tested separately"
             )
-        elif index.dtype == object and index.inferred_type == "boolean":
+        elif index.dtype == object and index.inferred_type in ["boolean", "string"]:
             init_kwargs["dtype"] = index.dtype
 
         index_type = type(index)
@@ -272,9 +271,7 @@ class TestBase:
 
         if isinstance(index, PeriodIndex):
             # .values an object array of Period, thus copied
-            depr_msg = "The 'ordinal' keyword in PeriodIndex is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                result = index_type(ordinal=index.asi8, copy=False, **init_kwargs)
+            result = index_type.from_ordinals(ordinals=index.asi8, **init_kwargs)
             tm.assert_numpy_array_equal(index.asi8, result.asi8, check_same="same")
         elif isinstance(index, IntervalIndex):
             # checked in test_interval.py
@@ -292,12 +289,17 @@ class TestBase:
                 tm.assert_numpy_array_equal(
                     index._values._mask, result._values._mask, check_same="same"
                 )
-            elif index.dtype == "string[python]":
+            elif (
+                isinstance(index.dtype, StringDtype) and index.dtype.storage == "python"
+            ):
                 assert np.shares_memory(index._values._ndarray, result._values._ndarray)
                 tm.assert_numpy_array_equal(
                     index._values._ndarray, result._values._ndarray, check_same="same"
                 )
-            elif index.dtype == "string[pyarrow]":
+            elif (
+                isinstance(index.dtype, StringDtype)
+                and index.dtype.storage == "pyarrow"
+            ):
                 assert tm.shares_memory(result._values, index._values)
             else:
                 raise NotImplementedError(index.dtype)
@@ -328,6 +330,30 @@ class TestBase:
 
         if index.inferred_type == "object":
             assert result3 > result2
+
+    def test_memory_usage_doesnt_trigger_engine(self, index):
+        index._cache.clear()
+        assert "_engine" not in index._cache
+
+        res_without_engine = index.memory_usage()
+        assert "_engine" not in index._cache
+
+        # explicitly load and cache the engine
+        _ = index._engine
+        assert "_engine" in index._cache
+
+        res_with_engine = index.memory_usage()
+
+        # the empty engine doesn't affect the result even when initialized with values,
+        # because engine.sizeof() doesn't consider the content of engine.values
+        assert res_with_engine == res_without_engine
+
+        if len(index) == 0:
+            assert res_without_engine == 0
+            assert res_with_engine == 0
+        else:
+            assert res_without_engine > 0
+            assert res_with_engine > 0
 
     def test_argsort(self, index):
         if isinstance(index, CategoricalIndex):
@@ -407,15 +433,16 @@ class TestBase:
         tm.assert_index_equal(result, expected)
 
     def test_insert_base(self, index):
-        result = index[1:4]
+        # GH#51363
+        trimmed = index[1:4]
 
         if not len(index):
             pytest.skip("Not applicable for empty index")
 
-        # test 0th element
-        assert index[0:4].equals(result.insert(0, index[0]))
+        result = trimmed.insert(0, index[0])
+        assert index[0:4].equals(result)
 
-    def test_insert_out_of_bounds(self, index):
+    def test_insert_out_of_bounds(self, index, using_infer_string):
         # TypeError/IndexError matches what np.insert raises in these cases
 
         if len(index) > 0:
@@ -427,6 +454,14 @@ class TestBase:
             msg = "index (0|0.5) is out of bounds for axis 0 with size 0"
         else:
             msg = "slice indices must be integers or None or have an __index__ method"
+
+        if using_infer_string:
+            if index.dtype == "string" or index.dtype == "category":
+                msg = "loc must be an integer between"
+            elif index.dtype == "object" and len(index) == 0:
+                msg = "loc must be an integer between"
+                err = TypeError
+
         with pytest.raises(err, match=msg):
             index.insert(0.5, "foo")
 
@@ -526,8 +561,8 @@ class TestBase:
         with pytest.raises(ValueError, match=msg):
             index_a == series_b
 
-        tm.assert_numpy_array_equal(index_a == series_a, expected1)
-        tm.assert_numpy_array_equal(index_a == series_c, expected2)
+        tm.assert_series_equal(index_a == series_a, Series(expected1))
+        tm.assert_series_equal(index_a == series_c, Series(expected2))
 
         # cases where length is 1 for one of them
         with pytest.raises(ValueError, match="Lengths must match"):
@@ -553,29 +588,6 @@ class TestBase:
             tm.assert_numpy_array_equal(index_a == item, expected3)
             tm.assert_series_equal(series_a == item, Series(expected3))
 
-    def test_format(self, simple_index):
-        # GH35439
-        if is_numeric_dtype(simple_index.dtype) or isinstance(
-            simple_index, DatetimeIndex
-        ):
-            pytest.skip("Tested elsewhere.")
-        idx = simple_index
-        expected = [str(x) for x in idx]
-        msg = r"Index\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert idx.format() == expected
-
-    def test_format_empty(self, simple_index):
-        # GH35712
-        if isinstance(simple_index, (PeriodIndex, RangeIndex)):
-            pytest.skip("Tested elsewhere")
-        empty_idx = type(simple_index)([])
-        msg = r"Index\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format() == []
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format(name=True) == [""]
-
     def test_fillna(self, index):
         # GH 11343
         if len(index) == 0:
@@ -586,7 +598,7 @@ class TestBase:
             pytest.skip(f"Not relevant for Index with {index.dtype}")
         elif isinstance(index, MultiIndex):
             idx = index.copy(deep=True)
-            msg = "isna is not defined for MultiIndex"
+            msg = "fillna is not defined for MultiIndex"
             with pytest.raises(NotImplementedError, match=msg):
                 idx.fillna(idx[0])
         else:
@@ -605,13 +617,6 @@ class TestBase:
             values[1] = np.nan
 
             idx = type(index)(values)
-
-            msg = "does not support 'downcast'"
-            msg2 = r"The 'downcast' keyword in .*Index\.fillna is deprecated"
-            with tm.assert_produces_warning(FutureWarning, match=msg2):
-                with pytest.raises(NotImplementedError, match=msg):
-                    # For now at least, we only raise if there are NAs present
-                    idx.fillna(idx[0], downcast="infer")
 
             expected = np.array([False] * len(idx), dtype=bool)
             expected[1] = True
@@ -646,7 +651,10 @@ class TestBase:
         idx = simple_index
         if idx.is_unique:
             joined = idx.join(idx, how=join_type)
-            assert (idx == joined).all()
+            expected = simple_index
+            if join_type == "outer":
+                expected = algos.safe_sort(expected)
+            tm.assert_index_equal(joined, expected)
 
     def test_map(self, simple_index):
         # callable
@@ -692,7 +700,7 @@ class TestBase:
             pytest.skip("See test_map.py")
         idx = simple_index
         result = idx.map(str)
-        expected = Index([str(x) for x in idx], dtype=object)
+        expected = Index([str(x) for x in idx])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("copy", [True, False])
@@ -712,8 +720,11 @@ class TestBase:
 
         # non-standard categories
         dtype = CategoricalDtype(idx.unique().tolist()[:-1], ordered)
-        result = idx.astype(dtype, copy=copy)
-        expected = CategoricalIndex(idx, name=name, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = idx.astype(dtype, copy=copy)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            expected = CategoricalIndex(idx, name=name, dtype=dtype)
         tm.assert_index_equal(result, expected, exact=True)
 
         if ordered is False:
@@ -757,15 +768,15 @@ class TestBase:
         if isinstance(simple_index, IntervalIndex):
             pytest.skip("Tested elsewhere")
         idx = simple_index
-        msg = "Multi-dimensional indexing"
-        with pytest.raises(ValueError, match=msg):
+        msg = "Multi-dimensional indexing|too many|only"
+        with pytest.raises((ValueError, IndexError), match=msg):
             idx[:, None]
 
         if not isinstance(idx, RangeIndex):
             # GH#44051 RangeIndex already raised pre-2.0 with a different message
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises((ValueError, IndexError), match=msg):
                 idx[True]
-            with pytest.raises(ValueError, match=msg):
+            with pytest.raises((ValueError, IndexError), match=msg):
                 idx[False]
         else:
             msg = "only integers, slices"
@@ -823,13 +834,14 @@ class TestBase:
 
         result = index.append(index)
         assert result.dtype == index.dtype
-        tm.assert_index_equal(result[:N], index, check_exact=True)
-        tm.assert_index_equal(result[N:], index, check_exact=True)
+
+        tm.assert_index_equal(result[:N], index, exact=False, check_exact=True)
+        tm.assert_index_equal(result[N:], index, exact=False, check_exact=True)
 
         alt = index.take(list(range(N)) * 2)
         tm.assert_index_equal(result, alt, check_exact=True)
 
-    def test_inv(self, simple_index):
+    def test_inv(self, simple_index, using_infer_string):
         idx = simple_index
 
         if idx.dtype.kind in ["i", "u"]:
@@ -844,68 +856,13 @@ class TestBase:
             if idx.dtype.kind == "f":
                 msg = "ufunc 'invert' not supported for the input types"
             else:
-                msg = "bad operand"
+                msg = "bad operand|__invert__ is not supported for string dtype"
             with pytest.raises(TypeError, match=msg):
                 ~idx
 
             # check that we get the same behavior with Series
             with pytest.raises(TypeError, match=msg):
                 ~Series(idx)
-
-    def test_is_boolean_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(FutureWarning):
-            idx.is_boolean()
-
-    def test_is_floating_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(FutureWarning):
-            idx.is_floating()
-
-    def test_is_integer_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(FutureWarning):
-            idx.is_integer()
-
-    def test_holds_integer_deprecated(self, simple_index):
-        # GH50243
-        idx = simple_index
-        msg = f"{type(idx).__name__}.holds_integer is deprecated. "
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            idx.holds_integer()
-
-    def test_is_numeric_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=f"{type(idx).__name__}.is_numeric is deprecated. ",
-        ):
-            idx.is_numeric()
-
-    def test_is_categorical_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(
-            FutureWarning,
-            match=r"Use pandas\.api\.types\.is_categorical_dtype instead",
-        ):
-            idx.is_categorical()
-
-    def test_is_interval_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(FutureWarning):
-            idx.is_interval()
-
-    def test_is_object_is_deprecated(self, simple_index):
-        # GH50042
-        idx = simple_index
-        with tm.assert_produces_warning(FutureWarning):
-            idx.is_object()
 
 
 class TestNumericBase:
@@ -953,19 +910,13 @@ class TestNumericBase:
         idx_view = idx.view(dtype)
         tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
 
-        idx_view = idx.view(index_cls)
-        tm.assert_index_equal(idx, index_cls(idx_view, name="Foo"), exact=True)
-
-    def test_format(self, simple_index):
-        # GH35439
-        if isinstance(simple_index, DatetimeIndex):
-            pytest.skip("Tested elsewhere")
-        idx = simple_index
-        max_width = max(len(str(x)) for x in idx)
-        expected = [str(x).ljust(max_width) for x in idx]
-        msg = r"Index\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert idx.format() == expected
+        msg = (
+            "Cannot change data-type for array of references.|"
+            "Cannot change data-type for object array.|"
+        )
+        with pytest.raises(TypeError, match=msg):
+            # GH#55709
+            idx.view(index_cls)
 
     def test_insert_non_na(self, simple_index):
         # GH#43921 inserting an element that we know we can hold should

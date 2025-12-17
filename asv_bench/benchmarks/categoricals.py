@@ -6,8 +6,6 @@ import numpy as np
 
 import pandas as pd
 
-from .pandas_vb_common import tm
-
 try:
     from pandas.api.types import union_categoricals
 except ImportError:
@@ -26,7 +24,7 @@ class Constructor:
         self.codes = np.tile(range(len(self.categories)), N)
 
         self.datetimes = pd.Series(
-            pd.date_range("1995-01-01 00:00:00", periods=N / 10, freq="s")
+            pd.date_range("1995-01-01 00:00:00", periods=N // 10, freq="s")
         )
         self.datetimes_with_nat = self.datetimes.copy()
         self.datetimes_with_nat.iloc[-1] = pd.NaT
@@ -90,7 +88,7 @@ class AsType:
         )
 
         for col in ("int", "float", "timestamp"):
-            self.df[col + "_as_str"] = self.df[col].astype(str)
+            self.df[f"{col}_as_str"] = self.df[col].astype(str)
 
         for col in self.df.columns:
             self.df[col] = self.df[col].astype("category")
@@ -189,7 +187,7 @@ class Rank:
         N = 10**5
         ncats = 15
 
-        self.s_str = pd.Series(tm.makeCategoricalIndex(N, ncats)).astype(str)
+        self.s_str = pd.Series(np.random.randint(0, ncats, size=N).astype(str))
         self.s_str_cat = pd.Series(self.s_str, dtype="category")
         with warnings.catch_warnings(record=True):
             str_cat_type = pd.CategoricalDtype(set(self.s_str), ordered=True)
@@ -242,7 +240,7 @@ class IsMonotonic:
 class Contains:
     def setup(self):
         N = 10**5
-        self.ci = tm.makeCategoricalIndex(N)
+        self.ci = pd.CategoricalIndex(np.arange(N))
         self.c = self.ci.values
         self.key = self.ci.categories[0]
 
@@ -325,7 +323,7 @@ class Indexing:
 class SearchSorted:
     def setup(self):
         N = 10**5
-        self.ci = tm.makeCategoricalIndex(N).sort_values()
+        self.ci = pd.CategoricalIndex(np.arange(N)).sort_values()
         self.c = self.ci.values
         self.key = self.ci.categories[1]
 

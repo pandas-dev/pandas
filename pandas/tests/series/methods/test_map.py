@@ -8,16 +8,25 @@ import math
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     DataFrame,
     Index,
     MultiIndex,
     Series,
+    bdate_range,
+    date_range,
     isna,
     timedelta_range,
 )
 import pandas._testing as tm
+
+# The fixture it's mostly used in pandas/tests/apply, so it's defined in that
+# conftest, which is out of scope here. So we need to manually import
+from pandas.tests.apply.conftest import engine  # noqa: F401
 
 
 def test_series_map_box_timedelta():
@@ -30,16 +39,20 @@ def test_series_map_box_timedelta():
     ser.map(f)
 
 
-def test_map_callable(datetime_series):
+def test_map_callable(datetime_series, engine):  # noqa: F811
     with np.errstate(all="ignore"):
-        tm.assert_series_equal(datetime_series.map(np.sqrt), np.sqrt(datetime_series))
+        tm.assert_series_equal(
+            datetime_series.map(np.sqrt, engine=engine), np.sqrt(datetime_series)
+        )
 
     # map function element-wise
-    tm.assert_series_equal(datetime_series.map(math.exp), np.exp(datetime_series))
+    tm.assert_series_equal(
+        datetime_series.map(math.exp, engine=engine), np.exp(datetime_series)
+    )
 
     # empty series
     s = Series(dtype=object, name="foo", index=Index([], name="bar"))
-    rs = s.map(lambda x: x)
+    rs = s.map(lambda x: x, engine=engine)
     tm.assert_series_equal(s, rs)
 
     # check all metadata (GH 9322)
@@ -50,7 +63,7 @@ def test_map_callable(datetime_series):
 
     # index but no data
     s = Series(index=[1, 2, 3], dtype=np.float64)
-    rs = s.map(lambda x: x)
+    rs = s.map(lambda x: x, engine=engine)
     tm.assert_series_equal(s, rs)
 
 
@@ -73,7 +86,7 @@ def test_map_same_length_inference_bug():
 
 def test_series_map_box_timestamps():
     # GH#2689, GH#2627
-    ser = Series(pd.date_range("1/1/2000", periods=3))
+    ser = Series(date_range("1/1/2000", periods=3))
 
     def func(x):
         return (x.hour, x.day, x.month)
@@ -83,7 +96,7 @@ def test_series_map_box_timestamps():
     tm.assert_series_equal(result, expected)
 
 
-def test_map_series_stringdtype(any_string_dtype):
+def test_map_series_stringdtype(any_string_dtype, using_infer_string):
     # map test on StringDType, GH#40823
     ser1 = Series(
         data=["cat", "dog", "rabbit"],
@@ -98,13 +111,15 @@ def test_map_series_stringdtype(any_string_dtype):
         item = np.nan
 
     expected = Series(data=["rabbit", "dog", "cat", item], dtype=any_string_dtype)
+    if using_infer_string and any_string_dtype == "object":
+        expected = expected.astype("str")
 
     tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize(
     "data, expected_dtype",
-    [(["1-1", "1-1", np.nan], "category"), (["1-1", "1-2", np.nan], object)],
+    [(["1-1", "1-1", np.nan], "category"), (["1-1", "1-2", np.nan], "str")],
 )
 def test_map_categorical_with_nan_values(data, expected_dtype):
     # GH 20714 bug fixed in: GH 24275
@@ -127,17 +142,19 @@ def test_map_empty_integer_series():
 
 def test_map_empty_integer_series_with_datetime_index():
     # GH 21245
-    s = Series([], index=pd.date_range(start="2018-01-01", periods=0), dtype=int)
+    s = Series([], index=date_range(start="2018-01-01", periods=0), dtype=int)
     result = s.map(lambda x: x)
     tm.assert_series_equal(result, s)
 
 
 @pytest.mark.parametrize("func", [str, lambda x: str(x)])
-def test_map_simple_str_callables_same_as_astype(string_series, func):
+def test_map_simple_str_callables_same_as_astype(
+    string_series, func, using_infer_string
+):
     # test that we are evaluating row-by-row first
     # before vectorized evaluation
     result = string_series.map(func)
-    expected = string_series.astype(str)
+    expected = string_series.astype(str if not using_infer_string else "str")
     tm.assert_series_equal(result, expected)
 
 
@@ -146,8 +163,13 @@ def test_list_raises(string_series):
         string_series.map([lambda x: x])
 
 
-def test_map(datetime_series):
-    index, data = tm.getMixedTypeDict()
+def test_map():
+    data = {
+        "A": [0.0, 1.0, 2.0, 3.0, 4.0],
+        "B": [0.0, 1.0, 0.0, 1.0, 0.0],
+        "C": ["foo1", "foo2", "foo3", "foo4", "foo5"],
+        "D": bdate_range("1/1/2009", periods=5),
+    }
 
     source = Series(data["B"], index=data["C"])
     target = Series(data["C"][:4], index=data["D"][:4])
@@ -163,10 +185,14 @@ def test_map(datetime_series):
     for k, v in merged.items():
         assert v == source[target[k]]
 
+
+def test_map_datetime(datetime_series):
     # function
     result = datetime_series.map(lambda x: x * 2)
     tm.assert_series_equal(result, datetime_series * 2)
 
+
+def test_map_category():
     # GH 10324
     a = Series([1, 2, 3, 4])
     b = Series(["even", "odd", "even", "odd"], dtype="category")
@@ -177,6 +203,8 @@ def test_map(datetime_series):
     exp = Series(["odd", "even", "odd", np.nan])
     tm.assert_series_equal(a.map(c), exp)
 
+
+def test_map_category_numeric():
     a = Series(["a", "b", "c", "d"])
     b = Series([1, 2, 3, 4], index=pd.CategoricalIndex(["b", "c", "d", "e"]))
     c = Series([1, 2, 3, 4], index=Index(["b", "c", "d", "e"]))
@@ -186,6 +214,8 @@ def test_map(datetime_series):
     exp = Series([np.nan, 1, 2, 3])
     tm.assert_series_equal(a.map(c), exp)
 
+
+def test_map_category_string():
     a = Series(["a", "b", "c", "d"])
     b = Series(
         ["B", "C", "D", "E"],
@@ -250,10 +280,10 @@ def test_map_decimal(string_series):
     assert isinstance(result.iloc[0], Decimal)
 
 
-def test_map_na_exclusion():
+def test_map_na_exclusion(engine):  # noqa: F811
     s = Series([1.5, np.nan, 3, np.nan, 5])
 
-    result = s.map(lambda x: x * 2, na_action="ignore")
+    result = s.map(lambda x: x * 2, na_action="ignore", engine=engine)
     exp = s * 2
     tm.assert_series_equal(result, exp)
 
@@ -303,7 +333,6 @@ def test_map_dict_na_key():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_map_defaultdict_na_key(na_action):
     # GH 48813
     s = Series([1, 2, np.nan])
@@ -313,7 +342,6 @@ def test_map_defaultdict_na_key(na_action):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_map_defaultdict_missing_key(na_action):
     # GH 48813
     s = Series([1, 2, np.nan])
@@ -323,7 +351,6 @@ def test_map_defaultdict_missing_key(na_action):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("na_action", [None, "ignore"])
 def test_map_defaultdict_unmutated(na_action):
     # GH 48813
     s = Series([1, 2, np.nan])
@@ -460,8 +487,7 @@ def test_map_box_period():
     tm.assert_series_equal(res, exp)
 
 
-@pytest.mark.parametrize("na_action", [None, "ignore"])
-def test_map_categorical(na_action):
+def test_map_categorical(na_action, using_infer_string):
     values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
     s = Series(values, name="XX", index=list("abcdefg"))
 
@@ -474,7 +500,7 @@ def test_map_categorical(na_action):
     result = s.map(lambda x: "A", na_action=na_action)
     exp = Series(["A"] * 7, name="XX", index=list("abcdefg"))
     tm.assert_series_equal(result, exp)
-    assert result.dtype == object
+    assert result.dtype == object if not using_infer_string else "str"
 
 
 @pytest.mark.parametrize(
@@ -500,14 +526,12 @@ def test_map_categorical_na_action(na_action, expected):
 
 
 def test_map_datetimetz():
-    values = pd.date_range("2011-01-01", "2011-01-02", freq="h").tz_localize(
-        "Asia/Tokyo"
-    )
+    values = date_range("2011-01-01", "2011-01-02", freq="h").tz_localize("Asia/Tokyo")
     s = Series(values, name="XX")
 
     # keep tz
     result = s.map(lambda x: x + pd.offsets.Day())
-    exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="h").tz_localize(
+    exp_values = date_range("2011-01-02", "2011-01-03", freq="h").tz_localize(
         "Asia/Tokyo"
     )
     exp = Series(exp_values, name="XX")
@@ -540,16 +564,20 @@ def test_map_missing_mixed(vals, mapping, exp):
     # GH20495
     s = Series(vals + [np.nan])
     result = s.map(mapping)
-
-    tm.assert_series_equal(result, Series(exp))
+    exp = Series(exp)
+    tm.assert_series_equal(result, exp)
 
 
 def test_map_scalar_on_date_time_index_aware_series():
     # GH 25959
     # Calling map on a localized time series should not cause an error
-    series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
+    series = Series(
+        np.arange(10, dtype=np.float64),
+        index=date_range("2020-01-01", periods=10, tz="UTC"),
+        name="ts",
+    )
     result = Series(series.index).map(lambda x: 1)
-    tm.assert_series_equal(result, Series(np.ones(30), dtype="int64"))
+    tm.assert_series_equal(result, Series(np.ones(len(series)), dtype="int64"))
 
 
 def test_map_float_to_string_precision():
@@ -580,3 +608,72 @@ def test_map_type():
     result = s.map(type)
     expected = Series([int, str, type], index=["a", "b", "c"])
     tm.assert_series_equal(result, expected)
+
+
+def test_map_kwargs():
+    # GH 59814
+    result = Series([2, 4, 5]).map(lambda x, y: x + y, y=2)
+    expected = Series([4, 6, 7])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_arg_as_kwarg():
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="`arg` has been renamed to `func`"
+    ):
+        Series([1, 2]).map(arg={})
+
+
+def test_map_func_and_arg():
+    # `arg`is considered a normal kwarg that should be passed to the function
+    result = Series([1, 2]).map(lambda _, arg: arg, arg=3)
+    expected = Series([3, 3])
+    tm.assert_series_equal(result, expected)
+
+
+def test_map_no_func_or_arg():
+    with pytest.raises(ValueError, match="The `func` parameter is required"):
+        Series([1, 2]).map()
+
+
+def test_map_func_is_none():
+    with pytest.raises(ValueError, match="The `func` parameter is required"):
+        Series([1, 2]).map(func=None)
+
+
+@pytest.mark.parametrize("func", [{}, {1: 2}, Series([3, 4])])
+def test_map_engine_no_function(func):
+    s = Series([1, 2])
+
+    with pytest.raises(ValueError, match="engine argument can only be specified"):
+        s.map(func, engine="something")
+
+
+def test_map_engine_not_executor():
+    s = Series([1, 2])
+
+    with pytest.raises(ValueError, match="Not a valid engine: 'something'"):
+        s.map(lambda x: x, engine="something")
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize("as_td", [True, False])
+def test_map_pyarrow_timestamp(as_td):
+    # GH#61231
+    dti = date_range("2018-01-01 00:00:00", "2018-01-07 00:00:00")
+    ser = Series(dti, dtype="timestamp[ns][pyarrow]", name="a")
+    if as_td:
+        # duration dtype
+        ser = ser - ser[0]
+
+    mapper = {date: i for i, date in enumerate(ser)}
+
+    res_series = ser.map(mapper)
+    expected = Series(range(len(ser)), name="a", dtype="int64")
+    tm.assert_series_equal(res_series, expected)
+
+    res_index = Index(ser).map(mapper)
+    # For now (as of 2025-09-06) at least, we do inference on Index.map that
+    #  we don't for Series.map
+    expected_index = Index(expected).astype("int64[pyarrow]")
+    tm.assert_index_equal(res_index, expected_index)

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.util._decorators import set_module
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.inference import is_list_like
@@ -19,11 +23,13 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 
+@set_module("pandas")
 def read_spss(
     path: str | Path,
     usecols: Sequence[str] | None = None,
     convert_categoricals: bool = True,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    **kwargs: Any,
 ) -> DataFrame:
     """
     Load an SPSS file from the file path, returning a DataFrame.
@@ -36,20 +42,34 @@ def read_spss(
         Return a subset of the columns. If None, return all columns.
     convert_categoricals : bool, default is True
         Convert categorical columns into pd.Categorical.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+    dtype_backend : {'numpy_nullable', 'pyarrow'}
         Back-end data type applied to the resultant :class:`DataFrame`
-        (still experimental). Behaviour is as follows:
+        (still experimental). If not specified, the default behavior
+        is to not use nullable data types. If specified, the behavior
+        is as follows:
 
         * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-          (default).
-        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
-          DataFrame.
+        * ``"pyarrow"``: returns pyarrow-backed
+          nullable :class:`ArrowDtype` :class:`DataFrame`
 
         .. versionadded:: 2.0
+    **kwargs
+        Additional keyword arguments that can be passed to :func:`pyreadstat.read_sav`.
+
+        .. versionadded:: 3.0
 
     Returns
     -------
     DataFrame
+        DataFrame based on the SPSS file.
+
+    See Also
+    --------
+    read_csv : Read a comma-separated values (csv) file into a pandas DataFrame.
+    read_excel : Read an Excel file into a pandas DataFrame.
+    read_sas : Read an SAS file into a pandas DataFrame.
+    read_orc : Load an ORC object into a pandas DataFrame.
+    read_feather : Load a feather-format object into a pandas DataFrame.
 
     Examples
     --------
@@ -64,7 +84,10 @@ def read_spss(
         usecols = list(usecols)  # pyreadstat requires a list
 
     df, metadata = pyreadstat.read_sav(
-        stringify_path(path), usecols=usecols, apply_value_formats=convert_categoricals
+        stringify_path(path),
+        usecols=usecols,
+        apply_value_formats=convert_categoricals,
+        **kwargs,
     )
     df.attrs = metadata.__dict__
     if dtype_backend is not lib.no_default:

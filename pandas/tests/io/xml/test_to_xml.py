@@ -33,7 +33,7 @@ from pandas.io.xml import read_xml
 # [X] - KeyError: "...is not included in namespaces"
 # [X] - KeyError: "no valid column"
 # [X] - ValueError: "To use stylesheet, you need lxml installed..."
-# []  - OSError: (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
+# []  - OSError: (NEED PERMISSION ISSUE, DISK FULL, ETC.)
 # [X] - FileNotFoundError: "No such file or directory"
 # [X] - PermissionError: "Forbidden"
 
@@ -41,7 +41,7 @@ from pandas.io.xml import read_xml
 # [X] - TypeError: "...is not a valid type for attr_cols"
 # [X] - TypeError: "...is not a valid type for elem_cols"
 # [X] - LookupError: "unknown encoding"
-# []  - OSError: (NEED PERMISSOIN ISSUE, DISK FULL, ETC.)
+# []  - OSError: (NEED PERMISSION ISSUE, DISK FULL, ETC.)
 # [X] - FileNotFoundError: "No such file or directory"
 # [X] - KeyError: "...is not included in namespaces"
 # [X] - KeyError: "no valid column"
@@ -170,30 +170,30 @@ def parser(request):
 # FILE OUTPUT
 
 
-def test_file_output_str_read(xml_books, parser, from_file_expected):
+def test_file_output_str_read(xml_books, parser, from_file_expected, tmp_path):
     df_file = read_xml(xml_books, parser=parser)
 
-    with tm.ensure_clean("test.xml") as path:
-        df_file.to_xml(path, parser=parser)
-        with open(path, "rb") as f:
-            output = f.read().decode("utf-8").strip()
+    path = tmp_path / "test.xml"
+    df_file.to_xml(path, parser=parser)
+    with open(path, "rb") as f:
+        output = f.read().decode("utf-8").strip()
 
-        output = equalize_decl(output)
+    output = equalize_decl(output)
 
-        assert output == from_file_expected
+    assert output == from_file_expected
 
 
-def test_file_output_bytes_read(xml_books, parser, from_file_expected):
+def test_file_output_bytes_read(xml_books, parser, from_file_expected, tmp_path):
     df_file = read_xml(xml_books, parser=parser)
 
-    with tm.ensure_clean("test.xml") as path:
-        df_file.to_xml(path, parser=parser)
-        with open(path, "rb") as f:
-            output = f.read().decode("utf-8").strip()
+    path = tmp_path / "test.xml"
+    df_file.to_xml(path, parser=parser)
+    with open(path, "rb") as f:
+        output = f.read().decode("utf-8").strip()
 
-        output = equalize_decl(output)
+    output = equalize_decl(output)
 
-        assert output == from_file_expected
+    assert output == from_file_expected
 
 
 def test_str_output(xml_books, parser, from_file_expected):
@@ -218,7 +218,7 @@ def test_wrong_file_path(parser, geom_df):
 # INDEX
 
 
-def test_index_false(xml_books, parser):
+def test_index_false(xml_books, parser, tmp_path):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <data>
@@ -247,17 +247,17 @@ def test_index_false(xml_books, parser):
 
     df_file = read_xml(xml_books, parser=parser)
 
-    with tm.ensure_clean("test.xml") as path:
-        df_file.to_xml(path, index=False, parser=parser)
-        with open(path, "rb") as f:
-            output = f.read().decode("utf-8").strip()
+    path = tmp_path / "test.xml"
+    df_file.to_xml(path, index=False, parser=parser)
+    with open(path, "rb") as f:
+        output = f.read().decode("utf-8").strip()
 
-        output = equalize_decl(output)
+    output = equalize_decl(output)
 
-        assert output == expected
+    assert output == expected
 
 
-def test_index_false_rename_row_root(xml_books, parser):
+def test_index_false_rename_row_root(xml_books, parser, tmp_path):
     expected = """\
 <?xml version='1.0' encoding='utf-8'?>
 <books>
@@ -286,22 +286,18 @@ def test_index_false_rename_row_root(xml_books, parser):
 
     df_file = read_xml(xml_books, parser=parser)
 
-    with tm.ensure_clean("test.xml") as path:
-        df_file.to_xml(
-            path, index=False, root_name="books", row_name="book", parser=parser
-        )
-        with open(path, "rb") as f:
-            output = f.read().decode("utf-8").strip()
+    path = tmp_path / "test.xml"
+    df_file.to_xml(path, index=False, root_name="books", row_name="book", parser=parser)
+    with open(path, "rb") as f:
+        output = f.read().decode("utf-8").strip()
 
         output = equalize_decl(output)
 
         assert output == expected
 
 
-@pytest.mark.parametrize(
-    "offset_index", [list(range(10, 13)), [str(i) for i in range(10, 13)]]
-)
-def test_index_false_with_offset_input_index(parser, offset_index, geom_df):
+@pytest.mark.parametrize("typ", [int, str])
+def test_index_false_with_offset_input_index(parser, typ, geom_df):
     """
     Tests that the output does not contain the `<index>` field when the index of the
     input Dataframe has an offset.
@@ -328,7 +324,7 @@ def test_index_false_with_offset_input_index(parser, offset_index, geom_df):
     <sides>3.0</sides>
   </row>
 </data>"""
-
+    offset_index = [typ(i) for i in range(10, 13)]
     offset_geom_df = geom_df.copy()
     offset_geom_df.index = Index(offset_index)
     output = offset_geom_df.to_xml(index=False, parser=parser)
@@ -866,21 +862,21 @@ def test_encoding_option_str(xml_baby_names, parser):
     assert output == encoding_expected
 
 
-def test_correct_encoding_file(xml_baby_names):
+def test_correct_encoding_file(xml_baby_names, tmp_path):
     pytest.importorskip("lxml")
     df_file = read_xml(xml_baby_names, encoding="ISO-8859-1", parser="lxml")
 
-    with tm.ensure_clean("test.xml") as path:
-        df_file.to_xml(path, index=False, encoding="ISO-8859-1", parser="lxml")
+    path = tmp_path / "test.xml"
+    df_file.to_xml(path, index=False, encoding="ISO-8859-1", parser="lxml")
 
 
 @pytest.mark.parametrize("encoding", ["UTF-8", "UTF-16", "ISO-8859-1"])
-def test_wrong_encoding_option_lxml(xml_baby_names, parser, encoding):
+def test_wrong_encoding_option_lxml(xml_baby_names, parser, encoding, tmp_path):
     pytest.importorskip("lxml")
     df_file = read_xml(xml_baby_names, encoding="ISO-8859-1", parser="lxml")
 
-    with tm.ensure_clean("test.xml") as path:
-        df_file.to_xml(path, index=False, encoding=encoding, parser=parser)
+    path = tmp_path / "test.xml"
+    df_file.to_xml(path, index=False, encoding=encoding, parser=parser)
 
 
 def test_misspelled_encoding(parser, geom_df):
@@ -1036,26 +1032,23 @@ def test_stylesheet_buffered_reader(xsl_row_field_output, mode, geom_df):
     with open(
         xsl_row_field_output, mode, encoding="utf-8" if mode == "r" else None
     ) as f:
-        xsl_obj = f.read()
-
-    output = geom_df.to_xml(stylesheet=xsl_obj)
+        output = geom_df.to_xml(stylesheet=f)
 
     assert output == xsl_expected
 
 
 def test_stylesheet_wrong_path(geom_df):
-    lxml_etree = pytest.importorskip("lxml.etree")
+    pytest.importorskip("lxml.etree")
 
-    xsl = os.path.join("data", "xml", "row_field_output.xslt")
+    xsl = os.path.join("does", "not", "exist", "row_field_output.xslt")
 
     with pytest.raises(
-        lxml_etree.XMLSyntaxError,
-        match=("Start tag expected, '<' not found"),
+        FileNotFoundError, match=r"\[Errno 2\] No such file or director"
     ):
         geom_df.to_xml(stylesheet=xsl)
 
 
-@pytest.mark.parametrize("val", ["", b""])
+@pytest.mark.parametrize("val", [StringIO(""), BytesIO(b"")])
 def test_empty_string_stylesheet(val, geom_df):
     lxml_etree = pytest.importorskip("lxml.etree")
 
@@ -1097,9 +1090,9 @@ def test_incorrect_xsl_syntax(geom_df):
 </xsl:stylesheet>"""
 
     with pytest.raises(
-        lxml_etree.XMLSyntaxError, match=("Opening and ending tag mismatch")
+        lxml_etree.XMLSyntaxError, match="Opening and ending tag mismatch"
     ):
-        geom_df.to_xml(stylesheet=xsl)
+        geom_df.to_xml(stylesheet=StringIO(xsl))
 
 
 def test_incorrect_xsl_eval(geom_df):
@@ -1126,11 +1119,11 @@ def test_incorrect_xsl_eval(geom_df):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    with pytest.raises(lxml_etree.XSLTParseError, match=("failed to compile")):
-        geom_df.to_xml(stylesheet=xsl)
+    with pytest.raises(lxml_etree.XSLTParseError, match="failed to compile"):
+        geom_df.to_xml(stylesheet=StringIO(xsl))
 
 
-def test_incorrect_xsl_apply(geom_df):
+def test_incorrect_xsl_apply(geom_df, tmp_path):
     lxml_etree = pytest.importorskip("lxml.etree")
 
     xsl = """\
@@ -1145,9 +1138,9 @@ def test_incorrect_xsl_apply(geom_df):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    with pytest.raises(lxml_etree.XSLTApplyError, match=("Cannot resolve URI")):
-        with tm.ensure_clean("test.xml") as path:
-            geom_df.to_xml(path, stylesheet=xsl)
+    with pytest.raises(lxml_etree.XSLTApplyError, match="Cannot resolve URI"):
+        path = tmp_path / "test.xml"
+        geom_df.to_xml(path, stylesheet=StringIO(xsl))
 
 
 def test_stylesheet_with_etree(geom_df):
@@ -1162,10 +1155,8 @@ def test_stylesheet_with_etree(geom_df):
         </xsl:copy>
     </xsl:template>"""
 
-    with pytest.raises(
-        ValueError, match=("To use stylesheet, you need lxml installed")
-    ):
-        geom_df.to_xml(parser="etree", stylesheet=xsl)
+    with pytest.raises(ValueError, match="To use stylesheet, you need lxml installed"):
+        geom_df.to_xml(parser="etree", stylesheet=StringIO(xsl))
 
 
 def test_style_to_csv(geom_df):
@@ -1192,7 +1183,7 @@ def test_style_to_csv(geom_df):
 
     if out_csv is not None:
         out_csv = out_csv.strip()
-    out_xml = geom_df.to_xml(stylesheet=xsl)
+    out_xml = geom_df.to_xml(stylesheet=StringIO(xsl))
 
     assert out_csv == out_xml
 
@@ -1226,7 +1217,7 @@ def test_style_to_string(geom_df):
 </xsl:stylesheet>"""
 
     out_str = geom_df.to_string()
-    out_xml = geom_df.to_xml(na_rep="NaN", stylesheet=xsl)
+    out_xml = geom_df.to_xml(na_rep="NaN", stylesheet=StringIO(xsl))
 
     assert out_xml == out_str
 
@@ -1271,7 +1262,7 @@ def test_style_to_json(geom_df):
 </xsl:stylesheet>"""
 
     out_json = geom_df.to_json()
-    out_xml = geom_df.to_xml(stylesheet=xsl)
+    out_xml = geom_df.to_xml(stylesheet=StringIO(xsl))
 
     assert out_json == out_xml
 
@@ -1303,16 +1294,16 @@ geom_xml = """\
 </data>"""
 
 
-def test_compression_output(parser, compression_only, geom_df):
-    with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression=compression_only)
+def test_compression_output(parser, compression_only, geom_df, temp_file):
+    path = temp_file
+    geom_df.to_xml(path, parser=parser, compression=compression_only)
 
-        with get_handle(
-            path,
-            "r",
-            compression=compression_only,
-        ) as handle_obj:
-            output = handle_obj.handle.read()
+    with get_handle(
+        path,
+        "r",
+        compression=compression_only,
+    ) as handle_obj:
+        output = handle_obj.handle.read()
 
     output = equalize_decl(output)
 
@@ -1320,18 +1311,18 @@ def test_compression_output(parser, compression_only, geom_df):
 
 
 def test_filename_and_suffix_comp(
-    parser, compression_only, geom_df, compression_to_extension
+    parser, compression_only, geom_df, compression_to_extension, tmp_path
 ):
     compfile = "xml." + compression_to_extension[compression_only]
-    with tm.ensure_clean(filename=compfile) as path:
-        geom_df.to_xml(path, parser=parser, compression=compression_only)
+    path = tmp_path / compfile
+    geom_df.to_xml(path, parser=parser, compression=compression_only)
 
-        with get_handle(
-            path,
-            "r",
-            compression=compression_only,
-        ) as handle_obj:
-            output = handle_obj.handle.read()
+    with get_handle(
+        path,
+        "r",
+        compression=compression_only,
+    ) as handle_obj:
+        output = handle_obj.handle.read()
 
     output = equalize_decl(output)
 
@@ -1352,24 +1343,24 @@ def test_ea_dtypes(any_numeric_ea_dtype, parser):
     assert equalize_decl(result).strip() == expected
 
 
-def test_unsuported_compression(parser, geom_df):
+def test_unsupported_compression(parser, geom_df, temp_file):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
-        with tm.ensure_clean() as path:
-            geom_df.to_xml(path, parser=parser, compression="7z")
+        path = temp_file
+        geom_df.to_xml(path, parser=parser, compression="7z")
 
 
 # STORAGE OPTIONS
 
 
 @pytest.mark.single_cpu
-def test_s3_permission_output(parser, s3_public_bucket, geom_df):
+def test_s3_permission_output(parser, s3_bucket_public, geom_df):
     s3fs = pytest.importorskip("s3fs")
     pytest.importorskip("lxml")
 
     with tm.external_error_raised((PermissionError, FileNotFoundError)):
         fs = s3fs.S3FileSystem(anon=True)
-        fs.ls(s3_public_bucket.name)
+        fs.ls(s3_bucket_public.name)
 
         geom_df.to_xml(
-            f"s3://{s3_public_bucket.name}/geom.xml", compression="zip", parser=parser
+            f"s3://{s3_bucket_public.name}/geom.xml", compression="zip", parser=parser
         )

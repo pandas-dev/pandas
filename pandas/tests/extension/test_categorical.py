@@ -13,10 +13,13 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+
 import string
 
 import numpy as np
 import pytest
+
+from pandas._config import using_string_dtype
 
 import pandas as pd
 from pandas import Categorical
@@ -25,9 +28,9 @@ from pandas.api.types import CategoricalDtype
 from pandas.tests.extension import base
 
 
-def make_data():
+def make_data(n: int):
     while True:
-        values = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
+        values = np.random.default_rng(2).choice(list(string.ascii_letters), size=n)
         # ensure we meet the requirements
         # 1. first two not null
         # 2. first and second are different
@@ -48,7 +51,7 @@ def data():
     * data[0] and data[1] should both be non missing
     * data[0] and data[1] should not be equal
     """
-    return Categorical(make_data())
+    return Categorical(make_data(10))
 
 
 @pytest.fixture
@@ -73,11 +76,6 @@ def data_for_grouping():
 
 
 class TestCategorical(base.ExtensionTests):
-    @pytest.mark.xfail(reason="Memory usage doesn't match")
-    def test_memory_usage(self, data):
-        # TODO: Is this deliberate?
-        super().test_memory_usage(data)
-
     def test_contains(self, data, data_missing):
         # GH-37867
         # na value handling in Categorical.__contains__ is deprecated.
@@ -100,7 +98,9 @@ class TestCategorical(base.ExtensionTests):
             if na_value_obj is na_value:
                 continue
             assert na_value_obj not in data
-            assert na_value_obj in data_missing  # this line differs from super method
+            # this section suffers from super method
+            if not using_string_dtype():
+                assert na_value_obj in data_missing
 
     def test_empty(self, dtype):
         cls = dtype.construct_array_type()
@@ -118,10 +118,6 @@ class TestCategorical(base.ExtensionTests):
         # to break things by changing.
         super().test_getitem_scalar(data)
 
-    @pytest.mark.xfail(reason="Unobserved categories included")
-    def test_value_counts(self, all_data, dropna):
-        return super().test_value_counts(all_data, dropna)
-
     def test_combine_add(self, data_repeated):
         # GH 20825
         # When adding categoricals in combine, result is a string
@@ -130,7 +126,7 @@ class TestCategorical(base.ExtensionTests):
         s2 = pd.Series(orig_data2)
         result = s1.combine(s2, lambda x1, x2: x1 + x2)
         expected = pd.Series(
-            [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
+            [a + b for (a, b) in zip(list(orig_data1), list(orig_data2), strict=True)]
         )
         tm.assert_series_equal(result, expected)
 

@@ -1,24 +1,26 @@
-from datetime import datetime
+from datetime import (
+    datetime,
+    timezone,
+)
 
+from dateutil.relativedelta import MO
 import pytest
-from pytz import utc
 
 from pandas import (
+    DateOffset,
     DatetimeIndex,
     Series,
+    Timestamp,
 )
 import pandas._testing as tm
 
 from pandas.tseries.holiday import (
-    MO,
     SA,
     AbstractHolidayCalendar,
-    DateOffset,
     EasterMonday,
     GoodFriday,
     Holiday,
     HolidayCalendarFactory,
-    Timestamp,
     USColumbusDay,
     USFederalHolidayCalendar,
     USLaborDay,
@@ -128,9 +130,9 @@ def test_holiday_dates(holiday, start_date, end_date, expected):
     # Verify that timezone info is preserved.
     assert list(
         holiday.dates(
-            utc.localize(Timestamp(start_date)), utc.localize(Timestamp(end_date))
+            Timestamp(start_date, tz=timezone.utc), Timestamp(end_date, tz=timezone.utc)
         )
-    ) == [utc.localize(dt) for dt in expected]
+    ) == [dt.replace(tzinfo=timezone.utc) for dt in expected]
 
 
 @pytest.mark.parametrize(
@@ -194,8 +196,10 @@ def test_holidays_within_dates(holiday, start, expected):
 
     # Verify that timezone info is preserved.
     assert list(
-        holiday.dates(utc.localize(Timestamp(start)), utc.localize(Timestamp(start)))
-    ) == [utc.localize(dt) for dt in expected]
+        holiday.dates(
+            Timestamp(start, tz=timezone.utc), Timestamp(start, tz=timezone.utc)
+        )
+    ) == [dt.replace(tzinfo=timezone.utc) for dt in expected]
 
 
 @pytest.mark.parametrize(
@@ -271,6 +275,25 @@ def test_both_offset_observance_raises():
         )
 
 
+def test_list_of_list_of_offsets_raises():
+    # see gh-29049
+    # Test that the offsets of offsets are forbidden
+    holiday1 = Holiday(
+        "Holiday1",
+        month=USThanksgivingDay.month,
+        day=USThanksgivingDay.day,
+        offset=[USThanksgivingDay.offset, DateOffset(1)],
+    )
+    msg = "Only BaseOffsets and flat lists of them are supported for offset."
+    with pytest.raises(ValueError, match=msg):
+        Holiday(
+            "Holiday2",
+            month=holiday1.month,
+            day=holiday1.day,
+            offset=[holiday1.offset, DateOffset(3)],
+        )
+
+
 def test_half_open_interval_with_observance():
     # Prompted by GH 49075
     # Check for holidays that have a half-open date interval where
@@ -305,7 +328,7 @@ def test_half_open_interval_with_observance():
     start = Timestamp("2022-08-01")
     end = Timestamp("2022-08-31")
     year_offset = DateOffset(years=5)
-    expected_results = DatetimeIndex([], dtype="datetime64[ns]", freq=None)
+    expected_results = DatetimeIndex([], dtype="datetime64[us]", freq=None)
     test_cal = TestHolidayCalendar()
 
     date_interval_low = test_cal.holidays(start - year_offset, end - year_offset)
@@ -317,7 +340,7 @@ def test_half_open_interval_with_observance():
     tm.assert_index_equal(date_interval_high, expected_results)
 
 
-def test_holidays_with_timezone_specified_but_no_occurences():
+def test_holidays_with_timezone_specified_but_no_occurrences():
     # GH 54580
     # _apply_rule() in holiday.py was silently dropping timezones if you passed it
     # an empty list of holiday dates that had timezone information
@@ -327,6 +350,113 @@ def test_holidays_with_timezone_specified_but_no_occurences():
         start_date, end_date, return_name=True
     )
     expected_results = Series("New Year's Day", index=[start_date])
-    expected_results.index = expected_results.index.as_unit("ns")
 
     tm.assert_equal(test_case, expected_results)
+
+
+def test_holiday_with_exclusion():
+    # GH 54382
+    start = Timestamp("2020-05-01")
+    end = Timestamp("2025-05-31")
+    exclude = DatetimeIndex([Timestamp("2022-05-30")])  # Queen's platinum Jubilee
+
+    queens_jubilee_uk_spring_bank_holiday = Holiday(
+        "Queen's Jubilee UK Spring Bank Holiday",
+        month=5,
+        day=31,
+        offset=DateOffset(weekday=MO(-1)),
+        exclude_dates=exclude,
+    )
+
+    result = queens_jubilee_uk_spring_bank_holiday.dates(start, end)
+    expected = DatetimeIndex(
+        [
+            Timestamp("2020-05-25"),
+            Timestamp("2021-05-31"),
+            Timestamp("2023-05-29"),
+            Timestamp("2024-05-27"),
+            Timestamp("2025-05-26"),
+        ],
+        dtype="datetime64[us]",
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_holiday_with_multiple_exclusions():
+    start = Timestamp("2025-01-01")
+    end = Timestamp("2065-12-31")
+    exclude = DatetimeIndex(
+        [
+            Timestamp("2025-01-01"),
+            Timestamp("2042-01-01"),
+            Timestamp("2061-01-01"),
+        ]
+    )  # Yakudoshi new year
+
+    yakudoshi_new_year = Holiday(
+        "Yakudoshi New Year", month=1, day=1, exclude_dates=exclude
+    )
+
+    result = yakudoshi_new_year.dates(start, end)
+    expected = DatetimeIndex(
+        [
+            Timestamp("2026-01-01"),
+            Timestamp("2027-01-01"),
+            Timestamp("2028-01-01"),
+            Timestamp("2029-01-01"),
+            Timestamp("2030-01-01"),
+            Timestamp("2031-01-01"),
+            Timestamp("2032-01-01"),
+            Timestamp("2033-01-01"),
+            Timestamp("2034-01-01"),
+            Timestamp("2035-01-01"),
+            Timestamp("2036-01-01"),
+            Timestamp("2037-01-01"),
+            Timestamp("2038-01-01"),
+            Timestamp("2039-01-01"),
+            Timestamp("2040-01-01"),
+            Timestamp("2041-01-01"),
+            Timestamp("2043-01-01"),
+            Timestamp("2044-01-01"),
+            Timestamp("2045-01-01"),
+            Timestamp("2046-01-01"),
+            Timestamp("2047-01-01"),
+            Timestamp("2048-01-01"),
+            Timestamp("2049-01-01"),
+            Timestamp("2050-01-01"),
+            Timestamp("2051-01-01"),
+            Timestamp("2052-01-01"),
+            Timestamp("2053-01-01"),
+            Timestamp("2054-01-01"),
+            Timestamp("2055-01-01"),
+            Timestamp("2056-01-01"),
+            Timestamp("2057-01-01"),
+            Timestamp("2058-01-01"),
+            Timestamp("2059-01-01"),
+            Timestamp("2060-01-01"),
+            Timestamp("2062-01-01"),
+            Timestamp("2063-01-01"),
+            Timestamp("2064-01-01"),
+            Timestamp("2065-01-01"),
+        ],
+        dtype="datetime64[us]",
+    )
+    tm.assert_index_equal(result, expected)
+
+
+def test_exclude_date_value_error():
+    msg = "exclude_dates must be None or of type DatetimeIndex."
+
+    with pytest.raises(ValueError, match=msg):
+        exclude = [
+            Timestamp("2025-06-10"),
+            Timestamp("2026-06-10"),
+        ]
+        Holiday("National Ice Tea Day", month=6, day=10, exclude_dates=exclude)
+
+
+def test_days_of_week_value_error():
+    msg = "days_of_week must be None or tuple."
+
+    with pytest.raises(ValueError, match=msg):
+        Holiday("World Blood Donor Day", month=6, day=14, days_of_week=[0, 1])

@@ -26,6 +26,7 @@ from pandas.io.excel._util import (
 if TYPE_CHECKING:
     from openpyxl import Workbook
     from openpyxl.descriptors.serialisable import Serialisable
+    from openpyxl.styles import Fill
 
     from pandas._typing import (
         ExcelWriterIfSheetExists,
@@ -41,7 +42,7 @@ class OpenpyxlWriter(ExcelWriter):
     _engine = "openpyxl"
     _supported_extensions = (".xlsx", ".xlsm")
 
-    def __init__(
+    def __init__(  # pyright: ignore[reportInconsistentConstructor]
         self,
         path: FilePath | WriteExcelBuffer | ExcelWriter,
         engine: str | None = None,
@@ -113,7 +114,9 @@ class OpenpyxlWriter(ExcelWriter):
             self._handles.handle.truncate()
 
     @classmethod
-    def _convert_to_style_kwargs(cls, style_dict: dict) -> dict[str, Serialisable]:
+    def _convert_to_style_kwargs(
+        cls, style_dict: dict[str, Serialisable]
+    ) -> dict[str, Serialisable]:
         """
         Convert a style_dict to a set of kwargs suitable for initializing
         or updating-on-copy an openpyxl v2 style object.
@@ -244,7 +247,7 @@ class OpenpyxlWriter(ExcelWriter):
         return map(cls._convert_to_color, stop_seq)
 
     @classmethod
-    def _convert_to_fill(cls, fill_dict: dict[str, Any]):
+    def _convert_to_fill(cls, fill_dict: dict[str, Any]) -> Fill:
         """
         Convert ``fill_dict`` to an openpyxl v2 Fill object.
 
@@ -446,6 +449,7 @@ class OpenpyxlWriter(ExcelWriter):
         startrow: int = 0,
         startcol: int = 0,
         freeze_panes: tuple[int, int] | None = None,
+        autofilter_range: str | None = None,
     ) -> None:
         # Write the frame cells using openpyxl.
         sheet_name = self._get_sheet_name(sheet_name)
@@ -528,6 +532,9 @@ class OpenpyxlWriter(ExcelWriter):
                             xcell = wks.cell(column=col, row=row)
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
+
+        if autofilter_range:
+            wks.auto_filter.ref = autofilter_range
 
 
 class OpenpyxlReader(BaseExcelReader["Workbook"]):

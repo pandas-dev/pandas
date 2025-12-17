@@ -205,14 +205,18 @@ Attribute "names" are different
             tm.assert_index_equal(idx1, idx2)
 
 
-def test_index_equal_category_mismatch(check_categorical):
-    msg = """Index are different
+def test_index_equal_category_mismatch(check_categorical, using_infer_string):
+    if using_infer_string:
+        dtype = "str"
+    else:
+        dtype = "object"
+    msg = f"""Index are different
 
 Attribute "dtype" are different
 \\[left\\]:  CategoricalDtype\\(categories=\\['a', 'b'\\], ordered=False, \
-categories_dtype=object\\)
+categories_dtype={dtype}\\)
 \\[right\\]: CategoricalDtype\\(categories=\\['a', 'b', 'c'\\], \
-ordered=False, categories_dtype=object\\)"""
+ordered=False, categories_dtype={dtype}\\)"""
 
     idx1 = Index(Categorical(["a", "b"]))
     idx2 = Index(Categorical(["a", "b"], categories=["a", "b", "c"]))
@@ -313,3 +317,11 @@ def test_assert_multi_index_dtype_check_categorical(check_categorical):
             tm.assert_index_equal(idx1, idx2, check_categorical=check_categorical)
     else:
         tm.assert_index_equal(idx1, idx2, check_categorical=check_categorical)
+
+
+def test_assert_index_equal_categorical_incomparable_categories():
+    # GH#61935
+    left = Index([1, 2, 3], name="a", dtype="category")
+    right = Index([1, 2, 6], name="a", dtype="category")
+    with pytest.raises(AssertionError, match="types are not comparable"):
+        tm.assert_index_equal(left, right, check_categorical=True, exact=False)

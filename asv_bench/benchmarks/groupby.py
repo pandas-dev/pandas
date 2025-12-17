@@ -17,8 +17,6 @@ from pandas import (
     to_timedelta,
 )
 
-from .pandas_vb_common import tm
-
 method_blocklist = {
     "object": {
         "diff",
@@ -167,10 +165,14 @@ class Groups:
             "int64_small": Series(np.random.randint(0, 100, size=size)),
             "int64_large": Series(np.random.randint(0, 10000, size=size)),
             "object_small": Series(
-                tm.makeStringIndex(100).take(np.random.randint(0, 100, size=size))
+                Index([f"i-{i}" for i in range(100)], dtype=object).take(
+                    np.random.randint(0, 100, size=size)
+                )
             ),
             "object_large": Series(
-                tm.makeStringIndex(10000).take(np.random.randint(0, 10000, size=size))
+                Index([f"i-{i}" for i in range(10000)], dtype=object).take(
+                    np.random.randint(0, 10000, size=size)
+                )
             ),
         }
         return data
@@ -509,8 +511,7 @@ class GroupByMethods:
         # grouping on multiple columns
         # and we lack kernels for a bunch of methods
         if (
-            engine == "numba"
-            and method in _numba_unsupported_methods
+            (engine == "numba" and method in _numba_unsupported_methods)
             or ncols > 1
             or application == "transformation"
             or dtype == "datetime"
@@ -688,6 +689,10 @@ class Cumulative:
             null_vals = vals.astype(float, copy=True)
             null_vals[::2, :] = np.nan
             null_vals[::3, :] = np.nan
+            if dtype in ["Int64", "Float64"]:
+                null_vals = null_vals.astype(object)
+                null_vals[::2, :] = NA
+                null_vals[::3, :] = NA
             df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
             df["key"] = keys
             self.df = df
@@ -802,6 +807,51 @@ class Categories:
         self.df_extra_cat.groupby("a", observed=observed, sort=False)["b"].count()
 
 
+class MultipleCategories:
+    def setup(self):
+        N = 10**3
+        arr = np.random.random(N)
+        data = {
+            "a1": Categorical(np.random.randint(10000, size=N)),
+            "a2": Categorical(np.random.randint(10000, size=N)),
+            "b": arr,
+        }
+        self.df = DataFrame(data)
+        data = {
+            "a1": Categorical(np.random.randint(10000, size=N), ordered=True),
+            "a2": Categorical(np.random.randint(10000, size=N), ordered=True),
+            "b": arr,
+        }
+        self.df_ordered = DataFrame(data)
+        data = {
+            "a1": Categorical(np.random.randint(100, size=N), categories=np.arange(N)),
+            "a2": Categorical(np.random.randint(100, size=N), categories=np.arange(N)),
+            "b": arr,
+        }
+        self.df_extra_cat = DataFrame(data)
+
+    def time_groupby_sort(self):
+        self.df.groupby(["a1", "a2"], observed=False)["b"].count()
+
+    def time_groupby_nosort(self):
+        self.df.groupby(["a1", "a2"], observed=False, sort=False)["b"].count()
+
+    def time_groupby_ordered_sort(self):
+        self.df_ordered.groupby(["a1", "a2"], observed=False)["b"].count()
+
+    def time_groupby_ordered_nosort(self):
+        self.df_ordered.groupby(["a1", "a2"], observed=False, sort=False)["b"].count()
+
+    def time_groupby_extra_cat_sort(self):
+        self.df_extra_cat.groupby(["a1", "a2"], observed=False)["b"].count()
+
+    def time_groupby_extra_cat_nosort(self):
+        self.df_extra_cat.groupby(["a1", "a2"], observed=False, sort=False)["b"].count()
+
+    def time_groupby_transform(self):
+        self.df_extra_cat.groupby(["a1", "a2"], observed=False)["b"].cumsum()
+
+
 class Datelike:
     # GH 14338
     params = ["period_range", "date_range", "date_range_tz"]
@@ -867,7 +917,7 @@ class Transform:
         n1 = 400
         n2 = 250
         index = MultiIndex(
-            levels=[np.arange(n1), tm.makeStringIndex(n2)],
+            levels=[np.arange(n1), Index([f"i-{i}" for i in range(n2)], dtype=object)],
             codes=[np.repeat(range(n1), n2).tolist(), list(range(n2)) * n1],
             names=["lev1", "lev2"],
         )

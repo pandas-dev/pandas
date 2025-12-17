@@ -1,4 +1,5 @@
-""" manage PyTables query interface via Expressions """
+"""manage PyTables query interface via Expressions"""
+
 from __future__ import annotations
 
 import ast
@@ -11,10 +12,13 @@ from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
+    Self,
+    cast,
 )
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
@@ -42,7 +46,7 @@ from pandas.io.formats.printing import (
 
 if TYPE_CHECKING:
     from pandas._typing import (
-        Self,
+        TimeUnit,
         npt,
     )
 
@@ -81,7 +85,7 @@ class Term(ops.Term):
         if self.side == "left":
             # Note: The behavior of __new__ ensures that self.name is a str here
             if self.name not in self.env.queryables:
-                raise NameError(f"name {repr(self.name)} is not defined")
+                raise NameError(f"name {self.name!r} is not defined")
             return self.name
 
         # resolve the rhs (and allow it to be None)
@@ -204,7 +208,7 @@ class BinOp(ops.BinOp):
         val = v.tostring(self.encoding)
         return f"({self.lhs} {self.op} {val})"
 
-    def convert_value(self, v) -> TermValue:
+    def convert_value(self, conv_val) -> TermValue:
         """
         convert the expression that is in the term to something that is
         accepted by pytables
@@ -218,44 +222,51 @@ class BinOp(ops.BinOp):
         kind = ensure_decoded(self.kind)
         meta = ensure_decoded(self.meta)
         if kind == "datetime" or (kind and kind.startswith("datetime64")):
-            if isinstance(v, (int, float)):
-                v = stringify(v)
-            v = ensure_decoded(v)
-            v = Timestamp(v).as_unit("ns")
-            if v.tz is not None:
-                v = v.tz_convert("UTC")
-            return TermValue(v, v._value, kind)
-        elif kind in ("timedelta64", "timedelta"):
-            if isinstance(v, str):
-                v = Timedelta(v)
+            if isinstance(conv_val, (int, float)):
+                conv_val = stringify(conv_val)
+            conv_val = ensure_decoded(conv_val)
+            conv_val = Timestamp(conv_val).as_unit("ns")
+            if conv_val.tz is not None:
+                conv_val = conv_val.tz_convert("UTC")
+            return TermValue(conv_val, conv_val._value, kind)
+        elif kind.startswith("timedelta"):
+            unit = "ns"
+            if "[" in kind:
+                unit = cast("TimeUnit", kind.split("[")[-1][:-1])
+            if isinstance(conv_val, str):
+                conv_val = Timedelta(conv_val)
+            elif lib.is_integer(conv_val) or lib.is_float(conv_val):
+                conv_val = Timedelta(conv_val, unit="s")
             else:
-                v = Timedelta(v, unit="s")
-            v = v.as_unit("ns")._value
-            return TermValue(int(v), v, kind)
+                conv_val = Timedelta(conv_val)
+            conv_val = conv_val.as_unit(unit)._value
+            return TermValue(int(conv_val), conv_val, kind)
+
         elif meta == "category":
             metadata = extract_array(self.metadata, extract_numpy=True)
             result: npt.NDArray[np.intp] | np.intp | int
-            if v not in metadata:
+            if conv_val not in metadata:
                 result = -1
             else:
-                result = metadata.searchsorted(v, side="left")
+                # Find the index of the first match of conv_val in metadata
+                result = np.flatnonzero(metadata == conv_val)[0]
             return TermValue(result, result, "integer")
         elif kind == "integer":
             try:
-                v_dec = Decimal(v)
+                v_dec = Decimal(conv_val)
             except InvalidOperation:
                 # GH 54186
                 # convert v to float to raise float's ValueError
-                float(v)
+                float(conv_val)
             else:
-                v = int(v_dec.to_integral_exact(rounding="ROUND_HALF_EVEN"))
-            return TermValue(v, v, kind)
+                conv_val = int(v_dec.to_integral_exact(rounding="ROUND_HALF_EVEN"))
+            return TermValue(conv_val, conv_val, kind)
         elif kind == "float":
-            v = float(v)
-            return TermValue(v, v, kind)
+            conv_val = float(conv_val)
+            return TermValue(conv_val, conv_val, kind)
         elif kind == "bool":
-            if isinstance(v, str):
-                v = v.strip().lower() not in [
+            if isinstance(conv_val, str):
+                conv_val = conv_val.strip().lower() not in [
                     "false",
                     "f",
                     "no",
@@ -267,13 +278,15 @@ class BinOp(ops.BinOp):
                     "",
                 ]
             else:
-                v = bool(v)
-            return TermValue(v, v, kind)
-        elif isinstance(v, str):
+                conv_val = bool(conv_val)
+            return TermValue(conv_val, conv_val, kind)
+        elif isinstance(conv_val, str):
             # string quoting
-            return TermValue(v, stringify(v), "string")
+            return TermValue(conv_val, stringify(conv_val), "string")
         else:
-            raise TypeError(f"Cannot compare {v} of type {type(v)} to {kind} column")
+            raise TypeError(
+                f"Cannot compare {conv_val} of type {type(conv_val)} to {kind} column"
+            )
 
     def convert_values(self) -> None:
         pass
@@ -407,11 +420,12 @@ class UnaryOp(ops.UnaryOp):
         operand = operand.prune(klass)
 
         if operand is not None and (
-            issubclass(klass, ConditionBinOp)
-            and operand.condition is not None
-            or not issubclass(klass, ConditionBinOp)
-            and issubclass(klass, FilterBinOp)
-            and operand.filter is not None
+            (issubclass(klass, ConditionBinOp) and operand.condition is not None)
+            or (
+                not issubclass(klass, ConditionBinOp)
+                and issubclass(klass, FilterBinOp)
+                and operand.filter is not None
+            )
         ):
             return operand.invert()
         return None
@@ -467,9 +481,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
         try:
             return self.const_type(value[slobj], self.env)
         except TypeError as err:
-            raise ValueError(
-                f"cannot subscript {repr(value)} with {repr(slobj)}"
-            ) from err
+            raise ValueError(f"cannot subscript {value!r} with {slobj!r}") from err
 
     def visit_Attribute(self, node, **kwargs):
         attr = node.attr

@@ -6,6 +6,8 @@ from typing import (
     Any,
 )
 
+from pandas.util._decorators import set_module
+
 from pandas.plotting._core import _get_plot_backend
 
 if TYPE_CHECKING:
@@ -26,23 +28,38 @@ if TYPE_CHECKING:
     )
 
 
+@set_module("pandas.plotting")
 def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     """
     Helper function to convert DataFrame and Series to matplotlib.table.
 
+    This method provides an easy way to visualize tabular data within a Matplotlib
+    figure. It automatically extracts index and column labels from the DataFrame
+    or Series, unless explicitly specified. This function is particularly useful
+    when displaying summary tables alongside other plots or when creating static
+    reports. It utilizes the `matplotlib.pyplot.table` backend and allows
+    customization through various styling options available in Matplotlib.
+
     Parameters
     ----------
     ax : Matplotlib axes object
+        The axes on which to draw the table.
     data : DataFrame or Series
         Data for table contents.
     **kwargs
         Keyword arguments to be passed to matplotlib.table.table.
         If `rowLabels` or `colLabels` is not specified, data index or column
-        name will be used.
+        names will be used.
 
     Returns
     -------
     matplotlib table object
+        The created table as a matplotlib Table object.
+
+    See Also
+    --------
+    DataFrame.plot : Make plots of DataFrame using matplotlib.
+    matplotlib.pyplot.table : Create a table from data in a Matplotlib plot.
 
     Examples
     --------
@@ -51,12 +68,13 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
             :context: close-figs
 
             >>> import matplotlib.pyplot as plt
-            >>> df = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
-            >>> fix, ax = plt.subplots()
-            >>> ax.axis('off')
-            (0.0, 1.0, 0.0, 1.0)
-            >>> table = pd.plotting.table(ax, df, loc='center',
-            ...                           cellLoc='center', colWidths=list([.2, .2]))
+            >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+            >>> fig, ax = plt.subplots()
+            >>> ax.axis("off")
+            (np.float64(0.0), np.float64(1.0), np.float64(0.0), np.float64(1.0))
+            >>> table = pd.plotting.table(
+            ...     ax, df, loc="center", cellLoc="center", colWidths=[0.2, 0.2]
+            ... )
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.table(
@@ -64,6 +82,7 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     )
 
 
+@set_module("pandas.plotting")
 def register() -> None:
     """
     Register pandas formatters and converters with matplotlib.
@@ -92,16 +111,17 @@ def register() -> None:
 
         >>> pd.plotting.register_matplotlib_converters()
 
-        >>> df = pd.DataFrame({'ts': pd.period_range('2020', periods=2, freq='M'),
-        ...                    'y': [1, 2]
-        ...                    })
-        >>> plot = df.plot.line(x='ts', y='y')
+        >>> df = pd.DataFrame(
+        ...     {"ts": pd.period_range("2020", periods=2, freq="M"), "y": [1, 2]}
+        ... )
+        >>> plot = df.plot.line(x="ts", y="y")
 
     Unsetting the register manually an error will be raised:
 
-    >>> pd.set_option("plotting.matplotlib.register_converters",
-    ...               False)  # doctest: +SKIP
-    >>> df.plot.line(x='ts', y='y')  # doctest: +SKIP
+    >>> pd.set_option(
+    ...     "plotting.matplotlib.register_converters", False
+    ... )  # doctest: +SKIP
+    >>> df.plot.line(x="ts", y="y")  # doctest: +SKIP
     Traceback (most recent call last):
     TypeError: float() argument must be a string or a real number, not 'Period'
     """
@@ -109,6 +129,7 @@ def register() -> None:
     plot_backend.register()
 
 
+@set_module("pandas.plotting")
 def deregister() -> None:
     """
     Remove pandas formatters and converters.
@@ -135,16 +156,17 @@ def deregister() -> None:
 
         >>> pd.plotting.register_matplotlib_converters()
 
-        >>> df = pd.DataFrame({'ts': pd.period_range('2020', periods=2, freq='M'),
-        ...                    'y': [1, 2]
-        ...                    })
-        >>> plot = df.plot.line(x='ts', y='y')
+        >>> df = pd.DataFrame(
+        ...     {"ts": pd.period_range("2020", periods=2, freq="M"), "y": [1, 2]}
+        ... )
+        >>> plot = df.plot.line(x="ts", y="y")
 
     Unsetting the register manually an error will be raised:
 
-    >>> pd.set_option("plotting.matplotlib.register_converters",
-    ...               False)  # doctest: +SKIP
-    >>> df.plot.line(x='ts', y='y')  # doctest: +SKIP
+    >>> pd.set_option(
+    ...     "plotting.matplotlib.register_converters", False
+    ... )  # doctest: +SKIP
+    >>> df.plot.line(x="ts", y="y")  # doctest: +SKIP
     Traceback (most recent call last):
     TypeError: float() argument must be a string or a real number, not 'Period'
     """
@@ -152,6 +174,7 @@ def deregister() -> None:
     plot_backend.deregister()
 
 
+@set_module("pandas.plotting")
 def scatter_matrix(
     frame: DataFrame,
     alpha: float = 0.5,
@@ -168,14 +191,21 @@ def scatter_matrix(
     """
     Draw a matrix of scatter plots.
 
+    Each pair of numeric columns in the DataFrame is plotted against each other,
+    resulting in a matrix of scatter plots. The diagonal plots can display either
+    histograms or Kernel Density Estimation (KDE) plots for each variable.
+
     Parameters
     ----------
     frame : DataFrame
+        The data to be plotted.
     alpha : float, optional
         Amount of transparency applied.
     figsize : (float,float), optional
         A tuple (width, height) in inches.
     ax : Matplotlib axis object, optional
+        An existing Matplotlib axis object for the plots. If None, a new axis is
+        created.
     grid : bool, optional
         Setting this to True will show the grid.
     diagonal : {'hist', 'kde'}
@@ -198,13 +228,21 @@ def scatter_matrix(
     numpy.ndarray
         A matrix of scatter plots.
 
+    See Also
+    --------
+    plotting.parallel_coordinates : Plots parallel coordinates for multivariate data.
+    plotting.andrews_curves : Generates Andrews curves for visualizing clusters of
+        multivariate data.
+    plotting.radviz : Creates a RadViz visualization.
+    plotting.bootstrap_plot : Visualizes uncertainty in data via bootstrap sampling.
+
     Examples
     --------
 
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
+        >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=["A", "B", "C", "D"])
         >>> pd.plotting.scatter_matrix(df, alpha=0.2)
         array([[<Axes: xlabel='A', ylabel='A'>, <Axes: xlabel='B', ylabel='A'>,
                 <Axes: xlabel='C', ylabel='A'>, <Axes: xlabel='D', ylabel='A'>],
@@ -232,6 +270,7 @@ def scatter_matrix(
     )
 
 
+@set_module("pandas.plotting")
 def radviz(
     frame: DataFrame,
     class_column: str,
@@ -243,12 +282,12 @@ def radviz(
     """
     Plot a multidimensional dataset in 2D.
 
-    Each Series in the DataFrame is represented as a evenly distributed
+    Each Series in the DataFrame is represented as an evenly distributed
     slice on a circle. Each data point is rendered in the circle according to
     the value on each Series. Highly correlated `Series` in the `DataFrame`
     are placed closer on the unit circle.
 
-    RadViz allow to project a N-dimensional data set into a 2D space where the
+    RadViz allow to project an N-dimensional data set into a 2D space where the
     influence of each dimension can be interpreted as a balance between the
     influence of all dimensions.
 
@@ -275,10 +314,11 @@ def radviz(
     Returns
     -------
     :class:`matplotlib.axes.Axes`
+        The Axes object from Matplotlib.
 
     See Also
     --------
-    pandas.plotting.andrews_curves : Plot clustering visualization.
+    plotting.andrews_curves : Plot clustering visualization.
 
     Examples
     --------
@@ -288,25 +328,25 @@ def radviz(
 
         >>> df = pd.DataFrame(
         ...     {
-        ...         'SepalLength': [6.5, 7.7, 5.1, 5.8, 7.6, 5.0, 5.4, 4.6, 6.7, 4.6],
-        ...         'SepalWidth': [3.0, 3.8, 3.8, 2.7, 3.0, 2.3, 3.0, 3.2, 3.3, 3.6],
-        ...         'PetalLength': [5.5, 6.7, 1.9, 5.1, 6.6, 3.3, 4.5, 1.4, 5.7, 1.0],
-        ...         'PetalWidth': [1.8, 2.2, 0.4, 1.9, 2.1, 1.0, 1.5, 0.2, 2.1, 0.2],
-        ...         'Category': [
-        ...             'virginica',
-        ...             'virginica',
-        ...             'setosa',
-        ...             'virginica',
-        ...             'virginica',
-        ...             'versicolor',
-        ...             'versicolor',
-        ...             'setosa',
-        ...             'virginica',
-        ...             'setosa'
-        ...         ]
+        ...         "SepalLength": [6.5, 7.7, 5.1, 5.8, 7.6, 5.0, 5.4, 4.6, 6.7, 4.6],
+        ...         "SepalWidth": [3.0, 3.8, 3.8, 2.7, 3.0, 2.3, 3.0, 3.2, 3.3, 3.6],
+        ...         "PetalLength": [5.5, 6.7, 1.9, 5.1, 6.6, 3.3, 4.5, 1.4, 5.7, 1.0],
+        ...         "PetalWidth": [1.8, 2.2, 0.4, 1.9, 2.1, 1.0, 1.5, 0.2, 2.1, 0.2],
+        ...         "Category": [
+        ...             "virginica",
+        ...             "virginica",
+        ...             "setosa",
+        ...             "virginica",
+        ...             "virginica",
+        ...             "versicolor",
+        ...             "versicolor",
+        ...             "setosa",
+        ...             "virginica",
+        ...             "setosa",
+        ...         ],
         ...     }
         ... )
-        >>> pd.plotting.radviz(df, 'Category')  # doctest: +SKIP
+        >>> pd.plotting.radviz(df, "Category")  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.radviz(
@@ -319,6 +359,7 @@ def radviz(
     )
 
 
+@set_module("pandas.plotting")
 def andrews_curves(
     frame: DataFrame,
     class_column: str,
@@ -363,6 +404,12 @@ def andrews_curves(
     Returns
     -------
     :class:`matplotlib.axes.Axes`
+        The matplotlib Axes object with the plot.
+
+    See Also
+    --------
+    plotting.parallel_coordinates : Plot parallel coordinates chart.
+    DataFrame.plot : Make plots of Series or DataFrame.
 
     Examples
     --------
@@ -371,10 +418,10 @@ def andrews_curves(
         :context: close-figs
 
         >>> df = pd.read_csv(
-        ...     'https://raw.githubusercontent.com/pandas-dev/'
-        ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
-        ... )
-        >>> pd.plotting.andrews_curves(df, 'Name')  # doctest: +SKIP
+        ...     "https://raw.githubusercontent.com/pandas-dev/"
+        ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
+        ... )  # doctest: +SKIP
+        >>> pd.plotting.andrews_curves(df, "Name")  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.andrews_curves(
@@ -388,6 +435,7 @@ def andrews_curves(
     )
 
 
+@set_module("pandas.plotting")
 def bootstrap_plot(
     series: Series,
     fig: Figure | None = None,
@@ -428,8 +476,8 @@ def bootstrap_plot(
 
     See Also
     --------
-    pandas.DataFrame.plot : Basic plotting for DataFrame objects.
-    pandas.Series.plot : Basic plotting for Series objects.
+    DataFrame.plot : Basic plotting for DataFrame objects.
+    Series.plot : Basic plotting for Series objects.
 
     Examples
     --------
@@ -439,7 +487,7 @@ def bootstrap_plot(
         :context: close-figs
 
         >>> s = pd.Series(np.random.uniform(size=100))
-        >>> pd.plotting.bootstrap_plot(s)
+        >>> pd.plotting.bootstrap_plot(s)  # doctest: +SKIP
         <Figure size 640x480 with 6 Axes>
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -448,6 +496,7 @@ def bootstrap_plot(
     )
 
 
+@set_module("pandas.plotting")
 def parallel_coordinates(
     frame: DataFrame,
     class_column: str,
@@ -468,6 +517,7 @@ def parallel_coordinates(
     Parameters
     ----------
     frame : DataFrame
+        The DataFrame to be plotted.
     class_column : str
         Column name containing class names.
     cols : list, optional
@@ -494,6 +544,13 @@ def parallel_coordinates(
     Returns
     -------
     matplotlib.axes.Axes
+        The matplotlib axes containing the parallel coordinates plot.
+
+    See Also
+    --------
+    plotting.andrews_curves : Generate a matplotlib plot for visualizing clusters
+        of multivariate data.
+    plotting.radviz : Plot a multidimensional dataset in 2D.
 
     Examples
     --------
@@ -502,11 +559,11 @@ def parallel_coordinates(
         :context: close-figs
 
         >>> df = pd.read_csv(
-        ...     'https://raw.githubusercontent.com/pandas-dev/'
-        ...     'pandas/main/pandas/tests/io/data/csv/iris.csv'
-        ... )
+        ...     "https://raw.githubusercontent.com/pandas-dev/"
+        ...     "pandas/main/pandas/tests/io/data/csv/iris.csv"
+        ... )  # doctest: +SKIP
         >>> pd.plotting.parallel_coordinates(
-        ...     df, 'Name', color=('#556270', '#4ECDC4', '#C7F464')
+        ...     df, "Name", color=("#556270", "#4ECDC4", "#C7F464")
         ... )  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
@@ -526,9 +583,14 @@ def parallel_coordinates(
     )
 
 
+@set_module("pandas.plotting")
 def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Axes:
     """
     Lag plot for time series.
+
+    A lag plot is a scatter plot of a time series against a lag of itself. It helps
+    in visualizing the temporal dependence between observations by plotting the values
+    at time `t` on the x-axis and the values at time `t + lag` on the y-axis.
 
     Parameters
     ----------
@@ -544,6 +606,13 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
     Returns
     -------
     matplotlib.axes.Axes
+        The matplotlib Axes object containing the lag plot.
+
+    See Also
+    --------
+    plotting.autocorrelation_plot : Autocorrelation plot for time series.
+    matplotlib.pyplot.scatter : A scatter plot of y vs. x with varying marker size
+        and/or color in Matplotlib.
 
     Examples
     --------
@@ -564,16 +633,25 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
     .. plot::
         :context: close-figs
 
-        >>> pd.plotting.lag_plot(s, lag=1)
-        <Axes: xlabel='y(t)', ylabel='y(t + 1)'>
+        >>> _ = pd.plotting.lag_plot(s, lag=1)
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.lag_plot(series=series, lag=lag, ax=ax, **kwds)
 
 
+@set_module("pandas.plotting")
 def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Axes:
     """
     Autocorrelation plot for time series.
+
+    This method generates an autocorrelation plot for a given time series,
+    which helps to identify any periodic structure or correlation within the
+    data across various lags. It shows the correlation of a time series with a
+    delayed copy of itself as a function of delay. Autocorrelation plots are useful for
+    checking randomness in a data set. If the data are random, the autocorrelations
+    should be near zero for any and all time-lag separations. If the data are not
+    random, then one or more of the autocorrelations will be significantly
+    non-zero.
 
     Parameters
     ----------
@@ -587,6 +665,12 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
     Returns
     -------
     matplotlib.axes.Axes
+        The matplotlib axes containing the autocorrelation plot.
+
+    See Also
+    --------
+    Series.autocorr : Compute the lag-N autocorrelation for a Series.
+    plotting.lag_plot : Lag plot for time series.
 
     Examples
     --------
@@ -613,6 +697,14 @@ class _Options(dict):
     the same as the plot function parameters, but is stored in a canonical
     format that makes it easy to breakdown into groups later.
 
+    See Also
+    --------
+    plotting.register_matplotlib_converters : Register pandas formatters and
+        converters with matplotlib.
+    plotting.bootstrap_plot : Bootstrap plot on mean, median and mid-range statistics.
+    plotting.autocorrelation_plot : Autocorrelation plot for time series.
+    plotting.lag_plot : Lag plot for time series.
+
     Examples
     --------
 
@@ -620,10 +712,10 @@ class _Options(dict):
             :context: close-figs
 
              >>> np.random.seed(42)
-             >>> df = pd.DataFrame({'A': np.random.randn(10),
-             ...                   'B': np.random.randn(10)},
-             ...                   index=pd.date_range("1/1/2000",
-             ...                   freq='4MS', periods=10))
+             >>> df = pd.DataFrame(
+             ...     {"A": np.random.randn(10), "B": np.random.randn(10)},
+             ...     index=pd.date_range("1/1/2000", freq="4MS", periods=10),
+             ... )
              >>> with pd.plotting.plot_params.use("x_compat", True):
              ...     _ = df["A"].plot(color="r")
              ...     _ = df["B"].plot(color="g")
@@ -633,8 +725,7 @@ class _Options(dict):
     _ALIASES = {"x_compat": "xaxis.compat"}
     _DEFAULT_KEYS = ["xaxis.compat"]
 
-    def __init__(self, deprecated: bool = False) -> None:
-        self._deprecated = deprecated
+    def __init__(self) -> None:
         super().__setitem__("xaxis.compat", False)
 
     def __getitem__(self, key):
@@ -668,11 +759,11 @@ class _Options(dict):
         # error: Cannot access "__init__" directly
         self.__init__()  # type: ignore[misc]
 
-    def _get_canonical_key(self, key):
+    def _get_canonical_key(self, key: str) -> str:
         return self._ALIASES.get(key, key)
 
     @contextmanager
-    def use(self, key, value) -> Generator[_Options, None, None]:
+    def use(self, key, value) -> Generator[_Options]:
         """
         Temporarily set a parameter value using the with statement.
         Aliasing allowed.
@@ -686,3 +777,4 @@ class _Options(dict):
 
 
 plot_params = _Options()
+plot_params.__module__ = "pandas.plotting"

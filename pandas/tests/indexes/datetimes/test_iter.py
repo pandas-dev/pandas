@@ -7,6 +7,7 @@ from pandas import (
     date_range,
     to_datetime,
 )
+from pandas.core.arrays import datetimes
 
 
 class TestDatetimeIndexIteration:
@@ -19,7 +20,7 @@ class TestDatetimeIndexIteration:
             ["2018-02-08 15:00:00.168456358", "2018-02-08 15:00:00.168456359"], tz=tz
         )
         for i, ts in enumerate(index):
-            assert ts == index[i]  # pylint: disable=unnecessary-list-index-lookup
+            assert ts == index[i]
 
     def test_iter_readonly(self):
         # GH#28055 ints_to_pydatetime with readonly array
@@ -34,7 +35,7 @@ class TestDatetimeIndexIteration:
 
         for i, ts in enumerate(index):
             result = ts
-            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
+            expected = index[i]
             assert result == expected
 
     def test_iteration_preserves_tz2(self):
@@ -44,7 +45,7 @@ class TestDatetimeIndexIteration:
 
         for i, ts in enumerate(index):
             result = ts
-            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
+            expected = index[i]
             assert result._repr_base == expected._repr_base
             assert result == expected
 
@@ -55,17 +56,21 @@ class TestDatetimeIndexIteration:
         )
         for i, ts in enumerate(index):
             result = ts
-            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
+            expected = index[i]
             assert result._repr_base == expected._repr_base
             assert result == expected
 
-    @pytest.mark.parametrize("periods", [0, 9999, 10000, 10001])
-    def test_iteration_over_chunksize(self, periods):
+    @pytest.mark.parametrize("offset", [-5, -1, 0, 1])
+    def test_iteration_over_chunksize(self, offset, monkeypatch):
         # GH#21012
-
-        index = date_range("2000-01-01 00:00:00", periods=periods, freq="min")
+        chunksize = 5
+        index = date_range(
+            "2000-01-01 00:00:00", periods=chunksize - offset, freq="min"
+        )
         num = 0
-        for stamp in index:
-            assert index[num] == stamp
-            num += 1
+        with monkeypatch.context() as m:
+            m.setattr(datetimes, "_ITER_CHUNKSIZE", chunksize)
+            for stamp in index:
+                assert index[num] == stamp
+                num += 1
         assert num == len(index)

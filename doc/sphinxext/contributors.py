@@ -14,6 +14,7 @@ use::
 While the v0.23.1 tag does not exist, that will use the HEAD of the
 branch as the end of the revision range.
 """
+
 from announce import build_components
 from docutils import nodes
 from docutils.parsers.rst import Directive

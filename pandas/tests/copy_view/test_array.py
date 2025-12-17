@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2
+
 from pandas import (
     DataFrame,
     Series,
@@ -15,92 +17,92 @@ from pandas.tests.copy_view.util import get_array
 
 @pytest.mark.parametrize(
     "method",
-    [lambda ser: ser.values, lambda ser: np.asarray(ser)],
-    ids=["values", "asarray"],
+    [
+        lambda ser: ser.values,
+        lambda ser: np.asarray(ser.array),
+        lambda ser: np.asarray(ser),
+        lambda ser: np.array(ser, copy=False),
+    ],
+    ids=["values", "array", "np.asarray", "np.array"],
 )
-def test_series_values(using_copy_on_write, method):
+def test_series_values(request, method):
     ser = Series([1, 2, 3], name="name")
     ser_orig = ser.copy()
 
     arr = method(ser)
 
-    if using_copy_on_write:
-        # .values still gives a view but is read-only
-        assert np.shares_memory(arr, get_array(ser, "name"))
-        assert arr.flags.writeable is False
-
-        # mutating series through arr therefore doesn't work
-        with pytest.raises(ValueError, match="read-only"):
-            arr[0] = 0
-        tm.assert_series_equal(ser, ser_orig)
-
-        # mutating the series itself still works
-        ser.iloc[0] = 0
-        assert ser.values[0] == 0
-    else:
+    if request.node.callspec.id == "array":
+        # https://github.com/pandas-dev/pandas/issues/63099
+        # .array for now does not return a read-only view
         assert arr.flags.writeable is True
+        # updating the array updates the series
         arr[0] = 0
         assert ser.iloc[0] == 0
+        return
+
+    # .values still gives a view but is read-only
+    assert np.shares_memory(arr, get_array(ser, "name"))
+    assert arr.flags.writeable is False
+
+    # mutating series through arr therefore doesn't work
+    with pytest.raises(ValueError, match="read-only"):
+        arr[0] = 0
+    tm.assert_series_equal(ser, ser_orig)
+
+    # mutating the series itself still works
+    ser.iloc[0] = 0
+    assert ser.values[0] == 0
 
 
 @pytest.mark.parametrize(
     "method",
-    [lambda df: df.values, lambda df: np.asarray(df)],
-    ids=["values", "asarray"],
+    [
+        lambda df: df.values,
+        lambda df: np.asarray(df),
+        lambda ser: np.array(ser, copy=False),
+    ],
+    ids=["values", "asarray", "array"],
 )
-def test_dataframe_values(using_copy_on_write, using_array_manager, method):
+def test_dataframe_values(method):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df_orig = df.copy()
 
     arr = method(df)
 
-    if using_copy_on_write:
-        # .values still gives a view but is read-only
-        assert np.shares_memory(arr, get_array(df, "a"))
-        assert arr.flags.writeable is False
+    # .values still gives a view but is read-only
+    assert np.shares_memory(arr, get_array(df, "a"))
+    assert arr.flags.writeable is False
 
-        # mutating series through arr therefore doesn't work
-        with pytest.raises(ValueError, match="read-only"):
-            arr[0, 0] = 0
-        tm.assert_frame_equal(df, df_orig)
-
-        # mutating the series itself still works
-        df.iloc[0, 0] = 0
-        assert df.values[0, 0] == 0
-    else:
-        assert arr.flags.writeable is True
+    # mutating series through arr therefore doesn't work
+    with pytest.raises(ValueError, match="read-only"):
         arr[0, 0] = 0
-        if not using_array_manager:
-            assert df.iloc[0, 0] == 0
-        else:
-            tm.assert_frame_equal(df, df_orig)
+    tm.assert_frame_equal(df, df_orig)
+
+    # mutating the series itself still works
+    df.iloc[0, 0] = 0
+    assert df.values[0, 0] == 0
 
 
-def test_series_to_numpy(using_copy_on_write):
+def test_series_to_numpy():
     ser = Series([1, 2, 3], name="name")
     ser_orig = ser.copy()
 
     # default: copy=False, no dtype or NAs
     arr = ser.to_numpy()
-    if using_copy_on_write:
-        # to_numpy still gives a view but is read-only
-        assert np.shares_memory(arr, get_array(ser, "name"))
-        assert arr.flags.writeable is False
+    # to_numpy still gives a view but is read-only
+    assert np.shares_memory(arr, get_array(ser, "name"))
+    assert arr.flags.writeable is False
 
-        # mutating series through arr therefore doesn't work
-        with pytest.raises(ValueError, match="read-only"):
-            arr[0] = 0
-        tm.assert_series_equal(ser, ser_orig)
-
-        # mutating the series itself still works
-        ser.iloc[0] = 0
-        assert ser.values[0] == 0
-    else:
-        assert arr.flags.writeable is True
+    # mutating series through arr therefore doesn't work
+    with pytest.raises(ValueError, match="read-only"):
         arr[0] = 0
-        assert ser.iloc[0] == 0
+    tm.assert_series_equal(ser, ser_orig)
 
-    # specify copy=False gives a writeable array
+    # mutating the series itself still works
+    ser.iloc[0] = 0
+    assert ser.values[0] == 0
+
+    # specify copy=True gives a writeable array
     ser = Series([1, 2, 3], name="name")
     arr = ser.to_numpy(copy=True)
     assert not np.shares_memory(arr, get_array(ser, "name"))
@@ -113,54 +115,69 @@ def test_series_to_numpy(using_copy_on_write):
     assert arr.flags.writeable is True
 
 
-@pytest.mark.parametrize("order", ["F", "C"])
-def test_ravel_read_only(using_copy_on_write, order):
-    ser = Series([1, 2, 3])
-    arr = ser.ravel(order=order)
-    if using_copy_on_write:
-        assert arr.flags.writeable is False
-    assert np.shares_memory(get_array(ser), arr)
-
-
-def test_series_array_ea_dtypes(using_copy_on_write):
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda ser: np.asarray(ser.values),
+        lambda ser: np.asarray(ser.array),
+        lambda ser: np.asarray(ser),
+        lambda ser: np.asarray(ser, dtype="int64"),
+        lambda ser: np.array(ser, copy=False),
+    ],
+    ids=["values", "array", "np.asarray", "np.asarray-dtype", "np.array"],
+)
+def test_series_values_ea_dtypes(request, method):
     ser = Series([1, 2, 3], dtype="Int64")
-    arr = np.asarray(ser, dtype="int64")
+    ser_orig = ser.copy()
+
+    arr = method(ser)
+
+    if request.node.callspec.id in ("values", "array"):
+        # https://github.com/pandas-dev/pandas/issues/63099
+        # .array/values for now does not return a read-only view
+        assert arr.flags.writeable is True
+        # updating the array updates the series
+        arr[0] = 0
+        assert ser.iloc[0] == 0
+        return
+
+    # conversion to ndarray gives a view but is read-only
     assert np.shares_memory(arr, get_array(ser))
-    if using_copy_on_write:
-        assert arr.flags.writeable is False
-    else:
-        assert arr.flags.writeable is True
+    assert arr.flags.writeable is False
 
-    arr = np.asarray(ser)
-    assert not np.shares_memory(arr, get_array(ser))
-    assert arr.flags.writeable is True
+    # mutating series through arr therefore doesn't work
+    with pytest.raises(ValueError, match="read-only"):
+        arr[0] = 0
+    tm.assert_series_equal(ser, ser_orig)
+
+    # mutating the series itself still works
+    ser.iloc[0] = 0
+    assert ser.values[0] == 0
 
 
-def test_dataframe_array_ea_dtypes(using_copy_on_write):
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda df: df.values,
+        lambda df: np.asarray(df),
+        lambda df: np.asarray(df, dtype="int64"),
+        lambda df: np.array(df, copy=False),
+    ],
+    ids=["values", "np.asarray", "np.asarray-dtype", "np.array"],
+)
+def test_dataframe_array_ea_dtypes(method):
     df = DataFrame({"a": [1, 2, 3]}, dtype="Int64")
-    arr = np.asarray(df, dtype="int64")
-    # TODO: This should be able to share memory, but we are roundtripping
-    # through object
-    assert not np.shares_memory(arr, get_array(df, "a"))
-    assert arr.flags.writeable is True
+    arr = method(df)
 
+    assert np.shares_memory(arr, get_array(df, "a"))
+    assert arr.flags.writeable is False
+
+
+def test_dataframe_array_string_dtype():
+    df = DataFrame({"a": ["a", "b"]}, dtype="string[python]")
     arr = np.asarray(df)
-    if using_copy_on_write:
-        # TODO(CoW): This should be True
-        assert arr.flags.writeable is False
-    else:
-        assert arr.flags.writeable is True
-
-
-def test_dataframe_array_string_dtype(using_copy_on_write, using_array_manager):
-    df = DataFrame({"a": ["a", "b"]}, dtype="string")
-    arr = np.asarray(df)
-    if not using_array_manager:
-        assert np.shares_memory(arr, get_array(df, "a"))
-    if using_copy_on_write:
-        assert arr.flags.writeable is False
-    else:
-        assert arr.flags.writeable is True
+    assert np.shares_memory(arr, get_array(df, "a"))
+    assert arr.flags.writeable is False
 
 
 def test_dataframe_multiple_numpy_dtypes():
@@ -169,14 +186,28 @@ def test_dataframe_multiple_numpy_dtypes():
     assert not np.shares_memory(arr, get_array(df, "a"))
     assert arr.flags.writeable is True
 
+    if np_version_gt2:
+        # copy=False semantics are only supported in NumPy>=2.
 
-def test_values_is_ea(using_copy_on_write):
+        with pytest.raises(ValueError, match="Unable to avoid copy while creating"):
+            arr = np.array(df, copy=False)
+
+    arr = np.array(df, copy=True)
+    assert arr.flags.writeable is True
+
+
+def test_dataframe_single_block_copy_true():
+    # the copy=False/None cases are tested above in test_dataframe_values
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    arr = np.array(df, copy=True)
+    assert not np.shares_memory(arr, get_array(df, "a"))
+    assert arr.flags.writeable is True
+
+
+def test_values_is_ea():
     df = DataFrame({"a": date_range("2012-01-01", periods=3)})
     arr = np.asarray(df)
-    if using_copy_on_write:
-        assert arr.flags.writeable is False
-    else:
-        assert arr.flags.writeable is True
+    assert arr.flags.writeable is False
 
 
 def test_empty_dataframe():

@@ -13,7 +13,7 @@ import pandas._testing as tm
 
 
 class TestEmptyConcat:
-    def test_handle_empty_objects(self, sort):
+    def test_handle_empty_objects(self, sort, using_infer_string):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)), columns=list("abcd")
         )
@@ -26,7 +26,9 @@ class TestEmptyConcat:
         concatted = concat(frames, axis=0, sort=sort)
 
         expected = df.reindex(columns=["a", "b", "c", "d", "foo"])
-        expected["foo"] = expected["foo"].astype("O")
+        expected["foo"] = expected["foo"].astype(
+            object if not using_infer_string else "str"
+        )
         expected.loc[0:4, "foo"] = "bar"
 
         tm.assert_frame_equal(concatted, expected)
@@ -60,11 +62,9 @@ class TestEmptyConcat:
 
         s1 = Series([1, 2, 3], name="x")
         s2 = Series(name="y", dtype="float64")
-        msg = "The behavior of array concatenation with empty entries is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = concat([s1, s2], axis=0)
+        res = concat([s1, s2], axis=0)
         # name will be reset
-        exp = Series([1, 2, 3])
+        exp = Series([1, 2, 3], dtype="float64")
         tm.assert_series_equal(res, exp)
 
         # empty Series with no name
@@ -275,14 +275,14 @@ class TestEmptyConcat:
         expected = DataFrame(columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_concat_empty_dataframe_different_dtypes(self):
+    def test_concat_empty_dataframe_different_dtypes(self, using_infer_string):
         # 39037
         df1 = DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
         df2 = DataFrame({"a": [1, 2, 3]})
 
         result = concat([df1[:0], df2[:0]])
         assert result["a"].dtype == np.int64
-        assert result["b"].dtype == np.object_
+        assert result["b"].dtype == np.object_ if not using_infer_string else "str"
 
     def test_concat_to_empty_ea(self):
         """48510 `concat` to an empty EA should maintain type EA dtype."""

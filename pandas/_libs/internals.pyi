@@ -1,6 +1,9 @@
-from typing import (
+from collections.abc import (
     Iterator,
     Sequence,
+)
+from typing import (
+    Self,
     final,
     overload,
 )
@@ -10,7 +13,6 @@ import numpy as np
 
 from pandas._typing import (
     ArrayLike,
-    Self,
     npt,
 )
 
@@ -83,9 +85,7 @@ class BlockManager:
     def __init__(
         self, blocks: tuple[B, ...], axes: list[Index], verify_integrity=...
     ) -> None: ...
-    def get_slice(
-        self, slobj: slice, axis: int = ..., using_cow: bool = False
-    ) -> Self: ...
+    def get_slice(self, slobj: slice, axis: int = ...) -> Self: ...
     def _rebuild_blknos_and_blklocs(self) -> None: ...
 
 class BlockValuesRefs:

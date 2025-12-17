@@ -6,14 +6,13 @@ from collections.abc import (
     Iterable,
 )
 import itertools
-from typing import (
-    TYPE_CHECKING,
-    cast,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
+from pandas._libs import missing as libmissing
 from pandas._libs.sparse import IntIndex
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -21,9 +20,14 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    CategoricalDtype,
+)
 
 from pandas.core.arrays import SparseArray
 from pandas.core.arrays.categorical import factorize_from_iterable
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
     Index,
@@ -35,6 +39,7 @@ if TYPE_CHECKING:
     from pandas._typing import NpDtype
 
 
+@set_module("pandas")
 def get_dummies(
     data,
     prefix=None,
@@ -57,15 +62,18 @@ def get_dummies(
     data : array-like, Series, or DataFrame
         Data of which to get dummy indicators.
     prefix : str, list of str, or dict of str, default None
-        String to append DataFrame column names.
+        A string to be prepended to DataFrame column names.
         Pass a list with length equal to the number of columns
         when calling get_dummies on a DataFrame. Alternatively, `prefix`
         can be a dictionary mapping column names to prefixes.
-    prefix_sep : str, default '_'
-        If appending prefix, separator/delimiter to use. Or pass a
-        list or dictionary as with `prefix`.
+    prefix_sep : str, list of str, or dict of str, default '_'
+        Should you choose to prepend DataFrame column names with a prefix, this
+        is the separator/delimiter to use between the two. Alternatively,
+        `prefix_sep` can be a list with length equal to the number of columns,
+        or a dictionary mapping column names to separators.
     dummy_na : bool, default False
-        Add a column to indicate NaNs, if False NaNs are ignored.
+        If True, a NaN indicator column will be added even if no NaN values are present.
+        If False, NA values are encoded as all zero.
     columns : list-like, default None
         Column names in the DataFrame to be encoded.
         If `columns` is None then all the columns with
@@ -96,7 +104,7 @@ def get_dummies(
 
     Examples
     --------
-    >>> s = pd.Series(list('abca'))
+    >>> s = pd.Series(list("abca"))
 
     >>> pd.get_dummies(s)
            a      b      c
@@ -105,7 +113,7 @@ def get_dummies(
     2  False  False   True
     3   True  False  False
 
-    >>> s1 = ['a', 'b', np.nan]
+    >>> s1 = ["a", "b", np.nan]
 
     >>> pd.get_dummies(s1)
            a      b
@@ -119,16 +127,15 @@ def get_dummies(
     1  False   True  False
     2  False  False   True
 
-    >>> df = pd.DataFrame({'A': ['a', 'b', 'a'], 'B': ['b', 'a', 'c'],
-    ...                    'C': [1, 2, 3]})
+    >>> df = pd.DataFrame({"A": ["a", "b", "a"], "B": ["b", "a", "c"], "C": [1, 2, 3]})
 
-    >>> pd.get_dummies(df, prefix=['col1', 'col2'])
+    >>> pd.get_dummies(df, prefix=["col1", "col2"])
        C  col1_a  col1_b  col2_a  col2_b  col2_c
     0  1    True   False   False    True   False
     1  2   False    True    True   False   False
     2  3    True   False   False   False    True
 
-    >>> pd.get_dummies(pd.Series(list('abcaa')))
+    >>> pd.get_dummies(pd.Series(list("abcaa")))
            a      b      c
     0   True  False  False
     1  False   True  False
@@ -136,7 +143,7 @@ def get_dummies(
     3   True  False  False
     4   True  False  False
 
-    >>> pd.get_dummies(pd.Series(list('abcaa')), drop_first=True)
+    >>> pd.get_dummies(pd.Series(list("abcaa")), drop_first=True)
            b      c
     0  False  False
     1   True  False
@@ -144,7 +151,7 @@ def get_dummies(
     3  False  False
     4  False  False
 
-    >>> pd.get_dummies(pd.Series(list('abc')), dtype=float)
+    >>> pd.get_dummies(pd.Series(list("abc")), dtype=float)
          a    b    c
     0  1.0  0.0  0.0
     1  0.0  1.0  0.0
@@ -164,7 +171,7 @@ def get_dummies(
             data_to_encode = data[columns]
 
         # validate prefixes and separator to avoid silently dropping cols
-        def check_len(item, name: str):
+        def check_len(item, name: str) -> None:
             if is_list_like(item):
                 if not len(item) == data_to_encode.shape[1]:
                     len_msg = (
@@ -178,7 +185,7 @@ def get_dummies(
         check_len(prefix_sep, "prefix_sep")
 
         if isinstance(prefix, str):
-            prefix = itertools.cycle([prefix])
+            prefix = itertools.repeat(prefix, len(data_to_encode.columns))
         if isinstance(prefix, dict):
             prefix = [prefix[col] for col in data_to_encode.columns]
 
@@ -187,7 +194,7 @@ def get_dummies(
 
         # validate separators
         if isinstance(prefix_sep, str):
-            prefix_sep = itertools.cycle([prefix_sep])
+            prefix_sep = itertools.repeat(prefix_sep, len(data_to_encode.columns))
         elif isinstance(prefix_sep, dict):
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
@@ -204,7 +211,9 @@ def get_dummies(
             # columns to prepend to result.
             with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
 
-        for col, pre, sep in zip(data_to_encode.items(), prefix, prefix_sep):
+        for col, pre, sep in zip(
+            data_to_encode.items(), prefix, prefix_sep, strict=True
+        ):
             # col is (column_name, column), use just column data here
             dummy = _get_dummies_1d(
                 col[1],
@@ -244,8 +253,25 @@ def _get_dummies_1d(
     # Series avoids inconsistent NaN handling
     codes, levels = factorize_from_iterable(Series(data, copy=False))
 
-    if dtype is None:
+    if dtype is None and hasattr(data, "dtype"):
+        input_dtype = data.dtype
+        if isinstance(input_dtype, CategoricalDtype):
+            input_dtype = input_dtype.categories.dtype
+
+        if isinstance(input_dtype, ArrowDtype):
+            import pyarrow as pa
+
+            dtype = ArrowDtype(pa.bool_())  # type: ignore[assignment]
+        elif (
+            isinstance(input_dtype, StringDtype)
+            and input_dtype.na_value is libmissing.NA
+        ):
+            dtype = pandas_dtype("boolean")  # type: ignore[assignment]
+        else:
+            dtype = np.dtype(bool)
+    elif dtype is None:
         dtype = np.dtype(bool)
+
     _dtype = pandas_dtype(dtype)
 
     if is_object_dtype(_dtype):
@@ -301,7 +327,7 @@ def _get_dummies_1d(
         codes = codes[mask]
         n_idx = np.arange(N)[mask]
 
-        for ndx, code in zip(n_idx, codes):
+        for ndx, code in zip(n_idx, codes, strict=True):
             sp_indices[code].append(ndx)
 
         if drop_first:
@@ -309,7 +335,7 @@ def _get_dummies_1d(
             # GH12042
             sp_indices = sp_indices[1:]
             dummy_cols = dummy_cols[1:]
-        for col, ixs in zip(dummy_cols, sp_indices):
+        for col, ixs in zip(dummy_cols, sp_indices, strict=True):
             sarr = SparseArray(
                 np.ones(len(ixs), dtype=dtype),
                 sparse_index=IntIndex(N, ixs),
@@ -318,16 +344,18 @@ def _get_dummies_1d(
             )
             sparse_series.append(Series(data=sarr, index=index, name=col, copy=False))
 
-        return concat(sparse_series, axis=1, copy=False)
+        return concat(sparse_series, axis=1)
 
     else:
-        # take on axis=1 + transpose to ensure ndarray layout is column-major
-        eye_dtype: NpDtype
+        # ensure ndarray layout is column-major
+        shape = len(codes), number_of_cols
+        dummy_dtype: NpDtype
         if isinstance(_dtype, np.dtype):
-            eye_dtype = _dtype
+            dummy_dtype = _dtype
         else:
-            eye_dtype = np.bool_
-        dummy_mat = np.eye(number_of_cols, dtype=eye_dtype).take(codes, axis=1).T
+            dummy_dtype = np.bool_
+        dummy_mat = np.zeros(shape=shape, dtype=dummy_dtype, order="F")
+        dummy_mat[np.arange(len(codes)), codes] = 1
 
         if not dummy_na:
             # reset NaN GH4446
@@ -340,6 +368,7 @@ def _get_dummies_1d(
         return DataFrame(dummy_mat, index=index, columns=dummy_cols, dtype=_dtype)
 
 
+@set_module("pandas")
 def from_dummies(
     data: DataFrame,
     sep: None | str = None,
@@ -349,8 +378,6 @@ def from_dummies(
     Create a categorical ``DataFrame`` from a ``DataFrame`` of dummy variables.
 
     Inverts the operation performed by :func:`~pandas.get_dummies`.
-
-    .. versionadded:: 1.5.0
 
     Parameters
     ----------
@@ -366,7 +393,9 @@ def from_dummies(
         The default category is the implied category when a value has none of the
         listed categories specified with a one, i.e. if all dummies in a row are
         zero. Can be a single value for all variables or a dict directly mapping
-        the default categories to a prefix of a variable.
+        the default categories to a prefix of a variable. The default category
+        will be coerced to the dtype of ``data.columns`` if such coercion is
+        lossless, and will raise otherwise.
 
     Returns
     -------
@@ -402,8 +431,7 @@ def from_dummies(
 
     Examples
     --------
-    >>> df = pd.DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0],
-    ...                    "c": [0, 0, 1, 0]})
+    >>> df = pd.DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0], "c": [0, 0, 1, 0]})
 
     >>> df
        a  b  c
@@ -418,9 +446,15 @@ def from_dummies(
     2     c
     3     a
 
-    >>> df = pd.DataFrame({"col1_a": [1, 0, 1], "col1_b": [0, 1, 0],
-    ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
-    ...                    "col2_c": [0, 0, 1]})
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "col1_a": [1, 0, 1],
+    ...         "col1_b": [0, 1, 0],
+    ...         "col2_a": [0, 1, 0],
+    ...         "col2_b": [1, 0, 0],
+    ...         "col2_c": [0, 0, 1],
+    ...     }
+    ... )
 
     >>> df
           col1_a  col1_b  col2_a  col2_b  col2_c
@@ -434,9 +468,15 @@ def from_dummies(
     1    b       a
     2    a       c
 
-    >>> df = pd.DataFrame({"col1_a": [1, 0, 0], "col1_b": [0, 1, 0],
-    ...                    "col2_a": [0, 1, 0], "col2_b": [1, 0, 0],
-    ...                    "col2_c": [0, 0, 0]})
+    >>> df = pd.DataFrame(
+    ...     {
+    ...         "col1_a": [1, 0, 0],
+    ...         "col1_b": [0, 1, 0],
+    ...         "col2_a": [0, 1, 0],
+    ...         "col2_b": [1, 0, 0],
+    ...         "col2_c": [0, 0, 0],
+    ...     }
+    ... )
 
     >>> df
           col1_a  col1_b  col2_a  col2_b  col2_c
@@ -458,19 +498,18 @@ def from_dummies(
             f"Received 'data' of type: {type(data).__name__}"
         )
 
-    col_isna_mask = cast(Series, data.isna().any())
+    col_isna_mask = data.isna().any()
 
     if col_isna_mask.any():
         raise ValueError(
-            "Dummy DataFrame contains NA value in column: "
-            f"'{col_isna_mask.idxmax()}'"
+            f"Dummy DataFrame contains NA value in column: '{col_isna_mask.idxmax()}'"
         )
 
     # index data with a list of all columns that are dummies
     try:
-        data_to_decode = data.astype("boolean", copy=False)
-    except TypeError:
-        raise TypeError("Passed DataFrame contains non-dummy data")
+        data_to_decode = data.astype("boolean")
+    except TypeError as err:
+        raise TypeError("Passed DataFrame contains non-dummy data") from err
 
     # collect prefixes and get lists to slice data for each prefix
     variables_slice = defaultdict(list)
@@ -499,7 +538,11 @@ def from_dummies(
                 raise ValueError(len_msg)
         elif isinstance(default_category, Hashable):
             default_category = dict(
-                zip(variables_slice, [default_category] * len(variables_slice))
+                zip(
+                    variables_slice,
+                    [default_category] * len(variables_slice),
+                    strict=True,
+                )
             )
         else:
             raise TypeError(

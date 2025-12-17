@@ -103,7 +103,7 @@ class TestGetitemListLike:
 
     def test_getitem_dupe_cols(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
-        msg = "\"None of [Index(['baf'], dtype='object')] are in the [columns]\""
+        msg = "\"None of [Index(['baf'], dtype="
         with pytest.raises(KeyError, match=re.escape(msg)):
             df[["baf"]]
 
@@ -176,7 +176,9 @@ class TestGetitemListLike:
         # GH 46671
         df = DataFrame(
             list(range(10)),
-            index=date_range("01-01-2022", periods=10, freq=DateOffset(days=1)),
+            index=date_range(
+                "01-01-2022", periods=10, freq=DateOffset(days=1), unit="ns"
+            ),
         )
         result = df.loc["2022-01-01":"2022-01-03"]
         expected = DataFrame(
@@ -192,7 +194,7 @@ class TestGetitemListLike:
         df = DataFrame(
             list(range(10)),
             index=date_range(
-                "01-01-2022", periods=10, freq=DateOffset(days=1, hours=2)
+                "01-01-2022", periods=10, freq=DateOffset(days=1, hours=2), unit="ns"
             ),
         )
         result = df.loc["2022-01-01":"2022-01-03"]
@@ -208,7 +210,9 @@ class TestGetitemListLike:
 
         df = DataFrame(
             list(range(10)),
-            index=date_range("01-01-2022", periods=10, freq=DateOffset(minutes=3)),
+            index=date_range(
+                "01-01-2022", periods=10, freq=DateOffset(minutes=3), unit="ns"
+            ),
         )
         result = df.loc["2022-01-01":"2022-01-03"]
         tm.assert_frame_equal(result, df)
@@ -391,19 +395,13 @@ class TestGetitemBooleanMask:
         df2 = df[df > 0]
         tm.assert_frame_equal(df, df2)
 
-    def test_getitem_returns_view_when_column_is_unique_in_df(
-        self, using_copy_on_write, warn_copy_on_write
-    ):
+    def test_getitem_returns_view_when_column_is_unique_in_df(self):
         # GH#45316
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["a", "a", "b"])
         df_orig = df.copy()
         view = df["b"]
-        with tm.assert_cow_warning(warn_copy_on_write):
-            view.loc[:] = 100
-        if using_copy_on_write:
-            expected = df_orig
-        else:
-            expected = DataFrame([[1, 2, 100], [4, 5, 100]], columns=["a", "a", "b"])
+        view.loc[:] = 100
+        expected = df_orig
         tm.assert_frame_equal(df, expected)
 
     def test_getitem_frozenset_unique_in_column(self):

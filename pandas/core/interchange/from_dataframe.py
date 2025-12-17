@@ -2,12 +2,20 @@ from __future__ import annotations
 
 import ctypes
 import re
-from typing import Any
+from typing import (
+    Any,
+    overload,
+)
+import warnings
 
 import numpy as np
 
+from pandas._config import using_string_dtype
+
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import SettingWithCopyError
+from pandas.errors import Pandas4Warning
+from pandas.util._decorators import set_module
+from pandas.util._exceptions import find_stack_level
 
 import pandas as pd
 from pandas.core.interchange.dataframe_protocol import (
@@ -30,9 +38,28 @@ _NP_DTYPES: dict[DtypeKind, dict[int, Any]] = {
 }
 
 
+@set_module("pandas.api.interchange")
 def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from any DataFrame supporting the interchange protocol.
+
+    .. note::
+
+       For new development, we highly recommend using the Arrow C Data Interface
+       alongside the Arrow PyCapsule Interface instead of the interchange protocol.
+       From pandas 3.0 onwards, `from_dataframe` uses the PyCapsule Interface,
+       only falling back to the interchange protocol if that fails.
+
+       From pandas 4.0 onwards, that fallback will no longer be available and only
+       the PyCapsule Interface will be used.
+
+    .. warning::
+
+        Due to severe implementation issues, we recommend only considering using the
+        interchange protocol in the following cases:
+
+        - converting to pandas: for pandas >= 2.0.3
+        - converting from pandas: for pandas >= 3.0.0
 
     Parameters
     ----------
@@ -45,15 +72,23 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
+        A pandas DataFrame built from the provided interchange
+        protocol object.
+
+    See Also
+    --------
+    pd.DataFrame : DataFrame class which can be created from various input data
+        formats, including objects that support the interchange protocol.
 
     Examples
     --------
-    >>> df_not_necessarily_pandas = pd.DataFrame({'A': [1, 2], 'B': [3, 4]})
+    >>> df_not_necessarily_pandas = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
     >>> interchange_object = df_not_necessarily_pandas.__dataframe__()
     >>> interchange_object.column_names()
-    Index(['A', 'B'], dtype='object')
-    >>> df_pandas = (pd.api.interchange.from_dataframe
-    ...              (interchange_object.select_columns_by_name(['A'])))
+    Index(['A', 'B'], dtype='str')
+    >>> df_pandas = pd.api.interchange.from_dataframe(
+    ...     interchange_object.select_columns_by_name(["A"])
+    ... )
     >>> df_pandas
          A
     0    1
@@ -65,15 +100,43 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
     if isinstance(df, pd.DataFrame):
         return df
 
+    if hasattr(df, "__arrow_c_stream__"):
+        try:
+            pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        except ImportError:
+            # fallback to _from_dataframe
+            warnings.warn(
+                "Conversion using Arrow PyCapsule Interface failed due to "
+                "missing PyArrow>=14 dependency, falling back to (deprecated) "
+                "interchange protocol. We recommend that you install "
+                "PyArrow>=14.0.0.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            try:
+                return pa.table(df).to_pandas(zero_copy_only=not allow_copy)
+            except pa.ArrowInvalid as e:
+                raise RuntimeError(e) from e
+
     if not hasattr(df, "__dataframe__"):
         raise ValueError("`df` does not support __dataframe__")
+
+    warnings.warn(
+        "The Dataframe Interchange Protocol is deprecated.\n"
+        "For dataframe-agnostic code, you may want to look into:\n"
+        "- Arrow PyCapsule Interface: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html\n"
+        "- Narwhals: https://github.com/narwhals-dev/narwhals\n",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
 
     return _from_dataframe(
         df.__dataframe__(allow_copy=allow_copy), allow_copy=allow_copy
     )
 
 
-def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True):
+def _from_dataframe(df: DataFrameXchg, allow_copy: bool = True) -> pd.DataFrame:
     """
     Build a ``pd.DataFrame`` from the DataFrame interchange object.
 
@@ -124,8 +187,6 @@ def protocol_df_chunk_to_pandas(df: DataFrameXchg) -> pd.DataFrame:
     -------
     pd.DataFrame
     """
-    # We need a dict of columns here, with each column being a NumPy array (at
-    # least for now, deal with non-NumPy dtypes later).
     columns: dict[str, Any] = {}
     buffers = []  # hold on to buffers, keeps memory alive
     for name in df.column_names():
@@ -295,13 +356,14 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
 
     null_pos = None
     if null_kind in (ColumnNullType.USE_BITMASK, ColumnNullType.USE_BYTEMASK):
-        assert buffers["validity"], "Validity buffers cannot be empty for masks"
-        valid_buff, valid_dtype = buffers["validity"]
-        null_pos = buffer_to_ndarray(
-            valid_buff, valid_dtype, offset=col.offset, length=col.size()
-        )
-        if sentinel_val == 0:
-            null_pos = ~null_pos
+        validity = buffers["validity"]
+        if validity is not None:
+            valid_buff, valid_dtype = validity
+            null_pos = buffer_to_ndarray(
+                valid_buff, valid_dtype, offset=col.offset, length=col.size()
+            )
+            if sentinel_val == 0:
+                null_pos = ~null_pos
 
     # Assemble the strings from the code units
     str_list: list[None | float | str] = [None] * col.size()
@@ -323,8 +385,12 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
         # Add to our list of strings
         str_list[i] = string
 
-    # Convert the string list to a NumPy array
-    return np.asarray(str_list, dtype="object"), buffers
+    if using_string_dtype():
+        res = pd.Series(str_list, dtype="str")
+    else:
+        res = np.asarray(str_list, dtype="object")  # type: ignore[assignment]
+
+    return res, buffers  # type: ignore[return-value]
 
 
 def parse_datetime_format_str(format_str, data) -> pd.Series | np.ndarray:
@@ -459,12 +525,39 @@ def buffer_to_ndarray(
         return np.array([], dtype=ctypes_type)
 
 
+@overload
+def set_nulls(
+    data: np.ndarray,
+    col: Column,
+    validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
+    allow_modify_inplace: bool = ...,
+) -> np.ndarray: ...
+
+
+@overload
+def set_nulls(
+    data: pd.Series,
+    col: Column,
+    validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
+    allow_modify_inplace: bool = ...,
+) -> pd.Series: ...
+
+
+@overload
+def set_nulls(
+    data: np.ndarray | pd.Series,
+    col: Column,
+    validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
+    allow_modify_inplace: bool = ...,
+) -> np.ndarray | pd.Series: ...
+
+
 def set_nulls(
     data: np.ndarray | pd.Series,
     col: Column,
     validity: tuple[Buffer, tuple[DtypeKind, int, str, str]] | None,
     allow_modify_inplace: bool = True,
-):
+) -> np.ndarray | pd.Series:
     """
     Set null values for the data according to the column null kind.
 
@@ -486,13 +579,14 @@ def set_nulls(
     np.ndarray or pd.Series
         Data with the nulls being set.
     """
+    if validity is None:
+        return data
     null_kind, sentinel_val = col.describe_null
     null_pos = None
 
     if null_kind == ColumnNullType.USE_SENTINEL:
         null_pos = pd.Series(data) == sentinel_val
     elif null_kind in (ColumnNullType.USE_BITMASK, ColumnNullType.USE_BYTEMASK):
-        assert validity, "Expected to have a validity buffer for the mask"
         valid_buff, valid_dtype = validity
         null_pos = buffer_to_ndarray(
             valid_buff, valid_dtype, offset=col.offset, length=col.size()
@@ -514,10 +608,6 @@ def set_nulls(
             # in numpy notation (bool, int, uint). If this happens,
             # cast the `data` to nullable float dtype.
             data = data.astype(float)
-            data[null_pos] = None
-        except SettingWithCopyError:
-            # `SettingWithCopyError` may happen for datetime-like with missing values.
-            data = data.copy()
             data[null_pos] = None
 
     return data

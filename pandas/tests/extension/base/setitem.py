@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_hashable
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -43,7 +45,13 @@ class BaseSetitemTests:
                 # This fixture is auto-used, but we want to not-skip
                 # test_is_immutable.
                 return
-            pytest.skip("__setitem__ test not applicable with immutable dtype")
+
+            # When BaseSetitemTests is mixed into ExtensionTests, we only
+            #  want this fixture to operate on the tests defined in this
+            #  class/file.
+            defined_in = node.function.__qualname__.split(".")[0]
+            if defined_in == "BaseSetitemTests":
+                pytest.skip("__setitem__ test not applicable with immutable dtype")
 
     def test_is_immutable(self, data):
         if data.dtype._is_immutable:
@@ -73,7 +81,7 @@ class BaseSetitemTests:
         original = ser.copy()
         value = [data[0]]
         if as_array:
-            value = data._from_sequence(value)
+            value = data._from_sequence(value, dtype=data.dtype)
 
         xpr = "cannot set using a {} indexer with a different length"
         with pytest.raises(ValueError, match=xpr.format("list-like")):
@@ -128,13 +136,13 @@ class BaseSetitemTests:
 
     def test_setitem_iloc_scalar_single(self, data):
         df = pd.DataFrame({"B": data})
-        df.iloc[10, 0] = data[1]
-        assert df.loc[10, "B"] == data[1]
+        df.iloc[9, 0] = data[1]
+        assert df.loc[9, "B"] == data[1]
 
     def test_setitem_iloc_scalar_multiple_homogoneous(self, data):
         df = pd.DataFrame({"A": data, "B": data})
-        df.iloc[10, 1] = data[1]
-        assert df.loc[10, "B"] == data[1]
+        df.iloc[9, 1] = data[1]
+        assert df.loc[9, "B"] == data[1]
 
     @pytest.mark.parametrize(
         "mask",
@@ -197,27 +205,44 @@ class BaseSetitemTests:
         tm.assert_equal(arr, expected)
 
     @pytest.mark.parametrize(
-        "idx, box_in_series",
-        [
-            ([0, 1, 2, pd.NA], False),
-            pytest.param(
-                [0, 1, 2, pd.NA], True, marks=pytest.mark.xfail(reason="GH-31948")
-            ),
-            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
-            (pd.array([0, 1, 2, pd.NA], dtype="Int64"), False),
-        ],
-        ids=["list-False", "list-True", "integer-array-False", "integer-array-True"],
+        "idx",
+        [[0, 0, 1], pd.array([0, 0, 1], dtype="Int64"), np.array([0, 0, 1])],
+        ids=["list", "integer-array", "numpy-array"],
     )
+    def test_setitem_integer_array_with_repeats(self, data, idx, box_in_series):
+        arr = data[:5].copy()
+        expected = data.take([2, 3, 2, 3, 4])
+
+        if box_in_series:
+            arr = pd.Series(arr)
+            expected = pd.Series(expected)
+
+        arr[idx] = [arr[2], arr[2], arr[3]]
+        tm.assert_equal(arr, expected)
+
+    @pytest.mark.parametrize(
+        "idx",
+        [
+            [0, 1, 2, pd.NA],
+            pd.array([0, 1, 2, pd.NA], dtype="Int64"),
+        ],
+        ids=["list", "integer-array"],
+    )
+    @pytest.mark.parametrize("box_in_series", [True, False])
     def test_setitem_integer_with_missing_raises(self, data, idx, box_in_series):
         arr = data.copy()
 
-        # TODO(xfail) this raises KeyError about labels not found (it tries label-based)
-        # for list of labels with Series
-        if box_in_series:
-            arr = pd.Series(data, index=[chr(100 + i) for i in range(len(data))])
-
         msg = "Cannot index with an integer indexer containing NA values"
-        with pytest.raises(ValueError, match=msg):
+        err = ValueError
+
+        if box_in_series:
+            # The integer labels are not present in the (string) index, so
+            #  we get KeyErrors
+            arr = pd.Series(data, index=[chr(100 + i) for i in range(len(data))])
+            msg = "0"
+            err = KeyError
+
+        with pytest.raises(err, match=msg):
             arr[idx] = arr[0]
 
     @pytest.mark.parametrize("as_callable", [True, False])
@@ -256,9 +281,9 @@ class BaseSetitemTests:
         else:  # __setitem__
             target = ser
 
-        target[mask] = data[10]
-        assert ser[0] == data[10]
-        assert ser[1] == data[10]
+        target[mask] = data[9]
+        assert ser[0] == data[9]
+        assert ser[1] == data[9]
 
     def test_setitem_expand_columns(self, data):
         df = pd.DataFrame({"A": data})
@@ -286,6 +311,22 @@ class BaseSetitemTests:
         result = df.copy()
         result.loc[:, "B"] = data
         tm.assert_frame_equal(result, expected)
+
+    def test_loc_setitem_with_expansion_preserves_ea_index_dtype(self, data):
+        # GH#41626 retain index.dtype in setitem-with-expansion
+        if not is_hashable(data[0]):
+            pytest.skip("Test does not apply to non-hashable data.")
+        data = data.unique()
+        expected = pd.DataFrame({"A": range(len(data))}, index=data)
+        df = expected.iloc[:-1]
+        ser = df["A"]
+        item = data[-1]
+
+        df.loc[item] = len(data) - 1
+        tm.assert_frame_equal(df, expected)
+
+        ser.loc[item] = len(data) - 1
+        tm.assert_series_equal(ser, expected["A"])
 
     def test_setitem_frame_invalid_length(self, data):
         df = pd.DataFrame({"A": [1] * len(data)})
@@ -327,7 +368,7 @@ class BaseSetitemTests:
 
     def test_setitem_slice_mismatch_length_raises(self, data):
         arr = data[:5]
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             arr[:1] = arr[:2]
 
     def test_setitem_slice_array(self, data):
@@ -337,7 +378,7 @@ class BaseSetitemTests:
 
     def test_setitem_scalar_key_sequence_raise(self, data):
         arr = data[:5].copy()
-        with pytest.raises(ValueError):
+        with tm.external_error_raised(ValueError):
             arr[0] = arr[[0, 1]]
 
     def test_setitem_preserves_views(self, data):
@@ -351,16 +392,15 @@ class BaseSetitemTests:
 
     def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
-        df = expected = pd.DataFrame({"data": pd.Series(data)})
+        df = expected = pd.DataFrame(pd.Series(data))
         result = pd.DataFrame(index=df.index)
 
         key = full_indexer(df)
-        result.loc[key, "data"] = df["data"]
+        result.loc[key, 0] = df[0]
 
         tm.assert_frame_equal(result, expected)
 
-    def test_setitem_with_expansion_row(self, data):
-        na_value = data.dtype.na_value
+    def test_setitem_with_expansion_row(self, data, na_value):
         df = pd.DataFrame({"data": data[:1]})
 
         df.loc[1, "data"] = data[1]
@@ -392,17 +432,9 @@ class BaseSetitemTests:
     def test_setitem_frame_2d_values(self, data):
         # GH#44514
         df = pd.DataFrame({"A": data})
-
-        # Avoiding using_array_manager fixture
-        #  https://github.com/pandas-dev/pandas/pull/44514#discussion_r754002410
-        using_array_manager = isinstance(df._mgr, pd.core.internals.ArrayManager)
-        using_copy_on_write = pd.options.mode.copy_on_write
-
-        blk_data = df._mgr.arrays[0]
-
         orig = df.copy()
 
-        df.iloc[:] = df
+        df.iloc[:] = df.copy()
         tm.assert_frame_equal(df, orig)
 
         df.iloc[:-1] = df.iloc[:-1].copy()
@@ -410,10 +442,6 @@ class BaseSetitemTests:
 
         df.iloc[:] = df.values
         tm.assert_frame_equal(df, orig)
-        if not using_array_manager and not using_copy_on_write:
-            # GH#33457 Check that this setting occurred in-place
-            # FIXME(ArrayManager): this should work there too
-            assert df._mgr.arrays[0] is blk_data
 
         df.iloc[:-1] = df.values[:-1]
         tm.assert_frame_equal(df, orig)
@@ -430,11 +458,11 @@ class BaseSetitemTests:
         tm.assert_series_equal(ser, expected)
 
     def test_setitem_invalid(self, data, invalid_scalar):
-        msg = ""  # messages vary by subclass, so we do not test it
-        with pytest.raises((ValueError, TypeError), match=msg):
+        # messages vary by subclass, so we do not test it
+        with pytest.raises((ValueError, TypeError), match=None):
             data[0] = invalid_scalar
 
-        with pytest.raises((ValueError, TypeError), match=msg):
+        with pytest.raises((ValueError, TypeError), match=None):
             data[:] = invalid_scalar
 
     def test_setitem_2d_values(self, data):
@@ -444,3 +472,65 @@ class BaseSetitemTests:
         df.loc[[0, 1], :] = df.loc[[1, 0], :].values
         assert (df.loc[0, :] == original[1]).all()
         assert (df.loc[1, :] == original[0]).all()
+
+    def test_readonly_property(self, data):
+        assert data._readonly is False
+
+        data._readonly = True
+        assert data._readonly is True
+
+        data_orig = data.copy()
+        assert data_orig._readonly is False
+
+        with pytest.raises(ValueError, match="Cannot modify read-only array"):
+            data[0] = data[1]
+
+        with pytest.raises(ValueError, match="Cannot modify read-only array"):
+            data[0:3] = data[1]
+
+        with pytest.raises(ValueError, match="Cannot modify read-only array"):
+            data[np.array([True] * len(data))] = data[1]
+
+        tm.assert_extension_array_equal(data, data_orig)
+
+    def test_readonly_propagates_to_numpy_array(self, data):
+        data._readonly = True
+
+        # when we ask for a copy, the result should never be readonly
+        arr = np.array(data)
+        assert arr.flags.writeable
+
+        # when we don't ask for a copy -> if the conversion is zero-copy,
+        # the result should be readonly
+        arr1 = np.asarray(data)
+        arr2 = np.asarray(data)
+        if np.shares_memory(arr1, arr2):
+            assert not arr1.flags.writeable
+        else:
+            assert arr1.flags.writeable
+
+    def test_readonly_propagates_to_numpy_array_method(self, data):
+        data._readonly = True
+
+        # when we ask for a copy, the result should never be readonly
+        arr = data.to_numpy(copy=True)
+        assert arr.flags.writeable
+
+        # when we don't ask for a copy -> if the conversion is zero-copy,
+        # the result should be readonly
+        arr1 = data.to_numpy(copy=False)
+        arr2 = data.to_numpy(copy=False)
+        if np.shares_memory(arr1, arr2):
+            assert not arr1.flags.writeable
+        else:
+            assert arr1.flags.writeable
+
+        # non-NA fill value should always result in a copy
+        if data.isna().any():
+            arr = data.to_numpy(copy=False, na_value=data[0])
+            if isinstance(data.dtype, pd.ArrowDtype) and data.dtype.kind == "f":
+                # for float dtype, after the fillna, the conversion from pyarrow to
+                # numpy is zero-copy, and pyarrow will mark the array as readonly
+                assert not arr.flags.writeable
+            else:
+                assert arr.flags.writeable

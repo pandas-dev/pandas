@@ -1,17 +1,24 @@
 from __future__ import annotations
 
+import importlib
+import inspect
+import pathlib
+import pkgutil
+
 import pytest
 
 import pandas as pd
 from pandas import api
 import pandas._testing as tm
 from pandas.api import (
+    executors as api_executors,
     extensions as api_extensions,
     indexers as api_indexers,
     interchange as api_interchange,
     types as api_types,
     typing as api_typing,
 )
+from pandas.api.typing import aliases as api_aliases
 
 
 class Base:
@@ -106,6 +113,7 @@ class TestPDApi(Base):
     funcs = [
         "array",
         "bdate_range",
+        "col",
         "concat",
         "crosstab",
         "cut",
@@ -133,7 +141,6 @@ class TestPDApi(Base):
         "show_versions",
         "timedelta_range",
         "unique",
-        "value_counts",
         "wide_to_long",
     ]
 
@@ -153,7 +160,6 @@ class TestPDApi(Base):
         "read_csv",
         "read_excel",
         "read_fwf",
-        "read_gbq",
         "read_hdf",
         "read_html",
         "read_xml",
@@ -169,6 +175,7 @@ class TestPDApi(Base):
         "read_parquet",
         "read_orc",
         "read_spss",
+        "read_iceberg",
     ]
 
     # top-level json funcs
@@ -245,11 +252,13 @@ class TestPDApi(Base):
 
 class TestApi(Base):
     allowed_api_dirs = [
+        "executors",
         "types",
         "extensions",
         "indexers",
         "interchange",
         "typing",
+        "internals",
     ]
     allowed_typing = [
         "DataFrameGroupBy",
@@ -258,18 +267,23 @@ class TestApi(Base):
         "ExpandingGroupby",
         "ExponentialMovingWindow",
         "ExponentialMovingWindowGroupby",
+        "Expression",
+        "FrozenList",
         "JsonReader",
         "NaTType",
         "NAType",
+        "NoDefault",
         "PeriodIndexResamplerGroupby",
         "Resampler",
         "Rolling",
         "RollingGroupby",
         "SeriesGroupBy",
         "StataReader",
+        "SASReader",
         "TimedeltaIndexResamplerGroupby",
         "TimeGrouper",
         "Window",
+        "aliases",
     ]
     allowed_api_types = [
         "is_any_real_numeric_dtype",
@@ -293,7 +307,6 @@ class TestApi(Base):
         "is_int64_dtype",
         "is_integer",
         "is_integer_dtype",
-        "is_interval",
         "is_interval_dtype",
         "is_iterator",
         "is_list_like",
@@ -337,6 +350,74 @@ class TestApi(Base):
         "ExtensionArray",
         "ExtensionScalarOpsMixin",
     ]
+    allowed_api_executors = ["BaseExecutionEngine"]
+    allowed_api_aliases = [
+        "AggFuncType",
+        "AlignJoin",
+        "AnyAll",
+        "AnyArrayLike",
+        "ArrayLike",
+        "AstypeArg",
+        "Axes",
+        "Axis",
+        "CSVEngine",
+        "ColspaceArgType",
+        "CompressionOptions",
+        "CorrelationMethod",
+        "DropKeep",
+        "Dtype",
+        "DtypeArg",
+        "DtypeBackend",
+        "DtypeObj",
+        "ExcelWriterIfSheetExists",
+        "ExcelWriterMergeCells",
+        "FilePath",
+        "FillnaOptions",
+        "FloatFormatType",
+        "FormattersType",
+        "FromDictOrient",
+        "HTMLFlavors",
+        "IgnoreRaise",
+        "IndexLabel",
+        "InterpolateOptions",
+        "JSONEngine",
+        "JSONSerializable",
+        "JoinHow",
+        "JoinValidate",
+        "MergeHow",
+        "MergeValidate",
+        "NaPosition",
+        "NsmallestNlargestKeep",
+        "OpenFileErrors",
+        "Ordered",
+        "ParquetCompressionOptions",
+        "QuantileInterpolation",
+        "ReadBuffer",
+        "ReadCsvBuffer",
+        "ReadPickleBuffer",
+        "ReindexMethod",
+        "Scalar",
+        "SequenceNotStr",
+        "SliceType",
+        "SortKind",
+        "StorageOptions",
+        "Suffixes",
+        "TakeIndexer",
+        "TimeAmbiguous",
+        "TimeGrouperOrigin",
+        "TimeNonexistent",
+        "TimeUnit",
+        "TimedeltaConvertibleTypes",
+        "TimestampConvertibleTypes",
+        "ToStataByteorder",
+        "ToTimestampHow",
+        "UpdateJoin",
+        "UsecolsArgType",
+        "WindowingRankType",
+        "WriteBuffer",
+        "WriteExcelBuffer",
+        "XMLParsers",
+    ]
 
     def test_api(self):
         self.check(api, self.allowed_api_dirs)
@@ -355,6 +436,36 @@ class TestApi(Base):
 
     def test_api_extensions(self):
         self.check(api_extensions, self.allowed_api_extensions)
+
+    def test_api_executors(self):
+        self.check(api_executors, self.allowed_api_executors)
+
+    def test_api_typing_aliases(self):
+        self.check(api_aliases, self.allowed_api_aliases)
+
+
+class TestErrors(Base):
+    def test_errors(self):
+        ignored = ["_CurrentDeprecationWarning", "abc", "ctypes", "cow"]
+        self.check(pd.errors, pd.errors.__all__, ignored=ignored)
+
+
+class TestUtil(Base):
+    def test_util(self):
+        self.check(
+            pd.util,
+            ["hash_array", "hash_pandas_object"],
+            ignored=[
+                "_decorators",
+                "_test_decorators",
+                "_exceptions",
+                "_validators",
+                "capitalize_first_letter",
+                "version",
+                "_print_versions",
+                "_tester",
+            ],
+        )
 
 
 class TestTesting(Base):
@@ -375,9 +486,87 @@ class TestTesting(Base):
             pd.util.foo
 
 
-def test_pandas_array_alias():
-    msg = "PandasArray has been renamed NumpyExtensionArray"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        res = pd.arrays.PandasArray
+def get_pandas_objects(
+    module_name: str, recurse: bool
+) -> list[tuple[str, str, object]]:
+    """
+    Get all pandas objects within a module.
 
-    assert res is pd.arrays.NumpyExtensionArray
+    An object is determined to be part of pandas if it has a string
+    __module__ attribute that starts with ``"pandas"``.
+
+    Parameters
+    ----------
+    module_name : str
+        Name of the module to search.
+    recurse : bool
+        Whether to search submodules.
+
+    Returns
+    -------
+        List of all objects that are determined to be a part of pandas.
+    """
+    module = importlib.import_module(module_name)
+    objs = []
+
+    for name, obj in inspect.getmembers(module):
+        module_dunder = getattr(obj, "__module__", None)
+        if isinstance(module_dunder, str) and module_dunder.startswith("pandas"):
+            objs.append((module_name, name, obj))
+
+    if not recurse:
+        return objs
+
+    # __file__ can, but shouldn't, be None
+    assert isinstance(module.__file__, str)
+    paths = [pathlib.Path(module.__file__).parent]
+    for module_info in pkgutil.walk_packages(paths):
+        name = module_info.name
+        if name.startswith("_") or name == "internals":
+            continue
+        objs.extend(
+            get_pandas_objects(f"{module.__name__}.{name}", recurse=module_info.ispkg)
+        )
+    return objs
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "module_name",
+    [
+        "pandas",
+        "pandas.api",
+        "pandas.arrays",
+        "pandas.errors",
+        pytest.param("pandas.io", marks=pytest.mark.xfail(reason="Private imports")),
+        "pandas.plotting",
+        "pandas.testing",
+    ],
+)
+def test_attributes_module(module_name):
+    """
+    Ensures that all public objects have their __module__ set to the public import path.
+    """
+    recurse = module_name not in ["pandas", "pandas.testing"]
+    objs = get_pandas_objects(module_name, recurse=recurse)
+    failures = [
+        (module_name, name, type(obj), obj.__module__)
+        for module_name, name, obj in objs
+        if not (
+            obj.__module__ == module_name
+            # Explicit exceptions
+            or ("Dtype" in name and obj.__module__ == "pandas")
+            or (name == "Categorical" and obj.__module__ == "pandas")
+        )
+    ]
+    assert len(failures) == 0, "\n".join(str(e) for e in failures)
+
+    # Check that all objects can indeed be imported from their __module__
+    failures = []
+    for module_name, name, obj in objs:
+        module = importlib.import_module(obj.__module__)
+        try:
+            getattr(module, name)
+        except Exception:
+            failures.append((module_name, name, type(obj), obj.__module__))
+    assert len(failures) == 0, "\n".join(str(e) for e in failures)

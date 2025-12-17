@@ -1,7 +1,6 @@
 cimport cython
 from cython cimport Py_ssize_t
 from libc.math cimport (
-    fabs,
     sqrt,
 )
 from libc.stdlib cimport (
@@ -70,13 +69,6 @@ tiebreakers = {
     "first": TIEBREAK_FIRST,
     "dense": TIEBREAK_DENSE,
 }
-
-
-cdef bint are_diff(object left, object right):
-    try:
-        return fabs(left - right) > FP_ERR
-    except TypeError:
-        return left != right
 
 
 class Infinity:
@@ -180,6 +172,8 @@ def is_lexsorted(list_of_arrays: list) -> bool:
     n = len(list_of_arrays[0])
 
     cdef int64_t **vecs = <int64_t**>malloc(nlevels * sizeof(int64_t*))
+    if vecs is NULL:
+        raise MemoryError()
     for i in range(nlevels):
         arr = list_of_arrays[i]
         assert arr.dtype.name == "int64"
@@ -349,12 +343,11 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
         Py_ssize_t i, xi, yi, N, K
         int64_t minpv
         float64_t[:, ::1] result
-        ndarray[uint8_t, ndim=2] mask
+        uint8_t[:, :] mask
         int64_t nobs = 0
-        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy
+        float64_t vx, vy, dx, dy, meanx, meany, divisor, ssqdmx, ssqdmy, covxy, val
 
     N, K = (<object>mat).shape
-
     if minp is None:
         minpv = 1
     else:
@@ -387,8 +380,15 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
                 else:
                     divisor = (nobs - 1.0) if cov else sqrt(ssqdmx * ssqdmy)
 
+                    # clip `covxy / divisor` to ensure coeff is within bounds
                     if divisor != 0:
-                        result[xi, yi] = result[yi, xi] = covxy / divisor
+                        val = covxy / divisor
+                        if not cov:
+                            if val > 1.0:
+                                val = 1.0
+                            elif val < -1.0:
+                                val = -1.0
+                        result[xi, yi] = result[yi, xi] = val
                     else:
                         result[xi, yi] = result[yi, xi] = NaN
 
@@ -405,7 +405,7 @@ def nancorr_spearman(ndarray[float64_t, ndim=2] mat, Py_ssize_t minp=1) -> ndarr
         Py_ssize_t i, xi, yi, N, K
         ndarray[float64_t, ndim=2] result
         ndarray[float64_t, ndim=2] ranked_mat
-        ndarray[float64_t, ndim=1] rankedx, rankedy
+        float64_t[::1] rankedx, rankedy
         float64_t[::1] maskedx, maskedy
         ndarray[uint8_t, ndim=2] mask
         int64_t nobs = 0
@@ -564,8 +564,8 @@ def get_fill_indexer(const uint8_t[:] mask, limit=None):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pad(
-    ndarray[numeric_object_t] old,
-    ndarray[numeric_object_t] new,
+    const numeric_object_t[:] old,
+    const numeric_object_t[:] new,
     limit=None
 ) -> ndarray:
     # -> ndarray[intp_t, ndim=1]
@@ -689,8 +689,8 @@ def pad_2d_inplace(numeric_object_t[:, :] values, uint8_t[:, :] mask, limit=None
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def backfill(
-    ndarray[numeric_object_t] old,
-    ndarray[numeric_object_t] new,
+    const numeric_object_t[:] old,
+    const numeric_object_t[:] new,
     limit=None
 ) -> ndarray:  # -> ndarray[intp_t, ndim=1]
     """
@@ -784,7 +784,7 @@ def backfill_2d_inplace(numeric_object_t[:, :] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
+def is_monotonic(const numeric_object_t[:] arr, bint timelike):
     """
     Returns
     -------
@@ -816,33 +816,7 @@ def is_monotonic(ndarray[numeric_object_t, ndim=1] arr, bint timelike):
     if timelike and <int64_t>arr[0] == NPY_NAT:
         return False, False, False
 
-    if numeric_object_t is not object:
-        with nogil:
-            prev = arr[0]
-            for i in range(1, n):
-                cur = arr[i]
-                if timelike and <int64_t>cur == NPY_NAT:
-                    is_monotonic_inc = 0
-                    is_monotonic_dec = 0
-                    break
-                if cur < prev:
-                    is_monotonic_inc = 0
-                elif cur > prev:
-                    is_monotonic_dec = 0
-                elif cur == prev:
-                    is_unique = 0
-                else:
-                    # cur or prev is NaN
-                    is_monotonic_inc = 0
-                    is_monotonic_dec = 0
-                    break
-                if not is_monotonic_inc and not is_monotonic_dec:
-                    is_monotonic_inc = 0
-                    is_monotonic_dec = 0
-                    break
-                prev = cur
-    else:
-        # object-dtype, identical to above except we cannot use `with nogil`
+    with nogil(numeric_object_t is not object):
         prev = arr[0]
         for i in range(1, n):
             cur = arr[i]
@@ -998,8 +972,7 @@ def rank_1d(
 
     N = len(values)
     if labels is not None:
-        # TODO(cython3): cast won't be necessary (#2992)
-        assert <Py_ssize_t>len(labels) == N
+        assert len(labels) == N
     out = np.empty(N)
     grp_sizes = np.ones(N, dtype=np.int64)
 
@@ -1088,8 +1061,7 @@ cdef void rank_sorted_1d(
     float64_t[::1] out,
     int64_t[::1] grp_sizes,
     const intp_t[:] sort_indexer,
-    # TODO(cython3): make const (https://github.com/cython/cython/issues/3222)
-    numeric_object_t[:] masked_vals,
+    const numeric_object_t[:] masked_vals,
     const uint8_t[:] mask,
     bint check_mask,
     Py_ssize_t N,
@@ -1145,107 +1117,7 @@ cdef void rank_sorted_1d(
     # that sorted value for retrieval back from the original
     # values / masked_vals arrays
     # TODO(cython3): de-duplicate once cython supports conditional nogil
-    if numeric_object_t is object:
-        with gil:
-            for i in range(N):
-                at_end = i == N - 1
-
-                # dups and sum_ranks will be incremented each loop where
-                # the value / group remains the same, and should be reset
-                # when either of those change. Used to calculate tiebreakers
-                dups += 1
-                sum_ranks += i - grp_start + 1
-
-                next_val_diff = at_end or are_diff(masked_vals[sort_indexer[i]],
-                                                   masked_vals[sort_indexer[i+1]])
-
-                # We'll need this check later anyway to determine group size, so just
-                # compute it here since shortcircuiting won't help
-                group_changed = at_end or (check_labels and
-                                           (labels[sort_indexer[i]]
-                                            != labels[sort_indexer[i+1]]))
-
-                # Update out only when there is a transition of values or labels.
-                # When a new value or group is encountered, go back #dups steps(
-                # the number of occurrence of current value) and assign the ranks
-                # based on the starting index of the current group (grp_start)
-                # and the current index
-                if (next_val_diff or group_changed or (check_mask and
-                                                       (mask[sort_indexer[i]]
-                                                        ^ mask[sort_indexer[i+1]]))):
-
-                    # If keep_na, check for missing values and assign back
-                    # to the result where appropriate
-                    if keep_na and check_mask and mask[sort_indexer[i]]:
-                        grp_na_count = dups
-                        for j in range(i - dups + 1, i + 1):
-                            out[sort_indexer[j]] = NaN
-                    elif tiebreak == TIEBREAK_AVERAGE:
-                        for j in range(i - dups + 1, i + 1):
-                            out[sort_indexer[j]] = sum_ranks / <float64_t>dups
-                    elif tiebreak == TIEBREAK_MIN:
-                        for j in range(i - dups + 1, i + 1):
-                            out[sort_indexer[j]] = i - grp_start - dups + 2
-                    elif tiebreak == TIEBREAK_MAX:
-                        for j in range(i - dups + 1, i + 1):
-                            out[sort_indexer[j]] = i - grp_start + 1
-
-                    # With n as the previous rank in the group and m as the number
-                    # of duplicates in this stretch, if TIEBREAK_FIRST and ascending,
-                    # then rankings should be n + 1, n + 2 ... n + m
-                    elif tiebreak == TIEBREAK_FIRST:
-                        for j in range(i - dups + 1, i + 1):
-                            out[sort_indexer[j]] = j + 1 - grp_start
-
-                    # If TIEBREAK_FIRST and descending, the ranking should be
-                    # n + m, n + (m - 1) ... n + 1. This is equivalent to
-                    # (i - dups + 1) + (i - j + 1) - grp_start
-                    elif tiebreak == TIEBREAK_FIRST_DESCENDING:
-                        for j in range(i - dups + 1, i + 1):
-                            out[sort_indexer[j]] = 2 * i - j - dups + 2 - grp_start
-                    elif tiebreak == TIEBREAK_DENSE:
-                        for j in range(i - dups + 1, i + 1):
-                            out[sort_indexer[j]] = grp_vals_seen
-
-                    # Look forward to the next value (using the sorting in
-                    # lexsort_indexer). If the value does not equal the current
-                    # value then we need to reset the dups and sum_ranks, knowing
-                    # that a new value is coming up. The conditional also needs
-                    # to handle nan equality and the end of iteration. If group
-                    # changes we do not record seeing a new value in the group
-                    if not group_changed and (next_val_diff or (check_mask and
-                                              (mask[sort_indexer[i]]
-                                               ^ mask[sort_indexer[i+1]]))):
-                        dups = sum_ranks = 0
-                        grp_vals_seen += 1
-
-                    # Similar to the previous conditional, check now if we are
-                    # moving to a new group. If so, keep track of the index where
-                    # the new group occurs, so the tiebreaker calculations can
-                    # decrement that from their position. Fill in the size of each
-                    # group encountered (used by pct calculations later). Also be
-                    # sure to reset any of the items helping to calculate dups
-                    if group_changed:
-
-                        # If not dense tiebreak, group size used to compute
-                        # percentile will be # of non-null elements in group
-                        if tiebreak != TIEBREAK_DENSE:
-                            grp_size = i - grp_start + 1 - grp_na_count
-
-                        # Otherwise, it will be the number of distinct values
-                        # in the group, subtracting 1 if NaNs are present
-                        # since that is a distinct value we shouldn't count
-                        else:
-                            grp_size = grp_vals_seen - (grp_na_count > 0)
-
-                        for j in range(grp_start, i + 1):
-                            grp_sizes[sort_indexer[j]] = grp_size
-
-                        dups = sum_ranks = 0
-                        grp_na_count = 0
-                        grp_start = i + 1
-                        grp_vals_seen = 1
-    else:
+    with gil(numeric_object_t is object):
         for i in range(N):
             at_end = i == N - 1
 
@@ -1269,10 +1141,9 @@ cdef void rank_sorted_1d(
             # the number of occurrence of current value) and assign the ranks
             # based on the starting index of the current group (grp_start)
             # and the current index
-            if (next_val_diff or group_changed
-                or (check_mask and
-                    (mask[sort_indexer[i]] ^ mask[sort_indexer[i+1]]))):
-
+            if (next_val_diff or group_changed or (check_mask and
+                                                   (mask[sort_indexer[i]]
+                                                    ^ mask[sort_indexer[i+1]]))):
                 # If keep_na, check for missing values and assign back
                 # to the result where appropriate
                 if keep_na and check_mask and mask[sort_indexer[i]]:
@@ -1474,7 +1345,7 @@ ctypedef fused out_t:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def diff_2d(
-    ndarray[diff_t, ndim=2] arr,  # TODO(cython3) update to "const diff_t[:, :] arr"
+    const diff_t[:, :] arr,
     ndarray[out_t, ndim=2] out,
     Py_ssize_t periods,
     int axis,
@@ -1482,8 +1353,7 @@ def diff_2d(
 ):
     cdef:
         Py_ssize_t i, j, sx, sy, start, stop
-        bint f_contig = arr.flags.f_contiguous
-        # bint f_contig = arr.is_f_contig()  # TODO(cython3)
+        bint f_contig = arr.is_f_contig()
         diff_t left, right
 
     # Disable for unsupported dtype combinations,

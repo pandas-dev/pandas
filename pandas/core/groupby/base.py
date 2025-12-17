@@ -1,6 +1,7 @@
 """
 Provide basic components for groupby.
 """
+
 from __future__ import annotations
 
 import dataclasses
@@ -49,6 +50,7 @@ reduction_kernels = frozenset(
         "sem",
         "size",
         "skew",
+        "kurt",
         "std",
         "sum",
         "var",
@@ -70,7 +72,6 @@ transformation_kernels = frozenset(
         "cumsum",
         "diff",
         "ffill",
-        "fillna",
         "ngroup",
         "pct_change",
         "rank",
@@ -91,7 +92,6 @@ groupby_other_methods = frozenset(
         "corr",
         "cov",
         "describe",
-        "dtypes",
         "expanding",
         "ewm",
         "filter",

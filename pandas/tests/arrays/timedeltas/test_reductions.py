@@ -10,7 +10,6 @@ from pandas.core.arrays import TimedeltaArray
 
 class TestReductions:
     @pytest.mark.parametrize("name", ["std", "min", "max", "median", "mean"])
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_reductions_empty(self, name, skipna):
         tdi = pd.TimedeltaIndex([])
         arr = tdi.array
@@ -21,7 +20,6 @@ class TestReductions:
         result = getattr(arr, name)(skipna=skipna)
         assert result is pd.NaT
 
-    @pytest.mark.parametrize("skipna", [True, False])
     def test_sum_empty(self, skipna):
         tdi = pd.TimedeltaIndex([])
         arr = tdi.array
@@ -34,8 +32,11 @@ class TestReductions:
         assert isinstance(result, Timedelta)
         assert result == Timedelta(0)
 
-    def test_min_max(self):
-        arr = TimedeltaArray._from_sequence(["3h", "3h", "NaT", "2h", "5h", "4h"])
+    def test_min_max(self, unit):
+        dtype = f"m8[{unit}]"
+        arr = TimedeltaArray._from_sequence(
+            ["3h", "3h", "NaT", "2h", "5h", "4h"], dtype=dtype
+        )
 
         result = arr.min()
         expected = Timedelta("2h")
@@ -102,13 +103,15 @@ class TestReductions:
         arr = np.arange(8).astype(np.int64).view("m8[s]").astype("m8[ns]").reshape(4, 2)
         arr[-1, -1] = "Nat"
 
-        tda = TimedeltaArray(arr)
+        tda = TimedeltaArray._from_sequence(arr)
 
         result = tda.sum(skipna=False)
         assert result is pd.NaT
 
         result = tda.sum(axis=0, skipna=False)
-        expected = pd.TimedeltaIndex([Timedelta(seconds=12), pd.NaT])._values
+        expected = pd.TimedeltaIndex(
+            [Timedelta(seconds=12), pd.NaT], dtype="m8[ns]"
+        )._values
         tm.assert_timedelta_array_equal(result, expected)
 
         result = tda.sum(axis=1, skipna=False)
@@ -118,7 +121,8 @@ class TestReductions:
                 Timedelta(seconds=5),
                 Timedelta(seconds=9),
                 pd.NaT,
-            ]
+            ],
+            dtype="m8[ns]",
         )._values
         tm.assert_timedelta_array_equal(result, expected)
 
@@ -126,7 +130,7 @@ class TestReductions:
     @pytest.mark.parametrize(
         "add",
         [
-            Timedelta(0),
+            Timedelta(0).as_unit("us"),
             pd.Timestamp("2021-01-01"),
             pd.Timestamp("2021-01-01", tz="UTC"),
             pd.Timestamp("2021-01-01", tz="Asia/Tokyo"),
@@ -137,7 +141,7 @@ class TestReductions:
         arr = tdi.array
 
         result = arr.std(skipna=True)
-        expected = Timedelta(hours=2)
+        expected = Timedelta(hours=2).as_unit("us")
         assert isinstance(result, Timedelta)
         assert result == expected
 
@@ -207,7 +211,7 @@ class TestReductions:
         tm.assert_timedelta_array_equal(result, expected)
 
         result = tda.mean(axis=1)
-        expected = tda[:, 0] + Timedelta(hours=12)
+        expected = tda[:, 0] + Timedelta(hours=12).as_unit("us")
         tm.assert_timedelta_array_equal(result, expected)
 
         result = tda.mean(axis=None)

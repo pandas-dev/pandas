@@ -3,6 +3,7 @@ import pytest
 
 from pandas._libs import index as libindex
 from pandas._libs.arrays import NDArrayBacked
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 from pandas import (
@@ -19,6 +20,9 @@ from pandas.core.indexes.api import (
 class TestCategoricalIndex:
     @pytest.fixture
     def simple_index(self) -> CategoricalIndex:
+        """
+        Fixture that provides a CategoricalIndex.
+        """
         return CategoricalIndex(list("aabbca"), categories=list("cab"), ordered=False)
 
     def test_can_hold_identifiers(self):
@@ -47,7 +51,7 @@ class TestCategoricalIndex:
 
         # invalid -> cast to object
         expected = ci.astype(object).insert(0, "d")
-        result = ci.insert(0, "d")
+        result = ci.insert(0, "d").astype(object)
         tm.assert_index_equal(result, expected, exact=True)
 
         # GH 18295 (test missing)
@@ -121,11 +125,11 @@ class TestCategoricalIndex:
         assert idx.is_unique is False
         assert idx.has_duplicates is True
 
-        idx = CategoricalIndex([0, 1], categories=[2, 3], name="foo")
+        idx = CategoricalIndex([None, None], categories=[2, 3], name="foo")
         assert idx.is_unique is False
         assert idx.has_duplicates is True
 
-        idx = CategoricalIndex([0, 1, 2, 3], categories=[1, 2, 3], name="foo")
+        idx = CategoricalIndex([None, 1, 2, 3], categories=[1, 2, 3], name="foo")
         assert idx.is_unique is True
         assert idx.has_duplicates is False
 
@@ -142,7 +146,7 @@ class TestCategoricalIndex:
                 },
             ),
             (
-                [1, 1, 1],
+                [None, None, None],
                 list("abc"),
                 {
                     "first": np.array([False, True, True]),
@@ -151,7 +155,7 @@ class TestCategoricalIndex:
                 },
             ),
             (
-                [2, "a", "b"],
+                [None, "a", "b"],
                 list("abc"),
                 {
                     "first": np.zeros(shape=(3), dtype=np.bool_),
@@ -190,8 +194,11 @@ class TestCategoricalIndex:
     def test_unique(self, data, categories, expected_data, ordered):
         dtype = CategoricalDtype(categories, ordered=ordered)
 
-        idx = CategoricalIndex(data, dtype=dtype)
-        expected = CategoricalIndex(expected_data, dtype=dtype)
+        msg = "Constructing a Categorical with a dtype and values containing"
+        warn = None if expected_data == [1] else Pandas4Warning
+        with tm.assert_produces_warning(warn, match=msg):
+            idx = CategoricalIndex(data, dtype=dtype)
+            expected = CategoricalIndex(expected_data, dtype=dtype)
         tm.assert_index_equal(idx.unique(), expected)
 
     def test_repr_roundtrip(self):
@@ -248,7 +255,7 @@ class TestCategoricalIndex:
         #
         # Must be tested separately from other indexes because
         # self.values is not an ndarray.
-        index = tm.makeCategoricalIndex(10)
+        index = CategoricalIndex(list("ab") * 5)
 
         result = CategoricalIndex(index.values, copy=True)
         tm.assert_index_equal(index, result)
@@ -261,7 +268,7 @@ class TestCategoricalIndex:
 class TestCategoricalIndex2:
     def test_view_i8(self):
         # GH#25464
-        ci = tm.makeCategoricalIndex(100)
+        ci = CategoricalIndex(list("ab") * 50)
         msg = "When changing to a larger dtype, its size must be a divisor"
         with pytest.raises(ValueError, match=msg):
             ci.view("i8")
@@ -319,9 +326,10 @@ class TestCategoricalIndex2:
         cat_or_list = "'(Categorical|list)' and '(Categorical|list)'"
         msg = "|".join(
             [
-                f"cannot perform {op_name} with this index type: CategoricalIndex",
-                "can only concatenate list",
                 rf"unsupported operand type\(s\) for [\+-]: {cat_or_list}",
+                "Object with dtype category cannot perform the numpy op (add|subtract)",
+                "operation 'r?(add|sub)' not supported for dtype 'str' "
+                "with dtype 'category'",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -389,3 +397,10 @@ class TestCategoricalIndex2:
                 ["a", "b", np.nan, "d", "d", "a"], categories=list("dba"), ordered=True
             ),
         )
+
+
+def test_contains_rangeindex_categories_no_engine():
+    ci = CategoricalIndex(range(3))
+    assert 2 in ci
+    assert 5 not in ci
+    assert "_engine" not in ci._cache

@@ -1,6 +1,7 @@
 """
 Tests for helper functions in the cython tslibs.offsets
 """
+
 from datetime import datetime
 
 import pytest
@@ -127,10 +128,8 @@ def test_get_day_of_month_error():
         roll_qtrday(dt, n=3, month=11, day_opt=day_opt, modby=12)
 
 
-@pytest.mark.parametrize(
-    "month",
-    [3, 5],  # (other.month % 3) < (month % 3)  # (other.month % 3) > (month % 3)
-)
+@pytest.mark.parametrize("month", [3, 5])
+# (other.month % 3) < (month % 3)  # (other.month % 3) > (month % 3)
 @pytest.mark.parametrize("n", [4, -3])
 def test_roll_qtr_day_not_mod_unequal(day_opt, month, n):
     expected = {3: {-3: -2, 4: 4}, 5: {-3: -3, 4: 3}}

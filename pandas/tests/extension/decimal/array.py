@@ -25,13 +25,15 @@ from pandas.api.types import (
     is_scalar,
 )
 from pandas.core import arraylike
-from pandas.core.algorithms import value_counts_internal as value_counts
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import (
     ExtensionArray,
     ExtensionScalarOpsMixin,
 )
-from pandas.core.indexers import check_array_indexer
+from pandas.core.indexers import (
+    check_array_indexer,
+    getitem_returns_view,
+)
 
 if TYPE_CHECKING:
     from pandas._typing import type_t
@@ -50,8 +52,7 @@ class DecimalDtype(ExtensionDtype):
     def __repr__(self) -> str:
         return f"DecimalDtype(context={self.context})"
 
-    @classmethod
-    def construct_array_type(cls) -> type_t[DecimalArray]:
+    def construct_array_type(self) -> type_t[DecimalArray]:
         """
         Return the array type associated with this dtype.
 
@@ -97,16 +98,28 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return self._dtype
 
     @classmethod
-    def _from_sequence(cls, scalars, dtype=None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
         return cls(scalars)
 
     @classmethod
-    def _from_sequence_of_strings(cls, strings, dtype=None, copy=False):
-        return cls._from_sequence([decimal.Decimal(x) for x in strings], dtype, copy)
+    def _from_sequence_of_strings(cls, strings, *, dtype: ExtensionDtype, copy=False):
+        return cls._from_sequence(
+            [decimal.Decimal(x) for x in strings], dtype=dtype, copy=copy
+        )
 
     @classmethod
     def _from_factorized(cls, values, original):
         return cls(values)
+
+    def _cast_pointwise_result(self, values):
+        result = super()._cast_pointwise_result(values)
+        try:
+            # If this were ever made a non-test EA, special-casing could
+            #  be avoided by handling Decimal in maybe_convert_objects
+            res = type(self)._from_sequence(result, dtype=self.dtype)
+        except (ValueError, TypeError):
+            return result
+        return res
 
     _HANDLED_TYPES = (decimal.Decimal, numbers.Number, np.ndarray)
 
@@ -123,7 +136,6 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return result
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
-        #
         if not all(
             isinstance(t, self._HANDLED_TYPES + (DecimalArray,)) for t in inputs
         ):
@@ -155,7 +167,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
             if isinstance(x, (decimal.Decimal, numbers.Number)):
                 return x
             else:
-                return DecimalArray._from_sequence(x)
+                return type(self)._from_sequence(x, dtype=self.dtype)
 
         if ufunc.nout > 1:
             return tuple(reconstruct(x) for x in result)
@@ -168,7 +180,10 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         else:
             # array, slice.
             item = pd.api.indexers.check_array_indexer(self, item)
-            return type(self)(self._data[item])
+            result = type(self)(self._data[item])
+            if getitem_returns_view(self, item):
+                result._readonly = self._readonly
+            return result
 
     def take(self, indexer, allow_fill=False, fill_value=None):
         from pandas.api.extensions import take
@@ -178,7 +193,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
             fill_value = self.dtype.na_value
 
         result = take(data, indexer, fill_value=fill_value, allow_fill=allow_fill)
-        return self._from_sequence(result)
+        return self._from_sequence(result, dtype=self.dtype)
 
     def copy(self):
         return type(self)(self._data.copy(), dtype=self.dtype)
@@ -194,6 +209,9 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return super().astype(dtype, copy=copy)
 
     def __setitem__(self, key, value) -> None:
+        if self._readonly:
+            raise ValueError("Cannot modify read-only array")
+
         if is_list_like(value):
             if is_scalar(key):
                 raise ValueError("setting an array element with a sequence.")
@@ -277,33 +295,23 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
 
         # If the operator is not defined for the underlying objects,
         # a TypeError should be raised
-        res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
+        res = [op(a, b) for (a, b) in zip(lvalues, rvalues, strict=True)]
 
         return np.asarray(res, dtype=bool)
 
-    def value_counts(self, dropna: bool = True):
-        return value_counts(self.to_numpy(), dropna=dropna)
-
     # We override fillna here to simulate a 3rd party EA that has done so. This
-    #  lets us test the deprecation telling authors to implement _pad_or_backfill
-    # Simulate a 3rd-party EA that has not yet updated to include a "copy"
+    #  lets us test a 3rd-party EA that has not yet updated to include a "copy"
     #  keyword in its fillna method.
-    # error: Signature of "fillna" incompatible with supertype "ExtensionArray"
-    def fillna(  # type: ignore[override]
-        self,
-        value=None,
-        method=None,
-        limit: int | None = None,
-    ):
-        return super().fillna(value=value, method=method, limit=limit, copy=True)
+    def fillna(self, value=None, limit=None):
+        return super().fillna(value=value, limit=limit, copy=True)
 
 
 def to_decimal(values, context=None):
     return DecimalArray([decimal.Decimal(x) for x in values], context=context)
 
 
-def make_data():
-    return [decimal.Decimal(val) for val in np.random.default_rng(2).random(100)]
+def make_data(n: int):
+    return [decimal.Decimal(val) for val in np.random.default_rng(2).random(n)]
 
 
 DecimalArray._add_arithmetic_ops()
