@@ -544,7 +544,12 @@ def test_strip_lstrip_rstrip_args(any_string_dtype, method, exp):
 
 
 @pytest.mark.parametrize(
-    "prefix, expected", [("a", ["b", " b c", "bc"]), ("ab", ["", "a b c", "bc"])]
+    "prefix, expected",
+    [
+        ("a", ["b", " b c", "bc"]),
+        ("ab", ["", "a b c", "bc"]),
+        ("", ["ab", "a b c", "bc"]),
+    ],
 )
 def test_removeprefix(any_string_dtype, prefix, expected):
     ser = Series(["ab", "a b c", "bc"], dtype=any_string_dtype)
@@ -554,13 +559,19 @@ def test_removeprefix(any_string_dtype, prefix, expected):
 
 
 @pytest.mark.parametrize(
-    "suffix, expected", [("c", ["ab", "a b ", "b"]), ("bc", ["ab", "a b c", ""])]
+    "suffix, expected",
+    [
+        ("c", ["ab", "a b ", "b"]),
+        ("bc", ["ab", "a b c", ""]),
+        ("", ["ab", "a b c", "bc"]),
+    ],
 )
 def test_removesuffix(any_string_dtype, suffix, expected):
     ser = Series(["ab", "a b c", "bc"], dtype=any_string_dtype)
     result = ser.str.removesuffix(suffix)
     ser_expected = Series(expected, dtype=any_string_dtype)
     tm.assert_series_equal(result, ser_expected)
+
 
 
 def test_string_slice_get_syntax(any_string_dtype):
