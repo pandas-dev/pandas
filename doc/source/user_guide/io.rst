@@ -48,38 +48,37 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 Google Colab
 ^^^^^^^^^^^^
 
-Google Colab provides several ways to load data into pandas DataFrames:
+Google Colab provides several ways to load data into pandas DataFrames.
 
 **Upload files directly**
 .. code-block:: python
 
    from google.colab import files
    uploaded = files.upload()
-   df = pd.read_csv('your_file.csv')
+   df = pd.read_csv("your_file.csv")
 
 **Mount Google Drive**
 .. code-block:: python
 
    from google.colab import drive
-   drive.mount('/content/drive')
-   df = pd.read_csv('/content/drive/MyDrive/your_file.csv')
+   drive.mount("/content/drive")
+   df = pd.read_csv("/content/drive/MyDrive/your_file.csv")
 
 **URLs work normally**
 .. code-block:: python
 
-   df = pd.read_csv('https://example.com/data.csv')
+   df = pd.read_csv("https://example.com/data.csv")
 
 **Save/download**
 .. code-block:: python
 
-   df.to_csv('/content/drive/MyDrive/output.csv', index=False)
-   files.download('output.csv')
+   df.to_csv("/content/drive/MyDrive/output.csv", index=False)
+   files.download("output.csv")
 
 Files in ``/content/`` are temporary, so prefer saving to Google Drive if you need persistence.
 
 For more details on file handling in Colab, see the
 `official Colab IO notebook <https://colab.research.google.com/notebooks/io.ipynb>`_.
-
 
 
 .. note::
