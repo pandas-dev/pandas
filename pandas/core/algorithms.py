@@ -897,7 +897,11 @@ def value_counts_internal(
         if dropna and (result._values == 0).all():
             result = result.iloc[0:0]
 
+        # normalizing is by len of all (regardless of dropna)
+        normalize_denominator = len(ii)
+
     else:
+        normalize_denominator = None
         if is_extension_array_dtype(values):
             # handle Categorical and sparse,
             result = Series(values, copy=False)._values.value_counts(dropna=dropna)
@@ -925,8 +929,7 @@ def value_counts_internal(
             idx = Index(keys, dtype=keys.dtype, name=index_name)
 
             if (
-                bins is None
-                and not sort
+                not sort
                 and isinstance(values, (DatetimeIndex, TimedeltaIndex))
                 and idx.equals(values)
                 and values.inferred_freq is not None
@@ -940,7 +943,10 @@ def value_counts_internal(
         result = result.sort_values(ascending=ascending, kind="stable")
 
     if normalize:
-        result = result / result.sum()
+        if normalize_denominator is not None:
+            result = result / normalize_denominator
+        else:
+            result = result / result.sum()
 
     return result
 
