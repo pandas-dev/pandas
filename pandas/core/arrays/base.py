@@ -418,7 +418,7 @@ class ExtensionArray:
             )
             raise
 
-    def _cast_pointwise_result(self, values) -> ArrayLike:
+    def _cast_pointwise_result(self, values, **kwargs) -> ArrayLike:
         """
         Construct an ExtensionArray after a pointwise operation.
 
@@ -430,9 +430,17 @@ class ExtensionArray:
         array with units, this method can return an int array with units).
 
         If converting to your own ExtensionArray is not possible, this method
-        can raise an error (TypeError or ValueError) or return the input
-        `values` as-is. Then pandas will do the further type inference.
+        falls back to returning an array with the default type inference.
+        If you only need to cast to `self.dtype`, it is recommended to override
+        `_from_scalars` instead of this method.
 
+        Parameters
+        ----------
+        values : sequence
+
+        Returns
+        -------
+        ExtensionArray or ndarray
         """
         try:
             return type(self)._from_scalars(values, dtype=self.dtype)
