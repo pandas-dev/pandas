@@ -37,20 +37,20 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     DatetimeTZDtype,
 )
-from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.datetimes import (
     DatetimeArray,
     tz_to_dtype,
 )
-from pandas.core.arrays import ExtensionArray
 import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index,

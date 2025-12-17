@@ -21,11 +21,11 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas.util._decorators import set_module
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
-from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import ABCSeries
 
