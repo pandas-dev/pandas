@@ -787,6 +787,34 @@ class TestArrowArray(base.ExtensionTests):
         result = data.value_counts()
         assert result.dtype == ArrowDtype(pa.int64())
 
+    def test_value_counts_no_numpy_fallback(self, data, monkeypatch):
+        # Ensure value_counts doesn't unnecessarily convert Arrow arrays to NumPy
+        from pandas.core.arrays.arrow import ArrowExtensionArray
+
+        data = data[:10]
+        ser = pd.Series(data)
+
+        # Track if to_numpy was called
+        to_numpy_called = False
+        original_to_numpy = ArrowExtensionArray.to_numpy
+
+        def tracked_to_numpy(self, *args, **kwargs):
+            nonlocal to_numpy_called
+            to_numpy_called = True
+            return original_to_numpy(self, *args, **kwargs)
+
+        monkeypatch.setattr(ArrowExtensionArray, "to_numpy", tracked_to_numpy)
+
+        ser.value_counts()
+        assert not to_numpy_called, "value_counts() should not call to_numpy()"
+
+        # Also test with normalize=True
+        to_numpy_called = False
+        ser.value_counts(normalize=True)
+        assert not to_numpy_called, (
+            "value_counts(normalize=True) should not call to_numpy()"
+        )
+
     _combine_le_expected_dtype = "bool[pyarrow]"
 
     def get_op_from_name(self, op_name):

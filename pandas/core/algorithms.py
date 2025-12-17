@@ -897,19 +897,12 @@ def value_counts_internal(
         if dropna and (result._values == 0).all():
             result = result.iloc[0:0]
 
-        # normalizing is by len of all (regardless of dropna)
-        counts = np.array([len(ii)])
-
     else:
         if is_extension_array_dtype(values):
             # handle Categorical and sparse,
             result = Series(values, copy=False)._values.value_counts(dropna=dropna)
             result.name = name
             result.index.name = index_name
-            counts = result._values
-            if not isinstance(counts, np.ndarray):
-                # e.g. ArrowExtensionArray
-                counts = np.asarray(counts)
 
         elif isinstance(values, ABCMultiIndex):
             # GH49558
@@ -920,10 +913,6 @@ def value_counts_internal(
                 .size()
             )
             result.index.names = values.names
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray[Any, Any] | DatetimeArray | TimedeltaArray | PeriodArray | Any",
-            # variable has type "ndarray[tuple[int, ...], dtype[Any]]")
-            counts = result._values  # type: ignore[assignment]
 
         else:
             values = _ensure_arraylike(values, func_name="value_counts")
@@ -951,7 +940,7 @@ def value_counts_internal(
         result = result.sort_values(ascending=ascending, kind="stable")
 
     if normalize:
-        result = result / counts.sum()
+        result = result / result.sum()
 
     return result
 
