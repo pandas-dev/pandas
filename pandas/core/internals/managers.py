@@ -1200,8 +1200,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         nb = type(block)(
             values, placement=bp, ndim=1, refs=block.refs if track_ref else None
         )
-        # TODO shallow copy index? (might already be done where this gets called)
-        return SingleBlockManager(nb, self.axes[1])
+        return SingleBlockManager(nb, self.axes[1].view())
 
     def iget_values(self, i: int) -> ArrayLike:
         """
