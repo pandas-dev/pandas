@@ -125,7 +125,7 @@ class TestTimedeltaIndex:
         # Corner cases
         inter = first.intersection(first, sort=sort)
         assert inter is not first
-        tm.assert_index_equal(inter, first)  
+        tm.assert_index_equal(inter, first)
 
     @pytest.mark.parametrize("period_1, period_2", [(0, 4), (4, 0)])
     def test_intersection_zero_length(self, period_1, period_2, sort):
