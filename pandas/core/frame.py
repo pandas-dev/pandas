@@ -5633,7 +5633,7 @@ class DataFrame(NDFrame, OpsMixin):
                 Change the row labels.
 
                 >>> df.set_axis(["a", "b", "c"], axis="index")
-                A  B
+                   A  B
                 a  1  4
                 b  2  5
                 c  3  6
@@ -5641,7 +5641,7 @@ class DataFrame(NDFrame, OpsMixin):
                 Change the column labels.
 
                 >>> df.set_axis(["I", "II"], axis="columns")
-                I  II
+                   I  II
                 0  1   4
                 1  2   5
                 2  3   6
@@ -5757,7 +5757,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...     index=index,
         ... )
         >>> df
-                http_status  response_time
+                   http_status  response_time
         Firefox            200           0.04
         Chrome             200           0.02
         Safari             404           0.07
@@ -5770,7 +5770,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         >>> new_index = ["Safari", "Iceweasel", "Comodo Dragon", "IE10", "Chrome"]
         >>> df.reindex(new_index)
-                    http_status  response_time
+                       http_status  response_time
         Safari               404.0           0.07
         Iceweasel              NaN            NaN
         Comodo Dragon          NaN            NaN
@@ -5783,7 +5783,7 @@ class DataFrame(NDFrame, OpsMixin):
         ``method`` to fill the ``NaN`` values.
 
         >>> df.reindex(new_index, fill_value=0)
-                    http_status  response_time
+                       http_status  response_time
         Safari                 404           0.07
         Iceweasel                0           0.00
         Comodo Dragon            0           0.00
@@ -5791,7 +5791,7 @@ class DataFrame(NDFrame, OpsMixin):
         Chrome                 200           0.02
 
         >>> df.reindex(new_index, fill_value="missing")
-                    http_status response_time
+                      http_status response_time
         Safari                404          0.07
         Iceweasel         missing       missing
         Comodo Dragon     missing       missing
@@ -5801,7 +5801,7 @@ class DataFrame(NDFrame, OpsMixin):
         We can also reindex the columns.
 
         >>> df.reindex(columns=["http_status", "user_agent"])
-                http_status  user_agent
+                   http_status  user_agent
         Firefox            200         NaN
         Chrome             200         NaN
         Safari             404         NaN
@@ -5811,7 +5811,7 @@ class DataFrame(NDFrame, OpsMixin):
         Or we can use "axis-style" keyword arguments
 
         >>> df.reindex(["http_status", "user_agent"], axis="columns")
-                http_status  user_agent
+                   http_status  user_agent
         Firefox            200         NaN
         Chrome             200         NaN
         Safari             404         NaN
@@ -9149,7 +9149,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...     index=["A", "B", "C"],
         ... )
         >>> df
-        cost  revenue
+           cost  revenue
         A   250      100
         B   150      250
         C   100      300
@@ -9180,7 +9180,7 @@ class DataFrame(NDFrame, OpsMixin):
         Use the method to control the broadcast axis:
 
         >>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis="index")
-        cost  revenue
+           cost  revenue
         A  True    False
         B  True     True
         C  True     True
@@ -9209,7 +9209,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...     {"revenue": [300, 250, 100, 150]}, index=["A", "B", "C", "D"]
         ... )
         >>> other
-        revenue
+           revenue
         A      300
         B      250
         C      100
@@ -9305,7 +9305,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...     index=["A", "B", "C"],
         ... )
         >>> df
-        cost  revenue
+           cost  revenue
         A   250      100
         B   150      250
         C   100      300
@@ -9336,7 +9336,7 @@ class DataFrame(NDFrame, OpsMixin):
         Use the method to control the broadcast axis:
 
         >>> df.ne(pd.Series([100, 300], index=["A", "D"]), axis="index")
-        cost  revenue
+           cost  revenue
         A  True    False
         B  True     True
         C  True     True
@@ -9365,7 +9365,7 @@ class DataFrame(NDFrame, OpsMixin):
         ...     {"revenue": [300, 250, 100, 150]}, index=["A", "B", "C", "D"]
         ... )
         >>> other
-        revenue
+           revenue
         A      300
         B      250
         C      100
