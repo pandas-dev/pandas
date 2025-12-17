@@ -236,6 +236,12 @@ class TestIsBoolIndexer:
         expected = df[[]]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("scalar", [1, True])
+    def test_numpyextensionarray(self, scalar):
+        # GH 63391
+        arr = pd.arrays.NumpyExtensionArray(np.array([scalar]))
+        assert com.is_bool_indexer(arr) is isinstance(scalar, bool)
+
 
 @pytest.mark.parametrize("with_exception", [True, False])
 def test_temp_setattr(with_exception):
