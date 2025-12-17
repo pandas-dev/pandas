@@ -27,11 +27,13 @@ from pandas.util._decorators import (
     set_module,
 )
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.period import (
     PeriodArray,
     period_array,
@@ -101,8 +103,13 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         One of pandas period strings or corresponding objects.
     dtype : str or PeriodDtype, default None
         A dtype from which to extract a freq.
-    copy : bool
-        Make a copy of input ndarray.
+    copy : bool, default None
+        Whether to copy input data, only relevant for array, Series, and Index
+        inputs (for other input, e.g. a list, a new array is created anyway).
+        Defaults to True for array input and False for Index/Series.
+        Set to False to avoid copying array input at your own risk (if you
+        know the input data won't be modified elsewhere).
+        Set to True to force copying Series/Index input up front.
     name : str, default None
         Name of the resulting PeriodIndex.
 
@@ -220,7 +227,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         data=None,
         freq=None,
         dtype: Dtype | None = None,
-        copy: bool = False,
+        copy: bool | None = None,
         name: Hashable | None = None,
     ) -> Self:
         refs = None
@@ -230,6 +237,13 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         name = maybe_extract_name(name, data, cls)
 
         freq = validate_dtype_freq(dtype, freq)
+
+        if isinstance(data, (ExtensionArray, np.ndarray)):
+            # GH 63388
+            if copy is not False:
+                if dtype is None or astype_is_view(data.dtype, dtype):
+                    data = data.copy()
+                    copy = False
 
         # PeriodIndex allow PeriodIndex(period_index, freq=different)
         # Let's not encourage that kind of behavior in PeriodArray.
