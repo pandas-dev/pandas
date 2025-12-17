@@ -1,12 +1,14 @@
-#io.rst
 .. _io:
 
+
 .. currentmodule:: pandas
+
 
 
 ===============================
 IO tools (text, CSV, HDF5, ...)
 ===============================
+
 
 The pandas I/O API is a set of top level ``reader`` functions accessed like
 :func:`pandas.read_csv` that generally return a pandas object. The corresponding
@@ -14,16 +16,18 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 :meth:`DataFrame.to_csv`. Below is a table containing available ``readers`` and
 ``writers``.
 
+
 .. csv-table::
     :header: "Format Type", "Data Description", "Reader", "Writer"
     :widths: 30, 100, 60, 60
 
+
     text,`CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`__, :ref:`read_csv<io.read_csv_table>`, :ref:`to_csv<io.store_in_csv>`
     text,Fixed-Width Text File, :ref:`read_fwf<io.fwf_reader>`, NA
     text,`JSON <https://www.json.org/>`__, :ref:`read_json<io.json_reader>`, :ref:`to_json<io.json_writer>`
-    text,`HTML <https://en.wikipedia.org/wiki/HTML>`__, :ref:`read_html<io.read_html>`, :ref:`to_html<io.html>`
+    text,`HTML <https://en.wikipedia.org/wiki/HTML>`__, :ref:`read_html<io.html>`, :ref:`to_html<io.html>`
     text,`LaTeX <https://en.wikipedia.org/wiki/LaTeX>`__, NA, :ref:`Styler.to_latex<io.latex>`
-    text,`XML <https://www.w3.org/standards/xml/core>`__, :ref:`read_xml<io.read_xml>`, :ref:`to_xml<io.xml>`
+    text,`XML <https://www.w3.org/standards/xml/core>`__, :ref:`read_xml<io.xml>`, :ref:`to_xml<io.xml>`
     text, Local clipboard, :ref:`read_clipboard<io.clipboard>`, :ref:`to_clipboard<io.clipboard>`
     binary,`MS Excel <https://en.wikipedia.org/wiki/Microsoft_Excel>`__ , :ref:`read_excel<io.excel_reader>`, :ref:`to_excel<io.excel_writer>`
     binary,`OpenDocument <http://opendocumentformat.org>`__, :ref:`read_excel<io.ods>`, NA
@@ -38,27 +42,72 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
     binary,`Python Pickle Format <https://docs.python.org/3/library/pickle.html>`__, :ref:`read_pickle<io.pickle>`, :ref:`to_pickle<io.pickle>`
     SQL,`SQL <https://en.wikipedia.org/wiki/SQL>`__, :ref:`read_sql<io.sql>`,:ref:`to_sql<io.sql>`
 
+
+.. _io.google_colab:
+
+Google Colab
+^^^^^^^^^^^^
+
+Google Colab provides several ways to load data into pandas DataFrames:
+
+**Upload files directly**
+.. code-block:: python
+
+   from google.colab import files
+   uploaded = files.upload()
+   df = pd.read_csv('your_file.csv')
+
+**Mount Google Drive**
+.. code-block:: python
+
+   from google.colab import drive
+   drive.mount('/content/drive')
+   df = pd.read_csv('/content/drive/MyDrive/your_file.csv')
+
+**URLs work normally**
+.. code-block:: python
+
+   df = pd.read_csv('https://example.com/data.csv')
+
+**Save/download**
+.. code-block:: python
+
+   df.to_csv('/content/drive/MyDrive/output.csv', index=False)
+   files.download('output.csv')
+
+Files in `/content/` are temporary. Use Drive for persistence.
+
+See Colab's `official IO notebook <https://colab.research.google.com/notebooks/io.ipynb>`_.
+
 :ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
+
 
 .. note::
    For examples that use the ``StringIO`` class, make sure you import it
    with ``from io import StringIO`` for Python 3.
 
+
 .. _io.read_csv_table:
+
 
 CSV & text files
 ----------------
 
+
 The workhorse function for reading text files (a.k.a. flat files) is
 :func:`read_csv`. See the :ref:`cookbook<cookbook.csv>` for some advanced strategies.
 
+
 Parsing options
-'''''''''''''''
+***************
+
 
 :func:`read_csv` accepts the following common arguments:
 
+
 Basic
 +++++
+
 
 filepath_or_buffer : various
   Either a path to a file (a :class:`python:str`, :class:`python:pathlib.Path`)
@@ -76,8 +125,10 @@ sep : str, defaults to ``','`` for :func:`read_csv`, ``\t`` for :func:`read_tabl
 delimiter : str, default ``None``
   Alternative argument name for sep.
 
+
 Column and index locations and names
 ++++++++++++++++++++++++++++++++++++
+
 
 header : int or list of ints, default ``'infer'``
   Row number(s) to use as the column names, and the start of the
@@ -87,6 +138,7 @@ header : int or list of ints, default ``'infer'``
   passed explicitly then the behavior is identical to
   ``header=None``. Explicitly pass ``header=0`` to be able to replace
   existing names.
+
 
   The header can be a list of ints that specify row locations
   for a MultiIndex on the columns e.g. ``[0,1,3]``. Intervening rows
@@ -102,10 +154,12 @@ index_col : int, str, sequence of int / str, or False, optional, default ``None`
   string name or column index. If a sequence of int / str is given, a
   MultiIndex is used.
 
+
   .. note::
      ``index_col=False`` can be used to force pandas to *not* use the first
      column as the index, e.g. when you have a malformed file with delimiters at
      the end of each line.
+
 
   The default value of ``None`` instructs pandas to guess. If the number of
   fields in the column header row is equal to the number of fields in the body
@@ -113,9 +167,11 @@ index_col : int, str, sequence of int / str, or False, optional, default ``None`
   the first columns are used as index so that the remaining number of fields in
   the body are equal to the number of fields in the header.
 
+
   The first row after the header is used to determine the number of columns,
   which will go into the index. If the subsequent rows contain less columns
   than the first row, they are filled with ``NaN``.
+
 
   This can be avoided through ``usecols``. This ensures that the columns are
   taken as is and the trailing data are ignored.
@@ -127,6 +183,7 @@ usecols : list-like or callable, default ``None``
   header row(s) are not taken into account. For example, a valid list-like
   ``usecols`` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
 
+
   Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``. To
   instantiate a DataFrame from ``data`` with element order preserved use
   ``pd.read_csv(data, usecols=['foo', 'bar'])[['foo', 'bar']]`` for columns
@@ -134,24 +191,31 @@ usecols : list-like or callable, default ``None``
   ``pd.read_csv(data, usecols=['foo', 'bar'])[['bar', 'foo']]`` for
   ``['bar', 'foo']`` order.
 
+
   If callable, the callable function will be evaluated against the column names,
   returning names where the callable function evaluates to True:
 
+
   .. ipython:: python
+
 
      import pandas as pd
      from io import StringIO
+
 
      data = "col1,col2,col3\na,b,1\na,b,2\nc,d,3"
      pd.read_csv(StringIO(data))
      pd.read_csv(StringIO(data), usecols=lambda x: x.upper() in ["COL1", "COL3"])
 
+
   Using this parameter results in much faster parsing time and lower memory usage
   when using the c engine. The Python engine loads the data first before deciding
   which columns to drop.
 
+
 General parsing configuration
 +++++++++++++++++++++++++++++
+
 
 dtype : Type name or dict of column -> type, default ``None``
   Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32, 'c': 'Int64'}``
@@ -161,15 +225,19 @@ dtype : Type name or dict of column -> type, default ``None``
   the default determines the dtype of the columns which are not explicitly
   listed.
 
+
 dtype_backend : {"numpy_nullable", "pyarrow"}, defaults to NumPy backed DataFrames
   Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
   arrays, nullable dtypes are used for all dtypes that have a nullable
   implementation when "numpy_nullable" is set, pyarrow is used for all
   dtypes if "pyarrow" is set.
 
+
   The dtype_backends are still experimental.
 
+
   .. versionadded:: 2.0
+
 
 engine : {``'c'``, ``'python'``, ``'pyarrow'``}
   Parser engine to use. The C and pyarrow engines are faster, while the python engine
@@ -183,7 +251,8 @@ true_values : list, default ``None``
   Values to consider as ``True``.
 false_values : list, default ``None``
   Values to consider as ``False``.
-skipinitialspace : boolean, default ``False``
+skipinitialspace : boolean,
+ default ``False``
   Skip spaces after delimiter.
 skiprows : list-like or integer, default ``None``
   Line numbers to skip (0-indexed) or number of lines to skip (int) at the start
