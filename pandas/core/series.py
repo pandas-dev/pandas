@@ -403,6 +403,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if copy is not False:
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
+                    copy = False
         if copy is None:
             copy = False
 
@@ -417,6 +418,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     Pandas4Warning,
                     stacklevel=2,
                 )
+                allow_mgr = True
 
         name = ibase.maybe_extract_name(name, data, type(self))
 
@@ -442,9 +444,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(data, Index):
             if dtype is not None:
                 data = data.astype(dtype)
-
-            refs = data._references
-            copy = False
+            if not copy:
+                refs = data._references
 
         elif isinstance(data, np.ndarray):
             if len(data.dtype):
@@ -460,8 +461,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 data = data._mgr.copy(deep=False)
             else:
                 data = data.reindex(index)
-                copy = False
                 data = data._mgr
+                if data._has_no_reference(0):
+                    copy = False
         elif isinstance(data, Mapping):
             data, index = self._init_dict(data, index, dtype)
             dtype = None
@@ -506,8 +508,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # create/copy the manager
         if isinstance(data, SingleBlockManager):
             if dtype is not None:
+                if not astype_is_view(data.dtype, pandas_dtype(dtype)):
+                    copy = False
                 data = data.astype(dtype=dtype)
-            elif copy:
+            if copy:
                 data = data.copy(deep=True)
         else:
             data = sanitize_array(data, index, dtype, copy)
