@@ -209,10 +209,13 @@ class ArrowStringArrayMixin:
         return self._from_pyarrow_array(result)
 
     def _str_removesuffix(self, suffix: str):
+        if suffix == "":
+            return self
         ends_with = pc.ends_with(self._pa_array, pattern=suffix)
         removed = pc.utf8_slice_codeunits(self._pa_array, 0, stop=-len(suffix))
         result = pc.if_else(ends_with, removed, self._pa_array)
         return self._from_pyarrow_array(result)
+
 
     def _str_startswith(
         self, pat: str | tuple[str, ...], na: Scalar | lib.NoDefault = lib.no_default
