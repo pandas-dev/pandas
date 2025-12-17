@@ -153,3 +153,19 @@ def test_arrow_dtype(dtype, exp_dtype):
     expected = DataFrame([[1, 2], [3, 4], [5, 6]], dtype=exp_dtype)
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype,exp_dtype",
+    [("Float32", "Float64"), ("Int16", "Int32"), ("float[pyarrow]", "double[pyarrow]")],
+)
+def test_arrow_dtype_series(dtype, exp_dtype):
+    pytest.importorskip("pyarrow")
+
+    cols = ["a", "b"]
+    series_a = Series([1, 2], index=cols, dtype="int32")
+    df_b = DataFrame([[1, 0], [0, 1]], index=cols, dtype=dtype)
+    result = series_a.dot(df_b)
+    expected = Series([1, 2], dtype=exp_dtype)
+
+    tm.assert_series_equal(result, expected)

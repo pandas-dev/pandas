@@ -3,13 +3,19 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 
 from pandas.core.dtypes.common import (
     is_datetime64_dtype,
@@ -57,6 +63,7 @@ from pandas.core.window.rolling import (
 if TYPE_CHECKING:
     from pandas._typing import (
         TimedeltaConvertibleTypes,
+        TimeUnit,
         npt,
     )
 
@@ -122,6 +129,7 @@ def _calculate_deltas(
         Diff of the times divided by the half-life
     """
     unit = dtype_to_unit(times.dtype)
+    unit = cast("TimeUnit", unit)
     if isinstance(times, ABCSeries):
         times = times._values
     _times = np.asarray(times.view(np.int64), dtype=np.float64)
@@ -129,13 +137,16 @@ def _calculate_deltas(
     return np.diff(_times) / _halflife
 
 
+@set_module("pandas.api.typing")
 class ExponentialMovingWindow(BaseWindow):
     r"""
     Provide exponentially weighted (EW) calculations.
 
     Exactly one of ``com``, ``span``, ``halflife``, or ``alpha`` must be
-    provided if ``times`` is not provided. If ``times`` is provided,
+    provided if ``times`` is not provided. If ``times`` is provided and ``adjust=True``,
     ``halflife`` and one of ``com``, ``span`` or ``alpha`` may be provided.
+    If ``times`` is provided and ``adjust=False``, ``halflife`` must be the only
+    provided decay-specification parameter.
 
     Parameters
     ----------
@@ -213,8 +224,6 @@ class ExponentialMovingWindow(BaseWindow):
         If 1-D array like, a sequence with the same shape as the observations.
 
     method : str {'single', 'table'}, default 'single'
-        .. versionadded:: 1.4.0
-
         Execute the rolling operation per single column or row (``'single'``)
         or over the entire object (``'table'``).
 
@@ -358,8 +367,6 @@ class ExponentialMovingWindow(BaseWindow):
         self.ignore_na = ignore_na
         self.times = times
         if self.times is not None:
-            if not self.adjust:
-                raise NotImplementedError("times is not supported with adjust=False.")
             times_dtype = getattr(self.times, "dtype", None)
             if not (
                 is_datetime64_dtype(times_dtype)
@@ -376,6 +383,11 @@ class ExponentialMovingWindow(BaseWindow):
             # Halflife is no longer applicable when calculating COM
             # But allow COM to still be calculated if the user passes other decay args
             if common.count_not_none(self.com, self.span, self.alpha) > 0:
+                if not self.adjust:
+                    raise NotImplementedError(
+                        "None of com, span, or alpha can be specified if "
+                        "times is provided and adjust=False"
+                    )
                 self._com = get_center_of_mass(self.com, self.span, None, self.alpha)
             else:
                 self._com = 1.0
@@ -418,8 +430,6 @@ class ExponentialMovingWindow(BaseWindow):
         """
         Return an ``OnlineExponentialMovingWindow`` object to calculate
         exponentially moving window aggregations in an online method.
-
-        .. versionadded:: 1.3.0
 
         Parameters
         ----------
@@ -485,7 +495,7 @@ class ExponentialMovingWindow(BaseWindow):
         klass="Series/Dataframe",
         axis="",
     )
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
         return super().aggregate(func, *args, **kwargs)
 
     agg = aggregate
@@ -897,6 +907,7 @@ class ExponentialMovingWindow(BaseWindow):
         )
 
 
+@set_module("pandas.api.typing")
 class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow):
     """
     Provide an exponential moving window groupby implementation.
@@ -976,7 +987,7 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
         """
         self._mean.reset()
 
-    def aggregate(self, func, *args, **kwargs):
+    def aggregate(self, func=None, *args, **kwargs):
         raise NotImplementedError("aggregate is not implemented.")
 
     def std(self, bias: bool = False, *args, **kwargs):

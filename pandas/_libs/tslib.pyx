@@ -120,7 +120,7 @@ def format_array_from_datetime(
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
 ) -> np.ndarray:
     """
-    return a np object array of the string formatted values
+    return an np object array of the string formatted values
 
     Parameters
     ----------
@@ -439,7 +439,7 @@ cpdef array_to_datetime(
                 raise TypeError(f"{type(val)} is not convertible to datetime")
 
         except (TypeError, OverflowError, ValueError) as ex:
-            ex.args = (f"{ex}, at position {i}",)
+            ex.args = (f"{ex}",)
             if is_coerce:
                 iresult[i] = NPY_NAT
                 continue

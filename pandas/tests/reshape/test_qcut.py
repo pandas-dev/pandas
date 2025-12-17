@@ -101,23 +101,10 @@ def test_qcut_binning_issues(datapath):
     arr = np.loadtxt(cut_file)
     result = qcut(arr, 20)
 
-    starts = []
-    ends = []
-
-    for lev in np.unique(result):
-        s = lev.left
-        e = lev.right
-        assert s != e
-
-        starts.append(float(s))
-        ends.append(float(e))
-
-    for (sp, sn), (ep, en) in zip(
-        zip(starts[:-1], starts[1:]), zip(ends[:-1], ends[1:])
-    ):
-        assert sp < sn
-        assert ep < en
-        assert ep <= sn
+    starts = result.categories.left
+    ends = result.categories.right
+    assert (starts < ends).all()
+    assert (starts[1:] <= ends[:-1]).all()
 
 
 def test_qcut_return_intervals():
@@ -234,7 +221,7 @@ def test_qcut_nat(ser, unit):
 def test_datetime_tz_qcut(bins):
     # see gh-19872
     tz = "US/Eastern"
-    ser = Series(date_range("20130101", periods=3, tz=tz))
+    ser = Series(date_range("20130101", periods=3, tz=tz, unit="ns"))
 
     result = qcut(ser, bins)
     expected = Series(
@@ -307,3 +294,15 @@ def test_qcut_nullable_integer(q, any_numeric_ea_dtype):
     expected = qcut(arr.astype(float), q)
 
     tm.assert_categorical_equal(result, expected)
+
+
+@pytest.mark.parametrize("scale", [1.0, 1 / 3, 17.0])
+@pytest.mark.parametrize("q", [3, 7, 9])
+@pytest.mark.parametrize("precision", [1, 3, 16])
+def test_qcut_contains(scale, q, precision):
+    # GH-59355
+    arr = (scale * np.arange(q + 1)).round(precision)
+    result = qcut(arr, q, precision=precision)
+
+    for value, bucket in zip(arr, result):
+        assert value in bucket

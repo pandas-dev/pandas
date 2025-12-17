@@ -114,6 +114,8 @@ if pattern:
                 ):
                     exclude_patterns.append(rel_fname)
                 elif single_doc and rel_fname != pattern:
+                    if "\\" in rel_fname:
+                        rel_fname = rel_fname.replace("\\", "/")
                     exclude_patterns.append(rel_fname)
 
 with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:
@@ -242,7 +244,6 @@ html_theme_options = {
     "external_links": [],
     "footer_start": ["pandas_footer", "sphinx-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
-    "twitter_url": "https://twitter.com/pandas_dev",
     "analytics": {
         "plausible_analytics_domain": "pandas.pydata.org",
         "plausible_analytics_url": "https://views.scientific-python.org/js/script.js",
@@ -254,8 +255,16 @@ html_theme_options = {
         "json_url": "https://pandas.pydata.org/versions.json",
         "version_match": switcher_version,
     },
-    "show_version_warning_banner": True,
+    # This shows a warning for patch releases since the
+    # patch version doesn't compare as equal (e.g. 2.2.1 != 2.2.0 but it should be)
+    "show_version_warning_banner": False,
+    "announcement": "https://raw.githubusercontent.com/pandas-dev/pandas/main/doc/_templates/docs-announcement-banner.html",
     "icon_links": [
+        {
+            "name": "X",
+            "url": "https://x.com/pandas_dev",
+            "icon": "fa-brands fa-square-x-twitter",
+        },
         {
             "name": "Mastodon",
             "url": "https://fosstodon.org/@pandas_dev",
@@ -820,7 +829,6 @@ linkcheck_ignore = [
             "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568",
             "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495",
             "https://github.com/pandas-dev/pandas/issues/174151",
-            "https://gitpod.io/#https://github.com/USERNAME/pandas",
             "https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/",
             "https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table",
             "https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html",

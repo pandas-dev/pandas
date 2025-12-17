@@ -33,7 +33,7 @@ def dtype():
 @pytest.fixture
 def data(dtype):
     data = DatetimeArray._from_sequence(
-        pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype
+        pd.date_range("2000", periods=10, tz=dtype.tz), dtype=dtype
     )
     return data
 
@@ -94,6 +94,11 @@ class TestDatetimeArray(base.ExtensionTests):
         if op_name in ["__sub__", "__rsub__"]:
             return None
         return super()._get_expected_exception(op_name, obj, other)
+
+    def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
+        if op_name == "std":
+            return "timedelta64[ns]"
+        return arr.dtype
 
     def _supports_accumulation(self, ser, op_name: str) -> bool:
         return op_name in ["cummin", "cummax"]

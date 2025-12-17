@@ -4,13 +4,16 @@ datetimelke_accumulations.py is for accumulations of datetimelike extension arra
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._libs import iNaT
 
 from pandas.core.dtypes.missing import isna
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def _cum_func(

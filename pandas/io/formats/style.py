@@ -7,9 +7,11 @@ from __future__ import annotations
 import copy
 from functools import partial
 import operator
+import textwrap
 from typing import (
     TYPE_CHECKING,
-    Callable,
+    Concatenate,
+    Self,
     overload,
 )
 
@@ -55,6 +57,7 @@ from pandas.io.formats.style_render import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Sequence,
     )
@@ -65,7 +68,7 @@ if TYPE_CHECKING:
         Any,
         Axis,
         AxisInt,
-        Concatenate,
+        ExcelWriterMergeCells,
         FilePath,
         IndexLabel,
         IntervalClosedType,
@@ -73,7 +76,6 @@ if TYPE_CHECKING:
         P,
         QuantileInterpolation,
         Scalar,
-        Self,
         StorageOptions,
         T,
         WriteBuffer,
@@ -115,6 +117,12 @@ class Styler(StylerRenderer):
     r"""
     Helps style a DataFrame or Series according to the data with HTML and CSS.
 
+    This class provides methods for styling and formatting a Pandas DataFrame or Series.
+    The styled output can be rendered as HTML or LaTeX, and it supports CSS-based
+    styling, allowing users to control colors, font styles, and other visual aspects of
+    tabular data. It is particularly useful for presenting DataFrame objects in a
+    Jupyter Notebook environment or when exporting styled tables for reports and
+
     Parameters
     ----------
     data : Series or DataFrame
@@ -122,8 +130,6 @@ class Styler(StylerRenderer):
     precision : int, optional
         Precision to round floats to. If not given defaults to
         ``pandas.options.styler.format.precision``.
-
-        .. versionchanged:: 1.4.0
     table_styles : list-like, default None
         List of {selector: (attr, value)} dicts; see Notes.
     uuid : str, default None
@@ -149,15 +155,9 @@ class Styler(StylerRenderer):
     decimal : str, optional
         Character used as decimal separator for floats, complex and integers. If not
         given uses ``pandas.options.styler.format.decimal``.
-
-        .. versionadded:: 1.3.0
-
     thousands : str, optional, default None
         Character used as thousands separator for floats, complex and integers. If not
         given uses ``pandas.options.styler.format.thousands``.
-
-        .. versionadded:: 1.3.0
-
     escape : str, optional
         Use 'html' to replace the characters ``&``, ``<``, ``>``, ``'``, and ``"``
         in cell display string with HTML-safe sequences.
@@ -169,16 +169,14 @@ class Styler(StylerRenderer):
         which either are surrounded by two characters ``$`` or start with
         the character ``\(`` and end with ``\)``.
         If not given uses ``pandas.options.styler.format.escape``.
-
-        .. versionadded:: 1.3.0
     formatter : str, callable, dict, optional
         Object to define how values are displayed. See ``Styler.format``. If not given
         uses ``pandas.options.styler.format.formatter``.
 
-        .. versionadded:: 1.4.0
-
     Attributes
     ----------
+    index : data.index Index
+    columns : data.columns Index
     env : Jinja2 jinja2.Environment
     template_html : Jinja2 Template
     template_html_table : Jinja2 Template
@@ -220,6 +218,7 @@ class Styler(StylerRenderer):
       * ``level<k>`` where `k` is the level in a MultiIndex
 
     * Column label cells include
+
       * ``col_heading``
       * ``col<n>`` where `n` is the numeric position of the column
       * ``level<k>`` where `k` is the level in a MultiIndex
@@ -229,7 +228,7 @@ class Styler(StylerRenderer):
     * Trimmed cells include ``col_trim`` or ``row_trim``.
 
     Any, or all, or these classes can be renamed by using the ``css_class_names``
-    argument in ``Styler.set_table_classes``, giving a value such as
+    argument in ``Styler.set_table_styles``, giving a value such as
     *{"row": "MY_ROW_CLASS", "col_trim": "", "row_trim": ""}*.
 
     Examples
@@ -293,8 +292,6 @@ class Styler(StylerRenderer):
         """
         Append another Styler to combine the output into a single table.
 
-        .. versionadded:: 1.5.0
-
         Parameters
         ----------
         other : Styler
@@ -305,6 +302,12 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with specified Styler appended.
+
+        See Also
+        --------
+        Styler.clear : Reset the ``Styler``, removing any previously applied styles.
+        Styler.export : Export the styles applied to the current Styler.
 
         Notes
         -----
@@ -334,7 +337,7 @@ class Styler(StylerRenderer):
             keys ``data``, ``row_heading`` and ``row`` will be prepended with
             ``foot0_``. If more concats are chained, their styles will be prepended
             with ``foot1_``, ''foot_2'', etc., and if a concatenated style have
-            another concatanated style, the second style will be prepended with
+            another concatenated style, the second style will be prepended with
             ``foot{parent}_foot{child}_``.
 
         A common use case is to concatenate user defined functions with
@@ -423,8 +426,6 @@ class Styler(StylerRenderer):
         These string based tooltips are only applicable to ``<td>`` HTML elements,
         and cannot be used for column or index headers.
 
-        .. versionadded:: 1.3.0
-
         Parameters
         ----------
         ttips : DataFrame
@@ -446,6 +447,15 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with DataFrame set for strings on ``Styler``
+                generating ``:hover`` tooltips.
+
+        See Also
+        --------
+        Styler.set_table_attributes : Set the table attributes added to the
+            ``<table>`` HTML element.
+        Styler.set_table_styles : Set the table styles included within the
+            ``<style>`` HTML element.
 
         Notes
         -----
@@ -536,6 +546,18 @@ class Styler(StylerRenderer):
         klass="Styler",
         storage_options=_shared_docs["storage_options"],
         storage_options_versionadded="1.5.0",
+        encoding_parameter=textwrap.dedent(
+            """\
+        encoding : str or None, default None
+            Unused parameter, present for compatibility.
+        """
+        ),
+        verbose_parameter=textwrap.dedent(
+            """\
+        verbose : str, default True
+            Optional unused parameter, present for compatibility.
+        """
+        ),
         extra_parameters="",
     )
     def to_excel(
@@ -551,12 +573,13 @@ class Styler(StylerRenderer):
         startrow: int = 0,
         startcol: int = 0,
         engine: str | None = None,
-        merge_cells: bool = True,
+        merge_cells: ExcelWriterMergeCells = True,
         encoding: str | None = None,
         inf_rep: str = "inf",
         verbose: bool = True,
         freeze_panes: tuple[int, int] | None = None,
         storage_options: StorageOptions | None = None,
+        autofilter: bool = False,
     ) -> None:
         from pandas.io.formats.excel import ExcelFormatter
 
@@ -570,6 +593,7 @@ class Styler(StylerRenderer):
             index_label=index_label,
             merge_cells=merge_cells,
             inf_rep=inf_rep,
+            autofilter=autofilter,
         )
         formatter.write(
             excel_writer,
@@ -648,8 +672,6 @@ class Styler(StylerRenderer):
         r"""
         Write Styler to a file, buffer or string in LaTeX format.
 
-        .. versionadded:: 1.3.0
-
         Parameters
         ----------
         buf : str, path object, file-like object, or None, default None
@@ -680,8 +702,6 @@ class Styler(StylerRenderer):
             Set to `True` to add \\toprule, \\midrule and \\bottomrule from the
             {booktabs} LaTeX package.
             Defaults to ``pandas.options.styler.latex.hrules``, which is `False`.
-
-            .. versionchanged:: 1.4.0
         clines : str, optional
             Use to control adding \\cline commands for the index labels separation.
             Possible values are:
@@ -697,7 +717,6 @@ class Styler(StylerRenderer):
               - `"skip-last;index"`: as above with lines extending only the width of the
                 index entries.
 
-            .. versionadded:: 1.4.0
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
             This is used with \\ref{<label>} in the main .tex file.
@@ -719,8 +738,6 @@ class Styler(StylerRenderer):
             at the top or bottom using the multirow package. If not given defaults to
             ``pandas.options.styler.latex.multirow_align``, which is `"c"`.
             If "naive" is given renders without multirow.
-
-            .. versionchanged:: 1.4.0
         multicol_align : {"r", "c", "l", "naive-l", "naive-r"}, optional
             If sparsifying hierarchical MultiIndex columns whether to align text at
             the left, centrally, or at the right. If not given defaults to
@@ -729,8 +746,6 @@ class Styler(StylerRenderer):
             Pipe decorators can also be added to non-naive values to draw vertical
             rules, e.g. "\|r" will draw a rule on the left side of right aligned merged
             cells.
-
-            .. versionchanged:: 1.4.0
         siunitx : bool, default False
             Set to ``True`` to structure LaTeX compatible with the {siunitx} package.
         environment : str, optional
@@ -738,8 +753,6 @@ class Styler(StylerRenderer):
             If 'longtable' is specified then a more suitable template is
             rendered. If not given defaults to
             ``pandas.options.styler.latex.environment``, which is `None`.
-
-            .. versionadded:: 1.4.0
         encoding : str, optional
             Character encoding setting. Defaults
             to ``pandas.options.styler.render.encoding``, which is "utf-8".
@@ -1199,6 +1212,111 @@ class Styler(StylerRenderer):
         return save_to_buffer(latex, buf=buf, encoding=encoding)
 
     @overload
+    def to_typst(
+        self,
+        buf: FilePath | WriteBuffer[str],
+        *,
+        encoding: str | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+    ) -> None: ...
+
+    @overload
+    def to_typst(
+        self,
+        buf: None = ...,
+        *,
+        encoding: str | None = ...,
+        sparse_index: bool | None = ...,
+        sparse_columns: bool | None = ...,
+        max_rows: int | None = ...,
+        max_columns: int | None = ...,
+    ) -> str: ...
+
+    @Substitution(buf=buffering_args, encoding=encoding_args)
+    def to_typst(
+        self,
+        buf: FilePath | WriteBuffer[str] | None = None,
+        *,
+        encoding: str | None = None,
+        sparse_index: bool | None = None,
+        sparse_columns: bool | None = None,
+        max_rows: int | None = None,
+        max_columns: int | None = None,
+    ) -> str | None:
+        """
+        Write Styler to a file, buffer or string in Typst format.
+
+        .. versionadded:: 3.0.0
+
+        Parameters
+        ----------
+        %(buf)s
+        %(encoding)s
+        sparse_index : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each row.
+            Defaults to ``pandas.options.styler.sparse.index`` value.
+        sparse_columns : bool, optional
+            Whether to sparsify the display of a hierarchical index. Setting to False
+            will display each explicit level element in a hierarchical key for each
+            column. Defaults to ``pandas.options.styler.sparse.columns`` value.
+        max_rows : int, optional
+            The maximum number of rows that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_rows``, which is None.
+        max_columns : int, optional
+            The maximum number of columns that will be rendered. Defaults to
+            ``pandas.options.styler.render.max_columns``, which is None.
+
+            Rows and columns may be reduced if the number of total elements is
+            large. This value is set to ``pandas.options.styler.render.max_elements``,
+            which is 262144 (18 bit browser rendering).
+
+        Returns
+        -------
+        str or None
+            If `buf` is None, returns the result as a string. Otherwise returns `None`.
+
+        See Also
+        --------
+        DataFrame.to_typst : Write a DataFrame to a file,
+            buffer or string in Typst format.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
+        >>> df.style.to_typst()  # doctest: +SKIP
+
+        .. code-block:: typst
+
+            #table(
+              columns: 3,
+              [], [A], [B],
+
+              [0], [1], [3],
+              [1], [2], [4],
+            )
+        """
+        obj = self._copy(deepcopy=True)
+
+        if sparse_index is None:
+            sparse_index = get_option("styler.sparse.index")
+        if sparse_columns is None:
+            sparse_columns = get_option("styler.sparse.columns")
+
+        text = obj._render_typst(
+            sparse_columns=sparse_columns,
+            sparse_index=sparse_index,
+            max_rows=max_rows,
+            max_cols=max_columns,
+        )
+        return save_to_buffer(
+            text, buf=buf, encoding=(encoding if buf is not None else None)
+        )
+
+    @overload
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str],
@@ -1257,8 +1375,6 @@ class Styler(StylerRenderer):
         """
         Write Styler to a file, buffer or string in HTML-CSS format.
 
-        .. versionadded:: 1.3.0
-
         Parameters
         ----------
         %(buf)s
@@ -1278,27 +1394,17 @@ class Styler(StylerRenderer):
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each row.
             Defaults to ``pandas.options.styler.sparse.index`` value.
-
-            .. versionadded:: 1.4.0
         sparse_columns : bool, optional
             Whether to sparsify the display of a hierarchical index. Setting to False
             will display each explicit level element in a hierarchical key for each
             column. Defaults to ``pandas.options.styler.sparse.columns`` value.
-
-            .. versionadded:: 1.4.0
         bold_headers : bool, optional
             Adds "font-weight: bold;" as a CSS property to table style header cells.
-
-            .. versionadded:: 1.4.0
         caption : str, optional
             Set, or overwrite, the caption on Styler before rendering.
-
-            .. versionadded:: 1.4.0
         max_rows : int, optional
             The maximum number of rows that will be rendered. Defaults to
             ``pandas.options.styler.render.max_rows/max_columns``.
-
-            .. versionadded:: 1.4.0
         max_columns : int, optional
             The maximum number of columns that will be rendered. Defaults to
             ``pandas.options.styler.render.max_columns``, which is None.
@@ -1307,7 +1413,6 @@ class Styler(StylerRenderer):
             large. This value is set to ``pandas.options.styler.render.max_elements``,
             which is 262144 (18 bit browser rendering).
 
-            .. versionadded:: 1.4.0
         %(encoding)s
         doctype_html : bool, default False
             Whether to output a fully structured HTML file including all
@@ -1423,8 +1528,6 @@ class Styler(StylerRenderer):
         """
         Write Styler to a file, buffer or string in text format.
 
-        .. versionadded:: 1.5.0
-
         Parameters
         ----------
         %(buf)s
@@ -1454,6 +1557,10 @@ class Styler(StylerRenderer):
         -------
         str or None
             If `buf` is None, returns the result as a string. Otherwise returns `None`.
+
+        See Also
+        --------
+        DataFrame.to_string : Render a DataFrame to a console-friendly tabular output.
 
         Examples
         --------
@@ -1494,6 +1601,8 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with ``class`` attribute set for ``<td>``
+                HTML elements.
 
         See Also
         --------
@@ -1608,7 +1717,7 @@ class Styler(StylerRenderer):
         for j in attrs.columns:
             ser = attrs[j]
             for i, c in ser.items():
-                if not c:
+                if not c or pd.isna(c):
                     continue
                 css_list = maybe_convert_css_to_tuples(c)
                 if axis == 0:
@@ -1698,6 +1807,14 @@ class Styler(StylerRenderer):
         Reset the ``Styler``, removing any previously applied styles.
 
         Returns None.
+
+        See Also
+        --------
+        Styler.apply : Apply a CSS-styling function column-wise, row-wise,
+            or table-wise.
+        Styler.export : Export the styles applied to the current Styler.
+        Styler.map : Apply a CSS-styling function elementwise.
+        Styler.use : Set the styles on the current Styler.
 
         Examples
         --------
@@ -1804,11 +1921,6 @@ class Styler(StylerRenderer):
             ``func`` should take a DataFrame if ``axis`` is ``None`` and return either
             an ndarray with the same shape or a DataFrame, not necessarily of the same
             shape, with valid index and columns labels considering ``subset``.
-
-            .. versionchanged:: 1.3.0
-
-            .. versionchanged:: 1.4.0
-
         axis : {0 or 'index', 1 or 'columns', None}, default 0
             Apply to each column (``axis=0`` or ``'index'``), to each row
             (``axis=1`` or ``'columns'``), or to the entire DataFrame at once
@@ -1820,6 +1932,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -1871,7 +1984,7 @@ class Styler(StylerRenderer):
         more details.
         """
         self._todo.append(
-            (lambda instance: getattr(instance, "_apply"), (func, axis, subset), kwargs)
+            (lambda instance: instance._apply, (func, axis, subset), kwargs)
         )
         return self
 
@@ -1921,8 +2034,6 @@ class Styler(StylerRenderer):
 
         Updates the HTML representation with the result.
 
-        .. versionadded:: 1.4.0
-
         .. versionadded:: 2.1.0
            Styler.applymap_index was deprecated and renamed to Styler.map_index.
 
@@ -1940,6 +2051,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -1977,7 +2089,7 @@ class Styler(StylerRenderer):
         """
         self._todo.append(
             (
-                lambda instance: getattr(instance, "_apply_index"),
+                lambda instance: instance._apply_index,
                 (func, axis, level, "apply"),
                 kwargs,
             )
@@ -2006,7 +2118,7 @@ class Styler(StylerRenderer):
     ) -> Styler:
         self._todo.append(
             (
-                lambda instance: getattr(instance, "_apply_index"),
+                lambda instance: instance._apply_index,
                 (func, axis, level, "map"),
                 kwargs,
             )
@@ -2040,6 +2152,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS-styling function applied elementwise.
 
         See Also
         --------
@@ -2078,9 +2191,7 @@ class Styler(StylerRenderer):
         See `Table Visualization <../../user_guide/style.ipynb>`_ user guide for
         more details.
         """
-        self._todo.append(
-            (lambda instance: getattr(instance, "_map"), (func, subset), kwargs)
-        )
+        self._todo.append((lambda instance: instance._map, (func, subset), kwargs))
         return self
 
     def set_table_attributes(self, attributes: str) -> Styler:
@@ -2092,10 +2203,12 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         attributes : str
+            Table attributes to be added to the ``<table>`` HTML element.
 
         Returns
         -------
         Styler
+            Instance of class with specified table attributes set.
 
         See Also
         --------
@@ -2122,6 +2235,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         dict
+            Contains data-independent (exportable) styles applied to current Styler.
 
         See Also
         --------
@@ -2198,6 +2312,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with defined styler attributes added.
 
         See Also
         --------
@@ -2245,10 +2360,19 @@ class Styler(StylerRenderer):
         Parameters
         ----------
         uuid : str
+            The uuid to be applied to ``id`` attributes of HTML elements.
 
         Returns
         -------
         Styler
+            Instance of class with specified uuid for `id` attributes set.
+
+        See Also
+        --------
+        Styler.set_caption : Set the text added to a ``<caption>`` HTML element.
+        Styler.set_td_classes : Set the ``class`` attribute of ``<td>`` HTML elements.
+        Styler.set_tooltips : Set the DataFrame of strings on ``Styler`` generating
+            ``:hover`` tooltips.
 
         Notes
         -----
@@ -2289,6 +2413,14 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with text set for ``<caption>`` HTML element.
+
+        See Also
+        --------
+        Styler.set_td_classes : Set the ``class`` attribute of ``<td>`` HTML elements.
+        Styler.set_tooltips : Set the DataFrame of strings on ``Styler`` generating
+            ``:hover`` tooltips.
+        Styler.set_uuid : Set the uuid applied to ``id`` attributes of HTML elements.
 
         Examples
         --------
@@ -2335,6 +2467,13 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS set for permanently displaying headers
+                in scrolling frame.
+
+        See Also
+        --------
+        Styler.set_properties : Set defined CSS-properties to each ``<td>``
+            HTML element for the given subset.
 
         Notes
         -----
@@ -2408,7 +2547,7 @@ class Styler(StylerRenderer):
                 for i, level in enumerate(levels_):
                     styles.append(
                         {
-                            "selector": f"thead tr:nth-child({level+1}) th",
+                            "selector": f"thead tr:nth-child({level + 1}) th",
                             "props": props
                             + (
                                 f"top:{i * pixel_size}px; height:{pixel_size}px; "
@@ -2419,7 +2558,7 @@ class Styler(StylerRenderer):
                 if not all(name is None for name in self.index.names):
                     styles.append(
                         {
-                            "selector": f"thead tr:nth-child({obj.nlevels+1}) th",
+                            "selector": f"thead tr:nth-child({obj.nlevels + 1}) th",
                             "props": props
                             + (
                                 f"top:{(len(levels_)) * pixel_size}px; "
@@ -2439,7 +2578,7 @@ class Styler(StylerRenderer):
                     styles.extend(
                         [
                             {
-                                "selector": f"thead tr th:nth-child({level+1})",
+                                "selector": f"thead tr th:nth-child({level + 1})",
                                 "props": props_ + "z-index:3 !important;",
                             },
                             {
@@ -2490,11 +2629,10 @@ class Styler(StylerRenderer):
         css_class_names : dict, optional
             A dict of strings used to replace the default CSS classes described below.
 
-            .. versionadded:: 1.4.0
-
         Returns
         -------
         Styler
+            Instance of class with specified table styles set.
 
         See Also
         --------
@@ -2606,8 +2744,6 @@ class Styler(StylerRenderer):
         """
         Hide the entire index / column headers, or specific rows / columns from display.
 
-        .. versionadded:: 1.4.0
-
         Parameters
         ----------
         subset : label, array-like, IndexSlice, optional
@@ -2626,6 +2762,13 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with specified headers/rows/columns hidden from display.
+
+        See Also
+        --------
+        Styler.apply : Apply a CSS-styling function column-wise, row-wise,
+            or table-wise.
+        Styler.map : Apply a CSS-styling function elementwise.
 
         Notes
         -----
@@ -2859,11 +3002,10 @@ class Styler(StylerRenderer):
             If supplied, ``vmin`` and ``vmax`` should be given relative to this
             gradient map.
 
-            .. versionadded:: 1.3.0
-
         Returns
         -------
         Styler
+            Instance of class with {name} colored in gradient style.
 
         See Also
         --------
@@ -3001,6 +3143,13 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with CSS-properties set for each ``<td>`` HTML element
+                in the given subset
+
+        See Also
+        --------
+        Styler.set_sticky : Add CSS to permanently display the index or column
+            headers in a scrolling frame.
 
         Notes
         -----
@@ -3037,8 +3186,6 @@ class Styler(StylerRenderer):
         """
         Draw bar chart in the cell backgrounds.
 
-        .. versionchanged:: 1.4.0
-
         Parameters
         ----------
         %(subset)s
@@ -3054,15 +3201,11 @@ class Styler(StylerRenderer):
         cmap : str, matplotlib.cm.ColorMap
             A string name of a matplotlib Colormap, or a Colormap object. Cannot be
             used together with ``color``.
-
-            .. versionadded:: 1.4.0
         width : float, default 100
             The percentage of the cell, measured from the left, in which to draw the
             bars, in [0, 100].
         height : float, default 100
             The percentage height of the bar in the cell, centrally aligned, in [0,100].
-
-            .. versionadded:: 1.4.0
         align : str, int, float, callable, default 'mid'
             How to align the bars within the cells relative to a width adjusted center.
             If string must be one of:
@@ -3079,8 +3222,6 @@ class Styler(StylerRenderer):
 
             If a callable should take a 1d or 2d array and return a scalar.
 
-            .. versionchanged:: 1.4.0
-
         vmin : float, optional
             Minimum bar value, defining the left hand limit
             of the bar drawing range, lower values are clipped to `vmin`.
@@ -3093,11 +3234,16 @@ class Styler(StylerRenderer):
             The base CSS of the cell that is extended to add the bar chart. Defaults to
             `"width: 10em;"`.
 
-            .. versionadded:: 1.4.0
-
         Returns
         -------
         Styler
+            Contains list-like attribute with bar chart data as formatted CSS.
+
+        See Also
+        --------
+        PlotAccessor.bar : Vertical bar plot.
+        PlotAccessor.line : Plot Series or DataFrame as lines.
+        PlotAccessor.pie : Generate a pie plot.
 
         Notes
         -----
@@ -3165,17 +3311,14 @@ class Styler(StylerRenderer):
         ----------
         %(color)s
 
-            .. versionadded:: 1.5.0
-
         %(subset)s
 
         %(props)s
 
-            .. versionadded:: 1.3.0
-
         Returns
         -------
         Styler
+            Instance of class where null values are highlighted with given style.
 
         See Also
         --------
@@ -3225,11 +3368,10 @@ class Styler(StylerRenderer):
             with ``axis=None``.
         %(props)s
 
-            .. versionadded:: 1.3.0
-
         Returns
         -------
         Styler
+            Instance of class where max value is highlighted in given style.
 
         See Also
         --------
@@ -3281,11 +3423,10 @@ class Styler(StylerRenderer):
             with ``axis=None``.
         %(props)s
 
-            .. versionadded:: 1.3.0
-
         Returns
         -------
         Styler
+            Instance of class where min value is highlighted in given style.
 
         See Also
         --------
@@ -3330,8 +3471,6 @@ class Styler(StylerRenderer):
         """
         Highlight a defined range with a style.
 
-        .. versionadded:: 1.3.0
-
         Parameters
         ----------
         %(subset)s
@@ -3350,6 +3489,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class with range highlighted in given style.
 
         See Also
         --------
@@ -3447,8 +3587,6 @@ class Styler(StylerRenderer):
         """
         Highlight values defined by a quantile with a style.
 
-        .. versionadded:: 1.3.0
-
         Parameters
         ----------
         %(subset)s
@@ -3470,6 +3608,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
+            Instance of class where values in quantile highlighted with given style.
 
         See Also
         --------
@@ -3553,27 +3692,25 @@ class Styler(StylerRenderer):
 
         Uses custom templates and Jinja environment.
 
-        .. versionchanged:: 1.3.0
-
         Parameters
         ----------
         searchpath : str or list
             Path or paths of directories containing the templates.
         html_table : str
             Name of your custom template to replace the html_table template.
-
-            .. versionadded:: 1.3.0
-
         html_style : str
             Name of your custom template to replace the html_style template.
-
-            .. versionadded:: 1.3.0
 
         Returns
         -------
         MyStyler : subclass of Styler
-            Has the correct ``env``,``template_html``, ``template_html_table`` and
+            Has the correct ``env``, ``template_html``, ``template_html_table`` and
             ``template_html_style`` class attributes set.
+
+        See Also
+        --------
+        Styler.export : Export the styles applied to the current Styler.
+        Styler.use : Set the styles on the current Styler.
 
         Examples
         --------
@@ -4001,8 +4138,10 @@ def _bar(
         if end > start:
             cell_css += "background: linear-gradient(90deg,"
             if start > 0:
-                cell_css += f" transparent {start*100:.1f}%, {color} {start*100:.1f}%,"
-            cell_css += f" {color} {end*100:.1f}%, transparent {end*100:.1f}%)"
+                cell_css += (
+                    f" transparent {start * 100:.1f}%, {color} {start * 100:.1f}%,"
+                )
+            cell_css += f" {color} {end * 100:.1f}%, transparent {end * 100:.1f}%)"
         return cell_css
 
     def css_calc(x, left: float, right: float, align: str, color: str | list | tuple):

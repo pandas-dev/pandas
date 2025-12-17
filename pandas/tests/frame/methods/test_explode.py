@@ -210,7 +210,7 @@ def test_ignore_index():
     df = pd.DataFrame({"id": range(0, 20, 10), "values": [list("ab"), list("cd")]})
     result = df.explode("values", ignore_index=True)
     expected = pd.DataFrame(
-        {"id": [0, 0, 10, 10], "values": list("abcd")}, index=[0, 1, 2, 3]
+        {"id": [0, 0, 10, 10], "values": list("abcd")}, index=range(4)
     )
     tm.assert_frame_equal(result, expected)
 
@@ -297,3 +297,11 @@ def test_multi_columns_nan_empty():
         index=[0, 0, 1, 2, 3, 3],
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_str_dtype():
+    # https://github.com/pandas-dev/pandas/pull/61623
+    df = pd.DataFrame({"a": ["x", "y"]}, dtype="str")
+    result = df.explode(column="a")
+    assert result is not df
+    tm.assert_frame_equal(result, df)

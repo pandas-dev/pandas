@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import IS64
-from pandas.compat.numpy import np_version_gte1p25
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -223,13 +223,15 @@ class TestCommon:
             pass
 
         result = idx.unique()
-        tm.assert_index_equal(result, idx_unique)
+        tm.assert_index_equal(
+            result, idx_unique, exact=not isinstance(index, RangeIndex)
+        )
 
         # nans:
         if not index._can_hold_na:
             pytest.skip("Skip na-check if index cannot hold na")
 
-        vals = index._values[[0] * 5]
+        vals = index._values.copy()[[0] * 5]
         vals[0] = np.nan
 
         vals_unique = vals[:2]
@@ -379,13 +381,11 @@ class TestCommon:
         else:
             index.name = "idx"
 
-        warn = None
-        if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]:
-            # imaginary components discarded
-            if np_version_gte1p25:
-                warn = np.exceptions.ComplexWarning
-            else:
-                warn = np.ComplexWarning
+        warn = (
+            np.exceptions.ComplexWarning
+            if index.dtype.kind == "c" and dtype in ["float64", "int64", "uint64"]
+            else None
+        )
 
         is_pyarrow_str = str(index.dtype) == "string[pyarrow]" and dtype == "category"
         try:
@@ -524,3 +524,13 @@ def test_to_frame_name_tuple_multiindex():
     result = idx.to_frame(name=(1, 2))
     expected = pd.DataFrame([1], columns=MultiIndex.from_arrays([[1], [2]]), index=idx)
     tm.assert_frame_equal(result, expected)
+
+
+def test_join_series_deprecated():
+    # GH#62897
+    idx = pd.Index([1, 2])
+    ser = pd.Series([1, 2, 2])
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="Passing .* to .* is deprecated"
+    ):
+        idx.join(ser)

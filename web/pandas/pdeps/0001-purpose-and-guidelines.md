@@ -8,6 +8,8 @@
   [Noa Tamir](https://github.com/noatamir)
 - Revision: 3
 
+[TOC]
+
 ## PDEP definition, purpose and scope
 
 A PDEP (pandas enhancement proposal) is a proposal for a **major** change in
@@ -285,3 +287,4 @@ hope can help clarify our meaning here:
 [51417]: https://github.com/pandas-dev/pandas/pull/51417
 [28900]: https://github.com/pandas-dev/pandas/issues/28900
 [35407]: https://github.com/pandas-dev/pandas/issues/35407
+[53576]: https://github.com/pandas-dev/pandas/pull/53576

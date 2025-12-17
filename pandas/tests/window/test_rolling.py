@@ -8,10 +8,8 @@ import pytest
 
 from pandas.compat import (
     IS64,
-    is_platform_arm,
-    is_platform_power,
-    is_platform_riscv64,
 )
+from pandas.errors import Pandas4Warning
 
 from pandas import (
     DataFrame,
@@ -227,15 +225,10 @@ def test_datetimelike_centered_selections(
         index=date_range("2020", periods=5),
     )
 
-    if func_name == "sem":
-        kwargs = {"ddof": 0}
-    else:
-        kwargs = {}
-
     result = getattr(
         df_time.rolling("2D", closed=closed, min_periods=1, center=True),
         func_name,
-    )(**kwargs)
+    )()
 
     tm.assert_frame_equal(result, expected, check_dtype=False)
 
@@ -578,7 +571,7 @@ def test_missing_minp_zero_variable():
         [np.nan] * 4,
         index=DatetimeIndex(["2017-01-01", "2017-01-04", "2017-01-06", "2017-01-07"]),
     )
-    result = x.rolling(Timedelta("2d"), min_periods=0).sum()
+    result = x.rolling(Timedelta("2D"), min_periods=0).sum()
     expected = Series(0.0, index=x.index)
     tm.assert_series_equal(result, expected)
 
@@ -763,7 +756,9 @@ def test_iter_rolling_dataframe(df, expected, window, min_periods):
     df = DataFrame(df)
     expecteds = [DataFrame(values, index=index) for (values, index) in expected]
 
-    for expected, actual in zip(expecteds, df.rolling(window, min_periods=min_periods)):
+    for expected, actual in zip(
+        expecteds, df.rolling(window, min_periods=min_periods), strict=False
+    ):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -809,7 +804,7 @@ def test_iter_rolling_on_dataframe(expected, window):
     expecteds = [
         DataFrame(values, index=df.loc[index, "C"]) for (values, index) in expected
     ]
-    for expected, actual in zip(expecteds, df.rolling(window, on="C")):
+    for expected, actual in zip(expecteds, df.rolling(window, on="C"), strict=False):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -818,7 +813,7 @@ def test_iter_rolling_on_dataframe_unordered():
     df = DataFrame({"a": ["x", "y", "x"], "b": [0, 1, 2]})
     results = list(df.groupby("a").rolling(2))
     expecteds = [df.iloc[idx, [1]] for idx in [[0], [0, 2], [1]]]
-    for result, expected in zip(results, expecteds):
+    for result, expected in zip(results, expecteds, strict=True):
         tm.assert_frame_equal(result, expected)
 
 
@@ -860,7 +855,7 @@ def test_iter_rolling_series(ser, expected, window, min_periods):
     expecteds = [Series(values, index=index) for (values, index) in expected]
 
     for expected, actual in zip(
-        expecteds, ser.rolling(window, min_periods=min_periods)
+        expecteds, ser.rolling(window, min_periods=min_periods), strict=True
     ):
         tm.assert_series_equal(actual, expected)
 
@@ -908,10 +903,11 @@ def test_iter_rolling_datetime(expected, expected_index, window):
     ser = Series(range(5), index=date_range(start="2020-01-01", periods=5, freq="D"))
 
     expecteds = [
-        Series(values, index=idx) for (values, idx) in zip(expected, expected_index)
+        Series(values, index=idx)
+        for (values, idx) in zip(expected, expected_index, strict=True)
     ]
 
-    for expected, actual in zip(expecteds, ser.rolling(window)):
+    for expected, actual in zip(expecteds, ser.rolling(window), strict=True):
         tm.assert_series_equal(actual, expected)
 
 
@@ -1077,31 +1073,95 @@ def test_rolling_sem(frame_or_series):
     result = obj.rolling(2, min_periods=1).sem()
     if isinstance(result, DataFrame):
         result = Series(result[0].values)
-    expected = Series([np.nan] + [0.7071067811865476] * 2)
+    expected = Series([np.nan] + [0.5] * 2)
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(
-    is_platform_arm() or is_platform_power() or is_platform_riscv64(),
-    reason="GH 38921",
-)
 @pytest.mark.parametrize(
-    ("func", "third_value", "values"),
+    ("func", "values", "window", "ddof", "expected_values"),
     [
-        ("var", 1, [5e33, 0, 0.5, 0.5, 2, 0]),
-        ("std", 1, [7.071068e16, 0, 0.7071068, 0.7071068, 1.414214, 0]),
-        ("var", 2, [5e33, 0.5, 0, 0.5, 2, 0]),
-        ("std", 2, [7.071068e16, 0.7071068, 0, 0.7071068, 1.414214, 0]),
+        ("var", [99999999999999999, 1, 1, 2, 3, 1, 1], 2, 1, [5e33, 0, 0.5, 0.5, 2, 0]),
+        (
+            "std",
+            [99999999999999999, 1, 1, 2, 3, 1, 1],
+            2,
+            1,
+            [7.071068e16, 0, 0.7071068, 0.7071068, 1.414214, 0],
+        ),
+        ("var", [99999999999999999, 1, 2, 2, 3, 1, 1], 2, 1, [5e33, 0.5, 0, 0.5, 2, 0]),
+        (
+            "std",
+            [99999999999999999, 1, 2, 2, 3, 1, 1],
+            2,
+            1,
+            [7.071068e16, 0.7071068, 0, 0.7071068, 1.414214, 0],
+        ),
+        (
+            "std",
+            [1.2e03, 1.3e17, 1.5e17, 1.995e03, 1.990e03],
+            2,
+            1,
+            [9.192388e16, 1.414214e16, 1.060660e17, 3.535534e00],
+        ),
+        (
+            "var",
+            [
+                0.00000000e00,
+                0.00000000e00,
+                3.16188252e-18,
+                2.95781651e-16,
+                2.23153542e-51,
+                0.00000000e00,
+                0.00000000e00,
+                5.39943432e-48,
+                1.38206260e-73,
+                0.00000000e00,
+            ],
+            3,
+            1,
+            [
+                3.33250036e-036,
+                2.88538519e-032,
+                2.88538519e-032,
+                2.91622617e-032,
+                1.65991678e-102,
+                9.71796366e-096,
+                9.71796366e-096,
+                9.71796366e-096,
+            ],
+        ),
+        (
+            "std",
+            [1, -1, 0, 1, 3, 2, -2, 10000000000, 1, 2, 0, -2, 1, 3, 0, 1],
+            6,
+            1,
+            [
+                1.41421356e00,
+                1.87082869e00,
+                4.08248290e09,
+                4.08248290e09,
+                4.08248290e09,
+                4.08248290e09,
+                4.08248290e09,
+                4.08248290e09,
+                1.72240142e00,
+                1.75119007e00,
+                1.64316767e00,
+            ],
+        ),
     ],
 )
-def test_rolling_var_numerical_issues(func, third_value, values):
-    # GH: 37051
-    ds = Series([99999999999999999, 1, third_value, 2, 3, 1, 1])
-    result = getattr(ds.rolling(2), func)()
-    expected = Series([np.nan] + values)
-    tm.assert_series_equal(result, expected)
+def test_rolling_var_correctness(func, values, window, ddof, expected_values):
+    # GH: 37051, 42064, 54518, 52407, 47721
+    ts = Series(values)
+    result = getattr(ts.rolling(window=window), func)(ddof=ddof)
+    if result.last_valid_index():
+        result = result[
+            result.first_valid_index() : result.last_valid_index() + 1
+        ].reset_index(drop=True)
+    expected = Series(expected_values)
+    tm.assert_series_equal(result, expected, atol=1e-55)
     # GH 42064
-    # new `roll_var` will output 0.0 correctly
     tm.assert_series_equal(result == 0, expected == 0)
 
 
@@ -1153,7 +1213,7 @@ def test_timeoffset_as_window_parameter_for_corr(unit):
         index=dti,
     )
 
-    res = df.rolling(window="3d").corr()
+    res = df.rolling(window="3D").corr()
 
     tm.assert_frame_equal(exp, res)
 
@@ -1171,7 +1231,9 @@ def test_rolling_decreasing_indices(method):
     increasing = getattr(df.rolling(window=5), method)()
     decreasing = getattr(df_reverse.rolling(window=5), method)()
 
-    assert np.abs(decreasing.values[::-1][:-4] - increasing.values[4:]).max() < 1e-12
+    tm.assert_almost_equal(
+        decreasing.values[::-1][:-4], increasing.values[4:], atol=1e-12
+    )
 
 
 @pytest.mark.parametrize(
@@ -1326,6 +1388,82 @@ def test_rolling_corr_timedelta_index(index, window):
     tm.assert_almost_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values,method,expected",
+    [
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "first",
+            [float("nan"), float("nan"), 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "first",
+            [float("nan")] * 10,
+        ),
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "last",
+            [float("nan"), float("nan"), 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "last",
+            [float("nan")] * 10,
+        ),
+    ],
+)
+def test_rolling_first_last(values, method, expected):
+    # GH#33155
+    x = Series(values)
+    result = getattr(x.rolling(3), method)()
+    expected = Series(expected)
+    tm.assert_almost_equal(result, expected)
+
+    x = DataFrame({"A": values})
+    result = getattr(x.rolling(3), method)()
+    expected = DataFrame({"A": expected})
+    tm.assert_almost_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "values,method,expected",
+    [
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "first",
+            [1.0, 1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "first",
+            [1.0, 1.0, 1.0, 3.0, 3.0, 5.0, 5.0, 7.0, 7.0, 9.0],
+        ),
+        (
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+            "last",
+            [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        ),
+        (
+            [1.0, np.nan, 3.0, np.nan, 5.0, np.nan, 7.0, np.nan, 9.0, np.nan],
+            "last",
+            [1.0, 1.0, 3.0, 3.0, 5.0, 5.0, 7.0, 7.0, 9.0, 9.0],
+        ),
+    ],
+)
+def test_rolling_first_last_no_minp(values, method, expected):
+    # GH#33155
+    x = Series(values)
+    result = getattr(x.rolling(3, min_periods=0), method)()
+    expected = Series(expected)
+    tm.assert_almost_equal(result, expected)
+
+    x = DataFrame({"A": values})
+    result = getattr(x.rolling(3, min_periods=0), method)()
+    expected = DataFrame({"A": expected})
+    tm.assert_almost_equal(result, expected)
+
+
 def test_groupby_rolling_nan_included():
     # GH 35542
     data = {"group": ["g1", np.nan, "g1", "g2", np.nan], "B": [0, 1, 2, 3, 4]}
@@ -1361,18 +1499,56 @@ def test_rolling_skew_kurt_numerical_stability(method):
 
 
 @pytest.mark.parametrize(
-    ("method", "values"),
+    ("method", "data", "values"),
     [
-        ("skew", [2.0, 0.854563, 0.0, 1.999984]),
-        ("kurt", [4.0, -1.289256, -1.2, 3.999946]),
+        (
+            "skew",
+            [3000000, 1, 1, 2, 3, 4, 999],
+            [np.nan] * 3 + [2.0, 0.854563, 0.0, 1.999984],
+        ),
+        (
+            "skew",
+            [1e6, -1e6, 1, 2, 3, 4, 5, 6],
+            [np.nan] * 3 + [-5.51135192e-06, -2.0, 0.0, 0.0, 0.0],
+        ),
+        (
+            "kurt",
+            [3000000, 1, 1, 2, 3, 4, 999],
+            [np.nan] * 3 + [4.0, -1.289256, -1.2, 3.999946],
+        ),
+        (
+            "kurt",
+            [1e6, -1e6, 1, 2, 3, 4, 5, 6],
+            [np.nan] * 3 + [1.5, 4.0, -1.2, -1.2, -1.2],
+        ),
     ],
 )
-def test_rolling_skew_kurt_large_value_range(method, values):
-    # GH: 37557
-    s = Series([3000000, 1, 1, 2, 3, 4, 999])
+def test_rolling_skew_kurt_large_value_range(method, data, values):
+    # GH: 37557, 47461, 61416
+    s = Series(data)
     result = getattr(s.rolling(4), method)()
-    expected = Series([np.nan] * 3 + values)
+    expected = Series(values)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["skew", "kurt"])
+def test_same_result_with_different_lengths(method):
+    # GH-54380
+    len_smaller = 10
+    len_bigger = 12
+    window_size = 8
+
+    rng = np.random.default_rng(2)
+    data = rng.normal(loc=0.0, scale=1e3, size=len_bigger)
+    window_smaller = Series(data[:len_smaller]).rolling(window_size)
+    window_bigger = Series(data).rolling(window_size)
+
+    result_smaller = getattr(window_smaller, method)()
+    result_bigger = getattr(window_bigger, method)()
+
+    result_bigger_trimmed = result_bigger[:len_smaller]
+
+    tm.assert_series_equal(result_smaller, result_bigger_trimmed, check_exact=True)
 
 
 def test_invalid_method():
@@ -1380,17 +1556,20 @@ def test_invalid_method():
         Series(range(1)).rolling(1, method="foo")
 
 
-@pytest.mark.parametrize("window", [1, "1d"])
-def test_rolling_descending_date_order_with_offset(window, frame_or_series):
+def test_rolling_descending_date_order_with_offset(frame_or_series):
     # GH#40002
-    idx = date_range(start="2020-01-01", end="2020-01-03", freq="1d")
-    obj = frame_or_series(range(1, 4), index=idx)
-    result = obj.rolling("1d", closed="left").sum()
+    msg = "'d' is deprecated and will be removed in a future version."
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        idx = date_range(start="2020-01-01", end="2020-01-03", freq="1d")
+        obj = frame_or_series(range(1, 4), index=idx)
+        result = obj.rolling("1d", closed="left").sum()
+
     expected = frame_or_series([np.nan, 1, 2], index=idx)
     tm.assert_equal(result, expected)
 
-    result = obj.iloc[::-1].rolling("1d", closed="left").sum()
-    idx = date_range(start="2020-01-03", end="2020-01-01", freq="-1d")
+    result = obj.iloc[::-1].rolling("1D", closed="left").sum()
+    idx = date_range(start="2020-01-03", end="2020-01-01", freq="-1D")
     expected = frame_or_series([np.nan, 3, 2], index=idx)
     tm.assert_equal(result, expected)
 
@@ -1503,6 +1682,43 @@ def test_rank(window, method, pct, ascending, test_data):
         lambda x: x.rank(method=method, pct=pct, ascending=ascending).iloc[-1]
     )
     result = ser.rolling(window).rank(method=method, pct=pct, ascending=ascending)
+
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("window", [1, 3, 10, 20])
+@pytest.mark.parametrize("test_data", ["default", "duplicates", "nans", "precision"])
+def test_nunique(window, test_data):
+    length = 20
+    if test_data == "default":
+        ser = Series(data=np.random.default_rng(2).random(length))
+    elif test_data == "duplicates":
+        ser = Series(data=np.random.default_rng(2).choice(3, length))
+    elif test_data == "nans":
+        ser = Series(
+            data=np.random.default_rng(2).choice(
+                [1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length
+            )
+        )
+    elif test_data == "precision":
+        ser = Series(
+            data=[
+                0.3,
+                0.1 * 3,  # Not necessarily exactly 0.3
+                0.6,
+                0.2 * 3,  # Not necessarily exactly 0.6
+                0.9,
+                0.3 * 3,  # Not necessarily exactly 0.9
+                0.5,
+                0.1 * 5,  # Not necessarily exactly 0.5
+                0.8,
+                0.2 * 4,  # Not necessarily exactly 0.8
+            ],
+            dtype=np.float64,
+        )
+
+    expected = ser.rolling(window).apply(lambda x: x.nunique())
+    result = ser.rolling(window).nunique()
 
     tm.assert_series_equal(result, expected)
 
@@ -1717,9 +1933,11 @@ def test_rolling_skew_kurt_floating_artifacts():
     sr = Series([1 / 3, 4, 0, 0, 0, 0, 0])
     r = sr.rolling(4)
     result = r.skew()
-    assert (result[-2:] == 0).all()
+    expected = Series([np.nan, np.nan, np.nan, 1.9619045191072484, 2.0, 0.0, 0.0])
+    tm.assert_series_equal(result, expected)
     result = r.kurt()
-    assert (result[-2:] == -3).all()
+    expected = Series([np.nan, np.nan, np.nan, 3.8636048803878786, 4.0, -3.0, -3.0])
+    tm.assert_series_equal(result, expected)
 
 
 def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
@@ -1805,7 +2023,8 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
 def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     # Test Sum, GH#55106
     df_time = DataFrame(
-        {"A": range(5)}, index=date_range("2013-01-01", freq="1s", periods=5, tz=tz)
+        {"A": range(5)},
+        index=date_range("2013-01-01", freq="1s", periods=5, tz=tz, unit="ns"),
     )
     sum_in_nanosecs = df_time.rolling("1s").sum()
     # microseconds / milliseconds should not break the correct rolling
@@ -1830,3 +2049,66 @@ def test_rolling_timedelta_window_non_nanoseconds(unit, tz):
     df.index = df.index.as_unit("ns")
 
     tm.assert_frame_equal(ref_df, df)
+
+
+class PrescribedWindowIndexer(BaseIndexer):
+    def __init__(self, start, end):
+        self._start = start
+        self._end = end
+        super().__init__()
+
+    def get_window_bounds(
+        self, num_values=None, min_periods=None, center=None, closed=None, step=None
+    ):
+        if num_values is None:
+            num_values = len(self._start)
+        start = np.clip(self._start, 0, num_values)
+        end = np.clip(self._end, 0, num_values)
+        return start, end
+
+
+class TestMinMax:
+    @pytest.mark.parametrize(
+        "is_max, has_nan, exp_list",
+        [
+            (True, False, [3.0, 5.0, 2.0, 5.0, 1.0, 5.0, 6.0, 7.0, 8.0, 9.0]),
+            (True, True, [3.0, 4.0, 2.0, 4.0, 1.0, 4.0, 6.0, 7.0, 7.0, 9.0]),
+            (False, False, [3.0, 2.0, 2.0, 1.0, 1.0, 0.0, 0.0, 0.0, 7.0, 0.0]),
+            (False, True, [3.0, 2.0, 2.0, 1.0, 1.0, 1.0, 6.0, 6.0, 7.0, 1.0]),
+        ],
+    )
+    def test_minmax(self, is_max, has_nan, exp_list):
+        nan_idx = [0, 5, 8]
+        df = DataFrame(
+            {
+                "data": [5.0, 4.0, 3.0, 2.0, 1.0, 0.0, 6.0, 7.0, 8.0, 9.0],
+                "start": [2, 0, 3, 0, 4, 0, 5, 5, 7, 3],
+                "end": [3, 4, 4, 5, 5, 6, 7, 8, 9, 10],
+            }
+        )
+        if has_nan:
+            df.loc[nan_idx, "data"] = np.nan
+        expected = Series(exp_list, name="data")
+        r = df.data.rolling(
+            PrescribedWindowIndexer(df.start.to_numpy(), df.end.to_numpy())
+        )
+        if is_max:
+            result = r.max()
+        else:
+            result = r.min()
+
+        tm.assert_series_equal(result, expected)
+
+    def test_wrong_order(self):
+        start = np.array(range(5), dtype=np.int64)
+        end = start + 1
+        end[3] = end[2]
+        start[3] = start[2] - 1
+
+        df = DataFrame({"data": start * 1.0, "start": start, "end": end})
+
+        r = df.data.rolling(PrescribedWindowIndexer(start, end))
+        with pytest.raises(
+            ValueError, match="Start/End ordering requirement is violated at index 3"
+        ):
+            r.max()

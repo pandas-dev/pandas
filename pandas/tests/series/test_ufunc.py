@@ -16,7 +16,10 @@ def ufunc(request):
     return request.param
 
 
-@pytest.fixture(params=[True, False], ids=["sparse", "dense"])
+@pytest.fixture(
+    params=[pytest.param(True, marks=pytest.mark.fails_arm_wheels), False],
+    ids=["sparse", "dense"],
+)
 def sparse(request):
     return request.param
 
@@ -411,7 +414,7 @@ def test_outer():
     ser = pd.Series([1, 2, 3])
     obj = np.array([1, 2, 3])
 
-    with pytest.raises(NotImplementedError, match=""):
+    with pytest.raises(NotImplementedError, match="^$"):
         np.subtract.outer(ser, obj)
 
 
@@ -454,11 +457,12 @@ def test_array_ufuncs_for_many_arguments():
         ufunc(ser, ser, df)
 
 
-@pytest.mark.xfail(reason="see https://github.com/pandas-dev/pandas/pull/51082")
-def test_np_fix():
-    # np.fix is not a ufunc but is composed of several ufunc calls under the hood
-    # with `out` and `where` keywords
+def test_np_trunc():
+    # This used to test np.fix, which is not a ufunc but is composed of
+    # several ufunc calls under the hood with `out` and `where` keywords. But numpy
+    # is deprecating that (or at least discussing deprecating) in favor of np.trunc,
+    # which _is_ a ufunc without the out keyword usage.
     ser = pd.Series([-1.5, -0.5, 0.5, 1.5])
-    result = np.fix(ser)
+    result = np.trunc(ser)
     expected = pd.Series([-1.0, -0.0, 0.0, 1.0])
     tm.assert_series_equal(result, expected)

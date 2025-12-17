@@ -21,7 +21,7 @@ class TestRename:
         assert renamed.index[0] == renamer(ts.index[0])
 
         # dict
-        rename_dict = dict(zip(ts.index, renamed.index))
+        rename_dict = dict(zip(ts.index, renamed.index, strict=True))
         renamed2 = ts.rename(rename_dict)
         tm.assert_series_equal(renamed, renamed2)
 
@@ -64,7 +64,7 @@ class TestRename:
             assert ser.name == name
             exp = np.array(["a", "b", "c"], dtype=np.object_)
             if using_infer_string:
-                exp = array(exp, dtype="string[pyarrow_numpy]")
+                exp = array(exp, dtype="str")
                 tm.assert_extension_array_equal(ser.index.values, exp)
             else:
                 tm.assert_numpy_array_equal(ser.index.values, exp)

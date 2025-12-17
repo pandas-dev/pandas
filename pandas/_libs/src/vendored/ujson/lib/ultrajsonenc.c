@@ -920,7 +920,7 @@ Perhaps implement recursion detection */
 void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
             size_t cbName) {
   const char *value;
-  char *objName;
+  const char *objName;
   int count;
   JSOBJ iterObj;
   size_t szlen;

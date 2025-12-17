@@ -5,16 +5,15 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
 )
 from itertools import (
     product,
-    starmap,
 )
 import operator
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
@@ -389,6 +388,22 @@ class TestDatetime64SeriesComparison:
         expected = Series(expected, name="A")
         tm.assert_series_equal(result, expected)
 
+    def test_ts_series_numpy_maximum(self):
+        # GH#50864, test numpy.maximum does not fail
+        # given a TimeStamp and Series(with dtype datetime64) comparison
+        ts = Timestamp("2024-07-01")
+        ts_series = Series(
+            ["2024-06-01", "2024-07-01", "2024-08-01"],
+            dtype="datetime64[us]",
+        )
+
+        expected = Series(
+            ["2024-07-01", "2024-07-01", "2024-08-01"],
+            dtype="datetime64[us]",
+        )
+
+        tm.assert_series_equal(expected, np.maximum(ts, ts_series))
+
 
 class TestDatetimeIndexComparisons:
     # TODO: moved from tests.indexes.test_base; parametrize and de-duplicate
@@ -574,7 +589,7 @@ class TestDatetimeIndexComparisons:
         op = comparison_op
         box = box_with_array
 
-        dr = date_range("2016-01-01", periods=6)
+        dr = date_range("2016-01-01", periods=6, unit="ns")
         dz = dr.tz_localize("US/Pacific")
 
         dr = tm.box_expected(dr, box)
@@ -622,7 +637,7 @@ class TestDatetimeIndexComparisons:
         # GH#18162
         op = comparison_op
 
-        dr = date_range("2016-01-01", periods=6)
+        dr = date_range("2016-01-01", periods=6, unit="ns")
         dz = dr.tz_localize("US/Pacific")
 
         dr = tm.box_expected(dr, box_with_array)
@@ -661,7 +676,7 @@ class TestDatetimeIndexComparisons:
     ):
         op = comparison_op
         tz = tz_aware_fixture
-        dti = date_range("2016-01-01", periods=2, tz=tz)
+        dti = date_range("2016-01-01", periods=2, tz=tz, unit="ns")
 
         dtarr = tm.box_expected(dti, box_with_array)
         xbox = get_upcast_box(dtarr, other, True)
@@ -755,11 +770,18 @@ class TestDatetimeIndexComparisons:
 
         result = dti == other
         expected = np.array([False] * 10)
-        tm.assert_numpy_array_equal(result, expected)
+        if isinstance(other, Series):
+            tm.assert_series_equal(result, Series(expected, index=other.index))
+        else:
+            tm.assert_numpy_array_equal(result, expected)
 
         result = dti != other
         expected = np.array([True] * 10)
-        tm.assert_numpy_array_equal(result, expected)
+        if isinstance(other, Series):
+            tm.assert_series_equal(result, Series(expected, index=other.index))
+        else:
+            tm.assert_numpy_array_equal(result, expected)
+
         msg = "Invalid comparison between"
         with pytest.raises(TypeError, match=msg):
             dti < other
@@ -811,8 +833,10 @@ class TestDatetime64Arithmetic:
         # GH#22005, GH#22163 check DataFrame doesn't raise TypeError
         tz = tz_naive_fixture
 
-        rng = date_range("2000-01-01", "2000-02-01", tz=tz)
-        expected = date_range("2000-01-01 02:00", "2000-02-01 02:00", tz=tz)
+        rng = date_range("2000-01-01", "2000-02-01", tz=tz, unit="ns")
+        expected = date_range("2000-01-01 02:00", "2000-02-01 02:00", tz=tz, unit="ns")
+        if tz is not None:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -831,8 +855,10 @@ class TestDatetime64Arithmetic:
     ):
         tz = tz_naive_fixture
 
-        rng = date_range("2000-01-01", "2000-02-01", tz=tz)
-        expected = date_range("1999-12-31 22:00", "2000-01-31 22:00", tz=tz)
+        rng = date_range("2000-01-01", "2000-02-01", tz=tz, unit="ns")
+        expected = date_range("1999-12-31 22:00", "2000-01-31 22:00", tz=tz, unit="ns")
+        if tz is not None:
+            expected = expected._with_freq(None)
 
         rng = tm.box_expected(rng, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -902,7 +928,7 @@ class TestDatetime64Arithmetic:
         # GH#23320 special handling for timedelta64("NaT")
         tz = tz_naive_fixture
 
-        dti = date_range("1994-04-01", periods=9, tz=tz, freq="QS")
+        dti = date_range("1994-04-01", periods=9, tz=tz, freq="QS", unit="ns")
         other = np.timedelta64("NaT")
         expected = DatetimeIndex(["NaT"] * 9, tz=tz).as_unit("ns")
 
@@ -940,7 +966,13 @@ class TestDatetime64Arithmetic:
 
         result = dtarr - tdarr
         tm.assert_equal(result, expected)
-        msg = "cannot subtract|(bad|unsupported) operand type for unary"
+        msg = "|".join(
+            [
+                "cannot subtract DatetimeArray from ndarray",
+                "cannot subtract a datelike from a TimedeltaArray",
+                "cannot subtract DatetimeArray from Timedelta",
+            ]
+        )
         with pytest.raises(TypeError, match=msg):
             tdarr - dtarr
 
@@ -974,13 +1006,15 @@ class TestDatetime64Arithmetic:
         tm.assert_equal(result, -expected)
 
     def test_dt64arr_sub_timestamp_tzaware(self, box_with_array):
-        ser = date_range("2014-03-17", periods=2, freq="D", tz="US/Eastern")
+        ser = date_range("2014-03-17", periods=2, freq="D", tz="US/Eastern", unit="ns")
         ser = ser._with_freq(None)
         ts = ser[0]
 
         ser = tm.box_expected(ser, box_with_array)
 
-        delta_series = Series([np.timedelta64(0, "D"), np.timedelta64(1, "D")])
+        delta_series = Series(
+            [np.timedelta64(0, "D"), np.timedelta64(1, "D")], dtype="m8[ns]"
+        )
         expected = tm.box_expected(delta_series, box_with_array)
 
         tm.assert_equal(ser - ts, expected)
@@ -1257,7 +1291,7 @@ class TestDatetime64DateOffsetArithmetic:
 
         result2 = -pd.offsets.Second(5) + ser
         tm.assert_equal(result2, expected)
-        msg = "(bad|unsupported) operand type for unary"
+        msg = "cannot subtract DatetimeArray from Second"
         with pytest.raises(TypeError, match=msg):
             pd.offsets.Second(5) - ser
 
@@ -1279,11 +1313,11 @@ class TestDatetime64DateOffsetArithmetic:
         # GH#21610, GH#22163 ensure DataFrame doesn't return object-dtype
         tz = tz_aware_fixture
         if tz == "US/Pacific":
-            dates = date_range("2012-11-01", periods=3, tz=tz)
+            dates = date_range("2012-11-01", periods=3, tz=tz, unit="ns")
             offset = dates + pd.offsets.Hour(5)
             assert dates[0] + pd.offsets.Hour(5) == offset[0]
 
-        dates = date_range("2010-11-01 00:00", periods=3, tz=tz, freq="h")
+        dates = date_range("2010-11-01 00:00", periods=3, tz=tz, freq="h", unit="ns")
         expected = DatetimeIndex(
             ["2010-11-01 05:00", "2010-11-01 06:00", "2010-11-01 07:00"],
             freq="h",
@@ -1302,9 +1336,7 @@ class TestDatetime64DateOffsetArithmetic:
             roundtrip = offset - scalar
             tm.assert_equal(roundtrip, dates)
 
-            msg = "|".join(
-                ["bad operand type for unary -", "cannot subtract DatetimeArray"]
-            )
+            msg = "cannot subtract DatetimeArray from"
             with pytest.raises(TypeError, match=msg):
                 scalar - dates
 
@@ -1363,7 +1395,7 @@ class TestDatetime64DateOffsetArithmetic:
             expected = DatetimeIndex([x - off for x in vec_items]).as_unit(exp_unit)
             expected = tm.box_expected(expected, box_with_array)
             tm.assert_equal(expected, vec - off)
-            msg = "(bad|unsupported) operand type for unary"
+            msg = "cannot subtract DatetimeArray from"
             with pytest.raises(TypeError, match=msg):
                 off - vec
 
@@ -1479,7 +1511,7 @@ class TestDatetime64DateOffsetArithmetic:
         expected = DatetimeIndex([offset + x for x in vec_items]).as_unit(unit)
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(expected, offset + vec)
-        msg = "(bad|unsupported) operand type for unary"
+        msg = "cannot subtract DatetimeArray from"
         with pytest.raises(TypeError, match=msg):
             offset - vec
 
@@ -1573,7 +1605,9 @@ class TestDatetime64DateOffsetArithmetic:
     ):
         # GH 26258
         tz = tz_aware_fixture
-        date = date_range(start="01 Jan 2014", end="01 Jan 2017", freq="YS", tz=tz)
+        date = date_range(
+            start="01 Jan 2014", end="01 Jan 2017", freq="YS", tz=tz, unit="ns"
+        )
         date = tm.box_expected(date, box_with_array, False)
         mth = getattr(date, op)
         result = mth(offset)
@@ -1636,7 +1670,7 @@ class TestDatetime64OverflowHandling:
         # GH#12534, fixed by GH#19024
         dt = Timestamp("1700-01-31")
         td = Timedelta("20000 Days")
-        dti = date_range("1949-09-30", freq="100YE", periods=4)
+        dti = date_range("1949-09-30", freq="100YE", periods=4, unit="ns")
         ser = Series(dti)
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
@@ -1870,8 +1904,10 @@ class TestTimestampSeriesArithmetic:
 
     def test_sub_datetime_compat(self, unit):
         # see GH#14088
-        ser = Series([datetime(2016, 8, 23, 12, tzinfo=pytz.utc), NaT]).dt.as_unit(unit)
-        dt = datetime(2016, 8, 22, 12, tzinfo=pytz.utc)
+        ser = Series([datetime(2016, 8, 23, 12, tzinfo=timezone.utc), NaT]).dt.as_unit(
+            unit
+        )
+        dt = datetime(2016, 8, 22, 12, tzinfo=timezone.utc)
         # The datetime object has "us" so we upcast lower units
         exp_unit = tm.get_finest_unit(unit, "us")
         exp = Series([Timedelta("1 days"), NaT]).dt.as_unit(exp_unit)
@@ -1966,7 +2002,7 @@ class TestTimestampSeriesArithmetic:
         result = dt1 - td1[0]
         exp = (dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize(tz)
         tm.assert_series_equal(result, exp)
-        msg = "(bad|unsupported) operand type for unary"
+        msg = "cannot subtract DatetimeArray from"
         with pytest.raises(TypeError, match=msg):
             td1[0] - dt1
 
@@ -2193,7 +2229,7 @@ class TestDatetimeIndexArithmetic:
 
         def timedelta64(*args):
             # see casting notes in NumPy gh-12927
-            return np.sum(list(starmap(np.timedelta64, zip(args, intervals))))
+            return np.sum(list(map(np.timedelta64, args, intervals)))
 
         for d, h, m, s, us in product(*([range(2)] * 5)):
             nptd = timedelta64(d, h, m, s, us)
@@ -2444,11 +2480,11 @@ def test_non_nano_dt64_addsub_np_nat_scalars_unitless():
     # TODO: Can we default to the ser unit?
     ser = Series([1233242342344, 232432434324, 332434242344], dtype="datetime64[ms]")
     result = ser - np.datetime64("nat")
-    expected = Series([NaT] * 3, dtype="timedelta64[ns]")
+    expected = Series([NaT] * 3, dtype="timedelta64[ms]")
     tm.assert_series_equal(result, expected)
 
     result = ser + np.timedelta64("nat")
-    expected = Series([NaT] * 3, dtype="datetime64[ns]")
+    expected = Series([NaT] * 3, dtype="datetime64[ms]")
     tm.assert_series_equal(result, expected)
 
 

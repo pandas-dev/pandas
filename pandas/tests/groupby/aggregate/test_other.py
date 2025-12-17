@@ -355,7 +355,8 @@ def test_series_agg_multi_pure_python():
     )
 
     def bad(x):
-        assert len(x.values.base) > 0
+        if isinstance(x.values, np.ndarray):
+            assert len(x.values.base) > 0
         return "foo"
 
     result = data.groupby(["A", "B"]).agg(bad)
@@ -465,7 +466,9 @@ def test_agg_tzaware_non_datetime_result(as_period):
     tm.assert_series_equal(result, expected)
 
     result = gb["b"].agg(lambda x: x.iloc[-1] - x.iloc[0])
-    expected = Series([pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b")
+    expected = Series(
+        [pd.Timedelta(days=1), pd.Timedelta(days=1)], name="b", dtype="m8[us]"
+    )
     expected.index.name = "a"
     if as_period:
         expected = Series([pd.offsets.Day(1), pd.offsets.Day(1)], name="b")
@@ -498,17 +501,13 @@ def test_agg_timezone_round_trip():
     assert ts == grouped.first()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
+    assert ts == grouped.apply(lambda x: x.iloc[0])["B"].iloc[0]
 
     ts = df["B"].iloc[2]
     assert ts == grouped.last()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    msg = "DataFrameGroupBy.apply operated on the grouping columns"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
+    assert ts == grouped.apply(lambda x: x.iloc[-1])["B"].iloc[0]
 
 
 def test_sum_uint64_overflow():
@@ -650,7 +649,7 @@ def test_groupby_agg_err_catching(err_cls):
         to_decimal,
     )
 
-    data = make_data()[:5]
+    data = make_data(5)
     df = DataFrame(
         {"id1": [0, 0, 0, 1, 1], "id2": [0, 1, 0, 1, 1], "decimals": DecimalArray(data)}
     )

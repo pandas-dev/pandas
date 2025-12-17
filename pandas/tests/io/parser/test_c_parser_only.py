@@ -19,7 +19,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import WASM
-from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import (
     ParserError,
     ParserWarning,
@@ -90,10 +89,9 @@ nan 2
 3.0 3
 """
     # fallback casting, but not castable
-    warning = RuntimeWarning if np_version_gte1p24 else None
     if not WASM:  # no fp exception support in wasm
         with pytest.raises(ValueError, match="cannot safely convert"):
-            with tm.assert_produces_warning(warning, check_stacklevel=False):
+            with tm.assert_produces_warning(RuntimeWarning, check_stacklevel=False):
                 parser.read_csv(
                     StringIO(data),
                     sep=r"\s+",
@@ -132,7 +130,7 @@ nan 2
     ],
     ids=["dt64-0", "dt64-1", "td64", f"{tm.ENDIAN}U8"],
 )
-def test_unsupported_dtype(c_parser_only, match, kwargs):
+def test_unsupported_dtype(c_parser_only, match, kwargs, tmp_path):
     parser = c_parser_only
     df = DataFrame(
         np.random.default_rng(2).random((5, 2)),
@@ -140,11 +138,11 @@ def test_unsupported_dtype(c_parser_only, match, kwargs):
         index=["1A", "1B", "1C", "1D", "1E"],
     )
 
-    with tm.ensure_clean("__unsupported_dtype__.csv") as path:
-        df.to_csv(path)
+    path = tmp_path / "__unsupported_dtype__.csv"
+    df.to_csv(path)
 
-        with pytest.raises(TypeError, match=match):
-            parser.read_csv(path, index_col=0, **kwargs)
+    with pytest.raises(TypeError, match=match):
+        parser.read_csv(path, index_col=0, **kwargs)
 
 
 @td.skip_if_32bit
@@ -182,7 +180,7 @@ def test_precise_conversion(c_parser_only, num):
     assert max(precise_errors) <= max(normal_errors)
 
 
-def test_usecols_dtypes(c_parser_only):
+def test_usecols_dtypes(c_parser_only, using_infer_string):
     parser = c_parser_only
     data = """\
 1,2,3
@@ -207,8 +205,12 @@ def test_usecols_dtypes(c_parser_only):
         dtype={"b": int, "c": float},
     )
 
-    assert (result.dtypes == [object, int, float]).all()
-    assert (result2.dtypes == [object, float]).all()
+    if using_infer_string:
+        assert (result.dtypes == ["string", int, float]).all()
+        assert (result2.dtypes == ["string", float]).all()
+    else:
+        assert (result.dtypes == [object, int, float]).all()
+        assert (result2.dtypes == [object, float]).all()
 
 
 def test_disable_bool_parsing(c_parser_only):
@@ -561,27 +563,27 @@ def test_file_handles_mmap(c_parser_only, csv1):
             assert not m.closed
 
 
-def test_file_binary_mode(c_parser_only):
+def test_file_binary_mode(c_parser_only, temp_file):
     # see gh-23779
     parser = c_parser_only
     expected = DataFrame([[1, 2, 3], [4, 5, 6]])
 
-    with tm.ensure_clean() as path:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write("1,2,3\n4,5,6")
+    path = temp_file
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("1,2,3\n4,5,6")
 
-        with open(path, "rb") as f:
-            result = parser.read_csv(f, header=None)
-            tm.assert_frame_equal(result, expected)
+    with open(path, "rb") as f:
+        result = parser.read_csv(f, header=None)
+        tm.assert_frame_equal(result, expected)
 
 
-def test_unix_style_breaks(c_parser_only):
+def test_unix_style_breaks(c_parser_only, temp_file):
     # GH 11020
     parser = c_parser_only
-    with tm.ensure_clean() as path:
-        with open(path, "w", newline="\n", encoding="utf-8") as f:
-            f.write("blah\n\ncol_1,col_2,col_3\n\n")
-        result = parser.read_csv(path, skiprows=2, encoding="utf-8", engine="c")
+    path = temp_file
+    with open(path, "w", newline="\n", encoding="utf-8") as f:
+        f.write("blah\n\ncol_1,col_2,col_3\n\n")
+    result = parser.read_csv(path, skiprows=2, encoding="utf-8", engine="c")
     expected = DataFrame(columns=["col_1", "col_2", "col_3"])
     tm.assert_frame_equal(result, expected)
 

@@ -1,8 +1,10 @@
+import contextlib
 from datetime import (
     date,
     datetime,
     timedelta,
 )
+from decimal import Decimal
 from functools import partial
 from io import BytesIO
 import os
@@ -12,7 +14,6 @@ import uuid
 import numpy as np
 import pytest
 
-from pandas.compat._constants import PY310
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -23,6 +24,7 @@ from pandas import (
     MultiIndex,
     date_range,
     option_context,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -37,8 +39,6 @@ from pandas.io.excel._util import _writers
 
 
 def get_exp_unit(path: str) -> str:
-    if path.endswith(".ods"):
-        return "s"
     return "us"
 
 
@@ -50,7 +50,7 @@ def frame(float_frame):
     return float_frame[:10]
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=[True, False, "columns"])
 def merge_cells(request):
     return request.param
 
@@ -296,13 +296,13 @@ class TestRoundTrip:
 
         res = pd.read_excel(tmp_excel, parse_dates=["date_strings"], index_col=0)
         expected = df[:]
-        expected["date_strings"] = expected["date_strings"].astype("M8[s]")
+        expected["date_strings"] = expected["date_strings"].astype("M8[us]")
         tm.assert_frame_equal(res, expected)
 
         res = pd.read_excel(
             tmp_excel, parse_dates=["date_strings"], date_format="%m/%d/%Y", index_col=0
         )
-        expected["date_strings"] = expected["date_strings"].astype("M8[s]")
+        expected["date_strings"] = expected["date_strings"].astype("M8[us]")
         tm.assert_frame_equal(expected, res)
 
     def test_multiindex_interval_datetimes(self, tmp_excel):
@@ -331,7 +331,43 @@ class TestRoundTrip:
                     ],
                 ]
             ),
+            columns=Index([0]),
         )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("merge_cells", [True, False, "columns"])
+    def test_excel_round_trip_with_periodindex(self, tmp_excel, merge_cells):
+        # GH#60099
+        df = DataFrame(
+            {"A": [1, 2]},
+            index=MultiIndex.from_arrays(
+                [
+                    period_range(start="2006-10-06", end="2006-10-07", freq="D"),
+                    ["X", "Y"],
+                ],
+                names=["date", "category"],
+            ),
+        )
+        df.to_excel(tmp_excel, merge_cells=merge_cells)
+        result = pd.read_excel(tmp_excel, index_col=[0, 1])
+        expected = DataFrame(
+            {"A": [1, 2]},
+            MultiIndex.from_arrays(
+                [
+                    [
+                        pd.to_datetime("2006-10-06 00:00:00").as_unit("s"),
+                        pd.to_datetime("2006-10-07 00:00:00").as_unit("s"),
+                    ],
+                    ["X", "Y"],
+                ],
+                names=["date", "category"],
+            ),
+        )
+        time_format = "datetime64[us]"
+        expected.index = expected.index.set_levels(
+            expected.index.levels[0].astype(time_format), level=0
+        )
+
         tm.assert_frame_equal(result, expected)
 
 
@@ -376,7 +412,10 @@ class TestExcelWriter:
             col_df.to_excel(tmp_excel)
 
     def test_excel_sheet_by_name_raise(self, tmp_excel):
-        gt = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
+        gt = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)),
+            index=Index(list(range(10))),
+        )
         gt.to_excel(tmp_excel)
 
         with ExcelFile(tmp_excel) as xl:
@@ -497,7 +536,9 @@ class TestExcelWriter:
         # Test np.int values read come back as int
         # (rather than float which is Excel's format).
         df = DataFrame(
-            np.random.default_rng(2).integers(-10, 10, size=(10, 2)), dtype=np_type
+            np.random.default_rng(2).integers(-10, 10, size=(10, 2)),
+            dtype=np_type,
+            index=Index(list(range(10))),
         )
         df.to_excel(tmp_excel, sheet_name="test1")
 
@@ -513,7 +554,11 @@ class TestExcelWriter:
     @pytest.mark.parametrize("np_type", [np.float16, np.float32, np.float64])
     def test_float_types(self, np_type, tmp_excel):
         # Test np.float values read come back as float.
-        df = DataFrame(np.random.default_rng(2).random(10), dtype=np_type)
+        df = DataFrame(
+            np.random.default_rng(2).random(10),
+            dtype=np_type,
+            index=Index(list(range(10))),
+        )
         df.to_excel(tmp_excel, sheet_name="test1")
 
         with ExcelFile(tmp_excel) as reader:
@@ -525,7 +570,7 @@ class TestExcelWriter:
 
     def test_bool_types(self, tmp_excel):
         # Test np.bool_ values read come back as float.
-        df = DataFrame([1, 0, True, False], dtype=np.bool_)
+        df = DataFrame([1, 0, True, False], dtype=np.bool_, index=Index(list(range(4))))
         df.to_excel(tmp_excel, sheet_name="test1")
 
         with ExcelFile(tmp_excel) as reader:
@@ -536,7 +581,7 @@ class TestExcelWriter:
         tm.assert_frame_equal(df, recons)
 
     def test_inf_roundtrip(self, tmp_excel):
-        df = DataFrame([(1, np.inf), (2, 3), (5, -np.inf)])
+        df = DataFrame([(1, np.inf), (2, 3), (5, -np.inf)], index=Index(list(range(3))))
         df.to_excel(tmp_excel, sheet_name="test1")
 
         with ExcelFile(tmp_excel) as reader:
@@ -633,7 +678,13 @@ class TestExcelWriter:
         df.index.names = ["test"]
         assert df.index.names == recons.index.names
 
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 2))) >= 0
+        df = (
+            DataFrame(
+                np.random.default_rng(2).standard_normal((10, 2)),
+                index=Index(list(range(10))),
+            )
+            >= 0
+        )
         df.to_excel(
             tmp_excel, sheet_name="test1", index_label="test", merge_cells=merge_cells
         )
@@ -746,6 +797,9 @@ class TestExcelWriter:
         # we need to use df_expected to check the result.
         tm.assert_frame_equal(rs2, df_expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:invalid value encountered in cast:RuntimeWarning"
+    )
     def test_to_excel_interval_no_labels(self, tmp_excel, using_infer_string):
         # see gh-19242
         #
@@ -757,7 +811,7 @@ class TestExcelWriter:
 
         df["new"] = pd.cut(df[0], 10)
         expected["new"] = pd.cut(expected[0], 10).astype(
-            str if not using_infer_string else "string[pyarrow_numpy]"
+            str if not using_infer_string else "str"
         )
 
         df.to_excel(tmp_excel, sheet_name="test1")
@@ -852,27 +906,49 @@ class TestExcelWriter:
     # Test for Issue 11328. If column indices are integers, make
     # sure they are handled correctly for either setting of
     # merge_cells
-    def test_to_excel_multiindex_cols(self, merge_cells, frame, tmp_excel):
+    def test_to_excel_multiindex_cols(self, merge_cells, tmp_excel):
+        # GH#11328
+        frame = DataFrame(
+            {
+                "A": [1, 2, 3],
+                "B": [4, 5, 6],
+                "C": [7, 8, 9],
+            }
+        )
         arrays = np.arange(len(frame.index) * 2, dtype=np.int64).reshape(2, -1)
         new_index = MultiIndex.from_arrays(arrays, names=["first", "second"])
         frame.index = new_index
 
-        new_cols_index = MultiIndex.from_tuples([(40, 1), (40, 2), (50, 1), (50, 2)])
+        new_cols_index = MultiIndex.from_tuples([(40, 1), (40, 2), (50, 1)])
         frame.columns = new_cols_index
-        header = [0, 1]
-        if not merge_cells:
-            header = 0
-
-        # round trip
         frame.to_excel(tmp_excel, sheet_name="test1", merge_cells=merge_cells)
+
+        # Check round trip
         with ExcelFile(tmp_excel) as reader:
-            df = pd.read_excel(
-                reader, sheet_name="test1", header=header, index_col=[0, 1]
+            result = pd.read_excel(
+                reader, sheet_name="test1", header=[0, 1], index_col=[0, 1]
             )
+        tm.assert_frame_equal(result, frame)
+
+        # GH#60274
+        # Check with header/index_col None to determine which cells were merged
+        with ExcelFile(tmp_excel) as reader:
+            result = pd.read_excel(
+                reader, sheet_name="test1", header=None, index_col=None
+            )
+        expected = DataFrame(
+            {
+                0: [np.nan, np.nan, "first", 0, 1, 2],
+                1: [np.nan, np.nan, "second", 3, 4, 5],
+                2: [40.0, 1.0, np.nan, 1.0, 2.0, 3.0],
+                3: [np.nan, 2.0, np.nan, 4.0, 5.0, 6.0],
+                4: [50.0, 1.0, np.nan, 7.0, 8.0, 9.0],
+            }
+        )
         if not merge_cells:
-            fm = frame.columns._format_multi(sparsify=False, include_names=False)
-            frame.columns = [".".join(map(str, q)) for q in zip(*fm)]
-        tm.assert_frame_equal(frame, df)
+            # MultiIndex column value is repeated
+            expected.loc[0, 3] = 40.0
+        tm.assert_frame_equal(result, expected)
 
     def test_to_excel_multiindex_dates(self, merge_cells, tmp_excel):
         # try multiindex with dates
@@ -957,6 +1033,36 @@ class TestExcelWriter:
             [[0.12, 0.23, 0.57], [12.32, 123123.20, 321321.20]],
             index=["A", "B"],
             columns=["X", "Y", "Z"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_to_excel_datatypes_preserved(self, tmp_excel):
+        # Test that when writing and reading Excel with dtype=object,
+        # datatypes are preserved, except Decimals which should be
+        # stored as floats
+
+        # see gh-49598
+        df = DataFrame(
+            [
+                [1.23, "1.23", Decimal("1.23")],
+                [4.56, "4.56", Decimal("4.56")],
+            ],
+            index=["A", "B"],
+            columns=["X", "Y", "Z"],
+        )
+        df.to_excel(tmp_excel)
+
+        with ExcelFile(tmp_excel) as reader:
+            result = pd.read_excel(reader, index_col=0, dtype=object)
+
+        expected = DataFrame(
+            [
+                [1.23, "1.23", 1.23],
+                [4.56, "4.56", 4.56],
+            ],
+            index=["A", "B"],
+            columns=["X", "Y", "Z"],
+            dtype=object,
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1251,13 +1357,12 @@ class TestExcelWriter:
             "xlsxwriter": r"__init__() got an unexpected keyword argument 'foo'",
         }
 
-        if PY310:
-            msgs["openpyxl"] = (
-                "Workbook.__init__() got an unexpected keyword argument 'foo'"
-            )
-            msgs["xlsxwriter"] = (
-                "Workbook.__init__() got an unexpected keyword argument 'foo'"
-            )
+        msgs["openpyxl"] = (
+            "Workbook.__init__() got an unexpected keyword argument 'foo'"
+        )
+        msgs["xlsxwriter"] = (
+            "Workbook.__init__() got an unexpected keyword argument 'foo'"
+        )
 
         # Handle change in error message for openpyxl (write and append mode)
         if engine == "openpyxl" and not os.path.exists(tmp_excel):
@@ -1301,8 +1406,7 @@ class TestExcelWriter:
     def test_true_and_false_value_options(self, tmp_excel):
         # see gh-13347
         df = DataFrame([["foo", "bar"]], columns=["col1", "col2"], dtype=object)
-        with option_context("future.no_silent_downcasting", True):
-            expected = df.replace({"foo": True, "bar": False}).astype("bool")
+        expected = df.replace({"foo": True, "bar": False}).astype("bool")
 
         df.to_excel(tmp_excel)
         read_frame = pd.read_excel(
@@ -1322,7 +1426,7 @@ class TestExcelWriter:
         df = DataFrame(
             1.1 * np.arange(120).reshape((30, 4)),
             columns=Index(list("ABCD")),
-            index=Index([f"i-{i}" for i in range(30)], dtype=object),
+            index=Index([f"i-{i}" for i in range(30)]),
         )
         writer = partial(df.to_excel, engine=engine)
 
@@ -1402,6 +1506,163 @@ class TestExcelWriter:
         ):
             buf = BytesIO()
             df.to_excel(buf)
+
+    @pytest.mark.parametrize("with_index", [True, False])
+    def test_autofilter(self, engine, with_index, tmp_excel):
+        # GH 61194
+        df = DataFrame.from_dict([{"A": 1, "B": 2, "C": 3}, {"A": 4, "B": 5, "C": 6}])
+
+        if engine in ["odf"]:
+            with pytest.raises(
+                ValueError, match="Autofilter is not supported with odf!"
+            ):
+                df.to_excel(tmp_excel, engine=engine, autofilter=True, index=False)
+        else:
+            df.to_excel(tmp_excel, engine=engine, autofilter=True, index=with_index)
+
+            openpyxl = pytest.importorskip(
+                "openpyxl"
+            )  # test loading only with openpyxl
+            with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+                ws = wb.active
+
+                assert ws.auto_filter.ref is not None
+                assert ws.auto_filter.ref == "A1:D3" if with_index else "A1:C3"
+
+    def test_autofilter_with_startrow_startcol(self, engine, tmp_excel):
+        # GH 61194
+        df = DataFrame.from_dict([{"A": 1, "B": 2, "C": 3}, {"A": 4, "B": 5, "C": 6}])
+
+        if engine in ["odf"]:
+            # odf does not support autofilter
+            with pytest.raises(
+                ValueError, match="Autofilter is not supported with odf!"
+            ):
+                df.to_excel(tmp_excel, engine=engine, autofilter=True, index=False)
+        else:
+            df.to_excel(
+                tmp_excel, engine=engine, autofilter=True, startrow=10, startcol=10
+            )
+
+            openpyxl = pytest.importorskip(
+                "openpyxl"
+            )  # test loading only with openpyxl
+            with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+                ws = wb.active
+                assert ws.auto_filter.ref is not None
+                # Autofiler range moved by 10x10 cells
+                assert ws.auto_filter.ref == "K11:N13"
+
+    @pytest.mark.parametrize("merge_cells", [True, False])
+    def test_autofilter_with_multiindex_index(self, engine, tmp_excel, merge_cells):
+        # GH 61194
+        df = DataFrame(
+            {
+                "animal": ("horse", "horse", "dog", "dog"),
+                "color of fur": ("black", "white", "grey", "black"),
+                "name": ("Blacky", "Wendy", "Rufus", "Catchy"),
+            }
+        )
+        # setup hierarchical index
+        mi_df = df.set_index(["animal", "color of fur"])
+        if engine in ["odf"]:
+            # odf does not support autofilter
+            with pytest.raises(
+                ValueError, match="Autofilter is not supported with odf!"
+            ):
+                mi_df.to_excel(
+                    tmp_excel,
+                    engine=engine,
+                    autofilter=True,
+                    index=False,
+                    merge_cells=merge_cells,
+                )
+        elif merge_cells:
+            # multiindex and merge cells cannot be used simultaneously
+            with pytest.raises(
+                ValueError,
+                match="Excel filters merged cells by showing only the first row. "
+                "'autofilter' and 'merge_cells' cannot be used simultaneously.",
+            ):
+                mi_df.to_excel(
+                    tmp_excel,
+                    engine=engine,
+                    autofilter=True,
+                    index=True,
+                    merge_cells=merge_cells,
+                )
+        else:
+            mi_df.to_excel(
+                tmp_excel,
+                engine=engine,
+                autofilter=True,
+                index=True,
+                merge_cells=merge_cells,
+            )
+
+            # validate autofilter range
+            openpyxl = pytest.importorskip(
+                "openpyxl"
+            )  # test loading only with openpyxl
+            with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+                ws = wb.active
+
+                assert ws.auto_filter.ref is not None
+                assert ws.auto_filter.ref == "A1:C5"
+
+    @pytest.mark.parametrize("merge_cells", [True, False])
+    def test_autofilter_with_multiindex_columns(self, engine, tmp_excel, merge_cells):
+        # GH 61194
+        columns = MultiIndex(
+            levels=[["x", "y"], ["w", "t"]],
+            codes=[[0, 0, 1], [0, 1, 0]],
+        )
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=columns)
+
+        if engine in ["odf"]:
+            # odf does not support autofilter
+            with pytest.raises(
+                ValueError, match="Autofilter is not supported with odf!"
+            ):
+                df.to_excel(
+                    tmp_excel,
+                    engine=engine,
+                    autofilter=True,
+                    index=False,
+                    merge_cells=merge_cells,
+                )
+        elif merge_cells:
+            # multiindex and merge cells cannot be used simultaneously
+            with pytest.raises(
+                ValueError,
+                match="Excel filters merged cells by showing only the first row. "
+                "'autofilter' and 'merge_cells' cannot be used simultaneously.",
+            ):
+                df.to_excel(
+                    tmp_excel,
+                    engine=engine,
+                    autofilter=True,
+                    index=True,
+                    merge_cells=merge_cells,
+                )
+        else:
+            df.to_excel(
+                tmp_excel,
+                engine=engine,
+                autofilter=True,
+                index=True,
+                merge_cells=merge_cells,
+            )
+
+            # validate autofilter range
+            openpyxl = pytest.importorskip(
+                "openpyxl"
+            )  # test loading only with openpyxl
+            with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
+                ws = wb.active
+
+                assert ws.auto_filter.ref is not None
+                assert ws.auto_filter.ref == "A2:D5"
 
 
 class TestExcelWriterEngineTests:

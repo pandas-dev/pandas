@@ -12,7 +12,6 @@ from abc import (
 )
 from typing import (
     TYPE_CHECKING,
-    Callable,
     cast,
 )
 
@@ -42,6 +41,7 @@ from pandas.io.formats.format import format_percentiles
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Sequence,
     )
@@ -199,6 +199,9 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
                 include=self.include,
                 exclude=self.exclude,
             )
+            if len(data.columns) == 0:
+                msg = "No columns match the specified include or exclude data types"
+                raise ValueError(msg)
         return data
 
 
@@ -229,10 +232,15 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
 
     formatted_percentiles = format_percentiles(percentiles)
 
+    if len(percentiles) == 0:
+        quantiles = []
+    else:
+        quantiles = series.quantile(percentiles).tolist()
+
     stat_index = ["count", "mean", "std", "min"] + formatted_percentiles + ["max"]
     d = (
         [series.count(), series.mean(), series.std(), series.min()]
-        + series.quantile(percentiles).tolist()
+        + quantiles
         + [series.max()]
     )
     # GH#48340 - always return float on non-complex numeric data
@@ -348,17 +356,10 @@ def _refine_percentiles(
     if percentiles is None:
         return np.array([0.25, 0.5, 0.75])
 
-    # explicit conversion of `percentiles` to list
-    percentiles = list(percentiles)
+    percentiles = np.asarray(percentiles)
 
     # get them all to be in [0, 1]
     validate_percentile(percentiles)
-
-    # median should always be included
-    if 0.5 not in percentiles:
-        percentiles.append(0.5)
-
-    percentiles = np.asarray(percentiles)
 
     # sort and check for duplicates
     unique_pcts = np.unique(percentiles)

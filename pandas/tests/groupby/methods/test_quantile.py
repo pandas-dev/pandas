@@ -159,7 +159,8 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
 def test_quantile_raises():
     df = DataFrame([["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"])
 
-    with pytest.raises(TypeError, match="cannot be performed against 'object' dtypes"):
+    msg = "dtype '(object|str)' does not support operation 'quantile'"
+    with pytest.raises(TypeError, match=msg):
         df.groupby("key").quantile()
 
 
@@ -247,15 +248,16 @@ def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
         expected = df.groupby("a")[["b"]].quantile(q)
         tm.assert_frame_equal(result, expected)
     else:
-        with pytest.raises(
-            TypeError, match="'quantile' cannot be performed against 'object' dtypes!"
-        ):
+        msg = "dtype '.*' does not support operation 'quantile'"
+        with pytest.raises(TypeError, match=msg):
             df.groupby("a").quantile(q, numeric_only=numeric_only)
 
 
 def test_groupby_quantile_NA_float(any_float_dtype):
     # GH#42849
-    df = DataFrame({"x": [1, 1], "y": [0.2, np.nan]}, dtype=any_float_dtype)
+    dtype = pd.Series([], dtype=any_float_dtype).dtype
+    item = np.nan if isinstance(dtype, np.dtype) else pd.NA
+    df = DataFrame({"x": [1, 1], "y": [0.2, item]}, dtype=any_float_dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     exp_index = Index([1.0], dtype=any_float_dtype, name="x")
 
@@ -353,7 +355,7 @@ def test_groupby_quantile_allNA_column(dtype):
     df = DataFrame({"x": [1, 1], "y": [pd.NA] * 2}, dtype=dtype)
     result = df.groupby("x")["y"].quantile(0.5)
     expected = pd.Series(
-        [np.nan], dtype=dtype, index=Index([1.0], dtype=dtype), name="y"
+        [pd.NA], dtype=dtype, index=Index([1.0], dtype=dtype), name="y"
     )
     expected.index.name = "x"
     tm.assert_series_equal(expected, result)
@@ -368,8 +370,8 @@ def test_groupby_timedelta_quantile():
     expected = DataFrame(
         {
             "value": [
-                pd.Timedelta("0 days 00:00:00.990000"),
-                pd.Timedelta("0 days 00:00:02.990000"),
+                pd.Timedelta("0 days 00:00:00.990000").as_unit("ns"),
+                pd.Timedelta("0 days 00:00:02.990000").as_unit("ns"),
             ]
         },
         index=Index([1, 2], name="group"),
@@ -408,7 +410,7 @@ def test_timestamp_groupby_quantile(unit):
 
 def test_groupby_quantile_dt64tz_period():
     # GH#51373
-    dti = pd.date_range("2016-01-01", periods=1000)
+    dti = pd.date_range("2016-01-01", periods=1000, unit="ns")
     df = pd.Series(dti).to_frame().copy()
     df[1] = dti.tz_localize("US/Pacific")
     df[2] = dti.to_period("D")

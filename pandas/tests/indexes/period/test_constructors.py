@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
@@ -73,6 +74,34 @@ class TestPeriodIndexDisallowedFreqs:
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2020-01", "2020-05"], freq=freq_depr)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Period with BDay freq:FutureWarning")
+    @pytest.mark.parametrize(
+        "freq,freq_depr",
+        [("2W", "2w"), ("2W-FRI", "2w-fri"), ("2D", "2d"), ("2B", "2b")],
+    )
+    def test_period_index_depr_lowercase_frequency(self, freq, freq_depr):
+        # GH#58998
+        msg = (
+            f"'{freq_depr[1:]}' is deprecated and will be removed in a future version."
+        )
+
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=msg, raise_on_extra_warnings=False
+        ):
+            result = PeriodIndex(["2020-01-01", "2020-01-02"], freq=freq_depr)
+
+        expected = PeriodIndex(["2020-01-01", "2020-01-02"], freq=freq)
+        tm.assert_index_equal(result, expected)
+
+        with tm.assert_produces_warning(
+            Pandas4Warning, match=msg, raise_on_extra_warnings=False
+        ):
+            result = period_range(start="2020-01-01", end="2020-01-02", freq=freq_depr)
+
+        expected = period_range(start="2020-01-01", end="2020-01-02", freq=freq)
+        tm.assert_index_equal(result, expected)
+
 
 class TestPeriodIndex:
     def test_from_ordinals(self):
@@ -110,7 +139,7 @@ class TestPeriodIndex:
         "values_constructor", [list, np.array, PeriodIndex, PeriodArray._from_sequence]
     )
     def test_index_object_dtype(self, values_constructor):
-        # Index(periods, dtype=object) is an Index (not an PeriodIndex)
+        # Index(periods, dtype=object) is an Index (not a PeriodIndex)
         periods = [
             Period("2011-01", freq="M"),
             NaT,
@@ -515,7 +544,7 @@ class TestPeriodIndex:
         assert i1[-1] == end_intv
 
         msg = "'w' is deprecated and will be removed in a future version."
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
             end_intv = Period("2006-12-31", "1w")
         i2 = period_range(end=end_intv, periods=10)
         assert len(i1) == len(i2)

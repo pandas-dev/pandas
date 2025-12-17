@@ -5,13 +5,12 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
+    Self,
     cast,
     final,
 )
 import warnings
-import weakref
 
 import numpy as np
 
@@ -25,22 +24,10 @@ from pandas._libs.internals import (
     BlockValuesRefs,
 )
 from pandas._libs.missing import NA
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    DtypeBackend,
-    DtypeObj,
-    FillnaOptions,
-    IgnoreRaise,
-    InterpolateOptions,
-    QuantileInterpolation,
-    Self,
-    Shape,
-    npt,
-)
 from pandas.errors import (
     AbstractMethodError,
     OutOfBoundsDatetime,
+    Pandas4Warning,
 )
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -78,6 +65,7 @@ from pandas.core.dtypes.generic import (
     ABCNumpyExtensionArray,
     ABCSeries,
 )
+from pandas.core.dtypes.inference import is_re
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
@@ -101,7 +89,6 @@ from pandas.core.array_algos.replace import (
 )
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arrays import (
-    Categorical,
     DatetimeArray,
     ExtensionArray,
     IntervalArray,
@@ -109,6 +96,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.computation import expressions
@@ -121,9 +109,23 @@ from pandas.core.indexes.base import get_values_for_csv
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Generator,
         Iterable,
         Sequence,
+    )
+
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        DtypeBackend,
+        DtypeObj,
+        FillnaOptions,
+        IgnoreRaise,
+        InterpolateOptions,
+        QuantileInterpolation,
+        Shape,
+        npt,
     )
 
     from pandas.core.api import Index
@@ -154,12 +156,9 @@ class Block(PandasObject, libinternals.Block):
     def _validate_ndim(self) -> bool:
         """
         We validate dimension for blocks that can hold 2D values, which for now
-        means numpy dtypes or DatetimeTZDtype.
+        means numpy dtypes or EA dtypes like DatetimeTZDtype and PeriodDtype.
         """
-        dtype = self.dtype
-        return not isinstance(dtype, ExtensionDtype) or isinstance(
-            dtype, DatetimeTZDtype
-        )
+        return not is_1d_only_ea_dtype(self.dtype)
 
     @final
     @cache_readonly
@@ -351,7 +350,7 @@ class Block(PandasObject, libinternals.Block):
         return self._split_op_result(result)
 
     @final
-    def reduce(self, func) -> list[Block]:
+    def reduce(self, func) -> Block:
         # We will apply the function and reshape the result into a single-row
         #  Block with the same mgr_locs; squeezing will be done at a higher level
         assert self.ndim == 2
@@ -363,8 +362,7 @@ class Block(PandasObject, libinternals.Block):
         else:
             res_values = result.reshape(-1, 1)
 
-        nb = self.make_block(res_values)
-        return [nb]
+        return self.make_block(res_values)
 
     @final
     def _split_op_result(self, result: ArrayLike) -> list[Block]:
@@ -389,7 +387,7 @@ class Block(PandasObject, libinternals.Block):
         return [nb]
 
     @final
-    def _split(self) -> Generator[Block, None, None]:
+    def _split(self) -> Generator[Block]:
         """
         Split a block into a list of single-column blocks.
         """
@@ -429,7 +427,7 @@ class Block(PandasObject, libinternals.Block):
     # Up/Down-casting
 
     @final
-    def coerce_to_target_dtype(self, other, warn_on_upcast: bool = False) -> Block:
+    def coerce_to_target_dtype(self, other, raise_on_upcast: bool) -> Block:
         """
         coerce the current block to a dtype compat for other
         we will return a block, possibly object, and not raise
@@ -456,7 +454,7 @@ class Block(PandasObject, libinternals.Block):
                 isinstance(other, (np.datetime64, np.timedelta64)) and np.isnat(other)
             )
         ):
-            warn_on_upcast = False
+            raise_on_upcast = False
         elif (
             isinstance(other, np.ndarray)
             and other.ndim == 1
@@ -464,17 +462,10 @@ class Block(PandasObject, libinternals.Block):
             and is_float_dtype(other.dtype)
             and lib.has_only_ints_or_nan(other)
         ):
-            warn_on_upcast = False
+            raise_on_upcast = False
 
-        if warn_on_upcast:
-            warnings.warn(
-                f"Setting an item of incompatible dtype is deprecated "
-                "and will raise an error in a future version of pandas. "
-                f"Value '{other}' has dtype incompatible with {self.values.dtype}, "
-                "please explicitly cast to a compatible dtype first.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+        if raise_on_upcast:
+            raise TypeError(f"Invalid value '{other}' for dtype '{self.values.dtype}'")
         if self.values.dtype == new_dtype:
             raise AssertionError(
                 f"Did not expect new dtype {new_dtype} to equal self.dtype "
@@ -520,7 +511,10 @@ class Block(PandasObject, libinternals.Block):
             convert_non_numeric=True,
         )
         refs = None
-        if res_values is values:
+        if res_values is values or (
+            isinstance(res_values, NumpyExtensionArray)
+            and res_values._ndarray is values
+        ):
             refs = self.refs
 
         res_values = ensure_block_shape(res_values, self.ndim)
@@ -569,7 +563,7 @@ class Block(PandasObject, libinternals.Block):
                 rbs.append(blk.copy(deep=False))
                 continue
 
-            for dtype, b in zip(dtypes, sub_blks):
+            for dtype, b in zip(dtypes, sub_blks, strict=True):
                 rbs.append(b.astype(dtype=dtype, squeeze=b.ndim != 1))
         return rbs
 
@@ -643,7 +637,7 @@ class Block(PandasObject, libinternals.Block):
         return self.make_block(result)
 
     @final
-    def copy(self, deep: bool = True) -> Self:
+    def copy(self, *, deep: bool) -> Self:
         """copy constructor"""
         values = self.values
         refs: BlockValuesRefs | None
@@ -661,7 +655,7 @@ class Block(PandasObject, libinternals.Block):
     def _maybe_copy(self, inplace: bool) -> Self:
         if inplace and not self.refs.has_reference():
             return self
-        return self.copy()
+        return self.copy(deep=True)
 
     @final
     def _get_refs_and_copy(self, inplace: bool):
@@ -696,14 +690,6 @@ class Block(PandasObject, libinternals.Block):
         #  go through replace_list
         values = self.values
 
-        if isinstance(values, Categorical):
-            # TODO: avoid special-casing
-            # GH49404
-            blk = self._maybe_copy(inplace)
-            values = cast(Categorical, blk.values)
-            values._replace(to_replace=to_replace, value=value, inplace=True)
-            return [blk]
-
         if not self._can_hold_element(to_replace):
             # We cannot hold `to_replace`, so we know immediately that
             #  replacing it is a no-op.
@@ -718,7 +704,7 @@ class Block(PandasObject, libinternals.Block):
             #  bc _can_hold_element is incorrect.
             return [self.copy(deep=False)]
 
-        elif self._can_hold_element(value):
+        elif self._can_hold_element(value) or (self.dtype == "string" and is_re(value)):
             # TODO(CoW): Maybe split here as well into columns where mask has True
             # and rest?
             blk = self._maybe_copy(inplace)
@@ -729,7 +715,7 @@ class Block(PandasObject, libinternals.Block):
             if value is None or value is NA:
                 blk = self.astype(np.dtype(object))
             else:
-                blk = self.coerce_to_target_dtype(value)
+                blk = self.coerce_to_target_dtype(value, raise_on_upcast=False)
             return blk.replace(
                 to_replace=to_replace,
                 value=value,
@@ -778,14 +764,24 @@ class Block(PandasObject, libinternals.Block):
         -------
         List[Block]
         """
-        if not self._can_hold_element(to_replace):
+        if not is_re(to_replace) and not self._can_hold_element(to_replace):
             # i.e. only if self.is_object is True, but could in principle include a
             #  String ExtensionBlock
             return [self.copy(deep=False)]
 
-        rx = re.compile(to_replace)
+        if is_re(to_replace) and self.dtype not in [object, "string"]:
+            # only object or string dtype can hold strings, and a regex object
+            # will only match strings
+            return [self.copy(deep=False)]
 
-        block = self._maybe_copy(inplace)
+        if not (
+            self._can_hold_element(value) or (self.dtype == "string" and is_re(value))
+        ):
+            block = self.astype(np.dtype(object))
+        else:
+            block = self._maybe_copy(inplace)
+
+        rx = re.compile(to_replace)
 
         replace_regex(block.values, rx, value, mask)
         return [block]
@@ -803,19 +799,13 @@ class Block(PandasObject, libinternals.Block):
         """
         values = self.values
 
-        if isinstance(values, Categorical):
-            # TODO: avoid special-casing
-            # GH49404
-            blk = self._maybe_copy(inplace)
-            values = cast(Categorical, blk.values)
-            values._replace(to_replace=src_list, value=dest_list, inplace=True)
-            return [blk]
-
         # Exclude anything that we know we won't contain
         pairs = [
-            (x, y) for x, y in zip(src_list, dest_list) if self._can_hold_element(x)
+            (x, y)
+            for x, y in zip(src_list, dest_list, strict=True)
+            if (self._can_hold_element(x) or (self.dtype == "string" and is_re(x)))
         ]
-        if not len(pairs):
+        if not pairs:
             return [self.copy(deep=False)]
 
         src_len = len(pairs) - 1
@@ -826,12 +816,7 @@ class Block(PandasObject, libinternals.Block):
             na_mask = ~isna(values)
             masks: Iterable[npt.NDArray[np.bool_]] = (
                 extract_bool_array(
-                    cast(
-                        ArrayLike,
-                        compare_or_regex_search(
-                            values, s[0], regex=regex, mask=na_mask
-                        ),
-                    )
+                    compare_or_regex_search(values, s[0], regex=regex, mask=na_mask),
                 )
                 for s in pairs
             )
@@ -847,7 +832,7 @@ class Block(PandasObject, libinternals.Block):
         # references when we check again later
         rb = [self]
 
-        for i, ((src, dest), mask) in enumerate(zip(pairs, masks)):
+        for i, ((src, dest), mask) in enumerate(zip(pairs, masks, strict=True)):
             new_rb: list[Block] = []
 
             # GH-39338: _replace_coerce can split a block into
@@ -873,14 +858,22 @@ class Block(PandasObject, libinternals.Block):
                 )
 
                 if i != src_len:
-                    # This is ugly, but we have to get rid of intermediate refs
-                    # that did not go out of scope yet, otherwise we will trigger
-                    # many unnecessary copies
+                    # This is ugly, but we have to get rid of intermediate refs. We
+                    # can simply clear the referenced_blocks if we already copied,
+                    # otherwise we have to remove ourselves
+                    self_blk_ids = {
+                        id(b()): i for i, b in enumerate(self.refs.referenced_blocks)
+                    }
                     for b in result:
-                        ref = weakref.ref(b)
-                        b.refs.referenced_blocks.pop(
-                            b.refs.referenced_blocks.index(ref)
-                        )
+                        if b.refs is self.refs:
+                            # We are still sharing memory with self
+                            if id(b) in self_blk_ids:
+                                # Remove ourselves from the refs; we are temporary
+                                self.refs.referenced_blocks.pop(self_blk_ids[id(b)])
+                        else:
+                            # We have already copied, so we can clear the refs to avoid
+                            # future copies
+                            b.refs.referenced_blocks.clear()
                 new_rb.extend(result)
             rb = new_rb
         return rb
@@ -929,13 +922,13 @@ class Block(PandasObject, libinternals.Block):
                     has_ref = self.refs.has_reference()
                     nb = self.astype(np.dtype(object))
                     if not inplace:
-                        nb = nb.copy()
+                        nb = nb.copy(deep=True)
                     elif inplace and has_ref and nb.refs.has_reference():
                         # no copy in astype and we had refs before
-                        nb = nb.copy()
+                        nb = nb.copy(deep=True)
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
-                return [self]
+                return [self.copy(deep=False)]
             return self.replace(
                 to_replace=to_replace,
                 value=value,
@@ -1122,7 +1115,7 @@ class Block(PandasObject, libinternals.Block):
             casted = np_can_hold_element(values.dtype, value)
         except LossySetitemError:
             # current dtype cannot store value, coerce to common dtype
-            nb = self.coerce_to_target_dtype(value, warn_on_upcast=True)
+            nb = self.coerce_to_target_dtype(value, raise_on_upcast=True)
             return nb.setitem(indexer, value)
         else:
             if self.dtype == _dtype_obj:
@@ -1158,7 +1151,7 @@ class Block(PandasObject, libinternals.Block):
         Parameters
         ----------
         mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
-        new : a ndarray/object
+        new : an ndarray/object
 
         Returns
         -------
@@ -1193,7 +1186,7 @@ class Block(PandasObject, libinternals.Block):
                 if not is_list_like(new):
                     # using just new[indexer] can't save us the need to cast
                     return self.coerce_to_target_dtype(
-                        new, warn_on_upcast=True
+                        new, raise_on_upcast=True
                     ).putmask(mask, new)
                 else:
                     indexer = mask.nonzero()[0]
@@ -1221,7 +1214,7 @@ class Block(PandasObject, libinternals.Block):
 
         Parameters
         ----------
-        other : a ndarray/object
+        other : an ndarray/object
         cond : np.ndarray[bool], SparseArray[bool], or BooleanArray
 
         Returns
@@ -1261,7 +1254,7 @@ class Block(PandasObject, libinternals.Block):
             if self.ndim == 1 or self.shape[0] == 1:
                 # no need to split columns
 
-                block = self.coerce_to_target_dtype(other)
+                block = self.coerce_to_target_dtype(other, raise_on_upcast=False)
                 return block.where(orig_other, cond)
 
             else:
@@ -1343,7 +1336,7 @@ class Block(PandasObject, libinternals.Block):
             return [self.copy(deep=False)]
 
         if limit is not None:
-            mask[mask.cumsum(self.ndim - 1) > limit] = False
+            mask[mask.cumsum(self.values.ndim - 1) > limit] = False
 
         if inplace:
             nbs = self.putmask(mask.T, value)
@@ -1455,7 +1448,19 @@ class Block(PandasObject, libinternals.Block):
                 fill_value,
             )
         except LossySetitemError:
-            nb = self.coerce_to_target_dtype(fill_value)
+            if self.dtype.kind not in "iub" or not is_valid_na_for_dtype(
+                fill_value, self.dtype
+            ):
+                # GH#53802
+                warnings.warn(
+                    "shifting with a fill value that cannot be held by "
+                    "original dtype is deprecated and will raise in a future "
+                    "version. Explicitly cast to the desired dtype before "
+                    "shifting instead.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+            nb = self.coerce_to_target_dtype(fill_value, raise_on_upcast=False)
             return nb.shift(periods, fill_value=fill_value)
 
         else:
@@ -1498,7 +1503,7 @@ class Block(PandasObject, libinternals.Block):
         """
         Rounds the values.
         If the block is not of an integer or float dtype, nothing happens.
-        This is consistent with DataFrame.round behavivor.
+        This is consistent with DataFrame.round behavior.
         (Note: Series.round would raise)
 
         Parameters
@@ -1508,6 +1513,15 @@ class Block(PandasObject, libinternals.Block):
             Caller is responsible for validating this
         """
         if not self.is_numeric or self.is_bool:
+            if isinstance(self.values, (DatetimeArray, TimedeltaArray, PeriodArray)):
+                # GH#57781
+                # TODO: also the ArrowDtype analogues?
+                warnings.warn(
+                    "obj.round has no effect with datetime, timedelta, "
+                    "or period dtypes. Use obj.dt.round(...) instead.",
+                    UserWarning,
+                    stacklevel=find_stack_level(),
+                )
             return self.copy(deep=False)
         # TODO: round only defined on BaseMaskedArray
         # Series also does this, so would need to fix both places
@@ -1654,11 +1668,11 @@ class EABackedBlock(Block):
         except (ValueError, TypeError):
             if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
-                nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
+                nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
             elif isinstance(self, NDArrayBackedExtensionBlock):
-                nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
+                nb = self.coerce_to_target_dtype(orig_value, raise_on_upcast=True)
                 return nb.setitem(orig_indexer, orig_value)
 
             else:
@@ -1689,17 +1703,26 @@ class EABackedBlock(Block):
 
         try:
             res_values = arr._where(cond, other).T
+        except OutOfBoundsDatetime:
+            raise
         except (ValueError, TypeError):
             if self.ndim == 1 or self.shape[0] == 1:
-                if isinstance(self.dtype, IntervalDtype):
+                if isinstance(self.dtype, (IntervalDtype, StringDtype)):
                     # TestSetitemFloatIntervalWithIntIntervalValues
-                    blk = self.coerce_to_target_dtype(orig_other)
+                    blk = self.coerce_to_target_dtype(orig_other, raise_on_upcast=False)
+                    if (
+                        self.ndim == 2
+                        and isinstance(orig_cond, np.ndarray)
+                        and orig_cond.ndim == 1
+                        and not is_1d_only_ea_dtype(blk.dtype)
+                    ):
+                        orig_cond = orig_cond[:, None]
                     return blk.where(orig_other, orig_cond)
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
                     # NB: not (yet) the same as
                     #  isinstance(values, NDArrayBackedExtensionArray)
-                    blk = self.coerce_to_target_dtype(orig_other)
+                    blk = self.coerce_to_target_dtype(orig_other, raise_on_upcast=False)
                     return blk.where(orig_other, orig_cond)
 
                 else:
@@ -1749,18 +1772,20 @@ class EABackedBlock(Block):
         try:
             # Caller is responsible for ensuring matching lengths
             values._putmask(mask, new)
+        except OutOfBoundsDatetime:
+            raise
         except (TypeError, ValueError):
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, IntervalDtype):
                     # Discussion about what we want to support in the general
                     #  case GH#39584
-                    blk = self.coerce_to_target_dtype(orig_new, warn_on_upcast=True)
+                    blk = self.coerce_to_target_dtype(orig_new, raise_on_upcast=True)
                     return blk.putmask(orig_mask, orig_new)
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
                     # NB: not (yet) the same as
                     #  isinstance(values, NDArrayBackedExtensionArray)
-                    blk = self.coerce_to_target_dtype(orig_new, warn_on_upcast=True)
+                    blk = self.coerce_to_target_dtype(orig_new, raise_on_upcast=True)
                     return blk.putmask(orig_mask, orig_new)
 
                 else:
@@ -1861,9 +1886,9 @@ class ExtensionBlock(EABackedBlock):
         limit: int | None = None,
         inplace: bool = False,
     ) -> list[Block]:
-        if isinstance(self.dtype, IntervalDtype):
+        if isinstance(self.dtype, (IntervalDtype, StringDtype)):
             # Block.fillna handles coercion (test_fillna_interval)
-            if limit is not None:
+            if isinstance(self.dtype, IntervalDtype) and limit is not None:
                 raise ValueError("limit must be None")
             return super().fillna(
                 value=value,
@@ -1891,7 +1916,7 @@ class ExtensionBlock(EABackedBlock):
                     "need to implement this keyword or an exception will be "
                     "raised. In the interim, the keyword is ignored by "
                     f"{type(self.values).__name__}.",
-                    DeprecationWarning,
+                    Pandas4Warning,
                     stacklevel=find_stack_level(),
                 )
 
@@ -2100,7 +2125,9 @@ class ExtensionBlock(EABackedBlock):
                 BlockPlacement(place),
                 ndim=2,
             )
-            for i, (indices, place) in enumerate(zip(new_values, new_placement))
+            for i, (indices, place) in enumerate(
+                zip(new_values, new_placement, strict=True)
+            )
         ]
         return blocks, mask
 
@@ -2264,8 +2291,7 @@ def check_ndim(values, placement: BlockPlacement, ndim: int) -> None:
     if values.ndim > ndim:
         # Check for both np.ndarray and ExtensionArray
         raise ValueError(
-            "Wrong number of dimensions. "
-            f"values.ndim > ndim [{values.ndim} > {ndim}]"
+            f"Wrong number of dimensions. values.ndim > ndim [{values.ndim} > {ndim}]"
         )
 
     if not is_1d_only_ea_dtype(values.dtype):
@@ -2359,7 +2385,11 @@ def external_values(values: ArrayLike) -> ArrayLike:
     if isinstance(values, np.ndarray):
         values = values.view()
         values.flags.writeable = False
-
-    # TODO(CoW) we should also mark our ExtensionArrays as read-only
+    else:
+        # ExtensionArrays
+        # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
+        # values = values.view()
+        # values._readonly = True
+        pass
 
     return values

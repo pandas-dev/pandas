@@ -6,7 +6,6 @@ from datetime import (
 
 import numpy as np
 import pytest
-import pytz
 
 from pandas import (
     Categorical,
@@ -159,9 +158,8 @@ class TestSeriesFillNA:
 
         # assignment
         ser2 = ser.copy()
-        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        with pytest.raises(TypeError, match="Invalid value"):
             ser2[1] = "foo"
-        tm.assert_series_equal(ser2, expected)
 
     def test_timedelta_fillna(self, frame_or_series, unit):
         # GH#3371
@@ -315,7 +313,7 @@ class TestSeriesFillNA:
     def test_datetime64_fillna_mismatched_reso_no_rounding(self, tz, scalar):
         # GH#56410
         dti = date_range("2016-01-01", periods=3, unit="s", tz=tz)
-        item = Timestamp("2016-02-03 04:05:06.789", tz=tz)
+        item = Timestamp("2016-02-03 04:05:06.789", tz=tz).as_unit("ms")
         vec = date_range(item, periods=3, unit="ms")
 
         exp_dtype = "M8[ms]" if tz is None else "M8[ms, UTC]"
@@ -342,8 +340,9 @@ class TestSeriesFillNA:
     )
     def test_timedelta64_fillna_mismatched_reso_no_rounding(self, scalar):
         # GH#56410
-        tdi = date_range("2016-01-01", periods=3, unit="s") - Timestamp("1970-01-01")
-        item = Timestamp("2016-02-03 04:05:06.789") - Timestamp("1970-01-01")
+        ts = Timestamp("1970-01-01").as_unit("s")
+        tdi = date_range("2016-01-01", periods=3, unit="s") - ts
+        item = Timestamp("2016-02-03 04:05:06.789").as_unit("ms") - ts
         vec = timedelta_range(item, periods=3, unit="ms")
 
         expected = Series([item, tdi[1], tdi[2]], dtype="m8[ms]")
@@ -390,7 +389,7 @@ class TestSeriesFillNA:
         )
         null_loc = Series([False, True, False, True])
 
-        result = ser.fillna(Timestamp("2011-01-02 10:00"))
+        result = ser.fillna(Timestamp("2011-01-02 10:00").as_unit("s"))
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00"),
@@ -404,13 +403,13 @@ class TestSeriesFillNA:
         # check s is not changed
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna(Timestamp("2011-01-02 10:00", tz=tz))
+        result = ser.fillna(Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"))
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00"),
-                Timestamp("2011-01-02 10:00", tz=tz),
-                Timestamp("2011-01-03 10:00"),
-                Timestamp("2011-01-02 10:00", tz=tz),
+                Timestamp("2011-01-01 10:00").as_unit("s"),
+                Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"),
+                Timestamp("2011-01-03 10:00").as_unit("s"),
+                Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"),
             ],
         )
         tm.assert_series_equal(expected, result)
@@ -419,9 +418,9 @@ class TestSeriesFillNA:
         result = ser.fillna("AAA")
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00"),
+                Timestamp("2011-01-01 10:00").as_unit("s"),
                 "AAA",
-                Timestamp("2011-01-03 10:00"),
+                Timestamp("2011-01-03 10:00").as_unit("s"),
                 "AAA",
             ],
             dtype=object,
@@ -431,23 +430,26 @@ class TestSeriesFillNA:
 
         result = ser.fillna(
             {
-                1: Timestamp("2011-01-02 10:00", tz=tz),
-                3: Timestamp("2011-01-04 10:00"),
+                1: Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"),
+                3: Timestamp("2011-01-04 10:00").as_unit("s"),
             }
         )
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00"),
-                Timestamp("2011-01-02 10:00", tz=tz),
-                Timestamp("2011-01-03 10:00"),
-                Timestamp("2011-01-04 10:00"),
+                Timestamp("2011-01-01 10:00").as_unit("s"),
+                Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"),
+                Timestamp("2011-01-03 10:00").as_unit("s"),
+                Timestamp("2011-01-04 10:00").as_unit("s"),
             ]
         )
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
         result = ser.fillna(
-            {1: Timestamp("2011-01-02 10:00"), 3: Timestamp("2011-01-04 10:00")}
+            {
+                1: Timestamp("2011-01-02 10:00").as_unit("s"),
+                3: Timestamp("2011-01-04 10:00").as_unit("s"),
+            }
         )
         expected = Series(
             [
@@ -469,19 +471,19 @@ class TestSeriesFillNA:
         assert ser.dtype == f"datetime64[{unit}, {tz}]"
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna(Timestamp("2011-01-02 10:00"))
+        result = ser.fillna(Timestamp("2011-01-02 10:00").as_unit("s"))
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00", tz=tz),
-                Timestamp("2011-01-02 10:00"),
-                Timestamp("2011-01-03 10:00", tz=tz),
-                Timestamp("2011-01-02 10:00"),
+                Timestamp("2011-01-01 10:00", tz=tz).as_unit("s"),
+                Timestamp("2011-01-02 10:00").as_unit("s"),
+                Timestamp("2011-01-03 10:00", tz=tz).as_unit("s"),
+                Timestamp("2011-01-02 10:00").as_unit("s"),
             ]
         )
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna(Timestamp("2011-01-02 10:00", tz=tz))
+        result = ser.fillna(Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"))
         idx = DatetimeIndex(
             [
                 "2011-01-01 10:00",
@@ -512,9 +514,9 @@ class TestSeriesFillNA:
         result = ser.fillna("AAA")
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00", tz=tz),
+                Timestamp("2011-01-01 10:00", tz=tz).as_unit("s"),
                 "AAA",
-                Timestamp("2011-01-03 10:00", tz=tz),
+                Timestamp("2011-01-03 10:00", tz=tz).as_unit("s"),
                 "AAA",
             ],
             dtype=object,
@@ -524,16 +526,16 @@ class TestSeriesFillNA:
 
         result = ser.fillna(
             {
-                1: Timestamp("2011-01-02 10:00", tz=tz),
-                3: Timestamp("2011-01-04 10:00"),
+                1: Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"),
+                3: Timestamp("2011-01-04 10:00").as_unit("s"),
             }
         )
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00", tz=tz),
-                Timestamp("2011-01-02 10:00", tz=tz),
-                Timestamp("2011-01-03 10:00", tz=tz),
-                Timestamp("2011-01-04 10:00"),
+                Timestamp("2011-01-01 10:00", tz=tz).as_unit("s"),
+                Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"),
+                Timestamp("2011-01-03 10:00", tz=tz).as_unit("s"),
+                Timestamp("2011-01-04 10:00").as_unit("s"),
             ]
         )
         tm.assert_series_equal(expected, result)
@@ -541,8 +543,8 @@ class TestSeriesFillNA:
 
         result = ser.fillna(
             {
-                1: Timestamp("2011-01-02 10:00", tz=tz),
-                3: Timestamp("2011-01-04 10:00", tz=tz),
+                1: Timestamp("2011-01-02 10:00", tz=tz).as_unit("s"),
+                3: Timestamp("2011-01-04 10:00", tz=tz).as_unit("s"),
             }
         )
         expected = Series(
@@ -557,13 +559,13 @@ class TestSeriesFillNA:
         tm.assert_series_equal(isna(ser), null_loc)
 
         # filling with a naive/other zone, coerce to object
-        result = ser.fillna(Timestamp("20130101"))
+        result = ser.fillna(Timestamp("20130101").as_unit("s"))
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00", tz=tz),
-                Timestamp("2013-01-01"),
-                Timestamp("2011-01-03 10:00", tz=tz),
-                Timestamp("2013-01-01"),
+                Timestamp("2011-01-01 10:00", tz=tz).as_unit("s"),
+                Timestamp("2013-01-01").as_unit("s"),
+                Timestamp("2011-01-03 10:00", tz=tz).as_unit("s"),
+                Timestamp("2013-01-01").as_unit("s"),
             ]
         )
         tm.assert_series_equal(expected, result)
@@ -571,13 +573,13 @@ class TestSeriesFillNA:
 
         # pre-2.0 fillna with mixed tzs would cast to object, in 2.0
         #  it retains dtype.
-        result = ser.fillna(Timestamp("20130101", tz="US/Pacific"))
+        result = ser.fillna(Timestamp("20130101", tz="US/Pacific").as_unit("s"))
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00", tz=tz),
-                Timestamp("2013-01-01", tz="US/Pacific").tz_convert(tz),
-                Timestamp("2011-01-03 10:00", tz=tz),
-                Timestamp("2013-01-01", tz="US/Pacific").tz_convert(tz),
+                Timestamp("2011-01-01 10:00", tz=tz).as_unit("s"),
+                Timestamp("2013-01-01", tz="US/Pacific").as_unit("s").tz_convert(tz),
+                Timestamp("2011-01-03 10:00", tz=tz).as_unit("s"),
+                Timestamp("2013-01-01", tz="US/Pacific").as_unit("s").tz_convert(tz),
             ]
         ).dt.as_unit(unit)
         tm.assert_series_equal(expected, result)
@@ -586,20 +588,20 @@ class TestSeriesFillNA:
     def test_fillna_dt64tz_with_method(self):
         # with timezone
         # GH#15855
-        ser = Series([Timestamp("2012-11-11 00:00:00+01:00"), NaT])
+        ser = Series([Timestamp("2012-11-11 00:00:00+01:00").as_unit("s"), NaT])
         exp = Series(
             [
-                Timestamp("2012-11-11 00:00:00+01:00"),
-                Timestamp("2012-11-11 00:00:00+01:00"),
+                Timestamp("2012-11-11 00:00:00+01:00").as_unit("s"),
+                Timestamp("2012-11-11 00:00:00+01:00").as_unit("s"),
             ]
         )
         tm.assert_series_equal(ser.ffill(), exp)
 
-        ser = Series([NaT, Timestamp("2012-11-11 00:00:00+01:00")])
+        ser = Series([NaT, Timestamp("2012-11-11 00:00:00+01:00").as_unit("s")])
         exp = Series(
             [
-                Timestamp("2012-11-11 00:00:00+01:00"),
-                Timestamp("2012-11-11 00:00:00+01:00"),
+                Timestamp("2012-11-11 00:00:00+01:00").as_unit("s"),
+                Timestamp("2012-11-11 00:00:00+01:00").as_unit("s"),
             ]
         )
         tm.assert_series_equal(ser.bfill(), exp)
@@ -609,7 +611,7 @@ class TestSeriesFillNA:
         ser = Series([np.nan, Timedelta("1 days")], index=["A", "B"])
 
         result = ser.fillna(timedelta(1))
-        expected = Series(Timedelta("1 days"), index=["A", "B"])
+        expected = Series(Timedelta("1 days"), index=["A", "B"], dtype="m8[us]")
         tm.assert_series_equal(result, expected)
 
     def test_fillna_period(self):
@@ -665,8 +667,8 @@ class TestSeriesFillNA:
         x = Series([np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"])
         y = x.copy()
 
-        return_value = y.fillna(value=0, inplace=True)
-        assert return_value is None
+        result = y.fillna(value=0, inplace=True)
+        assert result is y
 
         expected = x.fillna(value=0)
         tm.assert_series_equal(y, expected)
@@ -861,7 +863,7 @@ class TestFillnaPad:
 
     def test_ffill_mixed_dtypes_without_missing_data(self):
         # GH#14956
-        series = Series([datetime(2015, 1, 1, tzinfo=pytz.utc), 1])
+        series = Series([datetime(2015, 1, 1, tzinfo=timezone.utc), 1])
         result = series.ffill()
         tm.assert_series_equal(series, result)
 
@@ -870,8 +872,8 @@ class TestFillnaPad:
             [np.nan, 1.0, np.nan, 3.0, np.nan], ["z", "a", "b", "c", "d"], dtype=float
         )
 
-        return_value = x.ffill(inplace=True)
-        assert return_value is None
+        result = x.ffill(inplace=True)
+        assert result is x
 
         expected = Series(
             [np.nan, 1.0, 1.0, 3.0, 3.0], ["z", "a", "b", "c", "d"], dtype=float
@@ -915,24 +917,24 @@ class TestFillnaPad:
 
     def test_fillna_int(self):
         ser = Series(np.random.default_rng(2).integers(-100, 100, 50))
-        return_value = ser.ffill(inplace=True)
-        assert return_value is None
+        result = ser.ffill(inplace=True)
+        assert result is ser
         tm.assert_series_equal(ser.ffill(inplace=False), ser)
 
     def test_datetime64tz_fillna_round_issue(self):
         # GH#14872
 
         data = Series(
-            [NaT, NaT, datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc)]
+            [NaT, NaT, datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=timezone.utc)]
         )
 
         filled = data.bfill()
 
         expected = Series(
             [
-                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc),
-                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc),
-                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=pytz.utc),
+                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=timezone.utc),
+                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=timezone.utc),
+                datetime(2016, 12, 12, 22, 24, 6, 100001, tzinfo=timezone.utc),
             ]
         )
 

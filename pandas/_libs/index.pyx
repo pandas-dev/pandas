@@ -58,7 +58,7 @@ cdef bint is_definitely_invalid_key(object val):
 
 cdef ndarray _get_bool_indexer(ndarray values, object val, ndarray mask = None):
     """
-    Return a ndarray[bool] of locations where val matches self.values.
+    Return an ndarray[bool] of locations where val matches self.values.
 
     If val is not NA, this is equivalent to `self.values == val`
     """
@@ -252,14 +252,24 @@ cdef class IndexEngine:
         return self.sizeof()
 
     cpdef _update_from_sliced(self, IndexEngine other, reverse: bool):
-        self.unique = other.unique
-        self.need_unique_check = other.need_unique_check
+        if other.unique:
+            self.unique = other.unique
+            self.need_unique_check = other.need_unique_check
+
         if not other.need_monotonic_check and (
                 other.is_monotonic_increasing or other.is_monotonic_decreasing):
-            self.need_monotonic_check = other.need_monotonic_check
-            # reverse=True means the index has been reversed
-            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
-            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
+            self.need_monotonic_check = 0
+            if len(self.values) > 0 and self.values[0] != self.values[-1]:
+                # reverse=True means the index has been reversed
+                if reverse:
+                    self.monotonic_inc = other.monotonic_dec
+                    self.monotonic_dec = other.monotonic_inc
+                else:
+                    self.monotonic_inc = other.monotonic_inc
+                    self.monotonic_dec = other.monotonic_dec
+            else:
+                self.monotonic_inc = 1
+                self.monotonic_dec = 1
 
     @property
     def is_unique(self) -> bool:
@@ -310,6 +320,9 @@ cdef class IndexEngine:
             # we can only be sure of uniqueness if is_strict_monotonic=1
             if is_strict_monotonic:
                 self.unique = 1
+                self.need_unique_check = 0
+            elif self.monotonic_inc == 1 or self.monotonic_dec == 1:
+                self.unique = 0
                 self.need_unique_check = 0
 
     cdef _call_monotonic(self, values):
@@ -547,6 +560,23 @@ cdef class StringEngine(IndexEngine):
             raise KeyError(val)
         return str(val)
 
+cdef class StringObjectEngine(ObjectEngine):
+
+    cdef:
+        object na_value
+
+    def __init__(self, ndarray values, na_value):
+        super().__init__(values)
+        self.na_value = na_value
+
+    cdef _check_type(self, object val):
+        if isinstance(val, str):
+            return val
+        elif checknull(val):
+            return self.na_value
+        else:
+            raise KeyError(val)
+
 
 cdef class DatetimeEngine(Int64Engine):
 
@@ -776,7 +806,7 @@ cdef class BaseMultiIndexCodesEngine:
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-        level_codes = list(target._recode_for_new_levels(self.levels))
+        level_codes = list(target._recode_for_new_levels(self.levels, copy=True))
         for i, codes in enumerate(level_codes):
             if self.levels[i].hasnans:
                 na_index = self.levels[i].isna().nonzero()[0][0]
@@ -811,7 +841,7 @@ cdef class BaseMultiIndexCodesEngine:
             raise KeyError(key)
         try:
             indices = [1 if checknull(v) else lev.get_loc(v) + multiindex_nulls_shift
-                       for lev, v in zip(self.levels, key)]
+                       for lev, v in zip(self.levels, key, strict=True)]
         except KeyError:
             raise KeyError(key)
 
@@ -882,14 +912,24 @@ cdef class SharedEngine:
         pass
 
     cpdef _update_from_sliced(self, ExtensionEngine other, reverse: bool):
-        self.unique = other.unique
-        self.need_unique_check = other.need_unique_check
+        if other.unique:
+            self.unique = other.unique
+            self.need_unique_check = other.need_unique_check
+
         if not other.need_monotonic_check and (
                 other.is_monotonic_increasing or other.is_monotonic_decreasing):
-            self.need_monotonic_check = other.need_monotonic_check
-            # reverse=True means the index has been reversed
-            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
-            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
+            self.need_monotonic_check = 0
+            if len(self.values) > 0 and self.values[0] != self.values[-1]:
+                # reverse=True means the index has been reversed
+                if reverse:
+                    self.monotonic_inc = other.monotonic_dec
+                    self.monotonic_dec = other.monotonic_inc
+                else:
+                    self.monotonic_inc = other.monotonic_inc
+                    self.monotonic_dec = other.monotonic_dec
+            else:
+                self.monotonic_inc = 1
+                self.monotonic_dec = 1
 
     @property
     def is_unique(self) -> bool:

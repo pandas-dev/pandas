@@ -4,6 +4,7 @@ import warnings
 import numpy as np
 
 from pandas import (
+    NA,
     DataFrame,
     Index,
     MultiIndex,
@@ -445,6 +446,8 @@ class Fillna:
             values[::2] = np.nan
             if dtype == "Int64":
                 values = values.round()
+                values = values.astype(object)
+                values[::2] = NA
             self.df = DataFrame(values, dtype=dtype)
         self.fill_values = self.df.iloc[self.df.first_valid_index()].to_dict()
 
@@ -517,7 +520,7 @@ class Apply:
         self.df = DataFrame(np.random.randn(1000, 100))
 
         self.s = Series(np.arange(1028.0))
-        self.df2 = DataFrame({i: self.s for i in range(1028)})
+        self.df2 = DataFrame(dict.fromkeys(range(1028), self.s))
         self.df3 = DataFrame(np.random.randn(1000, 3), columns=list("ABC"))
 
     def time_apply_user_func(self):

@@ -77,7 +77,7 @@ Any community member can open issues to:
 - Ask questions, e.g. "I noticed the behavior of a certain function
   changed between versions. Is this expected?".
 
-    Ideally, your questions should be related to how pandas works rather
+  - Ideally, your questions should be related to how pandas works rather
     than how you use pandas. `StackOverflow <https://stackoverflow.com/>`_ is
     better suited for answering usage questions, and we ask that all usage
     questions are first asked on StackOverflow. Thank you for respecting our
@@ -114,7 +114,7 @@ people who are hesitant to bring up their questions or ideas on a large public
 mailing list or GitHub.
 
 If this sounds like the right place for you, you are welcome to join using
-`this link <https://join.slack.com/t/pandas-dev-community/shared_invite/zt-2blg6u9k3-K6_XvMRDZWeH7Id274UeIg>`_!
+`this link <https://join.slack.com/t/pandas-dev-community/shared_invite/zt-3813u5fme-hmp5izpbeFl9G8~smrkE~A>`_!
 Please remember to follow our `Code of Conduct <https://pandas.pydata.org/community/coc.html>`_,
 and be aware that our admins are monitoring for irrelevant messages and will remove folks who use
 our

@@ -175,14 +175,14 @@ def _maybe_reindex_columns_na_proxy(
         for i, indexer in indexers.items():
             mgr = mgr.reindex_indexer(
                 axes[i],
-                indexers[i],
+                indexer,
                 axis=i,
                 only_slice=True,  # only relevant for i==0
                 allow_dups=True,
                 use_na_proxy=True,  # only relevant for i==0
             )
         if needs_copy and not indexers:
-            mgr = mgr.copy()
+            mgr = mgr.copy(deep=True)
 
         new_mgrs.append(mgr)
     return new_mgrs
@@ -250,7 +250,7 @@ def _concat_homogeneous_fastpath(
 
 def _get_combined_plan(
     mgrs: list[BlockManager],
-) -> Generator[tuple[BlockPlacement, list[JoinUnit]], None, None]:
+) -> Generator[tuple[BlockPlacement, list[JoinUnit]]]:
     max_len = mgrs[0].shape[0]
 
     blknos_list = [mgr.blknos for mgr in mgrs]

@@ -70,13 +70,12 @@ which will first group the data by the specified keys and then perform a windowi
 
     Some windowing aggregation, ``mean``, ``sum``, ``var`` and ``std`` methods may suffer from numerical
     imprecision due to the underlying windowing algorithms accumulating sums. When values differ
-    with magnitude :math:`1/np.finfo(np.double).eps` this results in truncation. It must be
+    with magnitude ``1/np.finfo(np.double).eps`` (approximately :math:`4.5 \times 10^{15}`),
+    this results in truncation. It must be
     noted, that large values may have an impact on windows, which do not include these values. `Kahan summation
     <https://en.wikipedia.org/wiki/Kahan_summation_algorithm>`__ is used
     to compute the rolling sums to preserve accuracy as much as possible.
 
-
-.. versionadded:: 1.3.0
 
 Some windowing operations also support the ``method='table'`` option in the constructor which
 performs the windowing operation over an entire :class:`DataFrame` instead of a single column at a time.
@@ -98,8 +97,6 @@ be calculated with :meth:`~Rolling.apply` by specifying a separate column of wei
 
    df = pd.DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
    df.rolling(2, method="table", min_periods=0).apply(weighted_mean, raw=True, engine="numba")  # noqa: E501
-
-.. versionadded:: 1.3
 
 Some windowing operations also support an ``online`` method after constructing a windowing object
 which returns a new object that supports passing in new :class:`DataFrame` or :class:`Series` objects
@@ -180,8 +177,6 @@ By default the labels are set to the right edge of the window, but a
 
 
 This can also be applied to datetime-like indices.
-
-.. versionadded:: 1.3.0
 
 .. ipython:: python
 
@@ -356,15 +351,13 @@ See :ref:`enhancing performance with Numba <enhancingperf.numba>` for general us
 
 Numba will be applied in potentially two routines:
 
-#. If ``func`` is a standard Python function, the engine will `JIT <https://numba.pydata.org/numba-doc/latest/user/overview.html>`__ the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
+#. If ``func`` is a standard Python function, the engine will `JIT <https://numba.readthedocs.io/en/stable/user/overview.html>`__ the passed function. ``func`` can also be a JITed function in which case the engine will not JIT the function again.
 #. The engine will JIT the for loop where the apply function is applied to each window.
 
 The ``engine_kwargs`` argument is a dictionary of keyword arguments that will be passed into the
-`numba.jit decorator <https://numba.pydata.org/numba-doc/latest/reference/jit-compilation.html#numba.jit>`__.
+`numba.jit decorator <https://numba.readthedocs.io/en/stable/user/jit.html>`__.
 These keyword arguments will be applied to *both* the passed function (if a standard Python function)
 and the apply for loop over each window.
-
-.. versionadded:: 1.3.0
 
 ``mean``, ``median``, ``max``, ``min``, and ``sum`` also support the ``engine`` and ``engine_kwargs`` arguments.
 
@@ -567,9 +560,9 @@ One must have :math:`0 < \alpha \leq 1`, and while it is possible to pass
 
    \alpha =
     \begin{cases}
-        \frac{2}{s + 1},               & \text{for span}\ s \geq 1\\
-        \frac{1}{1 + c},               & \text{for center of mass}\ c \geq 0\\
-        1 - \exp^{\frac{\log 0.5}{h}}, & \text{for half-life}\ h > 0
+        \frac{2}{s + 1},            & \text{for span}\ s \geq 1\\
+        \frac{1}{1 + c},            & \text{for center of mass}\ c \geq 0\\
+        1 - e^{\frac{\log 0.5}{h}}, & \text{for half-life}\ h > 0
     \end{cases}
 
 One must specify precisely one of **span**, **center of mass**, **half-life**

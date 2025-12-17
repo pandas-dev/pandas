@@ -12,11 +12,19 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs import (
+    algos as libalgos,
+)
 from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (
+    cache_readonly,
+    set_module,
+)
 
 from pandas.core.dtypes.common import (
+    ensure_int64,
+    ensure_platform_int,
     is_list_like,
     is_scalar,
 )
@@ -34,10 +42,14 @@ from pandas.core.groupby.categorical import recode_for_groupby
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
+    default_index,
 )
 from pandas.core.series import Series
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    PrettyDict,
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -54,6 +66,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
+@set_module("pandas")
 class Grouper:
     """
     A Grouper allows the user to specify a groupby instruction for an object.
@@ -71,6 +84,9 @@ class Grouper:
         Currently unused, reserved for future use.
     **kwargs
         Dictionary of the keyword arguments to pass to Grouper.
+
+    Attributes
+    ----------
     key : str, defaults to None
         Groupby key, which selects the grouping column of the target.
     level : name/number, defaults to None
@@ -100,8 +116,6 @@ class Grouper:
 
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
-
-        .. versionadded:: 1.3.0
 
     offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
@@ -274,18 +288,22 @@ class Grouper:
         self._indexer: npt.NDArray[np.intp] | None = None
 
     def _get_grouper(
-        self, obj: NDFrameT, validate: bool = True
+        self, obj: NDFrameT, validate: bool = True, observed: bool = True
     ) -> tuple[ops.BaseGrouper, NDFrameT]:
         """
         Parameters
         ----------
         obj : Series or DataFrame
+            Object being grouped.
         validate : bool, default True
-            if True, validate the grouper
+            If True, validate the grouper.
+        observed : bool, default True
+            Whether only observed groups should be in the result. Only
+            has an impact when grouping on categorical data.
 
         Returns
         -------
-        a tuple of grouper, obj (possibly sorted)
+        A tuple of grouper, obj (possibly sorted)
         """
         obj, _, _ = self._set_grouper(obj)
         grouper, _, obj = get_grouper(
@@ -295,6 +313,7 @@ class Grouper:
             sort=self.sort,
             validate=validate,
             dropna=self.dropna,
+            observed=observed,
         )
 
         return grouper, obj
@@ -441,6 +460,8 @@ class Grouping:
         dropna: bool = True,
         uniques: ArrayLike | None = None,
     ) -> None:
+        if isinstance(grouper, Series):
+            grouper = grouper.copy(deep=False)
         self.level = level
         self._orig_grouper = grouper
         grouping_vector = _convert_grouper(index, grouper)
@@ -512,8 +533,7 @@ class Grouping:
             ):
                 grper = pprint_thing(grouping_vector)
                 errmsg = (
-                    "Grouper result violates len(labels) == "
-                    f"len(data)\nresult: {grper}"
+                    f"Grouper result violates len(labels) == len(data)\nresult: {grper}"
                 )
                 raise AssertionError(errmsg)
 
@@ -665,8 +685,14 @@ class Grouping:
     def groups(self) -> dict[Hashable, Index]:
         codes, uniques = self._codes_and_uniques
         uniques = Index._with_infer(uniques, name=self.name)
-        cats = Categorical.from_codes(codes, uniques, validate=False)
-        return self._index.groupby(cats)
+
+        r, counts = libalgos.groupsort_indexer(ensure_platform_int(codes), len(uniques))
+        counts = ensure_int64(counts).cumsum()
+        _result = (r[start:end] for start, end in zip(counts, counts[1:], strict=False))
+        # map to the label
+        result = {k: self._index.take(v) for k, v in zip(uniques, _result, strict=True)}
+
+        return PrettyDict(result)
 
     @property
     def observed_grouping(self) -> Grouping:
@@ -770,7 +796,7 @@ def get_grouper(
 
     # a passed-in Grouper, directly convert
     if isinstance(key, Grouper):
-        grouper, obj = key._get_grouper(obj, validate=False)
+        grouper, obj = key._get_grouper(obj, validate=False, observed=observed)
         if key.key is None:
             return grouper, frozenset(), obj
         else:
@@ -853,7 +879,7 @@ def get_grouper(
             return gpr._mgr.references_same_values(obj_gpr_column._mgr, 0)
         return False
 
-    for gpr, level in zip(keys, levels):
+    for gpr, level in zip(keys, levels, strict=True):
         if is_in_obj(gpr):  # df.groupby(df['name'])
             in_axis = True
             exclusions.add(gpr.name)
@@ -901,7 +927,7 @@ def get_grouper(
     if len(groupings) == 0 and len(obj):
         raise ValueError("No group keys passed!")
     if len(groupings) == 0:
-        groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
+        groupings.append(Grouping(default_index(0), np.array([], dtype=np.intp)))
 
     # create the internals grouper
     grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, dropna=dropna)

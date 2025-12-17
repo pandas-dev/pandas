@@ -43,21 +43,16 @@ class TestSeriesClip:
             assert list(isna(s)) == list(isna(lower))
             assert list(isna(s)) == list(isna(upper))
 
-    def test_series_clipping_with_na_values(self, any_numeric_ea_dtype, nulls_fixture):
+    def test_series_clipping_with_na_values(self, any_numeric_ea_dtype):
         # Ensure that clipping method can handle NA values with out failing
         # GH#40581
 
-        if nulls_fixture is pd.NaT:
-            # constructor will raise, see
-            #  test_constructor_mismatched_null_nullable_dtype
-            pytest.skip("See test_constructor_mismatched_null_nullable_dtype")
-
-        ser = Series([nulls_fixture, 1.0, 3.0], dtype=any_numeric_ea_dtype)
+        ser = Series([pd.NA, 1.0, 3.0], dtype=any_numeric_ea_dtype)
         s_clipped_upper = ser.clip(upper=2.0)
         s_clipped_lower = ser.clip(lower=2.0)
 
-        expected_upper = Series([nulls_fixture, 1.0, 2.0], dtype=any_numeric_ea_dtype)
-        expected_lower = Series([nulls_fixture, 2.0, 3.0], dtype=any_numeric_ea_dtype)
+        expected_upper = Series([pd.NA, 1.0, 2.0], dtype=any_numeric_ea_dtype)
+        expected_lower = Series([pd.NA, 2.0, 3.0], dtype=any_numeric_ea_dtype)
 
         tm.assert_series_equal(s_clipped_upper, expected_upper)
         tm.assert_series_equal(s_clipped_lower, expected_lower)
@@ -102,7 +97,7 @@ class TestSeriesClip:
         expected = Series([1, 2, 3])
 
         if inplace:
-            result = original
+            assert result is original
         tm.assert_series_equal(result, expected, check_exact=True)
 
     def test_clip_with_datetimes(self):

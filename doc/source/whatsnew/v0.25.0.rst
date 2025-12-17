@@ -988,7 +988,7 @@ Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Significant speedup in :class:`SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
-- :meth:`DataFrame.to_stata()` is now faster when outputting data with any string or non-native endian columns (:issue:`25045`)
+- :meth:`DataFrame.to_stata` is now faster when outputting data with any string or non-native endian columns (:issue:`25045`)
 - Improved performance of :meth:`Series.searchsorted`. The speedup is especially large when the dtype is
   int8/int16/int32 and the searched key is within the integer bounds for the dtype (:issue:`22034`)
 - Improved performance of :meth:`.GroupBy.quantile` (:issue:`20405`)
@@ -1088,7 +1088,7 @@ Numeric
 Conversion
 ^^^^^^^^^^
 
-- Bug in :func:`DataFrame.astype()` when passing a dict of columns and types the ``errors`` parameter was ignored. (:issue:`25905`)
+- Bug in :func:`DataFrame.astype` when passing a dict of columns and types the ``errors`` parameter was ignored. (:issue:`25905`)
 -
 
 Strings
@@ -1146,7 +1146,7 @@ MultiIndex
 IO
 ^^
 
-- Bug in :func:`DataFrame.to_html()` where values were truncated using display options instead of outputting the full content (:issue:`17004`)
+- Bug in :func:`DataFrame.to_html` where values were truncated using display options instead of outputting the full content (:issue:`17004`)
 - Fixed bug in missing text when using :meth:`to_clipboard` if copying utf-16 characters in Python 3 on Windows (:issue:`25040`)
 - Bug in :func:`read_json` for ``orient='table'`` when it tries to infer dtypes by default, which is not applicable as dtypes are already defined in the JSON schema (:issue:`21345`)
 - Bug in :func:`read_json` for ``orient='table'`` and float index, as it infers index dtype by default, which is not applicable because index dtype is already defined in the JSON schema (:issue:`25433`)
@@ -1159,7 +1159,7 @@ IO
 - Bug in :meth:`DataFrame.to_html` where header numbers would ignore display options when rounding (:issue:`17280`)
 - Bug in :func:`read_hdf` where reading a table from an HDF5 file written directly with PyTables fails with a ``ValueError`` when using a sub-selection via the ``start`` or ``stop`` arguments (:issue:`11188`)
 - Bug in :func:`read_hdf` not properly closing store after a ``KeyError`` is raised (:issue:`25766`)
-- Improved the explanation for the failure when value labels are repeated in Stata dta files and suggested work-arounds (:issue:`25772`)
+- Improved the explanation for the failure when value labels are repeated in Stata dta files and suggested workarounds (:issue:`25772`)
 - Improved :meth:`pandas.read_stata` and :class:`pandas.io.stata.StataReader` to read incorrectly formatted 118 format files saved by Stata (:issue:`25960`)
 - Improved the ``col_space`` parameter in :meth:`DataFrame.to_html` to accept a string so CSS length values can be set correctly (:issue:`25941`)
 - Fixed bug in loading objects from S3 that contain ``#`` characters in the URL (:issue:`25945`)
@@ -1171,7 +1171,7 @@ IO
 - Fixed bug in :func:`pandas.read_csv` where a BOM would result in incorrect parsing using engine='python' (:issue:`26545`)
 - :func:`read_excel` now raises a ``ValueError`` when input is of type :class:`pandas.io.excel.ExcelFile` and ``engine`` param is passed since :class:`pandas.io.excel.ExcelFile` has an engine defined (:issue:`26566`)
 - Bug while selecting from :class:`HDFStore` with ``where=''`` specified (:issue:`26610`).
-- Fixed bug in :func:`DataFrame.to_excel()` where custom objects (i.e. ``PeriodIndex``) inside merged cells were not being converted into types safe for the Excel writer (:issue:`27006`)
+- Fixed bug in :func:`DataFrame.to_excel` where custom objects (i.e. ``PeriodIndex``) inside merged cells were not being converted into types safe for the Excel writer (:issue:`27006`)
 - Bug in :meth:`read_hdf` where reading a timezone aware :class:`DatetimeIndex` would raise a ``TypeError`` (:issue:`11926`)
 - Bug in :meth:`to_msgpack` and :meth:`read_msgpack` which would raise a ``ValueError`` rather than a ``FileNotFoundError`` for an invalid path (:issue:`27160`)
 - Fixed bug in :meth:`DataFrame.to_parquet` which would raise a ``ValueError`` when the dataframe had no columns (:issue:`27339`)

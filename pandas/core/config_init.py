@@ -12,8 +12,9 @@ module is imported, register them here rather than in the module.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 import os
-from typing import Callable
+from typing import Any
 
 import pandas._config.config as cf
 from pandas._config.config import (
@@ -26,6 +27,8 @@ from pandas._config.config import (
     is_str,
     is_text,
 )
+
+from pandas.errors import Pandas4Warning
 
 # compute
 
@@ -99,7 +102,10 @@ pc_max_rows_doc = """
 : int
     If max_rows is exceeded, switch to truncate view. Depending on
     `large_repr`, objects are either centrally truncated or printed as
-    a summary view. 'None' value means unlimited.
+    a summary view.
+
+    'None' value means unlimited. Beware that printing a large number of rows
+    could cause your rendering environment (the browser, etc.) to crash.
 
     In case python/IPython is running in a terminal and `large_repr`
     equals 'truncate' this can be set to 0 and pandas will auto-detect
@@ -120,7 +126,11 @@ pc_max_cols_doc = """
 : int
     If max_cols is exceeded, switch to truncate view. Depending on
     `large_repr`, objects are either centrally truncated or printed as
-    a summary view. 'None' value means unlimited.
+    a summary view.
+
+    'None' value means unlimited. Beware that printing a large number of
+    columns could cause your rendering environment (the browser, etc.) to
+    crash.
 
     In case python/IPython is running in a terminal and `large_repr`
     equals 'truncate' this can be set to 0 or None and pandas will auto-detect
@@ -398,12 +408,11 @@ with cf.config_prefix("mode"):
     cf.register_option("sim_interactive", False, tc_sim_interactive_doc)
 
 
-# TODO better name?
 copy_on_write_doc = """
 : bool
-    Use new copy-view behaviour using Copy-on-Write. Defaults to False,
-    unless overridden by the 'PANDAS_COPY_ON_WRITE' environment variable
-    (if set to "1" for True, needs to be set before pandas is imported).
+    Use new copy-view behaviour using Copy-on-Write. No longer used,
+    pandas now always uses Copy-on-Write behavior. This option will
+    be removed in pandas 4.0.
 """
 
 
@@ -414,7 +423,7 @@ with cf.config_prefix("mode"):
         # to False. This environment variable can be set for testing.
         "warn"
         if os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "warn"
-        else os.environ.get("PANDAS_COPY_ON_WRITE", "0") == "1",
+        else os.environ.get("PANDAS_COPY_ON_WRITE", "1") == "1",
         copy_on_write_doc,
         validator=is_one_of_factory([True, False, "warn"]),
     )
@@ -451,16 +460,24 @@ with cf.config_prefix("mode"):
 
 string_storage_doc = """
 : string
-    The default storage for StringDtype. This option is ignored if
-    ``future.infer_string`` is set to True.
+    The default storage for StringDtype.
 """
+
+
+def is_valid_string_storage(value: Any) -> None:
+    legal_values = ["auto", "python", "pyarrow"]
+    if value not in legal_values:
+        msg = "Value must be one of python|pyarrow"
+        raise ValueError(msg)
+
 
 with cf.config_prefix("mode"):
     cf.register_option(
         "string_storage",
-        "python",
+        "auto",
         string_storage_doc,
-        validator=is_one_of_factory(["python", "pyarrow", "pyarrow_numpy"]),
+        # validator=is_one_of_factory(["python", "pyarrow"]),
+        validator=is_valid_string_storage,
     )
 
 
@@ -858,7 +875,7 @@ with cf.config_prefix("styler"):
 with cf.config_prefix("future"):
     cf.register_option(
         "infer_string",
-        False,
+        False if os.environ.get("PANDAS_FUTURE_INFER_STRING", "1") == "0" else True,
         "Whether to infer sequence of str objects as pyarrow string "
         "dtype, which will be the default in pandas 3.0 "
         "(at which point this option will be deprecated).",
@@ -868,10 +885,31 @@ with cf.config_prefix("future"):
     cf.register_option(
         "no_silent_downcasting",
         False,
-        "Whether to opt-in to the future behavior which will *not* silently "
-        "downcast results from Series and DataFrame `where`, `mask`, and `clip` "
-        "methods. "
-        "Silent downcasting will be removed in pandas 3.0 "
-        "(at which point this option will be deprecated).",
+        "This option is deprecated and will be removed in a future version. "
+        "It has no effect.",
         validator=is_one_of_factory([True, False]),
     )
+
+    cf.register_option(
+        "distinguish_nan_and_na",
+        os.environ.get("PANDAS_FUTURE_DISTINGUISH_NAN_AND_NA", "0") == "1",
+        "Whether to treat NaN entries as distinct from pd.NA in "
+        "numpy-nullable and pyarrow float dtypes. By default treats both "
+        "interchangeable as missing values (NaN will be coerced to NA). "
+        "See discussion in "
+        "https://github.com/pandas-dev/pandas/issues/32265",
+        validator=is_one_of_factory([True, False]),
+    )
+
+
+# GH#59502
+cf.deprecate_option("future.no_silent_downcasting", Pandas4Warning)
+cf.deprecate_option(
+    "mode.copy_on_write",
+    Pandas4Warning,
+    msg=(
+        "The 'mode.copy_on_write' option is deprecated. Copy-on-Write can no longer "
+        "be disabled (it is always enabled with pandas >= 3.0), and setting the option "
+        "has no impact. This option will be removed in pandas 4.0."
+    ),
+)

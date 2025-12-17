@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import index as libindex
-from pandas.compat import IS64
+from pandas.compat import WASM
 
 import pandas as pd
 from pandas import (
@@ -210,7 +210,7 @@ class TestIntervalIndexInsideMultiIndex:
         expected = Series([1, 6, 2, 8, 7], index=expected_index, name="value")
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(not IS64, reason="GH 23440")
+    @pytest.mark.xfail(WASM, reason="GH 23440")
     @pytest.mark.parametrize("base", [101, 1010])
     def test_reindex_behavior_with_interval_index(self, base):
         # GH 51826
@@ -222,3 +222,13 @@ class TestIntervalIndexInsideMultiIndex:
         expected_result = Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)
         result = ser.reindex(index=[np.nan, 1.0])
         tm.assert_series_equal(result, expected_result)
+
+    def test_multiindex_with_interval_index(self):
+        # for GH#25298
+        intIndex = IntervalIndex.from_arrays([1, 5, 8, 13, 16], [4, 9, 12, 17, 20])
+        multiIndex = pd.MultiIndex.from_arrays([["a", "a", "b", "b", "c"], intIndex])
+        data = [(1, 2), (3, 4), (5, 6), (7, 8), (9, 10)]
+        df = DataFrame(data, index=multiIndex)
+        result = df.loc[("b", 16)]
+        expected = Series([7, 8], name=("b", pd.Interval(13, 17, closed="right")))
+        tm.assert_series_equal(result, expected)

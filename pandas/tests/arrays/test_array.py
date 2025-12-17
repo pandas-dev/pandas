@@ -1,9 +1,11 @@
 import datetime
 import decimal
+import zoneinfo
 
 import numpy as np
 import pytest
-import pytz
+
+from pandas._config import using_string_dtype
 
 import pandas as pd
 import pandas._testing as tm
@@ -125,7 +127,7 @@ def test_dt64_array(dtype_unit):
         (
             pd.DatetimeIndex(["2000", "2001"]),
             None,
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[us]"),
         ),
         (
             ["2000", "2001"],
@@ -161,7 +163,7 @@ def test_dt64_array(dtype_unit):
         (
             pd.TimedeltaIndex(["1h", "2h"]),
             None,
-            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[ns]"),
+            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[us]"),
         ),
         (
             # preserve non-nano, i.e. don't cast to NumpyExtensionArray
@@ -215,18 +217,42 @@ def test_dt64_array(dtype_unit):
         ),
         (
             ["a", None],
+            "str",
+            pd.StringDtype(na_value=np.nan)
+            .construct_array_type()
+            ._from_sequence(["a", None], dtype=pd.StringDtype(na_value=np.nan))
+            if using_string_dtype()
+            else NumpyExtensionArray(np.array(["a", "None"])),
+        ),
+        (
+            ["a", None],
             pd.StringDtype(),
             pd.StringDtype()
             .construct_array_type()
             ._from_sequence(["a", None], dtype=pd.StringDtype()),
         ),
         (
+            ["a", None],
+            pd.StringDtype(na_value=np.nan),
+            pd.StringDtype(na_value=np.nan)
+            .construct_array_type()
+            ._from_sequence(["a", None], dtype=pd.StringDtype(na_value=np.nan)),
+        ),
+        (
             # numpy array with string dtype
             np.array(["a", "b"], dtype=str),
-            None,
+            pd.StringDtype(),
             pd.StringDtype()
             .construct_array_type()
             ._from_sequence(["a", "b"], dtype=pd.StringDtype()),
+        ),
+        (
+            # numpy array with string dtype
+            np.array(["a", "b"], dtype=str),
+            pd.StringDtype(na_value=np.nan),
+            pd.StringDtype(na_value=np.nan)
+            .construct_array_type()
+            ._from_sequence(["a", "b"], dtype=pd.StringDtype(na_value=np.nan)),
         ),
         # Boolean
         (
@@ -285,9 +311,6 @@ def test_array_copy():
     assert tm.shares_memory(a, b)
 
 
-cet = pytz.timezone("CET")
-
-
 @pytest.mark.parametrize(
     "data, expected",
     [
@@ -300,7 +323,7 @@ cet = pytz.timezone("CET")
         ([pd.Interval(0, 1), pd.Interval(1, 2)], IntervalArray.from_breaks([0, 1, 2])),
         # datetime
         (
-            [pd.Timestamp("2000"), pd.Timestamp("2001")],
+            [pd.Timestamp("2000").as_unit("s"), pd.Timestamp("2001").as_unit("s")],
             DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[s]"),
         ),
         (
@@ -319,38 +342,52 @@ cet = pytz.timezone("CET")
         ),
         # datetimetz
         (
-            [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2001", tz="CET")],
+            [
+                pd.Timestamp("2000", tz="CET").as_unit("s"),
+                pd.Timestamp("2001", tz="CET").as_unit("s"),
+            ],
             DatetimeArray._from_sequence(
                 ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="s")
             ),
         ),
         (
             [
-                datetime.datetime(2000, 1, 1, tzinfo=cet),
-                datetime.datetime(2001, 1, 1, tzinfo=cet),
+                datetime.datetime(
+                    2000, 1, 1, tzinfo=zoneinfo.ZoneInfo("Europe/Berlin")
+                ),
+                datetime.datetime(
+                    2001, 1, 1, tzinfo=zoneinfo.ZoneInfo("Europe/Berlin")
+                ),
             ],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet, unit="us")
+                ["2000", "2001"],
+                dtype=pd.DatetimeTZDtype(
+                    tz=zoneinfo.ZoneInfo("Europe/Berlin"), unit="us"
+                ),
             ),
         ),
         # timedelta
         (
             [pd.Timedelta("1h"), pd.Timedelta("2h")],
-            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[ns]"),
+            TimedeltaArray._from_sequence(["1h", "2h"], dtype="m8[us]"),
         ),
         (
             np.array([1, 2], dtype="m8[ns]"),
-            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[ns]")),
+            TimedeltaArray._from_sequence(
+                np.array([1, 2], dtype="m8[ns]"), dtype=np.dtype("m8[ns]")
+            ),
         ),
         (
             np.array([1, 2], dtype="m8[us]"),
-            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[us]")),
+            TimedeltaArray._from_sequence(
+                np.array([1, 2], dtype="m8[us]"), dtype=np.dtype("m8[us]")
+            ),
         ),
         # integer
         ([1, 2], IntegerArray._from_sequence([1, 2], dtype="Int64")),
         ([1, None], IntegerArray._from_sequence([1, None], dtype="Int64")),
         ([1, pd.NA], IntegerArray._from_sequence([1, pd.NA], dtype="Int64")),
-        ([1, np.nan], IntegerArray._from_sequence([1, np.nan], dtype="Int64")),
+        ([1, np.nan], IntegerArray._from_sequence([1, pd.NA], dtype="Int64")),
         # float
         ([0.1, 0.2], FloatingArray._from_sequence([0.1, 0.2], dtype="Float64")),
         ([0.1, None], FloatingArray._from_sequence([0.1, pd.NA], dtype="Float64")),
@@ -379,6 +416,13 @@ cet = pytz.timezone("CET")
             pd.StringDtype()
             .construct_array_type()
             ._from_sequence(["a", None], dtype=pd.StringDtype()),
+        ),
+        (
+            # numpy array with string dtype
+            np.array(["a", "b"], dtype=str),
+            pd.StringDtype()
+            .construct_array_type()
+            ._from_sequence(["a", "b"], dtype=pd.StringDtype()),
         ),
         # Boolean
         ([True, False], BooleanArray._from_sequence([True, False], dtype="boolean")),
@@ -446,8 +490,7 @@ def test_bounds_check():
 class DecimalDtype2(DecimalDtype):
     name = "decimal2"
 
-    @classmethod
-    def construct_array_type(cls):
+    def construct_array_type(self):
         """
         Return the array type associated with this dtype.
 

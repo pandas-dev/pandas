@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import HAS_PYARROW
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -14,6 +16,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
+from pandas.util.version import Version
 
 
 def test_copy():
@@ -220,6 +223,19 @@ def test_groupby_column_index_in_references():
     key = df["C"]
     result = df.groupby(key, observed=True).sum()
     expected = df.groupby("C", observed=True).sum()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_modify_series():
+    # https://github.com/pandas-dev/pandas/issues/63219
+    # Modifying a Series after using it to groupby should not impact
+    # the groupby operation.
+    ser = Series([1, 2, 1])
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    gb = df.groupby(ser)
+    ser.iloc[0] = 100
+    result = gb.sum()
+    expected = DataFrame({"a": [4, 2], "b": [10, 5]}, index=[1, 2])
     tm.assert_frame_equal(result, expected)
 
 
@@ -557,7 +573,7 @@ def test_to_frame():
     ],
     ids=["shallow-copy", "reset_index", "rename", "select_dtypes"],
 )
-def test_chained_methods(request, method, idx):
+def test_chained_methods(method, idx):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]})
     df_orig = df.copy()
 
@@ -712,13 +728,18 @@ def test_head_tail(method):
     tm.assert_frame_equal(df, df_orig)
 
 
-def test_infer_objects():
-    df = DataFrame({"a": [1, 2], "b": "c", "c": 1, "d": "x"})
+def test_infer_objects(using_infer_string):
+    df = DataFrame(
+        {"a": [1, 2], "b": Series(["x", "y"], dtype=object), "c": 1, "d": "x"}
+    )
     df_orig = df.copy()
     df2 = df.infer_objects()
 
     assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
-    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    if using_infer_string and HAS_PYARROW:
+        assert not tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    else:
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
 
     df2.iloc[0, 0] = 0
     df2.iloc[0, 1] = "d"
@@ -727,16 +748,16 @@ def test_infer_objects():
     tm.assert_frame_equal(df, df_orig)
 
 
-def test_infer_objects_no_reference():
+def test_infer_objects_no_reference(using_infer_string):
     df = DataFrame(
         {
             "a": [1, 2],
-            "b": "c",
+            "b": Series(["x", "y"], dtype=object),
             "c": 1,
             "d": Series(
                 [Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype="object"
             ),
-            "e": "b",
+            "e": Series(["z", "w"], dtype=object),
         }
     )
     df = df.infer_objects()
@@ -749,8 +770,14 @@ def test_infer_objects_no_reference():
     df.iloc[0, 1] = "d"
     df.iloc[0, 3] = Timestamp("2018-12-31")
     assert np.shares_memory(arr_a, get_array(df, "a"))
-    # TODO(CoW): Block splitting causes references here
-    assert not np.shares_memory(arr_b, get_array(df, "b"))
+    if using_infer_string and HAS_PYARROW:
+        # note that the underlying memory of arr_b has been copied anyway
+        # because of the assignment, but the EA is updated inplace so still
+        # appears the share memory
+        assert tm.shares_memory(arr_b, get_array(df, "b"))
+    else:
+        # TODO(CoW): Block splitting causes references here
+        assert not np.shares_memory(arr_b, get_array(df, "b"))
     assert np.shares_memory(arr_d, get_array(df, "d"))
 
 
@@ -758,7 +785,7 @@ def test_infer_objects_reference():
     df = DataFrame(
         {
             "a": [1, 2],
-            "b": "c",
+            "b": Series(["x", "y"], dtype=object),
             "c": 1,
             "d": Series(
                 [Timestamp("2019-12-31"), Timestamp("2020-12-31")], dtype="object"
@@ -902,10 +929,11 @@ def test_round(decimals):
     df_orig = df.copy()
     df2 = df.round(decimals=decimals)
 
-    assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+    assert tm.shares_memory(get_array(df2, "b"), get_array(df, "b"))
     # TODO: Make inplace by using out parameter of ndarray.round?
-    if decimals >= 0:
+    if decimals >= 0 and Version(np.__version__) < Version("2.4.0.dev0"):
         # Ensure lazy copy if no-op
+        # TODO: Cannot rely on Numpy returning view after version 2.3
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -1105,26 +1133,26 @@ def test_putmask_aligns_rhs_no_reference(dtype):
     assert np.shares_memory(arr_a, get_array(df, "a"))
 
 
-@pytest.mark.parametrize(
-    "val, exp, warn", [(5.5, True, FutureWarning), (5, False, None)]
-)
-def test_putmask_dont_copy_some_blocks(val, exp, warn):
+@pytest.mark.parametrize("val, exp, raises", [(5.5, True, True), (5, False, False)])
+def test_putmask_dont_copy_some_blocks(val, exp, raises: bool):
     df = DataFrame({"a": [1, 2], "b": 1, "c": 1.5})
     view = df[:]
     df_orig = df.copy()
     indexer = DataFrame(
         [[True, False, False], [True, False, False]], columns=list("abc")
     )
-    with tm.assert_produces_warning(warn, match="incompatible dtype"):
+    if raises:
+        with pytest.raises(TypeError, match="Invalid value"):
+            df[indexer] = val
+    else:
         df[indexer] = val
-
-    assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
-    # TODO(CoW): Could split blocks to avoid copying the whole block
-    assert np.shares_memory(get_array(view, "b"), get_array(df, "b")) is exp
-    assert np.shares_memory(get_array(view, "c"), get_array(df, "c"))
-    assert df._mgr._has_no_reference(1) is not exp
-    assert not df._mgr._has_no_reference(2)
-    tm.assert_frame_equal(view, df_orig)
+        assert not np.shares_memory(get_array(view, "a"), get_array(df, "a"))
+        # TODO(CoW): Could split blocks to avoid copying the whole block
+        assert np.shares_memory(get_array(view, "b"), get_array(df, "b")) is exp
+        assert np.shares_memory(get_array(view, "c"), get_array(df, "c"))
+        assert df._mgr._has_no_reference(1) is not exp
+        assert not df._mgr._has_no_reference(2)
+        tm.assert_frame_equal(view, df_orig)
 
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])

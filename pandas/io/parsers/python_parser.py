@@ -10,15 +10,18 @@ import re
 from typing import (
     IO,
     TYPE_CHECKING,
+    Any,
     DefaultDict,
     Literal,
     cast,
+    final,
 )
 import warnings
 
 import numpy as np
 
 from pandas._libs import lib
+from pandas._typing import Scalar
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -27,12 +30,29 @@ from pandas.errors import (
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.astype import astype_array
 from pandas.core.dtypes.common import (
     is_bool_dtype,
+    is_extension_array_dtype,
     is_integer,
     is_numeric_dtype,
+    is_object_dtype,
+    is_string_dtype,
+    pandas_dtype,
+)
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    ExtensionDtype,
 )
 from pandas.core.dtypes.inference import is_dict_like
+
+from pandas.core import algorithms
+from pandas.core.arrays import (
+    Categorical,
+    ExtensionArray,
+)
+from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.indexes.api import Index
 
 from pandas.io.common import (
     dedup_names,
@@ -40,7 +60,10 @@ from pandas.io.common import (
 )
 from pandas.io.parsers.base_parser import (
     ParserBase,
+    evaluate_callable_usecols,
+    get_na_values,
     parser_defaults,
+    validate_parse_dates_presence,
 )
 
 if TYPE_CHECKING:
@@ -53,13 +76,12 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
+        DtypeObj,
         ReadCsvBuffer,
-        Scalar,
         T,
     )
 
     from pandas import (
-        Index,
         MultiIndex,
         Series,
     )
@@ -106,9 +128,8 @@ class PythonParser(ParserBase):
         self.quoting = kwds["quoting"]
         self.skip_blank_lines = kwds["skip_blank_lines"]
 
-        self.has_index_names = False
-        if "has_index_names" in kwds:
-            self.has_index_names = kwds["has_index_names"]
+        # Passed from read_excel
+        self.has_index_names = kwds.get("has_index_names", False)
 
         self.thousands = kwds["thousands"]
         self.decimal = kwds["decimal"]
@@ -144,7 +165,7 @@ class PythonParser(ParserBase):
             _,
         ) = self._extract_multi_indexer_columns(
             columns,
-            self.index_names,  # type: ignore[has-type]
+            self.index_names,
         )
 
         # get popped off for index
@@ -157,7 +178,6 @@ class PythonParser(ParserBase):
         if self._col_indices is None:
             self._col_indices = list(range(len(self.columns)))
 
-        self._parse_date_cols = self._validate_parse_dates_presence(self.columns)
         self._no_thousands_columns = self._set_no_thousand_columns()
 
         if len(self.decimal) != 1:
@@ -198,6 +218,14 @@ class PythonParser(ParserBase):
 
             if sep is not None:
                 dia.delimiter = sep
+                # Skip rows at file level before csv.reader sees them
+                # prevents CSV parsing errors on lines that will be discarded
+                if self.skiprows is not None:
+                    while self.skipfunc(self.pos):
+                        line = f.readline()
+                        if not line:
+                            break
+                        self.pos += 1
             else:
                 # attempt to sniff the delimiter from the first valid line,
                 # i.e. no comment line and not in skiprows
@@ -261,14 +289,14 @@ class PythonParser(ParserBase):
 
         index: Index | None
         columns: Sequence[Hashable] = list(self.orig_names)
-        if not len(content):  # pragma: no cover
+        if not content:  # pragma: no cover
             # DataFrame with the right metadata, even though it's length 0
             # error: Cannot determine type of 'index_col'
             names = dedup_names(
                 self.orig_names,
                 is_potential_multi_index(
                     self.orig_names,
-                    self.index_col,  # type: ignore[has-type]
+                    self.index_col,
                 ),
             )
             index, columns, col_dict = self._get_empty_meta(
@@ -279,9 +307,10 @@ class PythonParser(ParserBase):
             return index, conv_columns, col_dict
 
         # handle new style for names in index
-        count_empty_content_vals = count_empty_vals(content[0])
         indexnamerow = None
-        if self.has_index_names and count_empty_content_vals == len(columns):
+        if self.has_index_names and sum(
+            int(v == "" or v is None) for v in content[0]
+        ) == len(columns):
             indexnamerow = content[0]
             content = content[1:]
 
@@ -291,9 +320,7 @@ class PythonParser(ParserBase):
         conv_data = self._convert_data(data)
         conv_data = self._do_date_conversions(columns, conv_data)
 
-        index, result_columns = self._make_index(
-            conv_data, alldata, columns, indexnamerow
-        )
+        index, result_columns = self._make_index(alldata, columns, indexnamerow)
 
         return index, result_columns, conv_data
 
@@ -306,14 +333,13 @@ class PythonParser(ParserBase):
             self.orig_names,
             is_potential_multi_index(
                 self.orig_names,
-                self.index_col,  # type: ignore[has-type]
+                self.index_col,
             ),
         )
 
         offset = 0
         if self._implicit_index:
-            # error: Cannot determine type of 'index_col'
-            offset = len(self.index_col)  # type: ignore[has-type]
+            offset = len(self.index_col)
 
         len_alldata = len(alldata)
         self._check_data_length(names, alldata)
@@ -370,6 +396,165 @@ class PythonParser(ParserBase):
             clean_dtypes,
         )
 
+    @final
+    def _convert_to_ndarrays(
+        self,
+        dct: Mapping,
+        na_values,
+        na_fvalues,
+        converters=None,
+        dtypes=None,
+    ) -> dict[Any, np.ndarray]:
+        result = {}
+        parse_date_cols = validate_parse_dates_presence(self.parse_dates, self.columns)
+        for c, values in dct.items():
+            conv_f = None if converters is None else converters.get(c, None)
+            if isinstance(dtypes, dict):
+                cast_type = dtypes.get(c, None)
+            else:
+                # single dtype or None
+                cast_type = dtypes
+
+            if self.na_filter:
+                col_na_values, col_na_fvalues = get_na_values(
+                    c, na_values, na_fvalues, self.keep_default_na
+                )
+            else:
+                col_na_values, col_na_fvalues = set(), set()
+
+            if c in parse_date_cols:
+                # GH#26203 Do not convert columns which get converted to dates
+                # but replace nans to ensure to_datetime works
+                mask = algorithms.isin(values, set(col_na_values) | col_na_fvalues)  # pyright: ignore[reportArgumentType]
+                np.putmask(values, mask, np.nan)
+                result[c] = values
+                continue
+
+            if conv_f is not None:
+                # conv_f applied to data before inference
+                if cast_type is not None:
+                    warnings.warn(
+                        (
+                            "Both a converter and dtype were specified "
+                            f"for column {c} - only the converter will be used."
+                        ),
+                        ParserWarning,
+                        stacklevel=find_stack_level(),
+                    )
+
+                try:
+                    values = lib.map_infer(values, conv_f)
+                except ValueError:
+                    mask = algorithms.isin(values, list(na_values)).view(np.uint8)
+                    values = lib.map_infer_mask(values, conv_f, mask)
+
+                cvals, na_count = self._infer_types(
+                    values,
+                    set(col_na_values) | col_na_fvalues,
+                    cast_type is None,
+                    try_num_bool=False,
+                )
+            else:
+                is_ea = is_extension_array_dtype(cast_type)
+                is_str_or_ea_dtype = is_ea or is_string_dtype(cast_type)
+                # skip inference if specified dtype is object
+                # or casting to an EA
+                try_num_bool = not (cast_type and is_str_or_ea_dtype)
+
+                # general type inference and conversion
+                cvals, na_count = self._infer_types(
+                    values,
+                    set(col_na_values) | col_na_fvalues,
+                    cast_type is None,
+                    try_num_bool,
+                )
+
+                # type specified in dtype param or cast_type is an EA
+                if cast_type is not None:
+                    cast_type = pandas_dtype(cast_type)
+                if cast_type and (cvals.dtype != cast_type or is_ea):
+                    if not is_ea and na_count > 0:
+                        if is_bool_dtype(cast_type):
+                            raise ValueError(f"Bool column has NA values in column {c}")
+                    cvals = self._cast_types(cvals, cast_type, c)
+
+            result[c] = cvals
+        return result
+
+    @final
+    def _cast_types(self, values: ArrayLike, cast_type: DtypeObj, column) -> ArrayLike:
+        """
+        Cast values to specified type
+
+        Parameters
+        ----------
+        values : ndarray or ExtensionArray
+        cast_type : np.dtype or ExtensionDtype
+           dtype to cast values to
+        column : string
+            column name - used only for error reporting
+
+        Returns
+        -------
+        converted : ndarray or ExtensionArray
+        """
+        if isinstance(cast_type, CategoricalDtype):
+            known_cats = cast_type.categories is not None
+
+            if not is_object_dtype(values.dtype) and not known_cats:
+                # TODO: this is for consistency with
+                # c-parser which parses all categories
+                # as strings
+                values = lib.ensure_string_array(
+                    values, skipna=False, convert_na_value=False
+                )
+
+            cats = Index(values).unique().dropna()
+            values = Categorical._from_inferred_categories(
+                cats, cats.get_indexer(values), cast_type, true_values=self.true_values
+            )
+
+        # use the EA's implementation of casting
+        elif isinstance(cast_type, ExtensionDtype):
+            array_type = cast_type.construct_array_type()
+            try:
+                if isinstance(cast_type, BooleanDtype):
+                    # error: Unexpected keyword argument "true_values" for
+                    # "_from_sequence_of_strings" of "ExtensionArray"
+                    values_str = [str(val) for val in values]
+                    return array_type._from_sequence_of_strings(  # type: ignore[call-arg]
+                        values_str,
+                        dtype=cast_type,
+                        true_values=self.true_values,  # pyright: ignore[reportCallIssue]
+                        false_values=self.false_values,  # pyright: ignore[reportCallIssue]
+                        none_values=self.na_values,  # pyright: ignore[reportCallIssue]
+                    )
+                else:
+                    return array_type._from_sequence_of_strings(values, dtype=cast_type)
+            except NotImplementedError as err:
+                raise NotImplementedError(
+                    f"Extension Array: {array_type} must implement "
+                    "_from_sequence_of_strings in order to be used in parser methods"
+                ) from err
+
+        elif isinstance(values, ExtensionArray):
+            values = values.astype(cast_type, copy=False)
+        elif issubclass(cast_type.type, str):
+            # TODO: why skipna=True here and False above? some tests depend
+            #  on it here, but nothing fails if we change it above
+            #  (as no tests get there as of 2022-12-06)
+            values = lib.ensure_string_array(
+                values, skipna=True, convert_na_value=False
+            )
+        else:
+            try:
+                values = astype_array(values, cast_type, copy=True)
+            except ValueError as err:
+                raise ValueError(
+                    f"Unable to convert column {column} to type {cast_type}"
+                ) from err
+        return values
+
     @cache_readonly
     def _have_mi_columns(self) -> bool:
         if self.header is None:
@@ -417,8 +602,7 @@ class PythonParser(ParserBase):
                         joi = list(map(str, header[:-1] if have_mi_columns else header))
                         msg = f"[{','.join(joi)}], len of {len(joi)}, "
                         raise ValueError(
-                            f"Passed header={msg}"
-                            f"but only {self.line_pos} lines in file"
+                            f"Passed header={msg}but only {self.line_pos} lines in file"
                         ) from err
 
                     # We have an empty file, so check
@@ -426,7 +610,7 @@ class PythonParser(ParserBase):
                     # serve as the 'line' for parsing
                     if have_mi_columns and hr > 0:
                         if clear_buffer:
-                            self._clear_buffer()
+                            self.buf.clear()
                         columns.append([None] * len(columns[-1]))
                         return columns, num_original_columns, unnamed_cols
 
@@ -485,13 +669,12 @@ class PythonParser(ParserBase):
                         this_columns[i] = col
                         counts[col] = cur_count + 1
                 elif have_mi_columns:
-                    # if we have grabbed an extra line, but its not in our
-                    # format so save in the buffer, and create an blank extra
+                    # if we have grabbed an extra line, but it's not in our
+                    # format so save in the buffer, and create a blank extra
                     # line for the rest of the parsing code
                     if hr == header[-1]:
                         lc = len(this_columns)
-                        # error: Cannot determine type of 'index_col'
-                        sic = self.index_col  # type: ignore[has-type]
+                        sic = self.index_col
                         ic = len(sic) if sic is not None else 0
                         unnamed_count = len(this_unnamed_cols)
 
@@ -508,7 +691,7 @@ class PythonParser(ParserBase):
                     num_original_columns = len(this_columns)
 
             if clear_buffer:
-                self._clear_buffer()
+                self.buf.clear()
 
             first_line: list[Scalar] | None
             if names is not None:
@@ -595,7 +778,7 @@ class PythonParser(ParserBase):
         col_indices: set[int] | list[int]
         if self.usecols is not None:
             if callable(self.usecols):
-                col_indices = self._evaluate_usecols(self.usecols, usecols_key)
+                col_indices = evaluate_callable_usecols(self.usecols, usecols_key)
             elif any(isinstance(u, str) for u in self.usecols):
                 if len(columns) > 1:
                     raise ValueError(
@@ -779,7 +962,9 @@ class PythonParser(ParserBase):
         """
         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
             raise ParserError(msg)
-        if self.on_bad_lines == self.BadLineHandleMethod.WARN:
+        if self.on_bad_lines == self.BadLineHandleMethod.WARN or callable(
+            self.on_bad_lines
+        ):
             warnings.warn(
                 f"Skipping line {row_num}: {msg}\n",
                 ParserWarning,
@@ -874,8 +1059,9 @@ class PythonParser(ParserBase):
             for line in lines
             if (
                 len(line) > 1
-                or len(line) == 1
-                and (not isinstance(line[0], str) or line[0].strip())
+                or (
+                    len(line) == 1 and (not isinstance(line[0], str) or line[0].strip())
+                )
             )
         ]
         return ret
@@ -915,9 +1101,6 @@ class PythonParser(ParserBase):
             lines=lines, search=self.decimal, replace="."
         )
 
-    def _clear_buffer(self) -> None:
-        self.buf = []
-
     def _get_index_name(
         self,
     ) -> tuple[Sequence[Hashable] | None, list[Hashable], list[Hashable]]:
@@ -956,8 +1139,7 @@ class PythonParser(ParserBase):
         if line is not None:
             # leave it 0, #2442
             # Case 1
-            # error: Cannot determine type of 'index_col'
-            index_col = self.index_col  # type: ignore[has-type]
+            index_col = self.index_col
             if index_col is not False:
                 implicit_first_cols = len(line) - self.num_original_columns
 
@@ -1007,13 +1189,7 @@ class PythonParser(ParserBase):
         # Check that there are no rows with too many
         # elements in their row (rows with too few
         # elements are padded with NaN).
-        # error: Non-overlapping identity check (left operand type: "List[int]",
-        # right operand type: "Literal[False]")
-        if (
-            max_len > col_len
-            and self.index_col is not False  # type: ignore[comparison-overlap]
-            and self.usecols is None
-        ):
+        if max_len > col_len and self.index_col is not False and self.usecols is None:
             footers = self.skipfooter if self.skipfooter else 0
             bad_lines = []
 
@@ -1023,30 +1199,35 @@ class PythonParser(ParserBase):
 
             for i, _content in iter_content:
                 actual_len = len(_content)
-
                 if actual_len > col_len:
                     if callable(self.on_bad_lines):
                         new_l = self.on_bad_lines(_content)
                         if new_l is not None:
+                            new_l = cast(list[Scalar], new_l)
+                            if len(new_l) > col_len:
+                                row_num = self.pos - (content_len - i + footers)
+                                bad_lines.append((row_num, len(new_l), "callable"))
+                                new_l = new_l[:col_len]
                             content.append(new_l)
+
                     elif self.on_bad_lines in (
                         self.BadLineHandleMethod.ERROR,
                         self.BadLineHandleMethod.WARN,
                     ):
                         row_num = self.pos - (content_len - i + footers)
-                        bad_lines.append((row_num, actual_len))
-
+                        bad_lines.append((row_num, actual_len, "normal"))
                         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
                             break
                 else:
                     content.append(_content)
 
-            for row_num, actual_len in bad_lines:
+            for row_num, actual_len, source in bad_lines:
                 msg = (
-                    f"Expected {col_len} fields in line {row_num + 1}, saw "
-                    f"{actual_len}"
+                    f"Expected {col_len} fields in line {row_num + 1}, saw {actual_len}"
                 )
-                if (
+                if source == "callable":
+                    msg += " from bad_lines callable"
+                elif (
                     self.delimiter
                     and len(self.delimiter) > 1
                     and self.quoting != csv.QUOTE_NONE
@@ -1176,7 +1357,7 @@ class PythonParser(ParserBase):
             )
         if self.columns and self.dtype:
             assert self._col_indices is not None
-            for i, col in zip(self._col_indices, self.columns):
+            for i, col in zip(self._col_indices, self.columns, strict=True):
                 if not isinstance(self.dtype, dict) and not is_numeric_dtype(
                     self.dtype
                 ):
@@ -1293,12 +1474,10 @@ class FixedWidthReader(abc.Iterator):
         shifted = np.roll(mask, 1)
         shifted[0] = 0
         edges = np.where((mask ^ shifted) == 1)[0]
-        edge_pairs = list(zip(edges[::2], edges[1::2]))
+        edge_pairs = list(zip(edges[::2], edges[1::2], strict=True))
         return edge_pairs
 
     def __next__(self) -> list[str]:
-        # Argument 1 to "next" has incompatible type "Union[IO[str],
-        # ReadCsvBuffer[str]]"; expected "SupportsNext[str]"
         if self.buffer is not None:
             try:
                 line = next(self.buffer)
@@ -1345,10 +1524,6 @@ class FixedWidthFieldParser(PythonParser):
             for line in lines
             if any(not isinstance(e, str) or e.strip() for e in line)
         ]
-
-
-def count_empty_vals(vals) -> int:
-    return sum(1 for v in vals if v == "" or v is None)
 
 
 def _validate_skipfooter_arg(skipfooter: int) -> int:

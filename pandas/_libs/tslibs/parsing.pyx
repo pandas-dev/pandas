@@ -377,32 +377,33 @@ def parse_datetime_string_with_reso(
         raise ValueError(f'Given date string "{date_string}" not likely a datetime')
 
     # Try iso8601 first, as it handles nanoseconds
-    string_to_dts_failed = string_to_dts(
-        date_string, &dts, &out_bestunit, &out_local,
-        &out_tzoffset, False
-    )
-    if not string_to_dts_failed:
-        # Match Timestamp and drop picoseconds, femtoseconds, attoseconds
-        # The new resolution will just be nano
-        # GH#50417
-        if out_bestunit in _timestamp_units:
-            out_bestunit = NPY_DATETIMEUNIT.NPY_FR_ns
+    if not dayfirst:  # GH 58859
+        string_to_dts_failed = string_to_dts(
+            date_string, &dts, &out_bestunit, &out_local,
+            &out_tzoffset, False
+        )
+        if not string_to_dts_failed:
+            # Match Timestamp and drop picoseconds, femtoseconds, attoseconds
+            # The new resolution will just be nano
+            # GH#50417
+            if out_bestunit in _timestamp_units:
+                out_bestunit = NPY_DATETIMEUNIT.NPY_FR_ns
 
-        if out_bestunit == NPY_DATETIMEUNIT.NPY_FR_ns:
-            # TODO: avoid circular import
-            from pandas import Timestamp
-            parsed = Timestamp(date_string)
-        else:
-            if out_local:
-                tz = timezone(timedelta(minutes=out_tzoffset))
+            if out_bestunit == NPY_DATETIMEUNIT.NPY_FR_ns:
+                # TODO: avoid circular import
+                from pandas import Timestamp
+                parsed = Timestamp(date_string)
             else:
-                tz = None
-            parsed = datetime_new(
-                dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us, tz
-            )
+                if out_local:
+                    tz = timezone(timedelta(minutes=out_tzoffset))
+                else:
+                    tz = None
+                parsed = datetime_new(
+                    dts.year, dts.month, dts.day, dts.hour, dts.min, dts.sec, dts.us, tz
+                )
 
-        reso = npy_unit_to_attrname[out_bestunit]
-        return parsed, reso
+            reso = npy_unit_to_attrname[out_bestunit]
+            return parsed, reso
 
     parsed = _parse_delimited_date(date_string, dayfirst, &out_bestunit)
     if parsed is not None:

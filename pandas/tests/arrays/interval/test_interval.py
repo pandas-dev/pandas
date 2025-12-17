@@ -111,13 +111,50 @@ class TestMethods:
         with pytest.raises(TypeError, match=msg):
             a.shift(1, fill_value=np.timedelta64("NaT", "ns"))
 
+    def test_unique_with_negatives(self):
+        # GH#61917
+        idx_pos = IntervalIndex.from_tuples(
+            [(3, 4), (3, 4), (2, 3), (2, 3), (1, 2), (1, 2)]
+        )
+        result = idx_pos.unique()
+        expected = IntervalIndex.from_tuples([(3, 4), (2, 3), (1, 2)])
+        tm.assert_index_equal(result, expected)
+
+        idx_neg = IntervalIndex.from_tuples(
+            [(-4, -3), (-4, -3), (-3, -2), (-3, -2), (-2, -1), (-2, -1)]
+        )
+        result = idx_neg.unique()
+        expected = IntervalIndex.from_tuples([(-4, -3), (-3, -2), (-2, -1)])
+        tm.assert_index_equal(result, expected)
+
+        idx_mix = IntervalIndex.from_tuples(
+            [(1, 2), (0, 1), (-1, 0), (-2, -1), (-3, -2), (-3, -2)]
+        )
+        result = idx_mix.unique()
+        expected = IntervalIndex.from_tuples(
+            [(1, 2), (0, 1), (-1, 0), (-2, -1), (-3, -2)]
+        )
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [Interval(-np.inf, 0), Interval(-np.inf, 1)],
+            [Interval(0, np.inf), Interval(1, np.inf)],
+        ],
+    )
+    def test_unique_with_infinty(self, data):
+        # https://github.com/pandas-dev/pandas/issues/63218
+        s = pd.Series(data)
+        tm.assert_interval_array_equal(s.unique(), s.array)
+        assert s.nunique() == 2
+        tm.assert_series_equal(s.drop_duplicates(), s)
+
 
 class TestSetitem:
     def test_set_na(self, left_right_dtypes):
         left, right = left_right_dtypes
-        left = left.copy(deep=True)
-        right = right.copy(deep=True)
-        result = IntervalArray.from_arrays(left, right)
+        result = IntervalArray.from_arrays(left, right, copy=True)
 
         if result.dtype.subtype.kind not in ["m", "M"]:
             msg = "'value' should be an interval type, got <.*NaTType'> instead."
@@ -168,8 +205,6 @@ class TestSetitem:
 class TestReductions:
     def test_min_max_invalid_axis(self, left_right_dtypes):
         left, right = left_right_dtypes
-        left = left.copy(deep=True)
-        right = right.copy(deep=True)
         arr = IntervalArray.from_arrays(left, right)
 
         msg = "`axis` must be fewer than the number of dimensions"
@@ -188,8 +223,6 @@ class TestReductions:
     def test_min_max(self, left_right_dtypes, index_or_series_or_array):
         # GH#44746
         left, right = left_right_dtypes
-        left = left.copy(deep=True)
-        right = right.copy(deep=True)
         arr = IntervalArray.from_arrays(left, right)
 
         # The expected results below are only valid if monotonic
@@ -222,9 +255,10 @@ class TestReductions:
         res = arr_na.max(skipna=False)
         assert np.isnan(res)
 
-        res = arr_na.min(skipna=True)
-        assert res == MIN
-        assert type(res) == type(MIN)
-        res = arr_na.max(skipna=True)
-        assert res == MAX
-        assert type(res) == type(MAX)
+        for kws in [{"skipna": True}, {}]:
+            res = arr_na.min(**kws)
+            assert res == MIN
+            assert type(res) == type(MIN)
+            res = arr_na.max(**kws)
+            assert res == MAX
+            assert type(res) == type(MAX)

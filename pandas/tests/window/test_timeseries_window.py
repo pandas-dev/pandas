@@ -101,7 +101,7 @@ class TestRollingTS:
         # column is valid
         df = df.copy()
         df["C"] = date_range("20130101", periods=len(df))
-        df.rolling(window="2d", on="C").sum()
+        df.rolling(window="2D", on="C").sum()
 
         # invalid columns
         msg = "window must be an integer"
@@ -109,7 +109,7 @@ class TestRollingTS:
             df.rolling(window="2d", on="B")
 
         # ok even though on non-selected
-        df.rolling(window="2d", on="C").B.sum()
+        df.rolling(window="2D", on="C").B.sum()
 
     def test_monotonic_on(self):
         # on/index must be monotonic
@@ -541,6 +541,42 @@ class TestRollingTS:
         expected["B"] = [0.0, 1, 2, 3, 4]
         tm.assert_frame_equal(result, expected)
 
+    def test_ragged_first(self, ragged):
+        df = ragged
+
+        result = df.rolling(window="1s", min_periods=1).first()
+        expected = df.copy()
+        expected["B"] = [0.0, 1, 2, 3, 4]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.rolling(window="2s", min_periods=1).first()
+        expected = df.copy()
+        expected["B"] = [0.0, 1, 1, 3, 3]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.rolling(window="5s", min_periods=1).first()
+        expected = df.copy()
+        expected["B"] = [0.0, 0, 0, 1, 1]
+        tm.assert_frame_equal(result, expected)
+
+    def test_ragged_last(self, ragged):
+        df = ragged
+
+        result = df.rolling(window="1s", min_periods=1).last()
+        expected = df.copy()
+        expected["B"] = [0.0, 1, 2, 3, 4]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.rolling(window="2s", min_periods=1).last()
+        expected = df.copy()
+        expected["B"] = [0.0, 1, 2, 3, 4]
+        tm.assert_frame_equal(result, expected)
+
+        result = df.rolling(window="5s", min_periods=1).last()
+        expected = df.copy()
+        expected["B"] = [0.0, 1, 2, 3, 4]
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize(
         "freq, op, result_data",
         [
@@ -586,6 +622,8 @@ class TestRollingTS:
             "skew",
             "min",
             "max",
+            "first",
+            "last",
         ],
     )
     def test_all(self, f, regular):
@@ -682,7 +720,7 @@ class TestRollingTS:
                 [date_range("20190101", periods=3), range(2)], names=["date", "seq"]
             ),
         )
-        result = df.rolling("10d", on=df.index.get_level_values("date")).sum()
+        result = df.rolling("10D", on=df.index.get_level_values("date")).sum()
         expected = DataFrame(
             {"column": [0.0, 1.0, 3.0, 6.0, 10.0, 15.0]}, index=df.index
         )

@@ -50,6 +50,7 @@ reduction_kernels = frozenset(
         "sem",
         "size",
         "skew",
+        "kurt",
         "std",
         "sum",
         "var",

@@ -137,7 +137,7 @@ def test_less_precise(data1, data2, any_float_dtype, decimals):
             DataFrame.from_records(
                 {"a": [1.0, 2.0], "b": [2.1, 1.5], "c": ["l1", "l2"]}, index=["a", "b"]
             ).c,
-            "MultiIndex level \\[0\\] are different",
+            "Series\\.index level \\[0\\] are different",
         ),
     ],
 )
@@ -214,24 +214,15 @@ Series values are different \\(33\\.33333 %\\)
 
 
 def test_series_equal_categorical_values_mismatch(rtol, using_infer_string):
-    if using_infer_string:
-        msg = """Series are different
+    dtype = "str" if using_infer_string else "object"
+    msg = f"""Series are different
 
 Series values are different \\(66\\.66667 %\\)
 \\[index\\]: \\[0, 1, 2\\]
 \\[left\\]:  \\['a', 'b', 'c'\\]
-Categories \\(3, string\\): \\[a, b, c\\]
+Categories \\(3, {dtype}\\): \\['a', 'b', 'c'\\]
 \\[right\\]: \\['a', 'c', 'b'\\]
-Categories \\(3, string\\): \\[a, b, c\\]"""
-    else:
-        msg = """Series are different
-
-Series values are different \\(66\\.66667 %\\)
-\\[index\\]: \\[0, 1, 2\\]
-\\[left\\]:  \\['a', 'b', 'c'\\]
-Categories \\(3, object\\): \\['a', 'b', 'c'\\]
-\\[right\\]: \\['a', 'c', 'b'\\]
-Categories \\(3, object\\): \\['a', 'b', 'c'\\]"""
+Categories \\(3, {dtype}\\): \\['a', 'b', 'c'\\]"""
 
     s1 = Series(Categorical(["a", "b", "c"]))
     s2 = Series(Categorical(["a", "c", "b"]))
@@ -248,8 +239,8 @@ Series values are different \\(100.0 %\\)
 \\[left\\]:  \\[1514764800000000000, 1514851200000000000, 1514937600000000000\\]
 \\[right\\]: \\[1549065600000000000, 1549152000000000000, 1549238400000000000\\]"""
 
-    s1 = Series(pd.date_range("2018-01-01", periods=3, freq="D"))
-    s2 = Series(pd.date_range("2019-02-02", periods=3, freq="D"))
+    s1 = Series(pd.date_range("2018-01-01", periods=3, freq="D", unit="ns"))
+    s2 = Series(pd.date_range("2019-02-02", periods=3, freq="D", unit="ns"))
 
     with pytest.raises(AssertionError, match=msg):
         tm.assert_series_equal(s1, s2, rtol=rtol)
@@ -257,7 +248,7 @@ Series values are different \\(100.0 %\\)
 
 def test_series_equal_categorical_mismatch(check_categorical, using_infer_string):
     if using_infer_string:
-        dtype = "string"
+        dtype = "str"
     else:
         dtype = "object"
     msg = f"""Attributes of Series are different

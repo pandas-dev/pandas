@@ -1,8 +1,14 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+)
 
 import numpy as np
+
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.base import register_extension_dtype
 from pandas.core.dtypes.common import is_float_dtype
@@ -11,6 +17,9 @@ from pandas.core.arrays.numeric import (
     NumericArray,
     NumericDtype,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class FloatingDtype(NumericDtype):
@@ -26,10 +35,9 @@ class FloatingDtype(NumericDtype):
     # The value used to fill '_data' to avoid upcasting
     _internal_fill_value = np.nan
     _default_np_dtype = np.dtype(np.float64)
-    _checker = is_float_dtype
+    _checker: Callable[[Any], bool] = is_float_dtype
 
-    @classmethod
-    def construct_array_type(cls) -> type[FloatingArray]:
+    def construct_array_type(self) -> type[FloatingArray]:
         """
         Return the array type associated with this dtype.
 
@@ -55,6 +63,7 @@ class FloatingDtype(NumericDtype):
         return values.astype(dtype, copy=copy)
 
 
+@set_module("pandas.arrays")
 class FloatingArray(NumericArray):
     """
     Array of floating (optional missing) values.
@@ -70,7 +79,7 @@ class FloatingArray(NumericArray):
     - data: contains a numpy float array of the appropriate dtype
     - mask: a boolean array holding a mask on the data, True is missing
 
-    To construct an FloatingArray from generic array-like input, use
+    To construct a FloatingArray from generic array-like input, use
     :func:`pandas.array` with one of the float dtypes (see examples).
 
     See :ref:`integer_na` for more.
@@ -96,9 +105,17 @@ class FloatingArray(NumericArray):
     -------
     FloatingArray
 
+    See Also
+    --------
+    array : Create an array.
+    Float32Dtype : Float32 dtype for FloatingArray.
+    Float64Dtype : Float64 dtype for FloatingArray.
+    Series : One-dimensional labeled array capable of holding data.
+    DataFrame : Two-dimensional, size-mutable, potentially heterogeneous tabular data.
+
     Examples
     --------
-    Create an FloatingArray with :func:`pandas.array`:
+    Create a FloatingArray with :func:`pandas.array`:
 
     >>> pd.array([0.1, None, 0.3], dtype=pd.Float32Dtype())
     <FloatingArray>
@@ -154,6 +171,7 @@ Float64Dtype()
 
 
 @register_extension_dtype
+@set_module("pandas")
 class Float32Dtype(FloatingDtype):
     type = np.float32
     name: ClassVar[str] = "Float32"
@@ -161,6 +179,7 @@ class Float32Dtype(FloatingDtype):
 
 
 @register_extension_dtype
+@set_module("pandas")
 class Float64Dtype(FloatingDtype):
     type = np.float64
     name: ClassVar[str] = "Float64"

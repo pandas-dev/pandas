@@ -190,17 +190,6 @@ class TestIndexConcat:
         tm.assert_frame_equal(result.iloc[:10], df)
         tm.assert_frame_equal(result.iloc[10:], df)
 
-        # append
-        result = df.iloc[0:8, :]._append(df.iloc[8:])
-        tm.assert_frame_equal(result, df)
-
-        result = df.iloc[0:8, :]._append(df.iloc[8:9])._append(df.iloc[9:10])
-        tm.assert_frame_equal(result, df)
-
-        expected = concat([df, df], axis=0)
-        result = df._append(df)
-        tm.assert_frame_equal(result, expected)
-
 
 class TestMultiIndexConcat:
     def test_concat_multiindex_with_keys(self, multiindex_dataframe_random_data):
@@ -346,9 +335,11 @@ class TestMultiIndexConcat:
             performance_warning, match="indexing past lexsort depth"
         ):
             out_a = df_a.loc[("x", 0), :]
-
         df_b = DataFrame(
-            {"name": [1, 2, 3]}, index=Index([("x", 0), ("y", 0), ("x", 0)])
+            {"name": [1, 2, 3]},
+            index=MultiIndex(
+                levels=[["x", "y"], range(1)], codes=[[0, 1, 0], [0, 0, 0]]
+            ),
         )
         with tm.assert_produces_warning(
             performance_warning, match="indexing past lexsort depth"
@@ -447,9 +438,7 @@ class TestMultiIndexConcat:
         s1 = Series(["a", "b", "c"])
         s2 = Series(["a", "b"])
         s3 = Series(["a", "b", "c", "d"])
-        s4 = Series(
-            [], dtype=object if not using_infer_string else "string[pyarrow_numpy]"
-        )
+        s4 = Series([], dtype=object if not using_infer_string else "str")
         result = concat(
             [s1, s2, s3, s4], sort=False, join="outer", ignore_index=False, axis=1
         )
@@ -460,7 +449,7 @@ class TestMultiIndexConcat:
                 ["c", np.nan] * 2,
                 [np.nan] * 2 + ["d"] + [np.nan],
             ],
-            dtype=object if not using_infer_string else "string[pyarrow_numpy]",
+            dtype=object if not using_infer_string else "str",
         )
         tm.assert_frame_equal(
             result, expected, check_index_type=True, check_column_type=True

@@ -1,9 +1,10 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 from pandas import (
     Timedelta,
-    TimedeltaIndex,
     timedelta_range,
     to_timedelta,
 )
@@ -23,23 +24,25 @@ class TestTimedeltas:
         tm.assert_numpy_array_equal(tdi.to_numpy(), exp_arr)
 
     def test_timedelta_range(self):
-        expected = to_timedelta(np.arange(5), unit="D")
+        expected = to_timedelta(np.arange(5), unit="D").as_unit("us")
         result = timedelta_range("0 days", periods=5, freq="D")
         tm.assert_index_equal(result, expected)
 
-        expected = to_timedelta(np.arange(11), unit="D")
+        expected = to_timedelta(np.arange(11), unit="D").as_unit("us")
         result = timedelta_range("0 days", "10 days", freq="D")
         tm.assert_index_equal(result, expected)
 
-        expected = to_timedelta(np.arange(5), unit="D") + Second(2) + Day()
+        expected = (
+            to_timedelta(np.arange(5), unit="D").as_unit("us") + Second(2) + Day()
+        )
         result = timedelta_range("1 days, 00:00:02", "5 days, 00:00:02", freq="D")
         tm.assert_index_equal(result, expected)
 
-        expected = to_timedelta([1, 3, 5, 7, 9], unit="D") + Second(2)
+        expected = to_timedelta([1, 3, 5, 7, 9], unit="D").as_unit("us") + Second(2)
         result = timedelta_range("1 days, 00:00:02", periods=5, freq="2D")
         tm.assert_index_equal(result, expected)
 
-        expected = to_timedelta(np.arange(50), unit="min") * 30
+        expected = to_timedelta(np.arange(50), unit="min").as_unit("us") * 30
         result = timedelta_range("0 days", freq="30min", periods=50)
         tm.assert_index_equal(result, expected)
 
@@ -50,7 +53,7 @@ class TestTimedeltas:
             f"'{depr_unit}' is deprecated and will be removed in a future version."
         )
         expected = to_timedelta(np.arange(5), unit=unit)
-        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result = to_timedelta(np.arange(5), unit=depr_unit)
             tm.assert_index_equal(result, expected)
 
@@ -70,14 +73,12 @@ class TestTimedeltas:
         expected = timedelta_range(start="0 days", end="4 days", freq=freq)
         tm.assert_index_equal(result, expected)
 
-    def test_timedelta_range_H_deprecated(self):
+    def test_timedelta_range_H_raises(self):
         # GH#52536
-        msg = "'H' is deprecated and will be removed in a future version."
+        msg = "Invalid frequency: H"
 
-        result = timedelta_range(start="0 days", end="4 days", periods=6)
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = timedelta_range(start="0 days", end="4 days", freq="19H12min")
-        tm.assert_index_equal(result, expected)
+        with pytest.raises(ValueError, match=msg):
+            timedelta_range(start="0 days", end="4 days", freq="19H12min")
 
     def test_timedelta_range_T_raises(self):
         msg = "Invalid frequency: T"
@@ -131,33 +132,6 @@ class TestTimedeltas:
         assert result.freq is None
 
     @pytest.mark.parametrize(
-        "freq_depr, start, end, expected_values, expected_freq",
-        [
-            (
-                "3.5S",
-                "05:03:01",
-                "05:03:10",
-                ["0 days 05:03:01", "0 days 05:03:04.500000", "0 days 05:03:08"],
-                "3500ms",
-            ),
-        ],
-    )
-    def test_timedelta_range_deprecated_freq(
-        self, freq_depr, start, end, expected_values, expected_freq
-    ):
-        # GH#52536
-        msg = (
-            f"'{freq_depr[-1]}' is deprecated and will be removed in a future version."
-        )
-
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = timedelta_range(start=start, end=end, freq=freq_depr)
-        expected = TimedeltaIndex(
-            expected_values, dtype="timedelta64[ns]", freq=expected_freq
-        )
-        tm.assert_index_equal(result, expected)
-
-    @pytest.mark.parametrize(
         "freq_depr, start, end",
         [
             (
@@ -170,9 +144,44 @@ class TestTimedeltas:
                 "5 hours",
                 "5 hours 8 minutes",
             ),
+            (
+                "3.5S",
+                "05:03:01",
+                "05:03:10",
+            ),
         ],
     )
     def test_timedelta_range_removed_freq(self, freq_depr, start, end):
+        # GH#59143
         msg = f"Invalid frequency: {freq_depr}"
         with pytest.raises(ValueError, match=msg):
             timedelta_range(start=start, end=end, freq=freq_depr)
+
+
+class TestTimedeltaRangeUnitInference:
+    def test_timedelta_range_unit_inference_matching_unit(self, unit):
+        start = Timedelta(0).as_unit(unit)
+        end = Timedelta(days=1).as_unit(unit)
+
+        tdi = timedelta_range(start, end, freq="D")
+        assert tdi.unit == unit
+
+    def test_timedelta_range_unit_inference_mismatched_unit(self, unit):
+        start = Timedelta(0).as_unit(unit)
+        end = Timedelta(days=1).as_unit("s")
+
+        tdi = timedelta_range(start, end, freq="D")
+        assert tdi.unit == unit
+
+        tdi = timedelta_range(start, end.as_unit("ns"), freq="D")
+        assert tdi.unit == "ns"
+
+    def test_timedelta_range_unit_inference_tick(self):
+        start = Timedelta(0).as_unit("ms")
+        end = Timedelta(days=1).as_unit("s")
+
+        tdi = timedelta_range(start, end, freq="2000000us")
+        assert tdi.unit == "us"
+
+        tdi = timedelta_range(start, end.as_unit("ns"), freq="2000000us")
+        assert tdi.unit == "ns"

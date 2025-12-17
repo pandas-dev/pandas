@@ -2,8 +2,8 @@ from datetime import timedelta
 from typing import (
     ClassVar,
     Literal,
+    Self,
     TypeAlias,
-    TypeVar,
     overload,
 )
 
@@ -15,7 +15,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._typing import (
     Frequency,
-    Self,
+    TimeUnit,
     npt,
 )
 
@@ -39,8 +39,6 @@ UnitChoices: TypeAlias = Literal[
     "minute",
     "min",
     "minutes",
-    "T",
-    "t",
     "s",
     "seconds",
     "sec",
@@ -50,23 +48,18 @@ UnitChoices: TypeAlias = Literal[
     "millisecond",
     "milli",
     "millis",
-    "L",
-    "l",
     "us",
     "microseconds",
     "microsecond",
     "µs",
     "micro",
     "micros",
-    "u",
     "ns",
     "nanoseconds",
     "nano",
     "nanos",
     "nanosecond",
-    "n",
 ]
-_S = TypeVar("_S", bound=timedelta)
 
 def get_unit_for_round(freq, creso: int) -> int: ...
 def disallow_ambiguous_unit(unit: str | None) -> None: ...
@@ -78,6 +71,7 @@ def array_to_timedelta64(
     values: npt.NDArray[np.object_],
     unit: str | None = ...,
     errors: str = ...,
+    creso: int = ...,
 ) -> np.ndarray: ...  # np.ndarray[m8ns]
 def parse_timedelta_unit(unit: str | None) -> UnitChoices: ...
 def delta_to_nanoseconds(
@@ -101,11 +95,11 @@ class Timedelta(timedelta):
     _value: int  # np.int64
     # error: "__new__" must return a class instance (got "Union[Timestamp, NaTType]")
     def __new__(  # type: ignore[misc]
-        cls: type[_S],
+        cls: type[Self],
         value=...,
         unit: str | None = ...,
         **kwargs: float | np.integer | np.floating,
-    ) -> _S | NaTType: ...
+    ) -> Self | NaTType: ...
     @classmethod
     def _from_value_and_reso(cls, value: np.int64, reso: int) -> Timedelta: ...
     @property
@@ -170,5 +164,5 @@ class Timedelta(timedelta):
     ) -> np.timedelta64: ...
     def view(self, dtype: npt.DTypeLike) -> object: ...
     @property
-    def unit(self) -> str: ...
-    def as_unit(self, unit: str, round_ok: bool = ...) -> Timedelta: ...
+    def unit(self) -> TimeUnit: ...
+    def as_unit(self, unit: TimeUnit, round_ok: bool = ...) -> Timedelta: ...

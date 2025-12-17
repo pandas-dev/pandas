@@ -5,8 +5,8 @@ import operator
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Literal,
+    Self,
     TypeVar,
     cast,
     overload,
@@ -22,6 +22,7 @@ from pandas._libs import (
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     NaT,
     NaTType,
     Timedelta,
@@ -53,6 +54,7 @@ from pandas._libs.tslibs.period import (
 from pandas.util._decorators import (
     cache_readonly,
     doc,
+    set_module,
 )
 
 from pandas.core.dtypes.common import (
@@ -75,16 +77,19 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Callable,
+        Sequence,
+    )
 
     from pandas._typing import (
         AnyArrayLike,
         Dtype,
+        DtypeObj,
         FillnaOptions,
         NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
-        Self,
         npt,
     )
 
@@ -116,6 +121,7 @@ def _field_accessor(name: str, docstring: str | None = None):
     return property(f)
 
 
+@set_module("pandas.arrays")
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
 class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
@@ -178,7 +184,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     _typ = "periodarray"  # ABCPeriodArray
     _internal_fill_value = np.int64(iNaT)
     _recognized_scalars = (Period,)
-    _is_recognized_dtype = lambda x: isinstance(
+    _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: isinstance(
         x, PeriodDtype
     )  # check_compatible_with checks freq match
     _infer_matches = ("period",)
@@ -373,8 +379,8 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         return self._dtype
 
     # error: Cannot override writeable attribute with read-only property
-    @property  # type: ignore[override]
-    def freq(self) -> BaseOffset:
+    @property
+    def freq(self) -> BaseOffset:  # type: ignore[override]
         """
         Return the frequency object for this PeriodArray.
         """
@@ -388,8 +394,23 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         self, dtype: NpDtype | None = None, copy: bool | None = None
     ) -> np.ndarray:
         if dtype == "i8":
-            return self.asi8
-        elif dtype == bool:
+            # For NumPy 1.x compatibility we cannot use copy=None.  And
+            # `copy=False` has the meaning of `copy=None` here:
+            if not copy:
+                result = np.asarray(self.asi8, dtype=dtype)
+                if self._readonly:
+                    result = result.view()
+                    result.flags.writeable = False
+                return result
+            else:
+                return np.array(self.asi8, dtype=dtype)
+
+        if copy is False:
+            raise ValueError(
+                "Unable to avoid copy while creating an array as requested."
+            )
+
+        if dtype == bool:
             return ~self._isnan
 
         # This will raise TypeError for non-object dtypes
@@ -430,6 +451,15 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         The year of the period.
 
+        See Also
+        --------
+        PeriodIndex.day_of_year : The ordinal day of the year.
+        PeriodIndex.dayofyear : The ordinal day of the year.
+        PeriodIndex.is_leap_year : Logical indicating if the date belongs to a
+            leap year.
+        PeriodIndex.weekofyear : The week ordinal of the year.
+        PeriodIndex.year : The year of the period.
+
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
@@ -441,6 +471,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "month",
         """
         The month as January=1, December=12.
+
+        See Also
+        --------
+        PeriodIndex.days_in_month : The number of days in the month.
+        PeriodIndex.daysinmonth : The number of days in the month.
 
         Examples
         --------
@@ -454,6 +489,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         The days of the period.
 
+        See Also
+        --------
+        PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.day_of_year : The ordinal day of the year.
+        PeriodIndex.dayofweek : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.dayofyear : The ordinal day of the year.
+        PeriodIndex.days_in_month : The number of days in the month.
+        PeriodIndex.daysinmonth : The number of days in the month.
+        PeriodIndex.weekday : The day of the week with Monday=0, Sunday=6.
+
         Examples
         --------
         >>> idx = pd.PeriodIndex(['2020-01-31', '2020-02-28'], freq='D')
@@ -466,6 +511,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         The hour of the period.
 
+        See Also
+        --------
+        PeriodIndex.minute : The minute of the period.
+        PeriodIndex.second : The second of the period.
+        PeriodIndex.to_timestamp : Cast to DatetimeArray/Index.
+
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023-01-01 10:00", "2023-01-01 11:00"], freq='h')
@@ -477,6 +528,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "minute",
         """
         The minute of the period.
+
+        See Also
+        --------
+        PeriodIndex.hour : The hour of the period.
+        PeriodIndex.second : The second of the period.
+        PeriodIndex.to_timestamp : Cast to DatetimeArray/Index.
 
         Examples
         --------
@@ -491,6 +548,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         The second of the period.
 
+        See Also
+        --------
+        PeriodIndex.hour : The hour of the period.
+        PeriodIndex.minute : The minute of the period.
+        PeriodIndex.to_timestamp : Cast to DatetimeArray/Index.
+
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023-01-01 10:00:30",
@@ -503,6 +566,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "week",
         """
         The week ordinal of the year.
+
+        See Also
+        --------
+        PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.dayofweek : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.week : The week ordinal of the year.
+        PeriodIndex.weekday : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.year : The year of the period.
 
         Examples
         --------
@@ -517,6 +588,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         The day of the week with Monday=0, Sunday=6.
 
+        See Also
+        --------
+        PeriodIndex.day : The days of the period.
+        PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.day_of_year : The ordinal day of the year.
+        PeriodIndex.dayofweek : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.dayofyear : The ordinal day of the year.
+        PeriodIndex.week : The week ordinal of the year.
+        PeriodIndex.weekday : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.weekofyear : The week ordinal of the year.
+
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023-01-01", "2023-01-02", "2023-01-03"], freq="D")
@@ -530,6 +612,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         "day_of_year",
         """
         The ordinal day of the year.
+
+        See Also
+        --------
+        PeriodIndex.day : The days of the period.
+        PeriodIndex.day_of_week : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.day_of_year : The ordinal day of the year.
+        PeriodIndex.dayofweek : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.dayofyear : The ordinal day of the year.
+        PeriodIndex.weekday : The day of the week with Monday=0, Sunday=6.
+        PeriodIndex.weekofyear : The week ordinal of the year.
+        PeriodIndex.year : The year of the period.
 
         Examples
         --------
@@ -549,6 +642,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         The quarter of the date.
 
+        See Also
+        --------
+        PeriodIndex.qyear : Fiscal year the Period lies in according to its
+            starting-quarter.
+
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023-01", "2023-02", "2023-03"], freq="M")
@@ -556,11 +654,61 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         Index([1, 1, 1], dtype='int64')
         """,
     )
-    qyear = _field_accessor("qyear")
+    qyear = _field_accessor(
+        "qyear",
+        """
+        Fiscal year the Period lies in according to its starting-quarter.
+
+        The `year` and the `qyear` of the period will be the same if the fiscal
+        and calendar years are the same. When they are not, the fiscal year
+        can be different from the calendar year of the period.
+
+        Returns
+        -------
+        int
+            The fiscal year of the period.
+
+        See Also
+        --------
+        PeriodIndex.quarter : The quarter of the date.
+        PeriodIndex.year : The year of the period.
+
+        Examples
+        --------
+        If the natural and fiscal year are the same, `qyear` and `year` will
+        be the same.
+
+        >>> per = pd.Period('2018Q1', freq='Q')
+        >>> per.qyear
+        2018
+        >>> per.year
+        2018
+
+        If the fiscal year starts in April (`Q-MAR`), the first quarter of
+        2018 will start in April 2017. `year` will then be 2017, but `qyear`
+        will be the fiscal year, 2018.
+
+        >>> per = pd.Period('2018Q1', freq='Q-MAR')
+        >>> per.start_time
+        Timestamp('2017-04-01 00:00:00')
+        >>> per.qyear
+        2018
+        >>> per.year
+        2017
+        """,
+    )
+
     days_in_month = _field_accessor(
         "days_in_month",
         """
         The number of days in the month.
+
+        See Also
+        --------
+        PeriodIndex.day : The days of the period.
+        PeriodIndex.days_in_month : The number of days in the month.
+        PeriodIndex.daysinmonth : The number of days in the month.
+        PeriodIndex.month : The month as January=1, December=12.
 
         Examples
         --------
@@ -593,6 +741,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         """
         Logical indicating if the date belongs to a leap year.
 
+        See Also
+        --------
+        PeriodIndex.qyear : Fiscal year the Period lies in according to its
+            starting-quarter.
+        PeriodIndex.year : The year of the period.
+
         Examples
         --------
         >>> idx = pd.PeriodIndex(["2023", "2024", "2025"], freq="Y")
@@ -616,6 +770,19 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         Returns
         -------
         DatetimeArray/Index
+            Timestamp representation of given Period-like object.
+
+        See Also
+        --------
+        PeriodIndex.day : The days of the period.
+        PeriodIndex.from_fields : Construct a PeriodIndex from fields
+            (year, month, day, etc.).
+        PeriodIndex.from_ordinals : Construct a PeriodIndex from ordinals.
+        PeriodIndex.hour : The hour of the period.
+        PeriodIndex.minute : The minute of the period.
+        PeriodIndex.month : The month as January=1, December=12.
+        PeriodIndex.second : The second of the period.
+        PeriodIndex.year : The year of the period.
 
         Examples
         --------
@@ -664,7 +831,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         new_parr = self.asfreq(freq, how=how)
 
         new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
-        dta = DatetimeArray._from_sequence(new_data)
+        dta = DatetimeArray._from_sequence(new_data, dtype=np.dtype("M8[ns]"))
 
         if self.freq.name == "B":
             # See if we can retain BDay instead of Day in cases where
@@ -679,7 +846,16 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 # TODO: other cases?
             return dta
         else:
-            return dta._with_freq("infer")
+            dta = dta._with_freq("infer")
+            if freq is not None:
+                freq = to_offset(freq)
+                if (
+                    isinstance(dta.freq, Day)
+                    and not isinstance(freq, Day)
+                    and Timedelta(freq) == Timedelta(days=dta.freq.n)
+                ):
+                    dta._freq = freq
+            return dta
 
     # --------------------------------------------------------------------
 
@@ -792,7 +968,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             # GH#45038 match PeriodIndex behavior.
             tz = getattr(dtype, "tz", None)
             unit = dtl.dtype_to_unit(dtype)
-            return self.to_timestamp().tz_localize(tz).as_unit(unit)
+            # error: Argument 1 to "as_unit" of "TimelikeOps" has incompatible
+            # type "str"; expected "Literal['s', 'ms', 'us', 'ns']"  [arg-type]
+            return self.to_timestamp().tz_localize(tz).as_unit(unit)  # type: ignore[arg-type]
 
         return super().astype(dtype, copy=copy)
 
@@ -855,6 +1033,9 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
     def _add_offset(self, other: BaseOffset):
         assert not isinstance(other, Tick)
 
+        if isinstance(other, Day):
+            return self + np.timedelta64(other.n, "D")
+
         self._require_matching_freq(other, base=True)
         return self._addsub_int_array_or_scalar(other.n, operator.add)
 
@@ -869,7 +1050,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         -------
         PeriodArray
         """
-        if not isinstance(self.freq, Tick):
+        if not isinstance(self.freq, (Tick, Day)):
             # We cannot add timedelta-like to non-tick PeriodArray
             raise raise_on_incompatible(self, other)
 
@@ -877,7 +1058,10 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             # i.e. np.timedelta64("NaT")
             return super()._add_timedeltalike_scalar(other)
 
-        td = np.asarray(Timedelta(other).asm8)
+        if isinstance(other, Day):
+            td = np.asarray(Timedelta(days=other.n).asm8)
+        else:
+            td = np.asarray(Timedelta(other).asm8)
         return self._add_timedelta_arraylike(td)
 
     def _add_timedelta_arraylike(
@@ -953,6 +1137,17 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         delta = delta.view("i8")
         return lib.item_from_zerodim(delta)
+
+    # ------------------------------------------------------------------
+    # Reductions
+
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if keepdims and isinstance(result, np.ndarray):
+            return self._from_sequence(result, dtype=self.dtype)
+        return result
 
 
 def raise_on_incompatible(left, right) -> IncompatibleFrequency:
@@ -1140,7 +1335,7 @@ def dt64arr_to_periodarr(
     data, freq, tz=None
 ) -> tuple[npt.NDArray[np.int64], BaseOffset]:
     """
-    Convert an datetime-like array to values Period ordinals.
+    Convert a datetime-like array to values Period ordinals.
 
     Parameters
     ----------
@@ -1249,16 +1444,16 @@ def _range_from_fields(
     if quarter is not None:
         if freq is None:
             freq = to_offset("Q", is_period=True)
-            base = FreqGroup.FR_QTR.value
+            base = cast(int, FreqGroup.FR_QTR.value)
         else:
             freq = to_offset(freq, is_period=True)
             base = libperiod.freq_to_dtype_code(freq)
-            if base != FreqGroup.FR_QTR.value:
+            if base != cast(int, FreqGroup.FR_QTR.value):
                 raise AssertionError("base must equal FR_QTR")
 
         freqstr = freq.freqstr
         year, quarter = _make_field_arrays(year, quarter)
-        for y, q in zip(year, quarter):
+        for y, q in zip(year, quarter, strict=True):
             calendar_year, calendar_month = parsing.quarter_to_myear(y, q, freqstr)
             val = libperiod.period_ordinal(
                 calendar_year, calendar_month, 1, 1, 1, 1, 0, 0, base
@@ -1268,7 +1463,7 @@ def _range_from_fields(
         freq = to_offset(freq, is_period=True)
         base = libperiod.freq_to_dtype_code(freq)
         arrays = _make_field_arrays(year, month, day, hour, minute, second)
-        for y, mth, d, h, mn, s in zip(*arrays):
+        for y, mth, d, h, mn, s in zip(*arrays, strict=True):
             ordinals.append(libperiod.period_ordinal(y, mth, d, h, mn, s, 0, 0, base))
 
     return np.array(ordinals, dtype=np.int64), freq
@@ -1287,8 +1482,10 @@ def _make_field_arrays(*fields) -> list[np.ndarray]:
     # "Union[Union[int, integer[Any]], Union[bool, bool_], ndarray, Sequence[Union[int,
     # integer[Any]]], Sequence[Union[bool, bool_]], Sequence[Sequence[Any]]]"
     return [
-        np.asarray(x)
-        if isinstance(x, (np.ndarray, list, ABCSeries))
-        else np.repeat(x, length)  # type: ignore[arg-type]
+        (
+            np.asarray(x)
+            if isinstance(x, (np.ndarray, list, ABCSeries))
+            else np.repeat(x, length)  # type: ignore[arg-type]
+        )
         for x in fields
     ]

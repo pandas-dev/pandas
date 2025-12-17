@@ -185,7 +185,6 @@ Reindexing / selection / label manipulation
    DataFrame.duplicated
    DataFrame.equals
    DataFrame.filter
-   DataFrame.head
    DataFrame.idxmax
    DataFrame.idxmin
    DataFrame.reindex
@@ -196,7 +195,6 @@ Reindexing / selection / label manipulation
    DataFrame.sample
    DataFrame.set_axis
    DataFrame.set_index
-   DataFrame.tail
    DataFrame.take
    DataFrame.truncate
 
@@ -362,6 +360,7 @@ Serialization / IO / conversion
 .. autosummary::
    :toctree: api/
 
+   DataFrame.from_arrow
    DataFrame.from_dict
    DataFrame.from_records
    DataFrame.to_orc

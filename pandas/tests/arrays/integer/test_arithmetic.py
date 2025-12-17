@@ -52,13 +52,16 @@ def test_div(dtype):
 
 
 @pytest.mark.parametrize("zero, negative", [(0, False), (0.0, False), (-0.0, True)])
-def test_divide_by_zero(zero, negative):
+def test_divide_by_zero(zero, negative, using_nan_is_na):
     # https://github.com/pandas-dev/pandas/issues/27398, GH#22793
     a = pd.array([0, 1, -1, None], dtype="Int64")
     result = a / zero
+    exp_mask = np.array([False, False, False, True])
+    if using_nan_is_na:
+        exp_mask[0] = True
     expected = FloatingArray(
         np.array([np.nan, np.inf, -np.inf, 1], dtype="float64"),
-        np.array([False, False, False, True]),
+        exp_mask,
     )
     if negative:
         expected *= -1
@@ -99,7 +102,7 @@ def test_mod(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_pow_scalar():
+def test_pow_scalar(using_nan_is_na):
     a = pd.array([-1, 0, 1, None, 2], dtype="Int64")
     result = a**0
     expected = pd.array([1, 1, 1, 1, 1], dtype="Int64")
@@ -114,10 +117,13 @@ def test_pow_scalar():
     tm.assert_extension_array_equal(result, expected)
 
     result = a**np.nan
-    expected = FloatingArray(
-        np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64"),
-        np.array([False, False, False, True, False]),
-    )
+    if using_nan_is_na:
+        expected = expected.astype("Float64")
+    else:
+        expected = FloatingArray(
+            np.array([np.nan, np.nan, 1, np.nan, np.nan], dtype="float64"),
+            np.array([False, False, False, True, False]),
+        )
     tm.assert_extension_array_equal(result, expected)
 
     # reversed
@@ -136,10 +142,13 @@ def test_pow_scalar():
     tm.assert_extension_array_equal(result, expected)
 
     result = np.nan**a
-    expected = FloatingArray(
-        np.array([1, np.nan, np.nan, np.nan], dtype="float64"),
-        np.array([False, False, True, False]),
-    )
+    if using_nan_is_na:
+        expected = expected.astype("Float64")
+    else:
+        expected = FloatingArray(
+            np.array([1, np.nan, np.nan, np.nan], dtype="float64"),
+            np.array([False, False, True, False]),
+        )
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -154,9 +163,9 @@ def test_pow_array():
 def test_rpow_one_to_na():
     # https://github.com/pandas-dev/pandas/issues/22022
     # https://github.com/pandas-dev/pandas/issues/29997
-    arr = pd.array([np.nan, np.nan], dtype="Int64")
+    arr = pd.array([pd.NA, pd.NA], dtype="Int64")
     result = np.array([1.0, 2.0]) ** arr
-    expected = pd.array([1.0, np.nan], dtype="Float64")
+    expected = pd.array([1.0, pd.NA], dtype="Float64")
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -172,76 +181,32 @@ def test_numpy_zero_dim_ndarray(other):
 # -----------------------------------------------------------------------------
 
 
-def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string):
+def test_error_invalid_values(data, all_arithmetic_operators):
     op = all_arithmetic_operators
     s = pd.Series(data)
     ops = getattr(s, op)
 
-    if using_infer_string:
-        import pyarrow as pa
-
-        errs = (TypeError, pa.lib.ArrowNotImplementedError, NotImplementedError)
-    else:
-        errs = TypeError
-
     # invalid scalars
-    msg = "|".join(
-        [
-            r"can only perform ops with numeric values",
-            r"IntegerArray cannot perform the operation mod",
-            r"unsupported operand type",
-            r"can only concatenate str \(not \"int\"\) to str",
-            "not all arguments converted during string",
-            "ufunc '.*' not supported for the input types, and the inputs could not",
-            "ufunc '.*' did not contain a loop with signature matching types",
-            "Addition/subtraction of integers and integer-arrays with Timestamp",
-            "has no kernel",
-            "not implemented",
-            "The 'out' kwarg is necessary. Use numpy.strings.multiply without it.",
-        ]
-    )
-    with pytest.raises(errs, match=msg):
+    with tm.external_error_raised(TypeError):
         ops("foo")
-    with pytest.raises(errs, match=msg):
+    with tm.external_error_raised(TypeError):
         ops(pd.Timestamp("20180101"))
 
     # invalid array-likes
     str_ser = pd.Series("foo", index=s.index)
     # with pytest.raises(TypeError, match=msg):
-    if (
-        all_arithmetic_operators
-        in [
-            "__mul__",
-            "__rmul__",
-        ]
-        and not using_infer_string
-    ):  # (data[~data.isna()] >= 0).all():
+    if all_arithmetic_operators in [
+        "__mul__",
+        "__rmul__",
+    ]:  # (data[~data.isna()] >= 0).all():
         res = ops(str_ser)
         expected = pd.Series(["foo" * x for x in data], index=s.index)
-        expected = expected.fillna(np.nan)
-        # TODO: doing this fillna to keep tests passing as we make
-        #  assert_almost_equal stricter, but the expected with pd.NA seems
-        #  more-correct than np.nan here.
         tm.assert_series_equal(res, expected)
     else:
-        with pytest.raises(errs, match=msg):
+        with tm.external_error_raised(TypeError):
             ops(str_ser)
 
-    msg = "|".join(
-        [
-            "can only perform ops with numeric values",
-            "cannot perform .* with this index type: DatetimeArray",
-            "Addition/subtraction of integers and integer-arrays "
-            "with DatetimeArray is no longer supported. *",
-            "unsupported operand type",
-            r"can only concatenate str \(not \"int\"\) to str",
-            "not all arguments converted during string",
-            "cannot subtract DatetimeArray from ndarray",
-            "has no kernel",
-            "not implemented",
-        ]
-    )
-    with pytest.raises(errs, match=msg):
+    with tm.external_error_raised(TypeError):
         ops(pd.Series(pd.date_range("20180101", periods=len(s))))
 
 
@@ -252,7 +217,7 @@ def test_error_invalid_values(data, all_arithmetic_operators, using_infer_string
 # TODO test unsigned overflow
 
 
-def test_arith_coerce_scalar(data, all_arithmetic_operators):
+def test_arith_coerce_scalar(data, all_arithmetic_operators, using_nan_is_na):
     op = tm.get_op_from_name(all_arithmetic_operators)
     s = pd.Series(data)
     other = 0.01
@@ -260,9 +225,11 @@ def test_arith_coerce_scalar(data, all_arithmetic_operators):
     result = op(s, other)
     expected = op(s.astype(float), other)
     expected = expected.astype("Float64")
+    if not using_nan_is_na:
+        expected[s.isna()] = pd.NA
 
     # rmod results in NaN that wasn't NA in original nullable Series -> unmask it
-    if all_arithmetic_operators == "__rmod__":
+    if all_arithmetic_operators == "__rmod__" and not using_nan_is_na:
         mask = (s == 0).fillna(False).to_numpy(bool)
         expected.array._mask[mask] = False
 
@@ -283,14 +250,14 @@ def test_arithmetic_conversion(all_arithmetic_operators, other):
 def test_cross_type_arithmetic():
     df = pd.DataFrame(
         {
-            "A": pd.Series([1, 2, np.nan], dtype="Int64"),
-            "B": pd.Series([1, np.nan, 3], dtype="UInt8"),
+            "A": pd.Series([1, 2, pd.NA], dtype="Int64"),
+            "B": pd.Series([1, pd.NA, 3], dtype="UInt8"),
             "C": [1, 2, 3],
         }
     )
 
     result = df.A + df.C
-    expected = pd.Series([2, 4, np.nan], dtype="Int64")
+    expected = pd.Series([2, 4, pd.NA], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
     result = (df.A + df.C) * 3 == 12
@@ -298,7 +265,7 @@ def test_cross_type_arithmetic():
     tm.assert_series_equal(result, expected)
 
     result = df.A + df.B
-    expected = pd.Series([2, np.nan, np.nan], dtype="Int64")
+    expected = pd.Series([2, pd.NA, pd.NA], dtype="Int64")
     tm.assert_series_equal(result, expected)
 
 

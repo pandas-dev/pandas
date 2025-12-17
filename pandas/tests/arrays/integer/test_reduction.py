@@ -96,15 +96,13 @@ def test_groupby_reductions(op, expected):
         ["median", Series([2, 2], index=["B", "C"], dtype="Float64")],
         ["var", Series([2, 2], index=["B", "C"], dtype="Float64")],
         ["std", Series([2**0.5, 2**0.5], index=["B", "C"], dtype="Float64")],
-        ["skew", Series([pd.NA, pd.NA], index=["B", "C"], dtype="Float64")],
-        ["kurt", Series([pd.NA, pd.NA], index=["B", "C"], dtype="Float64")],
+        ["skew", Series([np.nan, pd.NA], index=["B", "C"], dtype="Float64")],
+        ["kurt", Series([np.nan, pd.NA], index=["B", "C"], dtype="Float64")],
         ["any", Series([True, True, True], index=["A", "B", "C"], dtype="boolean")],
         ["all", Series([True, True, True], index=["A", "B", "C"], dtype="boolean")],
     ],
 )
-def test_mixed_reductions(op, expected, using_infer_string):
-    if op in ["any", "all"] and using_infer_string:
-        expected = expected.astype("bool")
+def test_mixed_reductions(op, expected):
     df = DataFrame(
         {
             "A": ["a", "b", "b"],

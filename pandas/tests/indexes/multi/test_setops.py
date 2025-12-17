@@ -687,6 +687,18 @@ def test_union_keep_ea_dtype_with_na(any_numeric_ea_dtype):
     tm.assert_index_equal(result, expected)
 
 
+def test_union_duplicates_different_names():
+    # GH#62059
+    mi1 = MultiIndex.from_tuples([(1, "a"), (2, "b")], names=["x", "y"])
+    mi2 = MultiIndex.from_tuples([(2, "b"), (3, "c"), (2, "b")])
+
+    result = mi1.union(mi2)
+    expected = MultiIndex.from_tuples(
+        [(1, "a"), (2, "b"), (2, "b"), (3, "c")], names=[None, None]
+    )
+    tm.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "levels1, levels2, codes1, codes2, names",
     [
@@ -757,7 +769,7 @@ def test_union_with_na_when_constructing_dataframe():
     series1 = Series(
         (1,),
         index=MultiIndex.from_arrays(
-            [Series([None], dtype="string"), Series([None], dtype="string")]
+            [Series([None], dtype="str"), Series([None], dtype="str")]
         ),
     )
     series2 = Series((10, 20), index=MultiIndex.from_tuples(((None, None), ("a", "b"))))

@@ -3,7 +3,6 @@ from datetime import datetime
 import dateutil
 import numpy as np
 import pytest
-import pytz
 
 import pandas as pd
 from pandas import (
@@ -84,9 +83,11 @@ class TestDatetimeIndex:
 
     def test_astype_tzaware_to_tzaware(self):
         # GH 18951: tz-aware to tz-aware
-        idx = date_range("20170101", periods=4, tz="US/Pacific")
+        idx = date_range("20170101", periods=4, tz="US/Pacific", unit="ns")
         result = idx.astype("datetime64[ns, US/Eastern]")
-        expected = date_range("20170101 03:00:00", periods=4, tz="US/Eastern")
+        expected = date_range(
+            "20170101 03:00:00", periods=4, tz="US/Eastern", unit="ns"
+        )
         tm.assert_index_equal(result, expected)
         assert result.freq == expected.freq
 
@@ -102,13 +103,16 @@ class TestDatetimeIndex:
             # dt64->dt64tz deprecated
             idx._data.astype("datetime64[ns, US/Eastern]")
 
-    def test_astype_str_nat(self):
+    def test_astype_str_nat(self, using_infer_string):
         # GH 13149, GH 13209
         # verify that we are returning NaT as a string (and not unicode)
 
         idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan])
         result = idx.astype(str)
-        expected = Index(["2016-05-16", "NaT", "NaT", "NaT"], dtype=object)
+        if using_infer_string:
+            expected = Index(["2016-05-16", None, None, None], dtype="str")
+        else:
+            expected = Index(["2016-05-16", "NaT", "NaT", "NaT"], dtype=object)
         tm.assert_index_equal(result, expected)
 
     def test_astype_str(self):
@@ -118,7 +122,7 @@ class TestDatetimeIndex:
         expected = Index(
             ["2012-01-01", "2012-01-02", "2012-01-03", "2012-01-04"],
             name="test_name",
-            dtype=object,
+            dtype="str",
         )
         tm.assert_index_equal(result, expected)
 
@@ -133,7 +137,7 @@ class TestDatetimeIndex:
                 "2012-01-03 00:00:00-05:00",
             ],
             name="test_name",
-            dtype=object,
+            dtype="str",
         )
         tm.assert_index_equal(result, expected)
 
@@ -144,7 +148,7 @@ class TestDatetimeIndex:
         expected = Index(
             ["2011-01-01 00:00:00", "2011-01-01 01:00:00", "2011-01-01 02:00:00"],
             name="test_name",
-            dtype=object,
+            dtype="str",
         )
         tm.assert_index_equal(result, expected)
 
@@ -156,7 +160,7 @@ class TestDatetimeIndex:
         result = dti.astype(str)
         expected = Index(
             ["2012-03-06 00:00:00+00:00", "2012-03-06 01:00:00+00:00"],
-            dtype=object,
+            dtype="str",
             name="test_name",
         )
         tm.assert_index_equal(result, expected)
@@ -251,6 +255,8 @@ class TestDatetimeIndex:
         _check_rng(rng_utc)
 
     def test_index_convert_to_datetime_array_explicit_pytz(self):
+        pytz = pytest.importorskip("pytz")
+
         def _check_rng(rng):
             converted = rng.to_pydatetime()
             assert isinstance(converted, np.ndarray)
@@ -310,7 +316,7 @@ class TestDatetimeIndex:
 class TestAstype:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_category(self, tz):
-        obj = date_range("2000", periods=2, tz=tz, name="idx")
+        obj = date_range("2000", periods=2, tz=tz, name="idx", unit="ns")
         result = obj.astype("category")
         dti = DatetimeIndex(["2000-01-01", "2000-01-02"], tz=tz).as_unit("ns")
         expected = pd.CategoricalIndex(

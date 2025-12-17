@@ -110,7 +110,7 @@ class TestSeriesPlots:
 
         # _check_plot_works adds an `ax` kwarg to the method call
         # so we get a warning about an axis being cleared, even
-        # though we don't explicing pass one, see GH #13188
+        # though we don't explicitly pass one, see GH #13188
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
             axes = _check_plot_works(df.height.hist, by=getattr(df, by), layout=layout)
         _check_axes_shape(axes, axes_num=axes_num, layout=res_layout)
@@ -532,7 +532,7 @@ class TestDataFramePlots:
         _check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
         if by is None and column is None:
             axes = axes[0]
-        for expected_label, ax in zip(expected_labels, axes):
+        for expected_label, ax in zip(expected_labels, axes, strict=True):
             _check_legend_labels(ax, expected_label)
 
     @pytest.mark.parametrize("by", [None, "c"])
@@ -644,7 +644,7 @@ class TestDataFramePlots:
             x for x in ax1.get_children() if isinstance(x, mpl.patches.Rectangle)
         ]
         no_nan_heights = [rect.get_height() for rect in no_nan_rects]
-        assert all(h0 == h1 for h0, h1 in zip(heights, no_nan_heights))
+        assert all(h0 == h1 for h0, h1 in zip(heights, no_nan_heights, strict=True))
 
         idxerror_weights = np.array([[0.3, 0.25], [0.45, 0.45]])
 

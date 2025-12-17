@@ -8,7 +8,6 @@ from io import (
     BytesIO,
     StringIO,
 )
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -21,10 +20,6 @@ from pandas import (
     DatetimeIndex,
 )
 import pandas._testing as tm
-from pandas.core.arrays import (
-    ArrowStringArray,
-    StringArray,
-)
 
 from pandas.io.common import urlopen
 from pandas.io.parsers import (
@@ -312,7 +307,6 @@ def test_fwf_regression():
         parse_dates=True,
         date_format="%Y%j%H%M%S",
     )
-    expected.index = expected.index.astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -646,7 +640,7 @@ cc\tdd """
 
 
 @pytest.mark.parametrize("infer", [True, False])
-def test_fwf_compression(compression_only, infer, compression_to_extension):
+def test_fwf_compression(compression_only, infer, compression_to_extension, temp_file):
     data = """1111111111
     2222222222
     3333333333""".strip()
@@ -659,17 +653,17 @@ def test_fwf_compression(compression_only, infer, compression_to_extension):
 
     data = bytes(data, encoding="utf-8")
 
-    with tm.ensure_clean(filename="tmp." + extension) as path:
-        tm.write_to_compressed(compression, path, data)
+    path = temp_file.parent / f"tmp.{extension}"
+    tm.write_to_compressed(compression, path, data)
 
-        if infer is not None:
-            kwargs["compression"] = "infer" if infer else compression
+    if infer is not None:
+        kwargs["compression"] = "infer" if infer else compression
 
-        result = read_fwf(path, **kwargs)
-        tm.assert_frame_equal(result, expected)
+    result = read_fwf(path, **kwargs)
+    tm.assert_frame_equal(result, expected)
 
 
-def test_binary_mode():
+def test_binary_mode(temp_file):
     """
     read_fwf supports opening files in binary mode.
 
@@ -680,31 +674,31 @@ bba bab b a"""
     df_reference = DataFrame(
         [["bba", "bab", "b a"]], columns=["aaa", "aaa.1", "aaa.2"], index=[0]
     )
-    with tm.ensure_clean() as path:
-        Path(path).write_text(data, encoding="utf-8")
-        with open(path, "rb") as file:
-            df = read_fwf(file)
-            file.seek(0)
-            tm.assert_frame_equal(df, df_reference)
+    path = temp_file
+    path.write_text(data, encoding="utf-8")
+    with open(path, "rb") as file:
+        df = read_fwf(file)
+        file.seek(0)
+        tm.assert_frame_equal(df, df_reference)
 
 
 @pytest.mark.parametrize("memory_map", [True, False])
-def test_encoding_mmap(memory_map):
+def test_encoding_mmap(memory_map, temp_file):
     """
     encoding should be working, even when using a memory-mapped file.
 
     GH 23254.
     """
     encoding = "iso8859_1"
-    with tm.ensure_clean() as path:
-        Path(path).write_bytes(" 1 A Ä 2\n".encode(encoding))
-        df = read_fwf(
-            path,
-            header=None,
-            widths=[2, 2, 2, 2],
-            encoding=encoding,
-            memory_map=memory_map,
-        )
+    path = temp_file
+    path.write_bytes(" 1 A Ä 2\n".encode(encoding))
+    df = read_fwf(
+        path,
+        header=None,
+        widths=[2, 2, 2, 2],
+        encoding=encoding,
+        memory_map=memory_map,
+    )
     df_reference = DataFrame([[1, "A", "Ä", 2]])
     tm.assert_frame_equal(df, df_reference)
 
@@ -941,36 +935,28 @@ def test_widths_and_usecols():
 
 def test_dtype_backend(string_storage, dtype_backend):
     # GH#50289
-    if string_storage == "python":
-        arr = StringArray(np.array(["a", "b"], dtype=np.object_))
-        arr_na = StringArray(np.array([pd.NA, "a"], dtype=np.object_))
-    elif dtype_backend == "pyarrow":
-        pa = pytest.importorskip("pyarrow")
-        from pandas.arrays import ArrowExtensionArray
-
-        arr = ArrowExtensionArray(pa.array(["a", "b"]))
-        arr_na = ArrowExtensionArray(pa.array([None, "a"]))
-    else:
-        pa = pytest.importorskip("pyarrow")
-        arr = ArrowStringArray(pa.array(["a", "b"]))
-        arr_na = ArrowStringArray(pa.array([None, "a"]))
-
     data = """a  b    c      d  e     f  g    h  i
 1  2.5  True  a
 3  4.5  False b  True  6  7.5  a"""
     with pd.option_context("mode.string_storage", string_storage):
         result = read_fwf(StringIO(data), dtype_backend=dtype_backend)
 
+    if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        string_dtype = pd.ArrowDtype(pa.string())
+    else:
+        string_dtype = pd.StringDtype(string_storage)
+
     expected = DataFrame(
         {
             "a": pd.Series([1, 3], dtype="Int64"),
             "b": pd.Series([2.5, 4.5], dtype="Float64"),
             "c": pd.Series([True, False], dtype="boolean"),
-            "d": arr,
+            "d": pd.Series(["a", "b"], dtype=string_dtype),
             "e": pd.Series([pd.NA, True], dtype="boolean"),
             "f": pd.Series([pd.NA, 6], dtype="Int64"),
             "g": pd.Series([pd.NA, 7.5], dtype="Float64"),
-            "h": arr_na,
+            "h": pd.Series([None, "a"], dtype=string_dtype),
             "i": pd.Series([pd.NA, pd.NA], dtype="Int64"),
         }
     )
@@ -986,7 +972,9 @@ def test_dtype_backend(string_storage, dtype_backend):
         )
         expected["i"] = ArrowExtensionArray(pa.array([None, None]))
 
-    tm.assert_frame_equal(result, expected)
+    # the storage of the str columns' Index is also affected by the
+    # string_storage setting -> ignore that for checking the result
+    tm.assert_frame_equal(result, expected, check_column_type=False)
 
 
 def test_invalid_dtype_backend():

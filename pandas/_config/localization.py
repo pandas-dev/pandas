@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 @contextmanager
 def set_locale(
     new_locale: str | tuple[str, str], lc_var: int = locale.LC_ALL
-) -> Generator[str | tuple[str, str], None, None]:
+) -> Generator[str | tuple[str, str]]:
     """
     Context manager for temporarily setting a locale.
 
@@ -79,7 +79,7 @@ def can_set_locale(lc: str, lc_var: int = locale.LC_ALL) -> bool:
         with set_locale(lc, lc_var=lc_var):
             pass
     except (ValueError, locale.Error):
-        # horrible name for a Exception subclass
+        # horrible name for an Exception subclass
         return False
     else:
         return True
