@@ -1,9 +1,9 @@
 import numpy as np
 
 from pandas import (
+    Interval,
     IntervalIndex,
     Series,
-    Interval,
     array,
 )
 import pandas._testing as tm
@@ -25,8 +25,5 @@ def test_series_from_temporary_intervalindex_readonly_data():
     ser = Series(IntervalIndex(arr))
     assert not np.shares_memory(arr._left, get_array(ser)._left)
     ser.iloc[0] = Interval(5, 6)
-    expected = Series(
-        [Interval(5, 6), Interval(1, 2)], 
-        dtype='interval[int64, right]'
-    )
+    expected = Series([Interval(5, 6), Interval(1, 2)], dtype="interval[int64, right]")
     tm.assert_series_equal(ser, expected)

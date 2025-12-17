@@ -269,7 +269,8 @@ class IntervalIndex(ExtensionIndex):
             # GH#63388
             if copy is not False:
                 if dtype is None or astype_is_view(
-                    data.dtype, dtype # type: ignore[arg-type]
+                    data.dtype,
+                    dtype,  # type: ignore[arg-type]
                 ):
                     data = data.copy()
                     copy = False
