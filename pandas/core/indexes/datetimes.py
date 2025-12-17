@@ -38,7 +38,10 @@ from pandas.util._decorators import (
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.astype import astype_is_view
-from pandas.core.dtypes.common import is_scalar
+from pandas.core.dtypes.common import (
+    is_scalar,
+    pandas_dtype,
+)
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     DatetimeTZDtype,
@@ -691,7 +694,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             if copy is not False:
                 if dtype is None or astype_is_view(
                     data.dtype,
-                    dtype,  # type: ignore[arg-type]
+                    pandas_dtype(dtype),  # type: ignore[arg-type]
                 ):
                     data = data.copy()
                     copy = False

@@ -28,7 +28,10 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.astype import astype_is_view
-from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import (
+    is_integer,
+    pandas_dtype,
+)
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
@@ -243,7 +246,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             if copy is not False:
                 if dtype is None or astype_is_view(
                     data.dtype,
-                    dtype,  # type: ignore[arg-type]
+                    pandas_dtype(dtype),  # type: ignore[arg-type]
                 ):
                     data = data.copy()
                     copy = False

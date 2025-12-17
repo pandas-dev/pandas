@@ -175,7 +175,10 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         if isinstance(data, (ExtensionArray, np.ndarray)):
             # GH 63388
             if copy is not False:
-                if dtype is None or astype_is_view(data.dtype, dtype):
+                if dtype is None or astype_is_view(
+                    data.dtype, 
+                    pandas_dtype(dtype),
+                ):
                     data = data.copy()
                     copy = False
 
