@@ -130,7 +130,7 @@ class HTMLFormatter:
         return 0
 
     def _get_columns_formatted_values(self) -> Iterable:
-        return self.columns
+        return self.columns._format_flat(include_name=False)
 
     @property
     def is_truncated(self) -> bool:
