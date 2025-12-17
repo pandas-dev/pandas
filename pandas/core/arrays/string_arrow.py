@@ -210,6 +210,23 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = scalars._data
             result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
             pa_arr = pa.array(result, mask=na_values, type=pa.large_string())
+        elif isinstance(scalars, ArrowExtensionArray):
+            pa_type = scalars._pa_array.type
+            # Use PyArrow's native cast for integer and string types where
+            # the string representation matches Python's str().
+            # Float and boolean have different representations in PyArrow
+            # (e.g., 1.0 -> "1" instead of "1.0", True -> "true" instead of "True")
+            if (
+                pa.types.is_integer(pa_type)
+                or pa.types.is_large_string(pa_type)
+                or pa.types.is_string(pa_type)
+            ):
+                pa_arr = pc.cast(scalars._pa_array, pa.large_string())
+            else:
+                # Fall back for types where PyArrow's string representation
+                # differs from Python's str()
+                result = lib.ensure_string_array(scalars, copy=copy)
+                pa_arr = pa.array(result, type=pa.large_string(), from_pandas=True)
         elif isinstance(scalars, (pa.Array, pa.ChunkedArray)):
             pa_arr = pc.cast(scalars, pa.large_string())
         else:
