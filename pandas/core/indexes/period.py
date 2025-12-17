@@ -27,16 +27,13 @@ from pandas.util._decorators import (
     set_module,
 )
 
-from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import (
     is_integer,
-    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
-from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.period import (
     PeriodArray,
     period_array,
@@ -241,15 +238,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
         freq = validate_dtype_freq(dtype, freq)
 
-        if isinstance(data, (ExtensionArray, np.ndarray)):
-            # GH 63388
-            if copy is not False:
-                if dtype is None or astype_is_view(
-                    data.dtype,
-                    pandas_dtype(dtype),
-                ):
-                    data = data.copy()
-                    copy = False
+        # GH#63388
+        data, copy = cls._maybe_copy_input(data, copy, dtype)
 
         # PeriodIndex allow PeriodIndex(period_index, freq=different)
         # Let's not encourage that kind of behavior in PeriodArray.

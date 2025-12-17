@@ -7,8 +7,6 @@ from typing import (
     cast,
 )
 
-import numpy as np
-
 from pandas._libs import (
     index as libindex,
     lib,
@@ -21,7 +19,6 @@ from pandas._libs.tslibs import (
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas.util._decorators import set_module
 
-from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
@@ -29,7 +26,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
 from pandas.core.indexes.base import (
@@ -172,15 +168,8 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     ):
         name = maybe_extract_name(name, data, cls)
 
-        if isinstance(data, (ExtensionArray, np.ndarray)):
-            # GH 63388
-            if copy is not False:
-                if dtype is None or astype_is_view(
-                    data.dtype,
-                    pandas_dtype(dtype),
-                ):
-                    data = data.copy()
-                    copy = False
+        # GH#63388
+        data, copy = cls._maybe_copy_input(data, copy, dtype)
 
         if is_scalar(data):
             cls._raise_scalar_data_error(data)

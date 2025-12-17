@@ -35,7 +35,6 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import rewrite_exception
 
-from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
@@ -62,7 +61,6 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.algorithms import unique
-from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.datetimelike import validate_periods
 from pandas.core.arrays.interval import (
     IntervalArray,
@@ -265,15 +263,8 @@ class IntervalIndex(ExtensionIndex):
     ) -> Self:
         name = maybe_extract_name(name, data, cls)
 
-        if isinstance(data, (ExtensionArray, np.ndarray)):
-            # GH#63388
-            if copy is not False:
-                if dtype is None or astype_is_view(
-                    data.dtype,
-                    pandas_dtype(dtype),
-                ):
-                    data = data.copy()
-                    copy = False
+        # GH#63388
+        data, copy = cls._maybe_copy_input(data, copy, dtype)
 
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray(
