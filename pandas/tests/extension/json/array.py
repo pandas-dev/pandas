@@ -97,7 +97,11 @@ class JSONArray(ExtensionArray):
         try:
             return type(self)._from_sequence(values, dtype=self.dtype)
         except (ValueError, TypeError):
-            return values
+            # TODO replace with public function
+            from pandas._libs import lib
+
+            values = np.asarray(values, dtype=object)
+            return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     def __getitem__(self, item):
         if isinstance(item, tuple):
