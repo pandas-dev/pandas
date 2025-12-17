@@ -7,6 +7,8 @@ from typing import (
     cast,
 )
 
+import numpy as np
+
 from pandas._libs import (
     index as libindex,
     lib,
@@ -23,9 +25,11 @@ from pandas.core.dtypes.common import (
     is_scalar,
     pandas_dtype,
 )
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import ABCSeries
 
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
 import pandas.core.common as com
 from pandas.core.indexes.base import (
@@ -81,8 +85,13 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     dtype : numpy.dtype or str, default None
         Valid ``numpy`` dtypes are ``timedelta64[ns]``, ``timedelta64[us]``,
         ``timedelta64[ms]``, and ``timedelta64[s]``.
-    copy : bool
-        Make a copy of input array.
+    copy : bool, default None
+        Whether to copy input data, only relevant for array, Series, and Index
+        inputs (for other input, e.g. a list, a new array is created anyway).
+        Defaults to True for array input and False for Index/Series.
+        Set to False to avoid copying array input at your own risk (if you
+        know the input data won't be modified elsewhere).
+        Set to True to force copying Series/Index input up front.
     name : object
         Name to be stored in the index.
 
@@ -158,10 +167,17 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         data=None,
         freq=lib.no_default,
         dtype=None,
-        copy: bool = False,
+        copy: bool | None = None,
         name=None,
     ):
         name = maybe_extract_name(name, data, cls)
+
+        if isinstance(data, (ExtensionArray, np.ndarray)):
+            # GH 63388
+            if copy is not False:
+                if dtype is None or astype_is_view(data.dtype, dtype):
+                    data = data.copy()
+                    copy = False
 
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
