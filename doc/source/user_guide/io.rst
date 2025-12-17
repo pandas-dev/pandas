@@ -75,11 +75,11 @@ Google Colab provides several ways to load data into pandas DataFrames:
    df.to_csv('/content/drive/MyDrive/output.csv', index=False)
    files.download('output.csv')
 
-Files in `/content/` are temporary. Use Drive for persistence.
+Files in ``/content/`` are temporary, so prefer saving to Google Drive if you need persistence.
 
-See Colab's `official IO notebook <https://colab.research.google.com/notebooks/io.ipynb>`_.
+For more details on file handling in Colab, see the
+`official Colab IO notebook <https://colab.research.google.com/notebooks/io.ipynb>`_.
 
-:ref:`Here <io.perf>` is an informal performance comparison for some of these IO methods.
 
 
 .. note::
