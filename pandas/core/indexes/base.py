@@ -5196,6 +5196,19 @@ class Index(IndexOpsMixin, PandasObject):
             "was passed"
         )
 
+    @classmethod
+    def _maybe_copy_input(cls, data, copy, dtype):
+        """
+        Ensure that the input data is copied if necessary.
+        GH#63388
+        """
+        if isinstance(data, (ExtensionArray, np.ndarray)):
+            if copy is not False:
+                if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                    data = data.copy()
+                    copy = False
+        return data, copy
+
     def _validate_fill_value(self, value):
         """
         Check if the value can be inserted into our array without casting,
