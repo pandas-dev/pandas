@@ -717,6 +717,18 @@ def test__getitem__boolean_numpyextensionarray():
 
 
 @pytest.mark.parametrize(
+    "container",
+    [np.array, pd.Series, lambda x: pd.arrays.NumpyExtensionArray(np.array(x))],
+    ids=["numpy-array", "series", "numpy-extension-array"],
+)
+def test__getitem__boolean_arraylike(container):
+    ri = RangeIndex(5)
+    result = ri[container([True, True, False, False, True])]
+    expected = Index([0, 1, 4], dtype="int64")
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "rng, exp_rng",
     [
         [range(5), range(3, 4)],
