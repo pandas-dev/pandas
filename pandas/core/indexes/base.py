@@ -2980,7 +2980,7 @@ class Index(IndexOpsMixin, PandasObject):
         name = get_op_result_name(self, other)
         if self.name is not name:
             return self.rename(name)
-        return self.copy()
+        return self.copy(deep=False)
 
     @final
     def _validate_sort_keyword(self, sort) -> None:

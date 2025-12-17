@@ -4087,7 +4087,7 @@ class MultiIndex(Index):
         names = self._maybe_match_names(other)
         if self.names != names:
             return self.rename(names)
-        return self.copy()
+        return self.copy(deep=False)
 
     def _maybe_match_names(self, other):
         """
