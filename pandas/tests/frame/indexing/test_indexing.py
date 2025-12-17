@@ -564,9 +564,10 @@ class TestDataFrameIndexing:
 
         # non-monotonic, raise KeyError
         df2 = df.iloc[list(range(5)) + list(range(5, 10))[::-1]]
-        with pytest.raises(KeyError, match=r"^3$"):
+        msg = "non-monotonic index with a non-specific label: 3"
+        with pytest.raises(KeyError, match=msg):
             df2.loc[3:11]
-        with pytest.raises(KeyError, match=r"^3$"):
+        with pytest.raises(KeyError, match=msg):
             df2.loc[3:11] = 0
 
     def test_fancy_getitem_slice_mixed(self, float_frame, float_string_frame):
