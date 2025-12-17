@@ -176,7 +176,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
             # GH 63388
             if copy is not False:
                 if dtype is None or astype_is_view(
-                    data.dtype, 
+                    data.dtype,
                     pandas_dtype(dtype),
                 ):
                     data = data.copy()
