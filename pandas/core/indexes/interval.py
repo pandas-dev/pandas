@@ -268,7 +268,9 @@ class IntervalIndex(ExtensionIndex):
         if isinstance(data, (ExtensionArray, np.ndarray)):
             # GH#63388
             if copy is not False:
-                if dtype is None or astype_is_view(data.dtype, dtype):
+                if dtype is None or astype_is_view(
+                    data.dtype, dtype # type: ignore[arg-type]
+                ):
                     data = data.copy()
                     copy = False
 
@@ -276,7 +278,7 @@ class IntervalIndex(ExtensionIndex):
             array = IntervalArray(
                 data,
                 closed=closed,
-                copy=copy,
+                copy=bool(copy),
                 dtype=dtype,
                 verify_integrity=verify_integrity,
             )
