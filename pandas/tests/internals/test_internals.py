@@ -489,7 +489,7 @@ class TestBlockManager:
             # view assertion
             tm.assert_equal(cp_blk.values, blk.values)
             if isinstance(blk.values, np.ndarray):
-                assert cp_blk.values.base is blk.values.base
+                assert cp_blk.values.base.base is blk.values.base
             else:
                 # DatetimeTZBlock has DatetimeIndex values
                 assert cp_blk.values._ndarray.base is blk.values._ndarray.base
