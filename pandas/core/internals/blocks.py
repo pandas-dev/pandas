@@ -654,7 +654,8 @@ class Block(PandasObject, libinternals.Block):
 
     def _maybe_copy(self, inplace: bool) -> Self:
         if inplace and not self.refs.has_reference():
-            return self
+            # TODO(CoW) should we avoid the view taken in a shallow copy?
+            return self.copy(deep=False)
         return self.copy(deep=True)
 
     @final
