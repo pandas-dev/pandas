@@ -6868,8 +6868,11 @@ class Index(IndexOpsMixin, PandasObject):
             try:
                 return self._searchsorted_monotonic(label, side)
             except ValueError:
-                # raise the original KeyError
-                raise err from None
+                raise KeyError(
+                    f"Cannot get {side} slice bound for non-monotonic index "
+                    f"with a non-specific label: {original_label!r}. "
+                    "Please specify the label."
+                ) from err
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
