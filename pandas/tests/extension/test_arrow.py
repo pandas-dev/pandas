@@ -816,16 +816,18 @@ class TestArrowArray(base.ExtensionTests):
         result = data.value_counts()
         assert result.dtype == ArrowDtype(pa.int64())
 
-    def test_value_counts_no_numpy_fallback(self, data, arrow_to_numpy_tracker):
+    @pytest.mark.parametrize("normalize", [False, True])
+    def test_value_counts_no_numpy_fallback(
+        self, data, normalize, arrow_to_numpy_tracker
+    ):
         # Ensure value_counts doesn't unnecessarily convert Arrow arrays to NumPy
         data = data[:10]
         ser = pd.Series(data)
 
-        ser.value_counts()
-        assert not arrow_to_numpy_tracker()
+        ser.value_counts(normalize=normalize)
 
-        ser.value_counts(normalize=True)
-        assert not arrow_to_numpy_tracker()
+        numpy_called = arrow_to_numpy_tracker()
+        assert not numpy_called
 
     _combine_le_expected_dtype = "bool[pyarrow]"
 
