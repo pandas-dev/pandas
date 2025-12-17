@@ -1280,7 +1280,7 @@ def date_range(
         timezone-naive unless timezone-aware datetime-likes are passed.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    name : str, default None
+    name : Hashable, default None
         Name of the resulting DatetimeIndex.
     inclusive : {"both", "neither", "left", "right"}, default "both"
         Include boundaries; Whether to set each bound as closed or open.
@@ -1524,7 +1524,7 @@ def bdate_range(
         Asia/Beijing.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    name : str, default None
+    name : Hashable, default None
         Name of the resulting DatetimeIndex.
     weekmask : str or None, default None
         Weekmask of valid business days, passed to ``numpy.busdaycalendar``,
