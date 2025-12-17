@@ -357,38 +357,6 @@ class ExtensionArray:
         raise AbstractMethodError(cls)
 
     @classmethod
-    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
-        """
-        Strict analogue to _from_sequence, allowing only sequences of scalars
-        that should be specifically inferred to the given dtype.
-
-        Parameters
-        ----------
-        scalars : sequence
-        dtype : ExtensionDtype
-
-        Raises
-        ------
-        TypeError or ValueError
-
-        Notes
-        -----
-        This is called in a try/except block when casting the result of a
-        pointwise operation.
-        """
-        try:
-            return cls._from_sequence(scalars, dtype=dtype, copy=False)
-        except (ValueError, TypeError):
-            raise
-        except Exception:
-            warnings.warn(
-                "_from_scalars should only raise ValueError or TypeError. "
-                "Consider overriding _from_scalars where appropriate.",
-                stacklevel=find_stack_level(),
-            )
-            raise
-
-    @classmethod
     def _from_factorized(cls, values, original):
         """
         Reconstruct an ExtensionArray after factorization.
@@ -418,7 +386,39 @@ class ExtensionArray:
         """
         raise AbstractMethodError(cls)
 
-    def _cast_pointwise_result(self, values: ArrayLike) -> ArrayLike:
+    @classmethod
+    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
+        """
+        Strict analogue to _from_sequence, allowing only sequences of scalars
+        that should be specifically inferred to the given dtype.
+
+        Parameters
+        ----------
+        scalars : sequence
+        dtype : ExtensionDtype
+
+        Raises
+        ------
+        TypeError or ValueError
+
+        Notes
+        -----
+        This is called in a try/except block when casting the result of a
+        pointwise operation in ExtensionArray._cast_pointwise_result.
+        """
+        try:
+            return cls._from_sequence(scalars, dtype=dtype, copy=False)
+        except (ValueError, TypeError):
+            raise
+        except Exception:
+            warnings.warn(
+                "_from_scalars should only raise ValueError or TypeError. "
+                "Consider overriding _from_scalars where appropriate.",
+                stacklevel=find_stack_level(),
+            )
+            raise
+
+    def _cast_pointwise_result(self, values) -> ArrayLike:
         """
         Construct an ExtensionArray after a pointwise operation.
 
@@ -437,7 +437,8 @@ class ExtensionArray:
         try:
             return type(self)._from_scalars(values, dtype=self.dtype)
         except (ValueError, TypeError):
-            return values
+            values = np.asarray(values, dtype=object)
+            return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
     # ------------------------------------------------------------------------
     # Must be a Sequence

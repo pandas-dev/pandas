@@ -35,7 +35,6 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.cast import (
-    cast_pointwise_result,
     maybe_downcast_to_dtype,
 )
 from pandas.core.dtypes.common import (
@@ -964,7 +963,7 @@ class BaseGrouper:
         np.ndarray or ExtensionArray
         """
         result = self._aggregate_series_pure_python(obj, func)
-        return cast_pointwise_result(result, obj.array)
+        return obj.array._cast_pointwise_result(result)
 
     @final
     def _aggregate_series_pure_python(

@@ -89,7 +89,6 @@ from pandas.core.dtypes.astype import (
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
-    cast_pointwise_result,
     common_dtype_categorical_compat,
     find_result_type,
     infer_dtype_from,
@@ -6544,7 +6543,7 @@ class Index(IndexOpsMixin, PandasObject):
             # e.g. if we are floating and new_values is all ints, then we
             #  don't want to cast back to floating.  But if we are UInt64
             #  and new_values is all ints, we want to try.
-            new_values = cast_pointwise_result(new_values, arr)
+            new_values = arr._cast_pointwise_result(new_values)
             dtype = new_values.dtype
         return Index(new_values, dtype=dtype, copy=False, name=self.name)
 

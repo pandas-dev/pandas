@@ -414,42 +414,6 @@ def maybe_upcast_numeric_to_64bit(arr: NumpyIndexT) -> NumpyIndexT:
         return arr
 
 
-def cast_pointwise_result(
-    result: ArrayLike,
-    original_array: ArrayLike,
-) -> ArrayLike:
-    """
-    Try casting result of a pointwise operation back to the original dtype if
-    appropriate.
-
-    Parameters
-    ----------
-    result : array-like
-        Result to cast.
-    original_array : array-like
-        Input array from which result was calculated.
-
-    Returns
-    -------
-    array-like
-    """
-    if isinstance(original_array.dtype, ExtensionDtype):
-        try:
-            result = original_array._cast_pointwise_result(result)
-        except (TypeError, ValueError):
-            pass
-
-        if isinstance(result.dtype, ExtensionDtype):
-            return result
-
-    if not isinstance(result, np.ndarray):
-        result = np.asarray(result, dtype=object)
-
-    if result.dtype != object:
-        return result
-    return lib.maybe_convert_objects(result, convert_non_numeric=True)
-
-
 @overload
 def ensure_dtype_can_hold_na(dtype: np.dtype) -> np.dtype: ...
 
