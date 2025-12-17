@@ -1,3 +1,4 @@
+#io.rst
 .. _io:
 
 .. currentmodule:: pandas
