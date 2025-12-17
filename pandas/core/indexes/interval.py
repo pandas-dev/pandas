@@ -35,6 +35,7 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import rewrite_exception
 
+from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.cast import (
     find_common_type,
     infer_dtype_from_scalar,
@@ -61,6 +62,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
 from pandas.core.algorithms import unique
+from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.datetimelike import validate_periods
 from pandas.core.arrays.interval import (
     IntervalArray,
@@ -169,8 +171,13 @@ class IntervalIndex(ExtensionIndex):
         neither.
     dtype : dtype or None, default None
         If None, dtype will be inferred.
-    copy : bool, default False
-        Copy the input data.
+    copy : bool, default None
+        Whether to copy input data, only relevant for array, Series, and Index
+        inputs (for other input, e.g. a list, a new array is created anyway).
+        Defaults to True for array input and False for Index/Series.
+        Set to False to avoid copying array input at your own risk (if you
+        know the input data won't be modified elsewhere).
+        Set to True to force copying Series/Index input up front.
     name : object, optional
          Name to be stored in the index.
     verify_integrity : bool, default True
@@ -252,11 +259,18 @@ class IntervalIndex(ExtensionIndex):
         data,
         closed: IntervalClosedType | None = None,
         dtype: Dtype | None = None,
-        copy: bool = False,
+        copy: bool | None = None,
         name: Hashable | None = None,
         verify_integrity: bool = True,
     ) -> Self:
         name = maybe_extract_name(name, data, cls)
+
+        if isinstance(data, (ExtensionArray, np.ndarray)):
+            # GH#63388
+            if copy is not False:
+                if dtype is None or astype_is_view(data.dtype, dtype):
+                    data = data.copy()
+                    copy = False
 
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray(
