@@ -101,6 +101,18 @@ def is_platform_mac() -> bool:
     return sys.platform == "darwin"
 
 
+def is_platform_android() -> bool:
+    """
+    Checking if the running platform is android.
+
+    Returns
+    -------
+    bool
+        True if the running platform is android.
+    """
+    return sys.platform == "android"
+
+
 def is_platform_arm() -> bool:
     """
     Checking if the running platform use ARM architecture.

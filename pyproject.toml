@@ -2,7 +2,9 @@
 # Minimum requirements for the build system to execute.
 # See https://github.com/scipy/scipy/pull/12940 for the AIX issue.
 requires = [
-    "meson-python>=0.13.1",
+    # TODO: use an official meson-python version once
+    # https://github.com/mesonbuild/meson-python/pull/824 has been released.
+    "meson-python @ git+https://github.com/mhsmith/meson-python@android",
     "meson>=1.2.1,<2",
     "wheel",
     "Cython<4.0.0a0",  # Note: sync with setup.py, environment.yml and asv.conf.json
@@ -163,6 +165,18 @@ test-command = """
   """
 enable = ["cpython-freethreading"]
 before-build = "PACKAGE_DIR={package} bash {package}/scripts/cibw_before_build.sh"
+
+[tool.cibuildwheel.android]
+test-command = """
+  python -c '\
+  import os; os.environ["PANDAS_CI"] = "1"; \
+  import pandas as pd; \
+  pd.test(extra_args=["-m not clipboard and not slow and not network and not db", "--no-strict-data-files"]);' \
+  """
+
+[tool.cibuildwheel.android.environment]
+# Python 3.13 defaults to API level 21, which lacks some required math functions.
+ANDROID_API_LEVEL = "24"
 
 [tool.cibuildwheel.windows]
 before-build = "pip install delvewheel"
