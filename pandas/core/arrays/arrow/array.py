@@ -2601,7 +2601,7 @@ class ArrowExtensionArray(
         arr = self.to_numpy(dtype=dtype.numpy_dtype, na_value=na_value)
         return dtype.construct_array_type()(arr, mask)
 
-    # Mapping from pandas groupby 'how' to PyArrow aggregation function names
+    # pandas groupby 'how' -> PyArrow aggregation function name
     _PYARROW_AGG_FUNCS: dict[str, str] = {
         "sum": "sum",
         "prod": "product",
@@ -2610,13 +2610,13 @@ class ArrowExtensionArray(
         "mean": "mean",
         "std": "stddev",
         "var": "variance",
-        "sem": "stddev",  # sem = stddev / sqrt(count), computed below
+        "sem": "stddev",  # sem = stddev / sqrt(count)
         "count": "count",
         "any": "any",
         "all": "all",
     }
 
-    # Default values for missing groups (identity elements for each operation)
+    # Identity elements for operations (used to fill missing groups)
     _PYARROW_AGG_DEFAULTS: dict[str, int | bool] = {
         "sum": 0,
         "prod": 1,
@@ -2637,23 +2637,19 @@ class ArrowExtensionArray(
         """
         Perform groupby aggregation using PyArrow's native Table.group_by.
 
-        Returns None if the operation is not supported by PyArrow,
-        in which case the caller should fall back to the Cython path.
+        Returns None if not supported, caller should fall back to Cython path.
         """
         pa_agg_func = self._PYARROW_AGG_FUNCS.get(how)
         if pa_agg_func is None:
             return None
 
         pa_type = self._pa_array.type
-        # PyArrow doesn't support these aggregations for temporal types directly
         if pa.types.is_temporal(pa_type) and how in ["std", "var", "sem"]:
             return None
-
-        # PyArrow's any/all only work on boolean types
         if how in ["any", "all"] and not pa.types.is_boolean(pa_type):
             return None
 
-        # Filter out NA group (ids == -1) to avoid unnecessary computation
+        # Filter out NA group (ids == -1)
         mask = ids >= 0
         if not mask.all():
             ids = ids[mask]
@@ -2661,56 +2657,41 @@ class ArrowExtensionArray(
         else:
             values = self._pa_array
 
-        # Create a PyArrow table with the values and group IDs
-        # Explicitly cast ids to int64 since np.intp is platform-dependent
+        # Build table and run aggregation (cast ids to int64 for portability)
         group_id_arr = pa.array(ids, type=pa.int64())
         table = pa.table({"value": values, "group_id": group_id_arr})
 
-        # Build aggregation list - always include count for null handling
-        # For std/var/sem, pass VarianceOptions with ddof to match pandas behavior
         if how in ["std", "var", "sem"]:
             ddof = kwargs.get("ddof", 1)
-            agg_with_opts = ("value", pa_agg_func, pc.VarianceOptions(ddof=ddof))
-            aggs = [agg_with_opts, ("value", "count")]
+            aggs = [("value", pa_agg_func, pc.VarianceOptions(ddof=ddof))]
         else:
-            aggs = [("value", pa_agg_func), ("value", "count")]
+            aggs = [("value", pa_agg_func)]
+        aggs.append(("value", "count"))
 
-        # Perform the groupby aggregation
         result_table = table.group_by("group_id").aggregate(aggs)
-
-        # Extract results
         result_group_ids = result_table.column("group_id")
         result_values = result_table.column(f"value_{pa_agg_func}")
         result_counts = result_table.column("value_count")
 
-        # For sem, compute stddev / sqrt(count) using PyArrow compute
         if how == "sem":
-            sqrt_counts = pc.sqrt(result_counts)
-            result_values = pc.divide(result_values, sqrt_counts)
+            result_values = pc.divide(result_values, pc.sqrt(result_counts))
 
         output_type = result_values.type
         default_value = pa.scalar(self._PYARROW_AGG_DEFAULTS.get(how), type=output_type)
 
-        # Handle nulls from all-null groups for sum/prod with min_count=0
+        # Replace nulls from all-null groups with identity element
         if result_values.null_count > 0 and how in ["sum", "prod"] and min_count == 0:
             result_values = pc.if_else(
                 pc.is_null(result_values), default_value, result_values
             )
 
-        # Handle min_count: groups with count < min_count should be null
+        # Null out groups below min_count
         if min_count > 0:
             below_min_count = pc.less(result_counts, pa.scalar(min_count))
             result_values = pc.if_else(below_min_count, None, result_values)
 
-        # PyArrow returns results in encounter order. We need to reorder to
-        # match expected output (group 0, 1, 2, ..., ngroups-1) and fill
-        # missing groups with default values.
-        #
-        # We use NumPy scatter (O(n)) instead of:
-        # - pc.scatter: doesn't handle missing groups, workaround is slower
-        # - join+sort: O(n log n), slower for high-cardinality groupby
-        #
-        # Explicitly cast to int64 to ensure usable as NumPy indices
+        # Scatter results into output array ordered by group id.
+        # NumPy scatter is O(n) vs O(n log n) for join+sort or pc.scatter workaround.
         result_group_ids_np = result_group_ids.to_numpy(zero_copy_only=False).astype(
             np.int64, copy=False
         )
@@ -2718,19 +2699,16 @@ class ArrowExtensionArray(
 
         default_py = default_value.as_py()
         if default_py is not None and min_count == 0:
-            # Operations with identity elements (sum=0, prod=1, count=0, any=False,
-            # all=True): fill missing groups with default value
+            # Fill missing groups with identity element
             output_np = np.full(ngroups, default_py, dtype=result_values_np.dtype)
             output_np[result_group_ids_np] = result_values_np
             pa_result = pa.array(output_np, type=output_type)
         else:
-            # Operations without identity elements (mean, std, var, min, max, sem):
-            # fill missing groups with null using a boolean mask
+            # Fill missing groups with null
             output_np = np.empty(ngroups, dtype=result_values_np.dtype)
-            null_mask = np.ones(ngroups, dtype=bool)  # True = null/missing
+            null_mask = np.ones(ngroups, dtype=bool)
             output_np[result_group_ids_np] = result_values_np
             null_mask[result_group_ids_np] = False
-            # Restore nulls for groups that had null results (min_count or all-null)
             if result_values.null_count > 0:
                 result_nulls = pc.is_null(result_values).to_numpy()
                 null_mask[result_group_ids_np[result_nulls]] = True
@@ -2780,6 +2758,8 @@ class ArrowExtensionArray(
             pa.types.is_decimal(pa_type)
             or pa.types.is_string(pa_type)
             or pa.types.is_large_string(pa_type)
+            or pa.types.is_integer(pa_type)  # TEMPORARY: for testing
+            or pa.types.is_floating(pa_type)  # TEMPORARY: for testing
         ):
             result = self._groupby_op_pyarrow(
                 how=how,
