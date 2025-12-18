@@ -9235,22 +9235,22 @@ class DataFrame(NDFrame, OpsMixin):
         ...     ],
         ... )
         >>> df_multindex
-            cost  revenue
+              cost  revenue
         Q1 A   250      100
-        B   150      250
-        C   100      300
+           B   150      250
+           C   100      300
         Q2 A   150      200
-        B   300      175
-        C   220      225
+           B   300      175
+           C   220      225
 
         >>> df.le(df_multindex, level=1)
-            cost  revenue
+               cost  revenue
         Q1 A   True     True
-        B   True     True
-        C   True     True
+           B   True     True
+           C   True     True
         Q2 A  False     True
-        B   True    False
-        C   True    False
+           B   True    False
+           C   True    False
         """
         return self._flex_cmp_method(other, operator.eq, axis=axis, level=level)
 
@@ -9391,22 +9391,22 @@ class DataFrame(NDFrame, OpsMixin):
         ...     ],
         ... )
         >>> df_multindex
-            cost  revenue
+              cost  revenue
         Q1 A   250      100
-        B   150      250
-        C   100      300
+           B   150      250
+           C   100      300
         Q2 A   150      200
-        B   300      175
-        C   220      225
+           B   300      175
+           C   220      225
 
         >>> df.le(df_multindex, level=1)
-            cost  revenue
+               cost  revenue
         Q1 A   True     True
-        B   True     True
-        C   True     True
+           B   True     True
+           C   True     True
         Q2 A  False     True
-        B   True    False
-        C   True    False
+           B   True    False
+           C   True    False
         """
         return self._flex_cmp_method(other, operator.ne, axis=axis, level=level)
 
