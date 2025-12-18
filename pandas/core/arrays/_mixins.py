@@ -512,7 +512,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         else:
             # e.g. test_quantile_empty we are empty integer dtype and res_values
             #  has floating dtype
-            return type(self)._from_sequence(res_values)  # type: ignore[call-arg]
+            # TODO: technically __init__ isn't defined here.
+            #  Should we raise NotImplementedError and handle this on NumpyEA?
+            return type(self)(res_values)  # type: ignore[call-arg]
 
     # ------------------------------------------------------------------------
     # numpy-like methods
