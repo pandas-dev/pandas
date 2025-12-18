@@ -204,7 +204,7 @@ class ArrowStringArrayMixin:
 
     def _str_removeprefix(self, prefix: str):
         if prefix == "":
-            return self.copy()
+            return self._from_pyarrow_array(self._pa_array)
         starts_with = pc.starts_with(self._pa_array, pattern=prefix)
         removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
         result = pc.if_else(starts_with, removed, self._pa_array)
@@ -212,7 +212,7 @@ class ArrowStringArrayMixin:
 
     def _str_removesuffix(self, suffix: str):
         if suffix == "":
-            return self.copy()
+            return self._from_pyarrow_array(self._pa_array)
         ends_with = pc.ends_with(self._pa_array, pattern=suffix)
         removed = pc.utf8_slice_codeunits(self._pa_array, 0, stop=-len(suffix))
         result = pc.if_else(ends_with, removed, self._pa_array)
