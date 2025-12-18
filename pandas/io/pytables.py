@@ -3148,9 +3148,13 @@ class GenericFixed(Fixed):
         ):
             # write the level
             if isinstance(lev.dtype, ExtensionDtype):
-                raise NotImplementedError(
-                    "Saving a MultiIndex with an extension dtype is not supported."
-                )
+                # GH 63412
+                if isinstance(lev.dtype, StringDtype):
+                    lev = lev.astype(object)
+                else:
+                    raise NotImplementedError(
+                        "Saving a MultiIndex with an extension dtype is not supported."
+                    )
             level_key = f"{key}_level{i}"
             conv_level = _convert_index(level_key, lev, self.encoding, self.errors)
             self.write_array(level_key, conv_level.values)
