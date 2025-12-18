@@ -201,7 +201,7 @@ class ArrowStringArrayMixin:
 
     def _str_swapcase(self) -> Self:
         return self._from_pyarrow_array(pc.utf8_swapcase(self._pa_array))
-        
+
     def _str_removeprefix(self, prefix: str):
         if prefix == "":
             return self
