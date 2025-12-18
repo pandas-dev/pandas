@@ -505,12 +505,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
-        if isinstance(data, (ExtensionArray, np.ndarray)):
-            # GH 63306
-            if copy is not False:
-                if dtype is None or astype_is_view(data.dtype, dtype):
-                    data = data.copy()
-                    copy = False
+        # GH 63306, GH 63388
+        data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
         # range
         if isinstance(data, (range, RangeIndex)):
