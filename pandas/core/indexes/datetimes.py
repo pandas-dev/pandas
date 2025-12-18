@@ -704,7 +704,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         dtarr = DatetimeArray._from_sequence_not_strict(
             data,
             dtype=dtype,
-            copy=bool(copy),
+            copy=copy,
             tz=tz,
             freq=freq,
             dayfirst=dayfirst,

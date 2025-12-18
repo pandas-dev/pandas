@@ -270,7 +270,7 @@ class IntervalIndex(ExtensionIndex):
             array = IntervalArray(
                 data,
                 closed=closed,
-                copy=bool(copy),
+                copy=copy,
                 dtype=dtype,
                 verify_integrity=verify_integrity,
             )

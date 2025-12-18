@@ -5207,7 +5207,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     data = data.copy()
                     copy = False
-        return data, copy
+        return data, bool(copy)
 
     def _validate_fill_value(self, value):
         """
