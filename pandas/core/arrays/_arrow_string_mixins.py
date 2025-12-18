@@ -218,10 +218,6 @@ class ArrowStringArrayMixin:
         result = pc.if_else(ends_with, removed, self._pa_array)
         return self._from_pyarrow_array(result)
 
-
-
-
-
     def _str_startswith(
         self, pat: str | tuple[str, ...], na: Scalar | lib.NoDefault = lib.no_default
     ):
