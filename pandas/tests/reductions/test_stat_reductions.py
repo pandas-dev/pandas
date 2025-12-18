@@ -248,7 +248,7 @@ class TestSeriesStatReductions:
             else:
                 assert 0 == s.skew()
                 if using_python_scalars:
-                    assert isinstance(s.skew(), float)
+                    assert type(s.skew()) == float
                 else:
                     assert isinstance(s.skew(), np.float64)  # GH53482
                 assert (df.skew() == 0).all()
@@ -274,7 +274,7 @@ class TestSeriesStatReductions:
             else:
                 assert 0 == s.kurt()
                 if using_python_scalars:
-                    assert isinstance(s.kurt(), float)
+                    assert type(s.kurt()) == float
                 else:
                     assert isinstance(s.kurt(), np.float64)  # GH53482
                 assert (df.kurt() == 0).all()

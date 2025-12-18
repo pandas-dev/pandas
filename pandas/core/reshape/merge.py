@@ -229,21 +229,18 @@ def merge(
         `right` should be left as-is, with no suffix. At least one of the
         values must not be None.
     copy : bool, default False
-        If False, avoid copy if possible.
-
-        .. note::
-            The `copy` keyword will change behavior in pandas 3.0.
-            `Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            will be enabled by default, which means that all methods with a
-            `copy` keyword will use a lazy copy mechanism to defer the copy and
-            ignore the `copy` keyword. The `copy` keyword will be removed in a
-            future version of pandas.
-
-            You can already get the future behavior and improvements through
-            enabling copy on write ``pd.options.mode.copy_on_write = True``
+        This keyword is now ignored; changing its value will have no
+        impact on the method.
 
         .. deprecated:: 3.0.0
+
+            This keyword is ignored and will be removed in pandas 4.0. Since
+            pandas 3.0, this method always returns a new object using a lazy
+            copy mechanism that defers copies until necessary
+            (Copy-on-Write). See the `user guide on Copy-on-Write
+            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+            for more details.
+
     indicator : bool or str, default False
         If True, adds a column to the output DataFrame called "_merge" with
         information on the source of each row. The column can be given a different
@@ -1153,7 +1150,10 @@ class _MergeOperation:
         self._maybe_restore_index_levels(result)
 
         return result.__finalize__(
-            types.SimpleNamespace(input_objs=[self.left, self.right]), method="merge"
+            types.SimpleNamespace(
+                input_objs=[self.left, self.right], left=self.left, right=self.right
+            ),
+            method="merge",
         )
 
     @final
@@ -1928,6 +1928,10 @@ class _MergeOperation:
                 )
             if not self.right_index and right_on is None:
                 raise MergeError('Must pass "right_on" OR "right_index".')
+            if self.right_index and right_on is not None:
+                raise MergeError(
+                    'Can only pass argument "right_on" OR "right_index" not both.'
+                )
             n = len(left_on)
             if self.right_index:
                 if len(left_on) != self.right.index.nlevels:

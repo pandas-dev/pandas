@@ -3,7 +3,10 @@ from __future__ import annotations
 import datetime
 from functools import partial
 from textwrap import dedent
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 
@@ -60,6 +63,7 @@ from pandas.core.window.rolling import (
 if TYPE_CHECKING:
     from pandas._typing import (
         TimedeltaConvertibleTypes,
+        TimeUnit,
         npt,
     )
 
@@ -125,6 +129,7 @@ def _calculate_deltas(
         Diff of the times divided by the half-life
     """
     unit = dtype_to_unit(times.dtype)
+    unit = cast("TimeUnit", unit)
     if isinstance(times, ABCSeries):
         times = times._values
     _times = np.asarray(times.view(np.int64), dtype=np.float64)

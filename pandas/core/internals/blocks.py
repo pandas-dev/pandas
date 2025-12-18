@@ -1151,7 +1151,7 @@ class Block(PandasObject, libinternals.Block):
         Parameters
         ----------
         mask : np.ndarray[bool], SparseArray[bool], or BooleanArray
-        new : a ndarray/object
+        new : an ndarray/object
 
         Returns
         -------
@@ -1214,7 +1214,7 @@ class Block(PandasObject, libinternals.Block):
 
         Parameters
         ----------
-        other : a ndarray/object
+        other : an ndarray/object
         cond : np.ndarray[bool], SparseArray[bool], or BooleanArray
 
         Returns
@@ -2387,7 +2387,9 @@ def external_values(values: ArrayLike) -> ArrayLike:
         values.flags.writeable = False
     else:
         # ExtensionArrays
-        values = values.view()
-        values._readonly = True
+        # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
+        # values = values.view()
+        # values._readonly = True
+        pass
 
     return values

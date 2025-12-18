@@ -48,11 +48,11 @@ from pandas._libs import (
     properties,
 )
 from pandas._libs.hashtable import duplicated
-from pandas._libs.internals import SetitemMixin
 from pandas._libs.lib import is_range_indexer
+from pandas.compat import CHAINED_WARNING_DISABLED
 from pandas.compat._constants import (
-    CHAINED_WARNING_DISABLED_INPLACE_METHOD,
     REF_COUNT,
+    REF_COUNT_METHOD,
 )
 from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
@@ -63,6 +63,7 @@ from pandas.errors import (
 )
 from pandas.errors.cow import (
     _chained_assignment_method_msg,
+    _chained_assignment_msg,
 )
 from pandas.util._decorators import (
     Appender,
@@ -215,6 +216,8 @@ if TYPE_CHECKING:
         AnyAll,
         AnyArrayLike,
         ArrayLike,
+        ArrowArrayExportable,
+        ArrowStreamExportable,
         Axes,
         Axis,
         AxisInt,
@@ -377,21 +380,18 @@ suffixes : list-like, default is ("_x", "_y")
     `right` should be left as-is, with no suffix. At least one of the
     values must not be None.
 copy : bool, default False
-    If False, avoid copy if possible.
-
-    .. note::
-        The `copy` keyword will change behavior in pandas 3.0.
-        `Copy-on-Write
-        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-        will be enabled by default, which means that all methods with a
-        `copy` keyword will use a lazy copy mechanism to defer the copy and
-        ignore the `copy` keyword. The `copy` keyword will be removed in a
-        future version of pandas.
-
-        You can already get the future behavior and improvements through
-        enabling copy on write ``pd.options.mode.copy_on_write = True``
+    This keyword is now ignored; changing its value will have no
+    impact on the method.
 
     .. deprecated:: 3.0.0
+
+        This keyword is ignored and will be removed in pandas 4.0. Since
+        pandas 3.0, this method always returns a new object using a lazy
+        copy mechanism that defers copies until necessary
+        (Copy-on-Write). See the `user guide on Copy-on-Write
+        <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+        for more details.
+
 indicator : bool or str, default False
     If True, adds a column to the output DataFrame called "_merge" with
     information on the source of each row. The column can be given a different
@@ -521,7 +521,7 @@ ValueError: columns overlap but no suffix specified:
 
 
 @set_module("pandas")
-class DataFrame(SetitemMixin, NDFrame, OpsMixin):
+class DataFrame(NDFrame, OpsMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
 
@@ -667,11 +667,6 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
     # similar to __array_priority__, positions DataFrame before Series, Index,
     #  and ExtensionArray.  Should NOT be overridden by subclasses.
     __pandas_priority__ = 4000
-
-    # override those to avoid inheriting from SetitemMixin (cython generates
-    # them by default)
-    __reduce__ = object.__reduce__
-    __setstate__ = NDFrame.__setstate__
 
     @property
     def _constructor(self) -> type[DataFrame]:
@@ -1840,6 +1835,55 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)
+
+    @classmethod
+    def from_arrow(
+        cls, data: ArrowArrayExportable | ArrowStreamExportable
+    ) -> DataFrame:
+        """
+        Construct a DataFrame from a tabular Arrow object.
+
+        This function accepts any Arrow-compatible tabular object implementing
+        the `Arrow PyCapsule Protocol`_ (i.e. having an ``__arrow_c_array__``
+        or ``__arrow_c_stream__`` method).
+
+        This function currently relies on ``pyarrow`` to convert the tabular
+        object in Arrow format to pandas.
+
+        .. _Arrow PyCapsule Protocol: https://arrow.apache.org/docs/format/CDataInterface/PyCapsuleInterface.html
+
+        .. versionadded:: 3.0
+
+        Parameters
+        ----------
+        data : pyarrow.Table or Arrow-compatible table
+            Any tabular object implementing the Arrow PyCapsule Protocol
+            (i.e. has an ``__arrow_c_array__`` or ``__arrow_c_stream__``
+            method).
+
+        Returns
+        -------
+        DataFrame
+        """
+        pa = import_optional_dependency("pyarrow", min_version="14.0.0")
+        if not isinstance(data, pa.Table):
+            if not (
+                hasattr(data, "__arrow_c_array__")
+                or hasattr(data, "__arrow_c_stream__")
+            ):
+                # explicitly test this, because otherwise we would accept variour other
+                # input types through the pa.table(..) call
+                raise TypeError(
+                    "Expected an Arrow-compatible tabular object (i.e. having an "
+                    "'_arrow_c_array__' or '__arrow_c_stream__' method), got "
+                    f"'{type(data).__name__}' instead."
+                )
+            pa_table = pa.table(data)
+        else:
+            pa_table = data
+
+        df = pa_table.to_pandas()
+        return df
 
     @classmethod
     def from_dict(
@@ -3854,25 +3898,20 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         *args : tuple, optional
             Accepted for compatibility with NumPy.
         copy : bool, default False
-            Whether to copy the data after transposing, even for DataFrames
-            with a single dtype.
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             Note that a copy is always required for mixed dtype DataFrames,
             or for DataFrames with any extension types.
 
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
-
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
@@ -4109,7 +4148,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         key = lib.item_from_zerodim(key)
         key = com.apply_if_callable(key, self)
 
-        if is_hashable(key) and not is_iterator(key) and not isinstance(key, slice):
+        if is_hashable(key, allow_slice=False) and not is_iterator(key):
             # is_iterator to exclude generator e.g. test_getitem_listlike
             # As of Python 3.12, slice is hashable which breaks MultiIndex (GH#57500)
 
@@ -4326,8 +4365,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         arraylike, refs = self._sanitize_column(value)
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
-    # def __setitem__() is implemented in SetitemMixin and dispatches to this method
-    def _setitem(self, key, value) -> None:
+    def __setitem__(self, key, value) -> None:
         """
         Set item(s) in DataFrame by key.
 
@@ -4410,6 +4448,14 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         y  2  20
         z  3  50
         """
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(self) <= REF_COUNT and not com.is_local_in_caller_frame(
+                self
+            ):
+                warnings.warn(
+                    _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
+                )
+
         key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows
@@ -5897,21 +5943,18 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
             Axis to target with ``mapper``. Can be either the axis name
             ('index', 'columns') or number (0, 1). The default is 'index'.
         copy : bool, default False
-            Also copy underlying data.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
+
         inplace : bool, default False
             Whether to modify the DataFrame rather than creating a new one.
             If True then value of copy is ignored.
@@ -6056,19 +6099,9 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         """
         return super().pop(item=item)
 
-    @overload
-    def _replace_columnwise(
-        self, mapping: dict[Hashable, tuple[Any, Any]], inplace: Literal[True], regex
-    ) -> None: ...
-
-    @overload
-    def _replace_columnwise(
-        self, mapping: dict[Hashable, tuple[Any, Any]], inplace: Literal[False], regex
-    ) -> Self: ...
-
     def _replace_columnwise(
         self, mapping: dict[Hashable, tuple[Any, Any]], inplace: bool, regex
-    ) -> Self | None:
+    ) -> Self:
         """
         Dispatch to Series.replace column-wise.
 
@@ -6081,7 +6114,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
 
         Returns
         -------
-        DataFrame or None
+        DataFrame
         """
         # Operate column-wise
         res = self if inplace else self.copy(deep=False)
@@ -6096,9 +6129,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
 
                 res._iset_item(i, newobj, inplace=inplace)
 
-        if inplace:
-            return None
-        return res.__finalize__(self)
+        return res if inplace else res.__finalize__(self)
 
     @doc(NDFrame.shift, klass=_shared_doc_kwargs["klass"])
     def shift(
@@ -7720,11 +7751,16 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         normalize : bool, default False
             Return proportions rather than frequencies.
         sort : bool, default True
-            Sort by frequencies when True. Preserve the order of the data when False.
+            Stable sort by frequencies when True. Preserve the order of the data
+            when False.
 
             .. versionchanged:: 3.0.0
 
                 Prior to 3.0.0, ``sort=False`` would sort by the columns values.
+
+            .. versionchanged:: 3.0.0
+
+                Prior to 3.0.0, the sort was unstable.
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
@@ -7834,7 +7870,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         counts.name = name
 
         if sort:
-            counts = counts.sort_values(ascending=ascending)
+            counts = counts.sort_values(ascending=ascending, kind="stable")
         if normalize:
             counts /= counts.sum()
 
@@ -8616,7 +8652,8 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         rvalues = series._values
         if not isinstance(rvalues, np.ndarray):
             # TODO(EA2D): no need to special-case with 2D EAs
-            if rvalues.dtype in ("datetime64[ns]", "timedelta64[ns]"):
+            if lib.is_np_dtype(rvalues.dtype, "mM"):
+                # i.e. DatetimeArray[tznaive] or TimedeltaArray
                 # We can losslessly+cheaply cast to ndarray
                 rvalues = np.asarray(rvalues)
             else:
@@ -9364,8 +9401,10 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         1  2  500.0
         2  3    6.0
         """
-        if not CHAINED_WARNING_DISABLED_INPLACE_METHOD:
-            if sys.getrefcount(self) <= REF_COUNT:
+        if not CHAINED_WARNING_DISABLED:
+            if sys.getrefcount(
+                self
+            ) <= REF_COUNT_METHOD and not com.is_local_in_caller_frame(self):
                 warnings.warn(
                     _chained_assignment_method_msg,
                     ChainedAssignmentError,
@@ -12150,8 +12189,7 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
                 result.index = df.index
                 return result
 
-            # kurtosis excluded since groupby does not implement it
-            if df.shape[1] and name != "kurt":
+            if df.shape[1]:
                 dtype = find_common_type(
                     [block.values.dtype for block in df._mgr.blocks]
                 )
@@ -13937,21 +13975,17 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to convert (the index by default).
         copy : bool, default False
-            If False then underlying input data is not copied.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------
@@ -14027,21 +14061,17 @@ class DataFrame(SetitemMixin, NDFrame, OpsMixin):
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to convert (the index by default).
         copy : bool, default False
-            If False then underlying input data is not copied.
-
-            .. note::
-                The `copy` keyword will change behavior in pandas 3.0.
-                `Copy-on-Write
-                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-                will be enabled by default, which means that all methods with a
-                `copy` keyword will use a lazy copy mechanism to defer the copy and
-                ignore the `copy` keyword. The `copy` keyword will be removed in a
-                future version of pandas.
-
-                You can already get the future behavior and improvements through
-                enabling copy on write ``pd.options.mode.copy_on_write = True``
+            This keyword is now ignored; changing its value will have no
+            impact on the method.
 
             .. deprecated:: 3.0.0
+
+                This keyword is ignored and will be removed in pandas 4.0. Since
+                pandas 3.0, this method always returns a new object using a lazy
+                copy mechanism that defers copies until necessary
+                (Copy-on-Write). See the `user guide on Copy-on-Write
+                <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
+                for more details.
 
         Returns
         -------

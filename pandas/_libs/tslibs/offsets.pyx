@@ -687,6 +687,11 @@ cdef class BaseOffset:
         """
         Roll provided date backward to next offset only if not on offset.
 
+        Parameters
+        ----------
+        dt : datetime or Timestamp
+            Timestamp to rollback.
+
         Returns
         -------
         TimeStamp
@@ -703,6 +708,11 @@ cdef class BaseOffset:
     def rollforward(self, dt) -> datetime:
         """
         Roll provided date forward to next offset only if not on offset.
+
+        Parameters
+        ----------
+        dt : datetime or Timestamp
+            Timestamp to rollback.
 
         Returns
         -------
@@ -818,7 +828,7 @@ cdef class BaseOffset:
         state["normalize"] = self.normalize
 
         # we don't want to actually pickle the calendar object
-        # as its a np.busyday; we recreate on deserialization
+        # as its an np.busyday; we recreate on deserialization
         state.pop("calendar", None)
         if "kwds" in state:
             state["kwds"].pop("calendar", None)

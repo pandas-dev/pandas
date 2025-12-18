@@ -1,24 +1,16 @@
 import numpy as np
 import pytest
 
-from pandas._config import using_python_scalars
-
 from pandas import Series
 import pandas._testing as tm
 
 
 def no_nans(x):
-    if using_python_scalars() and isinstance(x, Series):
-        return x.notna().all()
-    else:
-        return x.notna().all().all()
+    return x.notna().all(axis=None)
 
 
 def all_na(x):
-    if using_python_scalars() and isinstance(x, Series):
-        return x.isnull().all()
-    else:
-        return x.isnull().all().all()
+    return x.isnull().all(axis=None)
 
 
 @pytest.fixture(params=[(1, 0), (5, 1)])
@@ -56,10 +48,7 @@ def test_moments_consistency_var(all_data, rolling_consistency_cases, center, dd
     var_x = all_data.rolling(window=window, min_periods=min_periods, center=center).var(
         ddof=ddof
     )
-    if isinstance(all_data, Series):
-        assert not (var_x < 0).any()
-    else:
-        assert not (var_x < 0).any().any()
+    assert not (var_x < 0).any(axis=None)
 
     if ddof == 0:
         # check that biased var(x) == mean(x^2) - mean(x)^2
@@ -88,10 +77,7 @@ def test_moments_consistency_var_constant(
     ).var(ddof=ddof)
 
     # check that variance of constant series is identically 0
-    if isinstance(consistent_data, Series):
-        assert not (var_x > 0).any()
-    else:
-        assert not (var_x > 0).any().any()
+    assert not (var_x > 0).any(axis=None)
     expected = consistent_data * np.nan
     expected[count_x >= max(min_periods, 1)] = 0.0
     if ddof == 1:
@@ -108,18 +94,12 @@ def test_rolling_consistency_var_std_cov(
     var_x = all_data.rolling(window=window, min_periods=min_periods, center=center).var(
         ddof=ddof
     )
-    if isinstance(all_data, Series):
-        assert not (var_x < 0).any()
-    else:
-        assert not (var_x < 0).any().any()
+    assert not (var_x < 0).any(axis=None)
 
     std_x = all_data.rolling(window=window, min_periods=min_periods, center=center).std(
         ddof=ddof
     )
-    if isinstance(all_data, Series):
-        assert not (std_x < 0).any()
-    else:
-        assert not (std_x < 0).any().any()
+    assert not (std_x < 0).any(axis=None)
 
     # check that var(x) == std(x)^2
     tm.assert_equal(var_x, std_x * std_x)
@@ -127,10 +107,7 @@ def test_rolling_consistency_var_std_cov(
     cov_x_x = all_data.rolling(
         window=window, min_periods=min_periods, center=center
     ).cov(all_data, ddof=ddof)
-    if isinstance(all_data, Series):
-        assert not (cov_x_x < 0).any()
-    else:
-        assert not (cov_x_x < 0).any().any()
+    assert not (cov_x_x < 0).any(axis=None)
 
     # check that var(x) == cov(x, x)
     tm.assert_equal(var_x, cov_x_x)
