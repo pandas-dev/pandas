@@ -600,10 +600,11 @@ class TestSliceLocs:
 
     def test_slice_locs_na_raises(self):
         index = Index([np.nan, 1, 2])
-        with pytest.raises(KeyError, match="1.5"):
+        msg = "non-monotonic index with a missing label 1.5"
+        with pytest.raises(KeyError, match=msg):
             index.slice_locs(start=1.5)
 
-        with pytest.raises(KeyError, match="1.5"):
+        with pytest.raises(KeyError, match=msg):
             index.slice_locs(end=1.5)
 
 
