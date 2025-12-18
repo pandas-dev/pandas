@@ -587,7 +587,7 @@ def test_same_name_scoping(setup_path):
     with ensure_clean_store(setup_path) as store:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((20, 2)),
-            index=date_range("20130101", periods=20),
+            index=date_range("20130101", periods=20, unit="ns"),
         )
         store.put("df", df, format="table")
         expected = df[df.index > Timestamp("20130105")]
@@ -1017,10 +1017,12 @@ def test_duplicate_column_name(tmp_path, setup_path):
     assert other.equals(df)
 
 
-def test_preserve_timedeltaindex_type(setup_path):
+def test_preserve_timedeltaindex_type(setup_path, unit):
     # GH9635
     df = DataFrame(np.random.default_rng(2).normal(size=(10, 5)))
-    df.index = timedelta_range(start="0s", periods=10, freq="1s", name="example")
+    df.index = timedelta_range(
+        start="0s", periods=10, freq="1s", name="example", unit=unit
+    )
 
     with ensure_clean_store(setup_path) as store:
         store["df"] = df
@@ -1127,3 +1129,13 @@ def test_select_categorical_string_columns(tmp_path, model):
         result = store.select("df", "modelId == model")
         expected = df[df["modelId"] == model]
         tm.assert_frame_equal(result, expected)
+
+
+def test_to_hdf_multiindex_string_dtype_crash(tmp_path):
+    # GH#63412
+    path = tmp_path / "test.h5"
+    index = MultiIndex.from_tuples([("a", "x"), ("b", "y")], names=["level1", "level2"])
+    df = DataFrame({"value": [1, 2]}, index=index)
+    df.to_hdf(path, key="test")
+    result = read_hdf(path, key="test")
+    tm.assert_frame_equal(df, result, check_dtype=False)

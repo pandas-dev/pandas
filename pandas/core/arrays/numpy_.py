@@ -13,6 +13,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.astype import (
     astype_array,
@@ -56,12 +57,12 @@ if TYPE_CHECKING:
     from pandas.arrays import StringArray
 
 
+@set_module("pandas.arrays")
 class NumpyExtensionArray(
     OpsMixin,
     NDArrayBackedExtensionArray,
     ObjectStringArrayMixin,
 ):
-    __module__ = "pandas.arrays"
     """
     A pandas ExtensionArray for NumPy data.
 

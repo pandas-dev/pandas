@@ -64,7 +64,6 @@ from pandas.errors import (
     Pandas4Warning,
 )
 from pandas.util._decorators import (
-    Appender,
     Substitution,
     cache_readonly,
     doc,
@@ -645,7 +644,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
 
         def get_converter(s):
             # possibly convert to the actual key types
-            # in the indices, could be a Timestamp or a np.datetime64
+            # in the indices, could be a Timestamp or an np.datetime64
             if isinstance(s, datetime.datetime):
                 return lambda key: Timestamp(key)
             elif isinstance(s, np.datetime64):
@@ -738,11 +737,65 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         **kwargs: Any,
     ) -> T: ...
 
-    @Substitution(
-        klass="GroupBy",
-        examples=dedent(
-            """\
-        >>> df = pd.DataFrame({'A': 'a b a b'.split(), 'B': [1, 2, 3, 4]})
+    def pipe(
+        self,
+        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        """
+        Apply a ``func`` with arguments to this GroupBy object and return its result.
+
+        Use `.pipe` when you want to improve readability by chaining together
+        functions that expect Series, DataFrames, GroupBy or Resampler objects.
+        Instead of writing
+
+        >>> h = lambda x, arg2, arg3: x + 1 - arg2 * arg3
+        >>> g = lambda x, arg1: x * 5 / arg1
+        >>> f = lambda x: x**4
+        >>> df = pd.DataFrame([["a", 4], ["b", 5]], columns=["group", "value"])
+        >>> h(g(f(df.groupby("group")), arg1=1), arg2=2, arg3=3)  # doctest: +SKIP
+
+        You can write
+
+        >>> (
+        ...     df.groupby("group").pipe(f).pipe(g, arg1=1).pipe(h, arg2=2, arg3=3)
+        ... )  # doctest: +SKIP
+
+        which is much more readable.
+
+        Parameters
+        ----------
+        func : callable or tuple of (callable, str)
+            Function to apply to this GroupBy object or, alternatively,
+            a `(callable, data_keyword)` tuple where `data_keyword` is a
+            string indicating the keyword of `callable` that expects the
+            GroupBy object.
+        *args : iterable, optional
+            Positional arguments passed into `func`.
+        **kwargs : dict, optional
+            A dictionary of keyword arguments passed into `func`.
+
+        Returns
+        -------
+        GroupBy
+            The return type of `func`.
+
+        See Also
+        --------
+        Series.pipe : Apply a function with arguments to a series.
+        DataFrame.pipe : Apply a function with arguments to a dataframe.
+        apply : Apply function to each group instead of to the
+            full GroupBy object.
+
+        Notes
+        -----
+        See more `here
+        <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": "a b a b".split(), "B": [1, 2, 3, 4]})
         >>> df
            A  B
         0  a  1
@@ -753,20 +806,12 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         To get the difference between each groups maximum and minimum value in one
         pass, you can do
 
-        >>> df.groupby('A').pipe(lambda x: x.max() - x.min())
+        >>> df.groupby("A").pipe(lambda x: x.max() - x.min())
            B
         A
         a  2
-        b  2"""
-        ),
-    )
-    @Appender(_pipe_template)
-    def pipe(
-        self,
-        func: Callable[Concatenate[Self, P], T] | tuple[Callable[..., T], str],
-        *args: Any,
-        **kwargs: Any,
-    ) -> T:
+        b  2
+        """
         return com.pipe(self, func, *args, **kwargs)
 
     @final
@@ -5320,9 +5365,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         fill_method : None
             Must be None. This argument will be removed in a future version of pandas.
-
-            .. deprecated:: 2.1
-                All options of `fill_method` are deprecated except `fill_method=None`.
 
         freq : str, pandas offset object, or None, default None
             The frequency increment for time series data (e.g., 'M' for month-end).

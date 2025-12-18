@@ -335,7 +335,7 @@ class TestNumpyReductions:
         values = values_for_np_reduce
 
         same_type = True
-        if box is pd.Index and values.dtype.kind in ["i", "f"]:
+        if box is pd.Index and values.dtype.kind in "if":
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
 
@@ -349,7 +349,7 @@ class TestNumpyReductions:
             tm.assert_series_equal(result, expected)
         else:
             expected = values[1]
-            if using_python_scalars and values.dtype.kind in ["i", "f"]:
+            if using_python_scalars and values.dtype.kind in "if":
                 expected = expected.item()
             assert result == expected
             if same_type:
@@ -361,7 +361,7 @@ class TestNumpyReductions:
         values = values_for_np_reduce
 
         same_type = True
-        if box is pd.Index and values.dtype.kind in ["i", "f"]:
+        if box is pd.Index and values.dtype.kind in "if":
             # ATM Index casts to object, so we get python ints/floats
             same_type = False
 

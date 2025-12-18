@@ -342,8 +342,13 @@ class Index(IndexOpsMixin, PandasObject):
         Data type for the output Index. If not specified, this will be
         inferred from `data`.
         See the :ref:`user guide <basics.dtypes>` for more usages.
-    copy : bool, default False
-        Copy input data.
+    copy : bool, default None
+        Whether to copy input data, only relevant for array, Series, and Index
+        inputs (for other input, e.g. a list, a new array is created anyway).
+        Defaults to True for array input and False for Index/Series.
+        Set to False to avoid copying array input at your own risk (if you
+        know the input data won't be modified elsewhere).
+        Set to True to force copying Series/Index input up front.
     name : object
         Name to be stored in the index.
     tupleize_cols : bool (default: True)
@@ -483,7 +488,7 @@ class Index(IndexOpsMixin, PandasObject):
         cls,
         data=None,
         dtype=None,
-        copy: bool = False,
+        copy: bool | None = None,
         name=None,
         tupleize_cols: bool = True,
     ) -> Self:
@@ -500,9 +505,12 @@ class Index(IndexOpsMixin, PandasObject):
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
+        # GH 63306, GH 63388
+        data, copy = cls._maybe_copy_array_input(data, copy, dtype)
+
         # range
         if isinstance(data, (range, RangeIndex)):
-            result = RangeIndex(start=data, copy=copy, name=name)
+            result = RangeIndex(start=data, copy=bool(copy), name=name)
             if dtype is not None:
                 return result.astype(dtype, copy=False)
             # error: Incompatible return value type (got "MultiIndex",
@@ -570,7 +578,7 @@ class Index(IndexOpsMixin, PandasObject):
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
         try:
-            arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+            arr = sanitize_array(data, None, dtype=dtype, copy=bool(copy))
         except ValueError as err:
             if "index must be specified when data is not list-like" in str(err):
                 raise cls._raise_scalar_data_error(data) from err
@@ -1181,8 +1189,8 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         indices : array-like
             Indices to be taken.
-        axis : int, optional
-            The axis over which to select values, always 0.
+        axis : {0 or 'index'}, optional
+            The axis over which to select values, always 0 or 'index'.
         allow_fill : bool, default True
             How to handle negative values in `indices`.
 
@@ -1235,8 +1243,8 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         indices : array-like
             Indices to be taken.
-        axis : int, optional
-            The axis over which to select values, always 0.
+        axis : {0 or 'index'}, optional
+            The axis over which to select values, always 0 or 'index'.
         allow_fill : bool, default True
             How to handle negative values in `indices`.
 
@@ -1320,7 +1328,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def repeat(self, repeats, axis: None = None) -> Self:
         """
-        Repeat elements of a Index.
+        Repeat elements of an Index.
 
         Returns a new Index where each element of the current Index
         is repeated consecutively a given number of times.
@@ -4938,7 +4946,7 @@ class Index(IndexOpsMixin, PandasObject):
         Whether we can use the fastpaths implemented in _libs.join.
 
         This is driven by whether (in monotonic increasing cases that are
-        guaranteed not to have NAs) we can convert to a np.ndarray without
+        guaranteed not to have NAs) we can convert to an np.ndarray without
         making a copy. If we cannot, this negates the performance benefit
         of using libjoin.
         """
@@ -5024,8 +5032,9 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas.core.arrays.numpy_ import NumpyExtensionArray
 
             array = NumpyExtensionArray(array)
-        array = array.view()
-        array._readonly = True
+        # TODO decide on read-only https://github.com/pandas-dev/pandas/issues/63099
+        # array = array.view()
+        # array._readonly = True
         return array
 
     @property
@@ -5183,6 +5192,21 @@ class Index(IndexOpsMixin, PandasObject):
             f"kind, {repr(data) if not isinstance(data, np.generic) else str(data)} "
             "was passed"
         )
+
+    @classmethod
+    def _maybe_copy_array_input(
+        cls, data, copy: bool | None, dtype
+    ) -> tuple[Any, bool]:
+        """
+        Ensure that the input data is copied if necessary.
+        GH#63388
+        """
+        if isinstance(data, (ExtensionArray, np.ndarray)):
+            if copy is not False:
+                if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                    data = data.copy()
+                    copy = False
+        return data, bool(copy)
 
     def _validate_fill_value(self, value):
         """
@@ -5407,9 +5431,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        mask : np.ndarray[bool]
-            Array of booleans denoting where values in the original
-            data are not ``NA``.
+        mask : array-like of bool
+            Array of booleans denoting where values should be replaced.
         value : scalar
             Scalar value to use to fill holes (e.g. 0).
             This value cannot be a list-likes.
@@ -6853,12 +6876,15 @@ class Index(IndexOpsMixin, PandasObject):
         # we need to look up the label
         try:
             slc = self.get_loc(label)
-        except KeyError as err:
+        except KeyError:
             try:
                 return self._searchsorted_monotonic(label, side)
             except ValueError:
-                # raise the original KeyError
-                raise err from None
+                raise KeyError(
+                    f"Cannot get {side} slice bound for non-monotonic index "
+                    f"with a missing label {original_label!r}. "
+                    "Either sort the index or specify an existing label."
+                ) from None
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
@@ -7286,19 +7312,7 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             other = np.asarray(other)
 
-        if is_object_dtype(self.dtype) and isinstance(other, ExtensionArray):
-            # e.g. PeriodArray, Categorical
-            result = op(self._values, other)
-
-        elif isinstance(self._values, ExtensionArray):
-            result = op(self._values, other)
-
-        elif is_object_dtype(self.dtype) and not isinstance(self, ABCMultiIndex):
-            # don't pass MultiIndex
-            result = ops.comp_method_OBJECT_ARRAY(op, self._values, other)
-
-        else:
-            result = ops.comparison_op(self._values, other, op)
+        result = ops.comparison_op(self._values, other, op)
 
         return result
 
