@@ -814,6 +814,35 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                     PerformanceWarning,
                     stacklevel=find_stack_level(),
                 )
+
+            # Handle non-vectorized DateOffsets with both calendar and
+            # timedelta parts, preserving time resolution.
+            if getattr(offset, "offset", None):
+                try:
+                    kwds = offset.kwds.copy()
+                    if "offset" in kwds:
+                        del kwds["offset"]
+                        base_offset = type(offset)(**kwds)
+                        result = self._add_offset(base_offset) + offset.offset
+
+                        offset_td = Timedelta(offset.offset)
+                        offset_unit = offset_td.unit
+                        if offset_unit == "ns":
+                            res_str = offset_td.resolution_string
+                            if res_str in ["ms", "us", "s"]:
+                                offset_unit = res_str
+
+                        units = ["ns", "us", "ms", "s"]
+                        if self.unit in units and offset_unit in units:
+                            idx_self = units.index(self.unit)
+                            idx_offset = units.index(offset_unit)
+                            res_unit = units[min(idx_self, idx_offset)]
+                            return result.as_unit(res_unit)
+
+                        return result
+                except Exception:
+                    pass
+
             res_values = self.astype("O") + offset
             result = type(self)._from_sequence(res_values, dtype=self.dtype)
 

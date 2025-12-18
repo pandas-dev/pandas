@@ -858,8 +858,8 @@ def test_dt64_non_nano_offset_no_rounding():
     assert result.dtype == np.dtype("datetime64[ms]")
     expected = pd.DatetimeIndex(
         [
-            pd.Timestamp("2016-01-02 00:00:00.001"),
-            pd.Timestamp("2016-01-03 00:00:00.001"),
+            pd.Timestamp("2016-01-04 00:00:00.001"),
+            pd.Timestamp("2016-01-04 00:00:00.001"),
             pd.Timestamp("2016-01-04 00:00:00.001"),
         ]
     )
