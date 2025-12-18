@@ -120,7 +120,7 @@ def test_transform_ord_cat_cols_to_coded_cols(
     ],
 )
 def test_transform_ord_cat_cols_to_coded_cols_duplicated_col(
-    input_df_dict, expected_df_dict
+    input_df_dict: dict, expected_df_dict: dict
 ) -> None:
     # GH #60306
     input_df = DataFrame(input_df_dict)
