@@ -3150,7 +3150,7 @@ class GenericFixed(Fixed):
             if isinstance(lev.dtype, ExtensionDtype):
                 # GH 63412
                 if isinstance(lev.dtype, StringDtype):
-                    lev = lev.astype(object)
+                    pass
                 else:
                     raise NotImplementedError(
                         "Saving a MultiIndex with an extension dtype is not supported."
