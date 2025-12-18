@@ -573,8 +573,6 @@ def test_removesuffix(any_string_dtype, suffix, expected):
     tm.assert_series_equal(result, ser_expected)
 
 
-
-
 def test_string_slice_get_syntax(any_string_dtype):
     ser = Series(
         ["YYY", "B", "C", "YYYYYYbYYY", "BYYYcYYY", np.nan, "CYYYBYYY", "dog", "cYYYt"],
