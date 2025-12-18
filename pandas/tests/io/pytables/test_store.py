@@ -1129,3 +1129,16 @@ def test_select_categorical_string_columns(tmp_path, model):
         result = store.select("df", "modelId == model")
         expected = df[df["modelId"] == model]
         tm.assert_frame_equal(result, expected)
+
+
+def test_to_hdf_multiindex_string_dtype_crash(tmp_path):
+    # GH#63412
+    path = tmp_path / "test.h5"
+    index = MultiIndex.from_tuples(
+        [("a", "x"), ("b", "y")], 
+        names=["level1", "level2"]
+    )
+    df = DataFrame({"value": [1, 2]}, index=index)
+    df.to_hdf(path, key="test")
+    result = read_hdf(path, key="test")
+    tm.assert_frame_equal(df, result, check_dtype=False)
