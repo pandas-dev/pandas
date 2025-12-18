@@ -260,7 +260,7 @@ class HTMLFormatter:
         if self.border is None:
             border_attr = ""
         else:
-            border_attr = f' border="{self.border}"'
+            border_attr = f' style="border: {self.border}px solid black;"'
 
         self.write(
             f'<table{border_attr} class="{" ".join(_classes)}"{id_section}>',
