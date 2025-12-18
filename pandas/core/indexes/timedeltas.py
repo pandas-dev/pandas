@@ -169,7 +169,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         name = maybe_extract_name(name, data, cls)
 
         # GH#63388
-        data, copy = cls._maybe_copy_input(data, copy, dtype)
+        data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
         if is_scalar(data):
             cls._raise_scalar_data_error(data)

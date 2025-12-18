@@ -239,7 +239,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         freq = validate_dtype_freq(dtype, freq)
 
         # GH#63388
-        data, copy = cls._maybe_copy_input(data, copy, dtype)
+        data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
         # PeriodIndex allow PeriodIndex(period_index, freq=different)
         # Let's not encourage that kind of behavior in PeriodArray.
