@@ -92,6 +92,7 @@ from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
     find_result_type,
     infer_dtype_from,
+    maybe_unbox_numpy_scalar,
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
@@ -7547,7 +7548,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             first = self[0]
             if not isna(first):
-                return first
+                return maybe_unbox_numpy_scalar(first)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
@@ -7558,7 +7559,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._is_multi and not isinstance(self._values, np.ndarray):
             return self._values._reduce(name="min", skipna=skipna)
 
-        return nanops.nanmin(self._values, skipna=skipna)
+        return maybe_unbox_numpy_scalar(nanops.nanmin(self._values, skipna=skipna))
 
     def max(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
@@ -7611,18 +7612,18 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             last = self[-1]
             if not isna(last):
-                return last
+                return maybe_unbox_numpy_scalar(last)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
-                return self._na_value
+                return maybe_unbox_numpy_scalar(self._na_value)
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
             return self._values._reduce(name="max", skipna=skipna)
 
-        return nanops.nanmax(self._values, skipna=skipna)
+        return maybe_unbox_numpy_scalar(nanops.nanmax(self._values, skipna=skipna))
 
     # --------------------------------------------------------------------
 

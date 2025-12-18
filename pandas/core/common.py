@@ -45,6 +45,7 @@ from pandas.core.dtypes.generic import (
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
+    ABCNumpyExtensionArray,
     ABCSeries,
 )
 from pandas.core.dtypes.inference import iterable_not_string
@@ -128,7 +129,8 @@ def is_bool_indexer(key: Any) -> bool:
         and convert to an ndarray.
     """
     if isinstance(
-        key, (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray)
+        key,
+        (ABCSeries, np.ndarray, ABCIndex, ABCExtensionArray, ABCNumpyExtensionArray),
     ) and not isinstance(key, ABCMultiIndex):
         if key.dtype == np.object_:
             key_array = np.asarray(key)
