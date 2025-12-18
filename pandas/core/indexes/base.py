@@ -6870,8 +6870,8 @@ class Index(IndexOpsMixin, PandasObject):
             except ValueError:
                 raise KeyError(
                     f"Cannot get {side} slice bound for non-monotonic index "
-                    f"with a non-specific label: {original_label!r}. "
-                    "Please specify the label."
+                    f"with a missing label {original_label!r}. "
+                    "Either sort the index or specify an existing label."
                 ) from err
 
         if isinstance(slc, np.ndarray):
