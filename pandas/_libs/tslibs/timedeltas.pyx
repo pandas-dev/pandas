@@ -1022,9 +1022,23 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
         td_base = _Timedelta.__new__(cls, microseconds=int(value))
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        td_base = _Timedelta.__new__(cls, milliseconds=0)
+        if -86_399_999_913_600_000 <= value < 86_400_000_000_000_000:
+            # i.e. we are in range for pytimedelta. By passing the
+            #  'correct' value here we can
+            #   make pydatetime + Timedelta operations work correctly,
+            #  xref GH#53643
+            td_base = _Timedelta.__new__(cls, milliseconds=value)
+        else:
+            td_base = _Timedelta.__new__(cls, milliseconds=0)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        td_base = _Timedelta.__new__(cls, seconds=0)
+        if -86_399_999_913_600 <= value < 86_400_000_000_000:
+            # i.e. we are in range for pytimedelta. By passing the
+            #  'correct' value here we can
+            #   make pydatetime + Timedelta operations work correctly,
+            #  xref GH#53643
+            td_base = _Timedelta.__new__(cls, seconds=value)
+        else:
+            td_base = _Timedelta.__new__(cls, seconds=0)
     # Other resolutions are disabled but could potentially be implemented here:
     # elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
     #    td_base = _Timedelta.__new__(Timedelta, minutes=int(value))
