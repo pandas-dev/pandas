@@ -2663,7 +2663,9 @@ class ArrowExtensionArray(
 
         if how in ["std", "var", "sem"]:
             ddof = kwargs.get("ddof", 1)
-            aggs = [("value", pa_agg_func, pc.VarianceOptions(ddof=ddof))]
+            aggs: list[tuple[str, str] | tuple[str, str, pc.VarianceOptions]] = [
+                ("value", pa_agg_func, pc.VarianceOptions(ddof=ddof))
+            ]
         else:
             aggs = [("value", pa_agg_func)]
         aggs.append(("value", "count"))
@@ -2772,15 +2774,15 @@ class ArrowExtensionArray(
                 return result
 
         # Fall back to converting to masked/datetime array and using Cython
-        values: ExtensionArray
+        fallback_values: ExtensionArray
         if pa.types.is_timestamp(pa_type):
-            values = self._to_datetimearray()
+            fallback_values = self._to_datetimearray()
         elif pa.types.is_duration(pa_type):
-            values = self._to_timedeltaarray()
+            fallback_values = self._to_timedeltaarray()
         else:
-            values = self._to_masked()
+            fallback_values = self._to_masked()
 
-        result = values._groupby_op(
+        fallback_result = fallback_values._groupby_op(
             how=how,
             has_dropped_na=has_dropped_na,
             min_count=min_count,
@@ -2788,14 +2790,14 @@ class ArrowExtensionArray(
             ids=ids,
             **kwargs,
         )
-        if isinstance(result, np.ndarray):
-            return result
-        elif isinstance(result, BaseMaskedArray):
-            pa_result = result.__arrow_array__()
+        if isinstance(fallback_result, np.ndarray):
+            return fallback_result
+        elif isinstance(fallback_result, BaseMaskedArray):
+            pa_result = fallback_result.__arrow_array__()
             return self._from_pyarrow_array(pa_result)
         else:
             # DatetimeArray, TimedeltaArray
-            pa_result = pa.array(result)
+            pa_result = pa.array(fallback_result)
             return self._from_pyarrow_array(pa_result)
 
     def _apply_elementwise(self, func: Callable) -> list[list[Any]]:
