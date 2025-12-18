@@ -314,12 +314,6 @@ def test_column_multiindex(tmp_path, setup_path, using_infer_string):
 
     path = tmp_path / setup_path
     with HDFStore(path) as store:
-        if using_infer_string:
-            # TODO(infer_string) make this work for string dtype
-            msg = "Saving a MultiIndex with an extension dtype is not supported."
-            with pytest.raises(NotImplementedError, match=msg):
-                store.put("df", df)
-            return
         store.put("df", df)
         tm.assert_frame_equal(
             store["df"], expected, check_index_type=True, check_column_type=True

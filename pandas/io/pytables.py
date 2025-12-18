@@ -3147,7 +3147,9 @@ class GenericFixed(Fixed):
             zip(index.levels, index.codes, index.names, strict=True)
         ):
             # write the level
-            if isinstance(lev.dtype, ExtensionDtype):
+            if isinstance(lev.dtype, ExtensionDtype) and not isinstance(
+                lev.dtype, StringDtype
+            ):
                 raise NotImplementedError(
                     "Saving a MultiIndex with an extension dtype is not supported."
                 )

@@ -434,12 +434,6 @@ def test_store_hierarchical(
 ):
     frame = multiindex_dataframe_random_data
 
-    if using_infer_string:
-        # TODO(infer_string) make this work for string dtype
-        msg = "Saving a MultiIndex with an extension dtype is not supported."
-        with pytest.raises(NotImplementedError, match=msg):
-            _check_roundtrip(frame, tm.assert_frame_equal, path=temp_file)
-        return
     _check_roundtrip(frame, tm.assert_frame_equal, path=temp_file)
     _check_roundtrip(frame.T, tm.assert_frame_equal, path=temp_file)
     _check_roundtrip(frame["A"], tm.assert_series_equal, path=temp_file)
