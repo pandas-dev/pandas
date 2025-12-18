@@ -5626,25 +5626,25 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         DataFrame.rename_axis : Alter the name of the index or columns.
 
-                Examples
-                --------
-                >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        Examples
+        --------
+        >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
 
-                Change the row labels.
+        Change the row labels.
 
-                >>> df.set_axis(["a", "b", "c"], axis="index")
-                   A  B
-                a  1  4
-                b  2  5
-                c  3  6
+        >>> df.set_axis(["a", "b", "c"], axis="index")
+            A  B
+        a  1  4
+        b  2  5
+        c  3  6
 
-                Change the column labels.
+        Change the column labels.
 
-                >>> df.set_axis(["I", "II"], axis="columns")
-                   I  II
-                0  1   4
-                1  2   5
-                2  3   6
+        >>> df.set_axis(["I", "II"], axis="columns")
+            I  II
+        0  1   4
+        1  2   5
+        2  3   6
         """
         return super().set_axis(labels, axis=axis, copy=copy)
 
