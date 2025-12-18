@@ -100,7 +100,7 @@ def test_error_contains_non_dummies():
         from_dummies(dummies)
 
 
-def test_error_with_prefix_multiple_seperators():
+def test_error_with_prefix_multiple_separators():
     dummies = DataFrame(
         {
             "col1_a": [1, 0, 1],
@@ -304,7 +304,7 @@ def test_no_prefix_string_cats_contains_get_dummies_NaN_column():
         pytest.param(
             1,
             {"": ["a", "b", 1]},
-            id="default_category is a int",
+            id="default_category is an int",
         ),
         pytest.param(
             1.25,

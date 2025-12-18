@@ -117,6 +117,15 @@ class TestRoundTrips:
 
 
 class TestIndexing:
+    def test_getitem_0d_ndarray(self, index):
+        # GH#55601
+        if len(index) == 0:
+            pytest.skip(reason="Test assumes non-empty index")
+        key = np.array(0)
+        result = index[key]
+
+        assert result == index[0]
+
     def test_get_loc_listlike_raises_invalid_index_error(self, index):
         # and never TypeError
         key = np.array([0, 1], dtype=np.intp)

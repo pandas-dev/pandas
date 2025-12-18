@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    cast,
 )
 
 import numpy as np
@@ -17,6 +18,7 @@ from pandas._libs import (
     Timestamp,
     lib,
 )
+from pandas.util._decorators import set_module
 
 from pandas.core.dtypes.common import (
     ensure_platform_int,
@@ -48,9 +50,11 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeObj,
         IntervalLeftRight,
+        TimeUnit,
     )
 
 
+@set_module("pandas")
 def cut(
     x,
     bins,
@@ -104,7 +108,7 @@ def cut(
         The precision at which to store and display the bins labels.
     include_lowest : bool, default False
         Whether the first interval should be left-inclusive or not.
-    duplicates : {default 'raise', 'drop'}, optional
+    duplicates : {'raise', 'drop'}, default 'raise'
         If bin edges are not unique, raise ValueError or drop non-uniques.
     ordered : bool, default True
         Whether the labels are ordered or not. Applies to returned types
@@ -287,6 +291,7 @@ def cut(
     return _postprocess_for_cut(fac, bins, retbins, original)
 
 
+@set_module("pandas")
 def qcut(
     x,
     q,
@@ -409,7 +414,7 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
             # error: Argument 1 to "dtype_to_unit" has incompatible type
             # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
             unit = dtype_to_unit(x_idx.dtype)  # type: ignore[arg-type]
-            td = Timedelta(seconds=1).as_unit(unit)
+            td = Timedelta(seconds=1).as_unit(cast("TimeUnit", unit))
             # Use DatetimeArray/TimedeltaArray method instead of linspace
             # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
             # has no attribute "_generate_range"
@@ -592,6 +597,7 @@ def _format_labels(
         # error: Argument 1 to "dtype_to_unit" has incompatible type
         # "dtype[Any] | ExtensionDtype"; expected "DatetimeTZDtype | dtype[Any]"
         unit = dtype_to_unit(bins.dtype)  # type: ignore[arg-type]
+        unit = cast("TimeUnit", unit)
         formatter = lambda x: x
         adjust = lambda x: x - Timedelta(1, unit=unit).as_unit(unit)
     else:

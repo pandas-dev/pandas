@@ -258,6 +258,7 @@ html_theme_options = {
     # This shows a warning for patch releases since the
     # patch version doesn't compare as equal (e.g. 2.2.1 != 2.2.0 but it should be)
     "show_version_warning_banner": False,
+    "announcement": "https://raw.githubusercontent.com/pandas-dev/pandas/main/doc/_templates/docs-announcement-banner.html",
     "icon_links": [
         {
             "name": "X",
@@ -828,7 +829,6 @@ linkcheck_ignore = [
             "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568",
             "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495",
             "https://github.com/pandas-dev/pandas/issues/174151",
-            "https://gitpod.io/#https://github.com/USERNAME/pandas",
             "https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/",
             "https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table",
             "https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html",

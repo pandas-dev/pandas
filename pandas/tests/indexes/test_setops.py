@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.cast import find_common_type
 
@@ -973,3 +974,13 @@ class TestSetOpsUnsorted:
         result = idx1.union(idx2)
         expected = Index(["a", "b"], dtype=any_string_dtype)
         tm.assert_index_equal(result, expected)
+
+    @td.skip_if_no("pyarrow")
+    def test_union_pyarrow_timestamp(self):
+        # GH#58421
+        left = Index(["2020-01-01"], dtype="timestamp[s][pyarrow]")
+        right = Index(["2020-01-02"], dtype="timestamp[s][pyarrow]")
+
+        res = left.union(right)
+        expected = Index(["2020-01-01", "2020-01-02"], dtype=left.dtype)
+        tm.assert_index_equal(res, expected)

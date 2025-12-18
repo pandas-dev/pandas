@@ -61,12 +61,13 @@ if TYPE_CHECKING:
     from matplotlib.axis import Axis
 
     from pandas._libs.tslibs.offsets import BaseOffset
+    from pandas._typing import TimeUnit
 
 
-_mpl_units = {}  # Cache for units overwritten by us
+_mpl_units: dict = {}  # Cache for units overwritten by us
 
 
-def get_pairs():
+def get_pairs() -> list[tuple[type, type[mdates.DateConverter]]]:
     pairs = [
         (Timestamp, DatetimeConverter),
         (Period, PeriodConverter),
@@ -224,13 +225,20 @@ class TimeFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportAttributeAcc
 
 class PeriodConverter(mdates.DateConverter):
     @staticmethod
-    def convert(values, units, axis):
+    def convert(values, unit, axis: Axis):
+        # Reached via e.g. `ax.set_xlim`
+
+        # In tests as of 2025-09-24, unit is always None except for 3 tests
+        #  that directly call this with unit="";
+        #  axis is always specifically a matplotlib.axis.XAxis
+
         if not hasattr(axis, "freq"):
             raise TypeError("Axis must have `freq` set to convert to Periods")
-        return PeriodConverter.convert_from_freq(values, axis.freq)
+        freq = to_offset(axis.freq, is_period=True)  # pyright: ignore[reportAttributeAccessIssue]
+        return PeriodConverter.convert_from_freq(values, freq)
 
     @staticmethod
-    def convert_from_freq(values, freq):
+    def convert_from_freq(values, freq: BaseOffset):
         if is_nested_list_like(values):
             values = [PeriodConverter._convert_1d(v, freq) for v in values]
         else:
@@ -238,8 +246,8 @@ class PeriodConverter(mdates.DateConverter):
         return values
 
     @staticmethod
-    def _convert_1d(values, freq):
-        valid_types = (str, datetime, Period, pydt.date, pydt.time, np.datetime64)
+    def _convert_1d(values, freq: BaseOffset):
+        valid_types = (str, datetime, Period, pydt.date, np.datetime64)
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore", "Period with BDay freq is deprecated", category=FutureWarning
@@ -252,30 +260,26 @@ class PeriodConverter(mdates.DateConverter):
                 or is_integer(values)
                 or is_float(values)
             ):
-                return get_datevalue(values, freq)
+                return _get_datevalue(values, freq)
             elif isinstance(values, PeriodIndex):
                 return values.asfreq(freq).asi8
             elif isinstance(values, Index):
-                return values.map(lambda x: get_datevalue(x, freq))
+                return values.map(lambda x: _get_datevalue(x, freq))
             elif lib.infer_dtype(values, skipna=False) == "period":
                 # https://github.com/pandas-dev/pandas/issues/24304
                 # convert ndarray[period] -> PeriodIndex
                 return PeriodIndex(values, freq=freq).asi8
-            elif isinstance(values, (list, tuple, np.ndarray, Index)):
-                return [get_datevalue(x, freq) for x in values]
+            elif isinstance(values, (list, tuple, np.ndarray)):
+                return [_get_datevalue(x, freq) for x in values]
         return values
 
 
-def get_datevalue(date, freq):
+def _get_datevalue(date, freq: BaseOffset):
     if isinstance(date, Period):
         return date.asfreq(freq).ordinal
-    elif isinstance(date, (str, datetime, pydt.date, pydt.time, np.datetime64)):
-        return Period(date, freq).ordinal
-    elif (
-        is_integer(date)
-        or is_float(date)
-        or (isinstance(date, (np.ndarray, Index)) and (date.size == 1))
-    ):
+    elif isinstance(date, (str, datetime, pydt.date, np.datetime64)):
+        return Period(date, freq).ordinal  # pyright: ignore[reportAttributeAccessIssue]
+    elif is_integer(date) or is_float(date):
         return date
     elif date is None:
         return None
@@ -285,7 +289,13 @@ def get_datevalue(date, freq):
 # Datetime Conversion
 class DatetimeConverter(mdates.DateConverter):
     @staticmethod
-    def convert(values, unit, axis):
+    def convert(values, unit, axis: Axis):
+        # Reached via e.g. `ax.set_xlim`
+
+        # In tests as of 2025-09-24, unit is always None except for 3 tests
+        #  that directly call this with unit="";
+        #  axis is always specifically a matplotlib.axis.XAxis
+
         # values might be a 1-d array, or a list-like of arrays.
         if is_nested_list_like(values):
             values = [DatetimeConverter._convert_1d(v, unit, axis) for v in values]
@@ -1090,18 +1100,22 @@ class TimeSeries_TimedeltaFormatter(mpl.ticker.Formatter):  # pyright: ignore[re
     Formats the ticks along an axis controlled by a :class:`TimedeltaIndex`.
     """
 
+    def __init__(self, unit: TimeUnit = "ns"):
+        self.unit = unit
+        super().__init__()
+
     axis: Axis
 
     @staticmethod
-    def format_timedelta_ticks(x, pos, n_decimals: int) -> str:
+    def format_timedelta_ticks(x, pos, n_decimals: int, exp: int = 9) -> str:
         """
         Convert seconds to 'D days HH:MM:SS.F'
         """
-        s, ns = divmod(x, 10**9)  # TODO(non-nano): this looks like it assumes ns
+        s, ns = divmod(x, 10**exp)
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
         d, h = divmod(h, 24)
-        decimals = int(ns * 10 ** (n_decimals - 9))
+        decimals = int(ns * 10 ** (n_decimals - exp))
         s = f"{int(h):02d}:{int(m):02d}:{int(s):02d}"
         if n_decimals > 0:
             s += f".{decimals:0{n_decimals}d}"
@@ -1110,6 +1124,7 @@ class TimeSeries_TimedeltaFormatter(mpl.ticker.Formatter):  # pyright: ignore[re
         return s
 
     def __call__(self, x, pos: int | None = 0) -> str:
+        exp = {"ns": 9, "us": 6, "ms": 3, "s": 0}[self.unit]
         (vmin, vmax) = tuple(self.axis.get_view_interval())
-        n_decimals = min(int(np.ceil(np.log10(100 * 10**9 / abs(vmax - vmin)))), 9)
-        return self.format_timedelta_ticks(x, pos, n_decimals)
+        n_decimals = min(int(np.ceil(np.log10(100 * 10**exp / abs(vmax - vmin)))), exp)
+        return self.format_timedelta_ticks(x, pos, n_decimals, exp)

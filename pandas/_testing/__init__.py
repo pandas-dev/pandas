@@ -348,8 +348,9 @@ class SubclassedDataFrame(DataFrame):
     def _constructor(self):
         return lambda *args, **kwargs: SubclassedDataFrame(*args, **kwargs)
 
+    # error: Cannot override writeable attribute with read-only property
     @property
-    def _constructor_sliced(self):
+    def _constructor_sliced(self):  # type: ignore[override]
         return lambda *args, **kwargs: SubclassedSeries(*args, **kwargs)
 
 
@@ -401,7 +402,7 @@ def get_cython_table_params(ndframe, func_names_and_expected):
     ----------
     ndframe : DataFrame or Series
     func_names_and_expected : Sequence of two items
-        The first item is a name of a NDFrame method ('sum', 'prod') etc.
+        The first item is a name of an NDFrame method ('sum', 'prod') etc.
         The second item is the expected return value.
 
     Returns

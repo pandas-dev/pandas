@@ -5,6 +5,8 @@ import dateutil
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -46,8 +48,10 @@ class TestDatetimeConcat:
 
     def test_concat_datetime_timezone(self):
         # GH 18523
-        idx1 = date_range("2011-01-01", periods=3, freq="h", tz="Europe/Paris")
-        idx2 = date_range(start=idx1[0], end=idx1[-1], freq="h")
+        idx1 = date_range(
+            "2011-01-01", periods=3, freq="h", tz="Europe/Paris", unit="ns"
+        )
+        idx2 = date_range(start=idx1[0], end=idx1[-1], freq="h", unit="ns")
         df1 = DataFrame({"a": [1, 2, 3]}, index=idx1)
         df2 = DataFrame({"b": [1, 2, 3]}, index=idx2)
         result = concat([df1, df2], axis=1)
@@ -67,9 +71,11 @@ class TestDatetimeConcat:
 
         tm.assert_frame_equal(result, expected)
 
-        idx3 = date_range("2011-01-01", periods=3, freq="h", tz="Asia/Tokyo")
+        idx3 = date_range("2011-01-01", periods=3, freq="h", tz="Asia/Tokyo", unit="ns")
         df3 = DataFrame({"b": [1, 2, 3]}, index=idx3)
-        result = concat([df1, df3], axis=1)
+        msg = "Sorting by default when concatenating all DatetimeIndex"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = concat([df1, df3], axis=1)
 
         exp_idx = DatetimeIndex(
             [
@@ -161,7 +167,13 @@ class TestDatetimeConcat:
         # GH 11693
         # test for merging NaT series with datetime series.
         x = Series(
-            date_range("20151124 08:00", "20151124 09:00", freq="1h", tz="US/Eastern")
+            date_range(
+                "20151124 08:00",
+                "20151124 09:00",
+                freq="1h",
+                tz="US/Eastern",
+                unit="ns",
+            )
         )
         y = Series(pd.NaT, index=[0, 1], dtype="datetime64[ns, US/Eastern]")
         expected = Series([x[0], x[1], pd.NaT, pd.NaT])
@@ -176,8 +188,8 @@ class TestDatetimeConcat:
 
     def test_concat_NaT_series2(self):
         # without tz
-        x = Series(date_range("20151124 08:00", "20151124 09:00", freq="1h"))
-        y = Series(date_range("20151124 10:00", "20151124 11:00", freq="1h"))
+        x = Series(date_range("20151124 08:00", "20151124 09:00", freq="1h", unit="ns"))
+        y = Series(date_range("20151124 10:00", "20151124 11:00", freq="1h", unit="ns"))
         y[:] = pd.NaT
         expected = Series([x[0], x[1], pd.NaT, pd.NaT])
         result = concat([x, y], ignore_index=True)
@@ -358,7 +370,7 @@ class TestTimezoneConcat:
 
         result = concat([Series(x), Series(y)], ignore_index=True)
         tm.assert_series_equal(result, Series(x + y))
-        assert result.dtype == "datetime64[s, tzlocal()]"
+        assert result.dtype == "datetime64[us, tzlocal()]"
 
     def test_concat_tz_series_with_datetimelike(self):
         # see gh-12620: tz and timedelta

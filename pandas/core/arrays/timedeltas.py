@@ -40,6 +40,7 @@ from pandas._libs.tslibs.timedeltas import (
     truediv_object_array,
 )
 from pandas.compat.numpy import function as nv
+from pandas.util._decorators import set_module
 from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.common import (
@@ -51,7 +52,11 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
@@ -65,7 +70,7 @@ import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
     from pandas._typing import (
         AxisInt,
@@ -73,6 +78,7 @@ if TYPE_CHECKING:
         DtypeObj,
         NpDtype,
         npt,
+        TimeUnit,
     )
 
     from pandas import DataFrame
@@ -102,6 +108,7 @@ def _field_accessor(name: str, alias: str, docstring: str):
     return property(f)
 
 
+@set_module("pandas.arrays")
 class TimedeltaArray(dtl.TimelikeOps):
     """
     Pandas ExtensionArray for timedelta data.
@@ -143,13 +150,13 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> pd.arrays.TimedeltaArray._from_sequence(pd.TimedeltaIndex(["1h", "2h"]))
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
-    Length: 2, dtype: timedelta64[ns]
+    Length: 2, dtype: timedelta64[us]
     """
 
     _typ = "timedeltaarray"
     _internal_fill_value = np.timedelta64("NaT", "ns")
     _recognized_scalars = (timedelta, np.timedelta64, Tick)
-    _is_recognized_dtype = lambda x: lib.is_np_dtype(x, "m")
+    _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: lib.is_np_dtype(x, "m")
     _infer_matches = ("timedelta", "timedelta64")
 
     @property
@@ -202,7 +209,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     # ----------------------------------------------------------------
     # Constructors
 
-    _freq = None
+    _freq: Tick | Day | None = None
 
     @classmethod
     def _validate_dtype(cls, values, dtype):
@@ -275,7 +282,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @classmethod
     def _generate_range(
-        cls, start, end, periods, freq, closed=None, *, unit: str | None = None
+        cls, start, end, periods, freq, closed=None, *, unit: TimeUnit
     ) -> Self:
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -293,11 +300,8 @@ class TimedeltaArray(dtl.TimelikeOps):
         if end is not None:
             end = Timedelta(end).as_unit("ns")
 
-        if unit is not None:
-            if unit not in ["s", "ms", "us", "ns"]:
-                raise ValueError("'unit' must be one of 's', 'ms', 'us', 'ns'")
-        else:
-            unit = "ns"
+        if unit not in ["s", "ms", "us", "ns"]:
+            raise ValueError("'unit' must be one of 's', 'ms', 'us', 'ns'")
 
         if start is not None and unit is not None:
             start = start.as_unit(unit, round_ok=False)
@@ -327,7 +331,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             raise ValueError("'value' should be a Timedelta.")
         self._check_compatible_with(value)
         if value is NaT:
-            return np.timedelta64(value._value, self.unit)  # type: ignore[call-overload]
+            return np.timedelta64(value._value, self.unit)
         else:
             return value.as_unit(self.unit, round_ok=False).asm8
 
@@ -472,6 +476,11 @@ class TimedeltaArray(dtl.TimelikeOps):
     @unpack_zerodim_and_defer("__mul__")
     def __mul__(self, other) -> Self:
         if is_scalar(other):
+            if lib.is_bool(other):
+                raise TypeError(
+                    f"Cannot multiply '{self.dtype}' by bool, explicitly cast to "
+                    "integers instead"
+                )
             # numpy will accept float and int, raise TypeError for others
             result = self._ndarray * other
             if result.dtype.kind != "m":
@@ -489,6 +498,17 @@ class TimedeltaArray(dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
+
+        if other.dtype.kind == "b":
+            # GH#58054
+            raise TypeError(
+                f"Cannot multiply '{self.dtype}' by bool, explicitly cast to "
+                "integers instead"
+            )
+        if isinstance(other.dtype, (ArrowDtype, BaseMaskedDtype)):
+            # GH#58054
+            return NotImplemented
+
         if len(other) != len(self) and not lib.is_np_dtype(other.dtype, "m"):
             # Exclude timedelta64 here so we correctly raise TypeError
             #  for that instead of ValueError
@@ -553,7 +573,7 @@ class TimedeltaArray(dtl.TimelikeOps):
                         freq = to_offset(Timedelta(days=self.freq.n)) / other
                 else:
                     freq = self.freq / other
-                if freq.nanos == 0 and self.freq.nanos != 0:  # type: ignore[union-attr]
+                if freq.nanos == 0 and self.freq.nanos != 0:
                     # e.g. if self.freq is Nano(1) then dividing by 2
                     #  rounds down to zero
                     freq = None
@@ -609,7 +629,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         if is_object_dtype(other.dtype):
             other = np.asarray(other)
             if self.ndim > 1:
-                res_cols = [left / right for left, right in zip(self, other)]
+                res_cols = [
+                    left / right for left, right in zip(self, other, strict=True)
+                ]
                 res_cols2 = [x.reshape(1, -1) for x in res_cols]
                 result = np.concatenate(res_cols2, axis=0)
             else:
@@ -658,7 +680,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         elif is_object_dtype(other.dtype):
             other = np.asarray(other)
             if self.ndim > 1:
-                res_cols = [left // right for left, right in zip(self, other)]
+                res_cols = [
+                    left // right for left, right in zip(self, other, strict=True)
+                ]
                 res_cols2 = [x.reshape(1, -1) for x in res_cols]
                 result = np.concatenate(res_cols2, axis=0)
             else:
@@ -789,7 +813,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         >>> idx = pd.to_timedelta(np.arange(5), unit="D")
         >>> idx
         TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                       dtype='timedelta64[ns]', freq=None)
+                       dtype='timedelta64[us]', freq=None)
 
         >>> idx.total_seconds()
         Index([0.0, 86400.0, 172800.0, 259200.0, 345600.0], dtype='float64')
@@ -868,7 +892,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
     >>> tdelta_idx
     TimedeltaIndex(['0 days', '10 days', '20 days'],
-                    dtype='timedelta64[ns]', freq=None)
+                    dtype='timedelta64[us]', freq=None)
     >>> tdelta_idx.days
     Index([0, 10, 20], dtype='int64')"""
     )
@@ -1196,7 +1220,7 @@ def _objects_to_td64ns(
     data, unit=None, errors: DateTimeErrorChoices = "raise"
 ) -> np.ndarray:
     """
-    Convert a object-dtyped or string-dtyped array into an
+    Convert an object-dtyped or string-dtyped array into a
     timedelta64[ns]-dtyped array.
 
     Parameters
@@ -1227,7 +1251,7 @@ def _objects_to_td64ns(
     values = np.asarray(data, dtype=np.object_)
 
     result = array_to_timedelta64(values, unit=unit, errors=errors)
-    return result.view("timedelta64[ns]")
+    return result
 
 
 def _validate_td64_dtype(dtype) -> DtypeObj:

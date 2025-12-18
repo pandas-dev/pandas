@@ -101,23 +101,10 @@ def test_qcut_binning_issues(datapath):
     arr = np.loadtxt(cut_file)
     result = qcut(arr, 20)
 
-    starts = []
-    ends = []
-
-    for lev in np.unique(result):
-        s = lev.left
-        e = lev.right
-        assert s != e
-
-        starts.append(float(s))
-        ends.append(float(e))
-
-    for (sp, sn), (ep, en) in zip(
-        zip(starts[:-1], starts[1:]), zip(ends[:-1], ends[1:])
-    ):
-        assert sp < sn
-        assert ep < en
-        assert ep <= sn
+    starts = result.categories.left
+    ends = result.categories.right
+    assert (starts < ends).all()
+    assert (starts[1:] <= ends[:-1]).all()
 
 
 def test_qcut_return_intervals():
@@ -234,7 +221,7 @@ def test_qcut_nat(ser, unit):
 def test_datetime_tz_qcut(bins):
     # see gh-19872
     tz = "US/Eastern"
-    ser = Series(date_range("20130101", periods=3, tz=tz))
+    ser = Series(date_range("20130101", periods=3, tz=tz, unit="ns"))
 
     result = qcut(ser, bins)
     expected = Series(

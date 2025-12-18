@@ -39,7 +39,6 @@ class BaseMethodsTests:
 
     @pytest.mark.parametrize("dropna", [True, False])
     def test_value_counts(self, all_data, dropna):
-        all_data = all_data[:10]
         if dropna:
             other = all_data[~all_data.isna()]
         else:
@@ -52,7 +51,7 @@ class BaseMethodsTests:
 
     def test_value_counts_with_normalize(self, data):
         # GH 33172
-        data = data[:10].unique()
+        data = data.unique()
         values = np.array(data[~data.isna()])
         ser = pd.Series(data, dtype=data.dtype)
 
@@ -351,7 +350,10 @@ class BaseMethodsTests:
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series(
             pd.array(
-                [a <= b for (a, b) in zip(list(orig_data1), list(orig_data2))],
+                [
+                    a <= b
+                    for (a, b) in zip(list(orig_data1), list(orig_data2), strict=True)
+                ],
                 dtype=self._combine_le_expected_dtype,
             )
         )
@@ -370,7 +372,7 @@ class BaseMethodsTests:
     def _construct_for_combine_add(self, left, right):
         if isinstance(right, type(left)):
             return left._from_sequence(
-                [a + b for (a, b) in zip(list(left), list(right))],
+                [a + b for (a, b) in zip(list(left), list(right), strict=True)],
                 dtype=left.dtype,
             )
         else:
@@ -628,7 +630,7 @@ class BaseMethodsTests:
         result = np.repeat(arr, repeats) if use_numpy else arr.repeat(repeats)
 
         repeats = [repeats] * 3 if isinstance(repeats, int) else repeats
-        expected = [x for x, n in zip(arr, repeats) for _ in range(n)]
+        expected = [x for x, n in zip(arr, repeats, strict=True) for _ in range(n)]
         expected = type(data)._from_sequence(expected, dtype=data.dtype)
         if as_series:
             expected = pd.Series(expected, index=arr.index.repeat(repeats))

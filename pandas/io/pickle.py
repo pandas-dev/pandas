@@ -10,7 +10,10 @@ from typing import (
 import warnings
 
 from pandas.compat import pickle_compat
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    doc,
+    set_module,
+)
 
 from pandas.core.shared_docs import _shared_docs
 
@@ -31,6 +34,7 @@ if TYPE_CHECKING:
     )
 
 
+@set_module("pandas")
 @doc(
     storage_options=_shared_docs["storage_options"],
     compression_options=_shared_docs["compression_options"] % "filepath_or_buffer",
@@ -54,8 +58,6 @@ def to_pickle(
         object implementing a binary ``write()`` function.
         Also accepts URL. URL has to be of S3 or GCS.
     {compression_options}
-
-        .. versionchanged:: 1.4.0 Zstandard support.
 
     protocol : int
         Int which indicates which protocol should be used by the pickler,
@@ -114,6 +116,7 @@ def to_pickle(
         pickle.dump(obj, handles.handle, protocol=protocol)
 
 
+@set_module("pandas")
 @doc(
     storage_options=_shared_docs["storage_options"],
     decompression_options=_shared_docs["decompression_options"] % "filepath_or_buffer",
@@ -139,8 +142,6 @@ def read_pickle(
         Also accepts URL. URL is not limited to S3 and GCS.
 
     {decompression_options}
-
-        .. versionchanged:: 1.4.0 Zstandard support.
 
     {storage_options}
 

@@ -118,7 +118,7 @@ dtypes = {
     "float": np.dtype(np.float64),
     "object": np.dtype(object),
     "category": com.pandas_dtype("category"),
-    "string": pd.StringDtype(),
+    "string": pd.StringDtype("python"),
 }
 
 
@@ -868,5 +868,5 @@ def test_pandas_dtype_string_dtype_alias_with_storage():
 @td.skip_if_installed("pyarrow")
 def test_construct_from_string_without_pyarrow_installed():
     # GH 57928
-    with pytest.raises(ImportError, match="pyarrow>=10.0.1 is required"):
+    with pytest.raises(ImportError, match="pyarrow>=.* is required"):
         pd.Series([-1.5, 0.2, None], dtype="float32[pyarrow]")

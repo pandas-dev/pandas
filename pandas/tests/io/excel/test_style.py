@@ -1,5 +1,4 @@
 import contextlib
-import time
 import uuid
 
 import numpy as np
@@ -74,9 +73,13 @@ def test_styler_to_excel_unstyled(engine, tmp_excel):
 
     openpyxl = pytest.importorskip("openpyxl")  # test loading only with openpyxl
     with contextlib.closing(openpyxl.load_workbook(tmp_excel)) as wb:
-        for col1, col2 in zip(wb["dataframe"].columns, wb["unstyled"].columns):
+        for col1, col2 in zip(
+            wb["dataframe"].columns,
+            wb["unstyled"].columns,
+            strict=True,
+        ):
             assert len(col1) == len(col2)
-            for cell1, cell2 in zip(col1, col2):
+            for cell1, cell2 in zip(col1, col2, strict=True):
                 assert cell1.value == cell2.value
                 assert_equal_cell_styles(cell1, cell2)
 
@@ -324,18 +327,10 @@ def test_styler_to_s3(s3_bucket_public, s3so):
     target_file = f"{uuid.uuid4()}.xlsx"
     df = DataFrame({"x": [1, 2, 3], "y": [2, 4, 6]})
     styler = df.style.set_sticky(axis="index")
-    styler.to_excel(f"s3://{mock_bucket_name}/{target_file}", storage_options=s3so)
-    timeout = 5
-    while True:
-        if target_file in (obj.key for obj in s3_bucket_public.objects.all()):
-            break
-        time.sleep(0.1)
-        timeout -= 0.1
-        assert timeout > 0, "Timed out waiting for file to appear on moto"
-        result = read_excel(
-            f"s3://{mock_bucket_name}/{target_file}", index_col=0, storage_options=s3so
-        )
-        tm.assert_frame_equal(result, df)
+    uri = f"s3://{mock_bucket_name}/{target_file}"
+    styler.to_excel(uri, storage_options=s3so)
+    result = read_excel(uri, index_col=0, storage_options=s3so)
+    tm.assert_frame_equal(result, df)
 
 
 @pytest.mark.parametrize("merge_cells", [True, False, "columns"])

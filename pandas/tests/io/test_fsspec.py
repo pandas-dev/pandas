@@ -6,6 +6,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas.compat import HAS_PYARROW
+from pandas.compat.pyarrow import pa_version_under14p0
 
 from pandas import (
     DataFrame,
@@ -77,7 +78,7 @@ def test_read_csv(cleared_fs, df1):
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"])
 
     expected = df1.copy()
-    expected["dt"] = expected["dt"].astype("M8[s]")
+    expected["dt"] = expected["dt"].astype("M8[us]")
     tm.assert_frame_equal(df2, expected)
 
 
@@ -102,7 +103,7 @@ def test_to_csv(cleared_fs, df1):
     df2 = read_csv("memory://test/test.csv", parse_dates=["dt"], index_col=0)
 
     expected = df1.copy()
-    expected["dt"] = expected["dt"].astype("M8[s]")
+    expected["dt"] = expected["dt"].astype("M8[us]")
     tm.assert_frame_equal(df2, expected)
 
 
@@ -115,7 +116,7 @@ def test_to_excel(cleared_fs, df1):
     df2 = read_excel(path, parse_dates=["dt"], index_col=0)
 
     expected = df1.copy()
-    expected["dt"] = expected["dt"].astype("M8[s]")
+    expected["dt"] = expected["dt"].astype("M8[us]")
     tm.assert_frame_equal(df2, expected)
 
 
@@ -139,7 +140,7 @@ def test_to_csv_fsspec_object(cleared_fs, binary_mode, df1):
         assert not fsspec_object.closed
 
     expected = df1.copy()
-    expected["dt"] = expected["dt"].astype("M8[s]")
+    expected["dt"] = expected["dt"].astype("M8[us]")
     tm.assert_frame_equal(df2, expected)
 
 
@@ -179,7 +180,8 @@ def test_excel_options(fsspectest):
 
 
 @pytest.mark.xfail(
-    using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string) fastparquet"
+    using_string_dtype() and HAS_PYARROW and not pa_version_under14p0,
+    reason="TODO(infer_string) fastparquet",
 )
 def test_to_parquet_new_file(cleared_fs, df1):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""

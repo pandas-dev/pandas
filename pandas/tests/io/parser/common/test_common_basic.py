@@ -7,7 +7,6 @@ from datetime import datetime
 from inspect import signature
 from io import StringIO
 import os
-from pathlib import Path
 import sys
 
 import numpy as np
@@ -65,26 +64,45 @@ def test_read_csv_local(all_parsers, csv1):
                 datetime(2000, 1, 10),
                 datetime(2000, 1, 11),
             ],
-            dtype="M8[s]",
+            dtype="M8[us]",
             name="index",
         ),
     )
+    if parser.engine == "pyarrow":
+        expected.index = expected.index.astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
-def test_1000_sep(all_parsers):
+@pytest.mark.parametrize(
+    "number_csv, expected_number",
+    [
+        ("2,334", 2334),
+        ("-2,334", -2334),
+        ("-2,334,", -2334),
+        # Multiple consecutive thousand separators are allowed in C engine,
+        # but it's not necessarily intended behavior and may change in the future.
+        ("2,,,,,,,,,,,,,,,5", 25),
+        ("2,,3,4,,,,,,,,,,,,5", 2345),
+    ],
+)
+def test_1000_sep(all_parsers, number_csv, expected_number, request):
     parser = all_parsers
-    data = """A|B|C
-1|2,334|5
+    data = f"""A|B|C
+1|{number_csv}|5
 10|13|10.
 """
-    expected = DataFrame({"A": [1, 10], "B": [2334, 13], "C": [5, 10.0]})
+    expected = DataFrame({"A": [1, 10], "B": [expected_number, 13], "C": [5, 10.0]})
 
     if parser.engine == "pyarrow":
         msg = "The 'thousands' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(StringIO(data), sep="|", thousands=",")
         return
+    elif parser.engine == "python" and ",," in number_csv:
+        mark = pytest.mark.xfail(
+            reason="Python engine doesn't allow consecutive thousands separators"
+        )
+        request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), sep="|", thousands=",")
     tm.assert_frame_equal(result, expected)
@@ -167,10 +185,12 @@ def test_read_csv_dataframe(all_parsers, csv1):
                 datetime(2000, 1, 10),
                 datetime(2000, 1, 11),
             ],
-            dtype="M8[s]",
+            dtype="M8[us]",
             name="index",
         ),
     )
+    if parser.engine == "pyarrow":
+        expected.index = expected.index.astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -598,16 +618,16 @@ def test_sub_character(all_parsers, csv_dir_path):
 
 
 @pytest.mark.parametrize("filename", ["sé-es-vé.csv", "ru-sй.csv", "中文文件名.csv"])
-def test_filename_with_special_chars(all_parsers, filename):
+def test_filename_with_special_chars(all_parsers, filename, tmp_path):
     # see gh-15086.
     parser = all_parsers
     df = DataFrame({"a": [1, 2, 3]})
 
-    with tm.ensure_clean(filename) as path:
-        df.to_csv(path, index=False)
+    path = tmp_path / filename
+    df.to_csv(path, index=False)
 
-        result = parser.read_csv(path)
-        tm.assert_frame_equal(result, df)
+    result = parser.read_csv(path)
+    tm.assert_frame_equal(result, df)
 
 
 def test_read_table_same_signature_as_read_csv(all_parsers):
@@ -769,7 +789,7 @@ def test_dict_keys_as_names(all_parsers):
 
 @pytest.mark.xfail(using_string_dtype() and HAS_PYARROW, reason="TODO(infer_string)")
 @xfail_pyarrow  # UnicodeDecodeError: 'utf-8' codec can't decode byte 0xed in position 0
-def test_encoding_surrogatepass(all_parsers):
+def test_encoding_surrogatepass(all_parsers, tmp_path):
     # GH39017
     parser = all_parsers
     content = b"\xed\xbd\xbf"
@@ -777,14 +797,14 @@ def test_encoding_surrogatepass(all_parsers):
     expected = DataFrame({decoded: [decoded]}, index=[decoded * 2])
     expected.index.name = decoded * 2
 
-    with tm.ensure_clean() as path:
-        Path(path).write_bytes(
-            content * 2 + b"," + content + b"\n" + content * 2 + b"," + content
-        )
-        df = parser.read_csv(path, encoding_errors="surrogatepass", index_col=0)
-        tm.assert_frame_equal(df, expected)
-        with pytest.raises(UnicodeDecodeError, match="'utf-8' codec can't decode byte"):
-            parser.read_csv(path)
+    path = tmp_path / "test_encoding.csv"
+    path.write_bytes(
+        content * 2 + b"," + content + b"\n" + content * 2 + b"," + content
+    )
+    df = parser.read_csv(path, encoding_errors="surrogatepass", index_col=0)
+    tm.assert_frame_equal(df, expected)
+    with pytest.raises(UnicodeDecodeError, match="'utf-8' codec can't decode byte"):
+        parser.read_csv(path)
 
 
 def test_malformed_second_line(all_parsers):
@@ -818,15 +838,15 @@ def test_short_multi_line(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_read_seek(all_parsers):
+def test_read_seek(all_parsers, tmp_path):
     # GH48646
     parser = all_parsers
     prefix = "### DATA\n"
     content = "nkey,value\ntables,rectangular\n"
-    with tm.ensure_clean() as path:
-        Path(path).write_text(prefix + content, encoding="utf-8")
-        with open(path, encoding="utf-8") as file:
-            file.readline()
-            actual = parser.read_csv(file)
-        expected = parser.read_csv(StringIO(content))
+    path = tmp_path / "test_seek.csv"
+    path.write_text(prefix + content, encoding="utf-8")
+    with open(path, encoding="utf-8") as file:
+        file.readline()
+        actual = parser.read_csv(file)
+    expected = parser.read_csv(StringIO(content))
     tm.assert_frame_equal(actual, expected)

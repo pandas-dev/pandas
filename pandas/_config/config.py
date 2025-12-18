@@ -73,6 +73,7 @@ if TYPE_CHECKING:
 
 class DeprecatedOption(NamedTuple):
     key: str
+    category: type[Warning]
     msg: str | None
     rkey: str | None
     removal_ver: str | None
@@ -115,6 +116,8 @@ class OptionError(AttributeError, KeyError):
     Traceback (most recent call last):
     OptionError: No such option
     """
+
+    __module__ = "pandas.errors"
 
 
 #
@@ -270,7 +273,7 @@ def set_option(*args) -> None:
     if not nargs or nargs % 2 != 0:
         raise ValueError("Must provide an even number of non-keyword arguments")
 
-    for k, v in zip(args[::2], args[1::2]):
+    for k, v in zip(args[::2], args[1::2], strict=True):
         key = _get_single_key(k)
 
         opt = _get_registered_option(key)
@@ -440,6 +443,8 @@ class DictWrapper:
 
 
 options = DictWrapper(_global_config)
+# DictWrapper defines a custom setattr
+object.__setattr__(options, "__module__", "pandas")
 
 #
 # Functions for use by pandas developers, in addition to User - api
@@ -501,7 +506,8 @@ def option_context(*args) -> Generator[None]:
             "option_context(pat, val, pat, val...)."
         )
 
-    ops = tuple(zip(args[::2], args[1::2]))
+    ops = tuple(zip(args[::2], args[1::2], strict=True))
+    undo: tuple[tuple[Any, Any], ...] = ()
     try:
         undo = tuple((pat, get_option(pat)) for pat, val in ops)
         for pat, val in ops:
@@ -589,6 +595,7 @@ def register_option(
 
 def deprecate_option(
     key: str,
+    category: type[Warning],
     msg: str | None = None,
     rkey: str | None = None,
     removal_ver: str | None = None,
@@ -608,6 +615,8 @@ def deprecate_option(
     key : str
         Name of the option to be deprecated.
         must be a fully-qualified option name (e.g "x.y.z.rkey").
+    category : Warning
+        Warning class for the deprecation.
     msg : str, optional
         Warning message to output when the key is referenced.
         if no message is given a default message will be emitted.
@@ -631,7 +640,7 @@ def deprecate_option(
     if key in _deprecated_options:
         raise OptionError(f"Option '{key}' has already been defined as deprecated.")
 
-    _deprecated_options[key] = DeprecatedOption(key, msg, rkey, removal_ver)
+    _deprecated_options[key] = DeprecatedOption(key, category, msg, rkey, removal_ver)
 
 
 #
@@ -716,7 +725,7 @@ def _warn_if_deprecated(key: str) -> bool:
         if d.msg:
             warnings.warn(
                 d.msg,
-                FutureWarning,
+                d.category,
                 stacklevel=find_stack_level(),
             )
         else:
@@ -728,7 +737,11 @@ def _warn_if_deprecated(key: str) -> bool:
             else:
                 msg += ", please refrain from using it."
 
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                msg,
+                d.category,
+                stacklevel=find_stack_level(),
+            )
         return True
     return False
 
@@ -931,3 +944,11 @@ def is_callable(obj: object) -> bool:
     if not callable(obj):
         raise ValueError("Value must be a callable")
     return True
+
+
+# import set_module here would cause circular import
+get_option.__module__ = "pandas"
+set_option.__module__ = "pandas"
+describe_option.__module__ = "pandas"
+reset_option.__module__ = "pandas"
+option_context.__module__ = "pandas"
