@@ -6872,7 +6872,7 @@ class Index(IndexOpsMixin, PandasObject):
                     f"Cannot get {side} slice bound for non-monotonic index "
                     f"with a missing label {original_label!r}. "
                     "Either sort the index or specify an existing label."
-                ) from err
+                ) from None
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
