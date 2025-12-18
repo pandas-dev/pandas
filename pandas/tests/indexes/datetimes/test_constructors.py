@@ -1138,7 +1138,7 @@ class TestTimeSeries:
     def test_constructor_int64_nocopy(self):
         # GH#1624
         arr = np.arange(1000, dtype=np.int64)
-        index = DatetimeIndex(arr)
+        index = DatetimeIndex(arr, copy=False)
 
         arr[50:100] = -1
         assert (index.asi8[50:100] == -1).all()
