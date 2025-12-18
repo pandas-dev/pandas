@@ -210,7 +210,6 @@ class ArrowStringArrayMixin:
         result = pc.if_else(starts_with, removed, self._pa_array)
         return self._from_pyarrow_array(result)
 
-
     def _str_removesuffix(self, suffix: str):
         if suffix == "":
             return self
