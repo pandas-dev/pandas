@@ -1022,7 +1022,7 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
         td_base = _Timedelta.__new__(cls, microseconds=int(value))
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        if -86_399_999_913_600_000 <= value <= 86_400_000_000_000_000:
+        if -86_399_999_913_600_000 <= value < 86_400_000_000_000_000:
             # i.e. we are in range for pytimedelta. By passing the
             #  'correct' value here we can
             #   make pydatetime + Timedelta operations work correctly,
@@ -1031,7 +1031,7 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
         else:
             td_base = _Timedelta.__new__(cls, milliseconds=0)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        if -86_399_999_913_600 <= value <= 86_400_000_000_000:
+        if -86_399_999_913_600 <= value < 86_400_000_000_000:
             # i.e. we are in range for pytimedelta. By passing the
             #  'correct' value here we can
             #   make pydatetime + Timedelta operations work correctly,
