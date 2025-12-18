@@ -226,12 +226,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
     """
 
     _typ = "datetimearray"
-    _internal_fill_value = np.datetime64("NaT", "ns")
     _recognized_scalars = (datetime, np.datetime64)
     _is_recognized_dtype: Callable[[DtypeObj], bool] = lambda x: lib.is_np_dtype(
         x, "M"
     ) or isinstance(x, DatetimeTZDtype)
     _infer_matches = ("datetime", "datetime64", "date")
+
+    @property
+    def _internal_fill_value(self) -> np.datetime64:
+        return np.datetime64("NaT", self.unit)
 
     @property
     def _scalar_type(self) -> type[Timestamp]:
