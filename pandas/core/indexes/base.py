@@ -5197,7 +5197,7 @@ class Index(IndexOpsMixin, PandasObject):
         )
 
     @classmethod
-    def _maybe_copy_input(cls, data, copy, dtype):
+    def _maybe_copy_array_input(cls, data, copy: bool | None, dtype) -> tuple[Any, bool]:
         """
         Ensure that the input data is copied if necessary.
         GH#63388
