@@ -409,6 +409,9 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @doc(Index._maybe_cast_listlike_indexer)
     def _maybe_cast_listlike_indexer(self, keyarr):
+        """
+        Analogue to maybe_cast_indexer for get_indexer instead of get_loc.
+        """
         # GH#62158: For DatetimeIndex, prevent matching of pure Python `date` objects
         # not `datetime`.
         if isinstance(self._data, DatetimeArray):
