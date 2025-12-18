@@ -190,45 +190,41 @@ class TestSeriesCorr:
     @td.skip_if_no("scipy")
     @pytest.mark.parametrize("method", ["kendall", "spearman"])
     @pytest.mark.parametrize(
-        "cat_series",
+        "cat_series_inpt",
         [
-            Series(
-                pd.Categorical(  # ordered cat series
-                    ["low", "medium", "high"],
-                    categories=["low", "medium", "high"],
-                    ordered=True,
-                )
+            pd.Categorical(  # ordered cat series
+                ["low", "medium", "high"],
+                categories=["low", "medium", "high"],
+                ordered=True,
             ),
-            Series(
-                pd.Categorical(  # ordered cat series with NA
-                    ["low", "medium", "high", None],
-                    categories=["low", "medium", "high"],
-                    ordered=True,
-                )
+            pd.Categorical(  # ordered cat series with NA
+                ["low", "medium", "high", None],
+                categories=["low", "medium", "high"],
+                ordered=True,
             ),
         ],
     )
     @pytest.mark.parametrize(
-        "other_series",
+        "other_series_inpt",
         [
-            Series(  # other cat ordered series
-                pd.Categorical(
-                    ["m", "l", "h"],
-                    categories=["l", "m", "h"],
-                    ordered=True,
-                )
+            pd.Categorical(  # other cat ordered series
+                ["m", "l", "h"],
+                categories=["l", "m", "h"],
+                ordered=True,
             ),
             # other non cat series
-            Series([2, 1, 3]),
+            [2, 1, 3],
         ],
     )
     def test_corr_rank_ordered_categorical(
         self,
         method,
-        cat_series,
-        other_series,
+        cat_series_inpt,
+        other_series_inpt,
     ):
         # GH #60306
         expected_corr = {"kendall": 0.33333333333333337, "spearman": 0.5}
+        cat_series = Series(cat_series_inpt)
+        other_series = Series(other_series_inpt)
         corr_calc = cat_series.corr(other_series, method=method)
         tm.assert_almost_equal(corr_calc, expected_corr[method])

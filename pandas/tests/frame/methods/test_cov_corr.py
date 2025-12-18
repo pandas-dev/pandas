@@ -1,5 +1,3 @@
-from itertools import combinations
-
 import numpy as np
 import pytest
 
@@ -255,11 +253,10 @@ class TestDataFrameCorr:
                 df.corr(meth, numeric_only=numeric_only)
 
     @pytest.mark.parametrize("method", ["kendall", "spearman"])
+    @pytest.mark.parametrize("col1", ["ord_cat", "ord_cat_none", "ord_cat_shuff"])
+    @pytest.mark.parametrize("col2", ["ord_cat", "ord_cat_none", "ord_cat_shuff"])
     @td.skip_if_no("scipy")
-    def test_corr_rank_ordered_categorical(
-        self,
-        method,
-    ):
+    def test_corr_rank_ordered_categorical(self, method, col1, col2):
         # GH #60306
         df = DataFrame(
             {
@@ -281,15 +278,15 @@ class TestDataFrameCorr:
             }
         )
         corr_calc = df.corr(method=method)
-        for col1, col2 in combinations(df.columns, r=2):
-            corr_expected = df[col1].corr(df[col2], method=method)
-            tm.assert_almost_equal(corr_calc[col1][col2], corr_expected)
+        corr_expected = df[col1].corr(df[col2], method=method)
+        tm.assert_almost_equal(corr_calc[col1][col2], corr_expected)
 
     @pytest.mark.parametrize("method", ["kendall", "spearman"])
+    @pytest.mark.parametrize("col1_idx", [0, 1, 2, 3, 4])
+    @pytest.mark.parametrize("col2_idx", [0, 1, 2, 3, 4])
     @td.skip_if_no("scipy")
     def test_corr_rank_ordered_categorical_duplicate_columns(
-        self,
-        method,
+        self, method, col1_idx, col2_idx
     ):
         # GH #60306
         cat = pd.CategoricalDtype(categories=[4, 3, 2, 1], ordered=True)
@@ -305,11 +302,8 @@ class TestDataFrameCorr:
         df.columns = ["a", "a", "c", "c", "e"]
 
         corr_calc = df.corr(method=method)
-        for col1_idx, col2_idx in combinations(range(len(df.columns)), r=2):
-            corr_expected = df.iloc[:, col1_idx].corr(
-                df.iloc[:, col2_idx], method=method
-            )
-            tm.assert_almost_equal(corr_calc.iloc[col1_idx, col2_idx], corr_expected)
+        corr_expected = df.iloc[:, col1_idx].corr(df.iloc[:, col2_idx], method=method)
+        tm.assert_almost_equal(corr_calc.iloc[col1_idx, col2_idx], corr_expected)
 
 
 class TestDataFrameCorrWith:
@@ -554,49 +548,40 @@ class TestDataFrameCorrWith:
         tm.assert_frame_equal(result2, expected)
 
     @pytest.mark.parametrize("method", ["kendall", "spearman"])
-    def test_corr_rank_ordered_categorical(
-        self,
-        method,
-    ):
+    @pytest.mark.parametrize("col", ["a", "b", "c", "d"])
+    def test_corr_rank_ordered_categorical(self, method, col):
         # GH #60306
         pytest.importorskip("scipy")
         df1 = DataFrame(
             {
-                "a": Series(
-                    pd.Categorical(
-                        ["low", "m", "h", "vh"],
-                        categories=["low", "m", "h", "vh"],
-                        ordered=True,
-                    )
+                "a": pd.Categorical(
+                    ["low", "m", "h", "vh"],
+                    categories=["low", "m", "h", "vh"],
+                    ordered=True,
                 ),
-                "b": Series(
-                    pd.Categorical(
-                        ["low", "m", "h", None],
-                        categories=["low", "m", "h"],
-                        ordered=True,
-                    )
+                "b": pd.Categorical(
+                    ["low", "m", "h", None],
+                    categories=["low", "m", "h"],
+                    ordered=True,
                 ),
-                "c": Series([0, 1, 2, 3]),
-                "d": Series([2.0, 3.0, 4.5, 6.5]),
+                "c": [0, 1, 2, 3],
+                "d": [2.0, 3.0, 4.5, 6.5],
             }
         )
 
         df2 = DataFrame(
             {
-                "a": Series([2.0, 3.0, 4.5, np.nan]),
-                "b": Series(
-                    pd.Categorical(
-                        ["m", "h", "vh", "low"],
-                        categories=["low", "m", "h", "vh"],
-                        ordered=True,
-                    )
+                "a": [2.0, 3.0, 4.5, np.nan],
+                "b": pd.Categorical(
+                    ["m", "h", "vh", "low"],
+                    categories=["low", "m", "h", "vh"],
+                    ordered=True,
                 ),
-                "c": Series([2, 3, 0, 1]),
-                "d": Series([2.0, 3.0, 4.5, 6.5]),
+                "c": [2, 3, 0, 1],
+                "d": [2.0, 3.0, 4.5, 6.5],
             }
         )
 
         corr_calc = df1.corrwith(df2, method=method)
-        for col in df1.columns:
-            corr_expected = df1[col].corr(df2[col], method=method)
-            tm.assert_almost_equal(corr_calc.get(col), corr_expected)
+        corr_expected = df1[col].corr(df2[col], method=method)
+        tm.assert_almost_equal(corr_calc.get(col), corr_expected)

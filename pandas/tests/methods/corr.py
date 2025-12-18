@@ -15,136 +15,118 @@ from pandas.core.methods.corr import transform_ord_cat_cols_to_coded_cols
 
 
 @pytest.mark.parametrize(
-    ("input_df", "expected_df"),
+    ("input_df_dict", "expected_df_dict"),
     [
         pytest.param(
             # 1) Simple: two ordered categorical columns (with and without None)
-            DataFrame(
-                {
-                    "ord_cat": Series(
-                        Categorical(
-                            ["low", "m", "h", "vh"],
-                            categories=["low", "m", "h", "vh"],
-                            ordered=True,
-                        )
-                    ),
-                    "ord_cat_none": Series(
-                        Categorical(
-                            ["low", "m", "h", None],
-                            categories=["low", "m", "h"],
-                            ordered=True,
-                        )
-                    ),
-                }
-            ),
-            DataFrame(
-                {
-                    # codes: low=0, m=1, h=2, vh=3
-                    "ord_cat": Series([0, 1, 2, 3], dtype="int8"),
-                    # codes: low=0, m=1, h=2, None -> NaN
-                    "ord_cat_none": Series([0, 1.0, 2.0, np.nan]),
-                }
-            ),
+            {
+                "ord_cat": Categorical(
+                    ["low", "m", "h", "vh"],
+                    categories=["low", "m", "h", "vh"],
+                    ordered=True,
+                ),
+                "ord_cat_none": Categorical(
+                    ["low", "m", "h", None],
+                    categories=["low", "m", "h"],
+                    ordered=True,
+                ),
+            },
+            {
+                # codes: low=0, m=1, h=2, vh=3
+                "ord_cat": Series([0, 1, 2, 3], dtype="int8"),
+                # codes: low=0, m=1, h=2, None -> NaN
+                "ord_cat_none": [0, 1.0, 2.0, np.nan],
+            },
             id="ordered-categoricals-basic",
         ),
         pytest.param(
             # 2) Mixed dtypes: only the ordered categorical should change
-            DataFrame(
-                {
-                    "ordered": Series(
-                        Categorical(
-                            ["a", "c", "b"],
-                            categories=["a", "b", "c"],
-                            ordered=True,
-                        )
-                    ),
-                    "unordered": Series(Categorical(["x", "y", "x"], ordered=False)),
-                    "num": Series([10, 20, 30]),
-                    "text": Series(["u", "v", "w"]),
-                }
-            ),
-            DataFrame(
-                {
-                    # codes: a=0, c=2, b=1
-                    "ordered": Series([0, 2, 1], dtype="int8"),
-                    # unordered categorical should be untouched (still categorical)
-                    "unordered": Series(Categorical(["x", "y", "x"], ordered=False)),
-                    "num": Series([10, 20, 30]),
-                    "text": Series(["u", "v", "w"]),
-                }
-            ),
+            {
+                "ordered": Categorical(
+                    ["a", "c", "b"],
+                    categories=["a", "b", "c"],
+                    ordered=True,
+                ),
+                "unordered": Categorical(["x", "y", "x"], ordered=False),
+                "num": [10, 20, 30],
+                "text": ["u", "v", "w"],
+            },
+            {
+                # codes: a=0, c=2, b=1
+                "ordered": Series([0, 2, 1], dtype="int8"),
+                # unordered categorical should be untouched (still categorical)
+                "unordered": Categorical(["x", "y", "x"], ordered=False),
+                "num": [10, 20, 30],
+                "text": ["u", "v", "w"],
+            },
             id="mixed-types-only-ordered-changes",
-        ),
-        pytest.param(
-            # 3 Duplicate column names: first 'dup' is ordered categorical,
-            # second 'dup' is non-categorical
-            DataFrame(
-                {
-                    "dup_1": Series(
-                        Categorical(
-                            ["low", "m", "h"],
-                            categories=["low", "m", "h"],
-                            ordered=True,
-                        )
-                    ),
-                    "dup_2": Series([5, 6, 7]),  # duplicate name, later column
-                }
-            ),
-            DataFrame(
-                {
-                    # After transform: position 0 (ordered cat) becomes codes [0,1,2],
-                    # position 1 remains untouched numbers [5,6,7].
-                    "dup_1": Series([0, 1, 2], dtype="int8"),
-                    "dup_2": Series([5, 6, 7]),
-                }
-            ),
-            id="duplicate-names-ordered-first",
-        ),
-        pytest.param(
-            # 4 Duplicate column names: first 'dup' is non-categorical,
-            # second 'dup' is ordered categorical, third 'dup' is ordered categorical
-            DataFrame(
-                {
-                    "dup_1": Series(["a", "b", "c"]),  # non-categorical (object)
-                    "dup_2": Series(
-                        Categorical(
-                            ["p", "q", None],
-                            categories=["p", "q"],
-                            ordered=True,
-                        )
-                    ),
-                    "dup_3": Series(
-                        Categorical(
-                            ["low", "m", "h"],
-                            categories=["low", "m", "h"],
-                            ordered=True,
-                        )
-                    ),
-                }
-            ),
-            DataFrame(
-                {
-                    # First stays object; second turns into codes [0, 1, NaN]
-                    # and third changes into codes [0, 1, 2]
-                    "dup_1": Series(["a", "b", "c"]),
-                    "dup_2": Series([0.0, 1.0, np.nan]),
-                    "dup_3": Series([0, 1, 2], dtype="int8"),
-                }
-            ),
-            id="duplicate-names-ordered-and-non-categorical-and-none",
         ),
     ],
 )
 def test_transform_ord_cat_cols_to_coded_cols(
-    input_df: DataFrame, expected_df: DataFrame
+    input_df_dict: dict, expected_df_dict: dict
 ) -> None:
     # GH #60306
-    # duplicate columns creation for dup columns
-    if "dup_1" in input_df.columns:
-        input_df.columns = ["dup" for _ in range(len(input_df.columns))]
-        expected_df.columns = ["dup" for _ in range(len(expected_df.columns))]
-
+    input_df = DataFrame(input_df_dict)
+    expected_df = DataFrame(expected_df_dict)
     out_df = transform_ord_cat_cols_to_coded_cols(input_df)
     assert list(out_df.columns) == list(expected_df.columns)
-    for i, col in enumerate(out_df.columns):
-        tm.assert_series_equal(out_df.iloc[:, i], expected_df.iloc[:, i])
+    tm.assert_frame_equal(out_df, expected_df)
+
+
+def test_transform_ord_cat_cols_to_coded_cols_duplicated_col() -> None:
+    # GH #60306
+    input_df_1 = DataFrame(
+        {
+            "dup_1": Categorical(
+                ["low", "m", "h"],
+                categories=["low", "m", "h"],
+                ordered=True,
+            ),
+            "dup_2": [5, 6, 7],
+        }
+    )
+    expected_df_1 = DataFrame(
+        {
+            # After transform: position 0 (ordered cat) becomes codes [0,1,2],
+            # position 1 remains untouched numbers [5,6,7].
+            "dup_1": Series([0, 1, 2], dtype="int8"),
+            "dup_2": [5, 6, 7],
+        }
+    )
+    input_df_1.columns = ["dup" for _ in range(len(input_df_1.columns))]
+    expected_df_1.columns = ["dup" for _ in range(len(input_df_1.columns))]
+
+    out_df_1 = transform_ord_cat_cols_to_coded_cols(input_df_1)
+    tm.assert_frame_equal(out_df_1, expected_df_1)
+
+    input_df_2 = DataFrame(
+        {
+            "dup_1": ["a", "b", "c"],  # non-categorical
+            "dup_2": Categorical(
+                ["p", "q", None],
+                categories=["p", "q"],
+                ordered=True,
+            ),
+            "dup_3": Categorical(
+                ["low", "m", "h"],
+                categories=["low", "m", "h"],
+                ordered=True,
+            ),
+        }
+    )
+
+    expected_df_2 = DataFrame(
+        {
+            # First stays object; second turns into codes [0, 1, NaN]
+            # and third changes into codes [0, 1, 2]
+            "dup_1": ["a", "b", "c"],
+            "dup_2": [0.0, 1.0, np.nan],
+            "dup_3": Series([0, 1, 2], dtype="int8"),
+        }
+    )
+    input_df_2.columns = ["dup" for _ in range(len(input_df_2.columns))]
+    expected_df_2.columns = ["dup" for _ in range(len(input_df_2.columns))]
+
+    out_df_2 = transform_ord_cat_cols_to_coded_cols(input_df_2)
+    tm.assert_frame_equal(out_df_2, expected_df_2)
