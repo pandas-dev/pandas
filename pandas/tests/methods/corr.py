@@ -74,59 +74,59 @@ def test_transform_ord_cat_cols_to_coded_cols(
     tm.assert_frame_equal(out_df, expected_df)
 
 
-def test_transform_ord_cat_cols_to_coded_cols_duplicated_col() -> None:
+@pytest.mark.parametrize(
+    ("input_df_dict", "expected_df_dict"),
+    [
+        pytest.param(
+            {
+                "dup_1": Categorical(
+                    ["low", "m", "h"],
+                    categories=["low", "m", "h"],
+                    ordered=True,
+                ),
+                "dup_2": [5, 6, 7],
+            },
+            {
+                # After transform: position 0 (ordered cat) becomes codes [0,1,2],
+                # position 1 remains untouched numbers [5,6,7].
+                "dup_1": Series([0, 1, 2], dtype="int8"),
+                "dup_2": [5, 6, 7],
+            },
+            id="duplicate-names-ordered-first",
+        ),
+        pytest.param(
+            {
+                "dup_1": ["a", "b", "c"],  # non-categorical
+                "dup_2": Categorical(
+                    ["p", "q", None],
+                    categories=["p", "q"],
+                    ordered=True,
+                ),
+                "dup_3": Categorical(
+                    ["low", "m", "h"],
+                    categories=["low", "m", "h"],
+                    ordered=True,
+                ),
+            },
+            {
+                # First stays object; second turns into codes [0, 1, NaN]
+                # and third changes into codes [0, 1, 2]
+                "dup_1": ["a", "b", "c"],
+                "dup_2": [0.0, 1.0, np.nan],
+                "dup_3": Series([0, 1, 2], dtype="int8"),
+            },
+            id="duplicate-names-ordered-and-non-categorical-and-none",
+        ),
+    ],
+)
+def test_transform_ord_cat_cols_to_coded_cols_duplicated_col(
+    input_df_dict, expected_df_dict
+) -> None:
     # GH #60306
-    input_df_1 = DataFrame(
-        {
-            "dup_1": Categorical(
-                ["low", "m", "h"],
-                categories=["low", "m", "h"],
-                ordered=True,
-            ),
-            "dup_2": [5, 6, 7],
-        }
-    )
-    expected_df_1 = DataFrame(
-        {
-            # After transform: position 0 (ordered cat) becomes codes [0,1,2],
-            # position 1 remains untouched numbers [5,6,7].
-            "dup_1": Series([0, 1, 2], dtype="int8"),
-            "dup_2": [5, 6, 7],
-        }
-    )
-    input_df_1.columns = ["dup" for _ in range(len(input_df_1.columns))]
-    expected_df_1.columns = ["dup" for _ in range(len(input_df_1.columns))]
+    input_df = DataFrame(input_df_dict)
+    expected_df = DataFrame(expected_df_dict)
+    input_df.columns = ["dup" for _ in input_df.columns]
+    expected_df.columns = ["dup" for _ in expected_df.columns]
 
-    out_df_1 = transform_ord_cat_cols_to_coded_cols(input_df_1)
-    tm.assert_frame_equal(out_df_1, expected_df_1)
-
-    input_df_2 = DataFrame(
-        {
-            "dup_1": ["a", "b", "c"],  # non-categorical
-            "dup_2": Categorical(
-                ["p", "q", None],
-                categories=["p", "q"],
-                ordered=True,
-            ),
-            "dup_3": Categorical(
-                ["low", "m", "h"],
-                categories=["low", "m", "h"],
-                ordered=True,
-            ),
-        }
-    )
-
-    expected_df_2 = DataFrame(
-        {
-            # First stays object; second turns into codes [0, 1, NaN]
-            # and third changes into codes [0, 1, 2]
-            "dup_1": ["a", "b", "c"],
-            "dup_2": [0.0, 1.0, np.nan],
-            "dup_3": Series([0, 1, 2], dtype="int8"),
-        }
-    )
-    input_df_2.columns = ["dup" for _ in range(len(input_df_2.columns))]
-    expected_df_2.columns = ["dup" for _ in range(len(input_df_2.columns))]
-
-    out_df_2 = transform_ord_cat_cols_to_coded_cols(input_df_2)
-    tm.assert_frame_equal(out_df_2, expected_df_2)
+    out_df = transform_ord_cat_cols_to_coded_cols(input_df)
+    tm.assert_frame_equal(out_df, expected_df)
