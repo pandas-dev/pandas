@@ -3270,6 +3270,213 @@ def test_groupby_count_return_arrow_dtype(data_missing):
     tm.assert_frame_equal(result, expected)
 
 
+class TestGroupbyAggPyArrowNative:
+    """Tests for PyArrow-native groupby aggregations on decimal and string types."""
+
+    @pytest.mark.parametrize(
+        "dtype,agg_func",
+        [
+            # Decimal aggregations
+            (pa.decimal128(10, 2), "sum"),
+            (pa.decimal128(10, 2), "prod"),
+            (pa.decimal128(10, 2), "min"),
+            (pa.decimal128(10, 2), "max"),
+            (pa.decimal128(10, 2), "mean"),
+            (pa.decimal128(10, 2), "std"),
+            (pa.decimal128(10, 2), "var"),
+            (pa.decimal128(10, 2), "sem"),
+            (pa.decimal128(10, 2), "count"),
+            # String aggregations
+            (pa.string(), "min"),
+            (pa.string(), "max"),
+            (pa.string(), "count"),
+            (pa.large_string(), "min"),
+            (pa.large_string(), "max"),
+            (pa.large_string(), "count"),
+        ],
+    )
+    def test_groupby_aggregations(self, dtype, agg_func):
+        # Test that decimal/string types use PyArrow-native groupby path
+        if pa.types.is_decimal(dtype):
+            values = [
+                Decimal("1.5"),
+                Decimal("2.5"),
+                Decimal("3.0"),
+                Decimal("4.0"),
+                Decimal("5.0"),
+            ]
+        else:
+            values = ["apple", "banana", "cherry", "date", "elderberry"]
+
+        df = pd.DataFrame(
+            {
+                "key": [1, 1, 2, 2, 3],
+                "value": pd.array(values, dtype=ArrowDtype(dtype)),
+            }
+        )
+        result = getattr(df.groupby("key")["value"], agg_func)()
+        assert len(result) == 3
+        assert result.index.tolist() == [1, 2, 3]
+        assert isinstance(result.dtype, ArrowDtype)
+
+    @pytest.mark.parametrize(
+        "dtype,agg_func",
+        [
+            (pa.decimal128(10, 2), "sum"),
+            (pa.decimal128(10, 2), "min"),
+            (pa.string(), "min"),
+            (pa.string(), "max"),
+        ],
+    )
+    def test_groupby_with_nulls(self, dtype, agg_func):
+        # Test groupby with null values
+        if pa.types.is_decimal(dtype):
+            values = [Decimal("1.0"), None, Decimal("3.0"), None]
+            expected = [Decimal("1.0"), Decimal("3.0")]
+        else:
+            values = ["a", None, "c", None]
+            expected = ["a", "c"]
+
+        df = pd.DataFrame(
+            {
+                "key": [1, 1, 2, 2],
+                "value": pd.array(values, dtype=ArrowDtype(dtype)),
+            }
+        )
+        result = getattr(df.groupby("key")["value"], agg_func)()
+        assert len(result) == 2
+        assert result.iloc[0] == expected[0]
+        assert result.iloc[1] == expected[1]
+
+    def test_groupby_sem_returns_float(self):
+        # Test that sem returns float dtype and handles edge cases
+        # 1. Normal case: sem should return double[pyarrow]
+        df = pd.DataFrame(
+            {
+                "key": [1, 1, 2, 2],
+                "value": pd.array(
+                    [Decimal("1.0"), Decimal("2.0"), Decimal("3.0"), Decimal("4.0")],
+                    dtype=ArrowDtype(pa.decimal128(10, 2)),
+                ),
+            }
+        )
+        result = df.groupby("key")["value"].sem()
+        assert result.dtype == ArrowDtype(pa.float64())
+
+        # 2. Single value per group (count=1): should be NA (stddev undefined)
+        df_single = pd.DataFrame(
+            {
+                "key": [1, 2],
+                "value": pd.array(
+                    [Decimal("1.0"), Decimal("2.0")],
+                    dtype=ArrowDtype(pa.decimal128(10, 2)),
+                ),
+            }
+        )
+        result = df_single.groupby("key")["value"].sem()
+        assert pd.isna(result.iloc[0])
+        assert pd.isna(result.iloc[1])
+
+        # 3. All nulls in a group (count=0): should be NA (no division-by-zero)
+        df_nulls = pd.DataFrame(
+            {
+                "key": [1, 1, 2, 2],
+                "value": pd.array(
+                    [Decimal("1.0"), Decimal("2.0"), None, None],
+                    dtype=ArrowDtype(pa.decimal128(10, 2)),
+                ),
+            }
+        )
+        result = df_nulls.groupby("key")["value"].sem()
+        assert not pd.isna(result.iloc[0])  # Group 1 has values
+        assert pd.isna(result.iloc[1])  # Group 2 all nulls
+
+    @pytest.mark.parametrize("agg_func", ["sum", "prod"])
+    def test_groupby_min_count(self, agg_func):
+        df = pd.DataFrame(
+            {
+                "key": [1, 1, 2],
+                "value": pd.array(
+                    [Decimal("1.0"), Decimal("2.0"), Decimal("3.0")],
+                    dtype=ArrowDtype(pa.decimal128(10, 2)),
+                ),
+            }
+        )
+        # min_count=2: group 2 has only 1 value, should be null
+        result = getattr(df.groupby("key")["value"], agg_func)(min_count=2)
+        assert not pd.isna(result.iloc[0])  # Group 1 has 2 values
+        assert pd.isna(result.iloc[1])  # Group 2 has 1 value < min_count
+
+    def test_groupby_min_count_with_nulls(self):
+        # Test that min_count uses non-null count, not group size
+        df = pd.DataFrame(
+            {
+                "key": [1, 1, 2, 2, 2],
+                "value": pd.array(
+                    [Decimal("1.0"), None, Decimal("2.0"), Decimal("3.0"), None],
+                    dtype=ArrowDtype(pa.decimal128(10, 2)),
+                ),
+            }
+        )
+        # Group 1: 2 rows but only 1 non-null -> should be null with min_count=2
+        # Group 2: 3 rows but only 2 non-null -> should be 5.0 with min_count=2
+        result = df.groupby("key")["value"].sum(min_count=2)
+        assert pd.isna(result.iloc[0])  # Only 1 non-null < min_count=2
+        assert result.iloc[1] == Decimal("5.0")  # 2 non-null >= min_count=2
+
+    @pytest.mark.parametrize(
+        "agg_func,default_value",
+        [
+            ("sum", 0),
+            ("prod", 1),
+        ],
+    )
+    def test_groupby_missing_groups(self, agg_func, default_value):
+        df = pd.DataFrame(
+            {
+                "key": pd.Categorical([0, 0, 2, 2], categories=[0, 1, 2]),
+                "value": pd.array(
+                    [Decimal("1.0"), Decimal("2.0"), Decimal("3.0"), Decimal("4.0")],
+                    dtype=ArrowDtype(pa.decimal128(10, 2)),
+                ),
+            }
+        )
+        result = getattr(df.groupby("key", observed=False)["value"], agg_func)()
+        assert len(result) == 3
+        # Group 1 is missing, should get default value
+        assert result.iloc[1] == Decimal(str(default_value))
+
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_groupby_dropna(self, dropna):
+        # Test that NA group (ids == -1) is handled correctly
+        df = pd.DataFrame(
+            {
+                "key": [1, 1, None, 2, 2, None],
+                "value": pd.array(
+                    [
+                        Decimal("1.0"),
+                        Decimal("2.0"),
+                        Decimal("3.0"),
+                        Decimal("4.0"),
+                        Decimal("5.0"),
+                        Decimal("6.0"),
+                    ],
+                    dtype=ArrowDtype(pa.decimal128(10, 2)),
+                ),
+            }
+        )
+        result = df.groupby("key", dropna=dropna)["value"].sum()
+        if dropna:
+            assert len(result) == 2
+            assert result.iloc[0] == Decimal("3.0")  # 1 + 2
+            assert result.iloc[1] == Decimal("9.0")  # 4 + 5
+        else:
+            assert len(result) == 3
+            assert result.iloc[0] == Decimal("3.0")  # 1 + 2
+            assert result.iloc[1] == Decimal("9.0")  # 4 + 5
+            assert result.iloc[2] == Decimal("9.0")  # 3 + 6 (NA group)
+
+
 def test_fixed_size_list():
     # GH#55000
     ser = pd.Series(

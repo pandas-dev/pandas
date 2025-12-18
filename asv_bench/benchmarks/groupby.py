@@ -1152,4 +1152,88 @@ class Resample:
         ).mean()
 
 
+class GroupByAggregateArrowDtypes:
+    param_names = ["dtype", "method"]
+    params = [
+        [
+            "bool[pyarrow]",
+            "int32[pyarrow]",
+            "float64[pyarrow]",
+            "decimal128(25, 3)[pyarrow]",
+            "string[pyarrow]",
+            "timestamp[s, tz=UTC][pyarrow]",
+            "duration[ms][pyarrow]",
+        ],
+        [
+            "any",
+            "all",
+            "sum",
+            "prod",
+            "min",
+            "max",
+            "mean",
+            "std",
+            "var",
+            "sem",
+            "count",
+            "median",
+        ],
+    ]
+
+    def setup(self, dtype, method):
+        import pyarrow as pa
+
+        # Parse dtype string
+        if dtype.startswith("decimal128"):
+            pa_type = pa.decimal128(25, 3)
+        elif dtype.startswith("timestamp"):
+            pa_type = pa.timestamp("s", "UTC")
+        elif dtype.startswith("duration"):
+            pa_type = pa.duration("ms")
+        elif dtype == "bool[pyarrow]":
+            pa_type = pa.bool_()
+        elif dtype == "int32[pyarrow]":
+            pa_type = pa.int32()
+        elif dtype == "float64[pyarrow]":
+            pa_type = pa.float64()
+        elif dtype == "string[pyarrow]":
+            pa_type = pa.string()
+        else:
+            raise ValueError(f"Unsupported dtype: {dtype}")
+
+        size = 100_000
+        ncols = 5
+        columns = list("abcde")
+
+        # Generate data based on type
+        if pa.types.is_floating(pa_type):
+            data = np.random.randn(size, ncols)
+        elif pa.types.is_integer(pa_type):
+            data = np.random.randint(0, 10_000, (size, ncols))
+        elif pa.types.is_decimal(pa_type):
+            from decimal import Decimal
+
+            data = np.random.randn(size, ncols).round(3)
+            data = [[Decimal(str(x)) for x in row] for row in data]
+        elif pa.types.is_boolean(pa_type):
+            data = np.random.choice([True, False], (size, ncols))
+        elif pa.types.is_timestamp(pa_type):
+            data = np.random.randint(0, 1_000_000, (size, ncols))
+        elif pa.types.is_duration(pa_type):
+            data = np.random.randint(0, 1_000_000, (size, ncols))
+        elif pa.types.is_string(pa_type):
+            data = np.random.choice(list(ascii_letters), (size, ncols))
+        else:
+            raise ValueError(f"Unsupported pyarrow type: {pa_type}")
+
+        df = DataFrame(data, columns=columns, dtype=dtype)
+        # Add some NAs
+        df.iloc[::10, ::2] = NA
+        df["key"] = np.random.randint(0, 100, size)
+        self.df = df
+
+    def time_frame_agg(self, dtype, method):
+        self.df.groupby("key").agg(method)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
