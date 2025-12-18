@@ -37,9 +37,7 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.common import (
-    is_scalar,
-)
+from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     DatetimeTZDtype,

@@ -27,9 +27,7 @@ from pandas.util._decorators import (
     set_module,
 )
 
-from pandas.core.dtypes.common import (
-    is_integer,
-)
+from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import is_valid_na_for_dtype
