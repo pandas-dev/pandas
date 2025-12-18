@@ -710,7 +710,8 @@ def _get_concat_axis_series(
 ) -> Index:
     """Return result concat axis when concatenating Series objects."""
     if ignore_index:
-        return default_index(len(objs))
+        total_length = sum(len(obj) for obj in objs)
+        return default_index(total_length)
     elif bm_axis == 0:
         indexes = [x.index for x in objs]
         if keys is None:
