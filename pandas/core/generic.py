@@ -6526,23 +6526,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         When ``deep=False``, a new object will be created without copying
         the calling object's data or index (only references to the data
-        and index are copied). Any changes to the data of the original
-        will be reflected in the shallow copy (and vice versa).
+        and index are copied). With Copy-on-Write, changes to the original
+        will *not* be reflected in the shallow copy (and vice versa). The
+        shallow copy uses a lazy (deferred) copy mechanism that copies the
+        data only when any changes to the original or shallow copy are made,
+        ensuring memory efficiency while maintaining data integrity.
 
         .. note::
-            The ``deep=False`` behaviour as described above will change
-            in pandas 3.0. `Copy-on-Write
-            <https://pandas.pydata.org/docs/dev/user_guide/copy_on_write.html>`__
-            will be enabled by default, which means that the "shallow" copy
-            is that is returned with ``deep=False`` will still avoid making
-            an eager copy, but changes to the data of the original will *no*
-            longer be reflected in the shallow copy (or vice versa). Instead,
-            it makes use of a lazy (deferred) copy mechanism that will copy
-            the data only when any changes to the original or shallow copy is
-            made.
-
-            You can already get the future behavior and improvements through
-            enabling copy on write ``pd.options.mode.copy_on_write = True``
+            In pandas versions prior to 3.0, the default behavior without
+            Copy-on-Write was different: changes to the original *were* reflected
+            in the shallow copy (and vice versa). See the :ref:`Copy-on-Write
+            user guide <copy_on_write>` for more information.
 
         Parameters
         ----------
