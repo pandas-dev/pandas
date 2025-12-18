@@ -80,8 +80,8 @@ and how to adapt your code to the new default.
 
 .. _whatsnew_300.enhancements.copy_on_write:
 
-Copy-on-Write
-^^^^^^^^^^^^^
+Consistent copy/view behaviour with Copy-on-Write
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The new "copy-on-write" behaviour in pandas 3.0 brings changes in behavior in
 how pandas operates with respect to copies and views. A summary of the changes:
@@ -101,9 +101,10 @@ copy or a view depended on the exact operation performed, which was often
 confusing).
 
 Because every single indexing step now behaves as a copy, this also means that
-"chained assignment" (updating a DataFrame with multiple setitem steps) will
-stop working. Because this now consistently never works, the
-``SettingWithCopyWarning`` is removed.
+**"chained assignment"** (updating a DataFrame with multiple setitem steps)
+**will stop working**. Because this now consistently never works, the
+``SettingWithCopyWarning`` is removed,  and defensive ``.copy()`` calls to
+silence the warning are no longer needed.
 
 The new behavioral semantics are explained in more detail in the
 :ref:`user guide about Copy-on-Write <copy_on_write>`.
@@ -130,10 +131,18 @@ and will be removed in pandas 4.0.
 
 .. _whatsnew_300.enhancements.col:
 
-``pd.col`` syntax can now be used in :meth:`DataFrame.assign` and :meth:`DataFrame.loc`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Initial support for ``pd.col()`` syntax to create expressions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can now use ``pd.col`` to create callables for use in dataframe methods which accept them. For example, if you have a dataframe
+This release introduces :func:`col` to refer to a DataFrame column by name
+and build up expressions.
+
+This can be used as a simplified syntax to create callables for use in
+methods such as :meth:`DataFrame.assign`. In practice, where you would
+have to use a ``lambda`` function before, you can now use ``pd.col()``
+instead.
+
+For example, if you have a dataframe
 
 .. ipython:: python
 
@@ -150,6 +159,18 @@ you can now write:
 .. ipython:: python
 
     df.assign(c = pd.col('a') + pd.col('b'))
+
+The expression object returned by :func:`col` supports all standard operators
+(like ``+``, ``-``, ``*``, ``/``, etc.) and all Series methods and namespaces
+(like ``pd.col("name").sum()``, ``pd.col("name").str.upper()``, etc.).
+
+Currently, the ``pd.col()`` syntax can be used in any place which accepts a
+callable that takes the calling DataFrame as first argument and returns a
+Series, like ``lambda df: df[col_name]``.
+This includes :meth:`DataFrame.assign`, :meth:`DataFrame.loc`, and getitem/setitem.
+
+It is expected that the support for ``pd.col()`` will be expanded to more methods
+in future releases.
 
 New Deprecation Policy
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -1139,6 +1160,7 @@ Timedelta
 - Accuracy improvement in :meth:`Timedelta.to_pytimedelta` to round microseconds consistently for large nanosecond based Timedelta (:issue:`57841`)
 - Bug in :class:`Timedelta` constructor failing to raise when passed an invalid keyword (:issue:`53801`)
 - Bug in :meth:`DataFrame.cumsum` which was raising ``IndexError`` if dtype is ``timedelta64[ns]`` (:issue:`57956`)
+- Bug in adding or subtracting a :class:`Timedelta` object with non-nanosecond unit to a python ``datetime.datetime`` object giving incorrect results; this now works correctly for Timedeltas inside the ``datetime.timedelta`` implementation bounds (:issue:`53643`)
 - Bug in multiplication operations with ``timedelta64`` dtype failing to raise ``TypeError`` when multiplying by ``bool`` objects or dtypes (:issue:`58054`)
 - Bug in multiplication operations with ``timedelta64`` dtype incorrectly raising when multiplying by numpy-nullable dtypes or pyarrow integer dtypes (:issue:`58054`)
 
