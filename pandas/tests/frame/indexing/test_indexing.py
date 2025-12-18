@@ -564,7 +564,7 @@ class TestDataFrameIndexing:
 
         # non-monotonic, raise KeyError
         df2 = df.iloc[list(range(5)) + list(range(5, 10))[::-1]]
-        msg = "non-monotonic index with a non-specific label: 3"
+        msg = "non-monotonic index with a missing label 3"
         with pytest.raises(KeyError, match=msg):
             df2.loc[3:11]
         with pytest.raises(KeyError, match=msg):
