@@ -1279,9 +1279,7 @@ class IndexOpsMixin(OpsMixin):
 
     @doc(
         algorithms.factorize,
-        values="",
         order="",
-        size_hint="",
         sort=textwrap.dedent(
             """\
             sort : bool, default False
