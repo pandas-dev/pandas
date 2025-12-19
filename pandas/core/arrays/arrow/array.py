@@ -2920,8 +2920,8 @@ class ArrowExtensionArray(
         unit = self._pa_array.type.unit
         unit_to_seconds = {"s": 1.0, "ms": 1e-3, "us": 1e-6, "ns": 1e-9}
         factor = unit_to_seconds[unit]
-        int_arr = pc.cast(self._pa_array, pa.int64())
-        result = pc.multiply(pc.cast(int_arr, pa.float64()), factor)
+        float_arr = pc.cast(pc.cast(self._pa_array, pa.int64()), pa.float64())
+        result = pc.multiply(float_arr, factor)
         return self._from_pyarrow_array(result)
 
     def _dt_as_unit(self, unit: str) -> Self:
