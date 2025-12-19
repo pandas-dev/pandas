@@ -45,6 +45,7 @@ jobs:
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && ( ! endsWith(github.ref, 'dev0')))
     runs-on: ubuntu-24.04
     env:
+      IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     outputs:
       sdist_file: ${{ steps.save-path.outputs.sdist_name }}
@@ -117,6 +118,7 @@ jobs:
             python: ["cp313t", "3.13"]
 
     env:
+      IS_PUSH: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
       IS_SCHEDULE_DISPATCH: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout pandas
@@ -164,7 +166,6 @@ jobs:
         uses: pypa/cibuildwheel@v3.2.1
         with:
          package-dir: ./dist/${{ startsWith(matrix.buildplat[1], 'macosx') && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
-         output-dir: ./dist
         env:
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
           CIBW_BUILD_FRONTEND: ${{ matrix.cibw_build_frontend || 'pip' }}
@@ -195,19 +196,26 @@ jobs:
 
       - name: Validate wheel RECORD
         shell: bash -el {0}
-        run: for whl in $(ls ./dist/*.whl); do wheel unpack $whl -d /tmp; done
+        run: for whl in $(ls wheelhouse); do wheel unpack wheelhouse/$whl -d /tmp; done
 
       - uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          path: ./dist/*.whl
+          path: ./wheelhouse/*.whl
 
       - name: Upload wheels & sdist
-        if: ${{ success() && env.IS_SCHEDULE_DISPATCH == 'true' }}
-        uses: scientific-python/upload-nightly-action@0.6.2
-        with:
-          artifacts_path: ./dist
-          anaconda_nightly_upload_token: ${{secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN}}
+        if: ${{ success() && (env.IS_SCHEDULE_DISPATCH == 'true' || env.IS_PUSH == 'true') }}
+        shell: bash -el {0}
+        env:
+          PANDAS_NIGHTLY_UPLOAD_TOKEN: ${{ secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN }}
+        # trigger an upload to
+        # https://anaconda.org/scientific-python-nightly-wheels/pandas
+        # for cron jobs or "Run workflow" (restricted to main branch).
+        # The tokens were originally generated at anaconda.org
+        run: |
+          source ci/upload_wheels.sh
+          set_upload_vars
+          upload_wheels
 
   publish:
     if: >
