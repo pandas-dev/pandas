@@ -686,8 +686,6 @@ The following required dependencies were updated:
 +=================+======================+
 | numpy           | 1.26.0               |
 +-----------------+----------------------+
-| tzdata          | 2023.3               |
-+-----------------+----------------------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
