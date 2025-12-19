@@ -753,7 +753,10 @@ Differences in behavior will be primarily due to the kind of NA value.
 The four :class:`StringDtype` variants
 ======================================
 
-There are four :class:`StringDtype` variants that are available to users.
+There are four :class:`StringDtype` variants that are available to users,
+controlled by the ``storage`` and ``na_value`` parameters of :class:`StringDtype`.
+At runtime, these can be checked via the :attr:`StringDtype.storage`
+and :attr:`StringDtype.na_value` attributes.
 
 Python storage with ``np.nan`` values
 -------------------------------------

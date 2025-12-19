@@ -898,18 +898,15 @@ def value_counts_internal(
             result = result.iloc[0:0]
 
         # normalizing is by len of all (regardless of dropna)
-        counts = np.array([len(ii)])
+        normalize_denominator = len(ii)
 
     else:
+        normalize_denominator = None
         if is_extension_array_dtype(values):
             # handle Categorical and sparse,
             result = Series(values, copy=False)._values.value_counts(dropna=dropna)
             result.name = name
             result.index.name = index_name
-            counts = result._values
-            if not isinstance(counts, np.ndarray):
-                # e.g. ArrowExtensionArray
-                counts = np.asarray(counts)
 
         elif isinstance(values, ABCMultiIndex):
             # GH49558
@@ -920,10 +917,6 @@ def value_counts_internal(
                 .size()
             )
             result.index.names = values.names
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray[Any, Any] | DatetimeArray | TimedeltaArray | PeriodArray | Any",
-            # variable has type "ndarray[tuple[int, ...], dtype[Any]]")
-            counts = result._values  # type: ignore[assignment]
 
         else:
             values = _ensure_arraylike(values, func_name="value_counts")
@@ -936,8 +929,7 @@ def value_counts_internal(
             idx = Index(keys, dtype=keys.dtype, name=index_name)
 
             if (
-                bins is None
-                and not sort
+                not sort
                 and isinstance(values, (DatetimeIndex, TimedeltaIndex))
                 and idx.equals(values)
                 and values.inferred_freq is not None
@@ -951,7 +943,10 @@ def value_counts_internal(
         result = result.sort_values(ascending=ascending, kind="stable")
 
     if normalize:
-        result = result / counts.sum()
+        if normalize_denominator is not None:
+            result = result / normalize_denominator
+        else:
+            result = result / result.sum()
 
     return result
 
@@ -1140,14 +1135,8 @@ def take(
 
     Parameters
     ----------
-    arr : array-like or scalar value
-        Non array-likes (sequences/scalars without a dtype) are coerced
-        to an ndarray.
-
-        .. deprecated:: 2.1.0
-            Passing an argument other than a numpy.ndarray, ExtensionArray,
-            Index, or Series is deprecated.
-
+    arr : numpy.ndarray, ExtensionArray, Index, or Series
+        Input array.
     indices : sequence of int or one-dimensional np.ndarray of int
         Indices to be taken.
     axis : int, default 0

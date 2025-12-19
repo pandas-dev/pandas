@@ -6,6 +6,14 @@ What's new in 3.0.0 (Month XX, 2025)
 These are the changes in pandas 3.0.0. See :ref:`release` for a full changelog
 including other versions of pandas.
 
+.. note::
+
+    The pandas 3.0 release removed a lot of functionality that was deprecated
+    in previous releases (see :ref:`below <whatsnew_300.prior_deprecations>`
+    for an overview). It is recommended to first upgrade to pandas 2.3 and to
+    ensure your code is working without warnings, before upgrading to pandas
+    3.0.
+
 {{ header }}
 
 .. ---------------------------------------------------------------------------
@@ -72,8 +80,8 @@ and how to adapt your code to the new default.
 
 .. _whatsnew_300.enhancements.copy_on_write:
 
-Copy-on-Write
-^^^^^^^^^^^^^
+Consistent copy/view behaviour with Copy-on-Write
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The new "copy-on-write" behaviour in pandas 3.0 brings changes in behavior in
 how pandas operates with respect to copies and views. A summary of the changes:
@@ -93,9 +101,10 @@ copy or a view depended on the exact operation performed, which was often
 confusing).
 
 Because every single indexing step now behaves as a copy, this also means that
-"chained assignment" (updating a DataFrame with multiple setitem steps) will
-stop working. Because this now consistently never works, the
-``SettingWithCopyWarning`` is removed.
+**"chained assignment"** (updating a DataFrame with multiple setitem steps)
+**will stop working**. Because this now consistently never works, the
+``SettingWithCopyWarning`` is removed,  and defensive ``.copy()`` calls to
+silence the warning are no longer needed.
 
 The new behavioral semantics are explained in more detail in the
 :ref:`user guide about Copy-on-Write <copy_on_write>`.
@@ -122,10 +131,18 @@ and will be removed in pandas 4.0.
 
 .. _whatsnew_300.enhancements.col:
 
-``pd.col`` syntax can now be used in :meth:`DataFrame.assign` and :meth:`DataFrame.loc`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Initial support for ``pd.col()`` syntax to create expressions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can now use ``pd.col`` to create callables for use in dataframe methods which accept them. For example, if you have a dataframe
+This release introduces :func:`col` to refer to a DataFrame column by name
+and build up expressions.
+
+This can be used as a simplified syntax to create callables for use in
+methods such as :meth:`DataFrame.assign`. In practice, where you would
+have to use a ``lambda`` function before, you can now use ``pd.col()``
+instead.
+
+For example, if you have a dataframe
 
 .. ipython:: python
 
@@ -142,6 +159,18 @@ you can now write:
 .. ipython:: python
 
     df.assign(c = pd.col('a') + pd.col('b'))
+
+The expression object returned by :func:`col` supports all standard operators
+(like ``+``, ``-``, ``*``, ``/``, etc.) and all Series methods and namespaces
+(like ``pd.col("name").sum()``, ``pd.col("name").str.upper()``, etc.).
+
+Currently, the ``pd.col()`` syntax can be used in any place which accepts a
+callable that takes the calling DataFrame as first argument and returns a
+Series, like ``lambda df: df[col_name]``.
+This includes :meth:`DataFrame.assign`, :meth:`DataFrame.loc`, and getitem/setitem.
+
+It is expected that the support for ``pd.col()`` will be expanded to more methods
+in future releases.
 
 New Deprecation Policy
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -659,8 +688,6 @@ The following required dependencies were updated:
 +=================+======================+
 | numpy           | 1.26.0               |
 +-----------------+----------------------+
-| tzdata          | 2023.3               |
-+-----------------+----------------------+
 
 For `optional libraries <https://pandas.pydata.org/docs/getting_started/install.html>`_ the general recommendation is to use the latest version.
 The following table lists the lowest version per library that is currently being tested throughout the development of pandas.
@@ -793,6 +820,7 @@ Other API changes
   :meth:`~DataFrame.ffill`, :meth:`~DataFrame.bfill`, :meth:`~DataFrame.interpolate`,
   :meth:`~DataFrame.where`, :meth:`~DataFrame.mask`, :meth:`~DataFrame.clip`) now return
   the modified DataFrame or Series (``self``) instead of ``None`` when ``inplace=True`` (:issue:`63207`)
+- All Index constructors now copy ``numpy.ndarray`` and ``ExtensionArray`` inputs by default when ``copy=None``, consistent with :class:`Series` behavior (:issue:`63388`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_300.deprecations:
@@ -1201,6 +1229,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc.__getitem__` and :meth:`DataFrame.iloc.__getitem__` with a :class:`CategoricalDtype` column with integer categories raising when trying to index a row containing a ``NaN`` entry (:issue:`58954`)
 - Bug in :meth:`Index.__getitem__` incorrectly raising with a 0-dim ``np.ndarray`` key (:issue:`55601`)
 - Bug in :meth:`Index.get_indexer` not casting missing values correctly for new string datatype (:issue:`55833`)
+- Bug in :meth:`Index.intersection`, :meth:`Index.union`, :meth:`MultiIndex.intersection`, and :meth:`MultiIndex.union` returning a reference to the original Index instead of a new instance when operating on identical indexes, which could cause metadata corruption when modifying the result (:issue:`63169`)
 - Bug in adding new rows with :meth:`DataFrame.loc.__setitem__` or :class:`Series.loc.__setitem__` which failed to retain dtype on the object's index in some cases (:issue:`41626`)
 - Bug in indexing on a :class:`DatetimeIndex` with a ``timestamp[pyarrow]`` dtype or on a :class:`TimedeltaIndex` with a ``duration[pyarrow]`` dtype (:issue:`62277`)
 
