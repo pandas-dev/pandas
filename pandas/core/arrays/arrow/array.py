@@ -2916,12 +2916,10 @@ class ArrowExtensionArray(
 
     def _dt_total_seconds(self) -> Self:
         # Convert duration to seconds using PyArrow compute
-        # Must cast to int64 first since duration -> float64 is not supported
         unit = self._pa_array.type.unit
         unit_to_seconds = {"s": 1.0, "ms": 1e-3, "us": 1e-6, "ns": 1e-9}
         factor = unit_to_seconds[unit]
-        float_arr = pc.cast(pc.cast(self._pa_array, pa.int64()), pa.float64())
-        result = pc.multiply(float_arr, factor)
+        result = pc.multiply(pc.cast(self._pa_array, pa.int64()), factor)
         return self._from_pyarrow_array(result)
 
     def _dt_as_unit(self, unit: str) -> Self:
