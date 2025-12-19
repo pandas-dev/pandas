@@ -2650,6 +2650,10 @@ class ArrowExtensionArray(
             return None
         if how in ["any", "all"] and not pa.types.is_boolean(pa_type):
             return None
+        # PyArrow doesn't support sum/prod/mean/std/var/sem on strings
+        is_str = pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type)
+        if is_str and how in ["sum", "prod", "mean", "std", "var", "sem"]:
+            return None
 
         # Filter out NA group (ids == -1)
         mask = ids >= 0
@@ -2765,6 +2769,17 @@ class ArrowExtensionArray(
             )
             if result is not None:
                 return result
+            # For string types, fall back to parent implementation (Python path)
+            # since _to_masked() doesn't support strings
+            if pa.types.is_string(pa_type) or pa.types.is_large_string(pa_type):
+                return super()._groupby_op(
+                    how=how,
+                    has_dropped_na=has_dropped_na,
+                    min_count=min_count,
+                    ngroups=ngroups,
+                    ids=ids,
+                    **kwargs,
+                )
 
         # Fall back to converting to masked/datetime array and using Cython
         fallback_values: ExtensionArray
