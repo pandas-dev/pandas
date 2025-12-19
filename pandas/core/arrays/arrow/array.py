@@ -442,7 +442,8 @@ class ArrowExtensionArray(
             # e.g. test_by_column_values_with_same_starting_value with nested
             #  values, one entry of which is an ArrowStringArray
             #  or test_agg_lambda_complex128_dtype_conversion for complex values
-            return super()._cast_pointwise_result(values)
+            values = np.asarray(values, dtype=object)
+            return lib.maybe_convert_objects(values, convert_non_numeric=True)
 
         if pa.types.is_null(arr.type):
             if lib.infer_dtype(values) == "decimal":
@@ -498,7 +499,8 @@ class ArrowExtensionArray(
             if self.dtype.na_value is np.nan:
                 # ArrowEA has different semantics, so we return numpy-based
                 #  result instead
-                return super()._cast_pointwise_result(values)
+                values = np.asarray(values, dtype=object)
+                return lib.maybe_convert_objects(values, convert_non_numeric=True)
             return ArrowExtensionArray(arr)
         return self._from_pyarrow_array(arr)
 
