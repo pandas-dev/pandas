@@ -49,19 +49,19 @@ def to_pickle(
         object implementing a binary ``write()`` function.
         Also accepts URL. URL has to be of S3 or GCS.
     compression : str or dict, default 'infer'
-        For on-the-fly compression of the output data. If 'infer' and 'filepath_or_buffer' is
-        path-like, then detect compression from the following extensions: '.gz',
-        '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
-        (otherwise no compression).
+        For on-the-fly compression of the output data. If 'infer' and
+        'filepath_or_buffer' is path-like, then detect compression from the
+        following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar',
+        '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
         Set to ``None`` for no compression.
         Can also be a dict with key ``'method'`` set
-        to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
-        other key-value pairs are forwarded to
+        to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``,
+        ``'tar'``} and other key-value pairs are forwarded to
         ``zipfile.ZipFile``, ``gzip.GzipFile``,
         ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
         ``tarfile.TarFile``, respectively.
-        As an example, the following could be passed for faster compression and to create
-        a reproducible gzip archive:
+        As an example, the following could be passed for faster compression
+        and to create a reproducible gzip archive:
         ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
 
         .. versionadded:: 1.5.0
@@ -151,20 +151,21 @@ def read_pickle(
         object implementing a binary ``readlines()`` function.
         Also accepts URL. URL is not limited to S3 and GCS.
     compression : str or dict, default 'infer'
-        For on-the-fly decompression of on-disk data. If 'infer' and 'filepath_or_buffer' is
-        path-like, then detect compression from the following extensions: '.gz',
-        '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
-        (otherwise no compression).
-        If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in.
+        For on-the-fly decompression of on-disk data. If 'infer' and
+        'filepath_or_buffer' is path-like, then detect compression from the
+        following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar',
+        '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
+        If using 'zip' or 'tar', the ZIP file must contain only one data file
+        to be read in.
         Set to ``None`` for no decompression.
         Can also be a dict with key ``'method'`` set
-        to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
-        other key-value pairs are forwarded to
+        to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``,
+        ``'tar'``} and other key-value pairs are forwarded to
         ``zipfile.ZipFile``, ``gzip.GzipFile``,
         ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or
         ``tarfile.TarFile``, respectively.
-        As an example, the following could be passed for Zstandard decompression using a
-        custom compression dictionary:
+        As an example, the following could be passed for Zstandard decompression
+        using a custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
 
         .. versionadded:: 1.5.0
