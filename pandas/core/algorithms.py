@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import decimal
 import operator
-from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Literal,
@@ -35,10 +34,7 @@ from pandas._typing import (
     TakeIndexer,
     npt,
 )
-from pandas.util._decorators import (
-    doc,
-    set_module,
-)
+from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -654,28 +650,6 @@ def factorize_array(
 
 
 @set_module("pandas")
-@doc(
-    values=dedent(
-        """\
-    values : sequence
-        A 1-D sequence. Sequences that aren't pandas objects are
-        coerced to ndarrays before factorization.
-    """
-    ),
-    sort=dedent(
-        """\
-    sort : bool, default False
-        Sort `uniques` and shuffle `codes` to maintain the
-        relationship.
-    """
-    ),
-    size_hint=dedent(
-        """\
-    size_hint : int, optional
-        Hint to the hashtable sizer.
-    """
-    ),
-)
 def factorize(
     values,
     sort: bool = False,
@@ -692,12 +666,18 @@ def factorize(
 
     Parameters
     ----------
-    {values}{sort}
+    values : sequence
+        A 1-D sequence. Sequences that aren't pandas objects are
+        coerced to ndarrays before factorization.
+    sort : bool, default False
+        Sort `uniques` and shuffle `codes` to maintain the
+        relationship.
     use_na_sentinel : bool, default True
         If True, the sentinel -1 will be used for NaN values. If False,
         NaN values will be encoded as non-negative integers and will not drop the
         NaN from the uniques of the values.
-    {size_hint}\
+    size_hint : int, optional
+        Hint to the hashtable sizer.
 
     Returns
     -------
