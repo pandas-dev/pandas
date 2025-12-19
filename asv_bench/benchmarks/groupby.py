@@ -1167,10 +1167,16 @@ class GroupByAggregateArrowDtypes:
         ["sum", "prod", "min", "max", "mean", "std", "var", "count"],
     ]
 
+    # String types only support min, max, count
+    _string_unsupported = {"sum", "prod", "mean", "std", "var"}
+
     def setup(self, dtype, method):
         import pyarrow as pa
 
         from pandas.api.types import is_string_dtype
+
+        if dtype == "string[pyarrow]" and method in self._string_unsupported:
+            raise NotImplementedError("skipped")
 
         size = 100_000
         ngroups = 1000
