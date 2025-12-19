@@ -33,7 +33,6 @@ from pandas.core.dtypes.astype import astype_is_view
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
-    maybe_unbox_numpy_scalar,
 )
 from pandas.core.dtypes.common import (
     is_bool,
@@ -1742,25 +1741,25 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         skips NAs):
 
         >>> pd.array([True, False, True]).any()
-        True
+        np.True_
         >>> pd.array([True, False, pd.NA]).any()
-        True
+        np.True_
         >>> pd.array([False, False, pd.NA]).any()
-        False
+        np.False_
         >>> pd.array([], dtype="boolean").any()
-        False
+        np.False_
         >>> pd.array([pd.NA], dtype="boolean").any()
-        False
+        np.False_
         >>> pd.array([pd.NA], dtype="Float64").any()
-        False
+        np.False_
 
         With ``skipna=False``, the result can be NA if this is logically
         required (whether ``pd.NA`` is True or False influences the result):
 
         >>> pd.array([True, False, pd.NA]).any(skipna=False)
-        True
+        np.True_
         >>> pd.array([1, 0, pd.NA]).any(skipna=False)
-        True
+        np.True_
         >>> pd.array([False, False, pd.NA]).any(skipna=False)
         <NA>
         >>> pd.array([0, 0, pd.NA]).any(skipna=False)
@@ -1770,7 +1769,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         values = self._data.copy()
         np.putmask(values, self._mask, self.dtype._falsey_value)
-        result = maybe_unbox_numpy_scalar(values.any())
+        result = values.any()
         if skipna:
             return result
         else:
@@ -1828,17 +1827,17 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         skips NAs):
 
         >>> pd.array([True, True, pd.NA]).all()
-        True
+        np.True_
         >>> pd.array([1, 1, pd.NA]).all()
-        True
+        np.True_
         >>> pd.array([True, False, pd.NA]).all()
-        False
+        np.False_
         >>> pd.array([], dtype="boolean").all()
-        True
+        np.True_
         >>> pd.array([pd.NA], dtype="boolean").all()
-        True
+        np.True_
         >>> pd.array([pd.NA], dtype="Float64").all()
-        True
+        np.True_
 
         With ``skipna=False``, the result can be NA if this is logically
         required (whether ``pd.NA`` is True or False influences the result):
@@ -1848,21 +1847,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> pd.array([1, 1, pd.NA]).all(skipna=False)
         <NA>
         >>> pd.array([True, False, pd.NA]).all(skipna=False)
-        False
+        np.False_
         >>> pd.array([1, 0, pd.NA]).all(skipna=False)
-        False
+        np.False_
         """
         nv.validate_all((), kwargs)
 
         values = self._data.copy()
         np.putmask(values, self._mask, self.dtype._truthy_value)
-        result = maybe_unbox_numpy_scalar(values.all(axis=axis))
+        result = values.all(axis=axis)
 
         if skipna:
-            return result
+            return result  # type: ignore[return-value]
         else:
             if not result or len(self) == 0 or not self._mask.any():
-                return result
+                return result  # type: ignore[return-value]
             else:
                 return self.dtype.na_value
 

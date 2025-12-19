@@ -5936,14 +5936,14 @@ class Index(IndexOpsMixin, PandasObject):
         >>> month_starts
         DatetimeIndex(['2011-01-01', '2011-02-01', '2011-03-01', '2011-04-01',
                        '2011-05-01'],
-                      dtype='datetime64[ns]', freq='MS')
+                      dtype='datetime64[us]', freq='MS')
 
         Shift the index by 10 days.
 
         >>> month_starts.shift(10, freq="D")
         DatetimeIndex(['2011-01-11', '2011-02-11', '2011-03-11', '2011-04-11',
                        '2011-05-11'],
-                      dtype='datetime64[ns]', freq=None)
+                      dtype='datetime64[us]', freq=None)
 
         The default value of `freq` is the `freq` attribute of the index,
         which is 'MS' (month start) in this example.
@@ -5951,7 +5951,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> month_starts.shift(10)
         DatetimeIndex(['2011-11-01', '2011-12-01', '2012-01-01', '2012-02-01',
                        '2012-03-01'],
-                      dtype='datetime64[ns]', freq='MS')
+                      dtype='datetime64[us]', freq='MS')
         """
         raise NotImplementedError(
             f"This method is only implemented for DatetimeIndex, PeriodIndex and "

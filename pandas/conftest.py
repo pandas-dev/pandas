@@ -113,14 +113,14 @@ def pytest_sessionstart(session):
     import doctest
     import inspect
 
-    orig = doctest.DocTestFinder._from_module
+    orig = doctest.DocTestFinder._from_module  # type: ignore[attr-defined]
 
     def _from_module(self, module, object):
         if inspect.isfunction(object) and "." in object.__qualname__:
             return True
         return orig(self, module, object)
 
-    doctest.DocTestFinder._from_module = _from_module
+    doctest.DocTestFinder._from_module = _from_module  # type: ignore[attr-defined]
 
 
 def ignore_doctest_warning(item: pytest.Item, path: str, message: str) -> None:
