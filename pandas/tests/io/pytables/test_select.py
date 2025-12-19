@@ -555,7 +555,7 @@ def test_select_iterator_non_complete_8014(file_path):
         assert 0 == len(results)
 
 
-def test_select_iterator_many_empty_frames(setup_path):
+def test_select_iterator_many_empty_frames(file_path):
     # GH 8014
     # using iterator and where clause can return many empty
     # frames.
