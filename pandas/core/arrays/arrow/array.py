@@ -2743,14 +2743,7 @@ class ArrowExtensionArray(
                 raise TypeError(
                     f"dtype '{self.dtype}' does not support operation '{how}'"
                 )
-            return super()._groupby_op(
-                how=how,
-                has_dropped_na=has_dropped_na,
-                min_count=min_count,
-                ngroups=ngroups,
-                ids=ids,
-                **kwargs,
-            )
+            # Fall through to Arrow-native path below
 
         pa_type = self._pa_array.type
 
