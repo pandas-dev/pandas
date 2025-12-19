@@ -58,7 +58,10 @@ from pandas.util._decorators import (
 )
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import coerce_indexer_dtype
+from pandas.core.dtypes.cast import (
+    coerce_indexer_dtype,
+    maybe_unbox_numpy_scalar,
+)
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int,
@@ -3130,7 +3133,9 @@ class MultiIndex(Index):
         """
         if not isinstance(label, tuple):
             label = (label,)
-        return self._partial_tup_index(label, side=side)
+        result = self._partial_tup_index(label, side=side)
+        result = maybe_unbox_numpy_scalar(result)
+        return result
 
     def slice_locs(self, start=None, end=None, step=None) -> tuple[int, int]:
         """
@@ -3717,7 +3722,7 @@ class MultiIndex(Index):
             if start == end:
                 # The label is present in self.levels[level] but unused:
                 raise KeyError(key)
-            return slice(start, end)
+            return slice(maybe_unbox_numpy_scalar(start), maybe_unbox_numpy_scalar(end))
 
     def get_locs(self, seq) -> npt.NDArray[np.intp]:
         """
