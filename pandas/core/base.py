@@ -1330,7 +1330,9 @@ class IndexOpsMixin(OpsMixin):
         ``pd.factorize(values)``. The results are identical for methods like
         :meth:`Series.factorize`.
 
-        >>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"))
+        >>> codes, uniques = pd.factorize(
+        ...     np.array(['b', 'b', 'a', 'c', 'b'], dtype="O")
+        ... )
         >>> codes
         array([0, 0, 1, 2, 0])
         >>> uniques
@@ -1339,8 +1341,9 @@ class IndexOpsMixin(OpsMixin):
         With ``sort=True``, the `uniques` will be sorted, and `codes` will be
         shuffled so that the relationship is the maintained.
 
-        >>> codes, uniques = pd.factorize(np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"),
-        ...                               sort=True)
+        >>> codes, uniques = pd.factorize(
+        ...     np.array(['b', 'b', 'a', 'c', 'b'], dtype="O"), sort=True
+        ... )
         >>> codes
         array([1, 1, 0, 2, 1])
         >>> uniques
@@ -1350,7 +1353,9 @@ class IndexOpsMixin(OpsMixin):
         the `codes` with the sentinel value ``-1`` and missing values are not
         included in `uniques`.
 
-        >>> codes, uniques = pd.factorize(np.array(['b', None, 'a', 'c', 'b'], dtype="O"))
+        >>> codes, uniques = pd.factorize(
+        ...     np.array(['b', None, 'a', 'c', 'b'], dtype="O")
+        ... )
         >>> codes
         array([ 0, -1,  1,  2,  0])
         >>> uniques
@@ -1384,8 +1389,10 @@ class IndexOpsMixin(OpsMixin):
         If NaN is in the values, and we want to include NaN in the uniques of the
         values, it can be achieved by setting ``use_na_sentinel=False``.
 
-        >>> codes, uniques = pd.factorize(np.array(['b', None, 'a', 'c', 'b'], dtype="O"),
-        ...                               use_na_sentinel=False)
+        >>> codes, uniques = pd.factorize(
+        ...     np.array(['b', None, 'a', 'c', 'b'], dtype="O"),
+        ...     use_na_sentinel=False,
+        ... )
         >>> codes
         array([0, 1, 2, 3, 0])
         >>> uniques
