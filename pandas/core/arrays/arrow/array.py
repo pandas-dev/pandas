@@ -2918,7 +2918,7 @@ class ArrowExtensionArray(
 
     def _dt_total_seconds(self) -> Self:
         unit = self._pa_array.type.unit
-        unit_per_second = {"s": 1, "ms": 1000, "us": 1_000_000, "ns": 1_000_000_000}
+        unit_per_second = {"s": 1.0, "ms": 1e3, "us": 1e6, "ns": 1e9}
         result = pc.divide(pc.cast(self._pa_array, pa.int64()), unit_per_second[unit])
         return self._from_pyarrow_array(result)
 
