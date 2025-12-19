@@ -418,7 +418,7 @@ class ExtensionArray:
             )
             raise
 
-    def _cast_pointwise_result(self, values, **kwargs) -> ArrayLike:
+    def _cast_pointwise_result(self, values) -> ArrayLike:
         """
         Construct an ExtensionArray after a pointwise operation.
 
