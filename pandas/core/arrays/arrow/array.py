@@ -2760,8 +2760,6 @@ class ArrowExtensionArray(
             pa.types.is_decimal(pa_type)
             or pa.types.is_string(pa_type)
             or pa.types.is_large_string(pa_type)
-            or pa.types.is_integer(pa_type)  # TEMPORARY: for testing
-            or pa.types.is_floating(pa_type)  # TEMPORARY: for testing
         ):
             result = self._groupby_op_pyarrow(
                 how=how,
