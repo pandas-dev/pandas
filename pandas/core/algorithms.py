@@ -878,18 +878,15 @@ def value_counts_internal(
             result = result.iloc[0:0]
 
         # normalizing is by len of all (regardless of dropna)
-        counts = np.array([len(ii)])
+        normalize_denominator = len(ii)
 
     else:
+        normalize_denominator = None
         if is_extension_array_dtype(values):
             # handle Categorical and sparse,
             result = Series(values, copy=False)._values.value_counts(dropna=dropna)
             result.name = name
             result.index.name = index_name
-            counts = result._values
-            if not isinstance(counts, np.ndarray):
-                # e.g. ArrowExtensionArray
-                counts = np.asarray(counts)
 
         elif isinstance(values, ABCMultiIndex):
             # GH49558
@@ -900,10 +897,6 @@ def value_counts_internal(
                 .size()
             )
             result.index.names = values.names
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray[Any, Any] | DatetimeArray | TimedeltaArray | PeriodArray | Any",
-            # variable has type "ndarray[tuple[int, ...], dtype[Any]]")
-            counts = result._values  # type: ignore[assignment]
 
         else:
             values = _ensure_arraylike(values, func_name="value_counts")
@@ -916,8 +909,7 @@ def value_counts_internal(
             idx = Index(keys, dtype=keys.dtype, name=index_name)
 
             if (
-                bins is None
-                and not sort
+                not sort
                 and isinstance(values, (DatetimeIndex, TimedeltaIndex))
                 and idx.equals(values)
                 and values.inferred_freq is not None
@@ -931,7 +923,10 @@ def value_counts_internal(
         result = result.sort_values(ascending=ascending, kind="stable")
 
     if normalize:
-        result = result / counts.sum()
+        if normalize_denominator is not None:
+            result = result / normalize_denominator
+        else:
+            result = result / result.sum()
 
     return result
 
