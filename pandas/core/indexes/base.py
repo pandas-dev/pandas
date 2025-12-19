@@ -505,12 +505,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
-        if isinstance(data, (ExtensionArray, np.ndarray)):
-            # GH 63306
-            if copy is not False:
-                if dtype is None or astype_is_view(data.dtype, dtype):
-                    data = data.copy()
-                    copy = False
+        # GH 63306, GH 63388
+        data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
         # range
         if isinstance(data, (range, RangeIndex)):
@@ -5197,6 +5193,21 @@ class Index(IndexOpsMixin, PandasObject):
             "was passed"
         )
 
+    @classmethod
+    def _maybe_copy_array_input(
+        cls, data, copy: bool | None, dtype
+    ) -> tuple[Any, bool]:
+        """
+        Ensure that the input data is copied if necessary.
+        GH#63388
+        """
+        if isinstance(data, (ExtensionArray, np.ndarray)):
+            if copy is not False:
+                if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                    data = data.copy()
+                    copy = False
+        return data, bool(copy)
+
     def _validate_fill_value(self, value):
         """
         Check if the value can be inserted into our array without casting,
@@ -6865,12 +6876,15 @@ class Index(IndexOpsMixin, PandasObject):
         # we need to look up the label
         try:
             slc = self.get_loc(label)
-        except KeyError as err:
+        except KeyError:
             try:
                 return self._searchsorted_monotonic(label, side)
             except ValueError:
-                # raise the original KeyError
-                raise err from None
+                raise KeyError(
+                    f"Cannot get {side} slice bound for non-monotonic index "
+                    f"with a missing label {original_label!r}. "
+                    "Either sort the index or specify an existing label."
+                ) from None
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
