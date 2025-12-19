@@ -208,6 +208,10 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             values, encoding=encoding, hash_key=hash_key, categorize=categorize
         )
 
+    def _cast_pointwise_result(self, values: ArrayLike) -> ArrayLike:
+        values = np.asarray(values, dtype=object)
+        return lib.maybe_convert_objects(values, convert_non_numeric=True)
+
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
     def argmin(self, axis: AxisInt = 0, skipna: bool = True):  # type: ignore[override]
         # override base class by adding axis keyword
