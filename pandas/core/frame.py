@@ -146,6 +146,7 @@ from pandas.core.arrays import (
 )
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.col import Expression
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     sanitize_array,
@@ -5520,7 +5521,10 @@ class DataFrame(NDFrame, OpsMixin):
         data = self.copy(deep=False)
 
         for k, v in kwargs.items():
-            data[k] = com.apply_if_callable(v, data)
+            if isinstance(v, Expression):
+                data[k] = v._eval_expression(data)
+            else:
+                data[k] = com.apply_if_callable(v, data)
         return data
 
     def _sanitize_column(self, value) -> tuple[ArrayLike, BlockValuesRefs | None]:
