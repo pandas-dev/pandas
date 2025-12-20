@@ -228,7 +228,7 @@ class Expression:
     def __getitem__(self, item: Any) -> Expression:
         return self._with_op("__getitem__", item)
 
-    def _call_with_func(self, func, **kwargs) -> Expression:
+    def _call_with_func(self, func: Callable, **kwargs: Any) -> Expression:
         def wrapped(df: DataFrame) -> Any:
             parsed_kwargs = _parse_kwargs(df, **kwargs)
             return func(**parsed_kwargs)
@@ -238,7 +238,7 @@ class Expression:
 
         return Expression(wrapped, repr_str)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         def func(df: DataFrame, *args: Any, **kwargs: Any) -> Any:
             parsed_args = _parse_args(df, *args)
             parsed_kwargs = _parse_kwargs(df, **kwargs)
