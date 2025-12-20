@@ -622,7 +622,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         return cls(values, dtype=original.dtype)
 
     def _cast_pointwise_result(self, values):
-        result = super()._cast_pointwise_result(values)
+        values = np.asarray(values, dtype=object)
+        result = lib.maybe_convert_objects(values, convert_non_numeric=True)
         if result.dtype.kind == self.dtype.kind:
             try:
                 # e.g. test_groupby_agg_extension
