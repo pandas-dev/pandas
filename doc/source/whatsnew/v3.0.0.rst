@@ -164,8 +164,10 @@ The expression object returned by :func:`col` supports all standard operators
 (like ``+``, ``-``, ``*``, ``/``, etc.) and all Series methods and namespaces
 (like ``pd.col("name").sum()``, ``pd.col("name").str.upper()``, etc.).
 
-Currently, the ``pd.col()`` syntax can be used in :meth:`DataFrame.assign`,
-:meth:`DataFrame.loc`, and getitem/setitem.
+Currently, the ``pd.col()`` syntax can be used in any place which accepts a
+callable that takes the calling DataFrame as first argument and returns a
+Series, like ``lambda df: df[col_name]``.
+This includes :meth:`DataFrame.assign`, :meth:`DataFrame.loc`, and getitem/setitem.
 
 It is expected that the support for ``pd.col()`` will be expanded to more methods
 in future releases.

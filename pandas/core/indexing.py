@@ -916,8 +916,6 @@ class _LocationIndexer(NDFrameIndexerBase):
 
     @final
     def __setitem__(self, key, value) -> None:
-        from pandas.core.col import Expression
-
         if not CHAINED_WARNING_DISABLED:
             if sys.getrefcount(self.obj) <= REF_COUNT_IDX:
                 warnings.warn(
@@ -927,14 +925,8 @@ class _LocationIndexer(NDFrameIndexerBase):
         check_dict_or_set_indexers(key)
         if isinstance(key, tuple):
             key = (list(x) if is_iterator(x) else x for x in key)
-            key = (
-                x._eval_expression(self.obj) if isinstance(x, Expression) else x
-                for x in key
-            )
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
         else:
-            if isinstance(key, Expression):
-                key = key._eval_expression(self.obj)
             maybe_callable = com.apply_if_callable(key, self.obj)
             key = self._raise_callable_usage(key, maybe_callable)
         indexer = self._get_setitem_indexer(key)
@@ -1207,13 +1199,9 @@ class _LocationIndexer(NDFrameIndexerBase):
                 return self.obj._get_value(*key, takeable=self._takeable)
             return self._getitem_tuple(key)
         else:
-            from pandas.core.col import Expression
-
             # we by definition only have the 0th axis
             axis = self.axis or 0
 
-            if isinstance(key, Expression):
-                key = key._eval_expression(self.obj)
             maybe_callable = com.apply_if_callable(key, self.obj)
             maybe_callable = self._raise_callable_usage(key, maybe_callable)
             return self._getitem_axis(maybe_callable, axis=axis)

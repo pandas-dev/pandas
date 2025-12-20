@@ -233,7 +233,7 @@ class Expression:
     def __getitem__(self, item: Any) -> Expression:
         return self._with_op("__getitem__", item)
 
-    def _call_from_func(self, func, **kwargs) -> Expression:
+    def _call_with_func(self, func, **kwargs) -> Expression:
         def wrapped(df: DataFrame) -> Any:
             parsed_kwargs = _parse_kwargs(df, **kwargs)
             return func(**parsed_kwargs)
@@ -254,7 +254,10 @@ class Expression:
         return Expression(lambda df: func(df, *args, **kwargs), repr_str)
 
     def __getattr__(self, name: str, /) -> Any:
-        repr_str = f"{self._repr_str}.{name}"
+        repr_str = f"{self!r}"
+        if self._needs_parentheses:
+            repr_str = f"({repr_str})"
+        repr_str += f".{name}"
         return Expression(lambda df: getattr(self._eval_expression(df), name), repr_str)
 
     def __repr__(self) -> str:

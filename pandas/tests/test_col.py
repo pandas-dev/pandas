@@ -36,16 +36,67 @@ from pandas.tests.test_register_accessor import ensure_removed
         (pd.col("a") == 1, [True, False], "col('a') == 1"),
         (np.power(pd.col("a"), 2), [1, 4], "power(col('a'), 2)"),
         (np.divide(pd.col("a"), pd.col("a")), [1.0, 1.0], "divide(col('a'), col('a'))"),
+        (
+            (pd.col("a") + 1) * (pd.col("b") + 2),
+            [10, 18],
+            "(col('a') + 1) * (col('b') + 2)",
+        ),
+        (
+            (pd.col("a") - 1).astype("bool"),
+            [False, True],
+            "(col('a') - 1).astype('bool')",
+        ),
     ],
 )
 def test_col_simple(
     expr: Expression, expected_values: list[object], expected_str: str
 ) -> None:
     df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    assert str(expr) == expected_str
+
     result = df.assign(c=expr)
     expected = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": expected_values})
     tm.assert_frame_equal(result, expected)
-    assert str(expr) == expected_str
+
+
+def test_frame_getitem() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    expr = pd.col("a") == 2
+    result = df[expr]
+    expected = df.iloc[[1]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_frame_setitem() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    expr = pd.col("a") == 2
+
+    result = df.copy()
+    result[expr] = 100
+    expected = pd.DataFrame({"a": [1, 100], "b": [3, 100]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_frame_loc() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    expr = pd.col("a") == 2
+    result = df.copy()
+    result.loc[expr, "b"] = 100
+    expected = pd.DataFrame({"a": [1, 2], "b": [3, 100]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_frame_iloc() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    expr = pd.col("a") == 2
+    result = df.copy()
+    result.iloc[expr, 1] = 100
+    expected = pd.DataFrame({"a": [1, 2], "b": [3, 100]})
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -163,19 +214,7 @@ def test_col_logical_ops(
     tm.assert_frame_equal(result, expected)
 
 
-def test_compound_op() -> None:
-    # https://github.com/pandas-dev/pandas/pull/63439
-    df = pd.DataFrame({"a": [1, 2, 3]})
-    expr = (pd.col("a") + 1) * (pd.col("a") + 2)
-    expected_str = "(col('a') + 1) * (col('a') + 2)"
-    assert str(expr) == expected_str
-
-    result = df.assign(b=expr)
-    expected = pd.DataFrame({"a": [1, 2, 3], "b": [6, 12, 20]})
-    tm.assert_frame_equal(result, expected)
-
-
-def test_getitem() -> None:
+def test_expression_getitem() -> None:
     # https://github.com/pandas-dev/pandas/pull/63439
     df = pd.DataFrame({"a": [1, 2, 3]})
     expr = pd.col("a")[1]

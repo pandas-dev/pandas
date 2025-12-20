@@ -9934,7 +9934,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3  True  True
         4  True  True
         """
-        from pandas.core.col import Expression
 
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
@@ -9947,11 +9946,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         ChainedAssignmentError,
                         stacklevel=2,
                     )
-
-        if isinstance(cond, Expression):
-            cond = cond._eval_expression(self)
-        if isinstance(other, Expression):
-            other = other._eval_expression(self)
 
         other = common.apply_if_callable(other, self)
         return self._where(cond, other, inplace=inplace, axis=axis, level=level)
