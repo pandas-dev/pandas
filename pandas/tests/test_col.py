@@ -258,7 +258,7 @@ def test_qcut() -> None:
     # https://github.com/pandas-dev/pandas/pull/63439
     df = pd.DataFrame({"a": [1, 2, 3]})
     expr = pd.qcut(pd.col("a"), 3)
-    expected_str = "qcut(x=\"col('a')\", q=3, labels=None, retbins=False, precision=3)"
+    expected_str = "qcut(x=col('a'), q=3, labels=None, retbins=False, precision=3)"
     assert str(expr) == expected_str, str(expr)
 
     result = df.assign(b=expr)

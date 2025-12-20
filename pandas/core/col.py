@@ -63,13 +63,8 @@ def _parse_kwargs(df: DataFrame, **kwargs: Any) -> dict[str, Any]:
 
 
 def _pretty_print_args_kwargs(*args: Any, **kwargs: Any) -> str:
-    inputs_repr = ", ".join(
-        arg._repr_str if isinstance(arg, Expression) else repr(arg) for arg in args
-    )
-    kwargs_repr = ", ".join(
-        f"{k}={v._repr_str if isinstance(v, Expression) else v!r}"
-        for k, v in kwargs.items()
-    )
+    inputs_repr = ", ".join(repr(arg) for arg in args)
+    kwargs_repr = ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
 
     all_args = []
     if inputs_repr:
