@@ -238,7 +238,7 @@ class Expression:
 
         return Expression(wrapped, repr_str)
 
-    def __call__(self, *args: Any, **kwargs: Any):
+    def __call__(self, *args: Any, **kwargs: Any) -> Expression:
         def func(df: DataFrame, *args: Any, **kwargs: Any) -> Any:
             parsed_args = _parse_args(df, *args)
             parsed_kwargs = _parse_kwargs(df, **kwargs)
