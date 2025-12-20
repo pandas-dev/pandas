@@ -63,9 +63,6 @@ def to_pickle(
         As an example, the following could be passed for faster compression
         and to create a reproducible gzip archive:
         ``compression={'method': 'gzip', 'compresslevel': 1, 'mtime': 1}``.
-
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
     protocol : int
         Int which indicates which protocol should be used by the pickler,
         default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
@@ -167,9 +164,6 @@ def read_pickle(
         As an example, the following could be passed for Zstandard decompression
         using a custom compression dictionary:
         ``compression={'method': 'zstd', 'dict_data': my_compression_dict}``.
-
-        .. versionadded:: 1.5.0
-            Added support for `.tar` files.
     storage_options : dict, optional
         Extra options that make sense for a particular storage connection, e.g.
         host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
