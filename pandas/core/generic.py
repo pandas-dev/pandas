@@ -9934,7 +9934,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3  True  True
         4  True  True
         """
-
         inplace = validate_bool_kwarg(inplace, "inplace")
         if inplace:
             if not CHAINED_WARNING_DISABLED:
