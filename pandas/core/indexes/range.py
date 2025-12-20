@@ -1246,7 +1246,7 @@ class RangeIndex(Index):
                     )
                 else:
                     values = np.concatenate([x._values for x in rng_indexes])
-                result = self._constructor(values)
+                result = self._constructor(values, copy=False)
                 return result.rename(name)
 
             if step is not None:
