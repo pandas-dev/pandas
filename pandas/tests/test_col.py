@@ -164,6 +164,7 @@ def test_col_logical_ops(
 
 
 def test_compound_op() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
     df = pd.DataFrame({"a": [1, 2, 3]})
     expr = (pd.col("a") + 1) * (pd.col("a") + 2)
     expected_str = "(col('a') + 1) * (col('a') + 2)"
@@ -175,6 +176,7 @@ def test_compound_op() -> None:
 
 
 def test_getitem() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
     df = pd.DataFrame({"a": [1, 2, 3]})
     expr = pd.col("a")[1]
     expected_str = "col('a')[1]"
@@ -187,6 +189,7 @@ def test_getitem() -> None:
 
 
 def test_property() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
     df = pd.DataFrame({"a": [1, 2, 3]})
     expr = pd.col("a").index
     expected_str = "col('a').index"
@@ -199,6 +202,7 @@ def test_property() -> None:
 
 
 def test_cached_property() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
     # Ensure test is valid
     assert isinstance(pd.Index.dtype, cache_readonly)
 
@@ -213,6 +217,7 @@ def test_cached_property() -> None:
 
 
 def test_qcut() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
     df = pd.DataFrame({"a": [1, 2, 3]})
     expr = pd.qcut(pd.col("a"), 3)
     expected_str = "qcut(x=\"col('a')\", q=3, labels=None, retbins=False, precision=3)"
@@ -224,6 +229,7 @@ def test_qcut() -> None:
 
 
 def test_where() -> None:
+    # https://github.com/pandas-dev/pandas/pull/63439
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     expr = pd.col("a").where(pd.col("b") == 5, 100)
     expected_str = "col('a').where(col('b') == 5, 100)"
