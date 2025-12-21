@@ -3,6 +3,8 @@ import numpy as np
 from pandas import DataFrame
 import pandas._testing as tm
 
+from pandas.core.series import Series
+
 
 def test_head_tail_generic(index, frame_or_series):
     # GH#5370
@@ -55,3 +57,16 @@ def test_head_tail_empty():
     empty_df = DataFrame()
     tm.assert_frame_equal(empty_df.tail(), empty_df)
     tm.assert_frame_equal(empty_df.head(), empty_df)
+
+def test_tail_zero_preserves_dtypes():
+    df = DataFrame(
+        {
+            "A": Series([1, 2, 3], dtype="int64"),
+            "B": Series([1.0, 2.0, 3.0], dtype="float64"),
+            "C": Series(["a", "b", "c"], dtype="string"),
+        }
+    )
+
+    result = df.tail(0)
+
+    assert result.dtypes.to_dict() == df.dtypes.to_dict()
