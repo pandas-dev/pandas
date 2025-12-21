@@ -24,7 +24,6 @@ from pandas import (
 )
 from pandas.tests.io.pytables.common import (
     _maybe_remove,
-    ensure_clean_store,
     tables,
 )
 
@@ -188,8 +187,9 @@ def test_open_args(tmp_path, setup_path, using_infer_string):
     assert not os.path.exists(path)
 
 
-def test_flush(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_flush(tmp_path, setup_path):
+    path = tmp_path / setup_path
+    with HDFStore(path, mode="w") as store:
         store["a"] = Series(range(5))
         store.flush()
         store.flush(fsync=True)
@@ -316,8 +316,9 @@ def test_complibs(tmp_path, lvl, lib, request):
 @pytest.mark.skipif(
     not is_platform_little_endian(), reason="reason platform is not little endian"
 )
-def test_encoding(setup_path):
-    with ensure_clean_store(setup_path) as store:
+def test_encoding(tmp_path, setup_path):
+    path = tmp_path / setup_path
+    with HDFStore(path, mode="w") as store:
         df = DataFrame({"A": "foo", "B": "bar"}, index=range(5))
         df.loc[2, "A"] = np.nan
         df.loc[3, "B"] = np.nan
