@@ -1453,7 +1453,7 @@ Other
   array if the array shares data with the original DataFrame or Series (:ref:`copy_on_write_read_only_na`).
   This logic is expanded to accessing the underlying pandas ExtensionArray
   through ``.array`` (or ``.values`` depending on the dtype) as well (:issue:`61925`).
-
+- Bug in :meth:`Series.round` where series shows TypeError when passed empty Series (:issue:`63444`)
 .. ***DO NOT USE THIS SECTION***
 
 .. ---------------------------------------------------------------------------

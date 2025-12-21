@@ -2579,11 +2579,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: float64
         """
         nv.validate_round(args, kwargs)
-        if not self.empty and (self.dtype == "object" or self.dtype=='str'):
+        if not self.empty and (self.dtype == "object" or self.dtype == "str"):
             raise TypeError("Expected numeric dtype, got object instead.")
-        if not self.empty and (self.dtype=='str'):
+        if not self.empty and (self.dtype == "str"):
             raise TypeError("Expected numeric dtype, got string instead.")
-        
+
         new_mgr = self._mgr.round(decimals=decimals)
         return self._constructor_from_mgr(new_mgr, axes=new_mgr.axes).__finalize__(
             self, method="round"
