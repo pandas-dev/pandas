@@ -117,14 +117,14 @@ for everyone. Your feedback is crucial for making this a successful release!
 
 ### Getting the Release Candidate
 
-You can install the pandas 3.0 release candidate from PyPI:
+You can install the latest pandas 3.0 release candidate from PyPI:
 
 ```bash
-python -m pip install --upgrade pandas==3.0.0rc0
+python -m pip install --upgrade --pre pandas==3.*
 ```
 
 Or from conda-forge using conda/mamba:
 
 ```bash
-conda install -c conda-forge/label/pandas_rc pandas==3.0.0rc0
+conda install -c conda-forge/label/pandas_rc pandas=3
 ```
