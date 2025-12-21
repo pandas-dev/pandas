@@ -241,5 +241,6 @@ def _convert_listlike(
 
     from pandas import TimedeltaIndex
 
-    value = TimedeltaIndex(td64arr, name=name, copy=False)
+    copy = td64arr is arg
+    value = TimedeltaIndex(td64arr, name=name, copy=copy)
     return value
