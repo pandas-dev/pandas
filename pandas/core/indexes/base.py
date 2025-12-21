@@ -505,12 +505,8 @@ class Index(IndexOpsMixin, PandasObject):
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
-        if isinstance(data, (ExtensionArray, np.ndarray)):
-            # GH 63306
-            if copy is not False:
-                if dtype is None or astype_is_view(data.dtype, dtype):
-                    data = data.copy()
-                    copy = False
+        # GH 63306, GH 63388
+        data, copy = cls._maybe_copy_array_input(data, copy, dtype)
 
         # range
         if isinstance(data, (range, RangeIndex)):
@@ -2988,13 +2984,12 @@ class Index(IndexOpsMixin, PandasObject):
     def _get_reconciled_name_object(self, other):
         """
         If the result of a set operation will be self,
-        return self, unless the name changes, in which
-        case make a shallow copy of self.
+        return a shallow copy of self.
         """
         name = get_op_result_name(self, other)
         if self.name is not name:
             return self.rename(name)
-        return self
+        return self.copy(deep=False)
 
     @final
     def _validate_sort_keyword(self, sort) -> None:
@@ -5197,6 +5192,21 @@ class Index(IndexOpsMixin, PandasObject):
             "was passed"
         )
 
+    @classmethod
+    def _maybe_copy_array_input(
+        cls, data, copy: bool | None, dtype
+    ) -> tuple[Any, bool]:
+        """
+        Ensure that the input data is copied if necessary.
+        GH#63388
+        """
+        if isinstance(data, (ExtensionArray, np.ndarray)):
+            if copy is not False:
+                if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                    data = data.copy()
+                    copy = False
+        return data, bool(copy)
+
     def _validate_fill_value(self, value):
         """
         Check if the value can be inserted into our array without casting,
@@ -5412,7 +5422,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = concat_compat(to_concat_vals)
 
-        return Index._with_infer(result, name=name)
+        return Index._with_infer(result, name=name, copy=False)
 
     def putmask(self, mask, value) -> Index:
         """
@@ -6865,12 +6875,15 @@ class Index(IndexOpsMixin, PandasObject):
         # we need to look up the label
         try:
             slc = self.get_loc(label)
-        except KeyError as err:
+        except KeyError:
             try:
                 return self._searchsorted_monotonic(label, side)
             except ValueError:
-                # raise the original KeyError
-                raise err from None
+                raise KeyError(
+                    f"Cannot get {side} slice bound for non-monotonic index "
+                    f"with a missing label {original_label!r}. "
+                    "Either sort the index or specify an existing label."
+                ) from None
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
