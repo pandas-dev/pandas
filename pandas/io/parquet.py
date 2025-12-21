@@ -617,7 +617,7 @@ def read_parquet(
 
     Examples
     --------
-    >>> original_df = pd.DataFrame({{"foo": range(5), "bar": range(5, 10)}})
+    >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
     >>> original_df
        foo  bar
     0    0    5
