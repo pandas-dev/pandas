@@ -983,7 +983,7 @@ class Index(IndexOpsMixin, PandasObject):
             # Reached in plotting tests with e.g. np.nonzero(index)
             return result
 
-        return Index(result, name=self.name, copy=False)
+        return Index(result, name=self.name)
 
     @cache_readonly
     def dtype(self) -> DtypeObj:

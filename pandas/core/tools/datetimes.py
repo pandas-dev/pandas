@@ -288,8 +288,8 @@ def _box_as_indexlike(
 
     if lib.is_np_dtype(dt_array.dtype, "M"):
         tz = "utc" if utc else None
-        return DatetimeIndex(dt_array, tz=tz, name=name, copy=False)
-    return Index(dt_array, name=name, dtype=dt_array.dtype, copy=False)
+        return DatetimeIndex(dt_array, tz=tz, name=name)
+    return Index(dt_array, name=name, dtype=dt_array.dtype)
 
 
 def _convert_and_box_cache(

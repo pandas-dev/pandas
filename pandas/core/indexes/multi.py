@@ -564,11 +564,7 @@ class MultiIndex(Index):
         # handling the empty tuple cases
         if len(tuples) and all(isinstance(e, tuple) and not e for e in tuples):
             codes = [np.zeros(len(tuples))]
-            levels = [
-                Index(
-                    com.asarray_tuplesafe(tuples, dtype=np.dtype("object")), copy=False
-                )
-            ]
+            levels = [Index(com.asarray_tuplesafe(tuples, dtype=np.dtype("object")))]
             return cls(
                 levels=levels,
                 codes=codes,

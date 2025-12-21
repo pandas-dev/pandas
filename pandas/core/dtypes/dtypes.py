@@ -581,7 +581,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                 f"Parameter 'categories' must be list-like, was {categories!r}"
             )
         if not isinstance(categories, ABCIndex):
-            categories = Index._with_infer(categories, tupleize_cols=False, copy=False)
+            categories = Index._with_infer(categories, tupleize_cols=False)
 
         if not fastpath:
             if categories.hasnans:
