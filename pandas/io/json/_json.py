@@ -1312,8 +1312,10 @@ class Parser:
         date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
         for date_unit in date_units:
             try:
-                # Without this as_unit cast, we would fail to overflow
-                #  and get much-too-large dates
+                # In case of multiple possible units, infer the likely unit
+                # based on the first unit for which the parsed dates fit
+                # within the nanoseconds bounds
+                # -> do as_unit cast to ensure OutOfBounds error
                 return to_datetime(new_data, errors="raise", unit=date_unit).dt.as_unit(
                     "ns"
                 )
