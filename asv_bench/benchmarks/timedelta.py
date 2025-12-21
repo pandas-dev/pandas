@@ -32,6 +32,26 @@ class DatetimeAccessor:
         series.dt.nanoseconds
 
 
+class TimedeltaComponents:
+    params = ["NumPy", "PyArrow"]
+    param_names = ["backend"]
+
+    def setup(self, backend):
+        N = 100000
+        if backend == "NumPy":
+            self.series = Series(timedelta_range("1 days", periods=N, freq="h"))
+        else:
+            self.series = Series(timedelta_range("1 days", periods=N, freq="h")).astype(
+                "duration[ns][pyarrow]"
+            )
+
+    def time_days(self, backend):
+        self.series.dt.days
+
+    def time_components(self, backend):
+        self.series.dt.components
+
+
 class TimedeltaIndexing:
     def setup(self):
         self.index = timedelta_range(start="1985", periods=1000, freq="D")
