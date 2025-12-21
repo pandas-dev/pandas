@@ -15,6 +15,7 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
+from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 from pandas.core.dtypes.generic import ABCNDFrame
 
 from pandas.core import roperator
@@ -529,4 +530,6 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
 
     # By default, numpy's reductions do not skip NaNs, so we have to
     #  pass skipna=False
-    return getattr(self, method_name)(skipna=False, **kwargs)
+    result = getattr(self, method_name)(skipna=False, **kwargs)
+    result = maybe_unbox_numpy_scalar(result)
+    return result

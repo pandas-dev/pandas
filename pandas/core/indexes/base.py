@@ -92,6 +92,7 @@ from pandas.core.dtypes.cast import (
     common_dtype_categorical_compat,
     find_result_type,
     infer_dtype_from,
+    maybe_unbox_numpy_scalar,
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
@@ -341,8 +342,13 @@ class Index(IndexOpsMixin, PandasObject):
         Data type for the output Index. If not specified, this will be
         inferred from `data`.
         See the :ref:`user guide <basics.dtypes>` for more usages.
-    copy : bool, default False
-        Copy input data.
+    copy : bool, default None
+        Whether to copy input data, only relevant for array, Series, and Index
+        inputs (for other input, e.g. a list, a new array is created anyway).
+        Defaults to True for array input and False for Index/Series.
+        Set to False to avoid copying array input at your own risk (if you
+        know the input data won't be modified elsewhere).
+        Set to True to force copying Series/Index input up front.
     name : object
         Name to be stored in the index.
     tupleize_cols : bool (default: True)
@@ -482,7 +488,7 @@ class Index(IndexOpsMixin, PandasObject):
         cls,
         data=None,
         dtype=None,
-        copy: bool = False,
+        copy: bool | None = None,
         name=None,
         tupleize_cols: bool = True,
     ) -> Self:
@@ -499,9 +505,12 @@ class Index(IndexOpsMixin, PandasObject):
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
+        # GH 63306, GH 63388
+        data, copy = cls._maybe_copy_array_input(data, copy, dtype)
+
         # range
         if isinstance(data, (range, RangeIndex)):
-            result = RangeIndex(start=data, copy=copy, name=name)
+            result = RangeIndex(start=data, copy=bool(copy), name=name)
             if dtype is not None:
                 return result.astype(dtype, copy=False)
             # error: Incompatible return value type (got "MultiIndex",
@@ -569,7 +578,7 @@ class Index(IndexOpsMixin, PandasObject):
                 data = com.asarray_tuplesafe(data, dtype=_dtype_obj)
 
         try:
-            arr = sanitize_array(data, None, dtype=dtype, copy=copy)
+            arr = sanitize_array(data, None, dtype=dtype, copy=bool(copy))
         except ValueError as err:
             if "index must be specified when data is not list-like" in str(err):
                 raise cls._raise_scalar_data_error(data) from err
@@ -2975,13 +2984,12 @@ class Index(IndexOpsMixin, PandasObject):
     def _get_reconciled_name_object(self, other):
         """
         If the result of a set operation will be self,
-        return self, unless the name changes, in which
-        case make a shallow copy of self.
+        return a shallow copy of self.
         """
         name = get_op_result_name(self, other)
         if self.name is not name:
             return self.rename(name)
-        return self
+        return self.copy(deep=False)
 
     @final
     def _validate_sort_keyword(self, sort) -> None:
@@ -5184,6 +5192,21 @@ class Index(IndexOpsMixin, PandasObject):
             "was passed"
         )
 
+    @classmethod
+    def _maybe_copy_array_input(
+        cls, data, copy: bool | None, dtype
+    ) -> tuple[Any, bool]:
+        """
+        Ensure that the input data is copied if necessary.
+        GH#63388
+        """
+        if isinstance(data, (ExtensionArray, np.ndarray)):
+            if copy is not False:
+                if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
+                    data = data.copy()
+                    copy = False
+        return data, bool(copy)
+
     def _validate_fill_value(self, value):
         """
         Check if the value can be inserted into our array without casting,
@@ -5399,7 +5422,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = concat_compat(to_concat_vals)
 
-        return Index._with_infer(result, name=name)
+        return Index._with_infer(result, name=name, copy=False)
 
     def putmask(self, mask, value) -> Index:
         """
@@ -6852,12 +6875,15 @@ class Index(IndexOpsMixin, PandasObject):
         # we need to look up the label
         try:
             slc = self.get_loc(label)
-        except KeyError as err:
+        except KeyError:
             try:
                 return self._searchsorted_monotonic(label, side)
             except ValueError:
-                # raise the original KeyError
-                raise err from None
+                raise KeyError(
+                    f"Cannot get {side} slice bound for non-monotonic index "
+                    f"with a missing label {original_label!r}. "
+                    "Either sort the index or specify an existing label."
+                ) from None
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
@@ -7522,7 +7548,7 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             first = self[0]
             if not isna(first):
-                return first
+                return maybe_unbox_numpy_scalar(first)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
@@ -7533,7 +7559,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not self._is_multi and not isinstance(self._values, np.ndarray):
             return self._values._reduce(name="min", skipna=skipna)
 
-        return nanops.nanmin(self._values, skipna=skipna)
+        return maybe_unbox_numpy_scalar(nanops.nanmin(self._values, skipna=skipna))
 
     def max(self, axis: AxisInt | None = None, skipna: bool = True, *args, **kwargs):
         """
@@ -7586,18 +7612,18 @@ class Index(IndexOpsMixin, PandasObject):
             # quick check
             last = self[-1]
             if not isna(last):
-                return last
+                return maybe_unbox_numpy_scalar(last)
 
         if not self._is_multi and self.hasnans:
             # Take advantage of cache
             mask = self._isnan
             if not skipna or mask.all():
-                return self._na_value
+                return maybe_unbox_numpy_scalar(self._na_value)
 
         if not self._is_multi and not isinstance(self._values, np.ndarray):
             return self._values._reduce(name="max", skipna=skipna)
 
-        return nanops.nanmax(self._values, skipna=skipna)
+        return maybe_unbox_numpy_scalar(nanops.nanmax(self._values, skipna=skipna))
 
     # --------------------------------------------------------------------
 
