@@ -10,6 +10,7 @@ import pytest
 
 from pandas._libs.tslibs import timezones
 from pandas.compat import WASM
+from pandas.errors import OutOfBoundsDatetime
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -727,6 +728,11 @@ class TestAddSubNaTMasking:
         # See GH#14068
         # preliminary test scalar analogue of vectorized tests below
         # TODO: Make raised error message more informative and test
+        ts = Timestamp("2000").as_unit("ns")
+        with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
+            pd.to_timedelta(106580, "D") + ts
+        with pytest.raises(OutOfBoundsDatetime, match="10155196800000000000"):
+            ts + pd.to_timedelta(106580, "D")
 
         _NaT = NaT._value + 1
         msg = "Overflow in int64 addition"

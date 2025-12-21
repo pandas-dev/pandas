@@ -41,9 +41,15 @@ class TestTimedeltaConstructorUnitKeyword:
             td = Timedelta(1, unit=unit)
             assert td.unit == unit
 
+            td = to_timedelta(1, unit=unit)
+            assert td.unit == unit
+
         # For non-supported units we get the closest-supported unit
         for unit in ["W", "D", "h", "m"]:
             td = Timedelta(1, unit=unit)
+            assert td.unit == "s"
+
+            td = to_timedelta(1, unit=unit)
             assert td.unit == "s"
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
