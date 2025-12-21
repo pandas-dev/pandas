@@ -1316,7 +1316,7 @@ class IndexOpsMixin(OpsMixin):
             except NotImplementedError:
                 # not all dtypes are supported in Index that are allowed for Series
                 # e.g. float16 or bytes
-                uniques = Index(uniques)
+                uniques = Index(uniques, copy=False)
         return codes, uniques
 
     _shared_docs["searchsorted"] = """

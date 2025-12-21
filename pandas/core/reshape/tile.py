@@ -571,7 +571,7 @@ def _coerce_to_type(x: Index) -> tuple[Index, DtypeObj | None]:
     # https://github.com/pandas-dev/pandas/issues/31389
     elif isinstance(x.dtype, ExtensionDtype) and is_numeric_dtype(x.dtype):
         x_arr = x.to_numpy(dtype=np.float64, na_value=np.nan)
-        x = Index(x_arr)
+        x = Index(x_arr, copy=False)
 
     return Index(x), dtype
 

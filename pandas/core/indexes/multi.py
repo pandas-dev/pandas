@@ -1041,7 +1041,6 @@ class MultiIndex(Index):
         if isinstance(levels, Index):
             pass
         elif is_array_like(levels):
-            # TODO: Here?
             levels = Index(levels)
         elif is_list_like(levels):
             levels = list(levels)

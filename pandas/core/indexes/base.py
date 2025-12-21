@@ -300,6 +300,7 @@ def _new_Index(cls, d):
     """
     # required for backward compat, because PI can't be instantiated with
     # ordinals through __new__ GH #13277
+    d["copy"] = False
     if issubclass(cls, ABCPeriodIndex):
         from pandas.core.indexes.period import _new_PeriodIndex
 
@@ -321,7 +322,7 @@ def _new_Index(cls, d):
     return cls.__new__(cls, **d)
 
 
-def called_from_tests() -> bool:
+def ignore_caller() -> bool:
     """
     Find the first place in the stack that is not inside pandas
     (tests notwithstanding).
@@ -338,7 +339,40 @@ def called_from_tests() -> bool:
     frame = inspect.currentframe().f_back.f_back.f_back
     try:
         filename = inspect.getfile(frame)
-        return filename.startswith(test_dir)
+        if filename.startswith(test_dir):
+            return True
+        caller = frame.f_code.co_name
+        if caller in [
+            "sanitize_array",
+            "_maybe_cast_listlike_indexer",
+            "convert",
+            "_cast_pointwise_result",
+            "isin",
+            "array",
+        ]:
+            # Due to maybe_convert_object
+            return True
+        if frame.f_back.f_code.co_name in ["ndarray_to_mgr"]:
+            # Due to maybe_convert_object + list comp
+            return True
+        if caller in [
+            "map",
+            "_to_datetime_with_unit",
+            "_convert_listlike_datetimes",
+            "to_numeric",
+            "quantile",
+            "ensure_index_from_sequences",
+            "infer_objects",
+            "cut",
+            "_set_grouper",
+            "_convert_can_do_setop",
+            "ensure_index",
+            "set_levels",
+            "from_records",
+        ]:
+            return True
+
+        return False
     finally:
         # See note in
         # https://docs.python.org/3/library/inspect.html#inspect.Traceback
@@ -1006,8 +1040,7 @@ class Index(IndexOpsMixin, PandasObject):
             # Reached in plotting tests with e.g. np.nonzero(index)
             return result
 
-        # TODO: Here?
-        return Index(result, name=self.name)
+        return Index(result, name=self.name, copy=False)
 
     @cache_readonly
     def dtype(self) -> DtypeObj:
@@ -5232,7 +5265,7 @@ class Index(IndexOpsMixin, PandasObject):
                 if dtype is None or astype_is_view(data.dtype, pandas_dtype(dtype)):
                     import os
 
-                    if not called_from_tests() and "PYTEST_CURRENT_TEST" in os.environ:
+                    if not ignore_caller() and "PYTEST_CURRENT_TEST" in os.environ:
                         with open(
                             "/home/richard/dev/pandas/pytest.out", mode="a"
                         ) as fh:
@@ -6781,7 +6814,6 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             # If we started with a list-like, avoid inference to string dtype if self
             # is object dtype (coercing to string dtype will alter the missing values)
-            # TODO: Here?
             target_index = Index(target, dtype=self.dtype)
         elif (
             not hasattr(target, "dtype")

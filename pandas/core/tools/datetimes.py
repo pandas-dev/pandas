@@ -381,7 +381,7 @@ def _convert_listlike_datetimes(
                     arg_array = arg_array._dt_tz_convert("UTC")
                 else:
                     arg_array = arg_array._dt_tz_localize("UTC")
-                arg = Index(arg_array)
+                arg = Index(arg_array, copy=False)
             else:
                 # ArrowExtensionArray
                 if arg_dtype.pyarrow_dtype.tz is not None:

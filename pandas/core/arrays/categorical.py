@@ -670,8 +670,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             to_timedelta,
         )
 
-        # TODO: Here
-        cats = Index(inferred_categories)
+        cats = Index(inferred_categories, copy=False)
         known_categories = (
             isinstance(dtype, CategoricalDtype) and dtype.categories is not None
         )

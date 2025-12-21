@@ -534,7 +534,6 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                 # TODO: com.asarray_tuplesafe shouldn't cast e.g. DatetimeArray
             else:
                 res = keyarr
-        # TODO: Here?
         return Index(res, dtype=res.dtype)
 
 

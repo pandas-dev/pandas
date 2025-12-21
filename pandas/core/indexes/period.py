@@ -410,7 +410,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             Array of booleans where data is not NA.
         """
         if isinstance(where, DatetimeIndex):
-            where = PeriodIndex(where._values, freq=self.freq)
+            where = PeriodIndex(where._values, freq=self.freq, copy=False)
         elif not isinstance(where, PeriodIndex):
             raise TypeError("asof_locs `where` must be DatetimeIndex or PeriodIndex")
 
@@ -625,4 +625,4 @@ def period_range(
     data, freq = PeriodArray._generate_range(start, end, periods, freq)
     dtype = PeriodDtype(freq)
     data = PeriodArray(data, dtype=dtype)
-    return PeriodIndex(data, name=name)
+    return PeriodIndex(data, name=name, copy=False)
