@@ -10081,12 +10081,6 @@ class DataFrame(NDFrame, OpsMixin):
             raise ValueError("Update not allowed with duplicate indexes on other.")
 
         index_intersection = other.index.intersection(self.index)
-        if index_intersection.empty:
-            raise ValueError(
-                "Update not allowed when the index on `other` has no intersection "
-                "with this dataframe."
-            )
-
         other = other.reindex(index_intersection)
         this_data = self.loc[index_intersection]
 
